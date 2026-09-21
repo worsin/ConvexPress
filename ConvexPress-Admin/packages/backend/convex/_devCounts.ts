@@ -395,7 +395,7 @@ export const forceCancelRunning = internalMutation({
   args: { jobId: v.id("wordpressSyncJobs") },
   handler: async (ctx, { jobId }) => {
     assertDevInternalsEnabled();
-    await ctx.db.patch(jobId, {
+    await ctx.db.patch("wordpressSyncJobs", jobId, {
       status: "cancelled",
       completedAt: Date.now(),
       updatedAt: Date.now(),
@@ -410,7 +410,7 @@ export const clearJobErrors = internalMutation({
   args: { jobId: v.id("wordpressSyncJobs") },
   handler: async (ctx, { jobId }) => {
     assertDevInternalsEnabled();
-    await ctx.db.patch(jobId, { errors: [], updatedAt: Date.now() });
+    await ctx.db.patch("wordpressSyncJobs", jobId, { errors: [], updatedAt: Date.now() });
     return { cleared: jobId };
   },
 });
@@ -422,7 +422,7 @@ export const resumeWithFreshErrors = internalMutation({
     assertDevInternalsEnabled();
     const job = await ctx.db.get(jobId);
     if (!job) throw new Error("Job not found");
-    await ctx.db.patch(jobId, {
+    await ctx.db.patch("wordpressSyncJobs", jobId, {
       status: "running",
       errors: [],
       completedAt: undefined,
@@ -446,7 +446,7 @@ export const resumeFailedJob = internalMutation({
     assertDevInternalsEnabled();
     const job = await ctx.db.get(jobId);
     if (!job) throw new Error("Job not found");
-    await ctx.db.patch(jobId, {
+    await ctx.db.patch("wordpressSyncJobs", jobId, {
       status: "running",
       completedAt: undefined,
       pausedAt: undefined,
@@ -478,7 +478,7 @@ export const resetPhaseAndResume = internalMutation({
         ...(resetCursor ? { cursor: 0, imported: 0, failed: 0 } : {}),
       };
     }
-    await ctx.db.patch(jobId, {
+    await ctx.db.patch("wordpressSyncJobs", jobId, {
       status: "running",
       currentPhase: phase as any,
       progress,
@@ -514,7 +514,7 @@ export const triggerSyncDirect = internalMutation({
         j.status === "running" ||
         j.status === "paused"
       ) {
-        await ctx.db.patch(j._id, {
+        await ctx.db.patch("wordpressSyncJobs", j._id, {
           status: "cancelled",
           completedAt: Date.now(),
         });

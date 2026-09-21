@@ -9,6 +9,7 @@ import {
   buildSelectionKey,
   inferSelectionsFromOptionSummary,
 } from "./variantHelpers";
+import { patchWithMediaReferences , patchDynamicWithMediaReferences} from "../media/attachmentGuard";
 
 function pushSample(target: any[], value: any, limit: number) {
   if (target.length < limit) {
@@ -536,7 +537,7 @@ export const repairVariantIntegrity = mutation({
 
       if (productVariants.length > 0 && product.productType !== "variable") {
         if (!dryRun) {
-          await ctx.db.patch(product._id, {
+          await patchWithMediaReferences<"commerce_products">(ctx, "commerce_products", product._id, {
             productType: "variable",
             updatedAt: now,
           });
@@ -565,7 +566,7 @@ export const repairVariantIntegrity = mutation({
         }
 
         if (Object.keys(patch).length > 0 && !dryRun) {
-          await ctx.db.patch(variant._id, {
+          await patchWithMediaReferences<"commerce_product_variants">(ctx, "commerce_product_variants", variant._id, {
             ...patch,
             updatedAt: now,
           });
@@ -587,7 +588,7 @@ export const repairVariantIntegrity = mutation({
 
           if (!dryRun) {
             for (const variant of productVariants) {
-              await ctx.db.patch(variant._id, {
+              await patchWithMediaReferences<"commerce_product_variants">(ctx, "commerce_product_variants", variant._id, {
                 isDefault: variant._id.toString() === canonicalDefault._id.toString(),
                 updatedAt: now,
               });
@@ -702,7 +703,7 @@ export const backfillEnterpriseCommerceRecords = mutation({
       if (!cart.salesChannelId && defaultChannel) patch.salesChannelId = defaultChannel._id;
       if (Object.keys(patch).length) {
         summary.cartsPatched += 1;
-        if (!dryRun) await ctx.db.patch(cart._id, { ...patch, updatedAt: now });
+        if (!dryRun) await patchDynamicWithMediaReferences(ctx, cart._id, { ...patch, updatedAt: now });
       }
     }
 
@@ -712,7 +713,7 @@ export const backfillEnterpriseCommerceRecords = mutation({
       if (!checkout.salesChannelId && defaultChannel) patch.salesChannelId = defaultChannel._id;
       if (Object.keys(patch).length) {
         summary.checkoutsPatched += 1;
-        if (!dryRun) await ctx.db.patch(checkout._id, { ...patch, updatedAt: now });
+        if (!dryRun) await patchDynamicWithMediaReferences(ctx, checkout._id, { ...patch, updatedAt: now });
       }
     }
 
@@ -722,7 +723,7 @@ export const backfillEnterpriseCommerceRecords = mutation({
       if (!order.salesChannelId && defaultChannel) patch.salesChannelId = defaultChannel._id;
       if (Object.keys(patch).length) {
         summary.ordersPatched += 1;
-        if (!dryRun) await ctx.db.patch(order._id, { ...patch, updatedAt: now });
+        if (!dryRun) await patchDynamicWithMediaReferences(ctx, order._id, { ...patch, updatedAt: now });
       }
     }
 
@@ -767,13 +768,13 @@ export const backfillEnterpriseCommerceRecords = mutation({
         createdAt: transaction.createdAt ?? now,
         updatedAt: now,
       });
-      await ctx.db.patch(transaction._id, {
+      await patchDynamicWithMediaReferences(ctx, transaction._id, {
         collectionId,
         sessionId,
         updatedAt: now,
       });
       if (!order.paymentCollectionId) {
-        await ctx.db.patch(order._id, { paymentCollectionId: collectionId, updatedAt: now });
+        await patchDynamicWithMediaReferences(ctx, order._id, { paymentCollectionId: collectionId, updatedAt: now });
       }
     }
 

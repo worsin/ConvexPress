@@ -29,6 +29,7 @@ import { computeProration } from "../helpers/proration";
 import { applyCouponToInvoice } from "../helpers/coupons";
 import type { Id } from "../_generated/dataModel";
 import type { MutationCtx } from "../_generated/server";
+import { patchWithMediaReferences } from "../media/attachmentGuard";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -127,7 +128,7 @@ async function allocateProrationInvoiceNumber(ctx: any): Promise<string> {
   const formatted = `${prefix}${String(nextCounter).padStart(6, "0")}`;
   const now = Date.now();
   if (doc) {
-    await ctx.db.patch(doc._id, {
+    await patchWithMediaReferences<"settings">(ctx, "settings", doc._id, {
       values: { ...values, invoiceCounter: nextCounter },
       updatedAt: now,
     });
@@ -306,7 +307,7 @@ export const applyUpgradeProration = internalMutation({
     });
 
     // Update the proration_event with the invoiceId.
-    await ctx.db.patch(prorationEventId, { invoiceId });
+    await ctx.db.patch("commerce_subscription_proration_events", prorationEventId, { invoiceId });
 
     // Create the invoice line item.
     await ctx.db.insert("commerce_subscription_invoice_items", {
@@ -359,7 +360,7 @@ export const applyUpgradeProration = internalMutation({
     // invoice.prorationEventId) after the Stripe charge settles.
     const live = await isLiveChargingEnabled(ctx);
     if (live) {
-      await ctx.db.patch(invoiceId, {
+      await ctx.db.patch("commerce_subscription_invoices", invoiceId, {
         status: "open",
         updatedAt: now,
       });
@@ -398,7 +399,7 @@ export const applyUpgradeProration = internalMutation({
     if (!chargeResult.success) {
       // Mark invoice as failed. Leave contract in current state (not yet past_due —
       // the dunning sweep will handle retries).
-      await ctx.db.patch(invoiceId, {
+      await ctx.db.patch("commerce_subscription_invoices", invoiceId, {
         status: "failed",
         updatedAt: now,
       });
@@ -410,7 +411,7 @@ export const applyUpgradeProration = internalMutation({
     }
 
     // On success: mark invoice paid.
-    await ctx.db.patch(invoiceId, {
+    await ctx.db.patch("commerce_subscription_invoices", invoiceId, {
       status: "paid",
       paidAt: now,
       paymentTransactionId: chargeResult.transactionId,
@@ -418,7 +419,7 @@ export const applyUpgradeProration = internalMutation({
     });
 
     // Swap the subscription item to the new offer.
-    await ctx.db.patch(activeItem._id, {
+    await ctx.db.patch("commerce_subscription_items", activeItem._id, {
       status: "cancelled",
       cancelledAt: now,
       updatedAt: now,
@@ -474,7 +475,7 @@ export const applyUpgradeProration = internalMutation({
     });
 
     const existingHistory = contract.offerHistory ?? [];
-    await ctx.db.patch(args.contractId, {
+    await ctx.db.patch("commerce_subscriptions", args.contractId, {
       recurringAmount: toOffer.recurringAmount ?? contract.recurringAmount,
       currencyCode,
       currentPeriodStartAt: newCycleStart,
@@ -553,7 +554,7 @@ export const applyDowngradeProration = internalMutation({
       contract.currentPeriodEndAt ??
       (contract.currentPeriodStartAt ?? now) + 30 * 24 * 60 * 60 * 1000;
 
-    await ctx.db.patch(args.contractId, {
+    await ctx.db.patch("commerce_subscriptions", args.contractId, {
       scheduledOfferChange: {
         toOfferId: args.toOfferId,
         effectiveAt: cycleEnd,

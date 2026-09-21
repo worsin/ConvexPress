@@ -21,6 +21,9 @@
 
 import { defineTable } from "convex/server";
 import { v } from "convex/values";
+import { postTables } from "./posts";
+
+const authoring = postTables.posts.validator.fields;
 
 // ─── Shared Validators (used by schema and functions) ───────────────────────
 
@@ -61,6 +64,24 @@ export const revisionTables = {
     title: v.string(),                        // Snapshot of the title at this point in time
     content: v.string(),                      // Snapshot of the content (serialized block editor JSON)
     excerpt: v.optional(v.string()),          // Snapshot of the excerpt
+    snapshotVersion: v.optional(v.union(v.literal(1), v.literal(2))),
+    contentMode: authoring.contentMode,
+    blocks: authoring.blocks,
+    blocksVersion: authoring.blocksVersion,
+    blocksRevision: authoring.blocksRevision,
+    composedDefinitions: authoring.composedDefinitions,
+    hero: authoring.hero,
+    topics: authoring.topics,
+    summary: authoring.summary,
+    sources: authoring.sources,
+    tableOfContents: authoring.tableOfContents,
+    featuredImageId: authoring.featuredImageId,
+    pageSections: authoring.pageSections,
+    pageTemplate: authoring.pageTemplate,
+    hideHeader: authoring.hideHeader,
+    hideFooter: authoring.hideFooter,
+    layoutId: authoring.layoutId,
+    pagePrompt: authoring.pagePrompt,
 
     // ── Revision Metadata ───────────────────────────────────────────────
     revisionNumber: v.number(),               // Sequential number: 1, 2, 3, ...

@@ -45,7 +45,7 @@ import {
   validateFileType,
 } from "./helpers";
 import { checkMediaCapability, getUserRoleLevel } from "./mediaAuth";
-import { findMediaReferences, clearMediaReferences } from "./references";
+import { prepareMediaDeletion, applyMediaDeletionPreflight, preflightReplacedSizeBlob } from "./deletion";
 
 // ─── Default allowed MIME types ──────────────────────────────────────────────
 // SECURITY DECISION: SVG (`image/svg+xml`) is intentionally excluded from the
@@ -494,27 +494,11 @@ export const remove = mutation({
 
     await checkMediaCapability(ctx, user, media, "delete");
 
-    // Reference check. Refuse to trash referenced media unless force:true +
-    // Editor-level role (force sweeps references across all systems).
-    const references = await findMediaReferences(ctx, args.mediaId);
-    if (references.length > 0 && !args.force) {
-      throw new ConvexError({
-        code: "MEDIA_IN_USE",
-        message: `This media is referenced by ${references.length} document(s). Remove the references first, or pass force: true.`,
-        data: { references },
-      });
-    }
-    if (references.length > 0 && args.force) {
-      const level = await getUserRoleLevel(ctx, user);
-      if (level < 80) {
-        throw new ConvexError({
-          code: "FORBIDDEN",
-          message: "Force-trashing referenced media requires Editor-level role or higher.",
-          data: { references },
-        });
-      }
-      await clearMediaReferences(ctx, args.mediaId, references);
-    }
+    const plan = await prepareMediaDeletion(ctx, [media], { force: Boolean(args.force), permanent: false, authorizeForce: async () => {
+      if (await getUserRoleLevel(ctx, user) < 80) throw new ConvexError({ code: "FORBIDDEN", message: "Force-deleting referenced media requires Editor-level role or higher." });
+    } });
+    if (plan.blocked.size) throw new ConvexError({ code: "MEDIA_IN_USE", message: "This media is referenced. Remove its references first, or use force with an Editor role.", data: { references: plan.references } });
+    await applyMediaDeletionPreflight(ctx, plan);
 
     // Soft-delete: flip status to "trashed", preserve storage + record.
     const now = Date.now();
@@ -610,55 +594,11 @@ export const permanentlyDelete = mutation({
 
     await checkMediaCapability(ctx, user, media, "delete");
 
-    const references = await findMediaReferences(ctx, args.mediaId);
-    if (references.length > 0 && !args.force) {
-      throw new ConvexError({
-        code: "MEDIA_IN_USE",
-        message: `This media is referenced by ${references.length} document(s). Pass force: true to clear references.`,
-        data: { references },
-      });
-    }
-    if (references.length > 0 && args.force) {
-      const level = await getUserRoleLevel(ctx, user);
-      if (level < 80) {
-        throw new ConvexError({
-          code: "FORBIDDEN",
-          message: "Force-deleting referenced media requires Editor-level role or higher.",
-          data: { references },
-        });
-      }
-      await clearMediaReferences(ctx, args.mediaId, references);
-    }
-
-    // Delete original storage blob
-    try {
-      (media.storageId ? await ctx.storage.delete(media.storageId) : undefined);
-    } catch {
-      // Orphaned; continue
-    }
-
-    // Delete all sub-size storage blobs + records
-    const sizes = await ctx.db
-      .query("mediaSizes")
-      .withIndex("by_media", (q) => q.eq("mediaId", args.mediaId))
-      .collect();
-    for (const size of sizes) {
-      try {
-        (size.storageId ? await ctx.storage.delete(size.storageId) : undefined);
-      } catch {
-        // Orphaned
-      }
-      await ctx.db.delete("mediaSizes", size._id);
-    }
-
-    // Delete all meta rows
-    const metaRecords = await ctx.db
-      .query("mediaMeta")
-      .withIndex("by_media", (q) => q.eq("mediaId", args.mediaId))
-      .collect();
-    for (const meta of metaRecords) {
-      await ctx.db.delete("mediaMeta", meta._id);
-    }
+    const plan = await prepareMediaDeletion(ctx, [media], { force: Boolean(args.force), permanent: true, authorizeForce: async () => {
+      if (await getUserRoleLevel(ctx, user) < 80) throw new ConvexError({ code: "FORBIDDEN", message: "Force-deleting referenced media requires Editor-level role or higher." });
+    } });
+    if (plan.blocked.size) throw new ConvexError({ code: "MEDIA_IN_USE", message: "This media is referenced. Remove its references first, or use force with an Editor role.", data: { references: plan.references } });
+    await applyMediaDeletionPreflight(ctx, plan);
 
     const eventPayload = {
       mediaId: args.mediaId,
@@ -699,6 +639,8 @@ export const addSize = internalMutation({
       });
     }
 
+    if (media.status === "trashed") throw new ConvexError({ code: "MEDIA_UNAVAILABLE", message: "Trashed media cannot receive processed sizes." });
+
     // Check for existing size with same name (prevent duplicates)
     const existing = await ctx.db
       .query("mediaSizes")
@@ -708,12 +650,8 @@ export const addSize = internalMutation({
       .unique();
 
     if (existing) {
-      // Replace existing size: delete old storage file and record
-      try {
-        (existing.storageId ? await ctx.storage.delete(existing.storageId) : undefined);
-      } catch {
-        // Orphaned storage file
-      }
+      const obsolete = await preflightReplacedSizeBlob(ctx, existing.storageId, args.storageId);
+      if (obsolete) await ctx.storage.delete(obsolete);
       await ctx.db.delete("mediaSizes", existing._id);
     }
 
@@ -755,6 +693,8 @@ export const updateStatus = internalMutation({
         message: "Media item not found",
       });
     }
+
+    if (media.status === "trashed") throw new ConvexError({ code: "MEDIA_UNAVAILABLE", message: "A late processing result cannot restore trashed media." });
 
     const now = Date.now();
     const patch: Record<string, unknown> = {
@@ -812,85 +752,28 @@ export const bulkDelete = mutation({
   args: bulkDeleteArgs,
   handler: async (ctx, args) => {
     const user = await requireCan(ctx, "media.delete");
-
-    // Validate array bounds
-    if (args.mediaIds.length === 0) {
-      throw new ConvexError({
-        code: "VALIDATION_ERROR",
-        message: "No media items specified for deletion",
-      });
-    }
-    if (args.mediaIds.length > 100) {
-      throw new ConvexError({
-        code: "VALIDATION_ERROR",
-        message: "Cannot delete more than 100 items at once",
-      });
-    }
-
-    // Check user has Editor-level role for bulk operations
-    const level = await getUserRoleLevel(ctx, user);
-    if (level < 80) {
-      throw new ConvexError({
-        code: "FORBIDDEN",
-        message: "Bulk delete requires Editor or Administrator role",
-      });
-    }
-
-    let trashed = 0;
+    if (!args.mediaIds.length || args.mediaIds.length > 100) throw new ConvexError({ code: "VALIDATION_ERROR", message: "Delete between 1 and 100 items at once" });
+    if (await getUserRoleLevel(ctx, user) < 80) throw new ConvexError({ code: "FORBIDDEN", message: "Bulk delete requires Editor or Administrator role" });
     const errors: Array<{ mediaId: string; error: string; references?: unknown }> = [];
-    const now = Date.now();
-
-    for (const mediaId of args.mediaIds) {
-      try {
-        const media = await ctx.db.get("media", mediaId);
-        if (!media) {
-          errors.push({ mediaId: mediaId as string, error: "Not found" });
-          continue;
-        }
-        if (media.status === "trashed") {
-          trashed++;
-          continue;
-        }
-
-        const references = await findMediaReferences(ctx, mediaId);
-        if (references.length > 0 && !args.force) {
-          errors.push({
-            mediaId: mediaId as string,
-            error: `In use by ${references.length} document(s)`,
-            references,
-          });
-          continue;
-        }
-        if (references.length > 0 && args.force) {
-          await clearMediaReferences(ctx, mediaId, references);
-        }
-
-        await ctx.db.patch("media", mediaId, {
-          status: "trashed" as const,
-          previousStatus: media.status,
-          trashedAt: now,
-          trashedBy: user._id,
-          updatedAt: now,
-        });
-
-        await emitEvent(ctx, MEDIA_EVENTS.DELETED, SYSTEM.MEDIA, {
-          mediaId,
-          fileName: media.fileName,
-          deletedBy: getUserIdentifier(user),
-          mediaType: media.mediaType,
-          fileSize: media.fileSize,
-          trashed: true,
-        });
-
-        trashed++;
-      } catch (err) {
-        errors.push({
-          mediaId: mediaId as string,
-          error: err instanceof Error ? err.message : "Unknown error",
-        });
-      }
+    const documents = [];
+    let trashed = 0;
+    for (const mediaId of new Set(args.mediaIds)) {
+      const media = await ctx.db.get("media", mediaId);
+      if (!media) { errors.push({ mediaId, error: "Not found" }); continue; }
+      if (media.status === "trashed") { trashed++; continue; }
+      await checkMediaCapability(ctx, user, media, "delete");
+      documents.push(media);
     }
-
+    // One complete reference traversal for the selection; no writes in per-item catches.
+    const plan = await prepareMediaDeletion(ctx, documents, { force: Boolean(args.force), permanent: false });
+    for (const [mediaId, references] of plan.blocked) errors.push({ mediaId, error: `In use by ${new Set(references.map(ref => ref.documentId)).size} document(s)`, references });
+    await applyMediaDeletionPreflight(ctx, plan);
+    for (const media of plan.eligible) {
+      const mediaId = media._id;
+      await ctx.db.patch("media", mediaId, { status: "trashed", previousStatus: media.status, trashedAt: Date.now(), trashedBy: user._id, updatedAt: Date.now() });
+      await emitEvent(ctx, MEDIA_EVENTS.DELETED, SYSTEM.MEDIA, { mediaId, fileName: media.fileName, deletedBy: getUserIdentifier(user), mediaType: media.mediaType, fileSize: media.fileSize, trashed: true });
+      trashed++;
+    }
     return { trashed, errors };
   },
 });
@@ -961,79 +844,27 @@ export const bulkPermanentlyDelete = mutation({
   args: bulkDeleteArgs,
   handler: async (ctx, args) => {
     const user = await requireCan(ctx, "media.delete");
-
-    if (args.mediaIds.length === 0 || args.mediaIds.length > 100) {
-      throw new ConvexError({
-        code: "VALIDATION_ERROR",
-        message: "Delete between 1 and 100 items at once",
-      });
-    }
-    const level = await getUserRoleLevel(ctx, user);
-    if (level < 80) {
-      throw new ConvexError({
-        code: "FORBIDDEN",
-        message: "Bulk permanent delete requires Editor or Administrator role",
-      });
-    }
-
-    let deleted = 0;
+    if (!args.mediaIds.length || args.mediaIds.length > 100) throw new ConvexError({ code: "VALIDATION_ERROR", message: "Delete between 1 and 100 items at once" });
+    if (await getUserRoleLevel(ctx, user) < 80) throw new ConvexError({ code: "FORBIDDEN", message: "Bulk delete requires Editor or Administrator role" });
     const errors: Array<{ mediaId: string; error: string; references?: unknown }> = [];
+    const documents = [];
+    let deleted = 0;
+    for (const mediaId of new Set(args.mediaIds)) {
+      const media = await ctx.db.get("media", mediaId);
+      if (!media) { errors.push({ mediaId, error: "Not found" }); continue; }
 
-    for (const mediaId of args.mediaIds) {
-      try {
-        const media = await ctx.db.get("media", mediaId);
-        if (!media) {
-          errors.push({ mediaId: mediaId as string, error: "Not found" });
-          continue;
-        }
-        const references = await findMediaReferences(ctx, mediaId);
-        if (references.length > 0 && !args.force) {
-          errors.push({
-            mediaId: mediaId as string,
-            error: `In use by ${references.length} document(s)`,
-            references,
-          });
-          continue;
-        }
-        if (references.length > 0 && args.force) {
-          await clearMediaReferences(ctx, mediaId, references);
-        }
-
-        try { (media.storageId ? await ctx.storage.delete(media.storageId) : undefined); } catch { /* orphaned */ }
-
-        const sizes = await ctx.db
-          .query("mediaSizes")
-          .withIndex("by_media", (q) => q.eq("mediaId", mediaId))
-          .collect();
-        for (const size of sizes) {
-          try { (size.storageId ? await ctx.storage.delete(size.storageId) : undefined); } catch { /* orphaned */ }
-          await ctx.db.delete("mediaSizes", size._id);
-        }
-
-        const metaRecords = await ctx.db
-          .query("mediaMeta")
-          .withIndex("by_media", (q) => q.eq("mediaId", mediaId))
-          .collect();
-        for (const meta of metaRecords) {
-          await ctx.db.delete("mediaMeta", meta._id);
-        }
-
-        await ctx.db.delete("media", mediaId);
-        await emitEvent(ctx, MEDIA_EVENTS.DELETED, SYSTEM.MEDIA, {
-          mediaId,
-          fileName: media.fileName,
-          deletedBy: getUserIdentifier(user),
-          mediaType: media.mediaType,
-          fileSize: media.fileSize,
-          permanent: true,
-        });
-        deleted++;
-      } catch (err) {
-        errors.push({
-          mediaId: mediaId as string,
-          error: err instanceof Error ? err.message : "Unknown error",
-        });
-      }
+      await checkMediaCapability(ctx, user, media, "delete");
+      documents.push(media);
+    }
+    // One complete reference traversal for the selection; no writes in per-item catches.
+    const plan = await prepareMediaDeletion(ctx, documents, { force: Boolean(args.force), permanent: true });
+    for (const [mediaId, references] of plan.blocked) errors.push({ mediaId, error: `In use by ${new Set(references.map(ref => ref.documentId)).size} document(s)`, references });
+    await applyMediaDeletionPreflight(ctx, plan);
+    for (const media of plan.eligible) {
+      const mediaId = media._id;
+      await ctx.db.delete("media", mediaId);
+      await emitEvent(ctx, MEDIA_EVENTS.DELETED, SYSTEM.MEDIA, { mediaId, fileName: media.fileName, deletedBy: getUserIdentifier(user), mediaType: media.mediaType, fileSize: media.fileSize, permanent: true });
+      deleted++;
     }
     return { deleted, errors };
   },

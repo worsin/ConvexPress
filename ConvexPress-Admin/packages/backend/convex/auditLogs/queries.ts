@@ -51,10 +51,8 @@ import {
  * Date range and search are applied as post-filters.
  * Returns newest-first by default.
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
-export const list = query({
+export const list: import("convex/server").RegisteredQuery<"public", { severity?: "critical" | "high" | "medium" | "low" | "informational"; system?: string; actorId?: string; objectType?: "post" | "page" | "comment" | "media" | "user" | "role" | "taxonomy" | "menu" | "settings" | "seo" | "api" | "notification" | "system"; eventCode?: string; objectId?: string; correlationId?: string; search?: string; dateFrom?: number; dateTo?: number; cursor?: string; limit?: number; direction?: "newer" | "older" }, { entries: Array<Pick<import("../_generated/dataModel").Doc<"auditEntries">, "_id" | "eventId" | "eventCode" | "action" | "description" | "severity" | "system" | "actorId" | "actorName" | "actorEmail" | "actorRole" | "actorIp" | "objectType" | "objectId" | "objectLabel" | "correlationId" | "occurredAt">>; nextCursor?: string; prevCursor?: string; totalEstimate?: number }> = query({
   args: listArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     await requireCan(ctx, "audit.view");
 
@@ -81,24 +79,20 @@ export const list = query({
 
     if (args.search) {
       // Use search index for free-text search
-      // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
       let searchQuery = ctx.db
         .query("auditEntries")
-        // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
         .withSearchIndex("search_audit", (q) => {
           let sq = q.search("description", args.search!);
           if (args.severity) sq = sq.eq("severity", args.severity);
           if (args.system) sq = sq.eq("system", args.system);
           if (args.actorId) sq = sq.eq("actorId", args.actorId);
           if (args.objectType) sq = sq.eq("objectType", args.objectType);
-          // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
           return sq;
         });
 
       entries = await searchQuery.take(fetchLimit * 2);
 
       // Apply date range and cursor as post-filters on search results
-      // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
       entries = entries.filter((entry) => {
         if (args.dateFrom && entry.occurredAt < args.dateFrom) return false;
         if (args.dateTo && entry.occurredAt > args.dateTo) return false;
@@ -112,20 +106,19 @@ export const list = query({
       });
 
       // Sort by occurredAt descending (newest first)
-      // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
       entries.sort((a, b) => b.occurredAt - a.occurredAt);
       entries = entries.slice(0, fetchLimit);
     } else if (args.correlationId) {
       entries = await ctx.db
         .query("auditEntries")
-        .withIndex("by_correlation", (q: ConvexQueryBuilder) =>
+        .withIndex("by_correlation", q =>
           q.eq("correlationId", args.correlationId!),
         )
         .take(fetchLimit);
     } else if (args.actorId) {
       let q = ctx.db
         .query("auditEntries")
-        .withIndex("by_actor", (q: ConvexQueryBuilder) => q.eq("actorId", args.actorId!));
+        .withIndex("by_actor", q => q.eq("actorId", args.actorId!));
       entries = await q.order("desc").take(fetchLimit * 2);
 
       // Apply cursor and date range as post-filters
@@ -139,7 +132,7 @@ export const list = query({
     } else if (args.severity) {
       let q = ctx.db
         .query("auditEntries")
-        .withIndex("by_severity", (q: ConvexQueryBuilder) => q.eq("severity", args.severity!));
+        .withIndex("by_severity", q => q.eq("severity", args.severity!));
       entries = await q.order("desc").take(fetchLimit * 2);
 
       entries = applyPostFilters(
@@ -152,7 +145,7 @@ export const list = query({
     } else if (args.objectType && args.objectId) {
       let q = ctx.db
         .query("auditEntries")
-        .withIndex("by_object", (q: ConvexQueryBuilder) =>
+        .withIndex("by_object", q =>
           q
             .eq("objectType", args.objectType!)
             .eq("objectId", args.objectId!),
@@ -169,7 +162,7 @@ export const list = query({
     } else if (args.objectType) {
       let q = ctx.db
         .query("auditEntries")
-        .withIndex("by_object_type", (q: ConvexQueryBuilder) =>
+        .withIndex("by_object_type", q =>
           q.eq("objectType", args.objectType!),
         );
       entries = await q.order("desc").take(fetchLimit * 2);
@@ -184,7 +177,7 @@ export const list = query({
     } else if (args.eventCode) {
       let q = ctx.db
         .query("auditEntries")
-        .withIndex("by_event_code", (q: ConvexQueryBuilder) =>
+        .withIndex("by_event_code", q =>
           q.eq("eventCode", args.eventCode!),
         );
       entries = await q.order("desc").take(fetchLimit * 2);
@@ -199,7 +192,7 @@ export const list = query({
     } else if (args.system) {
       let q = ctx.db
         .query("auditEntries")
-        .withIndex("by_system", (q: ConvexQueryBuilder) => q.eq("system", args.system!));
+        .withIndex("by_system", q => q.eq("system", args.system!));
       entries = await q.order("desc").take(fetchLimit * 2);
 
       entries = applyPostFilters(
@@ -271,7 +264,6 @@ export const list = query({
     }
 
     return {
-      // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
       entries: resultEntries.map((entry) => ({
         _id: entry._id,
         eventId: entry.eventId,
@@ -310,10 +302,8 @@ export const list = query({
  *   - Linked event processing metadata
  *   - Related entries (via correlationId, up to 20)
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
-export const get = query({
+export const get: import("convex/server").RegisteredQuery<"public", { entryId: import("../_generated/dataModel").Id<"auditEntries"> }, Pick<import("../_generated/dataModel").Doc<"auditEntries">, "_id" | "eventId" | "eventCode" | "action" | "description" | "severity" | "system" | "objectType" | "objectId" | "objectLabel" | "occurredAt"> & { actor: { id?: string; name?: string; email?: string; role?: string; ip?: string; userAgent?: string }; changes: unknown; rawPayload: Record<string, unknown>; event: Pick<import("../_generated/dataModel").Doc<"events">, "status" | "listenersTotal" | "listenersCompleted" | "listenersFailed" | "processedAt"> | null; relatedEntries?: Array<Pick<import("../_generated/dataModel").Doc<"auditEntries">, "_id" | "eventCode" | "description" | "occurredAt">> }> = query({
   args: getArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     await requireCan(ctx, "audit.view");
 
@@ -361,16 +351,14 @@ export const get = query({
     if (entry.correlationId) {
       const related = await ctx.db
         .query("auditEntries")
-        .withIndex("by_correlation", (q: ConvexQueryBuilder) =>
+        .withIndex("by_correlation", q =>
           q.eq("correlationId", entry.correlationId!),
         )
         .take(21); // Take 21 to check for more
 
       relatedEntries = related
-        // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
         .filter((r) => r._id !== entry._id) // Exclude self
         .slice(0, 20)
-        // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
         .map((r) => ({
           _id: r._id,
           eventCode: r.eventCode,
@@ -455,10 +443,8 @@ export const getByEvent = query({
  * Queries the by_object index with objectType + objectId,
  * sorted by occurredAt descending (newest first).
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
-export const getObjectHistory = query({
+export const getObjectHistory: import("convex/server").RegisteredQuery<"public", { objectType: import("../_generated/dataModel").Doc<"auditEntries">["objectType"]; objectId: string; limit?: number }, { entries: Array<Pick<import("../_generated/dataModel").Doc<"auditEntries">, "_id" | "eventCode" | "action" | "description" | "severity" | "actorName" | "occurredAt">> }> = query({
   args: getObjectHistoryArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     await requireCan(ctx, "audit.view");
 
@@ -466,14 +452,13 @@ export const getObjectHistory = query({
 
     const entries = await ctx.db
       .query("auditEntries")
-      .withIndex("by_object", (q: ConvexQueryBuilder) =>
+      .withIndex("by_object", q =>
         q.eq("objectType", args.objectType).eq("objectId", args.objectId),
       )
       .order("desc")
       .take(limit);
 
     return {
-      // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
       entries: entries.map((entry) => ({
         _id: entry._id,
         eventCode: entry.eventCode,
@@ -504,10 +489,8 @@ export const getObjectHistory = query({
  *   - Last 5 critical/high entries
  *   - totalEstimate (approximate total)
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
-export const getStats = query({
+export const getStats: import("convex/server").RegisteredQuery<"public", { period?: "today" | "week" | "month" }, { total: number; totalEstimate: number; bySeverity: Record<string, number>; byObjectType: Record<string, number>; topActors: Array<{ actorId: string; actorName: string; count: number }>; recentCritical: Array<{ _id: import("../_generated/dataModel").Id<"auditEntries">; description: string; severity: string; actorName?: string; occurredAt: number }> }> = query({
   args: getStatsArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     await requireCan(ctx, "audit.view");
 
@@ -549,7 +532,7 @@ export const getStats = query({
     for (const sev of severityLevels) {
       const sevEntries = await ctx.db
         .query("auditEntries")
-        .withIndex("by_severity", (q: ConvexQueryBuilder) => q.eq("severity", sev))
+        .withIndex("by_severity", q => q.eq("severity", sev))
         .order("desc")
         .take(1001); // Cap per-severity to detect overflow
 
@@ -572,7 +555,7 @@ export const getStats = query({
     const SAMPLE_SIZE = 500;
     const sampleEntries = await ctx.db
       .query("auditEntries")
-      .withIndex("by_occurred", (q: ConvexQueryBuilder) => q.gte("occurredAt", periodStart))
+      .withIndex("by_occurred", q => q.gte("occurredAt", periodStart))
       .order("desc")
       .take(SAMPLE_SIZE);
 
@@ -625,7 +608,7 @@ export const getStats = query({
       if (criticalHighEntries.length >= 5) break;
       const sevRecent = await ctx.db
         .query("auditEntries")
-        .withIndex("by_severity", (q: ConvexQueryBuilder) => q.eq("severity", sev))
+        .withIndex("by_severity", q => q.eq("severity", sev))
         .order("desc")
         .take(5);
 
@@ -646,14 +629,12 @@ export const getStats = query({
     criticalHighEntries.sort((a, b) => b.occurredAt - a.occurredAt);
 
     // ─── Top 5 actors ────────────────────────────────────────────────
-    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     const topActors = Object.entries(actorCounts)
       .map(([actorId, data]) => ({
         actorId,
         actorName: data.name,
         count: data.count,
       }))
-      // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
       .sort((a, b) => b.count - a.count)
       .slice(0, 5);
 
@@ -674,10 +655,8 @@ export const getStats = query({
  * Get the N most recent audit entries across all types.
  * Used for the dashboard "Activity" widget.
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
-export const recentActivity = query({
+export const recentActivity: import("convex/server").RegisteredQuery<"public", { limit?: number }, { entries: Array<Pick<import("../_generated/dataModel").Doc<"auditEntries">, "_id" | "eventCode" | "action" | "description" | "severity" | "system" | "actorId" | "actorName" | "actorEmail" | "objectType" | "objectId" | "objectLabel" | "occurredAt">> }> = query({
   args: recentActivityArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     await requireCan(ctx, "audit.view");
 
@@ -690,7 +669,6 @@ export const recentActivity = query({
       .take(limit);
 
     return {
-      // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
       entries: entries.map((entry) => ({
         _id: entry._id,
         eventCode: entry.eventCode,
@@ -730,7 +708,6 @@ function applyPostFilters(
   direction: string,
   fetchLimit: number,
 ) {
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   let filtered = entries;
 
   // Apply date range filter
@@ -751,9 +728,7 @@ function applyPostFilters(
   }
 
   // Ensure sorted by occurredAt desc
-  // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
   filtered.sort((a, b) => b.occurredAt - a.occurredAt);
 
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   return filtered.slice(0, fetchLimit);
 }

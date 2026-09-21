@@ -32,6 +32,7 @@ import {
 } from "../settings/defaults";
 import { computeChanges } from "../settings/helpers";
 import { isPluginEnabled, requirePluginEnabled } from "../helpers/plugins";
+import { insertWithMediaReferences, patchWithMediaReferences } from "../media/attachmentGuard";
 
 // ─── getTicketSettings ───────────────────────────────────────────────────────
 
@@ -158,13 +159,13 @@ export const updateTicketSettings = mutation({
 
       if (changes.length > 0) {
         if (existingDoc) {
-          await ctx.db.patch("settings", existingDoc._id, {
+          await patchWithMediaReferences<"settings">(ctx, "settings", existingDoc._id, {
             values: newValues,
             updatedAt: now,
             updatedBy: user._id,
           });
         } else {
-          await ctx.db.insert("settings", {
+          await insertWithMediaReferences<"settings">(ctx, "settings", {
             section: "ticket.general",
             values: newValues,
             updatedAt: now,
@@ -199,13 +200,13 @@ export const updateTicketSettings = mutation({
 
       if (changes.length > 0) {
         if (existingDoc) {
-          await ctx.db.patch("settings", existingDoc._id, {
+          await patchWithMediaReferences<"settings">(ctx, "settings", existingDoc._id, {
             values: newValues,
             updatedAt: now,
             updatedBy: user._id,
           });
         } else {
-          await ctx.db.insert("settings", {
+          await insertWithMediaReferences<"settings">(ctx, "settings", {
             section: "ticket.sla",
             values: newValues,
             updatedAt: now,

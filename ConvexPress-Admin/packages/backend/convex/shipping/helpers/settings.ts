@@ -32,36 +32,34 @@ import type { ActionCtx } from "../../_generated/server";
  */
 export type EffectiveShipFromSettings = ShippingIntegrationSettings & {
   shipFromLocationId: string | null;
+  shipFromPhone?: string;
 };
 
 export async function getEffectiveShipFrom(
   ctx: ActionCtx,
 ): Promise<EffectiveShipFromSettings> {
   const integration = await getShippingIntegrationSettings(ctx);
-  try {
-    const loc: any = await ctx.runQuery(
-      internal.shipping.shipFromLocations.internals.getDefault,
-      {},
-    );
-    if (loc?.address) {
-      return {
-        ...integration,
-        shipFromLine1: loc.address.line1 ?? integration.shipFromLine1 ?? "",
-        shipFromLine2: loc.address.line2 ?? integration.shipFromLine2 ?? "",
-        shipFromCity: loc.address.city ?? integration.shipFromCity ?? "",
-        shipFromState: loc.address.state ?? integration.shipFromState ?? "",
-        shipFromPostalCode:
-          loc.address.postalCode ?? integration.shipFromPostalCode ?? "",
-        shipFromCountryCode:
-          loc.address.countryCode ?? integration.shipFromCountryCode ?? "",
-        shipFromName: loc.name ?? integration.shipFromName ?? "",
-        shipFromCompany:
-          loc.companyName ?? integration.shipFromCompany ?? "",
-        shipFromLocationId: String(loc._id),
-      };
-    }
-  } catch {
-    // fall through to integration defaults
+  const loc = await ctx.runQuery(
+    internal.shipping.shipFromLocations.internals.getDefault,
+    {},
+  );
+  if (loc?.address) {
+    return {
+      ...integration,
+      shipFromLine1: loc.address.line1 ?? integration.shipFromLine1 ?? "",
+      shipFromLine2: loc.address.line2 ?? "",
+      shipFromCity: loc.address.city ?? integration.shipFromCity ?? "",
+      shipFromState: loc.address.state ?? integration.shipFromState ?? "",
+      shipFromPostalCode:
+        loc.address.postalCode ?? integration.shipFromPostalCode ?? "",
+      shipFromCountryCode:
+        loc.address.countryCode ?? integration.shipFromCountryCode ?? "",
+      shipFromName: loc.address.contactName ?? loc.name ?? integration.shipFromName ?? "",
+      shipFromCompany:
+        loc.address.companyName ?? integration.shipFromCompany ?? "",
+      shipFromPhone: loc.address.phone ?? "",
+      shipFromLocationId: String(loc._id),
+    };
   }
   return { ...integration, shipFromLocationId: null };
 }

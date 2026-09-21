@@ -22,6 +22,7 @@ import { internalAction } from "../_generated/server";
 import { internal } from "../_generated/api";
 import { v, ConvexError } from "convex/values";
 import { getServiceKeyFromAction } from "../helpers/serviceKeys";
+import { requestStructuredProposal } from "./structuredProvider";
 
 // ─── Settings Helper ────────────────────────────────────────────────────────
 
@@ -88,6 +89,26 @@ async function resolveAiSettings(ctx: {
     tavilyApiKey: (await getServiceKeyFromAction(ctx, "ai", "tavilyApiKey", "TAVILY_API_KEY")) ?? "",
   };
 }
+
+/** Server-only structured transport. The public canonical action authorizes
+ * before invoking this and rechecks the complete context after it returns. */
+export const generateStructuredDocument = internalAction({
+  args: { schemaJson: v.string(), system: v.string(), prompt: v.string() },
+  returns: v.string(),
+  handler: async (ctx, args) => {
+    const settings = await resolveAiSettings(ctx, "pageGeneration");
+    if (!["openrouter", "openai", "anthropic"].includes(settings.provider) || !settings.apiKey)
+      throw new ConvexError({ code: "CONFIGURATION_ERROR", message: "Configure an AI provider and API key in Settings before generating content." });
+    let schema: Record<string, unknown>;
+    try {
+      const parsed: unknown = JSON.parse(args.schemaJson);
+      if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) throw Error("Invalid schema");
+      schema = parsed as Record<string, unknown>;
+    } catch { throw new ConvexError({ code: "AI_INVALID_SCHEMA", message: "Invalid structured generation schema." }); }
+    return requestStructuredProposal({ provider: settings.provider, apiKey: settings.apiKey, model: settings.defaultModel,
+      schema, system: args.system, prompt: args.prompt });
+  },
+});
 
 // ─── Tavily Research ────────────────────────────────────────────────────────
 

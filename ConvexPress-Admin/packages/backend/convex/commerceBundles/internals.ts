@@ -9,6 +9,7 @@
 import { v } from "convex/values";
 import { internalMutation } from "../_generated/server";
 import { requirePluginEnabled } from "../helpers/plugins";
+import { insertWithMediaReferences, patchDynamicWithMediaReferences } from "../media/attachmentGuard";
 
 /**
  * Clean up stale bundle selections that are older than 30 days
@@ -35,7 +36,7 @@ export const cleanupStaleBundleSelections = internalMutation({
     for (const sel of stale) {
       // Keep selections that are linked to an order item (completed purchases)
       if (sel.orderItemId) continue;
-      await ctx.db.delete(sel._id);
+      await ctx.db.delete("commerce_bundle_selections", sel._id);
       deleted++;
     }
 
@@ -75,7 +76,7 @@ export const commitBundleInventory = internalMutation({
       updates.stockCount = Math.max(0, bundle.stockCount - args.quantity);
     }
 
-    await ctx.db.patch(args.bundleId, updates);
+    await patchDynamicWithMediaReferences(ctx, args.bundleId, updates);
 
     return {
       success: true,
@@ -107,7 +108,7 @@ export const backfillOwningProducts = internalMutation({
 
     for (const bundle of unlinked) {
       // Create a virtual product entry for the bundle
-      const productId = await ctx.db.insert("commerce_products", {
+      const productId: import("../_generated/dataModel").Id<"commerce_products"> = await insertWithMediaReferences<"commerce_products">(ctx, "commerce_products", {
         title: bundle.name,
         slug: `bundle-${bundle.slug}`,
         status: bundle.status === "active" ? "publish" : "draft",
@@ -120,7 +121,7 @@ export const backfillOwningProducts = internalMutation({
         updatedAt: now,
       });
 
-      await ctx.db.patch(bundle._id, {
+      await patchDynamicWithMediaReferences(ctx, bundle._id, {
         productId,
         updatedAt: now,
       });

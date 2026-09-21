@@ -17,6 +17,12 @@
 
 import { ConvexError } from "convex/values";
 import { query } from "../_generated/server";
+import type { QueryCtx } from "../_generated/server";
+import { RequestReadLedger } from "../helpers/requestReadLedger";
+import { canDiscoverContent } from "../helpers/publicContent";
+import { getValidMembershipGrants } from "../membership/access";
+import { membershipAuthorityReader } from "../helpers/membershipAuthority";
+import { sanitizeUrl } from "../helpers/sanitize";
 import { getCurrentUser } from "../helpers/permissions";
 import {
   getMenuArgs,
@@ -24,7 +30,10 @@ import {
   getMenuForLocationArgs,
   getLinkableContentArgs,
   DEFAULT_MENU_LOCATIONS,
+  MAX_DEPTH,
 } from "./validators";
+import { publicMenuResultValidator, type PublicMenuItem } from "./publicContract";
+import type { Doc } from "../_generated/dataModel";
 import { buildMenuItemTree, resolveMenuItemUrl } from "./internals";
 import { DASHBOARD_PAGES, getDashboardPage, pluginIsEnabled } from "../extensions/dashboard/registry";
 import { menuItemVisibleFor, type MenuViewer } from "../extensions/dashboard/visibility";
@@ -34,38 +43,37 @@ import { resolveUserRole } from "../helpers/permissions";
 const DASHBOARD_DEFAULT_BASE = "/dashboard";
 
 /** Merged settings section (defaults + stored) without auth; public-safe fields only. */
-async function getMergedSettingsSection(ctx: any, section: SettingsSection): Promise<Record<string, unknown>> {
+async function getMergedSettingsSection(ctx: QueryCtx, section: SettingsSection, budget?: RequestReadLedger): Promise<Record<string, unknown>> {
+  budget?.beforeRead();
   const doc = await ctx.db
     .query("settings")
-    .withIndex("by_section", (q: any) => q.eq("section", section))
+    .withIndex("by_section", (q) => q.eq("section", section))
     .unique();
+  budget?.record(doc);
   return { ...getDefaults(section), ...((doc?.values as Record<string, unknown>) ?? {}) };
 }
 
 /** Who is looking at the menu: signed-in state, role, membership plans, capabilities. */
-export async function resolveMenuViewer(ctx: any): Promise<MenuViewer> {
-  const user = await getCurrentUser(ctx).catch(() => null);
+export async function resolveMenuViewer(
+  ctx: QueryCtx,
+  budget?: RequestReadLedger,
+): Promise<MenuViewer> {
+  const user = await getCurrentUser(ctx, budget);
   if (!user || user.status !== "active") {
     return { signedIn: false, roleSlug: null, planSlugs: [], capabilities: [] };
   }
-  const role = await resolveUserRole(ctx, user).catch(() => null);
+  const role = await resolveUserRole(ctx, user, budget);
   const planSlugs: string[] = [];
-  try {
-    const grants = await ctx.db
-      .query("membership_grants")
-      .withIndex("by_user_status", (q: any) => q.eq("userId", user._id).eq("status", "active"))
-      .take(20);
-    for (const grant of grants) {
-      const plan = grant.planId ? await ctx.db.get(grant.planId) : null;
-      if (plan?.slug) planSlugs.push(String(plan.slug));
-    }
-  } catch {
-    // Membership tables absent or plugin off: no plans.
+  const grants = await getValidMembershipGrants(ctx, user._id, budget);
+  const authority = membershipAuthorityReader(ctx, budget);
+  for (const grant of grants) {
+    const plan = grant.planId ? await authority.plan(grant.planId) : null;
+    if (plan?.status === "active" && plan.slug) planSlugs.push(plan.slug);
   }
   return {
     signedIn: true,
     roleSlug: role?.slug ?? null,
-    planSlugs,
+    planSlugs: [...new Set(planSlugs)],
     capabilities: role?.capabilities ?? [],
   };
 }
@@ -217,112 +225,199 @@ export const getMenuItemTree = query({
  * PERFORMANCE: This is on the critical path for every page load.
  * Convex caching handles most of the performance concern.
  */
-export const getMenuForLocation = query({
-  args: getMenuForLocationArgs,
-  handler: async (ctx, args) => {
-    // ── Find location by slug ───────────────────────────────────────────
-    const location = await ctx.db
-      .query("menuLocations")
-      .withIndex("by_slug", (q) => q.eq("slug", args.locationSlug))
-      .unique();
+/** Reject browser-normalized destinations before applying the shared URL policy. */
+function publicHref(raw: string | undefined): string | undefined {
+  if (!raw || /[\u0000-\u001f\u007f\\]/.test(raw) || raw.trim().startsWith("//")) return undefined;
+  return sanitizeUrl(raw) || undefined;
+}
+async function boundedRows<T extends object>(
+  query: AsyncIterable<T>,
+  limit: number,
+  budget: RequestReadLedger,
+): Promise<T[]> {
+  const rows: T[] = [],
+    iterator = query[Symbol.asyncIterator]();
+  try {
+    while (true) {
+      budget.beforeRead();
+      const next = await iterator.next();
+      if (next.done) return rows;
+      budget.record(next.value);
+      if (rows.length >= limit)
+        throw new ConvexError({
+          code: "MENU_READ_BUDGET",
+          message: "The menu exceeds its supported item limit.",
+        });
+      rows.push(next.value);
+    }
+  } finally {
+    await iterator.return?.();
+  }
+}
 
-    // If no location is registered/assigned yet, provide a safe fallback
-    // for the primary website navigation so public pages are still navigable.
-    let menuId = location?.menuId ?? null;
-    if (!menuId && args.locationSlug === "header") {
-      // Bounded to 50 menus - sites rarely have more than 10 menus
-      const menus = await ctx.db.query("menus").take(50);
-      if (menus.length > 0) {
-        const preferred =
-          menus.find((m) => m.slug === "main-navigation") ??
-          menus.find((m) => m.name.toLowerCase() === "main navigation") ??
-          menus[0];
+/** Shared viewer-safe reader for theme locations and canonical menu references. */
+export async function readPublicMenu(
+  ctx: QueryCtx,
+  selector: {locationSlug: string} | {menuId: string},
+  budget = new RequestReadLedger({queries:4096,documents:8192,bytes:8*1024*1024,documentBytes:512*1024}),
+  sourcePosts?: {beforeRead(): void; record(kind: "post", post: Doc<"posts">): void},
+) {
+    let menuId = 'menuId' in selector ? ctx.db.normalizeId('menus', selector.menuId) : null;
+    if ('locationSlug' in selector) {
+      budget.beforeRead();
+      const location = budget.record(await ctx.db.query('menuLocations').withIndex('by_slug',q=>q.eq('slug',selector.locationSlug)).unique());
+      menuId = location?.menuId ?? null;
+      if (!menuId && selector.locationSlug === 'header') {
+        const menus = await boundedRows(ctx.db.query('menus'),50,budget);
+        const preferred = menus.find(m=>m.slug==='main-navigation') ?? menus.find(m=>m.name.toLowerCase()==='main navigation') ?? menus[0];
         menuId = preferred?._id ?? null;
       }
     }
-
     if (!menuId) return null;
-
-    // ── Get the assigned menu ───────────────────────────────────────────
-    const menu = await ctx.db.get("menus", menuId);
+    budget.beforeRead();
+    const menu = budget.record(await ctx.db.get("menus", menuId));
     if (!menu) return null;
-
-    // ── Get all items, sorted by position ───────────────────────────────
-    // Bounded to 500 items max - menus rarely exceed 100 items.
-    // This is on the critical path for every page load.
-    const allItems = await ctx.db
-      .query("menuItems")
-      .withIndex("by_menu", (q) => q.eq("menuId", menu._id))
-      .take(500);
-
-    allItems.sort((a, b) => a.position - b.position);
-
-    // ── Filter out orphaned items ───────────────────────────────────────
-    const activeItems = allItems.filter((item) => item.isOrphaned !== true);
-
-    // ── Hide items the viewer may not see (and their children) ──────────
-    const viewer = await resolveMenuViewer(ctx);
-    const pluginFlags = await getMergedSettingsSection(ctx, "plugins");
-    const dashboardSettings = await getMergedSettingsSection(ctx, "dashboard");
-    const dashboardBasePath = String(dashboardSettings.basePath ?? "/dashboard");
-    const hiddenIds = new Set<string>();
-    for (const item of activeItems) {
-      let visible = menuItemVisibleFor(item, viewer);
-      if (visible && item.itemType === "dashboard" && item.objectId) {
-        const page = getDashboardPage(item.objectId);
-        visible = Boolean(
-          page &&
-            pluginIsEnabled(page.pluginId, pluginFlags) &&
-            (!page.capability || viewer.capabilities.includes(page.capability)),
-        );
-      }
-      if (!visible) hiddenIds.add(item._id.toString());
-    }
-    const visibleItems = activeItems.filter((item) => {
-      // Walk up: any hidden ancestor hides the item.
-      let cursor = item;
-      const byId = new Map(activeItems.map((entry) => [entry._id.toString(), entry]));
-      for (let hops = 0; hops < 10; hops += 1) {
-        if (hiddenIds.has(cursor._id.toString())) return false;
-        if (!cursor.parentItemId) return true;
-        const parent = byId.get(cursor.parentItemId.toString());
-        if (!parent) return true;
-        cursor = parent;
-      }
-      return true;
-    });
-
-    // ── Resolve current URLs for content-linked items ───────────────────
-    const resolvedItems = await Promise.all(
-      visibleItems.map(async (item) => {
-        if (item.itemType !== "custom" && item.objectId) {
-          const currentUrl = await resolveMenuItemUrl(
-            ctx,
-            item.itemType,
-            item.objectId,
-            { dashboardBasePath, pathOverride: item.pathOverride },
-          );
-          return {
-            ...item,
-            url: currentUrl ?? item.url,
-          };
-        }
-        return item;
-      }),
+    const allItems = await boundedRows(
+      ctx.db.query("menuItems").withIndex("by_menu_position", (q) => q.eq("menuId", menu._id)),
+      500,
+      budget,
     );
-
-    // ── Build tree ──────────────────────────────────────────────────────
-    const tree = buildMenuItemTree(resolvedItems);
-
-    return {
-      menu: {
-        _id: menu._id,
-        name: menu.name,
-        slug: menu.slug,
-      },
-      items: tree,
+    const viewer = await resolveMenuViewer(ctx, budget);
+    const plugins = await getMergedSettingsSection(ctx, "plugins", budget);
+    const dashboard = await getMergedSettingsSection(ctx, "dashboard", budget);
+    const dashboardBasePath =
+      typeof dashboard.basePath === "string" ? dashboard.basePath : "/dashboard";
+    const byId = new Map(allItems.map((item) => [String(item._id), item]));
+    const resolved = new Map<string, { visible: boolean; url?: string; depth: number }>();
+    const visiting = new Set<string>();
+    const targets = new Map<string, string | undefined>();
+    const targetUrl = async (item: Doc<"menuItems">): Promise<string | undefined> => {
+      if (item.itemType === "custom") return publicHref(item.url);
+      if (!item.objectId) return undefined;
+      const key = `${item.itemType}:${item.objectId}:${item.pathOverride ?? ""}`;
+      if (targets.has(key)) return targets.get(key);
+      let url: string | undefined;
+      if (item.itemType === "page" || item.itemType === "post") {
+        const id = ctx.db.normalizeId("posts", item.objectId);
+        if (id) {
+          sourcePosts?.beforeRead(); budget.beforeRead();
+          const post = budget.record(await ctx.db.get("posts", id));
+          if (post) sourcePosts?.record("post", post);
+          if (
+            post &&
+            post.type === item.itemType &&
+            (await canDiscoverContent(ctx, post, budget))
+          ) {
+            const path = post.path ?? `/${post.slug}`;
+            url =
+              item.itemType === "post"
+                ? `/blog/${post.slug}`
+                : path === "/"
+                  ? "/"
+                  : path.startsWith("/page/")
+                    ? path
+                    : `/page${path.startsWith("/") ? "" : "/"}${path}`;
+          }
+        }
+      } else if (item.itemType === "category" || item.itemType === "tag") {
+        const id = ctx.db.normalizeId("terms", item.objectId);
+        if (id) {
+          budget.beforeRead();
+          const term = budget.record(await ctx.db.get("terms", id));
+          if (term?.taxonomy === (item.itemType === "category" ? "category" : "post_tag"))
+            url = `/${item.itemType}/${term.slug}`;
+        }
+      } else if (item.itemType === "dashboard") {
+        const page = getDashboardPage(item.objectId);
+        if (
+          page &&
+          pluginIsEnabled(page.pluginId, plugins) &&
+          (!page.capability || viewer.capabilities.includes(page.capability))
+        )
+          url = await resolveMenuItemUrl(ctx, item.itemType, item.objectId, {
+            dashboardBasePath,
+            pathOverride: item.pathOverride,
+          });
+      }
+      url = publicHref(url);
+      targets.set(key, url);
+      return url;
     };
-  },
+    const inspect = async (
+      id: string,
+    ): Promise<{ visible: boolean; url?: string; depth: number }> => {
+      if (resolved.has(id)) return resolved.get(id)!;
+      const hidden = { visible: false, depth: 0 };
+      if (visiting.has(id)) return hidden;
+      const item = byId.get(id);
+      if (!item || item.isOrphaned || !menuItemVisibleFor(item, viewer)) {
+        resolved.set(id, hidden);
+        return hidden;
+      }
+      visiting.add(id);
+      try {
+        let depth = 0;
+        if (item.parentItemId) {
+          const parent = await inspect(String(item.parentItemId));
+          if (!parent.visible || parent.depth >= MAX_DEPTH) {
+            resolved.set(id, hidden);
+            return hidden;
+          }
+          depth = parent.depth + 1;
+        }
+        const isLabel = item.itemType === "heading" || item.itemType === "separator";
+        const url = isLabel ? undefined : await targetUrl(item);
+        const result = { visible: isLabel || !!url, url, depth };
+        resolved.set(id, result);
+        return result;
+      } finally {
+        visiting.delete(id);
+      }
+    };
+    for (const item of allItems) await inspect(String(item._id));
+    const nodes = new Map<string, PublicMenuItem>(),
+      roots: PublicMenuItem[] = [];
+    for (const item of allItems) {
+      const result = resolved.get(String(item._id));
+      if (!result?.visible) continue;
+      nodes.set(String(item._id), {
+        _id: String(item._id),
+        menuId: String(menu._id),
+        itemType: item.itemType,
+        label: item.label,
+        title: item.title,
+        description: item.description,
+        url: result.url,
+        parentItemId: item.parentItemId ? String(item.parentItemId) : undefined,
+        position: item.position,
+        depth: result.depth,
+        target: item.target,
+        cssClasses: item.cssClasses,
+        linkRel:
+          item.target === "_blank"
+            ? [
+                ...new Set([
+                  ...(item.linkRel ?? "").split(/\s+/).filter(Boolean),
+                  "noopener",
+                  "noreferrer",
+                ]),
+              ].join(" ")
+            : item.linkRel,
+        icon: item.icon,
+        badge: item.badge,
+        children: [],
+      });
+    }
+    for (const node of nodes.values()) {
+      if (node.parentItemId) nodes.get(node.parentItemId)!.children.push(node);
+      else roots.push(node);
+    }
+    return { menu: { _id: menu._id, name: menu.name, slug: menu.slug }, items: roots };
+}
+export const getMenuForLocation = query({
+  args: getMenuForLocationArgs,
+  returns: publicMenuResultValidator,
+  handler: (ctx, args) => readPublicMenu(ctx, args),
 });
 
 // ─── Get Menu Locations (Admin) ─────────────────────────────────────────────

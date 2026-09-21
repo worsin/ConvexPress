@@ -247,7 +247,6 @@ export function extractPublicFields(user: { _id: string; displayName?: string; s
     avatarUrl: user.avatarExternalUrl ?? resolveAvatarUrl(user),
     url: user.url,
     socialLinks: user.socialLinks,
-    postCount: user.postCount ?? 0,
     status: user.status,
   };
 }

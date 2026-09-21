@@ -1,3 +1,8 @@
+import { reconcileManualSaveAutosave } from "../helpers/autosaveReconciliation";
+import { assertNoNewDisabledBlocks } from "../blocks/policy";
+import { assertPagePathAvailable, assertPageTreePathAvailable } from "../helpers/pageRouteGuard";
+import { replacePublicationSchedule } from "../helpers/publicationSchedule";
+import { AUTHORING_FIELDS } from "../helpers/authoringSnapshot";
 /**
  * Page System - Mutations
  *
@@ -59,7 +64,8 @@ import {
   getMaxSubtreeDepth,
   MAX_PAGE_DEPTH,
 } from "./internals";
-import { validateBlocks, type StoredBlock } from "../blocks/helpers";
+import { validateBlocks, validateBlocksAgainstCatalog, getStoredBlocks, type StoredBlock } from "../blocks/helpers";
+import { deleteWithMediaReferences, insertWithMediaReferences, patchWithMediaReferences } from "../media/attachmentGuard";
 
 // ─── Create ──────────────────────────────────────────────────────────────────
 
@@ -107,6 +113,7 @@ export const create = mutation({
     // For auto-drafts with no title, generate a temporary slug
     const slugSource = title || `auto-draft-${Date.now()}`;
     const baseSlug = args.slug ? slugify(args.slug) : slugify(slugSource);
+    await assertPagePathAvailable(ctx, await computePagePath(ctx, baseSlug, args.parentId));
     const slug = await generateUniqueSlug(ctx, baseSlug);
 
     // ── Parent validation & hierarchy ─────────────────────────────────────
@@ -128,6 +135,8 @@ export const create = mutation({
 
       path = await computePagePath(ctx, slug, parentId);
     }
+
+    await assertPagePathAvailable(ctx, path);
 
     // ── Build the page record ─────────────────────────────────────────────
     const now = Date.now();
@@ -170,6 +179,9 @@ export const create = mutation({
 
     if (args.blocks) {
       validateBlocks(args.blocks as StoredBlock[]);
+      const blocks = validateBlocksAgainstCatalog(args.blocks as StoredBlock[]);
+      await assertNoNewDisabledBlocks(ctx, [], blocks);
+      pageData.blocks = blocks;
     }
 
     // ── Insert record ─────────────────────────────────────────────────────
@@ -178,7 +190,7 @@ export const create = mutation({
     // incremental development where the TypeScript types may not fully match
     // the runtime schema. The validator in createPageArgs ensures type safety
     // at the argument level.
-    const pageId = await ctx.db.insert("posts", pageData as any);
+    const pageId: import("../_generated/dataModel").Id<"posts"> = await insertWithMediaReferences<"posts">(ctx, "posts", pageData as any);
 
     // ── Auto-attach media to this page (WP-style first-use wins) ─────────
     await setMediaAttachment(ctx, args.featuredImageId, pageId);
@@ -195,11 +207,8 @@ export const create = mutation({
 
     // ── Schedule auto-publish for future-dated pages ──────────────────────
     if (status === "future" && args.scheduledAt) {
-      await ctx.scheduler.runAt(
-        args.scheduledAt,
-        internal.posts.internals.publishScheduled,
-        { postId: pageId },
-      );
+      await requireCan(ctx, "page.publish");
+      await replacePublicationSchedule(ctx, pageId, args.scheduledAt);
     }
 
     // NOTE: childCount is NOT stored on the schema. Child counts are derived
@@ -273,6 +282,8 @@ export const update = mutation({
     let newSlug: string | undefined;
     if (args.slug !== undefined && args.slug !== page.slug) {
       const baseSlug = slugify(args.slug);
+      const targetParent = args.parentId === null ? undefined : args.parentId ?? page.parentId;
+      await assertPagePathAvailable(ctx, await computePagePath(ctx, baseSlug, targetParent), page.path ?? `/${page.slug}`);
       newSlug = await generateUniqueSlug(ctx, baseSlug, args.pageId);
     }
 
@@ -395,8 +406,9 @@ export const update = mutation({
       patch.tableOfContents = args.tableOfContents;
       changes.push("tableOfContents");
     }
-    if (args.pagePrompt !== undefined) {
+    if (args.pagePrompt !== undefined && args.pagePrompt !== page.pagePrompt) {
       patch.pagePrompt = args.pagePrompt;
+      changes.push("pagePrompt");
     }
     if (args.contentMode !== undefined && args.contentMode !== page.contentMode) {
       patch.contentMode = args.contentMode;
@@ -404,7 +416,9 @@ export const update = mutation({
     }
     if (args.blocks !== undefined) {
       validateBlocks(args.blocks as StoredBlock[]);
-      patch.blocks = args.blocks;
+      const blocks = validateBlocksAgainstCatalog(args.blocks as StoredBlock[]);
+      await assertNoNewDisabledBlocks(ctx, getStoredBlocks(page), blocks);
+      patch.blocks = blocks;
       patch.blocksVersion = args.blocksVersion ?? page.blocksVersion ?? 1;
       patch.blocksRevision =
         args.blocksRevision ?? ((page.blocksRevision as number | undefined) ?? 0) + 1;
@@ -430,11 +444,8 @@ export const update = mutation({
       effectiveScheduledAt &&
       (args.status === "future" || args.scheduledAt !== undefined)
     ) {
-      await ctx.scheduler.runAt(
-        effectiveScheduledAt,
-        internal.posts.internals.publishScheduled,
-        { postId: args.pageId },
-      );
+      await requireCan(ctx, "page.publish");
+      await replacePublicationSchedule(ctx, args.pageId, effectiveScheduledAt);
     }
 
     // ── Handle parentId change (reparenting via update) ───────────────────
@@ -481,11 +492,16 @@ export const update = mutation({
       // at query time using the by_type_parent index. No childCount update needed.
     }
 
+    if (newSlug || parentChanged) {
+      const candidatePath = typeof patch.path === "string" ? patch.path : await computePagePath(ctx, newSlug ?? page.slug, page.parentId);
+      await assertPageTreePathAvailable(ctx, args.pageId, candidatePath, page.path ?? `/${page.slug}`);
+    }
+
     // ── Create revision snapshot BEFORE applying patch ─────────────────────
     // Mirrors Post System behavior: snapshot the current state before changes.
     // Must be synchronous to guarantee snapshot captures pre-update state.
     if (page.status !== "auto-draft" && changes.length > 0) {
-      const contentFields = ["title", "content", "excerpt"];
+      const contentFields: readonly string[] = AUTHORING_FIELDS;
       const hasContentChange = changes.some((f) => contentFields.includes(f));
       if (hasContentChange) {
         await ctx.runMutation(
@@ -503,9 +519,12 @@ export const update = mutation({
       }
     }
 
+    // Retire only an autosave pair represented by this transaction's saved body.
+    Object.assign(patch, reconcileManualSaveAutosave(page, patch, args));
+
     // ── Apply patch ───────────────────────────────────────────────────────
     if (changes.length > 0 || Object.keys(patch).length > 1) {
-      await ctx.db.patch("posts", args.pageId, patch);
+      await patchWithMediaReferences<"posts">(ctx, "posts", args.pageId, patch);
     }
 
     // ── Auto-attach newly-assigned media (first-use wins) ────────────────
@@ -530,7 +549,7 @@ export const update = mutation({
         newSlug,
         page.parentId as Id<"posts"> | undefined,
       );
-      await ctx.db.patch("posts", args.pageId, { path: updatedPath });
+      await patchWithMediaReferences<"posts">(ctx, "posts", args.pageId, { path: updatedPath });
 
       // Cascade path updates to all descendants
       const parentPath = updatedPath.substring(0, updatedPath.lastIndexOf("/")) || "";
@@ -611,7 +630,7 @@ export const publish = mutation({
       patch.visibility = "public";
     }
 
-    await ctx.db.patch("posts", args.pageId, patch);
+    await patchWithMediaReferences<"posts">(ctx, "posts", args.pageId, patch);
 
     await emitEvent(ctx, PAGE_EVENTS.PUBLISHED, SYSTEM.PAGE, {
       pageId: args.pageId,
@@ -660,7 +679,7 @@ export const trash = mutation({
     }
 
     const now = Date.now();
-    await ctx.db.patch("posts", args.pageId, {
+    await patchWithMediaReferences<"posts">(ctx, "posts", args.pageId, {
       status: "trash",
       previousStatus: page.status,
       trashedAt: now,
@@ -767,7 +786,7 @@ export const restore = mutation({
       patch.path = await computePagePath(ctx, newSlug, parentId);
     }
 
-    await ctx.db.patch("posts", args.pageId, patch);
+    await patchWithMediaReferences<"posts">(ctx, "posts", args.pageId, patch);
 
     // Emit restored event
     await emitEvent(ctx, PAGE_EVENTS.RESTORED, SYSTEM.PAGE, {
@@ -841,7 +860,7 @@ export const permanentDelete = mutation({
         : 0;
       const newPath = await computePagePath(ctx, child.slug, pageParentId);
 
-      await ctx.db.patch("posts", child._id, {
+      await patchWithMediaReferences<"posts">(ctx, "posts", child._id, {
         parentId: pageParentId,
         depth: newDepth,
         path: newPath,
@@ -871,7 +890,7 @@ export const permanentDelete = mutation({
     };
 
     // ── Delete the record ─────────────────────────────────────────────────
-    await ctx.db.delete("posts", args.pageId);
+    await deleteWithMediaReferences<"posts">(ctx, "posts", args.pageId);
 
     // ── Emit event ────────────────────────────────────────────────────────
     await emitEvent(ctx, PAGE_EVENTS.DELETED, SYSTEM.PAGE, eventPayload);
@@ -940,7 +959,8 @@ export const reorder = mutation({
         }
       }
 
-      await ctx.db.patch("posts", item.pageId, patch);
+      if (typeof patch.path === "string") await assertPageTreePathAvailable(ctx, item.pageId, patch.path, page.path ?? `/${page.slug}`);
+      await patchWithMediaReferences<"posts">(ctx, "posts", item.pageId, patch);
 
       // If parent changed, recompute descendant paths
       // NOTE: childCount is NOT stored on the schema. Child counts are derived
@@ -1043,8 +1063,10 @@ export const setParent = mutation({
     // NOTE: childCount is NOT stored on the schema. Child counts are derived
     // at query time using the by_type_parent index. No childCount update needed.
 
+    await assertPageTreePathAvailable(ctx, args.pageId, newPath, page.path ?? `/${page.slug}`);
+
     // ── Update the page ───────────────────────────────────────────────────
-    await ctx.db.patch("posts", args.pageId, {
+    await patchWithMediaReferences<"posts">(ctx, "posts", args.pageId, {
       parentId: newParentId,
       depth: newDepth,
       path: newPath,
@@ -1127,7 +1149,7 @@ async function clearFrontPageReferences(
     }
 
     if (needsUpdate) {
-      await ctx.db.patch("settings", readingSettings._id, {
+      await patchWithMediaReferences<"settings">(ctx, "settings", readingSettings._id, {
         values: newValues,
         updatedAt: Date.now(),
       });

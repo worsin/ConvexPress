@@ -9,9 +9,16 @@
  * Real sync entry points live in meilisearch.ts (syncArticle) and rag.ts (ingestArticle).
  */
 
+import { patchWithMediaReferences } from "../media/attachmentGuard";
+import { makeFunctionReference, type RegisteredMutation, type RegisteredQuery } from "convex/server";
+import type { Id } from "../_generated/dataModel";
+import type { QueryCtx, MutationCtx } from "../_generated/server";
+import { kbTables } from "../schema/kb";
+import { type SearchArticle } from "./searchDocument";
+import { requireCan } from "../helpers/permissions";
 import { internalMutation, internalQuery } from "../_generated/server";
 import { internal } from "../_generated/api";
-import { v } from "convex/values";
+import { v, ConvexError } from "convex/values";
 import { emitEvent } from "../helpers/events";
 import { KB_EVENTS, SYSTEM } from "../events/constants";
 import { isPluginEnabled, requirePluginEnabled } from "../helpers/plugins";
@@ -31,7 +38,7 @@ export const publishScheduled = internalMutation({
     const now = Date.now();
     if (article.scheduledAt > now) return; // Not yet time
 
-    await ctx.db.patch("kb_articles", articleId, {
+    await patchWithMediaReferences<"kb_articles">(ctx, "kb_articles", articleId, {
       status: "published",
       publishedAt: now,
       scheduledAt: undefined,
@@ -68,29 +75,23 @@ export const publishScheduled = internalMutation({
  * Called by the every-5-minute cron. Processes up to 50 per run to stay
  * within mutation time limits.
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
-export const publishScheduledBatch = internalMutation({
-  args: {},
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
-  handler: async (ctx) => {
+export const publishScheduledBatch: RegisteredMutation<"internal", Record<string, never>, { published: number }> = internalMutation({
+  args: {}, returns: v.object({ published: v.number() }),
+  handler: async (ctx: MutationCtx) => {
     await requirePluginEnabled(ctx, "knowledgeBase");
     const now = Date.now();
 
-    // Use by_scheduled index with range bounds to only load articles due now.
-    // Safety-bounded with .take(200) to avoid unbounded memory usage in crons.
-    const candidates = await ctx.db
-      .query("kb_articles")
-      .withIndex("by_scheduled", (q: ConvexQueryBuilder) => q.lte("scheduledAt", now))
-      .take(200);
-
-    // Filter for drafts only (scheduled articles in other statuses are skipped)
-    const due = candidates
-      // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
-      .filter((a) => a.status === "draft" && a.scheduledAt !== undefined)
-      .slice(0, 50);
+    // Unscheduled drafts and old schedules in other statuses cannot consume
+    // the batch. Publishing clears this indexed coordinate, so each continuation
+    // starts at the next due draft without a stale cursor.
+    const page = await ctx.db.query("kb_articles")
+      .withIndex("by_status_scheduled", q => q.eq("status", "draft").gt("scheduledAt", 0).lte("scheduledAt", now))
+      .paginate({ numItems: 50, cursor: null, maximumRowsRead: 50, maximumBytesRead: 512 * 1024 });
+    const due = page.page;
+    if (!due.length && !page.isDone) throw new ConvexError({ code: "SCHEDULED_PUBLISH_NO_PROGRESS", message: "The scheduled publication batch could not advance." });
 
     for (const article of due) {
-      await ctx.db.patch("kb_articles", article._id, {
+      await patchWithMediaReferences<"kb_articles">(ctx, "kb_articles", article._id, {
         status: "published",
         publishedAt: now,
         scheduledAt: undefined,
@@ -118,9 +119,9 @@ export const publishScheduledBatch = internalMutation({
       });
     }
 
-    // Self-reschedule if we hit the safety bound — there may be more due articles
-    if (candidates.length >= 200) {
-      await ctx.scheduler.runAfter(0, internal.kb.internals.publishScheduledBatch, {});
+    // Continue only the remaining due drafts; never loop on unrelated rows.
+    if (!page.isDone) {
+      await ctx.scheduler.runAfter(0, makeFunctionReference<"mutation", Record<string, never>, { published: number }>("kb/internals:publishScheduledBatch"), {});
     }
 
     return { published: due.length };
@@ -191,52 +192,26 @@ export const getUnsyncedForRag = internalQuery({
  * Load a full article enriched with category slug and article tag slugs.
  * Used by Meilisearch and RAG sync actions.
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
-export const getArticleForSync = internalQuery({
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
-  args: { articleId: v.id("kb_articles") },
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
-  handler: async (ctx, { articleId }) => {
-    if (!(await isPluginEnabled(ctx, "knowledgeBase"))) return null;
-    const article = await ctx.db.get("kb_articles", articleId);
-    if (!article) return null;
-
-    // Resolve category slug
-    const category = article.categoryId ? await ctx.db.get("kb_categories", article.categoryId) : null;
-
-    // Resolve tags via junction table
-    const articleTagRows = await ctx.db
-      .query("kb_articleTags")
-      .withIndex("by_article", (q: ConvexQueryBuilder) => q.eq("articleId", articleId))
-      .take(100);
-
-    const tagSlugs: string[] = [];
-    for (const row of articleTagRows) {
-      const tag = await ctx.db.get("kb_tags", row.tagId);
-      if (tag) tagSlugs.push(tag.slug);
-    }
-
-    return {
-      ...article,
-      categorySlug: category?.slug ?? null,
-      tags: tagSlugs,
-    };
-  },
-});
-
-// ─── Mark Meilisearch Synced ────────────────────────────────────────────────
-
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
-export const markMeilisearchSynced = internalMutation({
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
-  args: { articleId: v.id("kb_articles") },
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+const searchArticleValidator = v.union(v.null(), v.object({ ...kbTables.kb_articles.validator.fields, _id: v.id("kb_articles"), _creationTime: v.number(), categorySlug: v.union(v.string(), v.null()), tags: v.array(v.string()) }));
+export async function loadSearchArticle(ctx: QueryCtx, articleId: Id<"kb_articles">): Promise<SearchArticle | null> {
+  const article = await ctx.db.get("kb_articles", articleId);
+  if (!article) return null;
+  const category = article.categoryId ? await ctx.db.get("kb_categories", article.categoryId) : null;
+  const rows = await ctx.db.query("kb_articleTags").withIndex("by_article", q => q.eq("articleId", articleId)).take(101);
+  if (rows.length > 100) throw new ConvexError({ code: "SEARCH_TAG_LIMIT", message: "This article has more than 100 tag assignments. Review them before indexing." });
+  const tags: string[] = [];
+  for (const row of rows) {
+    const tag = await ctx.db.get("kb_tags", row.tagId);
+    if (tag) tags.push(tag.slug);
+  }
+  return { ...article, categorySlug: category?.slug ?? null, tags };
+}
+export const getArticleForSync: RegisteredQuery<"internal", { articleId: Id<"kb_articles"> }, SearchArticle | null> = internalQuery({
+  args: { articleId: v.id("kb_articles") }, returns: searchArticleValidator,
   handler: async (ctx, { articleId }) => {
     await requirePluginEnabled(ctx, "knowledgeBase");
-    await ctx.db.patch("kb_articles", articleId, {
-      meilisearchSynced: true,
-      meilisearchSyncedAt: Date.now(),
-    });
+    await requireCan(ctx, "manage_options");
+    return loadSearchArticle(ctx, articleId);
   },
 });
 
@@ -249,7 +224,8 @@ export const markRagSynced = internalMutation({
   // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, { articleId }) => {
     await requirePluginEnabled(ctx, "knowledgeBase");
-    await ctx.db.patch("kb_articles", articleId, {
+    await requireCan(ctx, "manage_options");
+    await patchWithMediaReferences<"kb_articles">(ctx, "kb_articles", articleId, {
       ragSynced: true,
       ragSyncedAt: Date.now(),
     });
@@ -281,6 +257,7 @@ export const insertRagChunk = internalMutation({
   // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "knowledgeBase");
+    await requireCan(ctx, "manage_options");
     return ctx.db.insert("kb_ragChunks", {
       articleId: args.articleId,
       articleSlug: args.articleSlug,
@@ -313,6 +290,7 @@ export const removeArticleChunks = internalMutation({
   // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "knowledgeBase");
+    await requireCan(ctx, "manage_options");
     const chunks = await ctx.db
       .query("kb_ragChunks")
       .withIndex("by_article", (q: ConvexQueryBuilder) => q.eq("articleId", args.articleId))

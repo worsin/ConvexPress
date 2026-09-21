@@ -1,11 +1,16 @@
+import { resolveCartBundle, assertBundleCartInventory } from "./cartBundle";
+import { isClosedCart } from "./cartLifecycle";
+import { activePriceAmount } from "./activePrice";
+import { resolveStockPolicy, canOrderQuantity } from "./stockPolicy";
+import { readReservedStock } from "./stockTarget";
 import { ConvexError } from "convex/values";
 
 import { internalMutation, mutation, query } from "../_generated/server";
 import { emitEvent } from "../helpers/events";
-import { getCurrentUser } from "../helpers/permissions";
+import { assertCartAccess, getCurrentShopper as getCurrentUser } from "./shopperAccess";
 import { evaluateMembershipAccess } from "../membership/access";
 import { CART_EVENTS, SYSTEM } from "../events/constants";
-import { evaluateDiscount } from "./discountEngine";
+import { evaluateCartCoupon } from "./couponLifecycle";
 import { evaluateDynamicPricingForCart } from "./dynamicPricing";
 import { getCommerceSettings, requireCommerceEnabled } from "./helpers";
 import { calculateTaxForLinesFromRules } from "./tax";
@@ -23,6 +28,8 @@ import {
 	shareCartArgs,
 	updateCartItemArgs,
 } from "./validators";
+import { deleteDynamicWithMediaReferences } from "../media/attachmentGuard";
+
 
 async function findCartBySession(ctx: any, sessionToken: string) {
 	return ctx.db
@@ -112,18 +119,7 @@ async function assertCanMutateCart(
 		});
 	}
 
-	const normalizedSessionToken = sessionToken?.trim();
-	const sessionMatches =
-		normalizedSessionToken && cart.sessionToken === normalizedSessionToken;
-	const userMatches =
-		userId && cart.userId && cart.userId.toString() === userId.toString();
-
-	if (!sessionMatches && !userMatches) {
-		throw new ConvexError({
-			code: "FORBIDDEN",
-			message: "You do not have permission to update this cart.",
-		});
-	}
+	assertCartAccess(cart, sessionToken, userId);
 }
 
 async function resolveCartItemForMutation(
@@ -183,24 +179,14 @@ async function resolvePurchasableProductAndVariant(
 	return { product, variant };
 }
 
-function assertSufficientStock(product: any, variant: any, quantity: number) {
-	if (!product.trackInventory) return;
-
-	const useParentStock = variant?.manageStock === "parent";
-	const stock =
-		variant && !useParentStock
-			? (variant.stockQuantity ?? 0)
-			: (product.stockQuantity ?? 0);
-	const variantAllowsBackorders =
-		variant?.backorders === "yes" || variant?.backorders === "notify";
-	const allowBackorders = variant
-		? variantAllowsBackorders
-		: !!product.allowBackorders;
-
-	if (!allowBackorders && stock < quantity) {
+async function assertSufficientStock(ctx: any, product: any, variant: any, quantity: number) {
+	const initial = resolveStockPolicy(product, variant);
+	const reserved = initial.tracked ? await readReservedStock(ctx, product._id, initial.owner === "variant" ? variant._id : undefined) : 0;
+	const stock = resolveStockPolicy(product, variant, reserved);
+	if (!canOrderQuantity(stock, quantity)) {
 		throw new ConvexError({
 			code: "INSUFFICIENT_STOCK",
-			message: `Only ${stock} available in stock.`,
+			message: stock.tracked ? `Only ${Math.max(0, stock.available)} available in stock.` : "This item is out of stock.",
 		});
 	}
 }
@@ -251,6 +237,15 @@ async function recalculateCart(ctx: any, cartId: any) {
 	if (!cart) return;
 
 	const items = await getCartItemsForDiscount(ctx, cartId);
+	for (const item of items) {
+		const bundle = await resolveCartBundle(ctx, { productId: item.productId, variantId: item.variantId, metadata: item.metadata, quantity: item.quantity, currencyCode: cart.currencyCode });
+		if (bundle) {
+			item.baseUnitPriceAmount = bundle.unitPriceAmount;
+			item.metadata = bundle.metadata;
+			await ctx.db.patch("commerce_cart_items", item._id, { metadata: bundle.metadata });
+		}
+	}
+	await assertBundleCartInventory(ctx, items);
 	const dynamicPricing = await evaluateDynamicPricingForCart(ctx, { cart, items });
 	const pricedItems = dynamicPricing.items;
 	for (const item of pricedItems) {
@@ -278,10 +273,9 @@ async function recalculateCart(ctx: any, cartId: any) {
 		(sum: number, item: any) => sum + item.lineTotalAmount,
 		0,
 	);
-	const discount = await resolveActiveDiscount(ctx, cart.appliedDiscountCode);
-	const discountEvaluation = discount
-		? evaluateDiscount(discount, pricedItems)
-		: null;
+  const coupon = await evaluateCartCoupon(ctx, cart.appliedDiscountCode, pricedItems);
+  const discountEvaluation = coupon.evaluation;
+  const discount = discountEvaluation?.eligible ? coupon.discount : null;
 	const couponDiscountAmount = discountEvaluation?.eligible
 		? discountEvaluation.discountAmount
 		: 0;
@@ -310,6 +304,7 @@ async function recalculateCart(ctx: any, cartId: any) {
 			: undefined,
 		dynamicPricingDescription: dynamicPricing.description,
 		freeShippingByDynamicPricing: dynamicPricing.freeShipping || undefined,
+    freeShippingByCoupon: discountEvaluation?.eligible && discountEvaluation.suppressShipping ? true : undefined,
 		discountAmount,
 		shippingAmount: 0,
 		taxAmount,
@@ -331,6 +326,7 @@ async function recalculateCart(ctx: any, cartId: any) {
 			: undefined,
 		dynamicPricingDescription: dynamicPricing.description,
 		freeShippingByDynamicPricing: dynamicPricing.freeShipping || undefined,
+    freeShippingByCoupon: discountEvaluation?.eligible && discountEvaluation.suppressShipping ? true : undefined,
 		subtotalAmount,
 		discountAmount,
 		itemTaxableAmount: taxableAmount,
@@ -349,6 +345,7 @@ async function invalidateCheckoutShippingForCart(
 		dynamicPricingRuleIds?: any[];
 		dynamicPricingDescription?: string;
 		freeShippingByDynamicPricing?: boolean;
+    freeShippingByCoupon?: boolean;
 		subtotalAmount: number;
 		discountAmount: number;
 		itemTaxableAmount: number;
@@ -396,7 +393,7 @@ async function invalidateCheckoutShippingForCart(
 			.withIndex("by_checkout", (q: any) => q.eq("checkoutSessionId", session._id))
 			.collect();
 		for (const quote of quotes) {
-			await ctx.db.delete(quote._id);
+			await deleteDynamicWithMediaReferences(ctx, quote._id);
 		}
 
 		let taxAmount = 0;
@@ -431,6 +428,7 @@ async function invalidateCheckoutShippingForCart(
 			dynamicPricingRuleIds: input.dynamicPricingRuleIds,
 			dynamicPricingDescription: input.dynamicPricingDescription,
 			freeShippingByDynamicPricing: input.freeShippingByDynamicPricing,
+      freeShippingByCoupon: input.freeShippingByCoupon,
 			subtotalAmount: input.subtotalAmount,
 			discountAmount: input.discountAmount,
 			shippingAmount: 0,
@@ -448,30 +446,14 @@ async function invalidateCheckoutShippingForCart(
  * Falls back to the regular price when no sale is active or dates are outside range.
  */
 function resolveVariantActivePrice(variant: any): number {
-	const now = Date.now();
-	if (
-		variant.salePrice?.amount &&
-		(!variant.salePriceFrom || variant.salePriceFrom <= now) &&
-		(!variant.salePriceTo || variant.salePriceTo >= now)
-	) {
-		return variant.salePrice.amount;
-	}
-	return variant.price.amount;
+	return activePriceAmount(variant.price, variant.salePrice, variant);
 }
 
 /**
  * Resolve the active price for a product, respecting scheduled sale dates.
  */
 function resolveProductActivePrice(product: any): number {
-	const now = Date.now();
-	if (
-		product.salePrice?.amount &&
-		(!product.salePriceFrom || product.salePriceFrom <= now) &&
-		(!product.salePriceTo || product.salePriceTo >= now)
-	) {
-		return product.salePrice.amount;
-	}
-	return product.basePrice.amount;
+	return activePriceAmount(product.basePrice, product.salePrice, product);
 }
 
 async function resolveContextualPrice(
@@ -546,7 +528,16 @@ async function resolveContextualPrice(
 }
 
 async function ensureCart(ctx: any, sessionToken: string, userId?: any) {
-	const sessionCart = await findCartBySession(ctx, sessionToken);
+	let sessionCart = await findCartBySession(ctx, sessionToken);
+	if (sessionCart) assertCartAccess(sessionCart, sessionToken, userId);
+	// Keep order history intact while releasing the browser token for its next cart.
+	if (isClosedCart(sessionCart)) {
+		await ctx.db.patch("commerce_carts", sessionCart._id, {
+			sessionToken: `retired:${sessionCart._id}`,
+			updatedAt: Date.now(),
+		});
+		sessionCart = null;
+	}
 	const userCart = userId ? await findActiveCartByUser(ctx, userId) : null;
 
 	if (sessionCart) {
@@ -560,6 +551,7 @@ async function ensureCart(ctx: any, sessionToken: string, userId?: any) {
 		if (sessionCart.status === "abandoned") {
 			await ctx.db.patch("commerce_carts", sessionCart._id, {
 				status: "active",
+				userId: sessionCart.userId ?? userId,
 				recoveredAt: Date.now(),
 				updatedAt: Date.now(),
 			});
@@ -625,10 +617,8 @@ async function ensureCart(ctx: any, sessionToken: string, userId?: any) {
 	return ctx.db.get("commerce_carts", cartId);
 }
 
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
-export const getMine = query({
+export const getMine: import("convex/server").RegisteredQuery<"public", { sessionToken?: string }, (import("../_generated/dataModel").Doc<"commerce_carts"> & { items: Array<import("../_generated/dataModel").Doc<"commerce_cart_items"> & { product: import("../_generated/dataModel").Doc<"commerce_products"> | null; variant: import("../_generated/dataModel").Doc<"commerce_product_variants"> | null }> }) | null> = query({
 	args: getCartArgs,
-	// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 	handler: async (ctx, args) => {
 		await requireCommerceEnabled(ctx);
 		const user = await getCurrentUser(ctx);
@@ -641,6 +631,8 @@ export const getMine = query({
 				: null;
 
 		if (!cart) return null;
+		assertCartAccess(cart, sessionToken, user?._id);
+		if (isClosedCart(cart)) return null;
 
 		const items = await ctx.db
 			.query("commerce_cart_items")
@@ -693,14 +685,17 @@ export const addItem = mutation({
 			});
 		}
 
-		const quantity = Math.max(1, args.quantity);
+		const quantity = args.quantity;
+		if (!Number.isSafeInteger(quantity) || quantity <= 0) throw new ConvexError({ code: "invalid_quantity", message: "Quantity must be a positive safe integer." });
 		const cart = await ensureCart(ctx, args.sessionToken, user?._id);
 		await assertCanMutateCart(cart, args.sessionToken, user?._id);
 
+		const resolvedBundle = await resolveCartBundle(ctx, { productId: args.productId, variantId: args.variantId, metadata: args.metadata, quantity, currencyCode: cart.currencyCode });
+		const metadata = resolvedBundle?.metadata ?? args.metadata;
 		const nextLineKey = cartLineKey({
 			productId: args.productId,
 			variantId: args.variantId,
-			metadata: args.metadata,
+			metadata,
 		});
 		const existing = (
 			await ctx.db
@@ -719,18 +714,18 @@ export const addItem = mutation({
 		// Resolve active price with scheduled sale date awareness
 		// Stock validation — respect variant-level manageStock and backorders
 		const desiredQty = (existing?.quantity ?? 0) + quantity;
-		const unitPriceAmount = await resolveContextualPrice(ctx, {
+		const unitPriceAmount = resolvedBundle?.unitPriceAmount ?? await resolveContextualPrice(ctx, {
 			product,
 			variant,
 			cart,
 			quantity: desiredQty,
 		});
-		assertSufficientStock(product, variant, desiredQty);
+		await assertSufficientStock(ctx, product, variant, desiredQty);
 
 		const now = Date.now();
 
 		if (existing) {
-			await ctx.db.patch(existing._id, {
+			await ctx.db.patch("commerce_cart_items", existing._id, {
 				quantity: existing.quantity + quantity,
 				baseUnitPriceAmount: unitPriceAmount,
 				dynamicPricingAdjustmentAmount: undefined,
@@ -749,7 +744,7 @@ export const addItem = mutation({
 				baseUnitPriceAmount: unitPriceAmount,
 				unitPriceAmount,
 				lineTotalAmount: quantity * unitPriceAmount,
-				metadata: args.metadata,
+				metadata,
 				createdAt: now,
 				updatedAt: now,
 			});
@@ -785,7 +780,7 @@ export const updateItemQuantity = mutation({
 		if (!item) return null;
 
 		if (args.quantity <= 0) {
-			await ctx.db.delete(args.cartItemId);
+			await ctx.db.delete("commerce_cart_items", args.cartItemId);
 			await recalculateCart(ctx, item.cartId);
 			await emitEvent(ctx, CART_EVENTS.ITEM_REMOVED, SYSTEM.CART, {
 				cartId: item.cartId,
@@ -804,7 +799,9 @@ export const updateItemQuantity = mutation({
 		);
 
 		const cart = await ctx.db.get(item.cartId);
-		const refreshedPrice = await resolveContextualPrice(ctx, {
+		if (!Number.isSafeInteger(args.quantity)) throw new ConvexError({ code: "invalid_quantity", message: "Quantity must be a safe integer." });
+		const bundle = await resolveCartBundle(ctx, { productId: item.productId, variantId: item.variantId, metadata: item.metadata, quantity: args.quantity, currencyCode: cart.currencyCode });
+		const refreshedPrice = bundle?.unitPriceAmount ?? await resolveContextualPrice(ctx, {
 			product,
 			variant,
 			cart,
@@ -812,9 +809,9 @@ export const updateItemQuantity = mutation({
 		});
 
 		// Stock validation — respect variant-level manageStock and backorders
-		assertSufficientStock(product, variant, args.quantity);
+		await assertSufficientStock(ctx, product, variant, args.quantity);
 
-		await ctx.db.patch(args.cartItemId, {
+		await ctx.db.patch("commerce_cart_items", args.cartItemId, {
 			quantity: args.quantity,
 			baseUnitPriceAmount: refreshedPrice,
 			dynamicPricingAdjustmentAmount: undefined,
@@ -849,7 +846,7 @@ export const removeItem = mutation({
 		);
 		if (!item) return null;
 
-		await ctx.db.delete(args.cartItemId);
+		await ctx.db.delete("commerce_cart_items", args.cartItemId);
 		await recalculateCart(ctx, item.cartId);
 		await emitEvent(ctx, CART_EVENTS.ITEM_REMOVED, SYSTEM.CART, {
 			cartId: item.cartId,
@@ -870,13 +867,16 @@ export const clear = mutation({
 		const cart = await findCartBySession(ctx, args.sessionToken);
 		if (!cart) return null;
 
+		const user = await getCurrentUser(ctx);
+		await assertCanMutateCart(cart, args.sessionToken, user?._id);
+
 		const items = await ctx.db
 			.query("commerce_cart_items")
 			.withIndex("by_cart", (q: any) => q.eq("cartId", cart._id))
 			.collect();
 
 		for (const item of items) {
-			await ctx.db.delete(item._id);
+			await ctx.db.delete("commerce_cart_items", item._id);
 		}
 
 		await recalculateCart(ctx, cart._id);
@@ -902,6 +902,9 @@ export const applyDiscountCode = mutation({
 			});
 		}
 
+		const user = await getCurrentUser(ctx);
+		await assertCanMutateCart(cart, args.sessionToken, user?._id);
+
 		const discount = await resolveActiveDiscount(ctx, args.code);
 		if (!discount) {
 			throw new ConvexError({
@@ -911,12 +914,12 @@ export const applyDiscountCode = mutation({
 		}
 
 		const items = await getCartItemsForDiscount(ctx, cart._id);
-		const evaluation = evaluateDiscount(discount, items);
-		if (!evaluation.eligible) {
+    const { evaluation } = await evaluateCartCoupon(ctx, discount.code, items);
+		if (!evaluation?.eligible) {
 			throw new ConvexError({
 				code: "VALIDATION_ERROR",
 				message:
-					evaluation.message ?? "Cart does not qualify for this discount.",
+					evaluation?.message ?? "Cart does not qualify for this discount.",
 			});
 		}
 
@@ -943,6 +946,9 @@ export const removeDiscountCode = mutation({
 		await requireCommerceEnabled(ctx);
 		const cart = await findCartBySession(ctx, args.sessionToken);
 		if (!cart) return null;
+
+		const user = await getCurrentUser(ctx);
+		await assertCanMutateCart(cart, args.sessionToken, user?._id);
 
 		await ctx.db.patch("commerce_carts", cart._id, {
 			appliedDiscountCode: undefined,
@@ -973,9 +979,10 @@ export const merge = mutation({
 		}
 
 		const guestCart = await findCartBySession(ctx, args.sessionToken);
+		if (guestCart) assertCartAccess(guestCart, args.sessionToken, user._id);
 		const userCart = await findActiveCartByUser(ctx, user._id);
 
-		if (!guestCart) return userCart?._id ?? null;
+		if (!guestCart || isClosedCart(guestCart) || guestCart.status === "pending_payment") return userCart?._id ?? null;
 
 		if (guestCart.userId?.toString() === user._id.toString()) {
 			if (guestCart.status === "abandoned") {
@@ -989,6 +996,7 @@ export const merge = mutation({
 					userId: user._id,
 				});
 			}
+			await recalculateCart(ctx, guestCart._id);
 			return guestCart._id;
 		}
 
@@ -1005,6 +1013,7 @@ export const merge = mutation({
 				source: "session_claimed",
 				userId: user._id,
 			});
+			await recalculateCart(ctx, guestCart._id);
 			return guestCart._id;
 		}
 
@@ -1028,7 +1037,7 @@ export const merge = mutation({
 					match.productId,
 					match.variantId,
 				);
-				assertSufficientStock(product, variant, quantity);
+				await assertSufficientStock(ctx, product, variant, quantity);
 				await ctx.db.patch("commerce_cart_items", match._id, {
 					quantity,
 					lineTotalAmount: quantity * match.unitPriceAmount,
@@ -1131,8 +1140,7 @@ export const getShared = query({
 		if (!cart || cart.isShared !== true || cart.status !== "active") return null;
 
 		const items = await getCartItems(ctx, cart._id);
-			// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
-			const enrichedItems = await Promise.all(
+		const enrichedItems = await Promise.all(
 			items.map(async (item: any) => ({
 				...item,
 				product: await ctx.db.get(item.productId),
@@ -1195,7 +1203,7 @@ export const copyShared = mutation({
 					cartLineKey(item) === lineKey,
 			);
 			const nextQuantity = (existing?.quantity ?? 0) + sourceItem.quantity;
-			assertSufficientStock(product, variant, nextQuantity);
+			await assertSufficientStock(ctx, product, variant, nextQuantity);
 
 			if (existing) {
 				await ctx.db.patch("commerce_cart_items", existing._id, {

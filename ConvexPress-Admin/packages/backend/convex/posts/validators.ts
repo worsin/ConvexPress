@@ -208,6 +208,7 @@ export const deletePostArgs = {
  */
 export const duplicatePostArgs = {
   postId: v.id("posts"),
+  expectedRevision: v.optional(v.number()),
 };
 
 /**

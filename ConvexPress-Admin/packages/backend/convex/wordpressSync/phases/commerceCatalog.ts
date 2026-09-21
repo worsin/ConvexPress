@@ -6,6 +6,7 @@
  * ConvexPress commerce tables as a single capability-gated sync phase.
  */
 
+import { insertWithMediaReferences, patchWithMediaReferences } from "../../media/attachmentGuard";
 import { internalAction, internalMutation } from "../../_generated/server";
 import { ConvexError, v } from "convex/values";
 import { internal } from "../../_generated/api";
@@ -1038,7 +1039,7 @@ async function updateCommerceCategoryDescendantPaths(ctx: any, categoryId: Id<"c
 
   for (const child of children) {
     const path = [...(parent.path ?? []), parent._id];
-    await ctx.db.patch("commerce_product_categories", child._id, {
+    await patchWithMediaReferences<"commerce_product_categories">(ctx, "commerce_product_categories", child._id, {
       path,
       depth: path.length,
       updatedAt: Date.now(),
@@ -1093,12 +1094,12 @@ export const upsertCategory = internalMutation({
     }
 
     if (targetId) {
-      await ctx.db.patch("commerce_product_categories", targetId, patch);
+      await patchWithMediaReferences<"commerce_product_categories">(ctx, "commerce_product_categories", targetId, patch);
       await updateCommerceCategoryDescendantPaths(ctx, targetId);
       return targetId;
     }
 
-    return await ctx.db.insert("commerce_product_categories", {
+    return await insertWithMediaReferences<"commerce_product_categories">(ctx, "commerce_product_categories", {
       ...patch,
       sortOrder: now,
       createdAt: now,
@@ -1114,7 +1115,7 @@ export const setCategoryParent = internalMutation({
   handler: async (ctx, { categoryId, parentId }) => {
     const typedCategoryId = categoryId as Id<"commerce_product_categories">;
     const parentState = await getCommerceCategoryParentState(ctx, parentId);
-    await ctx.db.patch("commerce_product_categories", typedCategoryId, {
+    await patchWithMediaReferences<"commerce_product_categories">(ctx, "commerce_product_categories", typedCategoryId, {
       parentId: parentState.parentId,
       path: parentState.path,
       depth: parentState.depth,
@@ -1217,11 +1218,11 @@ export const upsertProduct = internalMutation({
     }
 
     if (targetId) {
-      await ctx.db.patch(targetId, patch);
+      await patchWithMediaReferences<"commerce_products">(ctx, "commerce_products", targetId, patch);
       return targetId;
     }
 
-    return await ctx.db.insert("commerce_products", {
+    return await insertWithMediaReferences<"commerce_products">(ctx, "commerce_products", {
       ...patch,
       createdAt: now,
     });
@@ -1308,7 +1309,7 @@ export const upsertVariant = internalMutation({
       for (const sibling of siblings) {
         if (!targetId || sibling._id !== targetId) {
           if (sibling.isDefault) {
-            await ctx.db.patch(sibling._id, { isDefault: false, updatedAt: now });
+            await patchWithMediaReferences<"commerce_product_variants">(ctx, "commerce_product_variants", sibling._id, { isDefault: false, updatedAt: now });
           }
         }
       }
@@ -1352,19 +1353,19 @@ export const upsertVariant = internalMutation({
     };
 
     if (targetId) {
-      await ctx.db.patch(targetId, patch);
-      await ctx.db.patch(targetProductId, {
+      await patchWithMediaReferences<"commerce_product_variants">(ctx, "commerce_product_variants", targetId, patch);
+      await patchWithMediaReferences<"commerce_products">(ctx, "commerce_products", targetProductId, {
         productType: "variable",
         updatedAt: now,
       });
       return targetId;
     }
 
-    const variantId = await ctx.db.insert("commerce_product_variants", {
+    const variantId: import("../../_generated/dataModel").Id<"commerce_product_variants"> = await insertWithMediaReferences<"commerce_product_variants">(ctx, "commerce_product_variants", {
       ...patch,
       createdAt: now,
     });
-    await ctx.db.patch(targetProductId, {
+    await patchWithMediaReferences<"commerce_products">(ctx, "commerce_products", targetProductId, {
       productType: "variable",
       updatedAt: now,
     });

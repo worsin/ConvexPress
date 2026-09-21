@@ -15,6 +15,7 @@
  *   await updateSettings({ section: "general", values: { siteTitle: "New Title" } });
  */
 
+import { insertWithMediaReferences, patchWithMediaReferences } from "../media/attachmentGuard";
 import { internal } from "../_generated/api";
 import { mutation } from "../_generated/server";
 import { ConvexError } from "convex/values";
@@ -28,6 +29,7 @@ import {
   SECTION_NAMES,
   type SettingsSection,
 } from "./defaults";
+import { persistLegacyAppearance, readAppearance } from "./appearanceMigration";
 import { computeChanges } from "./helpers";
 import { validateSectionValues } from "./validation";
 import { runBootstrapShippingTemplates } from "../shipping/bootstrap";
@@ -47,6 +49,7 @@ const SETTINGS_DOCUMENT_METADATA_KEYS = new Set([
   "section",
   "updatedAt",
   "updatedBy",
+  "legacyAppearanceMigration",
 ]);
 
 function stripSettingsDocumentMetadata(values: Record<string, unknown>) {
@@ -55,6 +58,17 @@ function stripSettingsDocumentMetadata(values: Record<string, unknown>) {
       ([key]) => !SETTINGS_DOCUMENT_METADATA_KEYS.has(key),
     ),
   );
+}
+
+function settingsChanges(oldValues: Record<string, unknown>, newValues: Record<string, unknown>) {
+  // Detect rotations before redaction, then expose only masked values in events.
+  const oldRedacted = redactSettingSecrets(oldValues)!;
+  const newRedacted = redactSettingSecrets(newValues)!;
+  return computeChanges(oldValues, newValues).map(({ field }) => ({
+    field,
+    oldValue: oldRedacted[field] ?? null,
+    newValue: newRedacted[field] ?? null,
+  }));
 }
 
 /**
@@ -83,6 +97,7 @@ const SECTION_CAPABILITY_MAP: Record<
   ai: "manage_options",
   blocks: "manage_options",
   plugins: "manage_options",
+  "membership.general": "manage_options",
   search: "manage_options",
   // Knowledge Base System sections
   "kb.general": "manage_options",
@@ -126,15 +141,15 @@ const SECTION_CAPABILITY_MAP: Record<
  * Flow:
  *   1. Validate auth (Administrator with section-specific capability)
  *   2. Validate the section name
- *   3. Merge incoming values with defaults to get the complete new values
- *   4. Get current stored values (or defaults if none exist)
+ *   3. Read defaults and existing stored values
+ *   4. Apply the incoming partial update over existing values
  *   5. Compute changes diff
  *   6. Skip if no changes
  *   7. Upsert: patch existing document or insert new
  *   8. Emit settings.updated event with the changes array
  *
  * @param section - One of the 6 settings section names
- * @param values - The complete new values for this section
+ * @param values - Changed fields; explicit default values reset those fields
  */
 export const updateSection = mutation({
   args: updateSectionArgs,
@@ -156,29 +171,13 @@ export const updateSection = mutation({
     const capability = SECTION_CAPABILITY_MAP[section];
     const user = await requireCan(ctx, capability);
 
-    // 3. Validate section-specific values
-    const validationErrors = validateSectionValues(section, incomingValues);
-    if (validationErrors.length > 0) {
-      throw new ConvexError({
-        code: "VALIDATION_ERROR",
-        message: `Validation failed for ${section} settings`,
-        errors: validationErrors.map((error) => ({
-          field: error.field,
-          message: error.message,
-        })),
-      });
-    }
+    // Preserve legacy values before the first explicit template write and record its cutoff.
+    if (section === "appearance.template") await persistLegacyAppearance(ctx, user._id);
 
     // 4. Get defaults for this section
-    const defaults = getDefaults(section);
+    const defaults = section === "appearance.template" ? (await readAppearance(ctx)).values : getDefaults(section);
 
-    // 5. Merge incoming values with defaults (incoming takes precedence)
-    const newValues: Record<string, unknown> = {
-      ...defaults,
-      ...incomingValues,
-    };
-
-    // 6. Get current stored values (or defaults if nothing stored yet)
+    // 5. Get current stored values (or defaults if nothing stored yet)
     const existingDoc = await ctx.db
       .query("settings")
       .withIndex("by_section", (q) => q.eq("section", section))
@@ -187,13 +186,35 @@ export const updateSection = mutation({
     const oldValues: Record<string, unknown> = existingDoc
       ? { ...defaults, ...(existingDoc.values as Record<string, unknown>) }
       : { ...defaults };
+    // A redacted/omitted key belongs to the old provider, never the new one.
+    if (section === "ai" && incomingValues.provider !== undefined && incomingValues.provider !== oldValues.provider
+      && (incomingValues.apiKey === undefined || incomingValues.apiKey === SECRET_SENTINEL)) incomingValues.apiKey = "";
+    if (section === "kb.search" && incomingValues.ragProvider !== undefined && incomingValues.ragProvider !== oldValues.ragProvider
+      && (incomingValues.ragApiKey === undefined || incomingValues.ragApiKey === SECRET_SENTINEL)) incomingValues.ragApiKey = "";
+    const newValues: Record<string, unknown> = { ...oldValues, ...incomingValues };
+
+    // Validate the complete candidate. Retained ciphertext is represented by the
+    // same sentinel accepted from the UI; explicitly supplied secrets stay visible
+    // to validation and are processed separately below.
+    const validationErrors = validateSectionValues(section, {
+      ...redactSettingSecrets(oldValues),
+      ...incomingValues,
+    });
+    if (validationErrors.length > 0) {
+      throw new ConvexError({
+        code: "VALIDATION_ERROR",
+        message: `Validation failed for ${section} settings`,
+        errors: validationErrors.map((error) => ({ field: error.field, message: error.message })),
+      });
+    }
 
     // Secret-field handling:
     //   - If UI sent SECRET_SENTINEL for a secret field, user didn't change
     //     it — keep the existing stored (encrypted) value.
     //   - If UI sent a new plaintext value, encrypt it before writing.
     //   - Empty string means clear (user explicitly removed the key).
-    for (const [k, v] of Object.entries(newValues)) {
+    // Only supplied secrets need processing; retained ciphertext stays unchanged.
+    for (const [k, v] of Object.entries(incomingValues)) {
       if (!isSecretFieldName(k)) continue;
       if (v === SECRET_SENTINEL) {
         // Keep whatever was already stored.
@@ -205,10 +226,7 @@ export const updateSection = mutation({
 
     // 7. Compute diff — use redacted view so the event payload never
     // carries plaintext secrets.
-    const changes = computeChanges(
-      redactSettingSecrets(oldValues) as any,
-      redactSettingSecrets(newValues) as any,
-    );
+    const changes = settingsChanges(oldValues, newValues);
 
     // 8. Skip if no changes detected
     if (changes.length === 0) {
@@ -218,13 +236,13 @@ export const updateSection = mutation({
     // 9. Upsert the settings document
     const now = Date.now();
     if (existingDoc) {
-      await ctx.db.patch("settings", existingDoc._id, {
+      await patchWithMediaReferences<"settings">(ctx, "settings", existingDoc._id, {
         values: newValues,
         updatedAt: now,
         updatedBy: user._id,
       });
     } else {
-      await ctx.db.insert("settings", {
+      await insertWithMediaReferences<"settings">(ctx, "settings", {
         section,
         values: newValues,
         updatedAt: now,
@@ -241,7 +259,7 @@ export const updateSection = mutation({
     }
     if (section === "email") {
       await ctx.scheduler.runAfter(0, internal.emails.internals.bootstrapTemplates, {});
-      await ctx.scheduler.runAfter(0, internal.bootstrap.registerListeners.run, {});
+      await ctx.scheduler.runAfter(0, internal.bootstrap.registerListeners.ensureRequired, {});
       await ctx.scheduler.runAfter(
         0,
         internal.shipping.bootstrap.bootstrapShippingTemplates,
@@ -334,16 +352,7 @@ export const importAll = mutation({
       // Get defaults and merge
       const defaults = getDefaults(sectionName);
       const incoming = stripSettingsDocumentMetadata(sectionValues as Record<string, unknown>);
-      const validationErrors = validateSectionValues(sectionName, incoming);
-      if (validationErrors.length > 0) {
-        throw new ConvexError({
-          code: "VALIDATION_ERROR",
-          message: `Import failed for ${sectionName} settings`,
-          errors: validationErrors.map((error) => ({ field: error.field, message: error.message })),
-        });
-      }
-      const newValues: Record<string, unknown> = { ...defaults, ...incoming };
-
+      if (sectionName === "appearance.template") await persistLegacyAppearance(ctx, user._id);
       // Get current stored values
       const existingDoc = await ctx.db
         .query("settings")
@@ -353,10 +362,24 @@ export const importAll = mutation({
       const oldValues: Record<string, unknown> = existingDoc
         ? { ...defaults, ...(existingDoc.values as Record<string, unknown>) }
         : { ...defaults };
+      if (sectionName === "ai" && incoming.provider !== undefined && incoming.provider !== oldValues.provider
+        && (incoming.apiKey === undefined || incoming.apiKey === SECRET_SENTINEL)) incoming.apiKey = "";
+      const newValues: Record<string, unknown> = { ...oldValues, ...incoming };
+      const validationErrors = validateSectionValues(sectionName, {
+        ...redactSettingSecrets(oldValues),
+        ...incoming,
+      });
+      if (validationErrors.length > 0) {
+        throw new ConvexError({
+          code: "VALIDATION_ERROR",
+          message: `Import failed for ${sectionName} settings`,
+          errors: validationErrors.map((error) => ({ field: error.field, message: error.message })),
+        });
+      }
 
       // Exports are redacted (secrets come back as the sentinel): keep the
       // stored secret for a sentinel, encrypt any new plaintext.
-      for (const [k, v] of Object.entries(newValues)) {
+      for (const [k, v] of Object.entries(incoming)) {
         if (!isSecretFieldName(k)) continue;
         if (v === SECRET_SENTINEL) {
           newValues[k] = (existingDoc?.values as any)?.[k] ?? "";
@@ -366,10 +389,7 @@ export const importAll = mutation({
       }
 
       // Compute changes (redacted view: no plaintext in events)
-      const changes = computeChanges(
-        redactSettingSecrets(oldValues) as any,
-        redactSettingSecrets(newValues) as any,
-      );
+      const changes = settingsChanges(oldValues, newValues);
 
       // Skip if no actual changes
       if (changes.length === 0) {
@@ -379,13 +399,13 @@ export const importAll = mutation({
 
       // Upsert
       if (existingDoc) {
-        await ctx.db.patch("settings", existingDoc._id, {
+        await patchWithMediaReferences<"settings">(ctx, "settings", existingDoc._id, {
           values: newValues,
           updatedAt: now,
           updatedBy: user._id,
         });
       } else {
-        await ctx.db.insert("settings", {
+        await insertWithMediaReferences<"settings">(ctx, "settings", {
           section: sectionName,
           values: newValues,
           updatedAt: now,

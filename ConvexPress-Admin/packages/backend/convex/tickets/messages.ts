@@ -11,7 +11,9 @@
  *   addSystemMessage  - Add a system-generated message
  */
 
-import { ConvexError } from "convex/values";
+import { ConvexError, type ObjectType } from "convex/values";
+import type { RegisteredMutation, RegisteredQuery } from "convex/server";
+import type { Id, Doc } from "../_generated/dataModel";
 import { mutation, query, internalMutation } from "../_generated/server";
 import {
   requireCan,
@@ -55,10 +57,8 @@ function getTicketUserSnapshotName(user: TicketUserNameFields): string {
  * Requires ticket.viewInternalNotes for internal notes to appear.
  * Messages ordered by sequence number.
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
-export const getByTicket = query({
+export const getByTicket: RegisteredQuery<"public", ObjectType<typeof getMessagesByTicketArgs>, Doc<"ticket_messages">[] | null> = query({
   args: getMessagesByTicketArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "tickets"))) return null;
     const user = await getCurrentUser(ctx);
@@ -85,12 +85,11 @@ export const getByTicket = query({
 
     const messages = await ctx.db
       .query("ticket_messages")
-      .withIndex("by_ticket_sequence", (q: ConvexQueryBuilder) => q.eq("ticketId", args.ticketId))
+      .withIndex("by_ticket_sequence", (q) => q.eq("ticketId", args.ticketId))
       .take(1000);
 
     return canViewInternal
       ? messages
-      // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
       : messages.filter((m) => !m.isInternal);
   },
 });
@@ -101,10 +100,8 @@ export const getByTicket = query({
  * Public messages only (no internal notes). For website ticket thread view.
  * Ordered by sequence number.
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
-export const getPublicByTicket = query({
+export const getPublicByTicket: RegisteredQuery<"public", ObjectType<typeof getPublicMessagesByTicketArgs>, Doc<"ticket_messages">[] | null> = query({
   args: getPublicMessagesByTicketArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "tickets"))) return null;
     const user = await getCurrentUser(ctx);
@@ -126,10 +123,9 @@ export const getPublicByTicket = query({
 
     const messages = await ctx.db
       .query("ticket_messages")
-      .withIndex("by_ticket_sequence", (q: ConvexQueryBuilder) => q.eq("ticketId", args.ticketId))
+      .withIndex("by_ticket_sequence", (q) => q.eq("ticketId", args.ticketId))
       .take(1000);
 
-    // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
     return messages.filter((m) => !m.isInternal);
   },
 });
@@ -139,10 +135,8 @@ export const getPublicByTicket = query({
 /**
  * Get the public message count for a ticket.
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
-export const getCount = query({
+export const getCount: RegisteredQuery<"public", ObjectType<typeof getMessageCountArgs>, { publicCount: number; internalCount: number | undefined; totalCount: number } | null> = query({
   args: getMessageCountArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "tickets"))) return null;
     const user = await getCurrentUser(ctx);
@@ -159,16 +153,14 @@ export const getCount = query({
 
     const messages = await ctx.db
       .query("ticket_messages")
-      .withIndex("by_ticket", (q: ConvexQueryBuilder) => q.eq("ticketId", args.ticketId))
+      .withIndex("by_ticket", (q) => q.eq("ticketId", args.ticketId))
       .take(1000);
 
-    // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
     const publicCount = messages.filter((m) => !m.isInternal).length;
 
     // Only expose internal message count to staff with viewInternalNotes capability
     const canViewInternal = await currentUserCan(ctx, "ticket.viewInternalNotes");
     const internalCount = canViewInternal
-      // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
       ? messages.filter((m) => m.isInternal).length
       : undefined;
 
@@ -188,10 +180,8 @@ export const getCount = query({
  * Users can edit their own messages within a 15-minute window.
  * Admins with ticket.respond can edit any non-system message.
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
-export const edit = mutation({
+export const edit: RegisteredMutation<"public", ObjectType<typeof editMessageArgs>, { messageId: Id<"ticket_messages"> }> = mutation({
   args: editMessageArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "tickets");
     const user = await requireAuth(ctx);
@@ -251,10 +241,8 @@ export const edit = mutation({
  * Remove a message (soft delete: replaces content with "[Message removed]").
  * Requires ticket.respond capability.
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
-export const remove = mutation({
+export const remove: RegisteredMutation<"public", ObjectType<typeof removeMessageArgs>, { messageId: Id<"ticket_messages"> }> = mutation({
   args: removeMessageArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "tickets");
     const user = await requireCan(ctx, "ticket.respond");
@@ -291,10 +279,8 @@ export const remove = mutation({
  * ticket.viewInternalNotes capability. Does NOT trigger auto-status
  * transitions or update lastMessageAt (since it's not user-visible).
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
-export const addInternalNote = mutation({
+export const addInternalNote: RegisteredMutation<"public", ObjectType<typeof addInternalNoteArgs>, { messageId: Id<"ticket_messages"> }> = mutation({
   args: addInternalNoteArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "tickets");
     const user = await requireCan(ctx, "ticket.viewInternalNotes");
@@ -323,7 +309,7 @@ export const addInternalNote = mutation({
     // Compute next sequence
     const lastMessage = await ctx.db
       .query("ticket_messages")
-      .withIndex("by_ticket_sequence", (q: ConvexQueryBuilder) => q.eq("ticketId", args.ticketId))
+      .withIndex("by_ticket_sequence", (q) => q.eq("ticketId", args.ticketId))
       .order("desc")
       .first();
     const sequence = (lastMessage?.sequence ?? -1) + 1;
@@ -362,10 +348,8 @@ export const addInternalNote = mutation({
  * This is an internal helper -- not directly callable by clients.
  * Wrapped as a mutation so it can be called from other mutations.
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
-export const addSystemMessage = internalMutation({
+export const addSystemMessage: RegisteredMutation<"internal", ObjectType<typeof addSystemMessageArgs>, { messageId: Id<"ticket_messages"> }> = internalMutation({
   args: addSystemMessageArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "tickets");
 
@@ -377,7 +361,7 @@ export const addSystemMessage = internalMutation({
     // Compute next sequence
     const lastMessage = await ctx.db
       .query("ticket_messages")
-      .withIndex("by_ticket_sequence", (q: ConvexQueryBuilder) => q.eq("ticketId", args.ticketId))
+      .withIndex("by_ticket_sequence", (q) => q.eq("ticketId", args.ticketId))
       .order("desc")
       .first();
     const sequence = (lastMessage?.sequence ?? -1) + 1;

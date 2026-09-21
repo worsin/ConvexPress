@@ -66,7 +66,7 @@ export const addLabelToManifest = internalMutation({
       });
     }
     if (manifest.labelIds.includes(args.labelId)) return args.manifestId;
-    await ctx.db.patch(args.manifestId, {
+    await ctx.db.patch("commerce_shipment_manifests", args.manifestId, {
       labelIds: [...manifest.labelIds, args.labelId],
       totalPackages: manifest.totalPackages + 1,
       updatedAt: Date.now(),
@@ -94,7 +94,7 @@ export const markManifestSubmitted = internalMutation({
     const manifest = await ctx.db.get(args.manifestId);
     if (!manifest) return;
     const now = Date.now();
-    await ctx.db.patch(args.manifestId, {
+    await ctx.db.patch("commerce_shipment_manifests", args.manifestId, {
       status: args.success ? "submitted" : "failed",
       externalManifestId: args.externalManifestId,
       submittedAt: args.success ? now : undefined,
@@ -129,7 +129,7 @@ export const closeManifest = mutation({
       });
     }
     const now = Date.now();
-    await ctx.db.patch(args.manifestId, {
+    await ctx.db.patch("commerce_shipment_manifests", args.manifestId, {
       status: "closed",
       closedAt: now,
       closedBy: user?._id,

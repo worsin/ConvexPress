@@ -22,6 +22,7 @@ import { v } from "convex/values";
 import { requireCan } from "../helpers/permissions";
 import { emitEvent } from "../helpers/events";
 import { upsertCacheArgs, saveConnectionArgs } from "./validators";
+import { insertWithMediaReferences, patchWithMediaReferences } from "../media/attachmentGuard";
 
 // ─── saveConnectionSettings ────────────────────────────────────────────────
 
@@ -61,13 +62,13 @@ export const saveConnectionSettings = mutation({
     };
 
     if (existing) {
-      await ctx.db.patch(existing._id, {
+      await patchWithMediaReferences<"settings">(ctx, "settings", existing._id, {
         values: { ...((existing.values as Record<string, unknown>) ?? {}), ...ga4Settings },
         updatedAt: Date.now(),
         updatedBy: user._id,
       });
     } else {
-      await ctx.db.insert("settings", {
+      await insertWithMediaReferences<"settings">(ctx, "settings", {
         section: "analytics",
         values: ga4Settings,
         updatedAt: Date.now(),
@@ -113,7 +114,7 @@ export const disconnect = mutation({
 
     // Clear GA4 settings
     if (existing) {
-      await ctx.db.patch(existing._id, {
+      await patchWithMediaReferences<"settings">(ctx, "settings", existing._id, {
         values: {
           ...values,
           ga4PropertyId: null,
@@ -130,7 +131,7 @@ export const disconnect = mutation({
     // Purge all cached GA4 data
     const cachedEntries = await ctx.db.query("gaCache").collect();
     for (const entry of cachedEntries) {
-      await ctx.db.delete(entry._id);
+      await ctx.db.delete("gaCache", entry._id);
     }
 
     // Emit disconnection event
@@ -159,7 +160,7 @@ export const clearCache = mutation({
 
     const cachedEntries = await ctx.db.query("gaCache").collect();
     for (const entry of cachedEntries) {
-      await ctx.db.delete(entry._id);
+      await ctx.db.delete("gaCache", entry._id);
     }
 
     return { purged: cachedEntries.length };
@@ -204,7 +205,7 @@ export const upsertCache = internalMutation({
     };
 
     if (existing) {
-      await ctx.db.replace(existing._id, entry);
+      await ctx.db.replace("gaCache", existing._id, entry);
     } else {
       await ctx.db.insert("gaCache", entry);
     }

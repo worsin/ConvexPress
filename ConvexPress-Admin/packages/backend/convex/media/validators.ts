@@ -9,6 +9,7 @@
  */
 
 import { v } from "convex/values";
+import { paginationOptsValidator } from "convex/server";
 import {
   mediaStatusValidator,
   mediaTypeValidator,
@@ -140,11 +141,9 @@ export const listMediaArgs = {
   trashView: v.optional(
     v.union(v.literal("active"), v.literal("only"), v.literal("all")),
   ),
-  paginationOpts: v.object({
-    numItems: v.number(),
-    cursor: v.union(v.string(), v.null()),
-  }),
+  paginationOpts: paginationOptsValidator,
 };
+export const listMediaArgsValidator = v.object(listMediaArgs);
 
 /**
  * Arguments for getting a single media item by ID.

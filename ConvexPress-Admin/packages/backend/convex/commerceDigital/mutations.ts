@@ -1,10 +1,15 @@
 // @ts-nocheck
+import { recordAuthorizedDownload, type DownloadAttempt, type RecordedDownload } from "./downloadEntitlement";
+import type { RegisteredMutation } from "convex/server";
+import type { Id } from "../_generated/dataModel";
 import { ConvexError, v } from "convex/values";
 
 import { mutation, internalMutation } from "../_generated/server";
 import { requireCan } from "../helpers/permissions";
 import { requireCommerceDigitalEnabled } from "../commerce/helpers";
 import { requirePluginEnabled } from "../helpers/plugins";
+import { patchDynamicWithMediaReferences, deleteDynamicWithMediaReferences } from "../media/attachmentGuard";
+
 
 // Helper to generate random hex string using Web Crypto API
 function generateRandomHex(bytes: number): string {
@@ -60,7 +65,7 @@ export const uploadFile = mutation({
 
     for (const file of existingFiles) {
       if (file.isLatest) {
-        await ctx.db.patch(file._id, { isLatest: false, updatedAt: Date.now() });
+        await patchDynamicWithMediaReferences(ctx, file._id, { isLatest: false, updatedAt: Date.now() });
       }
     }
 
@@ -89,7 +94,7 @@ export const uploadFile = mutation({
 
     // Update product to mark as downloadable if not already
     if (!product.isDownloadable) {
-      await ctx.db.patch(args.productId, { isDownloadable: true, updatedAt: now });
+      await patchDynamicWithMediaReferences(ctx, args.productId, { isDownloadable: true, updatedAt: now });
     }
 
     return fileId;
@@ -125,7 +130,7 @@ export const updateFile = mutation({
       Object.entries(updates).filter(([_, v]) => v !== undefined)
     );
 
-    await ctx.db.patch(fileId, {
+    await patchDynamicWithMediaReferences(ctx, fileId, {
       ...cleanUpdates,
       updatedAt: Date.now(),
     });
@@ -150,7 +155,7 @@ export const deleteFile = mutation({
     }
 
     // Delete the file record
-    await ctx.db.delete(args.fileId);
+    await deleteDynamicWithMediaReferences(ctx, args.fileId);
 
     // If this was the latest, mark the most recent remaining as latest
     if (file.isLatest) {
@@ -166,7 +171,7 @@ export const deleteFile = mutation({
         .first();
 
       if (remaining) {
-        await ctx.db.patch(remaining._id, { isLatest: true, updatedAt: Date.now() });
+        await patchDynamicWithMediaReferences(ctx, remaining._id, { isLatest: true, updatedAt: Date.now() });
       }
     }
 
@@ -177,7 +182,7 @@ export const deleteFile = mutation({
       .first();
 
     if (!anyFiles) {
-      await ctx.db.patch(file.productId, { isDownloadable: false, updatedAt: Date.now() });
+      await patchDynamicWithMediaReferences(ctx, file.productId, { isDownloadable: false, updatedAt: Date.now() });
     }
 
     return args.fileId;
@@ -189,79 +194,20 @@ export const deleteFile = mutation({
 // ============================================
 
 /**
- * Record a download attempt (customer-facing)
+ * Legacy internal allowance recording; public downloads use expiring leases.
  */
-export const recordDownload = mutation({
+export const recordDownload: RegisteredMutation<"internal", DownloadAttempt, { storageId: Id<"_storage">; fileName: string; mimeType: string }> = internalMutation({
   args: {
     token: v.string(),
     ipAddress: v.optional(v.string()),
     userAgent: v.optional(v.string()),
   },
-  handler: async (ctx: any, args: any) => {
+  handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "commerceDigital");
     await requireCommerceDigitalEnabled(ctx);
-
-    const tokenRecord = await ctx.db
-      .query("commerce_download_tokens")
-      .withIndex("by_token", (q: any) => q.eq("token", args.token))
-      .unique();
-
-    if (!tokenRecord) {
-      throw new ConvexError({ code: "INVALID_TOKEN", message: "Invalid download token" });
-    }
-
-    if (!tokenRecord.isActive) {
-      throw new ConvexError({ code: "TOKEN_INACTIVE", message: "Download token is inactive" });
-    }
-
-    if (tokenRecord.expiresAt && tokenRecord.expiresAt < Date.now()) {
-      throw new ConvexError({ code: "TOKEN_EXPIRED", message: "Download token has expired" });
-    }
-
-    if (
-      tokenRecord.maxDownloads &&
-      tokenRecord.downloadCount >= tokenRecord.maxDownloads
-    ) {
-      throw new ConvexError({ code: "LIMIT_REACHED", message: "Download limit reached" });
-    }
-
-    const now = Date.now();
-
-    // Update token download count and IP tracking
-    const ipAddresses = tokenRecord.ipAddresses || [];
-    if (args.ipAddress && !ipAddresses.includes(args.ipAddress)) {
-      ipAddresses.push(args.ipAddress);
-    }
-
-    await ctx.db.patch(tokenRecord._id, {
-      downloadCount: tokenRecord.downloadCount + 1,
-      lastDownloadedAt: now,
-      lastIpAddress: args.ipAddress,
-      ipAddresses,
-    });
-
-    // Log the download
-    await ctx.db.insert("commerce_download_log", {
-      downloadTokenId: tokenRecord._id,
-      digitalFileId: tokenRecord.digitalFileId,
-      userId: tokenRecord.userId,
-      downloadedAt: now,
-      ipAddress: args.ipAddress,
-      userAgent: args.userAgent,
-      success: true,
-    });
-
-    // Get the file for storage URL
-    const file = await ctx.db.get(tokenRecord.digitalFileId);
-    if (!file) {
-      throw new ConvexError({ code: "NOT_FOUND", message: "File not found" });
-    }
-
-    return {
-      storageId: file.storageId,
-      fileName: file.fileName,
-      mimeType: file.mimeType,
-    };
+    const result = await recordAuthorizedDownload(ctx, args);
+    if (!result.success) throw new ConvexError({ code: result.code, message: result.error });
+    return { storageId: result.storageId, fileName: result.fileName, mimeType: result.mimeType };
   },
 });
 
@@ -389,80 +335,18 @@ export const generateOrderDownloadTokens = internalMutation({
 
 /**
  * Internal mutation to record download and return storage info
- * Used by the generateDownloadUrl action
+ * Legacy internal adapter; public delivery uses expiring leases.
  */
-export const recordDownloadInternal = internalMutation({
+export const recordDownloadInternal: RegisteredMutation<"internal", DownloadAttempt, RecordedDownload> = internalMutation({
   args: {
     token: v.string(),
     ipAddress: v.optional(v.string()),
     userAgent: v.optional(v.string()),
   },
-  handler: async (ctx: any, args: any) => {
+  handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "commerceDigital");
     await requireCommerceDigitalEnabled(ctx);
-
-    const tokenRecord = await ctx.db
-      .query("commerce_download_tokens")
-      .withIndex("by_token", (q: any) => q.eq("token", args.token))
-      .unique();
-
-    if (!tokenRecord) {
-      return { success: false, error: "Invalid download token" };
-    }
-
-    if (!tokenRecord.isActive) {
-      return { success: false, error: "Download token is inactive" };
-    }
-
-    if (tokenRecord.expiresAt && tokenRecord.expiresAt < Date.now()) {
-      return { success: false, error: "Download token has expired" };
-    }
-
-    if (
-      tokenRecord.maxDownloads &&
-      tokenRecord.downloadCount >= tokenRecord.maxDownloads
-    ) {
-      return { success: false, error: "Download limit reached" };
-    }
-
-    const now = Date.now();
-
-    // Update token download count and IP tracking
-    const ipAddresses = tokenRecord.ipAddresses || [];
-    if (args.ipAddress && !ipAddresses.includes(args.ipAddress)) {
-      ipAddresses.push(args.ipAddress);
-    }
-
-    await ctx.db.patch(tokenRecord._id, {
-      downloadCount: tokenRecord.downloadCount + 1,
-      lastDownloadedAt: now,
-      lastIpAddress: args.ipAddress,
-      ipAddresses,
-    });
-
-    // Log the download
-    await ctx.db.insert("commerce_download_log", {
-      downloadTokenId: tokenRecord._id,
-      digitalFileId: tokenRecord.digitalFileId,
-      userId: tokenRecord.userId,
-      downloadedAt: now,
-      ipAddress: args.ipAddress,
-      userAgent: args.userAgent,
-      success: true,
-    });
-
-    // Get the file for storage URL
-    const file = await ctx.db.get(tokenRecord.digitalFileId);
-    if (!file) {
-      return { success: false, error: "File not found" };
-    }
-
-    return {
-      success: true,
-      storageId: file.storageId,
-      fileName: file.fileName,
-      mimeType: file.mimeType,
-    };
+    return await recordAuthorizedDownload(ctx, args);
   },
 });
 
@@ -620,7 +504,7 @@ export const assignLicenseKey = internalMutation({
       throw new ConvexError({ code: "NO_KEYS", message: "No available license keys" });
     }
 
-    await ctx.db.patch(availableKey._id, {
+    await patchDynamicWithMediaReferences(ctx, availableKey._id, {
       orderId: args.orderId,
       userId: args.userId,
       status: "assigned",
@@ -663,7 +547,7 @@ export const revokeLicenseKey = mutation({
       .collect();
 
     for (const activation of activations) {
-      await ctx.db.patch(activation._id, {
+      await patchDynamicWithMediaReferences(ctx, activation._id, {
         isActive: false,
         deactivatedAt: now,
         deactivatedReason: "License revoked",
@@ -671,7 +555,7 @@ export const revokeLicenseKey = mutation({
     }
 
     // Revoke the key
-    await ctx.db.patch(args.keyId, {
+    await patchDynamicWithMediaReferences(ctx, args.keyId, {
       status: "revoked",
       revokedAt: now,
       revokedReason: args.reason,
@@ -736,7 +620,7 @@ export const activateLicense = mutation({
 
     if (existingActivation) {
       // Update last seen
-      await ctx.db.patch(existingActivation._id, {
+      await patchDynamicWithMediaReferences(ctx, existingActivation._id, {
         lastSeenAt: Date.now(),
         appVersion: args.appVersion,
         ipAddress: args.ipAddress,
@@ -784,7 +668,7 @@ export const activateLicense = mutation({
 
     // Update license key status if first activation
     if (key.status === "assigned") {
-      await ctx.db.patch(key._id, {
+      await patchDynamicWithMediaReferences(ctx, key._id, {
         status: "active",
         activatedAt: now,
         updatedAt: now,
@@ -831,7 +715,7 @@ export const deactivateLicense = mutation({
       });
     }
 
-    await ctx.db.patch(activation._id, {
+    await patchDynamicWithMediaReferences(ctx, activation._id, {
       isActive: false,
       deactivatedAt: Date.now(),
       deactivatedReason: "User deactivated",

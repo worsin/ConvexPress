@@ -2,9 +2,14 @@
 "use node";
 
 import { ConvexError, v } from "convex/values";
+import { resolveLabelOrigin, resolveShipStationLabelRate, upsLabelShipper, fedexLabelShipper } from "./labelOrigin";
+import { publicShippingQuote, publicShippingQuoteValidator, type PublicShippingQuote } from "./quoteProvenance";
+import type { RegisteredAction } from "convex/server";
 
 import { action } from "../_generated/server";
-import { internal } from "../_generated/api";
+import type { Doc } from "../_generated/dataModel";
+import type { NormalizedShippingQuote, PipelineStageTiming } from "./rates/types";
+import { api, internal } from "../_generated/api";
 import { decryptSecret } from "../api/crypto_helpers";
 import {
   buildFedexTrackingUrl,
@@ -773,18 +778,8 @@ async function createUpsLabelForOrderInternal(ctx: any, args: { orderId: any; ra
     internal.settings.httpInternals.getBySectionInternal,
     { section: "integrations.shipping" },
   );
+  const originProof = resolveLabelOrigin(labelContext.order,labelContext.quote,shippingSettings ?? {});
 
-  if (
-    !shippingSettings.shipFromLine1 ||
-    !shippingSettings.shipFromCity ||
-    !shippingSettings.shipFromPostalCode ||
-    !shippingSettings.shipFromCountryCode
-  ) {
-    throw new ConvexError({
-      code: "VALIDATION_ERROR",
-      message: "Ship-from address is incomplete in commerce shipping settings.",
-    });
-  }
 
   const totalWeightOz = labelContext.items.reduce((sum: number, item: any) => {
     const unitWeight =
@@ -812,20 +807,7 @@ async function createUpsLabelForOrderInternal(ctx: any, args: { orderId: any; ra
       },
       Shipment: {
         Description: `Order ${labelContext.order.orderNumber}`,
-        Shipper: {
-          Name: shippingSettings.shipFromName || shippingSettings.storeName || "Store",
-          ShipperNumber: credentials.accountNumber,
-          Address: {
-            AddressLine: [
-              shippingSettings.shipFromLine1,
-              shippingSettings.shipFromLine2 || undefined,
-            ].filter(Boolean),
-            City: shippingSettings.shipFromCity,
-            StateProvinceCode: shippingSettings.shipFromState || undefined,
-            PostalCode: shippingSettings.shipFromPostalCode,
-            CountryCode: shippingSettings.shipFromCountryCode,
-          },
-        },
+        Shipper: upsLabelShipper(originProof.origin,credentials.accountNumber),
         ShipTo: {
           Name:
             [
@@ -947,6 +929,7 @@ async function createUpsLabelForOrderInternal(ctx: any, args: { orderId: any; ra
     internal.shipping.internals.createOrderShipmentFromLabel,
     {
       orderId: labelContext.order._id,
+      originProof,
       actorUserId,
       shipmentNumber,
       provider: "ups",
@@ -1021,18 +1004,8 @@ async function createFedexLabelForOrderInternal(ctx: any, args: { orderId: any; 
     internal.settings.httpInternals.getBySectionInternal,
     { section: "integrations.shipping" },
   );
+  const originProof = resolveLabelOrigin(labelContext.order,labelContext.quote,shippingSettings ?? {});
 
-  if (
-    !shippingSettings.shipFromLine1 ||
-    !shippingSettings.shipFromCity ||
-    !shippingSettings.shipFromPostalCode ||
-    !shippingSettings.shipFromCountryCode
-  ) {
-    throw new ConvexError({
-      code: "VALIDATION_ERROR",
-      message: "Ship-from address is incomplete in commerce shipping settings.",
-    });
-  }
 
   const totalWeightOz = labelContext.items.reduce((sum: number, item: any) => {
     const unitWeight =
@@ -1062,22 +1035,7 @@ async function createFedexLabelForOrderInternal(ctx: any, args: { orderId: any; 
     accountNumber: { value: credentials.accountNumber },
     labelResponseOptions: "URL_ONLY",
     requestedShipment: {
-      shipper: {
-        contact: {
-          personName: shippingSettings.shipFromName || shippingSettings.storeName || "Store",
-          phoneNumber: shippingSettings.shipFromPhone || "0000000000",
-        },
-        address: {
-          streetLines: [
-            shippingSettings.shipFromLine1,
-            shippingSettings.shipFromLine2 || undefined,
-          ].filter(Boolean),
-          city: shippingSettings.shipFromCity,
-          stateOrProvinceCode: shippingSettings.shipFromState || undefined,
-          postalCode: shippingSettings.shipFromPostalCode,
-          countryCode: shippingSettings.shipFromCountryCode,
-        },
-      },
+      shipper: fedexLabelShipper(originProof.origin,shippingSettings.shipFromPhone),
       recipients: [
         {
           contact: {
@@ -1185,6 +1143,7 @@ async function createFedexLabelForOrderInternal(ctx: any, args: { orderId: any; 
     internal.shipping.internals.createOrderShipmentFromLabel,
     {
       orderId: labelContext.order._id,
+      originProof,
       actorUserId,
       shipmentNumber,
       provider: "fedex",
@@ -1354,18 +1313,9 @@ async function createShipStationLabelForOrderInternal(ctx: any, args: { orderId:
     });
   }
 
-  const rateId =
-    args.rateId ??
-    labelContext.quote?.rawQuote?.rate_id ??
-    labelContext.order.shippingQuoteRaw?.rate_id ??
-    labelContext.order.selectedShippingMethodCode;
-
-  if (!rateId) {
-    throw new ConvexError({
-      code: "VALIDATION_ERROR",
-      message: "No ShipStation rate is attached to this order.",
-    });
-  }
+  const rateId = resolveShipStationLabelRate(labelContext.order,labelContext.quote,args.rateId);
+  const originProof = labelContext.order.shippingQuoteProof?.origin!==undefined || labelContext.quote?.origin!==undefined
+    ? resolveLabelOrigin(labelContext.order,labelContext.quote,{}) : undefined;
 
   const response = await fetch(
     `${payload.apiBaseUrl}/v1/labels/rates/${encodeURIComponent(rateId)}`,
@@ -1416,6 +1366,7 @@ async function createShipStationLabelForOrderInternal(ctx: any, args: { orderId:
     internal.shipping.internals.createOrderShipmentFromLabel,
     {
       orderId: labelContext.order._id,
+      originProof,
       actorUserId,
       shipmentNumber:
         data.shipment_number ??
@@ -1639,7 +1590,28 @@ export const verifyShipStationConnection = action({
   },
 });
 
-export const fetchCheckoutRates = action({
+type CheckoutRateArgs = {
+  sessionToken: string;
+  provider?: "shipstation" | "ups" | "usps" | "fedex" | "dhl";
+  shippingAddress: {
+    firstName?: string; lastName?: string; company?: string;
+    line1: string; line2?: string; city: string; state?: string;
+    postalCode: string; countryCode: string; phone?: string;
+  };
+};
+type CheckoutRateResult = {
+  success: boolean;
+  provider: "live" | "manual_fallback";
+  quotes: PublicShippingQuote[];
+  providerResults: null[];
+  aggregatedProviders: null[];
+  matchedZone: Pick<Doc<"commerce_shipping_zones">,"_id"|"name"> | null;
+  fellBackToManual: boolean;
+  stages: PipelineStageTiming[];
+  fallbackMessage?: string;
+};
+
+export const fetchCheckoutRates: RegisteredAction<"public", CheckoutRateArgs, CheckoutRateResult> = action({
   args: {
     sessionToken: v.string(),
     provider: v.optional(
@@ -1664,53 +1636,40 @@ export const fetchCheckoutRates = action({
       phone: v.optional(v.string()),
     }),
   },
+  returns:v.object({
+    success:v.boolean(),provider:v.union(v.literal("live"),v.literal("manual_fallback")),quotes:v.array(publicShippingQuoteValidator),
+    providerResults:v.array(v.null()),aggregatedProviders:v.array(v.null()),
+    matchedZone:v.union(v.null(),v.object({_id:v.id("commerce_shipping_zones"),name:v.string()})),
+    fellBackToManual:v.boolean(),stages:v.array(v.object({stage:v.string(),startedAt:v.number(),durationMs:v.number(),success:v.boolean(),detail:v.optional(v.string())})),
+    fallbackMessage:v.optional(v.string()),
+  }),
   handler: async (ctx, args) => {
-    // Phase 13.6 — feature flag removed. Checkout always routes through the
-    // v2 rate pipeline (zones/classes/packages/methods/providers). The legacy
-    // providerResults/rankShippingQuotes path below is kept only for the
-    // `liveRatesEnabled === false` manual-quote early exit and for legacy
-    // admin tools that still import fetchCheckoutRates.
-    const integrationSettings = await ctx.runQuery(
-      internal.settings.httpInternals.getBySectionInternal,
-      { section: "integrations.shipping" },
+    // Save and invalidate through the normal checkout mutation before rating.
+    // Quote listing and selection must compare against this same address.
+    await ctx.runMutation(api.commerce.checkout.updateSession, {
+      sessionToken: args.sessionToken,
+      shippingAddress: args.shippingAddress,
+    });
+    // All configured zone methods use the same pipeline. Disabling carrier
+    // requests must not disable flat, weight-based, pickup or other store rates.
+    const result = await ctx.runAction(
+      internal.shipping.rates.pipeline.calculateRates,
+      {
+        sessionToken: args.sessionToken,
+        shippingAddress: args.shippingAddress,
+        preferredProvider: args.provider,
+      },
     );
-
-    if (integrationSettings.liveRatesEnabled !== false) {
-      const v2Result = await ctx.runAction(
-        internal.shipping.rates.pipeline.calculateRates,
-        {
-          sessionToken: args.sessionToken,
-          shippingAddress: args.shippingAddress,
-          // Honor website-supplied preferred provider — the pipeline will
-          // put its calls first in the fan-out and rank ties in its favor.
-          preferredProvider: args.provider,
-        },
-      );
-      return {
-        success: v2Result.success,
-        // Website contract: "live" when pipeline produced live-rate quotes,
-        // "manual_fallback" when it fell back. Keep "v2_pipeline" tag in
-        // stages for ops diagnostics but don't leak it to the UI.
-        provider: v2Result.fellBackToManual ? "manual_fallback" : "live",
-        quotes: v2Result.quotes,
-        providerResults: [],
-        aggregatedProviders: [],
-        matchedZone: v2Result.matchedZone,
-        fellBackToManual: v2Result.fellBackToManual,
-        stages: v2Result.stages,
-        fallbackMessage: v2Result.fellBackToManual
-          ? (integrationSettings as any).fallbackMessage
-          : undefined,
-      };
-    }
-
-    // Unreachable after the v2 branch above returns. Defensive fallback.
     return {
-      success: true,
-      provider: "manual_fallback",
-      quotes: [],
+      success: result.success,
+      provider: result.fellBackToManual ? "manual_fallback" : "live",
+      quotes: result.quotes.map(publicShippingQuote),
       providerResults: [],
       aggregatedProviders: [],
+      matchedZone: result.matchedZone ? {_id:result.matchedZone._id,name:result.matchedZone.name} : null,
+      fellBackToManual: result.fellBackToManual,
+      stages: [],
+      fallbackMessage: undefined,
     };
   },
 });

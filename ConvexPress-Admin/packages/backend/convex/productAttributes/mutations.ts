@@ -3,6 +3,8 @@ import { ConvexError, v } from "convex/values";
 import { mutation, internalMutation } from "../_generated/server";
 import { requireCan } from "../helpers/permissions";
 import { requirePluginEnabled } from "../helpers/plugins";
+import { patchDynamicWithMediaReferences, deleteDynamicWithMediaReferences } from "../media/attachmentGuard";
+
 
 // Slug generation helper
 function slugify(value: string): string {
@@ -64,7 +66,7 @@ export const updateAttribute = mutation({
     if (args.orderBy !== undefined) patch.orderBy = args.orderBy;
     if (args.hasArchives !== undefined) patch.hasArchives = args.hasArchives;
 
-    await ctx.db.patch(args.attributeId, patch);
+    await patchDynamicWithMediaReferences(ctx, args.attributeId, patch);
     return args.attributeId;
   },
 });
@@ -80,10 +82,10 @@ export const deleteAttribute = mutation({
     // Cascade delete all terms
     const terms = await ctx.db.query("commerce_product_attribute_terms").withIndex("by_attribute", (q: any) => q.eq("attributeId", args.attributeId)).collect();
     for (const term of terms) {
-      await ctx.db.delete(term._id);
+      await deleteDynamicWithMediaReferences(ctx, term._id);
     }
 
-    await ctx.db.delete(args.attributeId);
+    await deleteDynamicWithMediaReferences(ctx, args.attributeId);
     return { success: true };
   },
 });
@@ -141,7 +143,7 @@ export const updateTerm = mutation({
     if (args.description !== undefined) patch.description = args.description?.trim();
     if (args.menuOrder !== undefined) patch.menuOrder = args.menuOrder;
 
-    await ctx.db.patch(args.termId, patch);
+    await patchDynamicWithMediaReferences(ctx, args.termId, patch);
     return args.termId;
   },
 });
@@ -153,7 +155,7 @@ export const deleteTerm = mutation({
     await requireCan(ctx, "manage_options");
     const term = await ctx.db.get(args.termId);
     if (!term) throw new ConvexError({ code: "not_found", message: "Term not found." });
-    await ctx.db.delete(args.termId);
+    await deleteDynamicWithMediaReferences(ctx, args.termId);
     return { success: true };
   },
 });
@@ -168,7 +170,7 @@ export const reorderTerms = mutation({
     await requireCan(ctx, "manage_options");
     const now = Date.now();
     for (let i = 0; i < args.termIds.length; i++) {
-      await ctx.db.patch(args.termIds[i], { menuOrder: i, updatedAt: now });
+      await patchDynamicWithMediaReferences(ctx, args.termIds[i], { menuOrder: i, updatedAt: now });
     }
     return { success: true };
   },
@@ -190,7 +192,7 @@ export const upsertAttribute = internalMutation({
     const existing = await ctx.db.query("commerce_product_attributes").withIndex("by_slug", (q: any) => q.eq("slug", args.slug)).unique();
 
     if (existing) {
-      await ctx.db.patch(existing._id, {
+      await patchDynamicWithMediaReferences(ctx, existing._id, {
         label: args.label,
         type: args.type ?? existing.type,
         orderBy: args.orderBy ?? existing.orderBy,
@@ -227,7 +229,7 @@ export const upsertTerm = internalMutation({
     const existing = await ctx.db.query("commerce_product_attribute_terms").withIndex("by_attribute_slug", (q: any) => q.eq("attributeId", args.attributeId).eq("slug", args.slug)).unique();
 
     if (existing) {
-      await ctx.db.patch(existing._id, {
+      await patchDynamicWithMediaReferences(ctx, existing._id, {
         name: args.name,
         description: args.description,
         menuOrder: args.menuOrder ?? existing.menuOrder,

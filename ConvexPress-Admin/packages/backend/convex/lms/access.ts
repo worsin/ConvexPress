@@ -15,7 +15,9 @@ import {
   requireCan,
 } from "../helpers/permissions";
 import { isPluginEnabled } from "../helpers/plugins";
-import { evaluateMembershipAccess } from "../membership/access";
+import { evaluateMembershipAccess, loadMatchingRules } from "../membership/access";
+import { readMembershipAuthorityGrants, membershipAuthorityReader } from "../helpers/membershipAuthority";
+import { RequestReadLedger } from "../helpers/requestReadLedger";
 import type { Capability } from "../types/capabilities";
 
 type LmsCtx = QueryCtx | MutationCtx;
@@ -42,30 +44,43 @@ export async function getActiveEnrollment(
   ctx: LmsCtx,
   userId: Id<"users">,
   courseId: Id<"lms_courses">,
+  budget?: RequestReadLedger,
 ) {
+  budget?.beforeRead();
   const enrollment = await ctx.db
     .query("lms_enrollments")
     .withIndex("by_user_course", (q: any) =>
       q.eq("userId", userId).eq("courseId", courseId),
     )
     .first();
+  budget?.record(enrollment);
+  budget?.noteAuthorizationBoundary(enrollment?.expiresAt);
   const active =
     enrollment &&
     enrollment.status === "active" &&
-    (!enrollment.expiresAt || enrollment.expiresAt > Date.now());
-  return active ? enrollment : null;
+    (enrollment.expiresAt === undefined || enrollment.expiresAt > Date.now());
+  if (!active) return null;
+  // Membership enrollments are a projection, not independent authority. Cron
+  // delay, imports, or a failed bridge must never keep expired access alive.
+  if (enrollment.source === "membership_plan") {
+    budget ??= new RequestReadLedger();
+    if (!enrollment.membershipPlanId || !(await isPluginEnabled(ctx, "membership", budget))) return null;
+    const grants = await readMembershipAuthorityGrants(ctx, userId, budget);
+    if (!grants.some(grant => grant.planId === enrollment.membershipPlanId)) return null;
+    const plan = await membershipAuthorityReader(ctx, budget).plan(enrollment.membershipPlanId);
+    if (plan?.status !== "active") return null;
+    const decision = await evaluateMembershipAccess(ctx, { resourceType: "course", resourceIdOrKey: String(courseId), userId }, budget);
+    if (!decision.allowed || decision.reason === "no_restriction" || decision.reason === "plugin_disabled") return null;
+  }
+  return enrollment;
 }
 
 export async function getCourseRestrictionRules(
   ctx: LmsCtx,
   courseId: Id<"lms_courses">,
+  budget?: RequestReadLedger,
 ) {
-  return await ctx.db
-    .query("membership_restriction_rules")
-    .withIndex("by_resource", (q: any) =>
-      q.eq("resourceType", "course").eq("resourceIdOrKey", String(courseId)),
-    )
-    .collect();
+  return loadMatchingRules(ctx, "course", String(courseId), budget);
 }
 
 export async function requireCourseAuthorOrEditor(
@@ -105,9 +120,12 @@ export async function requireNodeCourseAuthorOrEditor(
 
 export async function canUserAccessCourse(
   ctx: LmsCtx,
-  args: { courseId: Id<"lms_courses">; userId?: Id<"users"> },
+  args: { courseId: Id<"lms_courses">; userId?: Id<"users">; allowStaffPreview?: boolean },
+  budget?: RequestReadLedger,
 ): Promise<LmsAccessDecision> {
+  budget?.beforeRead();
   const course = await ctx.db.get(args.courseId);
+  budget?.record(course);
   if (!course) {
     return { allowed: false, reason: "not_found", requiresLogin: false };
   }
@@ -115,21 +133,25 @@ export async function canUserAccessCourse(
     return { allowed: false, reason: "archived", requiresLogin: false };
   }
 
-  const me = await getCurrentUser(ctx as any);
+  const me = await getCurrentUser(ctx, budget);
   const userId = args.userId ?? me?._id;
   const checkingAnotherUser = !!args.userId && String(args.userId) !== String(me?._id);
   const staffPreview =
-    !checkingAnotherUser &&
-    ((await currentUserCan(ctx as any, "lms.course.view")) ||
-      (await currentUserCan(ctx as any, "lms.course.edit")));
+    args.allowStaffPreview !== false && !checkingAnotherUser &&
+    ((await currentUserCan(ctx, "lms.course.view", budget)) ||
+      (await currentUserCan(ctx, "lms.course.edit", budget)));
   if (course.status !== "published" && !staffPreview) {
     return { allowed: false, reason: "not_published", requiresLogin: false };
   }
   const now = Date.now();
-  if (!staffPreview && course.startDate && course.startDate > now) {
+  if (!staffPreview) {
+    budget?.noteAuthorizationBoundary(course.startDate, now);
+    budget?.noteAuthorizationBoundary(course.endDate, now);
+  }
+  if (!staffPreview && course.startDate !== undefined && course.startDate > now) {
     return { allowed: false, reason: "not_started", requiresLogin: false, unlockAt: course.startDate };
   }
-  if (!staffPreview && course.endDate && course.endDate < now) {
+  if (!staffPreview && course.endDate !== undefined && course.endDate <= now) {
     return { allowed: false, reason: "ended", requiresLogin: false };
   }
 
@@ -142,12 +164,18 @@ export async function canUserAccessCourse(
     return { allowed: false, reason: "login_required", requiresLogin: true };
   }
 
+  if (checkingAnotherUser) budget?.beforeRead();
+  const learner = checkingAnotherUser ? await ctx.db.get("users", userId) : me;
+  if (checkingAnotherUser) budget?.record(learner);
+  if (!learner || learner.status !== "active")
+    return { allowed: false, reason: "inactive_user", requiresLogin: false };
+
   // Staff need a reliable preview path even before enrollment exists.
   if (staffPreview) {
     return { allowed: true, reason: "staff_preview", requiresLogin: false };
   }
 
-  const enrollment = await getActiveEnrollment(ctx, userId, args.courseId);
+  const enrollment = await getActiveEnrollment(ctx, userId, args.courseId, budget);
   if (enrollment) {
     return {
       allowed: true,
@@ -167,19 +195,19 @@ export async function canUserAccessCourse(
     return { allowed: false, reason: "purchase_required", requiresLogin: false };
   }
 
-  const rules = await getCourseRestrictionRules(ctx, args.courseId);
+  const rules = await getCourseRestrictionRules(ctx, args.courseId, budget);
   if (rules.length === 0) {
     return { allowed: false, reason: "membership_rule_missing", requiresLogin: false };
   }
-  if (!(await isPluginEnabled(ctx as any, "membership"))) {
+  if (!(await isPluginEnabled(ctx, "membership", budget))) {
     return { allowed: false, reason: "membership_disabled", requiresLogin: false };
   }
 
-  const decision = await evaluateMembershipAccess(ctx as any, {
+  const decision = await evaluateMembershipAccess(ctx, {
     resourceType: "course",
     resourceIdOrKey: String(args.courseId),
     userId,
-  });
+  }, budget);
   return {
     allowed: decision.allowed,
     reason: decision.allowed ? "membership" : decision.reason,

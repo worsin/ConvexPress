@@ -1,3 +1,5 @@
+import type { RegisteredQuery, RegisteredMutation } from "convex/server";
+import type { Doc, Id } from "../_generated/dataModel";
 /**
  * Knowledge Base System - Feedback Functions
  *
@@ -20,13 +22,12 @@ import {
   getUserFeedbackArgs,
 } from "./validators";
 import { isPluginEnabled, requirePluginEnabled } from "../helpers/plugins";
+import { patchWithMediaReferences } from "../media/attachmentGuard";
 
 // ─── Submit Helpful ─────────────────────────────────────────────────────────
 
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
-export const submitHelpful = mutation({
+export const submitHelpful: RegisteredMutation<"public", { articleId: Id<"kb_articles">; sessionId: string; isHelpful: boolean; comment?: string }, Id<"kb_articleFeedback">> = mutation({
   args: submitHelpfulArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "knowledgeBase");
     const user = await getCurrentUser(ctx);
@@ -48,7 +49,7 @@ export const submitHelpful = mutation({
     // Check for existing feedback from this session
     const existing = await ctx.db
       .query("kb_articleFeedback")
-      .withIndex("by_session_article", (q: ConvexQueryBuilder) =>
+      .withIndex("by_session_article", (q) =>
         q.eq("sessionId", args.sessionId).eq("articleId", args.articleId),
       )
       .first();
@@ -64,12 +65,12 @@ export const submitHelpful = mutation({
       // Update denormalized counts on article (use outer `article` -- already validated non-null)
       if (oldIsHelpful !== args.isHelpful) {
         if (args.isHelpful) {
-          await ctx.db.patch("kb_articles", args.articleId, {
+          await patchWithMediaReferences<"kb_articles">(ctx, "kb_articles", args.articleId, {
             helpfulVotes: article.helpfulVotes + 1,
             notHelpfulVotes: Math.max(0, article.notHelpfulVotes - 1),
           });
         } else {
-          await ctx.db.patch("kb_articles", args.articleId, {
+          await patchWithMediaReferences<"kb_articles">(ctx, "kb_articles", args.articleId, {
             helpfulVotes: Math.max(0, article.helpfulVotes - 1),
             notHelpfulVotes: article.notHelpfulVotes + 1,
           });
@@ -91,11 +92,11 @@ export const submitHelpful = mutation({
 
     // Update denormalized counts (use outer `article` -- already validated non-null)
     if (args.isHelpful) {
-      await ctx.db.patch("kb_articles", args.articleId, {
+      await patchWithMediaReferences<"kb_articles">(ctx, "kb_articles", args.articleId, {
         helpfulVotes: article.helpfulVotes + 1,
       });
     } else {
-      await ctx.db.patch("kb_articles", args.articleId, {
+      await patchWithMediaReferences<"kb_articles">(ctx, "kb_articles", args.articleId, {
         notHelpfulVotes: article.notHelpfulVotes + 1,
       });
     }
@@ -112,10 +113,8 @@ export const submitHelpful = mutation({
 
 // ─── Submit Rating ──────────────────────────────────────────────────────────
 
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
-export const submitRating = mutation({
+export const submitRating: RegisteredMutation<"public", { articleId: Id<"kb_articles">; sessionId: string; rating: number; comment?: string }, Id<"kb_articleFeedback">> = mutation({
   args: submitRatingArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "knowledgeBase");
     const user = await getCurrentUser(ctx);
@@ -141,7 +140,7 @@ export const submitRating = mutation({
     // Check for existing feedback from this session
     const existing = await ctx.db
       .query("kb_articleFeedback")
-      .withIndex("by_session_article", (q: ConvexQueryBuilder) =>
+      .withIndex("by_session_article", (q) =>
         q.eq("sessionId", args.sessionId).eq("articleId", args.articleId),
       )
       .first();
@@ -157,12 +156,12 @@ export const submitRating = mutation({
       // Update denormalized counts (use outer `article` -- already validated non-null)
       if (newIsHelpful !== oldIsHelpful) {
         if (newIsHelpful) {
-          await ctx.db.patch("kb_articles", args.articleId, {
+          await patchWithMediaReferences<"kb_articles">(ctx, "kb_articles", args.articleId, {
             helpfulVotes: article.helpfulVotes + 1,
             notHelpfulVotes: Math.max(0, article.notHelpfulVotes - 1),
           });
         } else {
-          await ctx.db.patch("kb_articles", args.articleId, {
+          await patchWithMediaReferences<"kb_articles">(ctx, "kb_articles", args.articleId, {
             notHelpfulVotes: article.notHelpfulVotes + 1,
             helpfulVotes: Math.max(0, article.helpfulVotes - 1),
           });
@@ -184,9 +183,9 @@ export const submitRating = mutation({
 
     // Update denormalized counts (use outer `article` -- already validated non-null)
     if (isHelpful) {
-      await ctx.db.patch("kb_articles", args.articleId, { helpfulVotes: article.helpfulVotes + 1 });
+      await patchWithMediaReferences<"kb_articles">(ctx, "kb_articles", args.articleId, { helpfulVotes: article.helpfulVotes + 1 });
     } else {
-      await ctx.db.patch("kb_articles", args.articleId, { notHelpfulVotes: article.notHelpfulVotes + 1 });
+      await patchWithMediaReferences<"kb_articles">(ctx, "kb_articles", args.articleId, { notHelpfulVotes: article.notHelpfulVotes + 1 });
     }
 
     await emitEvent(ctx, KB_EVENTS.FEEDBACK_SUBMITTED, SYSTEM.KB, {
@@ -237,15 +236,13 @@ export const getArticleStats = query({
 
 // ─── Get User Feedback (Public) ─────────────────────────────────────────────
 
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
-export const getUserFeedback = query({
+export const getUserFeedback: RegisteredQuery<"public", { articleId: Id<"kb_articles">; sessionId: string }, Doc<"kb_articleFeedback"> | null> = query({
   args: getUserFeedbackArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "knowledgeBase"))) return null;
     return ctx.db
       .query("kb_articleFeedback")
-      .withIndex("by_session_article", (q: ConvexQueryBuilder) =>
+      .withIndex("by_session_article", (q) =>
         q.eq("sessionId", args.sessionId).eq("articleId", args.articleId),
       )
       .first();

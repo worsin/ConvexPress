@@ -2,6 +2,8 @@
  * AI Course Generation - internal mutations/queries.
  */
 
+import { patchWithMediaReferences } from "../../media/attachmentGuard";
+import { insertWithMediaReferences } from "../../media/attachmentGuard";
 import { ConvexError, v } from "convex/values";
 import { internalMutation, internalQuery } from "../../_generated/server";
 import { emitEvent } from "../../helpers/events";
@@ -83,7 +85,7 @@ export const updateJob = internalMutation({
     if (args.error !== undefined) patch.error = args.error;
     if (args.status === "running") patch.startedAt = now;
     if (args.status === "done" || args.status === "failed") patch.finishedAt = now;
-    await ctx.db.patch(args.jobId, patch as never);
+    await ctx.db.patch("lms_jobs", args.jobId, patch as never);
     return { ok: true };
   },
 });
@@ -207,13 +209,13 @@ export const writeLessonBody = internalMutation({
     if (canAutoApply) {
       childGeneration.reviewedAt = now;
       if (generation.reviewedBy) childGeneration.reviewedBy = generation.reviewedBy;
-      await ctx.db.patch(args.nodeId, {
+      await patchWithMediaReferences<"lms_nodes">(ctx, "lms_nodes", args.nodeId, {
         bodyDoc: textToDoc(bodyText),
         updatedAt: now,
       });
     }
     await ctx.db.insert("lms_ai_generations", childGeneration as never);
-    await ctx.db.patch(args.jobId, {
+    await ctx.db.patch("lms_jobs", args.jobId, {
       status: "done",
       progress: 100,
       finishedAt: now,
@@ -253,7 +255,7 @@ export const storeLessonBodyDraft = internalMutation({
     await requireNodeCourseAuthorOrEditor(ctx, args.nodeId, "lms.ai.generate");
     const now = Date.now();
     const bodyText = cleanGeneratedLessonText(args.bodyText);
-    await ctx.db.patch(args.generationId, {
+    await ctx.db.patch("lms_ai_generations", args.generationId, {
       prompt: args.prompt,
       briefJson: {
         ...(generation.briefJson as Record<string, unknown> | undefined),
@@ -262,7 +264,7 @@ export const storeLessonBodyDraft = internalMutation({
       sourcesJson: args.sourcesJson ?? generation.sourcesJson,
       reviewStatus: "unreviewed",
     });
-    await ctx.db.patch(args.jobId, {
+    await ctx.db.patch("lms_jobs", args.jobId, {
       status: "done",
       progress: 100,
       finishedAt: now,
@@ -296,7 +298,7 @@ export const materializeOutline = internalMutation({
     let tPos = Math.max(0, ...existingTopics.map((node) => node.position)) + 1;
     let lessonCount = 0;
     for (const topic of outline.topics) {
-      const topicId = await ctx.db.insert("lms_nodes", {
+      const topicId: import("../../_generated/dataModel").Id<"lms_nodes"> = await insertWithMediaReferences<"lms_nodes">(ctx, "lms_nodes", {
         courseId: args.courseId,
         kind: "topic",
         title: topic.title || "Untitled topic",
@@ -307,7 +309,7 @@ export const materializeOutline = internalMutation({
       });
       let lPos = 1;
       for (const lesson of topic.lessons) {
-        await ctx.db.insert("lms_nodes", {
+        await insertWithMediaReferences<"lms_nodes">(ctx, "lms_nodes", {
           courseId: args.courseId,
           parentId: topicId,
           kind: "lesson",
@@ -322,7 +324,7 @@ export const materializeOutline = internalMutation({
       }
     }
     const stats = outlineStats(outline);
-    await ctx.db.patch(args.courseId, {
+    await patchWithMediaReferences<"lms_courses">(ctx, "lms_courses", args.courseId, {
       topicCount: existingTopics.length + stats.topicCount,
       lessonCount: existingLessons.length + lessonCount,
       updatedAt: now,

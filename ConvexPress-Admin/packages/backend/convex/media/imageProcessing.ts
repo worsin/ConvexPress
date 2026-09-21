@@ -373,11 +373,8 @@ export const processImageWithSharp = internalAction({
         fileSize: newOriginalBuffer.byteLength,
         mimeType: newOriginalMimeType,
       });
-      try {
-        await ctx.storage.delete(media.storageId);
-      } catch {
-        // Original may already be gone; ignore
-      }
+      // Old-blob deletion is performed inside updateStorageId after a
+      // transactional ownership check; action reads cannot authorize deletion.
 
       // ── Generate WebP variants ────────────────────────────────────────
       // Each variant: resize from the (rotated, possibly downscaled)

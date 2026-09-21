@@ -95,5 +95,6 @@ export const managementTables = {
       "controllerSubjectId",
       "status",
     ])
-    .index("by_expiry", ["expiresAt"]),
+    .index("by_expiry", ["expiresAt"])
+    .index("by_status_expiry", ["status", "expiresAt"]),
 };

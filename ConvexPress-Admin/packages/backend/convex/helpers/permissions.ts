@@ -32,6 +32,7 @@
  *   const user = await requireCanOnResource(ctx, "post.edit", postDoc._id);
  */
 
+import { RequestReadLedger, isRequestReadBudgetError } from "./requestReadLedger";
 import { ConvexError } from "convex/values";
 import type { Doc, Id } from "../_generated/dataModel";
 import type { QueryCtx } from "../_generated/server";
@@ -44,6 +45,7 @@ import {
 import type { AnyCapability, Capability } from "../types/capabilities";
 import { BUILT_IN_ROLES, LEGACY_ROLE_MAP } from "../seed/roles";
 import { isPluginEnabled } from "./plugins";
+import { readMembershipAuthorityGrants, membershipAuthorityReader } from "./membershipAuthority";
 
 const ADMIN_ISSUER = "https://convexpress-admin.local";
 const MANAGEMENT_ISSUER = "https://convexpress-management.local";
@@ -55,8 +57,8 @@ const CUSTOMER_ROLE_AUTH_CAPABILITIES = new Set<string>(
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
-type DbReadCtx = Pick<QueryCtx, "db">;
-type AuthReadCtx = Pick<QueryCtx, "auth" | "db">;
+type DbReadCtx = Pick<QueryCtx, "db" | "runQuery">;
+type AuthReadCtx = Pick<QueryCtx, "auth" | "db" | "runQuery">;
 
 /** The user document shape as returned from the users table. */
 type UserDoc = {
@@ -156,10 +158,15 @@ type ActiveManagementSession = {
   user: UserDoc;
   siteRoleSlug: string;
   siteCapabilities: string[];
+  sessionId: Id<"convexpress_managementSessions">;
+  websiteKey: string;
+  instanceKey: string;
+  expiresAt: number;
 };
 
 async function getActiveManagementSession(
   ctx: AuthReadCtx,
+  budget?: RequestReadLedger,
 ): Promise<ActiveManagementSession | null> {
   const identity = await ctx.auth.getUserIdentity();
   if (
@@ -169,31 +176,53 @@ async function getActiveManagementSession(
     return null;
   }
 
+  return readActiveManagementSession(ctx, identity.subject as Id<"convexpress_managementSessions">, budget);
+}
+
+/** Database verification shared by authenticated requests and captured jobs.
+ * A session ID alone is not a grant; background callers must also validate the
+ * persisted operation, captured principal and installation. */
+async function readActiveManagementSession(
+  ctx: DbReadCtx,
+  sessionId: Id<"convexpress_managementSessions">,
+  budget?: RequestReadLedger,
+): Promise<ActiveManagementSession | null> {
   try {
+    const now = Date.now();
+    budget?.beforeRead();
     const session = await ctx.db.get(
       "convexpress_managementSessions",
-      identity.subject as Id<"convexpress_managementSessions">,
+      sessionId,
     );
+    budget?.record(session);
+    budget?.noteAuthorizationBoundary(session?.expiresAt);
     if (
       !session ||
       session.status !== "active" ||
-      session.expiresAt <= Date.now() ||
+      session.expiresAt <= now ||
       !session.userId
     ) {
       return null;
     }
-    const [authority, binding, user] = await Promise.all([
-      ctx.db.get("convexpress_managementAuthorities", session.authorityId),
-      ctx.db.get("convexpress_managementBindings", session.bindingId),
-      ctx.db.get("users", session.userId),
-    ]);
+    budget?.beforeRead();
+    const authority = await ctx.db.get("convexpress_managementAuthorities", session.authorityId); budget?.record(authority);
+    budget?.noteAuthorizationBoundary(authority?.expiresAt);
+    budget?.beforeRead();
+    const binding = await ctx.db.get("convexpress_managementBindings", session.bindingId); budget?.record(binding);
+    budget?.beforeRead();
+    const user = await ctx.db.get("users", session.userId); budget?.record(user);
     if (
       !authority ||
       authority.status !== "active" ||
+      now < authority.notBefore ||
+      (authority.expiresAt !== undefined && now >= authority.expiresAt) ||
       authority.capabilityRevision !== session.capabilityRevision ||
       !binding ||
       binding.status !== "active" ||
       binding.authorityId !== authority._id ||
+      binding.controllerId !== authority.controllerId ||
+      session.websiteKey !== authority.websiteKey ||
+      session.instanceKey !== authority.instanceKey ||
       binding.userId !== session.userId ||
       binding.capabilityRevision !== session.capabilityRevision ||
       !user ||
@@ -208,8 +237,13 @@ async function getActiveManagementSession(
       user: user as UserDoc,
       siteRoleSlug: session.siteRoleSlug,
       siteCapabilities: session.siteCapabilities,
+      sessionId: session._id,
+      websiteKey: session.websiteKey,
+      instanceKey: session.instanceKey,
+      expiresAt: Math.min(session.expiresAt, authority.expiresAt ?? session.expiresAt),
     };
-  } catch {
+  } catch (error) {
+    if (isRequestReadBudgetError(error)) throw error;
     return null;
   }
 }
@@ -218,14 +252,36 @@ async function managementSessionAllows(
   ctx: AuthReadCtx,
   user: Pick<UserDoc, "_id" | "authSource">,
   capability: string,
+  budget?: RequestReadLedger,
 ): Promise<boolean> {
   if (user.authSource !== "management") return true;
-  const session = await getActiveManagementSession(ctx);
+  const session = await getActiveManagementSession(ctx, budget);
   return (
     !!session &&
     session.user._id === user._id &&
     session.siteCapabilities.includes(capability)
   );
+}
+
+/** One capability decision uses the same freshly verified principal and
+ * session ceiling. Never cache between decisions: the caller can revoke a
+ * session, binding, authority or role earlier in this same transaction. */
+async function capabilityPrincipal(ctx: AuthReadCtx, budget?: RequestReadLedger) {
+  const identity = await ctx.auth.getUserIdentity();
+  if (identity?.tokenIdentifier.startsWith(MANAGEMENT_ISSUER + "|")) {
+    const session = await readActiveManagementSession(ctx, identity.subject as Id<"convexpress_managementSessions">, budget);
+    return { user: session?.user ?? null, session };
+  }
+  return { user: await getCurrentUser(ctx, budget), session: null };
+}
+
+function principalAllowsManagementCapability(
+  principal: { user: UserDoc; session: ActiveManagementSession | null },
+  capability: string,
+): boolean {
+  return principal.user.authSource !== "management" || !!principal.session
+    && principal.session.user._id === principal.user._id
+    && principal.session.siteCapabilities.includes(capability);
 }
 
 // ─── User Retrieval ─────────────────────────────────────────────────────────
@@ -238,6 +294,7 @@ async function managementSessionAllows(
  */
 export async function getCurrentUser(
   ctx: AuthReadCtx,
+  budget?: RequestReadLedger,
 ): Promise<UserDoc | null> {
   const identity = await ctx.auth.getUserIdentity();
   if (!identity) return null;
@@ -249,7 +306,7 @@ export async function getCurrentUser(
   );
 
   if (isManagementAuth) {
-    const session = await getActiveManagementSession(ctx);
+    const session = await getActiveManagementSession(ctx, budget);
     return session?.user ?? null;
   }
 
@@ -257,15 +314,18 @@ export async function getCurrentUser(
     // Admin local auth — subject is Convex user _id (direct fetch, O(1)).
     // A stale local JWT must not continue to authorize an account that has
     // since been linked to Clerk or otherwise moved out of local admin auth.
+    budget?.beforeRead();
     const user = (await ctx.db.get(
       "users",
       identity.subject as Id<"users">,
     )) as UserDoc | null;
+    budget?.record(user);
     if (!user || user.authSource !== "local") return null;
     return user;
   }
 
   // Clerk auth — subject is Clerk user ID
+  budget?.beforeRead();
   const user = await ctx.db
     .query("users")
     .withIndex("by_clerkUserId", (q) =>
@@ -273,6 +333,7 @@ export async function getCurrentUser(
     )
     .unique();
 
+  budget?.record(user);
   if (!user || user.authSource !== "clerk") return null;
   return user as UserDoc;
 }
@@ -302,7 +363,9 @@ export async function getCurrentUserId(
 async function resolveUserRole(
   ctx: DbReadCtx,
   user: Pick<UserDoc, "_id" | "authSource" | "roleId" | "internalRole">,
+  budget?: RequestReadLedger,
 ): Promise<RoleDoc | null> {
+  const reader = membershipAuthorityReader(ctx, budget);
   const canUseRoleForAuthSource = (role: RoleDoc): boolean => {
     if (role.type === "customer") return true;
     return user.authSource === "local" || user.authSource === "management";
@@ -311,7 +374,7 @@ async function resolveUserRole(
   // Path 1: Direct roleId (new system)
   let base: RoleDoc | null = null;
   if (user.roleId) {
-    const role = await ctx.db.get("roles", user.roleId);
+    const role = await reader.role(user.roleId);
     if (!role) {
       // Role was deleted -- fall through to legacy as a migration path.
     } else if (role.status !== "active") {
@@ -329,10 +392,7 @@ async function resolveUserRole(
   // Path 2: Legacy internalRole string (migration path)
   if (!base && user.internalRole) {
     const newSlug = LEGACY_ROLE_MAP[user.internalRole] ?? user.internalRole;
-    const role = await ctx.db
-      .query("roles")
-      .withIndex("by_slug", (q) => q.eq("slug", newSlug))
-      .unique();
+    const role = await reader.roleBySlug(newSlug);
     if (role && role.status === "active") {
       const resolved = role as RoleDoc;
       if (canUseRoleForAuthSource(resolved)) {
@@ -345,31 +405,26 @@ async function resolveUserRole(
   // Active/grace grants on active plans may contribute linked customer roles.
   // Internal/system roles are intentionally ignored here: membership plans are
   // customer entitlements and must never grant admin control-plane access.
+  // pickHighestRole cannot replace a resolved internal/system role with any
+  // customer grant role. Avoid reading that irrelevant grant set altogether.
+  if (base && base.type !== "customer") return base;
   const grantRoles: RoleDoc[] = [];
-  try {
-    const grants = await ctx.db
-      .query("membership_grants")
-      .withIndex("by_user", (q: any) => q.eq("userId", user._id))
-      .collect();
-    const active = grants.filter(
-      (g: any) => g.status === "active" || g.status === "grace",
-    );
+  {
+    const active = await readMembershipAuthorityGrants(ctx, user._id, budget);
     const seen = new Set<string>();
     for (const g of active) {
       if (!g.planId) continue;
-      const plan = await ctx.db.get(g.planId);
+      const plan = await reader.plan(g.planId);
       if (!plan || plan.status !== "active") continue;
       if (!plan.linkedRoleId) continue;
       const key = String(plan.linkedRoleId);
       if (seen.has(key)) continue;
       seen.add(key);
-      const role = await ctx.db.get(plan.linkedRoleId);
+      const role = await reader.role(plan.linkedRoleId);
       if (role && role.status === "active" && role.type === "customer") {
         grantRoles.push(role as RoleDoc);
       }
     }
-  } catch {
-    // Membership plugin disabled or schema not yet present — skip.
   }
 
   return pickHighestRole(base, grantRoles);
@@ -446,9 +501,31 @@ export function getUnsafeMembershipLinkedCapabilities(
 async function getUserCapabilities(
   ctx: DbReadCtx,
   user: Pick<UserDoc, "_id" | "authSource" | "roleId" | "internalRole">,
+  budget?: RequestReadLedger,
 ): Promise<string[]> {
-  const role = await resolveUserRole(ctx, user);
+  const role = await resolveUserRole(ctx, user, budget);
   return role?.capabilities ?? [];
+}
+
+/** A self-only display projection; backend requireCan remains authoritative.
+ * Resolve the role using exactly the same identity and management ceiling as
+ * capability checks. Never expose session identifiers or enlarge its grant. */
+export async function getCurrentRoleAccess(ctx: AuthReadCtx) {
+  const budget = new RequestReadLedger();
+  const { user, session } = await capabilityPrincipal(ctx, budget);
+  if (!user || user.status !== "active") return null;
+  const role = await resolveUserRole(ctx, user, budget);
+  if (!role) return null;
+  return {
+    userId: user._id,
+    role: {
+      _id: role._id, name: role.name, slug: role.slug, level: role.level,
+      type: role.type, status: role.status, pageAccess: role.pageAccess,
+      capabilities: role.capabilities.filter(capability =>
+        principalAllowsManagementCapability({ user, session }, capability)),
+    },
+    validUntil: budget.authorizationRecheckAt,
+  };
 }
 
 // ─── Permission Checks ──────────────────────────────────────────────────────
@@ -471,46 +548,20 @@ async function userHasMembershipCapability(
   ctx: AuthReadCtx,
   userId: Id<"users">,
   capability: Capability,
+  budget?: RequestReadLedger,
 ): Promise<boolean> {
   if (!isMembershipAuthCapability(capability)) return false;
 
   // Plugin off → no augmentation. Fail soft.
   // `isPluginEnabled` types its ctx as `AnyCtx` (QueryCtx|MutationCtx|ActionCtx).
   // Our narrower `AuthReadCtx` is a structural subset — cast to satisfy the compiler.
-  if (!(await isPluginEnabled(ctx as any, "membership"))) return false;
+  if (!(await isPluginEnabled(ctx as any, "membership", budget))) return false;
 
-  const now = Date.now();
+  const validGrants = await readMembershipAuthorityGrants(ctx, userId, budget);
 
-  let activeGrants: Doc<"membership_grants">[] = [];
-  let graceGrants: Doc<"membership_grants">[] = [];
-  try {
-    activeGrants = await ctx.db
-      .query("membership_grants")
-      .withIndex("by_user_status", (q: any) =>
-        q.eq("userId", userId).eq("status", "active"),
-      )
-      .collect();
-
-    graceGrants = await ctx.db
-      .query("membership_grants")
-      .withIndex("by_user_status", (q: any) =>
-        q.eq("userId", userId).eq("status", "grace"),
-      )
-      .collect();
-  } catch {
-    // Table may not exist during early schema bring-up. Fail soft.
-    return false;
-  }
-
-  const validGrants = [...activeGrants, ...graceGrants].filter((g) => {
-    if (g.status === "grace" && g.graceEndsAt && g.graceEndsAt < now)
-      return false;
-    if (g.endsAt && g.endsAt < now && g.status !== "grace") return false;
-    return true;
-  });
-
+  const reader = membershipAuthorityReader(ctx, budget);
   for (const grant of validGrants) {
-    const plan = await ctx.db.get(grant.planId);
+    const plan = await reader.plan(grant.planId);
     if (!plan) continue;
     if (plan.status !== "active") continue;
     const caps: string[] = Array.isArray(plan.linkedCapabilities)
@@ -542,15 +593,16 @@ async function userHasMembershipCapability(
 export async function currentUserCan(
   ctx: AuthReadCtx,
   capability: Capability,
+  budget?: RequestReadLedger,
 ): Promise<boolean> {
-  const user = await getCurrentUser(ctx);
+  const { user, session } = await capabilityPrincipal(ctx, budget);
   if (!user) return false;
   if (user.status !== "active") return false;
 
-  const capabilities = await getUserCapabilities(ctx, user);
+  const capabilities = await getUserCapabilities(ctx, user, budget);
   if (
     capabilities.includes(capability) &&
-    (await managementSessionAllows(ctx, user, capability))
+    principalAllowsManagementCapability({ user, session }, capability)
   ) {
     return true;
   }
@@ -559,7 +611,7 @@ export async function currentUserCan(
 
   // Role-based check failed — try membership augmentation. Plugin-gated
   // inside the helper so membership-off sites return the prior behavior.
-  return await userHasMembershipCapability(ctx, user._id, capability);
+  return await userHasMembershipCapability(ctx, user._id, capability, budget);
 }
 
 /**
@@ -600,8 +652,9 @@ export async function userCan(
 export async function requireCan(
   ctx: AuthReadCtx,
   capability: Capability,
+  budget?: RequestReadLedger,
 ): Promise<UserDoc> {
-  const user = await getCurrentUser(ctx);
+  const { user, session } = await capabilityPrincipal(ctx, budget);
   if (!user) {
     throw new ConvexError({
       code: "UNAUTHORIZED",
@@ -616,17 +669,17 @@ export async function requireCan(
     });
   }
 
-  const role = await resolveUserRole(ctx, user);
+  const role = await resolveUserRole(ctx, user, budget);
   const capabilities = role?.capabilities ?? [];
   if (
     !capabilities.includes(capability) ||
-    !(await managementSessionAllows(ctx, user, capability))
+    !principalAllowsManagementCapability({ user, session }, capability)
   ) {
     // Role-based check failed. If the membership plugin is enabled, see if
     // an active/grace plan grant carries the capability via linkedCapabilities.
     const viaMembership =
       user.authSource !== "management" &&
-      (await userHasMembershipCapability(ctx, user._id, capability));
+      (await userHasMembershipCapability(ctx, user._id, capability, budget));
     if (!viaMembership) {
       // Log details server-side for debugging; return generic message to client
       console.warn(`Access denied: user=${user._id} capability=${capability} role=${role?.slug ?? "none"}`);
@@ -641,6 +694,72 @@ export async function requireCan(
 }
 
 // ─── Meta-Capability Resolution ─────────────────────────────────────────────
+
+/** Non-secret provenance, captured only by a successful authenticated command.
+ * It is valid only inside the immutable operation that stores it. Never accept
+ * this structure from a public caller as authentication. */
+export type CapturedPublicationAuthority = {
+  userId: Id<"users">;
+  authSource: "local" | "clerk" | "management";
+  clerkSubject: string | null;
+  passwordChangedAt: number | null;
+  managementSessionId: Id<"convexpress_managementSessions"> | null;
+  capabilities: string[];
+  expiresAt: number;
+};
+
+export async function capturePublicationAuthority(
+  ctx: AuthReadCtx,
+  scope: { websiteKey: string; instanceKey: string },
+  capability: "post.publish" | "post.unpublish",
+  budget: RequestReadLedger,
+): Promise<CapturedPublicationAuthority> {
+  const user = await requireCan(ctx, capability, budget);
+  if (!user.authSource) throw new ConvexError({ code: "SYNCED_REFRESH_AUTHORITY", message: "Sign in again before refreshing reusable content." });
+  const session = user.authSource === "management" ? await getActiveManagementSession(ctx, budget) : null;
+  if (user.authSource === "management" && (!session || session.user._id !== user._id || session.websiteKey !== scope.websiteKey || session.instanceKey !== scope.instanceKey))
+    throw new ConvexError({ code: "SYNCED_REFRESH_AUTHORITY", message: "This session belongs to another website environment." });
+  const capabilities: string[] = [capability];
+  for (const candidate of ["form.create", "form.update"] as const)
+    if (await currentUserCan(ctx, candidate, budget)) capabilities.push(candidate);
+  return {
+    userId: user._id, authSource: user.authSource,
+    clerkSubject: user.clerkUserId ?? null,
+    passwordChangedAt: user.lastPasswordChangedAt ?? null,
+    managementSessionId: session?.sessionId ?? null,
+    capabilities,
+    // A durable operation can pause for explicit authenticated retry. It never
+    // extends a management session or keeps indefinite background authority.
+    expiresAt: Math.min(Date.now() + 15 * 60_000, session?.expiresAt ?? Infinity),
+  };
+}
+
+/** Recheck current authority without fabricating ctx.auth or replaying JWTs.
+ * The operation caller separately validates its scope, source and generation. */
+export async function requireCapturedPublicationAuthority(
+  ctx: DbReadCtx,
+  authority: CapturedPublicationAuthority,
+  scope: { websiteKey: string; instanceKey: string },
+  capability: "post.publish" | "post.unpublish" | "form.create" | "form.update",
+  budget: RequestReadLedger,
+): Promise<UserDoc> {
+  const fail = (): never => { throw new ConvexError({ code: "SYNCED_REFRESH_AUTHORITY", message: "Refresh permission expired or changed. An authorized publisher must retry." }); };
+  budget.noteAuthorizationBoundary(authority.expiresAt);
+  if (!Number.isFinite(authority.expiresAt) || authority.expiresAt <= Date.now() || !authority.capabilities.includes(capability)) return fail();
+  budget.beforeRead();
+  const user = budget.record(await ctx.db.get("users", authority.userId));
+  if (!user || user.status !== "active" || user.authSource !== authority.authSource) return fail();
+  if (user.authSource === "local" && (user.lastPasswordChangedAt ?? null) !== authority.passwordChangedAt) return fail();
+  if (user.authSource === "clerk" && (!authority.clerkSubject || user.clerkUserId !== authority.clerkSubject)) return fail();
+  if (user.authSource === "management") {
+    if (!authority.managementSessionId) return fail();
+    const session = await readActiveManagementSession(ctx, authority.managementSessionId, budget);
+    if (!session || session.user._id !== user._id || session.websiteKey !== scope.websiteKey || session.instanceKey !== scope.instanceKey || !session.siteCapabilities.includes(capability)) return fail();
+  }
+  // These administrative capabilities cannot be augmented by memberships.
+  if (!(await getUserCapabilities(ctx, user, budget)).includes(capability)) return fail();
+  return user;
+}
 
 /**
  * Resolve a meta-capability to a concrete capability, applying ownership logic.
@@ -808,21 +927,24 @@ export async function requireCanOnResource(
  */
 export async function getCurrentRoleLevel(
   ctx: AuthReadCtx,
+  budget?: RequestReadLedger,
 ): Promise<number> {
-  const user = await getCurrentUser(ctx);
+  const user = await getCurrentUser(ctx, budget);
   if (!user) return 0;
 
   if (user.authSource === "management") {
-    const session = await getActiveManagementSession(ctx);
+    const session = await getActiveManagementSession(ctx, budget);
     if (!session || session.user._id !== user._id) return 0;
+    budget?.beforeRead();
     const role = await ctx.db
       .query("roles")
       .withIndex("by_slug", (q) => q.eq("slug", session.siteRoleSlug))
       .unique();
+    budget?.record(role);
     return role?.status === "active" ? role.level : 0;
   }
 
-  const role = await resolveUserRole(ctx, user);
+  const role = await resolveUserRole(ctx, user, budget);
   return role?.level ?? 0;
 }
 
@@ -885,8 +1007,9 @@ export async function requireMinimumRoleLevel(
  */
 export async function requireAuth(
   ctx: AuthReadCtx,
+  budget?: RequestReadLedger,
 ): Promise<UserDoc> {
-  const user = await getCurrentUser(ctx);
+  const user = await getCurrentUser(ctx, budget);
   if (!user) {
     throw new ConvexError({
       code: "UNAUTHORIZED",

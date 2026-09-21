@@ -1,10 +1,21 @@
-// @ts-nocheck
+import { readDownloadEntitlement } from "./downloadEntitlement";
 import { v } from "convex/values";
+
+import type { RegisteredQuery } from "convex/server";
+import type { Doc, Id } from "../_generated/dataModel";
 
 import { query } from "../_generated/server";
 import { requireCan, getCurrentUser } from "../helpers/permissions";
 import { requireCommerceDigitalEnabled } from "../commerce/helpers";
 import { isPluginEnabled } from "../helpers/plugins";
+
+
+type OrderDownload = Doc<"commerce_download_tokens"> & { file: Doc<"commerce_digital_files"> | null };
+type CustomerDownload = OrderDownload & { product: Doc<"commerce_products"> | null; order: Doc<"commerce_orders"> | null; isExpired: boolean; isLimitReached: boolean };
+type OrderLicense = Doc<"commerce_license_keys"> & { product: Doc<"commerce_products"> | null; variant: Doc<"commerce_product_variants"> | null; activeActivations: number };
+type CustomerLicense = Doc<"commerce_license_keys"> & { product: Doc<"commerce_products"> | null; activeActivations: number; isExpired: boolean };
+type DownloadValidation = { valid: false; error: string } | { valid: true; file: { name: string; fileName: string; fileSize: number; mimeType: string; version: string }; product: { title: string }; remainingDownloads: number | null; expiresAt?: number };
+type LicenseValidation = { valid: false; error: string; requiresActivation?: boolean } | { valid: true; keyType: Doc<"commerce_license_keys">["keyType"]; expiresAt?: number; product: { id: Id<"commerce_products">; title: string } | null };
 
 // ============================================
 // DIGITAL FILE QUERIES
@@ -13,43 +24,45 @@ import { isPluginEnabled } from "../helpers/plugins";
 /**
  * Get digital files for a product (admin)
  */
-export const getFilesByProduct = query({
+export const getFilesByProduct: RegisteredQuery<"public", { productId: Id<"commerce_products">; variantId?: Id<"commerce_product_variants">; includeAllVersions?: boolean }, Doc<"commerce_digital_files">[] | null> = query({
   args: {
     productId: v.id("commerce_products"),
     variantId: v.optional(v.id("commerce_product_variants")),
     includeAllVersions: v.optional(v.boolean()),
   },
-  handler: async (ctx: any, args: any) => {
+  handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "commerceDigital"))) return null;
     await requireCommerceDigitalEnabled(ctx);
+    await requireCan(ctx, "manage_options");
 
     const files = await ctx.db
       .query("commerce_digital_files")
-      .withIndex("by_product", (q: any) => q.eq("productId", args.productId))
+      .withIndex("by_product", (q) => q.eq("productId", args.productId))
       .collect();
 
     // Filter by variant if specified
     let filtered = args.variantId !== undefined
-      ? files.filter((f: any) => f.variantId === args.variantId)
+      ? files.filter((f) => f.variantId === args.variantId)
       : files;
 
     // Only show latest versions by default
     if (!args.includeAllVersions) {
-      filtered = filtered.filter((f: any) => f.isLatest);
+      filtered = filtered.filter((f) => f.isLatest);
     }
 
-    return filtered.sort((a: any, b: any) => a.sortOrder - b.sortOrder);
+    return filtered.sort((a, b) => a.sortOrder - b.sortOrder);
   },
 });
 
 /**
  * Get a specific digital file
  */
-export const getFile = query({
+export const getFile: RegisteredQuery<"public", { fileId: Id<"commerce_digital_files"> }, Doc<"commerce_digital_files"> | null> = query({
   args: { fileId: v.id("commerce_digital_files") },
-  handler: async (ctx: any, args: any) => {
+  handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "commerceDigital"))) return null;
     await requireCommerceDigitalEnabled(ctx);
+    await requireCan(ctx, "manage_options");
     return await ctx.db.get(args.fileId);
   },
 });
@@ -61,52 +74,20 @@ export const getFile = query({
 /**
  * Validate a download token
  */
-export const validateDownloadToken = query({
+export const validateDownloadToken: RegisteredQuery<"public", { token: string }, DownloadValidation | null> = query({
   args: { token: v.string() },
-  handler: async (ctx: any, args: any) => {
+  handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "commerceDigital"))) return null;
     await requireCommerceDigitalEnabled(ctx);
 
-    const tokenRecord = await ctx.db
-      .query("commerce_download_tokens")
-      .withIndex("by_token", (q: any) => q.eq("token", args.token))
-      .unique();
-
-    if (!tokenRecord) {
-      return { valid: false, error: "Invalid download token" };
-    }
-
-    if (!tokenRecord.isActive) {
-      return { valid: false, error: "Download token has been deactivated" };
-    }
-
-    if (tokenRecord.expiresAt && tokenRecord.expiresAt < Date.now()) {
-      return { valid: false, error: "Download token has expired" };
-    }
-
-    if (
-      tokenRecord.maxDownloads &&
-      tokenRecord.downloadCount >= tokenRecord.maxDownloads
-    ) {
-      return { valid: false, error: "Download limit reached" };
-    }
-
-    // Get file info
-    const file = await ctx.db.get(tokenRecord.digitalFileId);
-    if (!file) {
-      return { valid: false, error: "File not found" };
-    }
-
-    const product = await ctx.db.get(file.productId);
-
+    const access = await readDownloadEntitlement(ctx, args.token);
+    if (!access.success) return { valid: false, error: access.error };
     return {
       valid: true,
-      tokenRecord,
-      file,
-      product,
-      remainingDownloads: tokenRecord.maxDownloads
-        ? tokenRecord.maxDownloads - tokenRecord.downloadCount
-        : null,
+      file: { name: access.file.name, fileName: access.file.fileName, fileSize: access.file.fileSize, mimeType: access.file.mimeType, version: access.file.version },
+      product: { title: access.product.title },
+      remainingDownloads: access.remainingDownloads,
+      expiresAt: access.token.expiresAt,
     };
   },
 });
@@ -114,20 +95,21 @@ export const validateDownloadToken = query({
 /**
  * Get download tokens for an order
  */
-export const getDownloadTokensByOrder = query({
+export const getDownloadTokensByOrder: RegisteredQuery<"public", { orderId: Id<"commerce_orders"> }, OrderDownload[] | null> = query({
   args: { orderId: v.id("commerce_orders") },
-  handler: async (ctx: any, args: any) => {
+  handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "commerceDigital"))) return null;
     await requireCommerceDigitalEnabled(ctx);
+    await requireCan(ctx, "manage_options");
 
     const tokens = await ctx.db
       .query("commerce_download_tokens")
-      .withIndex("by_order", (q: any) => q.eq("orderId", args.orderId))
+      .withIndex("by_order", (q) => q.eq("orderId", args.orderId))
       .collect();
 
     // Enrich with file info
     const enriched = await Promise.all(
-      tokens.map(async (token: any) => {
+      tokens.map(async (token) => {
         const file = await ctx.db.get(token.digitalFileId);
         return { ...token, file };
       })
@@ -140,23 +122,23 @@ export const getDownloadTokensByOrder = query({
 /**
  * Get current user's downloads (customer-facing)
  */
-export const getMyDownloads = query({
+export const getMyDownloads: RegisteredQuery<"public", Record<string, never>, CustomerDownload[] | null> = query({
   args: {},
-  handler: async (ctx: any) => {
+  handler: async (ctx) => {
     if (!(await isPluginEnabled(ctx, "commerceDigital"))) return null;
     await requireCommerceDigitalEnabled(ctx);
 
     const user = await getCurrentUser(ctx);
-    if (!user) return [];
+    if (!user || user.status !== "active") return [];
 
     const tokens = await ctx.db
       .query("commerce_download_tokens")
-      .withIndex("by_user", (q: any) => q.eq("userId", user._id))
+      .withIndex("by_user", (q) => q.eq("userId", user._id))
       .collect();
 
     // Enrich with file and product info
     const enriched = await Promise.all(
-      tokens.map(async (token: any) => {
+      tokens.map(async (token) => {
         const file = await ctx.db.get(token.digitalFileId);
         const product = file ? await ctx.db.get(file.productId) : null;
         const order = await ctx.db.get(token.orderId);
@@ -174,23 +156,23 @@ export const getMyDownloads = query({
       })
     );
 
-    return enriched.filter((t: any) => t.file && t.product);
+    return enriched.filter((t) => t.file && t.product);
   },
 });
 
 /**
  * Get download history for a token (admin)
  */
-export const getDownloadHistory = query({
+export const getDownloadHistory: RegisteredQuery<"public", { tokenId: Id<"commerce_download_tokens"> }, Doc<"commerce_download_log">[] | null> = query({
   args: { tokenId: v.id("commerce_download_tokens") },
-  handler: async (ctx: any, args: any) => {
+  handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "commerceDigital"))) return null;
     await requireCommerceDigitalEnabled(ctx);
     await requireCan(ctx, "manage_options");
 
     return await ctx.db
       .query("commerce_download_log")
-      .withIndex("by_token", (q: any) => q.eq("downloadTokenId", args.tokenId))
+      .withIndex("by_token", (q) => q.eq("downloadTokenId", args.tokenId))
       .order("desc")
       .collect();
   },
@@ -203,26 +185,27 @@ export const getDownloadHistory = query({
 /**
  * Get license keys for an order
  */
-export const getLicenseKeysByOrder = query({
+export const getLicenseKeysByOrder: RegisteredQuery<"public", { orderId: Id<"commerce_orders"> }, OrderLicense[] | null> = query({
   args: { orderId: v.id("commerce_orders") },
-  handler: async (ctx: any, args: any) => {
+  handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "commerceDigital"))) return null;
     await requireCommerceDigitalEnabled(ctx);
+    await requireCan(ctx, "manage_options");
 
     const keys = await ctx.db
       .query("commerce_license_keys")
-      .withIndex("by_order", (q: any) => q.eq("orderId", args.orderId))
+      .withIndex("by_order", (q) => q.eq("orderId", args.orderId))
       .collect();
 
     // Enrich with product info and activation count
     const enriched = await Promise.all(
-      keys.map(async (key: any) => {
+      keys.map(async (key) => {
         const product = await ctx.db.get(key.productId);
         const variant = key.variantId ? await ctx.db.get(key.variantId) : null;
 
         const activations = await ctx.db
           .query("commerce_license_activations")
-          .withIndex("by_license_active", (q: any) =>
+          .withIndex("by_license_active", (q) =>
             q.eq("licenseKeyId", key._id).eq("isActive", true)
           )
           .collect();
@@ -243,26 +226,26 @@ export const getLicenseKeysByOrder = query({
 /**
  * Get current user's license keys (customer-facing)
  */
-export const getMyLicenseKeys = query({
+export const getMyLicenseKeys: RegisteredQuery<"public", Record<string, never>, CustomerLicense[] | null> = query({
   args: {},
-  handler: async (ctx: any) => {
+  handler: async (ctx) => {
     if (!(await isPluginEnabled(ctx, "commerceDigital"))) return null;
     await requireCommerceDigitalEnabled(ctx);
 
     const user = await getCurrentUser(ctx);
-    if (!user) return [];
+    if (!user || user.status !== "active") return [];
 
     const keys = await ctx.db
       .query("commerce_license_keys")
-      .withIndex("by_user", (q: any) => q.eq("userId", user._id))
+      .withIndex("by_user", (q) => q.eq("userId", user._id))
       .collect();
 
     const enriched = await Promise.all(
-      keys.map(async (key: any) => {
+      keys.map(async (key) => {
         const product = await ctx.db.get(key.productId);
         const activations = await ctx.db
           .query("commerce_license_activations")
-          .withIndex("by_license_active", (q: any) =>
+          .withIndex("by_license_active", (q) =>
             q.eq("licenseKeyId", key._id).eq("isActive", true)
           )
           .collect();
@@ -276,28 +259,29 @@ export const getMyLicenseKeys = query({
       })
     );
 
-    return enriched.filter((k: any) => k.product);
+    return enriched.filter((k) => k.product);
   },
 });
 
 /**
  * Get available license key count for a product (admin)
  */
-export const getAvailableLicenseKeyCount = query({
+export const getAvailableLicenseKeyCount: RegisteredQuery<"public", { productId: Id<"commerce_products">; variantId?: Id<"commerce_product_variants"> }, number | null> = query({
   args: {
     productId: v.id("commerce_products"),
     variantId: v.optional(v.id("commerce_product_variants")),
   },
-  handler: async (ctx: any, args: any) => {
+  handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "commerceDigital"))) return null;
     await requireCommerceDigitalEnabled(ctx);
+    await requireCan(ctx, "manage_options");
 
     const keys = await ctx.db
       .query("commerce_license_keys")
-      .withIndex("by_product_status", (q: any) =>
+      .withIndex("by_product_status", (q) =>
         q.eq("productId", args.productId).eq("status", "available")
       )
-      .filter((q: any) =>
+      .filter((q) =>
         args.variantId
           ? q.eq(q.field("variantId"), args.variantId)
           : q.eq(q.field("variantId"), undefined)
@@ -311,7 +295,7 @@ export const getAvailableLicenseKeyCount = query({
 /**
  * List all license keys for a product (admin)
  */
-export const listLicenseKeysByProduct = query({
+export const listLicenseKeysByProduct: RegisteredQuery<"public", { productId: Id<"commerce_products">; status?: Doc<"commerce_license_keys">["status"]; limit?: number }, Doc<"commerce_license_keys">[] | null> = query({
   args: {
     productId: v.id("commerce_products"),
     status: v.optional(
@@ -325,22 +309,22 @@ export const listLicenseKeysByProduct = query({
     ),
     limit: v.optional(v.number()),
   },
-  handler: async (ctx: any, args: any) => {
+  handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "commerceDigital"))) return null;
     await requireCommerceDigitalEnabled(ctx);
     await requireCan(ctx, "manage_options");
 
     const keys = await ctx.db
       .query("commerce_license_keys")
-      .withIndex("by_product", (q: any) => q.eq("productId", args.productId))
+      .withIndex("by_product", (q) => q.eq("productId", args.productId))
       .collect();
 
     let filtered = args.status
-      ? keys.filter((k: any) => k.status === args.status)
+      ? keys.filter((k) => k.status === args.status)
       : keys;
 
     // Sort by created date descending
-    filtered.sort((a: any, b: any) => b.createdAt - a.createdAt);
+    filtered.sort((a, b) => b.createdAt - a.createdAt);
 
     // Apply limit
     if (args.limit) {
@@ -354,18 +338,18 @@ export const listLicenseKeysByProduct = query({
 /**
  * Validate a license (public — check if still valid)
  */
-export const validateLicense = query({
+export const validateLicense: RegisteredQuery<"public", { licenseKey: string; deviceId?: string }, LicenseValidation | null> = query({
   args: {
     licenseKey: v.string(),
     deviceId: v.optional(v.string()),
   },
-  handler: async (ctx: any, args: any) => {
+  handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "commerceDigital"))) return null;
     await requireCommerceDigitalEnabled(ctx);
 
     const key = await ctx.db
       .query("commerce_license_keys")
-      .withIndex("by_license_key", (q: any) => q.eq("licenseKey", args.licenseKey))
+      .withIndex("by_license_key", (q) => q.eq("licenseKey", args.licenseKey))
       .unique();
 
     if (!key) {
@@ -388,10 +372,10 @@ export const validateLicense = query({
     if (args.deviceId) {
       const activation = await ctx.db
         .query("commerce_license_activations")
-        .withIndex("by_license_active", (q: any) =>
+        .withIndex("by_license_active", (q) =>
           q.eq("licenseKeyId", key._id).eq("isActive", true)
         )
-        .filter((q: any) => q.eq(q.field("deviceId"), args.deviceId))
+        .filter((q) => q.eq(q.field("deviceId"), args.deviceId))
         .unique();
 
       if (!activation) {
@@ -419,15 +403,16 @@ export const validateLicense = query({
 /**
  * Get license activations for a key (admin)
  */
-export const getLicenseActivations = query({
+export const getLicenseActivations: RegisteredQuery<"public", { keyId: Id<"commerce_license_keys"> }, Doc<"commerce_license_activations">[] | null> = query({
   args: { keyId: v.id("commerce_license_keys") },
-  handler: async (ctx: any, args: any) => {
+  handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "commerceDigital"))) return null;
     await requireCommerceDigitalEnabled(ctx);
+    await requireCan(ctx, "manage_options");
 
     return await ctx.db
       .query("commerce_license_activations")
-      .withIndex("by_license", (q: any) => q.eq("licenseKeyId", args.keyId))
+      .withIndex("by_license", (q) => q.eq("licenseKeyId", args.keyId))
       .collect();
   },
 });

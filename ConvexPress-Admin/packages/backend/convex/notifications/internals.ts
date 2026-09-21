@@ -1,3 +1,6 @@
+import type { RegisteredMutation } from "convex/server";
+import type { ObjectType } from "convex/values";
+import type { Id } from "../_generated/dataModel";
 /**
  * Site Notification System - Internal Functions
  *
@@ -192,10 +195,8 @@ async function hydrateNotificationPayload(
  * Called by: onEvent handler, sendBulk, or direct internal calls
  * Never exposed to clients.
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
-export const send = internalMutation({
+export const send: RegisteredMutation<"internal", ObjectType<typeof sendArgs>, Id<"siteNotifications"> | null> = internalMutation({
   args: sendArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     const now = Date.now();
 
@@ -254,7 +255,7 @@ export const send = internalMutation({
     const notificationConfig = getNotificationTypeConfig(args.notificationKey);
     const preference = await ctx.db
       .query("notificationPreferences")
-      .withIndex("by_user_key", (q: ConvexQueryBuilder) =>
+      .withIndex("by_user_key", (q) =>
         q
           .eq("userId", args.userId)
           .eq("notificationKey", args.notificationKey),
@@ -278,12 +279,11 @@ export const send = internalMutation({
     const recentCutoff = now - RATE_LIMIT_WINDOW_MS;
     const recentNotifications = await ctx.db
       .query("siteNotifications")
-      .withIndex("by_user", (q: ConvexQueryBuilder) => q.eq("userId", args.userId))
+      .withIndex("by_user", (q) => q.eq("userId", args.userId))
       .order("desc")
       .take(RATE_LIMIT_MAX + 1);
 
     const recentCount = recentNotifications.filter(
-      // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
       (n) => n.createdAt > recentCutoff,
     ).length;
 
@@ -291,7 +291,7 @@ export const send = internalMutation({
       // Check if a rate-limit summary already exists in the window
       const existingSummary = await ctx.db
         .query("siteNotifications")
-        .withIndex("by_group", (q: ConvexQueryBuilder) =>
+        .withIndex("by_group", (q) =>
           q.eq("userId", args.userId).eq("groupKey", `rate_limit:${args.userId}`),
         )
         .order("desc")
@@ -338,7 +338,7 @@ export const send = internalMutation({
       // Look for existing unread notification with same groupKey in the window
       const existingGrouped = await ctx.db
         .query("siteNotifications")
-        .withIndex("by_group", (q: ConvexQueryBuilder) =>
+        .withIndex("by_group", (q) =>
           q.eq("userId", args.userId).eq("groupKey", args.groupKey!),
         )
         .order("desc")

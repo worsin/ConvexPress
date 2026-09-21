@@ -1,3 +1,4 @@
+import type { RegisteredQuery } from "convex/server";
 /**
  * RSS/Feed System - Public Queries
  *
@@ -25,6 +26,8 @@
  * WordPress equivalent: The data layer behind do_feed_rss2(), do_feed_atom()
  */
 
+import { canDiscoverContent } from "../helpers/publicContent";
+import { isPublicAuthor } from "../helpers/publicAuthor";
 import { query } from "../_generated/server";
 import type { QueryCtx } from "../_generated/server";
 import type { Doc, Id } from "../_generated/dataModel";
@@ -63,19 +66,25 @@ async function readFeedSettings(ctx: QueryCtx) {
     siteTitle:
       (generalValues?.siteTitle as string) ?? FEED_SETTINGS_DEFAULTS.siteTitle,
     siteDescription:
-      (generalValues?.tagline as string) ?? FEED_SETTINGS_DEFAULTS.siteDescription,
+      (generalValues?.tagline as string) ??
+      FEED_SETTINGS_DEFAULTS.siteDescription,
     siteUrl:
       (generalValues?.siteUrl as string) ?? FEED_SETTINGS_DEFAULTS.siteUrl,
     language:
-      (generalValues?.siteLanguage as string) ?? FEED_SETTINGS_DEFAULTS.language,
+      (generalValues?.siteLanguage as string) ??
+      FEED_SETTINGS_DEFAULTS.language,
     feedItemCount: Math.min(
       MAX_FEED_ITEM_COUNT,
-      Math.max(1, (readingValues?.feedItemCount as number) ?? FEED_SETTINGS_DEFAULTS.feedItemCount),
+      Math.max(
+        1,
+        (readingValues?.feedItemCount as number) ??
+          FEED_SETTINGS_DEFAULTS.feedItemCount,
+      ),
     ),
-    feedContentDisplay:
-      ((readingValues?.feedContentDisplay as string) === "summary" ? "summary" : "full") as
-        | "full"
-        | "summary",
+    feedContentDisplay: ((readingValues?.feedContentDisplay as string) ===
+    "summary"
+      ? "summary"
+      : "full") as "full" | "summary",
   };
 }
 
@@ -89,13 +98,25 @@ async function readFeedSettings(ctx: QueryCtx) {
  * Taxonomy relationships are still fetched per-post since there's no cross-post
  * batch index, but term lookups within each post use Promise.all.
  */
-async function enrichPostsForFeed(ctx: QueryCtx, posts: Doc<"posts">[]) {
+type FeedPost = {
+ _id:Id<"posts">;title:string;slug:string;content:string;excerpt:string|null;
+ status:Doc<"posts">["status"];publishedAt:number;updatedAt:number;commentStatus:Doc<"posts">["commentStatus"];commentCount:number;
+ authorName:string;authorSlug:string;categories:string[];tags:string[];
+ featuredImageUrl?:string;featuredImageMimeType?:string;featuredImageSize?:number;
+};
+async function enrichPostsForFeed(ctx: QueryCtx, candidates: Doc<"posts">[]):Promise<FeedPost[]> {
+  const posts: Doc<"posts">[] = [];
+  for (const post of candidates) {
+    if (await canDiscoverContent(ctx, post)) posts.push(post);
+  }
   if (posts.length === 0) return [];
 
   // ── Batch-fetch unique authors upfront ─────────────────────────────────
-  const uniqueAuthorIds = [...new Set(
-    posts.map((p) => p.authorId).filter((id): id is Id<"users"> => !!id),
-  )];
+  const uniqueAuthorIds = [
+    ...new Set(
+      posts.map((p) => p.authorId).filter((id): id is Id<"users"> => !!id),
+    ),
+  ];
   const authorMap = new Map<string, Doc<"users">>();
   const authorResults = await Promise.all(
     uniqueAuthorIds.map((id) => ctx.db.get("users", id)),
@@ -108,10 +129,13 @@ async function enrichPostsForFeed(ctx: QueryCtx, posts: Doc<"posts">[]) {
   }
 
   // ── Batch-fetch unique featured images upfront ─────────────────────────
-  const uniqueMediaIds = [...new Set(
-    posts.map((p) => p.featuredImageId).filter((id): id is Id<"media"> => !!id),
-  )];
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  const uniqueMediaIds = [
+    ...new Set(
+      posts
+        .map((p) => p.featuredImageId)
+        .filter((id): id is Id<"media"> => !!id),
+    ),
+  ];
   const mediaMap = new Map<string, Doc<"media">>();
   if (uniqueMediaIds.length > 0) {
     const mediaResults = await Promise.all(
@@ -127,7 +151,6 @@ async function enrichPostsForFeed(ctx: QueryCtx, posts: Doc<"posts">[]) {
 
   // ── Enrich each post with taxonomy terms (parallelized) ────────────────
   return Promise.all(
-    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     posts.map(async (post) => {
       // Get taxonomy terms for this post
       const relationships = await ctx.db
@@ -156,7 +179,7 @@ async function enrichPostsForFeed(ctx: QueryCtx, posts: Doc<"posts">[]) {
       let authorSlug = "";
       if (post.authorId) {
         const author = authorMap.get(post.authorId);
-        if (author) {
+        if (isPublicAuthor(author)) {
           authorName =
             author.displayName ||
             (author.firstName && author.lastName
@@ -173,7 +196,6 @@ async function enrichPostsForFeed(ctx: QueryCtx, posts: Doc<"posts">[]) {
       if (post.featuredImageId) {
         const media = mediaMap.get(post.featuredImageId);
         if (media) {
-          // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
           featuredImageUrl = media.url;
           featuredImageMimeType = media.mimeType;
           featuredImageSize = media.fileSize;
@@ -212,17 +234,15 @@ async function enrichPostsForFeed(ctx: QueryCtx, posts: Doc<"posts">[]) {
  * Returns published posts sorted by publishedAt descending,
  * enriched with taxonomy terms and author info.
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
-export const getPublishedPosts = query({
+export const getPublishedPosts: RegisteredQuery<"public",{limit:number},FeedPost[]> = query({
   args: getPublishedPostsArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     const limit = Math.min(Math.max(1, args.limit), MAX_FEED_ITEM_COUNT);
 
     // Fetch published posts of type "post", ordered by publishedAt descending
     const posts = await ctx.db
       .query("posts")
-      .withIndex("by_type_published", (q: ConvexQueryBuilder) =>
+      .withIndex("by_type_published", (q) =>
         q.eq("type", "post"),
       )
       .order("desc")
@@ -262,7 +282,9 @@ export const getPostsByCategory = query({
     // Get all post IDs in this category
     const relationships = await ctx.db
       .query("termRelationships")
-      .withIndex("by_term", (q: ConvexQueryBuilder) => q.eq("termId", category._id))
+      .withIndex("by_term", (q: ConvexQueryBuilder) =>
+        q.eq("termId", category._id),
+      )
       .collect();
 
     // Batch-fetch all posts in this category using Promise.all
@@ -386,10 +408,12 @@ export const getPostsByAuthor = query({
     // Look up the author by slug
     const author = await ctx.db
       .query("users")
-      .withIndex("by_slug", (q: ConvexQueryBuilder) => q.eq("slug", args.authorSlug))
+      .withIndex("by_slug", (q: ConvexQueryBuilder) =>
+        q.eq("slug", args.authorSlug),
+      )
       .unique();
 
-    if (!author) return null;
+    if (!isPublicAuthor(author)) return null;
 
     // Fetch published posts by this author.
     // Over-fetch by 2x to handle the edge case where publishedAt order differs
@@ -449,7 +473,9 @@ export const getRecentComments = query({
     // Fetch recently approved comments
     const comments = await ctx.db
       .query("comments")
-      .withIndex("by_status", (q: ConvexQueryBuilder) => q.eq("status", "approved"))
+      .withIndex("by_status", (q: ConvexQueryBuilder) =>
+        q.eq("status", "approved"),
+      )
       .order("desc")
       .take(limit * 2); // Over-fetch to account for orphaned comments
 
@@ -469,7 +495,7 @@ export const getRecentComments = query({
 
       const post = await ctx.db.get("posts", comment.postId);
       // Skip orphaned comments (parent post deleted or not published)
-      if (!post || post.status !== "publish") continue;
+      if (!post || !(await canDiscoverContent(ctx, post))) continue;
 
       enrichedComments.push({
         _id: comment._id,
@@ -506,12 +532,14 @@ export const getPostComments = query({
     // Look up the post by slug - must be published
     const posts = await ctx.db
       .query("posts")
-      .withIndex("by_slug", (q: ConvexQueryBuilder) => q.eq("slug", args.postSlug).eq("type", "post"))
+      .withIndex("by_slug", (q: ConvexQueryBuilder) =>
+        q.eq("slug", args.postSlug).eq("type", "post"),
+      )
       .collect();
 
     // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
     const post = posts.find((p) => p.status === "publish");
-    if (!post) return null;
+    if (!post || !(await canDiscoverContent(ctx, post))) return null;
 
     // Fetch approved comments for this post
     const comments = await ctx.db

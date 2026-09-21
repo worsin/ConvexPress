@@ -7,6 +7,7 @@ import { v } from "convex/values";
 import {
   internalMutationGeneric as internalMutation,
   internalQueryGeneric as internalQuery,
+  makeFunctionReference,
 } from "convex/server";
 
 import { decideSessionGrant, getSessionExpiration } from "./sessionPolicy";
@@ -17,6 +18,7 @@ import {
   environmentKindValidator,
   managementEnvelopeValidator,
 } from "./validators";
+import { insertWithMediaReferences , patchDynamicWithMediaReferences} from "../media/attachmentGuard";
 
 const looseV: any = v;
 const defineInternalQuery: any = internalQuery;
@@ -211,6 +213,7 @@ export const consumeAndCreateSession = defineInternalMutation({
       now,
       envelopeExpiresAt: Date.parse(args.envelope.expiresAt),
       maximumLifetimeMs: 15 * 60_000,
+      authorityExpiresAt: authority.expiresAt,
     });
     if (args.expiresAt !== expectedExpiration) {
       throw new Error("Management session expiration is invalid");
@@ -288,7 +291,7 @@ export const consumeAndCreateSession = defineInternalMutation({
         }
         user = collision;
       } else {
-        const userId = await ctx.db.insert("users", {
+        const userId: import("../_generated/dataModel").Id<"users"> = await insertWithMediaReferences<"users">(ctx, "users", {
           authSource: "management",
           email,
           emailVerified: true,
@@ -306,7 +309,7 @@ export const consumeAndCreateSession = defineInternalMutation({
         user = await ctx.db.get(userId);
       }
       if (!user) throw new Error("Management operator could not be created");
-      await ctx.db.patch(binding._id, {
+      await patchDynamicWithMediaReferences(ctx, binding._id, {
         userId: user._id,
         syntheticOperatorId: String(user._id),
         updatedAt: now,
@@ -335,6 +338,11 @@ export const consumeAndCreateSession = defineInternalMutation({
       status: "active",
       createdAt: now,
     });
+    // Time passing does not invalidate cached queries. Expiry must change the
+    // session document read by every management authorization check.
+    await ctx.scheduler.runAt(args.expiresAt,
+      makeFunctionReference<"mutation">("management/sessionExpiry:expire"),
+      { sessionId, expectedExpiresAt: args.expiresAt });
     return {
       sessionId,
       userId: user._id,
@@ -442,7 +450,7 @@ export const consumeAndRevokeSessions = defineInternalMutation({
       consumedAt: now,
     });
     for (const session of sessions) {
-      await ctx.db.patch(session._id, {
+      await patchDynamicWithMediaReferences(ctx, session._id, {
         status: "revoked",
         revokedAt: now,
       });

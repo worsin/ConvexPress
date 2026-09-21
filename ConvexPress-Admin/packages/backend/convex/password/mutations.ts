@@ -32,6 +32,7 @@ import {
   recordAdminResetArgs,
   storeResetTokenArgs,
 } from "./validators";
+import { patchWithMediaReferences } from "../media/attachmentGuard";
 
 // ─── recordResetRequest ─────────────────────────────────────────────────────
 
@@ -72,7 +73,7 @@ export const recordResetRequest = internalMutation({
     }
 
     // Store the hashed reset token and update timestamp
-    await ctx.db.patch(user._id, {
+    await patchWithMediaReferences<"users">(ctx, "users", user._id, {
       passwordResetRequestedAt: now,
       passwordResetToken: args.tokenHash,
       passwordResetTokenExpiresAt: args.tokenExpiresAt,
@@ -118,7 +119,7 @@ export const storeResetToken = internalMutation({
     const now = Date.now();
 
     // Store the hashed reset token
-    await ctx.db.patch(args.userId, {
+    await patchWithMediaReferences<"users">(ctx, "users", args.userId, {
       passwordResetRequestedAt: now,
       passwordResetToken: args.tokenHash,
       passwordResetTokenExpiresAt: args.tokenExpiresAt,
@@ -157,7 +158,7 @@ export const handlePasswordChanged = internalMutation({
     if (!user) return;
 
     // Update the user's lastPasswordChangedAt timestamp
-    await ctx.db.patch(args.userId, {
+    await patchWithMediaReferences<"users">(ctx, "users", args.userId, {
       lastPasswordChangedAt: args.timestamp,
       updatedAt: args.timestamp,
     });
@@ -189,7 +190,7 @@ export const handlePasswordResetCompleted = internalMutation({
     const currentResetCount = user.passwordResetCount ?? 0;
 
     // Update user record and clear the reset token
-    await ctx.db.patch(args.userId, {
+    await patchWithMediaReferences<"users">(ctx, "users", args.userId, {
       lastPasswordChangedAt: args.timestamp,
       passwordResetCount: currentResetCount + 1,
       passwordResetToken: undefined,
@@ -224,7 +225,7 @@ export const recordAdminReset = internalMutation({
     if (!targetUser) return;
 
     // Update the target user's passwordResetRequestedAt timestamp
-    await ctx.db.patch(args.targetUserId, {
+    await patchWithMediaReferences<"users">(ctx, "users", args.targetUserId, {
       passwordResetRequestedAt: args.timestamp,
       updatedAt: args.timestamp,
     });

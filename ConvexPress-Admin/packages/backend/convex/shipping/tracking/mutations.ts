@@ -4,6 +4,8 @@ import { internalMutation } from "../../_generated/server";
 import { internal } from "../../_generated/api";
 import { emitEvent } from "../../helpers/events";
 import { SHIPPING_EVENTS } from "../../events/constants";
+import { patchDynamicWithMediaReferences } from "../../media/attachmentGuard";
+
 
 /**
  * PRD 7.9 — fire customer notification on tracking status transitions.
@@ -80,7 +82,7 @@ async function maybeMarkOrderFulfilled(ctx: any, shipmentId: any) {
     if (shipments.length === 0) return;
     const allDelivered = shipments.every((s: any) => s.status === "delivered");
     if (allDelivered) {
-      await ctx.db.patch(shipment.orderId, {
+      await patchDynamicWithMediaReferences(ctx, shipment.orderId, {
         fulfillmentStatus: "fulfilled",
         updatedAt: Date.now(),
       });
@@ -113,7 +115,7 @@ async function maybeMarkOrderFulfilled(ctx: any, shipmentId: any) {
   }
 
   if (allDelivered) {
-    await ctx.db.patch(shipment.orderId, {
+    await patchDynamicWithMediaReferences(ctx, shipment.orderId, {
       fulfillmentStatus: "fulfilled",
       updatedAt: Date.now(),
     });

@@ -1,3 +1,5 @@
+import {downloadBytes as leadMagnetBytes} from "./leadMagnets/http";
+import { downloadBytes } from "./commerceDigital/http";
 import { httpRouter } from "convex/server";
 import { loginHandler } from "./auth/login";
 import { refreshHandler } from "./auth/refresh";
@@ -67,6 +69,9 @@ import {
 } from "./management/http";
 
 const http = httpRouter();
+
+http.route({ path: "/commerce/downloads/bytes", method: "POST", handler: downloadBytes });
+http.route({ path: "/lead-magnets/downloads/bytes", method: "POST", handler: leadMagnetBytes });
 
 // ─── CORS Preflight Handler ──────────────────────────────────────────────────
 // Handles OPTIONS requests for all /api/ paths
@@ -497,7 +502,7 @@ http.route({
     let webhookEventId: string | undefined;
 
     try {
-      const event = stripe.webhooks.constructEvent(
+      const event = await stripe.webhooks.constructEventAsync(
         body,
         signature,
         webhookSecret,
@@ -718,13 +723,28 @@ http.route({
           break;
         }
 
+        case "refund.created":
+        case "refund.updated":
+        case "refund.failed": {
+          const refund = event.data.object as any;
+          await ctx.runMutation(internal.commerce.payments.reconcileProviderRefund, {
+            provider: "stripe", providerRefundId: refund.id, providerStatus: refund.status ?? "pending",
+            refundId: refund.metadata?.refundId || undefined,
+            providerTransactionId: typeof refund.payment_intent === "string" ? refund.payment_intent : undefined,
+            amount: refund.amount, error: refund.failure_reason ?? undefined,
+          });
+          break;
+        }
         case "charge.refunded": {
-          // Refund confirmation handled via processStripeRefund action callback.
-          // This webhook is logged for redundancy/audit.
-          console.log(
-            "[Stripe Webhook] charge.refunded received:",
-            event.data.object.id,
-          );
+          const charge = event.data.object as any;
+          for (const refund of charge.refunds?.data ?? []) {
+            await ctx.runMutation(internal.commerce.payments.reconcileProviderRefund, {
+              provider: "stripe", providerRefundId: refund.id, providerStatus: refund.status ?? "pending",
+              refundId: refund.metadata?.refundId || undefined,
+              providerTransactionId: typeof charge.payment_intent === "string" ? charge.payment_intent : undefined,
+              amount: refund.amount, error: refund.failure_reason ?? undefined,
+            });
+          }
           break;
         }
 
@@ -1029,12 +1049,14 @@ http.route({
           break;
         }
 
-        case "PAYMENT.CAPTURE.REFUNDED": {
-          // Refund confirmation — we track this via our refund flow.
-          console.log(
-            "[PayPal Webhook] Refund received:",
-            payload.resource?.id,
-          );
+        case "PAYMENT.CAPTURE.REFUNDED":
+        case "PAYMENT.REFUND.PENDING":
+        case "PAYMENT.REFUND.FAILED": {
+          if (payload.resource?.id) await ctx.runMutation(internal.commerce.payments.reconcileProviderRefund, {
+            provider: "paypal", providerRefundId: payload.resource.id,
+            providerStatus: payload.event_type === "PAYMENT.CAPTURE.REFUNDED" ? "completed"
+              : payload.event_type === "PAYMENT.REFUND.FAILED" ? "failed" : "pending",
+          });
           break;
         }
 

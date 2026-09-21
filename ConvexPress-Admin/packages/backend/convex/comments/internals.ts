@@ -16,6 +16,7 @@ import { v } from "convex/values";
 import { emitEvent } from "../helpers/events";
 import { COMMENT_EVENTS, SYSTEM } from "../events/constants";
 import { deleteCommentAndRelated } from "../helpers/comment";
+import { patchWithMediaReferences } from "../media/attachmentGuard";
 
 // ─── Purge Old Trash ─────────────────────────────────────────────────────────
 
@@ -97,7 +98,7 @@ export const updatePostCommentCount = internalMutation({
       )
       .collect();
 
-    await ctx.db.patch("posts", postId, {
+    await patchWithMediaReferences<"posts">(ctx, "posts", postId, {
       commentCount: approvedComments.length,
     });
   },
@@ -141,7 +142,7 @@ export const updateUserCommentCount = internalMutation({
       (c) => c.status === "approved",
     ).length;
 
-    await ctx.db.patch("users", user._id, {
+    await patchWithMediaReferences<"users">(ctx, "users", user._id, {
       commentCount: count,
       updatedAt: Date.now(),
     });

@@ -2,7 +2,7 @@ import type { Id } from "../_generated/dataModel";
 import type { QueryCtx } from "../_generated/server";
 import { getCurrentUser, requireAuth } from "./permissions";
 
-type AuthCtx = Pick<QueryCtx, "auth" | "db">;
+type AuthCtx = Pick<QueryCtx, "auth" | "db" | "runQuery">;
 type ReadCtx = Pick<QueryCtx, "db">;
 type UserAccessFields = {
   roleId?: Id<"roles">;

@@ -16,7 +16,8 @@
 
 import { ConvexError } from "convex/values";
 import { query, type QueryCtx } from "../_generated/server";
-import type { Doc } from "../_generated/dataModel";
+import type { RegisteredQuery } from "convex/server";
+import type { Doc, Id } from "../_generated/dataModel";
 import { getCurrentUser } from "../helpers/permissions";
 import {
   listReusableBlocksArgs,
@@ -181,10 +182,8 @@ export const getReusableBlock = query({
  * Returns null if the post is not locked (or lock has expired).
  * Expired locks are returned as null (the cleanup cron will delete them).
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
-export const getLock = query({
+export const getLock: RegisteredQuery<"public", { postId: Id<"posts"> }, (Pick<Doc<"editorLocks">, "postId" | "userId" | "userDisplayName" | "lockedAt" | "expiresAt"> & { isCurrentUser: boolean }) | null> = query({
   args: getLockArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     const user = await getCurrentUser(ctx);
     if (!user) {
@@ -196,7 +195,7 @@ export const getLock = query({
 
     const lock = await ctx.db
       .query("editorLocks")
-      .withIndex("by_postId", (q: ConvexQueryBuilder) => q.eq("postId", args.postId))
+      .withIndex("by_postId", (q) => q.eq("postId", args.postId))
       .first();
 
     if (!lock) return null;

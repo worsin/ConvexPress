@@ -1,3 +1,8 @@
+import { sha256Hex } from "../../canonicalDocuments/foundation/shared/fingerprints";
+import { generateConfirmationToken, CONFIRMATION_RECEIPT_TTL_MS } from "./tokens";
+import { contactSourceAllowed } from "../../canonicalDocuments/contactSource";
+import { initializeEmptyFormCount, insertCountedFormSubmission, patchCountedFormSubmission, readCompletedFormCount } from "../../helpers/formSubmissionCounts";
+import type { MutationCtx } from "../../_generated/server";
 /**
  * ConvexPress Forms — mutations (v2 Layer 3, write layer)
  * API path: api.extensions.forms.mutations.*
@@ -18,9 +23,11 @@
  * wrapper around Forms authorization call sites.
  */
 
+import { insertWithMediaReferences, patchWithMediaReferences } from "../../media/attachmentGuard";
 import { action, internalMutation, mutation } from "../../_generated/server";
 import { v } from "convex/values";
 import { ConvexError } from "convex/values";
+import { evaluateMembershipAccess } from "../../membership/access";
 import { internal } from "../../_generated/api";
 import type { Id } from "../../_generated/dataModel";
 import { requireCan, getUserIdentifier } from "../../helpers/permissions";
@@ -226,25 +233,8 @@ function normalizeCurrentStep(step: number | undefined): number | undefined {
   return Math.max(0, Math.floor(step));
 }
 
-async function completeSubmissionCountAtLimit(
-  ctx: { db: { query: any } },
-  formId: Id<"forms">,
-  limit: number,
-): Promise<boolean> {
-  const rows = await ctx.db
-    .query("form_submissions")
-    .withIndex("by_form_status", (q: any) =>
-      q.eq("formId", formId).eq("status", "complete"),
-    )
-    .take(limit);
-  return rows.length >= limit;
-}
-
 async function assertFormAcceptsSubmission(
-  ctx: {
-    db: { query: any };
-    auth: { getUserIdentity: () => Promise<{ subject: string } | null> };
-  },
+  ctx: MutationCtx,
   form: { _id: Id<"forms">; settings: string },
   isComplete: boolean,
 ): Promise<{ identity: { subject: string } | null; resumeToken?: string }> {
@@ -272,11 +262,9 @@ async function assertFormAcceptsSubmission(
   }
 
   const entryLimit = formEntryLimit(settings);
-  if (
-    isComplete &&
-    entryLimit !== null &&
-    (await completeSubmissionCountAtLimit(ctx, form._id, entryLimit))
-  ) {
+  const completedCount = isComplete && entryLimit !== null ? await readCompletedFormCount(ctx, form._id) : 0;
+  if (completedCount === null) throw new ConvexError({ code: "FORM_PREPARING", message: "This form is preparing its response count. Please try again shortly." });
+  if (isComplete && entryLimit !== null && completedCount >= entryLimit) {
     throw new ConvexError({
       code: "ENTRY_LIMIT_REACHED",
       message: "This form has reached its entry limit.",
@@ -477,7 +465,7 @@ function assertSubmissionForForm(
 }
 
 async function prepareEntryValueEdits(
-  ctx: { db: { get: any; query: any; patch: any; insert: any } },
+  ctx: Pick<import("../../_generated/server").MutationCtx, "db">,
   submission: {
     _id: Id<"form_submissions">;
     formId: Id<"forms">;
@@ -611,18 +599,19 @@ async function prepareEntryValueEdits(
     if (!field) continue;
     const existing = rowByKey.get(fieldKey);
     if (existing) {
-      await ctx.db.patch(existing._id, {
+      await patchWithMediaReferences<"fieldValues">(ctx, "fieldValues", existing._id, {
         value,
-        fieldName: field.name,
+        // Editing an answer must not rewrite the identity of its original prompt.
         updatedBy: actorIdentifier,
         updatedAt: now,
       });
     } else {
-      await ctx.db.insert("fieldValues", {
+      await insertWithMediaReferences<"fieldValues">(ctx, "fieldValues", {
         entityType: "form_submission",
         entityId,
         fieldKey,
         fieldName: field.name,
+        formFieldSnapshot: { label: field.label, type: field.type },
         value,
         updatedBy: actorIdentifier,
         updatedAt: now,
@@ -706,6 +695,8 @@ export const create = mutation({
       createdAt: now,
       updatedAt: now,
     });
+
+    await initializeEmptyFormCount(ctx, formId);
 
     // Seed the default notification rows (Form Notification System).
     await seedDefaultNotifications(ctx, formId);
@@ -806,7 +797,7 @@ export const update = mutation({
 
     patch.updatedBy = user._id;
     patch.updatedAt = Date.now();
-    await ctx.db.patch(args.id, patch);
+    await ctx.db.patch("forms", args.id, patch);
 
     await emitEvent(ctx, FORM_EVENTS.UPDATED, SYSTEM.FORMS, {
       formId: args.id,
@@ -839,7 +830,7 @@ export const publish = mutation({
     await assertPublishableForm(ctx, form.fieldGroupId);
 
     const now = Date.now();
-    await ctx.db.patch(id, {
+    await ctx.db.patch("forms", id, {
       status: "published" as const,
       publishedAt: form.publishedAt ?? now,
       updatedBy: user._id,
@@ -871,7 +862,7 @@ export const unpublish = mutation({
     if (!form) throw new ConvexError({ code: "NOT_FOUND", message: "Form not found." });
     if (form.status === "draft") return form;
 
-    await ctx.db.patch(id, {
+    await ctx.db.patch("forms", id, {
       status: "draft" as const,
       updatedBy: user._id,
       updatedAt: Date.now(),
@@ -903,7 +894,7 @@ export const remove = mutation({
     const form = await ctx.db.get(id);
     if (!form) throw new ConvexError({ code: "NOT_FOUND", message: "Form not found." });
 
-    await ctx.db.patch(id, {
+    await ctx.db.patch("forms", id, {
       status: "archived" as const,
       updatedBy: user._id,
       updatedAt: Date.now(),
@@ -993,7 +984,7 @@ export const duplicate = mutation({
             { conditionalLogic: field.conditionalLogic, settings: field.settings },
             keyMap,
           );
-          const newFieldId = await ctx.db.insert("fieldDefinitions", {
+          const newFieldId: import("../../_generated/dataModel").Id<"fieldDefinitions"> = await insertWithMediaReferences<"fieldDefinitions">(ctx, "fieldDefinitions", {
             groupId: newGroupId,
             label: field.label,
             name: field.name,
@@ -1022,7 +1013,7 @@ export const duplicate = mutation({
             { conditionalLogic: field.conditionalLogic, settings: field.settings },
             keyMap,
           );
-          const newFieldId = await ctx.db.insert("fieldDefinitions", {
+          const newFieldId: import("../../_generated/dataModel").Id<"fieldDefinitions"> = await insertWithMediaReferences<"fieldDefinitions">(ctx, "fieldDefinitions", {
             groupId: newGroupId,
             label: field.label,
             name: field.name,
@@ -1058,6 +1049,7 @@ export const duplicate = mutation({
       updatedAt: now,
     });
 
+    await initializeEmptyFormCount(ctx, newFormId);
     await emitEvent(ctx, FORM_EVENTS.CREATED, SYSTEM.FORMS, {
       formId: newFormId,
       title: newTitle,
@@ -1083,6 +1075,7 @@ export const duplicate = mutation({
  * mutation. Draft autosaves and non-CAPTCHA forms continue to use this mutation.
  */
 const submitArgsValidator = {
+  contactPassword: v.optional(v.string()),
   formId: v.id("forms"),
   values: v.array(
     v.object({
@@ -1101,6 +1094,7 @@ const submitArgsValidator = {
 };
 
 type SubmitArgs = {
+  contactPassword?: string;
   formId: Id<"forms">;
   values: Array<{ fieldKey: string; value: string }>;
   isComplete?: boolean;
@@ -1133,6 +1127,11 @@ async function submitForm(
       });
     }
 
+    if (!(await contactSourceAllowed(ctx, form, args.contactPassword))) throw new ConvexError({code:"FORBIDDEN",message:"This form is not available to your account."});
+
+    if (!(await evaluateMembershipAccess(ctx, { resourceType: "route", resourceIdOrKey: `/forms/${encodeURIComponent(form.slug)}` })).allowed) {
+      throw new ConvexError({ code: "FORBIDDEN", message: "This form is not available to your account." });
+    }
     const isComplete = args.isComplete ?? false;
     const { identity: submitterIdentity } = await assertFormAcceptsSubmission(
       ctx,
@@ -1339,6 +1338,11 @@ async function submitForm(
     // (f) Upsert the submission row. We key resumable drafts by resumeToken so
     // a save-and-continue flow updates the same row rather than duplicating it.
     const now = Date.now();
+    const confirmationToken = isComplete ? generateConfirmationToken() : undefined;
+    const confirmationProof = {
+      confirmationTokenHash: confirmationToken ? sha256Hex(confirmationToken) : undefined,
+      confirmationExpiresAt: confirmationToken ? now + CONFIRMATION_RECEIPT_TTL_MS : undefined,
+    };
     let submissionId: Id<"form_submissions">;
     let existing = null;
     if (effectiveResumeToken) {
@@ -1363,7 +1367,8 @@ async function submitForm(
       // Merge the recomputed pricing into any existing meta bag so we don't
       // clobber sibling-system markers (e.g. an analytics abandon flag).
       const mergedMeta = mergeMetaPricing(existing.meta, calcResult.pricing);
-      await ctx.db.patch(submissionId, {
+      await patchCountedFormSubmission(ctx, submissionId, {
+        ...confirmationProof,
         status: isComplete ? ("complete" as const) : ("partial" as const),
         submittedAt: existing.submittedAt ?? now,
         completedAt: isComplete ? now : existing.completedAt,
@@ -1376,7 +1381,8 @@ async function submitForm(
       // Server-derived request metadata (ip/userAgent/referrer) is not available
       // from a Convex mutation ctx, so it is left undefined here; an HTTP-action
       // front door can populate it later. read/starred default to false.
-      submissionId = await ctx.db.insert("form_submissions", {
+      submissionId = await insertCountedFormSubmission(ctx, {
+        ...confirmationProof,
         formId: args.formId,
         status: isComplete ? ("complete" as const) : ("partial" as const),
         submittedAt: now,
@@ -1426,18 +1432,20 @@ async function submitForm(
         )
         .unique();
       if (existingValue) {
-        await ctx.db.patch(existingValue._id, {
+        await patchWithMediaReferences<"fieldValues">(ctx, "fieldValues", existingValue._id, {
           value: entry.value,
           fieldName: def.name,
+          formFieldSnapshot: { label: def.label, type: def.type },
           updatedBy: actorIdentifier,
           updatedAt: now,
         });
       } else {
-        await ctx.db.insert("fieldValues", {
+        await insertWithMediaReferences<"fieldValues">(ctx, "fieldValues", {
           entityType: "form_submission",
           entityId,
           fieldKey: entry.fieldKey,
           fieldName: def.name,
+          formFieldSnapshot: { label: def.label, type: def.type },
           value: entry.value,
           updatedBy: actorIdentifier,
           updatedAt: now,
@@ -1465,7 +1473,7 @@ async function submitForm(
       });
     }
 
-    return { submissionId, isComplete, resumeToken: effectiveResumeToken };
+    return { submissionId, isComplete, resumeToken: effectiveResumeToken, confirmationToken };
 }
 
 export const submit = mutation({
@@ -1587,7 +1595,7 @@ export const updateEntry = mutation({
     }
 
     patch.updatedAt = now;
-    await ctx.db.patch(args.id, patch);
+    await patchCountedFormSubmission(ctx, args.id, patch);
 
     await emitEvent(ctx, FORM_EVENTS.ENTRY_UPDATED, SYSTEM.FORMS, {
       formId: submission.formId,
@@ -1618,7 +1626,7 @@ export const deleteEntry = mutation({
     }
     assertSubmissionForForm(submission, formId);
 
-    await ctx.db.patch(id, {
+    await patchCountedFormSubmission(ctx, id, {
       status: "deleted" as const,
       updatedAt: Date.now(),
     });
@@ -1741,7 +1749,7 @@ export const updateEntryBulk = mutation({
       }
 
       patch.updatedAt = Date.now();
-      await ctx.db.patch(id, patch);
+      await patchCountedFormSubmission(ctx, id, patch);
       await emitEvent(ctx, FORM_EVENTS.ENTRY_UPDATED, SYSTEM.FORMS, {
         formId: submission.formId,
         submissionId: id,
@@ -1787,7 +1795,7 @@ export const deleteEntryBulk = mutation({
         continue;
       }
 
-      await ctx.db.patch(id, {
+      await patchCountedFormSubmission(ctx, id, {
         status: "deleted" as const,
         updatedAt: Date.now(),
       });

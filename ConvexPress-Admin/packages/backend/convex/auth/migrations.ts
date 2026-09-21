@@ -1,4 +1,5 @@
 import { internalMutation } from "../_generated/server";
+import { patchWithMediaReferences } from "../media/attachmentGuard";
 
 /**
  * Backfill: Set authSource="local" on all existing users that have no authSource.
@@ -16,7 +17,7 @@ export const backfillAuthSource = internalMutation({
 
     for (const user of users) {
       if (!user.authSource) {
-        await ctx.db.patch(user._id, {
+        await patchWithMediaReferences<"users">(ctx, "users", user._id, {
           authSource: "local",
           updatedAt: Date.now(),
         });

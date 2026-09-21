@@ -26,6 +26,7 @@ import {
   getDiscussionSettings,
   deleteCommentAndRelated,
 } from "../helpers/comment";
+import { patchWithMediaReferences } from "../media/attachmentGuard";
 
 const MAX_CONTENT_LENGTH = 10000;
 const MIN_CONTENT_LENGTH = 1;
@@ -240,7 +241,7 @@ export const createInternal = internalMutation({
     // If approved, increment comment count
     if (initialStatus === "approved") {
       const currentCount = post.commentCount ?? 0;
-      await ctx.db.patch("posts", args.postId, {
+      await patchWithMediaReferences<"posts">(ctx, "posts", args.postId, {
         commentCount: currentCount + 1,
       });
     }
@@ -330,7 +331,7 @@ export const trashInternal = internalMutation({
       const post = await ctx.db.get("posts", comment.postId);
       if (post) {
         const currentCount = post.commentCount ?? 0;
-        await ctx.db.patch("posts", comment.postId, {
+        await patchWithMediaReferences<"posts">(ctx, "posts", comment.postId, {
           commentCount: Math.max(0, currentCount - 1),
         });
       }

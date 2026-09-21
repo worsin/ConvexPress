@@ -8,6 +8,9 @@
  */
 import { internalMutation } from "./_generated/server";
 import { ConvexError, v } from "convex/values";
+import { invalidateMediaReferenceIndex } from "./media/reverseIndex";
+import { deleteDynamicWithMediaReferences } from "./media/attachmentGuard";
+
 
 function assertDevInternalsEnabled() {
   if (process.env.CONVEXPRESS_ENABLE_DEV_INTERNALS !== "true") {
@@ -24,7 +27,7 @@ async function wipeTable(ctx: any, table: string): Promise<number> {
   while (true) {
     const batch = await ctx.db.query(table).take(500);
     if (batch.length === 0) break;
-    for (const row of batch) await ctx.db.delete(row._id);
+    for (const row of batch) await deleteDynamicWithMediaReferences(ctx, row._id);
     n += batch.length;
     if (batch.length < 500) break;
   }
@@ -47,7 +50,7 @@ async function wipeStorageRows(
           await ctx.storage.delete(sid);
         } catch {}
       }
-      await ctx.db.delete(row._id);
+      await deleteDynamicWithMediaReferences(ctx, row._id);
     }
     n += batch.length;
     if (batch.length < 200) break;
@@ -59,6 +62,7 @@ export const purgeAllContent = internalMutation({
   args: { confirm: v.literal("YES_PURGE_ALL_CONTENT") },
   handler: async (ctx) => {
     assertDevInternalsEnabled();
+    await invalidateMediaReferenceIndex(ctx);
     const out: Record<string, number> = {};
 
     // Posts (includes pages — unified table) + meta + revisions

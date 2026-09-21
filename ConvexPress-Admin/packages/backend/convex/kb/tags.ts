@@ -1,3 +1,5 @@
+import type { RegisteredQuery, RegisteredMutation } from "convex/server";
+import type { Doc, Id } from "../_generated/dataModel";
 /**
  * Knowledge Base System - Tag Functions
  *
@@ -12,7 +14,7 @@
  */
 
 import { ConvexError } from "convex/values";
-import { mutation, query } from "../_generated/server";
+import { mutation, query, type MutationCtx } from "../_generated/server";
 import { requireCan, getCurrentUser } from "../helpers/permissions";
 import { generateTagSlug } from "./helpers/utils";
 import {
@@ -24,6 +26,12 @@ import {
   getTagBySlugArgs,
 } from "./validators";
 import { isPluginEnabled, requirePluginEnabled } from "../helpers/plugins";
+
+async function requireArticleTagEdit(ctx: MutationCtx, articleId: Id<"kb_articles">, userId: Id<"users">): Promise<void> {
+  const article = await ctx.db.get("kb_articles", articleId);
+  if (!article) throw new ConvexError({ code: "NOT_FOUND", message: "Article not found" });
+  await requireCan(ctx, article.authorId === userId ? "kb.editOwn" : "kb.edit");
+}
 
 // ─── List (Public) ──────────────────────────────────────────────────────────
 
@@ -39,15 +47,13 @@ export const list = query({
 
 // ─── Get By Slug (Public) ───────────────────────────────────────────────────
 
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
-export const getBySlug = query({
+export const getBySlug: RegisteredQuery<"public", { slug: string }, Doc<"kb_tags"> | null> = query({
   args: getTagBySlugArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "knowledgeBase"))) return null;
     return ctx.db
       .query("kb_tags")
-      .withIndex("by_slug", (q: ConvexQueryBuilder) => q.eq("slug", args.slug))
+      .withIndex("by_slug", (q) => q.eq("slug", args.slug))
       .first();
   },
 });
@@ -149,10 +155,8 @@ export const remove = mutation({
 
 // ─── Add To Article ─────────────────────────────────────────────────────────
 
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
-export const addToArticle = mutation({
+export const addToArticle: RegisteredMutation<"public", { articleId: Id<"kb_articles">; tagId: Id<"kb_tags"> }, Id<"kb_articleTags">> = mutation({
   args: addTagToArticleArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "knowledgeBase");
     const user = await getCurrentUser(ctx);
@@ -161,9 +165,11 @@ export const addToArticle = mutation({
     }
 
     // Check for existing association
+    await requireArticleTagEdit(ctx, args.articleId, user._id);
+
     const existing = await ctx.db
       .query("kb_articleTags")
-      .withIndex("by_article_tag", (q: ConvexQueryBuilder) =>
+      .withIndex("by_article_tag", (q) =>
         q.eq("articleId", args.articleId).eq("tagId", args.tagId),
       )
       .first();
@@ -191,10 +197,8 @@ export const addToArticle = mutation({
 
 // ─── Remove From Article ────────────────────────────────────────────────────
 
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
-export const removeFromArticle = mutation({
+export const removeFromArticle: RegisteredMutation<"public", { articleId: Id<"kb_articles">; tagId: Id<"kb_tags"> }, Id<"kb_articleTags"> | null> = mutation({
   args: removeTagFromArticleArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "knowledgeBase");
     const user = await getCurrentUser(ctx);
@@ -202,16 +206,18 @@ export const removeFromArticle = mutation({
       throw new ConvexError({ code: "UNAUTHORIZED", message: "Authentication required" });
     }
 
+    await requireArticleTagEdit(ctx, args.articleId, user._id);
+
     const existing = await ctx.db
       .query("kb_articleTags")
-      .withIndex("by_article_tag", (q: ConvexQueryBuilder) =>
+      .withIndex("by_article_tag", (q) =>
         q.eq("articleId", args.articleId).eq("tagId", args.tagId),
       )
       .first();
 
     if (!existing) return null; // Not tagged
 
-    await ctx.db.delete("kb_bookmarks", existing._id);
+    await ctx.db.delete("kb_articleTags", existing._id);
 
     // Decrement tag article count
     const tag = await ctx.db.get("kb_tags", args.tagId);

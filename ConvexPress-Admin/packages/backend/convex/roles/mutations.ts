@@ -1,3 +1,4 @@
+import * as catalogRevisionWrites from "../media/attachmentGuard";
 /**
  * Role & Capability System - Mutations
  *
@@ -13,7 +14,11 @@
  *   revokeCapability - Remove a capability from a role
  */
 
-import { ConvexError } from "convex/values";
+import { ConvexError, v } from "convex/values";
+import {
+  roleCompatibleWithIdentity,
+  CUSTOMER_ROLE_ASSIGNMENT_EXPLANATION,
+} from "../../lib/auth/roleAssignment";
 import { mutation, type MutationCtx } from "../_generated/server";
 import type { Doc } from "../_generated/dataModel";
 import { requireCan, resolveUserRole } from "../helpers/permissions";
@@ -31,6 +36,7 @@ import {
   revokeCapabilityArgs,
   updateRoleArgs,
 } from "./validators";
+import { patchWithMediaReferences } from "../media/attachmentGuard";
 
 /**
  * The slug for the Administrator role in the NEW capability system.
@@ -162,7 +168,7 @@ export const create = mutation({
     }
 
     const now = Date.now();
-    const roleId = await ctx.db.insert("roles", {
+    const roleId = await catalogRevisionWrites.insertWithMediaReferences<"roles">(ctx, "roles", {
       name: args.name,
       slug: args.slug,
       description: args.description,
@@ -187,7 +193,7 @@ export const create = mutation({
 
       for (const role of allRoles) {
         if (role._id !== roleId) {
-          await ctx.db.patch("roles", role._id, { isDefault: false, updatedAt: now });
+          await catalogRevisionWrites.patchWithMediaReferences<"roles">(ctx, "roles", role._id, { isDefault: false, updatedAt: now });
         }
       }
     }
@@ -291,7 +297,7 @@ export const update = mutation({
 
         for (const r of allDefaults) {
           if (r._id !== args.roleId) {
-            await ctx.db.patch("roles", r._id, { isDefault: false, updatedAt: now });
+            await catalogRevisionWrites.patchWithMediaReferences<"roles">(ctx, "roles", r._id, { isDefault: false, updatedAt: now });
           }
         }
       }
@@ -304,7 +310,7 @@ export const update = mutation({
       type: args.type ?? role.type,
     });
 
-    await ctx.db.patch("roles", args.roleId, patch);
+    await catalogRevisionWrites.patchWithMediaReferences<"roles">(ctx, "roles", args.roleId, patch);
 
     await emitEvent(ctx, ROLE_EVENTS.UPDATED, SYSTEM.ROLE, {
       roleId: args.roleId,
@@ -362,7 +368,7 @@ export const remove = mutation({
       });
     }
 
-    await ctx.db.delete("roles", args.roleId);
+    await catalogRevisionWrites.deleteWithMediaReferences<"roles">(ctx, "roles", args.roleId);
 
     await emitEvent(ctx, ROLE_EVENTS.DELETED, SYSTEM.ROLE, {
       roleSlug: role.slug,
@@ -393,6 +399,11 @@ export const remove = mutation({
  */
 export const assign = mutation({
   args: assignRoleArgs,
+  returns: v.object({
+    success: v.boolean(),
+    userId: v.id("users"),
+    newRole: v.string(),
+  }),
   handler: async (ctx, args) => {
     const currentUser = await requireCan(ctx, "role.assign");
 
@@ -425,6 +436,13 @@ export const assign = mutation({
       throw new ConvexError({
         code: "VALIDATION",
         message: "Cannot assign an inactive role",
+      });
+    }
+
+    if (!roleCompatibleWithIdentity(targetUser, newRole)) {
+      throw new ConvexError({
+        code: "ROLE_IDENTITY_INCOMPATIBLE",
+        message: CUSTOMER_ROLE_ASSIGNMENT_EXPLANATION,
       });
     }
 
@@ -487,7 +505,7 @@ export const assign = mutation({
     const isInternalType = newRole.type === "internal";
 
     // Update user's role
-    await ctx.db.patch("users", args.userId, {
+    await patchWithMediaReferences<"users">(ctx, "users", args.userId, {
       roleId: args.roleId,
       // Keep legacy fields in sync for backward compatibility
       internalRole: legacyRole,
@@ -558,7 +576,7 @@ export const grantCapability = mutation({
     }
 
     const now = Date.now();
-    await ctx.db.patch("roles", args.roleId, {
+    await catalogRevisionWrites.patchWithMediaReferences<"roles">(ctx, "roles", args.roleId, {
       capabilities: [...currentCapabilities, args.capability],
       updatedAt: now,
     });
@@ -623,7 +641,7 @@ export const revokeCapability = mutation({
     });
 
     const now = Date.now();
-    await ctx.db.patch("roles", args.roleId, {
+    await catalogRevisionWrites.patchWithMediaReferences<"roles">(ctx, "roles", args.roleId, {
       capabilities: currentCapabilities.filter((c) => c !== args.capability),
       updatedAt: now,
     });

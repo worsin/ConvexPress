@@ -1,3 +1,5 @@
+import { assistantScope } from "./scope";
+import { isClosedCart } from "../cartLifecycle";
 /**
  * Shopping assistant - queries.
  *
@@ -5,10 +7,9 @@
  * context bundle the action uses to ground a turn.
  */
 
-import { v } from "convex/values";
+import { ConvexError, v } from "convex/values";
 import { internalQuery, query } from "../../_generated/server";
 import { getSettingsDoc, mergeWithDefaults } from "../../settings/helpers";
-import { requireCommerceEnabled } from "../helpers";
 import { relatedGroups, toProductCard } from "../storefront";
 
 async function getMergedSettingsSection(ctx: any, section: string): Promise<Record<string, unknown>> {
@@ -16,31 +17,24 @@ async function getMergedSettingsSection(ctx: any, section: string): Promise<Reco
   return mergeWithDefaults(section as any, (doc?.values as Record<string, unknown> | null) ?? null) as Record<string, unknown>;
 }
 
-async function findSession(ctx: any, sessionToken: string) {
-  return await ctx.db
-    .query("commerce_assistant_sessions")
-    .withIndex("by_session_token", (q: any) => q.eq("sessionToken", sessionToken))
-    .unique();
-}
-
 export async function memoryFor(ctx: any, subjectKey: string) {
   const now = Date.now();
   const rows = await ctx.db
     .query("commerce_shopper_memory")
     .withIndex("by_subject", (q: any) => q.eq("subjectKey", subjectKey))
-    .collect();
+    .take(41);
+  if (rows.length > 40) throw new ConvexError({ code: "MEMORY_LIMIT", message: "Please clear saved preferences before continuing." });
   return rows.filter((row: any) => !row.expiresAt || row.expiresAt > now);
 }
 
 export const getThread = query({
   args: { sessionToken: v.string(), limit: v.optional(v.number()) },
   handler: async (ctx: any, args: any) => {
-    await requireCommerceEnabled(ctx);
-    const session = await findSession(ctx, args.sessionToken);
+    const { session } = await assistantScope(ctx, args.sessionToken);
     if (!session) return { session: null, messages: [] as any[] };
     const messages = await ctx.db
       .query("commerce_assistant_messages")
-      .withIndex("by_session", (q: any) => q.eq("sessionId", session._id))
+      .withIndex("by_session", (q: any) => q.eq("sessionId", session._id).gt("createdAt", session.clearedBefore ?? 0))
       .order("desc")
       .take(Math.min(60, Math.max(1, args.limit ?? 30)));
     messages.reverse();
@@ -69,8 +63,8 @@ export const getThread = query({
 export const listMemory = query({
   args: { sessionToken: v.string() },
   handler: async (ctx: any, args: any) => {
-    await requireCommerceEnabled(ctx);
-    const rows = await memoryFor(ctx, args.sessionToken);
+    const scope = await assistantScope(ctx, args.sessionToken);
+    const rows = (await Promise.all(scope.memoryKeys.map(key => memoryFor(ctx, key)))).flat();
     return rows.map((row: any) => ({
       id: String(row._id),
       kind: row.kind,
@@ -83,14 +77,14 @@ export const listMemory = query({
 });
 
 export const getBrief = query({
-  args: { cacheKey: v.string() },
+  args: { cacheKey: v.string(), sessionToken: v.string() },
   handler: async (ctx: any, args: any) => {
-    await requireCommerceEnabled(ctx);
+    await assistantScope(ctx, args.sessionToken);
     const doc = await ctx.db
       .query("commerce_assistant_briefs")
       .withIndex("by_cache_key", (q: any) => q.eq("cacheKey", args.cacheKey))
       .unique();
-    if (!doc || doc.expiresAt < Date.now()) return null;
+    if (!doc || doc.sessionToken !== args.sessionToken || doc.expiresAt <= Date.now()) return null;
     return { blocks: doc.payload?.blocks ?? [], generatedAt: doc.generatedAt, model: doc.model ?? null };
   },
 });
@@ -99,6 +93,7 @@ export const getBrief = query({
 export const contextBundle = internalQuery({
   args: { sessionToken: v.string(), route: v.optional(v.string()), query: v.optional(v.string()) },
   handler: async (ctx: any, args: any) => {
+    const scope = await assistantScope(ctx, args.sessionToken);
     const [assistant, ai, general, commerce, brand] = await Promise.all([
       getMergedSettingsSection(ctx, "commerce.assistant"),
       getMergedSettingsSection(ctx, "ai"),
@@ -110,26 +105,23 @@ export const contextBundle = internalQuery({
         .unique(),
     ]);
 
-    const session = await findSession(ctx, args.sessionToken);
+    const { session, cart } = scope;
     const recent = session
       ? await ctx.db
           .query("commerce_assistant_messages")
-          .withIndex("by_session", (q: any) => q.eq("sessionId", session._id))
+          .withIndex("by_session", (q: any) => q.eq("sessionId", session._id).gt("createdAt", session.clearedBefore ?? 0))
           .order("desc")
           .take(10)
       : [];
     recent.reverse();
 
-    const cart = await ctx.db
-      .query("commerce_carts")
-      .withIndex("by_session", (q: any) => q.eq("sessionToken", args.sessionToken))
-      .unique();
     const lines: any[] = [];
-    if (cart) {
+    if (cart && !isClosedCart(cart)) {
       const items = await ctx.db
         .query("commerce_cart_items")
         .withIndex("by_cart", (q: any) => q.eq("cartId", cart._id))
-        .collect();
+        .take(161);
+      if (items.length > 160) throw new ConvexError({ code: "CART_LIMIT", message: "This cart is too large for the shopping assistant." });
       for (const item of items) {
         const product = await ctx.db.get(item.productId);
         if (!product) continue;
@@ -156,7 +148,7 @@ export const contextBundle = internalQuery({
       ? await relatedGroups(ctx, [...new Set(cartIds)], { perGroup: Math.max(2, Number((assistant as any).cardsPerGroup ?? 2)) })
       : [];
 
-    const memory = await memoryFor(ctx, cart?.userId ? String(cart.userId) : args.sessionToken);
+    const memory = (await Promise.all(scope.memoryKeys.map(key => memoryFor(ctx, key)))).flat();
     const categories = await ctx.db.query("commerce_product_categories").take(60);
 
     const windowStart = Date.now() - 60_000;
@@ -165,6 +157,7 @@ export const contextBundle = internalQuery({
     const brandValues = (brand?.values ?? {}) as Record<string, unknown>;
     return {
       assistant,
+      subjectKey: scope.subjectKey,
       ai: {
         provider: (ai as any).provider ?? "openrouter",
         defaultModel: (ai as any).blockEditingModel || (ai as any).defaultModel || "",

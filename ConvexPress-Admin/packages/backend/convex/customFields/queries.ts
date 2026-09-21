@@ -22,6 +22,8 @@
  *     access for published content on the public website (SSR)
  */
 
+import type { RegisteredQuery } from "convex/server";
+import type { Doc } from "../_generated/dataModel";
 import { query } from "../_generated/server";
 import { getCurrentUser } from "../helpers/permissions";
 import { evaluateLocationRules } from "../helpers/locationRules";
@@ -247,10 +249,9 @@ export const getGroupsForContext = query({
  * Looks up by fieldKey or fieldName. Returns the value with type info.
  * If no stored value exists but field has a defaultValue, returns the default.
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
-export const getValue = query({
+type FieldValueResult = { fieldKey: string; fieldName: string; type: Doc<"fieldDefinitions">["type"]; value: string } | null;
+export const getValue: RegisteredQuery<"public", { entityType: string; entityId: string; fieldKey?: string; fieldName?: string }, FieldValueResult> = query({
   args: getValueArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "customFields"))) return null;
     // No auth required - allows anonymous access for public content
@@ -262,13 +263,13 @@ export const getValue = query({
     if (args.fieldKey) {
       fieldDef = await ctx.db
         .query("fieldDefinitions")
-        .withIndex("by_key", (q: ConvexQueryBuilder) => q.eq("key", args.fieldKey!))
+        .withIndex("by_key", (q) => q.eq("key", args.fieldKey!))
         .unique();
       fieldKey = args.fieldKey;
     } else if (args.fieldName) {
       fieldDef = await ctx.db
         .query("fieldDefinitions")
-        .withIndex("by_name", (q: ConvexQueryBuilder) => q.eq("name", args.fieldName!))
+        .withIndex("by_name", (q) => q.eq("name", args.fieldName!))
         .first();
       fieldKey = fieldDef?.key;
     }
@@ -278,7 +279,7 @@ export const getValue = query({
     // Look up the stored value
     const fieldValue = await ctx.db
       .query("fieldValues")
-      .withIndex("by_entity_field", (q: ConvexQueryBuilder) =>
+      .withIndex("by_entity_field", (q) =>
         q
           .eq("entityType", args.entityType)
           .eq("entityId", args.entityId)
@@ -360,10 +361,8 @@ export const getAllValues = query({
  * Returns both the definition schema and the current value.
  * Equivalent to WordPress's get_field_object().
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
-export const getFieldWithValue = query({
+export const getFieldWithValue: RegisteredQuery<"public", { entityType: string; entityId: string; fieldName: string }, { definition: Doc<"fieldDefinitions">; value: string | null } | null> = query({
   args: getFieldWithValueArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "customFields"))) return null;
     // No auth required - allows anonymous access for public content
@@ -371,7 +370,7 @@ export const getFieldWithValue = query({
     // Look up field definition by name
     const fieldDef = await ctx.db
       .query("fieldDefinitions")
-      .withIndex("by_name", (q: ConvexQueryBuilder) => q.eq("name", args.fieldName))
+      .withIndex("by_name", (q) => q.eq("name", args.fieldName))
       .first();
 
     if (!fieldDef) return null;
@@ -379,7 +378,7 @@ export const getFieldWithValue = query({
     // Look up stored value
     const fieldValue = await ctx.db
       .query("fieldValues")
-      .withIndex("by_entity_field", (q: ConvexQueryBuilder) =>
+      .withIndex("by_entity_field", (q) =>
         q
           .eq("entityType", args.entityType)
           .eq("entityId", args.entityId)

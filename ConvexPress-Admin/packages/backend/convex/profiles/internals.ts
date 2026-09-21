@@ -1,3 +1,5 @@
+import { makeFunctionReference, type RegisteredMutation } from "convex/server";
+import type { Id } from "../_generated/dataModel";
 /**
  * User Profile System - Internal Functions
  *
@@ -25,6 +27,7 @@ import {
   listUsersArgs,
   DEFAULT_PER_PAGE,
 } from "./validators";
+import { patchWithMediaReferences } from "../media/attachmentGuard";
 
 // ─── Denormalized Count Updates ─────────────────────────────────────────────
 
@@ -37,43 +40,17 @@ import {
  *   - post.unpublished -> decrement
  *   - post.deleted -> decrement
  *
- * For accuracy, we count directly rather than incrementing/decrementing,
- * which avoids drift from race conditions or missed events.
+ * Compatibility entrypoint for existing callers. The shared write boundary
+ * applies transaction deltas; missing baselines are rebuilt in bounded pages.
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
-export const updatePostCount = internalMutation({
-  args: {
-    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
-    userId: v.id("users"),
-  },
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
-  handler: async (ctx, args) => {
-    const user = await ctx.db.get("users", args.userId);
-    if (!user) return;
-
-    // Count published posts by this user
-    // NOTE: Posts table may not exist yet during incremental development.
-    // When it does, the query should filter by authorId and status = "publish".
-    let postCount = 0;
-    try {
-      const posts = await ctx.db
-        .query("posts")
-        .withIndex("by_author", (q: ConvexQueryBuilder) => q.eq("authorId", args.userId))
-        .collect();
-
-      // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
-      postCount = posts.filter((p) => p.status === "publish").length;
-    } catch {
-      // Posts table doesn't exist yet; leave count at 0
-    }
-
-    await ctx.db.patch("users", args.userId, {
-      postCount,
-      updatedAt: Date.now(),
-    });
+export const updatePostCount: RegisteredMutation<"internal", { userId: Id<"users"> }, Promise<null>> = internalMutation({
+  args: { userId: v.id("users") },
+  returns: v.null(),
+  handler: async (ctx, { userId }) => {
+    await ctx.scheduler.runAfter(0, makeFunctionReference<"mutation", { authorId: Id<"users"> }>("posts/authorCounts:request"), { authorId: userId });
+    return null;
   },
 });
-
 /**
  * Recalculate a user's comment count.
  *
@@ -111,7 +88,7 @@ export const updateCommentCount = internalMutation({
       // Comments table doesn't exist yet; leave count at 0
     }
 
-    await ctx.db.patch("users", args.userId, {
+    await patchWithMediaReferences<"users">(ctx, "users", args.userId, {
       commentCount,
       updatedAt: Date.now(),
     });
@@ -147,7 +124,7 @@ export const generateSlugForUser = internalMutation({
     const baseSlug = generateSlug(displayName);
     const uniqueSlug = await ensureUniqueSlug(ctx, baseSlug, args.userId);
 
-    await ctx.db.patch("users", args.userId, {
+    await patchWithMediaReferences<"users">(ctx, "users", args.userId, {
       slug: uniqueSlug,
       updatedAt: Date.now(),
     });
@@ -185,7 +162,7 @@ export const ensureSlug = internalMutation({
       const baseSlug = generateSlug(displayName);
       const uniqueSlug = await ensureUniqueSlug(ctx, baseSlug, user._id);
 
-      await ctx.db.patch("users", user._id, {
+      await patchWithMediaReferences<"users">(ctx, "users", user._id, {
         slug: uniqueSlug,
         updatedAt: Date.now(),
       });
@@ -215,7 +192,7 @@ export const updateLastLogin = internalMutation({
     const user = await ctx.db.get("users", args.userId);
     if (!user) return;
 
-    await ctx.db.patch("users", args.userId, {
+    await patchWithMediaReferences<"users">(ctx, "users", args.userId, {
       lastLoginAt: Date.now(),
     });
   },
@@ -291,7 +268,7 @@ export const recalculateAllCounts = internalMutation({
         // Comments table doesn't exist yet
       }
 
-      await ctx.db.patch("users", user._id, {
+      await patchWithMediaReferences<"users">(ctx, "users", user._id, {
         postCount,
         commentCount,
         updatedAt: Date.now(),
@@ -489,7 +466,6 @@ export const getUserInternal = internalQuery({
 
     return {
       ...user,
-      // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
       resolvedAvatarUrl: resolveAvatarUrl(user),
       roleName,
       roleLevel,

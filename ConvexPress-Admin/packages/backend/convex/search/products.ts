@@ -11,6 +11,7 @@
 
 import { v } from "convex/values";
 import { internalMutation } from "../_generated/server";
+import { patchWithMediaReferences , deleteDynamicWithMediaReferences, patchDynamicWithMediaReferences} from "../media/attachmentGuard";
 
 function stripHtml(value: string | undefined): string {
   if (!value) return "";
@@ -77,7 +78,7 @@ export async function syncProductSearch(ctx: any, productId: any): Promise<void>
       .query("searchIndex")
       .withIndex("by_content", (q: any) => q.eq("contentType", "product").eq("contentId", String(productId)))
       .unique();
-    if (stale) await ctx.db.delete(stale._id);
+    if (stale) await deleteDynamicWithMediaReferences(ctx, stale._id);
     return;
   }
 
@@ -85,7 +86,7 @@ export async function syncProductSearch(ctx: any, productId: any): Promise<void>
   const categoryNames = categories.filter(Boolean).map((category: any) => category.name as string);
   const searchText = buildProductSearchText(product, categoryNames);
   if (product.searchText !== searchText) {
-    await ctx.db.patch(productId, { searchText });
+    await patchWithMediaReferences<"commerce_products">(ctx, "commerce_products", productId, { searchText });
   }
 
   const author = product.authorId ? await ctx.db.get(product.authorId) : null;
@@ -116,7 +117,7 @@ export async function syncProductSearch(ctx: any, productId: any): Promise<void>
     .withIndex("by_content", (q: any) => q.eq("contentType", "product").eq("contentId", String(productId)))
     .unique();
   if (existing) {
-    await ctx.db.patch(existing._id, entry);
+    await patchDynamicWithMediaReferences(ctx, existing._id, entry);
   } else {
     await ctx.db.insert("searchIndex", entry);
   }

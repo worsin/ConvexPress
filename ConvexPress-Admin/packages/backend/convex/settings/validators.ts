@@ -29,6 +29,7 @@ export const sectionValidator = v.union(
   v.literal("ai"),
   v.literal("blocks"),
   v.literal("plugins"),
+  v.literal("membership.general"),
   v.literal("search"),
   // Knowledge Base System sections
   v.literal("kb.general"),

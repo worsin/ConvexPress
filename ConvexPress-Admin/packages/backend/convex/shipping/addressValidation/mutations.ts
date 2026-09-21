@@ -42,7 +42,7 @@ export const recordValidation = internalMutation({
 
     let id: any;
     if (existing) {
-      await ctx.db.patch(existing._id, payload);
+      await ctx.db.patch("commerce_address_validations", existing._id, payload);
       id = existing._id;
     } else {
       id = await ctx.db.insert("commerce_address_validations", payload);
@@ -66,7 +66,7 @@ export const purgeExpired = internalMutation({
       .withIndex("by_expires", (q: any) => q.lt("expiresAt", now))
       .collect();
     for (const row of expired) {
-      await ctx.db.delete(row._id);
+      await ctx.db.delete("commerce_address_validations", row._id);
     }
     return { purged: expired.length };
   },

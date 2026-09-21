@@ -2,6 +2,8 @@
  * Lesson System - mutations (leaf content: body, video, materials, settings).
  */
 
+import { patchWithMediaReferences } from "../../media/attachmentGuard";
+import { insertWithMediaReferences } from "../../media/attachmentGuard";
 import { ConvexError, v } from "convex/values";
 import { mutation } from "../../_generated/server";
 import { requirePluginEnabled } from "../../helpers/plugins";
@@ -111,7 +113,7 @@ export const updateLessonContent = mutation({
       return { nodeId: args.nodeId, updatedAt: node.updatedAt, changedFields: [] };
     }
 
-    await ctx.db.insert("lms_lessonVersions", {
+    await insertWithMediaReferences<"lms_lessonVersions">(ctx, "lms_lessonVersions", {
       nodeId: args.nodeId,
       bodyDoc: node.bodyDoc ?? textToDoc(""),
       snapshotJson: lessonSnapshot(node),
@@ -119,7 +121,7 @@ export const updateLessonContent = mutation({
       createdAt: now,
     });
 
-    await ctx.db.patch(args.nodeId, patch as never);
+    await patchWithMediaReferences<"lms_nodes">(ctx, "lms_nodes", args.nodeId, patch as never);
     await emitEvent(ctx, LMS_EVENTS.LESSON_UPDATED, SYSTEM.LMS, {
       nodeId: args.nodeId,
       courseId: node.courseId,
@@ -144,7 +146,7 @@ export const restoreLessonVersion = mutation({
     if (!version || version.nodeId !== args.nodeId) {
       throw new ConvexError({ code: "NOT_FOUND", message: "Lesson version not found" });
     }
-    await ctx.db.insert("lms_lessonVersions", {
+    await insertWithMediaReferences<"lms_lessonVersions">(ctx, "lms_lessonVersions", {
       nodeId: args.nodeId,
       bodyDoc: node.bodyDoc ?? textToDoc(""),
       snapshotJson: lessonSnapshot(node),
@@ -154,7 +156,7 @@ export const restoreLessonVersion = mutation({
     const snapshot = (version.snapshotJson ?? {}) as Record<string, unknown>;
     const patch = restorePatchFromSnapshot(snapshot, version.bodyDoc);
     const now = Date.now();
-    await ctx.db.patch(args.nodeId, {
+    await patchWithMediaReferences<"lms_nodes">(ctx, "lms_nodes", args.nodeId, {
       ...patch,
       updatedAt: now,
     });

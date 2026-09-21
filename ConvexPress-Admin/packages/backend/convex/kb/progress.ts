@@ -1,3 +1,5 @@
+import type { RegisteredQuery, RegisteredMutation } from "convex/server";
+import type { Doc, Id } from "../_generated/dataModel";
 /**
  * Knowledge Base System - User Progress Functions
  *
@@ -15,10 +17,8 @@ import { isPluginEnabled, requirePluginEnabled } from "../helpers/plugins";
 
 // ─── Get Progress ───────────────────────────────────────────────────────────
 
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
-export const getProgress = query({
+export const getProgress: RegisteredQuery<"public", { articleId: Id<"kb_articles"> }, Doc<"kb_userProgress"> | null> = query({
   args: getProgressArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "knowledgeBase"))) return null;
     const user = await getCurrentUser(ctx);
@@ -26,7 +26,7 @@ export const getProgress = query({
 
     return ctx.db
       .query("kb_userProgress")
-      .withIndex("by_user_article", (q: ConvexQueryBuilder) =>
+      .withIndex("by_user_article", (q) =>
         q.eq("userId", user._id).eq("articleId", args.articleId),
       )
       .first();
@@ -35,10 +35,8 @@ export const getProgress = query({
 
 // ─── Track Progress ─────────────────────────────────────────────────────────
 
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
-export const trackProgress = mutation({
+export const trackProgress: RegisteredMutation<"public", { articleId: Id<"kb_articles">; progressPercent: number; scrollPosition: number; readTime: number; completedRead?: boolean }, Id<"kb_userProgress">> = mutation({
   args: trackProgressArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "knowledgeBase");
     const user = await getCurrentUser(ctx);
@@ -58,7 +56,7 @@ export const trackProgress = mutation({
 
     const existing = await ctx.db
       .query("kb_userProgress")
-      .withIndex("by_user_article", (q: ConvexQueryBuilder) =>
+      .withIndex("by_user_article", (q) =>
         q.eq("userId", user._id).eq("articleId", args.articleId),
       )
       .first();

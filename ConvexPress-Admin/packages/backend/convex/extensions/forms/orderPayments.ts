@@ -135,7 +135,7 @@ export const attachOrderPaymentIntent = internalMutation({
       customerEmail: args.customerEmail,
       updatedAt: Date.now(),
     };
-    await ctx.db.patch(args.submissionId, {
+    await ctx.db.patch("form_submissions", args.submissionId, {
       meta: JSON.stringify(meta),
       updatedAt: Date.now(),
     });
@@ -166,7 +166,7 @@ export const markOrderPaymentSucceeded = internalMutation({
       paidAt: Date.now(),
       updatedAt: Date.now(),
     };
-    await ctx.db.patch(args.submissionId, {
+    await ctx.db.patch("form_submissions", args.submissionId, {
       meta: JSON.stringify(meta),
       updatedAt: Date.now(),
     });
@@ -198,7 +198,7 @@ export const markOrderPaymentFailed = internalMutation({
       error: args.error,
       updatedAt: Date.now(),
     };
-    await ctx.db.patch(args.submissionId, {
+    await ctx.db.patch("form_submissions", args.submissionId, {
       meta: JSON.stringify(meta),
       updatedAt: Date.now(),
     });

@@ -15,6 +15,7 @@ import { internalMutation, internalQuery } from "../_generated/server";
 import { getCurrentUser } from "../helpers/permissions";
 import { decryptSettingSecret, encryptSettingSecret, isSecretFieldName } from "../helpers/settingsSecret";
 import { CLERK_INTEGRATION_DEFAULTS, GENERAL_DEFAULTS } from "../settings/defaults";
+import { insertWithMediaReferences, patchWithMediaReferences } from "../media/attachmentGuard";
 
 const SECTION = "integrations.clerk" as const;
 
@@ -129,13 +130,13 @@ export const saveConnection = internalMutation({
     }
     const now = Date.now();
     if (doc) {
-      await ctx.db.patch(doc._id, {
+      await patchWithMediaReferences<"settings">(ctx, "settings", doc._id, {
         values: next,
         updatedAt: now,
         updatedBy: user?._id ?? doc.updatedBy,
       });
     } else {
-      await ctx.db.insert("settings", {
+      await insertWithMediaReferences<"settings">(ctx, "settings", {
         section: SECTION,
         values: next,
         updatedAt: now,
@@ -156,6 +157,6 @@ export const markWebhookReceived = internalMutation({
     // Avoid a write per event: only stamp when older than a minute.
     if (typeof previous === "number" && args.at - previous < 60_000) return;
     values.clerkWebhookLastReceivedAt = args.at;
-    await ctx.db.patch(doc._id, { values, updatedAt: Date.now() });
+    await patchWithMediaReferences<"settings">(ctx, "settings", doc._id, { values, updatedAt: Date.now() });
   },
 });

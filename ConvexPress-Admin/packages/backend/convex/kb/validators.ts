@@ -6,7 +6,8 @@
  */
 
 import { paginationOptsValidator } from "convex/server";
-import { v } from "convex/values";
+import { v, type VId, type VNull, type VUnion, type VString, type VBoolean } from "convex/values";
+import type { Id } from "../_generated/dataModel";
 import {
   kbArticleStatusValidator,
   kbRelationTypeValidator,
@@ -182,12 +183,22 @@ export const createCategoryArgs = {
   parentId: v.optional(v.id("kb_categories")),
 };
 
-export const updateCategoryArgs = {
+// Explicit terminal validator types avoid recursive generated-API inference.
+const nullableCategoryParent: VUnion<Id<"kb_categories"> | null, [VId<Id<"kb_categories">>, VNull]> = v.union(v.id("kb_categories"), v.null());
+const optionalCategoryParent: VUnion<Id<"kb_categories"> | null | undefined, [VId<Id<"kb_categories">>, VNull], "optional"> = v.optional(nullableCategoryParent);
+export const updateCategoryArgs: {
+  categoryId: VId<Id<"kb_categories">>;
+  name: VString<string | undefined, "optional">;
+  description: VString<string | undefined, "optional">;
+  icon: VString<string | undefined, "optional">;
+  parentId: typeof optionalCategoryParent;
+  isPublished: VBoolean<boolean | undefined, "optional">;
+} = {
   categoryId: v.id("kb_categories"),
   name: v.optional(v.string()),
   description: v.optional(v.string()),
   icon: v.optional(v.string()),
-  parentId: v.optional(v.id("kb_categories")),
+  parentId: optionalCategoryParent,
   isPublished: v.optional(v.boolean()),
 };
 

@@ -24,6 +24,7 @@ const modules = {
   "./convex/management/authority.ts": () => import("../authority"),
   "./convex/management/bootstrap.ts": () => import("../bootstrap"),
   "./convex/management/runtime.ts": () => import("../runtime"),
+  "./convex/management/sessionExpiry.ts": () => import("../sessionExpiry"),
   "./convex/management/sessionPolicy.ts": () => import("../sessionPolicy"),
 };
 
@@ -181,6 +182,9 @@ describe("management authority transactions", () => {
       capabilities: ["health.read", "session.exchange"],
     });
 
+    const authorityExpiresAt = Date.now() + 30_000;
+    await t.run(ctx => ctx.db.patch("convexpress_managementAuthorities", standalone.authorityId, { expiresAt: authorityExpiresAt }));
+
     const standaloneCommand = signedExchange({
       controllerId: "controller_standalone",
       keyId: "key_standalone_2026",
@@ -202,9 +206,20 @@ describe("management authority transactions", () => {
       internal.management.actions.exchangeSession,
       voCommand,
     );
+    expect(standaloneSession.expiresAt).toBe(authorityExpiresAt);
+    expect(decodeJwt(standaloneSession.token).exp).toBe(Math.floor(authorityExpiresAt / 1000));
     expect(standaloneSession.token.split(".")).toHaveLength(3);
     expect(voSession.token.split(".")).toHaveLength(3);
     expect(voSession.token).not.toBe(standaloneSession.token);
+    const expiryJobs = await t.run(ctx => ctx.db.system.query("_scheduled_functions").collect());
+    expect(expiryJobs).toHaveLength(2);
+    for (const session of [standaloneSession, voSession]) {
+      const subject = decodeJwt(session.token).sub;
+      expect(expiryJobs.some(job => job.name === "management/sessionExpiry:expire"
+        && job.args[0].sessionId === subject
+        && job.args[0].expectedExpiresAt === session.expiresAt
+        && job.scheduledTime === session.expiresAt)).toBe(true);
+    }
     expect(decodeJwt(standaloneSession.token)).toMatchObject({
       iss: "https://convexpress-management.local",
       aud: "convexpress-admin",

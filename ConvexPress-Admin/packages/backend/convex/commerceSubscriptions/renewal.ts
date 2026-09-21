@@ -99,6 +99,11 @@ export const runRenewalSweep = internalAction({
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "commerceSubscriptions");
 
+    await ctx.runMutation(
+      internal.commerceSubscriptions.internals.applyDueScheduledOfferChanges,
+      {},
+    );
+
     // Step 1: Generate renewal invoices for all due subscriptions.
     const generated: { createdCount: number; invoiceIds: string[] } =
       await ctx.runMutation(
@@ -198,21 +203,6 @@ export const runRenewalSweep = internalAction({
       }
     }
 
-    // Step 1.e: Apply any scheduled offer changes that are now due.
-    // This runs after the billing sweep so the new price takes effect on
-    // the next renewal cycle (downgrade was queued, now applied).
-    try {
-      await ctx.runMutation(
-        internal.commerceSubscriptions.internals.applyDueScheduledOfferChanges,
-        {},
-      );
-    } catch (err) {
-      console.error(
-        "[renewal] applyDueScheduledOfferChanges failed:",
-        err instanceof Error ? err.message : String(err),
-      );
-      // Non-fatal — offer changes will be retried on next cron run.
-    }
 
     return {
       generated: generated.createdCount,

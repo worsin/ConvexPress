@@ -8,6 +8,8 @@
  * diagnostic fields.
  */
 
+import type { GenericId } from "convex/values";
+import type { ShippingQuoteOrigin, ShippingQuotePackage } from "../quoteProvenance";
 import type { RuleContext } from "../rulesEngine/types";
 
 export type NormalizedShippingQuote = {
@@ -26,6 +28,9 @@ export type NormalizedShippingQuote = {
   isFastest: boolean;
   isBestValue: boolean;
   rawQuote?: unknown;
+  accountId?: GenericId<"shipping_provider_accounts">;
+  origin?: ShippingQuoteOrigin;
+  packages?: ShippingQuotePackage[];
   addressKey?: string;
   cartKey?: string;
   expiresAt: number;

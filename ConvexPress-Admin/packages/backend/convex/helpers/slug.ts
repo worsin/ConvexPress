@@ -14,6 +14,7 @@
  *   const slug = await generateUniqueSlug(ctx, "About Us", "page", existingPostId);
  */
 
+import type { RequestReadLedger } from "./requestReadLedger";
 import type { Id } from "../_generated/dataModel";
 import type { MutationCtx } from "../_generated/server";
 
@@ -67,6 +68,7 @@ export async function generateUniqueSlug(
   title: string,
   type: "post" | "page",
   existingPostId?: Id<"posts">,
+  budget?: RequestReadLedger,
 ): Promise<string> {
   const base = slugify(title);
 
@@ -74,10 +76,12 @@ export async function generateUniqueSlug(
   let suffix = 2;
 
   while (true) {
+    budget?.beforeRead();
     const existing = await ctx.db
       .query("posts")
       .withIndex("by_slug", (q) => q.eq("slug", slug).eq("type", type))
       .first();
+    budget?.record(existing);
 
     // No conflict, or the conflict is the post being updated
     if (!existing || (existingPostId && existing._id === existingPostId)) {

@@ -24,6 +24,8 @@ import {
   type InboundChannelSecurity,
 } from "./inboundSecurity";
 import { isPluginEnabled } from "../helpers/plugins";
+import { patchDynamicWithMediaReferences } from "../media/attachmentGuard";
+
 
 type InboundChannelSecurityResult =
   | { exists: false; active: false }
@@ -119,7 +121,7 @@ export const recordInboundEmail = internalMutation({
         errorMessage: `Unknown sender ${args.fromEmail}; tickets require a users._id.`,
         receivedAt: args.receivedAt,
       });
-      await ctx.db.patch(channel._id, {
+      await ctx.db.patch("support_channels", channel._id, {
         lastInboundAt: args.receivedAt,
         updatedAt: Date.now(),
       });
@@ -154,7 +156,7 @@ export const recordInboundEmail = internalMutation({
           isInternal: false,
           createdAt: args.receivedAt,
         });
-        await ctx.db.patch(ticketId, {
+        await patchDynamicWithMediaReferences(ctx, ticketId, {
           status:
             existing.status === "closed"
               ? ("open" as const)
@@ -214,7 +216,7 @@ export const recordInboundEmail = internalMutation({
           receivedAt: args.receivedAt,
         });
     if (prior) {
-      await ctx.db.patch(prior._id, {
+      await ctx.db.patch("support_inbound_events", prior._id, {
         status: "ticket_created" as const,
         ticketId: String(ticketId),
         errorMessage: undefined,
@@ -222,7 +224,7 @@ export const recordInboundEmail = internalMutation({
     }
 
     // 7. Touch channel.
-    await ctx.db.patch(channel._id, {
+    await ctx.db.patch("support_channels", channel._id, {
       lastInboundAt: args.receivedAt,
       updatedAt: Date.now(),
     });
@@ -247,7 +249,7 @@ async function allocateTicketNumber(ctx: any, nowMs: number): Promise<string> {
     .unique();
   const next = (counterRow?.counter ?? 0) + 1;
   if (counterRow) {
-    await ctx.db.patch(counterRow._id, { counter: next });
+    await patchDynamicWithMediaReferences(ctx, counterRow._id, { counter: next });
   } else {
     await ctx.db.insert("ticket_counters", { year, month, counter: next });
   }

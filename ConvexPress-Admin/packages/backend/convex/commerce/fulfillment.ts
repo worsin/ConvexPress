@@ -15,6 +15,8 @@ import {
 } from "../_generated/server";
 import { getCurrentUser, requireCan } from "../helpers/permissions";
 import { requireCommerceEnabled } from "./helpers";
+import { patchDynamicWithMediaReferences } from "../media/attachmentGuard";
+
 
 // ============================================
 // HELPERS
@@ -261,7 +263,7 @@ export const updateFulfillmentStatus = mutation({
       patch.status = "fulfilled";
     }
 
-    await ctx.db.patch(args.orderId, patch);
+    await patchDynamicWithMediaReferences(ctx, args.orderId, patch);
 
     // Record in order history
     await ctx.db.insert("commerce_order_history", {
@@ -297,7 +299,7 @@ export const assignOrder = mutation({
 
     const now = Date.now();
 
-    await ctx.db.patch(args.orderId, {
+    await patchDynamicWithMediaReferences(ctx, args.orderId, {
       assignedTo: args.assigneeUserId,
       updatedAt: now,
     });
@@ -465,7 +467,7 @@ export const generateManifest = mutation({
       if (!shipment) continue;
 
       // Record manifest reference on shipment
-      await ctx.db.patch(shipmentId, {
+      await patchDynamicWithMediaReferences(ctx, shipmentId, {
         externalManifestId: manifestNumber,
         updatedAt: now,
       });

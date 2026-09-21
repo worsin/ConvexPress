@@ -1,3 +1,7 @@
+import type {RegisteredQuery} from "convex/server";
+import type {Id} from "../_generated/dataModel";
+import {v} from "convex/values";
+import {ticketStatusValidator,ticketPriorityValidator} from "../schema/tickets";
 /**
  * Support Bridge System - Widget Backend
  *
@@ -77,10 +81,10 @@ export const getConfig = query({
  * Each ticket is returned with minimal fields needed for the widget:
  *   { _id, ticketNumber, subject, status, updatedAt }
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
-export const getRecentTickets = query({
+type RecentTicket = {_id:Id<"ticket_tickets">;ticketNumber:string;subject:string;status:"open"|"awaitingResponse"|"inProgress"|"resolved"|"closed";priority:"low"|"medium"|"high"|"urgent";messageCount:number;lastMessageAt?:number;updatedAt:number;createdAt:number};
+export const getRecentTickets: RegisteredQuery<"public", {limit?:number},RecentTicket[]|null> = query({
+  returns:v.union(v.null(),v.array(v.object({_id:v.id("ticket_tickets"),ticketNumber:v.string(),subject:v.string(),status:ticketStatusValidator,priority:ticketPriorityValidator,messageCount:v.number(),lastMessageAt:v.optional(v.number()),updatedAt:v.number(),createdAt:v.number()}))),
   args: getRecentTicketsArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "tickets"))) return [];
     const user = await getCurrentUser(ctx);
@@ -90,11 +94,10 @@ export const getRecentTickets = query({
 
     const tickets = await ctx.db
       .query("ticket_tickets")
-      .withIndex("by_user", (q: ConvexQueryBuilder) => q.eq("userId", user._id))
+      .withIndex("by_user", (q) => q.eq("userId", user._id))
       .order("desc")
       .take(limit);
 
-    // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
     return tickets.map((t) => ({
       _id: t._id,
       ticketNumber: t.ticketNumber,

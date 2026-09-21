@@ -90,6 +90,8 @@ export const commerceAssistantTables = {
     lastRoute: v.optional(v.string()),
     lastTipAt: v.optional(v.number()),
     messageCount: v.number(),
+    clearedBefore: v.optional(v.number()),
+    recentUserTurnTimes: v.optional(v.array(v.number())),
     createdAt: v.number(),
     updatedAt: v.number(),
   })
@@ -111,7 +113,7 @@ export const commerceAssistantTables = {
     feedback: v.optional(v.union(v.literal("up"), v.literal("down"))),
     error: v.optional(v.string()),
     createdAt: v.number(),
-  }).index("by_session", ["sessionId", "createdAt"]),
+  }).index("by_session", ["sessionId", "createdAt"]).index("by_session_role", ["sessionId", "role", "createdAt"]),
 
   commerce_shopper_memory: defineTable({
     /** User id when signed in, otherwise the session token. */
@@ -131,6 +133,8 @@ export const commerceAssistantTables = {
   commerce_assistant_briefs: defineTable({
     kind: v.union(v.literal("query"), v.literal("cart"), v.literal("product")),
     cacheKey: v.string(),
+    /** Legacy unscoped briefs are not returned to shoppers. */
+    sessionToken: v.optional(v.string()),
     query: v.optional(v.string()),
     payload: v.any(),
     model: v.optional(v.string()),
@@ -138,6 +142,7 @@ export const commerceAssistantTables = {
     expiresAt: v.number(),
   })
     .index("by_cache_key", ["cacheKey"])
+    .index("by_session_query", ["sessionToken", "kind", "query", "generatedAt"])
     .index("by_expires", ["expiresAt"]),
 
   commerce_search_facets: defineTable({

@@ -46,6 +46,7 @@ export const mediaTypeValidator = v.union(
 // ─── Tables ─────────────────────────────────────────────────────────────────
 
 export const mediaTables = {
+  mediaMaintenance: defineTable({ key: v.union(v.literal("trash"), v.literal("failed")), cursor: v.union(v.string(), v.null()), updatedAt: v.number() }).index("by_key", ["key"]),
   /**
    * Primary media table - one record per uploaded file.
    *
@@ -114,6 +115,7 @@ export const mediaTables = {
     wpSourceUrl: v.optional(v.string()), // Original WordPress URL for deduplication
     wpSourceSiteId: v.optional(v.id("wordpressSites")), // Source WordPress site
   })
+    .index("by_storage", ["storageId"])
     .index("by_status", ["status"])
     .index("by_type", ["mediaType"])
     .index("by_uploaded_by", ["uploadedBy"])
@@ -153,7 +155,8 @@ export const mediaTables = {
     crop: v.boolean(),
   })
     .index("by_media", ["mediaId"])
-    .index("by_media_size", ["mediaId", "sizeName"]),
+    .index("by_media_size", ["mediaId", "sizeName"])
+    .index("by_storage", ["storageId"]),
 
   /**
    * Extensible key-value metadata table.
@@ -175,5 +178,37 @@ export const mediaTables = {
   })
     .index("by_media", ["mediaId"])
     .index("by_media_key", ["mediaId", "key"])
+    .index("by_storage", ["value"]) // Exact edit-backup storage IDs
     .index("by_key", ["key"]),
+
+  // Infrastructure rows are not authored media owners. Strings here deliberately
+  // avoid recursive inventory discovery; hooks normalize both IDs before writes.
+  media_reference_edges: defineTable({
+    generation: v.string(), mediaId: v.string(), ownerTable: v.string(), ownerId: v.string(),
+    references: v.array(v.object({ field: v.string(), path: v.string(), opaque: v.boolean() })),
+    updatedAt: v.number(),
+  }).index("by_media_generation", ["mediaId", "generation"])
+    .index("by_owner_generation", ["ownerId", "generation"])
+    .index("by_generation", ["generation"]),
+  // Common deployment authority: serializes native/controllers before external env writes.
+  media_epoch_import_receipts: defineTable({
+    importKey: v.string(), importId: v.string(), pendingEpoch: v.string(), activeEpoch: v.string(), completedAt: v.number(),
+  }).index("by_import_key", ["importKey"]),
+  media_epoch_claim: defineTable({
+    key: v.literal("active"), requestId: v.string(),
+    kind: v.union(v.literal("initialize"), v.literal("import"), v.literal("bind-import"), v.literal("activate")),
+    expected: v.union(v.string(), v.null()), next: v.string(),
+    phase: v.union(v.literal("claimed"), v.literal("dispatched"), v.literal("verified")),
+    updatedAt: v.number(),
+  }).index("by_key", ["key"]),
+  media_reference_state: defineTable({
+    key: v.literal("active"), epoch: v.string(), version: v.string(), generation: v.string(),
+    status: v.union(v.literal("building"), v.literal("ready"), v.literal("blocked")),
+    ownerIndex: v.number(), cursor: v.union(v.string(), v.null()),
+    endCursor: v.union(v.string(), v.null()),
+    pendingRanges: v.array(v.object({ cursor: v.union(v.string(), v.null()), endCursor: v.union(v.string(), v.null()) })),
+    sequence: v.number(), pages: v.number(), documents: v.number(),
+    errorCode: v.optional(v.string()), startedAt: v.number(), updatedAt: v.number(),
+  }).index("by_key", ["key"]),
+
 };

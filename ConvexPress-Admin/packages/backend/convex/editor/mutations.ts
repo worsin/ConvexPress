@@ -1,3 +1,6 @@
+import type { RegisteredMutation } from "convex/server";
+import { deleteWithMediaReferences, insertWithMediaReferences, patchWithMediaReferences } from "../media/attachmentGuard";
+import type { Id } from "../_generated/dataModel";
 /**
  * Content Editor System - Mutations
  *
@@ -56,7 +59,7 @@ import {
 export const createReusableBlock = mutation({
   args: createReusableBlockArgs,
   // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
-  handler: async (ctx, args) => {
+  handler: async (ctx, args): Promise<Id<"reusableBlocks">> => {
     const user = await requireCan(ctx, "post.create");
 
     // ── Validate title ──────────────────────────────────────────────────
@@ -113,7 +116,7 @@ export const createReusableBlock = mutation({
 
     // ── Insert reusable block ───────────────────────────────────────────
     const now = Date.now();
-    const blockId = await ctx.db.insert("reusableBlocks", {
+    const blockId: Id<"reusableBlocks"> = await insertWithMediaReferences<"reusableBlocks">(ctx, "reusableBlocks", {
       title,
       content: args.content,
       blockType: args.blockType,
@@ -139,10 +142,8 @@ export const createReusableBlock = mutation({
  * Changes propagate to all posts referencing this block since they resolve
  * by ID at render time. Only Administrators and Editors can update.
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
-export const updateReusableBlock = mutation({
+export const updateReusableBlock: import("convex/server").RegisteredMutation<"public", { blockId: Id<"reusableBlocks">; title?: string; content?: string; blockType?: string; category?: string; description?: string; isPublished?: boolean; isLocked?: boolean }, Id<"reusableBlocks">> = mutation({
   args: updateReusableBlockArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     const user = await requireCan(ctx, "post.update");
 
@@ -255,7 +256,7 @@ export const updateReusableBlock = mutation({
     }
 
     // ── Apply patch ─────────────────────────────────────────────────────
-    await ctx.db.patch("reusableBlocks", args.blockId, patch);
+    await patchWithMediaReferences<"reusableBlocks">(ctx, "reusableBlocks", args.blockId, patch);
 
     return args.blockId;
   },
@@ -296,7 +297,7 @@ export const deleteReusableBlock = mutation({
     }
 
     // ── Delete the block ────────────────────────────────────────────────
-    await ctx.db.delete("reusableBlocks", args.blockId);
+    await deleteWithMediaReferences<"reusableBlocks">(ctx, "reusableBlocks", args.blockId);
 
     return { success: true };
   },
@@ -316,7 +317,7 @@ export const deleteReusableBlock = mutation({
 export const duplicateReusableBlock = mutation({
   args: duplicateReusableBlockArgs,
   // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
-  handler: async (ctx, args) => {
+  handler: async (ctx, args): Promise<Id<"reusableBlocks">> => {
     const user = await requireCan(ctx, "post.create");
 
     const sourceBlock = await ctx.db.get("reusableBlocks", args.blockId);
@@ -330,7 +331,7 @@ export const duplicateReusableBlock = mutation({
     const now = Date.now();
     const newTitle = `${sourceBlock.title} (Copy)`;
 
-    const newBlockId = await ctx.db.insert("reusableBlocks", {
+    const newBlockId: Id<"reusableBlocks"> = await insertWithMediaReferences<"reusableBlocks">(ctx, "reusableBlocks", {
       title: newTitle,
       content: sourceBlock.content,
       blockType: sourceBlock.blockType,
@@ -366,10 +367,8 @@ export const duplicateReusableBlock = mutation({
  *
  * @returns { acquired: true } or { acquired: false, lockedBy: { userId, displayName, lockedAt } }
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
-export const acquireLock = mutation({
+export const acquireLock: RegisteredMutation<"public", { postId: Id<"posts"> }, { acquired: boolean; lockedBy?: { userId: Id<"users">; displayName: string; lockedAt: number } }> = mutation({
   args: acquireLockArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     const user = await getCurrentUser(ctx);
     if (!user) {
@@ -394,7 +393,7 @@ export const acquireLock = mutation({
     // Check for existing lock
     const existingLock = await ctx.db
       .query("editorLocks")
-      .withIndex("by_postId", (q: ConvexQueryBuilder) => q.eq("postId", args.postId))
+      .withIndex("by_postId", (q) => q.eq("postId", args.postId))
       .first();
 
     if (existingLock) {
@@ -490,10 +489,8 @@ export const releaseLock = mutation({
  * this returns { renewed: false } and the editor UI should show a
  * warning that another user has taken over editing.
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
-export const renewLock = mutation({
+export const renewLock: RegisteredMutation<"public", { postId: Id<"posts"> }, { renewed: boolean; reason?: string; lockedBy?: { userId: Id<"users">; displayName: string } }> = mutation({
   args: renewLockArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     const user = await getCurrentUser(ctx);
     if (!user) {
@@ -505,7 +502,7 @@ export const renewLock = mutation({
 
     const existingLock = await ctx.db
       .query("editorLocks")
-      .withIndex("by_postId", (q: ConvexQueryBuilder) => q.eq("postId", args.postId))
+      .withIndex("by_postId", (q) => q.eq("postId", args.postId))
       .first();
 
     if (!existingLock) {

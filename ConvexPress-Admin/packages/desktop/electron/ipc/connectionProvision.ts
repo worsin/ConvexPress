@@ -39,6 +39,7 @@ function getCredentialPreloadPath(): string {
 
 function isTrustedAppSender(senderUrl: string): boolean {
   return isAppRendererSender(senderUrl, {
+    development: isDev(),
     ...(isDev()
       ? { devRendererUrl: process.env.CONVEXPRESS_DESKTOP_DEV_URL }
       : { rendererIndexPath: getRendererIndexPath() }),

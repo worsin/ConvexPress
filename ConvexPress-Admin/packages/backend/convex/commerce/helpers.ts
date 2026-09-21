@@ -1,3 +1,4 @@
+import type { RequestReadLedger } from "../helpers/requestReadLedger";
 import { ConvexError } from "convex/values";
 
 import type { QueryCtx, MutationCtx } from "../_generated/server";
@@ -17,12 +18,14 @@ const IMPLEMENTED_CHECKOUT_PAYMENT_METHOD_CODES = new Set([
   "cash_on_delivery",
 ]);
 
-async function getPluginSettings(ctx: CommerceCtx): Promise<PluginsSettings> {
+async function getPluginSettings(ctx: CommerceCtx, budget?: RequestReadLedger): Promise<PluginsSettings> {
+  budget?.beforeRead();
   const doc = await (ctx.db as any)
     .query("settings")
     .withIndex("by_section", (q: any) => q.eq("section", "plugins"))
     .unique();
 
+  budget?.record(doc);
   return {
     ...PLUGINS_DEFAULTS,
     ...(doc?.values ?? {}),
@@ -92,8 +95,8 @@ export function getEnabledCheckoutPaymentMethods(
   );
 }
 
-export async function isCommerceEnabled(ctx: CommerceCtx): Promise<boolean> {
-  const settings = await getPluginSettings(ctx);
+export async function isCommerceEnabled(ctx: CommerceCtx, budget?: RequestReadLedger): Promise<boolean> {
+  const settings = await getPluginSettings(ctx, budget);
   return settings.commerceEnabled;
 }
 
@@ -127,8 +130,8 @@ export async function requireCommerceDigitalEnabled(
   }
 }
 
-export async function requireCommerceEnabled(ctx: CommerceCtx): Promise<void> {
-  if (!(await isCommerceEnabled(ctx))) {
+export async function requireCommerceEnabled(ctx: CommerceCtx, budget?: RequestReadLedger): Promise<void> {
+  if (!(await isCommerceEnabled(ctx, budget))) {
     throw new ConvexError({
       code: "commerce_disabled",
       message: "Commerce plugin is disabled.",
@@ -145,8 +148,9 @@ export async function isCommerceSubscriptionsEnabled(
 
 export async function isCommerceReviewsEnabled(
   ctx: CommerceCtx,
+  budget?: RequestReadLedger,
 ): Promise<boolean> {
-  const settings = await getPluginSettings(ctx);
+  const settings = await getPluginSettings(ctx, budget);
   return settings.commerceEnabled && (settings as any).commerceReviewsEnabled;
 }
 
@@ -159,7 +163,8 @@ export async function isCommerceWishlistsEnabled(
 
 export async function isMembershipPluginEnabled(
   ctx: CommerceCtx,
+  budget?: RequestReadLedger,
 ): Promise<boolean> {
-  const settings = await getPluginSettings(ctx);
+  const settings = await getPluginSettings(ctx, budget);
   return settings.membershipEnabled;
 }

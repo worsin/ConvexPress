@@ -4,6 +4,7 @@ import { v } from "convex/values";
 export const authTables = {
   refreshTokens: defineTable({
     tokenHash: v.string(),
+    environmentBinding: v.optional(v.string()),
     userId: v.id("users"),
     expiresAt: v.number(),
     createdAt: v.number(),

@@ -32,6 +32,7 @@ export const searchableContentTypeValidator = v.union(
   v.literal("comment"),
   v.literal("course"),
   v.literal("product"),
+  v.literal("event"),
 );
 
 export const searchSourceValidator = v.union(
@@ -105,7 +106,7 @@ export const searchTables = {
     })
     .searchIndex("search_title", {
       searchField: "title",
-      filterFields: ["contentType", "status"],
+      filterFields: ["contentType", "status", "contentId"],
     })
     // ── Standard Indexes ────────────────────────────────────────────────
     .index("by_content", ["contentType", "contentId"])

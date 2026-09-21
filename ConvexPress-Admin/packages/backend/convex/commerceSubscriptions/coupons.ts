@@ -352,7 +352,7 @@ export const updateCoupon = mutation({
       }
     }
 
-    await ctx.db.patch(args.couponId, patch);
+    await ctx.db.patch("commerce_subscription_coupons", args.couponId, patch);
     return args.couponId;
   },
 });
@@ -384,7 +384,7 @@ export const archiveCoupon = mutation({
     if (existing.status === "archived") {
       return { success: true, alreadyArchived: true };
     }
-    await ctx.db.patch(args.couponId, { status: "archived" });
+    await ctx.db.patch("commerce_subscription_coupons", args.couponId, { status: "archived" });
     return { success: true };
   },
 });

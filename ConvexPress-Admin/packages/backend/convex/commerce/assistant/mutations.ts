@@ -5,7 +5,10 @@
  * recommendation attribution, and the internal writes the action needs.
  */
 
-import { v } from "convex/values";
+import { assistantScope } from "./scope";
+import { ConvexError, v } from "convex/values";
+import { internal } from "../../_generated/api";
+import { getSettingsDoc, mergeWithDefaults } from "../../settings/helpers";
 import { internalMutation, mutation } from "../../_generated/server";
 import {
   assistantBlockValidator,
@@ -13,16 +16,15 @@ import {
   recommendationSurfaceValidator,
   shopperMemoryKindValidator,
 } from "../../schema/commerceAssistant";
-import { requireCommerceEnabled } from "../helpers";
+import { patchDynamicWithMediaReferences, deleteDynamicWithMediaReferences } from "../../media/attachmentGuard";
 
-async function ensureSessionDoc(ctx: any, sessionToken: string, userId?: any) {
-  const existing = await ctx.db
-    .query("commerce_assistant_sessions")
-    .withIndex("by_session_token", (q: any) => q.eq("sessionToken", sessionToken))
-    .unique();
+
+async function ensureSessionDoc(ctx: any, sessionToken: string) {
+  const { session: existing, user } = await assistantScope(ctx, sessionToken);
+  const userId = user?._id;
   const now = Date.now();
   if (existing) {
-    if (userId && !existing.userId) await ctx.db.patch(existing._id, { userId, updatedAt: now });
+    if (userId && !existing.userId) await patchDynamicWithMediaReferences(ctx, existing._id, { userId, updatedAt: now });
     return existing;
   }
   const id = await ctx.db.insert("commerce_assistant_sessions", {
@@ -35,15 +37,31 @@ async function ensureSessionDoc(ctx: any, sessionToken: string, userId?: any) {
   return await ctx.db.get(id);
 }
 
+/** Settle legacy browser tokens before any cart or assistant query subscribes. */
+export const resolveSession = mutation({
+  args: { sessionToken: v.string() },
+  returns: v.string(),
+  handler: async (ctx, args) => {
+    try {
+      await assistantScope(ctx, args.sessionToken);
+      return args.sessionToken;
+    } catch (error) {
+      const code = error instanceof ConvexError ? (error.data as { code?: string }).code : undefined;
+      if (code === "SESSION_OWNER_MISMATCH" || code === "INVALID_SESSION") return crypto.randomUUID();
+      throw error;
+    }
+  },
+});
+
 export const ensureSession = mutation({
   args: { sessionToken: v.string(), route: v.optional(v.string()), query: v.optional(v.string()) },
   handler: async (ctx: any, args: any) => {
-    await requireCommerceEnabled(ctx);
+    await assistantScope(ctx, args.sessionToken);
     const session = await ensureSessionDoc(ctx, args.sessionToken);
     const patch: Record<string, unknown> = { updatedAt: Date.now() };
     if (args.route) patch.lastRoute = args.route;
     if (typeof args.query === "string" && args.query.trim()) patch.lastQuery = args.query.trim().slice(0, 200);
-    await ctx.db.patch(session._id, patch);
+    await patchDynamicWithMediaReferences(ctx, session._id, patch);
     return String(session._id);
   },
 });
@@ -63,7 +81,21 @@ export const appendMessage = internalMutation({
   },
   handler: async (ctx: any, args: any) => {
     const session = await ensureSessionDoc(ctx, args.sessionToken);
-    const now = Date.now();
+    const now = Math.max(Date.now(), (session.clearedBefore ?? 0) + 1);
+    let recentUserTurnTimes: number[] | undefined;
+    if (args.role === "user") {
+      const doc = await getSettingsDoc(ctx, "commerce.assistant");
+      const settings = mergeWithDefaults("commerce.assistant", doc?.values ?? null);
+      if (settings.enabled === false) throw new ConvexError({ code: "DISABLED", message: "The shop assistant is turned off." });
+      const configured = Number(settings.rateLimitPerMinute ?? 12);
+      const limit = Number.isFinite(configured) ? Math.min(120, Math.max(1, Math.floor(configured))) : 12;
+      const windowStart = Date.now() - 60_000;
+      const times = session.recentUserTurnTimes ?? (await ctx.db.query("commerce_assistant_messages")
+        .withIndex("by_session_role", (q: any) => q.eq("sessionId", session._id).eq("role", "user").gte("createdAt", windowStart)).take(120)).map((row: any) => row.createdAt);
+      recentUserTurnTimes = times.filter((time: number) => time >= windowStart);
+      if (recentUserTurnTimes!.length >= limit) throw new ConvexError({ code: "RATE_LIMITED", message: "Please try again in a minute." });
+      recentUserTurnTimes!.push(now);
+    }
     const id = await ctx.db.insert("commerce_assistant_messages", {
       sessionId: session._id,
       role: args.role,
@@ -77,7 +109,7 @@ export const appendMessage = internalMutation({
       error: args.error,
       createdAt: now,
     });
-    await ctx.db.patch(session._id, { messageCount: session.messageCount + 1, updatedAt: now });
+    await patchDynamicWithMediaReferences(ctx, session._id, { messageCount: session.messageCount + 1, updatedAt: now, ...(recentUserTurnTimes ? { recentUserTurnTimes } : {}) });
     return String(id);
   },
 });
@@ -89,30 +121,40 @@ export const setFeedback = mutation({
     feedback: v.union(v.literal("up"), v.literal("down"), v.null()),
   },
   handler: async (ctx: any, args: any) => {
-    await requireCommerceEnabled(ctx);
+    await assistantScope(ctx, args.sessionToken);
     const message = await ctx.db.get(args.messageId);
     if (!message) return;
     const session = await ctx.db.get(message.sessionId);
     if (!session || session.sessionToken !== args.sessionToken) return;
-    await ctx.db.patch(args.messageId, { feedback: args.feedback ?? undefined });
+    await patchDynamicWithMediaReferences(ctx, args.messageId, { feedback: args.feedback ?? undefined });
   },
 });
 
 export const clearThread = mutation({
   args: { sessionToken: v.string() },
   handler: async (ctx: any, args: any) => {
-    await requireCommerceEnabled(ctx);
+    await assistantScope(ctx, args.sessionToken);
     const session = await ctx.db
       .query("commerce_assistant_sessions")
       .withIndex("by_session_token", (q: any) => q.eq("sessionToken", args.sessionToken))
       .unique();
     if (!session) return;
-    const messages = await ctx.db
-      .query("commerce_assistant_messages")
-      .withIndex("by_session", (q: any) => q.eq("sessionId", session._id))
-      .collect();
-    for (const message of messages) await ctx.db.delete(message._id);
-    await ctx.db.patch(session._id, { messageCount: 0, updatedAt: Date.now() });
+    const cutoff = Date.now();
+    await patchDynamicWithMediaReferences(ctx, session._id, { clearedBefore: cutoff, messageCount: 0, updatedAt: cutoff });
+    await ctx.scheduler.runAfter(0, (internal as any).commerce.assistant.mutations.purgeThread, { sessionId: session._id, cutoff });
+  },
+});
+
+/** Authorized by clearThread; the cutoff keeps later turns out of the purge. */
+export const purgeThread = internalMutation({
+  args: { sessionId: v.id("commerce_assistant_sessions"), cutoff: v.number() },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const messages = await ctx.db.query("commerce_assistant_messages")
+      .withIndex("by_session", q => q.eq("sessionId", args.sessionId).lte("createdAt", args.cutoff)).take(250);
+    for (const message of messages) await deleteDynamicWithMediaReferences(ctx, message._id);
+    if (messages.length === 250) await ctx.scheduler.runAfter(0, (internal as any).commerce.assistant.mutations.purgeThread, args);
+    return null;
   },
 });
 
@@ -127,17 +169,19 @@ export async function rememberFactInternal(
   const rows = await ctx.db
     .query("commerce_shopper_memory")
     .withIndex("by_subject", (q: any) => q.eq("subjectKey", input.subjectKey))
-    .collect();
+    .take(41);
+  if (rows.length > 40) throw new ConvexError({ code: "MEMORY_LIMIT", message: "Please clear saved preferences before adding another." });
   const duplicate = rows.find((row: any) => row.fact.toLowerCase() === fact.toLowerCase());
   const now = Date.now();
-  const expiresAt = now + input.retentionDays * 86_400_000;
+  const days = Number.isFinite(input.retentionDays) ? Math.min(3650, Math.max(1, input.retentionDays)) : 90;
+  const expiresAt = now + days * 86_400_000;
   if (duplicate) {
-    await ctx.db.patch(duplicate._id, { updatedAt: now, expiresAt, consented: duplicate.consented || input.consented });
+    await patchDynamicWithMediaReferences(ctx, duplicate._id, { updatedAt: now, expiresAt, consented: duplicate.consented || input.consented });
     return String(duplicate._id);
   }
   if (rows.length >= 40) {
     const oldest = [...rows].sort((a: any, b: any) => a.updatedAt - b.updatedAt)[0];
-    if (oldest) await ctx.db.delete(oldest._id);
+    if (oldest) await deleteDynamicWithMediaReferences(ctx, oldest._id);
   }
   const kind = ["constraint", "preference", "household", "project", "other"].includes(input.kind ?? "")
     ? (input.kind as any)
@@ -159,9 +203,11 @@ export async function rememberFactInternal(
 export const rememberFact = mutation({
   args: { sessionToken: v.string(), fact: v.string(), kind: v.optional(shopperMemoryKindValidator) },
   handler: async (ctx: any, args: any) => {
-    await requireCommerceEnabled(ctx);
+    await assistantScope(ctx, args.sessionToken);
+    await ensureSessionDoc(ctx, args.sessionToken);
+    const scope = await assistantScope(ctx, args.sessionToken);
     return await rememberFactInternal(ctx, {
-      subjectKey: args.sessionToken,
+      subjectKey: scope.subjectKey,
       fact: args.fact,
       kind: args.kind,
       source: "stated",
@@ -173,41 +219,47 @@ export const rememberFact = mutation({
 
 export const rememberFactFromAssistant = internalMutation({
   args: {
-    subjectKey: v.string(),
+    sessionToken: v.string(),
     fact: v.string(),
     kind: v.optional(v.string()),
     retentionDays: v.number(),
   },
-  handler: async (ctx: any, args: any) =>
-    rememberFactInternal(ctx, {
-      subjectKey: args.subjectKey,
+  handler: async (ctx: any, args: any) => {
+    await ensureSessionDoc(ctx, args.sessionToken);
+    const scope = await assistantScope(ctx, args.sessionToken);
+    return rememberFactInternal(ctx, {
+      subjectKey: scope.subjectKey,
       fact: args.fact,
       kind: args.kind,
       source: "stated",
       retentionDays: args.retentionDays,
       consented: true,
-    }),
+    });
+  },
 });
 
 export const forgetFact = mutation({
   args: { sessionToken: v.string(), memoryId: v.id("commerce_shopper_memory") },
   handler: async (ctx: any, args: any) => {
-    await requireCommerceEnabled(ctx);
+    await assistantScope(ctx, args.sessionToken);
     const row = await ctx.db.get(args.memoryId);
-    if (!row || row.subjectKey !== args.sessionToken) return;
-    await ctx.db.delete(args.memoryId);
+    const scope = await assistantScope(ctx, args.sessionToken);
+    if (!row || !scope.memoryKeys.includes(row.subjectKey)) return;
+    await deleteDynamicWithMediaReferences(ctx, args.memoryId);
   },
 });
 
 export const forgetAll = mutation({
   args: { sessionToken: v.string() },
   handler: async (ctx: any, args: any) => {
-    await requireCommerceEnabled(ctx);
-    const rows = await ctx.db
-      .query("commerce_shopper_memory")
-      .withIndex("by_subject", (q: any) => q.eq("subjectKey", args.sessionToken))
-      .collect();
-    for (const row of rows) await ctx.db.delete(row._id);
+    await assistantScope(ctx, args.sessionToken);
+    const scope = await assistantScope(ctx, args.sessionToken);
+    for (const subjectKey of scope.memoryKeys) {
+      const rows = await ctx.db.query("commerce_shopper_memory")
+        .withIndex("by_subject", (q: any) => q.eq("subjectKey", subjectKey)).take(201);
+      if (rows.length > 200) throw new ConvexError({ code: "MEMORY_LIMIT", message: "Saved preferences need maintenance before they can be cleared." });
+      for (const row of rows) await deleteDynamicWithMediaReferences(ctx, row._id);
+    }
   },
 });
 
@@ -217,12 +269,14 @@ export const storeBrief = internalMutation({
   args: {
     kind: v.union(v.literal("query"), v.literal("cart"), v.literal("product")),
     cacheKey: v.string(),
+    sessionToken: v.string(),
     query: v.optional(v.string()),
     payload: v.any(),
     model: v.optional(v.string()),
     ttlMs: v.number(),
   },
   handler: async (ctx: any, args: any) => {
+    await ensureSessionDoc(ctx, args.sessionToken);
     const now = Date.now();
     const existing = await ctx.db
       .query("commerce_assistant_briefs")
@@ -231,13 +285,14 @@ export const storeBrief = internalMutation({
     const doc = {
       kind: args.kind,
       cacheKey: args.cacheKey,
+      sessionToken: args.sessionToken,
       query: args.query,
       payload: args.payload,
       model: args.model,
       generatedAt: now,
       expiresAt: now + args.ttlMs,
     };
-    if (existing) await ctx.db.patch(existing._id, doc);
+    if (existing) await patchDynamicWithMediaReferences(ctx, existing._id, doc);
     else await ctx.db.insert("commerce_assistant_briefs", doc);
   },
 });
@@ -255,7 +310,7 @@ export const storeFacets = internalMutation({
       .unique();
     if (existing?.pinned || existing?.banned) return;
     const doc = { queryHash: args.queryHash, query: args.query, chips: args.chips, pinned: false, banned: false, generatedAt: Date.now() };
-    if (existing) await ctx.db.patch(existing._id, doc);
+    if (existing) await patchDynamicWithMediaReferences(ctx, existing._id, doc);
     else await ctx.db.insert("commerce_search_facets", doc);
   },
 });
@@ -264,7 +319,7 @@ export const markTip = internalMutation({
   args: { sessionToken: v.string() },
   handler: async (ctx: any, args: any) => {
     const session = await ensureSessionDoc(ctx, args.sessionToken);
-    await ctx.db.patch(session._id, { lastTipAt: Date.now(), updatedAt: Date.now() });
+    await patchDynamicWithMediaReferences(ctx, session._id, { lastTipAt: Date.now(), updatedAt: Date.now() });
   },
 });
 
@@ -279,7 +334,7 @@ export const logEvent = mutation({
     groupKey: v.optional(v.string()),
   },
   handler: async (ctx: any, args: any) => {
-    await requireCommerceEnabled(ctx);
+    await assistantScope(ctx, args.sessionToken);
     const now = Date.now();
     for (const productId of args.productIds.slice(0, 24)) {
       await ctx.db.insert("commerce_recommendation_events", {

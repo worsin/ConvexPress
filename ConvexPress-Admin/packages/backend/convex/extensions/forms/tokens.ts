@@ -24,3 +24,12 @@ export function isGeneratedResumeToken(token: string): boolean {
     token,
   );
 }
+
+
+export const CONFIRMATION_RECEIPT_TTL_MS = 10 * 60 * 1000;
+export function generateConfirmationToken(): string {
+  return `confirm_${randomHex(32)}`;
+}
+export function isConfirmationToken(token: string): boolean {
+  return /^confirm_[0-9a-f]{64}$/.test(token);
+}

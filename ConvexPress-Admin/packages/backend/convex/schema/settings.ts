@@ -19,6 +19,15 @@ import { defineTable } from "convex/server";
 import { v } from "convex/values";
 
 export const settingsTables = {
+  /** Private, recoverable Customizer overrides; never projected to visitors. */
+  appearance_drafts: defineTable({
+    userId: v.id("users"),
+    packId: v.string(),
+    sourceRevision: v.string(),
+    values: v.any(),
+    variants: v.record(v.string(), v.string()),
+    updatedAt: v.number(),
+  }).index("by_user_pack", ["userId", "packId"]),
   settings: defineTable({
     /** Which settings section this document represents */
     section: v.union(
@@ -34,6 +43,7 @@ export const settingsTables = {
       v.literal("ai"),
       v.literal("blocks"),
       v.literal("plugins"),
+  v.literal("membership.general"),
       v.literal("search"),
       // Knowledge Base System sections
       v.literal("kb.general"),
@@ -75,6 +85,9 @@ export const settingsTables = {
      * Uses v.any() because each section has a different shape.
      */
     values: v.any(),
+
+    /** Independent of values so resetting a template cannot revive legacy appearance. */
+    legacyAppearanceMigration: v.optional(v.object({ version: v.number(), migratedAt: v.number() })),
 
     /** Unix timestamp (ms) of last update */
     updatedAt: v.number(),

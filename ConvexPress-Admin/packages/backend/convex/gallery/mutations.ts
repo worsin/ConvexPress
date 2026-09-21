@@ -20,6 +20,7 @@ import {
   updateCategoryArgs,
 } from "./validators";
 import { requirePluginEnabled } from "../helpers/plugins";
+import { insertWithMediaReferences, patchWithMediaReferences } from "../media/attachmentGuard";
 
 // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const createCategory = mutation({
@@ -115,7 +116,7 @@ export const deleteCategory = mutation({
           (categoryId) => categoryId.toString() === args.categoryId.toString(),
         )
       ) {
-        await ctx.db.patch("gallery_albums", album._id, {
+        await patchWithMediaReferences<"gallery_albums">(ctx, "gallery_albums", album._id, {
           categoryIds: album.categoryIds.filter(
             // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
             (categoryId) =>
@@ -135,7 +136,7 @@ export const deleteCategory = mutation({
 export const createAlbum = mutation({
   args: createAlbumArgs,
   // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
-  handler: async (ctx, args) => {
+  handler: async (ctx, args): Promise<import("../_generated/dataModel").Id<"gallery_albums">> => {
     await requirePluginEnabled(ctx, "gallery");
     const user = await requireCan(ctx, "post.create");
 
@@ -156,7 +157,7 @@ export const createAlbum = mutation({
     const now = Date.now();
     const status = args.status ?? "draft";
 
-    const albumId = await ctx.db.insert("gallery_albums", {
+    const albumId: import("../_generated/dataModel").Id<"gallery_albums"> = await insertWithMediaReferences<"gallery_albums">(ctx, "gallery_albums", {
       title,
       slug,
       excerpt: args.excerpt?.trim() || undefined,
@@ -277,7 +278,7 @@ export const updateAlbum = mutation({
     if (args.captionsEnabled !== undefined) patch.captionsEnabled = args.captionsEnabled;
     if (args.downloadEnabled !== undefined) patch.downloadEnabled = args.downloadEnabled;
 
-    await ctx.db.patch("gallery_albums", args.albumId, patch);
+    await patchWithMediaReferences<"gallery_albums">(ctx, "gallery_albums", args.albumId, patch);
 
     const touchedCategoryIds = new Set([
       // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
@@ -348,7 +349,7 @@ export const trashAlbum = mutation({
       });
     }
 
-    await ctx.db.patch("gallery_albums", args.albumId, {
+    await patchWithMediaReferences<"gallery_albums">(ctx, "gallery_albums", args.albumId, {
       status: "trash",
       updatedAt: Date.now(),
     });

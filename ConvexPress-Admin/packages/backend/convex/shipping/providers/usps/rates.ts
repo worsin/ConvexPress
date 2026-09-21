@@ -18,6 +18,7 @@ import { internal } from "../../../_generated/api";
 import { rankQuotes } from "../../rates/ranking";
 import type { NormalizedShippingQuote } from "../../rates/types";
 import { computeAddressFingerprint } from "../../helpers/addressFingerprint";
+import { snapshotShippingOrigin } from "../../quoteProvenance";
 import { getEffectiveShipFrom } from "../../helpers/settings";
 import { getUspsAccessTokenV2 } from "./auth";
 import { getUspsServiceName, parseUspsBusinessDays } from "./serviceCodes";
@@ -221,6 +222,8 @@ export async function fetchUspsRatesV2(
         "USD",
       estimatedDaysMin: estimatedDays,
       estimatedDaysMax: estimatedDays,
+      origin: snapshotShippingOrigin(shippingSettings),
+      packages: args.packages,
       rawQuote: rate,
       addressKey,
       cartKey,

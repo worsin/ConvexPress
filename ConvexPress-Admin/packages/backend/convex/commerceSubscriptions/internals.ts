@@ -1,3 +1,5 @@
+import type { RegisteredQuery } from "convex/server";
+import type { Doc } from "../_generated/dataModel";
 /**
  * Commerce Subscriptions — Internal Functions
  *
@@ -19,6 +21,7 @@ import { internalMutation, internalQuery } from "../_generated/server";
 import { emitEvent } from "../helpers/events";
 import { isPluginEnabled, requirePluginEnabled } from "../helpers/plugins";
 import { decideBridgeCall } from "./bridgeDecisions";
+import { patchWithMediaReferences , patchDynamicWithMediaReferences} from "../media/attachmentGuard";
 
 // ═══════════════════════════════════════════════════════════════════════════
 // HELPERS (duplicated for internal module isolation)
@@ -136,7 +139,7 @@ async function allocateInvoiceNumber(ctx: any): Promise<string> {
 
 	const now = Date.now();
 	if (doc) {
-		await ctx.db.patch(doc._id, {
+		await patchWithMediaReferences<"settings">(ctx, "settings", doc._id, {
 			values: { ...values, invoiceCounter: nextCounter },
 			updatedAt: now,
 		});
@@ -214,7 +217,7 @@ async function syncEntitlementsForStatus(
 			subscription.status === "active" ||
 			subscription.status === "trialing"
 		) {
-			await ctx.db.patch(entitlement._id, {
+			await patchDynamicWithMediaReferences(ctx, entitlement._id, {
 				status: "active",
 				endsAt: undefined,
 				updatedAt: now,
@@ -223,7 +226,7 @@ async function syncEntitlementsForStatus(
 			subscription.status === "past_due" ||
 			subscription.status === "paused"
 		) {
-			await ctx.db.patch(entitlement._id, {
+			await patchDynamicWithMediaReferences(ctx, entitlement._id, {
 				status: "grace",
 				graceEndsAt: addDays(now, gracePeriodDays),
 				updatedAt: now,
@@ -232,7 +235,7 @@ async function syncEntitlementsForStatus(
 			subscription.status === "cancelled" ||
 			subscription.status === "expired"
 		) {
-			await ctx.db.patch(entitlement._id, {
+			await patchDynamicWithMediaReferences(ctx, entitlement._id, {
 				status: "revoked",
 				endsAt: now,
 				updatedAt: now,
@@ -323,7 +326,7 @@ async function transitionSubscription(ctx: any, args: any) {
 		patch.cancelledAt = now;
 	}
 
-	await ctx.db.patch(args.subscription._id, patch);
+	await patchDynamicWithMediaReferences(ctx, args.subscription._id, patch);
 	const updated = await ctx.db.get(args.subscription._id);
 	if (!updated) throw new Error("Subscription not found after transition");
 
@@ -501,6 +504,7 @@ export const createDueInvoices = internalMutation({
 	// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 	handler: async (ctx, args) => {
 		await requirePluginEnabled(ctx, "commerceSubscriptions");
+		await applyDueOfferChanges(ctx);
 		const now = Date.now();
 		const limit = args.limit ?? 50;
 
@@ -568,7 +572,7 @@ export const createDueInvoices = internalMutation({
 				)
 				.collect();
 
-			for (const item of items) {
+			for (const item of items.filter((item: any) => item.status === "active" || item.status === "pending_cancel")) {
 				await ctx.db.insert("commerce_subscription_invoice_items", {
 					invoiceId,
 					subscriptionItemId: item._id,
@@ -628,7 +632,7 @@ async function applyProrationItemSwap(
 		: null;
 	if (!prorationEvent) {
 		// Event was deleted; just mark invoice paid and exit.
-		await ctx.db.patch(invoice._id, {
+		await patchDynamicWithMediaReferences(ctx, invoice._id, {
 			status: "paid",
 			paidAt: now,
 			paymentTransactionId,
@@ -640,7 +644,7 @@ async function applyProrationItemSwap(
 	const toOffer = await ctx.db.get(prorationEvent.toOfferId);
 	const fromOffer = await ctx.db.get(prorationEvent.fromOfferId);
 	if (!toOffer || !fromOffer) {
-		await ctx.db.patch(invoice._id, {
+		await patchDynamicWithMediaReferences(ctx, invoice._id, {
 			status: "paid",
 			paidAt: now,
 			paymentTransactionId,
@@ -650,7 +654,7 @@ async function applyProrationItemSwap(
 	}
 
 	// Mark invoice paid.
-	await ctx.db.patch(invoice._id, {
+	await patchDynamicWithMediaReferences(ctx, invoice._id, {
 		status: "paid",
 		paidAt: now,
 		paymentTransactionId,
@@ -666,7 +670,7 @@ async function applyProrationItemSwap(
 		.collect();
 	const activeItem = items.find((i: any) => i.status === "active");
 	if (activeItem) {
-		await ctx.db.patch(activeItem._id, {
+		await patchDynamicWithMediaReferences(ctx, activeItem._id, {
 			status: "cancelled",
 			cancelledAt: now,
 			updatedAt: now,
@@ -729,7 +733,7 @@ async function applyProrationItemSwap(
 	});
 
 	const existingHistory = subscription.offerHistory ?? [];
-	await ctx.db.patch(subscription._id, {
+	await patchDynamicWithMediaReferences(ctx, subscription._id, {
 		recurringAmount: toOffer.recurringAmount ?? subscription.recurringAmount,
 		currencyCode,
 		currentPeriodStartAt: newCycleStart,
@@ -823,7 +827,7 @@ export const handleInvoicePaymentResult = internalMutation({
 					},
 				});
 			} else {
-				await ctx.db.patch(invoice._id, {
+				await ctx.db.patch("commerce_subscription_invoices", invoice._id, {
 					status: "failed",
 					updatedAt: now,
 				});
@@ -878,7 +882,7 @@ export const handleInvoicePaymentResult = internalMutation({
 			);
 
 			// Mark invoice as paid
-			await ctx.db.patch(invoice._id, {
+			await ctx.db.patch("commerce_subscription_invoices", invoice._id, {
 				status: "paid",
 				paidAt: now,
 				updatedAt: now,
@@ -893,7 +897,7 @@ export const handleInvoicePaymentResult = internalMutation({
 			});
 
 			// Advance subscription billing period
-			await ctx.db.patch(subscription._id, {
+			await ctx.db.patch("commerce_subscriptions", subscription._id, {
 				status: "active",
 				currentPeriodStartAt: nextPeriodStartAt,
 				currentPeriodEndAt: nextPeriodEndAt,
@@ -965,7 +969,7 @@ export const handleInvoicePaymentResult = internalMutation({
 				retryDays !== undefined ? addDays(now, retryDays) : undefined;
 
 			// Mark invoice as failed
-			await ctx.db.patch(invoice._id, {
+			await ctx.db.patch("commerce_subscription_invoices", invoice._id, {
 				status: "failed",
 				dueAt: nextRetryAt,
 				updatedAt: now,
@@ -982,7 +986,7 @@ export const handleInvoicePaymentResult = internalMutation({
 
 			// Move subscription to past_due
 			if (subscription.status !== "past_due") {
-				await ctx.db.patch(subscription._id, {
+				await ctx.db.patch("commerce_subscriptions", subscription._id, {
 					status: "past_due",
 					updatedAt: now,
 				});
@@ -1125,7 +1129,7 @@ export const processScheduledDunning = internalMutation({
 			return { skipped: true };
 		}
 
-		await ctx.db.patch(args.dunningAttemptId, {
+		await ctx.db.patch("commerce_subscription_dunning_attempts", args.dunningAttemptId, {
 			status: "processing",
 			processedAt: now,
 			updatedAt: now,
@@ -1195,7 +1199,7 @@ export const abortDunningAttempt = internalMutation({
 	// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 	handler: async (ctx, args) => {
 		const now = Date.now();
-		await ctx.db.patch(args.attemptId, {
+		await ctx.db.patch("commerce_subscription_dunning_attempts", args.attemptId, {
 			status: "aborted",
 			processedAt: now,
 			errorMessage: args.reason,
@@ -1218,7 +1222,7 @@ export const completeDunningAttempt = internalMutation({
 	// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 	handler: async (ctx, args) => {
 		const now = Date.now();
-		await ctx.db.patch(args.attemptId, {
+		await ctx.db.patch("commerce_subscription_dunning_attempts", args.attemptId, {
 			status: "succeeded",
 			processedAt: now,
 			updatedAt: now,
@@ -1254,7 +1258,7 @@ export const recordDunningFailure = internalMutation({
 		const correlationId = createCorrelationId();
 
 		// Mark this attempt as failed.
-		await ctx.db.patch(args.attemptId, {
+		await ctx.db.patch("commerce_subscription_dunning_attempts", args.attemptId, {
 			status: "failed",
 			processedAt: now,
 			errorMessage: args.failureReason,
@@ -1266,7 +1270,7 @@ export const recordDunningFailure = internalMutation({
 		const nextRetryAt =
 			nextRetryDays !== undefined ? addDays(now, nextRetryDays) : undefined;
 
-		await ctx.db.patch(args.invoiceId, {
+		await ctx.db.patch("commerce_subscription_invoices", args.invoiceId, {
 			status: "failed",
 			dueAt: nextRetryAt,
 			updatedAt: now,
@@ -1401,12 +1405,10 @@ export const getCheckoutIntentForCharge = internalQuery({
 	},
 });
 
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
-export const getCheckoutIntentByPaymentIntent = internalQuery({
+export const getCheckoutIntentByPaymentIntent: RegisteredQuery<"internal", { paymentIntentId: string }, Doc<"commerce_subscription_checkout_intents"> | null> = internalQuery({
 	args: {
 		paymentIntentId: v.string(),
 	},
-	// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 	handler: async (ctx, args) => {
 		const intent = await ctx.db
 			.query("commerce_subscription_checkout_intents")
@@ -1436,7 +1438,7 @@ export const recordFirstChargeIntent = internalMutation({
 	},
 	// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 	handler: async (ctx, args) => {
-		await ctx.db.patch(args.checkoutIntentId, {
+		await ctx.db.patch("commerce_subscription_checkout_intents", args.checkoutIntentId, {
 			stripeCustomerId: args.stripeCustomerId,
 			paymentProvider: "stripe",
 			paymentTransactionId: args.paymentIntentId,
@@ -1467,7 +1469,7 @@ export const activateCheckoutIntentFromStripe = internalMutation({
 		const intent = await ctx.db.get(args.checkoutIntentId);
 		if (!intent) return;
 
-		await ctx.db.patch(args.checkoutIntentId, {
+		await ctx.db.patch("commerce_subscription_checkout_intents", args.checkoutIntentId, {
 			savedPaymentMethodId: intent.savedPaymentMethodId ?? args.paymentMethodId,
 			stripeCustomerId: intent.stripeCustomerId ?? args.stripeCustomerId,
 			paymentTransactionId: args.paymentIntentId,
@@ -1514,7 +1516,7 @@ export const activateCheckoutIntentFromStripeSetup = internalMutation({
 		const intent = await ctx.db.get(args.checkoutIntentId);
 		if (!intent) return;
 
-		await ctx.db.patch(args.checkoutIntentId, {
+		await ctx.db.patch("commerce_subscription_checkout_intents", args.checkoutIntentId, {
 			savedPaymentMethodId: args.paymentMethodId,
 			stripeCustomerId: args.stripeCustomerId,
 			paymentTransactionId: args.setupIntentId,
@@ -1563,7 +1565,7 @@ export const recordSavedPaymentMethod = internalMutation({
 	handler: async (ctx, args) => {
 		const intent = await ctx.db.get(args.checkoutIntentId);
 		if (!intent) return;
-		await ctx.db.patch(args.checkoutIntentId, {
+		await ctx.db.patch("commerce_subscription_checkout_intents", args.checkoutIntentId, {
 			savedPaymentMethodId: args.paymentMethodId,
 			stripeCustomerId: args.stripeCustomerId,
 			paymentProvider: "stripe",
@@ -1574,7 +1576,7 @@ export const recordSavedPaymentMethod = internalMutation({
 		if (intent.subscriptionId) {
 			const sub = await ctx.db.get(intent.subscriptionId);
 			if (sub) {
-				await ctx.db.patch(intent.subscriptionId, {
+				await ctx.db.patch("commerce_subscriptions", intent.subscriptionId, {
 					defaultPaymentMethodId:
 						sub.defaultPaymentMethodId ?? args.paymentMethodId,
 					stripeCustomerId: sub.stripeCustomerId ?? args.stripeCustomerId,
@@ -1592,17 +1594,12 @@ export const recordSavedPaymentMethod = internalMutation({
 
 /**
  * Apply any scheduled offer changes whose `effectiveAt` has passed.
- * Called by the renewal action after billing completes so the new price
- * takes effect on the next cycle.
+ * Applied before creating the renewal invoice for the effective cycle.
  *
  * Per contract: updates the active subscription_item to point to the new
  * offer, clears `scheduledOfferChange`, and appends to `offerHistory`.
  */
-// @ts-expect-error TS2589: Convex union-schema types exceed TypeScript's type instantiation depth limit in strict mode.
-export const applyDueScheduledOfferChanges = internalMutation({
-	args: {},
-	// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
-	handler: async (ctx) => {
+async function applyDueOfferChanges(ctx: any) {
 		const now = Date.now();
 
 		// Collect contracts that have a scheduled offer change due.
@@ -1621,7 +1618,7 @@ export const applyDueScheduledOfferChanges = internalMutation({
 			const toOffer = await ctx.db.get(change.toOfferId);
 			if (!toOffer) {
 				// Offer was deleted — clear the stale scheduled change.
-				await ctx.db.patch(subscription._id, {
+				await patchDynamicWithMediaReferences(ctx, subscription._id, {
 					scheduledOfferChange: undefined,
 					updatedAt: now,
 				});
@@ -1642,7 +1639,7 @@ export const applyDueScheduledOfferChanges = internalMutation({
 
 			if (activeItem) {
 				// Cancel the old item.
-				await ctx.db.patch(activeItem._id, {
+				await patchDynamicWithMediaReferences(ctx, activeItem._id, {
 					status: "cancelled",
 					cancelledAt: now,
 					updatedAt: now,
@@ -1682,7 +1679,7 @@ export const applyDueScheduledOfferChanges = internalMutation({
 			// Patch contract: apply the new recurring amount, clear scheduled change,
 			// append to offerHistory.
 			const existingHistory = subscription.offerHistory ?? [];
-			await ctx.db.patch(subscription._id, {
+			await patchDynamicWithMediaReferences(ctx, subscription._id, {
 				recurringAmount:
 					toOffer.recurringAmount ?? subscription.recurringAmount,
 				scheduledOfferChange: undefined,
@@ -1714,7 +1711,13 @@ export const applyDueScheduledOfferChanges = internalMutation({
 		}
 
 		return { applied };
-	},
+}
+
+// @ts-expect-error TS2589: Convex union-schema types exceed TypeScript's type instantiation depth limit in strict mode.
+export const applyDueScheduledOfferChanges = internalMutation({
+  args: {},
+  returns: v.any(),
+  handler: applyDueOfferChanges,
 });
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -1845,7 +1848,7 @@ export const emitTrialEndingEvents = internalMutation({
 				userId: sub.userId,
 				trialEndsAt: sub.trialEndsAt,
 			});
-			await ctx.db.patch(sub._id, {
+			await ctx.db.patch("commerce_subscriptions", sub._id, {
 				sourceMetadata: {
 					...(sub.sourceMetadata ?? {}),
 					trialEndingEmailSent: true,

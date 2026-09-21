@@ -14,6 +14,7 @@ const ADMIN_ISSUER = "https://convexpress-admin.local";
 const ORIGINAL_ENV = { ...process.env };
 
 const modules = {
+  "./convex/membership/policyReads.ts": () => import("../../membership/policyReads"),
   "./convex/_generated/api.js": () => import("../../_generated/api.js"),
   "./convex/_generated/server.js": () => import("../../_generated/server.js"),
   "./convex/http.ts": () => import("../../http"),

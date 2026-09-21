@@ -19,7 +19,8 @@
     "convex-helpers": "0.1.120",
     "fflate": "0.8.2",
     "yauzl": "2.10.0",
-    "zod": "catalog:"
+    "zod": "catalog:",
+    "@convexpress/runtime-clients": "workspace:*"
   },
   "devDependencies": {
     "@edge-runtime/vm": "^5.0.0",

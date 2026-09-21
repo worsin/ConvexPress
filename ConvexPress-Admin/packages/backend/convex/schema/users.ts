@@ -119,6 +119,7 @@ export const usersTables = {
 
     // === Denormalized Counts ===
     postCount: v.optional(v.number()), // Published post count (updated by Post System)
+    postCountReady: v.optional(v.boolean()), // False until a revision-checked baseline is complete
     commentCount: v.optional(v.number()), // Comment count (updated by Comment System)
 
     // === Registration Metadata ===
@@ -170,6 +171,7 @@ export const usersTables = {
     .index("by_status", ["status"])
     .index("by_displayName", ["displayName"])
     .index("by_createdAt", ["createdAt"])
+    .index("by_post_count_ready", ["postCountReady"])
     // Legacy indexes (preserved for backward compatibility)
     .index("by_internal_role", ["internalRole"])
     .index("by_is_internal", ["isInternal"])

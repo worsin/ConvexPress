@@ -30,6 +30,7 @@ import {
   detectClerkPasswordHasher,
   normalizeClerkEmail,
 } from "../../auth/clerkManagementHelpers";
+import { insertWithMediaReferences, patchWithMediaReferences } from "../../media/attachmentGuard";
 
 
 // ─── Source Hash Helper ───────────────────────────────────────────────────
@@ -348,7 +349,7 @@ export const usersCreate = internalMutation({
 
       if (existing) {
         // User exists - just update with WP reference if not set
-        await ctx.db.patch(existing._id, {
+        await patchWithMediaReferences<"users">(ctx, "users", existing._id, {
           ...(!existing.wpUserId ? { wpUserId: wpUser.id } : {}),
           ...(!existing.wpSourceSiteId ? { wpSourceSiteId: siteId } : {}),
           updatedAt: now,
@@ -377,7 +378,7 @@ export const usersCreate = internalMutation({
     }
 
     // Create the user
-    const userId = await ctx.db.insert("users", {
+    const userId: import("../../_generated/dataModel").Id<"users"> = await insertWithMediaReferences<"users">(ctx, "users", {
       // Auth source - imported users don't have external auth
       authSource: "local",
       email: normalizedEmail || `wp-user-${wpUser.id}@imported.local`,
@@ -454,7 +455,7 @@ export const markImportedUserCredentialMigration = internalMutation({
       patch.emailVerified = true;
     }
 
-    await ctx.db.patch(args.userId, patch);
+    await patchWithMediaReferences<"users">(ctx, "users", args.userId, patch);
   },
 });
 

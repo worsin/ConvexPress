@@ -35,6 +35,7 @@ import { SYSTEM, SETTINGS_EVENTS } from "../events/constants";
 import { computeChanges } from "../settings/helpers";
 import { isPluginEnabled, requirePluginEnabled } from "../helpers/plugins";
 import { SECRET_SENTINEL } from "../helpers/settingsSecret";
+import { insertWithMediaReferences, patchWithMediaReferences } from "../media/attachmentGuard";
 
 // ─── Defaults ─────────────────────────────────────────────────────────────────
 
@@ -211,13 +212,13 @@ export const updateSupportSettings = mutation({
 
       if (changes.length > 0) {
         if (existingDoc) {
-          await ctx.db.patch("settings", existingDoc._id, {
+          await patchWithMediaReferences<"settings">(ctx, "settings", existingDoc._id, {
             values: newValues,
             updatedAt: now,
             updatedBy: user._id,
           });
         } else {
-          await ctx.db.insert("settings", {
+          await insertWithMediaReferences<"settings">(ctx, "settings", {
             section: "support.widget",
             values: newValues,
             updatedAt: now,
@@ -255,13 +256,13 @@ export const updateSupportSettings = mutation({
 
       if (changes.length > 0) {
         if (existingDoc) {
-          await ctx.db.patch("settings", existingDoc._id, {
+          await patchWithMediaReferences<"settings">(ctx, "settings", existingDoc._id, {
             values: newValues,
             updatedAt: now,
             updatedBy: user._id,
           });
         } else {
-          await ctx.db.insert("settings", {
+          await insertWithMediaReferences<"settings">(ctx, "settings", {
             section: "support.ai",
             values: newValues,
             updatedAt: now,

@@ -21,10 +21,16 @@
  */
 
 import { v } from "convex/values";
+import {ownerWidgetArgs,ownerWidgetValidator,readOwnerWidget,type OwnerWidgetArgs,type OwnerWidgetSnapshot} from "./ownerQueries";
+import { paginationOptsValidator, type RegisteredQuery } from "convex/server";
+import { lookupSavedProduct, type WishlistLookupArgs, type WishlistLookupPage } from "./lookup";
+import { readRecentWishlistActivity, type RecentWishlistItem } from "./recentActivity";
+import { readWishlistItems } from "./publicItems";
+import { wishlistDetailValidator, sharedWishlistValidator, type WishlistDetail, type SharedWishlist } from "./validators";
 
 import { query } from "../_generated/server";
-import { requireCan, getCurrentUser } from "../helpers/permissions";
-import { requireCommerceWishlistsEnabled } from "./helpers";
+import { requireCan } from "../helpers/permissions";
+import { requireCommerceWishlistsEnabled, getActiveWishlistUser as getCurrentUser } from "./helpers";
 import { isPluginEnabled } from "../helpers/plugins";
 
 // ============================================
@@ -34,38 +40,8 @@ import { isPluginEnabled } from "../helpers/plugins";
 /**
  * Get user's wishlists with item counts
  */
-export const getMyWishlists = query({
-  args: {},
-  handler: async (ctx: any, args: any) => {
-    if (!(await isPluginEnabled(ctx, "commerceWishlists"))) return null;
-    await requireCommerceWishlistsEnabled(ctx);
-
-    const user = await getCurrentUser(ctx);
-    if (!user) return [];
-
-    const wishlists = await ctx.db
-      .query("commerce_wishlists")
-      .withIndex("by_user", (q: any) => q.eq("userId", user._id))
-      .collect();
-
-    const enriched = await Promise.all(
-      wishlists.map(async (wishlist: any) => {
-        const items = await ctx.db
-          .query("commerce_wishlist_items")
-          .withIndex("by_wishlist", (q: any) =>
-            q.eq("wishlistId", wishlist._id),
-          )
-          .collect();
-
-        return {
-          ...wishlist,
-          itemCount: items.length,
-        };
-      }),
-    );
-
-    return enriched;
-  },
+export const getMyWishlists:RegisteredQuery<"public",OwnerWidgetArgs,Promise<OwnerWidgetSnapshot|null>>=query({
+ args:ownerWidgetArgs,returns:ownerWidgetValidator,handler:readOwnerWidget,
 });
 
 /**
@@ -73,55 +49,14 @@ export const getMyWishlists = query({
  */
 export const getWishlist = query({
   args: { wishlistId: v.id("commerce_wishlists") },
-  handler: async (ctx: any, args: any) => {
+  returns: wishlistDetailValidator,
+  handler: async (ctx, args): Promise<WishlistDetail | null> => {
     if (!(await isPluginEnabled(ctx, "commerceWishlists"))) return null;
     await requireCommerceWishlistsEnabled(ctx);
-
-    const wishlist = await ctx.db.get(args.wishlistId);
-    if (!wishlist) return null;
-
-    // Get items
-    const items = await ctx.db
-      .query("commerce_wishlist_items")
-      .withIndex("by_wishlist", (q: any) =>
-        q.eq("wishlistId", args.wishlistId),
-      )
-      .collect();
-
-    // Enrich items with product data
-    const enrichedItems = await Promise.all(
-      items.map(async (item: any) => {
-        const product = await ctx.db.get(item.productId);
-        const variant = item.variantId
-          ? await ctx.db.get(item.variantId)
-          : null;
-
-        // Calculate effective price
-        let effectivePrice = product?.basePrice?.amount || 0;
-        if (variant?.price?.amount) {
-          effectivePrice = variant.price.amount;
-        } else if (product?.salePrice?.amount) {
-          effectivePrice = product.salePrice.amount;
-        }
-
-        return {
-          ...item,
-          product,
-          variant,
-          effectivePrice,
-          isAvailable:
-            product?.status === "publish" &&
-            (!product.trackInventory ||
-              (product.stockQuantity ?? 0) > 0 ||
-              product.allowBackorders),
-        };
-      }),
-    );
-
-    return {
-      ...wishlist,
-      items: enrichedItems.filter((item: any) => item.product),
-    };
+    const user=await getCurrentUser(ctx);if(!user)return null;
+    const wishlist=await ctx.db.get(args.wishlistId);
+    if(!wishlist||wishlist.userId!==user._id)return null;
+    return {_id:wishlist._id,name:wishlist.name,isPublic:wishlist.isPublic,isDefault:wishlist.isDefault,shareToken:wishlist.shareToken,createdAt:wishlist.createdAt,updatedAt:wishlist.updatedAt,items:await readWishlistItems(ctx,wishlist._id)};
   },
 });
 
@@ -129,116 +64,32 @@ export const getWishlist = query({
  * Get shared wishlist (public access, no auth required)
  */
 export const getSharedWishlist = query({
-  args: { shareToken: v.string() },
-  handler: async (ctx: any, args: any) => {
-    if (!(await isPluginEnabled(ctx, "commerceWishlists"))) return null;
+  args: { shareToken:v.string() },
+  returns: sharedWishlistValidator,
+  handler: async(ctx,args): Promise<SharedWishlist | null> => {
+    if(!(await isPluginEnabled(ctx,"commerceWishlists")))return null;
     await requireCommerceWishlistsEnabled(ctx);
-
-    const wishlist = await ctx.db
-      .query("commerce_wishlists")
-      .withIndex("by_share_token", (q: any) =>
-        q.eq("shareToken", args.shareToken),
-      )
-      .unique();
-
-    if (!wishlist || !wishlist.isPublic) {
-      return null;
-    }
-
-    // Get items
-    const items = await ctx.db
-      .query("commerce_wishlist_items")
-      .withIndex("by_wishlist", (q: any) =>
-        q.eq("wishlistId", wishlist._id),
-      )
-      .collect();
-
-    // Enrich with product data
-    const enrichedItems = await Promise.all(
-      items.map(async (item: any) => {
-        const product = await ctx.db.get(item.productId);
-        const variant = item.variantId
-          ? await ctx.db.get(item.variantId)
-          : null;
-
-        let effectivePrice = product?.basePrice?.amount || 0;
-        if (variant?.price?.amount) {
-          effectivePrice = variant.price.amount;
-        } else if (product?.salePrice?.amount) {
-          effectivePrice = product.salePrice.amount;
-        }
-
-        return {
-          ...item,
-          product,
-          variant,
-          effectivePrice,
-        };
-      }),
-    );
-
-    // Get owner info (limited — no private data)
-    const owner = await ctx.db.get(wishlist.userId);
-
-    return {
-      ...wishlist,
-      items: enrichedItems.filter((item: any) => item.product),
-      ownerName: owner?.displayName || owner?.firstName || "Someone",
-    };
+    if(!args.shareToken||args.shareToken.length>256)return null;
+    const wishlist=await ctx.db.query("commerce_wishlists").withIndex("by_share_token",q=>q.eq("shareToken",args.shareToken)).unique();
+    if(!wishlist?.isPublic)return null;
+    const owner=await ctx.db.get(wishlist.userId);if(owner?.status!=="active")return null;
+    const items=(await readWishlistItems(ctx,wishlist._id)).filter(item=>item.product!==null);
+    return {_id:wishlist._id,name:wishlist.name,ownerName:owner.displayName||owner.firstName||"Someone",items};
   },
 });
 
 /**
  * Check if product is in any of the user's wishlists
  */
-export const isInWishlist = query({
-  args: {
-    productId: v.id("commerce_products"),
-    variantId: v.optional(v.id("commerce_product_variants")),
-  },
-  handler: async (ctx: any, args: any) => {
-    if (!(await isPluginEnabled(ctx, "commerceWishlists"))) return { inWishlist: false };
-    await requireCommerceWishlistsEnabled(ctx);
-
-    const user = await getCurrentUser(ctx);
-    if (!user) {
-      return { inWishlist: false };
-    }
-
-    // Get user's wishlists
-    const wishlists = await ctx.db
-      .query("commerce_wishlists")
-      .withIndex("by_user", (q: any) => q.eq("userId", user._id))
-      .collect();
-
-    // Check each wishlist for the product
-    for (const wishlist of wishlists) {
-      const item = await ctx.db
-        .query("commerce_wishlist_items")
-        .withIndex("by_wishlist", (q: any) =>
-          q.eq("wishlistId", wishlist._id),
-        )
-        .filter((q: any) =>
-          args.variantId
-            ? q.and(
-                q.eq(q.field("productId"), args.productId),
-                q.eq(q.field("variantId"), args.variantId),
-              )
-            : q.eq(q.field("productId"), args.productId),
-        )
-        .first();
-
-      if (item) {
-        return {
-          inWishlist: true,
-          wishlistId: wishlist._id,
-          itemId: item._id,
-        };
-      }
-    }
-
-    return { inWishlist: false };
-  },
+export const isInWishlist: RegisteredQuery<"public", WishlistLookupArgs, Promise<WishlistLookupPage>> = query({
+  args: { instanceKey:v.string(), productId:v.id("commerce_products"), variantId:v.optional(v.id("commerce_product_variants")), paginationOpts:paginationOptsValidator },
+  returns: v.object({
+    page:v.array(v.union(v.object({state:v.literal("unavailable")}),v.object({state:v.literal("saved"),wishlistId:v.id("commerce_wishlists"),itemId:v.id("commerce_wishlist_items")}))),
+    isDone:v.boolean(),continueCursor:v.string(),
+    splitCursor:v.optional(v.union(v.string(),v.null())),
+    pageStatus:v.optional(v.union(v.literal("SplitRecommended"),v.literal("SplitRequired"),v.null())),
+  }),
+  handler:lookupSavedProduct,
 });
 
 // ============================================
@@ -364,46 +215,10 @@ export const getPopularItems = query({
  * Get recent wishlist activity (admin only)
  */
 export const getRecentActivity = query({
-  args: {
-    limit: v.optional(v.number()),
-  },
-  handler: async (ctx: any, args: any) => {
-    if (!(await isPluginEnabled(ctx, "commerceWishlists"))) return null;
-    await requireCommerceWishlistsEnabled(ctx);
-    await requireCan(ctx, "commerce.wishlists.manage");
-
-    const limit = args.limit ?? 20;
-
-    // Get recent wishlist items
-    const items = await ctx.db.query("commerce_wishlist_items").collect();
-
-    // Sort by addedAt descending and take limit
-    const recentItems = items
-      .sort((a: any, b: any) => b.addedAt - a.addedAt)
-      .slice(0, limit);
-
-    // Enrich with product and user info
-    const enriched = await Promise.all(
-      recentItems.map(async (item: any) => {
-        const product = await ctx.db.get(item.productId);
-        const wishlist = await ctx.db.get(item.wishlistId);
-        const wishlistUser = wishlist
-          ? await ctx.db.get(wishlist.userId)
-          : null;
-
-        return {
-          _id: item._id,
-          addedAt: item.addedAt,
-          productName: product?.title || "Unknown Product",
-          productSlug: product?.slug,
-          userName:
-            wishlistUser?.displayName ||
-            `${wishlistUser?.firstName || ""} ${wishlistUser?.lastName || ""}`.trim() ||
-            "Unknown User",
-        };
-      }),
-    );
-
-    return enriched;
-  },
+  args: { limit: v.optional(v.number()) },
+  returns: v.union(v.null(), v.array(v.object({
+    _id: v.id("commerce_wishlist_items"), addedAt: v.number(), productName: v.string(),
+    productSlug: v.optional(v.string()), userName: v.string(),
+  }))),
+  handler: async (ctx, args): Promise<RecentWishlistItem[] | null> => readRecentWishlistActivity(ctx, args),
 });

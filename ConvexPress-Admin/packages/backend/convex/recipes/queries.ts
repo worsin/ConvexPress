@@ -1,7 +1,8 @@
-import { ConvexError } from "convex/values";
+import { ConvexError, v } from "convex/values";
 
 import { query } from "../_generated/server";
-import { getCurrentUser } from "../helpers/permissions";
+import { getCurrentUser, currentUserCan } from "../helpers/permissions";
+import { createPublicRecipeReader, publicCategory, publicRecipeCategoryValidator, publicRecipeValidator, publicRecipeListValidator, type PublicRecipe, type PublicRecipeCategory, type PublicRecipeList } from "./publicRead";
 import {
   getRecipeArgs,
   getRecipeBySlugArgs,
@@ -9,6 +10,7 @@ import {
   listRecipesArgs,
 } from "./validators";
 import { isPluginEnabled } from "../helpers/plugins";
+import { recipeTables } from "../schema/recipes";
 
 function slugify(value: string) {
   return value
@@ -34,7 +36,7 @@ async function isRecipesEnabled(ctx: any) {
   return values.recipesEnabled !== false;
 }
 
-async function enrichCategories(ctx: any, categoryIds: readonly string[]) {
+async function enrichCategories(ctx: any, categoryIds: readonly string[]): Promise<Array<{ _id: string; name: string; slug: string; color?: string } | null>> {
   return (
     await Promise.all(
       categoryIds.map(async (categoryId) => {
@@ -54,22 +56,21 @@ async function enrichCategories(ctx: any, categoryIds: readonly string[]) {
   ).filter(Boolean);
 }
 
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
-export const listCategories = query({
+export const listCategories: import("convex/server").RegisteredQuery<"public", Record<string, never>, import("../_generated/dataModel").Doc<"recipe_categories">[] | null> = query({
   args: {},
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.union(v.array(v.object({ _id: v.id("recipe_categories"), _creationTime: v.number(), ...recipeTables.recipe_categories.validator.fields })), v.null()),
   handler: async (ctx) => {
     if (!(await isPluginEnabled(ctx, "recipes"))) return null;
-    const categories = await ctx.db.query("recipe_categories").take(200);
+    const user = await getCurrentUser(ctx);
+    if (!user || user.status !== "active" || !(await currentUserCan(ctx, "post.create") || await currentUserCan(ctx, "post.update") || await currentUserCan(ctx, "manage_options"))) return [];
+    const categories = await ctx.db.query("recipe_categories").withIndex("by_name").take(200);
     categories.sort((a: any, b: any) => a.name.localeCompare(b.name));
     return categories;
   },
 });
 
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
-export const list = query({
+export const list: import("convex/server").RegisteredQuery<"public", { search?: string; status?: import("../_generated/dataModel").Doc<"recipes">["status"] }, Array<import("../_generated/dataModel").Doc<"recipes"> & { categories: Awaited<ReturnType<typeof enrichCategories>> }>> = query({
   args: listRecipesArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "recipes"))) return [];
     const user = await getCurrentUser(ctx);
@@ -104,7 +105,6 @@ export const list = query({
 
     filtered.sort((a: any, b: any) => (b.updatedAt ?? 0) - (a.updatedAt ?? 0));
 
-    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     return Promise.all(
       filtered.map(async (recipe: any) => ({
         ...recipe,
@@ -117,10 +117,8 @@ export const list = query({
   },
 });
 
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
-export const counts = query({
+export const counts: import("convex/server").RegisteredQuery<"public", Record<string, never>, { enabled: boolean; all: number; draft: number; published: number; trash: number } | null> = query({
   args: {},
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx) => {
     if (!(await isPluginEnabled(ctx, "recipes"))) return null;
     const enabled = await isRecipesEnabled(ctx);
@@ -187,115 +185,68 @@ export const get = query({
   },
 });
 
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
-export const listPublished = query({
+/** Legacy numbered-page archive. Refuse overflow instead of claiming a truncated
+ * total is complete. Cursor-based archive replacement remains tracked separately. */
+export const listPublished: import("convex/server").RegisteredQuery<"public", { page?: number; perPage?: number; categorySlug?: string }, PublicRecipeList | null> = query({
   args: listPublicRecipesArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.union(publicRecipeListValidator, v.null()),
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "recipes"))) return null;
-    if (!(await isRecipesEnabled(ctx))) {
-      return {
-        recipes: [],
-        page: 1,
-        perPage: 12,
-        total: 0,
-        totalPages: 0,
-        category: null,
-      };
-    }
-
-    const page = Math.max(1, args.page ?? 1);
-    const perPage = Math.min(24, Math.max(1, args.perPage ?? 12));
-    const allRecipes = await ctx.db.query("recipes").take(1000);
-    const categories = await ctx.db.query("recipe_categories").take(500);
-    const category =
-      args.categorySlug && args.categorySlug.length > 0
-        ? categories.find((entry: any) => entry.slug === args.categorySlug) ?? null
-        : null;
-
-    let filtered = allRecipes.filter((recipe: any) => recipe.status === "publish");
+    const page = Math.max(1, Number.isFinite(args.page) ? Math.floor(args.page ?? 1) : 1);
+    const perPage = Math.min(24, Math.max(1, Number.isFinite(args.perPage) ? Math.floor(args.perPage ?? 12) : 12));
+    const empty: PublicRecipeList = { recipes: [], page, perPage, total: 0, totalPages: 0, category: null };
+    const reader = createPublicRecipeReader(ctx);
+    if (!await reader.allowed("/recipes")) return empty;
+    let category: PublicRecipeCategory | null = null;
     if (args.categorySlug) {
-      filtered = category
-        ? filtered.filter((recipe: any) =>
-            recipe.categoryIds.some(
-              (categoryId: any) => categoryId.toString() === category._id.toString(),
-            ),
-          )
-        : [];
+      const slug = slugify(args.categorySlug);
+      if (!await reader.allowed(`/recipes/category/${slug}`)) return empty;
+      reader.budget.beforeRead();
+      const row = reader.budget.record(await ctx.db.query("recipe_categories").withIndex("by_slug", q => q.eq("slug", slug)).unique());
+      if (!row) return empty;
+      category = publicCategory(row);
     }
-
-    filtered.sort(
-      (a: any, b: any) => (b.publishedAt ?? b.updatedAt) - (a.publishedAt ?? a.updatedAt),
-    );
-
-    const total = filtered.length;
-    const totalPages = total === 0 ? 0 : Math.ceil(total / perPage);
-    const start = (page - 1) * perPage;
-    const items = filtered.slice(start, start + perPage);
-
-    return {
-      recipes: await Promise.all(
-        items.map(async (recipe: any) => ({
-          ...recipe,
-          categories: await enrichCategories(
-            ctx,
-            recipe.categoryIds.map((id: any) => id.toString()),
-          ),
-        })),
-      ),
-      page,
-      perPage,
-      total,
-      totalPages,
-      category,
-    };
+    reader.budget.beforeRead();
+    const rows = await ctx.db.query("recipes").withIndex("by_status_published", q => q.eq("status", "publish").lte("publishedAt", Date.now())).order("desc").take(1001);
+    if (rows.length > 1000) throw new ConvexError({ code: "RECIPE_ARCHIVE_LIMIT", message: "This recipe archive exceeds the numbered-page read limit." });
+    const visible = [];
+    for (const row of rows) {
+      reader.budget.record(row);
+      if (category && !row.categoryIds.includes(category._id)) continue;
+      if (await reader.visible(row)) visible.push(row);
+    }
+    visible.sort((a,b) => (b.publishedAt ?? b.updatedAt) - (a.publishedAt ?? a.updatedAt));
+    const total = visible.length;
+    const recipes: PublicRecipe[] = [];
+    for (const row of visible.slice((page - 1) * perPage, page * perPage)) recipes.push(await reader.project(row));
+    return { recipes, page, perPage, total, totalPages: total === 0 ? 0 : Math.ceil(total / perPage), category };
   },
 });
 
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
-export const getBySlug = query({
+export const getBySlug: import("convex/server").RegisteredQuery<"public", {slug:string}, PublicRecipe | null> = query({
   args: getRecipeBySlugArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.union(publicRecipeValidator, v.null()),
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "recipes"))) return null;
-    if (!(await isRecipesEnabled(ctx))) {
-      return null;
-    }
-
-    const recipe = await ctx.db
-      .query("recipes")
-      .withIndex("by_slug", (q: any) => q.eq("slug", slugify(args.slug)))
-      .unique();
-
-    if (!recipe || recipe.status !== "publish") {
-      return null;
-    }
-
-    return {
-      ...recipe,
-      categories: await enrichCategories(
-        ctx,
-        recipe.categoryIds.map((id: any) => id.toString()),
-      ),
-    };
+    const reader = createPublicRecipeReader(ctx);
+    const slug = slugify(args.slug);
+    if (!await reader.allowed("/recipes") || !await reader.allowed(`/recipes/${slug}`)) return null;
+    reader.budget.beforeRead();
+    const recipe = reader.budget.record(await ctx.db.query("recipes").withIndex("by_slug", q => q.eq("slug", slug)).unique());
+    return recipe && await reader.visible(recipe) ? reader.project(recipe) : null;
   },
 });
 
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
-export const getCategoryBySlug = query({
+export const getCategoryBySlug: import("convex/server").RegisteredQuery<"public", {slug:string}, PublicRecipeCategory | null> = query({
   args: { slug: getRecipeBySlugArgs.slug },
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.union(publicRecipeCategoryValidator, v.null()),
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "recipes"))) return null;
-    if (!(await isRecipesEnabled(ctx))) {
-      return null;
-    }
-
-    return (
-      (await ctx.db
-        .query("recipe_categories")
-        .withIndex("by_slug", (q: any) => q.eq("slug", slugify(args.slug)))
-        .unique()) ?? null
-    );
+    const reader = createPublicRecipeReader(ctx);
+    const slug = slugify(args.slug);
+    if (!await reader.allowed("/recipes") || !await reader.allowed(`/recipes/category/${slug}`)) return null;
+    reader.budget.beforeRead();
+    const category = reader.budget.record(await ctx.db.query("recipe_categories").withIndex("by_slug", q => q.eq("slug", slug)).unique());
+    return category ? publicCategory(category) : null;
   },
 });

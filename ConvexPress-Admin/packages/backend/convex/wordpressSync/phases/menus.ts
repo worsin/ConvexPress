@@ -437,7 +437,7 @@ export const menusCreate = internalMutation({
     };
 
     if (existingId) {
-      await ctx.db.patch(existingId as Id<"menus">, fields);
+      await ctx.db.patch("menus", existingId as Id<"menus">, fields);
       return existingId;
     }
 
@@ -448,7 +448,7 @@ export const menusCreate = internalMutation({
       .first();
 
     if (existing) {
-      await ctx.db.patch(existing._id, fields);
+      await ctx.db.patch("menus", existing._id, fields);
       return existing._id;
     }
 
@@ -522,7 +522,7 @@ export const menusCreateItem = internalMutation({
     };
 
     if (existingId) {
-      await ctx.db.patch(existingId as Id<"menuItems">, fields);
+      await ctx.db.patch("menuItems", existingId as Id<"menuItems">, fields);
       return existingId;
     }
 
@@ -542,7 +542,7 @@ export const menusUpdateCount = internalMutation({
     count: v.number(),
   },
   handler: async (ctx, { menuId, count }) => {
-    await ctx.db.patch(menuId as Id<"menus">, {
+    await ctx.db.patch("menus", menuId as Id<"menus">, {
       itemCount: count,
       updatedAt: Date.now(),
     });

@@ -263,3 +263,19 @@ export const logSearchQueryArgs = {
   categoryFilter: v.optional(v.string()),
   tagFilter: v.optional(v.string()),
 };
+
+
+/** Closed website result contract. Cached source records never cross this DTO. */
+export const publicSearchResultValidator = v.object({
+  results: v.array(v.object({
+    contentType: searchableContentTypeValidator, contentId: v.string(), title: v.string(), excerpt: v.string(),
+    url: v.string(), authorName: v.string(), publishedAt: v.union(v.number(), v.null()),
+    categoryNames: v.optional(v.array(v.string())), tagNames: v.optional(v.array(v.string())), mimeType: v.optional(v.string()),
+  })),
+  query: v.string(), total: v.number(), page: v.number(), perPage: v.number(), totalPages: v.number(),
+  filters: v.object({contentType: v.optional(searchableContentTypeValidator), category: v.optional(v.string()),
+    tag: v.optional(v.string()), author: v.optional(v.string()), dateFrom: v.optional(v.number()), dateTo: v.optional(v.number())}),
+});
+export const publicSuggestionsValidator = v.object({suggestions: v.array(v.object({
+  text: v.string(), type: v.literal("content"), contentType: searchableContentTypeValidator,
+}))});

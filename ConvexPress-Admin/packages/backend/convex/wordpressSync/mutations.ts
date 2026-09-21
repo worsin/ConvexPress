@@ -17,6 +17,8 @@ import {
   normalizeSiteUrl,
   validateSiteUrl,
 } from "./validators";
+import { deleteDynamicWithMediaReferences } from "../media/attachmentGuard";
+
 
 // Environment variable for encrypting application passwords
 const WP_ENCRYPTION_KEY = process.env.WP_SYNC_ENCRYPTION_KEY;
@@ -49,7 +51,7 @@ async function deleteImportArtifactsForJob(ctx: any, jobId: any) {
       .take(ARTIFACT_DELETE_BATCH_SIZE);
 
     for (const report of reportBatch) {
-      await ctx.db.delete(report._id);
+      await deleteDynamicWithMediaReferences(ctx, report._id);
       reportsDeleted++;
     }
   } while (reportBatch.length === ARTIFACT_DELETE_BATCH_SIZE);
@@ -61,7 +63,7 @@ async function deleteImportArtifactsForJob(ctx: any, jobId: any) {
       .take(ARTIFACT_DELETE_BATCH_SIZE);
 
     for (const finding of findingBatch) {
-      await ctx.db.delete(finding._id);
+      await deleteDynamicWithMediaReferences(ctx, finding._id);
       findingsDeleted++;
     }
   } while (findingBatch.length === ARTIFACT_DELETE_BATCH_SIZE);
@@ -82,7 +84,7 @@ async function deleteImportArtifactsForSite(ctx: any, siteId: any) {
       .take(ARTIFACT_DELETE_BATCH_SIZE);
 
     for (const report of reportBatch) {
-      await ctx.db.delete(report._id);
+      await deleteDynamicWithMediaReferences(ctx, report._id);
       reportsDeleted++;
     }
   } while (reportBatch.length === ARTIFACT_DELETE_BATCH_SIZE);
@@ -94,7 +96,7 @@ async function deleteImportArtifactsForSite(ctx: any, siteId: any) {
       .take(ARTIFACT_DELETE_BATCH_SIZE);
 
     for (const finding of findingBatch) {
-      await ctx.db.delete(finding._id);
+      await deleteDynamicWithMediaReferences(ctx, finding._id);
       findingsDeleted++;
     }
   } while (findingBatch.length === ARTIFACT_DELETE_BATCH_SIZE);
@@ -312,7 +314,7 @@ export const updateSite = mutation({
         : undefined;
     }
 
-    await ctx.db.patch(siteId, updates);
+    await ctx.db.patch("wordpressSites", siteId, updates);
     return siteId;
   },
 });
@@ -355,7 +357,7 @@ export const deleteSite = mutation({
         .take(DELETE_BATCH_SIZE);
 
       for (const job of jobBatch) {
-        await ctx.db.delete(job._id);
+        await ctx.db.delete("wordpressSyncJobs", job._id);
         jobsDeleted++;
       }
     } while (jobBatch.length === DELETE_BATCH_SIZE);
@@ -371,13 +373,13 @@ export const deleteSite = mutation({
         .take(DELETE_BATCH_SIZE);
 
       for (const mapping of mappingBatch) {
-        await ctx.db.delete(mapping._id);
+        await ctx.db.delete("wpIdMappings", mapping._id);
         mappingsDeleted++;
       }
     } while (mappingBatch.length === DELETE_BATCH_SIZE);
 
     // Delete the site
-    await ctx.db.delete(siteId);
+    await ctx.db.delete("wordpressSites", siteId);
 
     return { deleted: true, jobsDeleted, mappingsDeleted, ...artifactsDeleted };
   },
@@ -430,7 +432,7 @@ export const updateConnectionTest = mutation({
       updates.connectionError = error || "Connection failed";
     }
 
-    await ctx.db.patch(siteId, updates);
+    await ctx.db.patch("wordpressSites", siteId, updates);
     return siteId;
   },
 });
@@ -527,7 +529,7 @@ export const startJob = mutation({
       throw new ConvexError(`Cannot start job in ${job.status} status`);
     }
 
-    await ctx.db.patch(jobId, {
+    await ctx.db.patch("wordpressSyncJobs", jobId, {
       status: "running",
       startedAt: job.startedAt || Date.now(),
       pausedAt: undefined,
@@ -560,7 +562,7 @@ export const pauseJob = mutation({
       throw new ConvexError(`Cannot pause job in ${job.status} status`);
     }
 
-    await ctx.db.patch(jobId, {
+    await ctx.db.patch("wordpressSyncJobs", jobId, {
       status: "paused",
       pausedAt: Date.now(),
       updatedAt: Date.now(),
@@ -594,7 +596,7 @@ export const cancelJob = mutation({
 
     const now = Date.now();
 
-    await ctx.db.patch(jobId, {
+    await ctx.db.patch("wordpressSyncJobs", jobId, {
       status: "cancelled",
       completedAt: now,
       updatedAt: now,
@@ -631,7 +633,7 @@ export const deleteJob = mutation({
 
     const artifactsDeleted = await deleteImportArtifactsForJob(ctx, jobId);
 
-    await ctx.db.delete(jobId);
+    await ctx.db.delete("wordpressSyncJobs", jobId);
     return { deleted: true, ...artifactsDeleted };
   },
 });
@@ -674,7 +676,7 @@ export const clearMappings = mutation({
         .take(DELETE_BATCH_SIZE);
 
       for (const mapping of batch) {
-        await ctx.db.delete(mapping._id);
+        await ctx.db.delete("wpIdMappings", mapping._id);
         cleared++;
       }
     } while (batch.length === DELETE_BATCH_SIZE);

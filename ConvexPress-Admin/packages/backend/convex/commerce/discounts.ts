@@ -340,7 +340,7 @@ export const bulkSetStatus = mutation({
 		for (const id of args.discountIds) {
 			const existing = await ctx.db.get(id);
 			if (!existing) continue;
-			await ctx.db.patch(id, { status: args.status, updatedAt: now });
+			await ctx.db.patch("commerce_discount_codes", id, { status: args.status, updatedAt: now });
 			count++;
 		}
 		return { count };
@@ -358,7 +358,7 @@ export const bulkDelete = mutation({
 		for (const id of args.discountIds) {
 			const existing = await ctx.db.get(id);
 			if (!existing) continue;
-			await ctx.db.delete(id);
+			await ctx.db.delete("commerce_discount_codes", id);
 			count++;
 		}
 		return { count };

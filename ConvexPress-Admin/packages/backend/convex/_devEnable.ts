@@ -4,6 +4,7 @@
  */
 import { internalMutation } from "./_generated/server";
 import { ConvexError, v } from "convex/values";
+import { insertWithMediaReferences, patchWithMediaReferences } from "./media/attachmentGuard";
 
 function assertDevInternalsEnabled() {
   if (process.env.CONVEXPRESS_ENABLE_DEV_INTERNALS !== "true") {
@@ -40,13 +41,13 @@ export const enableCommercePlugins = internalMutation({
     };
     const now = Date.now();
     if (existing) {
-      await ctx.db.patch(existing._id, {
+      await patchWithMediaReferences<"settings">(ctx, "settings", existing._id, {
         values: { ...((existing as any).values ?? {}), ...enabled },
         updatedAt: now,
       });
       return { updated: true };
     }
-    await ctx.db.insert("settings", {
+    await insertWithMediaReferences<"settings">(ctx, "settings", {
       section: "plugins",
       values: enabled,
       createdAt: now,

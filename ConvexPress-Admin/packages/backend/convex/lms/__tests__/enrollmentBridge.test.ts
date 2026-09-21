@@ -39,6 +39,7 @@ function createQuery(rows: Row[]) {
 function createCtx(tables: Tables) {
   return {
     db: {
+      normalizeId: (table: string, id: string) => (tables[table] ?? []).some(row => row._id === id) ? id : null,
       get: async (id: string) => {
         for (const rows of Object.values(tables)) {
           const row = rows.find((candidate) => candidate._id === id);

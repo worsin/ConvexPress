@@ -1,3 +1,4 @@
+import { activePriceAmount } from "./activePrice";
 /**
  * Pure variant helper functions extracted from products.ts and migrations.ts.
  * These have no Convex runtime dependencies and are fully unit-testable.
@@ -73,6 +74,8 @@ export interface VariantRecord {
   selectionKey?: string;
   price?: Money;
   salePrice?: Money;
+  salePriceFrom?: number;
+  salePriceTo?: number;
   stockQuantity?: number;
   isDefault?: boolean;
   createdAt?: number;
@@ -287,10 +290,8 @@ export function inferSelectionsFromOptionSummary(
 // ────────────────────────────────────────────────────────────────────
 
 export function getVariantDisplayPrice(variant: VariantRecord | undefined): number {
-  if (!variant) return Number.POSITIVE_INFINITY;
-  return typeof variant.salePrice?.amount === "number"
-    ? variant.salePrice.amount
-    : (variant.price?.amount ?? Number.POSITIVE_INFINITY);
+  if (!variant?.price) return Number.POSITIVE_INFINITY;
+  return activePriceAmount(variant.price, variant.salePrice, variant);
 }
 
 // ────────────────────────────────────────────────────────────────────

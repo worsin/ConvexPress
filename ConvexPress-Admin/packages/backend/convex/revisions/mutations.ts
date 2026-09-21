@@ -17,11 +17,14 @@
  * to avoid duplication (issue #59).
  */
 
+import { deleteWithMediaReferences, insertWithMediaReferences, patchWithMediaReferences } from "../media/attachmentGuard";
 import { ConvexError } from "convex/values";
 import { mutation } from "../_generated/server";
 import { requireCan , getUserIdentifier } from "../helpers/permissions";
 import { emitEvent } from "../helpers/events";
 import { REVISION_EVENTS, SYSTEM } from "../events/constants";
+import { POST_EVENTS, PAGE_EVENTS } from "../events/constants";
+import { AUTHORING_FIELDS, authoringSnapshot, restoredAuthoring } from "../helpers/authoringSnapshot";
 import { getNextRevisionNumber, getRevisionSettings, requireRevisionAccess } from "../helpers/revisions";
 import {
   restoreRevisionArgs,
@@ -96,12 +99,12 @@ export const restore = mutation({
     );
 
     // Determine which fields will change
-    const changedFields: string[] = [];
-    if (revision.title !== post.title) changedFields.push("title");
-    if (revision.content !== (post.content ?? "")) changedFields.push("content");
-    if ((revision.excerpt ?? "") !== (post.excerpt ?? "")) changedFields.push("excerpt");
+    const restored = restoredAuthoring(revision);
+    const changedFields = AUTHORING_FIELDS.filter((field) => JSON.stringify(restored[field]) !== JSON.stringify(post[field]));
 
-    await ctx.db.insert("revisions", {
+    await insertWithMediaReferences<"revisions">(ctx, "revisions", {
+      ...authoringSnapshot(post),
+      snapshotVersion: 2,
       parentId: revision.parentId,
       parentType: revision.parentType,
       title: post.title,
@@ -117,16 +120,22 @@ export const restore = mutation({
 
     // ── Step 2: Copy revision snapshot fields to parent post ────────────
     const now = Date.now();
-    await ctx.db.patch("posts", revision.parentId, {
-      title: revision.title,
-      content: revision.content,
-      excerpt: revision.excerpt,
+    await patchWithMediaReferences<"posts">(ctx, "posts", revision.parentId, {
+      ...restored,
+      blocksRevision: (post.blocksRevision ?? 0) + 1,
       updatedAt: now,
       // Clear autosave fields
       autosaveContent: undefined,
       autosaveTitle: undefined,
       autosavedAt: undefined,
     });
+
+    // Existing post/page listeners refresh search, feeds and rendered content.
+    await emitEvent(ctx, post.type === "page" ? PAGE_EVENTS.UPDATED : POST_EVENTS.UPDATED,
+      post.type === "page" ? SYSTEM.PAGE : SYSTEM.POST, {
+        postId: post._id, ...(post.type === "page" ? { pageId: post._id } : {}),
+        title: revision.title, authorId, changedFields, changes: changedFields,
+      });
 
     // ── Step 3: Prune excess revisions ──────────────────────────────────
     const { maxRevisions } = await getRevisionSettings(ctx);
@@ -144,7 +153,7 @@ export const restore = mutation({
         manualRevisions.sort((a, b) => a.revisionNumber - b.revisionNumber);
         const toDelete = manualRevisions.length - maxRevisions;
         for (let i = 0; i < toDelete; i++) {
-          await ctx.db.delete("revisions", manualRevisions[i]._id);
+          await deleteWithMediaReferences<"revisions">(ctx, "revisions", manualRevisions[i]._id);
         }
       }
     }
@@ -192,7 +201,7 @@ export const deleteRevision = mutation({
     }
 
     // ── Delete ──────────────────────────────────────────────────────────
-    await ctx.db.delete("revisions", args.revisionId);
+    await deleteWithMediaReferences<"revisions">(ctx, "revisions", args.revisionId);
 
     return { success: true };
   },

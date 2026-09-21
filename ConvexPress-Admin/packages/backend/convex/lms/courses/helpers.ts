@@ -79,7 +79,7 @@ export async function upsertCourseSearchIndex(
     .unique();
 
   if (course.status === "archived") {
-    if (existing) await ctx.db.delete(existing._id);
+    if (existing) await ctx.db.delete("searchIndex", existing._id);
     return;
   }
 
@@ -124,7 +124,7 @@ export async function upsertCourseSearchIndex(
   };
 
   if (existing) {
-    await ctx.db.patch(existing._id, payload);
+    await ctx.db.patch("searchIndex", existing._id, payload);
   } else {
     await ctx.db.insert("searchIndex", payload);
   }
@@ -140,5 +140,5 @@ export async function deleteCourseSearchIndex(
       q.eq("contentType", "course").eq("contentId", String(courseId)),
     )
     .unique();
-  if (existing) await ctx.db.delete(existing._id);
+  if (existing) await ctx.db.delete("searchIndex", existing._id);
 }

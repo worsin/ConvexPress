@@ -38,6 +38,8 @@ import {
 	hasExplicitSubscriptionEnablement,
 } from "./pricing";
 import { subscriptionIntervalValidator } from "./validators";
+import { patchDynamicWithMediaReferences, deleteDynamicWithMediaReferences } from "../media/attachmentGuard";
+
 
 // ═══════════════════════════════════════════════════════════════════════════
 // TYPES & CONSTANTS
@@ -239,7 +241,7 @@ async function syncEntitlementsForStatus(
 			subscription.status === "active" ||
 			subscription.status === "trialing"
 		) {
-			await ctx.db.patch(entitlement._id, {
+			await patchDynamicWithMediaReferences(ctx, entitlement._id, {
 				status: "active",
 				endsAt: undefined,
 				updatedAt: now,
@@ -248,7 +250,7 @@ async function syncEntitlementsForStatus(
 			subscription.status === "past_due" ||
 			subscription.status === "paused"
 		) {
-			await ctx.db.patch(entitlement._id, {
+			await patchDynamicWithMediaReferences(ctx, entitlement._id, {
 				status: "grace",
 				graceEndsAt: addDays(now, gracePeriodDays),
 				updatedAt: now,
@@ -257,7 +259,7 @@ async function syncEntitlementsForStatus(
 			subscription.status === "cancelled" ||
 			subscription.status === "expired"
 		) {
-			await ctx.db.patch(entitlement._id, {
+			await patchDynamicWithMediaReferences(ctx, entitlement._id, {
 				status: "revoked",
 				endsAt: now,
 				updatedAt: now,
@@ -404,7 +406,7 @@ async function claimIdempotencyKey(
 
 async function finalizeIdempotency(ctx: any, claim: any, response: any) {
 	if (claim.mode !== "claimed") return;
-	await ctx.db.patch(claim.id, {
+	await patchDynamicWithMediaReferences(ctx, claim.id, {
 		status: "completed",
 		resultRef: JSON.stringify(response),
 		updatedAt: Date.now(),
@@ -413,7 +415,7 @@ async function finalizeIdempotency(ctx: any, claim: any, response: any) {
 
 async function failIdempotency(ctx: any, claim: any) {
 	if (claim.mode !== "claimed") return;
-	await ctx.db.patch(claim.id, {
+	await patchDynamicWithMediaReferences(ctx, claim.id, {
 		status: "failed",
 		updatedAt: Date.now(),
 	});
@@ -443,7 +445,7 @@ async function transitionSubscription(ctx: any, args: any) {
 		patch.cancelledAt = now;
 	}
 
-	await ctx.db.patch(args.subscription._id, patch);
+	await patchDynamicWithMediaReferences(ctx, args.subscription._id, patch);
 	const updated = await ctx.db.get(args.subscription._id);
 	if (!updated) throw new Error("Subscription not found after transition");
 
@@ -630,7 +632,7 @@ export const updateTemplate = mutation({
 			patch.version = (template.version ?? 0) + 1;
 		}
 
-		await ctx.db.patch(args.templateId, patch);
+		await ctx.db.patch("commerce_subscription_templates", args.templateId, patch);
 		return args.templateId;
 	},
 });
@@ -705,7 +707,7 @@ export const setProductOverride = mutation({
 		};
 
 		if (existing) {
-			await ctx.db.patch(existing._id, payload);
+			await patchDynamicWithMediaReferences(ctx, existing._id, payload);
 			return existing._id;
 		}
 
@@ -739,7 +741,7 @@ export const removeProductOverride = mutation({
 			});
 		}
 
-		await ctx.db.delete(existing._id);
+		await deleteDynamicWithMediaReferences(ctx, existing._id);
 		return { success: true };
 	},
 });
@@ -1313,7 +1315,7 @@ export const updateSubscription = mutation({
 		if (args.nextBillingAt !== undefined)
 			patch.nextBillingAt = args.nextBillingAt;
 
-		await ctx.db.patch(args.subscriptionId, patch);
+		await ctx.db.patch("commerce_subscriptions", args.subscriptionId, patch);
 
 		await writeHistory(ctx, {
 			subscriptionId: args.subscriptionId,
@@ -1403,7 +1405,7 @@ export const revokeEntitlement = mutation({
 		}
 
 		const now = Date.now();
-		await ctx.db.patch(args.entitlementId, {
+		await ctx.db.patch("commerce_subscription_entitlements", args.entitlementId, {
 			status: "revoked",
 			endsAt: now,
 			updatedAt: now,
@@ -1465,7 +1467,7 @@ export const updateOrderForm = mutation({
 		const patch: Record<string, unknown> = { updatedAt: Date.now() };
 		if (rest.title !== undefined) patch.title = rest.title;
 		if (rest.status !== undefined) patch.status = rest.status;
-		await ctx.db.patch(orderFormId, patch);
+		await ctx.db.patch("commerce_subscription_order_forms", orderFormId, patch);
 		return { success: true };
 	},
 });

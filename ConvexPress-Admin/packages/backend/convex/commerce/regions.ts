@@ -3,6 +3,8 @@ import { ConvexError, v } from "convex/values";
 
 import { mutation, query } from "../_generated/server";
 import { requireCan } from "../helpers/permissions";
+import { patchDynamicWithMediaReferences } from "../media/attachmentGuard";
+
 
 const regionArgs = {
   name: v.string(),
@@ -20,7 +22,7 @@ async function clearDefault(ctx: any, table: string, currentId?: any) {
     .collect();
   for (const record of current) {
     if (!currentId || record._id.toString() !== currentId.toString()) {
-      await ctx.db.patch(record._id, { isDefault: false, updatedAt: Date.now() });
+      await patchDynamicWithMediaReferences(ctx, record._id, { isDefault: false, updatedAt: Date.now() });
     }
   }
 }
@@ -56,7 +58,7 @@ export const update = mutation({
     const region = await ctx.db.get(args.regionId);
     if (!region) throw new ConvexError({ code: "NOT_FOUND", message: "Region not found." });
     if (args.patch.isDefault) await clearDefault(ctx, "commerce_regions", args.regionId);
-    await ctx.db.patch(args.regionId, {
+    await ctx.db.patch("commerce_regions", args.regionId, {
       ...args.patch,
       currencyCode: args.patch.currencyCode.toUpperCase(),
       countryCodes: args.patch.countryCodes.map((code) => code.toUpperCase()),

@@ -398,7 +398,7 @@ export const updateOffer = mutation({
       }
     }
 
-    await ctx.db.patch(args.offerId, patch);
+    await ctx.db.patch("commerce_subscription_offers", args.offerId, patch);
     return args.offerId;
   },
 });
@@ -429,7 +429,7 @@ export const archiveOffer = mutation({
     }
 
     const now = Date.now();
-    await ctx.db.patch(args.offerId, {
+    await ctx.db.patch("commerce_subscription_offers", args.offerId, {
       status: "archived",
       updatedAt: now,
     });

@@ -1,5 +1,7 @@
+import { assertCheckoutAccess } from "../commerce/shopperAccess";
 // @ts-nocheck
 import { v } from "convex/values";
+import { publicShippingQuote, publicShippingQuoteValidator } from "./quoteProvenance";
 
 import { query } from "../_generated/server";
 import { requireCan } from "../helpers/permissions";
@@ -105,6 +107,7 @@ export const listCheckoutQuotes = query({
   args: {
     sessionToken: v.string(),
   },
+  returns:v.array(publicShippingQuoteValidator),
   handler: async (ctx, args) => {
     await requireCommerceEnabled(ctx);
 
@@ -120,6 +123,7 @@ export const listCheckoutQuotes = query({
       null;
 
     if (!checkoutSession) return [];
+    await assertCheckoutAccess(ctx, checkoutSession, args.sessionToken);
 
     const cartItems = await ctx.db
       .query("commerce_cart_items")
@@ -153,7 +157,7 @@ export const listCheckoutQuotes = query({
       return (a.estimatedDaysMax ?? 9999) - (b.estimatedDaysMax ?? 9999);
     });
 
-    return quotes;
+    return quotes.map(publicShippingQuote);
   },
 });
 

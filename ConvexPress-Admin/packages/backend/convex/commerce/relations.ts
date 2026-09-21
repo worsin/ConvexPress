@@ -21,6 +21,8 @@ import {
   productRelationTypeValidator,
 } from "../schema/commerceAssistant";
 import { requireCommerceEnabled } from "./helpers";
+import { patchDynamicWithMediaReferences, deleteDynamicWithMediaReferences } from "../media/attachmentGuard";
+
 
 export type RelationType =
   | "accessory_of"
@@ -107,7 +109,7 @@ async function upsertRelation(
     )
     .unique();
   if (existing) {
-    await ctx.db.patch(existing._id, {
+    await patchDynamicWithMediaReferences(ctx, existing._id, {
       weight: clampWeight(input.weight ?? existing.weight),
       source: input.source,
       evidence: input.evidence ?? existing.evidence,
@@ -189,7 +191,7 @@ export const setStatus = mutation({
   handler: async (ctx: any, args: any) => {
     await requireCommerceEnabled(ctx);
     await requireCan(ctx, "manage_options");
-    await ctx.db.patch(args.relationId, { status: args.status, updatedAt: Date.now() });
+    await patchDynamicWithMediaReferences(ctx, args.relationId, { status: args.status, updatedAt: Date.now() });
   },
 });
 
@@ -198,7 +200,7 @@ export const remove = mutation({
   handler: async (ctx: any, args: any) => {
     await requireCommerceEnabled(ctx);
     await requireCan(ctx, "manage_options");
-    await ctx.db.delete(args.relationId);
+    await deleteDynamicWithMediaReferences(ctx, args.relationId);
   },
 });
 

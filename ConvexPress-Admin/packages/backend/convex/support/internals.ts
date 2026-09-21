@@ -94,10 +94,8 @@ export const cleanupOldLogs = internalMutation({
  * Returns published articles only, with normalized relevance scores.
  * Called by the generateAnswer action in deflection.ts.
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
-export const searchKbConvex = internalQuery({
+export const searchKbConvex: import("convex/server").RegisteredQuery<"internal", { query: string }, Array<{ id: string; title: string; excerpt: import("../_generated/dataModel").Doc<"kb_articles">["excerpt"]; slug: string; score: number }>> = internalQuery({
   args: { query: v.string() },
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, { query }) => {
     if (
       !(await isPluginEnabled(ctx, "tickets")) ||
@@ -108,12 +106,10 @@ export const searchKbConvex = internalQuery({
     const results = await ctx.db
       .query("kb_articles")
       .withSearchIndex("search_articles", (q) =>
-        // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
         q.search("contentPlainText", query).eq("status", "published"),
       )
       .take(10);
 
-    // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
     return results.map((article, index) => ({
       id: String(article._id),
       title: article.title,

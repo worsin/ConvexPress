@@ -39,7 +39,8 @@ export const membershipTables = {
     updatedAt: v.number(),
   })
     .index("by_slug", ["slug"])
-    .index("by_status", ["status"]),
+    .index("by_status", ["status"])
+    .index("by_status_priority", ["status", "priority"]),
 
   membership_plan_benefits: defineTable({
     planId: v.id("membership_plans"),
@@ -50,7 +51,9 @@ export const membershipTables = {
     metadata: v.optional(v.any()),
     createdAt: v.number(),
     updatedAt: v.number(),
-  }).index("by_plan", ["planId"]),
+  })
+    .index("by_plan", ["planId"])
+    .index("by_plan_display_feature", ["planId", "displayAsFeature"]),
 
   membership_grants: defineTable({
     userId: v.id("users"),
@@ -73,7 +76,9 @@ export const membershipTables = {
   })
     .index("by_user", ["userId"])
     .index("by_plan", ["planId"])
-    .index("by_user_status", ["userId", "status"]),
+    .index("by_user_status", ["userId", "status"])
+    .index("by_status_ends", ["status", "endsAt"])
+    .index("by_status_grace_ends", ["status", "graceEndsAt"]),
 
   membership_restriction_rules: defineTable({
     resourceType: v.union(
@@ -85,6 +90,8 @@ export const membershipTables = {
       v.literal("block"),
     ),
     resourceIdOrKey: v.string(),
+    // Independent policy groups are ANDed; legacy ungrouped rules remain one group.
+    policyGroup: v.optional(v.string()),
     ruleMode: membershipRestrictionModeValidator,
     planIds: v.array(v.id("membership_plans")),
     requiredCapabilities: v.optional(v.array(v.string())),
@@ -100,6 +107,22 @@ export const membershipTables = {
   })
     .index("by_resource", ["resourceType", "resourceIdOrKey"]),
 
+  membership_enrollment_repairs: defineTable({
+    userId: v.id("users"),
+    planId: v.id("membership_plans"),
+    version: v.number(),
+    afterTime: v.union(v.number(), v.null()),
+    afterId: v.union(v.string(), v.null()),
+    horizonTime: v.union(v.number(), v.null()),
+    horizonId: v.union(v.string(), v.null()),
+    restart: v.boolean(),
+    attempts: v.number(),
+    nextRetryAt: v.number(),
+    lastError: v.optional(v.string()),
+  })
+    .index("by_user_plan", ["userId", "planId"])
+    .index("by_retry", ["nextRetryAt"]),
+
   membership_access_log: defineTable({
     userId: v.optional(v.id("users")),
     resourceType: v.string(),
@@ -110,5 +133,6 @@ export const membershipTables = {
     createdAt: v.number(),
   })
     .index("by_user", ["userId"])
-    .index("by_resource", ["resourceType", "resourceIdOrKey"]),
+    .index("by_resource", ["resourceType", "resourceIdOrKey"])
+    .index("by_created", ["createdAt"]),
 };

@@ -2,6 +2,8 @@
  * AI Course Generation - public mutations.
  */
 
+import { patchWithMediaReferences } from "../../media/attachmentGuard";
+import { insertWithMediaReferences } from "../../media/attachmentGuard";
 import { ConvexError, v } from "convex/values";
 import { internal } from "../../_generated/api";
 import { mutation } from "../../_generated/server";
@@ -46,7 +48,7 @@ export const approveOutline = mutation({
     let topicCount = 0;
     let lessonCount = 0;
     for (const topic of outline.topics) {
-      const topicId = await ctx.db.insert("lms_nodes", {
+      const topicId: import("../../_generated/dataModel").Id<"lms_nodes"> = await insertWithMediaReferences<"lms_nodes">(ctx, "lms_nodes", {
         courseId: generation.courseId,
         kind: "topic",
         title: topic.title || "Untitled topic",
@@ -58,7 +60,7 @@ export const approveOutline = mutation({
       topicCount++;
       let lPos = 1;
       for (const lesson of topic.lessons) {
-        const lessonId = await ctx.db.insert("lms_nodes", {
+        const lessonId: import("../../_generated/dataModel").Id<"lms_nodes"> = await insertWithMediaReferences<"lms_nodes">(ctx, "lms_nodes", {
           courseId: generation.courseId,
           parentId: topicId,
           kind: "lesson",
@@ -92,12 +94,12 @@ export const approveOutline = mutation({
       }
     }
 
-    await ctx.db.patch(generation.courseId, {
+    await patchWithMediaReferences<"lms_courses">(ctx, "lms_courses", generation.courseId, {
       topicCount: existingTopics.length + topicCount,
       lessonCount: existingLessons.length + lessonCount,
       updatedAt: now,
     });
-    await ctx.db.patch(args.generationId, {
+    await ctx.db.patch("lms_ai_generations", args.generationId, {
       reviewStatus: "reviewed",
       reviewedBy: user._id,
       reviewedAt: now,
@@ -153,18 +155,18 @@ export const applyLessonGeneration = mutation({
     }
 
     const now = Date.now();
-    await ctx.db.insert("lms_lessonVersions", {
+    await insertWithMediaReferences<"lms_lessonVersions">(ctx, "lms_lessonVersions", {
       nodeId,
       bodyDoc: node.bodyDoc ?? textToDoc(""),
       snapshotJson: lessonSnapshot(node),
       editedBy: user._id,
       createdAt: now,
     });
-    await ctx.db.patch(nodeId, {
+    await patchWithMediaReferences<"lms_nodes">(ctx, "lms_nodes", nodeId, {
       bodyDoc: textToDoc(generatedBody),
       updatedAt: now,
     });
-    await ctx.db.patch(args.generationId, {
+    await ctx.db.patch("lms_ai_generations", args.generationId, {
       reviewStatus: "reviewed",
       reviewedBy: user._id,
       reviewedAt: now,

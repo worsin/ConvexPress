@@ -16,6 +16,7 @@ import { internalMutation, internalQuery } from "../_generated/server";
 import type { Id } from "../_generated/dataModel";
 import { v } from "convex/values";
 import { isPluginEnabled, requirePluginEnabled } from "../helpers/plugins";
+import { deleteWithMediaReferences } from "../media/attachmentGuard";
 
 // ─── Cleanup Functions ──────────────────────────────────────────────────────
 
@@ -45,7 +46,7 @@ export const deleteFieldValuesForEntity = internalMutation({
 
     let deleted = 0;
     for (const value of values) {
-      await ctx.db.delete("fieldValues", value._id);
+      await deleteWithMediaReferences<"fieldValues">(ctx, "fieldValues", value._id);
       deleted++;
     }
 
@@ -69,7 +70,7 @@ export const deleteFieldValuesForEntity = internalMutation({
         let metaDeleted = 0;
         for (const meta of metaEntries) {
           if (fieldNames.has(meta.key)) {
-            await ctx.db.delete("postMeta", meta._id);
+            await deleteWithMediaReferences<"postMeta">(ctx, "postMeta", meta._id);
             metaDeleted++;
           }
         }
@@ -107,7 +108,7 @@ export const deletePostMetaForField = internalMutation({
 
       let deleted = 0;
       for (const meta of metaEntries) {
-        await ctx.db.delete("postMeta", meta._id);
+        await deleteWithMediaReferences<"postMeta">(ctx, "postMeta", meta._id);
         deleted++;
       }
 

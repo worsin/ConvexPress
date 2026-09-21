@@ -10,6 +10,8 @@ import {
   setDefaultPackageArgs,
   updateShippingPackageArgs,
 } from "./validators";
+import { patchDynamicWithMediaReferences } from "../../media/attachmentGuard";
+
 
 async function ensureUniqueCode(ctx: any, code: string, ignoreId?: any) {
   const existing = await ctx.db
@@ -37,7 +39,7 @@ async function clearDefaultInScope(
     .collect();
   for (const row of scope) {
     if (ignoreId && row._id === ignoreId) continue;
-    await ctx.db.patch(row._id, { isDefault: false, updatedAt: Date.now() });
+    await patchDynamicWithMediaReferences(ctx, row._id, { isDefault: false, updatedAt: Date.now() });
   }
 }
 
@@ -107,7 +109,7 @@ export const update = mutation({
     for (const [key, value] of Object.entries(args.patch)) {
       if (value !== undefined) patch[key] = value;
     }
-    await ctx.db.patch(args.packageId, patch);
+    await ctx.db.patch("commerce_shipping_packages", args.packageId, patch);
     await emitEvent(ctx, SHIPPING_EVENTS.PACKAGE_UPDATED, "shipping", {
       packageId: args.packageId,
     });
@@ -123,7 +125,7 @@ export const remove = mutation({
     if (!existing) return { deleted: false };
 
     // Soft-delete (archive) instead of hard delete — historical label references.
-    await ctx.db.patch(args.packageId, {
+    await ctx.db.patch("commerce_shipping_packages", args.packageId, {
       isArchived: true,
       isDefault: false,
       updatedAt: Date.now(),
@@ -145,7 +147,7 @@ export const setDefault = mutation({
     }
     const scope = args.shipFromLocationId ?? pkg.shipFromLocationId;
     await clearDefaultInScope(ctx, scope, args.packageId);
-    await ctx.db.patch(args.packageId, {
+    await ctx.db.patch("commerce_shipping_packages", args.packageId, {
       isDefault: true,
       shipFromLocationId: scope,
       updatedAt: Date.now(),

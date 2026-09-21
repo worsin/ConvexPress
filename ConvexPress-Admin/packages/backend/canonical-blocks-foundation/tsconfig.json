@@ -1,0 +1,20 @@
+{
+  "extends": "../convex/tsconfig.json",
+  "include": [
+    "../convex/**/*",
+    "./*.ts",
+    "./generated/*.ts"
+  ],
+  "exclude": [
+    "./*.test.ts",
+    "../convex/_generated",
+    "../convex/**/__tests__/**",
+    "../convex/**/*.test.ts"
+  ],
+  "compilerOptions": {
+    "lib": [
+      "ES2023",
+      "dom"
+    ]
+  }
+}

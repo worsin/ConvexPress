@@ -1,6 +1,8 @@
 // @ts-expect-error Convex backend tsconfig does not include Bun test globals.
 import { describe, expect, test } from "bun:test";
 
+import { getFunctionName } from "convex/server";
+import * as policyReads from "../../membership/policyReads";
 import type { Id } from "../../_generated/dataModel";
 import { writeLessonBody } from "../ai/internals";
 import { applyLessonGeneration } from "../ai/mutations";
@@ -91,6 +93,7 @@ function createQuery(rows: Row[]) {
       return query;
     },
     collect: async () => filtered(),
+    paginate: async ({ cursor, numItems }: { cursor: string | null; numItems: number }) => { const rows = filtered(); const start = Number(cursor ?? 0); return { page: rows.slice(start, start + numItems), isDone: start + numItems >= rows.length, continueCursor: String(start + numItems) }; },
     first: async () => (await query.collect())[0] ?? null,
     take: async (count: number) => filtered().slice(0, count),
     unique: async () => (await query.collect())[0] ?? null,
@@ -110,7 +113,9 @@ function createCtx(tables: Tables, subject: string | null = "user_learner") {
             }
           : null,
     },
+    runQuery: async (fn: any, args: any) => { const name = getFunctionName(fn); const handler = name === "membership/policyReads:rules" ? policyReads.rules : name === "membership/policyReads:grants" ? policyReads.grants : name === "membership/policyReads:measuredRules" ? policyReads.measuredRules : name === "membership/policyReads:measuredGrants" ? policyReads.measuredGrants : null; if (!handler) throw new Error(`Unsupported fixture query ${name}`); return (handler as any)._handler(createCtx(tables, subject), args); },
     db: {
+      normalizeId: (table: string, value: string) => table === "media" ? ((tables.media ?? []).some(row => row._id === value) ? value : null) : value,
       get: async (...args: string[]) => {
         const wanted = args.length === 1 ? args[0] : args[1];
         for (const rows of Object.values(tables)) {
@@ -423,13 +428,14 @@ describe("LMS access decisions", () => {
 
     const grantedTables = baseTables({
       membership_restriction_rules: restrictedTables.membership_restriction_rules,
+      membership_plans: [{ _id: "plan_paid_tester", status: "active" }],
       membership_grants: [
         {
           _id: "grant_1",
           userId: "user_learner",
           planId: "plan_paid_tester",
           status: "active",
-          startsAt: now,
+          startsAt: Date.now() - 1_000,
           createdAt: now,
           updatedAt: now,
         },
@@ -446,6 +452,12 @@ describe("LMS access decisions", () => {
       matchingPlanIds: ["plan_paid_tester"],
       reason: "membership",
     });
+    grantedTables.membership_plans[0].status = "archived";
+    await expect(
+      canUserAccessCourse(createCtx(grantedTables), {
+        courseId: id("course_members"), userId: id("user_learner"),
+      }),
+    ).resolves.toMatchObject({ allowed: false, reason: "no_matching_plan" });
   });
 
   test("requires configured membership rules for member courses", async () => {
@@ -2401,7 +2413,7 @@ describe("LMS learner runtime mutations", () => {
     expect(tables.lms_certificate_issues).toHaveLength(1);
   });
 
-  test("manual certificate issuance reissues revoked certificates", async () => {
+  test("learner certificate issuance resumes an explicitly recorded progress rollback", async () => {
     const tables = baseTables({
       lms_courses: [
         course("course_reissue", {
@@ -2440,6 +2452,7 @@ describe("LMS learner runtime mutations", () => {
           issuedAt: now,
           revokedAt: now,
           revocationReason: "Rollback",
+          revocationKind: "progress",
           status: "revoked",
         },
       ],
@@ -2505,6 +2518,7 @@ describe("LMS learner runtime mutations", () => {
       media: [
         {
           _id: "media_certificate_pdf",
+          status: "active", mimeType: "application/pdf",
           url: "https://example.com/certificates/CERT-ALIAS-123456.pdf",
         },
       ],
@@ -2578,6 +2592,7 @@ describe("LMS learner runtime mutations", () => {
       media: [
         {
           _id: "media_learner_pdf",
+          status: "active", mimeType: "application/pdf",
           url: "https://example.com/certificates/CERT-LEARNER-PDF.pdf",
         },
       ],

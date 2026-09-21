@@ -1,5 +1,7 @@
-import { syncedBlockTables } from "./schema/syncedBlocks";
+import {socialFeedTables} from "./schema/socialFeeds";
+import {syncedBlockTables} from "./schema/syncedBlocks";
 import { blockDefinitionTables } from "./schema/blockDefinitions";
+import {leadMagnetTables} from "./schema/leadMagnets";
 import { defineSchema } from "convex/server";
 import type {} from "./types/convexQueryBuilder";
 
@@ -12,8 +14,11 @@ import type {} from "./types/convexQueryBuilder";
 // file. The codegen script runs as a predev/predeploy hook:
 //   packages/backend/scripts/generate-extension-index.mjs
 // Generated output is gitignored. Hand-edits will be overwritten.
+import { localizationTables } from "./schema/localization";
+import { contentPromotionTables } from "./schema/contentPromotion";
 import { extensionTables } from "./schema/_extensionsIndex.generated";
 import { usersTables } from "./schema/users";
+import { authorCountTables } from "./schema/authorCounts";
 import { rolesTables } from "./schema/roles";
 import { eventsTables } from "./schema/events";
 import { settingsTables } from "./schema/settings";
@@ -22,6 +27,7 @@ import { taxonomyTables } from "./schema/taxonomies";
 import { customFieldTables } from "./schema/customFields";
 import { auditLogTables } from "./schema/auditLogs";
 import { postTables } from "./schema/posts";
+import { audienceTables } from "./schema/audiences";
 import { emailTables } from "./schema/emails";
 import { notificationTables } from "./schema/notifications";
 import { commentTables } from "./schema/comments";
@@ -68,10 +74,12 @@ import { managementTables } from "./schema/management";
 import { integrationsTables } from "./schema/integrations";
 
 // ─── Compose Schema ──────────────────────────────────────────────────────────
-export default defineSchema({
-  ...syncedBlockTables,
-  ...blockDefinitionTables,
+import { withMediaReferenceIndexes } from "./media/referenceIndexes";
+export default defineSchema(withMediaReferenceIndexes({
+  ...contentPromotionTables,
+  ...localizationTables,
   ...usersTables,
+  ...authorCountTables,
   ...rolesTables,
   ...eventsTables,
   ...settingsTables,
@@ -82,6 +90,11 @@ export default defineSchema({
   ...auditLogTables,
   ...postTables,
   ...emailTables,
+  ...audienceTables,
+  ...leadMagnetTables,
+  ...socialFeedTables,
+  ...syncedBlockTables,
+  ...blockDefinitionTables,
   ...notificationTables,
   ...commentTables,
   ...editorTables,
@@ -129,4 +142,4 @@ export default defineSchema({
   // Merges both extensions/* (official) and extensions.local/* (user).
   // See _extensionsIndex.generated.ts header for the regen command.
   ...extensionTables,
-});
+}));

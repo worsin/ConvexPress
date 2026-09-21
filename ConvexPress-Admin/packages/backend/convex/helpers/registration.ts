@@ -92,7 +92,7 @@ export async function findUserByEmail(
 
   return await ctx.db
     .query("users")
-    .withIndex("by_email", (q: ConvexQueryBuilder) => q.eq("email", normalizedEmail))
+    .withIndex("by_email", (q) => q.eq("email", normalizedEmail))
     .unique();
 }
 
@@ -112,12 +112,11 @@ export async function findPendingInvitation(
 
   const invitations = await ctx.db
     .query("invitations")
-    .withIndex("by_email", (q: ConvexQueryBuilder) => q.eq("email", normalizedEmail))
+    .withIndex("by_email", (q) => q.eq("email", normalizedEmail))
     .collect();
 
   const now = Date.now();
   // Return the first live pending invitation (there should only be one).
-  // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
   return invitations.find((inv) => inv.status === "pending" && inv.expiresAt >= now) ?? null;
 }
 
@@ -165,7 +164,7 @@ export async function ensureUniqueUsername(
   // Check if the base username is available
   const existing = await ctx.db
     .query("users")
-    .withIndex("by_username", (q: ConvexQueryBuilder) => q.eq("username", base))
+    .withIndex("by_username", (q) => q.eq("username", base))
     .unique();
 
   if (!existing) return base;
@@ -176,7 +175,7 @@ export async function ensureUniqueUsername(
     const candidate = `${base}${counter}`;
     const candidateExisting = await ctx.db
       .query("users")
-      .withIndex("by_username", (q: ConvexQueryBuilder) => q.eq("username", candidate))
+      .withIndex("by_username", (q) => q.eq("username", candidate))
       .unique();
 
     if (!candidateExisting) return candidate;
@@ -230,7 +229,7 @@ async function getSettingValue(
   try {
     const doc = await ctx.db
       .query("settings")
-      .withIndex("by_section", (q: ConvexQueryBuilder) => q.eq("section", section))
+      .withIndex("by_section", (q) => q.eq("section", section))
       .unique();
 
     if (doc && doc.values && typeof doc.values === "object") {
@@ -335,10 +334,9 @@ export async function getRegistrationSettings(ctx: ReadCtx) {
  */
 export async function getDefaultRoleDoc(ctx: ReadCtx) {
   // First try: role marked as default
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   const defaultRole = await ctx.db
     .query("roles")
-    .withIndex("by_isDefault", (q: ConvexQueryBuilder) => q.eq("isDefault", true))
+    .withIndex("by_isDefault", (q) => q.eq("isDefault", true))
     .first();
 
   if (defaultRole) return defaultRole;
@@ -346,7 +344,7 @@ export async function getDefaultRoleDoc(ctx: ReadCtx) {
   // Fallback: look up subscriber by slug
   const subscriber = await ctx.db
     .query("roles")
-    .withIndex("by_slug", (q: ConvexQueryBuilder) => q.eq("slug", "subscriber"))
+    .withIndex("by_slug", (q) => q.eq("slug", "subscriber"))
     .unique();
 
   return subscriber;

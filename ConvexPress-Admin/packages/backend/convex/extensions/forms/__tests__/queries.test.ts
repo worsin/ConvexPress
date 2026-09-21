@@ -352,7 +352,7 @@ describe("resume() gate — resume-safe projection on the success path", () => {
 // getForm / getSubmission: unauthenticated → null.
 // ════════════════════════════════════════════════════════════════════════════
 
-const EMPTY_PAGE = { page: [] as unknown[], isDone: true, continueCursor: null };
+const EMPTY_PAGE = { page: [] as unknown[], isDone: true, continueCursor: "" };
 
 /** list / listSubmissions: `if (!identity) return emptyPage`. */
 function listAuthGate(identity: unknown): typeof EMPTY_PAGE | "PROCEED" {

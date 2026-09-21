@@ -179,7 +179,7 @@ export const update = mutation({
       throw new ConvexError({ code: "NOT_FOUND", message: "Dynamic pricing rule not found." });
     }
     assertRule(args.patch);
-    await ctx.db.patch(args.ruleId, {
+    await ctx.db.patch("commerce_dynamic_pricing_rules", args.ruleId, {
       ...args.patch,
       name: args.patch.name.trim(),
       description: cleanText(args.patch.description),
@@ -201,7 +201,7 @@ export const setStatus = mutation({
   handler: async (ctx, args) => {
     await requireCommerceEnabled(ctx);
     await requireCan(ctx, "manage_options");
-    await ctx.db.patch(args.ruleId, { status: args.status, updatedAt: Date.now() });
+    await ctx.db.patch("commerce_dynamic_pricing_rules", args.ruleId, { status: args.status, updatedAt: Date.now() });
     return args.ruleId;
   },
 });
@@ -211,7 +211,7 @@ export const remove = mutation({
   handler: async (ctx, args) => {
     await requireCommerceEnabled(ctx);
     await requireCan(ctx, "manage_options");
-    await ctx.db.patch(args.ruleId, { status: "inactive", updatedAt: Date.now() });
+    await ctx.db.patch("commerce_dynamic_pricing_rules", args.ruleId, { status: "inactive", updatedAt: Date.now() });
     return args.ruleId;
   },
 });

@@ -8,15 +8,14 @@
  *            cart changes: deterministic candidates first (search + relation
  *            graph), one model call to write it up, cached briefly.
  *
- * Provider: the OpenAI-compatible chat completions API through OpenRouter
- * (or OpenAI directly), using the key from Settings > AI. Anthropic direct is
- * routed through OpenRouter's Anthropic models for tool calling.
+ * Provider: Settings > AI selects OpenRouter, OpenAI, or Anthropic directly.
+ * The adapter preserves provider-specific credentials and tool-call protocols.
  */
 
 import { ConvexError, v } from "convex/values";
 import { action } from "../../_generated/server";
 import { api, internal } from "../../_generated/api";
-import { getServiceKeyFromAction } from "../../helpers/serviceKeys";
+import { assistantChat, resolveAssistantProvider, ASSISTANT_UNAVAILABLE, type ChatMessage } from "./provider";
 import { hashQuery } from "../storefront";
 import {
   extractJsonObject,
@@ -39,14 +38,6 @@ const anyInternal = internal as any;
 
 const MAX_TOOL_ROUNDS = 6;
 const BRIEF_TTL_MS = 30 * 60_000;
-
-interface ChatMessage {
-  role: "system" | "user" | "assistant" | "tool";
-  content: string | null;
-  tool_calls?: Array<{ id: string; type: "function"; function: { name: string; arguments: string } }>;
-  tool_call_id?: string;
-  name?: string;
-}
 
 const TOOLS = [
   {
@@ -110,55 +101,9 @@ const TOOLS = [
   },
 ];
 
-async function resolveProvider(ctx: any, assistantModel: string, aiDefaultModel: string, provider: string) {
-  const isOpenAI = provider === "openai";
-  const envVar = isOpenAI ? "OPENAI_API_KEY" : "OPENROUTER_API_KEY";
-  let apiKey = (await getServiceKeyFromAction(ctx, "ai", "apiKey", envVar)) ?? "";
-  let baseUrl = isOpenAI ? "https://api.openai.com/v1" : "https://openrouter.ai/api/v1";
-  let model = assistantModel.trim() || aiDefaultModel.trim();
-  if (!isOpenAI && provider === "anthropic") {
-    // Tool calling runs through OpenRouter; map bare Anthropic ids.
-    apiKey = (await getServiceKeyFromAction(ctx, "ai", "apiKey", "OPENROUTER_API_KEY")) ?? apiKey;
-    if (model && !model.includes("/")) model = `anthropic/${model.replace(/-(\d)-(\d)$/, "-$1.$2")}`;
-  }
-  if (!model) model = isOpenAI ? "gpt-5.5" : "anthropic/claude-sonnet-4.6";
-  const headers: Record<string, string> = isOpenAI
-    ? {}
-    : { "HTTP-Referer": "https://convexpress.com", "X-Title": "ConvexPress Shop Assistant" };
-  return { apiKey, baseUrl, model, headers };
-}
-
-async function chat(
-  provider: { apiKey: string; baseUrl: string; model: string; headers: Record<string, string> },
-  messages: ChatMessage[],
-  options: { tools?: boolean; maxTokens?: number; json?: boolean },
-): Promise<{ message: ChatMessage; usage: { prompt_tokens?: number; completion_tokens?: number } }> {
-  const body: Record<string, unknown> = {
-    model: provider.model,
-    messages,
-    max_tokens: options.maxTokens ?? 1400,
-    temperature: 0.4,
-  };
-  if (options.tools) {
-    body.tools = TOOLS;
-    body.tool_choice = "auto";
-  }
-  if (options.json) body.response_format = { type: "json_object" };
-  const response = await fetch(`${provider.baseUrl}/chat/completions`, {
-    method: "POST",
-    headers: { Authorization: `Bearer ${provider.apiKey}`, "Content-Type": "application/json", ...provider.headers },
-    body: JSON.stringify(body),
-  });
-  if (!response.ok) {
-    const text = await response.text();
-    throw new ConvexError({ code: "PROVIDER_ERROR", message: `Assistant provider error (${response.status}): ${text.slice(0, 400)}` });
-  }
-  const data = (await response.json()) as any;
-  if (data.error) {
-    throw new ConvexError({ code: "PROVIDER_ERROR", message: `Assistant provider error: ${data.error.message ?? "unknown"}` });
-  }
-  const choice = data.choices?.[0];
-  return { message: (choice?.message ?? { role: "assistant", content: "" }) as ChatMessage, usage: data.usage ?? {} };
+async function resolveProvider(ctx: any, assistantModel: string) {
+  const settings = await ctx.runQuery(anyInternal.settings.httpInternals.getBySectionInternal, { section: "ai" });
+  return resolveAssistantProvider(settings ?? {}, assistantModel);
 }
 
 function storeContextFrom(bundle: any): StoreContext {
@@ -194,9 +139,7 @@ function relatedGroupsText(groups: any[], store: StoreContext): string {
     .join("\n");
 }
 
-function shopperKey(bundle: any, sessionToken: string): string {
-  return bundle.cart?.userId ? String(bundle.cart.userId) : sessionToken;
-}
+
 
 // ─── respond ─────────────────────────────────────────────────────────────────
 
@@ -220,9 +163,7 @@ export const respond = action({
     if (bundle.assistant?.enabled === false) {
       throw new ConvexError({ code: "DISABLED", message: "The shop assistant is turned off." });
     }
-    if (bundle.recentUserTurns >= Number(bundle.assistant?.rateLimitPerMinute ?? 12)) {
-      throw new ConvexError({ code: "RATE_LIMITED", message: "Slow down a little — try again in a minute." });
-    }
+
 
     await ctx.runMutation(anyInternal.commerce.assistant.mutations.appendMessage, {
       sessionToken: args.sessionToken,
@@ -237,10 +178,10 @@ export const respond = action({
     });
 
     const store = storeContextFrom(bundle);
-    const provider = await resolveProvider(ctx, String(bundle.assistant?.model ?? ""), bundle.ai.defaultModel, bundle.ai.provider);
+    const provider = await resolveProvider(ctx, String(bundle.assistant?.model ?? ""));
     if (!provider.apiKey) {
       const blocks: AssistantBlock[] = [
-        { type: "callout", tone: "warning", markdown: "The assistant is not connected to a model yet. Add an API key under Settings › AI." },
+        { type: "callout", tone: "warning", markdown: ASSISTANT_UNAVAILABLE },
       ];
       const messageId = await ctx.runMutation(anyInternal.commerce.assistant.mutations.appendMessage, {
         sessionToken: args.sessionToken,
@@ -296,9 +237,19 @@ export const respond = action({
     let tokensIn = 0;
     let tokensOut = 0;
     let finalText = "";
+    let providerFailed = false;
 
     for (let round = 0; round <= MAX_TOOL_ROUNDS; round += 1) {
-      const { message: reply, usage } = await chat(provider, messages, { tools: round < MAX_TOOL_ROUNDS });
+      let response: Awaited<ReturnType<typeof assistantChat>>;
+      try {
+        response = await assistantChat(provider, messages, { tools: TOOLS, allowTools: round < MAX_TOOL_ROUNDS });
+      } catch {
+        // Retain confirmed cart actions even when the following model call fails.
+        // Do not replay tools: a retry could repeat a successful cart mutation.
+        providerFailed = true;
+        break;
+      }
+      const { message: reply, usage } = response;
       tokensIn += usage.prompt_tokens ?? 0;
       tokensOut += usage.completion_tokens ?? 0;
       messages.push({ role: "assistant", content: reply.content ?? "", tool_calls: reply.tool_calls });
@@ -333,6 +284,7 @@ export const respond = action({
 
     const parsed = extractJsonObject(finalText) as any;
     let blocks = normalizeBlocks(parsed?.blocks, known);
+    if (providerFailed) blocks = [{ type: "callout", tone: "warning", markdown: ASSISTANT_UNAVAILABLE }];
     if (!blocks.length) {
       const fallback = finalText.replace(/```[\s\S]*?```/g, "").trim();
       blocks = [{ type: "text", markdown: fallback || "I couldn't put that together. Try asking in a different way." }];
@@ -343,7 +295,7 @@ export const respond = action({
       for (const entry of parsed.memory.slice(0, 3)) {
         if (entry && typeof entry.fact === "string" && entry.fact.trim()) {
           await ctx.runMutation(anyInternal.commerce.assistant.mutations.rememberFactFromAssistant, {
-            subjectKey: shopperKey(bundle, args.sessionToken),
+            sessionToken: args.sessionToken,
             fact: entry.fact,
             kind: typeof entry.kind === "string" ? entry.kind : undefined,
             retentionDays: Number(bundle.assistant?.memoryRetentionDays ?? 90),
@@ -362,6 +314,7 @@ export const respond = action({
       text: blocks.find((block) => block.type === "text")?.type === "text" ? (blocks.find((block) => block.type === "text") as any).markdown : undefined,
       blocks,
       toolCalls: toolLog,
+      ...(providerFailed ? { error: "provider_unavailable" } : {}),
       model: provider.model,
       latencyMs: Date.now() - startedAt,
       tokensIn,
@@ -448,7 +401,7 @@ async function runTool(
       const fact = String(input.fact ?? "").trim();
       if (!fact) return { error: "fact is required" };
       await ctx.runMutation(anyInternal.commerce.assistant.mutations.rememberFactFromAssistant, {
-        subjectKey: shopperKey(scope.bundle, scope.sessionToken),
+        sessionToken: scope.sessionToken,
         fact,
         kind: typeof input.kind === "string" ? input.kind : undefined,
         retentionDays: Number(scope.bundle.assistant?.memoryRetentionDays ?? 90),
@@ -480,10 +433,10 @@ export const brief = action({
     const query = (args.query ?? "").trim().slice(0, 200);
     const cartIds = [...new Set(bundle.cart.lines.map((line: any) => line.productId))].sort();
     const memoryKey = bundle.memory.map((m: any) => m.fact).sort().join("|");
-    const cacheKey = `${args.kind}:${hashQuery(`${query}|${args.productId ?? ""}|${cartIds.join(",")}|${memoryKey}`)}`;
+    const cacheKey = `${args.sessionToken}:${args.kind}:${hashQuery(`${query}|${args.productId ?? ""}|${cartIds.join(",")}|${memoryKey}`)}`;
 
     if (!args.force) {
-      const cached = await ctx.runQuery(anyApi.commerce.assistant.queries.getBrief, { cacheKey });
+      const cached = await ctx.runQuery(anyApi.commerce.assistant.queries.getBrief, { cacheKey, sessionToken: args.sessionToken });
       if (cached) return { cacheKey, blocks: cached.blocks, cached: true, productIds: productIdsInBlocks(cached.blocks) };
     }
     if (query) {
@@ -523,7 +476,7 @@ export const brief = action({
       });
     }
 
-    const provider = await resolveProvider(ctx, String(bundle.assistant?.model ?? ""), bundle.ai.defaultModel, bundle.ai.provider);
+    const provider = await resolveProvider(ctx, String(bundle.assistant?.model ?? ""));
     let blocks: AssistantBlock[] = fallback;
     let model: string | undefined;
     if (provider.apiKey && (candidates.length || related.length || bundle.cart.lines.length)) {
@@ -538,7 +491,7 @@ export const brief = action({
         categories: bundle.categories.map((c: any) => c.name),
       });
       try {
-        const { message } = await chat(
+        const { message } = await assistantChat(
           provider,
           [
             { role: "system", content: prompt.system },
@@ -551,14 +504,7 @@ export const brief = action({
         if (normalized.some((block) => block.type === "product_group" || block.type === "text")) {
           blocks = normalized;
           model = provider.model;
-          const facets = normalized.find((block) => block.type === "facets");
-          if (args.kind === "query" && query && facets && facets.type === "facets" && bundle.assistant?.searchFacets !== false) {
-            await ctx.runMutation(anyInternal.commerce.assistant.mutations.storeFacets, {
-              queryHash: hashQuery(query),
-              query,
-              chips: facets.items,
-            });
-          }
+          // Personalized facets stay in this session's brief, not the public query cache.
         }
       } catch (error) {
         blocks = [
@@ -571,6 +517,7 @@ export const brief = action({
     await ctx.runMutation(anyInternal.commerce.assistant.mutations.storeBrief, {
       kind: args.kind,
       cacheKey,
+      sessionToken: args.sessionToken,
       query: query || undefined,
       payload: { blocks },
       model,

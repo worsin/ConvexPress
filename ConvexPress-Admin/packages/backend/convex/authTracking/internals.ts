@@ -7,6 +7,7 @@
 
 import { v } from "convex/values";
 import { internalMutation, internalQuery } from "../_generated/server";
+import { patchWithMediaReferences } from "../media/attachmentGuard";
 
 // ─── Get Admin and Target User (Internal) ───────────────────────────────────
 
@@ -127,7 +128,7 @@ export const recordSuccessfulLogin = internalMutation({
   },
   // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
-    await ctx.db.patch(args.userId, {
+    await patchWithMediaReferences<"users">(ctx, "users", args.userId, {
       lastLoginAt: Date.now(),
       updatedAt: Date.now(),
     });

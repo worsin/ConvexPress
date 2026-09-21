@@ -18,6 +18,7 @@
  */
 
 import { query, type QueryCtx } from "../_generated/server";
+import { isPublicAuthor } from "../helpers/publicAuthor";
 import {
   currentUserCan,
   getCurrentUser,
@@ -129,7 +130,7 @@ export const getUser = query({
     }
 
     // Otherwise, return public fields for active users only.
-    if (targetUser.status !== "active") return null;
+    if (!isPublicAuthor(targetUser)) return null;
     return extractPublicFields(targetUser);
   },
 });
@@ -153,7 +154,7 @@ export const getUserBySlug = query({
     if (!user) return null;
 
     // Only show active users on public pages
-    if (user.status !== "active") return null;
+    if (!isPublicAuthor(user)) return null;
 
     return extractPublicFields(user);
   },

@@ -1,0 +1,770 @@
+{
+  "sourceCount": 54,
+  "inputs": {
+    "ConvexPress-Admin/apps/web/src/blocks.local/sample-alert/schema.ts": "58ee39862f10610a883fc4b2a8cff0356a82777ebd61452e43b733deabd5ede5",
+    "ConvexPress-Admin/apps/web/src/blocks/assistant-band/schema.ts": "15faf11b08337b90512b4daf3b6ecbd6eac4e7e32176b351acfef24348e9928c",
+    "ConvexPress-Admin/apps/web/src/blocks/category-tiles/schema.ts": "0c125db99baae211a87361af04ffdc6293259f71a46ff35db1f1e9dda413e958",
+    "ConvexPress-Admin/apps/web/src/blocks/contact-stack/schema.ts": "cbce1f6486c4df0a86dde51a8812b8696974b0dfca97fd1ceb2c4eacbc7ecdc1",
+    "ConvexPress-Admin/apps/web/src/blocks/customer-showcase/schema.ts": "4777c9b6cdabdb00df8aabc693ff3da5da3f51dc6eb1b227ee9e8cd14d9f7196",
+    "ConvexPress-Admin/apps/web/src/blocks/field-guide/schema.ts": "989687b1af5f18dc0098bed90939c255b84674f6fb42c85fe4ca976e2002cf11",
+    "ConvexPress-Admin/apps/web/src/blocks/grade-gallery/schema.ts": "3d391459db693b6bef2cce0dbe7d8a8540cbc06fe889266b3e313cb4627623fe",
+    "ConvexPress-Admin/apps/web/src/blocks/media-mentions/schema.ts": "fae52828cbaa43ab8f85e65567ac91cb8529659c758037c0b29f128a1c95a474",
+    "ConvexPress-Admin/apps/web/src/blocks/page-banner/schema.ts": "391a5d9a071ca9d143514b6c381fef9d72501a4ad962619c18c1801f8d11c0cf",
+    "ConvexPress-Admin/apps/web/src/blocks/product-collection/schema.ts": "ca94b13f34c9448efebb6f048bcfc3e5e710426a9302496909cb6de71ecfa72b",
+    "ConvexPress-Admin/apps/web/src/blocks/product-showcase/schema.ts": "81531e53cf742113c20376e0f7000bb22c61ee703770d3228f287ca5d2c4035c",
+    "ConvexPress-Admin/apps/web/src/blocks/promo-band/schema.ts": "c54014912b577d0135478e8021d6b3a20ff3cb78c1c150044e429cdfcb5fe64b",
+    "ConvexPress-Admin/apps/web/src/blocks/social-share/schema.ts": "8a201dba0ed294d8c65d064f9e66745acdcf5684096ebb59afb7b8c69a4102d5",
+    "ConvexPress-Admin/apps/web/src/blocks/story-timeline/schema.ts": "6b275bc3c97d3ceaa72a1bfc46e33b556d964c7fd35c3843cfadbc14f34933ba",
+    "ConvexPress-Admin/apps/web/src/blocks/tabbed-content/schema.ts": "dcc9dd350faee080561dbef70ba36c17a2748ae2f8bcb34ad6c8930e79c8e318",
+    "ConvexPress-Admin/apps/web/src/blocks/upcoming-events/schema.ts": "fde3af2d311825707ff2847ff157d4f06bf6b5827d319f28e8ca7b01ee6a9a16",
+    "ConvexPress-Admin/apps/web/src/lib/blocks/schemas.ts": "8a3c4a9dcd7d5082a232b86f94b4e994fdd987c0ea30642f3a0ab3f5c108a1dd",
+    "ConvexPress-Admin/packages/blocks-catalog/src/generated/blocks-assistant-band.ts": "15faf11b08337b90512b4daf3b6ecbd6eac4e7e32176b351acfef24348e9928c",
+    "ConvexPress-Admin/packages/blocks-catalog/src/generated/blocks-category-tiles.ts": "0c125db99baae211a87361af04ffdc6293259f71a46ff35db1f1e9dda413e958",
+    "ConvexPress-Admin/packages/blocks-catalog/src/generated/blocks-contact-stack.ts": "cbce1f6486c4df0a86dde51a8812b8696974b0dfca97fd1ceb2c4eacbc7ecdc1",
+    "ConvexPress-Admin/packages/blocks-catalog/src/generated/blocks-customer-showcase.ts": "4777c9b6cdabdb00df8aabc693ff3da5da3f51dc6eb1b227ee9e8cd14d9f7196",
+    "ConvexPress-Admin/packages/blocks-catalog/src/generated/blocks-field-guide.ts": "989687b1af5f18dc0098bed90939c255b84674f6fb42c85fe4ca976e2002cf11",
+    "ConvexPress-Admin/packages/blocks-catalog/src/generated/blocks-grade-gallery.ts": "3d391459db693b6bef2cce0dbe7d8a8540cbc06fe889266b3e313cb4627623fe",
+    "ConvexPress-Admin/packages/blocks-catalog/src/generated/blocks-local-sample-alert.ts": "58ee39862f10610a883fc4b2a8cff0356a82777ebd61452e43b733deabd5ede5",
+    "ConvexPress-Admin/packages/blocks-catalog/src/generated/blocks-media-mentions.ts": "fae52828cbaa43ab8f85e65567ac91cb8529659c758037c0b29f128a1c95a474",
+    "ConvexPress-Admin/packages/blocks-catalog/src/generated/blocks-page-banner.ts": "391a5d9a071ca9d143514b6c381fef9d72501a4ad962619c18c1801f8d11c0cf",
+    "ConvexPress-Admin/packages/blocks-catalog/src/generated/blocks-product-collection.ts": "ca94b13f34c9448efebb6f048bcfc3e5e710426a9302496909cb6de71ecfa72b",
+    "ConvexPress-Admin/packages/blocks-catalog/src/generated/blocks-product-showcase.ts": "81531e53cf742113c20376e0f7000bb22c61ee703770d3228f287ca5d2c4035c",
+    "ConvexPress-Admin/packages/blocks-catalog/src/generated/blocks-promo-band.ts": "c54014912b577d0135478e8021d6b3a20ff3cb78c1c150044e429cdfcb5fe64b",
+    "ConvexPress-Admin/packages/blocks-catalog/src/generated/blocks-social-share.ts": "8a201dba0ed294d8c65d064f9e66745acdcf5684096ebb59afb7b8c69a4102d5",
+    "ConvexPress-Admin/packages/blocks-catalog/src/generated/blocks-story-timeline.ts": "6b275bc3c97d3ceaa72a1bfc46e33b556d964c7fd35c3843cfadbc14f34933ba",
+    "ConvexPress-Admin/packages/blocks-catalog/src/generated/blocks-tabbed-content.ts": "dcc9dd350faee080561dbef70ba36c17a2748ae2f8bcb34ad6c8930e79c8e318",
+    "ConvexPress-Admin/packages/blocks-catalog/src/generated/blocks-upcoming-events.ts": "fde3af2d311825707ff2847ff157d4f06bf6b5827d319f28e8ca7b01ee6a9a16",
+    "ConvexPress-Admin/packages/blocks-catalog/src/generated/core.ts": "8a3c4a9dcd7d5082a232b86f94b4e994fdd987c0ea30642f3a0ab3f5c108a1dd",
+    "ConvexPress-Admin/packages/blocks-catalog/src/generated/definitions.ts": "0eaa155f80c091ff3f3b4d02d9ee8558a7ee72beb32b058d2e746353ca57ea8a",
+    "ConvexPress-Website/apps/web/src/blocks.local/sample-alert/schema.ts": "58ee39862f10610a883fc4b2a8cff0356a82777ebd61452e43b733deabd5ede5",
+    "ConvexPress-Website/apps/web/src/blocks/assistant-band/schema.ts": "15faf11b08337b90512b4daf3b6ecbd6eac4e7e32176b351acfef24348e9928c",
+    "ConvexPress-Website/apps/web/src/blocks/category-tiles/schema.ts": "0c125db99baae211a87361af04ffdc6293259f71a46ff35db1f1e9dda413e958",
+    "ConvexPress-Website/apps/web/src/blocks/contact-stack/schema.ts": "cbce1f6486c4df0a86dde51a8812b8696974b0dfca97fd1ceb2c4eacbc7ecdc1",
+    "ConvexPress-Website/apps/web/src/blocks/customer-showcase/schema.ts": "4777c9b6cdabdb00df8aabc693ff3da5da3f51dc6eb1b227ee9e8cd14d9f7196",
+    "ConvexPress-Website/apps/web/src/blocks/field-guide/schema.ts": "989687b1af5f18dc0098bed90939c255b84674f6fb42c85fe4ca976e2002cf11",
+    "ConvexPress-Website/apps/web/src/blocks/grade-gallery/schema.ts": "3d391459db693b6bef2cce0dbe7d8a8540cbc06fe889266b3e313cb4627623fe",
+    "ConvexPress-Website/apps/web/src/blocks/media-mentions/schema.ts": "fae52828cbaa43ab8f85e65567ac91cb8529659c758037c0b29f128a1c95a474",
+    "ConvexPress-Website/apps/web/src/blocks/page-banner/schema.ts": "391a5d9a071ca9d143514b6c381fef9d72501a4ad962619c18c1801f8d11c0cf",
+    "ConvexPress-Website/apps/web/src/blocks/product-collection/schema.ts": "ca94b13f34c9448efebb6f048bcfc3e5e710426a9302496909cb6de71ecfa72b",
+    "ConvexPress-Website/apps/web/src/blocks/product-showcase/schema.ts": "81531e53cf742113c20376e0f7000bb22c61ee703770d3228f287ca5d2c4035c",
+    "ConvexPress-Website/apps/web/src/blocks/promo-band/schema.ts": "c54014912b577d0135478e8021d6b3a20ff3cb78c1c150044e429cdfcb5fe64b",
+    "ConvexPress-Website/apps/web/src/blocks/social-share/schema.ts": "8a201dba0ed294d8c65d064f9e66745acdcf5684096ebb59afb7b8c69a4102d5",
+    "ConvexPress-Website/apps/web/src/blocks/story-timeline/schema.ts": "6b275bc3c97d3ceaa72a1bfc46e33b556d964c7fd35c3843cfadbc14f34933ba",
+    "ConvexPress-Website/apps/web/src/blocks/tabbed-content/schema.ts": "dcc9dd350faee080561dbef70ba36c17a2748ae2f8bcb34ad6c8930e79c8e318",
+    "ConvexPress-Website/apps/web/src/blocks/upcoming-events/schema.ts": "fde3af2d311825707ff2847ff157d4f06bf6b5827d319f28e8ca7b01ee6a9a16",
+    "ConvexPress-Website/apps/web/src/lib/blocks/page-sections.ts": "27a3605ed33ae2724f71b706b0fb6ce9793f027c12d8bfde44894402e0224804",
+    "ConvexPress-Website/apps/web/src/lib/blocks/schemas.ts": "d965c874554444144d0882be33c971ee47431357112c7882852afc2e7cde1066",
+    "ConvexPress-Website/apps/web/src/lib/security/url.ts": "9d9f64890a8b81cdb9032be441dbbf401e395979de195e33526b6e1934838bd6",
+    "blocks/blocks/contact-stack/block.json": "8f58f271a1481c1919dae35e08d5672571a81d422b733b9434b94f76bb39235f",
+    "blocks/blocks/customer-showcase/block.json": "0caf9509eaf94bc3d01a01f69a1a7c002b7e313398deda852f0beae4d12dd500",
+    "blocks/blocks/grade-gallery/block.json": "ecc05cc3f3b05794967762a4f381fd5e1fde79f0f8e3354b2ba778f50e621822",
+    "blocks/blocks/media-mentions/block.json": "0f33a8883f12729c2c28834ffee5cf712b97d9659b8bf4e23dd5216f116029df",
+    "blocks/blocks/page-banner/block.json": "7f3dddf86de46c492b1bb336e0cc39e7ac881b61b2541f414be84761963dc52e",
+    "blocks/blocks/product-collection/block.json": "94b557d443cfedc6342ce7330439a271d33e908fc509d2f7df5e41ceabe0ed3e",
+    "blocks/blocks/promo-band/block.json": "273a05a43991cf53a708f820080e68233973be33fc8570cb57e4ca87a003be77",
+    "blocks/blocks/social-share/block.json": "0575f4c0fdcc3a8b9483ebbef52257c5f1adfa1fa27bd0ba9b4428bc1cf1dad5",
+    "blocks/blocks/story-timeline/block.json": "619c4d45e596dce7bbbcb6fc7a5d4619ffc6a5e52e5957a41c8feb92515b24b2",
+    "blocks/blocks/tabbed-content/block.json": "b0e72863ff1d87c82316675d8c1b110469696e2162551da2c9e72e3aa335a2f6",
+    "blocks/commerce/assistant-band/block.json": "397c7c433a5c68533c0d05bc7b0d4107258ea0299d849b66bcafc8dcf447c6c1",
+    "blocks/commerce/category-tiles/block.json": "8daa9e20aa5f4fa59c56cfd3af6479e655af53c79b06cdc4ed6edd24606ea96e",
+    "blocks/commerce/product-showcase/block.json": "77028be0c512e0efd072ea3b958711132fbfe3b0333a100d916b946082083b22",
+    "blocks/core/accordion/block.json": "30b0186cf2929843bc6f6e06c21892303e70e57d62eaef4f5c8e2cf7a49a1f53",
+    "blocks/core/author-bio/block.json": "9b6a3e01a9a7a7f3d6af53545119a788ecaed855635203c751b3c94710d18f49",
+    "blocks/core/bento-grid/block.json": "42e94ef344a8b089d931d69590b05c55a2e9d986cdcc3229f6cc0c1550d25bad",
+    "blocks/core/booking-cta/block.json": "fbb7cc786fd2ef691eb5bf6ed92ec0a9a66cef3f75cc9fadec529ea38f28d77a",
+    "blocks/core/code/block.json": "337c11a722aa1d97f3baf37dc17519780912bdfec4436dc5e458dea2304d169a",
+    "blocks/core/comparison-table/block.json": "833fe189b1833d861e3633c4635548ca9a89071a91fdb149e92bfeca680d3777",
+    "blocks/core/contact-form/block.json": "3e2d3c80622a269e8d55116489ca3c46a26992ba396128f996789226a50483c6",
+    "blocks/core/cta-band/block.json": "7a59a6278247496d46b28b8df4e621b77f641c5f1aa128968a4e3f38d2ea5cb9",
+    "blocks/core/cta-with-form/block.json": "499ef91d39272309925223d65523b86b34b20c7d914545b260ae99b1dfe70c00",
+    "blocks/core/divider/block.json": "8bc9d82f5f3d1f46ccfbc19d8c03319f0caa392e620784236be2d8ced5268eb8",
+    "blocks/core/embed/block.json": "fe64b8edd9529de1c1debf26f3b1644e6f89d75feb7a59f491ec2d10eb788786",
+    "blocks/core/faq/block.json": "01268f886c4065aa603931b59c4248d1281543c41651072d682f9a90fad9ddce",
+    "blocks/core/feature-grid/block.json": "4bf4961e80a420e54ce52d9635462b4b404c61f0eda53ad3887e48d5b7ea2dc8",
+    "blocks/core/feature-list-alternating/block.json": "f979ab6b0afd6be43b1238aba2ea5d2e0984e3e4586bd8b3c56a41fb8de32f14",
+    "blocks/core/featured-products/block.json": "cba38d2af31d1505330844c7fd201bed8c347d934a1f958e61deb002f5b5dad9",
+    "blocks/core/heading/block.json": "882d52d6a18dad0360463943ec617ef01eb27569c9b19ac34cd5ce1203663717",
+    "blocks/core/hero-split/block.json": "c7e3b21e5a66e379be4140a25c860db7d68bc635a7fdcb34f87fdd90abef5f58",
+    "blocks/core/hero-text-only/block.json": "679a18061f7488f24e27fc9215bb4f8a9dc3a5ebad7fcfbf28f4bac0a0bbe037",
+    "blocks/core/hero/block.json": "a1017699948c85e3edd61677bbe644cc8981f8a795036e73998d1d5ce925fb83",
+    "blocks/core/image/block.json": "a185721029984b82d92285020eca7857e298c2484410ea6b696a6fef06acf5de",
+    "blocks/core/latest-posts/block.json": "79ed7ee18ca01e98dc65a47073694b15360a06420e12d860a128224ccdef9556",
+    "blocks/core/list/block.json": "0b2eb3e9c73699604cacd78ec71e5128fd024d4339d832f1db637fc692ed954a",
+    "blocks/core/logo-cloud/block.json": "a3aa368e17673f62ba6b4692d748288cf62e7d7f146a6efb13ddb44af47374f5",
+    "blocks/core/media-text/block.json": "87a6241bc58e6a2bf1388c301e48c0cf9cb5416018cd6cd1727f8869c4fb8787",
+    "blocks/core/newsletter-signup/block.json": "dab3a43cc154a45ef25691b7d719afbe367ef8218609ab9beba9bef218402199",
+    "blocks/core/paragraph/block.json": "ca0920e61733d749b8ebd81536a601f5d722ab641b11d58def36ececc5e770c0",
+    "blocks/core/pricing-cards/block.json": "4d73248561bc313dd20f53ddf3b31c5d2bb88d0b56ddcd8ce884bbe9a2a21a5f",
+    "blocks/core/process-steps/block.json": "0cc90aadf3b23c7e647e310d2e1466a6d31270ee8960a79dd6239e02f9ab9b96",
+    "blocks/core/quote/block.json": "6ba3837fdaf6815d37b3f0284dc156c18100e119e3c1d3d47ab16cf7ea67e508",
+    "blocks/core/rich-text/block.json": "b5af5b6f6d2fd79b63c6ffc6d5c79344e65990616f3bc6e9d77040e1610b820e",
+    "blocks/core/roadmap-timeline/block.json": "a06dc6804313de51d32182ee64a9afc8496a779a6774f0fdbeca53e617b9c3c2",
+    "blocks/core/social-links/block.json": "1dceba57bde56ff2dd807070a68d6dab4445667951a956ef972bcf7728b37115",
+    "blocks/core/spacer/block.json": "88299ee2b99497d58787d0450c7ce01e1741a3209c0c706fb58ff5553f94637f",
+    "blocks/core/stats-band/block.json": "91ad6253f65c047bb3c0d4778bea187556898b37c1ceb1788dcb88e08ae8bfd2",
+    "blocks/core/tabs/block.json": "981257af6997bdf8518b847b353cd355c2f071510f6981236cee342b32db8fa3",
+    "blocks/core/tag-cloud/block.json": "a229778ea5aeea0562405cf5c9edba60b08f142303dd8000d5dbd034f9e8d907",
+    "blocks/core/team-grid/block.json": "03f3994ae0427f2888898d00de430c6abc3dbca68cc80de45e45987d073f0b7d",
+    "blocks/core/testimonials/block.json": "89f929eb48dc5cf0153a251ff656f41373e0c63642fc8612c22b6cf5059f046b",
+    "blocks/events/upcoming/block.json": "792960a8fc081d4dd3f9a23e2f6e6a3cd3e89f06bcdd1939d12636dd5ac6eb48",
+    "blocks/local/sample-alert/block.json": "eb19588b42e16cda15d083b8621b07a3e39a550194d32f2f542d6dd82952919d",
+    "blocks/reference/field-guide/block.json": "d1c4e78bf1e73dc459286e0ac77bbdc6a6e76e204d74f3c8be83fcdfc9e5d05d",
+    "scripts/blocks/legacy-richtext.mjs": "3349516bb2c8b12ff8be5119f64272b278f1216adaf79606a647f3770e9e1c8f"
+  },
+  "bundledInputs": [
+    "ConvexPress-Admin/packages/blocks-catalog/src/generated/blocks-assistant-band.ts",
+    "ConvexPress-Admin/packages/blocks-catalog/src/generated/blocks-category-tiles.ts",
+    "ConvexPress-Admin/packages/blocks-catalog/src/generated/blocks-contact-stack.ts",
+    "ConvexPress-Admin/packages/blocks-catalog/src/generated/blocks-customer-showcase.ts",
+    "ConvexPress-Admin/packages/blocks-catalog/src/generated/blocks-field-guide.ts",
+    "ConvexPress-Admin/packages/blocks-catalog/src/generated/blocks-grade-gallery.ts",
+    "ConvexPress-Admin/packages/blocks-catalog/src/generated/blocks-local-sample-alert.ts",
+    "ConvexPress-Admin/packages/blocks-catalog/src/generated/blocks-media-mentions.ts",
+    "ConvexPress-Admin/packages/blocks-catalog/src/generated/blocks-page-banner.ts",
+    "ConvexPress-Admin/packages/blocks-catalog/src/generated/blocks-product-collection.ts",
+    "ConvexPress-Admin/packages/blocks-catalog/src/generated/blocks-product-showcase.ts",
+    "ConvexPress-Admin/packages/blocks-catalog/src/generated/blocks-promo-band.ts",
+    "ConvexPress-Admin/packages/blocks-catalog/src/generated/blocks-social-share.ts",
+    "ConvexPress-Admin/packages/blocks-catalog/src/generated/blocks-story-timeline.ts",
+    "ConvexPress-Admin/packages/blocks-catalog/src/generated/blocks-tabbed-content.ts",
+    "ConvexPress-Admin/packages/blocks-catalog/src/generated/blocks-upcoming-events.ts",
+    "ConvexPress-Admin/packages/blocks-catalog/src/generated/core.ts",
+    "ConvexPress-Website/apps/web/src/blocks.local/sample-alert/schema.ts",
+    "ConvexPress-Website/apps/web/src/blocks/assistant-band/schema.ts",
+    "ConvexPress-Website/apps/web/src/blocks/category-tiles/schema.ts",
+    "ConvexPress-Website/apps/web/src/blocks/contact-stack/schema.ts",
+    "ConvexPress-Website/apps/web/src/blocks/customer-showcase/schema.ts",
+    "ConvexPress-Website/apps/web/src/blocks/field-guide/schema.ts",
+    "ConvexPress-Website/apps/web/src/blocks/grade-gallery/schema.ts",
+    "ConvexPress-Website/apps/web/src/blocks/media-mentions/schema.ts",
+    "ConvexPress-Website/apps/web/src/blocks/page-banner/schema.ts",
+    "ConvexPress-Website/apps/web/src/blocks/product-collection/schema.ts",
+    "ConvexPress-Website/apps/web/src/blocks/product-showcase/schema.ts",
+    "ConvexPress-Website/apps/web/src/blocks/promo-band/schema.ts",
+    "ConvexPress-Website/apps/web/src/blocks/social-share/schema.ts",
+    "ConvexPress-Website/apps/web/src/blocks/story-timeline/schema.ts",
+    "ConvexPress-Website/apps/web/src/blocks/tabbed-content/schema.ts",
+    "ConvexPress-Website/apps/web/src/blocks/upcoming-events/schema.ts",
+    "ConvexPress-Website/apps/web/src/lib/blocks/page-sections.ts",
+    "ConvexPress-Website/apps/web/src/lib/blocks/schemas.ts",
+    "ConvexPress-Website/apps/web/src/lib/security/url.ts"
+  ],
+  "files": {
+    "rich_text.mjs": "3349516bb2c8b12ff8be5119f64272b278f1216adaf79606a647f3770e9e1c8f",
+    "rich_text.d.mts": "5da566831696a1632ba432c888fdce65d00ee177770a06dd14c4497cb5641177",
+    "legacy_schemas.mjs": "352bdf73d1c174760dc0f823872d150a85cac59b458fe9aa260d69f56f53703e",
+    "legacy_schemas.d.mts": "3de9ddcd3bbd863e6cb71f7179614bc2faa1b7d9ff93a4d9cb50d9fb64600169"
+  },
+  "descriptors": {
+    "blocks/contact-stack": {
+      "name": "blocks/contact-stack",
+      "fromVersion": 1,
+      "toVersion": 1,
+      "transforms": [],
+      "treatments": []
+    },
+    "blocks/customer-showcase": {
+      "name": "blocks/customer-showcase",
+      "fromVersion": 1,
+      "toVersion": 1,
+      "transforms": [],
+      "treatments": []
+    },
+    "blocks/grade-gallery": {
+      "name": "blocks/grade-gallery",
+      "fromVersion": 1,
+      "toVersion": 1,
+      "transforms": [],
+      "treatments": []
+    },
+    "blocks/media-mentions": {
+      "name": "blocks/media-mentions",
+      "fromVersion": 1,
+      "toVersion": 1,
+      "transforms": [],
+      "treatments": []
+    },
+    "blocks/page-banner": {
+      "name": "blocks/page-banner",
+      "fromVersion": 1,
+      "toVersion": 1,
+      "transforms": [],
+      "treatments": []
+    },
+    "blocks/product-collection": {
+      "name": "blocks/product-collection",
+      "fromVersion": 1,
+      "toVersion": 2,
+      "transforms": [
+        {
+          "kind": "pack-treatment",
+          "path": [
+            "display"
+          ]
+        },
+        {
+          "kind": "pack-treatment",
+          "path": [
+            "columns"
+          ]
+        }
+      ],
+      "treatments": [
+        {
+          "name": "gallery",
+          "axes": [
+            "display",
+            "columns",
+            "aspect"
+          ]
+        }
+      ]
+    },
+    "blocks/promo-band": {
+      "name": "blocks/promo-band",
+      "fromVersion": 1,
+      "toVersion": 1,
+      "transforms": [],
+      "treatments": []
+    },
+    "blocks/social-share": {
+      "name": "blocks/social-share",
+      "fromVersion": 1,
+      "toVersion": 1,
+      "transforms": [],
+      "treatments": []
+    },
+    "blocks/story-timeline": {
+      "name": "blocks/story-timeline",
+      "fromVersion": 1,
+      "toVersion": 2,
+      "transforms": [
+        {
+          "kind": "pack-treatment",
+          "path": [
+            "items",
+            "*",
+            "side"
+          ]
+        }
+      ],
+      "treatments": []
+    },
+    "blocks/tabbed-content": {
+      "name": "blocks/tabbed-content",
+      "fromVersion": 1,
+      "toVersion": 2,
+      "transforms": [
+        {
+          "kind": "pack-treatment",
+          "path": [
+            "orientation"
+          ]
+        }
+      ],
+      "treatments": []
+    },
+    "commerce/assistant-band": {
+      "name": "commerce/assistant-band",
+      "fromVersion": 1,
+      "toVersion": 1,
+      "transforms": [],
+      "treatments": []
+    },
+    "commerce/category-tiles": {
+      "name": "commerce/category-tiles",
+      "fromVersion": 1,
+      "toVersion": 2,
+      "transforms": [
+        {
+          "kind": "pack-treatment",
+          "path": [
+            "columns"
+          ]
+        }
+      ],
+      "treatments": []
+    },
+    "commerce/product-showcase": {
+      "name": "commerce/product-showcase",
+      "fromVersion": 1,
+      "toVersion": 2,
+      "transforms": [
+        {
+          "kind": "pack-treatment",
+          "path": [
+            "columns"
+          ]
+        }
+      ],
+      "treatments": []
+    },
+    "core/accordion": {
+      "name": "core/accordion",
+      "fromVersion": 1,
+      "toVersion": 2,
+      "transforms": [],
+      "treatments": []
+    },
+    "core/author-bio": {
+      "name": "core/author-bio",
+      "fromVersion": 1,
+      "toVersion": 2,
+      "transforms": [],
+      "treatments": []
+    },
+    "core/bento-grid": {
+      "name": "core/bento-grid",
+      "fromVersion": 1,
+      "toVersion": 2,
+      "transforms": [
+        {
+          "kind": "pack-treatment",
+          "path": [
+            "items",
+            "*",
+            "size"
+          ]
+        }
+      ],
+      "treatments": []
+    },
+    "core/booking-cta": {
+      "name": "core/booking-cta",
+      "fromVersion": 1,
+      "toVersion": 2,
+      "transforms": [
+        {
+          "kind": "empty-to-null",
+          "path": [
+            "heading"
+          ]
+        }
+      ],
+      "treatments": []
+    },
+    "core/code": {
+      "name": "core/code",
+      "fromVersion": 1,
+      "toVersion": 2,
+      "transforms": [],
+      "treatments": []
+    },
+    "core/comparison-table": {
+      "name": "core/comparison-table",
+      "fromVersion": 1,
+      "toVersion": 2,
+      "transforms": [
+        {
+          "kind": "empty-to-null",
+          "path": [
+            "columns"
+          ]
+        }
+      ],
+      "treatments": []
+    },
+    "core/contact-form": {
+      "name": "core/contact-form",
+      "fromVersion": 1,
+      "toVersion": 2,
+      "transforms": [],
+      "treatments": []
+    },
+    "core/cta-band": {
+      "name": "core/cta-band",
+      "fromVersion": 1,
+      "toVersion": 2,
+      "transforms": [
+        {
+          "kind": "empty-to-null",
+          "path": [
+            "heading"
+          ]
+        }
+      ],
+      "treatments": []
+    },
+    "core/cta-with-form": {
+      "name": "core/cta-with-form",
+      "fromVersion": 1,
+      "toVersion": 2,
+      "transforms": [
+        {
+          "kind": "empty-to-null",
+          "path": [
+            "heading"
+          ]
+        }
+      ],
+      "treatments": []
+    },
+    "core/divider": {
+      "name": "core/divider",
+      "fromVersion": 1,
+      "toVersion": 2,
+      "transforms": [
+        {
+          "kind": "pack-treatment",
+          "path": [
+            "variant"
+          ]
+        }
+      ],
+      "treatments": []
+    },
+    "core/embed": {
+      "name": "core/embed",
+      "fromVersion": 1,
+      "toVersion": 2,
+      "transforms": [],
+      "treatments": []
+    },
+    "core/faq": {
+      "name": "core/faq",
+      "fromVersion": 1,
+      "toVersion": 2,
+      "transforms": [],
+      "treatments": []
+    },
+    "core/feature-grid": {
+      "name": "core/feature-grid",
+      "fromVersion": 1,
+      "toVersion": 2,
+      "transforms": [],
+      "treatments": []
+    },
+    "core/feature-list-alternating": {
+      "name": "core/feature-list-alternating",
+      "fromVersion": 1,
+      "toVersion": 2,
+      "transforms": [],
+      "treatments": []
+    },
+    "core/featured-products": {
+      "name": "core/featured-products",
+      "fromVersion": 1,
+      "toVersion": 2,
+      "transforms": [],
+      "treatments": []
+    },
+    "core/heading": {
+      "name": "core/heading",
+      "fromVersion": 1,
+      "toVersion": 2,
+      "transforms": [
+        {
+          "kind": "empty-to-null",
+          "path": [
+            "text"
+          ]
+        },
+        {
+          "kind": "text-to-richtext",
+          "path": [
+            "text"
+          ],
+          "mode": "plain-inline"
+        }
+      ],
+      "treatments": []
+    },
+    "core/hero": {
+      "name": "core/hero",
+      "fromVersion": 1,
+      "toVersion": 2,
+      "transforms": [
+        {
+          "kind": "empty-to-null",
+          "path": [
+            "title"
+          ]
+        }
+      ],
+      "treatments": []
+    },
+    "core/hero-split": {
+      "name": "core/hero-split",
+      "fromVersion": 1,
+      "toVersion": 2,
+      "transforms": [
+        {
+          "kind": "empty-to-null",
+          "path": [
+            "title"
+          ]
+        },
+        {
+          "kind": "pack-treatment",
+          "path": [
+            "mediaSide"
+          ]
+        }
+      ],
+      "treatments": []
+    },
+    "core/hero-text-only": {
+      "name": "core/hero-text-only",
+      "fromVersion": 1,
+      "toVersion": 2,
+      "transforms": [
+        {
+          "kind": "empty-to-null",
+          "path": [
+            "title"
+          ]
+        },
+        {
+          "kind": "pack-treatment",
+          "path": [
+            "alignment"
+          ]
+        }
+      ],
+      "treatments": []
+    },
+    "core/image": {
+      "name": "core/image",
+      "fromVersion": 1,
+      "toVersion": 2,
+      "transforms": [],
+      "treatments": []
+    },
+    "core/latest-posts": {
+      "name": "core/latest-posts",
+      "fromVersion": 1,
+      "toVersion": 2,
+      "transforms": [],
+      "treatments": []
+    },
+    "core/list": {
+      "name": "core/list",
+      "fromVersion": 1,
+      "toVersion": 2,
+      "transforms": [
+        {
+          "kind": "text-to-richtext",
+          "path": [
+            "items",
+            "*",
+            "text"
+          ],
+          "mode": "markdown-inline"
+        }
+      ],
+      "treatments": []
+    },
+    "core/logo-cloud": {
+      "name": "core/logo-cloud",
+      "fromVersion": 1,
+      "toVersion": 2,
+      "transforms": [],
+      "treatments": []
+    },
+    "core/media-text": {
+      "name": "core/media-text",
+      "fromVersion": 1,
+      "toVersion": 2,
+      "transforms": [
+        {
+          "kind": "pack-treatment",
+          "path": [
+            "mediaPosition"
+          ]
+        }
+      ],
+      "treatments": []
+    },
+    "core/newsletter-signup": {
+      "name": "core/newsletter-signup",
+      "fromVersion": 1,
+      "toVersion": 2,
+      "transforms": [
+        {
+          "kind": "pack-treatment",
+          "path": [
+            "variant"
+          ]
+        }
+      ],
+      "treatments": []
+    },
+    "core/paragraph": {
+      "name": "core/paragraph",
+      "fromVersion": 1,
+      "toVersion": 2,
+      "transforms": [
+        {
+          "kind": "text-to-richtext",
+          "path": [
+            "body"
+          ],
+          "mode": "markdown-prose"
+        }
+      ],
+      "treatments": []
+    },
+    "core/pricing-cards": {
+      "name": "core/pricing-cards",
+      "fromVersion": 1,
+      "toVersion": 2,
+      "transforms": [],
+      "treatments": []
+    },
+    "core/process-steps": {
+      "name": "core/process-steps",
+      "fromVersion": 1,
+      "toVersion": 2,
+      "transforms": [],
+      "treatments": []
+    },
+    "core/quote": {
+      "name": "core/quote",
+      "fromVersion": 1,
+      "toVersion": 2,
+      "transforms": [
+        {
+          "kind": "empty-to-null",
+          "path": [
+            "text"
+          ]
+        }
+      ],
+      "treatments": []
+    },
+    "core/rich-text": {
+      "name": "core/rich-text",
+      "fromVersion": 1,
+      "toVersion": 2,
+      "transforms": [
+        {
+          "kind": "text-to-richtext",
+          "path": [
+            "body"
+          ],
+          "mode": "plain-prose"
+        }
+      ],
+      "treatments": []
+    },
+    "core/roadmap-timeline": {
+      "name": "core/roadmap-timeline",
+      "fromVersion": 1,
+      "toVersion": 2,
+      "transforms": [],
+      "treatments": []
+    },
+    "core/social-links": {
+      "name": "core/social-links",
+      "fromVersion": 1,
+      "toVersion": 2,
+      "transforms": [],
+      "treatments": []
+    },
+    "core/spacer": {
+      "name": "core/spacer",
+      "fromVersion": 1,
+      "toVersion": 2,
+      "transforms": [
+        {
+          "kind": "pack-treatment",
+          "path": [
+            "size"
+          ]
+        }
+      ],
+      "treatments": []
+    },
+    "core/stats-band": {
+      "name": "core/stats-band",
+      "fromVersion": 1,
+      "toVersion": 2,
+      "transforms": [],
+      "treatments": []
+    },
+    "core/tabs": {
+      "name": "core/tabs",
+      "fromVersion": 1,
+      "toVersion": 2,
+      "transforms": [],
+      "treatments": []
+    },
+    "core/tag-cloud": {
+      "name": "core/tag-cloud",
+      "fromVersion": 1,
+      "toVersion": 2,
+      "transforms": [],
+      "treatments": []
+    },
+    "core/team-grid": {
+      "name": "core/team-grid",
+      "fromVersion": 1,
+      "toVersion": 2,
+      "transforms": [],
+      "treatments": []
+    },
+    "core/testimonials": {
+      "name": "core/testimonials",
+      "fromVersion": 1,
+      "toVersion": 2,
+      "transforms": [],
+      "treatments": []
+    },
+    "events/upcoming": {
+      "name": "events/upcoming",
+      "fromVersion": 1,
+      "toVersion": 1,
+      "transforms": [],
+      "treatments": []
+    },
+    "local/sample-alert": {
+      "name": "local/sample-alert",
+      "fromVersion": 1,
+      "toVersion": 1,
+      "transforms": [],
+      "treatments": []
+    },
+    "reference/field-guide": {
+      "name": "reference/field-guide",
+      "fromVersion": 1,
+      "toVersion": 2,
+      "transforms": [
+        {
+          "kind": "pack-treatment",
+          "path": [
+            "spacing"
+          ]
+        },
+        {
+          "kind": "pack-treatment",
+          "path": [
+            "alignment"
+          ]
+        },
+        {
+          "kind": "pack-treatment",
+          "path": [
+            "ink"
+          ]
+        },
+        {
+          "kind": "pack-treatment",
+          "path": [
+            "font"
+          ]
+        }
+      ],
+      "treatments": [
+        {
+          "name": "editorial",
+          "axes": [
+            "spacing",
+            "alignment",
+            "ink",
+            "font"
+          ]
+        }
+      ]
+    }
+  }
+}

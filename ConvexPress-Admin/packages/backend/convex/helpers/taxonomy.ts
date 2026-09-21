@@ -1,3 +1,5 @@
+import { makeFunctionReference } from "convex/server";
+import { adjustTermCount } from "./termCounts";
 /**
  * Taxonomy System - Shared Helper Functions
  *
@@ -102,9 +104,8 @@ export function sanitizeSlug(slug: string): string | null {
 /**
  * Recalculate the published post count for a term.
  *
- * Counts all termRelationships where the linked post has status = "publish".
- * Since the posts table may not exist yet during incremental development,
- * this gracefully handles missing posts.
+ * Schedules bounded, revision-checked reconciliation of distinct published posts.
+ * Cached totals remain unavailable until the scan is complete.
  *
  * @param ctx - Convex mutation context
  * @param termId - The term to update the count for
@@ -113,29 +114,8 @@ export async function updateTermCount(
   ctx: MutationCtx,
   termId: Id<"terms">,
 ): Promise<void> {
-  const term = await ctx.db.get("terms", termId);
-  if (!term) return;
-
-  // Get all relationships for this term
-  const relationships = await ctx.db
-    .query("termRelationships")
-    .withIndex("by_term", (q) => q.eq("termId", termId))
-    .collect();
-
-  // Count only relationships where the linked post is published
-  let publishedCount = 0;
-  for (const rel of relationships) {
-    const post = await ctx.db.get("posts", rel.postId);
-    if (post) {
-      const postDoc = post as Doc<"posts">;
-      if (postDoc.status === "publish") {
-        publishedCount++;
-      }
-    }
-  }
-
-  // Update the denormalized count
-  await ctx.db.patch("terms", termId, { count: publishedCount });
+  await adjustTermCount(ctx, termId, null);
+  await ctx.scheduler.runAfter(0, makeFunctionReference<"mutation">("taxonomies/counts:request"), { termId });
 }
 
 // ─── Default Category ───────────────────────────────────────────────────────

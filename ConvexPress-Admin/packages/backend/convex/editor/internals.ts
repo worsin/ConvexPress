@@ -10,6 +10,7 @@
  *   incrementUsageCount  - Update reusable block usage count when inserted/removed from posts
  */
 
+import { patchWithMediaReferences } from "../media/attachmentGuard";
 import { internalMutation } from "../_generated/server";
 import { v } from "convex/values";
 import { incrementUsageCountArgs } from "./validators";
@@ -84,7 +85,7 @@ export const incrementUsageCount = internalMutation({
 
     const newCount = Math.max(0, block.usageCount + args.delta);
 
-    await ctx.db.patch("reusableBlocks", args.blockId, {
+    await patchWithMediaReferences<"reusableBlocks">(ctx, "reusableBlocks", args.blockId, {
       usageCount: newCount,
       updatedAt: Date.now(),
     });

@@ -153,6 +153,10 @@ const ADMINISTRATOR_CAPABILITIES: Capability[] = [...ALL_CAPABILITIES];
  * settings/users/roles.
  */
 const EDITOR_CAPABILITIES: Capability[] = [
+  // Editors may compose site-local designs and use block AI. Promoting a
+  // runtime design into the installed Library remains administrator-only.
+  "blocks.compose",
+  "blocks.ai",
   // All post capabilities (13)
   "post.create",
   "post.read",

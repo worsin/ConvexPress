@@ -41,6 +41,7 @@ import {
   shouldRestockReturnItem,
 } from "./itemState";
 import { requirePluginEnabled } from "../helpers/plugins";
+import { patchWithMediaReferences , patchDynamicWithMediaReferences} from "../media/attachmentGuard";
 
 type ReturnRequestDoc = Doc<"commerce_return_requests">;
 type ReturnItemDoc = Doc<"commerce_return_items">;
@@ -528,7 +529,7 @@ export const approveReturn = mutation({
       throwValidationError(error);
     }
 
-    await ctx.db.patch(args.returnId, {
+    await ctx.db.patch("commerce_return_requests", args.returnId, {
       status: "approved",
       refundAmount: args.refundAmount,
       processedBy: admin._id,
@@ -542,7 +543,7 @@ export const approveReturn = mutation({
     for (const item of approvedItems!) {
       const row = rowsByOrderItemId.get(item.orderItemId!);
       if (!row) continue;
-      await ctx.db.patch(row._id, {
+      await ctx.db.patch("commerce_return_items", row._id, {
         quantityApproved: item.quantityApproved,
         conditionCode: item.conditionCode,
         resolutionType: item.resolutionType,
@@ -630,7 +631,7 @@ export const rejectReturn = mutation({
 
     const now = Date.now();
 
-    await ctx.db.patch(args.returnId, {
+    await ctx.db.patch("commerce_return_requests", args.returnId, {
       status: "rejected",
       processedBy: admin._id,
       notes: args.reason,
@@ -726,7 +727,7 @@ export const markReceived = mutation({
       throwValidationError(error);
     }
 
-    await ctx.db.patch(args.returnId, {
+    await ctx.db.patch("commerce_return_requests", args.returnId, {
       status: "received",
       trackingNumber: args.trackingNumber ?? returnRequest.trackingNumber,
       notes: args.notes
@@ -741,7 +742,7 @@ export const markReceived = mutation({
     for (const item of receivedItems!) {
       const row = rowsByOrderItemId.get(item.orderItemId!);
       if (!row) continue;
-      await ctx.db.patch(row._id, {
+      await ctx.db.patch("commerce_return_items", row._id, {
         quantityReceived: item.quantityReceived,
         conditionCode: item.conditionCode,
         resolutionType: item.resolutionType,
@@ -890,7 +891,7 @@ export const processRefund = mutation({
       });
     }
 
-    await ctx.db.patch(args.returnId, {
+    await ctx.db.patch("commerce_return_requests", args.returnId, {
       status: "refund_pending",
       refundMethod: args.refundMethod,
       refundAmount: effectiveRefundAmount,
@@ -951,11 +952,11 @@ export const processRefund = mutation({
         // status for the refund record is marked succeeded so that the
         // payments ledger is consistent, and the return immediately advances
         // to "refunded". The provider transaction is NOT touched.
-        await ctx.db.patch(refundId, {
+        await ctx.db.patch("commerce_payment_refunds", refundId, {
           status: "succeeded",
           updatedAt: now,
         });
-        await ctx.db.patch(args.returnId, {
+        await ctx.db.patch("commerce_return_requests", args.returnId, {
           status: "refunded",
           refundedAt: now,
           updatedAt: now,
@@ -980,7 +981,7 @@ export const processRefund = mutation({
     } else {
       // No payment transaction recorded at all. Only acceptable for
       // manual refund methods. (isOriginalPayment already rejected above.)
-      await ctx.db.patch(args.returnId, {
+      await ctx.db.patch("commerce_return_requests", args.returnId, {
         status: "refunded",
         refundedAt: now,
         updatedAt: now,
@@ -1087,7 +1088,7 @@ export const completeReturn = mutation({
 
     const now = Date.now();
 
-    await ctx.db.patch(args.returnId, {
+    await ctx.db.patch("commerce_return_requests", args.returnId, {
       status: "completed",
       completedAt: now,
       notes: args.notes
@@ -1137,7 +1138,7 @@ export const completeReturn = mutation({
         for (const delta of componentDeltas) {
           const compProduct = delta.productId ? await ctx.db.get(delta.productId) : null;
           if (compProduct?.trackInventory) {
-            await ctx.db.patch(delta.productId, {
+            await patchWithMediaReferences<"commerce_products">(ctx, "commerce_products", delta.productId, {
               stockQuantity: (compProduct.stockQuantity ?? 0) + delta.quantity,
               updatedAt: now,
             });
@@ -1145,7 +1146,7 @@ export const completeReturn = mutation({
           if (delta.variantId) {
             const variant = await ctx.db.get(delta.variantId);
             if (variant) {
-              await ctx.db.patch(delta.variantId, {
+              await patchWithMediaReferences<"commerce_product_variants">(ctx, "commerce_product_variants", delta.variantId, {
                 stockQuantity: (variant.stockQuantity ?? 0) + delta.quantity,
                 updatedAt: now,
               });
@@ -1166,7 +1167,7 @@ export const completeReturn = mutation({
         if (bundleId) {
           const bundle = await ctx.db.get(bundleId);
           if (bundle?.trackInventory && typeof bundle.stockCount === "number") {
-            await ctx.db.patch(bundleId, {
+            await patchDynamicWithMediaReferences(ctx, bundleId, {
               stockCount: bundle.stockCount + orderItem.quantity,
               updatedAt: now,
             });
@@ -1175,7 +1176,7 @@ export const completeReturn = mutation({
 
         const row = rowsByOrderItemId.get(item.orderItemId);
         if (row) {
-          await ctx.db.patch(row._id, {
+          await ctx.db.patch("commerce_return_items", row._id, {
             quantityRestocked: (row.quantityRestocked ?? 0) + restockQuantity,
             updatedAt: now,
           });
@@ -1189,7 +1190,7 @@ export const completeReturn = mutation({
         const variant = await ctx.db.get(orderItem.variantId);
         if (variant) {
           const currentStock = variant.stockQuantity ?? 0;
-          await ctx.db.patch(orderItem.variantId, {
+          await patchWithMediaReferences<"commerce_product_variants">(ctx, "commerce_product_variants", orderItem.variantId, {
             stockQuantity: currentStock + restockQuantity,
             updatedAt: now,
           });
@@ -1198,7 +1199,7 @@ export const completeReturn = mutation({
 
       if (product && product.trackInventory) {
         const currentStock = product.stockQuantity ?? 0;
-        await ctx.db.patch(orderItem.productId, {
+        await patchWithMediaReferences<"commerce_products">(ctx, "commerce_products", orderItem.productId, {
           stockQuantity: currentStock + restockQuantity,
           updatedAt: now,
         });
@@ -1216,7 +1217,7 @@ export const completeReturn = mutation({
 
       const row = rowsByOrderItemId.get(item.orderItemId);
       if (row) {
-        await ctx.db.patch(row._id, {
+        await ctx.db.patch("commerce_return_items", row._id, {
           quantityRestocked: (row.quantityRestocked ?? 0) + restockQuantity,
           updatedAt: now,
         });
@@ -1258,7 +1259,7 @@ export const addShippingLabel = mutation({
 
     const now = Date.now();
 
-    await ctx.db.patch(args.returnId, {
+    await ctx.db.patch("commerce_return_requests", args.returnId, {
       returnShippingLabel: args.shippingLabelUrl,
       trackingNumber: args.trackingNumber,
       updatedAt: now,
@@ -1354,7 +1355,7 @@ export const updateNotes = mutation({
 
     const now = Date.now();
 
-    await ctx.db.patch(args.returnId, {
+    await ctx.db.patch("commerce_return_requests", args.returnId, {
       notes: args.notes,
       updatedAt: now,
     });
@@ -1442,7 +1443,7 @@ export const retryStuckRefund = mutation({
       (r) => r.status === "pending" || r.status === "failed",
     );
     if (pendingRefund) {
-      await ctx.db.patch(pendingRefund._id, {
+      await ctx.db.patch("commerce_payment_refunds", pendingRefund._id, {
         status: "pending",
         failureCode: undefined,
         failureMessage: undefined,
@@ -1466,7 +1467,7 @@ export const retryStuckRefund = mutation({
       });
     }
 
-    await ctx.db.patch(args.returnId, {
+    await ctx.db.patch("commerce_return_requests", args.returnId, {
       refundPendingAt: now,
       updatedAt: now,
     });

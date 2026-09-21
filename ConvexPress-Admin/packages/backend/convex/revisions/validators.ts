@@ -40,22 +40,21 @@ export const MAX_REVISION_LIMIT = 200;
 /**
  * Arguments for restoring a revision.
  */
-export const restoreRevisionArgs = {
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+export const restoreRevisionArgs: { revisionId: import("convex/values").VId<import("../_generated/dataModel").Id<"revisions">> } = {
   revisionId: v.id("revisions"),
 };
 
 /**
  * Arguments for deleting a single revision.
  */
-export const deleteRevisionArgs = {
+export const deleteRevisionArgs: { revisionId: import("convex/values").VId<import("../_generated/dataModel").Id<"revisions">> } = {
   revisionId: v.id("revisions"),
 };
 
 /**
  * Arguments for deleting all revisions for a post.
  */
-export const deleteAllForPostArgs = {
+export const deleteAllForPostArgs: { parentId: import("convex/values").VId<import("../_generated/dataModel").Id<"posts">> } = {
   parentId: v.id("posts"),
 };
 
@@ -64,9 +63,8 @@ export const deleteAllForPostArgs = {
 /**
  * Arguments for listing revisions by parent post.
  */
-export const listByPostArgs = {
+export const listByPostArgs: { parentId: import("convex/values").VId<import("../_generated/dataModel").Id<"posts">>; type: import("convex/values").VOptional<typeof revisionTypeValidator>; limit: import("convex/values").VOptional<import("convex/values").VFloat64> } = {
   parentId: v.id("posts"),
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   type: v.optional(revisionTypeValidator),
   limit: v.optional(v.number()),
 };
@@ -74,14 +72,14 @@ export const listByPostArgs = {
 /**
  * Arguments for getting a single revision.
  */
-export const getRevisionArgs = {
+export const getRevisionArgs: { revisionId: import("convex/values").VId<import("../_generated/dataModel").Id<"revisions">> } = {
   revisionId: v.id("revisions"),
 };
 
 /**
  * Arguments for comparing two revisions.
  */
-export const compareRevisionsArgs = {
+export const compareRevisionsArgs: { leftRevisionId: import("convex/values").VId<import("../_generated/dataModel").Id<"revisions">>; rightRevisionId: import("convex/values").VId<import("../_generated/dataModel").Id<"revisions">> } = {
   leftRevisionId: v.id("revisions"),
   rightRevisionId: v.id("revisions"),
 };
@@ -89,14 +87,14 @@ export const compareRevisionsArgs = {
 /**
  * Arguments for counting revisions for a post.
  */
-export const countRevisionsArgs = {
+export const countRevisionsArgs: { parentId: import("convex/values").VId<import("../_generated/dataModel").Id<"posts">> } = {
   parentId: v.id("posts"),
 };
 
 /**
  * Arguments for getting the latest revision for a post.
  */
-export const getLatestRevisionArgs = {
+export const getLatestRevisionArgs: { parentId: import("convex/values").VId<import("../_generated/dataModel").Id<"posts">>; type: import("convex/values").Validator<import("../_generated/dataModel").Doc<"revisions">["type"] | undefined, "optional"> } = {
   parentId: v.id("posts"),
   type: v.optional(revisionTypeValidator),
 };
@@ -135,7 +133,7 @@ export const createAutosaveArgs = {
  * Arguments for the internal deleteByParent function.
  * Called by Post System on permanent delete.
  */
-export const deleteByParentArgs = {
+export const deleteByParentArgs: { parentId: import("convex/values").VId<import("../_generated/dataModel").Id<"posts">> } = {
   parentId: v.id("posts"),
 };
 

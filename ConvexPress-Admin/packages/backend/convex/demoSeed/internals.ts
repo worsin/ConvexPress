@@ -1,9 +1,12 @@
 // @ts-nocheck
+import { deleteTermRelationship } from "../helpers/postDiscovery";
+import { insertTermRelationship } from "../helpers/postDiscovery";
 import { ConvexError, v } from "convex/values";
 import { internalMutation } from "../_generated/server";
 import type { Id } from "../_generated/dataModel";
 import { getDefaults } from "../settings/defaults";
 import { DEFAULT_MENU_LOCATIONS } from "../menus/validators";
+import { deleteWithMediaReferences, insertWithMediaReferences, patchWithMediaReferences } from "../media/attachmentGuard";
 
 type AssetMap = Record<string, { mediaId: Id<"media">; url: string; altText?: string }>;
 type AnyCtx = any;
@@ -148,7 +151,7 @@ async function upsertSettingsSection(
   };
 
   if (existing) {
-    await ctx.db.patch("settings", existing._id, {
+    await patchWithMediaReferences<"settings">(ctx, "settings", existing._id, {
       values: nextValues,
       updatedAt: Date.now(),
       updatedBy: userId,
@@ -156,7 +159,7 @@ async function upsertSettingsSection(
     return existing._id;
   }
 
-  return await ctx.db.insert("settings", {
+  return await insertWithMediaReferences<"settings">(ctx, "settings", {
     section,
     values: nextValues,
     updatedAt: Date.now(),
@@ -224,19 +227,19 @@ async function clearExistingContent(
 
   for (const relationship of termRelationships) {
     if (contentIds.has(relationship.postId)) {
-      await ctx.db.delete("termRelationships", relationship._id);
+      await deleteTermRelationship(ctx, relationship._id);
     }
   }
 
   for (const meta of postMeta) {
     if (contentIds.has(meta.postId)) {
-      await ctx.db.delete("postMeta", meta._id);
+      await deleteWithMediaReferences<"postMeta">(ctx, "postMeta", meta._id);
     }
   }
 
   for (const revision of revisions) {
     if (contentIds.has(revision.parentId)) {
-      await ctx.db.delete("revisions", revision._id);
+      await deleteWithMediaReferences<"revisions">(ctx, "revisions", revision._id);
     }
   }
 
@@ -284,7 +287,7 @@ async function clearExistingContent(
   }
 
   for (const entry of [...posts, ...pages]) {
-    await ctx.db.delete("posts", entry._id);
+    await deleteWithMediaReferences<"posts">(ctx, "posts", entry._id);
   }
 }
 
@@ -690,7 +693,7 @@ export const seedMarketingSite = internalMutation({
       [behindScenesId, 0],
     ]);
 
-    const homePageId = await ctx.db.insert("posts", {
+    const homePageId: import("../_generated/dataModel").Id<"posts"> = await insertWithMediaReferences<"posts">(ctx, "posts", {
       type: "page",
       title: "Home",
       slug: "home",
@@ -711,7 +714,7 @@ export const seedMarketingSite = internalMutation({
       updatedAt: now,
     });
 
-    const aboutPageId = await ctx.db.insert("posts", {
+    const aboutPageId: import("../_generated/dataModel").Id<"posts"> = await insertWithMediaReferences<"posts">(ctx, "posts", {
       type: "page",
       title: "About",
       slug: "about",
@@ -731,7 +734,7 @@ export const seedMarketingSite = internalMutation({
       updatedAt: now,
     });
 
-    const servicesPageId = await ctx.db.insert("posts", {
+    const servicesPageId: import("../_generated/dataModel").Id<"posts"> = await insertWithMediaReferences<"posts">(ctx, "posts", {
       type: "page",
       title: "Services",
       slug: "services",
@@ -751,7 +754,7 @@ export const seedMarketingSite = internalMutation({
       updatedAt: now,
     });
 
-    const processPageId = await ctx.db.insert("posts", {
+    const processPageId: import("../_generated/dataModel").Id<"posts"> = await insertWithMediaReferences<"posts">(ctx, "posts", {
       type: "page",
       title: "Process",
       slug: "process",
@@ -771,7 +774,7 @@ export const seedMarketingSite = internalMutation({
       updatedAt: now,
     });
 
-    const contactPageId = await ctx.db.insert("posts", {
+    const contactPageId: import("../_generated/dataModel").Id<"posts"> = await insertWithMediaReferences<"posts">(ctx, "posts", {
       type: "page",
       title: "Contact",
       slug: "contact",
@@ -874,7 +877,7 @@ export const seedMarketingSite = internalMutation({
     const createdPosts: Array<{ id: Id<"posts">; title: string; slug: string }> = [];
 
     for (const definition of postDefinitions) {
-      const postId = await ctx.db.insert("posts", {
+      const postId: import("../_generated/dataModel").Id<"posts"> = await insertWithMediaReferences<"posts">(ctx, "posts", {
         type: "post",
         title: definition.title,
         slug: definition.slug,
@@ -892,7 +895,7 @@ export const seedMarketingSite = internalMutation({
         updatedAt: definition.publishedAt,
       });
 
-      await ctx.db.insert("termRelationships", {
+      await insertTermRelationship(ctx, {
         postId,
         termId: definition.categoryId,
       });
@@ -1017,7 +1020,7 @@ export const repairSeededPageLinks = internalMutation({
         continue;
       }
 
-      await ctx.db.patch("posts", page._id, {
+      await patchWithMediaReferences<"posts">(ctx, "posts", page._id, {
         content: page.content.replace(fix.from, fix.to),
         updatedAt: Date.now(),
       });

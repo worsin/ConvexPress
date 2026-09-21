@@ -1,3 +1,4 @@
+import { activePriceAmount, type PriceAmount, type SaleWindow } from "./activePrice";
 /**
  * Pure cart helper functions for variant validation and metadata.
  * Extracted for unit testing without Convex runtime.
@@ -64,17 +65,17 @@ export function buildCartItemVariantMetadata(variant: {
  * Resolve unit price for a cart item, preferring variant pricing.
  */
 export function resolveCartItemUnitPrice(args: {
-  variant?: { salePrice?: { amount: number } | null; price: { amount: number } } | null;
-  product: { salePrice?: { amount: number } | null; basePrice: { amount: number } };
+  variant?: ({ salePrice?: PriceAmount | null; price: PriceAmount } & SaleWindow) | null;
+  product: { salePrice?: PriceAmount | null; basePrice: PriceAmount } & SaleWindow;
   bundlePriceAmount?: number;
 }): number {
   if (args.variant) {
-    return (args.variant.salePrice ?? args.variant.price).amount;
+    return activePriceAmount(args.variant.price, args.variant.salePrice, args.variant);
   }
   if (typeof args.bundlePriceAmount === "number") {
     return args.bundlePriceAmount;
   }
-  return (args.product.salePrice ?? args.product.basePrice).amount;
+  return activePriceAmount(args.product.basePrice, args.product.salePrice, args.product);
 }
 
 /**

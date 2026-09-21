@@ -39,6 +39,21 @@ async function seedRegistrationFixture(t: ReturnType<typeof createHarness>) {
       updatedAt: now,
     });
 
+    await ctx.db.insert("roles", {
+      name: "Subscriber",
+      slug: "subscriber",
+      description: "Website customer",
+      level: 0,
+      type: "customer",
+      isDefault: true,
+      isProtected: true,
+      capabilities: [],
+      pageAccess: [],
+      status: "active",
+      createdAt: now,
+      updatedAt: now,
+    });
+
     const inviterId = await ctx.db.insert("users", {
       authSource: "local",
       email: "inviter@example.com",
@@ -88,8 +103,7 @@ async function seedRegistrationFixture(t: ReturnType<typeof createHarness>) {
       role: "subscriber",
       invitedBy: inviterId,
       status: "pending",
-      token:
-        "abcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcd",
+      token: "abcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcd",
       previousToken:
         "1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
       previousTokenExpiresAt: now + 60 * 60 * 1000,
@@ -141,8 +155,7 @@ describe("registration security", () => {
     ).resolves.toBeNull();
 
     const invitation = await t.query(api.registration.queries.getByToken, {
-      token:
-        "abcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcd",
+      token: "abcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcd",
     });
 
     expect(invitation).toEqual({
@@ -211,12 +224,15 @@ describe("registration security", () => {
     const t = createHarness();
 
     await expect(
-      t.mutation(internal.registration.internals.handleExternalAuthUserCreated, {
-        externalAuthId: "user_oauth_closed",
-        email: "oauth@example.com",
-        emailVerified: true,
-        oauthProvider: "google",
-      }),
+      t.mutation(
+        internal.registration.internals.handleExternalAuthUserCreated,
+        {
+          externalAuthId: "user_oauth_closed",
+          email: "oauth@example.com",
+          emailVerified: true,
+          oauthProvider: "google",
+        },
+      ),
     ).rejects.toThrow("User registration is currently not allowed");
 
     const users = await t.run(async (ctx) => {
@@ -228,3 +244,58 @@ describe("registration security", () => {
     expect(users).toHaveLength(0);
   });
 });
+
+for (const endpoint of ["invite", "bulk", "resend", "accept"] as const) {
+  test(`${endpoint} refuses internal invitation intent without invitation or event changes`, async () => {
+    const t = createHarness();
+    const f = await seedRegistrationFixture(t);
+    await t.run((ctx) =>
+      ctx.db.patch(f.invitationId, { role: "administrator" }),
+    );
+    const before = await t.run((ctx) => ctx.db.get(f.invitationId));
+    const admin = t.withIdentity({
+      subject: f.inviterId,
+      issuer: ADMIN_ISSUER,
+      tokenIdentifier: `${ADMIN_ISSUER}|${f.inviterId}`,
+    });
+    if (endpoint === "invite")
+      await expect(
+        admin.mutation(api.registration.mutations.inviteUser, {
+          email: "new@example.com",
+          role: "administrator",
+          sendNotification: false,
+        }),
+      ).rejects.toThrow("customer roles");
+    if (endpoint === "bulk") {
+      const result = await admin.mutation(
+        api.registration.mutations.bulkInvite,
+        {
+          invitations: [{ email: "new@example.com", role: "administrator" }],
+          sendNotification: false,
+        },
+      );
+      expect(result[0]?.success).toBe(false);
+      expect(result[0]?.error).toContain("customer roles");
+    }
+    if (endpoint === "resend")
+      await expect(
+        admin.mutation(api.registration.mutations.resendInvitation, {
+          invitationId: f.invitationId,
+        }),
+      ).rejects.toThrow("customer roles");
+    if (endpoint === "accept")
+      await expect(
+        withClerkIdentity(t, "user_invited", "invited@example.com").mutation(
+          api.registration.mutations.acceptInvitation,
+          { userId: f.invitedUserId, token: before!.token },
+        ),
+      ).rejects.toThrow("customer roles");
+    expect(await t.run((ctx) => ctx.db.get(f.invitationId))).toEqual(before);
+    expect(
+      await t.run((ctx) => ctx.db.query("invitations").collect()),
+    ).toHaveLength(1);
+    expect(await t.run((ctx) => ctx.db.query("events").collect())).toHaveLength(
+      0,
+    );
+  });
+}

@@ -36,7 +36,14 @@ export const taxonomyTables = {
     description: v.optional(v.string()), // Optional description (shown on archive pages)
 
     // --- Cached Counts ---
-    count: v.number(), // Published post count (denormalized, maintained automatically)
+    count: v.number(), // Distinct published posts; editorial total includes restricted visibility.
+    countReady: v.optional(v.boolean()),
+    countState: v.optional(v.object({
+      phase: v.union(v.literal("pending"), v.literal("scanning"), v.literal("ready")),
+      revision: v.number(), generation: v.string(), scanRevision: v.number(),
+      cursor: v.union(v.string(), v.null()), subtotal: v.number(),
+      lastPostId: v.union(v.id("posts"), v.null()), updatedAt: v.number(),
+    })),
 
     // --- System Flags ---
     isDefault: v.boolean(), // True for the default category ("Uncategorized")
@@ -50,8 +57,11 @@ export const taxonomyTables = {
     wpTermId: v.optional(v.number()), // Original WordPress term ID
     wpSourceSiteId: v.optional(v.id("wordpressSites")), // Source WordPress site
   })
+    .index("by_count_ready", ["countReady"])
+    .index("by_count_phase_updated", ["countState.phase", "countState.updatedAt"])
     .index("by_taxonomy", ["taxonomy"]) // All categories / all tags
     .index("by_slug_taxonomy", ["slug", "taxonomy"]) // Unique slug per taxonomy
+    .index("by_parent_name", ["parentId", "name"])
     .index("by_parent", ["parentId"]) // Children of a category
     .index("by_taxonomy_count", ["taxonomy", "count"]) // Most-used terms
     .index("by_taxonomy_name", ["taxonomy", "name"]) // Alphabetical listing
@@ -68,8 +78,18 @@ export const taxonomyTables = {
     postId: v.id("posts"), // The post being classified
     termId: v.id("terms"), // The term being assigned
     order: v.optional(v.number()), // Display order (term_order in WP)
+    // Site-local discovery coordinates. Source permissions are still checked on read.
+    discoveryReady: v.optional(v.boolean()),
+    discoveryEligible: v.optional(v.boolean()),
+    discoveryPublishedAt: v.optional(v.number()),
+    discoveryAuthorId: v.optional(v.id("users")),
   })
     .index("by_post", ["postId"]) // All terms for a post
     .index("by_term", ["termId"]) // All posts with a term
-    .index("by_post_term", ["postId", "termId"]), // Unique pair (prevent duplicates)
+    .index("by_term_post", ["termId", "postId"])
+    .index("by_post_term", ["postId", "termId"]) // Unique pair (prevent duplicates)
+    .index("by_discovery_ready", ["discoveryReady"])
+    .index("by_term_discovery_ready", ["termId", "discoveryReady"])
+    .index("by_term_discovery_published", ["termId", "discoveryEligible", "discoveryPublishedAt"])
+    .index("by_term_author_discovery_published", ["termId", "discoveryAuthorId", "discoveryEligible", "discoveryPublishedAt"]),
 };

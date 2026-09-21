@@ -1,3 +1,4 @@
+import * as catalogRevisionWrites from "../media/attachmentGuard";
 /**
  * Role & Capability System - Internal Functions
  *
@@ -13,6 +14,7 @@
 import { ConvexError } from "convex/values";
 import { internalMutation } from "../_generated/server";
 import { BUILT_IN_ROLES, LEGACY_ROLE_MAP } from "../seed/roles";
+import { patchWithMediaReferences } from "../media/attachmentGuard";
 
 const REQUIRED_ADMIN_PAGE_ACCESS = ["/admin/setup", "/admin/*"];
 
@@ -48,7 +50,7 @@ export const seedRoles = internalMutation({
       }
 
       const now = Date.now();
-      await ctx.db.insert("roles", {
+      await catalogRevisionWrites.insertWithMediaReferences<"roles">(ctx, "roles", {
         name: roleDef.name,
         slug: roleDef.slug,
         description: roleDef.description,
@@ -101,7 +103,7 @@ export const reseedRoles = internalMutation({
       const now = Date.now();
 
       if (existing) {
-        await ctx.db.patch("roles", existing._id, {
+        await catalogRevisionWrites.patchWithMediaReferences<"roles">(ctx, "roles", existing._id, {
           name: roleDef.name,
           description: roleDef.description,
           level: roleDef.level,
@@ -115,7 +117,7 @@ export const reseedRoles = internalMutation({
         });
         updated.push(roleDef.slug);
       } else {
-        await ctx.db.insert("roles", {
+        await catalogRevisionWrites.insertWithMediaReferences<"roles">(ctx, "roles", {
           name: roleDef.name,
           slug: roleDef.slug,
           description: roleDef.description,
@@ -174,7 +176,7 @@ export const ensureAdminSetupPageAccess = internalMutation({
       };
     }
 
-    await ctx.db.patch("roles", administrator._id, {
+    await catalogRevisionWrites.patchWithMediaReferences<"roles">(ctx, "roles", administrator._id, {
       pageAccess: [...administrator.pageAccess, ...missing],
       updatedAt: Date.now(),
     });
@@ -231,7 +233,7 @@ export const migrateLegacyRoles = internalMutation({
         continue;
       }
 
-      await ctx.db.patch("users", user._id, {
+      await patchWithMediaReferences<"users">(ctx, "users", user._id, {
         roleId: role._id,
         updatedAt: Date.now(),
       });

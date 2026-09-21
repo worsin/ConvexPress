@@ -6,14 +6,25 @@
 
 import { ConvexError, v } from "convex/values";
 
+import { internal } from "../_generated/api";
 import { mutation, query, internalMutation } from "../_generated/server";
 import { getCurrentUser, requireCan } from "../helpers/permissions";
 import { requireCommerceEnabled } from "./helpers";
+import { activePriceAmount } from "./activePrice";
+import { resolveStockPolicy, canOrderQuantity } from "./stockPolicy";
+import { prepareReservationCommit } from "./reservationCommit";
+import { readStockTarget, readReservedStock, readCheckoutReservations } from "./stockTarget";
+import { patchDynamicWithMediaReferences } from "../media/attachmentGuard";
+
 
 // Default low stock threshold when none is configured per-product.
 // ConvexPress products don't carry a per-product threshold field yet,
 // so we use a sensible default and allow callers to pass one.
 const DEFAULT_LOW_STOCK_THRESHOLD = 5;
+const inventoryAdjustmentResultValidator = v.object({
+  productId:v.id("commerce_products"),variantId:v.optional(v.id("commerce_product_variants")),
+  success:v.boolean(),error:v.optional(v.string()),previousStock:v.optional(v.number()),newStock:v.optional(v.number()),
+});
 
 // ============================================
 // HELPERS
@@ -28,89 +39,13 @@ function getMoneyAmount(money: any): number {
  * Compute the total reserved quantity for a product from active reservations.
  * ConvexPress doesn't store reservedCount on the product row; we derive it.
  */
-async function getReservedCount(
-  ctx: any,
-  productId: any,
-  variantId?: any,
-): Promise<number> {
-  const reservations = await ctx.db
-    .query("commerce_stock_reservations")
-    .withIndex("by_product_status", (q: any) =>
-      q.eq("productId", productId).eq("status", "active"),
-    )
-    .collect();
-
-  return reservations
-    .filter((reservation: any) =>
-      variantId
-        ? reservation.variantId?.toString() === variantId.toString()
-        : !reservation.variantId,
-    )
-    .reduce((sum: number, reservation: any) => sum + reservation.quantity, 0);
+async function getReservedCount(ctx: any, productId: any, variantId?: any) {
+  return readReservedStock(ctx, productId, variantId);
 }
 
-async function resolveInventoryTarget(
-  ctx: any,
-  productId: any,
-  variantId?: any,
-) {
-  const product = await ctx.db.get(productId);
-  if (!product) {
-    throw new ConvexError({
-      code: "NOT_FOUND",
-      message: "Product not found.",
-    });
-  }
-
-  if (product.productType === "variable") {
-    if (!variantId) {
-      throw new ConvexError({
-        code: "VALIDATION_ERROR",
-        message: `Variable product "${product.title}" requires a variant selection.`,
-      });
-    }
-
-    const variant = await ctx.db.get(variantId);
-    if (!variant || variant.productId !== productId) {
-      throw new ConvexError({
-        code: "VALIDATION_ERROR",
-        message: `Variant does not belong to "${product.title}".`,
-      });
-    }
-
-    // When manageStock === "parent", inventory is tracked at the product level
-    if (variant.manageStock === "parent") {
-      return {
-        product,
-        variant,
-        patchId: product._id,
-        stockQuantity:
-          typeof product.stockQuantity === "number" ? product.stockQuantity : 0,
-        reservedCount: await getReservedCount(ctx, productId),
-        label: `${product.title} - ${variant.title}`,
-      };
-    }
-
-    return {
-      product,
-      variant,
-      patchId: variant._id,
-      stockQuantity:
-        typeof variant.stockQuantity === "number" ? variant.stockQuantity : 0,
-      reservedCount: await getReservedCount(ctx, productId, variantId),
-      label: `${product.title} - ${variant.title}`,
-    };
-  }
-
-  return {
-    product,
-    variant: null,
-    patchId: product._id,
-    stockQuantity:
-      typeof product.stockQuantity === "number" ? product.stockQuantity : 0,
-    reservedCount: await getReservedCount(ctx, productId),
-    label: product.title,
-  };
+async function resolveInventoryTarget(ctx: any, productId: any, variantId?: any) {
+  const target = await readStockTarget(ctx, productId, variantId);
+  return {...target, reservedCount: target.policy.tracked ? await getReservedCount(ctx,productId,target.inventoryVariantId) : 0};
 }
 
 /**
@@ -132,7 +67,7 @@ async function createAlert(
 
   if (existingAlert) {
     // Update existing alert with current stock level
-    await ctx.db.patch(existingAlert._id, {
+    await patchDynamicWithMediaReferences(ctx, existingAlert._id, {
       stockQuantity,
     });
     return;
@@ -149,76 +84,29 @@ async function createAlert(
 }
 
 async function getInventoryEntriesForProduct(ctx: any, product: any) {
-  if (product.productType === "variable") {
-    const variants = await ctx.db
-      .query("commerce_product_variants")
-      .withIndex("by_product", (q: any) => q.eq("productId", product._id))
-      .collect();
-
-    return Promise.all(
-      variants.map(async (variant: any) => {
-        const stockQuantity =
-          typeof variant.stockQuantity === "number" ? variant.stockQuantity : 0;
-        const reservedCount = await getReservedCount(ctx, product._id, variant._id);
-        return {
-          entryId: `${product._id.toString()}:${variant._id.toString()}`,
-          productId: product._id,
-          variantId: variant._id,
-          title: `${product.title} - ${variant.title}`,
-          productTitle: product.title,
-          variantTitle: variant.title,
-          slug: product.slug,
-          sku: variant.sku ?? product.sku,
-          featuredMediaId: product.featuredMediaId,
-          productType: product.productType,
-          trackInventory: product.trackInventory,
-          allowBackorders: product.allowBackorders,
-          stockQuantity,
-          reservedCount,
-          availableStock: stockQuantity - reservedCount,
-          lowStockThreshold: DEFAULT_LOW_STOCK_THRESHOLD,
-          isLowStock:
-            product.trackInventory &&
-            stockQuantity > 0 &&
-            stockQuantity <= DEFAULT_LOW_STOCK_THRESHOLD,
-          isOutOfStock:
-            product.trackInventory && stockQuantity === 0 && !product.allowBackorders,
-          valueAmount: getMoneyAmount(variant.salePrice ?? variant.price) * stockQuantity,
-        };
-      }),
-    );
+  const variants = product.productType === "variable" ? await ctx.db
+    .query("commerce_product_variants").withIndex("by_product",(q:any)=>q.eq("productId",product._id)).take(1001) : [null];
+  if(variants.length>1000)throw new ConvexError({code:"INVENTORY_CAPACITY",message:"Product variants exceed the supported inventory request budget."});
+  const entries:any[]=[];
+  const seen=new Set<string>();
+  for(const selected of variants){
+    const policy=resolveStockPolicy(product,selected);
+    const variant=policy.mode === "parent" ? null : selected;
+    const entryId=variant?`${product._id}:${variant._id}`:String(product._id);
+    if(seen.has(entryId))continue;
+    seen.add(entryId);
+    const reservedCount=policy.tracked?await getReservedCount(ctx,product._id,variant?._id):0;
+    const stock=resolveStockPolicy(product,selected,reservedCount);
+    entries.push({entryId,productId:product._id,variantId:variant?._id,
+      title:variant?`${product.title} - ${variant.title}`:product.title,productTitle:product.title,variantTitle:variant?.title,
+      slug:product.slug,sku:variant?.sku??product.sku,featuredMediaId:variant?.featuredMediaId??product.featuredMediaId,
+      productType:product.productType,trackInventory:stock.tracked,allowBackorders:stock.allowBackorders,
+      stockQuantity:stock.stockQuantity,reservedCount,availableStock:stock.available,lowStockThreshold:DEFAULT_LOW_STOCK_THRESHOLD,
+      isLowStock:stock.tracked && stock.available>0 && stock.available<=DEFAULT_LOW_STOCK_THRESHOLD,
+      isOutOfStock:!canOrderQuantity(stock,1),
+      valueAmount:stock.tracked?activePriceAmount(variant?.price??product.basePrice,variant?.salePrice??product.salePrice,variant??product)*stock.stockQuantity:0});
   }
-
-  const stockQuantity =
-    typeof product.stockQuantity === "number" ? product.stockQuantity : 0;
-  const reservedCount = await getReservedCount(ctx, product._id);
-  return [
-    {
-      entryId: product._id.toString(),
-      productId: product._id,
-      variantId: undefined,
-      title: product.title,
-      productTitle: product.title,
-      variantTitle: undefined,
-      slug: product.slug,
-      sku: product.sku,
-      featuredMediaId: product.featuredMediaId,
-      productType: product.productType,
-      trackInventory: product.trackInventory,
-      allowBackorders: product.allowBackorders,
-      stockQuantity,
-      reservedCount,
-      availableStock: stockQuantity - reservedCount,
-      lowStockThreshold: DEFAULT_LOW_STOCK_THRESHOLD,
-      isLowStock:
-        product.trackInventory &&
-        stockQuantity > 0 &&
-        stockQuantity <= DEFAULT_LOW_STOCK_THRESHOLD,
-      isOutOfStock:
-        product.trackInventory && stockQuantity === 0 && !product.allowBackorders,
-      valueAmount: getMoneyAmount(product.basePrice) * stockQuantity,
-    },
-  ];
+  return entries;
 }
 
 async function getPublishedInventoryEntries(ctx: any, includeDrafts = false) {
@@ -263,31 +151,8 @@ async function findInventoryLevel(
   ) ?? null;
 }
 
-async function getReservedCountAtLocation(
-  ctx: any,
-  args: {
-    productId: any;
-    variantId?: any;
-    locationId: any;
-  },
-) {
-  const reservations = await ctx.db
-    .query("commerce_stock_reservations")
-    .withIndex("by_product_location_status", (q: any) =>
-      q
-        .eq("productId", args.productId)
-        .eq("locationId", args.locationId)
-        .eq("status", "active"),
-    )
-    .collect();
-
-  return reservations
-    .filter(
-      (reservation: any) =>
-        (reservation.variantId?.toString() ?? null) ===
-        (args.variantId?.toString() ?? null),
-    )
-    .reduce((sum: number, reservation: any) => sum + reservation.quantity, 0);
+async function getReservedCountAtLocation(ctx: any, args: {productId:any; variantId?:any; locationId:any}) {
+  return readReservedStock(ctx,args.productId,args.variantId,args.locationId);
 }
 
 // ============================================
@@ -304,6 +169,7 @@ export const getAvailable = query({
   },
   handler: async (ctx, args) => {
     await requireCommerceEnabled(ctx);
+    await requireCan(ctx, "manage_options");
     const target = await resolveInventoryTarget(ctx, args.productId, args.variantId);
     const { product, stockQuantity, reservedCount } = target;
     const available = stockQuantity - reservedCount;
@@ -316,15 +182,12 @@ export const getAvailable = query({
       available,
       lowThreshold: threshold,
       isLowStock:
-        product.trackInventory &&
+        target.policy.tracked &&
         stockQuantity > 0 &&
         stockQuantity <= threshold,
-      isOutOfStock:
-        product.trackInventory &&
-        stockQuantity === 0 &&
-        !product.allowBackorders,
-      trackInventory: product.trackInventory,
-      allowBackorders: product.allowBackorders,
+      isOutOfStock: !canOrderQuantity(resolveStockPolicy(product,target.variant,reservedCount),1),
+      trackInventory: target.policy.tracked,
+      allowBackorders: target.policy.allowBackorders,
     };
   },
 });
@@ -339,6 +202,7 @@ export const listLocationLevels = query({
   },
   handler: async (ctx, args) => {
     await requireCommerceEnabled(ctx);
+    await requireCan(ctx, "manage_options");
 
     const rows = await ctx.db
       .query("commerce_inventory_levels")
@@ -383,53 +247,47 @@ export const canFulfill = query({
       }),
     ),
   },
+  returns: v.object({
+    canFulfillAll:v.boolean(),
+    items:v.array(v.object({productId:v.id("commerce_products"),variantId:v.optional(v.id("commerce_product_variants")),quantity:v.number(),canFulfill:v.boolean(),reason:v.optional(v.string()),available:v.optional(v.number()),backordered:v.optional(v.number())})),
+  }),
   handler: async (ctx, args) => {
     await requireCommerceEnabled(ctx);
+    await requireCan(ctx, "manage_options");
 
-    const results = await Promise.all(
-      args.items.map(async (item: any) => {
-        try {
-          const target = await resolveInventoryTarget(ctx, item.productId, item.variantId);
-          const { product, stockQuantity, reservedCount } = target;
-
-          if (!product.trackInventory) {
-            return {
-              ...item,
-              canFulfill: true,
-              reason: "Not tracking inventory",
-            };
-          }
-
-          const available = stockQuantity - reservedCount;
-
-          if (available >= item.quantity) {
-            return { ...item, canFulfill: true, available };
-          }
-
-          if (product.allowBackorders) {
-            return {
-              ...item,
-              canFulfill: true,
-              reason: "Backorder",
-              backordered: item.quantity - Math.max(0, available),
-            };
-          }
-
-          return {
-            ...item,
-            canFulfill: false,
-            reason: "Insufficient stock",
-            available,
-          };
-        } catch (error: any) {
-          return {
-            ...item,
-            canFulfill: false,
-            reason: error?.message ?? "Inventory target not found",
-          };
+    if (args.items.length > 100) throw new ConvexError({code:"INVENTORY_CAPACITY", message:"Check at most 100 inventory lines per request."});
+    const results = [];
+    const planned = new Map<string,number>();
+    const reservedByOwner = new Map<string,number>();
+    for (const item of args.items) {
+      try {
+        const target = await readStockTarget(ctx, item.productId, item.variantId);
+        if (!Number.isSafeInteger(item.quantity) || item.quantity <= 0 || (!target.policy.tracked && target.policy.stockStatus === "outofstock")) {
+          results.push({...item, canFulfill:false, reason:"Item is unavailable or quantity is invalid"});
+          continue;
         }
-      }),
-    );
+        if (!target.policy.tracked) {
+          results.push({...item, canFulfill:true, reason:"Not tracking inventory"});
+          continue;
+        }
+        const owner = String(target.patchId);
+        if (!reservedByOwner.has(owner)) reservedByOwner.set(owner, await readReservedStock(ctx,item.productId,target.inventoryVariantId));
+        const requested = planned.get(owner) ?? 0;
+        const available = target.stockQuantity - reservedByOwner.get(owner)! - requested;
+        if (available >= item.quantity) {
+          planned.set(owner, requested + item.quantity);
+          results.push({...item, canFulfill:true, available});
+        } else if (target.policy.allowBackorders) {
+          planned.set(owner, requested + item.quantity);
+          results.push({...item, canFulfill:true, reason:"Backorder", backordered:item.quantity-Math.max(0,available)});
+        } else {
+          results.push({...item, canFulfill:false, reason:"Insufficient stock", available});
+        }
+      } catch (error) {
+        if (!(error instanceof ConvexError) || !["NOT_FOUND","VALIDATION_ERROR"].includes(error.data?.code)) throw error;
+        results.push({...item, canFulfill:false, reason:error.data.message});
+      }
+    }
 
     return {
       canFulfillAll: results.every((r: any) => r.canFulfill),
@@ -806,14 +664,15 @@ export const adjust = mutation({
     quantity: v.number(),
     reason: v.string(),
   },
+  returns: v.object({success:v.literal(true),previousStock:v.number(),newStock:v.number()}),
   handler: async (ctx, args) => {
     await requireCommerceEnabled(ctx);
     const user = await requireCan(ctx, "manage_options");
-    const target = await resolveInventoryTarget(ctx, args.productId, args.variantId);
+    const target = await readStockTarget(ctx, args.productId, args.variantId, {allowParent:true});
     const locationLevel = args.locationId
       ? await findInventoryLevel(ctx, {
           productId: args.productId,
-          variantId: args.variantId,
+          variantId: target.inventoryVariantId,
           locationId: args.locationId,
         })
       : null;
@@ -835,14 +694,14 @@ export const adjust = mutation({
     const now = Date.now();
     if (args.locationId) {
       if (locationLevel) {
-        await ctx.db.patch(locationLevel._id, {
+        await patchDynamicWithMediaReferences(ctx, locationLevel._id, {
           stockQuantity: newStock,
           updatedAt: now,
         });
       } else {
         await ctx.db.insert("commerce_inventory_levels", {
           productId: args.productId,
-          variantId: args.variantId,
+          variantId: target.inventoryVariantId,
           locationId: args.locationId,
           stockQuantity: newStock,
           incomingQuantity: 0,
@@ -853,7 +712,7 @@ export const adjust = mutation({
         });
       }
     } else {
-      await ctx.db.patch(target.patchId, {
+      await patchDynamicWithMediaReferences(ctx, target.patchId, {
         stockQuantity: newStock,
         updatedAt: now,
       });
@@ -861,7 +720,7 @@ export const adjust = mutation({
 
     await ctx.db.insert("commerce_inventory_adjustments", {
       productId: args.productId,
-      variantId: args.variantId,
+      variantId: target.inventoryVariantId,
       locationId: args.locationId,
       adjustmentType: args.adjustmentType,
       quantityDelta: args.quantity,
@@ -879,7 +738,7 @@ export const adjust = mutation({
         .collect();
 
       for (const alert of activeAlerts) {
-        await ctx.db.patch(alert._id, { status: "resolved" });
+        await ctx.db.patch("commerce_low_stock_alerts", alert._id, { status: "resolved" });
       }
     }
 
@@ -908,10 +767,11 @@ export const upsertLocationLevel = mutation({
     externalInventoryItemId: v.optional(v.string()),
     metadata: v.optional(v.any()),
   },
+  returns: v.id("commerce_inventory_levels"),
   handler: async (ctx, args) => {
     await requireCommerceEnabled(ctx);
     await requireCan(ctx, "manage_options");
-    await resolveInventoryTarget(ctx, args.productId, args.variantId);
+    const target = await readStockTarget(ctx, args.productId, args.variantId, {allowParent:true});
 
     const location = await ctx.db.get(args.locationId);
     if (!location) {
@@ -922,7 +782,7 @@ export const upsertLocationLevel = mutation({
     }
 
     const now = Date.now();
-    const existing = await findInventoryLevel(ctx, args);
+    const existing = await findInventoryLevel(ctx, {...args, variantId:target.inventoryVariantId});
     const patch = {
       stockQuantity: args.stockQuantity,
       incomingQuantity: args.incomingQuantity ?? 0,
@@ -935,13 +795,13 @@ export const upsertLocationLevel = mutation({
     };
 
     if (existing) {
-      await ctx.db.patch(existing._id, patch);
+      await patchDynamicWithMediaReferences(ctx, existing._id, patch);
       return existing._id;
     }
 
     return ctx.db.insert("commerce_inventory_levels", {
       productId: args.productId,
-      variantId: args.variantId,
+      variantId: target.inventoryVariantId,
       locationId: args.locationId,
       ...patch,
       createdAt: now,
@@ -964,6 +824,11 @@ export const bulkAdjust = mutation({
     adjustmentType: v.union(v.literal("restock"), v.literal("correction")),
     reason: v.string(),
   },
+  returns: v.object({
+    successful:v.number(),
+    failed:v.array(inventoryAdjustmentResultValidator),
+    results:v.array(inventoryAdjustmentResultValidator),
+  }),
   handler: async (ctx, args) => {
     await requireCommerceEnabled(ctx);
     const user = await requireCan(ctx, "manage_options");
@@ -979,7 +844,7 @@ export const bulkAdjust = mutation({
 
     for (const adj of args.adjustments) {
       try {
-        const target = await resolveInventoryTarget(ctx, adj.productId, adj.variantId);
+        const target = await readStockTarget(ctx, adj.productId, adj.variantId, {allowParent:true});
         const previousStock = target.stockQuantity;
         const newStock = previousStock + adj.quantity;
 
@@ -993,14 +858,14 @@ export const bulkAdjust = mutation({
           continue;
         }
 
-        await ctx.db.patch(target.patchId, {
+        await patchDynamicWithMediaReferences(ctx, target.patchId, {
           stockQuantity: newStock,
           updatedAt: Date.now(),
         });
 
         await ctx.db.insert("commerce_inventory_adjustments", {
           productId: adj.productId,
-          variantId: adj.variantId,
+          variantId: target.inventoryVariantId,
           adjustmentType: args.adjustmentType,
           quantityDelta: adj.quantity,
           reason: args.reason,
@@ -1054,7 +919,7 @@ export const acknowledgeAlert = mutation({
       });
     }
 
-    await ctx.db.patch(args.alertId, {
+    await ctx.db.patch("commerce_low_stock_alerts", args.alertId, {
       status: "acknowledged",
       acknowledgedBy: user._id,
       acknowledgedAt: Date.now(),
@@ -1080,19 +945,26 @@ export const reserve = internalMutation({
     quantity: v.number(),
     checkoutSessionId: v.id("commerce_checkout_sessions"),
   },
+  returns: v.union(
+    v.object({success:v.literal(true),reserved:v.number(),skipped:v.literal(true)}),
+    v.object({success:v.literal(true),reserved:v.number(),reservationId:v.id("commerce_stock_reservations")}),
+  ),
   handler: async (ctx, args) => {
     const target = await resolveInventoryTarget(ctx, args.productId, args.variantId);
     const product = target.product;
     const locationLevel = args.locationId
       ? await findInventoryLevel(ctx, {
           productId: args.productId,
-          variantId: args.variantId,
+          variantId: target.inventoryVariantId,
           locationId: args.locationId,
         })
       : null;
 
-    // Skip reservation for non-tracked or backorder products
-    if (!product.trackInventory || product.allowBackorders) {
+    if (args.locationId && !locationLevel) throw new ConvexError({code:"INVENTORY_TARGET_MISSING",message:"The selected inventory location is unavailable."});
+    if (!Number.isSafeInteger(args.quantity) || args.quantity <= 0) throw new ConvexError({code:"VALIDATION_ERROR",message:"Quantity must be a positive whole number."});
+    if (!target.policy.tracked && target.policy.stockStatus === "outofstock") throw new ConvexError({code:"INSUFFICIENT_STOCK",message:"This item is out of stock."});
+    // Tracked backorders still reserve and deduct stock; untracked items do not.
+    if (!target.policy.tracked) {
       return { success: true, reserved: 0, skipped: true };
     }
 
@@ -1103,13 +975,13 @@ export const reserve = internalMutation({
     const reservedCount = args.locationId
       ? await getReservedCountAtLocation(ctx, {
           productId: args.productId,
-          variantId: args.variantId,
+          variantId: target.inventoryVariantId,
           locationId: args.locationId,
         })
       : target.reservedCount;
     const available = stockQuantity - reservedCount;
 
-    if (available < args.quantity) {
+    if (available < args.quantity && !target.policy.allowBackorders) {
       throw new ConvexError({
         code: "INSUFFICIENT_STOCK",
         message: `Insufficient stock. Only ${available} available.`,
@@ -1121,10 +993,11 @@ export const reserve = internalMutation({
     // Create reservation record
     const reservationId = await ctx.db.insert("commerce_stock_reservations", {
       productId: args.productId,
-      variantId: args.variantId,
+      variantId: target.inventoryVariantId,
       locationId: args.locationId,
       checkoutSessionId: args.checkoutSessionId,
       quantity: args.quantity,
+      allowBackorders: target.policy.allowBackorders,
       expiresAt: now + 15 * 60 * 1000, // 15 minutes
       status: "active",
       createdAt: now,
@@ -1134,7 +1007,7 @@ export const reserve = internalMutation({
     // Log adjustment
     await ctx.db.insert("commerce_inventory_adjustments", {
       productId: args.productId,
-      variantId: args.variantId,
+      variantId: target.inventoryVariantId,
       locationId: args.locationId,
       adjustmentType: "reservation",
       quantityDelta: -args.quantity,
@@ -1156,47 +1029,38 @@ export const release = internalMutation({
     checkoutSessionId: v.optional(v.id("commerce_checkout_sessions")),
     reason: v.optional(v.string()),
   },
+  returns: v.union(
+    v.object({success:v.literal(true), released:v.number()}),
+    v.object({success:v.literal(false), reason:v.string()}),
+  ),
   handler: async (ctx, args) => {
-    let reservation: any = null;
-
-    if (args.reservationId) {
-      reservation = await ctx.db.get(args.reservationId);
-    } else if (args.checkoutSessionId) {
-      reservation = await ctx.db
-        .query("commerce_stock_reservations")
-        .withIndex("by_checkout", (q: any) =>
-          q.eq("checkoutSessionId", args.checkoutSessionId),
-        )
-        .filter((q: any) => q.eq(q.field("status"), "active"))
-        .first();
+    const reservations = args.reservationId
+      ? [await ctx.db.get(args.reservationId)].filter(Boolean)
+      : args.checkoutSessionId ? await readCheckoutReservations(ctx, args.checkoutSessionId) : [];
+    if (args.checkoutSessionId && reservations.some(row => row.checkoutSessionId !== args.checkoutSessionId)) {
+      throw new ConvexError({code:"VALIDATION_ERROR", message:"Reservation does not belong to this checkout."});
     }
-
-    if (!reservation || reservation.status !== "active") {
-      return { success: false, reason: "No active reservation found" };
-    }
-
-    await resolveInventoryTarget(ctx, reservation.productId, reservation.variantId);
+    const active = reservations.filter(row => row.status === "active");
+    if (!active.length) return {success:false, reason:"No active reservation found"};
 
     const now = Date.now();
-
-    // Update reservation status
-    await ctx.db.patch(reservation._id, {
-      status: "released",
-      updatedAt: now,
-    });
-
-    // Log adjustment
-    await ctx.db.insert("commerce_inventory_adjustments", {
-      productId: reservation.productId,
-      variantId: reservation.variantId,
-      locationId: reservation.locationId,
-      adjustmentType: "release",
-      quantityDelta: reservation.quantity,
-      reason: args.reason ?? "Reservation released",
-      createdAt: now,
-    });
-
-    return { success: true, released: reservation.quantity };
+    let released = 0;
+    for (const reservation of active) {
+      // Releasing a hold changes no physical stock. Keep it possible after the
+      // product/variant is removed or its inventory ownership mode changes.
+      await ctx.db.patch("commerce_stock_reservations", reservation._id, {status:"released", updatedAt:now});
+      await ctx.db.insert("commerce_inventory_adjustments", {
+        productId:reservation.productId,
+        variantId:reservation.variantId,
+        locationId:reservation.locationId,
+        adjustmentType:"release",
+        quantityDelta:reservation.quantity,
+        reason:args.reason ?? "Reservation released",
+        createdAt:now,
+      });
+      released += reservation.quantity;
+    }
+    return {success:true, released};
   },
 });
 
@@ -1210,50 +1074,28 @@ export const commit = internalMutation({
     checkoutSessionId: v.id("commerce_checkout_sessions"),
     orderId: v.id("commerce_orders"),
   },
+  returns: v.object({success:v.literal(true),committed:v.number()}),
   handler: async (ctx, args) => {
-    const reservations = await ctx.db
-      .query("commerce_stock_reservations")
-      .withIndex("by_checkout", (q: any) =>
-        q.eq("checkoutSessionId", args.checkoutSessionId),
-      )
-      .filter((q: any) => q.eq(q.field("status"), "active"))
-      .collect();
-
-    const committed: any[] = [];
     const now = Date.now();
-
-    for (const reservation of reservations) {
-      const target = await resolveInventoryTarget(
-        ctx,
-        reservation.productId,
-        reservation.variantId,
-      );
-      const locationLevel = reservation.locationId
-        ? await findInventoryLevel(ctx, {
-            productId: reservation.productId,
-            variantId: reservation.variantId,
-            locationId: reservation.locationId,
-          })
-        : null;
-      const previousStock = locationLevel
-        ? Number(locationLevel.stockQuantity ?? 0)
-        : target.stockQuantity;
-      const newStock = previousStock - reservation.quantity;
+    const plan = await prepareReservationCommit(ctx,args.checkoutSessionId,args.orderId,now);
+    if (plan.alreadyCommitted) return {success:true,committed:0};
+    const committed: any[] = [];
+    for (const {reservation,target,locationLevel,nextStock:newStock} of plan.entries) {
 
       if (locationLevel) {
-        await ctx.db.patch(locationLevel._id, {
+        await patchDynamicWithMediaReferences(ctx, locationLevel._id, {
           stockQuantity: newStock,
           updatedAt: now,
         });
       } else {
-        await ctx.db.patch(target.patchId, {
+        await patchDynamicWithMediaReferences(ctx, target.patchId, {
           stockQuantity: newStock,
           updatedAt: now,
         });
       }
 
       // Mark reservation as converted
-      await ctx.db.patch(reservation._id, {
+      await ctx.db.patch("commerce_stock_reservations", reservation._id, {
         status: "converted",
         updatedAt: now,
       });
@@ -1276,8 +1118,7 @@ export const commit = internalMutation({
       const threshold = DEFAULT_LOW_STOCK_THRESHOLD;
       if (
         newStock === 0 &&
-        target.product.trackInventory &&
-        !target.product.allowBackorders
+        !reservation.allowBackorders
       ) {
         await createAlert(
           ctx,
@@ -1288,8 +1129,7 @@ export const commit = internalMutation({
         );
       } else if (
         newStock <= threshold &&
-        newStock > 0 &&
-        target.product.trackInventory
+        newStock > 0
       ) {
         await createAlert(
           ctx,
@@ -1301,6 +1141,7 @@ export const commit = internalMutation({
       }
     }
 
+    await ctx.db.patch("commerce_orders",args.orderId,{inventoryCommittedAt:now,inventoryPolicyVersion:1});
     return { success: true, committed: committed.length };
   },
 });
@@ -1311,51 +1152,27 @@ export const commit = internalMutation({
  */
 export const releaseExpiredReservations = internalMutation({
   args: {},
+  returns: v.object({released:v.number()}),
   handler: async (ctx) => {
     const now = Date.now();
-    const expired = await ctx.db
-      .query("commerce_stock_reservations")
-      .filter((q: any) =>
-        q.and(
-          q.eq(q.field("status"), "active"),
-          q.lt(q.field("expiresAt"), now),
-        ),
-      )
-      .take(100);
-
-    let released = 0;
-
-    for (const reservation of expired) {
-      const product = await ctx.db.get(reservation.productId);
-      if (!product) {
-        // Product deleted, just mark as expired
-        await ctx.db.patch(reservation._id, {
-          status: "expired",
-          updatedAt: now,
-        });
-        released++;
-        continue;
-      }
-
-      // Mark as expired
-      await ctx.db.patch(reservation._id, {
-        status: "expired",
-        updatedAt: now,
-      });
-
-      // Log adjustment
+    const expired = await ctx.db.query("commerce_stock_reservations")
+      .withIndex("by_status_expiry", q => q.eq("status", "active").lte("expiresAt", now))
+      .take(101);
+    for (const reservation of expired.slice(0,100)) {
+      await ctx.db.patch("commerce_stock_reservations", reservation._id, {status:"expired", updatedAt:now});
       await ctx.db.insert("commerce_inventory_adjustments", {
-        productId: reservation.productId,
-        variantId: reservation.variantId,
-        adjustmentType: "release",
-        quantityDelta: reservation.quantity,
-        reason: "Reservation expired",
-        createdAt: now,
+        productId:reservation.productId,
+        variantId:reservation.variantId,
+        locationId:reservation.locationId,
+        adjustmentType:"release",
+        quantityDelta:reservation.quantity,
+        reason:"Reservation expired",
+        createdAt:now,
       });
-
-      released++;
     }
-
-    return { released };
+    if (expired.length > 100) {
+      await ctx.scheduler.runAfter(0, internal.commerce.inventory.releaseExpiredReservations, {});
+    }
+    return {released:Math.min(expired.length,100)};
   },
 });

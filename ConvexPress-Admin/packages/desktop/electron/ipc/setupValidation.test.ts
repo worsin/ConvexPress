@@ -304,12 +304,12 @@ describe("setup validation", () => {
 
   test("trusts only the configured app renderer for main app IPC", () => {
     expect(getTrustedDevRendererOrigin()).toBe("http://localhost:4105");
-    expect(isAppRendererSender("http://localhost:4105/dashboard")).toBe(true);
+    expect(isAppRendererSender("http://localhost:4105/dashboard", { development: true })).toBe(true);
     expect(isAppRendererSender("http://localhost:4106/dashboard")).toBe(false);
     expect(isAppRendererSender("http://127.0.0.1:4105/dashboard")).toBe(false);
     expect(
       isAppRendererSender("http://127.0.0.1:4105/dashboard", {
-        devRendererUrl: "http://127.0.0.1:4105",
+        development: true, devRendererUrl: "http://127.0.0.1:4105",
       }),
     ).toBe(true);
 
@@ -351,6 +351,7 @@ describe("setup validation", () => {
     ).toBe(true);
     expect(
       isTrustedDesktopSender("http://localhost:4105/setup", {
+        development: true,
         wizardIndexPath,
       }),
     ).toBe(true);

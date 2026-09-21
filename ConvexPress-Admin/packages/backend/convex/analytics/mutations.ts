@@ -12,6 +12,7 @@ import { emitEvent } from "../helpers/events";
 import { purgeArgs, settingsArgs } from "./validators";
 import { getDefaults } from "../settings/defaults";
 import { computeChanges } from "../settings/helpers";
+import { insertWithMediaReferences, patchWithMediaReferences } from "../media/attachmentGuard";
 
 // ─── purgeAnalytics ─────────────────────────────────────────────────────────
 
@@ -35,14 +36,14 @@ export const purgeAnalytics = mutation({
       // Delete all pageEvents
       const allEvents = await ctx.db.query("pageEvents").collect();
       for (const event of allEvents) {
-        await ctx.db.delete(event._id);
+        await ctx.db.delete("pageEvents", event._id);
         deletedEvents++;
       }
 
       // Delete all rollups
       const allRollups = await ctx.db.query("pageAnalyticsDaily").collect();
       for (const rollup of allRollups) {
-        await ctx.db.delete(rollup._id);
+        await ctx.db.delete("pageAnalyticsDaily", rollup._id);
         deletedRollups++;
       }
     } else if (args.scope === "before_date" && args.beforeDate) {
@@ -53,7 +54,7 @@ export const purgeAnalytics = mutation({
         .withIndex("by_timestamp", (q) => q.lt("timestamp", cutoffMs))
         .collect();
       for (const event of events) {
-        await ctx.db.delete(event._id);
+        await ctx.db.delete("pageEvents", event._id);
         deletedEvents++;
       }
 
@@ -63,7 +64,7 @@ export const purgeAnalytics = mutation({
         .withIndex("by_date", (q) => q.lt("date", args.beforeDate!))
         .collect();
       for (const rollup of rollups) {
-        await ctx.db.delete(rollup._id);
+        await ctx.db.delete("pageAnalyticsDaily", rollup._id);
         deletedRollups++;
       }
     }
@@ -130,13 +131,13 @@ export const updateSettings = mutation({
 
     const now = Date.now();
     if (existing) {
-      await ctx.db.patch(existing._id, {
+      await patchWithMediaReferences<"settings">(ctx, "settings", existing._id, {
         values: newValues,
         updatedAt: now,
         updatedBy: user._id,
       });
     } else {
-      await ctx.db.insert("settings", {
+      await insertWithMediaReferences<"settings">(ctx, "settings", {
         section: "analytics",
         values: newValues,
         updatedAt: now,

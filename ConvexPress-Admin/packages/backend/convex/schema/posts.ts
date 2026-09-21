@@ -23,6 +23,8 @@
 
 import { defineTable } from "convex/server";
 import { v } from "convex/values";
+import { canonicalStoredTreeValidator } from "../canonicalDocuments/foundation/generated/storage";
+import { composedRegistrySnapshotValidator } from "../canonicalDocuments/definitionStorage";
 
 // ─── Shared Validators (used by schema and functions) ───────────────────────
 
@@ -127,7 +129,7 @@ export const postTables = {
     // Website sides. Backend mutations validate the envelope, depth, count,
     // and revision semantics before saving.
     contentMode: v.optional(v.union(v.literal("article"), v.literal("blocks"))),
-    blocks: v.optional(v.array(v.object({
+    blocks: v.optional(v.union(canonicalStoredTreeValidator, v.array(v.object({
       id: v.string(),
       name: v.string(),
       version: v.number(),
@@ -161,9 +163,12 @@ export const postTables = {
         remove: v.optional(v.boolean()),
         edit: v.optional(v.boolean()),
       })),
-    }))),
+    })))),
     blocksVersion: v.optional(v.number()),
     blocksRevision: v.optional(v.number()),
+    // Immutable definitions used by this authored tree. The canonical service
+    // must verify exact versions, current installation and referenced resources.
+    composedDefinitions: v.optional(composedRegistrySnapshotValidator),
 
     // ── Layout Override Fields ───────────────────────────────────────────
     layoutId: v.optional(v.string()),       // Per-post/page layout override (layout _id)
@@ -249,6 +254,8 @@ export const postTables = {
     // ── Page-Specific Indexes ────────────────────────────────────────────
     .index("by_type_template", ["type", "pageTemplate"]) // Template-filtered queries
     .index("by_type_status_published", ["type", "status", "publishedAt"]) // Published pages sorted by date
+    .index("by_public_discovery", ["type", "status", "visibility", "publishedAt"])
+    .index("by_author_public_discovery", ["authorId", "type", "status", "visibility", "publishedAt"])
 
     // ── Page Path Index ──────────────────────────────────────────────────
     .index("by_path", ["path"]) // Page path lookups

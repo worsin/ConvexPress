@@ -9,6 +9,7 @@ import { emitEvent } from "../../helpers/events";
 import { LMS_EVENTS, SYSTEM } from "../../events/constants";
 import { lmsDripModeValidator } from "../../schema/lms";
 import { requireNodeCourseAuthorOrEditor } from "../access";
+import { patchWithMediaReferences } from "../../media/attachmentGuard";
 
 export const updateTopic = mutation({
   args: {
@@ -29,7 +30,7 @@ export const updateTopic = mutation({
     if (args.dripMode !== undefined) patch.topicDripMode = args.dripMode;
     if (args.dripOffsetDays !== undefined) patch.topicDripOffsetDays = args.dripOffsetDays;
     if (args.dripDate !== undefined) patch.topicDripDate = args.dripDate;
-    await ctx.db.patch(args.nodeId, patch as never);
+    await patchWithMediaReferences<"lms_nodes">(ctx, "lms_nodes", args.nodeId, patch as never);
     await emitEvent(ctx, LMS_EVENTS.TOPIC_UPDATED, SYSTEM.LMS, {
       courseId: node.courseId,
       nodeId: args.nodeId,

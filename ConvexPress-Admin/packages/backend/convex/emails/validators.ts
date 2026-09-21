@@ -125,7 +125,7 @@ export const listQueueArgs = {
 /**
  * Args for the getEmail query (single queue item).
  */
-export const getEmailArgs = {
+export const getEmailArgs: { queueId: import("convex/values").VId<import("../_generated/dataModel").Id<"emailQueue">> } = {
   queueId: v.id("emailQueue"),
 };
 
@@ -176,21 +176,21 @@ export const updateTemplateArgs = {
 /**
  * Args for the resetTemplate mutation.
  */
-export const resetTemplateArgs = {
+export const resetTemplateArgs: { templateId: import("convex/values").VId<import("../_generated/dataModel").Id<"emailTemplates">> } = {
   templateId: v.id("emailTemplates"),
 };
 
 /**
  * Args for the retryEmail mutation.
  */
-export const retryEmailArgs = {
+export const retryEmailArgs: { queueId: import("convex/values").VId<import("../_generated/dataModel").Id<"emailQueue">> } = {
   queueId: v.id("emailQueue"),
 };
 
 /**
  * Args for the cancelEmail mutation.
  */
-export const cancelEmailArgs = {
+export const cancelEmailArgs: { queueId: import("convex/values").VId<import("../_generated/dataModel").Id<"emailQueue">> } = {
   queueId: v.id("emailQueue"),
 };
 
@@ -240,8 +240,7 @@ export const queueRenderedEmailArgs = {
 /**
  * Args for the internal sendEmail action.
  */
-export const sendEmailArgs = {
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+export const sendEmailArgs: { queueId: import("convex/values").VId<import("../_generated/dataModel").Id<"emailQueue">> } = {
   queueId: v.id("emailQueue"),
 };
 

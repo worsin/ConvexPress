@@ -30,11 +30,11 @@ import {
   statsArgs,
   getUserPreferencesArgs,
 } from "./validators";
-import { EMAIL_TEMPLATE_REGISTRY_BY_SLUG } from "./registry";
+import { EMAIL_TEMPLATE_REGISTRY_BY_SLUG, type EmailTemplateTriggerKind } from "./registry";
 
 const TEMPLATE_REGISTRY = EMAIL_TEMPLATE_REGISTRY_BY_SLUG as Record<
   string,
-  { canonicalEventCode?: string; triggerKind?: string }
+  { canonicalEventCode?: string; triggerKind?: EmailTemplateTriggerKind }
 >;
 
 // ─── listQueue ───────────────────────────────────────────────────────────────
@@ -268,6 +268,7 @@ export const listTemplates = query({
       _id: template._id,
       slug: template.slug,
       name: template.name,
+      subjectTemplate: template.subjectTemplate,
       description: template.description,
       category: template.category,
       priority: template.priority,
@@ -295,7 +296,7 @@ export const listTemplates = query({
 export const getTemplate = query({
   args: getTemplateArgs,
   // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
-  handler: async (ctx, args) => {
+  handler: async (ctx, args: { templateSlug: string }) => {
     await requireCan(ctx, "settings.update_email");
 
     const template = await ctx.db
@@ -310,8 +311,8 @@ export const getTemplate = query({
       });
     }
 
-    const templateSlug = String((template as any).slug);
-    const registryEntry: any = (EMAIL_TEMPLATE_REGISTRY_BY_SLUG as any)[templateSlug] ?? {};
+    const templateSlug = args.templateSlug;
+    const registryEntry: { canonicalEventCode?: string; triggerKind?: EmailTemplateTriggerKind } = TEMPLATE_REGISTRY[templateSlug] ?? {};
 
     return {
       ...template,

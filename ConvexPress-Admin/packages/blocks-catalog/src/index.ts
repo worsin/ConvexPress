@@ -1,25 +1,13 @@
 /**
- * Block catalog — the AI contract for the block editor.
- *
- * Single source of truth for the LLM's view of every block: name, when-to-use,
- * when-to-avoid, the JSON shape (fields + max lengths), and an example. The
- * Convex backend (packages/backend/convex/blocks/aiPromptBuilder.ts) re-exports
- * from this module so prompt building has no duplicated catalog data.
- *
- * The frontend registry (apps/web/src/lib/blocks/registry.tsx) carries the
- * editor-specific concerns (icons, Zod schemas, default attrs, React Editor
- * components) and the script `scripts/check-block-catalog.mjs` enforces that
- * the registry's block names match the entries in this catalog. When you add
- * a new block, update BOTH:
- *
- *   1. This catalog with the AI-facing metadata.
- *   2. The frontend registry with the Editor + Zod schema + icon.
- *
- * Keeping them aligned is enforced by `bun run check:blocks` in CI.
- *
- * This module has no runtime dependencies — it is safe to import from any
- * environment (Convex actions, Node scripts, the browser bundle, etc.).
+ * AI catalog and runtime attrs contract for the existing block editor.
+ * Core AI copy remains below; discovered block metadata and every validation
+ * schema are generated from existing Admin sources by `bun run sync:blocks`.
+ * `bun run check:blocks` rejects schema/registration drift. The generated
+ * package contains pure Zod schemas only, never React editors or renderers.
  */
+
+import { z } from "zod";
+import { BLOCK_DEFINITIONS } from "./generated/definitions";
 
 export type BlockCatalogEntry = {
   name: string;
@@ -33,7 +21,7 @@ export type BlockCatalogEntry = {
   example: Record<string, unknown>;
 };
 
-export const BLOCK_CATALOG: BlockCatalogEntry[] = [
+const CORE_BLOCK_CATALOG: BlockCatalogEntry[] = [
   // ── Wave A — content blocks ───────────────────────────────────────────────
   {
     name: "core/paragraph",
@@ -607,6 +595,22 @@ export const BLOCK_CATALOG: BlockCatalogEntry[] = [
   },
 ];
 
+/** Discovered blocks use the same schema and AI hints as their existing editor. */
+export const BLOCK_CATALOG: BlockCatalogEntry[] = [
+  ...CORE_BLOCK_CATALOG,
+  ...Object.values(BLOCK_DEFINITIONS).flatMap(({ schema, metadata }) => {
+    if (!metadata) return [];
+    const jsonSchema = z.toJSONSchema(schema, { unrepresentable: "any" });
+    const defaults = schema.safeParse({});
+    return [{
+      name: metadata.name, title: metadata.title, description: metadata.description,
+      category: metadata.category, ...metadata.aiHints,
+      fields: Object.entries(jsonSchema.properties ?? {}).map(([name, definition]) => ({ name, type: JSON.stringify(definition) })),
+      example: defaults.success ? defaults.data as Record<string, unknown> : {},
+    }];
+  }),
+];
+
 const BLOCK_CATALOG_BY_NAME = new Map(BLOCK_CATALOG.map((b) => [b.name, b]));
 
 export function getCatalogEntry(name: string): BlockCatalogEntry | undefined {
@@ -614,92 +618,22 @@ export function getCatalogEntry(name: string): BlockCatalogEntry | undefined {
 }
 
 export type BlockAttrsValidationResult =
-  | { ok: true }
+  | { ok: true; attrs: Record<string, unknown> }
   | { ok: false; message: string };
 
-function parseLiteralOptions(type: string): string[] {
-  const matches = type.match(/"([^"]+)"/g);
-  return matches ? matches.map((match) => match.slice(1, -1)) : [];
-}
-
-function isArrayType(type: string): boolean {
-  return /^Array</.test(type) || type.endsWith("[]");
-}
-
-function valueKind(value: unknown): string {
-  if (Array.isArray(value)) return "array";
-  if (value === null) return "null";
-  return typeof value;
-}
-
-/**
- * Lightweight runtime validation for attrs generated or saved through the
- * backend. Zod remains the strongest frontend editor contract; this catalog
- * check is intentionally dependency-free so Convex actions/mutations can
- * reject obviously wrong AI/custom data before it lands in the database.
- */
+/** Validate and normalize with the exact editor schema, including nested fields. */
 export function validateAttrsForCatalogEntry(
   blockName: string,
   attrs: Record<string, unknown>,
 ): BlockAttrsValidationResult {
-  const catalog = getCatalogEntry(blockName);
-  if (!catalog) {
-    return { ok: false, message: `Unknown block type: ${blockName}` };
+  const definition = Object.prototype.hasOwnProperty.call(BLOCK_DEFINITIONS, blockName) ? BLOCK_DEFINITIONS[blockName] : undefined;
+  if (!definition) return { ok: false, message: `Unknown block type: ${blockName}` };
+  const result = definition.schema.safeParse(attrs);
+  if (!result.success) {
+    const issue = result.error.issues[0];
+    return { ok: false, message: `Invalid ${blockName}.${issue.path.join(".")}: ${issue.message}` };
   }
-
-  for (const field of catalog.fields) {
-    const value = attrs[field.name];
-    if (value === undefined || value === null) continue;
-
-    if (field.max && typeof value === "string" && value.length > field.max) {
-      return {
-        ok: false,
-        message: `${blockName}.${field.name} exceeds ${field.max} characters`,
-      };
-    }
-
-    const type = field.type.trim();
-    const literals = parseLiteralOptions(type);
-    if (literals.length > 0) {
-      if (typeof value !== "string" || !literals.includes(value)) {
-        return {
-          ok: false,
-          message: `${blockName}.${field.name} must be one of: ${literals.join(", ")}`,
-        };
-      }
-      continue;
-    }
-
-    if (type === "string" && typeof value !== "string") {
-      return {
-        ok: false,
-        message: `${blockName}.${field.name} must be a string, got ${valueKind(value)}`,
-      };
-    }
-
-    if (type === "number" && typeof value !== "number") {
-      return {
-        ok: false,
-        message: `${blockName}.${field.name} must be a number, got ${valueKind(value)}`,
-      };
-    }
-
-    if (type === "boolean" && typeof value !== "boolean") {
-      return {
-        ok: false,
-        message: `${blockName}.${field.name} must be a boolean, got ${valueKind(value)}`,
-      };
-    }
-
-    if (isArrayType(type) && !Array.isArray(value)) {
-      return {
-        ok: false,
-        message: `${blockName}.${field.name} must be an array, got ${valueKind(value)}`,
-      };
-    }
-  }
-
-  return { ok: true };
+  return { ok: true, attrs: result.data as Record<string, unknown> };
 }
 
 /**
@@ -750,6 +684,7 @@ export function buildPageGenerationPrompt(opts: {
     "Your job is to compose a sequence of blocks that forms a complete page.",
     "",
     "## YOUR TASK",
+    "Produce a flat list only. Do not return innerBlocks or nested blocks.",
     "Given the user's prompt, produce a JSON array of blocks. Each block must:",
     "  - have one of the names from the catalog below",
     "  - have an `attrs` object matching the fields described for that block",
@@ -845,29 +780,31 @@ export function extractJson(text: string): unknown {
     // Fall through.
   }
 
-  // Try to find the first {...} or [...] balanced span.
-  const trimmed = (candidate ?? "").trim();
-  const firstBracket = trimmed.search(/[[{]/);
-  if (firstBracket >= 0) {
-    const opener = trimmed[firstBracket];
-    const closer = opener === "[" ? "]" : "}";
-    let depth = 0;
-    for (let i = firstBracket; i < trimmed.length; i++) {
+  // Scan complete values, tracking both nesting kinds and quoted/escaped text.
+  // A prose bracket such as "[note]" must not hide a later valid JSON value.
+  const trimmed = candidate.trim();
+  for (let start = 0; start < trimmed.length; start++) {
+    if (trimmed[start] !== "[" && trimmed[start] !== "{") continue;
+    const stack: string[] = [];
+    let quoted = false;
+    let escaped = false;
+    for (let i = start; i < trimmed.length; i++) {
       const ch = trimmed[i];
-      if (ch === opener) depth++;
-      else if (ch === closer) {
-        depth--;
-        if (depth === 0) {
-          const slice = trimmed.slice(firstBracket, i + 1);
-          try {
-            return JSON.parse(slice);
-          } catch {
-            // continue
-          }
+      if (quoted) {
+        if (escaped) escaped = false;
+        else if (ch === "\\") escaped = true;
+        else if (ch === '"') quoted = false;
+        continue;
+      }
+      if (ch === '"') { quoted = true; continue; }
+      if (ch === "[" || ch === "{") stack.push(ch === "[" ? "]" : "}");
+      else if (ch === "]" || ch === "}") {
+        if (stack.pop() !== ch) break;
+        if (stack.length === 0) {
+          try { return JSON.parse(trimmed.slice(start, i + 1)); } catch { break; }
         }
       }
     }
   }
-
   throw new Error("LLM response did not contain valid JSON");
 }

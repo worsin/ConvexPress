@@ -16,6 +16,8 @@
  *   trashInternal         - Trash post via HTTP API
  */
 
+import { insertWithMediaReferences, patchWithMediaReferences } from "../media/attachmentGuard";
+import { readPublicContent, publicContentAuthor } from "../helpers/publicContent";
 import { internalMutation, internalQuery } from "../_generated/server";
 import { internal } from "../_generated/api";
 import { v } from "convex/values";
@@ -75,7 +77,7 @@ export const listPublishedInternal = internalQuery({
       posts.map(async (post) => {
         const author = await ctx.db.get("users", post.authorId);
         return {
-          ...post,
+          ...(await readPublicContent(ctx, post))!,
           author: author
             ? {
                 _id: author._id,
@@ -95,24 +97,12 @@ export const listPublishedInternal = internalQuery({
  * No auth required - caller handles API key auth.
  */
 export const getInternal = internalQuery({
-  args: {
-    postId: v.id("posts"),
-  },
+  args: { postId: v.id("posts") },
   handler: async (ctx, args) => {
     const post = await ctx.db.get("posts", args.postId);
     if (!post || post.type !== "post") return null;
-
-    const author = await ctx.db.get("users", post.authorId);
-    return {
-      ...post,
-      isPasswordProtected: post.visibility === "password",
-      author: author
-        ? {
-            _id: author._id,
-            displayName: (author as UserWithProfile).displayName ?? author.email,
-          }
-        : null,
-    };
+    const data = await readPublicContent(ctx, post);
+    return data ? { ...data, author: await publicContentAuthor(ctx, post) } : null;
   },
 });
 
@@ -161,7 +151,7 @@ export const createInternal = internalMutation({
       }
     }
 
-    const postId = await ctx.db.insert("posts", {
+    const postId: import("../_generated/dataModel").Id<"posts"> = await insertWithMediaReferences<"posts">(ctx, "posts", {
       type: "post",
       title: args.title,
       slug,
@@ -223,7 +213,7 @@ export const updateInternal = internalMutation({
     }
     if (args.slug !== undefined) patch.slug = args.slug;
 
-    await ctx.db.patch("posts", args.postId, patch);
+    await patchWithMediaReferences<"posts">(ctx, "posts", args.postId, patch);
 
     await emitEvent(ctx, POST_EVENTS.UPDATED, SYSTEM.POST, {
       postId: args.postId,
@@ -254,7 +244,7 @@ export const trashInternal = internalMutation({
 
     const now = Date.now();
 
-    await ctx.db.patch("posts", args.postId, {
+    await patchWithMediaReferences<"posts">(ctx, "posts", args.postId, {
       previousStatus: post.status,
       status: "trash",
       trashedAt: now,

@@ -1,3 +1,6 @@
+import type { RegisteredMutation } from "convex/server";
+import type { ObjectType } from "convex/values";
+import { roleCompatibleWithIdentity, CUSTOMER_ROLE_ASSIGNMENT_EXPLANATION } from "../../lib/auth/roleAssignment";
 /**
  * User Profile System - Public Mutations
  *
@@ -18,9 +21,10 @@
  * All write operations emit events via the Event Dispatcher System.
  */
 
+import { deleteWithMediaReferences, insertWithMediaReferences, patchWithMediaReferences } from "../media/attachmentGuard";
 import { internalMutation, mutation } from "../_generated/server";
 import { internal } from "../_generated/api";
-import { ConvexError } from "convex/values";
+import { ConvexError, v } from "convex/values";
 import type { Id } from "../_generated/dataModel";
 import { getCurrentUser, requireCan, resolveUserRole } from "../helpers/permissions";
 import { emitEvent } from "../helpers/events";
@@ -209,7 +213,7 @@ export const updateProfile = mutation({
 
     // 6. Update
     patch.updatedAt = Date.now();
-    await ctx.db.patch("users", user._id, patch);
+    await patchWithMediaReferences<"users">(ctx, "users", user._id, patch);
 
     // 7. Emit event
     await emitEvent(ctx, PROFILE_EVENTS.UPDATED, SYSTEM.PROFILE, {
@@ -230,6 +234,7 @@ export const updateProfile = mutation({
 // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const updateUser = mutation({
   args: updateUserArgs,
+  returns: v.null(),
   // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     // 1. Auth + capability check
@@ -364,6 +369,10 @@ export const updateUser = mutation({
             message: "Target role not found or inactive",
           });
         }
+        await requireCan(ctx, "role.assign");
+        if (!roleCompatibleWithIdentity(targetUser, targetRole)) {
+          throw new ConvexError({ code: "ROLE_IDENTITY_INCOMPATIBLE", message: CUSTOMER_ROLE_ASSIGNMENT_EXPLANATION });
+        }
         if (isSelf) {
           throw new ConvexError({ code: "FORBIDDEN", message: "Use Roles to change your own role" });
         }
@@ -417,12 +426,12 @@ export const updateUser = mutation({
 
     // 5. If no changes, return early
     if (changes.length === 0) {
-      return;
+      return null;
     }
 
     // 6. Update
     patch.updatedAt = Date.now();
-    await ctx.db.patch("users", args.userId, patch);
+    await patchWithMediaReferences<"users">(ctx, "users", args.userId, patch);
 
     // 7. Emit event
     await emitEvent(ctx, PROFILE_EVENTS.UPDATED, SYSTEM.PROFILE, {
@@ -430,6 +439,7 @@ export const updateUser = mutation({
       updatedBy: currentUser._id,
       changes,
     });
+    return null;
   },
 });
 
@@ -443,10 +453,9 @@ export const updateUser = mutation({
  * Note: This creates a Convex-side user record with local auth. This is
  * primarily for pre-provisioning user records.
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
-export const createUser = mutation({
+export const createUser: RegisteredMutation<"public", ObjectType<typeof createUserArgs>, Id<"users">> = mutation({
   args: createUserArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.id("users"),
   handler: async (ctx, args) => {
     // 1. Auth + admin check
     const currentUser = await requireCan(ctx, "profile.deactivate");
@@ -455,7 +464,7 @@ export const createUser = mutation({
     const email = args.email.trim().toLowerCase();
     const existingByEmail = await ctx.db
       .query("users")
-      .withIndex("by_email", (q: ConvexQueryBuilder) => q.eq("email", email))
+      .withIndex("by_email", (q) => q.eq("email", email))
       .unique();
     if (existingByEmail) {
       throw new ConvexError({
@@ -478,16 +487,23 @@ export const createUser = mutation({
       // Look up the default role (Subscriber)
       const defaultRole = await ctx.db
         .query("roles")
-        .withIndex("by_isDefault", (q: ConvexQueryBuilder) => q.eq("isDefault", true))
+        .withIndex("by_isDefault", (q) => q.eq("isDefault", true))
         .first();
       if (defaultRole) {
         roleId = defaultRole._id;
       }
     }
 
+    // This endpoint provisions a website identity in Clerk, not a local operator.
+    if (roleId) {
+      const assignedRole = await ctx.db.get("roles", roleId);
+      if (!assignedRole || assignedRole.status !== "active") throw new ConvexError({ code: "NOT_FOUND", message: "Target role not found or inactive" });
+      if (!roleCompatibleWithIdentity({ authSource: "clerk" }, assignedRole)) throw new ConvexError({ code: "ROLE_IDENTITY_INCOMPATIBLE", message: CUSTOMER_ROLE_ASSIGNMENT_EXPLANATION });
+    }
+
     // 6. Insert user
     const now = Date.now();
-    const userId = await ctx.db.insert("users", {
+    const userId: import("../_generated/dataModel").Id<"users"> = await insertWithMediaReferences<"users">(ctx, "users", {
       authSource: "local",
       email,
       emailVerified: false,
@@ -587,7 +603,7 @@ export const deactivateUser = mutation({
 
     // 6. Deactivate
     const now = Date.now();
-    await ctx.db.patch("users", args.userId, {
+    await patchWithMediaReferences<"users">(ctx, "users", args.userId, {
       status: "inactive",
       deactivatedAt: now,
       deactivatedBy: currentUser._id,
@@ -635,7 +651,7 @@ export const reactivateUser = mutation({
     }
 
     // 4. Reactivate
-    await ctx.db.patch("users", args.userId, {
+    await patchWithMediaReferences<"users">(ctx, "users", args.userId, {
       status: "active",
       deactivatedAt: undefined,
       deactivatedBy: undefined,
@@ -747,7 +763,7 @@ export const deleteUser = mutation({
     }
 
     // 9. Delete the user record
-    await ctx.db.delete("users", args.userId);
+    await deleteWithMediaReferences<"users">(ctx, "users", args.userId);
 
     // 10. Emit event (uses stored data since the record is now deleted)
     await emitEvent(ctx, "profile.deleted", SYSTEM.PROFILE, {
@@ -815,7 +831,7 @@ export const bulkDeleteUsers = mutation({
         }
 
         // Delete user record
-        await ctx.db.delete("users", userId);
+        await deleteWithMediaReferences<"users">(ctx, "users", userId);
 
         // Emit event per user
         await emitEvent(ctx, "profile.deleted", SYSTEM.PROFILE, {
@@ -849,10 +865,9 @@ export const bulkDeleteUsers = mutation({
  * Safety checks:
  *   - Cannot change role of the last Administrator if demoting
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
-export const bulkChangeRole = mutation({
+export const bulkChangeRole: RegisteredMutation<"public", ObjectType<typeof bulkChangeRoleArgs>, { updated: number; errors: Array<{ userId: string; error: string }> }> = mutation({
   args: bulkChangeRoleArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.object({ updated: v.number(), errors: v.array(v.object({ userId: v.string(), error: v.string() })) }),
   handler: async (ctx, args) => {
     // 1. Auth + capability check
     const currentUser = await requireCan(ctx, "role.assign");
@@ -866,57 +881,33 @@ export const bulkChangeRole = mutation({
       });
     }
 
-    let updated = 0;
     const errors: Array<{ userId: string; error: string }> = [];
-
-    for (const userId of args.userIds) {
-      // Skip self silently
+    const eligible: typeof args.userIds = [];
+    let remainingAdmins = targetRole.level < 100 ? await countActiveAdmins(ctx) : 0;
+    // Finish per-target eligibility and administrator preflight before any writes.
+    // Preserve partial-success semantics, skipping self/missing/already-assigned users.
+    for (const userId of new Set(args.userIds)) {
       if (userId === currentUser._id) continue;
-
-      try {
-        const targetUser = await ctx.db.get("users", userId);
-        if (!targetUser) continue;
-
-        // Skip if already has this role
-        if (targetUser.roleId === args.newRoleId) continue;
-
-        // Last admin protection: if demoting from admin to non-admin
-        if (targetUser.roleId) {
-          const currentRole = await ctx.db.get("roles", targetUser.roleId);
-          if (currentRole && currentRole.level >= 100 && targetRole.level < 100) {
-            const activeAdminCount = await countActiveAdmins(ctx);
-            if (activeAdminCount <= 1) {
-              errors.push({
-                userId: userId as string,
-                error: "Cannot demote the last Administrator",
-              });
-              continue;
-            }
-          }
-        }
-
-        // Update role
-        await ctx.db.patch("users", userId, {
-          roleId: args.newRoleId,
-          updatedAt: Date.now(),
-        });
-
-        // Emit event
-        await emitEvent(ctx, PROFILE_EVENTS.UPDATED, SYSTEM.PROFILE, {
-          userId,
-          updatedBy: currentUser._id,
-          changes: ["roleId"],
-          newRole: targetRole.name,
-        });
-
-        updated++;
-      } catch (e: unknown) {
-        errors.push({
-          userId: userId as string,
-          error: e instanceof Error ? e.message : "Unknown error",
-        });
+      const targetUser = await ctx.db.get("users", userId);
+      if (!targetUser || targetUser.roleId === args.newRoleId) continue;
+      if (!roleCompatibleWithIdentity(targetUser, targetRole)) {
+        errors.push({ userId, error: CUSTOMER_ROLE_ASSIGNMENT_EXPLANATION });
+        continue;
       }
+      const currentRole = targetUser.roleId ? await ctx.db.get("roles", targetUser.roleId) : null;
+      if (currentRole && currentRole.level >= 100 && targetRole.level < 100) {
+        if (remainingAdmins <= 1) { errors.push({ userId, error: "Cannot demote the last Administrator" }); continue; }
+        if (targetUser.status === "active") remainingAdmins--;
+      }
+      eligible.push(userId);
     }
+    for (const userId of eligible) {
+      await patchWithMediaReferences<"users">(ctx, "users", userId, { roleId: args.newRoleId, updatedAt: Date.now() });
+      await emitEvent(ctx, PROFILE_EVENTS.UPDATED, SYSTEM.PROFILE, {
+        userId, updatedBy: currentUser._id, changes: ["roleId"], newRole: targetRole.name,
+      });
+    }
+    const updated = eligible.length;
 
     return { updated, errors };
   },
@@ -986,7 +977,7 @@ export const uploadAvatar = mutation({
     }
 
     // 5. Patch user
-    await ctx.db.patch("users", targetUserId, {
+    await patchWithMediaReferences<"users">(ctx, "users", targetUserId, {
       avatarUrl,
       avatarStorageId: args.storageId,
       updatedAt: Date.now(),
@@ -1044,7 +1035,7 @@ export const removeAvatar = mutation({
     }
 
     // 4. Clear avatar fields
-    await ctx.db.patch("users", targetUserId, {
+    await patchWithMediaReferences<"users">(ctx, "users", targetUserId, {
       avatarUrl: undefined,
       avatarStorageId: undefined,
       avatarMediaId: undefined,
@@ -1084,7 +1075,7 @@ export const closeOwnAccount = internalMutation({
     }
     const now = Date.now();
     const clerkUserId = user.clerkUserId;
-    await ctx.db.patch("users", user._id, {
+    await patchWithMediaReferences<"users">(ctx, "users", user._id, {
       status: "inactive",
       deactivatedAt: now,
       clerkUserId: undefined,

@@ -44,12 +44,14 @@ export const SYSTEM = {
   TICKET: "ticket",
   SUPPORT: "support",
   PRODUCT: "product",
+  BRAND: "brand",
   CART: "cart",
   CHECKOUT: "checkout",
   PURCHASE: "purchase",
   WISHLIST: "wishlist",
   LMS: "lms",
   FORMS: "forms",
+  EXTENSION: "extension",
 } as const;
 
 export type SystemSlug = (typeof SYSTEM)[keyof typeof SYSTEM];
@@ -258,6 +260,7 @@ export const DASHBOARD_EVENTS = {
 
 /** Knowledge Base System events (11) */
 export const KB_EVENTS = {
+  ARTICLE_SCHEDULED: "kb.article_scheduled",
   ARTICLE_CREATED: "kb.article_created",
   ARTICLE_PUBLISHED: "kb.article_published",
   ARTICLE_UNPUBLISHED: "kb.article_unpublished",
@@ -290,6 +293,8 @@ export const SUPPORT_EVENTS = {
 } as const;
 
 /** Product System events (7) */
+export const BRAND_EVENTS = { CREATED: "brand.created", UPDATED: "brand.updated" } as const;
+
 export const PRODUCT_EVENTS = {
   CREATED: "product.created",
   UPDATED: "product.updated",
@@ -404,6 +409,8 @@ export const FORM_EVENTS = {
   ENTRIES_EXPORTED: "form.entries_exported",
 } as const;
 
+export const EXTENSION_EVENTS = { CREATED: "extension.created", UPDATED: "extension.updated", ARCHIVED: "extension.archived" } as const;
+
 // ─── All Event Codes ───────────────────────────────────────────────────────
 
 /**
@@ -439,12 +446,14 @@ export const ALL_EVENT_CODES: string[] = [
   ...Object.values(TICKET_EVENTS),
   ...Object.values(SUPPORT_EVENTS),
   ...Object.values(PRODUCT_EVENTS),
+  ...Object.values(BRAND_EVENTS),
   ...Object.values(CART_EVENTS),
   ...Object.values(CHECKOUT_EVENTS),
   ...Object.values(PURCHASE_EVENTS),
   ...Object.values(WISHLIST_EVENTS),
   ...Object.values(LMS_EVENTS),
   ...Object.values(FORM_EVENTS),
+  ...Object.values(EXTENSION_EVENTS),
 ];
 
 /** Set for O(1) lookup of valid event codes. */
@@ -491,6 +500,7 @@ export const EVENT_CODES_BY_SYSTEM: Record<string, readonly string[]> = {
   [SYSTEM.TICKET]: Object.values(TICKET_EVENTS),
   [SYSTEM.SUPPORT]: Object.values(SUPPORT_EVENTS),
   [SYSTEM.PRODUCT]: Object.values(PRODUCT_EVENTS),
+  [SYSTEM.BRAND]: Object.values(BRAND_EVENTS),
   [SYSTEM.CART]: Object.values(CART_EVENTS),
   [SYSTEM.CHECKOUT]: Object.values(CHECKOUT_EVENTS),
   [SYSTEM.PURCHASE]: Object.values(PURCHASE_EVENTS),

@@ -27,6 +27,7 @@
 
 import { mutation } from "../_generated/server";
 import { ConvexError } from "convex/values";
+import { requireCredentialEnvironmentBinding } from "../auth/environmentBinding";
 import { requireCan } from "../helpers/permissions";
 import { emitEvent } from "../helpers/events";
 import { API_EVENTS, SYSTEM } from "../events/constants";
@@ -168,6 +169,7 @@ export const createKey = mutation({
       name,
       keyPrefix,
       keyHash,
+      environmentBinding: requireCredentialEnvironmentBinding(),
       userId,
       scopes: args.scopes,
       status: "active",

@@ -1,3 +1,10 @@
+import * as catalogRevisionWrites from "../media/attachmentGuard";
+import { deleteTermRelationship } from "../helpers/postDiscovery";
+import { insertTermRelationship } from "../helpers/postDiscovery";
+import { canonicalBoundary, duplicateDocument } from "../canonicalDocuments/service";
+import { reconcileManualSaveAutosave } from "../helpers/autosaveReconciliation";
+import { assertNoNewDisabledBlocks } from "../blocks/policy";
+import { replacePublicationSchedule } from "../helpers/publicationSchedule";
 /**
  * Post System - Mutations
  *
@@ -31,7 +38,12 @@
  * All write mutations (except autosave) emit events via the Event Dispatcher System.
  */
 
-import { ConvexError } from "convex/values";
+import { ConvexError, v } from "convex/values";
+import { authoringSnapshot } from "../helpers/authoringSnapshot";
+import { canEditContent } from "../helpers/publicContent";
+import { isPublicAuthor } from "../helpers/publicAuthor";
+import { assertPagePathAvailable } from "../helpers/pageRouteGuard";
+import { prepareContentRestrictionCopy } from "../membership/policyCopy";
 import { mutation } from "../_generated/server";
 import { internal } from "../_generated/api";
 import type { Doc } from "../_generated/dataModel";
@@ -67,7 +79,8 @@ import {
   MAX_TOPICS,
   TRASH_PURGE_DAYS_MS,
 } from "./validators";
-import { validateBlocks, type StoredBlock } from "../blocks/helpers";
+import { validateBlocks, validateBlocksAgainstCatalog, getStoredBlocks, type StoredBlock } from "../blocks/helpers";
+import { deleteWithMediaReferences, insertWithMediaReferences, patchWithMediaReferences } from "../media/attachmentGuard";
 
 type PostStatus = Doc<"posts">["status"];
 
@@ -152,11 +165,14 @@ export const create = mutation({
       });
     }
 
-    if (args.blocks) {
-      validateBlocks(args.blocks as StoredBlock[]);
+    let blocks = args.blocks;
+    if (blocks) {
+      validateBlocks(blocks as StoredBlock[]);
+      blocks = validateBlocksAgainstCatalog(blocks as StoredBlock[]);
+      await assertNoNewDisabledBlocks(ctx, [], blocks as StoredBlock[]);
     }
 
-    const postId = await ctx.db.insert("posts", {
+    const postId: import("../_generated/dataModel").Id<"posts"> = await insertWithMediaReferences<"posts">(ctx, "posts", {
       type: "post",
       title,
       slug,
@@ -180,7 +196,7 @@ export const create = mutation({
       tableOfContents: args.tableOfContents,
       pagePrompt: args.pagePrompt,
       contentMode: args.contentMode ?? "blocks",
-      blocks: args.blocks,
+      blocks,
       blocksVersion: args.blocksVersion ?? (args.blocks ? 1 : undefined),
       blocksRevision: args.blocksRevision ?? (args.blocks ? 1 : undefined),
       layoutId: args.layoutId || undefined,
@@ -205,11 +221,7 @@ export const create = mutation({
 
     // ── Handle scheduled publish ────────────────────────────────────────
     if (status === "future" && scheduledAt) {
-      await ctx.scheduler.runAt(
-        scheduledAt,
-        internal.posts.internals.publishScheduled,
-        { postId },
-      );
+      await replacePublicationSchedule(ctx, postId, scheduledAt);
     }
 
     // ── Assign taxonomy terms ───────────────────────────────────────────
@@ -227,7 +239,7 @@ export const create = mutation({
           )
           .unique();
         if (!existing) {
-          await ctx.db.insert("termRelationships", {
+          await insertTermRelationship(ctx, {
             postId,
             termId,
           });
@@ -244,7 +256,7 @@ export const create = mutation({
           )
           .unique();
         if (!existing) {
-          await ctx.db.insert("termRelationships", {
+          await insertTermRelationship(ctx, {
             postId,
             termId,
           });
@@ -393,11 +405,7 @@ export const update = mutation({
           });
         }
         patch.scheduledAt = scheduledAt;
-        await ctx.scheduler.runAt(
-          scheduledAt,
-          internal.posts.internals.publishScheduled,
-          { postId: args.postId },
-        );
+        await replacePublicationSchedule(ctx, args.postId, scheduledAt);
       }
 
       // If publishing, set publishedAt
@@ -409,6 +417,16 @@ export const update = mutation({
       if (newStatus === "private") {
         patch.visibility = "private";
       }
+    }
+
+    // A new deadline also matters when status remains future.
+    if (post.status === "future" && (args.status === undefined || args.status === "future") &&
+        args.scheduledAt !== undefined && args.scheduledAt !== post.scheduledAt) {
+      await requireCan(ctx, "post.publish");
+      await checkPostCapability(ctx, user as AuthUser, post as AuthPost, "publish");
+      await replacePublicationSchedule(ctx, args.postId, args.scheduledAt);
+      patch.scheduledAt = args.scheduledAt;
+      changes.push({ field: "scheduledAt", oldValue: post.scheduledAt, newValue: args.scheduledAt });
     }
 
     // Visibility
@@ -465,6 +483,13 @@ export const update = mutation({
           message: "Only Editors and Administrators can change post author",
         });
       }
+      const author = await ctx.db.get("users", args.authorId);
+      if (!isPublicAuthor(author)) {
+        throw new ConvexError({
+          code: "VALIDATION_ERROR",
+          message: "Choose an active site user as the post author",
+        });
+      }
       patch.authorId = args.authorId;
       changes.push({ field: "authorId", oldValue: post.authorId, newValue: args.authorId });
     }
@@ -514,8 +539,9 @@ export const update = mutation({
       patch.tableOfContents = args.tableOfContents;
       changes.push({ field: "tableOfContents", oldValue: "[toc]", newValue: "[toc]" });
     }
-    if (args.pagePrompt !== undefined) {
+    if (args.pagePrompt !== undefined && args.pagePrompt !== post.pagePrompt) {
       patch.pagePrompt = args.pagePrompt;
+      changes.push({ field: "pagePrompt", oldValue: post.pagePrompt, newValue: args.pagePrompt });
     }
     if (args.contentMode !== undefined && args.contentMode !== post.contentMode) {
       patch.contentMode = args.contentMode;
@@ -523,7 +549,9 @@ export const update = mutation({
     }
     if (args.blocks !== undefined) {
       validateBlocks(args.blocks as StoredBlock[]);
-      patch.blocks = args.blocks;
+      const blocks = validateBlocksAgainstCatalog(args.blocks as StoredBlock[]);
+      await assertNoNewDisabledBlocks(ctx, getStoredBlocks(post), blocks);
+      patch.blocks = blocks;
       patch.blocksVersion = args.blocksVersion ?? post.blocksVersion ?? 1;
       patch.blocksRevision =
         args.blocksRevision ?? ((post.blocksRevision as number | undefined) ?? 0) + 1;
@@ -538,10 +566,8 @@ export const update = mutation({
       changes.push({ field: "blocksRevision", oldValue: post.blocksRevision, newValue: args.blocksRevision });
     }
 
-    // Clear autosave fields on manual save
-    patch.autosaveContent = undefined;
-    patch.autosaveTitle = undefined;
-    patch.autosavedAt = undefined;
+    // Retire only an autosave pair represented by this transaction's saved body.
+    Object.assign(patch, reconcileManualSaveAutosave(post, patch, args));
 
     // ── Create revision snapshot BEFORE applying patch ─────────────────
     // Must be synchronous (not scheduled) to guarantee the snapshot captures
@@ -552,7 +578,7 @@ export const update = mutation({
         internal.revisions.internals.createOnSave,
         {
           parentId: args.postId,
-          parentType: "post" as const,
+          parentType: post.type,
           title: post.title ?? "",
           content: post.content ?? "",
           excerpt: post.excerpt,
@@ -563,7 +589,7 @@ export const update = mutation({
     }
 
     // ── Apply patch ─────────────────────────────────────────────────────
-    await ctx.db.patch("posts", args.postId, patch);
+    await patchWithMediaReferences<"posts">(ctx, "posts", args.postId, patch);
 
     // ── Auto-attach any newly-assigned media (first-use wins) ────────────
     if (args.featuredImageId !== undefined && args.featuredImageId) {
@@ -591,14 +617,14 @@ export const update = mutation({
       for (const rel of existingRels) {
         const term = await ctx.db.get("terms", rel.termId);
         if (term && term.taxonomy === "category") {
-          await ctx.db.delete("termRelationships", rel._id);
+          await deleteTermRelationship(ctx, rel._id);
         }
       }
 
       // Insert new category relationships
       if (args.categoryIds.length > 0) {
         for (const termId of args.categoryIds) {
-          await ctx.db.insert("termRelationships", {
+          await insertTermRelationship(ctx, {
             postId: args.postId,
             termId,
           });
@@ -611,7 +637,7 @@ export const update = mutation({
           .first();
 
         if (defaultCategory && defaultCategory.taxonomy === "category") {
-          await ctx.db.insert("termRelationships", {
+          await insertTermRelationship(ctx, {
             postId: args.postId,
             termId: defaultCategory._id,
           });
@@ -629,13 +655,13 @@ export const update = mutation({
       for (const rel of existingRels) {
         const term = await ctx.db.get("terms", rel.termId);
         if (term && term.taxonomy === "post_tag") {
-          await ctx.db.delete("termRelationships", rel._id);
+          await deleteTermRelationship(ctx, rel._id);
         }
       }
 
       // Insert new tag relationships
       for (const termId of args.tagIds) {
-        await ctx.db.insert("termRelationships", {
+        await insertTermRelationship(ctx, {
           postId: args.postId,
           termId,
         });
@@ -737,7 +763,7 @@ export const publish = mutation({
       patch.visibility = "public";
     }
 
-    await ctx.db.patch("posts", args.postId, patch);
+    await patchWithMediaReferences<"posts">(ctx, "posts", args.postId, patch);
 
     // ── Ensure default category ─────────────────────────────────────────
     // Check if post has any categories assigned
@@ -765,7 +791,7 @@ export const publish = mutation({
           .first();
 
         if (defaultCategory && defaultCategory.taxonomy === "category") {
-          await ctx.db.insert("termRelationships", {
+          await insertTermRelationship(ctx, {
             postId: args.postId,
             termId: defaultCategory._id,
           });
@@ -823,7 +849,7 @@ export const unpublish = mutation({
     const now = Date.now();
     const targetStatus = args.targetStatus ?? "draft";
 
-    await ctx.db.patch("posts", args.postId, {
+    await patchWithMediaReferences<"posts">(ctx, "posts", args.postId, {
       status: targetStatus,
       visibility: "public",
       updatedAt: now,
@@ -890,38 +916,13 @@ export const schedule = mutation({
     const now = Date.now();
 
     // Update post to future status
-    await ctx.db.patch("posts", args.postId, {
+    await patchWithMediaReferences<"posts">(ctx, "posts", args.postId, {
       status: "future",
       scheduledAt: args.scheduledAt,
       updatedAt: now,
     });
 
-    // Schedule the publish function
-    const scheduledFnId = await ctx.scheduler.runAt(
-      args.scheduledAt,
-      internal.posts.internals.publishScheduled,
-      { postId: args.postId },
-    );
-
-    // Store scheduled function ID in postMeta for cancellation
-    const existingMeta = await ctx.db
-      .query("postMeta")
-      .withIndex("by_post_key", (q) =>
-        q.eq("postId", args.postId).eq("key", "_scheduled_fn"),
-      )
-      .unique();
-
-    if (existingMeta) {
-      await ctx.db.patch("postMeta", existingMeta._id, {
-        value: JSON.stringify({ functionId: scheduledFnId, scheduledAt: args.scheduledAt }),
-      });
-    } else {
-      await ctx.db.insert("postMeta", {
-        postId: args.postId,
-        key: "_scheduled_fn",
-        value: JSON.stringify({ functionId: scheduledFnId, scheduledAt: args.scheduledAt }),
-      });
-    }
+    await replacePublicationSchedule(ctx, args.postId, args.scheduledAt);
 
     // Emit event
     await emitEvent(ctx, POST_EVENTS.SCHEDULED, SYSTEM.POST, {
@@ -966,7 +967,7 @@ export const trash = mutation({
 
     const now = Date.now();
 
-    await ctx.db.patch("posts", args.postId, {
+    await patchWithMediaReferences<"posts">(ctx, "posts", args.postId, {
       previousStatus: post.status,
       status: "trash",
       trashedAt: now,
@@ -1052,7 +1053,7 @@ export const restore = mutation({
       newSlug = await generateUniqueSlug(ctx, post.title, post.type as "post" | "page", args.postId);
     }
 
-    await ctx.db.patch("posts", args.postId, {
+    await patchWithMediaReferences<"posts">(ctx, "posts", args.postId, {
       status: restoredStatus,
       previousStatus: undefined,
       trashedAt: undefined,
@@ -1107,7 +1108,7 @@ export const permanentDelete = mutation({
       .collect();
 
     for (const meta of metaRecords) {
-      await ctx.db.delete("postMeta", meta._id);
+      await deleteWithMediaReferences<"postMeta">(ctx, "postMeta", meta._id);
     }
 
     // ── Delete all taxonomy relationships ────────────────────────────────
@@ -1117,7 +1118,7 @@ export const permanentDelete = mutation({
       .collect();
 
     for (const rel of termRels) {
-      await ctx.db.delete("termRelationships", rel._id);
+      await deleteTermRelationship(ctx, rel._id);
     }
 
     // ── Delete all revisions (synchronous to ensure cleanup before post deletion)
@@ -1144,7 +1145,7 @@ export const permanentDelete = mutation({
     };
 
     // ── Delete the post record ──────────────────────────────────────────
-    await ctx.db.delete("posts", args.postId);
+    await deleteWithMediaReferences<"posts">(ctx, "posts", args.postId);
 
     // ── Emit event ──────────────────────────────────────────────────────
     await emitEvent(ctx, POST_EVENTS.DELETED, SYSTEM.POST, eventPayload);
@@ -1170,7 +1171,9 @@ export const permanentDelete = mutation({
  */
 export const duplicate = mutation({
   args: duplicatePostArgs,
+  returns: v.id("posts"),
   handler: async (ctx, args) => {
+    if (args.expectedRevision !== undefined) return canonicalBoundary(async () => (await duplicateDocument(ctx, { postId: args.postId, expectedRevision: args.expectedRevision! })).postId);
     const user = await requireCan(ctx, "post.duplicate");
 
     const sourcePost = await ctx.db.get("posts", args.postId);
@@ -1181,23 +1184,71 @@ export const duplicate = mutation({
       });
     }
 
-    await checkPostCapability(ctx, user as AuthUser, sourcePost as AuthPost, "read");
+    // Duplication exposes the complete stored body, including protected content.
+    // Public read access must never grant the right to create an editable copy.
+    if (!(await canEditContent(ctx, sourcePost))) {
+      throw new ConvexError({ code: "FORBIDDEN", message: "You must be able to edit the source content to duplicate it" });
+    }
+
+    if (sourcePost.blocksVersion === 2) throw new ConvexError({ code: "CANONICAL_REVISION_REQUIRED", message: "Reload the canonical document and supply its current revision before duplicating it." });
+    if (sourcePost.blocksVersion !== undefined && sourcePost.blocksVersion !== 1) {
+      throw new ConvexError({ code: "VALIDATION_ERROR", message: "This block document version requires a compatible duplication adapter" });
+    }
+    const authored = authoringSnapshot(sourcePost);
+    if (authored.blocks !== undefined) {
+      validateBlocks(authored.blocks);
+      authored.blocks = validateBlocksAgainstCatalog(authored.blocks);
+      await assertNoNewDisabledBlocks(ctx, [], authored.blocks);
+      authored.blocksRevision = 1;
+    }
+
+    // Preflight every copied collection before inserting anything. Iteration
+    // stops at the budget rather than loading an unbounded metadata collection.
+    let copyBytes = new TextEncoder().encode(JSON.stringify(sourcePost)).byteLength;
+    let copyRows = 0;
+    async function boundedRows<T>(query: AsyncIterable<T>): Promise<T[]> {
+      const rows: T[] = [];
+      for await (const row of query) {
+        copyBytes += new TextEncoder().encode(JSON.stringify(row)).byteLength;
+        copyRows += 1;
+        if (rows.length >= 256 || copyRows > 512 || copyBytes > 2 * 1024 * 1024) {
+          throw new ConvexError({ code: "LIMIT_EXCEEDED", message: "This content exceeds the atomic duplication limit; reduce its metadata or relationships before retrying" });
+        }
+        rows.push(row);
+      }
+      return rows;
+    }
+    const metaRecords = await boundedRows(ctx.db.query("postMeta")
+      .withIndex("by_post", q => q.eq("postId", args.postId)));
+    const termRels = await boundedRows(ctx.db.query("termRelationships")
+      .withIndex("by_post", q => q.eq("postId", args.postId)));
+    const restrictionCopy = await prepareContentRestrictionCopy(ctx, sourcePost, {
+      maxRows: Math.min(256, 512 - copyRows), maxBytes: 2 * 1024 * 1024 - copyBytes,
+    });
+    copyRows += restrictionCopy.policies.length;
+    copyBytes += restrictionCopy.bytes;
+    const fieldValues = await boundedRows(ctx.db.query("fieldValues")
+      .withIndex("by_entity", q => q.eq("entityType", sourcePost.type).eq("entityId", String(args.postId))));
 
     const now = Date.now();
-    const newTitle = `${sourcePost.title} (Copy)`;
+    const copySuffix = " (Copy)";
+    const newTitle = `${sourcePost.title.slice(0, MAX_TITLE_LENGTH - copySuffix.length).trimEnd()}${copySuffix}`;
     const newSlug = await generateUniqueSlug(ctx, newTitle, sourcePost.type as "post" | "page");
+    if (sourcePost.type === "page") await assertPagePathAvailable(ctx, `/${newSlug}`);
 
     // ── Create the duplicate post ───────────────────────────────────────
-    const newPostId = await ctx.db.insert("posts", {
+    const newPostId: import("../_generated/dataModel").Id<"posts"> = await insertWithMediaReferences<"posts">(ctx, "posts", {
+      ...authored,
       type: sourcePost.type,
       title: newTitle,
       slug: newSlug,
-      content: sourcePost.content,
-      excerpt: sourcePost.excerpt,
       status: "draft",
-      visibility: "public",
+      visibility: sourcePost.status === "private" ? "private" : sourcePost.visibility,
+      password: sourcePost.password,
       authorId: user._id,
-      featuredImageId: sourcePost.featuredImageId,
+      layoutId: sourcePost.layoutId,
+      pagePrompt: sourcePost.pagePrompt,
+      ...(sourcePost.type === "page" ? { path: `/${newSlug}`, depth: 0 } : {}),
       commentStatus: sourcePost.commentStatus,
       commentCount: 0,
       isSticky: false,
@@ -1206,14 +1257,9 @@ export const duplicate = mutation({
     });
 
     // ── Copy postMeta (except edit lock/last) ───────────────────────────
-    const metaRecords = await ctx.db
-      .query("postMeta")
-      .withIndex("by_post", (q) => q.eq("postId", args.postId))
-      .collect();
-
     for (const meta of metaRecords) {
-      if (meta.key === "_edit_lock" || meta.key === "_edit_last") continue;
-      await ctx.db.insert("postMeta", {
+      if (["_edit_lock", "_edit_last", "_scheduled_fn"].includes(meta.key)) continue;
+      await insertWithMediaReferences<"postMeta">(ctx, "postMeta", {
         postId: newPostId,
         key: meta.key,
         value: meta.value,
@@ -1221,16 +1267,23 @@ export const duplicate = mutation({
     }
 
     // ── Copy taxonomy assignments ───────────────────────────────────────
-    const termRels = await ctx.db
-      .query("termRelationships")
-      .withIndex("by_post", (q) => q.eq("postId", args.postId))
-      .collect();
-
     for (const rel of termRels) {
-      await ctx.db.insert("termRelationships", {
+      await insertTermRelationship(ctx, {
         postId: newPostId,
         termId: rel.termId,
         order: rel.order,
+      });
+    }
+
+    for (const policy of restrictionCopy.policies) {
+      await catalogRevisionWrites.insertWithMediaReferences<"membership_restriction_rules">(ctx, "membership_restriction_rules", {
+        ...policy, resourceType: sourcePost.type, resourceIdOrKey: String(newPostId), createdAt: now, updatedAt: now,
+      });
+    }
+    for (const field of fieldValues) {
+      const { _id, _creationTime, ...value } = field;
+      await insertWithMediaReferences<"fieldValues">(ctx, "fieldValues", {
+        ...value, entityId: String(newPostId), updatedBy: getUserIdentifier(user), updatedAt: now,
       });
     }
 
@@ -1295,7 +1348,7 @@ export const autosave = mutation({
       patch.autosaveContent = args.content;
     }
 
-    await ctx.db.patch("posts", args.postId, patch);
+    await patchWithMediaReferences<"posts">(ctx, "posts", args.postId, patch);
 
     return { autosavedAt: now };
   },
@@ -1349,7 +1402,7 @@ export const bulkTrash = mutation({
           continue;
         }
 
-        await ctx.db.patch("posts", postId, {
+        await patchWithMediaReferences<"posts">(ctx, "posts", postId, {
           previousStatus: post.status,
           status: "trash",
           trashedAt: now,
@@ -1438,7 +1491,7 @@ export const bulkRestore = mutation({
           newSlug = await generateUniqueSlug(ctx, post.title, post.type as "post" | "page", postId);
         }
 
-        await ctx.db.patch("posts", postId, {
+        await patchWithMediaReferences<"posts">(ctx, "posts", postId, {
           status: restoredStatus,
           previousStatus: undefined,
           trashedAt: undefined,
@@ -1507,7 +1560,7 @@ export const bulkDelete = mutation({
           .withIndex("by_post", (q) => q.eq("postId", postId))
           .collect();
         for (const meta of metaRecords) {
-          await ctx.db.delete("postMeta", meta._id);
+          await deleteWithMediaReferences<"postMeta">(ctx, "postMeta", meta._id);
         }
 
         // Delete taxonomy relationships
@@ -1516,7 +1569,7 @@ export const bulkDelete = mutation({
           .withIndex("by_post", (q) => q.eq("postId", postId))
           .collect();
         for (const rel of termRels) {
-          await ctx.db.delete("termRelationships", rel._id);
+          await deleteTermRelationship(ctx, rel._id);
         }
 
         // Delete all revisions (synchronous to ensure cleanup before post deletion)
@@ -1540,7 +1593,7 @@ export const bulkDelete = mutation({
           authorId: post.authorId,
         };
 
-        await ctx.db.delete("posts", postId);
+        await deleteWithMediaReferences<"posts">(ctx, "posts", postId);
 
         await emitEvent(ctx, POST_EVENTS.DELETED, SYSTEM.POST, eventPayload, { correlationId });
 
@@ -1612,7 +1665,7 @@ export const bulkPublish = mutation({
           continue;
         }
 
-        await ctx.db.patch("posts", postId, {
+        await patchWithMediaReferences<"posts">(ctx, "posts", postId, {
           status: "publish",
           publishedAt: post.publishedAt ?? now,
           scheduledAt: undefined,
@@ -1673,10 +1726,10 @@ export const setMeta = mutation({
       .unique();
 
     if (existing) {
-      await ctx.db.patch("postMeta", existing._id, { value: args.value });
+      await patchWithMediaReferences<"postMeta">(ctx, "postMeta", existing._id, { value: args.value });
       return existing._id;
     } else {
-      return await ctx.db.insert("postMeta", {
+      return await insertWithMediaReferences<"postMeta">(ctx, "postMeta", {
         postId: args.postId,
         key: args.key,
         value: args.value,
@@ -1715,7 +1768,7 @@ export const deleteMeta = mutation({
       .unique();
 
     if (existing) {
-      await ctx.db.delete("postMeta", existing._id);
+      await deleteWithMediaReferences<"postMeta">(ctx, "postMeta", existing._id);
     }
 
     return { success: true };
@@ -1753,9 +1806,9 @@ export const bulkSetMeta = mutation({
         .unique();
 
       if (existing) {
-        await ctx.db.patch("postMeta", existing._id, { value });
+        await patchWithMediaReferences<"postMeta">(ctx, "postMeta", existing._id, { value });
       } else {
-        await ctx.db.insert("postMeta", {
+        await insertWithMediaReferences<"postMeta">(ctx, "postMeta", {
           postId: args.postId,
           key,
           value,

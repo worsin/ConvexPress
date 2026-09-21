@@ -15,7 +15,7 @@ import type { Id, Doc } from "../_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
 import { resolveUserRole } from "./permissions";
 
-type ReadCtx = Pick<QueryCtx, "db">;
+type ReadCtx = Pick<QueryCtx, "db" | "runQuery">;
 
 // ─── Settings Integration ────────────────────────────────────────────────────
 

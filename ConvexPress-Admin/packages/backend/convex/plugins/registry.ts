@@ -1,3 +1,4 @@
+import { extensionPlugins } from "../schema/_pluginIndex.generated";
 /**
  * Backend plugin registry.
  *
@@ -78,6 +79,13 @@ export const PLUGIN_DEFAULTS: Record<PluginId, boolean> = {
   lms: true,
   forms: false,
 };
+
+for (const plugin of extensionPlugins) {
+  if (Object.prototype.hasOwnProperty.call(PLUGIN_SETTINGS_KEY, plugin.id)) throw new Error(`Duplicate plugin declaration: ${plugin.id}`);
+  PLUGIN_SETTINGS_KEY[plugin.id] = plugin.settingsKey;
+  PLUGIN_DEFAULTS[plugin.id] = plugin.defaultEnabled;
+  if (plugin.parentId) PLUGIN_PARENT[plugin.id] = plugin.parentId;
+}
 
 /** Shared, runtime-independent policy for handlers and Dashboard navigation. */
 export function isPluginEnabledFromValues(

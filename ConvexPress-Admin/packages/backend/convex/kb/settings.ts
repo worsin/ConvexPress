@@ -12,6 +12,7 @@
  * via direct DB access (same pattern as the core settings system internals).
  */
 
+import { insertWithMediaReferences, patchWithMediaReferences } from "../media/attachmentGuard";
 import { ConvexError } from "convex/values";
 import { mutation, query } from "../_generated/server";
 import { v } from "convex/values";
@@ -26,7 +27,7 @@ import {
 } from "../settings/defaults";
 import { computeChanges } from "../settings/helpers";
 import { isPluginEnabled, requirePluginEnabled } from "../helpers/plugins";
-import { SECRET_SENTINEL } from "../helpers/settingsSecret";
+import { SECRET_SENTINEL, encryptSettingSecret } from "../helpers/settingsSecret";
 
 // ─── getKbSettings ───────────────────────────────────────────────────────────
 
@@ -194,13 +195,13 @@ export const updateKbSettings = mutation({
 
       if (changes.length > 0) {
         if (existingDoc) {
-          await ctx.db.patch("settings", existingDoc._id, {
+          await patchWithMediaReferences<"settings">(ctx, "settings", existingDoc._id, {
             values: newValues,
             updatedAt: now,
             updatedBy: user._id,
           });
         } else {
-          await ctx.db.insert("settings", {
+          await insertWithMediaReferences<"settings">(ctx, "settings", {
             section: "kb.general",
             values: newValues,
             updatedAt: now,
@@ -235,13 +236,13 @@ export const updateKbSettings = mutation({
 
       if (changes.length > 0) {
         if (existingDoc) {
-          await ctx.db.patch("settings", existingDoc._id, {
+          await patchWithMediaReferences<"settings">(ctx, "settings", existingDoc._id, {
             values: newValues,
             updatedAt: now,
             updatedBy: user._id,
           });
         } else {
-          await ctx.db.insert("settings", {
+          await insertWithMediaReferences<"settings">(ctx, "settings", {
             section: "kb.features",
             values: newValues,
             updatedAt: now,
@@ -271,9 +272,13 @@ export const updateKbSettings = mutation({
           Object.entries(args.search).filter(([, v]) => v !== undefined),
         ),
       };
+      if (args.search.ragProvider !== undefined && args.search.ragProvider !== oldValues.ragProvider &&
+          (args.search.ragApiKey === undefined || args.search.ragApiKey === SECRET_SENTINEL)) newValues.ragApiKey = "";
       for (const key of ["meilisearchApiKey", "ragApiKey"]) {
         if (newValues[key] === SECRET_SENTINEL) {
           newValues[key] = oldValues[key] ?? "";
+        } else if (Object.prototype.hasOwnProperty.call(args.search, key) && typeof newValues[key] === "string" && newValues[key]) {
+          newValues[key] = await encryptSettingSecret(newValues[key] as string);
         }
       }
 
@@ -281,13 +286,13 @@ export const updateKbSettings = mutation({
 
       if (changes.length > 0) {
         if (existingDoc) {
-          await ctx.db.patch("settings", existingDoc._id, {
+          await patchWithMediaReferences<"settings">(ctx, "settings", existingDoc._id, {
             values: newValues,
             updatedAt: now,
             updatedBy: user._id,
           });
         } else {
-          await ctx.db.insert("settings", {
+          await insertWithMediaReferences<"settings">(ctx, "settings", {
             section: "kb.search",
             values: newValues,
             updatedAt: now,

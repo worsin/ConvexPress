@@ -42,7 +42,7 @@ export const update = mutation({
     await requireCan(ctx, "manage_options");
     const group = await ctx.db.get(args.groupId);
     if (!group) throw new ConvexError({ code: "NOT_FOUND", message: "Customer group not found." });
-    await ctx.db.patch(args.groupId, { ...args.patch, updatedAt: Date.now() });
+    await ctx.db.patch("commerce_customer_groups", args.groupId, { ...args.patch, updatedAt: Date.now() });
     return args.groupId;
   },
 });
@@ -84,7 +84,7 @@ export const removeMember = mutation({
       )
       .unique();
     if (!existing) return null;
-    await ctx.db.delete(existing._id);
+    await ctx.db.delete("commerce_customer_group_members", existing._id);
     return existing._id;
   },
 });

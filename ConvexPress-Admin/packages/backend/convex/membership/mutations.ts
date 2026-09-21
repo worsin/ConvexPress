@@ -1,4 +1,5 @@
 // @ts-nocheck
+import * as catalogRevisionWrites from "../media/attachmentGuard";
 /**
  * Membership — Mutations
  *
@@ -38,6 +39,8 @@ import {
 import { requirePluginEnabled } from "../helpers/plugins";
 import { membershipResourceTypeValidator } from "./validators";
 import { syncMembershipPlanCourseEnrollmentsHandler } from "../lms/enrollment/internals";
+import { patchDynamicWithMediaReferences, deleteDynamicWithMediaReferences } from "../media/attachmentGuard";
+
 
 async function requireCustomerLinkedRole(ctx: any, roleId: any) {
   if (!roleId) return;
@@ -121,7 +124,7 @@ export const createPlan = mutation({
 
     const now = Date.now();
 
-    const planId = await ctx.db.insert("membership_plans", {
+    const planId = await catalogRevisionWrites.insertWithMediaReferences<"membership_plans">(ctx, "membership_plans", {
       title: args.title,
       slug: args.slug,
       description: args.description,
@@ -240,7 +243,7 @@ export const updatePlan = mutation({
       patch.linkedCapabilities = args.linkedCapabilities;
     if (args.priority !== undefined) patch.priority = args.priority;
 
-    await ctx.db.patch(args.planId, patch);
+    await patchDynamicWithMediaReferences(ctx, args.planId, patch);
 
     // Sync benefits if provided (full replace strategy)
     if (args.benefits !== undefined) {
@@ -251,7 +254,7 @@ export const updatePlan = mutation({
         .collect();
 
       for (const benefit of existingBenefits) {
-        await ctx.db.delete(benefit._id);
+        await deleteDynamicWithMediaReferences(ctx, benefit._id);
       }
 
       // Insert new benefits
@@ -318,7 +321,7 @@ export const deletePlan = mutation({
       .collect();
 
     for (const benefit of benefits) {
-      await ctx.db.delete(benefit._id);
+      await deleteDynamicWithMediaReferences(ctx, benefit._id);
     }
 
     // Delete restriction rules referencing this plan
@@ -332,10 +335,10 @@ export const deletePlan = mutation({
       );
       if (filteredPlanIds.length === 0) {
         // No plans left in rule — delete the rule entirely
-        await ctx.db.delete(rule._id);
+        await deleteDynamicWithMediaReferences(ctx, rule._id);
       } else if (filteredPlanIds.length !== (rule.planIds ?? []).length) {
         // Remove this plan from the rule
-        await ctx.db.patch(rule._id, {
+        await patchDynamicWithMediaReferences(ctx, rule._id, {
           planIds: filteredPlanIds,
           updatedAt: Date.now(),
         });
@@ -344,11 +347,11 @@ export const deletePlan = mutation({
 
     // Delete remaining grants (expired/revoked)
     for (const grant of grants) {
-      await ctx.db.delete(grant._id);
+      await deleteDynamicWithMediaReferences(ctx, grant._id);
     }
 
     // Delete the plan
-    await ctx.db.delete(args.planId);
+    await deleteDynamicWithMediaReferences(ctx, args.planId);
 
     return { deleted: true };
   },
@@ -429,7 +432,7 @@ export const grantMembership = mutation({
 
     const now = Date.now();
 
-    const grantId = await ctx.db.insert("membership_grants", {
+    const grantId = await catalogRevisionWrites.insertWithMediaReferences<"membership_grants">(ctx, "membership_grants", {
       userId: args.userId,
       planId: args.planId,
       sourceType: args.sourceType ?? "manual",
@@ -491,7 +494,7 @@ export const revokeMembership = mutation({
 
     const now = Date.now();
 
-    await ctx.db.patch(args.grantId, {
+    await patchDynamicWithMediaReferences(ctx, args.grantId, {
       status: "revoked",
       revokedAt: now,
       metadata: {
@@ -578,7 +581,7 @@ export const extendGrant = mutation({
       reason: args.reason,
     };
 
-    await ctx.db.patch(args.grantId, {
+    await patchDynamicWithMediaReferences(ctx, args.grantId, {
       endsAt: args.newExpiresAt,
       metadata: {
         ...grant.metadata,
@@ -633,7 +636,7 @@ export const createRestrictionRule = mutation({
 
     const now = Date.now();
 
-    const ruleId = await ctx.db.insert("membership_restriction_rules", {
+    const ruleId = await catalogRevisionWrites.insertWithMediaReferences<"membership_restriction_rules">(ctx, "membership_restriction_rules", {
       resourceType: args.resourceType,
       resourceIdOrKey: args.resourceIdOrKey,
       ruleMode: args.ruleMode,
@@ -713,7 +716,7 @@ export const updateRestrictionRule = mutation({
     if (args.loginRequired !== undefined)
       patch.loginRequired = args.loginRequired;
 
-    await ctx.db.patch(args.ruleId, patch);
+    await patchDynamicWithMediaReferences(ctx, args.ruleId, patch);
 
     return args.ruleId;
   },
@@ -739,7 +742,7 @@ export const deleteRestrictionRule = mutation({
       });
     }
 
-    await ctx.db.delete(args.ruleId);
+    await deleteDynamicWithMediaReferences(ctx, args.ruleId);
 
     return { deleted: true };
   },
@@ -800,7 +803,7 @@ export const upsertRestrictionRuleForResource = mutation({
       .first();
 
     if (existingRule) {
-      await ctx.db.patch(existingRule._id, {
+      await patchDynamicWithMediaReferences(ctx, existingRule._id, {
         ruleMode: args.ruleMode,
         planIds: args.planIds,
         requiredCapabilities: args.requiredCapabilities,
@@ -812,7 +815,7 @@ export const upsertRestrictionRuleForResource = mutation({
       return { ruleId: existingRule._id, created: false };
     }
 
-    const ruleId = await ctx.db.insert("membership_restriction_rules", {
+    const ruleId = await catalogRevisionWrites.insertWithMediaReferences<"membership_restriction_rules">(ctx, "membership_restriction_rules", {
       resourceType: args.resourceType,
       resourceIdOrKey: args.resourceIdOrKey,
       ruleMode: args.ruleMode,

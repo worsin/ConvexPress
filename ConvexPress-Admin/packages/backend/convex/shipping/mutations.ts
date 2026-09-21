@@ -34,7 +34,7 @@ export const upsertConnectionMetadata = mutation({
       if (args.webhookSecret !== undefined) {
         patch.webhookSecret = args.webhookSecret || undefined;
       }
-      await ctx.db.patch(existing._id, patch as any);
+      await ctx.db.patch("shipping_provider_connections", existing._id, patch as any);
       return existing._id;
     }
 
@@ -118,7 +118,7 @@ export const saveProviderSecret = mutation({
       .unique();
 
     if (existingSecret) {
-      await ctx.db.patch(existingSecret._id, {
+      await ctx.db.patch("shipping_provider_secrets", existingSecret._id, {
         encryptedPayload,
         secretVersion: existingSecret.secretVersion + 1,
         updatedAt: now,
@@ -196,7 +196,7 @@ export const updateZone = mutation({
     if (!existing) {
       throw new ConvexError({ code: "NOT_FOUND", message: "Zone not found." });
     }
-    await ctx.db.patch(zoneId, { ...updates, updatedAt: Date.now() });
+    await ctx.db.patch("commerce_shipping_zones", zoneId, { ...updates, updatedAt: Date.now() });
   },
 });
 
@@ -212,9 +212,9 @@ export const deleteZone = mutation({
       .withIndex("by_zone", (q: any) => q.eq("zoneId", args.zoneId))
       .collect();
     for (const method of methods) {
-      await ctx.db.delete(method._id);
+      await ctx.db.delete("commerce_shipping_zone_methods", method._id);
     }
-    await ctx.db.delete(args.zoneId);
+    await ctx.db.delete("commerce_shipping_zones", args.zoneId);
   },
 });
 
@@ -313,7 +313,7 @@ export const updateZoneMethod = mutation({
     if (!existing) {
       throw new ConvexError({ code: "NOT_FOUND", message: "Zone method not found." });
     }
-    await ctx.db.patch(methodId, { ...updates, updatedAt: Date.now() });
+    await ctx.db.patch("commerce_shipping_zone_methods", methodId, { ...updates, updatedAt: Date.now() });
   },
 });
 
@@ -324,7 +324,7 @@ export const deleteZoneMethod = mutation({
   // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     await requireShippingAdmin(ctx);
-    await ctx.db.delete(args.methodId);
+    await ctx.db.delete("commerce_shipping_zone_methods", args.methodId);
   },
 });
 
@@ -434,7 +434,7 @@ export const updatePackage = mutation({
     for (const [key, val] of Object.entries(updates)) {
       if (val !== undefined) patch[key] = val;
     }
-    await ctx.db.patch(packageId, patch);
+    await ctx.db.patch("commerce_shipping_packages", packageId, patch);
     return packageId;
   },
 });
@@ -450,7 +450,7 @@ export const deletePackage = mutation({
     if (!existing) {
       throw new ConvexError({ code: "NOT_FOUND", message: "Package not found." });
     }
-    await ctx.db.delete(args.packageId);
+    await ctx.db.delete("commerce_shipping_packages", args.packageId);
     return { success: true };
   },
 });

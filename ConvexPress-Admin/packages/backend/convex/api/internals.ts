@@ -39,6 +39,7 @@ import {
   internalQuery,
 } from "../_generated/server";
 import { v } from "convex/values";
+import { credentialBelongsToEnvironment } from "../auth/environmentBinding";
 import { internal } from "../_generated/api";
 import { emitEvent } from "../helpers/events";
 import { API_EVENTS, SYSTEM } from "../events/constants";
@@ -113,7 +114,7 @@ export const authenticateRequest = internalMutation({
       .withIndex("by_keyHash", (q) => q.eq("keyHash", keyHash))
       .unique();
 
-    if (!key) {
+    if (!key || !credentialBelongsToEnvironment(key.environmentBinding)) {
       return {
         authenticated: false,
         error: "Invalid API key",

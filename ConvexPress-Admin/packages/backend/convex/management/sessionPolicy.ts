@@ -58,6 +58,7 @@ export function getSessionExpiration(input: {
   now: number;
   envelopeExpiresAt: number;
   maximumLifetimeMs: number;
+  authorityExpiresAt?: number;
 }): number {
   if (input.envelopeExpiresAt <= input.now) {
     throw new Error("Session envelope is already expired");
@@ -65,8 +66,13 @@ export function getSessionExpiration(input: {
   if (!Number.isFinite(input.maximumLifetimeMs) || input.maximumLifetimeMs <= 0) {
     throw new Error("Session lifetime is invalid");
   }
+  if (input.authorityExpiresAt !== undefined &&
+      (!Number.isFinite(input.authorityExpiresAt) || input.authorityExpiresAt <= input.now)) {
+    throw new Error("Management authority is already expired or invalid");
+  }
   return Math.min(
     input.envelopeExpiresAt,
     input.now + input.maximumLifetimeMs,
+    input.authorityExpiresAt ?? Infinity,
   );
 }

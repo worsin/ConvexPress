@@ -25,6 +25,7 @@ import { internal } from "../../../_generated/api";
 import { rankQuotes } from "../../rates/ranking";
 import type { NormalizedShippingQuote } from "../../rates/types";
 import { computeAddressFingerprint } from "../../helpers/addressFingerprint";
+import { snapshotShippingOrigin } from "../../quoteProvenance";
 import { getEffectiveShipFrom } from "../../helpers/settings";
 import { getDecryptedProviderPayload } from "../_shared/credentials";
 
@@ -277,6 +278,8 @@ export async function fetchShipStationRatesV2(
       deliveryDateEstimated: rate.estimated_delivery_date
         ? Date.parse(rate.estimated_delivery_date)
         : undefined,
+      origin: snapshotShippingOrigin(shippingSettings),
+      packages: args.packages,
       rawQuote: rate,
       addressKey,
       cartKey,

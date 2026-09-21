@@ -118,10 +118,8 @@ export const counts = query({
   },
 });
 
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
-export const get = query({
+export const get: import("convex/server").RegisteredQuery<"public", { albumId: import("../_generated/dataModel").Id<"gallery_albums"> }, Awaited<ReturnType<typeof enrichAlbum>> | null> = query({
   args: getAlbumArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "gallery"))) return null;
     const user = await getCurrentUser(ctx);
@@ -213,10 +211,8 @@ export const listPublished = query({
   },
 });
 
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
-export const getBySlug = query({
+export const getBySlug: import("convex/server").RegisteredQuery<"public", { slug: string }, Awaited<ReturnType<typeof enrichAlbum>> | null> = query({
   args: getAlbumBySlugArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "gallery"))) return null;
     if (!(await isGalleryEnabled(ctx))) {
@@ -225,7 +221,7 @@ export const getBySlug = query({
 
     const album = await ctx.db
       .query("gallery_albums")
-      .withIndex("by_slug", (q: ConvexQueryBuilder) => q.eq("slug", slugify(args.slug)))
+      .withIndex("by_slug", q => q.eq("slug", slugify(args.slug)))
       .unique();
 
     if (
@@ -240,10 +236,8 @@ export const getBySlug = query({
   },
 });
 
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
-export const getEmbed = query({
+export const getEmbed: import("convex/server").RegisteredQuery<"public", { albumId?: import("../_generated/dataModel").Id<"gallery_albums">; slug?: string; limit?: number; layoutPreset?: import("../_generated/dataModel").Doc<"gallery_albums">["layoutPreset"]; columns?: number; showTitle?: boolean; showDescription?: boolean }, (Awaited<ReturnType<typeof enrichAlbum>> & { embedSettings: { layoutPreset: import("../_generated/dataModel").Doc<"gallery_albums">["layoutPreset"]; columns: number; showTitle: boolean; showDescription: boolean } }) | null> = query({
   args: getAlbumEmbedArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "gallery"))) return null;
     if (!(await isGalleryEnabled(ctx))) {
@@ -255,7 +249,7 @@ export const getEmbed = query({
       : args.slug
         ? await ctx.db
             .query("gallery_albums")
-            .withIndex("by_slug", (q: ConvexQueryBuilder) => q.eq("slug", slugify(args.slug!)))
+            .withIndex("by_slug", q => q.eq("slug", slugify(args.slug!)))
             .unique()
         : null;
 

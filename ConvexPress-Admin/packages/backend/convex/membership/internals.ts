@@ -1,4 +1,5 @@
 // @ts-nocheck
+import * as catalogRevisionWrites from "../media/attachmentGuard";
 /**
  * Membership — Internal Functions
  *
@@ -16,7 +17,8 @@
  *   - getPlansByLinkedSubscriptionCode     Plans matching an entitlement code
  */
 
-import { v } from "convex/values";
+import { v, getDocumentSize } from "convex/values";
+import { expireMembershipGrants } from "./expiry";
 
 import { internalMutation, internalQuery } from "../_generated/server";
 import { internal } from "../_generated/api";
@@ -29,6 +31,8 @@ import {
   selectBridgeablePlans,
 } from "./bridgeLogic";
 import { syncMembershipPlanCourseEnrollmentsHandler } from "../lms/enrollment/internals";
+import { patchDynamicWithMediaReferences, deleteDynamicWithMediaReferences } from "../media/attachmentGuard";
+
 
 // ─── Settings-reader helper (local to internals) ──────────────────────────
 // Returns the membership.general settings object with Wave-2 defaults.
@@ -91,121 +95,11 @@ async function writeBridgeAccessLog(
 // expireGrants
 // ═══════════════════════════════════════════════════════════════════════════
 
-/**
- * Expire membership grants that have passed their end date.
- *
- * Two-step transition (respects the status mirror):
- *   1. active + endsAt past + graceEndsAt future  → grace
- *   2. active + endsAt past + graceEndsAt past    → expired
- *   3. active + endsAt past + plan.gracePeriodDays > 0 (no graceEndsAt yet)
- *      → grace (and set graceEndsAt = now + days)
- *   4. active + endsAt past + no grace at all     → expired directly
- *   5. grace  + graceEndsAt past                  → expired
- *
- * Intended to be called by a daily cron.
- */
+/** Indexed bounded status maintenance; course projections use durable jobs. */
 export const expireGrants = internalMutation({
   args: {},
-  handler: async (ctx: any) => {
-    await requirePluginEnabled(ctx, "membership");
-    const now = Date.now();
-    let expiredCount = 0;
-    let movedToGraceCount = 0;
-
-    // Scan all grants (filter in memory — admin sweeps are daily, low volume).
-    const allGrants = await ctx.db.query("membership_grants").collect();
-
-    // Cache plans by id to read gracePeriodDays without repeated fetches.
-    const planCache = new Map<string, any>();
-    const getPlan = async (planId: string) => {
-      if (planCache.has(planId)) return planCache.get(planId);
-      const plan = await ctx.db.get(planId);
-      planCache.set(planId, plan);
-      return plan;
-    };
-
-    for (const grant of allGrants) {
-      // Active with past endsAt → expire or move to grace
-      if (grant.status === "active" && grant.endsAt && grant.endsAt < now) {
-        if (grant.graceEndsAt && grant.graceEndsAt > now) {
-          // Already has a future grace window — step down to grace.
-          await ctx.db.patch(grant._id, { status: "grace", updatedAt: now });
-          await syncMembershipPlanCourseEnrollmentsHandler(ctx, {
-            userId: grant.userId,
-            planId: grant.planId,
-            status: "grace",
-            expiresAt: grant.graceEndsAt,
-            sourceRef: grant.sourceRef,
-          });
-          movedToGraceCount++;
-        } else if (grant.graceEndsAt && grant.graceEndsAt <= now) {
-          // Existing grace window already passed — expire.
-          await ctx.db.patch(grant._id, { status: "expired", updatedAt: now });
-          await syncMembershipPlanCourseEnrollmentsHandler(ctx, {
-            userId: grant.userId,
-            planId: grant.planId,
-            status: "expired",
-            sourceRef: grant.sourceRef,
-          });
-          expiredCount++;
-        } else {
-          // No graceEndsAt set yet — consult the plan's per-plan grace window.
-          const plan = await getPlan(grant.planId);
-          const planGraceDays =
-            typeof plan?.gracePeriodDays === "number" && plan.gracePeriodDays > 0
-              ? plan.gracePeriodDays
-              : 0;
-
-          if (planGraceDays > 0) {
-            // Two-step transition: active → grace first.
-            const graceEndsAt = now + planGraceDays * 24 * 60 * 60 * 1000;
-            await ctx.db.patch(grant._id, {
-              status: "grace",
-              graceEndsAt,
-              updatedAt: now,
-            });
-            await syncMembershipPlanCourseEnrollmentsHandler(ctx, {
-              userId: grant.userId,
-              planId: grant.planId,
-              status: "grace",
-              expiresAt: graceEndsAt,
-              sourceRef: grant.sourceRef,
-            });
-            movedToGraceCount++;
-          } else {
-            // No grace window configured — expire directly.
-            await ctx.db.patch(grant._id, {
-              status: "expired",
-              updatedAt: now,
-            });
-            await syncMembershipPlanCourseEnrollmentsHandler(ctx, {
-              userId: grant.userId,
-              planId: grant.planId,
-              status: "expired",
-              sourceRef: grant.sourceRef,
-            });
-            expiredCount++;
-          }
-        }
-      } else if (
-        grant.status === "grace" &&
-        grant.graceEndsAt &&
-        grant.graceEndsAt < now
-      ) {
-        // Grace window closed — expire.
-        await ctx.db.patch(grant._id, { status: "expired", updatedAt: now });
-        await syncMembershipPlanCourseEnrollmentsHandler(ctx, {
-          userId: grant.userId,
-          planId: grant.planId,
-          status: "expired",
-          sourceRef: grant.sourceRef,
-        });
-        expiredCount++;
-      }
-    }
-
-    return { expiredCount, movedToGraceCount, processedAt: now };
-  },
+  returns: v.object({ expiredCount: v.number(), movedToGraceCount: v.number(), processedAt: v.number() }),
+  handler: expireMembershipGrants,
 });
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -307,7 +201,7 @@ export async function _grantFromSubscriptionHandler(
     });
 
     if (decision.kind === "create") {
-      const grantId = await ctx.db.insert("membership_grants", decision.doc);
+      const grantId = await catalogRevisionWrites.insertWithMediaReferences<"membership_grants">(ctx, "membership_grants", decision.doc);
       await syncMembershipPlanCourseEnrollmentsHandler(ctx, {
         userId: args.userId,
         planId: plan._id,
@@ -323,7 +217,7 @@ export async function _grantFromSubscriptionHandler(
       });
       grantedPlanIds.push(plan._id);
     } else {
-      await ctx.db.patch(decision.grantId, decision.patch);
+      await patchDynamicWithMediaReferences(ctx, decision.grantId, decision.patch);
       await syncMembershipPlanCourseEnrollmentsHandler(ctx, {
         userId: args.userId,
         planId: plan._id,
@@ -435,7 +329,7 @@ export async function _revokeFromSubscriptionHandler(
 
   for (const grant of allTargetGrants) {
     const decision = decideRevoke({ grant, gracePeriodDays, now });
-    await ctx.db.patch(decision.grantId, decision.patch);
+    await patchDynamicWithMediaReferences(ctx, decision.grantId, decision.patch);
     await syncMembershipPlanCourseEnrollmentsHandler(ctx, {
       userId: args.userId,
       planId: grant.planId,
@@ -532,7 +426,7 @@ export async function _moveGrantToGraceHandler(
   for (const grant of targetGrants) {
     const decision = decideMoveToGrace({ grant, gracePeriodDays, now });
     if (decision.kind === "skip") continue;
-    await ctx.db.patch(decision.grantId, decision.patch);
+    await patchDynamicWithMediaReferences(ctx, decision.grantId, decision.patch);
     await syncMembershipPlanCourseEnrollmentsHandler(ctx, {
       userId: args.userId,
       planId: grant.planId,
@@ -619,7 +513,7 @@ export const recordAccessCheck = internalMutation({
  *   - If retentionDays <= 0 or is not a valid number, the function is a
  *     no-op ("keep forever").
  *   - Rows older than `now - retentionDays * 86400000` are deleted in
- *     batches of 500.
+ *     bounded batches of 32 rows / 128 KiB (plus at most one source row).
  *   - If more rows remain after one batch, the function self-schedules
  *     another immediate run so the Convex mutation time limit is not exceeded.
  *
@@ -637,35 +531,26 @@ export const trimAccessLog = internalMutation({
     const retentionDays = settings.accessLogRetentionDays;
 
     // Treat 0 or negative as "keep forever" — do nothing.
-    if (typeof retentionDays !== "number" || retentionDays <= 0) {
+    if (typeof retentionDays !== "number" || !Number.isFinite(retentionDays) || retentionDays <= 0) {
       return { deleted: 0, skipped: "keep_forever" };
     }
 
     const now = Date.now();
     const cutoff = now - retentionDays * 24 * 60 * 60 * 1000;
 
-    // Read all log rows and filter by createdAt < cutoff.
-    // The table has no index on createdAt so we do a full scan in batches.
-    const BATCH = 500;
-    const oldRows = await ctx.db
-      .query("membership_access_log")
-      .filter((q: any) => q.lt(q.field("createdAt"), cutoff))
-      .take(BATCH);
-
-    for (const row of oldRows) {
-      await ctx.db.delete(row._id);
+    if (!Number.isFinite(cutoff)) return { deleted: 0, skipped: "keep_forever" };
+    let deleted = 0, bytes = 0;
+    const oldRows = ctx.db.query("membership_access_log").withIndex("by_created", (q: any) => q.lt("createdAt", cutoff));
+    for await (const row of oldRows) {
+      deleted++; bytes += getDocumentSize(row);
+      await deleteDynamicWithMediaReferences(ctx, row._id);
+      if (deleted >= 32 || bytes >= 128 * 1024) {
+        await ctx.scheduler.runAfter(500, internal.membership.internals.trimAccessLog, {});
+        break;
+      }
     }
 
-    // If we filled the batch, there may be more — self-schedule.
-    if (oldRows.length >= BATCH) {
-      await ctx.scheduler.runAfter(
-        0,
-        (internal as any).membership.internals.trimAccessLog,
-        {},
-      );
-    }
-
-    return { deleted: oldRows.length, cutoff };
+    return { deleted, cutoff };
   },
 });
 

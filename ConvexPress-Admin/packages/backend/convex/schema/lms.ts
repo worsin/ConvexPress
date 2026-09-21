@@ -124,7 +124,16 @@ export const lmsJobStatusValidator = v.union(
 
 export const lmsTables = {
   // ── Course ──────────────────────────────────────────────────────────
+  lms_course_catalog: defineTable({
+    courseId: v.id("lms_courses"),
+    kind: v.union(v.literal("recent"), v.literal("category")),
+    key: v.string(),
+    createdAt: v.number(),
+  }).index("by_course", ["courseId"])
+    .index("by_selection_created", ["kind", "key", "createdAt"]),
+
   lms_courses: defineTable({
+    catalogIndexVersion: v.optional(v.literal(1)),
     title: v.string(),
     slug: v.string(),
     descriptionDoc: v.optional(v.any()), // Tiptap JSON
@@ -171,7 +180,9 @@ export const lmsTables = {
   })
     .index("by_slug", ["slug"])
     .index("by_status", ["status"])
-    .index("by_author", ["authorId"]),
+    .index("by_author", ["authorId"])
+    .index("by_author_status_created", ["authorId", "status", "createdAt"])
+    .index("by_catalog_index_version", ["catalogIndexVersion"]),
 
   lms_course_prerequisites: defineTable({
     courseId: v.id("lms_courses"),
@@ -182,7 +193,16 @@ export const lmsTables = {
     .index("by_prereq", ["prereqCourseId"]),
 
   // ── Curriculum tree ─────────────────────────────────────────────────
+  lms_curriculum_counts: defineTable({
+    progressRefreshPending: v.optional(v.boolean()),
+    courseId: v.id("lms_courses"),
+    lessons: v.number(),
+    topics: v.number(),
+    revision: v.number(),
+  }).index("by_course", ["courseId"]).index("by_progress_pending", ["progressRefreshPending"]),
+
   lms_nodes: defineTable({
+    curriculumCountVersion: v.optional(v.literal(1)),
     courseId: v.id("lms_courses"),
     parentId: v.optional(v.id("lms_nodes")),
     kind: lmsNodeKindValidator,
@@ -222,7 +242,10 @@ export const lmsTables = {
   })
     .index("by_course", ["courseId"])
     .index("by_parent", ["parentId", "position"])
-    .index("by_course_kind", ["courseId", "kind"]),
+    .index("by_course_kind", ["courseId", "kind"])
+    .index("by_count_version", ["curriculumCountVersion"])
+    .index("by_course_count_version", ["courseId", "curriculumCountVersion"])
+    .index("by_course_parent_position", ["courseId", "parentId", "position"]),
 
   lms_lessonVersions: defineTable({
     nodeId: v.id("lms_nodes"),
@@ -248,9 +271,33 @@ export const lmsTables = {
     .index("by_user", ["userId", "status"])
     .index("by_course", ["courseId", "status"])
     .index("by_user_course", ["userId", "courseId"])
-    .index("by_status_expires", ["status", "expiresAt"]),
+    .index("by_status_expires", ["status", "expiresAt"])
+    .index("by_membership_user", ["membershipPlanId", "userId"]),
+
+  lms_progress_maintenance: defineTable({
+    key: v.literal("rebuild"),
+    generation: v.number(),
+    scheduledJobId: v.optional(v.id("_scheduled_functions")),
+  }).index("by_key", ["key"]),
+
+  lms_progress_counts: defineTable({
+    userId: v.id("users"),
+    courseId: v.id("lms_courses"),
+    completed: v.number(),
+    curriculumRevision: v.number(),
+    sourceRevision: v.number(),
+    state: v.union(v.literal("ready"), v.literal("pending")),
+    cursor: v.optional(v.string()),
+    scanRevision: v.optional(v.number()),
+    lastNodeId: v.optional(v.id("lms_nodes")),
+    lastNodeCompleted: v.optional(v.boolean()),
+  })
+    .index("by_user_course", ["userId", "courseId"])
+    .index("by_course_revision", ["courseId", "curriculumRevision"])
+    .index("by_state", ["state"]),
 
   lms_progress: defineTable({
+    progressCountVersion: v.optional(v.literal(1)),
     userId: v.id("users"),
     courseId: v.id("lms_courses"),
     nodeId: v.id("lms_nodes"),
@@ -263,6 +310,9 @@ export const lmsTables = {
   })
     .index("by_user_course", ["userId", "courseId"])
     .index("by_user_node", ["userId", "nodeId"])
+    .index("by_user_course_node_completed", ["userId", "courseId", "nodeId", "completed"])
+    .index("by_count_version", ["progressCountVersion"])
+    .index("by_user_course_count_version", ["userId", "courseId", "progressCountVersion"])
     .index("by_course", ["courseId"]),
 
   lms_course_completions: defineTable({
@@ -273,6 +323,7 @@ export const lmsTables = {
     pointsEarned: v.optional(v.number()),
   })
     .index("by_user", ["userId"])
+    .index("by_user_course", ["userId", "courseId"])
     .index("by_course", ["courseId"]),
 
   // ── Certificates ────────────────────────────────────────────────────
@@ -297,6 +348,7 @@ export const lmsTables = {
     revokedAt: v.optional(v.number()),
     revokedBy: v.optional(v.id("users")),
     revocationReason: v.optional(v.string()),
+    revocationKind: v.optional(v.union(v.literal("progress"), v.literal("administrator"))),
     status: v.union(v.literal("issued"), v.literal("revoked")),
   })
     .index("by_user", ["userId"])

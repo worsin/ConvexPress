@@ -11,6 +11,7 @@ import {
   updateRecipeArgs,
 } from "./validators";
 import { requirePluginEnabled } from "../helpers/plugins";
+import { insertWithMediaReferences, patchWithMediaReferences } from "../media/attachmentGuard";
 
 function slugify(value: string) {
   return value
@@ -68,7 +69,6 @@ async function getRoleLevel(ctx: any, roleId: string | undefined) {
 }
 
 function sanitizeTextList(items: readonly string[] | undefined) {
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   return (items ?? []).map((item) => item.trim()).filter(Boolean);
 }
 
@@ -187,7 +187,7 @@ export const deleteCategory = mutation({
           (categoryId: any) => categoryId.toString() === args.categoryId.toString(),
         )
       ) {
-        await ctx.db.patch("recipes", recipe._id, {
+        await patchWithMediaReferences<"recipes">(ctx, "recipes", recipe._id, {
           categoryIds: recipe.categoryIds.filter(
             (categoryId: any) =>
               categoryId.toString() !== args.categoryId.toString(),
@@ -206,7 +206,7 @@ export const deleteCategory = mutation({
 export const createRecipe = mutation({
   args: createRecipeArgs,
   // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
-  handler: async (ctx, args) => {
+  handler: async (ctx, args): Promise<import("../_generated/dataModel").Id<"recipes">> => {
     await requirePluginEnabled(ctx, "recipes");
     const user = await requireCan(ctx, "post.create");
     const now = Date.now();
@@ -220,7 +220,7 @@ export const createRecipe = mutation({
     }
 
     const slug = await getUniqueRecipeSlug(ctx, args.slug ?? title);
-    const recipeId = await ctx.db.insert("recipes", {
+    const recipeId: import("../_generated/dataModel").Id<"recipes"> = await insertWithMediaReferences<"recipes">(ctx, "recipes", {
       title,
       slug,
       excerpt: args.excerpt?.trim(),
@@ -352,7 +352,7 @@ export const updateRecipe = mutation({
           (args.cookMinutes ?? recipe.cookMinutes ?? 0) || undefined;
     }
 
-    await ctx.db.patch("recipes", args.recipeId, patch);
+    await patchWithMediaReferences<"recipes">(ctx, "recipes", args.recipeId, patch);
 
     const categoryIds = new Set<string>([
       ...recipe.categoryIds.map((id: any) => id.toString()),
@@ -382,7 +382,7 @@ export const trashRecipe = mutation({
       });
     }
 
-    await ctx.db.patch("recipes", args.recipeId, {
+    await patchWithMediaReferences<"recipes">(ctx, "recipes", args.recipeId, {
       status: "trash",
       updatedAt: Date.now(),
     });

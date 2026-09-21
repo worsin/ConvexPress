@@ -65,8 +65,12 @@ describe("assertSiteDeployRequest", () => {
 });
 
 describe("redactDeployLog", () => {
+  test("renders terminal diagnostics as plain text before scrubbing secrets", () => {
+    expect(redactDeployLog("\u001b[96mconvex/example.ts\u001b[0m:14 TS7053", [])).toBe("convex/example.ts:14 TS7053");
+    expect(redactDeployLog("token=private-\u001b[31mtest-secret\u001b[0m", ["private-test-secret"])).toBe("token=••••");
+  });
   test("scrubs provided secrets and key shapes", () => {
-    const line = "set CLERK_SECRET_KEY=sk_test_abcdef123 admin convex-self-hosted|0123456789abcdef whsec_zzz";
+    const line = "set CLERK_SECRET_KEY=sk_test_abcdef123 admin convex-self-hosted|0123456789abcdef whsec_zzz"; // gitleaks:allow -- Deliberately fake secret used to verify log redaction; not a credential.
     const out = redactDeployLog(line, ["convex-self-hosted|0123456789abcdef"]);
     expect(out).not.toContain("0123456789abcdef");
     expect(out).not.toContain("sk_test_abcdef123");
@@ -108,7 +112,7 @@ describe("assertSiteInitializeRequest", () => {
 
 describe("redactDeployLog multi-line secrets", () => {
   test("scrubs every line of a multi-line secret and PEM markers", () => {
-    const key = "-----BEGIN PRIVATE KEY-----\nMIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQg5dFr3YRLEGhhA5KR\n-----END PRIVATE KEY-----";
+    const key = "-----BEGIN PRIVATE KEY-----\nMIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQg5dFr3YRLEGhhA5KR\n-----END PRIVATE KEY-----"; // gitleaks:allow -- Deliberately fake secret used to verify log redaction; not a credential.
     expect(redactDeployLog("error: unknown option '-----BEGIN PRIVATE KEY-----", [key])).not.toContain("BEGIN PRIVATE KEY");
     expect(redactDeployLog("MIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQg5dFr3YRLEGhhA5KR", [key])).toBe("••••");
     expect(redactDeployLog(`failed: ${key}`, [])).toBe("failed: [private key redacted]");

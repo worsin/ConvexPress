@@ -14,6 +14,7 @@ import {
   reorderShippingClassesArgs,
   updateShippingClassArgs,
 } from "./validators";
+import { patchWithMediaReferences } from "../../media/attachmentGuard";
 
 const CLASS_SLUG_REGEX = /^[a-z0-9-]+$/;
 
@@ -129,7 +130,7 @@ export const update = mutation({
     if (args.patch.description !== undefined) patch.description = args.patch.description;
     if (args.patch.sortOrder !== undefined) patch.sortOrder = args.patch.sortOrder;
 
-    await ctx.db.patch(args.classId, patch);
+    await ctx.db.patch("commerce_shipping_classes", args.classId, patch);
     await emitEvent(ctx, SHIPPING_EVENTS.CLASS_UPDATED, "shipping", {
       classId: args.classId,
       patchKeys: Object.keys(args.patch),
@@ -168,20 +169,20 @@ export const remove = mutation({
     } else {
       const target = args.reassignTo; // null or Id
       for (const product of products) {
-        await ctx.db.patch(product._id, {
+        await patchWithMediaReferences<"commerce_products">(ctx, "commerce_products", product._id, {
           shippingClassId: target ?? undefined,
           updatedAt: Date.now(),
         });
       }
       for (const variant of variants) {
-        await ctx.db.patch(variant._id, {
+        await patchWithMediaReferences<"commerce_product_variants">(ctx, "commerce_product_variants", variant._id, {
           shippingClassId: target ?? undefined,
           updatedAt: Date.now(),
         });
       }
     }
 
-    await ctx.db.delete(args.classId);
+    await ctx.db.delete("commerce_shipping_classes", args.classId);
     await emitEvent(ctx, SHIPPING_EVENTS.CLASS_DELETED, "shipping", {
       classId: args.classId,
       reassignedProducts: products.length,
@@ -205,7 +206,7 @@ export const reorder = mutation({
       const classId = args.orderedIds[i]!;
       const existing = await ctx.db.get(classId);
       if (!existing) continue;
-      await ctx.db.patch(classId, {
+      await ctx.db.patch("commerce_shipping_classes", classId, {
         sortOrder: (i + 1) * 10,
         updatedAt: now,
         updatedBy: user?._id,
@@ -224,7 +225,7 @@ export const assignToProduct = mutation({
     if (!product) {
       throw new ConvexError({ code: "NOT_FOUND", message: "Product not found." });
     }
-    await ctx.db.patch(args.productId, {
+    await patchWithMediaReferences<"commerce_products">(ctx, "commerce_products", args.productId, {
       shippingClassId: args.classId ?? undefined,
       updatedAt: Date.now(),
     });
@@ -242,19 +243,19 @@ export const assignToVariant = mutation({
     }
 
     if (args.classId === "inherit") {
-      await ctx.db.patch(args.variantId, {
+      await patchWithMediaReferences<"commerce_product_variants">(ctx, "commerce_product_variants", args.variantId, {
         shippingClassId: undefined,
         shippingClassOverrideNone: undefined,
         updatedAt: Date.now(),
       });
     } else if (args.classId === null) {
-      await ctx.db.patch(args.variantId, {
+      await patchWithMediaReferences<"commerce_product_variants">(ctx, "commerce_product_variants", args.variantId, {
         shippingClassId: undefined,
         shippingClassOverrideNone: true,
         updatedAt: Date.now(),
       });
     } else {
-      await ctx.db.patch(args.variantId, {
+      await patchWithMediaReferences<"commerce_product_variants">(ctx, "commerce_product_variants", args.variantId, {
         shippingClassId: args.classId,
         shippingClassOverrideNone: undefined,
         updatedAt: Date.now(),
@@ -273,7 +274,7 @@ export const bulkAssign = mutation({
     for (const productId of args.productIds) {
       const product = await ctx.db.get(productId);
       if (!product) continue;
-      await ctx.db.patch(productId, {
+      await patchWithMediaReferences<"commerce_products">(ctx, "commerce_products", productId, {
         shippingClassId: args.classId ?? undefined,
         updatedAt: now,
       });

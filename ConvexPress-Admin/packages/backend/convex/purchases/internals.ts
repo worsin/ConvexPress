@@ -12,6 +12,8 @@ import {
 import { getUserIdentifier } from "../helpers/permissions";
 import { NOTIFICATION_KEYS } from "../notifications/validators";
 import { PURCHASE_EVENTS, SYSTEM } from "../events/constants";
+import { patchDynamicWithMediaReferences, deleteDynamicWithMediaReferences } from "../media/attachmentGuard";
+
 
 type PurchaseEventCode =
   | typeof PURCHASE_EVENTS.CREATED
@@ -194,7 +196,7 @@ async function upsertPurchaseOrder(ctx: any, snapshot: Record<string, any>) {
   const { purchaseOrderId: _purchaseOrderId, ...fields } = snapshot;
   if (fields.email) fields.email = normalizeEmail(fields.email);
   if (existing) {
-    await ctx.db.patch(existing._id, {
+    await patchDynamicWithMediaReferences(ctx, existing._id, {
       ...fields,
       updatedAt: now,
     });
@@ -213,7 +215,7 @@ async function deletePurchaseChildren(ctx: any, table: string, purchaseOrderId: 
     .query(table)
     .withIndex("by_purchase_order", (q: any) => q.eq("purchaseOrderId", purchaseOrderId))
     .collect();
-  for (const row of rows) await ctx.db.delete(row._id);
+  for (const row of rows) await deleteDynamicWithMediaReferences(ctx, row._id);
 }
 
 async function replacePurchaseLines(ctx: any, purchaseOrderId: any, lines: any[]) {
@@ -645,7 +647,7 @@ export const syncCommerceOrder = internalMutation({
     });
 
     if (order.purchaseOrderId !== purchaseOrderId) {
-      await ctx.db.patch(order._id, {
+      await ctx.db.patch("commerce_orders", order._id, {
         purchaseOrderId,
         updatedAt: Date.now(),
       });
@@ -797,7 +799,7 @@ export const syncFormOrder = internalMutation({
           purchaseOrderId: undefined,
           createdAt: now,
         });
-    if (existingFormOrder) await ctx.db.patch(existingFormOrder._id, formOrderPatch);
+    if (existingFormOrder) await ctx.db.patch("form_orders", existingFormOrder._id, formOrderPatch);
 
     const purchaseOrderId = await upsertPurchaseOrder(ctx, {
       purchaseOrderId: existingFormOrder?.purchaseOrderId,
@@ -834,7 +836,7 @@ export const syncFormOrder = internalMutation({
 
     const refreshedFormOrder = await ctx.db.get(formOrderId);
     if (refreshedFormOrder?.purchaseOrderId !== purchaseOrderId) {
-      await ctx.db.patch(formOrderId, { purchaseOrderId, updatedAt: now });
+      await ctx.db.patch("form_orders", formOrderId, { purchaseOrderId, updatedAt: now });
     }
 
     const lines = normalizeFormLines(Array.isArray(pricing.lineItems) ? pricing.lineItems : [], {
@@ -981,7 +983,7 @@ export const syncSubscriptionCheckoutIntent = internalMutation({
     });
 
     if (intent.purchaseOrderId !== purchaseOrderId) {
-      await ctx.db.patch(intent._id, { purchaseOrderId, updatedAt: now });
+      await ctx.db.patch("commerce_subscription_checkout_intents", intent._id, { purchaseOrderId, updatedAt: now });
     }
     await replacePurchaseLines(ctx, purchaseOrderId, lines);
     await replacePurchasePayments(ctx, purchaseOrderId, intent.paymentTransactionId ? [
@@ -1077,7 +1079,7 @@ export const syncSubscriptionInvoice = internalMutation({
     });
 
     if (invoice.purchaseOrderId !== purchaseOrderId) {
-      await ctx.db.patch(invoice._id, { purchaseOrderId, updatedAt: now });
+      await ctx.db.patch("commerce_subscription_invoices", invoice._id, { purchaseOrderId, updatedAt: now });
     }
     await replacePurchaseLines(
       ctx,

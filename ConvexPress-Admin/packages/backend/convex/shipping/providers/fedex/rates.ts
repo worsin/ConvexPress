@@ -16,6 +16,7 @@ import { internal } from "../../../_generated/api";
 import { rankQuotes } from "../../rates/ranking";
 import type { NormalizedShippingQuote } from "../../rates/types";
 import { computeAddressFingerprint } from "../../helpers/addressFingerprint";
+import { snapshotShippingOrigin } from "../../quoteProvenance";
 import { getEffectiveShipFrom } from "../../helpers/settings";
 import { getFedexAccessTokenV2 } from "./auth";
 import { getFedexServiceName, parseFedexTransitDays } from "./serviceCodes";
@@ -242,6 +243,8 @@ export async function fetchFedexRatesV2(
       currency,
       estimatedDaysMin: transitDays,
       estimatedDaysMax: transitDays,
+      origin: snapshotShippingOrigin(shippingSettings),
+      packages: args.packages,
       rawQuote: rate,
       addressKey,
       cartKey,

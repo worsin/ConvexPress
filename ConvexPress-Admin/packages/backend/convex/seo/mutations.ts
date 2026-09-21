@@ -26,6 +26,7 @@
  *   await updateGlobal({ key: "titles", value: JSON.stringify({...}) });
  */
 
+import { deleteWithMediaReferences, insertWithMediaReferences, patchWithMediaReferences } from "../media/attachmentGuard";
 import { mutation } from "../_generated/server";
 import { ConvexError } from "convex/values";
 import { requireCan, getCurrentUser , getUserIdentifier } from "../helpers/permissions";
@@ -204,7 +205,7 @@ export const updatePostSeo = mutation({
       if (stringValue === "" || stringValue === undefined) {
         // Empty string: delete the row to revert to default
         if (existing) {
-          await ctx.db.delete("postMeta", existing._id);
+          await deleteWithMediaReferences<"postMeta">(ctx, "postMeta", existing._id);
           changes.push({ field: metaKey, oldValue, newValue: null });
           updatedKeys.push(metaKey);
         }
@@ -212,12 +213,12 @@ export const updatePostSeo = mutation({
         // Upsert the value
         if (existing) {
           if (existing.value !== stringValue) {
-            await ctx.db.patch("postMeta", existing._id, { value: stringValue });
+            await patchWithMediaReferences<"postMeta">(ctx, "postMeta", existing._id, { value: stringValue });
             changes.push({ field: metaKey, oldValue, newValue: stringValue });
             updatedKeys.push(metaKey);
           }
         } else {
-          await ctx.db.insert("postMeta", {
+          await insertWithMediaReferences<"postMeta">(ctx, "postMeta", {
             postId: args.postId,
             key: metaKey,
             value: stringValue,

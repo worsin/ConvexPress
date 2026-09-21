@@ -1,14 +1,20 @@
+import * as catalogRevisionWrites from "./media/attachmentGuard";
+import {
+  roleCompatibleWithIdentity,
+  CUSTOMER_ROLE_ASSIGNMENT_EXPLANATION,
+} from "../lib/auth/roleAssignment";
 import { ConvexError, v } from "convex/values";
 import { internalMutation, mutation, query } from "./_generated/server";
 import {
   getCurrentUser as getUser,
   requireAuth,
 } from "./helpers/auth";
-import { requireCan } from "./helpers/permissions";
+import { requireCan, getCurrentRoleAccess as readCurrentRoleAccess } from "./helpers/permissions";
 import { emitEvent } from "./helpers/events";
 import { ROLE_EVENTS, SYSTEM } from "./events/constants";
 import { BUILT_IN_ROLES, LEGACY_ROLE_MAP } from "./seed/roles";
 import { hasActiveAdmin, hasOtherActiveAdmin } from "./auth/adminPresence";
+import { patchWithMediaReferences } from "./media/attachmentGuard";
 
 type CurrentUserPublic = {
   _id: string;
@@ -101,6 +107,23 @@ export const getCurrentUser = query({
   },
 });
 
+/** Self access for native controls. refresh only renews time-bound display
+ * data; it never selects another user or changes authorization. */
+export const getCurrentRoleAccess = query({
+  args: { refresh: v.optional(v.number()) },
+  returns: v.union(v.null(), v.object({
+    userId: v.id("users"),
+    role: v.object({
+      _id: v.id("roles"), name: v.string(), slug: v.string(), level: v.number(),
+      type: v.union(v.literal("internal"), v.literal("customer"), v.literal("system")),
+      status: v.union(v.literal("active"), v.literal("inactive")),
+      capabilities: v.array(v.string()), pageAccess: v.array(v.string()),
+    }),
+    validUntil: v.union(v.null(), v.number()),
+  })),
+  handler: async (ctx) => readCurrentRoleAccess(ctx),
+});
+
 export const hasAnyAdmin = query({
   args: {},
   handler: async (ctx) => {
@@ -183,6 +206,7 @@ export const updateUserRole = mutation({
     internalRole: v.string(),
     isInternal: v.boolean(),
   },
+  returns: v.null(),
   handler: async (ctx, args) => {
     const currentUser = await requireCan(ctx, "role.assign");
 
@@ -210,6 +234,16 @@ export const updateUserRole = mutation({
       throw new ConvexError("Target user not found.");
     }
 
+    if (targetRole.status !== "active") {
+      throw new ConvexError("Cannot assign an inactive role.");
+    }
+    if (!roleCompatibleWithIdentity(targetUser, targetRole)) {
+      throw new ConvexError({
+        code: "ROLE_IDENTITY_INCOMPATIBLE",
+        message: CUSTOMER_ROLE_ASSIGNMENT_EXPLANATION,
+      });
+    }
+
     const targetCurrentRole = targetUser.roleId
       ? await ctx.db.get("roles", targetUser.roleId)
       : null;
@@ -233,7 +267,7 @@ export const updateUserRole = mutation({
     const nextInternalRole = legacyInternalRoleForRoleSlug(targetRole.slug);
     const nextIsInternal = targetRole.type === "internal";
 
-    await ctx.db.patch("users", args.userId, {
+    await patchWithMediaReferences<"users">(ctx, "users", args.userId, {
       internalRole: nextInternalRole,
       isInternal: nextIsInternal,
       roleId: targetRole._id,
@@ -253,10 +287,11 @@ export const updateUserRole = mutation({
     await emitEvent(ctx, ROLE_EVENTS.ASSIGNED, SYSTEM.ROLE, {
       userId: args.userId,
       previousRole: targetUser.internalRole,
-      newRole: args.internalRole,
+      newRole: nextInternalRole,
       previousIsInternal: targetUser.isInternal,
-      newIsInternal: args.isInternal,
+      newIsInternal: nextIsInternal,
     });
+    return null;
   },
 });
 
@@ -277,7 +312,7 @@ export const setAdminByEmail = internalMutation({
       .withIndex("by_slug", (q) => q.eq("slug", "administrator"))
       .unique();
 
-    await ctx.db.patch("users", user._id, {
+    await patchWithMediaReferences<"users">(ctx, "users", user._id, {
       isInternal: true,
       internalRole: "admin",
       ...(adminRole ? { roleId: adminRole._id } : {}),
@@ -303,7 +338,7 @@ export const setCustomerByEmail = internalMutation({
       .withIndex("by_slug", (q) => q.eq("slug", "subscriber"))
       .unique();
 
-    await ctx.db.patch("users", user._id, {
+    await patchWithMediaReferences<"users">(ctx, "users", user._id, {
       isInternal: false,
       internalRole: "customer",
       ...(subscriberRole ? { roleId: subscriberRole._id } : {}),
@@ -343,7 +378,7 @@ export const seedRoles = internalMutation({
     }));
 
     for (const role of roles) {
-      await ctx.db.insert("roles", role);
+      await catalogRevisionWrites.insertWithMediaReferences<"roles">(ctx, "roles", role);
     }
 
     return { message: "Roles seeded", count: roles.length };

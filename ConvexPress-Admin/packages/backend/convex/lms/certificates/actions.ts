@@ -8,9 +8,14 @@ import {
   formatCertificateDate,
   renderCertificateText,
 } from "./rendering";
+import { patchWithMediaReferences } from "../../media/attachmentGuard";
 
 export const renderCertificatePdf = internalAction({
   args: { issueId: v.id("lms_certificate_issues") },
+  returns: v.union(
+    v.object({ ok: v.literal(true), mediaId: v.id("media") }),
+    v.object({ ok: v.literal(false), reason: v.union(v.literal("not_renderable"), v.literal("superseded")) }),
+  ),
   handler: async (ctx, args) => {
     const payload = await ctx.runQuery(
       (internal as any).lms.certificates.actions.getRenderPayload,
@@ -34,31 +39,40 @@ export const renderCertificatePdf = internalAction({
       new Blob([bytes], { type: "application/pdf" }),
     );
     const mediaId = await ctx.runMutation(
-      (internal as any).media.internals.createMediaInternal,
+      (internal as any).lms.certificates.actions.attachPdfMedia,
       {
-        storageId,
-        fileName,
-        mimeType: "application/pdf",
-        fileSize: bytes.byteLength,
+        issueId: args.issueId,
+        expected: {
+          serial: payload.serial, issuedAt: payload.issuedAt,
+          certificateId: payload.certificateId, userId: payload.userId, courseId: payload.courseId,
+        },
+        storageId, fileSize: bytes.byteLength, fileName,
         uploadedBy: payload.uploadedBy,
         title: `Certificate ${payload.serial}`,
         description: `LMS certificate for ${payload.learnerName} in ${payload.courseTitle}.`,
       },
     );
-    await ctx.runMutation(
-      (internal as any).lms.certificates.actions.attachPdfMedia,
-      { issueId: args.issueId, mediaId },
-    );
+    if (!mediaId) {
+      // This action owns this new, unattached blob. No media row was committed.
+      await ctx.storage.delete(storageId);
+      return { ok: false, reason: "superseded" };
+    }
     return { ok: true, mediaId };
   },
 });
 
 export const getRenderPayload = internalQuery({
   args: { issueId: v.id("lms_certificate_issues") },
+  returns: v.union(v.null(), v.object({
+    certificateId: v.id("lms_certificates"), userId: v.id("users"), courseId: v.id("lms_courses"),
+    uploadedBy: v.id("users"), learnerName: v.string(), courseTitle: v.string(),
+    issuedAt: v.number(), serial: v.string(), certificateTitle: v.string(),
+    orientation: v.union(v.literal("landscape"), v.literal("portrait")), certificateText: v.string(),
+  })),
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "lms"))) return null;
     const issue = await ctx.db.get(args.issueId);
-    if (!issue || issue.status !== "issued") return null;
+    if (!issue || issue.status !== "issued" || issue.pdfMediaId) return null;
     const [user, course, certificate] = await Promise.all([
       ctx.db.get(issue.userId),
       ctx.db.get(issue.courseId),
@@ -70,6 +84,9 @@ export const getRenderPayload = internalQuery({
     const courseTitle = course.title ?? "Unknown course";
     const certificateTitle = certificate.title ?? "Certificate of Completion";
     return {
+      certificateId: issue.certificateId,
+      userId: issue.userId,
+      courseId: issue.courseId,
       uploadedBy: certificate.createdBy as Id<"users">,
       learnerName,
       courseTitle,
@@ -91,25 +108,55 @@ export const getRenderPayload = internalQuery({
   },
 });
 
+const issuanceValidator = v.object({
+  serial: v.string(), issuedAt: v.number(), certificateId: v.id("lms_certificates"),
+  userId: v.id("users"), courseId: v.id("lms_courses"),
+});
+
 export const attachPdfMedia = internalMutation({
   args: {
     issueId: v.id("lms_certificate_issues"),
-    mediaId: v.id("media"),
+    // Old in-flight jobs are accepted but cannot attach without issuance proof.
+    mediaId: v.optional(v.id("media")),
+    expected: v.optional(issuanceValidator),
+    storageId: v.optional(v.id("_storage")),
+    fileSize: v.optional(v.number()),
+    fileName: v.optional(v.string()),
+    uploadedBy: v.optional(v.id("users")),
+    title: v.optional(v.string()),
+    description: v.optional(v.string()),
   },
+  returns: v.union(v.id("media"), v.null()),
   handler: async (ctx, args) => {
     const issue = await ctx.db.get(args.issueId);
-    if (!issue || issue.status !== "issued") return null;
-    await ctx.db.patch(args.issueId, { pdfMediaId: args.mediaId });
-    return args.mediaId;
+    const expected = args.expected;
+    if (issue?.status === "issued" && !issue.pdfMediaId && !expected && args.mediaId) {
+      // An action from the previous deployment cannot prove its issuance.
+      // Queue a current render instead of stranding the certificate without a PDF.
+      await ctx.scheduler.runAfter(0, (internal as any).lms.certificates.actions.renderCertificatePdf, { issueId: args.issueId });
+      return null;
+    }
+    if (!issue || issue.status !== "issued" || issue.pdfMediaId || !expected ||
+        issue.serial !== expected.serial || issue.issuedAt !== expected.issuedAt ||
+        issue.certificateId !== expected.certificateId || issue.userId !== expected.userId ||
+        issue.courseId !== expected.courseId || !args.storageId ||
+        !args.fileName || !args.fileSize || !args.uploadedBy) return null;
+    if (!(await isPluginEnabled(ctx, "lms"))) return null;
+    // Nested mutation shares this transaction: stale jobs cannot create media,
+    // and the issue cannot change between media creation and attachment.
+    const mediaId = await ctx.runMutation(internal.media.internals.createMediaInternal, {
+      storageId: args.storageId, fileName: args.fileName, mimeType: "application/pdf",
+      fileSize: args.fileSize, uploadedBy: args.uploadedBy,
+      title: args.title, description: args.description,
+    });
+    await patchWithMediaReferences<"lms_certificate_issues">(ctx, "lms_certificate_issues", args.issueId, { pdfMediaId: mediaId });
+    return mediaId;
   },
 });
 
 async function findCompletion(ctx: any, userId: Id<"users">, courseId: Id<"lms_courses">) {
-  const completions = await ctx.db
-    .query("lms_course_completions")
-    .withIndex("by_user", (q: any) => q.eq("userId", userId))
-    .collect();
-  return completions.find((completion: any) => completion.courseId === courseId) ?? null;
+  return ctx.db.query("lms_course_completions")
+    .withIndex("by_user_course", (q: any) => q.eq("userId", userId).eq("courseId", courseId)).first();
 }
 
 function buildPdfBytes(input: {

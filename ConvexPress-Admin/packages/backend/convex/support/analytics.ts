@@ -1,3 +1,5 @@
+import type {RegisteredQuery} from "convex/server";
+import {v} from "convex/values";
 /**
  * Support Bridge System - Analytics Queries
  *
@@ -32,10 +34,12 @@ import { isPluginEnabled } from "../helpers/plugins";
  *
  * @auth ticket.viewAll capability
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
-export const getDeflectionStats = query({
+type Outcomes = { helpful:number; notHelpful:number; escalated:number; abandoned:number };
+type DeflectionStats = { totalQueries:number; deflectionRate:number; outcomeBreakdown:Outcomes; outcomes:Outcomes; avgResponseLatencyMs:number; totalTokensUsed:number };
+const outcomes = v.object({helpful:v.number(),notHelpful:v.number(),escalated:v.number(),abandoned:v.number()});
+export const getDeflectionStats: RegisteredQuery<"public", {startDate?:number;endDate?:number}, DeflectionStats|null> = query({
   args: getDeflectionStatsArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.union(v.null(),v.object({totalQueries:v.number(),deflectionRate:v.number(),outcomeBreakdown:outcomes,outcomes,avgResponseLatencyMs:v.number(),totalTokensUsed:v.number()})),
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "tickets"))) return null;
     const canView = await currentUserCan(ctx, "ticket.viewAll");
@@ -48,7 +52,7 @@ export const getDeflectionStats = query({
     // Safety-bounded with .take(50000)
     const logs = await ctx.db
       .query("support_deflectionLogs")
-      .withIndex("by_date", (q: ConvexQueryBuilder) => q.gte("createdAt", startDate).lte("createdAt", endDate))
+      .withIndex("by_date", (q) => q.gte("createdAt", startDate).lte("createdAt", endDate))
       .take(50000);
 
     if (logs.length === 0) {
@@ -85,7 +89,6 @@ export const getDeflectionStats = query({
 
     // Deflection rate = queries resolved without escalation (helpful + abandoned)
     // "helpful" = successfully deflected; "escalated" = failed deflection
-    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     const deflected = outcomeBreakdown.helpful;
     const deflectionRate = logs.length > 0 ? deflected / logs.length : 0;
 

@@ -1,3 +1,5 @@
+import type { RegisteredQuery, RegisteredMutation } from "convex/server";
+import type { Id } from "../_generated/dataModel";
 /**
  * Knowledge Base System - Bookmark Functions
  *
@@ -58,10 +60,8 @@ export const list = query({
 
 // ─── Is Bookmarked ──────────────────────────────────────────────────────────
 
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
-export const isBookmarked = query({
+export const isBookmarked: RegisteredQuery<"public", { articleId: Id<"kb_articles"> }, boolean | null> = query({
   args: isBookmarkedArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "knowledgeBase"))) return null;
     const user = await getCurrentUser(ctx);
@@ -69,7 +69,7 @@ export const isBookmarked = query({
 
     const bookmark = await ctx.db
       .query("kb_bookmarks")
-      .withIndex("by_user_article", (q: ConvexQueryBuilder) =>
+      .withIndex("by_user_article", (q) =>
         q.eq("userId", user._id).eq("articleId", args.articleId),
       )
       .first();
@@ -80,10 +80,8 @@ export const isBookmarked = query({
 
 // ─── Toggle ─────────────────────────────────────────────────────────────────
 
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
-export const toggle = mutation({
+export const toggle: RegisteredMutation<"public", { articleId: Id<"kb_articles">; notes?: string }, { bookmarked: boolean }> = mutation({
   args: toggleBookmarkArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "knowledgeBase");
     const user = await getCurrentUser(ctx);
@@ -93,7 +91,7 @@ export const toggle = mutation({
 
     const existing = await ctx.db
       .query("kb_bookmarks")
-      .withIndex("by_user_article", (q: ConvexQueryBuilder) =>
+      .withIndex("by_user_article", (q) =>
         q.eq("userId", user._id).eq("articleId", args.articleId),
       )
       .first();

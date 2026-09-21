@@ -19,6 +19,12 @@
  *   Results are merged with deduplication and sorted by composite relevance score.
  */
 
+import { createPublicSearchSourceReader, type PublicSearchSource } from "./publicSource";
+import { canDiscoverContent, canEditContent } from "../helpers/publicContent";
+import { evaluateMembershipAccess } from "../membership/access";
+import type { Doc, Id } from "../_generated/dataModel";
+import type { QueryCtx } from "../_generated/server";
+
 import { ConvexError } from "convex/values";
 import { query } from "../_generated/server";
 import {
@@ -30,6 +36,8 @@ import {
 } from "../helpers/permissions";
 import {
   searchQueryArgs,
+  publicSearchResultValidator,
+  publicSuggestionsValidator,
   adminSearchQueryArgs,
   suggestArgs,
   analyticsArgs,
@@ -76,8 +84,64 @@ import {
  *   mutation (in mutations.ts) after receiving search results. This is the
  *   recommended pattern for logging from queries in Convex.
  */
+/** Search rows are a cache, never an authorization source. */
+async function canReadSearchSource(
+  ctx: QueryCtx,
+  row: Doc<"searchIndex">,
+  editorial = false,
+): Promise<boolean> {
+  if (row.contentType === "post" || row.contentType === "page") {
+    const post = await ctx.db.get("posts", row.contentId as Id<"posts">);
+    if (!post || post.type !== row.contentType) return false;
+    if (editorial && (await canEditContent(ctx, post))) return true;
+    return canDiscoverContent(ctx, post);
+  }
+  if (row.contentType === "comment") {
+    const comment = await ctx.db.get(
+      "comments",
+      row.contentId as Id<"comments">,
+    );
+    if (!comment || comment.status !== "approved") return false;
+    const post = await ctx.db.get("posts", comment.postId);
+    return (
+      !!post &&
+      ((editorial && (await canEditContent(ctx, post))) ||
+        (await canDiscoverContent(ctx, post)))
+    );
+  }
+  if (row.contentType === "media") {
+    const media = await ctx.db.get("media", row.contentId as Id<"media">);
+    if (!media || media.status === "trashed") return false;
+    if (!media.attachedTo) return true;
+    const post = await ctx.db.get("posts", media.attachedTo);
+    return (
+      !!post &&
+      ((editorial && (await canEditContent(ctx, post))) ||
+        (await canDiscoverContent(ctx, post)))
+    );
+  }
+  if (row.contentType === "course") {
+    const course = await ctx.db.get(
+      "lms_courses",
+      row.contentId as Id<"lms_courses">,
+    );
+    return (
+      !!course &&
+      course.status === "published" &&
+      (
+        await evaluateMembershipAccess(ctx, {
+          resourceType: "course",
+          resourceIdOrKey: row.contentId,
+        })
+      ).allowed
+    );
+  }
+  return false;
+}
+
 export const search = query({
   args: searchQueryArgs,
+  returns: publicSearchResultValidator,
   handler: async (ctx, args) => {
     // ── Validate query ──────────────────────────────────────────────────
     const rawQuery = sanitizeQuery(args.q);
@@ -94,7 +158,10 @@ export const search = query({
     }
 
     const page = Math.max(1, args.page ?? 1);
-    const perPage = Math.min(MAX_PER_PAGE, Math.max(1, args.perPage ?? DEFAULT_PER_PAGE));
+    const perPage = Math.min(
+      MAX_PER_PAGE,
+      Math.max(1, args.perPage ?? DEFAULT_PER_PAGE),
+    );
 
     // ── Normalize query (remove stop words) ─────────────────────────────
     const normalizedQuery = removeStopWords(rawQuery);
@@ -179,14 +246,17 @@ export const search = query({
     }
 
     // ── Apply post-query filters ────────────────────────────────────────
-    let results = Array.from(resultMap.values());
+    const readSource = createPublicSearchSourceReader(ctx);
+    let results: Array<{doc: PublicSearchSource; relevanceScore: number}> = [];
+    for (const candidate of resultMap.values()) {
+      const doc = await readSource(candidate.doc);
+      if (doc) results.push({doc, relevanceScore: candidate.relevanceScore});
+    }
 
     if (args.category) {
       const categoryLower = args.category.toLowerCase();
       results = results.filter((r) =>
-        r.doc.categoryNames?.some(
-          (c) => c.toLowerCase() === categoryLower,
-        ),
+        r.doc.categoryNames?.some((c) => c.toLowerCase() === categoryLower),
       );
     }
 
@@ -331,7 +401,10 @@ export const adminSearch = query({
     }
 
     const page = Math.max(1, args.page ?? 1);
-    const perPage = Math.min(MAX_PER_PAGE, Math.max(1, args.perPage ?? DEFAULT_PER_PAGE));
+    const perPage = Math.min(
+      MAX_PER_PAGE,
+      Math.max(1, args.perPage ?? DEFAULT_PER_PAGE),
+    );
     const normalizedQuery = removeStopWords(rawQuery);
 
     // ── Determine role-based visibility ─────────────────────────────────
@@ -413,6 +486,10 @@ export const adminSearch = query({
 
     // ── Role-based filtering ────────────────────────────────────────────
     let results = Array.from(resultMap.values());
+    const permitted = await Promise.all(
+      results.map((result) => canReadSearchSource(ctx, result.doc, true)),
+    );
+    results = results.filter((_, index) => permitted[index]);
 
     if (!canSeeAllStatuses) {
       // Authors/Contributors: see published + own non-published
@@ -482,6 +559,7 @@ export const adminSearch = query({
  */
 export const suggest = query({
   args: suggestArgs,
+  returns: publicSuggestionsValidator,
   handler: async (ctx, args) => {
     const trimmed = args.q.trim().toLowerCase();
     if (trimmed.length < MIN_SUGGEST_LENGTH) {
@@ -501,70 +579,18 @@ export const suggest = query({
       )
       .take(limit);
 
-    const titleSuggestions = titleMatches.map((doc) => ({
-      text: doc.title,
-      type: "content" as const,
-      contentType: doc.contentType,
-    }));
-
-    // ── Popular search query suggestions (#58 FIX: reduced scan) ───────
-    // Scan fewer recent queries (200 instead of 500) and only match prefixes.
-    // Full substring matching on 500 records is expensive; prefix-only is the
-    // common autocomplete pattern and reduces false positives.
-    const recentQueries = await ctx.db
-      .query("searchQueries")
-      .withIndex("by_date")
-      .order("desc")
-      .take(200);
-
-    // Aggregate by normalizedQuery, filter by prefix match only
-    const queryFreq = new Map<string, { count: number; resultCount: number }>();
-    for (const sq of recentQueries) {
-      if (sq.normalizedQuery.startsWith(trimmed)) {
-        const existing = queryFreq.get(sq.normalizedQuery);
-        if (existing) {
-          existing.count++;
-          existing.resultCount = Math.max(existing.resultCount, sq.resultCount);
-        } else {
-          queryFreq.set(sq.normalizedQuery, {
-            count: 1,
-            resultCount: sq.resultCount,
-          });
-        }
-      }
+    const readSource = createPublicSearchSourceReader(ctx);
+    const titleSuggestions: Array<{text: string; type: "content"; contentType: PublicSearchSource["contentType"]}> = [];
+    for (const candidate of titleMatches) {
+      const doc = await readSource(candidate);
+      if (doc) titleSuggestions.push({text: doc.title, type: "content", contentType: doc.contentType});
     }
-
-    // Sort by frequency and take top results
-    const popularSuggestions = Array.from(queryFreq.entries())
-      .filter(([, v]) => v.resultCount > 0) // Only suggest queries that had results
-      .sort((a, b) => b[1].count - a[1].count)
-      .slice(0, limit)
-      .map(([q, v]) => ({
-        text: q,
-        type: "popular" as const,
-        resultCount: v.resultCount,
-      }));
-
-    // ── Merge and deduplicate ───────────────────────────────────────────
+    // Search history can contain private terms; suggestions only use content.
     const seen = new Set<string>();
-    const merged: Array<{
-      text: string;
-      type: "content" | "popular";
-      contentType?: string;
-      resultCount?: number;
-    }> = [];
+    const merged: typeof titleSuggestions = [];
 
     // Title suggestions first
     for (const s of titleSuggestions) {
-      const key = s.text.toLowerCase();
-      if (!seen.has(key)) {
-        seen.add(key);
-        merged.push(s);
-      }
-    }
-
-    // Popular queries second
-    for (const s of popularSuggestions) {
       const key = s.text.toLowerCase();
       if (!seen.has(key)) {
         seen.add(key);
@@ -675,7 +701,10 @@ export const getAnalytics = query({
     const zeroMap = new Map<string, number>();
     for (const q of inRange) {
       if (q.resultCount === 0) {
-        zeroMap.set(q.normalizedQuery, (zeroMap.get(q.normalizedQuery) ?? 0) + 1);
+        zeroMap.set(
+          q.normalizedQuery,
+          (zeroMap.get(q.normalizedQuery) ?? 0) + 1,
+        );
       }
     }
 

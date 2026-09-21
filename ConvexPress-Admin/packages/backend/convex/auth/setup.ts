@@ -1,8 +1,10 @@
+import type { RegisteredMutation } from "convex/server";
 import { action, internalMutation } from "../_generated/server";
 import { internal } from "../_generated/api";
 import { v } from "convex/values";
 import { hashPassword, hashSetupToken } from "./helpers";
 import type { Id } from "../_generated/dataModel";
+import { insertWithMediaReferences, patchWithMediaReferences } from "../media/attachmentGuard";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const USERNAME_RE = /^[a-zA-Z0-9._-]{3,64}$/;
@@ -270,28 +272,26 @@ export const provisionSmokeAdmin = action({
 /**
  * Internal upsert used by provisionSmokeAdmin. Not client-callable.
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
-export const upsertSmokeAdmin = internalMutation({
+export const upsertSmokeAdmin: RegisteredMutation<"internal", {email:string;username:string;passwordHash:string}, {created:boolean;userId:Id<"users">;email:string}> = internalMutation({
   args: {
     email: v.string(),
     username: v.string(),
     passwordHash: v.string(),
   },
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     const adminRole = await ctx.db
       .query("roles")
-      .withIndex("by_slug", (q: ConvexQueryBuilder) => q.eq("slug", "administrator"))
+      .withIndex("by_slug", (q) => q.eq("slug", "administrator"))
       .unique();
 
     const now = Date.now();
     const existing = await ctx.db
       .query("users")
-      .withIndex("by_email", (q: ConvexQueryBuilder) => q.eq("email", args.email))
+      .withIndex("by_email", (q) => q.eq("email", args.email))
       .first();
 
     if (existing) {
-      await ctx.db.patch("users", existing._id, {
+      await patchWithMediaReferences<"users">(ctx, "users", existing._id, {
         passwordHash: args.passwordHash,
         authSource: "local",
         emailVerified: true,
@@ -307,7 +307,7 @@ export const upsertSmokeAdmin = internalMutation({
       return { created: false, userId: existing._id, email: existing.email };
     }
 
-    const userId = await ctx.db.insert("users", {
+    const userId: import("../_generated/dataModel").Id<"users"> = await insertWithMediaReferences<"users">(ctx, "users", {
       authSource: "local",
       email: args.email,
       username: args.username,

@@ -143,6 +143,9 @@ export const reorderCommerceCategoriesArgs = {
 };
 
 export const createCommerceProductArgs = {
+  brandId: v.optional(v.id("commerce_product_brands")),
+  tagNames: v.optional(v.array(v.string())),
+  isFeatured: v.optional(v.boolean()),
   title: v.string(),
   slug: v.optional(v.string()),
   description: v.optional(v.string()),
@@ -153,6 +156,8 @@ export const createCommerceProductArgs = {
   galleryMediaIds: v.optional(v.array(v.id("media"))),
   basePrice: commercePriceInputValidator,
   salePrice: v.optional(commercePriceInputValidator),
+  salePriceFrom: v.optional(v.number()),
+  salePriceTo: v.optional(v.number()),
   trackInventory: v.optional(v.boolean()),
   stockQuantity: v.optional(v.number()),
   allowBackorders: v.optional(v.boolean()),
@@ -179,6 +184,9 @@ export const createCommerceProductArgs = {
 };
 
 export const updateCommerceProductArgs = {
+  brandId: v.optional(v.union(v.id("commerce_product_brands"), v.null())),
+  tagNames: v.optional(v.array(v.string())),
+  isFeatured: v.optional(v.boolean()),
   productId: v.id("commerce_products"),
   title: v.optional(v.string()),
   slug: v.optional(v.string()),
@@ -190,6 +198,8 @@ export const updateCommerceProductArgs = {
   galleryMediaIds: v.optional(v.array(v.id("media"))),
   basePrice: v.optional(commercePriceInputValidator),
   salePrice: v.optional(v.union(commercePriceInputValidator, v.null())),
+  salePriceFrom: v.optional(v.union(v.number(), v.null())),
+  salePriceTo: v.optional(v.union(v.number(), v.null())),
   trackInventory: v.optional(v.boolean()),
   stockQuantity: v.optional(v.union(v.number(), v.null())),
   allowBackorders: v.optional(v.boolean()),

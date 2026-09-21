@@ -1,5 +1,7 @@
+import { initializeDeploymentMediaIndex } from "../deployment/mediaIndex.js";
 import { configStore } from "./config.js";
-import { spawn } from "node:child_process";
+import { cleanProvisioningEnv, resolvePackagedBackendRoot } from "./provisioningRuntime.js";
+import { runDeploymentProcess } from "../deployment/process.js";
 import {
   existsSync,
   mkdtempSync,
@@ -46,32 +48,30 @@ function deriveDeployment(config: SetupConfig): DeploymentCredential {
 }
 
 /** Names of env vars already present on the deployment (values never read). */
-function listDeploymentEnvNames(
+async function listDeploymentEnvNames(
   backendRoot: string,
   env: NodeJS.ProcessEnv,
   targetArgs: string[],
 ): Promise<Set<string>> {
-  return new Promise((resolve) => {
-    const child = spawn("bunx", ["convex", "env", "list", ...targetArgs], {
-      cwd: backendRoot,
-      env,
-      stdio: ["ignore", "pipe", "pipe"],
-    });
-    let stdout = "";
-    child.stdout.on("data", (data: Buffer) => (stdout += data.toString()));
-    child.on("error", () => resolve(new Set()));
-    child.on("exit", () => {
-      const names = new Set<string>();
-      for (const line of stdout.split(/\r?\n/)) {
-        const match = /^([A-Z][A-Z0-9_]*)=/.exec(line.trim());
-        if (match) names.add(match[1]);
-      }
-      resolve(names);
-    });
+  const result = await runDeploymentProcess("bunx", ["convex", "env", "list", ...targetArgs], {
+    cwd: backendRoot, env, timeoutMs: 60_000, requireCompleteOutput: true,
   });
+  if (result.code !== 0) {
+    // An unavailable deployment is not an empty deployment. Continuing here
+    // could overwrite encryption keys and make existing secrets unreadable.
+    throw new Error("Could not verify existing deployment environment. Setup stopped before changing encryption keys.");
+  }
+  const names = new Set<string>();
+  for (const line of result.stdout.split(/\r?\n/)) {
+    const match = /^([A-Z][A-Z0-9_]*)=/.exec(line.trim());
+    if (match) names.add(match[1]);
+  }
+  return names;
 }
 
 export function resolveBackendRoot(): string {
+  const packaged = resolvePackagedBackendRoot();
+  if (packaged) return packaged;
   const candidates = [
     path.resolve(__dirname, "../../backend"),
     path.resolve(process.cwd(), "../backend"),
@@ -88,7 +88,7 @@ export function resolveBackendRoot(): string {
   }
 
   throw new Error(
-    "Could not find the Convex backend source. Reinstall from a full ConvexPress checkout and try again.",
+    "Could not find the Convex backend source. Reinstall ConvexPress or check the development checkout.",
   );
 }
 
@@ -265,52 +265,13 @@ function createBackendEnvFile(
   };
 }
 
-function runCommand(
+async function runCommand(
   command: string,
   args: string[],
-  options: {
-    cwd: string;
-    env: NodeJS.ProcessEnv;
-    onOutput?: (message: string) => void;
-  },
+  options: { cwd: string; env: NodeJS.ProcessEnv; onOutput?: (message: string) => void },
 ): Promise<void> {
-  return new Promise((resolve, reject) => {
-    const child = spawn(command, args, {
-      cwd: options.cwd,
-      env: options.env,
-      stdio: ["ignore", "pipe", "pipe"],
-    });
-
-    let stderr = "";
-
-    child.stdout.on("data", (data: Buffer) => {
-      const message = data.toString().trim();
-      if (message) options.onOutput?.(message);
-    });
-
-    child.stderr.on("data", (data: Buffer) => {
-      const message = data.toString().trim();
-      if (message) {
-        stderr += `${message}\n`;
-        options.onOutput?.(message);
-      }
-    });
-
-    child.on("error", reject);
-    child.on("exit", (code, signal) => {
-      if (code === 0) {
-        resolve();
-        return;
-      }
-      reject(
-        new Error(
-          `${command} ${args.join(" ")} failed ${
-            signal ? `with signal ${signal}` : `with exit code ${code}`
-          }${stderr ? `: ${stderr.trim()}` : ""}`,
-        ),
-      );
-    });
-  });
+  const result = await runDeploymentProcess(command, args, { ...options, onLine: options.onOutput });
+  if (result.code !== 0) throw new Error(`Provisioning command failed with exit code ${result.code}.`);
 }
 
 async function deployServerBackend(
@@ -321,7 +282,7 @@ async function deployServerBackend(
 ): Promise<void> {
   const credential = deriveDeployment(config);
   const backendRoot = resolveBackendRoot();
-  const env: NodeJS.ProcessEnv = { ...process.env };
+  const env: NodeJS.ProcessEnv = cleanProvisioningEnv(process.env);
   const targetArgs: string[] = [];
   if (credential.kind === "cloud") {
     env.CONVEX_DEPLOYMENT = credential.deployment;
@@ -364,6 +325,11 @@ async function deployServerBackend(
     onOutput: (message) => console.log(`[Setup IPC] Codegen: ${message}`),
   });
 
+  await runCommand("node", ["scripts/generate-media-writer-coverage.mjs", "--check"], {
+    cwd: backendRoot, env,
+    onOutput: (message) => console.log(`[Setup IPC] Media writer coverage: ${message}`),
+  });
+
   sendProgress("deploy", "Deploying Convex backend code (typechecked).");
   await runCommand(
     "bunx",
@@ -381,6 +347,8 @@ async function deployServerBackend(
         console.log(`[Setup IPC] Convex deploy: ${message}`),
     },
   );
+  sendProgress("environment", "Preparing resumable media deletion safety.");
+  await initializeDeploymentMediaIndex(targetArgs, { cwd: backendRoot, env });
 }
 
 export function registerSetupHandlers(): void {
@@ -458,7 +426,7 @@ export function registerSetupHandlers(): void {
         }
 
         configStore.set("setupComplete", true);
-        sendProgress("complete", "Setup configuration saved.");
+        sendProgress("complete", validated.mode === "server" ? "Setup saved. Media indexing will resume after authorized administrator sign-in." : "Setup configuration saved.");
         console.log(
           `[Setup IPC] Config saved: mode=${validated.mode}, url=${validated.convexUrl}`,
         );

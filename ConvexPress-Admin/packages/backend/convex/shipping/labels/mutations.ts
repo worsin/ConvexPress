@@ -19,7 +19,7 @@ export const markLabelVoided = internalMutation({
   handler: async (ctx, args) => {
     const label = await ctx.db.get(args.labelId);
     if (!label || label.voidedAt) return label?._id ?? null;
-    await ctx.db.patch(args.labelId, {
+    await ctx.db.patch("commerce_shipment_labels", args.labelId, {
       voidedAt: Date.now(),
       refundStatus: args.refundPending ? "pending" : "failed",
       updatedAt: Date.now(),
@@ -151,7 +151,7 @@ export const reprintLabel = mutation({
       });
     }
     const now = Date.now();
-    await ctx.db.patch(args.labelId, {
+    await ctx.db.patch("commerce_shipment_labels", args.labelId, {
       printCount: (label.printCount ?? 0) + 1,
       lastPrintedAt: now,
       lastPrintedBy: user?._id,
@@ -190,7 +190,7 @@ export const voidLabel = mutation({
     // void action. Only the carrier response (markLabelVoided internal)
     // sets `voidedAt` — the public void mutation records the intent, not
     // the success. Prevents orphaned "voided here, not at carrier" state.
-    await ctx.db.patch(args.labelId, {
+    await ctx.db.patch("commerce_shipment_labels", args.labelId, {
       voidedBy: user?._id,
       voidRequestedAt: Date.now(),
       refundStatus: "pending",

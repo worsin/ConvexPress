@@ -1,3 +1,7 @@
+import type { RegisteredMutation } from "convex/server";
+import type { ObjectType } from "convex/values";
+import type { Id } from "../_generated/dataModel";
+import { requireCustomerInvitationRole } from "../../lib/auth/invitationRole";
 /**
  * Registration System - Public Mutations
  *
@@ -18,7 +22,7 @@
  */
 
 import { mutation } from "../_generated/server";
-import { ConvexError } from "convex/values";
+import { ConvexError, v } from "convex/values";
 import { requireCan, requireAuth } from "../helpers/permissions";
 import { emitEvent } from "../helpers/events";
 import {
@@ -43,6 +47,7 @@ import {
 } from "./validators";
 import { SYSTEM, REGISTRATION_EVENTS } from "../events/constants";
 
+
 // ─── Invite User ─────────────────────────────────────────────────────────────
 
 /**
@@ -63,10 +68,9 @@ import { SYSTEM, REGISTRATION_EVENTS } from "../events/constants";
  *
  * @returns The invitation ID and token
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
-export const inviteUser = mutation({
+export const inviteUser: RegisteredMutation<"public", ObjectType<typeof inviteUserArgs>, { invitationId: Id<"invitations">; token: string }> = mutation({
   args: inviteUserArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.object({ invitationId: v.id("invitations"), token: v.string() }),
   handler: async (ctx, args) => {
     // 1. Auth check - require registration.invite capability
     const admin = await requireCan(ctx, "registration.invite");
@@ -106,6 +110,7 @@ export const inviteUser = mutation({
         message: `Invalid role: ${args.role}`,
       });
     }
+    await requireCustomerInvitationRole(ctx, role);
     if (
       typeof args.message === "string" &&
       args.message.length > MAX_INVITATION_MESSAGE_LENGTH
@@ -164,10 +169,9 @@ export const inviteUser = mutation({
  *
  * @returns void
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const resendInvitation = mutation({
   args: resendInvitationArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.null(),
   handler: async (ctx, args) => {
     // 1. Auth check
     const admin = await requireCan(ctx, "registration.invite");
@@ -188,6 +192,8 @@ export const resendInvitation = mutation({
         message: `Cannot resend: invitation is ${invitation.status}.`,
       });
     }
+
+    await requireCustomerInvitationRole(ctx, invitation.role);
 
     // 4. Check resend limit
     const settings = await getRegistrationSettings(ctx);
@@ -228,6 +234,7 @@ export const resendInvitation = mutation({
       lastName: null,
       isResend: true,
     });
+    return null;
   },
 });
 
@@ -241,10 +248,8 @@ export const resendInvitation = mutation({
  *
  * @returns void
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const revokeInvitation = mutation({
   args: revokeInvitationArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     // 1. Auth check
     const admin = await requireCan(ctx, "registration.invite");
@@ -288,10 +293,9 @@ export const revokeInvitation = mutation({
  *
  * @returns Array of results with success/failure per email
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
-export const bulkInvite = mutation({
+export const bulkInvite: RegisteredMutation<"public", ObjectType<typeof bulkInviteArgs>, Array<{ email: string; success: boolean; error?: string; invitationId?: string }>> = mutation({
   args: bulkInviteArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.array(v.object({ email: v.string(), success: v.boolean(), error: v.optional(v.string()), invitationId: v.optional(v.string()) })),
   handler: async (ctx, args) => {
     // 1. Auth check
     const admin = await requireCan(ctx, "registration.invite");
@@ -336,6 +340,8 @@ export const bulkInvite = mutation({
         });
         continue;
       }
+      try { await requireCustomerInvitationRole(ctx, role); }
+      catch (error) { results.push({ email, success: false, error: error instanceof Error ? error.message : "Invitation role unavailable" }); continue; }
       if (
         typeof invite.message === "string" &&
         invite.message.length > MAX_INVITATION_MESSAGE_LENGTH
@@ -422,10 +428,9 @@ export const bulkInvite = mutation({
  *
  * @returns void
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const acceptInvitation = mutation({
   args: acceptInvitationArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.null(),
   handler: async (ctx, args) => {
     // 1. Auth check - require authenticated user
     const authenticatedUser = await requireAuth(ctx);
@@ -450,19 +455,18 @@ export const acceptInvitation = mutation({
     const now = Date.now();
     let invitation = await ctx.db
       .query("invitations")
-      .withIndex("by_token", (q: ConvexQueryBuilder) => q.eq("token", token))
+      .withIndex("by_token", (q) => q.eq("token", token))
       .unique();
 
     // If not found by current token, check previousToken within grace period
     if (!invitation) {
       const pendingInvitations = await ctx.db
         .query("invitations")
-        .withIndex("by_status", (q: ConvexQueryBuilder) => q.eq("status", "pending"))
+        .withIndex("by_status", (q) => q.eq("status", "pending"))
         .collect();
 
       invitation =
         pendingInvitations.find(
-          // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
           (inv) =>
             inv.previousToken === token &&
             inv.previousTokenExpiresAt !== undefined &&
@@ -502,11 +506,14 @@ export const acceptInvitation = mutation({
       });
     }
 
+    await requireCustomerInvitationRole(ctx, invitation.role);
+
     // Mark as accepted
     await ctx.db.patch("invitations", invitation._id, {
       status: "accepted",
       acceptedBy: args.userId,
       acceptedAt: Date.now(),
     });
+    return null;
   },
 });

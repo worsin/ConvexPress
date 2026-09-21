@@ -48,7 +48,6 @@ export const syncRoles = action({
   // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx) => {
     await requireAdmin(ctx);
-    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     return await ctx.runAction(
       internal.airtableSync.syncRoles.syncRoles,
       {},
@@ -80,7 +79,6 @@ export const syncEvents = action({
   // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx) => {
     await requireAdmin(ctx);
-    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     return await ctx.runAction(
       internal.airtableSync.syncEvents.syncEvents,
       {},
@@ -96,7 +94,6 @@ export const syncRoutes = action({
   // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx) => {
     await requireAdmin(ctx);
-    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     return await ctx.runAction(
       internal.airtableSync.syncRoutes.syncRoutes,
       {},
@@ -112,7 +109,6 @@ export const syncEmailNotifications = action({
   // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx) => {
     await requireAdmin(ctx);
-    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     return await ctx.runAction(
       internal.airtableSync.syncEmailNotifications.syncEmailNotifications,
       {},
@@ -128,7 +124,6 @@ export const syncSiteNotifications = action({
   // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx) => {
     await requireAdmin(ctx);
-    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     return await ctx.runAction(
       internal.airtableSync.syncSiteNotifications.syncSiteNotifications,
       {},

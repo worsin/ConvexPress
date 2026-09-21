@@ -16,6 +16,7 @@ import { fetchWPComments, type WPComment } from "../helpers/wpClient";
 import type { PhaseResult } from "../internals";
 import type { SyncError, PhaseProgress } from "../validators";
 import { WP_BATCH_SIZE, normalizeImportConfig, siteCredentialsValidator } from "../validators";
+import { patchWithMediaReferences } from "../../media/attachmentGuard";
 
 
 // ─── Source Hash Helper ───────────────────────────────────────────────────
@@ -348,19 +349,19 @@ export const commentsCreate = internalMutation({
 
     if (existingId) {
       const existing = await ctx.db.get(existingId as Id<"comments">);
-      await ctx.db.patch(existingId as Id<"comments">, fields);
+      await ctx.db.patch("comments", existingId as Id<"comments">, fields);
 
       if (existing && existing.postId !== fields.postId) {
         const oldPost = await ctx.db.get(existing.postId);
         if (oldPost) {
-          await ctx.db.patch(oldPost._id, {
+          await patchWithMediaReferences<"posts">(ctx, "posts", oldPost._id, {
             commentCount: Math.max(0, (oldPost.commentCount || 0) - 1),
           });
         }
 
         const newPost = await ctx.db.get(fields.postId);
         if (newPost) {
-          await ctx.db.patch(newPost._id, {
+          await patchWithMediaReferences<"posts">(ctx, "posts", newPost._id, {
             commentCount: (newPost.commentCount || 0) + 1,
           });
         }
@@ -378,7 +379,7 @@ export const commentsCreate = internalMutation({
     // Update post comment count
     const post = await ctx.db.get(wpComment.postId as Id<"posts">);
     if (post) {
-      await ctx.db.patch(post._id, {
+      await patchWithMediaReferences<"posts">(ctx, "posts", post._id, {
         commentCount: (post.commentCount || 0) + 1,
       });
     }

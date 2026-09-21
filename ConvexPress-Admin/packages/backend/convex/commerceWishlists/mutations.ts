@@ -1,4 +1,5 @@
 // @ts-nocheck
+import { insertCountedWishlist, insertCountedWishlistItem } from "./counts";
 /**
  * Commerce Wishlists — Mutations
  *
@@ -18,13 +19,19 @@
  */
 
 import { ConvexError, v } from "convex/values";
+import { mergeGuestProducts } from "./guestMerge";
+import { beginWishlistDeletion } from "./deletion";
 
+import { makeFunctionReference } from "convex/server";
+import type { Id } from "../_generated/dataModel";
 import { mutation } from "../_generated/server";
-import { requireCan, getCurrentUser } from "../helpers/permissions";
-import { requireCommerceWishlistsEnabled } from "./helpers";
+
+import { requireCommerceWishlistsEnabled, getActiveWishlistUser as getCurrentUser, requireSaveableWishlistProduct } from "./helpers";
 import { requirePluginEnabled } from "../helpers/plugins";
 import { emitEvent } from "../helpers/events";
-import { CART_EVENTS, SYSTEM, WISHLIST_EVENTS } from "../events/constants";
+import { SYSTEM, WISHLIST_EVENTS } from "../events/constants";
+import { patchDynamicWithMediaReferences, deleteDynamicWithMediaReferences } from "../media/attachmentGuard";
+
 
 // ============================================
 // HELPER: Generate share token
@@ -62,7 +69,7 @@ export const createWishlist = mutation({
 
     const now = Date.now();
 
-    return await ctx.db.insert("commerce_wishlists", {
+    return await insertCountedWishlist(ctx, {
       userId: user._id,
       name: args.name,
       description: args.description,
@@ -118,7 +125,7 @@ export const updateWishlist = mutation({
     if (args.description !== undefined) updates.description = args.description;
     if (args.isPublic !== undefined) updates.isPublic = args.isPublic;
 
-    await ctx.db.patch(args.wishlistId, updates);
+    await patchDynamicWithMediaReferences(ctx, args.wishlistId, updates);
     return args.wishlistId;
   },
 });
@@ -128,50 +135,8 @@ export const updateWishlist = mutation({
  */
 export const deleteWishlist = mutation({
   args: { wishlistId: v.id("commerce_wishlists") },
-  handler: async (ctx: any, args: any) => {
-    await requirePluginEnabled(ctx, "commerceWishlists");
-    await requireCommerceWishlistsEnabled(ctx);
-
-    const user = await getCurrentUser(ctx);
-    if (!user) {
-      throw new ConvexError({
-        code: "auth_required",
-        message: "Authentication required.",
-      });
-    }
-
-    const wishlist = await ctx.db.get(args.wishlistId);
-    if (!wishlist) {
-      throw new ConvexError({
-        code: "not_found",
-        message: "Wishlist not found.",
-      });
-    }
-
-    // Verify ownership
-    if (wishlist.userId !== user._id) {
-      throw new ConvexError({
-        code: "unauthorized",
-        message: "You do not own this wishlist.",
-      });
-    }
-
-    // Delete all items first
-    const items = await ctx.db
-      .query("commerce_wishlist_items")
-      .withIndex("by_wishlist", (q: any) =>
-        q.eq("wishlistId", args.wishlistId),
-      )
-      .collect();
-
-    for (const item of items) {
-      await ctx.db.delete(item._id);
-    }
-
-    // Delete wishlist
-    await ctx.db.delete(args.wishlistId);
-    return args.wishlistId;
-  },
+  returns: v.id("commerce_wishlists"),
+  handler: beginWishlistDeletion,
 });
 
 /**
@@ -196,31 +161,27 @@ export const addItem = mutation({
       });
     }
 
-    // Verify product exists and is publicly purchasable.
-    const product = await ctx.db.get(args.productId);
-    if (!product || product.status !== "publish") {
-      throw new ConvexError({
-        code: "product_unavailable",
-        message: "Product is not available.",
-      });
+    // Authorize a supplied list before even disclosing an existing item ID.
+    if (args.wishlistId) {
+      const wishlist = await ctx.db.get(args.wishlistId);
+      if (!wishlist || wishlist.userId !== user._id) throw new ConvexError({code:"unauthorized",message:"You do not own this wishlist."});
     }
+    await requireSaveableWishlistProduct(ctx, args.productId, args.variantId);
 
     let wishlistId = args.wishlistId;
 
     // If no wishlist specified, use or create default wishlist
     if (!wishlistId) {
-      const existingWishlists = await ctx.db
+      const firstExisting = await ctx.db
         .query("commerce_wishlists")
         .withIndex("by_user", (q: any) => q.eq("userId", user._id))
-        .collect();
-
-      const firstExisting = existingWishlists[0];
+        .first();
       if (firstExisting) {
         wishlistId = firstExisting._id;
       } else {
         // Create default wishlist
         const now = Date.now();
-        wishlistId = await ctx.db.insert("commerce_wishlists", {
+        wishlistId = await insertCountedWishlist(ctx, {
           userId: user._id,
           name: "My Wishlist",
           isDefault: true,
@@ -232,20 +193,10 @@ export const addItem = mutation({
       }
     }
 
-    // Check if already in wishlist
-    const existing = await ctx.db
-      .query("commerce_wishlist_items")
-      .withIndex("by_wishlist", (q: any) =>
-        q.eq("wishlistId", wishlistId!),
-      )
-      .filter((q: any) =>
-        args.variantId
-          ? q.and(
-              q.eq(q.field("productId"), args.productId),
-              q.eq(q.field("variantId"), args.variantId),
-            )
-          : q.eq(q.field("productId"), args.productId),
-      )
+    // One indexed product/variant identity, including the no-choice state.
+    const existing = await ctx.db.query("commerce_wishlist_items")
+      .withIndex("by_wishlist_product_variant", (q: any) => q.eq("wishlistId", wishlistId!)
+        .eq("productId", args.productId).eq("variantId", args.variantId))
       .first();
 
     if (existing) {
@@ -254,7 +205,7 @@ export const addItem = mutation({
 
     const now = Date.now();
 
-    const itemId = await ctx.db.insert("commerce_wishlist_items", {
+    const itemId = await insertCountedWishlistItem(ctx, {
       wishlistId: wishlistId!,
       productId: args.productId,
       variantId: args.variantId,
@@ -314,7 +265,7 @@ export const removeItem = mutation({
       });
     }
 
-    await ctx.db.delete(args.itemId);
+    await deleteDynamicWithMediaReferences(ctx, args.itemId);
     await emitEvent(ctx, WISHLIST_EVENTS.ITEM_REMOVED, SYSTEM.WISHLIST, {
       wishlistId: item.wishlistId,
       itemId: args.itemId,
@@ -346,82 +297,35 @@ export const moveToCart = mutation({
       });
     }
 
-    const product = await ctx.db.get(item.productId);
-    if (!product || product.status !== "publish") {
-      throw new ConvexError({
-        code: "product_unavailable",
-        message: "Product is not available.",
-      });
-    }
-
-    // Get or create cart
-    let cart = await ctx.db
-      .query("commerce_carts")
-      .withIndex("by_session", (q: any) =>
-        q.eq("sessionToken", args.sessionToken),
-      )
-      .unique();
-
     const user = await getCurrentUser(ctx);
-    const now = Date.now();
-
-    if (!cart) {
-      const cartId = await ctx.db.insert("commerce_carts", {
-        sessionToken: args.sessionToken,
-        userId: user?._id,
-        status: "active",
-        currencyCode: product.basePrice?.currencyCode || "USD",
-        subtotalAmount: 0,
-        discountAmount: 0,
-        shippingAmount: 0,
-        taxAmount: 0,
-        totalAmount: 0,
-        itemCount: 0,
-        lastActiveAt: now,
-        createdAt: now,
-        updatedAt: now,
-      });
-      cart = await ctx.db.get(cartId);
+    if (!user) throw new ConvexError({ code: "auth_required", message: "Authentication required." });
+    const wishlist = await ctx.db.get(item.wishlistId);
+    if (!wishlist || wishlist.userId !== user._id) {
+      throw new ConvexError({ code: "forbidden", message: "You do not own this wishlist." });
     }
 
-    // Resolve unit price
-    const variant = item.variantId
-      ? await ctx.db.get(item.variantId)
-      : null;
-    let unitPriceAmount = product.basePrice?.amount || 0;
-    if (variant?.price?.amount) {
-      unitPriceAmount = variant.price.amount;
-    } else if (product.salePrice?.amount) {
-      unitPriceAmount = product.salePrice.amount;
+    const product = await requireSaveableWishlistProduct(ctx, item.productId, item.variantId);
+    if (product.productType === "variable" && !item.variantId) {
+      throw new ConvexError({ code: "product_options_required", message: "Choose a product option before adding it to the basket." });
     }
 
-    const quantity = args.quantity || 1;
-
-    // Add to cart
-    const cartItemId = await ctx.db.insert("commerce_cart_items", {
-      cartId: cart._id,
-      productId: item.productId,
-      variantId: item.variantId,
-      quantity,
-      unitPriceAmount,
-      lineTotalAmount: unitPriceAmount * quantity,
-      createdAt: now,
-      updatedAt: now,
-    });
-
-    // Remove from wishlist
-    await ctx.db.delete(args.itemId);
-    await emitEvent(ctx, CART_EVENTS.ITEM_ADDED, SYSTEM.CART, {
-      cartId: cart._id,
-      cartItemId,
-      productId: item.productId,
-      variantId: item.variantId,
-      quantity,
-    });
+    const quantity = args.quantity ?? 1;
+    const cartId = await ctx.runMutation(
+      makeFunctionReference<"mutation", { sessionToken: string; productId: Id<"commerce_products">; variantId?: Id<"commerce_product_variants">; quantity: number }, Id<"commerce_carts">>("commerce/cart:addItem"),
+      { sessionToken: args.sessionToken, productId: item.productId, variantId: item.variantId, quantity },
+    );
+    const cartLines = await ctx.db.query("commerce_cart_items")
+      .withIndex("by_cart_product", (q) => q.eq("cartId", cartId).eq("productId", item.productId))
+      .collect();
+    const cartItemId = cartLines.find((line) =>
+      (line.variantId ?? null) === (item.variantId ?? null) && (line.metadata?.lineType ?? "product") === "product"
+    )?._id;
+    // Only remove the saved item after the normal add mutation succeeds.
+    await deleteDynamicWithMediaReferences(ctx, args.itemId);
     await emitEvent(ctx, WISHLIST_EVENTS.MOVED_TO_CART, SYSTEM.WISHLIST, {
       wishlistId: item.wishlistId,
       itemId: args.itemId,
-      cartId: cart._id,
+      cartId,
       cartItemId,
       productId: item.productId,
       variantId: item.variantId,
@@ -472,7 +376,7 @@ export const toggleShare = mutation({
       ? generateShareToken()
       : wishlist.shareToken;
 
-    await ctx.db.patch(args.wishlistId, {
+    await patchDynamicWithMediaReferences(ctx, args.wishlistId, {
       isPublic: newIsPublic,
       shareToken,
       updatedAt: now,
@@ -486,76 +390,8 @@ export const toggleShare = mutation({
  * Merge guest wishlist product IDs into authenticated user's wishlist
  */
 export const mergeGuestWishlist = mutation({
-  args: {
-    guestProductIds: v.array(v.id("commerce_products")),
-  },
-  handler: async (ctx: any, args: any) => {
-    await requirePluginEnabled(ctx, "commerceWishlists");
-    await requireCommerceWishlistsEnabled(ctx);
-
-    const user = await getCurrentUser(ctx);
-    if (!user) {
-      throw new ConvexError({
-        code: "auth_required",
-        message: "Authentication required.",
-      });
-    }
-
-    // Get or create default wishlist
-    const wishlists = await ctx.db
-      .query("commerce_wishlists")
-      .withIndex("by_user", (q: any) => q.eq("userId", user._id))
-      .collect();
-
-    let wishlistId;
-    const now = Date.now();
-
-    const firstWishlist = wishlists[0];
-    if (firstWishlist) {
-      wishlistId = firstWishlist._id;
-    } else {
-      wishlistId = await ctx.db.insert("commerce_wishlists", {
-        userId: user._id,
-        name: "My Wishlist",
-        isDefault: true,
-        isPublic: false,
-        shareToken: generateShareToken(),
-        createdAt: now,
-        updatedAt: now,
-      });
-    }
-
-    // Add each guest product (deduplicate)
-    let mergedCount = 0;
-    for (const productId of args.guestProductIds) {
-      const product = await ctx.db.get(productId);
-      if (!product || product.status !== "publish") continue;
-
-      // Check if already exists
-      const existing = await ctx.db
-        .query("commerce_wishlist_items")
-        .withIndex("by_wishlist", (q: any) =>
-          q.eq("wishlistId", wishlistId),
-        )
-        .filter((q: any) => q.eq(q.field("productId"), productId))
-        .first();
-
-      if (!existing) {
-        const itemId = await ctx.db.insert("commerce_wishlist_items", {
-          wishlistId,
-          productId,
-          addedAt: now,
-        });
-        await emitEvent(ctx, WISHLIST_EVENTS.ITEM_ADDED, SYSTEM.WISHLIST, {
-          wishlistId,
-          itemId,
-          productId,
-          source: "guest_merge",
-        });
-        mergedCount++;
-      }
-    }
-
-    return { merged: mergedCount };
-  },
+  args: { guestProductIds: v.array(v.id("commerce_products")) },
+  returns: v.object({ merged: v.number() }),
+  handler: async (ctx, args): Promise<{ merged: number }> =>
+    mergeGuestProducts(ctx, args, generateShareToken),
 });

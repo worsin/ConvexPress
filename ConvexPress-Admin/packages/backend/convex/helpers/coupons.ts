@@ -208,7 +208,7 @@ export async function applyCouponToInvoice(
   // Patch the invoice. We adjust subtotal + total together. Tax is NOT
   // re-computed — a Wave 7 tax-engine pass can refine this.
   const taxAmount = invoice.taxAmount ?? 0;
-  await ctx.db.patch(invoiceId, {
+  await ctx.db.patch("commerce_subscription_invoices", invoiceId, {
     subtotalAmount: newSubtotal,
     totalAmount: Math.max(0, newSubtotal + taxAmount),
     updatedAt: now,
@@ -216,7 +216,7 @@ export async function applyCouponToInvoice(
 
   // Decrement remaining applications. We keep the row even at 0 so future
   // UI can show "applied 3 times, exhausted" history.
-  await ctx.db.patch(redemptionId, {
+  await ctx.db.patch("commerce_subscription_coupon_redemptions", redemptionId, {
     remainingApplications: redemption.remainingApplications - 1,
   });
 

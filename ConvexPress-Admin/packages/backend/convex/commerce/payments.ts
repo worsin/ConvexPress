@@ -14,6 +14,10 @@
  *   6. Stripe webhook calls `confirmPaymentSuccess` or `confirmPaymentFailure`
  */
 
+import { isInventoryCommitConflict } from "./reservationCommit";
+import { readStockTarget, readCheckoutReservations } from "./stockTarget";
+import { insertWithMediaReferences, patchWithMediaReferences , patchDynamicWithMediaReferences} from "../media/attachmentGuard";
+import { settleOrderCoupon } from "./couponLifecycle";
 import { ConvexError, v } from "convex/values";
 
 import {
@@ -72,7 +76,7 @@ async function getOrCreatePaymentCollectionForOrder(ctx: any, order: any) {
 		updatedAt: now,
 	});
 
-	await ctx.db.patch(order._id, {
+	await patchDynamicWithMediaReferences(ctx, order._id, {
 		paymentCollectionId: collectionId,
 		updatedAt: now,
 	});
@@ -124,21 +128,25 @@ async function getOrCreatePaymentSessionForCollection(
 }
 
 async function commitReservedInventoryForPaidOrder(ctx: any, order: any) {
-	if (!order.checkoutSessionId) return false;
-	const activeReservations = await ctx.db
-		.query("commerce_stock_reservations")
-		.withIndex("by_checkout", (q: any) =>
-			q.eq("checkoutSessionId", order.checkoutSessionId),
-		)
-		.filter((q: any) => q.eq(q.field("status"), "active"))
-		.collect();
-	if (!activeReservations.length) return false;
-
-	await ctx.runMutation(internal.commerce.inventory.commit, {
-		checkoutSessionId: order.checkoutSessionId,
-		orderId: order._id,
-	});
-	return true;
+  if (!order.checkoutSessionId) return false;
+  const activeReservations = await readCheckoutReservations(ctx,order.checkoutSessionId);
+  if (!activeReservations.length && order.inventoryReservationCount === undefined) return false;
+  try {
+    await ctx.runMutation(internal.commerce.inventory.commit, {
+      checkoutSessionId:order.checkoutSessionId,orderId:order._id,
+    });
+  } catch (error) {
+    if (!isInventoryCommitConflict(error)) throw error;
+    await ctx.db.patch("commerce_orders",order._id,{fulfillmentStatus:"needs_review",updatedAt:Date.now()});
+    await ctx.db.insert("commerce_order_history",{
+      orderId:order._id,eventType:"inventory_conflict",
+      message:"Payment received, but the original stock reservation could not be committed. Review inventory before fulfillment.",
+      metadata:{code:error.data.code},createdAt:Date.now(),
+    });
+  }
+  // Both a successful commit and a recorded conflict finish the reservation
+  // path. Never follow a conflict with an allocation using today's stock owner.
+  return true;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -376,7 +384,7 @@ export const initiatePayment = mutation({
 			});
 		}
 
-		if (order.paymentStatus !== "pending") {
+		if (order.paymentStatus !== "pending" || ["cancelled", "failed", "refunded"].includes(order.status)) {
 			throw new ConvexError({
 				code: "VALIDATION_ERROR",
 				message: `Order payment status is "${order.paymentStatus}", expected "pending".`,
@@ -579,14 +587,14 @@ export const updateTransactionProvider = internalMutation({
 	},
 	handler: async (ctx, args) => {
 		const transaction = await ctx.db.get(args.transactionId);
-		await ctx.db.patch(args.transactionId, {
+		await ctx.db.patch("commerce_payment_transactions", args.transactionId, {
 			providerTransactionId: args.providerTransactionId,
 			clientSecret: args.clientSecret,
 			status: "processing",
 			updatedAt: Date.now(),
 		});
 		if (transaction?.sessionId) {
-			await ctx.db.patch(transaction.sessionId, {
+			await ctx.db.patch("commerce_payment_sessions", transaction.sessionId, {
 				providerSessionId: args.providerTransactionId,
 				clientSecret: args.clientSecret,
 				status: "processing",
@@ -623,18 +631,18 @@ export const confirmPaymentSuccess = internalMutation({
 		}
 
 		// Idempotency: already succeeded
-		if (transaction.status === "succeeded") return;
+		if (["succeeded", "partially_refunded", "refunded"].includes(transaction.status)) return;
 
 		const now = Date.now();
 
-		await ctx.db.patch(transaction._id, {
+		await ctx.db.patch("commerce_payment_transactions", transaction._id, {
 			status: "succeeded",
 			completedAt: now,
 			updatedAt: now,
 		});
 
 		if (transaction.sessionId) {
-			await ctx.db.patch(transaction.sessionId, {
+			await ctx.db.patch("commerce_payment_sessions", transaction.sessionId, {
 				status: "captured",
 				authorizedAt: now,
 				completedAt: now,
@@ -644,7 +652,7 @@ export const confirmPaymentSuccess = internalMutation({
 
 		let captureId: any = undefined;
 		if (transaction.collectionId) {
-			await ctx.db.patch(transaction.collectionId, {
+			await ctx.db.patch("commerce_payment_collections", transaction.collectionId, {
 				status: "captured",
 				authorizedAmount: transaction.amount.amount,
 				capturedAmount: transaction.amount.amount,
@@ -664,7 +672,7 @@ export const confirmPaymentSuccess = internalMutation({
 				},
 				createdAt: now,
 			});
-			await ctx.db.patch(transaction._id, {
+			await ctx.db.patch("commerce_payment_transactions", transaction._id, {
 				captureId,
 				updatedAt: now,
 			});
@@ -674,7 +682,7 @@ export const confirmPaymentSuccess = internalMutation({
 		if (transaction.orderId) {
 			const order = await ctx.db.get(transaction.orderId);
 			if (order) {
-				await ctx.db.patch(transaction.orderId, {
+				await ctx.db.patch("commerce_orders", transaction.orderId, {
 					paymentStatus: "paid",
 					status: "processing",
 					paidAt: now,
@@ -685,7 +693,7 @@ export const confirmPaymentSuccess = internalMutation({
 					? await ctx.db.get(order.checkoutSessionId)
 					: null;
 				if (checkoutSession) {
-					await ctx.db.patch(checkoutSession._id, {
+					await ctx.db.patch("commerce_checkout_sessions", checkoutSession._id, {
 						status: "completed",
 						completedAt: now,
 						updatedAt: now,
@@ -695,7 +703,7 @@ export const confirmPaymentSuccess = internalMutation({
 						? await ctx.db.get(checkoutSession.cartId)
 						: null;
 					if (cart) {
-						await ctx.db.patch(cart._id, {
+						await ctx.db.patch("commerce_carts", cart._id, {
 							status: "converted",
 							orderId: order._id,
 							convertedAt: now,
@@ -713,23 +721,7 @@ export const confirmPaymentSuccess = internalMutation({
 					});
 				}
 
-				if (order.appliedDiscountCode && !order.discountUsageCountedAt) {
-					const discount = await ctx.db
-						.query("commerce_discount_codes")
-						.withIndex("by_code", (q) =>
-							q.eq("code", order.appliedDiscountCode),
-						)
-						.unique();
-					if (discount) {
-						await ctx.db.patch(discount._id, {
-							usageCount: discount.usageCount + 1,
-							updatedAt: now,
-						});
-						await ctx.db.patch(order._id, {
-							discountUsageCountedAt: now,
-						});
-					}
-				}
+        await settleOrderCoupon(ctx, order, "consume");
 
 				// Commit inventory for paid order
 				const orderItems = await ctx.db
@@ -737,19 +729,14 @@ export const confirmPaymentSuccess = internalMutation({
 					.withIndex("by_order", (q: any) => q.eq("orderId", order._id))
 					.collect();
 
-				if (!order.inventoryCommittedAt && !order.inventoryReleasedAt) {
-					const committedFromReservations = await commitReservedInventoryForPaidOrder(
-						ctx,
-						order,
-					);
-					if (committedFromReservations) {
-						await ctx.db.patch(order._id, { inventoryCommittedAt: now });
-					}
-				}
+                let reservedInventoryHandled = false;
+                if (!order.inventoryCommittedAt && !order.inventoryReleasedAt) {
+                  reservedInventoryHandled = await commitReservedInventoryForPaidOrder(ctx,order);
+                }
 
 				if (!order.inventoryCommittedAt && !order.inventoryReleasedAt) {
 					const refreshedOrder = await ctx.db.get(order._id);
-					if (refreshedOrder?.inventoryCommittedAt) {
+					if (refreshedOrder?.inventoryCommittedAt || reservedInventoryHandled) {
 						// Location-aware reservations were committed through the inventory module.
 					} else {
 					for (const item of orderItems) {
@@ -767,7 +754,7 @@ export const confirmPaymentSuccess = internalMutation({
 									const nextStock = bundle.stockCount - delta.quantity;
 									if (nextStock < 0) {
 										// Payment succeeded but inventory depleted — flag for admin review instead of throwing
-										await ctx.db.patch(order._id, {
+										await ctx.db.patch("commerce_orders", order._id, {
 											fulfillmentStatus: "needs_review",
 											paymentStatus: "paid",
 											updatedAt: now,
@@ -781,7 +768,7 @@ export const confirmPaymentSuccess = internalMutation({
 										});
 										continue; // Don't throw — payment is already captured
 									}
-									await ctx.db.patch(delta.bundleId, {
+									await patchDynamicWithMediaReferences(ctx, delta.bundleId, {
 										stockCount: nextStock,
 										updatedAt: now,
 									});
@@ -793,12 +780,14 @@ export const confirmPaymentSuccess = internalMutation({
 							const product = allocation.productId
 								? await ctx.db.get(allocation.productId)
 								: null;
-							if (!product || product.trackInventory === false) continue;
+							if (!product) continue;
 
 							const variant = allocation.variantId
 								? await ctx.db.get(allocation.variantId)
 								: null;
-							const target = variant ?? product;
+							const selection = await readStockTarget(ctx, product._id, allocation.variantId);
+							if (!selection.policy.tracked) continue;
+							const target = selection.policy.owner === "variant" ? variant : product;
 							try {
 								const adjustment = resolveInventoryAdjustment({
 									mode: "decrement",
@@ -807,17 +796,18 @@ export const confirmPaymentSuccess = internalMutation({
 											? target.stockQuantity
 											: 0,
 									allocationQuantity: allocation.quantity,
-									allowBackorders: product.allowBackorders,
+									allowBackorders: selection.policy.allowBackorders,
 									label: allocation.label ?? product.title,
 								});
 
-								await ctx.db.patch(target._id, {
+								await patchDynamicWithMediaReferences(ctx, target._id, {
 									stockQuantity: adjustment.nextStock,
 									updatedAt: now,
 								});
 								await ctx.db.insert("commerce_inventory_adjustments", {
 									productId: allocation.productId,
-									variantId: allocation.variantId,
+									variantId: selection.inventoryVariantId,
+									orderId: order._id,
 									adjustmentType: adjustment.adjustmentType,
 									quantityDelta: adjustment.quantityDelta,
 									reason: `Inventory allocated after payment received (${order.orderNumber})`,
@@ -825,7 +815,7 @@ export const confirmPaymentSuccess = internalMutation({
 								});
 							} catch {
 								// Payment succeeded but inventory depleted — flag for admin review instead of throwing
-								await ctx.db.patch(order._id, {
+								await ctx.db.patch("commerce_orders", order._id, {
 									fulfillmentStatus: "needs_review",
 									paymentStatus: "paid",
 									updatedAt: now,
@@ -842,22 +832,16 @@ export const confirmPaymentSuccess = internalMutation({
 					}
 
 					if (order.checkoutSessionId) {
-						const reservations = await ctx.db
-							.query("commerce_stock_reservations")
-							.withIndex("by_checkout", (q: any) =>
-								q.eq("checkoutSessionId", order.checkoutSessionId),
-							)
-							.filter((q: any) => q.eq(q.field("status"), "active"))
-							.collect();
+                        const reservations = await readCheckoutReservations(ctx,order.checkoutSessionId);
 						for (const reservation of reservations) {
-							await ctx.db.patch(reservation._id, {
+							await ctx.db.patch("commerce_stock_reservations", reservation._id, {
 								status: "converted",
 								updatedAt: now,
 							});
 						}
 					}
 
-					await ctx.db.patch(order._id, { inventoryCommittedAt: now });
+					await ctx.db.patch("commerce_orders", order._id, { inventoryCommittedAt: now, inventoryPolicyVersion: 1 });
 					}
 				}
 
@@ -866,7 +850,7 @@ export const confirmPaymentSuccess = internalMutation({
 						if (isBundleLineMetadata(item.metadata) && item.metadata.bundleId) {
 							const bundle = await ctx.db.get(item.metadata.bundleId);
 							if (bundle) {
-								await ctx.db.patch(item.metadata.bundleId, {
+								await patchDynamicWithMediaReferences(ctx, item.metadata.bundleId, {
 								purchaseCount: (bundle.purchaseCount ?? 0) + item.quantity,
 							});
 							}
@@ -880,7 +864,7 @@ export const confirmPaymentSuccess = internalMutation({
 						});
 					} catch (error) {
 						console.error("[Digital Fulfillment] Payment success fulfillment failed:", error);
-						await ctx.db.patch(order._id, {
+						await ctx.db.patch("commerce_orders", order._id, {
 							digitalFulfillmentStatus: "failed",
 							digitalFulfillmentError:
 								error instanceof Error ? error.message : "Digital fulfillment failed after payment success.",
@@ -916,6 +900,97 @@ export const confirmPaymentSuccess = internalMutation({
 /**
  * Confirm payment failed (called by Stripe webhook).
  */
+async function failPaymentTransaction(ctx: any, transaction: any, error?: string) {
+		// Idempotency: already failed or succeeded
+		if (["failed", "succeeded", "partially_refunded", "refunded"].includes(transaction.status)) {
+			return;
+		}
+
+		const now = Date.now();
+
+		await patchDynamicWithMediaReferences(ctx, transaction._id, {
+			status: "failed",
+			failureMessage: error || "Payment failed",
+			updatedAt: now,
+		});
+		if (transaction.sessionId) {
+			await patchDynamicWithMediaReferences(ctx, transaction.sessionId, {
+				status: "failed",
+				updatedAt: now,
+			});
+		}
+		if (transaction.collectionId) {
+			await patchDynamicWithMediaReferences(ctx, transaction.collectionId, {
+				status: "failed",
+				updatedAt: now,
+			});
+		}
+
+		// Keep the order payable so the customer can retry with a new transaction.
+		if (transaction.orderId) {
+			const order = await ctx.db.get(transaction.orderId);
+			if (order && order.paymentStatus === "pending" && !["cancelled", "failed"].includes(order.status)) {
+				await patchDynamicWithMediaReferences(ctx, transaction.orderId, {
+					paymentStatus: "pending",
+					status: "pending",
+					updatedAt: now,
+				});
+				if (order.checkoutSessionId) {
+					const checkoutSession = await ctx.db.get(order.checkoutSessionId);
+					if (checkoutSession) {
+						await patchDynamicWithMediaReferences(ctx, checkoutSession._id, {
+							status: "failed",
+							failedAt: now,
+							failureReason: error || "Payment failed",
+							updatedAt: now,
+						});
+						await emitEvent(ctx, CHECKOUT_EVENTS.FAILED, SYSTEM.CHECKOUT, {
+							checkoutSessionId: checkoutSession._id,
+							cartId: checkoutSession.cartId,
+							orderId: order._id,
+							userId: checkoutSession.userId,
+							reason: error || "Payment failed",
+							paymentProvider: transaction.provider,
+						});
+					}
+				}
+
+				await ctx.db.insert("commerce_order_history", {
+					orderId: transaction.orderId,
+					eventType: "payment_failed",
+					message: `Payment failed: ${error || "Unknown error"}.`,
+					metadata: {
+						transactionId: transaction._id,
+						providerTransactionId: transaction.providerTransactionId,
+						error: error,
+					},
+					createdAt: now,
+				});
+				await ctx.runMutation((internal as any).purchases.internals.syncCommerceOrder, {
+					orderId: order._id,
+					eventType: "payment_failed",
+					metadata: {
+						transactionId: transaction._id,
+						providerTransactionId: transaction.providerTransactionId,
+						provider: transaction.provider,
+						error: error,
+					},
+				});
+			}
+		}
+}
+
+/** Creation can fail before a provider assigns an ID. Always address the local row. */
+export const failPaymentCreation = internalMutation({
+  args: { transactionId: v.id("commerce_payment_transactions"), error: v.string() },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const transaction = await ctx.db.get(args.transactionId);
+    if (transaction) await failPaymentTransaction(ctx, transaction, args.error);
+    return null;
+  },
+});
+
 export const confirmPaymentFailure = internalMutation({
 	args: {
 		providerTransactionId: v.string(),
@@ -940,108 +1015,38 @@ export const confirmPaymentFailure = internalMutation({
 			return;
 		}
 
-		// Idempotency: already failed or succeeded
-		if (transaction.status === "failed" || transaction.status === "succeeded") {
-			return;
-		}
-
-		const now = Date.now();
-
-		await ctx.db.patch(transaction._id, {
-			status: "failed",
-			failureMessage: args.error || "Payment failed",
-			updatedAt: now,
-		});
-		if (transaction.sessionId) {
-			await ctx.db.patch(transaction.sessionId, {
-				status: "failed",
-				updatedAt: now,
-			});
-		}
-		if (transaction.collectionId) {
-			await ctx.db.patch(transaction.collectionId, {
-				status: "failed",
-				updatedAt: now,
-			});
-		}
-
-		// Keep the order payable so the customer can retry with a new transaction.
-		if (transaction.orderId) {
-			const order = await ctx.db.get(transaction.orderId);
-			if (order) {
-				await ctx.db.patch(transaction.orderId, {
-					paymentStatus: "pending",
-					status: "pending",
-					updatedAt: now,
-				});
-				if (order.checkoutSessionId) {
-					const checkoutSession = await ctx.db.get(order.checkoutSessionId);
-					if (checkoutSession) {
-						await ctx.db.patch(checkoutSession._id, {
-							status: "failed",
-							failedAt: now,
-							failureReason: args.error || "Payment failed",
-							updatedAt: now,
-						});
-						await emitEvent(ctx, CHECKOUT_EVENTS.FAILED, SYSTEM.CHECKOUT, {
-							checkoutSessionId: checkoutSession._id,
-							cartId: checkoutSession.cartId,
-							orderId: order._id,
-							userId: checkoutSession.userId,
-							reason: args.error || "Payment failed",
-							paymentProvider: args.provider,
-						});
-					}
-				}
-
-				await ctx.db.insert("commerce_order_history", {
-					orderId: transaction.orderId,
-					eventType: "payment_failed",
-					message: `Payment failed: ${args.error || "Unknown error"}.`,
-					metadata: {
-						transactionId: transaction._id,
-						providerTransactionId: args.providerTransactionId,
-						error: args.error,
-					},
-					createdAt: now,
-				});
-				await ctx.runMutation((internal as any).purchases.internals.syncCommerceOrder, {
-					orderId: order._id,
-					eventType: "payment_failed",
-					metadata: {
-						transactionId: transaction._id,
-						providerTransactionId: args.providerTransactionId,
-						provider: args.provider,
-						error: args.error,
-					},
-				});
-			}
-		}
+		await failPaymentTransaction(ctx, transaction, args.error);
 	},
 });
 
 /**
  * Complete refund processing (called by provider refund actions).
  */
-export const completeRefund = internalMutation({
-	args: {
-		refundId: v.id("commerce_payment_refunds"),
-		transactionId: v.id("commerce_payment_transactions"),
-		providerRefundId: v.string(),
-		amount: v.number(),
-		success: v.boolean(),
-		error: v.optional(v.string()),
-	},
-	handler: async (ctx, args) => {
+async function completeRefundHandler(ctx: any, args: any) {
 		const now = Date.now();
 		const transaction = await ctx.db.get(args.transactionId);
-		if (!transaction) return;
+		if (!transaction) return null;
 		const refund = await ctx.db.get(args.refundId);
+    if (!refund || String(refund.transactionId) !== String(transaction._id)) return null;
+    if (Number(refund.amount.amount) !== args.amount) throw new ConvexError({ code: "REFUND_AMOUNT_MISMATCH", message: "Provider refund amount does not match the request." });
+    if (refund.status === "succeeded") return null;
+    const providerStatus = args.providerStatus?.toLowerCase();
+    const succeeded = providerStatus ? ["succeeded", "completed"].includes(providerStatus) : args.success;
+    const pending = providerStatus && !succeeded && !["failed", "canceled", "cancelled"].includes(providerStatus);
+    if (pending) {
+      if (refund.status !== "failed") await patchDynamicWithMediaReferences(ctx, refund._id, {
+        status: "pending", providerRefundId: args.providerRefundId || refund.providerRefundId,
+        failureMessage: undefined, updatedAt: now,
+      });
+      return null;
+    }
+    if (!succeeded && refund.status === "failed") return null;
 
-		if (args.success) {
+		if (succeeded) {
 			// Update refund record
-			await ctx.db.patch(args.refundId, {
+			await patchDynamicWithMediaReferences(ctx, args.refundId, {
 				status: "succeeded",
+        failureMessage: undefined,
 				providerRefundId: args.providerRefundId,
 				updatedAt: now,
 			});
@@ -1053,7 +1058,7 @@ export const completeRefund = internalMutation({
 					? "refunded"
 					: "partially_refunded";
 
-			await ctx.db.patch(args.transactionId, {
+			await patchDynamicWithMediaReferences(ctx, args.transactionId, {
 				refundedAmount: newRefundedAmount,
 				status: newStatus,
 				updatedAt: now,
@@ -1061,7 +1066,7 @@ export const completeRefund = internalMutation({
 			if (transaction.collectionId) {
 				const collection = await ctx.db.get(transaction.collectionId);
 				const previousRefunded = Number(collection?.refundedAmount ?? 0);
-				await ctx.db.patch(transaction.collectionId, {
+				await patchDynamicWithMediaReferences(ctx, transaction.collectionId, {
 					refundedAmount: previousRefunded + args.amount,
 					status:
 						previousRefunded + args.amount >= Number(collection?.amount ?? transaction.amount.amount)
@@ -1073,7 +1078,7 @@ export const completeRefund = internalMutation({
 
 			// Update order status if fully refunded
 			if (transaction.orderId && newStatus === "refunded") {
-				await ctx.db.patch(transaction.orderId, {
+				await patchDynamicWithMediaReferences(ctx, transaction.orderId, {
 					paymentStatus: "refunded",
 					status: "refunded",
 					updatedAt: now,
@@ -1111,7 +1116,7 @@ export const completeRefund = internalMutation({
 			if (refund?.returnId) {
 				const returnRequest = await ctx.db.get(refund.returnId);
 				if (returnRequest?.status === "refund_pending") {
-					await ctx.db.patch(refund.returnId, {
+					await patchDynamicWithMediaReferences(ctx, refund.returnId, {
 						status: "refunded",
 						refundFailureReason: undefined,
 						refundedAt: now,
@@ -1134,8 +1139,9 @@ export const completeRefund = internalMutation({
 			}
 		} else {
 			// Refund failed
-			await ctx.db.patch(args.refundId, {
+			await patchDynamicWithMediaReferences(ctx, args.refundId, {
 				status: "failed",
+        providerRefundId: args.providerRefundId || refund.providerRefundId,
 				failureMessage: args.error,
 				updatedAt: now,
 			});
@@ -1168,7 +1174,7 @@ export const completeRefund = internalMutation({
 					const order = transaction.orderId
 						? await ctx.db.get(transaction.orderId)
 						: null;
-					await ctx.db.patch(refund.returnId, {
+					await patchDynamicWithMediaReferences(ctx, refund.returnId, {
 						status: "received",
 						refundFailureReason: args.error,
 						notes: appendRefundFailureNote(returnRequest.notes, args.error),
@@ -1208,7 +1214,21 @@ export const completeRefund = internalMutation({
 				}
 			}
 		}
+    return null;
+}
+
+export const completeRefund = internalMutation({
+	args: {
+		refundId: v.id("commerce_payment_refunds"),
+		transactionId: v.id("commerce_payment_transactions"),
+		providerRefundId: v.string(),
+		amount: v.number(),
+		success: v.boolean(),
+		error: v.optional(v.string()),
+    providerStatus: v.optional(v.string()),
 	},
+  returns: v.null(),
+  handler: completeRefundHandler,
 });
 
 /**
@@ -1421,7 +1441,7 @@ export const savePaymentMethod = mutation({
 
 			for (const method of otherMethods) {
 				if (method.isDefault) {
-					await ctx.db.patch(method._id, { isDefault: false });
+					await ctx.db.patch("commerce_saved_payment_methods", method._id, { isDefault: false });
 				}
 			}
 		}
@@ -1488,7 +1508,7 @@ export const deletePaymentMethod = mutation({
 		);
 
 		// Delete record
-		await ctx.db.delete(args.id);
+		await ctx.db.delete("commerce_saved_payment_methods", args.id);
 
 		return { success: true };
 	},
@@ -1534,12 +1554,12 @@ export const setDefaultPaymentMethod = mutation({
 
 		for (const m of otherMethods) {
 			if (m.isDefault && m._id !== args.id) {
-				await ctx.db.patch(m._id, { isDefault: false });
+				await ctx.db.patch("commerce_saved_payment_methods", m._id, { isDefault: false });
 			}
 		}
 
 		// Set this one as default
-		await ctx.db.patch(args.id, { isDefault: true });
+		await ctx.db.patch("commerce_saved_payment_methods", args.id, { isDefault: true });
 
 		return { success: true };
 	},
@@ -1599,13 +1619,13 @@ export const updateSettings = mutation({
 			newValues.methodOrder = args.methodOrder;
 
 		if (existing) {
-			await ctx.db.patch(existing._id, {
+			await patchWithMediaReferences<"settings">(ctx, "settings", existing._id, {
 				values: newValues,
 				updatedAt: Date.now(),
 			});
 			return existing._id;
 		} else {
-			return await ctx.db.insert("settings", {
+			return await insertWithMediaReferences<"settings">(ctx, "settings", {
 				section: "commerce.payments" as any,
 				values: newValues as any,
 				updatedAt: Date.now(),
@@ -1633,7 +1653,7 @@ export const createPayPalOrder = mutation({
 			});
 		}
 
-		if (order.paymentStatus !== "pending") {
+		if (order.paymentStatus !== "pending" || ["cancelled", "failed", "refunded"].includes(order.status)) {
 			throw new ConvexError({
 				code: "VALIDATION_ERROR",
 				message: `Order payment status is "${order.paymentStatus}", expected "pending".`,
@@ -1840,7 +1860,7 @@ export const markWebhookProcessing = internalMutation({
 		eventId: v.id("commerce_webhook_events"),
 	},
 	handler: async (ctx, args) => {
-		await ctx.db.patch(args.eventId, {
+		await ctx.db.patch("commerce_webhook_events", args.eventId, {
 			status: "processing",
 		});
 	},
@@ -1854,7 +1874,7 @@ export const markWebhookProcessed = internalMutation({
 		eventId: v.id("commerce_webhook_events"),
 	},
 	handler: async (ctx, args) => {
-		await ctx.db.patch(args.eventId, {
+		await ctx.db.patch("commerce_webhook_events", args.eventId, {
 			status: "processed",
 			processedAt: Date.now(),
 		});
@@ -1870,10 +1890,35 @@ export const markWebhookFailed = internalMutation({
 		errorMessage: v.string(),
 	},
 	handler: async (ctx, args) => {
-		await ctx.db.patch(args.eventId, {
+		await ctx.db.patch("commerce_webhook_events", args.eventId, {
 			status: "failed",
 			errorMessage: args.errorMessage,
 			processedAt: Date.now(),
 		});
 	},
+});
+
+/** Called only after the HTTP endpoint verifies the provider signature. */
+export const reconcileProviderRefund = internalMutation({
+  args: {
+    provider: v.union(v.literal("stripe"), v.literal("paypal")), providerRefundId: v.string(), providerStatus: v.string(),
+    refundId: v.optional(v.id("commerce_payment_refunds")), providerTransactionId: v.optional(v.string()),
+    amount: v.optional(v.number()), error: v.optional(v.string()),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const refund = args.refundId ? await ctx.db.get(args.refundId)
+      : await ctx.db.query("commerce_payment_refunds").withIndex("by_provider_refund", (q: any) => q.eq("providerRefundId", args.providerRefundId)).unique();
+    if (!refund || !refund.transactionId) return null;
+    const transaction = await ctx.db.get(refund.transactionId);
+    if (!transaction || transaction.provider !== args.provider ||
+        (refund.providerRefundId && refund.providerRefundId !== args.providerRefundId) ||
+        (args.providerTransactionId && transaction.providerTransactionId !== args.providerTransactionId)) {
+      throw new ConvexError({ code: "REFUND_PROVIDER_MISMATCH", message: "Refund does not match its payment transaction." });
+    }
+    return completeRefundHandler(ctx, {
+      refundId: refund._id, transactionId: transaction._id, providerRefundId: args.providerRefundId,
+      providerStatus: args.providerStatus, amount: args.amount ?? refund.amount.amount, success: false, error: args.error,
+    });
+  },
 });

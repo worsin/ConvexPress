@@ -1,3 +1,5 @@
+import type { RegisteredMutation } from "convex/server";
+import type { Doc } from "../_generated/dataModel";
 /**
  * Audit Log System - Public Mutations
  *
@@ -71,10 +73,8 @@ const CLEARABLE_SEVERITIES = new Set(["informational", "low"]);
  *   - Schedules continuation via ctx.scheduler for remaining entries
  *   - Returns the count deleted in the first batch (total count for dry run)
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
-export const clear = mutation({
+export const clear: RegisteredMutation<"public", {mode:"before_date"|"by_severity"|"expired";beforeDate?:number;severity?:Doc<"auditEntries">["severity"];dryRun?:boolean;confirmPhrase?:string}, {deletedCount:number;oldestRemaining?:number;isDryRun:boolean}> = mutation({
   args: clearArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     // ─── 1. Authorization ─────────────────────────────────────────────
     const user = await requireCan(ctx, "audit.clear");
@@ -123,7 +123,7 @@ export const clear = mutation({
     if (args.mode === "before_date") {
       entries = await ctx.db
         .query("auditEntries")
-        .withIndex("by_occurred", (q: ConvexQueryBuilder) =>
+        .withIndex("by_occurred", (q) =>
           q.lt("occurredAt", args.beforeDate!),
         )
         .take(isDryRun ? 10000 : BATCH_SIZE);
@@ -132,7 +132,7 @@ export const clear = mutation({
       const sev = args.severity!;
       entries = await ctx.db
         .query("auditEntries")
-        .withIndex("by_severity", (q: ConvexQueryBuilder) =>
+        .withIndex("by_severity", (q) =>
           q.eq("severity", sev),
         )
         .take(isDryRun ? 10000 : BATCH_SIZE);
@@ -140,7 +140,7 @@ export const clear = mutation({
       // expired mode
       entries = await ctx.db
         .query("auditEntries")
-        .withIndex("by_expires", (q: ConvexQueryBuilder) => q.lt("expiresAt", now))
+        .withIndex("by_expires", (q) => q.lt("expiresAt", now))
         .take(isDryRun ? 10000 : BATCH_SIZE);
     }
 

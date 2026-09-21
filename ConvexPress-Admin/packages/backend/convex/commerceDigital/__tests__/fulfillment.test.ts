@@ -54,6 +54,7 @@ function createCtx(seed: Record<string, any[]>) {
   return {
     tables,
     db: {
+      normalizeId: (table: string, id: string) => (tables[table] ?? []).some(row => row._id === id) ? id : null,
       get(id: string) {
         return Promise.resolve(findById(id));
       },
@@ -172,6 +173,25 @@ describe("resolveDigitalPolicy", () => {
 });
 
 describe("fulfillOrderDigitalEntitlementsHandler", () => {
+  test.each(["pending", "refunded", "failed", "partially_paid"])("does not grant digital purchases based on order status when payment is %s", async paymentStatus => {
+    const seed = baseSeed();
+    seed.commerce_orders[0].status = "completed";
+    seed.commerce_orders[0].paymentStatus = paymentStatus;
+    const ctx = createCtx(seed);
+    await fulfillOrderDigitalEntitlementsHandler(ctx, { orderId: "order_1" });
+    expect(ctx.tables.commerce_download_tokens).toHaveLength(0);
+    expect(ctx.tables.commerce_license_keys.filter(key => key.status === "assigned")).toHaveLength(0);
+  });
+
+  test.each(["cancelled", "refunded", "failed"])("does not grant digital purchases after order becomes %s even if payment remains paid", async status => {
+    const seed = baseSeed();
+    seed.commerce_orders[0].status = status;
+    const ctx = createCtx(seed);
+    await fulfillOrderDigitalEntitlementsHandler(ctx, { orderId: "order_1" });
+    expect(ctx.tables.commerce_download_tokens).toHaveLength(0);
+    expect(ctx.tables.commerce_license_keys.filter(key => key.status === "assigned")).toHaveLength(0);
+  });
+
   test("creates download token and one license key per quantity unit", async () => {
     const ctx = createCtx(baseSeed());
 

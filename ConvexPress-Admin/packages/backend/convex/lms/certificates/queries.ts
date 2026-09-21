@@ -1,3 +1,4 @@
+import { certificateCodeSchema, certificateVerificationSchema } from "../../canonicalDocuments/foundation/certificateContracts";
 /**
  * Certificate System - queries.
  */
@@ -85,17 +86,16 @@ export const verifyBySerial = query({
     if (!/^CERT-[A-Z0-9-]{6,80}$/.test(serial)) {
       return { valid: false };
     }
-    const issue = await ctx.db
-      .query("lms_certificate_issues")
-      .withIndex("by_serial", (q) => q.eq("serial", serial))
-      .first();
+    const matches = await ctx.db.query("lms_certificate_issues")
+      .withIndex("by_serial", q => q.eq("serial", serial)).take(2);
+    const issue = matches.length === 1 ? matches[0] : null;
     if (!issue || issue.status !== "issued") return { valid: false };
     const user = await ctx.db.get(issue.userId);
     const course = await ctx.db.get(issue.courseId);
     const certificate = await ctx.db.get(issue.certificateId);
     const completion = await findCompletion(ctx, issue.userId, issue.courseId);
     const pdfUrl = await resolveIssuePdfUrl(ctx, issue);
-    const learnerName = user?.displayName ?? user?.email ?? "Unknown";
+    const learnerName = publicHolderName(user);
     const courseTitle = course?.title ?? "Unknown course";
     const certificateTitle = certificate?.title ?? "Certificate of Completion";
     return {
@@ -122,17 +122,50 @@ export const verifyBySerial = query({
 });
 
 async function findCompletion(ctx: any, userId: string, courseId: string) {
-  const completions = await ctx.db
-    .query("lms_course_completions")
-    .withIndex("by_user", (q: any) => q.eq("userId", userId))
-    .collect();
-  return completions.find((completion: any) => completion.courseId === courseId) ?? null;
+  return ctx.db.query("lms_course_completions")
+    .withIndex("by_user_course", (q: any) => q.eq("userId", userId).eq("courseId", courseId)).first();
 }
+
+function publicHolderName(user: { displayName?: string; email?: string } | null) {
+  const name = user?.displayName?.trim();
+  return name && !name.includes("@") ? name.slice(0, 200) : "Certificate holder";
+}
+
+/** Public code lookup returns only the details printed on the credential. */
+export const verifyPublicCode = query({
+  args: { serial: v.string() },
+  returns: v.union(
+    v.object({state:v.literal("unverified")}), v.object({state:v.literal("unavailable")}),
+    v.object({state:v.literal("valid"),serial:v.string(),holderName:v.string(),courseTitle:v.string(),
+      certificateTitle:v.string(),issuedAt:v.number(),pdfUrl:v.union(v.string(),v.null())}),
+  ),
+  handler: async (ctx, args) => {
+    if (!(await isPluginEnabled(ctx, "lms"))) return {state:"unavailable" as const};
+    // Reject oversized inputs before normalization; no scans or partial-code search.
+    if (args.serial.length > 100) return {state:"unverified" as const};
+    const code = certificateCodeSchema.safeParse(args.serial);
+    if (!code.success) return {state:"unverified" as const};
+    const matches = await ctx.db.query("lms_certificate_issues")
+      .withIndex("by_serial", q => q.eq("serial", code.data)).take(2);
+    const issue = matches.length === 1 ? matches[0] : null;
+    if (!issue || issue.status !== "issued" || !Number.isFinite(issue.issuedAt) || issue.issuedAt < 0)
+      return {state:"unverified" as const};
+    const [user, course, certificate] = await Promise.all([
+      ctx.db.get(issue.userId), ctx.db.get(issue.courseId), ctx.db.get(issue.certificateId),
+    ]);
+    if (!user || !course || !certificate) return {state:"unverified" as const};
+    const result = certificateVerificationSchema.safeParse({state:"valid",serial:issue.serial,
+      holderName:publicHolderName(user),courseTitle:course.title.trim().slice(0,200)||"Course",
+      certificateTitle:certificate.title.trim().slice(0,200)||"Certificate",issuedAt:issue.issuedAt,
+      pdfUrl:await resolveIssuePdfUrl(ctx,issue)});
+    return result.success ? result.data : {state:"unverified" as const};
+  },
+});
 
 async function resolveIssuePdfUrl(ctx: any, issue: { pdfMediaId?: string }) {
   if (!issue.pdfMediaId) return null;
   const pdfMedia = await ctx.db.get(issue.pdfMediaId);
-  if (!pdfMedia) return null;
+  if (!pdfMedia || pdfMedia.status !== "active" || pdfMedia.mimeType !== "application/pdf") return null;
   if (pdfMedia.storageId && ctx.storage?.getUrl) {
     return await ctx.storage.getUrl(pdfMedia.storageId);
   }

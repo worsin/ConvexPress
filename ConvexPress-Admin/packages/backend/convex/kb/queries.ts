@@ -1,3 +1,5 @@
+import type { PaginationOptions, PaginationResult, RegisteredQuery } from "convex/server";
+import type { Doc, Id } from "../_generated/dataModel";
 /**
  * Knowledge Base System - Article Queries
  *
@@ -12,9 +14,10 @@
  *   getVersions       - Article version history (admin, auth required)
  */
 
-import { ConvexError } from "convex/values";
+import { ConvexError, v, type Validator } from "convex/values";
 import { query } from "../_generated/server";
-import { getCurrentUser } from "../helpers/permissions";
+import { kbTables } from "../schema/kb";
+import { getCurrentUser, requireCan } from "../helpers/permissions";
 import {
   listArticlesArgs,
   getArticleByIdArgs,
@@ -27,87 +30,63 @@ import {
 } from "./validators";
 import { enrichUser } from "./helpers/enrichUser";
 import { isPluginEnabled } from "../helpers/plugins";
+import { createPublicKbAccess } from "./publicAccess";
+import { RequestReadLedger } from "../helpers/requestReadLedger";
+import { publicAuthorProfile } from "../helpers/publicAuthor";
 
 // ─── List (Admin) ───────────────────────────────────────────────────────────
 
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
-export const list = query({
+export const list: import("convex/server").RegisteredQuery<"public", { paginationOpts: import("convex/server").PaginationOptions; search?: string; status?: import("../_generated/dataModel").Doc<"kb_articles">["status"]; categoryId?: import("../_generated/dataModel").Id<"kb_categories">; authorId?: import("../_generated/dataModel").Id<"users"> }, import("convex/server").PaginationResult<import("../_generated/dataModel").Doc<"kb_articles"> & { author: ReturnType<typeof enrichUser> }>> = query({
   args: listArticlesArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "knowledgeBase"))) return { page: [], isDone: true, continueCursor: "" };
-    const user = await getCurrentUser(ctx);
-    if (!user) {
-      throw new ConvexError({ code: "UNAUTHORIZED", message: "Authentication required" });
+    await requireCan(ctx, "kb.view");
+    if (!Number.isSafeInteger(args.paginationOpts.numItems) || args.paginationOpts.numItems < 1 || args.paginationOpts.numItems > 100 || (args.search?.length ?? 0) > 500) {
+      throw new ConvexError({ code: "INVALID_ARTICLE_LIST", message: "Request 1–100 articles and a search of at most 500 characters." });
     }
-
-    // Search index queries cannot use .paginate(); fall back to collect+slice for
-    // the search case. All other paths use Convex-native pagination.
-    if (args.search) {
-      const results = await ctx.db
-        .query("kb_articles")
-        .withSearchIndex("search_articles", (q) => {
-          let sq = q.search("contentPlainText", args.search!);
+    const paginationOpts = { ...args.paginationOpts, maximumRowsRead: 200, maximumBytesRead: 2 * 1024 * 1024 };
+    const search = args.search?.trim();
+    if (search) {
+      const result = await ctx.db.query("kb_articles")
+        .withSearchIndex("search_articles", q => {
+          let sq = q.search("contentPlainText", search);
           if (args.status) sq = sq.eq("status", args.status);
           if (args.categoryId) sq = sq.eq("categoryId", args.categoryId);
+          if (args.authorId) sq = sq.eq("authorId", args.authorId);
           return sq;
-        })
-        .collect();
-
-      const filtered = args.authorId
-        // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
-        ? results.filter((a) => a.authorId === args.authorId)
-        : results;
-
-      const enriched = await Promise.all(
-        // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
-        filtered.map(async (article) => {
-          const author = await ctx.db.get("users", article.authorId);
-          return {
-            ...article,
-            author: enrichUser(author),
-          };
-        }),
-      );
-
-      // Wrap in PaginationResult shape so the client interface is consistent.
-      return {
-        page: enriched,
-        isDone: true,
-        continueCursor: "",
-      };
+        }).paginate(paginationOpts);
+      return { ...result, page: await Promise.all(result.page.map(async article => ({
+        ...article, author: enrichUser(await ctx.db.get("users", article.authorId)),
+      }))) };
     }
 
     let baseQuery;
     if (args.status) {
       baseQuery = ctx.db
         .query("kb_articles")
-        .withIndex("by_status_updated", (q: ConvexQueryBuilder) => q.eq("status", args.status!))
+        .withIndex("by_status_updated", q => q.eq("status", args.status!))
         .order("desc");
     } else if (args.categoryId) {
       baseQuery = ctx.db
         .query("kb_articles")
-        .withIndex("by_category", (q: ConvexQueryBuilder) => q.eq("categoryId", args.categoryId!));
+        .withIndex("by_category", q => q.eq("categoryId", args.categoryId!));
     } else if (args.authorId) {
       baseQuery = ctx.db
         .query("kb_articles")
-        .withIndex("by_author", (q: ConvexQueryBuilder) => q.eq("authorId", args.authorId!));
+        .withIndex("by_author", q => q.eq("authorId", args.authorId!));
     } else {
       baseQuery = ctx.db.query("kb_articles").order("desc");
     }
 
-    const paginationResult = await baseQuery.paginate(args.paginationOpts);
+    const paginationResult = await baseQuery.paginate(paginationOpts);
 
-    // Apply in-memory author filter only when another index was chosen as primary.
-    const pageItems = args.authorId && !args.status && !args.categoryId
-      ? paginationResult.page
-      : args.authorId
-        // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
-        ? paginationResult.page.filter((a) => a.authorId === args.authorId)
-        : paginationResult.page;
+    // Remaining filters preserve the database cursor, including empty pages.
+    const pageItems = paginationResult.page.filter(article =>
+      (!args.status || article.status === args.status) &&
+      (!args.categoryId || article.categoryId === args.categoryId) &&
+      (!args.authorId || article.authorId === args.authorId));
 
     const enrichedPage = await Promise.all(
-      // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
       pageItems.map(async (article) => {
         const author = await ctx.db.get("users", article.authorId);
         return {
@@ -126,16 +105,19 @@ export const list = query({
 
 // ─── Get By ID (Admin) ─────────────────────────────────────────────────────
 
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
-export const getById = query({
+type AdminArticle = Doc<"kb_articles"> & { hasInheritedCategoryAccess: boolean; author: ReturnType<typeof enrichUser>; category: Doc<"kb_categories"> | null; tags: Doc<"kb_tags">[] };
+const adminArticleValidator: Validator<AdminArticle | null, "required", string> = v.union(v.null(), v.object({
+  ...kbTables.kb_articles.validator.fields, _id: v.id("kb_articles"), _creationTime: v.number(), hasInheritedCategoryAccess: v.boolean(),
+  author: v.union(v.null(), v.object({ _id: v.id("users"), displayName: v.string(), avatarUrl: v.optional(v.string()) })),
+  category: v.union(v.null(), v.object({ ...kbTables.kb_categories.validator.fields, _id: v.id("kb_categories"), _creationTime: v.number() })),
+  tags: v.array(v.object({ ...kbTables.kb_tags.validator.fields, _id: v.id("kb_tags"), _creationTime: v.number() })),
+}));
+export const getById: RegisteredQuery<"public", { articleId: Id<"kb_articles"> }, AdminArticle | null> = query({
   args: getArticleByIdArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: adminArticleValidator,
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "knowledgeBase"))) return null;
-    const user = await getCurrentUser(ctx);
-    if (!user) {
-      throw new ConvexError({ code: "UNAUTHORIZED", message: "Authentication required" });
-    }
+    await requireCan(ctx, "kb.view");
 
     const article = await ctx.db.get("kb_articles", args.articleId);
     if (!article) return null;
@@ -146,231 +128,197 @@ export const getById = query({
     // Get tags
     const articleTags = await ctx.db
       .query("kb_articleTags")
-      .withIndex("by_article", (q: ConvexQueryBuilder) => q.eq("articleId", args.articleId))
+      .withIndex("by_article", (q) => q.eq("articleId", args.articleId))
       .take(100);
     const tags = await Promise.all(
-      // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
       articleTags.map(async (at) => ctx.db.get("kb_tags", at.tagId)),
     );
 
+    const inheritedGuard = await ctx.db.query("kb_article_category_guards").withIndex("by_article", q => q.eq("articleId", article._id)).first();
     return {
       ...article,
+      hasInheritedCategoryAccess: inheritedGuard !== null,
       author: enrichUser(author),
       category,
-      tags: tags.filter(Boolean),
+      tags: tags.filter((tag): tag is Doc<"kb_tags"> => tag !== null),
     };
   },
 });
 
 // ─── Get By Slug (Public) ───────────────────────────────────────────────────
 
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
-export const getBySlug = query({
+type PublicKbArticle = {
+  _id: Id<"kb_articles">; title: string; slug: string; excerpt: string;
+  content: string; contentPlainText: string; readingTimeMinutes: number; publishedAt?: number;
+  author: { _id: Id<"users">; displayName: string; avatarUrl?: string } | null;
+  category: { _id: Id<"kb_categories">; name: string; slug: string } | null;
+  tags: Array<{ _id: Id<"kb_tags">; name: string; slug: string }>;
+  relatedArticles: Array<{ _id: Id<"kb_articles">; title: string; slug: string; excerpt: string; categorySlug: string }>;
+};
+const publicKbArticle: Validator<PublicKbArticle, "required", string> = v.object({
+  _id: v.id("kb_articles"), title: v.string(), slug: v.string(), excerpt: v.string(),
+  content: v.string(), contentPlainText: v.string(), readingTimeMinutes: v.number(),
+  publishedAt: v.optional(v.number()),
+  author: v.union(v.null(), v.object({ _id: v.id("users"), displayName: v.string(), avatarUrl: v.optional(v.string()) })),
+  category: v.union(v.null(), v.object({ _id: v.id("kb_categories"), name: v.string(), slug: v.string() })),
+  tags: v.array(v.object({ _id: v.id("kb_tags"), name: v.string(), slug: v.string() })),
+  relatedArticles: v.array(v.object({ _id: v.id("kb_articles"), title: v.string(), slug: v.string(), excerpt: v.string(), categorySlug: v.string() })),
+});
+export const getBySlug: RegisteredQuery<"public", { slug: string }, PublicKbArticle | null> = query({
   args: getArticleBySlugArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.union(v.null(), publicKbArticle),
   handler: async (ctx, args) => {
-    if (!(await isPluginEnabled(ctx, "knowledgeBase"))) return null;
+    const access = createPublicKbAccess(ctx);
+    if (!await access.available()) return null;
     const article = await ctx.db
       .query("kb_articles")
-      .withIndex("by_slug", (q: ConvexQueryBuilder) => q.eq("slug", args.slug))
+      .withIndex("by_slug", (q) => q.eq("slug", args.slug))
       .first();
 
-    if (!article || article.status !== "published") return null;
+    if (!article) return null;
+    const visible = await access.article(article);
+    if (!visible) return null;
 
     const author = await ctx.db.get("users", article.authorId);
-    const category = article.categoryId ? await ctx.db.get("kb_categories", article.categoryId) : null;
+    const category = visible.category;
 
     const articleTags = await ctx.db
       .query("kb_articleTags")
-      .withIndex("by_article", (q: ConvexQueryBuilder) => q.eq("articleId", article._id))
+      .withIndex("by_article", (q) => q.eq("articleId", article._id))
       .take(100);
     const tags = await Promise.all(
-      // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
       articleTags.map(async (at) => ctx.db.get("kb_tags", at.tagId)),
     );
 
     // Get related articles
     const relatedLinks = await ctx.db
       .query("kb_relatedArticles")
-      .withIndex("by_source", (q: ConvexQueryBuilder) => q.eq("sourceArticleId", article._id))
+      .withIndex("by_source", (q) => q.eq("sourceArticleId", article._id))
       .take(50);
     const relatedArticles = await Promise.all(
-      // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
       relatedLinks.map(async (link) => {
         const related = await ctx.db.get("kb_articles", link.relatedArticleId);
-        if (!related || related.status !== "published") return null;
+        if (!related) return null;
+        const relatedAccess = await access.article(related);
+        if (!relatedAccess) return null;
         return {
           _id: related._id,
           title: related.title,
           slug: related.slug,
           excerpt: related.excerpt,
-          relationType: link.relationType,
+          categorySlug: relatedAccess.category?.slug ?? "uncategorized",
         };
       }),
     );
 
+    const profile = publicAuthorProfile(author);
     return {
-      ...article,
-      // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
-      author: enrichUser(author),
-      category,
-      tags: tags.filter(Boolean),
-      relatedArticles: relatedArticles.filter(Boolean),
+      _id: article._id, title: article.title, slug: article.slug, excerpt: article.excerpt,
+      content: article.content, contentPlainText: article.contentPlainText,
+      readingTimeMinutes: article.readingTimeMinutes, publishedAt: article.publishedAt,
+      author: profile ? { _id: profile._id, displayName: profile.displayName, avatarUrl: profile.avatarUrl } : null,
+      category: category ? { _id: category._id, name: category.name, slug: category.slug } : null,
+      tags: tags.filter((tag): tag is NonNullable<typeof tag> => tag !== null).map(tag => ({ _id: tag._id, name: tag.name, slug: tag.slug })),
+      relatedArticles: relatedArticles.filter((related): related is NonNullable<typeof related> => related !== null),
     };
   },
 });
 
-// ─── List Published (Public) ────────────────────────────────────────────────
+// ─── Public reading lists ───────────────────────────────────────────────────
 
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
-export const listPublished = query({
+/** Public lists deliberately omit article bodies, editorial fields and users. */
+type PublicKbSummary = {
+  _id: Id<"kb_articles">; title: string; slug: string; excerpt: string;
+  categoryId?: Id<"kb_categories">; categorySlug: string; viewCount: number;
+  readingTimeMinutes: number; publishedAt?: number; featuredImageId?: Id<"media">;
+};
+const publicKbSummary: Validator<PublicKbSummary, "required", string> = v.object({
+  _id: v.id("kb_articles"), title: v.string(), slug: v.string(), excerpt: v.string(),
+  categoryId: v.optional(v.id("kb_categories")), categorySlug: v.string(), viewCount: v.number(),
+  readingTimeMinutes: v.number(), publishedAt: v.optional(v.number()), featuredImageId: v.optional(v.id("media")),
+});
+function publicSummary(article: Doc<"kb_articles">, categorySlug: string): PublicKbSummary {
+  return {
+    _id: article._id, title: article.title, slug: article.slug, excerpt: article.excerpt,
+    categoryId: article.categoryId, categorySlug, viewCount: article.viewCount,
+    readingTimeMinutes: article.readingTimeMinutes, publishedAt: article.publishedAt,
+    featuredImageId: article.featuredImageId,
+  };
+}
+function publicListLimit(value: number | undefined, fallback: number): number {
+  const limit = value ?? fallback;
+  if (!Number.isSafeInteger(limit) || limit < 1 || limit > 100)
+    throw new ConvexError({ code: "INVALID_LIMIT", message: "Choose between 1 and 100 articles." });
+  return limit;
+}
+export const listPublished: RegisteredQuery<"public", {
+  paginationOpts: PaginationOptions; categoryId?: Id<"kb_categories">;
+}, PaginationResult<PublicKbSummary>> = query({
   args: listPublishedArticlesArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.object({ page: v.array(publicKbSummary), isDone: v.boolean(), continueCursor: v.string() }),
   handler: async (ctx, args) => {
-    if (!(await isPluginEnabled(ctx, "knowledgeBase"))) return { page: [], isDone: true, continueCursor: "" };
-    // When filtering by category we use the by_category index; status is then
-    // checked as an in-memory filter on each page after pagination.
-    // Without a category we use by_status to only load published records.
-    let baseQuery;
+    const limit = publicListLimit(args.paginationOpts.numItems, 20);
+    const budget = new RequestReadLedger(), access = createPublicKbAccess(ctx, budget);
+    const empty = { page: [], isDone: true, continueCursor: "" };
+    if (!await access.available()) return empty;
     if (args.categoryId) {
-      baseQuery = ctx.db
-        .query("kb_articles")
-        .withIndex("by_category", (q: ConvexQueryBuilder) => q.eq("categoryId", args.categoryId!));
-    } else {
-      baseQuery = ctx.db
-        .query("kb_articles")
-        .withIndex("by_status", (q: ConvexQueryBuilder) => q.eq("status", "published"))
-        .order("desc");
+      const category = await access.category(args.categoryId);
+      if (!category?.isPublished || !await access.allowedRoute(`/help/${encodeURIComponent(category.slug)}`)) return empty;
     }
-
-    const paginationResult = await baseQuery.paginate(args.paginationOpts);
-
-    // Filter out non-published when coming from the category index.
-    const pageItems = args.categoryId
-      // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
-      ? paginationResult.page.filter((a) => a.status === "published")
-      : paginationResult.page;
-
-    const enrichedPage = await Promise.all(
-      // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
-      pageItems.map(async (article) => {
-        const author = await ctx.db.get("users", article.authorId);
-        const category = article.categoryId ? await ctx.db.get("kb_categories", article.categoryId) : null;
-        return {
-          ...article,
-          author: enrichUser(author),
-          category,
-        };
-      }),
-    );
-
-    return {
-      ...paginationResult,
-      page: enrichedPage,
-    };
+    budget.beforeRead();
+    const query = args.categoryId
+      ? ctx.db.query("kb_articles").withIndex("by_category_status_views", q => q.eq("categoryId", args.categoryId!).eq("status", "published"))
+      : ctx.db.query("kb_articles").withIndex("by_status_published", q => q.eq("status", "published"));
+    const result = await query.order("desc").paginate({
+      ...args.paginationOpts, numItems: limit, maximumRowsRead: 100, maximumBytesRead: 512 * 1024,
+    });
+    const page: PublicKbSummary[] = [];
+    for (const article of result.page) {
+      budget.record(article);
+      const visible = await access.article(article);
+      if (visible) page.push(publicSummary(article, visible.category?.slug ?? "uncategorized"));
+    }
+    // Preserve continuation even when current policy hides this entire page.
+    return { page, isDone: result.isDone, continueCursor: result.continueCursor };
   },
 });
 
-// ─── Get Popular (Public) ───────────────────────────────────────────────────
-
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
-export const getPopular = query({
-  args: getPopularArticlesArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
-  handler: async (ctx, args) => {
-    if (!(await isPluginEnabled(ctx, "knowledgeBase"))) return null;
-    const limit = args.limit ?? 10;
-
-    // by_status index ensures only published records are loaded.
-    // viewCount is not the index order, so we sort in memory with a safety
-    // bound of limit*3 to avoid unbounded .collect() on large tables.
-    const articles = await ctx.db
-      .query("kb_articles")
-      .withIndex("by_status", (q: ConvexQueryBuilder) => q.eq("status", "published"))
-      .take(limit * 3);
-
-    return articles
-      // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
-      .sort((a, b) => b.viewCount - a.viewCount)
-      .slice(0, limit)
-      // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
-      .map((a) => ({
-        _id: a._id,
-        title: a.title,
-        slug: a.slug,
-        excerpt: a.excerpt,
-        viewCount: a.viewCount,
-        categoryId: a.categoryId,
-      }));
-  },
+type PublicListArgs = { limit?: number };
+async function readPublicList(
+  ctx: import("../_generated/server").QueryCtx, args: PublicListArgs, kind: "popular" | "recent" | "featured",
+): Promise<PublicKbSummary[] | null> {
+  const limit = publicListLimit(args.limit, kind === "featured" ? 6 : 10);
+  const budget = new RequestReadLedger(), access = createPublicKbAccess(ctx, budget);
+  if (!await access.available()) return null;
+  budget.beforeRead();
+  // These are compact previews. The indexed window is bounded even when most
+  // candidates are restricted; browse/search endpoints provide continuation.
+  const query = kind === "popular"
+    ? ctx.db.query("kb_articles").withIndex("by_status_views", q => q.eq("status", "published")).order("desc")
+    : kind === "recent"
+      ? ctx.db.query("kb_articles").withIndex("by_status_published", q => q.eq("status", "published")).order("desc")
+      : ctx.db.query("kb_articles").withIndex("by_featured_status_order", q => q.eq("isFeatured", true).eq("status", "published")).order("asc");
+  const candidates = await query.take(Math.min(100, limit * 3));
+  candidates.forEach(article => budget.record(article));
+  const result: PublicKbSummary[] = [];
+  for (const article of candidates) {
+    const visible = await access.article(article);
+    if (visible) result.push(publicSummary(article, visible.category?.slug ?? "uncategorized"));
+    if (result.length === limit) break;
+  }
+  return result;
+}
+export const getPopular: RegisteredQuery<"public", PublicListArgs, PublicKbSummary[] | null> = query({
+  args: getPopularArticlesArgs, returns: v.union(v.null(), v.array(publicKbSummary)),
+  handler: (ctx, args) => readPublicList(ctx, args, "popular"),
 });
-
-// ─── Get Recent (Public) ────────────────────────────────────────────────────
-
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
-export const getRecent = query({
-  args: getRecentArticlesArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
-  handler: async (ctx, args) => {
-    if (!(await isPluginEnabled(ctx, "knowledgeBase"))) return null;
-    const limit = args.limit ?? 10;
-
-    // by_status index ensures only published records are loaded.
-    // publishedAt is not the index order, so sort in memory with a safety bound.
-    const articles = await ctx.db
-      .query("kb_articles")
-      .withIndex("by_status", (q: ConvexQueryBuilder) => q.eq("status", "published"))
-      .take(limit * 3);
-
-    return articles
-      // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
-      .sort((a, b) => (b.publishedAt ?? 0) - (a.publishedAt ?? 0))
-      .slice(0, limit)
-      // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
-      .map((a) => ({
-        _id: a._id,
-        title: a.title,
-        slug: a.slug,
-        excerpt: a.excerpt,
-        publishedAt: a.publishedAt,
-        categoryId: a.categoryId,
-      }));
-  },
+export const getRecent: RegisteredQuery<"public", PublicListArgs, PublicKbSummary[] | null> = query({
+  args: getRecentArticlesArgs, returns: v.union(v.null(), v.array(publicKbSummary)),
+  handler: (ctx, args) => readPublicList(ctx, args, "recent"),
 });
-
-// ─── Get Featured (Public) ──────────────────────────────────────────────────
-
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
-export const getFeatured = query({
-  args: getFeaturedArticlesArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
-  handler: async (ctx, args) => {
-    if (!(await isPluginEnabled(ctx, "knowledgeBase"))) return null;
-    const limit = args.limit ?? 6;
-
-    // by_featured index scopes to isFeatured=true records only.
-    // Published status filter applied in memory; featured sets are small so
-    // take(limit * 3) is a safe, tight upper bound.
-    const articles = await ctx.db
-      .query("kb_articles")
-      .withIndex("by_featured", (q: ConvexQueryBuilder) => q.eq("isFeatured", true))
-      .take(limit * 3);
-
-    return articles
-      // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
-      .filter((a) => a.status === "published")
-      .slice(0, limit)
-      // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
-      .map((a) => ({
-        _id: a._id,
-        title: a.title,
-        slug: a.slug,
-        excerpt: a.excerpt,
-        viewCount: a.viewCount,
-        categoryId: a.categoryId,
-        featuredImageId: a.featuredImageId,
-      }));
-  },
+export const getFeatured: RegisteredQuery<"public", PublicListArgs, PublicKbSummary[] | null> = query({
+  args: getFeaturedArticlesArgs, returns: v.union(v.null(), v.array(publicKbSummary)),
+  handler: (ctx, args) => readPublicList(ctx, args, "featured"),
 });
 
 // ─── Get Versions (Admin) ───────────────────────────────────────────────────

@@ -90,7 +90,7 @@ export const recordRedirectHit = mutation({
     const redirect = await ctx.db.get(args.redirectId);
     if (!redirect) return;
 
-    await ctx.db.patch(args.redirectId, {
+    await ctx.db.patch("redirects", args.redirectId, {
       hitCount: (redirect.hitCount ?? 0) + 1,
       lastHitAt: Date.now(),
     });

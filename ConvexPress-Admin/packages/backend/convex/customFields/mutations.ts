@@ -21,6 +21,7 @@
  * All mutations require authentication and appropriate capabilities.
  */
 
+import { deleteWithMediaReferences, insertWithMediaReferences, patchWithMediaReferences } from "../media/attachmentGuard";
 import { mutation } from "../_generated/server";
 import type { MutationCtx } from "../_generated/server";
 import type { Id } from "../_generated/dataModel";
@@ -443,7 +444,7 @@ export const createGroup = mutation({
           fieldDef.conditionalLogic,
         );
 
-        await ctx.db.insert("fieldDefinitions", {
+        await insertWithMediaReferences<"fieldDefinitions">(ctx, "fieldDefinitions", {
           groupId,
           label: fieldLabel,
           name: fieldName,
@@ -697,7 +698,7 @@ export const deleteGroup = mutation({
                 )
                 .unique();
               if (meta) {
-                await ctx.db.delete("postMeta", meta._id);
+                await deleteWithMediaReferences<"postMeta">(ctx, "postMeta", meta._id);
               }
             } catch (err) {
               // postMeta table may not exist; log and skip
@@ -705,14 +706,14 @@ export const deleteGroup = mutation({
             }
           }
 
-          await ctx.db.delete("fieldValues", value._id);
+          await deleteWithMediaReferences<"fieldValues">(ctx, "fieldValues", value._id);
         }
       }
     }
 
     // 5. Delete all field definitions
     for (const field of fields) {
-      await ctx.db.delete("fieldDefinitions", field._id);
+      await deleteWithMediaReferences<"fieldDefinitions">(ctx, "fieldDefinitions", field._id);
     }
 
     // 6. Delete the field group
@@ -750,7 +751,7 @@ export const deleteGroup = mutation({
 export const createField = mutation({
   args: createFieldArgs,
   // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
-  handler: async (ctx, args) => {
+  handler: async (ctx, args): Promise<Id<"fieldDefinitions">> => {
     await requirePluginEnabled(ctx, "customFields");
     // 1. Auth + capability check
     await requireCan(ctx, "custom_field.create_group");
@@ -831,7 +832,7 @@ export const createField = mutation({
 
     // 12. Insert field definition
     const now = Date.now();
-    const fieldId = await ctx.db.insert("fieldDefinitions", {
+    const fieldId: Id<"fieldDefinitions"> = await insertWithMediaReferences<"fieldDefinitions">(ctx, "fieldDefinitions", {
       groupId: args.groupId,
       label,
       name,
@@ -961,7 +962,7 @@ export const updateField = mutation({
     // 12. Update
     const now = Date.now();
     patch.updatedAt = now;
-    await ctx.db.patch("fieldDefinitions", args.fieldId, patch);
+    await patchWithMediaReferences<"fieldDefinitions">(ctx, "fieldDefinitions", args.fieldId, patch);
 
     // 13. Touch parent group's updatedAt
     await ctx.db.patch("fieldGroups", field.groupId, { updatedAt: now });
@@ -1009,12 +1010,12 @@ export const deleteField = mutation({
         .collect();
 
       for (const value of values) {
-        await ctx.db.delete("fieldValues", value._id);
+        await deleteWithMediaReferences<"fieldValues">(ctx, "fieldValues", value._id);
       }
     }
 
     // 5. Delete the field definition
-    await ctx.db.delete("fieldDefinitions", args.fieldId);
+    await deleteWithMediaReferences<"fieldDefinitions">(ctx, "fieldDefinitions", args.fieldId);
 
     // 6. Touch parent group's updatedAt
     const now = Date.now();
@@ -1052,12 +1053,12 @@ async function deleteSubFieldsRecursive(
         .collect();
 
       for (const value of values) {
-        await ctx.db.delete("fieldValues", value._id);
+        await deleteWithMediaReferences<"fieldValues">(ctx, "fieldValues", value._id);
       }
     }
 
     // Delete the sub-field
-    await ctx.db.delete("fieldDefinitions", subField._id);
+    await deleteWithMediaReferences<"fieldDefinitions">(ctx, "fieldDefinitions", subField._id);
   }
 }
 
@@ -1101,7 +1102,7 @@ export const reorderFields = mutation({
           message: `Field ${entry.fieldId} does not belong to this group`,
         });
       }
-      await ctx.db.patch("fieldDefinitions", entry.fieldId, {
+      await patchWithMediaReferences<"fieldDefinitions">(ctx, "fieldDefinitions", entry.fieldId, {
         menuOrder: entry.menuOrder,
         updatedAt: now,
       });
@@ -1190,7 +1191,7 @@ export const setValue = mutation({
 
     if (existing) {
       // Update existing
-      await ctx.db.patch("fieldValues", existing._id, {
+      await patchWithMediaReferences<"fieldValues">(ctx, "fieldValues", existing._id, {
         value: args.value,
         fieldName: fieldDef.name,
         updatedBy: getUserIdentifier(user),
@@ -1198,7 +1199,7 @@ export const setValue = mutation({
       });
     } else {
       // Insert new
-      await ctx.db.insert("fieldValues", {
+      await insertWithMediaReferences<"fieldValues">(ctx, "fieldValues", {
         entityType: args.entityType,
         entityId: args.entityId,
         fieldKey: args.fieldKey,
@@ -1222,11 +1223,11 @@ export const setValue = mutation({
           .unique();
 
         if (existingMeta) {
-          await ctx.db.patch("postMeta", existingMeta._id, {
+          await patchWithMediaReferences<"postMeta">(ctx, "postMeta", existingMeta._id, {
             value: args.value,
           });
         } else {
-          await ctx.db.insert("postMeta", {
+          await insertWithMediaReferences<"postMeta">(ctx, "postMeta", {
             postId: args.entityId as Id<"posts">,
             key: fieldDef.name,
             value: args.value,
@@ -1283,7 +1284,7 @@ export const deleteValue = mutation({
     }
 
     // 3. Delete value
-    await ctx.db.delete("fieldValues", existing._id);
+    await deleteWithMediaReferences<"fieldValues">(ctx, "fieldValues", existing._id);
 
     // 4. Clean up postMeta for posts/pages
     if (args.entityType === "post" || args.entityType === "page") {
@@ -1302,7 +1303,7 @@ export const deleteValue = mutation({
             .unique();
 
           if (meta) {
-            await ctx.db.delete("postMeta", meta._id);
+            await deleteWithMediaReferences<"postMeta">(ctx, "postMeta", meta._id);
           }
         }
       } catch (err) {
@@ -1380,14 +1381,14 @@ export const setValues = mutation({
         .unique();
 
       if (existing) {
-        await ctx.db.patch("fieldValues", existing._id, {
+        await patchWithMediaReferences<"fieldValues">(ctx, "fieldValues", existing._id, {
           value: entry.value,
           fieldName: fieldDef.name,
           updatedBy: getUserIdentifier(user),
           updatedAt: now,
         });
       } else {
-        await ctx.db.insert("fieldValues", {
+        await insertWithMediaReferences<"fieldValues">(ctx, "fieldValues", {
           entityType: args.entityType,
           entityId: args.entityId,
           fieldKey: entry.fieldKey,
@@ -1411,11 +1412,11 @@ export const setValues = mutation({
             .unique();
 
           if (existingMeta) {
-            await ctx.db.patch("postMeta", existingMeta._id, {
+            await patchWithMediaReferences<"postMeta">(ctx, "postMeta", existingMeta._id, {
               value: entry.value,
             });
           } else {
-            await ctx.db.insert("postMeta", {
+            await insertWithMediaReferences<"postMeta">(ctx, "postMeta", {
               postId: args.entityId as Id<"posts">,
               key: fieldDef.name,
               value: entry.value,
@@ -1503,7 +1504,7 @@ export const duplicateGroup = mutation({
     // Copy top-level fields first
     for (const field of topLevelFields) {
       const newFieldKey = generateFieldKey(field.name);
-      const newFieldId = await ctx.db.insert("fieldDefinitions", {
+      const newFieldId: import("../_generated/dataModel").Id<"fieldDefinitions"> = await insertWithMediaReferences<"fieldDefinitions">(ctx, "fieldDefinitions", {
         groupId: newGroupId,
         label: field.label,
         name: field.name,
@@ -1530,7 +1531,7 @@ export const duplicateGroup = mutation({
         ? idMap.get(field.parentFieldId)
         : undefined;
       const newFieldKey = generateFieldKey(field.name);
-      const newFieldId = await ctx.db.insert("fieldDefinitions", {
+      const newFieldId: import("../_generated/dataModel").Id<"fieldDefinitions"> = await insertWithMediaReferences<"fieldDefinitions">(ctx, "fieldDefinitions", {
         groupId: newGroupId,
         label: field.label,
         name: field.name,
@@ -1717,7 +1718,7 @@ export const importGroup = mutation({
       const fieldName = field.name || generateSlug(field.label);
       const fieldKey = generateFieldKey(fieldName);
 
-      const newFieldId = await ctx.db.insert("fieldDefinitions", {
+      const newFieldId: import("../_generated/dataModel").Id<"fieldDefinitions"> = await insertWithMediaReferences<"fieldDefinitions">(ctx, "fieldDefinitions", {
         groupId: newGroupId,
         label: field.label,
         name: fieldName,
@@ -1750,7 +1751,7 @@ export const importGroup = mutation({
       const fieldName = field.name || generateSlug(field.label);
       const fieldKey = generateFieldKey(fieldName);
 
-      const newFieldId = await ctx.db.insert("fieldDefinitions", {
+      const newFieldId: import("../_generated/dataModel").Id<"fieldDefinitions"> = await insertWithMediaReferences<"fieldDefinitions">(ctx, "fieldDefinitions", {
         groupId: newGroupId,
         label: field.label,
         name: fieldName,

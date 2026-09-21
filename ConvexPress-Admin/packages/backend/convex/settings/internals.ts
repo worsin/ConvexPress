@@ -22,6 +22,7 @@
  *   - Sitemap System: reads permalink structure
  */
 
+import { patchWithMediaReferences } from "../media/attachmentGuard";
 import { ConvexError } from "convex/values";
 import { internalMutation, internalQuery } from "../_generated/server";
 import { decryptSettingSecret, encryptSettingSecret } from "../helpers/settingsSecret";
@@ -112,7 +113,7 @@ export async function upgradeLegacySettingSecrets(ctx: {
       const plaintext = await decryptSettingSecret(entry.value);
       replacements.push({ path: entry.path, value: await encryptSettingSecret(plaintext) });
     }
-    await ctx.db.patch(doc._id, {
+    await patchWithMediaReferences<"settings">(ctx, "settings", doc._id, {
       values: withReplacedValues(doc.values, replacements),
       updatedAt: Date.now(),
     });

@@ -14,10 +14,13 @@
  *   5. writes via `internal.blocks.internalMutations.*` (which run on
  *      Convex runtime, so the action can call them safely)
  *
- * Capability-gated by `post.update` / `page.update` since the action edits
- * the underlying document.
+ * Requires blocks.ai plus current document edit authority. Provider results
+ * are rechecked before returning; writes recheck authority atomically.
  */
 
+import { makeFunctionReference } from "convex/server";
+import type { Id } from "../_generated/dataModel";
+import type { StoredBlock } from "./helpers";
 import { action } from "../_generated/server";
 import { api, internal } from "../_generated/api";
 import { v, ConvexError } from "convex/values";
@@ -29,6 +32,10 @@ import {
   refinementForImprovePreset,
   validateAttrsForCatalogEntry,
 } from "./aiPromptBuilder";
+
+const replaceBlocksMutation = makeFunctionReference<"mutation", { postId: Id<"posts">; blocks: StoredBlock[]; expectedRevision: number }, { postId: Id<"posts">; revision: number }>("blocks/mutations:replaceBlocksFromAi");
+
+const updateAttrsMutation = makeFunctionReference<"mutation", { postId: Id<"posts">; blockId: string; attrs: Record<string, unknown>; expectedRevision: number }, { postId: Id<"posts">; revision: number }>("blocks/mutations:updateBlockAttrsFromAi");
 
 const MAX_TOKENS_PAGE = 4096;
 const MAX_TOKENS_BLOCK = 1500;
@@ -61,18 +68,22 @@ function normalizeBlockFromAi(raw: unknown): {
 } | null {
   if (!raw || typeof raw !== "object") return null;
   const r = raw as any;
+  if (r.innerBlocks !== undefined && (!Array.isArray(r.innerBlocks) || r.innerBlocks.length > 0)) {
+    throw new ConvexError({ code: "PROVIDER_ERROR", message: "AI returned nested blocks. Generate a flat block list; nested authoring is not supported yet." });
+  }
   if (typeof r.name !== "string") return null;
   const catalog = getCatalogEntry(r.name);
   if (!catalog) return null;
   const attrs = (r.attrs && typeof r.attrs === "object" && !Array.isArray(r.attrs))
     ? r.attrs as Record<string, unknown>
     : {};
-  if (!catalogAttrsArePlausible(catalog.name, attrs)) return null;
+  const validated = validateAttrsForCatalogEntry(catalog.name, attrs);
+  if (!validated.ok) return null;
   return {
-    id: typeof r.id === "string" && r.id.startsWith("blk_") ? r.id : makeBlockId(),
+    id: makeBlockId(),
     name: r.name,
-    version: typeof r.version === "number" ? r.version : 1,
-    attrs,
+    version: 1,
+    attrs: validated.attrs,
   };
 }
 
@@ -193,6 +204,12 @@ async function getEditableDocumentForAi(
   return doc;
 }
 
+async function recheckProposal(ctx: { runQuery: Function }, postId: unknown, names: string[]) {
+  await getEditableDocumentForAi(ctx, postId);
+  const disabled = new Set(await getDisabledBlockNames(ctx));
+  if (names.some(name => disabled.has(name))) throw new ConvexError({ code: "VALIDATION_ERROR", message: "Block availability changed during generation. Generate again using the current catalog." });
+}
+
 export const generatePageDraft = action({
   args: {
     postId: v.id("posts"),
@@ -201,30 +218,12 @@ export const generatePageDraft = action({
   },
   handler: async (ctx, args) => {
     const { blocks } = await generateBlocksForDocument(ctx, args);
+    await recheckProposal(ctx, args.postId, blocks.map(block => block.name));
     return { blocks, blocksGenerated: blocks.length };
   },
 });
 
-/**
- * Generate an entire page of blocks from a prompt.
- *
- * Workflow: prompt → LLM → JSON array of blocks → progressive insertion.
- *
- * Why progressive instead of one big replaceBlocks?
- *   The frontend subscribes to the post doc via a reactive Convex query.
- *   Inserting one block at a time means each insertion is a separate
- *   patch, which propagates as a separate reactive update. The user sees
- *   blocks land on the page one by one as the action progresses — a
- *   far better UX than staring at a spinner and then having every block
- *   materialize at once.
- *
- *   `strategy: "replace"` (default) clears the page first then inserts.
- *   `strategy: "append"` inserts after any existing blocks. Either way
- *   the action holds the entire LLM response in memory; true streaming
- *   parsing of incomplete JSON would be brittle and is not implemented.
- *
- * Returns the count of blocks generated and the final revision.
- */
+/** Generate first, then apply one revision-checked transaction: never clear before insert. */
 export const generatePage = action({
   args: {
     postId: v.id("posts"),
@@ -237,57 +236,17 @@ export const generatePage = action({
     ctx,
     args,
   ): Promise<{ blocksGenerated: number; revision: number }> => {
-    // Permission check happens inside the mutations called below. We still
-    // resolve the doc here to get the title for the prompt.
-    const { blocks } = await generateBlocksForDocument(ctx, args);
-
-    const strategy = args.strategy ?? "replace";
-    let revision: number;
-
-    if (strategy === "replace") {
-      // Clear the page first, then insert each generated block one at a
-      // time. Each insertBlock patches the doc and triggers a reactive
-      // query update on the frontend — so the user watches the page
-      // assemble in real time.
-      const clearResult: { postId: string; revision: number } =
-        await ctx.runMutation(
-          api.blocks.mutations.replaceBlocks as any,
-          {
-            postId: args.postId,
-            blocks: [],
-            expectedRevision: args.expectedRevision,
-          },
-        );
-      revision = clearResult.revision;
-    } else {
-      // "append" strategy — the very first insert checks the caller's
-      // expectedRevision; subsequent inserts trust the revision returned
-      // by the previous mutation.
-      revision = args.expectedRevision ?? 0;
-    }
-
-    let inserted = 0;
-    for (let i = 0; i < blocks.length; i++) {
-      const block = blocks[i];
-      // Only pass expectedRevision on the first insert. After that the
-      // chain runs serially and the doc's revision is in sync with what
-      // we last received.
-      const result: { postId: string; revision: number } =
-        await ctx.runMutation(
-          api.blocks.mutations.insertBlock as any,
-          {
-            postId: args.postId,
-            block,
-            // Always append at the end of the current tree.
-            // (No parentBlockId — root level.)
-            expectedRevision: revision,
-          },
-        );
-      revision = result.revision;
-      inserted += 1;
-    }
-
-    return { blocksGenerated: inserted, revision };
+    const { doc, blocks } = await generateBlocksForDocument(ctx, args);
+    const nextBlocks = args.strategy === "append" ? [...(doc.blocks ?? []), ...blocks] : blocks;
+    const result: { postId: string; revision: number } = await ctx.runMutation(
+      replaceBlocksMutation,
+      {
+        postId: args.postId,
+        blocks: nextBlocks,
+        expectedRevision: args.expectedRevision ?? doc.blocksRevision ?? 0,
+      },
+    );
+    return { blocksGenerated: blocks.length, revision: result.revision };
   },
 });
 
@@ -314,6 +273,9 @@ export const regenerateBlock = action({
     const block = findBlockById(blocks, args.blockId);
     if (!block) {
       throw new ConvexError({ code: "NOT_FOUND", message: "Block not found" });
+    }
+    if ((await getDisabledBlockNames(ctx)).includes(block.name)) {
+      throw new ConvexError({ code: "VALIDATION_ERROR", message: "AI generation is disabled for this block type." });
     }
 
     const systemPrompt = buildBlockRegenerationPrompt({
@@ -356,12 +318,12 @@ export const regenerateBlock = action({
     }
 
     const result: { postId: string; revision: number } = await ctx.runMutation(
-      api.blocks.mutations.updateBlockAttrs as any,
+      updateAttrsMutation,
       {
         postId: args.postId,
         blockId: args.blockId,
         attrs: parsed as Record<string, unknown>,
-        expectedRevision: args.expectedRevision,
+        expectedRevision: args.expectedRevision ?? doc.blocksRevision ?? 0,
       },
     );
 
@@ -430,10 +392,14 @@ export const generateVariants = action({
     if (!block) {
       throw new ConvexError({ code: "NOT_FOUND", message: "Block not found" });
     }
+    if ((await getDisabledBlockNames(ctx)).includes(block.name)) {
+      throw new ConvexError({ code: "VALIDATION_ERROR", message: "AI generation is disabled for this block type." });
+    }
 
     const variants: Array<Record<string, unknown>> = [];
     // Sequential is simpler than streaming for now — N short calls.
     for (let i = 0; i < count; i++) {
+      await recheckProposal(ctx, args.postId, [block.name]);
       const systemPrompt = buildBlockRegenerationPrompt({
         blockName: block.name,
         currentAttrs: block.attrs ?? {},
@@ -464,6 +430,7 @@ export const generateVariants = action({
       });
     }
 
+    await recheckProposal(ctx, args.postId, [block.name]);
     return { variants };
   },
 });
@@ -555,6 +522,7 @@ export const swapBlockType = action({
       });
     }
 
+    await recheckProposal(ctx, args.postId, [args.targetBlockName]);
     return { attrs: parsed as Record<string, unknown>, targetBlockName: args.targetBlockName };
   },
 });

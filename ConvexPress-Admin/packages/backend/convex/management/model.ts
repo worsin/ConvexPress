@@ -8,4 +8,6 @@ export interface ManagementQueryCtx {
   db: any;
 }
 
-export interface ManagementMutationCtx extends ManagementQueryCtx {}
+export interface ManagementMutationCtx extends ManagementQueryCtx {
+  scheduler: import("convex/server").Scheduler;
+}

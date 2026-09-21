@@ -1,3 +1,5 @@
+import { makeFunctionReference } from "convex/server";
+import { requireAssignableCategory } from "./helpers/categoryHierarchy";
 /**
  * Knowledge Base System - Article Mutations
  *
@@ -20,6 +22,7 @@
  *   - createVersion: kb.edit or kb.editOwn
  */
 
+import { deleteWithMediaReferences, insertWithMediaReferences, patchWithMediaReferences } from "../media/attachmentGuard";
 import { ConvexError } from "convex/values";
 import { mutation } from "../_generated/server";
 import { requireCan, getCurrentUser } from "../helpers/permissions";
@@ -53,7 +56,7 @@ import { requirePluginEnabled } from "../helpers/plugins";
 export const create = mutation({
   args: createArticleArgs,
   // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
-  handler: async (ctx, args) => {
+  handler: async (ctx, args): Promise<import("../_generated/dataModel").Id<"kb_articles">> => {
     await requirePluginEnabled(ctx, "knowledgeBase");
     const user = await requireCan(ctx, "kb.create");
 
@@ -96,7 +99,7 @@ export const create = mutation({
     if (args.templateId) {
       const template = await ctx.db.get("kb_templates", args.templateId);
       if (template) {
-        await ctx.db.patch("kb_templates", args.templateId, {
+        await patchWithMediaReferences<"kb_templates">(ctx, "kb_templates", args.templateId, {
           usageCount: template.usageCount + 1,
           updatedAt: Date.now(),
         });
@@ -115,8 +118,9 @@ export const create = mutation({
     const plainText = contentPlainText;
     const excerpt = args.excerpt ?? generateExcerpt(plainText);
 
+    if (args.categoryId) await requireAssignableCategory(ctx, args.categoryId);
     const now = Date.now();
-    const articleId = await ctx.db.insert("kb_articles", {
+    const articleId: import("../_generated/dataModel").Id<"kb_articles"> = await insertWithMediaReferences<"kb_articles">(ctx, "kb_articles", {
       title: title || "Untitled Article",
       slug,
       excerpt,
@@ -222,6 +226,7 @@ export const update = mutation({
     }
 
     if (args.categoryId !== undefined) {
+      await requireAssignableCategory(ctx, args.categoryId);
       updates.categoryId = args.categoryId;
       // Update category article counts if category changed and article is published
       if (article.status === "published" && args.categoryId !== article.categoryId) {
@@ -269,7 +274,7 @@ export const update = mutation({
       updates.contributors = [...article.contributors, user._id];
     }
 
-    await ctx.db.patch("kb_articles", args.articleId, updates);
+    await patchWithMediaReferences<"kb_articles">(ctx, "kb_articles", args.articleId, updates);
 
     await emitEvent(ctx, KB_EVENTS.ARTICLE_UPDATED, SYSTEM.KB, {
       articleId: args.articleId,
@@ -304,6 +309,9 @@ export const publish = mutation({
       throw new ConvexError({ code: "VALIDATION_ERROR", message: "Cannot publish an article with no content" });
     }
 
+    if (args.scheduledAt !== undefined && (!Number.isSafeInteger(args.scheduledAt) || args.scheduledAt <= 0 || args.scheduledAt > 8_640_000_000_000_000)) {
+      throw new ConvexError({ code: "VALIDATION_ERROR", message: "Scheduled publication requires a valid timestamp in whole milliseconds." });
+    }
     const now = Date.now();
     const updates: Record<string, unknown> = {
       status: "published" as const,
@@ -325,7 +333,7 @@ export const publish = mutation({
       updates.scheduledAt = undefined;
     }
 
-    await ctx.db.patch("kb_articles", args.articleId, updates);
+    await patchWithMediaReferences<"kb_articles">(ctx, "kb_articles", args.articleId, updates);
 
     // Update category article count only when publishing immediately (not scheduling for future)
     if (!args.scheduledAt || args.scheduledAt <= now) {
@@ -340,12 +348,15 @@ export const publish = mutation({
       }
     }
 
-    await emitEvent(ctx, KB_EVENTS.ARTICLE_PUBLISHED, SYSTEM.KB, {
-      articleId: args.articleId,
-      title: article.title,
-      authorId: user._id,
-      publishedAt: updates.publishedAt ?? now,
-    });
+    if (updates.status === "draft") {
+      await emitEvent(ctx, KB_EVENTS.ARTICLE_SCHEDULED, SYSTEM.KB, {
+        articleId: args.articleId, title: article.title, authorId: user._id, scheduledAt: args.scheduledAt,
+      });
+    } else {
+      await emitEvent(ctx, KB_EVENTS.ARTICLE_PUBLISHED, SYSTEM.KB, {
+        articleId: args.articleId, title: article.title, authorId: user._id, publishedAt: updates.publishedAt ?? now,
+      });
+    }
 
     return args.articleId;
   },
@@ -371,7 +382,7 @@ export const unpublish = mutation({
     }
 
     const now = Date.now();
-    await ctx.db.patch("kb_articles", args.articleId, {
+    await patchWithMediaReferences<"kb_articles">(ctx, "kb_articles", args.articleId, {
       status: "draft",
       publishedAt: undefined,
       updatedAt: now,
@@ -417,7 +428,7 @@ export const archive = mutation({
     const wasPublished = article.status === "published";
     const now = Date.now();
 
-    await ctx.db.patch("kb_articles", args.articleId, {
+    await patchWithMediaReferences<"kb_articles">(ctx, "kb_articles", args.articleId, {
       status: "archived",
       updatedAt: now,
       meilisearchSynced: false,
@@ -490,7 +501,7 @@ export const remove = mutation({
       .query("kb_articleVersions")
       .withIndex("by_article", (q: ConvexQueryBuilder) => q.eq("articleId", args.articleId))
       .take(1000);
-    for (const v of versions) await ctx.db.delete("kb_articleVersions", v._id);
+    for (const v of versions) await deleteWithMediaReferences<"kb_articleVersions">(ctx, "kb_articleVersions", v._id);
 
     const collectionArticles = await ctx.db
       .query("kb_collectionArticles")
@@ -499,7 +510,7 @@ export const remove = mutation({
     for (const ca of collectionArticles) {
       const collection = await ctx.db.get("kb_collections", ca.collectionId);
       if (collection && collection.articleCount > 0) {
-        await ctx.db.patch("kb_collections", ca.collectionId, {
+        await patchWithMediaReferences<"kb_collections">(ctx, "kb_collections", ca.collectionId, {
           articleCount: collection.articleCount - 1,
           updatedAt: Date.now(),
         });
@@ -570,7 +581,8 @@ export const remove = mutation({
       }
     }
 
-    await ctx.db.delete("kb_articles", args.articleId);
+    await deleteWithMediaReferences<"kb_articles">(ctx, "kb_articles", args.articleId);
+    await ctx.scheduler.runAfter(0, makeFunctionReference<"mutation", { articleId: import("../_generated/dataModel").Id<"kb_articles"> }, null>("kb/categoryAccess:cleanupDeletedArticle"), { articleId: args.articleId });
 
     await emitEvent(ctx, KB_EVENTS.ARTICLE_DELETED, SYSTEM.KB, { articleId: args.articleId });
 
@@ -593,7 +605,7 @@ export const toggleFeatured = mutation({
       throw new ConvexError({ code: "NOT_FOUND", message: "Article not found" });
     }
 
-    await ctx.db.patch("kb_articles", args.articleId, {
+    await patchWithMediaReferences<"kb_articles">(ctx, "kb_articles", args.articleId, {
       isFeatured: !article.isFeatured,
       updatedAt: Date.now(),
     });
@@ -608,7 +620,7 @@ export const toggleFeatured = mutation({
 export const createVersion = mutation({
   args: createVersionArgs,
   // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
-  handler: async (ctx, args) => {
+  handler: async (ctx, args): Promise<import("../_generated/dataModel").Id<"kb_articleVersions">> => {
     await requirePluginEnabled(ctx, "knowledgeBase");
     const user = await getCurrentUser(ctx);
     if (!user) {
@@ -628,7 +640,7 @@ export const createVersion = mutation({
     }
 
     const now = Date.now();
-    const versionId = await ctx.db.insert("kb_articleVersions", {
+    const versionId: import("../_generated/dataModel").Id<"kb_articleVersions"> = await insertWithMediaReferences<"kb_articleVersions">(ctx, "kb_articleVersions", {
       articleId: args.articleId,
       version: article.version,
       title: article.title,
@@ -638,7 +650,7 @@ export const createVersion = mutation({
       createdAt: now,
     });
 
-    await ctx.db.patch("kb_articles", args.articleId, {
+    await patchWithMediaReferences<"kb_articles">(ctx, "kb_articles", args.articleId, {
       version: article.version + 1,
       lastMajorUpdate: now,
       updatedAt: now,

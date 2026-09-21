@@ -1,4 +1,8 @@
 // @ts-nocheck
+import { assertCartAccess, getCurrentShopper } from "./shopperAccess";
+import { resolvePrice, isPublicVariant, type PriceInput } from "./activePrice";
+import { isClosedCart } from "./cartLifecycle";
+import { assistantScope } from "./assistant/scope";
 // TS2589: the generated commerce schema union exceeds TypeScript's instantiation depth
 // inside Convex's typecheck; handlers are annotated `any` like the rest of convex/commerce.
 /**
@@ -44,11 +48,12 @@ const relatedForProductsArgs = {
 };
 const sessionArgs = { sessionToken: v.string(), perGroup: v.optional(v.number()) };
 const sessionOnlyArgs = { sessionToken: v.string() };
-const queryArgs = { q: v.string() };
+const queryArgs = { q: v.string(), sessionToken: v.optional(v.string()) };
 const slugsArgs = { slugs: v.array(v.string()) };
 const categoryTilesArgs = { slugs: v.optional(v.array(v.string())), limit: v.optional(v.number()) };
 
 export interface ProductCard {
+  pricing?: PriceInput & { price: { amount: number; currencyCode: string }; pricedAt: number };
   productId: string;
   slug: string;
   title: string;
@@ -66,10 +71,7 @@ export interface ProductCard {
 }
 
 function saleActive(product: any, now: number): boolean {
-  if (typeof product.salePrice?.amount !== "number") return false;
-  if (product.salePriceFrom && product.salePriceFrom > now) return false;
-  if (product.salePriceTo && product.salePriceTo < now) return false;
-  return true;
+  return resolvePrice(product.basePrice, product.salePrice, product, now).saleActive;
 }
 
 export async function toProductCard(ctx: any, product: any): Promise<ProductCard> {
@@ -80,6 +82,7 @@ export async function toProductCard(ctx: any, product: any): Promise<ProductCard
     .filter(Boolean)
     .map((category: any) => ({ id: String(category._id), name: category.name, slug: category.slug }));
 
+  let pricing = { price: product.basePrice, salePrice: product.salePrice, salePriceFrom: product.salePriceFrom, salePriceTo: product.salePriceTo, pricedAt: now };
   let price = product.basePrice;
   let compareAtPrice: { amount: number; currencyCode: string } | null = null;
   let defaultVariantId: string | null = null;
@@ -88,20 +91,23 @@ export async function toProductCard(ctx: any, product: any): Promise<ProductCard
       .query("commerce_product_variants")
       .withIndex("by_product", (q: any) => q.eq("productId", product._id))
       .collect();
-    const chosen = variants.find((variant: any) => variant.isDefault) ?? variants[0];
+    const publicVariants = variants.filter(isPublicVariant);
+    const chosen = publicVariants.find((variant: any) => variant.isDefault) ?? publicVariants[0];
     if (chosen) {
       defaultVariantId = String(chosen._id);
-      price = chosen.salePrice ?? chosen.price;
-      compareAtPrice = chosen.salePrice ? chosen.price : null;
+      pricing = { price: chosen.price, salePrice: chosen.salePrice, salePriceFrom: chosen.salePriceFrom, salePriceTo: chosen.salePriceTo, pricedAt: now };
+      const active = resolvePrice(chosen.price, chosen.salePrice, chosen, now);
+      price = { ...chosen.price, amount: active.amount };
+      compareAtPrice = active.amount < chosen.price.amount ? chosen.price : null;
     }
   } else if (saleActive(product, now)) {
-    price = product.salePrice;
-    compareAtPrice = product.basePrice;
+    price = { ...product.basePrice, amount: resolvePrice(product.basePrice, product.salePrice, product, now).amount };
+    compareAtPrice = price.amount < product.basePrice.amount ? product.basePrice : null;
   }
 
   const tracked = product.trackInventory !== false;
   const stockQuantity = tracked ? (product.stockQuantity ?? 0) : null;
-  const inStock = !tracked || (stockQuantity ?? 0) > 0 || product.allowBackorders === true;
+  const inStock = (product.productType !== "variable" || defaultVariantId !== null) && (!tracked || (stockQuantity ?? 0) > 0 || product.allowBackorders === true);
 
   return {
     productId: String(product._id),
@@ -110,6 +116,7 @@ export async function toProductCard(ctx: any, product: any): Promise<ProductCard
     excerpt: (product.excerpt ?? "").replace(/<[^>]+>/g, "").slice(0, 240),
     summary: product.assistantSummary ?? null,
     price,
+    pricing,
     compareAtPrice,
     featuredMediaId: product.featuredMediaId ? String(product.featuredMediaId) : null,
     categories,
@@ -412,7 +419,8 @@ async function cartProductIds(ctx: any, sessionToken: string): Promise<string[]>
     .query("commerce_carts")
     .withIndex("by_session", (q: any) => q.eq("sessionToken", sessionToken))
     .unique();
-  if (!cart) return [];
+  if (cart) assertCartAccess(cart, sessionToken, (await getCurrentShopper(ctx))?._id);
+  if (!cart || isClosedCart(cart)) return [];
   const items = await ctx.db
     .query("commerce_cart_items")
     .withIndex("by_cart", (q: any) => q.eq("cartId", cart._id))
@@ -440,7 +448,8 @@ export const cartContext = query({
       .query("commerce_carts")
       .withIndex("by_session", (q: any) => q.eq("sessionToken", args.sessionToken))
       .unique();
-    if (!cart) return { itemCount: 0, subtotalAmount: 0, currencyCode: "USD", lines: [] as any[] };
+    if (cart) assertCartAccess(cart, args.sessionToken, (await getCurrentShopper(ctx))?._id);
+    if (!cart || isClosedCart(cart)) return { itemCount: 0, subtotalAmount: 0, currencyCode: "USD", lines: [] as any[] };
     const items = await ctx.db
       .query("commerce_cart_items")
       .withIndex("by_cart", (q: any) => q.eq("cartId", cart._id))
@@ -489,11 +498,26 @@ export const facetsForQuery = query({
   args: queryArgs,
   handler: async (ctx: any, args: any) => {
     await requireCommerceEnabled(ctx);
+    if (args.sessionToken) await assistantScope(ctx, args.sessionToken);
     const doc = await ctx.db
       .query("commerce_search_facets")
       .withIndex("by_query_hash", (q: any) => q.eq("queryHash", hashQuery(args.q)))
       .unique();
-    if (!doc || doc.banned) return null;
-    return { chips: doc.chips, generatedAt: doc.generatedAt, pinned: doc.pinned };
+    if (doc?.banned) return null;
+    // Curated chips are public. Model-written chips belong to the shopper's brief.
+    if (doc?.pinned) return { chips: doc.chips, generatedAt: doc.generatedAt, pinned: true };
+    if (!args.sessionToken) return null;
+    const brief = await ctx.db.query("commerce_assistant_briefs")
+      .withIndex("by_session_query", (q: any) => q.eq("sessionToken", args.sessionToken).eq("kind", "query").eq("query", args.q.trim().slice(0, 200)))
+      .order("desc").first();
+    if (!brief || brief.expiresAt <= Date.now()) return null;
+    const blocks = Array.isArray(brief.payload?.blocks) ? brief.payload.blocks : [];
+    const facets = blocks.find((block: any) => block?.type === "facets");
+    const chips = Array.isArray(facets?.items) ? facets.items.filter((item: any) => typeof item?.label === "string").slice(0, 12).map((item: any) => ({
+      label: item.label.slice(0, 80),
+      ...(typeof item.query === "string" ? { query: item.query.slice(0, 200) } : {}),
+      ...(typeof item.categorySlug === "string" ? { categorySlug: item.categorySlug.slice(0, 100) } : {}),
+    })) : [];
+    return chips.length ? { chips, generatedAt: brief.generatedAt, pinned: false } : null;
   },
 });

@@ -1,3 +1,4 @@
+import * as catalogRevisionWrites from "../../media/attachmentGuard";
 /**
  * Course System - mutations.
  *
@@ -7,6 +8,8 @@
  *   - publish / archive / remove: Editor (80+)
  */
 
+import { deleteWithMediaReferences, patchWithMediaReferences , deleteDynamicWithMediaReferences} from "../../media/attachmentGuard";
+import { insertWithMediaReferences } from "../../media/attachmentGuard";
 import { ConvexError } from "convex/values";
 import { mutation } from "../../_generated/server";
 import { requireCan } from "../../helpers/permissions";
@@ -63,7 +66,7 @@ export const create = mutation({
 
     const now = Date.now();
     const slug = await generateUniqueCourseSlug(ctx, title);
-    const courseId = await ctx.db.insert("lms_courses", {
+    const courseId: import("../../_generated/dataModel").Id<"lms_courses"> = await insertWithMediaReferences<"lms_courses">(ctx, "lms_courses", {
       title,
       slug,
       status: "draft",
@@ -138,7 +141,7 @@ export const update = mutation({
       patch.tagIds = normalizeCourseLabels(rest.tagIds);
     }
 
-    await ctx.db.patch(courseId, patch as never);
+    await patchWithMediaReferences<"lms_courses">(ctx, "lms_courses", courseId, patch as never);
     await upsertCourseSearchIndex(ctx, courseId);
     await emitEvent(ctx, LMS_EVENTS.COURSE_UPDATED, SYSTEM.LMS, { courseId });
     return courseId;
@@ -152,7 +155,7 @@ export const publish = mutation({
     await requireCan(ctx, "lms.course.publish");
     const course = await ctx.db.get(args.courseId);
     if (!course) throw new ConvexError({ code: "NOT_FOUND", message: "Course not found" });
-    await ctx.db.patch(args.courseId, {
+    await patchWithMediaReferences<"lms_courses">(ctx, "lms_courses", args.courseId, {
       status: "published",
       publishedAt: course.publishedAt ?? Date.now(),
       updatedAt: Date.now(),
@@ -170,7 +173,7 @@ export const unpublish = mutation({
     await requireCan(ctx, "lms.course.publish");
     const course = await ctx.db.get(args.courseId);
     if (!course) throw new ConvexError({ code: "NOT_FOUND", message: "Course not found" });
-    await ctx.db.patch(args.courseId, { status: "draft", updatedAt: Date.now() });
+    await patchWithMediaReferences<"lms_courses">(ctx, "lms_courses", args.courseId, { status: "draft", updatedAt: Date.now() });
     await upsertCourseSearchIndex(ctx, args.courseId);
     await emitEvent(ctx, LMS_EVENTS.COURSE_UNPUBLISHED, SYSTEM.LMS, { courseId: args.courseId });
     return args.courseId;
@@ -182,7 +185,7 @@ export const archive = mutation({
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "lms");
     await requireCourseAuthorOrEditor(ctx, args.courseId, "lms.course.edit");
-    await ctx.db.patch(args.courseId, { status: "archived", updatedAt: Date.now() });
+    await patchWithMediaReferences<"lms_courses">(ctx, "lms_courses", args.courseId, { status: "archived", updatedAt: Date.now() });
     await deleteCourseSearchIndex(ctx, args.courseId);
     await emitEvent(ctx, LMS_EVENTS.COURSE_ARCHIVED, SYSTEM.LMS, { courseId: args.courseId });
     return args.courseId;
@@ -194,7 +197,7 @@ export const restore = mutation({
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "lms");
     await requireCourseAuthorOrEditor(ctx, args.courseId, "lms.course.edit");
-    await ctx.db.patch(args.courseId, { status: "draft", updatedAt: Date.now() });
+    await patchWithMediaReferences<"lms_courses">(ctx, "lms_courses", args.courseId, { status: "draft", updatedAt: Date.now() });
     await upsertCourseSearchIndex(ctx, args.courseId);
     await emitEvent(ctx, LMS_EVENTS.COURSE_RESTORED, SYSTEM.LMS, { courseId: args.courseId });
     return args.courseId;
@@ -214,19 +217,19 @@ export const remove = mutation({
       .query("lms_nodes")
       .withIndex("by_course", (q) => q.eq("courseId", args.courseId))
       .collect();
-    for (const node of nodes) await ctx.db.delete(node._id);
+    for (const node of nodes) await deleteWithMediaReferences<"lms_nodes">(ctx, "lms_nodes", node._id);
 
     const prereqs = await ctx.db
       .query("lms_course_prerequisites")
       .withIndex("by_course", (q) => q.eq("courseId", args.courseId))
       .collect();
-    for (const p of prereqs) await ctx.db.delete(p._id);
+    for (const p of prereqs) await ctx.db.delete("lms_course_prerequisites", p._id);
 
     const inversePrereqs = await ctx.db
       .query("lms_course_prerequisites")
       .withIndex("by_prereq", (q) => q.eq("prereqCourseId", args.courseId))
       .collect();
-    for (const p of inversePrereqs) await ctx.db.delete(p._id);
+    for (const p of inversePrereqs) await ctx.db.delete("lms_course_prerequisites", p._id);
 
     for (const table of [
       "lms_enrollments",
@@ -240,7 +243,7 @@ export const remove = mutation({
         .query(table)
         .withIndex("by_course", (q: any) => q.eq("courseId", args.courseId))
         .collect();
-      for (const row of rows) await ctx.db.delete(row._id);
+      for (const row of rows) await deleteDynamicWithMediaReferences(ctx, row._id);
     }
 
     const accessRules = await ctx.db
@@ -249,10 +252,10 @@ export const remove = mutation({
         q.eq("resourceType", "course").eq("resourceIdOrKey", String(args.courseId)),
       )
       .collect();
-    for (const rule of accessRules) await ctx.db.delete(rule._id);
+    for (const rule of accessRules) await catalogRevisionWrites.deleteWithMediaReferences<"membership_restriction_rules">(ctx, "membership_restriction_rules", rule._id);
 
     await deleteCourseSearchIndex(ctx, args.courseId);
-    await ctx.db.delete(args.courseId);
+    await deleteWithMediaReferences<"lms_courses">(ctx, "lms_courses", args.courseId);
     await emitEvent(ctx, LMS_EVENTS.COURSE_DELETED, SYSTEM.LMS, { courseId: args.courseId });
     return { deleted: true };
   },
@@ -295,7 +298,7 @@ export const duplicate = mutation({
 
     const now = Date.now();
     const slug = await generateUniqueCourseSlug(ctx, `${src.title} (Copy)`);
-    const newId = await db.insert("lms_courses", {
+    const newId: import("../../_generated/dataModel").Id<"lms_courses"> = await insertWithMediaReferences<"lms_courses">(ctx, "lms_courses", {
       title: `${src.title} (Copy)`,
       slug,
       descriptionDoc: src.descriptionDoc,
@@ -337,9 +340,9 @@ export const duplicate = mutation({
       .query("lms_nodes")
       .withIndex("by_course", (q: any) => q.eq("courseId", args.courseId))
       .collect();
-    const idMap = new Map<string, string>();
+    const idMap = new Map<string, import("../../_generated/dataModel").Id<"lms_nodes">>();
     for (const t of nodes.filter((n: any) => n.kind === "topic")) {
-      const nt = await db.insert("lms_nodes", {
+      const nt: import("../../_generated/dataModel").Id<"lms_nodes"> = await insertWithMediaReferences<"lms_nodes">(ctx, "lms_nodes", {
         courseId: newId,
         kind: "topic",
         title: t.title,
@@ -351,10 +354,10 @@ export const duplicate = mutation({
         createdAt: now,
         updatedAt: now,
       });
-      idMap.set(String(t._id), String(nt));
+      idMap.set(String(t._id), nt);
     }
     for (const n of nodes.filter((x: any) => x.kind !== "topic")) {
-      await db.insert("lms_nodes", {
+      await insertWithMediaReferences<"lms_nodes">(ctx, "lms_nodes", {
         courseId: newId,
         parentId: n.parentId ? idMap.get(String(n.parentId)) : undefined,
         kind: n.kind,
@@ -402,7 +405,7 @@ export const duplicate = mutation({
       )
       .collect();
     for (const rule of accessRules) {
-      await db.insert("membership_restriction_rules", {
+      await catalogRevisionWrites.insertWithMediaReferences<"membership_restriction_rules">({ db }, "membership_restriction_rules", {
         resourceType: "course",
         resourceIdOrKey: String(newId),
         ruleMode: rule.ruleMode,
@@ -448,7 +451,7 @@ export const updatePrerequisites = mutation({
       .query("lms_course_prerequisites")
       .withIndex("by_course", (q) => q.eq("courseId", args.courseId))
       .collect();
-    for (const row of existing) await ctx.db.delete(row._id);
+    for (const row of existing) await ctx.db.delete("lms_course_prerequisites", row._id);
 
     const now = Date.now();
     for (const id of unique) {
@@ -458,7 +461,7 @@ export const updatePrerequisites = mutation({
         createdAt: now,
       });
     }
-    await ctx.db.patch(args.courseId, {
+    await patchWithMediaReferences<"lms_courses">(ctx, "lms_courses", args.courseId, {
       prereqMode: args.prereqMode ?? course.prereqMode ?? "all",
       updatedAt: now,
     });
@@ -490,8 +493,8 @@ export const updateAccessRule = mutation({
       .first();
 
     if (args.planIds.length === 0) {
-      if (existing) await ctx.db.delete(existing._id);
-      await ctx.db.patch(args.courseId, { updatedAt: now });
+      if (existing) await catalogRevisionWrites.deleteWithMediaReferences<"membership_restriction_rules">(ctx, "membership_restriction_rules", existing._id);
+      await patchWithMediaReferences<"lms_courses">(ctx, "lms_courses", args.courseId, { updatedAt: now });
       await emitEvent(ctx, LMS_EVENTS.COURSE_ACCESS_UPDATED, SYSTEM.LMS, {
         courseId: args.courseId,
         planCount: 0,
@@ -512,13 +515,13 @@ export const updateAccessRule = mutation({
       updatedAt: now,
     };
     const ruleId = existing
-      ? (await ctx.db.patch(existing._id, payload), existing._id)
-      : await ctx.db.insert("membership_restriction_rules", {
+      ? (await catalogRevisionWrites.patchWithMediaReferences<"membership_restriction_rules">(ctx, "membership_restriction_rules", existing._id, payload), existing._id)
+      : await catalogRevisionWrites.insertWithMediaReferences<"membership_restriction_rules">(ctx, "membership_restriction_rules", {
           ...payload,
           createdAt: now,
         });
 
-    await ctx.db.patch(args.courseId, { accessMode: "members", updatedAt: now });
+    await patchWithMediaReferences<"lms_courses">(ctx, "lms_courses", args.courseId, { accessMode: "members", updatedAt: now });
     await emitEvent(ctx, LMS_EVENTS.COURSE_ACCESS_UPDATED, SYSTEM.LMS, {
       courseId: args.courseId,
       planCount: args.planIds.length,

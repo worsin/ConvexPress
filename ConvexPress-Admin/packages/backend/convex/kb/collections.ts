@@ -1,3 +1,5 @@
+import type { RegisteredQuery } from "convex/server";
+import type { Doc } from "../_generated/dataModel";
 /**
  * Knowledge Base System - Collection Functions
  *
@@ -29,6 +31,7 @@ import {
   getCollectionBySlugArgs,
 } from "./validators";
 import { isPluginEnabled, requirePluginEnabled } from "../helpers/plugins";
+import { deleteWithMediaReferences, insertWithMediaReferences, patchWithMediaReferences } from "../media/attachmentGuard";
 
 // ─── List (Admin) ───────────────────────────────────────────────────────────
 
@@ -100,26 +103,24 @@ export const getById = query({
 
 // ─── Get By Slug (Public) ───────────────────────────────────────────────────
 
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
-export const getBySlug = query({
+type PublicCollection = Doc<"kb_collections"> & { articles: Array<Pick<Doc<"kb_articles">, "_id" | "title" | "slug" | "excerpt" | "readingTimeMinutes" | "categoryId"> & { order: number }> };
+export const getBySlug: RegisteredQuery<"public", { slug: string }, PublicCollection | null> = query({
   args: getCollectionBySlugArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "knowledgeBase"))) return null;
     const collection = await ctx.db
       .query("kb_collections")
-      .withIndex("by_slug", (q: ConvexQueryBuilder) => q.eq("slug", args.slug))
+      .withIndex("by_slug", (q) => q.eq("slug", args.slug))
       .first();
 
     if (!collection || !collection.isPublic) return null;
 
     const collectionArticles = await ctx.db
       .query("kb_collectionArticles")
-      .withIndex("by_collection_order", (q: ConvexQueryBuilder) => q.eq("collectionId", collection._id))
+      .withIndex("by_collection_order", (q) => q.eq("collectionId", collection._id))
       .take(500);
 
     const articles = await Promise.all(
-      // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
       collectionArticles.map(async (ca) => {
         const article = await ctx.db.get("kb_articles", ca.articleId);
         if (!article || article.status !== "published") return null;
@@ -135,7 +136,7 @@ export const getBySlug = query({
       }),
     );
 
-    return { ...collection, articles: articles.filter(Boolean) };
+    return { ...collection, articles: articles.filter((article): article is NonNullable<typeof article> => article !== null) };
   },
 });
 
@@ -145,7 +146,7 @@ export const getBySlug = query({
 export const create = mutation({
   args: createCollectionArgs,
   // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
-  handler: async (ctx, args) => {
+  handler: async (ctx, args): Promise<import("../_generated/dataModel").Id<"kb_collections">> => {
     await requirePluginEnabled(ctx, "knowledgeBase");
     const user = await requireCan(ctx, "kb.manageCollections");
 
@@ -157,7 +158,7 @@ export const create = mutation({
     const slug = await generateCollectionSlug(ctx, name);
     const now = Date.now();
 
-    const collectionId = await ctx.db.insert("kb_collections", {
+    const collectionId: import("../_generated/dataModel").Id<"kb_collections"> = await insertWithMediaReferences<"kb_collections">(ctx, "kb_collections", {
       name,
       slug,
       description: args.description,
@@ -205,7 +206,7 @@ export const update = mutation({
     if (args.type !== undefined) updates.type = args.type;
     if (args.isPublic !== undefined) updates.isPublic = args.isPublic;
 
-    await ctx.db.patch("kb_collections", args.collectionId, updates);
+    await patchWithMediaReferences<"kb_collections">(ctx, "kb_collections", args.collectionId, updates);
     return args.collectionId;
   },
 });
@@ -234,7 +235,7 @@ export const remove = mutation({
       await ctx.db.delete("kb_collectionArticles", ca._id);
     }
 
-    await ctx.db.delete("kb_collections", args.collectionId);
+    await deleteWithMediaReferences<"kb_collections">(ctx, "kb_collections", args.collectionId);
     return args.collectionId;
   },
 });
@@ -275,7 +276,7 @@ export const addArticle = mutation({
     // Increment collection article count
     const collection = await ctx.db.get("kb_collections", args.collectionId);
     if (collection) {
-      await ctx.db.patch("kb_collections", args.collectionId, {
+      await patchWithMediaReferences<"kb_collections">(ctx, "kb_collections", args.collectionId, {
         articleCount: collection.articleCount + 1,
         updatedAt: Date.now(),
       });
@@ -309,7 +310,7 @@ export const removeArticle = mutation({
     // Decrement collection article count
     const collection = await ctx.db.get("kb_collections", args.collectionId);
     if (collection && collection.articleCount > 0) {
-      await ctx.db.patch("kb_collections", args.collectionId, {
+      await patchWithMediaReferences<"kb_collections">(ctx, "kb_collections", args.collectionId, {
         articleCount: collection.articleCount - 1,
         updatedAt: Date.now(),
       });

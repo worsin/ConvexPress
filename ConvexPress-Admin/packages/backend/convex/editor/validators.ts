@@ -46,7 +46,7 @@ export const createReusableBlockArgs = {
  *
  * All fields except blockId are optional - only provided fields are updated.
  */
-export const updateReusableBlockArgs = {
+export const updateReusableBlockArgs: { blockId: import("convex/values").VId<import("../_generated/dataModel").Id<"reusableBlocks">>; title: import("convex/values").VString<string | undefined, "optional">; content: import("convex/values").VString<string | undefined, "optional">; blockType: import("convex/values").VString<string | undefined, "optional">; category: import("convex/values").VString<string | undefined, "optional">; description: import("convex/values").VString<string | undefined, "optional">; isPublished: import("convex/values").VBoolean<boolean | undefined, "optional">; isLocked: import("convex/values").VBoolean<boolean | undefined, "optional"> } = {
   blockId: v.id("reusableBlocks"),
   title: v.optional(v.string()),
   content: v.optional(v.string()),
@@ -60,14 +60,14 @@ export const updateReusableBlockArgs = {
 /**
  * Arguments for deleting a reusable block.
  */
-export const deleteReusableBlockArgs = {
+export const deleteReusableBlockArgs: { blockId: import("convex/values").VId<import("../_generated/dataModel").Id<"reusableBlocks">> } = {
   blockId: v.id("reusableBlocks"),
 };
 
 /**
  * Arguments for duplicating a reusable block.
  */
-export const duplicateReusableBlockArgs = {
+export const duplicateReusableBlockArgs: { blockId: import("convex/values").VId<import("../_generated/dataModel").Id<"reusableBlocks">> } = {
   blockId: v.id("reusableBlocks"),
 };
 
@@ -76,21 +76,21 @@ export const duplicateReusableBlockArgs = {
 /**
  * Arguments for acquiring an edit lock on a post.
  */
-export const acquireLockArgs = {
+export const acquireLockArgs: { postId: import("convex/values").VId<import("../_generated/dataModel").Id<"posts">> } = {
   postId: v.id("posts"),
 };
 
 /**
  * Arguments for releasing an edit lock on a post.
  */
-export const releaseLockArgs = {
+export const releaseLockArgs: { postId: import("convex/values").VId<import("../_generated/dataModel").Id<"posts">> } = {
   postId: v.id("posts"),
 };
 
 /**
  * Arguments for renewing an edit lock (heartbeat).
  */
-export const renewLockArgs = {
+export const renewLockArgs: { postId: import("convex/values").VId<import("../_generated/dataModel").Id<"posts">> } = {
   postId: v.id("posts"),
 };
 
@@ -111,7 +111,7 @@ export const listReusableBlocksArgs = {
 /**
  * Arguments for getting a single reusable block.
  */
-export const getReusableBlockArgs = {
+export const getReusableBlockArgs: { blockId: import("convex/values").VId<import("../_generated/dataModel").Id<"reusableBlocks">> } = {
   blockId: v.id("reusableBlocks"),
 };
 
@@ -120,7 +120,7 @@ export const getReusableBlockArgs = {
 /**
  * Arguments for checking if a post is locked.
  */
-export const getLockArgs = {
+export const getLockArgs: { postId: import("convex/values").VId<import("../_generated/dataModel").Id<"posts">> } = {
   postId: v.id("posts"),
 };
 
@@ -129,8 +129,7 @@ export const getLockArgs = {
 /**
  * Arguments for incrementing usage count on a reusable block.
  */
-export const incrementUsageCountArgs = {
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+export const incrementUsageCountArgs: { blockId: import("convex/values").VId<import("../_generated/dataModel").Id<"reusableBlocks">>; delta: import("convex/values").VFloat64 } = {
   blockId: v.id("reusableBlocks"),
   delta: v.number(), // +1 when inserted, -1 when removed
 };

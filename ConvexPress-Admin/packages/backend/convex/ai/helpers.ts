@@ -9,6 +9,7 @@ import { internalMutation, internalQuery } from "../_generated/server";
 import { v } from "convex/values";
 import { getSettingsDoc, mergeWithDefaults } from "../settings/helpers";
 import type { AISettings } from "../settings/defaults";
+import { patchWithMediaReferences } from "../media/attachmentGuard";
 
 // ─── AI Settings Query ──────────────────────────────────────────────────────
 
@@ -105,6 +106,6 @@ export const saveGeneratedContent = internalMutation({
     if (fields.summary !== undefined) patch.summary = fields.summary;
     if (fields.sources !== undefined) patch.sources = fields.sources;
     if (fields.tableOfContents !== undefined) patch.tableOfContents = fields.tableOfContents;
-    await ctx.db.patch(postId, patch);
+    await patchWithMediaReferences<"posts">(ctx, "posts", postId, patch);
   },
 });

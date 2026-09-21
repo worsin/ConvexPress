@@ -12,6 +12,7 @@ import {
   normalizeClerkEmail,
   type ClerkProvisioningResult,
 } from "./clerkManagementHelpers";
+import { patchWithMediaReferences } from "../media/attachmentGuard";
 
 const clerkSourceValidator = v.union(
   v.literal("wordpress_import"),
@@ -80,7 +81,7 @@ export const markClerkProvisioning = internalMutation({
       }
     }
 
-    await ctx.db.patch(args.userId, patch);
+    await patchWithMediaReferences<"users">(ctx, "users", args.userId, patch);
   },
 });
 

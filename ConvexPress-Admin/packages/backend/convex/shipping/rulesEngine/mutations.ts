@@ -73,7 +73,7 @@ export const updateRule = mutation({
     if (args.patch.name !== undefined) patch.name = args.patch.name;
     if (args.patch.description !== undefined) patch.description = args.patch.description;
     if (args.patch.ruleAST !== undefined) patch.ruleAST = args.patch.ruleAST;
-    await ctx.db.patch(args.ruleId, patch);
+    await ctx.db.patch("commerce_shipping_rules", args.ruleId, patch);
     await emitEvent(ctx, SHIPPING_EVENTS.RULE_UPDATED, "shipping", {
       ruleId: args.ruleId,
     });
@@ -117,7 +117,7 @@ export const deleteRule = mutation({
       });
     }
 
-    await ctx.db.delete(args.ruleId);
+    await ctx.db.delete("commerce_shipping_rules", args.ruleId);
     await emitEvent(ctx, SHIPPING_EVENTS.RULE_DELETED, "shipping", {
       ruleId: args.ruleId,
     });

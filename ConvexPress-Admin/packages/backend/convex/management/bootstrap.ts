@@ -12,6 +12,8 @@ import type { ManagementMutationCtx } from "./model";
 import {
   environmentKindValidator,
 } from "./validators";
+import { patchDynamicWithMediaReferences } from "../media/attachmentGuard";
+
 
 const looseV: any = v;
 const defineInternalMutation: any = internalMutation;
@@ -124,7 +126,7 @@ export const configureIdentity = defineInternalMutation({
       ) {
         throw new Error("Site identity cannot be rebound to another audience");
       }
-      await ctx.db.patch(existing._id, {
+      await patchDynamicWithMediaReferences(ctx, existing._id, {
         environmentKind: parsed.environmentKind,
         deploymentOrigin: parsed.deploymentOrigin,
         managementOrigin: parsed.managementOrigin,
@@ -278,14 +280,14 @@ export const revokeAuthority = defineInternalMutation({
     }
 
     const now = Date.now();
-    await ctx.db.patch(authority._id, {
+    await patchDynamicWithMediaReferences(ctx, authority._id, {
       status: "revoked",
       revokedAt: now,
       updatedAt: now,
     });
     for (const binding of bindings) {
       if (binding.status === "active") {
-        await ctx.db.patch(binding._id, {
+        await patchDynamicWithMediaReferences(ctx, binding._id, {
           status: "revoked",
           revokedAt: now,
           updatedAt: now,
@@ -293,7 +295,7 @@ export const revokeAuthority = defineInternalMutation({
       }
     }
     for (const session of sessions) {
-      await ctx.db.patch(session._id, {
+      await patchDynamicWithMediaReferences(ctx, session._id, {
         status: "revoked",
         revokedAt: now,
       });

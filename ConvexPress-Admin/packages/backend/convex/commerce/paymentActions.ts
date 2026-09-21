@@ -99,10 +99,9 @@ export const createStripeIntent = internalAction({
     } catch (error: any) {
       console.error("[Payments] Stripe key not configured:", error.message);
       await ctx.runMutation(
-        internal.commerce.payments.confirmPaymentFailure,
+        internal.commerce.payments.failPaymentCreation,
         {
-          providerTransactionId: String(args.transactionId),
-          provider: "stripe",
+          transactionId: args.transactionId,
           error: "Stripe is not configured.",
         },
       );
@@ -151,7 +150,7 @@ export const createStripeIntent = internalAction({
           orderId: args.orderId,
           transactionId: String(args.transactionId),
         },
-      });
+      }, { idempotencyKey: `commerce_payment_${args.transactionId}` });
 
       // Update the transaction record with Stripe details
       await ctx.runMutation(
@@ -183,10 +182,9 @@ export const createStripeIntent = internalAction({
         );
       } else if (paymentIntent.status === "canceled") {
         await ctx.runMutation(
-          internal.commerce.payments.confirmPaymentFailure,
+          internal.commerce.payments.failPaymentCreation,
           {
-            providerTransactionId: paymentIntent.id,
-            provider: "stripe",
+            transactionId: args.transactionId,
             error: "Payment was canceled.",
           },
         );
@@ -205,19 +203,10 @@ export const createStripeIntent = internalAction({
     } catch (error: any) {
       console.error("[Payments] Stripe PaymentIntent creation failed:", error);
 
-      const transaction = await ctx.runQuery(
-        internal.commerce.payments.getTransactionInternal,
-        { transactionId: args.transactionId },
-      );
-
-      const providerTxnId =
-        transaction?.providerTransactionId || String(args.transactionId);
-
       await ctx.runMutation(
-        internal.commerce.payments.confirmPaymentFailure,
+        internal.commerce.payments.failPaymentCreation,
         {
-          providerTransactionId: providerTxnId,
-          provider: "stripe",
+          transactionId: args.transactionId,
           error: error.message || "Failed to create payment intent",
         },
       );
@@ -288,7 +277,8 @@ export const processStripeRefund = internalAction({
       const refund = await stripe.refunds.create({
         payment_intent: args.providerTransactionId,
         amount: args.amount,
-      });
+        metadata: { refundId: String(args.refundId) },
+      }, { idempotencyKey: `commerce_refund_${args.refundId}` });
 
       await ctx.runMutation(internal.commerce.payments.completeRefund, {
         refundId: args.refundId,
@@ -296,6 +286,7 @@ export const processStripeRefund = internalAction({
         providerRefundId: refund.id,
         amount: args.amount,
         success: refund.status === "succeeded",
+        providerStatus: refund.status ?? "pending",
         error:
           refund.status !== "succeeded"
             ? `Refund status: ${refund.status}`
@@ -413,10 +404,9 @@ export const createPayPalOrderAction = internalAction({
     } catch (error: any) {
       console.error("[Payments] PayPal not configured:", error.message);
       await ctx.runMutation(
-        internal.commerce.payments.confirmPaymentFailure,
+        internal.commerce.payments.failPaymentCreation,
         {
-          providerTransactionId: String(args.transactionId),
-          provider: "paypal",
+          transactionId: args.transactionId,
           error: "PayPal is not configured.",
         },
       );
@@ -500,10 +490,9 @@ export const createPayPalOrderAction = internalAction({
     } catch (error: any) {
       console.error("[Payments] PayPal order creation failed:", error);
       await ctx.runMutation(
-        internal.commerce.payments.confirmPaymentFailure,
+        internal.commerce.payments.failPaymentCreation,
         {
-          providerTransactionId: String(args.transactionId),
-          provider: "paypal",
+          transactionId: args.transactionId,
           error: error.message || "Failed to create PayPal order",
         },
       );
@@ -635,6 +624,7 @@ export const processProviderRefundAction = internalAction({
 
     try {
       let providerRefundId: string;
+      let providerStatus: string;
 
       if (args.provider === "stripe") {
         const stripeKey = await getStripeSecretKey(ctx);
@@ -644,9 +634,11 @@ export const processProviderRefundAction = internalAction({
         const refund = await stripe.refunds.create({
           payment_intent: args.providerTransactionId,
           amount: args.amount,
-        });
+          metadata: { refundId: String(args.refundId) },
+        }, { idempotencyKey: `commerce_refund_${args.refundId}` });
 
         providerRefundId = refund.id;
+        providerStatus = refund.status ?? "pending";
       } else if (args.provider === "paypal") {
         const credentials = await getPayPalCredentials(ctx);
         const baseUrl = getPayPalBaseUrl(credentials.mode);
@@ -689,6 +681,7 @@ export const processProviderRefundAction = internalAction({
             method: "POST",
             headers: {
               "Content-Type": "application/json",
+              "PayPal-Request-Id": `commerce-refund-${args.refundId}`,
               Authorization: `Bearer ${accessToken}`,
             },
             body: JSON.stringify({
@@ -704,8 +697,10 @@ export const processProviderRefundAction = internalAction({
           throw new Error(`PayPal refund failed with status ${refundResponse.status}`);
         }
 
-        const refund = (await refundResponse.json()) as { id?: string };
-        providerRefundId = refund.id || "";
+        const refund = (await refundResponse.json()) as { id?: string; status?: string };
+        if (!refund.id) throw new Error("PayPal refund response missing ID");
+        providerRefundId = refund.id;
+        providerStatus = refund.status?.toLowerCase() ?? "pending";
       } else {
         throw new Error(`Unsupported payment provider: ${args.provider}`);
       }
@@ -716,12 +711,13 @@ export const processProviderRefundAction = internalAction({
         transactionId: args.transactionId,
         providerRefundId,
         amount: args.amount,
-        success: true,
+        success: ["succeeded", "completed"].includes(providerStatus),
+        providerStatus,
       });
       const result = {
         provider: args.provider,
         providerRefundId,
-        status: "succeeded",
+        status: providerStatus,
       };
       await ctx.runMutation(internal.commerce.workflows.completeInternal, {
         runId: workflow.runId,

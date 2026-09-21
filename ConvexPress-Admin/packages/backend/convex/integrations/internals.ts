@@ -124,7 +124,7 @@ export const recordCheck = internalMutation({
       configFingerprint: args.configFingerprint,
     };
     if (existing) {
-      await ctx.db.replace(existing._id, row);
+      await ctx.db.replace("integration_checks", existing._id, row);
       return existing._id;
     }
     return await ctx.db.insert("integration_checks", row);

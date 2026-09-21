@@ -24,6 +24,7 @@ import {
 import { currentUserCan, getUserIdentifier } from "./permissions";
 import { emitEvent } from "./events";
 import { COMMENT_EVENTS, SYSTEM } from "../events/constants";
+import { patchWithMediaReferences } from "../media/attachmentGuard";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -801,7 +802,7 @@ export async function createCommentCore(
   // ── Update post comment count if approved ───────────────────────────
   if (status === "approved") {
     const currentCount = post.commentCount ?? 0;
-    await ctx.db.patch("posts", postId, {
+    await patchWithMediaReferences<"posts">(ctx, "posts", postId, {
       commentCount: currentCount + 1,
     });
   }

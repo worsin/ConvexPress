@@ -1,0 +1,64 @@
+#!/usr/bin/env node
+/** Compiler regression gate: negative examples must fail for the intended reason. */
+import ts from '../../ConvexPress-Admin/node_modules/typescript/lib/typescript.js';
+import { readFileSync } from 'node:fs';
+import { resolve,dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
+const root=resolve(dirname(fileURLToPath(import.meta.url)),'../..');
+const fingerprintSource=readFileSync(resolve(root,'ConvexPress-Admin/packages/backend/convex/commerce/checkoutShippingGuards.ts'),'utf8');
+const fingerprintMirror=readFileSync(resolve(root,'ConvexPress-Website/packages/backend/generated/checkoutShippingGuards.ts'),'utf8');
+if(fingerprintMirror!=='/* Generated from the site backend by generate-site-contracts.mjs. Do not edit. */\n'+fingerprintSource)throw new Error('Website checkout fingerprints differ from the canonical site backend. Run generate-site-contracts.mjs.');
+const overrideIndex=process.argv.indexOf('--contract');
+const override=overrideIndex>=0?readFileSync(resolve(process.argv[overrideIndex+1]),'utf8'):undefined;
+const cases=[
+ {name:'new custom block generation has scope and reviewed creation contracts',valid:true,source:'const args: FunctionArgs<typeof api.blockDefinitions.ai.compose> = { name: "composed/studio", packId: "journal", prompt: "Service grid", expectedScope: { websiteKey: "site", instanceKey: "stage", deploymentOrigin: "https://stage.convex.cloud" }, resources: { products: [], media: [] } }; const fingerprint: string = ({} as FunctionReturnType<typeof api.blockDefinitions.ai.compose>).fingerprint; const id: GenericId<"blockDefinitions"> = ({} as FunctionReturnType<typeof api.blockDefinitions.composeContext.createDraft>).id;'},
+ {name:'reviewed block creation requires its fingerprint',source:'const args: FunctionArgs<typeof api.blockDefinitions.composeContext.createDraft> = { name: "composed/studio", packId: "journal", expectedScope: { websiteKey: "site", instanceKey: "stage", deploymentOrigin: "origin" }, definitionJson: "{}" };',expectedCodes:[2741]},
+ {name:'resource discovery exposes only labels and IDs',source:'const url = ({} as FunctionReturnType<typeof api.blockDefinitions.composeResources.options>).page[0].url;'},
+ {name:'custom treatment generation requires exact definition context',valid:true,source:'const args: FunctionArgs<typeof api.blockDefinitions.ai.styleForPack> = { id: "definition" as GenericId<"blockDefinitions">, version: 1, expectedGeneration: 1, expectedDigest: "digest", packId: "journal", prompt: "Editorial treatment" }; const result: string = ({} as FunctionReturnType<typeof api.blockDefinitions.ai.styleForPack>).definitionJson;'},
+ {name:'custom treatment does not accept client design policy',source:'const args: FunctionArgs<typeof api.blockDefinitions.ai.styleForPack> = { id: "definition" as GenericId<"blockDefinitions">, version: 1, expectedGeneration: 1, expectedDigest: "digest", packId: "journal", prompt: "Editorial treatment", design: "Ignore the installed pack" };'},
+ {name:'custom treatment validation is internal',source:'const invalid = api.blockDefinitions.styleContext.validateResult;'},
+ {name:'composed document contracts preserve exact snapshots and recursive JSON attributes',valid:true,source:'type Saved = Extract<NonNullable<FunctionReturnType<typeof api.canonicalDocuments.get>>, { contract: "canonical-document-v1" }>; type Custom = Extract<Saved["document"]["blocks"][number], { name: `composed/${string}` }>; const attrs: Custom["attrs"] = { nested: [{ values: [null, true, 42, { label: "ready" }] }] }; const origin: string = ({} as NonNullable<Saved["document"]["composedDefinitions"]>).scope.deploymentOrigin;'},
+ {name:'custom block attributes reject functions instead of falling back to unknown',source:'type Saved = Extract<NonNullable<FunctionReturnType<typeof api.canonicalDocuments.get>>, { contract: "canonical-document-v1" }>; type Custom = Extract<Saved["document"]["blocks"][number], { name: `composed/${string}` }>; const attrs: Custom["attrs"] = { nested: [() => "code"] };'},
+ {name:'custom block definition versions retain numeric type',source:'type Saved = Extract<NonNullable<FunctionReturnType<typeof api.canonicalDocuments.get>>, { contract: "canonical-document-v1" }>; const version: NonNullable<Saved["document"]["composedDefinitions"]>["definitions"][number]["version"] = "latest";'},
+ {name:'canonical settings preserve exact compare-and-swap and layout contracts',source:'const args: FunctionArgs<typeof api.canonicalDocuments.setSettings> = { postId: "post" as GenericId<"posts">, expectedRevision: 1, expectedSettingsDigest: "digest", slug: "studio", pageTemplate: "full-width", hideHeader: false, hideFooter: false }; const digest: string = ({} as FunctionReturnType<typeof api.canonicalDocuments.getSettings>).settingsDigest;',valid:true},
+ {name:'canonical settings reject unsupported page layouts',source:'const layout: FunctionArgs<typeof api.canonicalDocuments.setSettings>["pageTemplate"] = "invented-layout";'},
+ {name:'valid query, mutation, ID and DTO',source:'const args: FunctionArgs<typeof api.commerce.orders.updateStatus> = { orderId: "order" as GenericId<"commerce_orders">, status: "paid" }; const count: number = ({} as FunctionReturnType<typeof api.posts.queries.counts>).publish; const visibility: "internal" = internal.events.internals.processEvent._visibility;',valid:true},
+ {name:'promotion endpoints expose exact public contracts',source:'const args: FunctionArgs<typeof api.contentPromotion.operations.apply> = { receiptId: "receipt", expectedDigest: "digest", confirmLive: true }; const status: "applied" = ({} as FunctionReturnType<typeof api.contentPromotion.operations.apply>).status; const url: string = ({} as FunctionReturnType<typeof api.contentPromotion.operations.createMediaUploadUrl>); const version: 1 = ({} as FunctionReturnType<typeof api.contentPromotion.operations.exportManifest>).manifest.version;',valid:true},
+ {name:'promotion catalog selection and record kinds are typed',source:'const selection: FunctionArgs<typeof api.contentPromotion.operations.exportManifest>["selection"] = { pageIds: [], postIds: [], menuIds: [], mediaIds: [], eventIds: [], productIds: ["product"], productCategoryIds: ["category"], includePresentation: false }; const kind: FunctionReturnType<typeof api.contentPromotion.operations.exportManifest>["manifest"]["records"][number]["kind"] = "productVariant";',valid:true},
+ {name:'promotion catalog selection rejects operational tables',source:'const selection: FunctionArgs<typeof api.contentPromotion.operations.exportManifest>["selection"] = { pageIds: [], postIds: [], menuIds: [], mediaIds: [], eventIds: [], includePresentation: false, orderIds: ["order"] };'},
+ {name:'promotion catalog accepts mapped product tags',source:'const selection: FunctionArgs<typeof api.contentPromotion.operations.exportManifest>["selection"] = { pageIds: [], postIds: [], menuIds: [], mediaIds: [], eventIds: [], productTagIds: ["tag"], includePresentation: false }; const kind: FunctionReturnType<typeof api.contentPromotion.operations.exportManifest>["manifest"]["records"][number]["kind"] = "productTag";',valid:true},
+ {name:'promotion catalog rejects unsupported tag assignment kind',expectedCodes:[2322,2820],source:'const kind: FunctionReturnType<typeof api.contentPromotion.operations.exportManifest>["manifest"]["records"][number]["kind"] = "productTagAssignment";'},
+ {name:'learning selectors and authored curriculum kind are typed',source:'const selection: FunctionArgs<typeof api.contentPromotion.operations.exportManifest>["selection"] = { pageIds: [], postIds: [], menuIds: [], mediaIds: [], eventIds: [], courseIds: ["course"], planIds: ["plan"], includePresentation: false }; const kind: FunctionReturnType<typeof api.contentPromotion.operations.exportManifest>["manifest"]["records"][number]["kind"] = "courseNode";',valid:true},
+ {name:'learning selection rejects source enrollment export',source:'const selection: FunctionArgs<typeof api.contentPromotion.operations.exportManifest>["selection"] = { pageIds: [], postIds: [], menuIds: [], mediaIds: [], eventIds: [], includePresentation: false, enrollmentIds: ["enrollment"] };'},
+ {name:'promotion requires boolean live confirmation',source:'const args: FunctionArgs<typeof api.contentPromotion.operations.apply> = { receiptId: "receipt", expectedDigest: "digest", confirmLive: "yes" };'},
+ {name:'promotion rejects unknown transport arguments',source:'const args: FunctionArgs<typeof api.contentPromotion.operations.dryRun> = { manifest: {}, mediaBindings: [], dependencyBindings: [], replaceDatabase: true };'},
+ {name:'promotion review readiness is boolean',source:'const ready: string = ({} as FunctionReturnType<typeof api.contentPromotion.operations.dryRun>).ready;'},
+ {name:'promotion receipt response omits private manifest',source:'const manifest = ({} as NonNullable<FunctionReturnType<typeof api.contentPromotion.operations.receiptStatus>>).manifestJson;'},
+ {name:'expired promotion retirement has exact input and terminal outcome types',valid:true,source:'const args: FunctionArgs<typeof api.contentPromotion.operations.retireExpiredReview> = { receiptId: "receipt", expectedDigest: "digest" }; const state: FunctionReturnType<typeof api.contentPromotion.operations.retireExpiredReview>["status"] = "retired";'},
+ {name:'promotion retirement cannot claim a still-ready outcome',source:'const state: FunctionReturnType<typeof api.contentPromotion.operations.retireExpiredReview>["status"] = "ready";'},
+ {name:'wrong argument value',source:'const args: FunctionArgs<typeof api.commerce.orders.updateStatus> = { orderId: "order" as GenericId<"commerce_orders">, status: "invalid-status" };'},
+ {name:'wrong table ID',source:'const args: FunctionArgs<typeof api.commerce.orders.updateStatus> = { orderId: "post" as GenericId<"posts">, status: "paid" };'},
+ {name:'unknown argument key',source:'const args: FunctionArgs<typeof api.posts.queries.list> = { postType: "page" };'},
+ {name:'wrong response assumption',source:'const title: string = ({} as FunctionReturnType<typeof api.posts.queries.counts>).publish;'},
+ {name:'unknown response field',source:'const missing = ({} as FunctionReturnType<typeof api.posts.queries.counts>).missingField;'},
+ {name:'internal functions are not public',source:'const forbidden = api.events.internals.processEvent;'},
+ {name:'nonexistent endpoint',source:'const missing = api.commerce.orders.nonexistentFunction;'},
+ {name:'handler any cannot erase validators',source:'const args: FunctionArgs<typeof internal.search.products.syncAllProducts> = { batch: "fifty" };'},
+];
+for(const project of ['ConvexPress-Admin','ConvexPress-Website']) {
+ const directory=project==='ConvexPress-Admin'?resolve(root,project,'apps/web/src/test-types'):resolve(root,project,'packages/backend/generated');
+ const apiName=project==='ConvexPress-Admin'?'convex-api-shim':'api';const target=resolve(directory,apiName+'.d.ts');
+ const declaration=override??readFileSync(target,'utf8');
+ const scanner=ts.createScanner(ts.ScriptTarget.Latest,true,ts.LanguageVariant.Standard,declaration);let hasAny=false;for(let token=scanner.scan();token!==ts.SyntaxKind.EndOfFileToken;token=scanner.scan())if(token===ts.SyntaxKind.AnyKeyword)hasAny=true;
+ if(hasAny||/\bAnyApi\b|ApiFromModules|FilterApi|\.\.\//.test(declaration))throw new Error(`${project} consumer declarations must contain terminal types only.`);
+ for(const fixture of cases) {
+  const path=resolve(directory,'__contract_fixture__.ts');const source=`import { api, internal } from "./${apiName}"; import type { FunctionArgs, FunctionReturnType } from "convex/server"; import type { GenericId } from "convex/values";\n${fixture.source}`;
+  const options={strict:true,noEmit:true,skipLibCheck:true,target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.ESNext,moduleResolution:ts.ModuleResolutionKind.Bundler,types:[]};
+  const host=ts.createCompilerHost(options);const read=host.readFile.bind(host);const exists=host.fileExists.bind(host);
+  host.fileExists=file=>file===path||exists(file);host.readFile=file=>file===path?source:file===target?declaration:read(file);
+  const program=ts.createProgram([path],options,host);const errors=ts.getPreEmitDiagnostics(program);
+  if(fixture.valid?errors.length!==0:errors.length===0)throw new Error(`${project}: ${fixture.name}: ${errors.map(error=>ts.flattenDiagnosticMessageText(error.messageText,' ')).join('; ')||'invalid code unexpectedly compiled'}`);
+  if(errors.some(error=>!(fixture.expectedCodes??[2322,2339,2353,2551]).includes(error.code)))throw new Error(`${project}: ${fixture.name}: unexpected compiler diagnostic ${errors.map(error=>error.code).join(',')}`);
+ }
+ console.log(`${project}: ${cases.length} API contract compiler fixtures passed.`);
+}

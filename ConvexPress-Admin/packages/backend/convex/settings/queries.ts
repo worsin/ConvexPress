@@ -35,6 +35,7 @@ import {
   SECTION_NAMES,
   type SettingsSection,
 } from "./defaults";
+import { readAppearance, legacyShopProjection } from "./appearanceMigration";
 import type { Capability } from "../types/capabilities";
 
 const SECTION_READ_CAPABILITY_MAP: Partial<Record<SettingsSection, Capability>> = {
@@ -162,7 +163,9 @@ export const getBySection = query({
       .unique();
 
     // Merge defaults with stored values
-    const values = doc
+    const values = section === "appearance.template"
+      ? (await readAppearance(ctx)).values
+      : doc
       ? { ...defaults, ...(doc.values as Record<string, unknown>) }
       : { ...defaults };
 
@@ -258,6 +261,10 @@ const AUTOLOAD_PRIVATE_KEYS = [
  *
  * This powers the website SettingsProvider context.
  */
+function publicString(value: unknown): string | undefined { return typeof value === "string" ? value : undefined; }
+function publicBoolean(value: unknown): boolean | undefined { return typeof value === "boolean" ? value : undefined; }
+function publicNumber(value: unknown): number | undefined { return typeof value === "number" && Number.isFinite(value) ? value : undefined; }
+
 export const getPublic = query({
   args: {},
   handler: async (ctx) => {
@@ -279,60 +286,60 @@ export const getPublic = query({
     const plugins = await getMergedSettingsSection(ctx, "plugins");
     const commerce = await getMergedSettingsSection(ctx, "commerce.general");
     const assistant = await getMergedSettingsSection(ctx, "commerce.assistant");
-    const layout = await getMergedSettingsSection(ctx, "commerce.layout");
-    const template = await getMergedSettingsSection(ctx, "appearance.template");
+    const { values: template } = await readAppearance(ctx);
+    const layout = legacyShopProjection(template);
     const brand = await getMergedSettingsSection(ctx, "brand");
     const shipping = await getMergedSettingsSection(ctx, "integrations.shipping");
     const blocks = await getMergedSettingsSection(ctx, "blocks");
     const dashboard = await getMergedSettingsSection(ctx, "dashboard");
-    const activeTheme = await ctx.db
-      .query("themes")
-      .withIndex("by_active", (q) => q.eq("isActive", true))
-      .first();
 
+    const publicPlugins: Record<string, boolean> = {};
+    for (const [key, value] of Object.entries(plugins)) {
+      if (/^[A-Za-z][A-Za-z0-9]*Enabled$/u.test(key) && typeof value === "boolean") publicPlugins[key] = value;
+    }
     return {
       // General (excluding adminEmail)
-      siteTitle: general.siteTitle,
-      tagline: general.tagline,
-      siteUrl: general.siteUrl,
-      homeUrl: general.homeUrl,
-      logoUrl: general.logoUrl,
-      siteLogo: general.siteLogo,
-      membershipEnabled: general.membershipEnabled,
-      siteLanguage: general.siteLanguage,
-      timezone: general.timezone,
-      dateFormat: general.dateFormat,
-      timeFormat: general.timeFormat,
-      weekStartsOn: general.weekStartsOn,
+      siteTitle: publicString(general.siteTitle),
+      tagline: publicString(general.tagline),
+      siteUrl: publicString(general.siteUrl),
+      homeUrl: publicString(general.homeUrl),
+      logoUrl: publicString(general.logoUrl),
+      siteLogo: publicString(general.siteLogo),
+      membershipEnabled: publicBoolean(general.membershipEnabled),
+      siteLanguage: publicString(general.siteLanguage),
+      timezone: publicString(general.timezone),
+      dateFormat: publicString(general.dateFormat),
+      timeFormat: publicString(general.timeFormat),
+      weekStartsOn: publicNumber(general.weekStartsOn),
 
       // Reading
-      homepageDisplays: reading.homepageDisplays,
-      homepageId: reading.homepageId,
-      postsPageId: reading.postsPageId,
-      postsPerPage: reading.postsPerPage,
-      feedItemCount: reading.feedItemCount,
-      feedContentDisplay: reading.feedContentDisplay,
-      searchEngineVisibility: reading.searchEngineVisibility,
+      homepageDisplays: publicString(reading.homepageDisplays),
+      homepageId: publicString(reading.homepageId),
+      postsPageId: publicString(reading.postsPageId),
+      postsPerPage: publicNumber(reading.postsPerPage),
+      feedItemCount: publicNumber(reading.feedItemCount),
+      feedContentDisplay: publicString(reading.feedContentDisplay),
+      searchEngineVisibility: publicBoolean(reading.searchEngineVisibility),
 
       // Discussion (excluding word lists)
-      allowComments: discussion.allowComments,
-      requireNameEmail: discussion.requireNameEmail,
-      requireRegistration: discussion.requireRegistration,
-      enableThreadedComments: discussion.enableThreadedComments,
-      threadedCommentsDepth: discussion.threadedCommentsDepth,
-      commentOrder: discussion.commentOrder,
-      showAvatars: discussion.showAvatars,
-      avatarRating: discussion.avatarRating,
-      defaultAvatar: discussion.defaultAvatar,
+      allowComments: publicBoolean(discussion.allowComments),
+      requireNameEmail: publicBoolean(discussion.requireNameEmail),
+      requireRegistration: publicBoolean(discussion.requireRegistration),
+      enableThreadedComments: publicBoolean(discussion.enableThreadedComments),
+      threadedCommentsDepth: publicNumber(discussion.threadedCommentsDepth),
+      commentOrder: publicString(discussion.commentOrder),
+      showAvatars: publicBoolean(discussion.showAvatars),
+      avatarRating: publicString(discussion.avatarRating),
+      defaultAvatar: publicString(discussion.defaultAvatar),
 
       // Permalinks
-      permalinkStructure: permalinks.structure,
-      categoryBase: permalinks.categoryBase,
-      tagBase: permalinks.tagBase,
+      permalinkStructure: publicString(permalinks.structure),
+      categoryBase: publicString(permalinks.categoryBase),
+      tagBase: publicString(permalinks.tagBase),
 
       // Privacy
-      privacyPolicyPageId: privacy.privacyPolicyPageId,
-      showPrivacyPolicyLink: privacy.showPrivacyPolicyLink,
+      privacyPolicyPageId: publicString(privacy.privacyPolicyPageId),
+      showPrivacyPolicyLink: publicBoolean(privacy.showPrivacyPolicyLink),
 
       // Website Appearance - Header config (all fields are safe for public)
       headerConfig: header,
@@ -340,23 +347,15 @@ export const getPublic = query({
       // Website Appearance - Footer config (all fields are safe for public)
       footerConfig: footer,
 
-      // Public color tokens from the active appearance theme. Kept narrow so
-      // legacy theme records do not leak unrelated template data to visitors.
-      colorPalette: Array.isArray((activeTheme as any)?.globalStyles?.settings?.color?.palette)
-        ? (activeTheme as any).globalStyles.settings.color.palette
-        : Array.isArray((activeTheme as any)?.colorPalette)
-          ? (activeTheme as any).colorPalette
-          : [],
+      // Compatibility palette follows the effective template, including migrated custom tokens.
+      colorPalette: Object.entries(template.settings[template.active]?.colors ?? {})
+        .filter(([, color]) => typeof color === "string")
+        .map(([slug, color]) => ({ slug, color })),
 
       // Public plugin flags. These are feature visibility controls, not
       // secrets. Every `<id>Enabled` boolean is projected so new extensions
       // reach the website without editing this file.
-      plugins: Object.fromEntries(
-        Object.entries(plugins).filter(
-          ([key, value]) =>
-            /^[A-Za-z][A-Za-z0-9]*Enabled$/u.test(key) && typeof value === "boolean",
-        ),
-      ),
+      plugins: publicPlugins,
 
       // Customer dashboard shell configuration (Dashboard extension).
       dashboardConfig: dashboard,
@@ -371,26 +370,26 @@ export const getPublic = query({
 
       // Commerce runtime settings used by the public cart and checkout UI.
       commerceConfig: {
-        storeName: commerce.storeName,
-        storeEmail: commerce.storeEmail,
-        currencyCode: commerce.currencyCode,
-        currencySymbol: commerce.currencySymbol,
-        pricesIncludeTax: commerce.pricesIncludeTax,
-        taxRateBasis: commerce.taxRateBasis,
-        defaultCountryCode: commerce.defaultCountryCode,
-        defaultState: commerce.defaultState,
-        checkoutRequiresPhone: commerce.checkoutRequiresPhone,
-        allowGuestCheckout: commerce.allowGuestCheckout,
-        shippingEnabled: commerce.shippingEnabled,
+        storeName: publicString(commerce.storeName),
+        storeEmail: publicString(commerce.storeEmail),
+        currencyCode: publicString(commerce.currencyCode),
+        currencySymbol: publicString(commerce.currencySymbol),
+        pricesIncludeTax: publicBoolean(commerce.pricesIncludeTax),
+        taxRateBasis: publicString(commerce.taxRateBasis),
+        defaultCountryCode: publicString(commerce.defaultCountryCode),
+        defaultState: publicString(commerce.defaultState),
+        checkoutRequiresPhone: publicBoolean(commerce.checkoutRequiresPhone),
+        allowGuestCheckout: publicBoolean(commerce.allowGuestCheckout),
+        shippingEnabled: publicBoolean(commerce.shippingEnabled),
         shippingMethods: commerce.shippingMethods,
         paymentMethods: commerce.paymentMethods,
-        preferredProvider: shipping.preferredProvider,
-        liveRatesEnabled: shipping.liveRatesEnabled,
-        fallbackToManualRates: shipping.fallbackToManualRates,
-        fallbackMessage: shipping.fallbackMessage,
-        cheapestBadgeLabel: shipping.cheapestBadgeLabel,
-        fastestBadgeLabel: shipping.fastestBadgeLabel,
-        bestOptionBadgeLabel: shipping.bestOptionBadgeLabel,
+        preferredProvider: publicString(shipping.preferredProvider),
+        liveRatesEnabled: publicBoolean(shipping.liveRatesEnabled),
+        fallbackToManualRates: publicBoolean(shipping.fallbackToManualRates),
+        fallbackMessage: publicString(shipping.fallbackMessage),
+        cheapestBadgeLabel: publicString(shipping.cheapestBadgeLabel),
+        fastestBadgeLabel: publicString(shipping.fastestBadgeLabel),
+        bestOptionBadgeLabel: publicString(shipping.bestOptionBadgeLabel),
       },
 
       // Shopping assistant rail. No secrets live in this section; the model

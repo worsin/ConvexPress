@@ -6,6 +6,9 @@
  */
 
 // @ts-nocheck TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+import { insertCountedProgress } from "./progress/counts";
+import * as catalogRevisionWrites from "../media/attachmentGuard";
+import { deleteWithMediaReferences, insertWithMediaReferences, patchWithMediaReferences , deleteDynamicWithMediaReferences, patchDynamicWithMediaReferences} from "../media/attachmentGuard";
 import { v } from "convex/values";
 import { internal } from "../_generated/api";
 import { internalMutation } from "../_generated/server";
@@ -45,14 +48,14 @@ async function upsertPluginSettings(ctx: AnyCtx, userId: Id<"users">) {
     membershipEnabled: true,
   };
   if (existing) {
-    await ctx.db.patch(existing._id, {
+    await patchWithMediaReferences<"settings">(ctx, "settings", existing._id, {
       values,
       updatedAt: Date.now(),
       updatedBy: userId,
     });
     return;
   }
-  await ctx.db.insert("settings", {
+  await insertWithMediaReferences<"settings">(ctx, "settings", {
     section: "plugins",
     values,
     updatedAt: Date.now(),
@@ -66,7 +69,7 @@ async function deleteRowsByCourse(ctx: AnyCtx, table: string, courseId: Id<"lms_
     .withIndex("by_course", (q: AnyCtx) => q.eq("courseId", courseId))
     .collect();
   for (const row of rows) {
-    await ctx.db.delete(row._id);
+    await deleteDynamicWithMediaReferences(ctx, row._id);
   }
 }
 
@@ -89,13 +92,13 @@ async function deleteSeedCourse(ctx: AnyCtx, slug: string) {
     .query("lms_course_prerequisites")
     .withIndex("by_course", (q: AnyCtx) => q.eq("courseId", course._id))
     .collect();
-  for (const prereq of prereqs) await ctx.db.delete(prereq._id);
+  for (const prereq of prereqs) await deleteDynamicWithMediaReferences(ctx, prereq._id);
 
   const inversePrereqs = await ctx.db
     .query("lms_course_prerequisites")
     .withIndex("by_prereq", (q: AnyCtx) => q.eq("prereqCourseId", course._id))
     .collect();
-  for (const prereq of inversePrereqs) await ctx.db.delete(prereq._id);
+  for (const prereq of inversePrereqs) await deleteDynamicWithMediaReferences(ctx, prereq._id);
 
   const rules = await ctx.db
     .query("membership_restriction_rules")
@@ -103,9 +106,9 @@ async function deleteSeedCourse(ctx: AnyCtx, slug: string) {
       q.eq("resourceType", "course").eq("resourceIdOrKey", String(course._id)),
     )
     .collect();
-  for (const rule of rules) await ctx.db.delete(rule._id);
+  for (const rule of rules) await deleteDynamicWithMediaReferences(ctx, rule._id);
 
-  await ctx.db.delete(course._id);
+  await deleteWithMediaReferences<"lms_courses">(ctx, "lms_courses", course._id);
 }
 
 async function ensurePlan(ctx: AnyCtx) {
@@ -116,7 +119,7 @@ async function ensurePlan(ctx: AnyCtx) {
     .first();
 
   const planId = existing
-    ? (await ctx.db.patch(existing._id, {
+    ? (await patchDynamicWithMediaReferences(ctx, existing._id, {
         title: "LMS Paid Tester",
         description: "Seed membership plan for LMS restricted-course testing.",
         status: "active",
@@ -125,7 +128,7 @@ async function ensurePlan(ctx: AnyCtx) {
         updatedAt: now,
       }),
       existing._id)
-    : await ctx.db.insert("membership_plans", {
+    : await catalogRevisionWrites.insertWithMediaReferences<"membership_plans">(ctx, "membership_plans", {
         title: "LMS Paid Tester",
         slug: "lms-paid-tester",
         description: "Seed membership plan for LMS restricted-course testing.",
@@ -167,7 +170,7 @@ async function ensureGrant(
     .collect();
   const existing = grants.find((grant: { planId: Id<"membership_plans"> }) => grant.planId === planId);
   if (existing) {
-    await ctx.db.patch(existing._id, {
+    await patchDynamicWithMediaReferences(ctx, existing._id, {
       status: "active",
       sourceType: "manual",
       startsAt: now - 60_000,
@@ -176,7 +179,7 @@ async function ensureGrant(
     });
     return existing._id;
   }
-  return await ctx.db.insert("membership_grants", {
+  return await catalogRevisionWrites.insertWithMediaReferences<"membership_grants">(ctx, "membership_grants", {
     userId,
     planId,
     sourceType: "manual",
@@ -196,7 +199,7 @@ async function ensureCertificate(ctx: AnyCtx, userId: Id<"users">) {
     (certificate: { title: string }) => certificate.title === "LMS Paid Tester Certificate",
   );
   if (existing) {
-    await ctx.db.patch(existing._id, {
+    await patchWithMediaReferences<"lms_certificates">(ctx, "lms_certificates", existing._id, {
       templateDoc: textToDoc(
         "Certificate of Completion\n\nAwarded to {{learner_name}} for completing {{course_title}}.",
       ),
@@ -206,7 +209,7 @@ async function ensureCertificate(ctx: AnyCtx, userId: Id<"users">) {
     });
     return existing._id as Id<"lms_certificates">;
   }
-  return (await ctx.db.insert("lms_certificates", {
+  return (await insertWithMediaReferences<"lms_certificates">(ctx, "lms_certificates", {
     title: "LMS Paid Tester Certificate",
     templateDoc: textToDoc(
       "Certificate of Completion\n\nAwarded to {{learner_name}} for completing {{course_title}}.",
@@ -234,7 +237,7 @@ async function createCourse(
   },
 ) {
   const now = Date.now();
-  return (await ctx.db.insert("lms_courses", {
+  return (await insertWithMediaReferences<"lms_courses">(ctx, "lms_courses", {
     title: input.title,
     slug: input.slug,
     excerpt: input.excerpt,
@@ -270,7 +273,7 @@ async function addTopic(
   } = {},
 ) {
   const now = Date.now();
-  return (await ctx.db.insert("lms_nodes", {
+  return (await insertWithMediaReferences<"lms_nodes">(ctx, "lms_nodes", {
     courseId,
     kind: "topic",
     title,
@@ -304,7 +307,7 @@ async function addLesson(
   } = {},
 ) {
   const now = Date.now();
-  return (await ctx.db.insert("lms_nodes", {
+  return (await insertWithMediaReferences<"lms_nodes">(ctx, "lms_nodes", {
     courseId,
     parentId,
     kind: "lesson",
@@ -335,7 +338,7 @@ async function recountCourse(ctx: AnyCtx, courseId: Id<"lms_courses">) {
     .query("lms_nodes")
     .withIndex("by_course", (q: AnyCtx) => q.eq("courseId", courseId))
     .collect();
-  await ctx.db.patch(courseId, {
+  await patchWithMediaReferences<"lms_courses">(ctx, "lms_courses", courseId, {
     topicCount: nodes.filter((node: { kind: string }) => node.kind === "topic").length,
     lessonCount: nodes.filter((node: { kind: string }) => node.kind === "lesson").length,
     updatedAt: Date.now(),
@@ -374,7 +377,7 @@ async function completeCourse(
     .withIndex("by_course_kind", (q: AnyCtx) => q.eq("courseId", courseId).eq("kind", "lesson"))
     .collect();
   for (const lesson of lessons) {
-    await ctx.db.insert("lms_progress", {
+    await insertCountedProgress(ctx, {
       userId,
       courseId,
       nodeId: lesson._id,
@@ -393,7 +396,7 @@ async function completeCourse(
     percent: 100,
     pointsEarned: 10,
   });
-  const issueId = await ctx.db.insert("lms_certificate_issues", {
+  const issueId: import("../_generated/dataModel").Id<"lms_certificate_issues"> = await insertWithMediaReferences<"lms_certificate_issues">(ctx, "lms_certificate_issues", {
     userId,
     courseId,
     certificateId,
@@ -455,7 +458,7 @@ export const run = internalMutation({
     });
     await recountCourse(ctx, memberCourseId);
     await enrollUser(ctx, userId, memberCourseId, "membership_plan", planId);
-    await ctx.db.insert("membership_restriction_rules", {
+    await catalogRevisionWrites.insertWithMediaReferences<"membership_restriction_rules">(ctx, "membership_restriction_rules", {
       resourceType: "course",
       resourceIdOrKey: String(memberCourseId),
       ruleMode: "allow_only",
@@ -515,7 +518,7 @@ export const run = internalMutation({
       prereqCourseId: freeCourseId,
       createdAt: now,
     });
-    await ctx.db.patch(dripCourseId, { prereqMode: "all", updatedAt: now });
+    await patchWithMediaReferences<"lms_courses">(ctx, "lms_courses", dripCourseId, { prereqMode: "all", updatedAt: now });
 
     return {
       ok: true,
@@ -532,3 +535,4 @@ export const run = internalMutation({
     };
   },
 });
+// @ts-nocheck

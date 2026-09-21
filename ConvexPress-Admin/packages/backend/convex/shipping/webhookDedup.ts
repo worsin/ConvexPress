@@ -62,10 +62,8 @@ export const checkAndRecord = internalMutation({
   },
 });
 
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
-export const purgeExpired = internalMutation({
+export const purgeExpired: import("convex/server").RegisteredMutation<"internal", Record<string, never>, { deleted: number }> = internalMutation({
   args: {},
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx) => {
     const now = Date.now();
     const BATCH = 500;
@@ -73,15 +71,13 @@ export const purgeExpired = internalMutation({
       .query("shipping_webhook_deliveries")
       .withIndex("by_expires", (q: any) => q.lt("expiresAt", now))
       .take(BATCH);
-    for (const row of rows) await ctx.db.delete(row._id);
+    for (const row of rows) await ctx.db.delete("shipping_webhook_deliveries", row._id);
     return { deleted: rows.length };
   },
 });
 
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
-export const listRecent = internalQuery({
+export const listRecent: import("convex/server").RegisteredQuery<"internal", { provider: import("convex/values").Infer<typeof shippingProviderValidator> }, import("../_generated/dataModel").Doc<"shipping_webhook_deliveries">[]> = internalQuery({
   args: { provider: shippingProviderValidator },
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     return ctx.db
       .query("shipping_webhook_deliveries")

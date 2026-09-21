@@ -1,4 +1,5 @@
 import { action, internalMutation } from "../../_generated/server";
+import { deleteWithMediaReferences, insertWithMediaReferences, patchWithMediaReferences , patchDynamicWithMediaReferences} from "../../media/attachmentGuard";
 import { internal } from "../../_generated/api";
 import { v } from "convex/values";
 import type { Id } from "../../_generated/dataModel";
@@ -90,7 +91,7 @@ async function upsertPluginSettings(ctx: any, userId: Id<"users">) {
   };
 
   if (existing) {
-    await ctx.db.patch(existing._id, {
+    await patchWithMediaReferences<"settings">(ctx, "settings", existing._id, {
       values: nextValues,
       updatedAt: now,
       updatedBy: userId,
@@ -98,7 +99,7 @@ async function upsertPluginSettings(ctx: any, userId: Id<"users">) {
     return;
   }
 
-  await ctx.db.insert("settings", {
+  await insertWithMediaReferences<"settings">(ctx, "settings", {
     section: "plugins",
     values: nextValues,
     updatedAt: now,
@@ -129,7 +130,7 @@ async function upsertFieldGroup(ctx: any, slug: string, title: string, userId: I
   };
 
   if (existing) {
-    await ctx.db.patch(existing._id, patch);
+    await patchDynamicWithMediaReferences(ctx, existing._id, patch);
     return existing._id as Id<"fieldGroups">;
   }
 
@@ -174,11 +175,11 @@ async function upsertField(
   };
 
   if (existing) {
-    await ctx.db.patch(existing._id, patch);
+    await patchWithMediaReferences<"fieldDefinitions">(ctx, "fieldDefinitions", existing._id, patch);
     return existing._id as Id<"fieldDefinitions">;
   }
 
-  return await ctx.db.insert("fieldDefinitions", {
+  return await insertWithMediaReferences<"fieldDefinitions">(ctx, "fieldDefinitions", {
     ...patch,
     createdAt: now,
   });
@@ -196,7 +197,7 @@ async function pruneExtraFields(
 
   for (const field of existing) {
     if (!keepIds.has(field._id)) {
-      await ctx.db.delete(field._id);
+      await deleteWithMediaReferences<"fieldDefinitions">(ctx, "fieldDefinitions", field._id);
     }
   }
 }
@@ -233,7 +234,7 @@ async function upsertForm(
   };
 
   if (existing) {
-    await ctx.db.patch(existing._id, patch);
+    await patchDynamicWithMediaReferences(ctx, existing._id, patch);
     return existing._id as Id<"forms">;
   }
 

@@ -426,7 +426,7 @@ export const activateFromIntent = mutation({
 
 		// Payment failure short-circuit.
 		if (args.paymentResult.status === "failed") {
-			await ctx.db.patch(args.intentId, {
+			await ctx.db.patch("commerce_subscription_checkout_intents", args.intentId, {
 				status: "failed",
 				paymentProvider: args.paymentResult.provider,
 				paymentTransactionId: args.paymentResult.providerTransactionId,
@@ -751,7 +751,7 @@ export const activateFromIntent = mutation({
 		});
 
 		// Patch the intent with the resolved subscription + activated status.
-		await ctx.db.patch(args.intentId, {
+		await ctx.db.patch("commerce_subscription_checkout_intents", args.intentId, {
 			status: "activated",
 			subscriptionId,
 			userId,

@@ -1,7 +1,11 @@
+import { newCertificateSerial } from "./serial";
+import { canResumeProgressRevocation } from "./revocationPolicy";
 /**
  * Certificate System - mutations.
  */
 
+import { deleteWithMediaReferences, patchWithMediaReferences } from "../../media/attachmentGuard";
+import { insertWithMediaReferences } from "../../media/attachmentGuard";
 import { ConvexError, v } from "convex/values";
 import { internal } from "../../_generated/api";
 import { mutation } from "../../_generated/server";
@@ -21,7 +25,7 @@ export const createTemplate = mutation({
     await requirePluginEnabled(ctx, "lms");
     const user = await requireCan(ctx, "lms.certificate.manage");
     const now = Date.now();
-    return await ctx.db.insert("lms_certificates", {
+    return await insertWithMediaReferences<"lms_certificates">(ctx, "lms_certificates", {
       title: args.title.trim() || "Certificate",
       templateDoc: args.templateDoc ?? textToDoc(DEFAULT_CERTIFICATE_TEMPLATE_TEXT),
       orientation: args.orientation ?? "landscape",
@@ -54,7 +58,7 @@ export const updateTemplate = mutation({
       if (val === undefined) continue;
       patch[k] = k === "title" ? String(val).trim() || "Certificate" : val;
     }
-    await ctx.db.patch(certificateId, patch as never);
+    await patchWithMediaReferences<"lms_certificates">(ctx, "lms_certificates", certificateId, patch as never);
     return certificateId;
   },
 });
@@ -78,7 +82,7 @@ export const deleteTemplate = mutation({
         message: "Certificate templates with issued certificates cannot be deleted.",
       });
     }
-    await ctx.db.delete(args.certificateId);
+    await deleteWithMediaReferences<"lms_certificates">(ctx, "lms_certificates", args.certificateId);
     return { ok: true };
   },
 });
@@ -107,12 +111,9 @@ export const issueCertificate = mutation({
       });
     }
 
-    const completions = await ctx.db
-      .query("lms_course_completions")
-      .withIndex("by_user", (q) => q.eq("userId", userId))
-      .collect();
-    const done = completions.find((c) => c.courseId === args.courseId && c.percent >= 100);
-    if (!done) {
+    const done = await ctx.db.query("lms_course_completions")
+      .withIndex("by_user_course", q => q.eq("userId", userId).eq("courseId", args.courseId)).first();
+    if (!done || done.percent !== 100) {
       throw new ConvexError({ code: "NOT_COMPLETED", message: "Course not completed" });
     }
 
@@ -120,6 +121,9 @@ export const issueCertificate = mutation({
       .query("lms_certificate_issues")
       .withIndex("by_user_course", (q) => q.eq("userId", userId).eq("courseId", args.courseId))
       .first();
+    if (existing?.status === "revoked" && !canResumeProgressRevocation(existing)) {
+      throw new ConvexError({code:"CERTIFICATE_REVOKED",message:"This certificate was revoked. Only a certificate administrator can reissue it."});
+    }
     if (existing?.status === "issued") {
       if (!existing.pdfMediaId) {
         await scheduleCertificatePdfRender(ctx, existing._id);
@@ -127,10 +131,10 @@ export const issueCertificate = mutation({
       return existing._id;
     }
 
-    const serial = newCertificateSerial(userId);
+    const serial = await newCertificateSerial(ctx);
     const issuedAt = Date.now();
     const issueId = existing
-      ? (await ctx.db.patch(existing._id, {
+      ? (await patchWithMediaReferences<"lms_certificate_issues">(ctx, "lms_certificate_issues", existing._id, {
           certificateId: course.certificateId,
           serial,
           issuedAt,
@@ -138,9 +142,10 @@ export const issueCertificate = mutation({
           revokedAt: undefined,
           revokedBy: undefined,
           revocationReason: undefined,
+          revocationKind: undefined,
           status: "issued",
         }), existing._id)
-      : await ctx.db.insert("lms_certificate_issues", {
+      : await insertWithMediaReferences<"lms_certificate_issues">(ctx, "lms_certificate_issues", {
           userId,
           courseId: args.courseId,
           certificateId: course.certificateId,
@@ -169,13 +174,14 @@ export const revokeIssue = mutation({
     if (!issue) {
       throw new ConvexError({ code: "NOT_FOUND", message: "Certificate issue not found" });
     }
-    if (issue.status === "revoked") {
+    if (issue.status === "revoked" && (issue.revocationKind === "administrator" || issue.revokedBy)) {
       return { ok: true, alreadyRevoked: true };
     }
-    await ctx.db.patch(args.issueId, {
+    await patchWithMediaReferences<"lms_certificate_issues">(ctx, "lms_certificate_issues", args.issueId, {
       status: "revoked",
       revokedAt: Date.now(),
       revokedBy: user._id,
+      revocationKind: "administrator",
       revocationReason: args.reason?.trim() || undefined,
     });
     await emitEvent(ctx, LMS_EVENTS.CERTIFICATE_REVOKED, SYSTEM.LMS, {
@@ -209,20 +215,15 @@ export const reissueIssue = mutation({
         message: "The assigned certificate template is inactive.",
       });
     }
-    const completions = await ctx.db
-      .query("lms_course_completions")
-      .withIndex("by_user", (q) => q.eq("userId", issue.userId))
-      .collect();
-    const done = completions.find(
-      (completion) => completion.courseId === issue.courseId && completion.percent >= 100,
-    );
-    if (!done) {
+    const done = await ctx.db.query("lms_course_completions")
+      .withIndex("by_user_course", q => q.eq("userId", issue.userId).eq("courseId", issue.courseId)).first();
+    if (!done || done.percent !== 100) {
       throw new ConvexError({ code: "NOT_COMPLETED", message: "Course not completed" });
     }
 
-    const serial = newCertificateSerial(issue.userId);
+    const serial = await newCertificateSerial(ctx);
     const issuedAt = Date.now();
-    await ctx.db.patch(args.issueId, {
+    await patchWithMediaReferences<"lms_certificate_issues">(ctx, "lms_certificate_issues", args.issueId, {
       certificateId,
       serial,
       issuedAt,
@@ -230,6 +231,7 @@ export const reissueIssue = mutation({
       revokedAt: undefined,
       revokedBy: undefined,
       revocationReason: undefined,
+      revocationKind: undefined,
       status: "issued",
     });
     await emitEvent(ctx, LMS_EVENTS.CERTIFICATE_ISSUED, SYSTEM.LMS, {
@@ -255,10 +257,6 @@ function textToDoc(text: string) {
         : [],
     })),
   };
-}
-
-function newCertificateSerial(userId: string) {
-  return `CERT-${Date.now().toString(36).toUpperCase()}-${String(userId).slice(-6).toUpperCase()}`;
 }
 
 async function scheduleCertificatePdfRender(ctx: any, issueId: string) {

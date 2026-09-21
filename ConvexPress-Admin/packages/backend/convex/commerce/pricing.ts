@@ -55,7 +55,7 @@ export const upsertPriceSet = mutation({
     if (args.priceSetId) {
       const set = await ctx.db.get(args.priceSetId);
       if (!set) throw new ConvexError({ code: "NOT_FOUND", message: "Price set not found." });
-      await ctx.db.patch(args.priceSetId, {
+      await ctx.db.patch("commerce_price_sets", args.priceSetId, {
         title: args.title,
         productId: args.productId,
         variantId: args.variantId,
@@ -137,7 +137,7 @@ export const upsertPrice = mutation({
     if (args.priceId) {
       const price = await ctx.db.get(args.priceId);
       if (!price) throw new ConvexError({ code: "NOT_FOUND", message: "Price not found." });
-      await ctx.db.patch(args.priceId, patch);
+      await ctx.db.patch("commerce_prices", args.priceId, patch);
       return args.priceId;
     }
     return await ctx.db.insert("commerce_prices", { ...patch, createdAt: now });
@@ -169,7 +169,7 @@ export const setPriceRules = mutation({
       .query("commerce_price_rules")
       .withIndex("by_price", (q: any) => q.eq("priceId", args.priceId))
       .collect();
-    for (const rule of existing) await ctx.db.delete(rule._id);
+    for (const rule of existing) await ctx.db.delete("commerce_price_rules", rule._id);
     const now = Date.now();
     const ids = [];
     for (const rule of args.rules) {

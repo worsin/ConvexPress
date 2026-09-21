@@ -1,3 +1,6 @@
+import { makeFunctionReference } from "convex/server";
+import { ConvexError } from "convex/values";
+import { deleteTermRelationship } from "../helpers/postDiscovery";
 /**
  * Taxonomy System - Internal Functions
  *
@@ -30,7 +33,7 @@ import {
  * Should be called during initial deployment or after schema migrations.
  */
 export const seedDefaultCategory = internalMutation({
-  args: {},
+  args: {}, returns: v.id("terms"),
   handler: async (ctx) => {
     const id = await ensureDefaultCategory(ctx);
     return id;
@@ -46,11 +49,13 @@ export const seedDefaultCategory = internalMutation({
  * Counts termRelationships where the linked post has status = "publish".
  */
 export const updateTermCount = internalMutation({
+  returns: v.null(),
   args: {
     termId: v.id("terms"),
   },
   handler: async (ctx, args) => {
     await updateTermCountHelper(ctx, args.termId);
+    return null;
   },
 });
 
@@ -61,17 +66,10 @@ export const updateTermCount = internalMutation({
  * if count drift is suspected. Iterates all terms and recalculates.
  */
 export const recalculateAllCounts = internalMutation({
-  args: {},
+  args: {}, returns: v.object({ scheduled: v.boolean() }),
   handler: async (ctx) => {
-    const allTerms = await ctx.db.query("terms").collect();
-
-    let updated = 0;
-    for (const term of allTerms) {
-      await updateTermCountHelper(ctx, term._id);
-      updated++;
-    }
-
-    return { updated };
+    await ctx.scheduler.runAfter(0, makeFunctionReference<"mutation">("taxonomies/counts:all"), {});
+    return { scheduled: true };
   },
 });
 
@@ -83,6 +81,7 @@ export const recalculateAllCounts = internalMutation({
  * recalculates each one's count.
  */
 export const updateCountsForPost = internalMutation({
+  returns: v.object({ termsUpdated: v.number() }),
   args: {
     postId: v.id("posts"),
   },
@@ -91,8 +90,9 @@ export const updateCountsForPost = internalMutation({
     const relationships = await ctx.db
       .query("termRelationships")
       .withIndex("by_post", (q) => q.eq("postId", args.postId))
-      .collect();
+      .take(257);
 
+    if (relationships.length > 256) throw new ConvexError("A post supports at most 256 taxonomy assignments.");
     // Recalculate count for each term
     for (const rel of relationships) {
       await updateTermCountHelper(ctx, rel.termId);
@@ -111,7 +111,7 @@ export const updateCountsForPost = internalMutation({
  * (e.g., Post System for auto-assigning on new post creation).
  */
 export const getDefaultCategoryId = internalQuery({
-  args: {},
+  args: {}, returns: v.union(v.id("terms"), v.null()),
   handler: async (ctx) => {
     const defaultCategory = await ctx.db
       .query("terms")
@@ -141,6 +141,7 @@ export const getDefaultCategoryId = internalQuery({
  * After deleting relationships, recalculates counts for affected terms.
  */
 export const deleteRelationshipsForPost = internalMutation({
+  returns: v.object({ deleted: v.number() }),
   args: {
     postId: v.id("posts"),
   },
@@ -148,13 +149,14 @@ export const deleteRelationshipsForPost = internalMutation({
     const relationships = await ctx.db
       .query("termRelationships")
       .withIndex("by_post", (q) => q.eq("postId", args.postId))
-      .collect();
+      .take(257);
 
+    if (relationships.length > 256) throw new ConvexError("A post supports at most 256 taxonomy assignments.");
     const affectedTermIds: Set<string> = new Set();
 
     for (const rel of relationships) {
       affectedTermIds.add(rel.termId);
-      await ctx.db.delete("termRelationships", rel._id);
+      await deleteTermRelationship(ctx, rel._id);
     }
 
     // Recalculate counts for affected terms

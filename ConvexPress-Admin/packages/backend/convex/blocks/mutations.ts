@@ -1,13 +1,13 @@
-import { ConvexError } from "convex/values";
+import { ConvexError, v, type ObjectType } from "convex/values";
 import { internal } from "../_generated/api";
-import { mutation } from "../_generated/server";
-import type { Doc } from "../_generated/dataModel";
+import { mutation, internalMutation, type MutationCtx } from "../_generated/server";
+import type { Doc, Id } from "../_generated/dataModel";
 import { emitEvent } from "../helpers/events";
 import { getCurrentUser, requireCan, getUserIdentifier } from "../helpers/permissions";
+import { canEditContent } from "../helpers/publicContent";
 import { PAGE_EVENTS, POST_EVENTS, SYSTEM } from "../events/constants";
 import {
   assertRevision,
-  countBlockNames,
   duplicateBlock as duplicateBlockInTree,
   findBlockById,
   getBlocksRevision,
@@ -20,6 +20,7 @@ import {
   validateBlocksAgainstCatalog,
   type StoredBlock,
 } from "./helpers";
+import { assertNoDisabledBlocksInTree, assertNoNewDisabledBlocks, loadDisabledBlockNames } from "./policy";
 import { migrateBlocks } from "./migrations";
 import {
   duplicateBlockArgs,
@@ -29,8 +30,9 @@ import {
   replaceBlocksArgs,
   updateBlockAttrsArgs,
 } from "./validators";
+import { patchWithMediaReferences } from "../media/attachmentGuard";
 
-async function requireEditableDocument(ctx: any, postId: any): Promise<Doc<"posts">> {
+async function requireEditableDocument(ctx: MutationCtx, postId: Id<"posts">): Promise<Doc<"posts">> {
   const doc = await ctx.db.get("posts", postId);
   if (!doc || (doc.type !== "page" && doc.type !== "post")) {
     throw new ConvexError({
@@ -40,6 +42,9 @@ async function requireEditableDocument(ctx: any, postId: any): Promise<Doc<"post
   }
 
   await requireCan(ctx, doc.type === "page" ? "page.update" : "post.update");
+  if (!(await canEditContent(ctx, doc))) {
+    throw new ConvexError({ code: "FORBIDDEN", message: "Cannot edit this content document" });
+  }
   return doc;
 }
 
@@ -58,9 +63,8 @@ function serializeBlocksForRevision(blocks: StoredBlock[]): string {
  * (the underlying mutation only runs from authenticated callers anyway) or
  * when nothing changed.
  *
- * The revision's `content` field stores the serialized blocks JSON — the
- * frontend's `lib/blockDiff.ts` already knows how to parse this array shape
- * and produce a block-aware diff in the Revisions UI.
+ * The revision stores the complete authoring snapshot, including blocks and
+ * article content separately, so switching editors remains recoverable.
  */
 async function snapshotBlocksRevision(
   ctx: any,
@@ -82,11 +86,8 @@ async function snapshotBlocksRevision(
   const user = await getCurrentUser(ctx);
   if (!user) return;
 
-  // The Revision System requires `changedFields` to mention "title",
-  // "content", or "excerpt" to actually record the snapshot. Always
-  // include "content" since the blocks ARE the content from the rev system's
-  // perspective.
-  const fields = Array.from(new Set(["content", ...changedFields]));
+  // Record a complete pre-change authoring snapshot, including the block tree.
+  const fields = Array.from(new Set(["blocks", ...changedFields]));
 
   await ctx.runMutation(internal.revisions.internals.createOnSave, {
     parentId: doc._id,
@@ -95,7 +96,7 @@ async function snapshotBlocksRevision(
     // Snapshot the PRE-change block tree so the revision represents
     // "what was there before this edit". Matches the contract used by
     // post.update / page.update for non-block content.
-    content: previousSerialized,
+    content: doc.content ?? "",
     excerpt: (doc as any).excerpt,
     authorId: getUserIdentifier(user),
     changedFields: fields,
@@ -108,30 +109,18 @@ async function saveBlocks(
   blocks: StoredBlock[],
   changedFields: string[],
 ) {
-  const migratedBlocks = migrateBlocks(blocks);
-  validateBlocks(migratedBlocks);
-  validateBlocksAgainstCatalog(migratedBlocks);
+  validateBlocks(blocks);
+  const migrated = migrateBlocks(blocks);
+  validateBlocks(migrated);
+  const migratedBlocks = validateBlocksAgainstCatalog(migrated);
 
   // Snapshot the current state into the Revision System BEFORE patching in
-  // the new blocks. Safe to await — if it fails (no user, revisions disabled,
-  // etc.) it returns silently.
+  // the new blocks. A snapshot failure aborts the edit transaction.
   const previousBlocks = getStoredBlocks(doc);
-  try {
-    await snapshotBlocksRevision(
-      ctx,
-      doc,
-      previousBlocks,
-      migratedBlocks,
-      changedFields,
-    );
-  } catch (err) {
-    // Don't fail the save if the revision write blows up. Log via the event
-    // stream instead so it shows up in the admin's activity log.
-    console.error("[blocks] revision snapshot failed:", err);
-  }
+  await snapshotBlocksRevision(ctx, doc, previousBlocks, migratedBlocks, changedFields);
 
   const revision = getBlocksRevision(doc) + 1;
-  await ctx.db.patch("posts", doc._id, {
+  await patchWithMediaReferences<"posts">(ctx, "posts", doc._id, {
     contentMode: "blocks",
     blocks: migratedBlocks,
     blocksVersion: 1,
@@ -156,65 +145,7 @@ async function saveBlocks(
   return { postId: doc._id, revision };
 }
 
-async function loadDisabledBlockNames(ctx: any): Promise<Set<string>> {
-  const settings = await ctx.runQuery(internal.settings.internals.getInternal, {
-    section: "blocks",
-  });
-  const names = (settings as any)?.disabledBlockNames;
-  if (!Array.isArray(names)) return new Set();
-  return new Set(
-    names.filter((name: unknown): name is string => typeof name === "string"),
-  );
-}
-
-function collectBlockNames(blocks: StoredBlock[], into: Set<string>) {
-  for (const block of blocks) {
-    if (block && typeof block.name === "string") into.add(block.name);
-    if (Array.isArray(block?.innerBlocks)) {
-      collectBlockNames(block.innerBlocks, into);
-    }
-  }
-}
-
-async function assertNoDisabledBlocksInTree(ctx: any, blocks: StoredBlock[]) {
-  const disabled = await loadDisabledBlockNames(ctx);
-  if (disabled.size === 0) return;
-  const usedNames = new Set<string>();
-  collectBlockNames(blocks, usedNames);
-  const offenders = [...usedNames].filter((name) => disabled.has(name));
-  if (offenders.length > 0) {
-    throw new ConvexError({
-      code: "VALIDATION_ERROR",
-      message: `Cannot save: these block types are disabled — ${offenders.join(", ")}`,
-    });
-  }
-}
-
-async function assertNoNewDisabledBlocks(
-  ctx: any,
-  previousBlocks: StoredBlock[],
-  nextBlocks: StoredBlock[],
-) {
-  const disabled = await loadDisabledBlockNames(ctx);
-  if (disabled.size === 0) return;
-
-  const previousCounts = countBlockNames(previousBlocks);
-  const nextCounts = countBlockNames(nextBlocks);
-  const offenders = [...disabled].filter(
-    (name) => (nextCounts.get(name) ?? 0) > (previousCounts.get(name) ?? 0),
-  );
-
-  if (offenders.length > 0) {
-    throw new ConvexError({
-      code: "VALIDATION_ERROR",
-      message: `Cannot add disabled block types: ${offenders.join(", ")}`,
-    });
-  }
-}
-
-export const updateBlockAttrs = mutation({
-  args: updateBlockAttrsArgs,
-  handler: async (ctx, args) => {
+async function updateBlockAttrsImpl(ctx: MutationCtx, args: ObjectType<typeof updateBlockAttrsArgs>) {
     const doc = await requireEditableDocument(ctx, args.postId);
     assertRevision(doc, args.expectedRevision);
 
@@ -228,7 +159,10 @@ export const updateBlockAttrs = mutation({
     }
 
     return saveBlocks(ctx, doc, result.blocks, ["blocks", "blockAttrs"]);
-  },
+}
+export const updateBlockAttrs = mutation({
+  args: updateBlockAttrsArgs,
+  handler: updateBlockAttrsImpl,
 });
 
 export const insertBlock = mutation({
@@ -236,6 +170,7 @@ export const insertBlock = mutation({
   handler: async (ctx, args) => {
     const doc = await requireEditableDocument(ctx, args.postId);
     assertRevision(doc, args.expectedRevision);
+    validateBlocks([args.block as StoredBlock]);
     await assertNoDisabledBlocksInTree(ctx, [args.block as StoredBlock]);
 
     const result = insertBlockInTree(
@@ -293,6 +228,7 @@ export const duplicateBlock = mutation({
       throw new ConvexError({ code: "NOT_FOUND", message: "Block not found" });
     }
 
+    await assertNoNewDisabledBlocks(ctx, currentBlocks, result.blocks);
     return saveBlocks(ctx, doc, result.blocks, ["blocks", "blockDuplicated"]);
   },
 });
@@ -312,9 +248,7 @@ export const removeBlock = mutation({
   },
 });
 
-export const replaceBlocks = mutation({
-  args: replaceBlocksArgs,
-  handler: async (ctx, args) => {
+async function replaceBlocksImpl(ctx: MutationCtx, args: ObjectType<typeof replaceBlocksArgs>) {
     const doc = await requireEditableDocument(ctx, args.postId);
     assertRevision(doc, args.expectedRevision);
     validateBlocks(args.blocks as StoredBlock[]);
@@ -329,5 +263,31 @@ export const replaceBlocks = mutation({
       "blocks",
       "blocksReplaced",
     ]);
+}
+export const replaceBlocks = mutation({
+  args: replaceBlocksArgs,
+  handler: replaceBlocksImpl,
+});
+
+// AI writes recheck authority and current enablement in the same transaction
+// as the revision-checked write. A query before a provider call is insufficient.
+const aiReceipt = v.object({ postId: v.id("posts"), revision: v.number() });
+export const replaceBlocksFromAi = internalMutation({
+  args: { ...replaceBlocksArgs, expectedRevision: v.number() }, returns: aiReceipt,
+  handler: async (ctx, args) => {
+    await requireCan(ctx, "blocks.ai");
+    await assertNoDisabledBlocksInTree(ctx, args.blocks as StoredBlock[]);
+    return replaceBlocksImpl(ctx, args);
+  },
+});
+export const updateBlockAttrsFromAi = internalMutation({
+  args: { ...updateBlockAttrsArgs, expectedRevision: v.number() }, returns: aiReceipt,
+  handler: async (ctx, args) => {
+    await requireCan(ctx, "blocks.ai");
+    const doc = await requireEditableDocument(ctx, args.postId);
+    const block = findBlockById(getStoredBlocks(doc), args.blockId);
+    if (!block) throw new ConvexError({ code: "NOT_FOUND", message: "Block not found" });
+    await assertNoDisabledBlocksInTree(ctx, [block]);
+    return updateBlockAttrsImpl(ctx, args);
   },
 });

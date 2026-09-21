@@ -1,5 +1,6 @@
 import { defineTable } from "convex/server";
 import { v } from "convex/values";
+import { shippingQuoteOriginValidator, shippingQuotePackageValidator } from "../shipping/quoteProvenance";
 
 export const shippingProviderValidator = v.union(
   v.literal("shipstation"),
@@ -955,6 +956,8 @@ export const shippingTables = {
     isFastest: v.boolean(),
     isBestValue: v.boolean(),
     rawQuote: v.optional(v.any()),
+    origin: v.optional(shippingQuoteOriginValidator),
+    packages: v.optional(v.array(shippingQuotePackageValidator)),
     /** Deterministic fingerprint of the shipping address used when this quote was fetched. */
     addressKey: v.optional(v.string()),
     /** Deterministic fingerprint of the cart items when this quote was fetched. */

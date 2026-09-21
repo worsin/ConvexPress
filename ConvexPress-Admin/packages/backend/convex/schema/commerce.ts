@@ -1,5 +1,6 @@
 import { defineTable } from "convex/server";
 import { v } from "convex/values";
+import { labelOriginProofValidator } from "../shipping/labelOrigin";
 
 export const commerceProductStatusValidator = v.union(
   v.literal("draft"),
@@ -136,6 +137,10 @@ const commerceDynamicPricingScopeValidator = v.object({
 });
 
 export const commerceTables = {
+  commerce_catalog_revisions: defineTable({
+    domain: v.union(v.literal("source"), v.literal("policy")),
+    revision: v.number(),
+  }).index("by_domain", ["domain"]),
   commerce_product_categories: defineTable({
     name: v.string(),
     slug: v.string(),
@@ -159,9 +164,44 @@ export const commerceTables = {
     .index("by_slug", ["slug"])
     .index("by_parent", ["parentId"])
     .index("by_parent_sort", ["parentId", "sortOrder"])
+    .index("by_sort", ["sortOrder"])
     .index("by_visible", ["isVisible"])
     .index("by_featured", ["isFeatured"])
     .index("by_nav", ["showInNav"]),
+
+  commerce_product_brands: defineTable({
+    name: v.string(),
+    slug: v.string(),
+    description: v.string(),
+    logoMediaId: v.optional(v.id("media")),
+    status: v.union(v.literal("draft"), v.literal("publish"), v.literal("archived")),
+    sortOrder: v.number(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  }).index("by_slug", ["slug"])
+    .index("by_sort", ["sortOrder"])
+    .index("by_status_sort", ["status", "sortOrder"]),
+
+  commerce_product_tags: defineTable({
+    name: v.string(),
+    slug: v.string(),
+    isVisible: v.boolean(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  }).index("by_slug", ["slug"]),
+
+  commerce_product_sales: defineTable({
+    productId:v.id("commerce_products"),bucket:v.string(),createdAt:v.number(),startsAt:v.number(),endsAt:v.number(),
+  }).index("by_product",["productId"]).index("by_bucket_created",["bucket","createdAt","productId"])
+    .index("by_start",["startsAt"]).index("by_end",["endsAt"]),
+  commerce_product_discovery: defineTable({
+    productId: v.id("commerce_products"),
+    kind: v.union(v.literal("recent"), v.literal("category"), v.literal("featured"), v.literal("tag")),
+    key: v.string(),
+    createdAt: v.number(),
+  })
+    .index("by_product", ["productId"])
+    .index("by_selection_created", ["kind", "key", "createdAt"]),
 
   commerce_products: defineTable({
     title: v.string(),
@@ -175,6 +215,11 @@ export const commerceTables = {
     featuredMediaId: v.optional(v.id("media")),
     galleryMediaIds: v.array(v.id("media")),
     categoryIds: v.array(v.id("commerce_product_categories")),
+    brandId: v.optional(v.id("commerce_product_brands")),
+    isFeatured: v.optional(v.boolean()),
+    collectionIndexVersion: v.optional(v.literal(1)),
+    saleIndexVersion: v.optional(v.literal(1)),
+    tagIds: v.optional(v.array(v.id("commerce_product_tags"))),
     basePrice: commerceMoneyValidator,
     salePrice: v.optional(commerceMoneyValidator),
     trackInventory: v.boolean(),
@@ -240,6 +285,10 @@ export const commerceTables = {
     .index("by_slug", ["slug"])
     .index("by_sku", ["sku"])
     .index("by_status", ["status"])
+    .index("by_status_created", ["status", "createdAt"])
+    .index("by_brand_status", ["brandId", "status"])
+    .index("by_collection_index_version", ["collectionIndexVersion"])
+    .index("by_sale_index_version", ["saleIndexVersion"])
     .index("by_author", ["authorId"])
     .index("by_shipping_class", ["shippingClassId"])
     .searchIndex("search_commerce_products", {
@@ -338,6 +387,7 @@ export const commerceTables = {
   })
     .index("by_product", ["productId"])
     .index("by_product_default", ["productId", "isDefault"])
+    .index("by_product_status_default", ["productId", "status", "isDefault"])
     .index("by_product_selection_key", ["productId", "selectionKey"])
     .index("by_sku", ["sku"])
     .index("by_product_status", ["productId", "status"])
@@ -358,6 +408,7 @@ export const commerceTables = {
     dynamicPricingRuleIds: v.optional(v.array(v.id("commerce_dynamic_pricing_rules"))),
     dynamicPricingDescription: v.optional(v.string()),
     freeShippingByDynamicPricing: v.optional(v.boolean()),
+    freeShippingByCoupon: v.optional(v.boolean()),
     subtotalAmount: v.number(),
     discountAmount: v.number(),
     shippingAmount: v.number(),
@@ -424,6 +475,7 @@ export const commerceTables = {
     dynamicPricingRuleIds: v.optional(v.array(v.id("commerce_dynamic_pricing_rules"))),
     dynamicPricingDescription: v.optional(v.string()),
     freeShippingByDynamicPricing: v.optional(v.boolean()),
+    freeShippingByCoupon: v.optional(v.boolean()),
     notes: v.optional(v.string()),
     subtotalAmount: v.number(),
     discountAmount: v.number(),
@@ -586,6 +638,7 @@ export const commerceTables = {
     dynamicPricingRuleIds: v.optional(v.array(v.id("commerce_dynamic_pricing_rules"))),
     dynamicPricingDescription: v.optional(v.string()),
     freeShippingByDynamicPricing: v.optional(v.boolean()),
+    freeShippingByCoupon: v.optional(v.boolean()),
     subtotalAmount: v.number(),
     discountAmount: v.number(),
     shippingAmount: v.number(),
@@ -606,6 +659,8 @@ export const commerceTables = {
     digitalFulfilledAt: v.optional(v.number()),
     digitalFulfillmentError: v.optional(v.string()),
     inventoryCommittedAt: v.optional(v.number()),
+    inventoryPolicyVersion: v.optional(v.literal(1)),
+    inventoryReservationCount: v.optional(v.number()),
     inventoryReleasedAt: v.optional(v.number()),
     discountUsageCountedAt: v.optional(v.number()),
     notes: v.optional(v.string()),
@@ -675,6 +730,7 @@ export const commerceTables = {
     // PRD A4 — which ship-from location fulfilled this shipment. Required
     // for D3 manifest routing (each manifest is per-location).
     shipFromLocationId: v.optional(v.id("commerce_ship_from_locations")),
+    originProof: v.optional(labelOriginProofValidator),
     items: v.array(
       v.object({
         orderItemId: v.id("commerce_order_items"),
@@ -774,6 +830,7 @@ export const commerceTables = {
     orderId: v.optional(v.id("commerce_orders")),
     subscriptionId: v.optional(v.id("commerce_subscriptions")),
     invoiceId: v.optional(v.id("commerce_subscription_invoices")),
+    status: v.optional(v.union(v.literal("reserved"), v.literal("consumed"), v.literal("released"))),
     appliedAmount: v.number(),
     appliedAt: v.number(),
     context: v.union(
@@ -784,6 +841,9 @@ export const commerceTables = {
     createdAt: v.number(),
   })
     .index("by_discount", ["discountId"])
+    .index("by_discount_status", ["discountId", "status"])
+    .index("by_discount_user", ["discountId", "userId"])
+    .index("by_discount_email", ["discountId", "customerEmail"])
     .index("by_user", ["userId"])
     .index("by_email", ["customerEmail"])
     .index("by_order", ["orderId"])
@@ -1091,7 +1151,8 @@ export const commerceTables = {
     .index("by_order", ["orderId"])
     .index("by_collection", ["collectionId"])
     .index("by_session", ["sessionId"])
-    .index("by_return", ["returnId"]),
+    .index("by_return", ["returnId"])
+    .index("by_provider_refund", ["providerRefundId"]),
 
   commerce_order_changes: defineTable({
     orderId: v.id("commerce_orders"),
@@ -1237,6 +1298,7 @@ export const commerceTables = {
     .index("by_variant", ["variantId"])
     .index("by_location", ["locationId"])
     .index("by_type", ["adjustmentType"])
+    .index("by_order", ["orderId"])
     .index("by_date", ["createdAt"]),
 
   commerce_inventory_levels: defineTable({
@@ -1283,6 +1345,7 @@ export const commerceTables = {
     variantId: v.optional(v.id("commerce_product_variants")),
     locationId: v.optional(v.id("commerce_ship_from_locations")),
     quantity: v.number(),
+    allowBackorders: v.optional(v.boolean()),
     status: v.union(
       v.literal("active"),
       v.literal("released"),
@@ -1295,6 +1358,9 @@ export const commerceTables = {
   })
     .index("by_checkout", ["checkoutSessionId"])
     .index("by_product_status", ["productId", "status"])
+    .index("by_product_variant_status", ["productId", "variantId", "status"])
+    .index("by_checkout_status", ["checkoutSessionId", "status"])
+    .index("by_status_expiry", ["status", "expiresAt"])
     .index("by_location_status", ["locationId", "status"])
     .index("by_product_location_status", ["productId", "locationId", "status"]),
 

@@ -1,3 +1,4 @@
+import { assertPagePathAvailable, assertPageTreePathAvailable } from "../helpers/pageRouteGuard";
 /**
  * Page System - HTTP API Internal Functions
  *
@@ -16,6 +17,7 @@
  *   trashInternal         - Trash page via HTTP API
  */
 
+import { readPublicContent, canDiscoverContent } from "../helpers/publicContent";
 import { internalMutation, internalQuery } from "../_generated/server";
 import type { MutationCtx } from "../_generated/server";
 import { v } from "convex/values";
@@ -25,6 +27,7 @@ type PostStatus = "auto-draft" | "draft" | "pending" | "publish" | "future" | "p
 import { emitEvent } from "../helpers/events";
 import { PAGE_EVENTS, SYSTEM } from "../events/constants";
 import type { Id } from "../_generated/dataModel";
+import { insertWithMediaReferences, patchWithMediaReferences } from "../media/attachmentGuard";
 
 /**
  * Internal version of listPublished for HTTP API.
@@ -40,12 +43,17 @@ export const listPublishedInternal = internalQuery({
     const perPage = Math.min(100, Math.max(1, args.perPage ?? 100));
 
     // Fetch all published pages
-    const allPublished = await ctx.db
+    const candidates = await ctx.db
       .query("posts")
       .withIndex("by_type_status_published", (q) =>
         q.eq("type", "page").eq("status", "publish"),
       )
       .collect();
+
+    const allPublished = [];
+    for (const candidate of candidates) {
+      if (await canDiscoverContent(ctx, candidate)) allPublished.push(candidate);
+    }
 
     // Sort by menuOrder then title
     allPublished.sort((a, b) => {
@@ -91,12 +99,14 @@ export const getInternal = internalQuery({
   handler: async (ctx, args) => {
     const page = await ctx.db.get("posts", args.pageId);
     if (!page || page.type !== "page") return null;
+    const data = await readPublicContent(ctx, page);
+    if (!data) return null;
 
     // Enrich with parent info
     let parentInfo = null;
     if (page.parentId) {
       const parent = await ctx.db.get("posts", page.parentId as Id<"posts">);
-      if (parent && parent.type === "page") {
+      if (parent && parent.type === "page" && await canDiscoverContent(ctx, parent)) {
         parentInfo = {
           _id: parent._id,
           title: parent.title,
@@ -114,7 +124,11 @@ export const getInternal = internalQuery({
       )
       .collect();
 
-    const children = childrenQuery
+    const visibleChildren = [];
+    for (const child of childrenQuery) {
+      if (await canDiscoverContent(ctx, child)) visibleChildren.push(child);
+    }
+    const children = visibleChildren
       .filter((c) => c.status === "publish")
       .sort((a, b) =>
         ((a.menuOrder as number) ?? 0) - ((b.menuOrder as number) ?? 0),
@@ -129,7 +143,7 @@ export const getInternal = internalQuery({
       }));
 
     return {
-      ...page,
+      ...data,
       isPasswordProtected: page.visibility === "password",
       parent: parentInfo,
       children,
@@ -214,10 +228,12 @@ export const createInternal = internalMutation({
 
     // Generate slug
     const baseSlug = args.slug ? slugify(args.slug) : slugify(args.title || "page");
+    await assertPagePathAvailable(ctx, await computePagePath(ctx, baseSlug, args.parentId));
     const slug = await generateUniqueSlug(ctx, baseSlug);
 
     // Compute path
     const path = await computePagePath(ctx, slug, args.parentId);
+    await assertPagePathAvailable(ctx, path);
 
     // Compute depth
     let depth = 0;
@@ -228,7 +244,7 @@ export const createInternal = internalMutation({
       }
     }
 
-    const pageId = await ctx.db.insert("posts", {
+    const pageId: import("../_generated/dataModel").Id<"posts"> = await insertWithMediaReferences<"posts">(ctx, "posts", {
       type: "page",
       title: args.title,
       slug,
@@ -307,10 +323,12 @@ export const updateInternal = internalMutation({
       changes.push("status");
     }
     if (args.slug !== undefined && args.slug !== page.slug) {
+      await assertPagePathAvailable(ctx, await computePagePath(ctx, slugify(args.slug), page.parentId), page.path ?? `/${page.slug}`);
       const newSlug = await generateUniqueSlug(ctx, slugify(args.slug), args.pageId);
       patch.slug = newSlug;
       // Recompute path
       patch.path = await computePagePath(ctx, newSlug, page.parentId as Id<"posts"> | undefined);
+      await assertPageTreePathAvailable(ctx, args.pageId, patch.path as string, page.path ?? `/${page.slug}`);
       changes.push("slug");
     }
     if (args.menuOrder !== undefined && args.menuOrder !== page.menuOrder) {
@@ -336,7 +354,7 @@ export const updateInternal = internalMutation({
     }
 
     if (changes.length > 0) {
-      await ctx.db.patch("posts", args.pageId, patch);
+      await patchWithMediaReferences<"posts">(ctx, "posts", args.pageId, patch);
 
       await emitEvent(ctx, PAGE_EVENTS.UPDATED, SYSTEM.PAGE, {
         pageId: args.pageId,
@@ -368,7 +386,7 @@ export const trashInternal = internalMutation({
 
     const now = Date.now();
 
-    await ctx.db.patch("posts", args.pageId, {
+    await patchWithMediaReferences<"posts">(ctx, "posts", args.pageId, {
       previousStatus: page.status,
       status: "trash",
       trashedAt: now,

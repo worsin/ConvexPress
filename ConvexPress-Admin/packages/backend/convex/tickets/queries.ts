@@ -552,6 +552,7 @@ export const getStats = query({
       avgRating,
       ratedCount: ratedTickets.length,
       totalActive: activeTickets.length,
+      awaitingFirstResponseCount: activeTickets.filter((ticket) => !ticket.firstResponseAt).length,
     };
   },
 });

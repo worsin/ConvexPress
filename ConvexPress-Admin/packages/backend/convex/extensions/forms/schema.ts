@@ -20,11 +20,35 @@ import { defineTable } from "convex/server";
 import { v } from "convex/values";
 
 export const tables = {
+  // One bounded rate window per persisted poll source, shared by all definition
+  // versions so changing a question cannot reset its traffic ceiling.
+  form_poll_rate_limits: defineTable({
+    postId: v.id("posts"), blockId: v.string(), windowStart: v.number(), accepted: v.number(), updatedAt: v.number(),
+  }).index("by_source", ["postId", "blockId"]),
+  // Poll responses are source-bound ballots, not arbitrary forms or client totals.
+  // One bounded tally per definition; unique indexed voter reads never scan votes.
+  form_poll_tallies: defineTable({
+    postId: v.id("posts"), blockId: v.string(), definitionVersion: v.string(),
+    counts: v.array(v.object({ key: v.string(), count: v.number() })),
+    total: v.number(), updatedAt: v.number(),
+  }).index("by_source_definition", ["postId", "blockId", "definitionVersion"]),
+  form_poll_votes: defineTable({
+    postId: v.id("posts"), blockId: v.string(), definitionVersion: v.string(),
+    voterHash: v.string(), optionKey: v.string(), createdAt: v.number(),
+  }).index("by_source_voter", ["postId", "blockId", "definitionVersion", "voterHash"]),
   // ── Form definitions (Form Builder System) ─────────────────────────────
   forms: defineTable({
     title: v.string(),
     slug: v.string(), // unique, public; used at /forms/$slug
     description: v.optional(v.string()),
+
+    // Source binding for inline Contact blocks. Populated only by the document
+    // authoring service; ordinary Forms records omit these fields.
+    contactPostId: v.optional(v.id("posts")),
+    contactBlockId: v.optional(v.string()),
+    contactDefinition: v.optional(v.string()),
+    contactNotificationId: v.optional(v.id("form_notifications")),
+    contactConfirmationId: v.optional(v.id("form_confirmations")),
 
     // Soft-delete via status union (kit convention), not an isDeleted boolean.
     status: v.union(
@@ -40,6 +64,8 @@ export const tables = {
     // require-login, default confirmation/notification refs, etc.).
     settings: v.string(), // JSON-encoded
 
+    // Derived readiness is reset on restore; authored form data stays independent.
+    submissionCountReady: v.optional(v.boolean()),
     publishedAt: v.optional(v.number()),
     createdBy: v.id("users"),
     updatedBy: v.optional(v.id("users")),
@@ -47,8 +73,18 @@ export const tables = {
     updatedAt: v.number(),
   })
     .index("by_slug", ["slug"])
+    .index("by_contact_source", ["contactPostId", "contactBlockId"])
     .index("by_status", ["status"])
-    .index("by_createdBy", ["createdBy"]),
+    .index("by_createdBy", ["createdBy"])
+    .index("by_submission_count_ready", ["submissionCountReady"]),
+
+  // Exact complete-entry count with a bounded resumable upgrade/restore scan.
+  formSubmissionCounts: defineTable({
+    formId: v.id("forms"), phase: v.union(v.literal("pending"), v.literal("scanning"), v.literal("ready")),
+    generation: v.number(), count: v.number(), updatedAt: v.number(),
+    frontierTime: v.union(v.number(), v.null()), frontierId: v.union(v.string(), v.null()),
+    horizonTime: v.union(v.number(), v.null()), horizonId: v.union(v.string(), v.null()),
+  }).index("by_form", ["formId"]).index("by_phase_updated", ["phase", "updatedAt"]),
 
   // ── Submissions / entries (Form Submission System) ──────────────────────
   // Answers live in customFields `fieldValues` (entityType="form_submission").
@@ -70,6 +106,10 @@ export const tables = {
     userAgent: v.optional(v.string()),
     referrer: v.optional(v.string()),
     userId: v.optional(v.id("users")), // set when a logged-in user submits
+
+    // Short-lived proof returned only to the successful submitting caller.
+    confirmationTokenHash: v.optional(v.string()),
+    confirmationExpiresAt: v.optional(v.number()),
 
     // Save-and-continue (Multi-Step System).
     resumeToken: v.optional(v.string()),

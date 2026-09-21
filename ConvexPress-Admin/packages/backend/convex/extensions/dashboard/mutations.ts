@@ -91,7 +91,7 @@ export const saveDefaultLayout = mutation({
     const membersCanEdit = args.membersCanEdit ?? existing?.membersCanEdit ?? true;
     let id;
     if (existing) {
-      await ctx.db.patch(existing._id, { title, items, membersCanEdit, updatedBy: user._id, updatedAt: now });
+      await ctx.db.patch("dashboard_layouts", existing._id, { title, items, membersCanEdit, updatedBy: user._id, updatedAt: now });
       id = existing._id;
     } else {
       id = await ctx.db.insert("dashboard_layouts", {
@@ -121,7 +121,7 @@ export const deleteDefaultLayout = mutation({
       .query("dashboard_layouts")
       .withIndex("by_scope", (q: any) => q.eq("scope", args.scope))
       .unique();
-    if (existing) await ctx.db.delete(existing._id);
+    if (existing) await ctx.db.delete("dashboard_layouts", existing._id);
     return true;
   },
 });
@@ -151,7 +151,7 @@ export const saveMyLayout = mutation({
       .unique();
     const now = Date.now();
     if (existing) {
-      await ctx.db.patch(existing._id, { baseScope: args.baseScope, items, updatedAt: now });
+      await ctx.db.patch("dashboard_user_layouts", existing._id, { baseScope: args.baseScope, items, updatedAt: now });
       return existing._id;
     }
     return await ctx.db.insert("dashboard_user_layouts", {
@@ -172,7 +172,7 @@ export const resetMyLayout = mutation({
       .query("dashboard_user_layouts")
       .withIndex("by_user", (q: any) => q.eq("userId", user._id))
       .unique();
-    if (existing) await ctx.db.delete(existing._id);
+    if (existing) await ctx.db.delete("dashboard_user_layouts", existing._id);
     return true;
   },
 });

@@ -1,3 +1,4 @@
+import type { Doc } from "../../_generated/dataModel";
 /**
  * Course System - queries.
  */
@@ -17,7 +18,7 @@ const catalogSortValidator = v.union(
   v.literal("popular"),
 );
 
-function publicCoursePayload(course: any) {
+function publicCoursePayload(course: Doc<"lms_courses">) {
   return {
     _id: course._id,
     title: course.title,

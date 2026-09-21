@@ -28,29 +28,10 @@ import { requireCan, getCurrentUser } from "../helpers/permissions";
 import { requireCommerceReviewsEnabled } from "./helpers";
 import { commerceReviewStatusValidator } from "../schema/commerceReviews";
 import { requirePluginEnabled } from "../helpers/plugins";
+import { patchDynamicWithMediaReferences, deleteDynamicWithMediaReferences } from "../media/attachmentGuard";
 
-// ============================================
-// HELPER: Update product aggregate rating stats
-// ============================================
 
-async function updateProductRatingStats(ctx: any, productId: any) {
-  const reviews = await ctx.db
-    .query("commerce_review_items")
-    .withIndex("by_product", (q: any) => q.eq("productId", productId))
-    .filter((q: any) => q.eq(q.field("status"), "approved"))
-    .collect();
-
-  const reviewCount = reviews.length;
-  const averageRating =
-    reviewCount > 0
-      ? reviews.reduce((sum: number, r: any) => sum + r.rating, 0) / reviewCount
-      : null;
-
-  await ctx.db.patch(productId, {
-    reviewCount,
-    averageRating,
-  });
-}
+import {insertCountedReview, validateReviewRating} from "./ratingIndex";
 
 // ============================================
 // CUSTOMER MUTATIONS
@@ -66,6 +47,7 @@ export const submit = mutation({
     title: v.optional(v.string()),
     content: v.optional(v.string()),
   },
+  returns: v.id("commerce_review_items"),
   handler: async (ctx: any, args: any) => {
     await requirePluginEnabled(ctx, "commerceReviews");
     await requireCommerceReviewsEnabled(ctx);
@@ -78,6 +60,7 @@ export const submit = mutation({
       });
     }
 
+    validateReviewRating(args.rating);
     // Validate rating
     if (args.rating < 1 || args.rating > 5) {
       throw new ConvexError({
@@ -127,7 +110,7 @@ export const submit = mutation({
 
     const now = Date.now();
 
-    const reviewId = await ctx.db.insert("commerce_review_items", {
+    const reviewId = await insertCountedReview(ctx, {
       productId: args.productId,
       userId: user._id,
       orderId,
@@ -155,6 +138,7 @@ export const update = mutation({
     title: v.optional(v.string()),
     content: v.optional(v.string()),
   },
+  returns: v.id("commerce_review_items"),
   handler: async (ctx: any, args: any) => {
     await requirePluginEnabled(ctx, "commerceReviews");
     await requireCommerceReviewsEnabled(ctx);
@@ -182,6 +166,7 @@ export const update = mutation({
       });
     }
 
+    if(args.rating!==undefined)validateReviewRating(args.rating);
     // Validate rating if provided
     if (args.rating !== undefined && (args.rating < 1 || args.rating > 5)) {
       throw new ConvexError({
@@ -196,11 +181,11 @@ export const update = mutation({
     if (args.content !== undefined) updates.content = args.content.trim();
 
     // Reset to pending if content changes (re-moderation)
-    if (args.title !== undefined || args.content !== undefined) {
+    if (args.title !== undefined || args.content !== undefined || (args.rating !== undefined && args.rating !== review.rating)) {
       updates.status = "pending";
     }
 
-    await ctx.db.patch(args.reviewId, updates);
+    await patchDynamicWithMediaReferences(ctx, args.reviewId, updates);
     return args.reviewId;
   },
 });
@@ -210,6 +195,7 @@ export const update = mutation({
  */
 export const remove = mutation({
   args: { reviewId: v.id("commerce_review_items") },
+  returns: v.id("commerce_review_items"),
   handler: async (ctx: any, args: any) => {
     await requirePluginEnabled(ctx, "commerceReviews");
     await requireCommerceReviewsEnabled(ctx);
@@ -244,14 +230,12 @@ export const remove = mutation({
       .collect();
 
     for (const vote of votes) {
-      await ctx.db.delete(vote._id);
+      await deleteDynamicWithMediaReferences(ctx, vote._id);
     }
 
     // Delete review
-    await ctx.db.delete(args.reviewId);
+    await deleteDynamicWithMediaReferences(ctx, args.reviewId);
 
-    // Update product stats
-    await updateProductRatingStats(ctx, review.productId);
 
     return args.reviewId;
   },
@@ -262,6 +246,7 @@ export const remove = mutation({
  */
 export const voteHelpful = mutation({
   args: { reviewId: v.id("commerce_review_items") },
+  returns: v.object({ voted: v.boolean() }),
   handler: async (ctx: any, args: any) => {
     await requirePluginEnabled(ctx, "commerceReviews");
     await requireCommerceReviewsEnabled(ctx);
@@ -292,8 +277,8 @@ export const voteHelpful = mutation({
 
     if (existingVote) {
       // Remove vote (toggle off)
-      await ctx.db.delete(existingVote._id);
-      await ctx.db.patch(args.reviewId, {
+      await deleteDynamicWithMediaReferences(ctx, existingVote._id);
+      await patchDynamicWithMediaReferences(ctx, args.reviewId, {
         helpfulCount: Math.max(0, (review.helpfulCount || 0) - 1),
       });
       return { voted: false };
@@ -304,7 +289,7 @@ export const voteHelpful = mutation({
         userId: user._id,
         createdAt: Date.now(),
       });
-      await ctx.db.patch(args.reviewId, {
+      await patchDynamicWithMediaReferences(ctx, args.reviewId, {
         helpfulCount: (review.helpfulCount || 0) + 1,
       });
       return { voted: true };
@@ -321,6 +306,7 @@ export const voteHelpful = mutation({
  */
 export const approve = mutation({
   args: { reviewId: v.id("commerce_review_items") },
+  returns: v.id("commerce_review_items"),
   handler: async (ctx: any, args: any) => {
     await requirePluginEnabled(ctx, "commerceReviews");
     await requireCommerceReviewsEnabled(ctx);
@@ -335,7 +321,7 @@ export const approve = mutation({
     }
 
     const now = Date.now();
-    await ctx.db.patch(args.reviewId, {
+    await patchDynamicWithMediaReferences(ctx, args.reviewId, {
       status: "approved",
       rejectionReason: undefined,
       moderatedBy: moderator._id,
@@ -343,8 +329,6 @@ export const approve = mutation({
       updatedAt: now,
     });
 
-    // Update product stats
-    await updateProductRatingStats(ctx, review.productId);
 
     return args.reviewId;
   },
@@ -358,6 +342,7 @@ export const reject = mutation({
     reviewId: v.id("commerce_review_items"),
     reason: v.optional(v.string()),
   },
+  returns: v.id("commerce_review_items"),
   handler: async (ctx: any, args: any) => {
     await requirePluginEnabled(ctx, "commerceReviews");
     await requireCommerceReviewsEnabled(ctx);
@@ -372,7 +357,7 @@ export const reject = mutation({
     }
 
     const now = Date.now();
-    await ctx.db.patch(args.reviewId, {
+    await patchDynamicWithMediaReferences(ctx, args.reviewId, {
       status: "rejected",
       rejectionReason: args.reason,
       moderatedBy: moderator._id,
@@ -380,8 +365,6 @@ export const reject = mutation({
       updatedAt: now,
     });
 
-    // Update product stats
-    await updateProductRatingStats(ctx, review.productId);
 
     return args.reviewId;
   },
@@ -392,6 +375,7 @@ export const reject = mutation({
  */
 export const markSpam = mutation({
   args: { reviewId: v.id("commerce_review_items") },
+  returns: v.id("commerce_review_items"),
   handler: async (ctx: any, args: any) => {
     await requirePluginEnabled(ctx, "commerceReviews");
     await requireCommerceReviewsEnabled(ctx);
@@ -406,15 +390,13 @@ export const markSpam = mutation({
     }
 
     const now = Date.now();
-    await ctx.db.patch(args.reviewId, {
+    await patchDynamicWithMediaReferences(ctx, args.reviewId, {
       status: "spam",
       moderatedBy: moderator._id,
       moderatedAt: now,
       updatedAt: now,
     });
 
-    // Update product stats
-    await updateProductRatingStats(ctx, review.productId);
 
     return args.reviewId;
   },
@@ -425,34 +407,32 @@ export const markSpam = mutation({
  */
 export const bulkApprove = mutation({
   args: { reviewIds: v.array(v.id("commerce_review_items")) },
+  returns: v.object({ approved: v.number() }),
   handler: async (ctx: any, args: any) => {
     await requirePluginEnabled(ctx, "commerceReviews");
     await requireCommerceReviewsEnabled(ctx);
     const moderator = await requireCan(ctx, "commerce.reviews.moderate");
 
     const now = Date.now();
-    const productIds = new Set();
+    if(args.reviewIds.length>100)throw new ConvexError({code:"review_batch_limit",message:"Moderate at most 100 reviews at once."});
+    let changed=0;
 
-    for (const reviewId of args.reviewIds) {
+    for (const reviewId of new Set(args.reviewIds)) {
       const review = await ctx.db.get(reviewId);
       if (review) {
-        await ctx.db.patch(reviewId, {
+        await patchDynamicWithMediaReferences(ctx, reviewId, {
           status: "approved",
           rejectionReason: undefined,
           moderatedBy: moderator._id,
           moderatedAt: now,
           updatedAt: now,
         });
-        productIds.add(review.productId);
+        changed++;
       }
     }
 
-    // Update all affected product stats
-    for (const productId of productIds) {
-      await updateProductRatingStats(ctx, productId);
-    }
 
-    return { approved: args.reviewIds.length };
+    return { approved: changed };
   },
 });
 
@@ -464,34 +444,32 @@ export const bulkReject = mutation({
     reviewIds: v.array(v.id("commerce_review_items")),
     reason: v.optional(v.string()),
   },
+  returns: v.object({ rejected: v.number() }),
   handler: async (ctx: any, args: any) => {
     await requirePluginEnabled(ctx, "commerceReviews");
     await requireCommerceReviewsEnabled(ctx);
     const moderator = await requireCan(ctx, "commerce.reviews.moderate");
 
     const now = Date.now();
-    const productIds = new Set();
+    if(args.reviewIds.length>100)throw new ConvexError({code:"review_batch_limit",message:"Moderate at most 100 reviews at once."});
+    let changed=0;
 
-    for (const reviewId of args.reviewIds) {
+    for (const reviewId of new Set(args.reviewIds)) {
       const review = await ctx.db.get(reviewId);
       if (review) {
-        await ctx.db.patch(reviewId, {
+        await patchDynamicWithMediaReferences(ctx, reviewId, {
           status: "rejected",
           rejectionReason: args.reason,
           moderatedBy: moderator._id,
           moderatedAt: now,
           updatedAt: now,
         });
-        productIds.add(review.productId);
+        changed++;
       }
     }
 
-    // Update all affected product stats
-    for (const productId of productIds) {
-      await updateProductRatingStats(ctx, productId);
-    }
 
-    return { rejected: args.reviewIds.length };
+    return { rejected: changed };
   },
 });
 
@@ -500,6 +478,7 @@ export const bulkReject = mutation({
  */
 export const adminDelete = mutation({
   args: { reviewId: v.id("commerce_review_items") },
+  returns: v.id("commerce_review_items"),
   handler: async (ctx: any, args: any) => {
     await requirePluginEnabled(ctx, "commerceReviews");
     await requireCommerceReviewsEnabled(ctx);
@@ -520,14 +499,12 @@ export const adminDelete = mutation({
       .collect();
 
     for (const vote of votes) {
-      await ctx.db.delete(vote._id);
+      await deleteDynamicWithMediaReferences(ctx, vote._id);
     }
 
     // Delete review
-    await ctx.db.delete(args.reviewId);
+    await deleteDynamicWithMediaReferences(ctx, args.reviewId);
 
-    // Update product stats
-    await updateProductRatingStats(ctx, review.productId);
 
     return args.reviewId;
   },

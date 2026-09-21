@@ -1,6 +1,7 @@
 /**
  * Site deploy IPC — input validation (pure, unit-tested).
  */
+import { stripVTControlCharacters } from "node:util";
 
 export interface SiteDeployEnvChange {
   name: string;
@@ -129,7 +130,9 @@ export function assertSiteDeployRequest(raw: unknown): SiteDeployRequest {
 
 /** Scrub secrets from a log line before it reaches the renderer or console. */
 export function redactDeployLog(line: string, secrets: string[]): string {
-  let out = line;
+  // The progress panel is plain text, not a terminal. Strip formatting before
+  // redaction so color codes cannot split a sensitive value into fragments.
+  let out = stripVTControlCharacters(line);
   for (const secret of secrets) {
     if (!secret || secret.length < 8) continue;
     out = out.split(secret).join("••••");

@@ -1,35 +1,28 @@
-/**
- * Taxonomy System - Public Queries
- *
- * All read operations for taxonomy terms and term-post relationships.
- *
- * Queries:
- *   - list - List terms by taxonomy type with search, pagination, sorting
- *   - get - Get a single term by ID, or by slug + taxonomy
- *   - getByPost - Get all terms (categories + tags) assigned to a post
- *   - getBySlug - Get a term by taxonomy + slug (convenience shorthand)
- *   - getCategoryTree - Get full hierarchical category tree
- *   - getPostsByTerm - Get paginated posts for a term (archive pages)
- *   - counts - Get category and tag totals
- *
- * Authentication:
- *   - Admin queries (list, getCategoryTree, counts) require auth
- *   - Public queries (get, getBySlug, getByPost, getPostsByTerm) are open
- *     for website SSR archive pages
+import { v } from "convex/values";
+import { evaluateMembershipAccess } from "../membership/access";
+import { RequestReadLedger, CANONICAL_READ_LIMITS } from "../helpers/requestReadLedger";
+import { canEditContent, canDiscoverContent } from "../helpers/publicContent";
+/** Editor taxonomy collections require editorial taxonomy capability.
+ * Public post labels use getByPost; Website archives use categoryArchives and
+ * taxonomyArchives. Raw record lookups and the materializing archive are retired.
  */
 
-import { query } from "../_generated/server";
-import type { Doc, Id } from "../_generated/dataModel";
-import { getCurrentUser } from "../helpers/permissions";
+import { query, type QueryCtx } from "../_generated/server";
+import type { Id } from "../_generated/dataModel";
+import { getCurrentUser, currentUserCan } from "../helpers/permissions";
 import {
   listArgs,
-  getArgs,
   getByPostArgs,
-  getBySlugArgs,
-  getPostsByTermArgs,
   DEFAULT_PER_PAGE,
 } from "./validators";
-import { getTermDepth } from "../helpers/taxonomy";
+
+async function canReadTaxonomyAdmin(ctx: QueryCtx): Promise<boolean> {
+  const user=await getCurrentUser(ctx);
+  if(!user || user.status!=="active")return false;
+  for(const capability of ["taxonomy.assign","taxonomy.create_category","taxonomy.update_category","taxonomy.delete_category","taxonomy.create_tag","taxonomy.update_tag","taxonomy.delete_tag","taxonomy.merge"] as const)
+    if(await currentUserCan(ctx,capability))return true;
+  return false;
+}
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -38,6 +31,7 @@ type CategoryTreeNode = {
   name: string;
   slug: string;
   count: number;
+  countReady: boolean;
   isDefault: boolean;
   depth: number;
   children: CategoryTreeNode[];
@@ -58,8 +52,7 @@ export const list = query({
   args: listArgs,
   handler: async (ctx, args) => {
     // Auth check
-    const user = await getCurrentUser(ctx);
-    if (!user) {
+    if (!(await canReadTaxonomyAdmin(ctx))) {
       return {
         terms: [],
         total: 0,
@@ -103,7 +96,7 @@ export const list = query({
 
     // Filter out empty terms if requested
     if (args.hideEmpty) {
-      allTerms = allTerms.filter((t) => t.count > 0);
+      allTerms = allTerms.filter((t) => t.countReady !== true || t.count > 0);
     }
 
     // Sort
@@ -175,8 +168,9 @@ export const list = query({
           children = childTerms.map((c) => c._id);
         }
 
+        const { countState: _countState, ...metadata } = term;
         return {
-          ...term,
+          ...metadata,
           depth,
           children,
         };
@@ -193,146 +187,61 @@ export const list = query({
   },
 });
 
-/**
- * Get a single term by ID, or by slug + taxonomy type.
- *
- * Auth: Public (used by website archive pages).
- *
- * Look up by termId OR by slug + taxonomy (using by_slug_taxonomy index).
- * If a category, computes depth and fetches direct children.
- */
-export const get = query({
-  args: getArgs,
-  handler: async (ctx, args) => {
-    let term;
 
-    if (args.termId) {
-      term = await ctx.db.get("terms", args.termId);
-    } else if (args.slug && args.taxonomy) {
-      term = await ctx.db
-        .query("terms")
-        .withIndex("by_slug_taxonomy", (q) =>
-          q.eq("slug", args.slug!).eq("taxonomy", args.taxonomy!),
-        )
-        .unique();
-    } else {
-      return null;
-    }
 
-    if (!term) return null;
 
-    // Compute depth
-    const depth = term.parentId
-      ? await getTermDepth(ctx, term._id)
-      : 0;
-
-    // Get direct children if category
-    // Bounded to 200 children per category
-    let children: Id<"terms">[] | undefined;
-    if (term.taxonomy === "category") {
-      const childTerms = await ctx.db
-        .query("terms")
-        .withIndex("by_parent", (q) => q.eq("parentId", term._id))
-        .take(200);
-      children = childTerms.map((c) => c._id);
-    }
-
-    return {
-      ...term,
-      depth,
-      children,
-    };
-  },
-});
-
-/**
- * Get a term by slug + taxonomy type.
- *
- * Auth: Public (convenience shorthand for `get` with slug + taxonomy).
- */
-export const getBySlug = query({
-  args: getBySlugArgs,
-  handler: async (ctx, args) => {
-    const term = await ctx.db
-      .query("terms")
-      .withIndex("by_slug_taxonomy", (q) =>
-        q.eq("slug", args.slug).eq("taxonomy", args.taxonomy),
-      )
-      .unique();
-
-    if (!term) return null;
-
-    // Compute depth
-    const depth = term.parentId
-      ? await getTermDepth(ctx, term._id)
-      : 0;
-
-    // Get direct children if category
-    // Bounded to 200 children per category
-    let children: Id<"terms">[] | undefined;
-    if (term.taxonomy === "category") {
-      const childTerms = await ctx.db
-        .query("terms")
-        .withIndex("by_parent", (q) => q.eq("parentId", term._id))
-        .take(200);
-      children = childTerms.map((c) => c._id);
-    }
-
-    return {
-      ...term,
-      depth,
-      children,
-    };
-  },
-});
 
 /**
  * Get all terms assigned to a post.
  *
  * Auth: Public (used by website post detail pages).
  *
- * Returns { categories: Term[], tags: Term[] } or filtered subset
+ * Returns closed { _id, name, slug } labels, never raw term records.
+ * Editors can read their authorized drafts; public callers need current post
+ * and destination route access. Returns a filtered subset
  * if taxonomy is specified.
  */
+const postTermLabel = v.object({ _id:v.id("terms"),name:v.string(),slug:v.string() });
 export const getByPost = query({
   args: getByPostArgs,
+  returns: v.object({ categories:v.array(postTermLabel),tags:v.array(postTermLabel) }),
   handler: async (ctx, args) => {
-    // Get all relationships for this post
-    // Bounded to 100 terms per post - posts rarely have more than 20
-    const relationships = await ctx.db
-      .query("termRelationships")
-      .withIndex("by_post", (q) => q.eq("postId", args.postId))
-      .take(100);
-
-    const categories: Doc<"terms">[] = [];
-    const tags: Doc<"terms">[] = [];
-
-    for (const rel of relationships) {
-      const term = await ctx.db.get("terms", rel.termId);
-      if (!term) continue;
-
-      // Filter by taxonomy if specified
-      if (args.taxonomy && term.taxonomy !== args.taxonomy) continue;
-
-      if (term.taxonomy === "category") {
-        categories.push(term);
-      } else if (term.taxonomy === "post_tag") {
-        tags.push(term);
+    // A post identifier is not authority to inspect its editorial taxonomy.
+    const budget=new RequestReadLedger({...CANONICAL_READ_LIMITS,queries:1024});
+    const empty={categories:[],tags:[]};
+    budget.beforeRead();const post=budget.record(await ctx.db.get("posts",args.postId));
+    if(!post)return empty;
+    const editor=await canEditContent(ctx,post,budget);
+    if(!editor && (!(await canDiscoverContent(ctx,post,budget)) ||
+      typeof post.publishedAt!=="number" || post.publishedAt>Date.now()))return empty;
+    budget.beforeRead();
+    const relationships=await ctx.db.query("termRelationships").withIndex("by_post",q=>q.eq("postId",args.postId)).take(100);
+    for(const relationship of relationships)budget.record(relationship);
+    const categories:Array<{_id:Id<"terms">;name:string;slug:string}>=[],tags:typeof categories=[];
+    const seen=new Set<string>();
+    for(const rel of relationships){
+      if(seen.has(rel.termId))continue;
+      seen.add(rel.termId);
+      budget.beforeRead();const term=budget.record(await ctx.db.get("terms",rel.termId));
+      if(!term || args.taxonomy && term.taxonomy!==args.taxonomy)continue;
+      if(!editor){
+        const path=`/${term.taxonomy==="category"?"category":"tag"}/${encodeURIComponent(term.slug)}`;
+        if(!(await evaluateMembershipAccess(ctx,{resourceType:"route",resourceIdOrKey:path},budget)).allowed)continue;
       }
+      // Counts, imports, descriptions and ownership remain editorial metadata.
+      const label={_id:term._id,name:term.name,slug:term.slug};
+      (term.taxonomy==="category"?categories:tags).push(label);
     }
-
-    // Sort categories and tags alphabetically
-    categories.sort((a, b) => a.name.localeCompare(b.name));
-    tags.sort((a, b) => a.name.localeCompare(b.name));
-
-    return { categories, tags };
+    categories.sort((a,b)=>a.name.localeCompare(b.name));
+    tags.sort((a,b)=>a.name.localeCompare(b.name));
+    return {categories,tags};
   },
 });
 
 /**
  * Get the full hierarchical category tree.
  *
- * Auth: Public (used by both admin metaboxes and website navigation).
+ * Auth: Editorial taxonomy capability (admin metaboxes).
  *
  * Fetches all categories in one query and builds a nested tree in memory.
  * Siblings are sorted alphabetically. Default category is always first
@@ -344,6 +253,7 @@ export const getByPost = query({
 export const getCategoryTree = query({
   args: {},
   handler: async (ctx) => {
+    if(!(await canReadTaxonomyAdmin(ctx)))return [];
     // Fetch all categories in one query, bounded to 1000 max
     const allCategories = await ctx.db
       .query("terms")
@@ -377,6 +287,7 @@ export const getCategoryTree = query({
         name: cat.name,
         slug: cat.slug,
         count: cat.count,
+        countReady: cat.countReady === true,
         isDefault: cat.isDefault,
         depth,
         children: buildTree(cat._id, depth + 1),
@@ -388,76 +299,7 @@ export const getCategoryTree = query({
   },
 });
 
-/**
- * Get paginated posts for a specific term (archive page).
- *
- * Auth: Public (used by website archive pages via SSR).
- *
- * Returns the term info along with paginated published posts sorted by
- * publishedAt descending.
- */
-export const getPostsByTerm = query({
-  args: getPostsByTermArgs,
-  handler: async (ctx, args) => {
-    const page = args.page ?? 1;
-    const perPage = args.perPage ?? 10;
 
-    // Fetch the term
-    const term = await ctx.db.get("terms", args.termId);
-    if (!term) {
-      return {
-        term: null,
-        posts: [],
-        total: 0,
-        page,
-        perPage,
-        totalPages: 0,
-      };
-    }
-
-    // Get all relationships for this term
-    // Bounded to 10,000 posts per term - sufficient for archive pages
-    const relationships = await ctx.db
-      .query("termRelationships")
-      .withIndex("by_term", (q) => q.eq("termId", args.termId))
-      .take(10000);
-
-    // Fetch linked posts and filter to published only
-    const publishedPosts: Doc<"posts">[] = [];
-    for (const rel of relationships) {
-      const post = await ctx.db.get("posts", rel.postId);
-      if (post) {
-        const postDoc = post as Doc<"posts">;
-        if (postDoc.status === "publish") {
-          publishedPosts.push(postDoc);
-        }
-      }
-    }
-
-    // Sort by publishedAt descending (if available), else by _creationTime
-    publishedPosts.sort((a, b) => {
-      const aTime = a.publishedAt ?? a._creationTime;
-      const bTime = b.publishedAt ?? b._creationTime;
-      return bTime - aTime;
-    });
-
-    const total = publishedPosts.length;
-    const totalPages = Math.ceil(total / perPage);
-
-    // Paginate
-    const start = (page - 1) * perPage;
-    const paginatedPosts = publishedPosts.slice(start, start + perPage);
-
-    return {
-      term,
-      posts: paginatedPosts,
-      total,
-      page,
-      perPage,
-      totalPages,
-    };
-  },
-});
 
 /**
  * Get category and tag totals.
@@ -471,8 +313,7 @@ export const counts = query({
   args: {},
   handler: async (ctx) => {
     // Auth check
-    const user = await getCurrentUser(ctx);
-    if (!user) {
+    if (!(await canReadTaxonomyAdmin(ctx))) {
       return { categories: 0, tags: 0 };
     }
 

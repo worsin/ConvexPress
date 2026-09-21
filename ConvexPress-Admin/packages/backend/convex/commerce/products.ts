@@ -1,4 +1,12 @@
 // @ts-nocheck
+import { validateSaleSchedule } from "./saleSchedule";
+import { resolveProductTags, readProductTagAssignments } from "./productTags";
+import { activePriceAmount } from "./activePrice";
+import { publicProductDetail, publicProductSummary } from "./publicProduct";
+import { createPublicProductAccessReader } from "./publicProductAccess";
+import { filterPublicCategoryHierarchy } from "./categoryVisibility";
+import type { Doc } from "../_generated/dataModel";
+import type { QueryCtx } from "../_generated/server";
 // ============================================
 // ADVANCED PRODUCT FEATURES — Option types, option values,
 // product variants, bulk actions, archive / restore
@@ -6,6 +14,7 @@
 // (commerce_products, commerce_product_variants schema)
 // ============================================
 
+import { requireAssignableBrand } from "./brands";
 import { ConvexError, v } from "convex/values";
 
 import {
@@ -42,6 +51,7 @@ import {
   productCountsArgs,
   updateCommerceProductArgs,
 } from "./validators";
+import { deleteWithMediaReferences, insertWithMediaReferences, patchWithMediaReferences } from "../media/attachmentGuard";
 
 function slugifyCommerceProduct(value: string) {
   return (
@@ -82,7 +92,7 @@ async function getProductSlugForEvent(ctx: any, productId: any) {
 function validateVariantSelections(optionTypes: any[], selections: any[] | undefined) {
   const result = validateVariantSelectionsResult(optionTypes, selections);
   if (!result.ok) {
-    throw new ConvexError(result.error);
+    throw new ConvexError({ ...result.error });
   }
   return result.selections;
 }
@@ -271,7 +281,7 @@ function collectCategoryDescendants(categories: any[], categoryId: any) {
   const ids = new Set<string>([categoryId.toString()]);
   const visit = (parentId: any) => {
     for (const category of categories) {
-      if (category.parentId?.toString() === parentId.toString()) {
+      if (category.parentId?.toString() === parentId.toString() && !ids.has(category._id.toString())) {
         ids.add(category._id.toString());
         visit(category._id);
       }
@@ -283,20 +293,17 @@ function collectCategoryDescendants(categories: any[], categoryId: any) {
 
 async function computeDisplayPrice(ctx: any, product: any) {
   if (product.productType !== "variable") {
-    return typeof product.salePrice?.amount === "number"
-      ? product.salePrice.amount
-      : product.basePrice.amount;
+    return activePriceAmount(product.basePrice, product.salePrice, product);
   }
 
-  const variants = await ctx.db
+  const allVariants = await ctx.db
     .query("commerce_product_variants")
     .withIndex("by_product", (q: any) => q.eq("productId", product._id))
     .collect();
+  const variants = allVariants.filter((variant: any) => !variant.status || variant.status === "publish");
 
   if (variants.length === 0) {
-    return typeof product.salePrice?.amount === "number"
-      ? product.salePrice.amount
-      : product.basePrice.amount;
+    return activePriceAmount(product.basePrice, product.salePrice, product);
   }
 
   const defaultVariant = variants.find((variant: any) => variant.isDefault);
@@ -311,7 +318,8 @@ async function computeDisplayPrice(ctx: any, product: any) {
   );
 }
 
-async function serializeProductSummary(ctx: any, product: any) {
+
+async function serializeProductSummary(ctx: QueryCtx, product: Doc<"commerce_products">) {
   const [categories, displayPrice] = await Promise.all([
     loadCategoriesByIds(ctx, product.categoryIds ?? []),
     computeDisplayPrice(ctx, product),
@@ -324,7 +332,7 @@ async function serializeProductSummary(ctx: any, product: any) {
   };
 }
 
-async function serializeProductDetail(ctx: any, product: any) {
+async function serializeProductDetail(ctx: QueryCtx, product: Doc<"commerce_products">) {
   const [categories, displayPrice, inventoryAdjustments, variants] = await Promise.all([
     loadCategoriesByIds(ctx, product.categoryIds ?? []),
     computeDisplayPrice(ctx, product),
@@ -535,7 +543,7 @@ export const bulkTrash = mutation({
       const product = await ctx.db.get(id);
       if (!product) continue;
       if ((product as any).status === "trash") continue;
-      await ctx.db.patch(id, { status: "trash", updatedAt: now });
+      await patchWithMediaReferences<"commerce_products">(ctx, "commerce_products", id, { status: "trash", updatedAt: now });
       await emitEvent(ctx, PRODUCT_EVENTS.TRASHED, SYSTEM.PRODUCT, {
         productId: id,
         previousStatus: product.status,
@@ -558,7 +566,7 @@ export const bulkRestore = mutation({
       const product = await ctx.db.get(id);
       if (!product) continue;
       if ((product as any).status !== "trash") continue;
-      await ctx.db.patch(id, { status: "draft", updatedAt: now });
+      await patchWithMediaReferences<"commerce_products">(ctx, "commerce_products", id, { status: "draft", updatedAt: now });
       await emitEvent(ctx, PRODUCT_EVENTS.RESTORED, SYSTEM.PRODUCT, {
         productId: id,
         previousStatus: product.status,
@@ -577,7 +585,9 @@ export const get = query({
     await requireCan(ctx, "manage_options");
 
     const product = await ctx.db.get(args.productId);
-    return product ? serializeProductDetail(ctx, product) : null;
+    if (!product) return null;
+    const tags = await readProductTagAssignments(ctx,product.tagIds);
+    return {...await serializeProductDetail(ctx,product),tagNames:tags.names,missingTagIds:tags.missingIds};
   },
 });
 
@@ -601,9 +611,13 @@ export const getBySlug = query({
             .unique()
         : null);
 
-    if (!product || product.status !== "publish") {
+    if (!(await createPublicProductAccessReader(ctx)(product))) {
       return null;
     }
+
+    const serialized = await serializeProductDetail(ctx, product);
+    serialized.categories = await filterPublicCategoryHierarchy(ctx, serialized.categories);
+    const detail = publicProductDetail(serialized);
 
     // Check if this product is owned by a bundle — if so, include a redirect hint
     const owningBundle = await ctx.db
@@ -611,11 +625,10 @@ export const getBySlug = query({
       .withIndex("by_product", (q: any) => q.eq("productId", product._id))
       .first();
     if (owningBundle) {
-      const detail = await serializeProductDetail(ctx, product);
       return { ...detail, isBundleProduct: true, bundleSlug: owningBundle.slug };
     }
 
-    return serializeProductDetail(ctx, product);
+    return detail;
   },
 });
 
@@ -639,12 +652,13 @@ export const listPublished = query({
         : Promise.resolve([]),
     ]);
 
+    const visibleCategories = await filterPublicCategoryHierarchy(ctx, categories);
     const category = categorySlug
-      ? categories.find((entry: any) => entry.slug === categorySlug) ?? null
+      ? visibleCategories.find((entry: any) => entry.slug === categorySlug) ?? null
       : null;
 
     const categoryIds = category
-      ? collectCategoryDescendants(categories, category._id)
+      ? collectCategoryDescendants(visibleCategories, category._id)
       : null;
     const categoryFiltered =
       categorySlug && !category
@@ -676,9 +690,12 @@ export const listPublished = query({
     for (const b of bundles) {
       if (b.productId) bundleProductIds.add(b.productId.toString());
     }
-    const catalogProducts = filtered.filter(
-      (p: any) => !bundleProductIds.has(p._id.toString()),
-    );
+    const readAccess = createPublicProductAccessReader(ctx);
+    const catalogProducts: Doc<"commerce_products">[] = [];
+    for (const product of filtered) {
+      if (!bundleProductIds.has(product._id.toString()) && await readAccess(product))
+        catalogProducts.push(product);
+    }
 
     catalogProducts.sort((a: any, b: any) => {
       const aTime = a.publishedAt ?? a.updatedAt ?? a.createdAt;
@@ -693,7 +710,11 @@ export const listPublished = query({
 
     return {
       products: await Promise.all(
-        pageItems.map((product: any) => serializeProductSummary(ctx, product)),
+        pageItems.map(async (product: any) => {
+          const serialized = await serializeProductSummary(ctx, product);
+          serialized.categories = await filterPublicCategoryHierarchy(ctx, serialized.categories);
+          return publicProductSummary(serialized);
+        }),
       ),
       page,
       perPage,
@@ -717,11 +738,14 @@ export const create = mutation({
       });
     }
 
+    validateSaleSchedule(args);
+    if (args.brandId) await requireAssignableBrand(ctx, args.brandId);
     const categoryIds = await resolveProductCategoryIds(ctx, args.categoryIds);
 
+    const tagIds = await resolveProductTags(ctx,args.tagNames ?? []);
     const now = Date.now();
     const status = args.status ?? "draft";
-    const productId = await ctx.db.insert("commerce_products", {
+    const productId: import("../_generated/dataModel").Id<"commerce_products"> = await insertWithMediaReferences<"commerce_products">(ctx, "commerce_products", {
       title,
       slug: await getUniqueProductSlug(ctx, args.slug?.trim() || title),
       description: args.description?.trim() || undefined,
@@ -733,8 +757,13 @@ export const create = mutation({
       featuredMediaId: args.featuredMediaId,
       galleryMediaIds: args.galleryMediaIds ?? [],
       categoryIds,
+      brandId: args.brandId,
+      tagIds,
+      isFeatured: args.isFeatured ?? false,
       basePrice: args.basePrice,
       salePrice: args.salePrice,
+      salePriceFrom: args.salePriceFrom,
+      salePriceTo: args.salePriceTo,
       trackInventory: args.trackInventory ?? true,
       stockQuantity: args.trackInventory === false ? undefined : args.stockQuantity,
       allowBackorders: args.allowBackorders ?? false,
@@ -820,13 +849,27 @@ export const update = mutation({
       patch.slug = await getUniqueProductSlug(ctx, slugSeed, args.productId.toString());
     }
 
+    if (args.brandId !== undefined) {
+      if (args.brandId && args.brandId !== product.brandId) await requireAssignableBrand(ctx, args.brandId);
+      patch.brandId = args.brandId ?? undefined;
+    }
+    if (args.tagNames !== undefined) patch.tagIds = await resolveProductTags(ctx,args.tagNames);
+    if (args.isFeatured !== undefined) patch.isFeatured = args.isFeatured;
     if (args.description !== undefined) patch.description = args.description?.trim() || undefined;
     if (args.excerpt !== undefined) patch.excerpt = args.excerpt?.trim() || undefined;
     if (args.sku !== undefined) patch.sku = args.sku?.trim() || undefined;
-    if (args.featuredMediaId !== undefined) patch.featuredMediaId = args.featuredMediaId;
+    if (args.featuredMediaId !== undefined) patch.featuredMediaId = args.featuredMediaId ?? undefined;
     if (args.galleryMediaIds !== undefined) patch.galleryMediaIds = args.galleryMediaIds;
     if (args.basePrice !== undefined) patch.basePrice = args.basePrice;
     if (args.salePrice !== undefined) patch.salePrice = args.salePrice ?? undefined;
+    if (args.salePriceFrom !== undefined || args.salePriceTo !== undefined) {
+      validateSaleSchedule({
+        salePriceFrom: args.salePriceFrom === undefined ? product.salePriceFrom : args.salePriceFrom,
+        salePriceTo: args.salePriceTo === undefined ? product.salePriceTo : args.salePriceTo,
+      });
+      if (args.salePriceFrom !== undefined) patch.salePriceFrom = args.salePriceFrom ?? undefined;
+      if (args.salePriceTo !== undefined) patch.salePriceTo = args.salePriceTo ?? undefined;
+    }
     if (args.trackInventory !== undefined) patch.trackInventory = args.trackInventory;
     if (args.stockQuantity !== undefined) patch.stockQuantity = args.stockQuantity ?? undefined;
 	    if (args.allowBackorders !== undefined) patch.allowBackorders = args.allowBackorders;
@@ -871,7 +914,7 @@ export const update = mutation({
       patch.stockQuantity = undefined;
     }
 
-    await ctx.db.patch("commerce_products", args.productId, patch);
+    await patchWithMediaReferences<"commerce_products">(ctx, "commerce_products", args.productId, patch);
     const nextStatus = (patch.status as string | undefined) ?? product.status;
     await emitEvent(
       ctx,
@@ -910,6 +953,7 @@ export const update = mutation({
 export const listOptionTypes = query({
   args: { productId: v.id("commerce_products") },
   handler: async (ctx: any, args: any) => {
+    await requireCan(ctx, "manage_options");
     await requireCommerceEnabled(ctx);
     const product = await ctx.db.get(args.productId);
     if (!product) throw new ConvexError({ code: "not_found", message: "Product not found" });
@@ -961,7 +1005,7 @@ export const createOptionType = mutation({
       });
     }
 
-    await ctx.db.patch(args.productId, {
+    await patchWithMediaReferences<"commerce_products">(ctx, "commerce_products", args.productId, {
       optionTypes: nextOptionTypes,
       updatedAt: Date.now(),
     });
@@ -1018,7 +1062,7 @@ export const updateOptionType = mutation({
             : selection,
         );
 
-        await ctx.db.patch(variant._id, {
+        await patchWithMediaReferences<"commerce_product_variants">(ctx, "commerce_product_variants", variant._id, {
           selections: normalizeVariantSelections(nextSelections),
           optionSummary: buildOptionSummaryFromSelections(nextSelections),
           selectionKey: buildSelectionKey(nextSelections),
@@ -1027,7 +1071,7 @@ export const updateOptionType = mutation({
       }
     }
 
-    await ctx.db.patch(args.productId, { optionTypes, updatedAt: Date.now() });
+    await patchWithMediaReferences<"commerce_products">(ctx, "commerce_products", args.productId, { optionTypes, updatedAt: Date.now() });
     return optionTypes[idx];
   },
 });
@@ -1064,7 +1108,7 @@ export const deleteOptionType = mutation({
       (o: any) => o.id !== args.optionTypeId,
     );
 
-    await ctx.db.patch(args.productId, { optionTypes, updatedAt: Date.now() });
+    await patchWithMediaReferences<"commerce_products">(ctx, "commerce_products", args.productId, { optionTypes, updatedAt: Date.now() });
     return { success: true };
   },
 });
@@ -1110,7 +1154,7 @@ export const createOptionValue = mutation({
       values: [...existing, newValue],
     };
 
-    await ctx.db.patch(args.productId, { optionTypes, updatedAt: Date.now() });
+    await patchWithMediaReferences<"commerce_products">(ctx, "commerce_products", args.productId, { optionTypes, updatedAt: Date.now() });
     return newValue;
   },
 });
@@ -1167,7 +1211,7 @@ export const updateOptionValue = mutation({
             : selection,
         );
 
-        await ctx.db.patch(variant._id, {
+        await patchWithMediaReferences<"commerce_product_variants">(ctx, "commerce_product_variants", variant._id, {
           selections: normalizeVariantSelections(nextSelections),
           optionSummary: buildOptionSummaryFromSelections(nextSelections),
           selectionKey: buildSelectionKey(nextSelections),
@@ -1177,7 +1221,7 @@ export const updateOptionValue = mutation({
     }
 
     optionTypes[typeIdx] = { ...optionTypes[typeIdx], values };
-    await ctx.db.patch(args.productId, { optionTypes, updatedAt: Date.now() });
+    await patchWithMediaReferences<"commerce_products">(ctx, "commerce_products", args.productId, { optionTypes, updatedAt: Date.now() });
     return values[valIdx];
   },
 });
@@ -1220,7 +1264,7 @@ export const deleteOptionValue = mutation({
       values: (optionTypes[typeIdx].values ?? []).filter((v: any) => v.id !== args.valueId),
     };
 
-    await ctx.db.patch(args.productId, { optionTypes, updatedAt: Date.now() });
+    await patchWithMediaReferences<"commerce_products">(ctx, "commerce_products", args.productId, { optionTypes, updatedAt: Date.now() });
     return { success: true };
   },
 });
@@ -1235,6 +1279,7 @@ export const deleteOptionValue = mutation({
 export const listVariants = query({
   args: { productId: v.id("commerce_products") },
   handler: async (ctx: any, args: any) => {
+    await requireCan(ctx, "manage_options");
     await requireCommerceEnabled(ctx);
     return ctx.db
       .query("commerce_product_variants")
@@ -1360,12 +1405,12 @@ export const createVariant = mutation({
     if (shouldBeDefault) {
       for (const v of existing) {
         if (v.isDefault) {
-          await ctx.db.patch(v._id, { isDefault: false, updatedAt: now });
+          await patchWithMediaReferences<"commerce_product_variants">(ctx, "commerce_product_variants", v._id, { isDefault: false, updatedAt: now });
         }
       }
     }
 
-    const variantId = await ctx.db.insert("commerce_product_variants", {
+    const variantId: import("../_generated/dataModel").Id<"commerce_product_variants"> = await insertWithMediaReferences<"commerce_product_variants">(ctx, "commerce_product_variants", {
       productId: args.productId,
       title: args.title,
       sku: args.sku,
@@ -1409,7 +1454,7 @@ export const createVariant = mutation({
 
     // Mark product as variable type with variants
     if (product.productType !== "variable") {
-      await ctx.db.patch(args.productId, {
+      await patchWithMediaReferences<"commerce_products">(ctx, "commerce_products", args.productId, {
         productType: "variable",
         updatedAt: now,
       });
@@ -1440,11 +1485,11 @@ export const updateVariant = mutation({
       ),
     ),
     priceAmount: v.optional(v.number()),
-    salePriceAmount: v.optional(v.number()),
-    salePriceFrom: v.optional(v.number()),
-    salePriceTo: v.optional(v.number()),
+    salePriceAmount: v.optional(v.union(v.number(), v.null())),
+    salePriceFrom: v.optional(v.union(v.number(), v.null())),
+    salePriceTo: v.optional(v.union(v.number(), v.null())),
     stockQuantity: v.optional(v.number()),
-    featuredMediaId: v.optional(v.id("media")),
+    featuredMediaId: v.optional(v.union(v.id("media"), v.null())),
     isDefault: v.optional(v.boolean()),
     description: v.optional(v.string()),
     globalUniqueId: v.optional(v.string()),
@@ -1505,6 +1550,14 @@ export const updateVariant = mutation({
     const product = await ctx.db.get(variant.productId);
     if (!product) throw new ConvexError({ code: "not_found", message: "Product not found" });
 
+    for (const key of ["priceAmount", "salePriceAmount"]) {
+      const amount = args[key];
+      if (amount !== undefined && amount !== null && (!Number.isSafeInteger(amount) || amount < 0)) throw new ConvexError({ code: "VALIDATION_ERROR", message: "Prices must be nonnegative whole minor currency units." });
+    }
+    for (const key of ["salePriceFrom", "salePriceTo"]) {
+      const time = args[key];
+      if (time !== undefined && time !== null && !Number.isSafeInteger(time)) throw new ConvexError({ code: "VALIDATION_ERROR", message: "Sale dates must be valid timestamps." });
+    }
     const now = Date.now();
     const updates: any = { updatedAt: now };
     const siblings = await listVariantsByProduct(ctx, variant.productId);
@@ -1537,14 +1590,14 @@ export const updateVariant = mutation({
       updates.price = { amount: args.priceAmount, currencyCode: variant.price.currencyCode };
     }
     if (args.salePriceAmount !== undefined) {
-      updates.salePrice = args.salePriceAmount
-        ? { amount: args.salePriceAmount, currencyCode: variant.price.currencyCode }
-        : undefined;
+      updates.salePrice = args.salePriceAmount === null
+        ? undefined
+        : { amount: args.salePriceAmount, currencyCode: variant.price.currencyCode };
     }
-    if (args.salePriceFrom !== undefined) updates.salePriceFrom = args.salePriceFrom;
-    if (args.salePriceTo !== undefined) updates.salePriceTo = args.salePriceTo;
+    if (args.salePriceFrom !== undefined) updates.salePriceFrom = args.salePriceFrom ?? undefined;
+    if (args.salePriceTo !== undefined) updates.salePriceTo = args.salePriceTo ?? undefined;
     if (args.stockQuantity !== undefined) updates.stockQuantity = args.stockQuantity;
-    if (args.featuredMediaId !== undefined) updates.featuredMediaId = args.featuredMediaId;
+    if (args.featuredMediaId !== undefined) updates.featuredMediaId = args.featuredMediaId ?? undefined;
     if (args.description !== undefined) updates.description = args.description;
     if (args.globalUniqueId !== undefined) updates.globalUniqueId = args.globalUniqueId;
     if (args.weight !== undefined) updates.weight = args.weight;
@@ -1574,7 +1627,7 @@ export const updateVariant = mutation({
     if (args.isDefault) {
       for (const s of siblings) {
         if (s._id !== args.variantId && s.isDefault) {
-          await ctx.db.patch(s._id, { isDefault: false, updatedAt: now });
+          await patchWithMediaReferences<"commerce_product_variants">(ctx, "commerce_product_variants", s._id, { isDefault: false, updatedAt: now });
         }
       }
       updates.isDefault = true;
@@ -1591,7 +1644,7 @@ export const updateVariant = mutation({
       updates.isDefault = false;
     }
 
-    await ctx.db.patch(args.variantId, updates);
+    await patchWithMediaReferences<"commerce_product_variants">(ctx, "commerce_product_variants", args.variantId, updates);
     return args.variantId;
   },
 });
@@ -1624,13 +1677,13 @@ export const deleteVariant = mutation({
       });
     }
 
-    await ctx.db.delete(args.variantId);
+    await deleteWithMediaReferences<"commerce_product_variants">(ctx, "commerce_product_variants", args.variantId);
 
     // Check if any variants remain; if not, revert product type
     const remaining = siblings.filter((sibling: any) => sibling._id !== args.variantId);
 
     if (remaining.length === 0) {
-      await ctx.db.patch(variant.productId, {
+      await patchWithMediaReferences<"commerce_products">(ctx, "commerce_products", variant.productId, {
         productType: "simple",
         updatedAt: Date.now(),
       });
@@ -1735,7 +1788,7 @@ export const generateVariants = mutation({
       const selectionKey = buildSelectionKey(selections);
       if (selectionKey && existingSelectionKeys.has(selectionKey)) continue;
 
-      await ctx.db.insert("commerce_product_variants", {
+      await insertWithMediaReferences<"commerce_product_variants">(ctx, "commerce_product_variants", {
         productId: args.productId,
         title: selections.map((selection: any) => selection.optionValueLabel).join(" / "),
         optionSummary: summary,
@@ -1751,7 +1804,7 @@ export const generateVariants = mutation({
 
     // Update product type if we created variants
     if (created > 0 && product.productType !== "variable") {
-      await ctx.db.patch(args.productId, { productType: "variable", updatedAt: now });
+      await patchWithMediaReferences<"commerce_products">(ctx, "commerce_products", args.productId, { productType: "variable", updatedAt: now });
     }
 
     return { created, total: combos.length };
@@ -1794,7 +1847,7 @@ export const bulkUpdateStatus = mutation({
         patch.publishedAt = now;
       }
 
-      await ctx.db.patch(id, patch);
+      await patchWithMediaReferences<"commerce_products">(ctx, "commerce_products", id, patch);
       await syncProductSearch(ctx, id);
       await emitEvent(ctx, getProductStatusEvent(product.status, args.status), SYSTEM.PRODUCT, {
         productId: id,
@@ -1834,10 +1887,10 @@ export const bulkDelete = mutation({
           .withIndex("by_product", (q: any) => q.eq("productId", id))
           .collect();
         for (const v of variants) {
-          await ctx.db.delete(v._id);
+          await deleteWithMediaReferences<"commerce_product_variants">(ctx, "commerce_product_variants", v._id);
         }
 
-        await ctx.db.delete(id);
+        await deleteWithMediaReferences<"commerce_products">(ctx, "commerce_products", id);
         await emitEvent(ctx, PRODUCT_EVENTS.DELETED, SYSTEM.PRODUCT, {
           productId: id,
           previousStatus: product.status,
@@ -1866,7 +1919,7 @@ export const archiveProduct = mutation({
     if (!product) throw new ConvexError({ code: "not_found", message: "Product not found" });
     await assertProductBundleLifecycleAllowed(ctx, args.productId, "unpublish");
 
-    await ctx.db.patch(args.productId, {
+    await patchWithMediaReferences<"commerce_products">(ctx, "commerce_products", args.productId, {
       status: "trash",
       updatedAt: Date.now(),
     });
@@ -1896,7 +1949,7 @@ export const restoreProduct = mutation({
       throw new ConvexError({ code: "invalid_status", message: "Product is not in trash" });
     }
 
-    await ctx.db.patch(args.productId, {
+    await patchWithMediaReferences<"commerce_products">(ctx, "commerce_products", args.productId, {
       status: "draft",
       updatedAt: Date.now(),
     });

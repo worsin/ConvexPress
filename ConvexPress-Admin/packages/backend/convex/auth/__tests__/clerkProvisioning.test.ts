@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { convexTest } from "convex-test";
 
-import { api } from "../../_generated/api";
+import { api, internal } from "../../_generated/api";
 import schema from "../../schema";
 
 const CLERK_ISSUER = "https://clerk.example";
@@ -10,6 +10,9 @@ const modules = {
   "./convex/_generated/api.js": () => import("../../_generated/api.js"),
   "./convex/_generated/server.js": () => import("../../_generated/server.js"),
   "./convex/auth/clerkProvisioning.ts": () => import("../clerkProvisioning"),
+  "./convex/auth/clerkSync.ts": () => import("../clerkSync"),
+  "./convex/registration/internals.ts": () =>
+    import("../../registration/internals"),
   "./convex/auth/inputLimits.ts": () => import("../inputLimits"),
 };
 
@@ -102,8 +105,7 @@ async function seedInvitationFixture(t: ReturnType<typeof createHarness>) {
       role: "editor",
       invitedBy: inviterId,
       status: "pending",
-      token:
-        "abcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcd",
+      token: "abcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcd",
       expiresAt: now + 7 * 24 * 60 * 60 * 1000,
       createdAt: now,
       resentCount: 0,
@@ -160,7 +162,9 @@ describe("Clerk session provisioning", () => {
       return await ctx.db.query("users").collect();
     });
 
-    const user = users.find((candidate) => candidate.email === "new.customer@example.com");
+    const user = users.find(
+      (candidate) => candidate.email === "new.customer@example.com",
+    );
     expect(user).toBeDefined();
     expect(user.authSource).toBe("clerk");
     expect(user.clerkUserId).toBe("user_clerk_profile");
@@ -188,7 +192,9 @@ describe("Clerk session provisioning", () => {
     });
 
     expect(
-      await authenticated.mutation(api.auth.clerkProvisioning.provisionClerkUser),
+      await authenticated.mutation(
+        api.auth.clerkProvisioning.provisionClerkUser,
+      ),
     ).toBeNull();
 
     const users = await t.run(async (ctx) => {
@@ -202,8 +208,11 @@ describe("Clerk session provisioning", () => {
 
   test("allows a Clerk user with a live invitation while registration is closed", async () => {
     const t = createHarness();
-    await seedSubscriberRole(t);
+    const subscriberRoleId = await seedSubscriberRole(t);
     const fixture = await seedInvitationFixture(t);
+    await t.run((ctx) =>
+      ctx.db.patch(fixture.invitationId, { role: "subscriber" }),
+    );
 
     const authenticated = t.withIdentity({
       issuer: CLERK_ISSUER,
@@ -228,11 +237,7 @@ describe("Clerk session provisioning", () => {
       return { user, invitation };
     });
 
-    // An invitation for an internal role cannot be honored for a Clerk identity:
-    // helpers/permissions denies internal roles to non-local auth sources, so the
-    // account is created with the default customer role instead of a dead role.
-    expect(snapshot.user?.roleId).not.toBe(fixture.editorRoleId);
-    expect(snapshot.user?.roleId).toBeDefined();
+    expect(snapshot.user?.roleId).toBe(subscriberRoleId);
     expect(snapshot.user?.registrationMethod).toBe("invite");
     expect(snapshot.invitation?.status).toBe("accepted");
     expect(snapshot.invitation?.acceptedBy).toBe(snapshot.user?._id);
@@ -296,3 +301,55 @@ describe("Clerk session provisioning", () => {
     expect(afterVerified?.emailVerified).toBe(true);
   });
 });
+
+for (const endpoint of [
+  "provision",
+  "ensure",
+  "sync",
+  "registration",
+] as const) {
+  test(`${endpoint} rejects historical internal invitations without signup writes`, async () => {
+    const t = createHarness();
+    await seedSubscriberRole(t);
+    const f = await seedInvitationFixture(t);
+    const before = await t.run((ctx) => ctx.db.get(f.invitationId));
+    const user = t.withIdentity({
+      issuer: CLERK_ISSUER,
+      subject: "user_historical",
+      tokenIdentifier: `${CLERK_ISSUER}|user_historical`,
+      email: "invited@example.com",
+      emailVerified: true,
+    });
+    const operation =
+      endpoint === "provision"
+        ? user.mutation(api.auth.clerkProvisioning.provisionClerkUser, {})
+        : endpoint === "ensure"
+          ? user.mutation(api.auth.clerkProvisioning.ensureClerkUser, {})
+          : endpoint === "sync"
+            ? t.mutation(internal.auth.clerkSync.upsertClerkUser, {
+                clerkUserId: "user_historical",
+                email: "invited@example.com",
+              })
+            : t.mutation(
+                internal.registration.internals.handleExternalAuthUserCreated,
+                {
+                  externalAuthId: "user_historical",
+                  email: "invited@example.com",
+                  emailVerified: true,
+                },
+              );
+    await expect(operation).rejects.toThrow("customer roles");
+    expect(await t.run((ctx) => ctx.db.get(f.invitationId))).toEqual(before);
+    expect(
+      await t.run((ctx) =>
+        ctx.db
+          .query("users")
+          .withIndex("by_email", (q) => q.eq("email", "invited@example.com"))
+          .collect(),
+      ),
+    ).toHaveLength(0);
+    expect(await t.run((ctx) => ctx.db.query("events").collect())).toHaveLength(
+      0,
+    );
+  });
+}

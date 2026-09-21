@@ -12,6 +12,8 @@ import {
   setDefaultLocationArgs,
   updateLocationArgs,
 } from "./validators";
+import { patchDynamicWithMediaReferences } from "../../media/attachmentGuard";
+
 
 async function ensureUniqueCode(ctx: any, code: string, ignoreId?: any) {
   const existing = await ctx.db
@@ -33,7 +35,7 @@ async function clearOtherDefaults(ctx: any, ignoreId?: any) {
     .collect();
   for (const row of defaults) {
     if (ignoreId && row._id === ignoreId) continue;
-    await ctx.db.patch(row._id, { isDefault: false, updatedAt: Date.now() });
+    await patchDynamicWithMediaReferences(ctx, row._id, { isDefault: false, updatedAt: Date.now() });
   }
 }
 
@@ -97,7 +99,7 @@ export const update = mutation({
     for (const [key, value] of Object.entries(args.patch)) {
       if (value !== undefined) patch[key] = value;
     }
-    await ctx.db.patch(args.locationId, patch);
+    await ctx.db.patch("commerce_ship_from_locations", args.locationId, patch);
     await emitEvent(ctx, SHIPPING_EVENTS.LOCATION_UPDATED, "shipping", {
       locationId: args.locationId,
     });
@@ -117,7 +119,7 @@ export const archive = mutation({
         message: "Cannot archive the default location. Promote another first.",
       });
     }
-    await ctx.db.patch(args.locationId, {
+    await ctx.db.patch("commerce_ship_from_locations", args.locationId, {
       isArchived: true,
       isActive: false,
       updatedAt: Date.now(),
@@ -151,7 +153,7 @@ export const setActive = mutation({
         message: "Cannot deactivate the default location. Promote another first.",
       });
     }
-    await ctx.db.patch(args.locationId, {
+    await ctx.db.patch("commerce_ship_from_locations", args.locationId, {
       isActive: args.active,
       updatedAt: Date.now(),
     });
@@ -178,7 +180,7 @@ export const setDefault = mutation({
       });
     }
     await clearOtherDefaults(ctx, args.locationId);
-    await ctx.db.patch(args.locationId, { isDefault: true, updatedAt: Date.now() });
+    await ctx.db.patch("commerce_ship_from_locations", args.locationId, { isDefault: true, updatedAt: Date.now() });
     await emitEvent(ctx, SHIPPING_EVENTS.LOCATION_DEFAULT_CHANGED, "shipping", {
       locationId: args.locationId,
     });
@@ -204,7 +206,7 @@ export const assignProductLocation = mutation({
 
     const now = Date.now();
     if (match) {
-      await ctx.db.patch(match._id, {
+      await ctx.db.patch("commerce_product_location_fulfillment", match._id, {
         priority: args.priority,
         enabled: args.enabled ?? true,
         notes: args.notes,
@@ -232,7 +234,7 @@ export const removeProductLocation = mutation({
     await requireCan(ctx, "shipping.locations.manage");
     const existing = await ctx.db.get(args.mappingId);
     if (!existing) return { removed: false };
-    await ctx.db.delete(args.mappingId);
+    await ctx.db.delete("commerce_product_location_fulfillment", args.mappingId);
     return { removed: true };
   },
 });

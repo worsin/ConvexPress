@@ -64,7 +64,7 @@ describe("generateSlug and getInitials", () => {
 });
 
 describe("extractPublicFields", () => {
-  test("returns only public-facing profile fields and resolved avatar", () => {
+  test("returns public profile fields without the administrative total that includes private posts", () => {
     expect(
       extractPublicFields({
         _id: "user_123",
@@ -86,7 +86,6 @@ describe("extractPublicFields", () => {
       avatarUrl: "https://cdn.example.com/avatar.png",
       url: "https://example.com",
       socialLinks: { github: "casey" },
-      postCount: 7,
       status: "active",
     });
   });

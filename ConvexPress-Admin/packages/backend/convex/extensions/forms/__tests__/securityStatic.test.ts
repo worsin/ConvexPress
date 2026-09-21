@@ -173,7 +173,7 @@ describe("Forms static production security/design guards", () => {
     expect(
       publicSettingsHttpInternal.includes("formsEnabled: plugins.formsEnabled"),
     ).toBe(true);
-    expect(publicPluginGate.includes("settings.plugins?.formsEnabled === true")).toBe(true);
+    expect(publicPluginGate.includes('extensionEnabled(WEBSITE_EXTENSIONS, pluginId, settings.plugins ?? {})')).toBe(true);
     expect(publicPluginGate.includes("formsEnabled !== false")).toBe(false);
   });
 

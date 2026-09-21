@@ -453,7 +453,7 @@ export const ensureMine = mutation({
     if (byEmail) {
       // Link existing guest profile to this user
       if (!byEmail.userId) {
-        await ctx.db.patch(byEmail._id, {
+        await ctx.db.patch("commerce_customer_profiles", byEmail._id, {
           userId: user._id,
           updatedAt: Date.now(),
         });
@@ -560,7 +560,7 @@ export const updateCustomer = mutation({
     }
 
     const { customerId, ...updateFields } = args;
-    await ctx.db.patch(customerId, {
+    await ctx.db.patch("commerce_customer_profiles", customerId, {
       ...updateFields,
       updatedAt: Date.now(),
     });
@@ -595,7 +595,7 @@ export const updateMyProfile = mutation({
       });
     }
 
-    await ctx.db.patch(profile._id, {
+    await ctx.db.patch("commerce_customer_profiles", profile._id, {
       ...args,
       updatedAt: Date.now(),
     });
@@ -631,10 +631,10 @@ export const deleteCustomer = mutation({
       .collect();
 
     for (const addr of addresses) {
-      await ctx.db.delete(addr._id);
+      await ctx.db.delete("commerce_customer_addresses", addr._id);
     }
 
-    await ctx.db.delete(args.customerId);
+    await ctx.db.delete("commerce_customer_profiles", args.customerId);
     return args.customerId;
   },
 });
@@ -705,7 +705,7 @@ export const addAddress = mutation({
     // Unset previous defaults of this type
     if (isDefault) {
       for (const addr of typeAddresses.filter((a: any) => a.isDefault)) {
-        await ctx.db.patch(addr._id, { isDefault: false });
+        await ctx.db.patch("commerce_customer_addresses", addr._id, { isDefault: false });
       }
     }
 
@@ -741,7 +741,7 @@ export const addAddress = mutation({
       } else {
         profileUpdate.defaultBillingAddressId = addressId;
       }
-      await ctx.db.patch(profile._id, profileUpdate);
+      await ctx.db.patch("commerce_customer_profiles", profile._id, profileUpdate);
     }
 
     return addressId;
@@ -814,7 +814,7 @@ export const updateAddress = mutation({
     if (label !== undefined) patch.label = label;
     if (addressType !== undefined) patch.addressType = addressType;
 
-    await ctx.db.patch(addressId, patch);
+    await ctx.db.patch("commerce_customer_addresses", addressId, patch);
     return addressId;
   },
 });
@@ -861,10 +861,10 @@ export const deleteAddress = mutation({
     }
     if (Object.keys(profileUpdate).length > 0) {
       profileUpdate.updatedAt = Date.now();
-      await ctx.db.patch(profile._id, profileUpdate);
+      await ctx.db.patch("commerce_customer_profiles", profile._id, profileUpdate);
     }
 
-    await ctx.db.delete(args.addressId);
+    await ctx.db.delete("commerce_customer_addresses", args.addressId);
     return args.addressId;
   },
 });
@@ -918,12 +918,12 @@ export const setDefaultAddress = mutation({
         addr.isDefault &&
         addr.addressType === args.addressType
       ) {
-        await ctx.db.patch(addr._id, { isDefault: false });
+        await ctx.db.patch("commerce_customer_addresses", addr._id, { isDefault: false });
       }
     }
 
     // Set this address as default
-    await ctx.db.patch(args.addressId, {
+    await ctx.db.patch("commerce_customer_addresses", args.addressId, {
       isDefault: true,
       updatedAt: Date.now(),
     });
@@ -935,7 +935,7 @@ export const setDefaultAddress = mutation({
     } else {
       profileUpdate.defaultBillingAddressId = args.addressId;
     }
-    await ctx.db.patch(profile._id, profileUpdate);
+    await ctx.db.patch("commerce_customer_profiles", profile._id, profileUpdate);
 
     return args.addressId;
   },
@@ -994,7 +994,7 @@ export const adminAddAddress = mutation({
 
     if (isDefault) {
       for (const addr of typeAddresses.filter((a: any) => a.isDefault)) {
-        await ctx.db.patch(addr._id, { isDefault: false });
+        await ctx.db.patch("commerce_customer_addresses", addr._id, { isDefault: false });
       }
     }
 
@@ -1027,7 +1027,7 @@ export const adminAddAddress = mutation({
       } else {
         profileUpdate.defaultBillingAddressId = addressId;
       }
-      await ctx.db.patch(args.customerId, profileUpdate);
+      await ctx.db.patch("commerce_customer_profiles", args.customerId, profileUpdate);
     }
 
     return addressId;
@@ -1063,11 +1063,11 @@ export const adminDeleteAddress = mutation({
       }
       if (Object.keys(profileUpdate).length > 0) {
         profileUpdate.updatedAt = Date.now();
-        await ctx.db.patch(customer._id, profileUpdate);
+        await ctx.db.patch("commerce_customer_profiles", customer._id, profileUpdate);
       }
     }
 
-    await ctx.db.delete(args.addressId);
+    await ctx.db.delete("commerce_customer_addresses", args.addressId);
     return args.addressId;
   },
 });
@@ -1089,7 +1089,7 @@ export const incrementOrderStats = internalMutation({
     const customer = await ctx.db.get(args.customerId);
     if (!customer) return;
 
-    await ctx.db.patch(args.customerId, {
+    await ctx.db.patch("commerce_customer_profiles", args.customerId, {
       totalOrders: (customer.totalOrders ?? 0) + 1,
       totalSpentAmount: (customer.totalSpentAmount ?? 0) + args.orderAmount,
       updatedAt: Date.now(),
@@ -1109,7 +1109,7 @@ export const decrementOrderStats = internalMutation({
     const customer = await ctx.db.get(args.customerId);
     if (!customer) return;
 
-    await ctx.db.patch(args.customerId, {
+    await ctx.db.patch("commerce_customer_profiles", args.customerId, {
       totalOrders: Math.max(0, (customer.totalOrders ?? 0) - 1),
       totalSpentAmount: Math.max(
         0,
@@ -1174,7 +1174,7 @@ export const ensureForCheckout = internalMutation({
     if (byEmail) {
       // Link user if not already linked
       if (args.userId && !byEmail.userId) {
-        await ctx.db.patch(byEmail._id, {
+        await ctx.db.patch("commerce_customer_profiles", byEmail._id, {
           userId: args.userId,
           updatedAt: Date.now(),
         });

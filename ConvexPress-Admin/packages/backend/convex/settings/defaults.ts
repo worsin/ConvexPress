@@ -1,3 +1,5 @@
+import type { ShippingPromise } from "../canonicalDocuments/foundation/shippingPolicyContracts";
+import { PLUGIN_SETTINGS_KEY, PLUGIN_DEFAULTS } from "../plugins/registry";
 /**
  * Settings System - Default Values
  *
@@ -30,6 +32,7 @@ export type SettingsSection =
   | "ai"
   | "blocks"
   | "plugins"
+  | "membership.general"
   | "search"
   | "commerce.general"
   | "commerce.payments"
@@ -79,6 +82,7 @@ export const SECTION_NAMES: SettingsSection[] = [
   "ai",
   "blocks",
   "plugins",
+  "membership.general",
   "search",
   "commerce.general",
   "commerce.payments",
@@ -530,6 +534,8 @@ export interface AnalyticsGa4Settings {
 }
 
 export interface CommerceGeneralSettings {
+  /** Public storefront copy explicitly authored by an operator; empty by default. */
+  storefrontPromises: ShippingPromise[];
   storeName: string;
   storeEmail: string;
   currencyCode: string;
@@ -1205,6 +1211,7 @@ export const COMMERCE_SUBSCRIPTIONS_COUNTERS_DEFAULTS: CommerceSubscriptionsCoun
 };
 
 export const COMMERCE_GENERAL_DEFAULTS: CommerceGeneralSettings = {
+  storefrontPromises: [],
   storeName: "ConvexPress Store",
   storeEmail: "",
   currencyCode: "USD",
@@ -1218,10 +1225,7 @@ export const COMMERCE_GENERAL_DEFAULTS: CommerceGeneralSettings = {
   returnWindowDays: 30,
   requireDeliveryBeforeReturn: true,
   shippingEnabled: true,
-  shippingMethods: [
-    { code: "standard", label: "Standard shipping" },
-    { code: "express", label: "Express shipping" },
-  ],
+  shippingMethods: [],
   paymentMethods: [
     { code: "card", label: "Credit or debit card", enabled: true },
     { code: "manual_invoice", label: "Manual invoice", enabled: true },
@@ -1233,7 +1237,7 @@ export const SHIPPING_INTEGRATION_DEFAULTS: ShippingIntegrationSettings = {
   preferredProvider: "shipstation",
   liveRatesEnabled: true,
   fallbackToManualRates: false,
-  fallbackMessage: "Live shipping rates are temporarily unavailable. Standard shipping options are shown below.",
+  fallbackMessage: "Delivery options could not be calculated. Please try again or contact the store.",
   recommendationStrategy: "best_value_weighted",
   cheapestBadgeLabel: "Cheapest",
   fastestBadgeLabel: "Fastest",
@@ -1405,6 +1409,7 @@ const DEFAULTS_MAP: Record<SettingsSection, object> = {
   ai: AI_DEFAULTS,
   blocks: BLOCK_DEFAULTS,
   plugins: PLUGINS_DEFAULTS,
+  "membership.general": { logAccessChecks: true, accessLogRetentionDays: 30 },
   search: SEARCH_DEFAULTS,
   "commerce.general": COMMERCE_GENERAL_DEFAULTS,
   "commerce.payments": COMMERCE_PAYMENTS_DEFAULTS,
@@ -1490,7 +1495,7 @@ export function getDefaults(section: SettingsSection): Record<string, unknown> {
     throw new Error(`Unknown settings section: ${section}`);
   }
   // Return a shallow copy to prevent mutation of the constant
-  return { ...(defaults as Record<string, unknown>) };
+  return { ...(defaults as Record<string, unknown>), ...(section === "plugins" ? Object.fromEntries(Object.entries(PLUGIN_SETTINGS_KEY).map(([id, key]) => [key, PLUGIN_DEFAULTS[id]])) : {}) };
 }
 
 /**

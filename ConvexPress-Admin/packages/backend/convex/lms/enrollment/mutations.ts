@@ -102,7 +102,7 @@ export const enroll = mutation({
     }
 
     if (existing) {
-      await ctx.db.patch(existing._id, {
+      await ctx.db.patch("lms_enrollments", existing._id, {
         status: "active",
         source: args.source ?? existing.source,
         enrolledAt: existingIsCurrentlyActive ? existing.enrolledAt : now,
@@ -155,7 +155,7 @@ export const unenroll = mutation({
       )
       .first();
     if (existing) {
-      await ctx.db.patch(existing._id, { status: "revoked", updatedAt: Date.now() });
+      await ctx.db.patch("lms_enrollments", existing._id, { status: "revoked", updatedAt: Date.now() });
       await emitEvent(ctx, LMS_EVENTS.UNENROLLED, SYSTEM.LMS, {
         courseId: args.courseId,
         userId: targetUserId,
@@ -206,7 +206,7 @@ export const enrollByEmail = mutation({
       }
     }
     if (existing) {
-      await ctx.db.patch(existing._id, {
+      await ctx.db.patch("lms_enrollments", existing._id, {
         status: "active",
         source: "manual",
         enrolledAt: existingIsCurrentlyActive ? existing.enrolledAt : now,

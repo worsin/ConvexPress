@@ -28,7 +28,7 @@ export function computeAddressKey(address: ShippingAddressFingerprintInput): str
     address.state ?? "",
     address.postalCode ?? "",
     address.countryCode ?? "",
-  ].join("|");
+  ].map((part) => part.trim().toUpperCase()).join("|");
 }
 
 export function computeCartKey(items: CartFingerprintItem[]): string {
@@ -48,4 +48,12 @@ export function isQuoteUsableForCheckout(
   if (quote.addressKey && quote.addressKey !== expectedAddressKey) return false;
   if (quote.cartKey && quote.cartKey !== expectedCartKey) return false;
   return true;
+}
+
+export function shippingQuoteLabel(quote: { carrierName: string; serviceName: string }): string {
+  const carrier = quote.carrierName.trim();
+  const service = quote.serviceName.trim();
+  return carrier.toLowerCase() === service.toLowerCase()
+    ? service
+    : [carrier, service].filter(Boolean).join(" ");
 }

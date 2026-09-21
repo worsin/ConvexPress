@@ -1,7 +1,43 @@
-import { cronJobs } from "convex/server";
+import { cronJobs, makeFunctionReference } from "convex/server";
 import { internal } from "./_generated/api";
 
 const crons = cronJobs();
+crons.interval("synced-refresh-callback-recovery", { minutes: 1 },
+  makeFunctionReference<"mutation">("syncedBlocks/refresh:recover"), {});
+crons.interval("management-session-expiry-recovery", { minutes: 1 },
+  makeFunctionReference<"mutation">("management/sessionExpiry:sweep"), {});
+crons.interval("social-feed-refresh", { minutes: 5 },
+  makeFunctionReference<"action">("socialFeeds/actions:refreshDue"), {});
+crons.interval("wishlist-owner-count-recovery", { minutes: 1 },
+  makeFunctionReference<"mutation">("commerceWishlists/ownerMaintenance:sweep"), {});
+crons.interval("wishlist-count-recovery", { minutes: 1 },
+  makeFunctionReference<"mutation">("commerceWishlists/countMaintenance:sweep"), {});
+crons.interval("wishlist-deletion-recovery", { minutes: 1 },
+  makeFunctionReference<"mutation">("commerceWishlists/cleanup:recover"), {});
+crons.interval("kb-search-job-recovery", { minutes: 1 },
+  makeFunctionReference<"mutation">("kb/searchJobs:recover"), {});
+crons.interval("lms-learner-count-recovery", { minutes: 1 },
+  makeFunctionReference<"mutation">("lms/progress/countMaintenance:rebuild"), {});
+crons.interval("lms-curriculum-count-recovery", { minutes: 1 },
+  makeFunctionReference<"mutation">("lms/curriculumCountMaintenance:rebuild"), {});
+crons.interval("course-catalog-index-recovery", { minutes: 1 },
+  makeFunctionReference<"mutation">("lms/courseCatalogMaintenance:rebuild"), {});
+crons.interval("product-sale-index-recovery", { minutes: 1 },
+  makeFunctionReference<"mutation">("commerce/productSaleMaintenance:rebuild"), {});
+crons.interval("product-collection-index-recovery", { minutes: 1 },
+  makeFunctionReference<"mutation">("commerce/productDiscoveryMaintenance:rebuild"), {});
+crons.interval("product-rating-recovery", { minutes: 1 },
+  makeFunctionReference<"mutation">("commerceReviews/ratingMaintenance:recover"), {});
+crons.interval("form-submission-count-recovery", { minutes: 1 },
+  makeFunctionReference<"mutation">("extensions/forms/counts:sweep"), {});
+crons.interval("event-calendar-index-recovery", { minutes: 1 },
+  makeFunctionReference<"mutation">("extensions/events/calendarIndex:recover"), {});
+crons.interval("post-discovery-recovery", { minutes: 1 },
+  makeFunctionReference<"mutation">("posts/discovery:recover"), {});
+crons.interval("term-count-recovery", { minutes: 1 },
+  makeFunctionReference<"mutation">("taxonomies/counts:sweep"), {});
+crons.interval("author-post-count-recovery", { minutes: 1 },
+  makeFunctionReference<"mutation">("posts/authorCounts:sweep"), {});
 
 // ─── Registration System ──────────────────────────────────────────────────────
 // Expire pending invitations past their expiresAt timestamp
@@ -384,21 +420,14 @@ crons.daily(
 // double-schedule.
 
 // ─── Membership Plan System ─────────────────────────────────────────────────
-// Daily sweep of active/grace grants past their end or grace window.
-// Two-step transition: active + past-end + grace window remaining → grace;
-// grace + grace-window past → expired. Plan-level gracePeriodDays is honored
-// when the grant has no graceEndsAt set yet.
-// Added by: Membership Plan System Expert (Wave 2)
-crons.daily(
-  "expireMembershipGrants",
-  { hourUTC: 2, minuteUTC: 15 },
-  internal.membership.internals.expireGrants,
-  {},
-);
+// Deadline checks protect reads immediately; bounded maintenance keeps stored
+// statuses and enrollment projections current and resumes interrupted workers.
+crons.interval("expireMembershipGrants", { minutes: 1 }, internal.membership.internals.expireGrants, {});
+crons.interval("recover-membership-enrollments", { minutes: 1 }, internal.membership.enrollmentRepairs.recover, {});
 
 // Weekly trim of membership_access_log rows older than
 // settings.membership.general.accessLogRetentionDays (default 30 days).
-// Self-reschedules if more than 500 rows are deleted in one run.
+// Indexed, bounded batches self-schedule until the backlog is drained.
 // Added by: Membership Plan System Expert (Wave 7)
 crons.weekly(
   "trim-membership-access-log",

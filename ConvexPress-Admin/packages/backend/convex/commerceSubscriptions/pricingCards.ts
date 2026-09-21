@@ -44,6 +44,8 @@ import { getCurrentUser } from "../helpers/auth";
 import { requireCan } from "../helpers/permissions";
 import { isPluginEnabled, requirePluginEnabled } from "../helpers/plugins";
 import { requireCommerceSubscriptionsEnabled } from "./helpers";
+import { patchDynamicWithMediaReferences } from "../media/attachmentGuard";
+
 
 // ─── Constants ─────────────────────────────────────────────────────────────
 
@@ -205,7 +207,7 @@ export const updatePricingCardConfig = mutation({
         updatedBy: currentUser._id,
       });
     } else {
-      await ctx.db.patch(existing._id, {
+      await patchDynamicWithMediaReferences(ctx, existing._id, {
         orderedOfferIds: args.orderedOfferIds,
         featuredOfferId: args.featuredOfferId,
         headline: args.headline,

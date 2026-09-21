@@ -328,10 +328,12 @@ function makeMockDb() {
   }
 
   const db = {
+    normalizeId: (table: string, id: string) => id.startsWith(`${table}__`) || !!tables[table]?.[id] ? id : null,
     query(table: string) {
       return buildQuery(table);
     },
-    async get(id: string) {
+    async get(tableOrId: string, explicitId?: string) {
+      const id = explicitId ?? tableOrId;
       const [table] = id.split("__");
       return ensureTable(table)[id] ?? null;
     },
@@ -341,7 +343,9 @@ function makeMockDb() {
       ensureTable(table)[id] = row;
       return id;
     },
-    async patch(id: string, partial: any) {
+    async patch(tableOrId: string, idOrPartial: any, explicitPartial?: any) {
+      const id = explicitPartial === undefined ? tableOrId : idOrPartial;
+      const partial = explicitPartial === undefined ? idOrPartial : explicitPartial;
       const [table] = id.split("__");
       const row = ensureTable(table)[id];
       if (!row) throw new Error(`patch on missing ${id}`);

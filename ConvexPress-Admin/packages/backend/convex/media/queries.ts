@@ -1,3 +1,4 @@
+import {SHOWCASE_META_PREFIX} from "./showcasePolicy";
 /**
  * Media System - Queries
  *
@@ -8,15 +9,15 @@
  *   counts   - Count media by type for the Media Library filter tabs
  *   getUrl   - Get the storage URL for a media item (optionally at a specific size)
  *
- * All queries require authentication (all authenticated users can read media).
- * No capability check is needed for reads -- the Media Library is visible
- * to all logged-in users.
+ * Library queries require an active account with media.read. Public asset
+ * rendering uses the separate getPublic/getSrcSet projections below.
  */
 
-import { v } from "convex/values";
+import { ConvexError, v } from "convex/values";
+import { paginationOptsValidator } from "convex/server";
+import { readMediaList, readMediaCountPage, countMediaDocuments, mediaListPageValidator, mediaCountPageValidator, mediaCountsValidator } from "./libraryRead";
 import { query } from "../_generated/server";
-import type { Doc, Id } from "../_generated/dataModel";
-import { getCurrentUser } from "../helpers/permissions";
+import { requireCan } from "../helpers/permissions";
 import {
   listMediaArgs,
   getMediaArgs,
@@ -40,184 +41,10 @@ import {
  */
 export const list = query({
   args: listMediaArgs,
+  returns: mediaListPageValidator,
   handler: async (ctx, args) => {
-    const user = await getCurrentUser(ctx);
-    if (!user) {
-      return { page: [], isDone: true, continueCursor: "" };
-    }
-
-    // ── Search path (full-text search on title) ──────────────────────────
-    if (args.search && args.search.trim().length > 0) {
-      let searchQuery = ctx.db
-        .query("media")
-        .withSearchIndex("search_media", (q) => {
-          let sq = q.search("title", args.search!);
-          if (args.mediaType) {
-            sq = sq.eq("mediaType", args.mediaType);
-          }
-          if (args.status) {
-            sq = sq.eq("status", args.status);
-          }
-          if (args.uploadedBy) {
-            sq = sq.eq("uploadedBy", args.uploadedBy);
-          }
-          return sq;
-        });
-
-      // Search queries don't support .paginate(), so we collect and slice
-      const allResults = await searchQuery.collect();
-
-      // Manual pagination for search results
-      const numItems = args.paginationOpts.numItems;
-      const cursorIndex = args.paginationOpts.cursor
-        ? parseInt(args.paginationOpts.cursor, 10)
-        : 0;
-
-      const page = allResults.slice(cursorIndex, cursorIndex + numItems);
-      const nextCursor = cursorIndex + numItems;
-      const isDone = nextCursor >= allResults.length;
-
-      // Enrich with storage URLs and uploader names (M7)
-      const enrichedPage = await Promise.all(
-        page.map(async (item) => {
-          const freshUrl = (item.storageId ? await ctx.storage.getUrl(item.storageId) : null);
-          const uploader = await ctx.db.get("users", item.uploadedBy);
-          const uploaderName =
-            uploader?.displayName ||
-            (uploader?.firstName && uploader?.lastName
-              ? `${uploader.firstName} ${uploader.lastName}`
-              : null) ||
-            uploader?.email ||
-            "Unknown User";
-          return {
-            ...item,
-            url: freshUrl ?? item.url,
-            uploaderName,
-          };
-        }),
-      );
-
-      return {
-        page: enrichedPage,
-        isDone,
-        continueCursor: isDone ? "" : String(nextCursor),
-      };
-    }
-
-    // ── Determine sort direction ──────────────────────────────────────────
-    const sortDir = args.orderDir === "asc" ? "asc" : "desc";
-
-    // Trash scope. Default "active" hides trashed items (WP behavior).
-    // "only" shows just the trash bin. "all" shows both.
-    const trashView = args.trashView ?? "active";
-
-    // ── Helper: post-filter results for date range, unattached, trash ────
-    // Convex index queries don't support range comparisons on non-index
-    // fields directly, so we apply date/unattached as post-filters.
-    // Trash filtering is applied unconditionally (on "all" it's a no-op).
-    const needsPostFilter =
-      args.dateFrom ||
-      args.dateTo ||
-      args.unattached ||
-      args.mimeType ||
-      trashView !== "all";
-
-    const applyPostFilters = (items: Doc<"media">[]): Doc<"media">[] => {
-      return items.filter((item) => {
-        if (trashView === "active" && item.status === "trashed") return false;
-        if (trashView === "only" && item.status !== "trashed") return false;
-        if (args.dateFrom && item.createdAt < args.dateFrom) return false;
-        if (args.dateTo && item.createdAt > args.dateTo) return false;
-        if (args.unattached && item.attachedTo) return false;
-        if (args.mimeType && item.mimeType !== args.mimeType) return false;
-        return true;
-      });
-    };
-
-    // ── Filtered path (index-based queries) ──────────────────────────────
-    // Choose the most selective index based on provided filters
-    const results = await (async () => {
-
-      if (args.mediaType && args.uploadedBy) {
-        // Use composite index: by_uploader_type
-        return await ctx.db
-          .query("media")
-          .withIndex("by_uploader_type", (q) =>
-            q.eq("uploadedBy", args.uploadedBy!).eq("mediaType", args.mediaType!),
-          )
-          .order(sortDir)
-          .paginate(args.paginationOpts);
-      }
-
-      if (args.mediaType) {
-        // Use by_type_created for type filtering with creation date ordering
-        return await ctx.db
-          .query("media")
-          .withIndex("by_type_created", (q) =>
-            q.eq("mediaType", args.mediaType!),
-          )
-          .order(sortDir)
-          .paginate(args.paginationOpts);
-      }
-
-      if (args.uploadedBy) {
-        return await ctx.db
-          .query("media")
-          .withIndex("by_uploaded_by", (q) =>
-            q.eq("uploadedBy", args.uploadedBy!),
-          )
-          .order(sortDir)
-          .paginate(args.paginationOpts);
-      }
-
-      if (args.status) {
-        return await ctx.db
-          .query("media")
-          .withIndex("by_status", (q) => q.eq("status", args.status!))
-          .order(sortDir)
-          .paginate(args.paginationOpts);
-      }
-
-      // ── Default: all media ──────────────────────────────────────────────
-      return await ctx.db
-        .query("media")
-        .withIndex("by_created")
-        .order(sortDir)
-        .paginate(args.paginationOpts);
-    })();
-
-    // Apply post-filters if needed (date range, unattached)
-    const filteredPage = needsPostFilter
-      ? applyPostFilters(results.page)
-      : results.page;
-
-    // M7: Enrich results with uploader names for the media list table.
-    // Batch-resolve unique uploaders to avoid redundant DB lookups.
-    const uploaderIds = [...new Set(filteredPage.map((item) => item.uploadedBy))] as Id<"users">[];
-    const uploaderMap = new Map<Id<"users">, string>();
-    await Promise.all(
-      uploaderIds.map(async (uid) => {
-        const uploader = await ctx.db.get("users", uid);
-        const name =
-          uploader?.displayName ||
-          (uploader?.firstName && uploader?.lastName
-            ? `${uploader.firstName} ${uploader.lastName}`
-            : null) ||
-          uploader?.email ||
-          "Unknown User";
-        uploaderMap.set(uid, name);
-      }),
-    );
-
-    const enrichedPage = filteredPage.map((item) => ({
-      ...item,
-      uploaderName: uploaderMap.get(item.uploadedBy) ?? "Unknown User",
-    }));
-
-    return {
-      ...results,
-      page: enrichedPage,
-    };
+    await requireCan(ctx, "media.read");
+    return readMediaList(ctx, args);
   },
 });
 
@@ -226,7 +53,7 @@ export const list = query({
 /**
  * Get a single media item with all its generated sizes and metadata.
  *
- * Returns null if the media doesn't exist or the caller isn't authenticated.
+ * Returns null if the media does not exist. Unauthorized or inactive readers are refused.
  *
  * Enriches the media item with:
  *   - `sizes`: Array of all generated image size records
@@ -236,8 +63,7 @@ export const list = query({
 export const get = query({
   args: getMediaArgs,
   handler: async (ctx, args) => {
-    const user = await getCurrentUser(ctx);
-    if (!user) return null;
+    await requireCan(ctx, "media.read");
 
     const media = await ctx.db.get("media", args.mediaId);
     if (!media) return null;
@@ -253,6 +79,9 @@ export const get = query({
       .query("mediaMeta")
       .withIndex("by_media", (q) => q.eq("mediaId", args.mediaId))
       .collect();
+    // Rights evidence is restricted to the moderator endpoint, including for
+    // otherwise authorized Media Library readers.
+    const visibleMeta=meta.filter(entry=>!entry.key.startsWith(SHOWCASE_META_PREFIX));
 
     // ── Resolve uploader info ────────────────────────────────────────────
     const uploader = await ctx.db.get("users", media.uploadedBy);
@@ -280,7 +109,7 @@ export const get = query({
 
     // ── Build meta map for convenience ───────────────────────────────────
     const metaMap: Record<string, string> = {};
-    for (const m of meta) {
+    for (const m of visibleMeta) {
       metaMap[m.key] = m.value;
     }
 
@@ -292,7 +121,7 @@ export const get = query({
       url: freshUrl ?? media.url,
       sizes,
       sizesMap,
-      meta,
+      meta: visibleMeta,
       metaMap,
       uploaderName,
     };
@@ -312,8 +141,14 @@ export const getPublic = query({
     if (!media || media.status === "trashed") return null;
 
     const freshUrl = media.storageId ? await ctx.storage.getUrl(media.storageId) : null;
+    const sizes = await ctx.db.query("mediaSizes").withIndex("by_media", q => q.eq("mediaId", args.mediaId)).collect();
+    const sizesMap: Record<string, { url: string; width: number; height: number }> = {};
+    for (const size of sizes) {
+      sizesMap[size.sizeName] = { url: (size.storageId ? await ctx.storage.getUrl(size.storageId) : null) ?? size.url, width: size.width, height: size.height };
+    }
     return {
       _id: media._id,
+      sizesMap,
       title: media.title,
       altText: media.altText,
       mediaType: media.mediaType,
@@ -338,8 +173,11 @@ export const getPublic = query({
 export const getByIds = query({
   args: getByIdsArgs,
   handler: async (ctx, args) => {
-    const user = await getCurrentUser(ctx);
-    if (!user) return [];
+    await requireCan(ctx, "media.read");
+
+    if (args.mediaIds.length > 100) {
+      throw new ConvexError({ code: "VALIDATION_ERROR", message: "Request at most 100 media IDs at once" });
+    }
 
     const results = await Promise.all(
       args.mediaIds.map(async (mediaId) => {
@@ -359,93 +197,27 @@ export const getByIds = query({
   },
 });
 
-// ─── Counts ─────────────────────────────────────────────────────────────────
+// Compact paginated evidence for exact counts once every page is loaded.
+export const countDocuments = query({
+  args: { paginationOpts: paginationOptsValidator },
+  returns: mediaCountPageValidator,
+  handler: async (ctx, args) => {
+    const user = await requireCan(ctx, "media.read");
+    return readMediaCountPage(ctx, args.paginationOpts, user._id);
+  },
+});
 
-/**
- * Count media by type for the Media Library filter tabs.
- *
- * Returns counts for: all, images, video, audio, documents, mine, unattached.
- *
- * This is a separate query (not part of list) so the tab counts can
- * update independently of the list contents, avoiding unnecessary
- * re-renders when switching between tabs.
- *
- * Optimization (H3): Uses targeted index queries per type instead of
- * loading all records. Each type count uses its own index query with
- * .collect().length, avoiding a single full-table scan. While Convex
- * doesn't have native COUNT, per-index queries are more efficient than
- * loading the entire table when only counts are needed.
- *
- * Performance note (#21): This is O(n) in the total number of media items
- * since Convex lacks a native COUNT aggregate. For typical CMS workloads
- * (< 10,000 media items), this is acceptable and completes well within
- * Convex query limits. For larger datasets (50k+), consider migrating to
- * `@convex-dev/aggregate` for O(log n) counts, or maintaining denormalized
- * count documents updated by mutations.
- */
+/** Legacy exact counts: intentionally refuses rather than silently truncating. */
 export const counts = query({
   args: {},
+  returns: mediaCountsValidator,
   handler: async (ctx) => {
-    const user = await getCurrentUser(ctx);
-    if (!user) {
-      return {
-        all: 0,
-        images: 0,
-        video: 0,
-        audio: 0,
-        documents: 0,
-        mine: 0,
-        unattached: 0,
-        trashed: 0,
-      };
+    const user = await requireCan(ctx, "media.read");
+    const result = await readMediaCountPage(ctx, { numItems: 100, cursor: null }, user._id);
+    if (!result.isDone || result.pageStatus != null || result.splitCursor != null) {
+      throw new ConvexError({ code: "PAGINATION_REQUIRED", message: "Media counts exceed one bounded page. Use media/queries:countDocuments and continue until complete." });
     }
-
-    const [
-      imageItems,
-      videoItems,
-      audioItems,
-      docItems,
-      archiveItems,
-      otherItems,
-      mineItems,
-      trashedItems,
-    ] = await Promise.all([
-      ctx.db.query("media").withIndex("by_type", (q) => q.eq("mediaType", "image")).collect(),
-      ctx.db.query("media").withIndex("by_type", (q) => q.eq("mediaType", "video")).collect(),
-      ctx.db.query("media").withIndex("by_type", (q) => q.eq("mediaType", "audio")).collect(),
-      ctx.db.query("media").withIndex("by_type", (q) => q.eq("mediaType", "document")).collect(),
-      ctx.db.query("media").withIndex("by_type", (q) => q.eq("mediaType", "archive")).collect(),
-      ctx.db.query("media").withIndex("by_type", (q) => q.eq("mediaType", "other")).collect(),
-      ctx.db.query("media").withIndex("by_uploaded_by", (q) => q.eq("uploadedBy", user._id)).collect(),
-      ctx.db.query("media").withIndex("by_status", (q) => q.eq("status", "trashed")).collect(),
-    ]);
-
-    // Exclude trashed items from the type/mine/unattached counts (WP behavior).
-    const active = (it: { status: string }) => it.status !== "trashed";
-    const images = imageItems.filter(active).length;
-    const video = videoItems.filter(active).length;
-    const audio = audioItems.filter(active).length;
-    const documents = docItems.filter(active).length;
-    const archive = archiveItems.filter(active).length;
-    const other = otherItems.filter(active).length;
-    const all = images + video + audio + documents + archive + other;
-    const mine = mineItems.filter(active).length;
-
-    let unattached = 0;
-    for (const item of [...imageItems, ...videoItems, ...audioItems, ...docItems, ...archiveItems, ...otherItems]) {
-      if (active(item) && !item.attachedTo) unattached++;
-    }
-
-    return {
-      all,
-      images,
-      video,
-      audio,
-      documents,
-      mine,
-      unattached,
-      trashed: trashedItems.length,
-    };
+    return countMediaDocuments(result.page);
   },
 });
 
@@ -462,8 +234,7 @@ export const counts = query({
 export const getUrl = query({
   args: getUrlArgs,
   handler: async (ctx, args) => {
-    const user = await getCurrentUser(ctx);
-    if (!user) return null;
+    await requireCan(ctx, "media.read");
 
     const media = await ctx.db.get("media", args.mediaId);
     if (!media) return null;

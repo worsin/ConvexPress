@@ -117,6 +117,7 @@ export const exchangeSession = defineInternalAction({
         now,
         envelopeExpiresAt: Date.parse(args.envelope.expiresAt),
         maximumLifetimeMs: 15 * 60_000,
+        authorityExpiresAt: context.authority.expiresAt,
       });
       const sessionToken = `cpms_${randomBytes(32).toString("base64url")}`;
       const tokenHash = createHash("sha256")

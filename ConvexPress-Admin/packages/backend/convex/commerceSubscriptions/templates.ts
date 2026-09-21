@@ -73,7 +73,7 @@ export const archiveTemplate = mutation({
     }
 
     const now = Date.now();
-    await ctx.db.patch(args.templateId, {
+    await ctx.db.patch("commerce_subscription_templates", args.templateId, {
       status: "archived",
       updatedAt: now,
     });

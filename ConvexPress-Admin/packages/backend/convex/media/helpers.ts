@@ -14,8 +14,11 @@
  *   formatFileSize       - Format bytes to human-readable string
  */
 
+import { requireAttachableMedia } from "./attachmentGuard";
 import type { Id } from "../_generated/dataModel";
 import type { QueryCtx } from "../_generated/server";
+import { patchDynamicWithMediaReferences } from "./attachmentGuard";
+
 
 // ─── MIME Type Validation ────────────────────────────────────────────────────
 
@@ -324,7 +327,7 @@ export function formatFileSize(bytes: number): string {
  * already attached. WordPress semantics: first-use wins. Call sites
  * (post featured-image set, structured content image assignment, etc.)
  * can invoke this freely; it's a no-op when the media is already
- * attached or the id is missing.
+ * attached; missing or unavailable targets are rejected.
  */
 export async function setMediaAttachment(
   ctx: { db: any },
@@ -332,11 +335,9 @@ export async function setMediaAttachment(
   postId: Id<"posts"> | string,
 ): Promise<void> {
   if (!mediaId) return;
-  const media = await ctx.db.get(mediaId);
-  if (!media) return;
-  if (media.attachedTo) return; // first-use wins
-  if (media.status === "trashed") return;
-  await ctx.db.patch(mediaId, {
+  const media = await requireAttachableMedia(ctx, mediaId as Id<"media">);
+  if (media.attachedTo) return; // first-use wins after target validation
+  await patchDynamicWithMediaReferences(ctx, mediaId, {
     attachedTo: postId,
     updatedAt: Date.now(),
   });

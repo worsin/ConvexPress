@@ -1,3 +1,4 @@
+import { requireCustomerInvitationRole } from "../../lib/auth/invitationRole";
 import { v } from "convex/values";
 import { internalMutation } from "../_generated/server";
 import {
@@ -14,6 +15,7 @@ import {
   getDefaultRoleDoc,
   getRegistrationSettings,
 } from "../helpers/registration";
+import { insertWithMediaReferences, patchWithMediaReferences } from "../media/attachmentGuard";
 
 /**
  * Upsert a user from a Clerk webhook event.
@@ -83,7 +85,7 @@ export const upsertClerkUser = internalMutation({
           `[ClerkSync] Clerk user ${clerkUserId} changed email to ${normalizedEmail}, which belongs to another account; keeping the previous email.`,
         );
       }
-      await ctx.db.patch(byClerkId._id, {
+      await patchWithMediaReferences<"users">(ctx, "users", byClerkId._id, {
         email: emailOwner && emailOwner._id !== byClerkId._id ? byClerkId.email : normalizedEmail,
         firstName,
         lastName,
@@ -130,7 +132,7 @@ export const upsertClerkUser = internalMutation({
         if (profilePictureUrl && !byEmail.profilePictureUrl) {
           patch.profilePictureUrl = profilePictureUrl;
         }
-        await ctx.db.patch(byEmail._id, patch);
+        await patchWithMediaReferences<"users">(ctx, "users", byEmail._id, patch);
         return;
       }
 
@@ -154,22 +156,10 @@ export const upsertClerkUser = internalMutation({
 
     let roleId = (await getDefaultRoleDoc(ctx))?._id;
     if (invitation) {
-      const invitedRole = await ctx.db
-        .query("roles")
-        .withIndex("by_slug", (q: ConvexQueryBuilder) =>
-          q.eq("slug", invitation.role),
-        )
-        .unique();
-      // Clerk identities can only hold customer-tier roles (see
-      // helpers/permissions canUseRoleForAuthSource); an invitation for an
-      // internal role falls back to the default customer role.
-      if (invitedRole?.status === "active" && invitedRole.type === "customer") roleId = invitedRole._id;
-      else if (invitedRole) {
-        console.warn(`[Clerk webhook] invitation role ${invitation.role} is internal; assigning the default customer role instead.`);
-      }
+      roleId = (await requireCustomerInvitationRole(ctx, invitation.role))._id;
     }
 
-    const userId = await ctx.db.insert("users", {
+    const userId: import("../_generated/dataModel").Id<"users"> = await insertWithMediaReferences<"users">(ctx, "users", {
       authSource: "clerk",
       clerkUserId,
       email: normalizedEmail,
@@ -220,7 +210,7 @@ export const deleteClerkUser = internalMutation({
       .unique();
 
     if (user) {
-      await ctx.db.patch(user._id, {
+      await patchWithMediaReferences<"users">(ctx, "users", user._id, {
         status: "inactive",
         deactivatedAt: Date.now(),
         updatedAt: Date.now(),

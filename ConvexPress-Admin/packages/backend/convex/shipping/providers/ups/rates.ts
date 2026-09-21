@@ -15,6 +15,7 @@ import { internal } from "../../../_generated/api";
 import { rankQuotes } from "../../rates/ranking";
 import type { NormalizedShippingQuote } from "../../rates/types";
 import { computeAddressFingerprint } from "../../helpers/addressFingerprint";
+import { snapshotShippingOrigin } from "../../quoteProvenance";
 import { getEffectiveShipFrom } from "../../helpers/settings";
 import { getUpsAccessTokenV2 } from "./auth";
 import { getUpsServiceName, parseUpsTransitDays } from "./serviceCodes";
@@ -249,6 +250,8 @@ export async function fetchUpsRatesV2(
       estimatedDaysMax: transitDays || undefined,
       // UPS quotes are valid for 30 min from generation; pipeline re-quotes on expiry.
       expiresAt: Date.now() + 30 * 60_000,
+      origin: snapshotShippingOrigin(shippingSettings),
+      packages: args.packages,
       rawQuote: { ...r, addressKey, cartKey },
     };
   });

@@ -63,10 +63,10 @@ export function isPackagedAppRendererSender(
 
 export function isAppRendererSender(
   senderUrl: string,
-  options: { devRendererUrl?: string; rendererIndexPath?: string } = {},
+  options: { development?: boolean; devRendererUrl?: string; rendererIndexPath?: string } = {},
 ): boolean {
   return (
-    isDevAppRendererSender(senderUrl, options.devRendererUrl) ||
+    (options.development === true && isDevAppRendererSender(senderUrl, options.devRendererUrl)) ||
     isPackagedAppRendererSender(senderUrl, options.rendererIndexPath)
   );
 }
@@ -91,7 +91,7 @@ export function isExactWizardSender(
 
 export function isTrustedDesktopSender(
   senderUrl: string,
-  options: { devRendererUrl?: string; rendererIndexPath?: string; wizardIndexPath?: string } = {},
+  options: { development?: boolean; devRendererUrl?: string; rendererIndexPath?: string; wizardIndexPath?: string } = {},
 ): boolean {
   return (
     isAppRendererSender(senderUrl, options) ||

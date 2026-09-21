@@ -13,6 +13,7 @@
  * and categories are matched by slug and updated in place.
  */
 
+import { deleteWithMediaReferences, insertWithMediaReferences, patchWithMediaReferences , deleteDynamicWithMediaReferences} from "../media/attachmentGuard";
 import { v } from "convex/values";
 import { internalMutation, internalQuery } from "../_generated/server";
 import { syncProductSearch } from "../search/products";
@@ -48,9 +49,9 @@ async function upsertSettings(ctx: any, section: string, values: Record<string, 
     .unique();
   const now = Date.now();
   if (existing) {
-    await ctx.db.patch(existing._id, { values: { ...(existing.values ?? {}), ...values }, updatedAt: now, updatedBy: userId });
+    await patchWithMediaReferences<"settings">(ctx, "settings", existing._id, { values: { ...(existing.values ?? {}), ...values }, updatedAt: now, updatedBy: userId });
   } else {
-    await ctx.db.insert("settings", { section, values, updatedAt: now, updatedBy: userId });
+    await insertWithMediaReferences<"settings">(ctx, "settings", { section, values, updatedAt: now, updatedBy: userId });
   }
 }
 
@@ -59,7 +60,7 @@ async function activatePalette(ctx: any, shop: DemoShop, userId: any) {
   const now = Date.now();
   const themes = await ctx.db.query("themes").take(200);
   for (const theme of themes) {
-    if (theme.isActive && theme.slug !== slug) await ctx.db.patch(theme._id, { isActive: false, updatedAt: now });
+    if (theme.isActive && theme.slug !== slug) await patchWithMediaReferences<"themes">(ctx, "themes", theme._id, { isActive: false, updatedAt: now });
   }
   const existing = themes.find((theme: any) => theme.slug === slug);
   const doc = {
@@ -72,8 +73,8 @@ async function activatePalette(ctx: any, shop: DemoShop, userId: any) {
     createdBy: userId,
     updatedAt: now,
   };
-  if (existing) await ctx.db.patch(existing._id, doc);
-  else await ctx.db.insert("themes", { ...doc, createdAt: now });
+  if (existing) await patchWithMediaReferences<"themes">(ctx, "themes", existing._id, doc);
+  else await insertWithMediaReferences<"themes">(ctx, "themes", { ...doc, createdAt: now });
 }
 
 export const listShops = internalQuery({
@@ -163,10 +164,10 @@ export const seedShop = internalMutation({
         updatedAt: now,
       };
       if (existing) {
-        await ctx.db.patch(existing._id, doc);
+        await patchWithMediaReferences<"commerce_products">(ctx, "commerce_products", existing._id, doc);
         categoryIds.set(category.slug, existing._id);
       } else {
-        const id = await ctx.db.insert("commerce_product_categories", { ...doc, productCount: 0, createdAt: now });
+        const id: import("../_generated/dataModel").Id<"commerce_product_categories"> = await insertWithMediaReferences<"commerce_product_categories">(ctx, "commerce_product_categories", { ...doc, productCount: 0, createdAt: now });
         categoryIds.set(category.slug, id);
       }
     }
@@ -214,10 +215,10 @@ export const seedShop = internalMutation({
       }
       let id;
       if (existing) {
-        await ctx.db.patch(existing._id, doc);
+        await patchWithMediaReferences<"commerce_products">(ctx, "commerce_products", existing._id, doc);
         id = existing._id;
       } else {
-        id = await ctx.db.insert("commerce_products", { ...doc, createdAt: now });
+        id = await insertWithMediaReferences<"commerce_products">(ctx, "commerce_products", { ...doc, createdAt: now });
       }
       productIds.set(product.slug, id);
       await syncProductSearch(ctx, id);
@@ -226,7 +227,7 @@ export const seedShop = internalMutation({
     // Category counts.
     for (const [slug, categoryId] of categoryIds) {
       const count = shop.products.filter((product) => product.category === slug).length;
-      await ctx.db.patch(categoryId, { productCount: count, totalProductCount: count, updatedAt: now });
+      await patchWithMediaReferences<"commerce_product_categories">(ctx, "commerce_product_categories", categoryId, { productCount: count, totalProductCount: count, updatedAt: now });
     }
 
     // ── Relations ───────────────────────────────────────────────────────
@@ -249,7 +250,7 @@ export const seedShop = internalMutation({
         status: "active",
         updatedAt: now,
       };
-      if (existing) await ctx.db.patch(existing._id, doc);
+      if (existing) await patchWithMediaReferences<"themes">(ctx, "themes", existing._id, doc);
       else await ctx.db.insert("commerce_product_relations", { ...doc, createdAt: now });
       relations += 1;
     }
@@ -281,8 +282,8 @@ export const clearShop = internalMutation({
         ...(await ctx.db.query("commerce_product_relations").withIndex("by_from", (q: any) => q.eq("fromProductId", existing._id)).collect()),
         ...(await ctx.db.query("commerce_product_relations").withIndex("by_to", (q: any) => q.eq("toProductId", existing._id)).collect()),
       ];
-      for (const edge of edges) await ctx.db.delete(edge._id);
-      await ctx.db.delete(existing._id);
+      for (const edge of edges) await deleteDynamicWithMediaReferences(ctx, edge._id);
+      await deleteWithMediaReferences<"commerce_products">(ctx, "commerce_products", existing._id);
       await syncProductSearch(ctx, existing._id);
       removed += 1;
     }
@@ -291,7 +292,7 @@ export const clearShop = internalMutation({
         .query("commerce_product_categories")
         .withIndex("by_slug", (q: any) => q.eq("slug", category.slug))
         .unique();
-      if (existing) await ctx.db.delete(existing._id);
+      if (existing) await deleteWithMediaReferences<"commerce_product_categories">(ctx, "commerce_product_categories", existing._id);
     }
     return { removed };
   },

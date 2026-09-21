@@ -1,3 +1,4 @@
+import { insertDynamicWithMediaReferences } from "../media/attachmentGuard";
 /**
  * Commerce Bundles — Mutations
  *
@@ -24,6 +25,9 @@
 import { ConvexError, v } from "convex/values";
 
 import { mutation } from "../_generated/server";
+import type { RegisteredMutation } from "convex/server";
+import type { Id } from "../_generated/dataModel";
+import type { BundlePurchaseMetadata, BundleSelectionInput } from "./runtime";
 import { requireCan } from "../helpers/permissions";
 import { requireCommerceBundlesEnabled } from "./helpers";
 import { getCommerceSettings } from "../commerce/helpers";
@@ -38,6 +42,7 @@ import {
   resolveBundleSelectionSnapshot,
 } from "./runtime";
 import { requirePluginEnabled } from "../helpers/plugins";
+import { insertWithMediaReferences, patchWithMediaReferences , patchDynamicWithMediaReferences, deleteDynamicWithMediaReferences} from "../media/attachmentGuard";
 
 // ============================================
 // HELPER: Recalculate and update bundle price
@@ -48,7 +53,7 @@ async function recalculateBundlePrice(ctx: any, bundleId: any) {
   if (!bundle) return;
   const snapshot = await resolveBundlePricingPreview(ctx, { bundle });
 
-  await ctx.db.patch(bundleId, {
+  await patchDynamicWithMediaReferences(ctx, bundleId, {
     regularPrice: snapshot?.regularPriceAmount ?? 0,
     bundlePrice: snapshot?.resolvedBundlePriceAmount ?? 0,
     updatedAt: Date.now(),
@@ -70,7 +75,7 @@ async function ensureOwningProductForBundle(
   const commerceSettings = await getCommerceSettings(ctx);
   const now = Date.now();
   const effective = args.updates ?? {};
-  const productId = await ctx.db.insert("commerce_products", {
+  const productId: import("../_generated/dataModel").Id<"commerce_products"> = await insertWithMediaReferences<"commerce_products">(ctx, "commerce_products", {
     title: effective.name ?? args.bundle.name,
     slug: effective.slug ?? args.bundle.slug,
     description: effective.description ?? args.bundle.description,
@@ -103,7 +108,7 @@ async function ensureOwningProductForBundle(
     updatedAt: now,
   });
 
-  await ctx.db.patch(args.bundle._id, {
+  await patchDynamicWithMediaReferences(ctx, args.bundle._id, {
     productId,
     updatedAt: now,
   });
@@ -247,7 +252,7 @@ export const create = mutation({
 
     const now = Date.now();
     const commerceSettings = await getCommerceSettings(ctx);
-    const owningProductId = await ctx.db.insert("commerce_products", {
+    const owningProductId: import("../_generated/dataModel").Id<"commerce_products"> = await insertWithMediaReferences<"commerce_products">(ctx, "commerce_products", {
       title: args.name,
       slug: args.slug,
       description: args.description,
@@ -280,7 +285,7 @@ export const create = mutation({
       updatedAt: now,
     });
 
-    return await ctx.db.insert("commerce_bundles", {
+    return await insertDynamicWithMediaReferences(ctx, "commerce_bundles", {
       productId: owningProductId,
       name: args.name,
       slug: args.slug,
@@ -406,7 +411,7 @@ export const update = mutation({
       productId: owningProductId,
     };
 
-    await ctx.db.patch(id, {
+    await patchDynamicWithMediaReferences(ctx, id, {
       ...cleanUpdates,
       productId: owningProductId,
       updatedAt: now,
@@ -445,7 +450,7 @@ export const update = mutation({
           };
         }
       }
-      await ctx.db.patch(owningProductId, productPatch);
+      await patchWithMediaReferences<"commerce_products">(ctx, "commerce_products", owningProductId, productPatch);
     }
     await requireActiveBundleIsPurchasable(ctx, nextBundle);
 
@@ -500,7 +505,7 @@ export const remove = mutation({
       .collect();
 
     for (const comp of components) {
-      await ctx.db.delete(comp._id);
+      await deleteDynamicWithMediaReferences(ctx, comp._id);
     }
 
     // Delete all selections
@@ -510,13 +515,13 @@ export const remove = mutation({
       .collect();
 
     for (const sel of selections) {
-      await ctx.db.delete(sel._id);
+      await deleteDynamicWithMediaReferences(ctx, sel._id);
     }
 
     // Delete the bundle
-    await ctx.db.delete(args.id);
+    await deleteDynamicWithMediaReferences(ctx, args.id);
     if (bundle.productId) {
-      await ctx.db.patch(bundle.productId, {
+      await patchWithMediaReferences<"commerce_products">(ctx, "commerce_products", bundle.productId, {
         status: "trash",
         updatedAt: Date.now(),
       });
@@ -714,7 +719,7 @@ export const updateComponent = mutation({
         .map(([key, val]) => [key, val === null ? undefined : val]),
     );
 
-    await ctx.db.patch(componentId, {
+    await patchDynamicWithMediaReferences(ctx, componentId, {
       ...cleanUpdates,
       updatedAt: Date.now(),
     });
@@ -773,7 +778,7 @@ export const removeComponent = mutation({
       }
     }
 
-    await ctx.db.delete(args.componentId);
+    await deleteDynamicWithMediaReferences(ctx, args.componentId);
 
     // Recalculate bundle price
     await recalculateBundlePrice(ctx, bundleId);
@@ -801,7 +806,7 @@ export const reorderComponents = mutation({
     for (let i = 0; i < args.componentIds.length; i++) {
       const componentId = args.componentIds[i];
       if (!componentId) continue;
-      await ctx.db.patch(componentId, {
+      await patchDynamicWithMediaReferences(ctx, componentId, {
         sortOrder: i,
         updatedAt: Date.now(),
       });
@@ -822,22 +827,14 @@ export const reorderComponents = mutation({
  * snapshots now flow through cart item metadata and are copied into order
  * item metadata at checkout.
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
-export const saveSelection = mutation({
+export const saveSelection: RegisteredMutation<"public", { bundleId: Id<"commerce_bundles">; cartItemId?: Id<"commerce_cart_items">; selections: (BundleSelectionInput & { productId: Id<"commerce_products"> })[] }, { selectionId: Id<"commerce_bundle_selections">; totalPrice: number; metadata: BundlePurchaseMetadata }> = mutation({
   args: {
-    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     bundleId: v.id("commerce_bundles"),
-    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     cartItemId: v.optional(v.id("commerce_cart_items")),
-    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     selections: v.array(
-      // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
       v.object({
-        // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
         componentId: v.id("commerce_bundle_components"),
-        // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
         productId: v.id("commerce_products"),
-        // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
         variantId: v.optional(v.id("commerce_product_variants")),
         quantity: v.number(),
       }),
@@ -866,13 +863,9 @@ export const saveSelection = mutation({
     const selectionId = await ctx.db.insert("commerce_bundle_selections", {
       bundleId: args.bundleId,
       cartItemId: args.cartItemId,
-      // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
       selections: snapshot.selections.map((selection) => ({
-        // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
         componentId: selection.componentId,
-        // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
         productId: selection.productId,
-        // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
         variantId: selection.variantId,
         quantity: selection.quantity,
         unitPrice: selection.unitPriceAmount,
@@ -885,7 +878,6 @@ export const saveSelection = mutation({
     return {
       selectionId,
       totalPrice: snapshot.resolvedBundlePriceAmount,
-      // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
       metadata: buildBundleLineMetadata({
         bundle,
         owningProductId: bundle.productId,

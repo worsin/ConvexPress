@@ -16,7 +16,7 @@ import {
   selectWpPostMetaForPreservation,
   shouldPreserveWpPostMetaKey,
 } from "../fieldPolicy";
-import { fullSiteFixture } from "./fixtures/fullSiteFixture";
+import { fullSiteFixture } from "./fixtures/fullSiteFixture.test-support";
 import {
   buildClerkCreateUserPayload,
   detectClerkPasswordHasher,

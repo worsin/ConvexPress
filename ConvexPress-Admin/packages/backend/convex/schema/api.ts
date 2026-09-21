@@ -41,6 +41,8 @@ export const apiTables = {
     keyPrefix: v.string(),
     /** SHA-256 hash of the full API key (never store plaintext) */
     keyHash: v.string(),
+    /** Issuing deployment authority; unstamped legacy keys must be reissued. */
+    environmentBinding: v.optional(v.string()),
 
     // --- Ownership ---
     /** User identifier of the admin who created this key */

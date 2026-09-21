@@ -33,7 +33,9 @@
  * All mutations emit events via the Event Dispatcher System.
  */
 
-import { ConvexError } from "convex/values";
+import type { RegisteredMutation } from "convex/server";
+import type { Id } from "../_generated/dataModel";
+import { ConvexError, type ObjectType } from "convex/values";
 import { mutation } from "../_generated/server";
 import { internal } from "../_generated/api";
 import { requireCan, requireAuth, getCurrentUser, currentUserCan } from "../helpers/permissions";
@@ -264,10 +266,8 @@ export const create = mutation({
  * Auto-transition: if ticket is "awaitingResponse", status becomes "open".
  * Increments messageCount and updates lastMessageAt.
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
-export const reply = mutation({
+export const reply: RegisteredMutation<"public", ObjectType<typeof replyTicketArgs>, { messageId: Id<"ticket_messages">; reopened: boolean }> = mutation({
   args: replyTicketArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "tickets");
     const user = await requireAuth(ctx);
@@ -310,7 +310,7 @@ export const reply = mutation({
     // ── Compute next sequence number ────────────────────────────────────
     const lastMessage = await ctx.db
       .query("ticket_messages")
-      .withIndex("by_ticket_sequence", (q: ConvexQueryBuilder) => q.eq("ticketId", args.ticketId))
+      .withIndex("by_ticket_sequence", (q) => q.eq("ticketId", args.ticketId))
       .order("desc")
       .first();
     const sequence = (lastMessage?.sequence ?? -1) + 1;
@@ -400,10 +400,8 @@ export const reply = mutation({
  *
  * If this is the first non-internal admin reply, records firstResponseAt for SLA.
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
-export const adminReply = mutation({
+export const adminReply: RegisteredMutation<"public", ObjectType<typeof adminReplyArgs>, { messageId: Id<"ticket_messages"> }> = mutation({
   args: adminReplyArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "tickets");
     const user = await requireCan(ctx, "ticket.respond");
@@ -440,7 +438,7 @@ export const adminReply = mutation({
     // ── Compute next sequence number ────────────────────────────────────
     const lastMessage = await ctx.db
       .query("ticket_messages")
-      .withIndex("by_ticket_sequence", (q: ConvexQueryBuilder) => q.eq("ticketId", args.ticketId))
+      .withIndex("by_ticket_sequence", (q) => q.eq("ticketId", args.ticketId))
       .order("desc")
       .first();
     const sequence = (lastMessage?.sequence ?? -1) + 1;

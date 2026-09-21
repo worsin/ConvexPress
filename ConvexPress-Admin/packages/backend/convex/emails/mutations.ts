@@ -84,7 +84,7 @@ export const subscribeNewsletter = mutation({
 
     if (existing) {
       if (existing.status !== "subscribed") {
-        await ctx.db.patch(existing._id, {
+        await ctx.db.patch("newsletterSubscribers", existing._id, {
           status: "subscribed",
           source: args.source ?? existing.source,
           subscribedAt: now,
@@ -92,7 +92,7 @@ export const subscribeNewsletter = mutation({
           updatedAt: now,
         });
       } else if (args.source && args.source !== existing.source) {
-        await ctx.db.patch(existing._id, {
+        await ctx.db.patch("newsletterSubscribers", existing._id, {
           source: args.source,
           updatedAt: now,
         });
@@ -344,7 +344,8 @@ export const cancelEmail = mutation({
 /**
  * Repair the full email subsystem in-place.
  *
- * Safe to run repeatedly. Re-seeds template metadata, repairs listeners,
+ * Safe to run repeatedly. Re-seeds template metadata, inserts missing listeners
+ * while preserving disabled/customized listener records,
  * ensures shipping templates are present, and backfills returns metadata when
  * the returns extension is enabled.
  */
@@ -357,7 +358,7 @@ export const repairSystem = mutation({
 
     const now = Date.now();
     const templates = await runBootstrapTemplates(ctx, now);
-    const listeners = await registerListenerDefinitions(ctx, now);
+    const listeners = await registerListenerDefinitions(ctx, now, { preserveExisting: true });
     const shipping = await runBootstrapShippingTemplates(ctx, now);
 
     let returns = null;

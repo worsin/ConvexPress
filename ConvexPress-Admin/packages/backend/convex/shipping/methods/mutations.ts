@@ -13,6 +13,8 @@ import { mutation } from "../../_generated/server";
 import { requireCan } from "../../helpers/permissions";
 import { emitEvent } from "../../helpers/events";
 import { SHIPPING_EVENTS } from "../../events/constants";
+import { insertDynamicWithMediaReferences, patchDynamicWithMediaReferences, deleteDynamicWithMediaReferences } from "../../media/attachmentGuard";
+
 
 const METHOD_TABLES = [
   "commerce_shipping_method_flat_rate",
@@ -162,7 +164,7 @@ export const createMethod = mutation({
       args.methodType === "flat_rate" && user?._id
         ? { createdBy: user._id, updatedBy: user._id }
         : {};
-    const id = await ctx.db.insert(table as any, {
+    const id = await insertDynamicWithMediaReferences(ctx, table, {
       ...args.config,
       ...auditStamps,
       enabled: args.config.enabled ?? true,
@@ -198,7 +200,7 @@ export const updateMethod = mutation({
     await validateMethodConfig(ctx, args.methodType, merged, id);
     const auditStamp =
       args.methodType === "flat_rate" && user?._id ? { updatedBy: user._id } : {};
-    await ctx.db.patch(id, { ...args.patch, ...auditStamp, updatedAt: Date.now() });
+    await patchDynamicWithMediaReferences(ctx, id, { ...args.patch, ...auditStamp, updatedAt: Date.now() });
     await emitEvent(ctx, SHIPPING_EVENTS.METHOD_UPDATED, "shipping", {
       methodId: id,
       methodType: args.methodType,
@@ -215,7 +217,7 @@ export const deleteMethod = mutation({
   handler: async (ctx, args) => {
     await requireCan(ctx, "shipping.methods.manage");
     const id = args.methodId as any;
-    await ctx.db.delete(id);
+    await deleteDynamicWithMediaReferences(ctx, id);
     await emitEvent(ctx, SHIPPING_EVENTS.METHOD_DELETED, "shipping", {
       methodId: id,
       methodType: args.methodType,
@@ -233,7 +235,7 @@ export const toggleMethodEnabled = mutation({
   handler: async (ctx, args) => {
     await requireCan(ctx, "shipping.methods.manage");
     const id = args.methodId as any;
-    await ctx.db.patch(id, { enabled: args.enabled, updatedAt: Date.now() });
+    await patchDynamicWithMediaReferences(ctx, id, { enabled: args.enabled, updatedAt: Date.now() });
     await emitEvent(ctx, SHIPPING_EVENTS.METHOD_UPDATED, "shipping", {
       methodId: id,
       methodType: args.methodType,

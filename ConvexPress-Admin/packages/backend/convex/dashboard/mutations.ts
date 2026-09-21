@@ -16,6 +16,7 @@
  *   - reorderWidgets requires "dashboard.reorder_widgets" capability
  */
 
+import { insertWithMediaReferences } from "../media/attachmentGuard";
 import { ConvexError, v } from "convex/values";
 import { mutation } from "../_generated/server";
 import { requireCan } from "../helpers/permissions";
@@ -62,7 +63,7 @@ export const quickDraft = mutation({
       .replace(/^-|-$/g, "")
       .substring(0, 100);
 
-    const postId = await ctx.db.insert("posts", {
+    const postId: import("../_generated/dataModel").Id<"posts"> = await insertWithMediaReferences<"posts">(ctx, "posts", {
       type: "post",
       title,
       slug: slug || "untitled",

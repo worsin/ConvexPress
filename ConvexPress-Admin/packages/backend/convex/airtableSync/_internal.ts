@@ -1,3 +1,4 @@
+import * as catalogRevisionWrites from "../media/attachmentGuard";
 /**
  * Airtable Sync - Internal Functions
  *
@@ -10,6 +11,7 @@
 import { lookupUserByIdentifier } from "../helpers/permissions";
 import { v } from "convex/values";
 import { internalMutation, internalQuery } from "../_generated/server";
+import { patchWithMediaReferences } from "../media/attachmentGuard";
 
 // ─── Auth Helper ─────────────────────────────────────────────────────────────
 
@@ -201,7 +203,7 @@ export const insertRole = internalMutation({
   // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     const now = Date.now();
-    return await ctx.db.insert("roles", {
+    return await catalogRevisionWrites.insertWithMediaReferences<"roles">(ctx, "roles", {
       ...args,
       status: args.status ?? "active",
       capabilities: args.capabilities ?? [],
@@ -256,7 +258,7 @@ export const updateRole = internalMutation({
   // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     const { id, ...data } = args;
-    await ctx.db.patch("roles", id, {
+    await catalogRevisionWrites.patchWithMediaReferences<"roles">(ctx, "roles", id, {
       ...data,
       updatedAt: data.updatedAt ?? Date.now(),
     });
@@ -305,7 +307,7 @@ export const reassignUsersFromRole = internalMutation({
 
     const now = Date.now();
     for (const user of users) {
-      await ctx.db.patch("users", user._id, {
+      await patchWithMediaReferences<"users">(ctx, "users", user._id, {
         roleId: args.toRoleId,
         internalRole: legacyRole,
         isInternal,
@@ -330,7 +332,7 @@ export const deleteRoleById = internalMutation({
   },
   // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
-    await ctx.db.delete("roles", args.roleId);
+    await catalogRevisionWrites.deleteWithMediaReferences<"roles">(ctx, "roles", args.roleId);
   },
 });
 

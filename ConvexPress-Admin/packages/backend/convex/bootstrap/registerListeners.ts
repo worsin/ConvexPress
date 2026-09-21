@@ -20,13 +20,15 @@
  *   99:    Audit log (always runs last)
  *
  * Usage:
- *   Call this internalMutation once during initial deployment or after
- *   adding new systems. It is idempotent and safe to re-run.
+ *   Routine installation and repair use ensureRequired: insert missing defaults
+ *   while preserving disabled/customized listeners. The older run function is
+ *   an explicit migration that reactivates and rewrites built-in listeners.
  *
- *   From Convex dashboard: Run internal function bootstrap.registerListeners.run
- *   From code: ctx.scheduler.runAfter(0, internal.bootstrap.registerListeners.run, {});
+ *   From Convex dashboard: Run internal function bootstrap.registerListeners.ensureRequired
+ *   From code: ctx.scheduler.runAfter(0, internal.bootstrap.registerListeners.ensureRequired, {});
  */
 
+import { v } from "convex/values";
 import { internalMutation } from "../_generated/server";
 import { OBSOLETE_EMAIL_LISTENERS } from "../emails/registry";
 import {
@@ -1390,7 +1392,7 @@ const LISTENER_DEFINITIONS: ListenerDef[] = [
   // handlerType "action" because dispatch is an internalAction (fans out to
   // sub-mutations for per-row delivery isolation). priority 20 = alongside
   // other email handlers, after site notifications/audit.
-  // NOTE: new listeners require a `bootstrap.registerListeners.run` after deploy.
+  // NOTE: new listeners require `bootstrap.registerListeners.ensureRequired` after deploy.
   // ═══════════════════════════════════════════════════════════════════════════
   {
     eventCode: "form.submitted",
@@ -1442,7 +1444,7 @@ const LISTENER_DEFINITIONS: ListenerDef[] = [
   // handlerType "internal" because runActions is an internalMutation (a mutation
   // cannot runAction, so it only schedules; dispatchAction does the I/O).
   // priority 30 = runs after notifications/site/audit for this event.
-  // NOTE: new listeners require a `bootstrap.registerListeners.run` after deploy.
+  // NOTE: new listeners require `bootstrap.registerListeners.ensureRequired` after deploy.
   // ═══════════════════════════════════════════════════════════════════════════
   {
     eventCode: "form.submitted",
@@ -1463,7 +1465,7 @@ const LISTENER_DEFINITIONS: ListenerDef[] = [
   // FORMS ANALYTICS — Form Analytics & Export System (v2 scanner-discovered)
   // Increments the `completed` funnel counter on form.submitted (isComplete
   // only). priority 50 = analytics tier (after notifications/email).
-  // NOTE: new listeners require a `bootstrap.registerListeners.run` after deploy.
+  // NOTE: new listeners require `bootstrap.registerListeners.ensureRequired` after deploy.
   // ═══════════════════════════════════════════════════════════════════════════
   {
     eventCode: "form.submitted",
@@ -1501,7 +1503,11 @@ const EFFECTIVE_LISTENER_DEFINITIONS: ListenerDef[] = [
  *
  * Safe to call multiple times. Will not create duplicates.
  */
-export async function registerListenerDefinitions(ctx: any, now = Date.now()) {
+export async function registerListenerDefinitions(
+  ctx: any,
+  now = Date.now(),
+  options: { preserveExisting?: boolean } = {},
+) {
   const totalDefinitions = EFFECTIVE_LISTENER_DEFINITIONS.length as number;
   let created = 0;
   let reactivated = 0;
@@ -1513,12 +1519,21 @@ export async function registerListenerDefinitions(ctx: any, now = Date.now()) {
       .withIndex("by_event_code", (q: ConvexQueryBuilder) =>
         q.eq("eventCode", def.eventCode),
       )
-      .collect();
+      .take(1001);
+
+    if (existingListeners.length > 1000) {
+      throw new Error("Too many listeners for one event code; bootstrap cannot safely reconcile.");
+    }
 
     // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
     const existing = existingListeners.find((l) => l.name === def.name);
 
     if (existing) {
+      // Installation/reinitialization must respect operator customization and disablement.
+      if (options.preserveExisting) {
+        skipped++;
+        continue;
+      }
       if (existing.isActive) {
         await ctx.db.patch("eventListeners", existing._id, {
           handlerModule: def.handlerModule,
@@ -1569,6 +1584,11 @@ export async function registerListenerDefinitions(ctx: any, now = Date.now()) {
       });
       created++;
     }
+  }
+
+  // Missing-only installation never performs migrations or dispatches existing events.
+  if (options.preserveExisting) {
+    return { total: totalDefinitions, created, reactivated, skipped, deactivated: 0 };
   }
 
   let deactivated = 0;
@@ -1623,3 +1643,19 @@ const runConfig: any = {
 
 // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const run = internalMutation(runConfig);
+
+/** Safe installation repair: insert missing defaults without changing existing listeners. */
+const ensureRequiredConfig: any = {
+  args: {},
+  returns: v.object({
+    total: v.number(),
+    created: v.number(),
+    reactivated: v.number(),
+    skipped: v.number(),
+    deactivated: v.number(),
+  }),
+  handler: async (ctx: any) => registerListenerDefinitions(ctx, Date.now(), { preserveExisting: true }),
+};
+
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+export const ensureRequired = internalMutation(ensureRequiredConfig);

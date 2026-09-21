@@ -31,7 +31,12 @@ import { v } from "convex/values";
 import type { Id } from "../_generated/dataModel";
 import { query } from "../_generated/server";
 import { currentUserCan, getCurrentUser } from "../helpers/permissions";
-import { evaluateMembershipAccess } from "../membership/access";
+import {
+	canEditContent,
+	canDiscoverContent,
+	readPublicContent,
+	contentFeaturedImage,
+} from "../helpers/publicContent";
 import {
 	getBreadcrumbsArgs,
 	getChildrenArgs,
@@ -81,7 +86,7 @@ export const list = query({
 	args: listPagesArgs,
 	handler: async (ctx, args) => {
 		const user = await getCurrentUser(ctx);
-		if (!user) {
+		if (!user || !(await currentUserCan(ctx, "page.update"))) {
 			return {
 				pages: [],
 				pagination: { page: 1, perPage: 20, total: 0, totalPages: 0 },
@@ -104,10 +109,16 @@ export const list = query({
 
 		// ── Fetch all pages once (used for both list results and counts) ─────
 		// Single table scan to avoid M-4 double table scan issue.
-		const allPagesUnfiltered = await ctx.db
+		const allPageCandidates = await ctx.db
 			.query("posts")
 			.withIndex("by_type", (q) => q.eq("type", "page"))
 			.collect();
+
+		const allPagesUnfiltered = [];
+		for (const candidate of allPageCandidates) {
+			if (await canEditContent(ctx, candidate))
+				allPagesUnfiltered.push(candidate);
+		}
 
 		// Compute status counts from the unfiltered set (before any filtering)
 		const counts = {
@@ -239,71 +250,38 @@ export const list = query({
 export const get = query({
 	args: getPageArgs,
 	handler: async (ctx, args) => {
-		let page;
-
-		// ── Resolve page ──────────────────────────────────────────────────────
-		if (args.pageId) {
-			page = await ctx.db.get("posts", args.pageId);
-		} else if (args.slug) {
-			page = await ctx.db
-				.query("posts")
-				.withIndex("by_type_slug", (q) =>
-					q.eq("type", "page").eq("slug", args.slug!),
-				)
-				.unique();
-		} else if (args.path) {
-			const normalizedPath = args.path.startsWith("/")
-				? args.path
-				: `/${args.path}`;
-			page = await ctx.db
-				.query("posts")
-				.withIndex("by_path", (q) => q.eq("path", normalizedPath))
-				.first();
-
-			// Verify it's actually a page (path index isn't type-scoped)
-			if (page && page.type !== "page") {
-				page = null;
-			}
-		}
-
-		if (!page || page.type !== "page") {
-			return null;
-		}
-
-		// ── Visibility checks ─────────────────────────────────────────────────
-		const user = await getCurrentUser(ctx);
-		const isAdmin = !!user;
-
-		// Non-admin: only published and private pages are visible
-		if (!isAdmin) {
-			if (page.status !== "publish" && page.status !== "private") {
-				return null;
-			}
-		}
-
-		// Private pages require specific capability (read_private_pages in WordPress terms)
-		if (page.visibility === "private" || page.status === "private") {
-			if (!user) return null;
-			const canReadPrivate = await currentUserCan(ctx, "page.read_private");
-			if (!canReadPrivate) return null;
-		}
-
-		// Password-protected pages: return without content for public.
-		// Exclude the password field from the response for security.
-		if (page.visibility === "password" && !isAdmin) {
-			return {
-				...page,
-				content: undefined,
-				password: undefined,
-				isPasswordProtected: true,
-			};
-		}
-
-		// ── Enrich with parent info ───────────────────────────────────────────
+		const page = args.pageId
+			? await ctx.db.get("posts", args.pageId)
+			: args.slug
+				? await ctx.db
+						.query("posts")
+						.withIndex("by_type_slug", (q) =>
+							q.eq("type", "page").eq("slug", args.slug!),
+						)
+						.unique()
+				: args.path
+					? await ctx.db
+							.query("posts")
+							.withIndex("by_path", (q) =>
+								q.eq(
+									"path",
+									args.path!.startsWith("/") ? args.path! : `/${args.path}`,
+								),
+							)
+							.first()
+					: null;
+		if (!page || page.type !== "page") return null;
+		const editorial = await canEditContent(ctx, page);
+		const data = editorial ? page : await readPublicContent(ctx, page);
+		if (!data) return null;
 		let parentInfo = null;
 		if (page.parentId) {
-			const parent = await ctx.db.get("posts", page.parentId as Id<"posts">);
-			if (parent && parent.type === "page") {
+			const parent = await ctx.db.get("posts", page.parentId);
+			if (
+				parent &&
+				((await canEditContent(ctx, parent)) ||
+					(await canDiscoverContent(ctx, parent)))
+			) {
 				parentInfo = {
 					_id: parent._id,
 					title: parent.title,
@@ -312,40 +290,31 @@ export const get = query({
 				};
 			}
 		}
-
-		// ── Fetch direct children ─────────────────────────────────────────────
-		const childrenQuery = await ctx.db
+		const candidates = await ctx.db
 			.query("posts")
 			.withIndex("by_type_parent", (q) =>
 				q.eq("type", "page").eq("parentId", page._id),
 			)
-			.collect();
-
-		// Filter children: admin sees all non-trash, public sees published only
-		const children = childrenQuery
-			.filter((c) => (isAdmin ? c.status !== "trash" : c.status === "publish"))
-			.sort(
-				(a, b) =>
-					((a.menuOrder as number) ?? 0) - ((b.menuOrder as number) ?? 0),
-			)
-			.map((c) => ({
-				_id: c._id,
-				title: c.title,
-				slug: c.slug,
-				status: c.status,
-				menuOrder: c.menuOrder,
-				path: c.path,
-			}));
-
-		// Exclude password field from public responses for security.
-		// Admin users can still see it in the dashboard data.
-		const { password: _pw, ...safePageData } = page;
-
-		return {
-			...safePageData,
-			parent: parentInfo,
-			children,
-		};
+			.take(10000);
+		const children = [];
+		for (const child of candidates) {
+			if (
+				child.status !== "trash" &&
+				((editorial && (await canEditContent(ctx, child))) ||
+					(await canDiscoverContent(ctx, child)))
+			) {
+				children.push({
+					_id: child._id,
+					title: child.title,
+					slug: child.slug,
+					status: child.status,
+					menuOrder: child.menuOrder,
+					path: child.path,
+				});
+			}
+		}
+		children.sort((a, b) => (a.menuOrder ?? 0) - (b.menuOrder ?? 0));
+		return { ...data, parent: parentInfo, children };
 	},
 });
 
@@ -377,9 +346,15 @@ export const getTree = query({
 			.collect();
 
 		// Filter by status
-		const filteredPages = allPages.filter((p) =>
-			showPublishedOnly ? p.status === "publish" : p.status !== "trash",
-		);
+		const filteredPages = [];
+		for (const p of allPages) {
+			if (
+				(showPublishedOnly ? p.status === "publish" : p.status !== "trash") &&
+				((!showPublishedOnly && (await canEditContent(ctx, p))) ||
+					(await canDiscoverContent(ctx, p)))
+			)
+				filteredPages.push(p);
+		}
 
 		// Sort by menuOrder then title
 		filteredPages.sort((a, b) => {
@@ -436,98 +411,18 @@ export const getTree = query({
 export const getByPath = query({
 	args: getPageByPathArgs,
 	handler: async (ctx, args) => {
-		// Normalize path: ensure leading slash
-		const normalizedPath = args.path.startsWith("/")
-			? args.path
-			: `/${args.path}`;
-
-		// Remove trailing slash (except for root "/")
-		const cleanPath =
-			normalizedPath === "/"
-				? normalizedPath
-				: normalizedPath.replace(/\/$/, "");
-
-		// Lookup by path index
+		const normalized = args.path.startsWith("/") ? args.path : `/${args.path}`;
+		const path =
+			normalized === "/" ? normalized : normalized.replace(/\/$/, "");
 		const page = await ctx.db
 			.query("posts")
-			.withIndex("by_path", (q) => q.eq("path", cleanPath))
+			.withIndex("by_path", (q) => q.eq("path", path))
 			.first();
-
-		// Must be a page and published/private
-		if (!page || page.type !== "page") {
-			return null;
-		}
-
-		if (page.status !== "publish" && page.status !== "private") {
-			return null;
-		}
-
-		// ── Private page access ───────────────────────────────────────────────
-		// Requires read_private_pages capability (WordPress: read_private_pages)
-		if (page.status === "private" || page.visibility === "private") {
-			const user = await getCurrentUser(ctx);
-			if (!user) return null;
-
-			const canReadPrivate = await currentUserCan(ctx, "page.read_private");
-			if (!canReadPrivate) return null;
-		}
-
-		// ── Resolve featured image URL ─────────────────────────────────────────
-		let featuredImageUrl: string | undefined;
-		let featuredImageAlt: string | undefined;
-		if (page.featuredImageId) {
-			const media = await ctx.db.get("media", page.featuredImageId);
-			if (media) {
-				featuredImageUrl = media.url;
-				featuredImageAlt = media.altText;
-			}
-		}
-
-		const membershipAccess = await evaluateMembershipAccess(ctx, {
-			resourceType: "page",
-			resourceIdOrKey: String(page._id),
-		});
-
-		// ── Password-protected page ───────────────────────────────────────────
-		if (page.visibility === "password") {
-			return {
-				_id: page._id,
-				title: page.title,
-				slug: page.slug,
-				path: page.path,
-				status: page.status,
-				pageTemplate: page.pageTemplate,
-				featuredImageId: page.featuredImageId,
-				featuredImageUrl,
-				featuredImageAlt,
-				isPasswordProtected: true,
-				isMembershipRestricted: !membershipAccess.allowed,
-				membershipAccess,
-				// Content intentionally omitted
-			};
-		}
-
-		// Exclude password field from public responses for security
-		const { password: _pw, ...safePageData } = page;
-
-		if (!membershipAccess.allowed) {
-			return {
-				...safePageData,
-				content: undefined,
-				featuredImageUrl,
-				featuredImageAlt,
-				isMembershipRestricted: true,
-				membershipAccess,
-			};
-		}
-
-		return {
-			...safePageData,
-			featuredImageUrl,
-			featuredImageAlt,
-			isMembershipRestricted: false,
-			membershipAccess,
-		};
+		if (!page || page.type !== "page") return null;
+		const data = await readPublicContent(ctx, page, { path });
+		return data
+			? { ...data, ...(await contentFeaturedImage(ctx, page)) }
+			: null;
 	},
 });
 
@@ -544,7 +439,7 @@ export const getChildren = query({
 	handler: async (ctx, args) => {
 		const showPublishedOnly = args.status !== "all";
 		const user = await getCurrentUser(ctx);
-		const isAdmin = !!user;
+		const isAdmin = !!user && (await currentUserCan(ctx, "page.update"));
 
 		const children = await ctx.db
 			.query("posts")
@@ -554,12 +449,17 @@ export const getChildren = query({
 			.collect();
 
 		// Filter by status
-		const filtered = children.filter((c) => {
-			if (showPublishedOnly || !isAdmin) {
-				return c.status === "publish";
-			}
-			return c.status !== "trash";
-		});
+		const filtered = [];
+		for (const child of children) {
+			if (
+				(!showPublishedOnly &&
+					isAdmin &&
+					child.status !== "trash" &&
+					(await canEditContent(ctx, child))) ||
+				(await canDiscoverContent(ctx, child))
+			)
+				filtered.push(child);
+		}
 
 		// Sort by menuOrder then title
 		filtered.sort((a, b) => {
@@ -604,7 +504,11 @@ export const getBreadcrumbs = query({
 		}> = [];
 
 		const page = await ctx.db.get("posts", args.pageId);
-		if (!page || page.type !== "page") {
+		if (
+			!page ||
+			page.type !== "page" ||
+			!(await canDiscoverContent(ctx, page))
+		) {
 			return breadcrumbs;
 		}
 
@@ -626,7 +530,7 @@ export const getBreadcrumbs = query({
 			if (!ancestor || ancestor.type !== "page") break;
 
 			// Only include published ancestors in breadcrumbs
-			if (ancestor.status === "publish") {
+			if (await canDiscoverContent(ctx, ancestor)) {
 				ancestors.unshift({
 					_id: ancestor._id,
 					title: ancestor.title,
@@ -744,12 +648,18 @@ export const listPublished = query({
 		const perPage = args.perPage ?? 100;
 
 		// Fetch all published pages using the compound index
-		const allPublished = await ctx.db
+		const candidates = await ctx.db
 			.query("posts")
 			.withIndex("by_type_status_published", (q) =>
 				q.eq("type", "page").eq("status", "publish"),
 			)
 			.collect();
+
+		const allPublished = [];
+		for (const candidate of candidates) {
+			if (await canDiscoverContent(ctx, candidate))
+				allPublished.push(candidate);
+		}
 
 		// Sort by menuOrder then title
 		allPublished.sort((a, b) => {
@@ -862,7 +772,9 @@ export const getFrontPage = query({
 				return null;
 			}
 
-			return frontPage;
+			const data = await readPublicContent(ctx, frontPage, { path: "/" });
+			return data && !data.isMembershipRestricted && !data.isPasswordProtected
+				? { ...data, ...(await contentFeaturedImage(ctx, frontPage)) } : data;
 		} catch {
 			// Invalid ID or other error
 			return null;
@@ -886,55 +798,20 @@ export const getFrontPage = query({
  * @returns Full page document if password is correct, null otherwise
  */
 export const verifyPassword = query({
-	args: {
-		pageId: v.id("posts"),
-		password: v.string(),
-	},
+	args: { pageId: v.id("posts"), password: v.string() },
 	handler: async (ctx, args) => {
 		const page = await ctx.db.get("posts", args.pageId);
-
-		if (!page || page.type !== "page") {
+		if (
+			!page ||
+			page.type !== "page" ||
+			page.status !== "publish" ||
+			page.visibility !== "password"
+		)
 			return null;
-		}
-
-		// Only applicable to password-protected pages
-		if (page.visibility !== "password") {
-			return null;
-		}
-
-		// Only published pages can be accessed via password
-		if (page.status !== "publish") {
-			return null;
-		}
-
-		// Constant-time comparison to prevent timing attacks
 		const { timingSafeEquals } = await import("../helpers/timingSafe");
-		if (!page.password || !timingSafeEquals(page.password, args.password)) {
+		if (!page.password || !timingSafeEquals(page.password, args.password))
 			return null;
-		}
-
-		// Password correct: return the page document (without the password field)
-		const { password: _pw, ...safePageData } = page;
-		const membershipAccess = await evaluateMembershipAccess(ctx, {
-			resourceType: "page",
-			resourceIdOrKey: String(page._id),
-		});
-
-		if (!membershipAccess.allowed) {
-			return {
-				...safePageData,
-				content: undefined,
-				passwordVerified: true,
-				isMembershipRestricted: true,
-				membershipAccess,
-			};
-		}
-
-		return {
-			...safePageData,
-			passwordVerified: true,
-			isMembershipRestricted: false,
-			membershipAccess,
-		};
+		const data = await readPublicContent(ctx, page, { passwordVerified: true });
+		return data && !data.isMembershipRestricted ? { ...data, ...(await contentFeaturedImage(ctx, page)) } : data;
 	},
 });

@@ -6,12 +6,16 @@
   "author": "",
   "scripts": {
     "codegen:extensions": "node scripts/generate-extension-index.mjs",
-    "predev": "node scripts/generate-extension-index.mjs",
-    "predev:setup": "node scripts/generate-extension-index.mjs",
-    "predeploy": "node scripts/generate-extension-index.mjs",
+    "predev": "node scripts/generate-extension-index.mjs && node scripts/generate-media-writer-coverage.mjs --check",
+    "predev:setup": "node scripts/generate-extension-index.mjs && node scripts/generate-media-writer-coverage.mjs --check",
+    "predeploy": "node scripts/generate-extension-index.mjs && node scripts/generate-media-writer-coverage.mjs --check",
     "dev": "convex dev",
     "dev:setup": "convex dev --configure --until-success",
-    "deploy": "node scripts/generate-extension-index.mjs && convex deploy"
+    "deploy": "node scripts/generate-extension-index.mjs && node scripts/generate-media-writer-coverage.mjs --check && convex deploy",
+    "codegen:media-references": "bun scripts/generate-media-reference-inventory.ts",
+    "check:media-references": "bun scripts/generate-media-reference-inventory.ts --check",
+    "codegen:media-writers": "node scripts/generate-media-writer-coverage.mjs",
+    "check:media-writers": "node scripts/generate-media-writer-coverage.mjs --check"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "0.81.0",
@@ -20,6 +24,7 @@
     "@tavily/core": "0.7.2",
     "bcryptjs": "^3.0.3",
     "convex": "catalog:",
+    "convex-helpers": "0.1.120",
     "dotenv": "catalog:",
     "googleapis": "^171.4.0",
     "jose": "^6.2.2",

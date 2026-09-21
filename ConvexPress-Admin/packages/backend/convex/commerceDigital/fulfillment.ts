@@ -1,9 +1,12 @@
 // @ts-nocheck
 import { v } from "convex/values";
+import { isOrderPaidForDigitalAccess } from "./downloadEntitlement";
 
 import { internalMutation } from "../_generated/server";
 import { isPluginEnabled } from "../helpers/plugins";
 import { syncPurchasedCourseEnrollmentsHandler } from "../lms/enrollment/internals";
+import { patchDynamicWithMediaReferences } from "../media/attachmentGuard";
+
 
 function generateRandomHex(bytes: number): string {
   const array = new Uint8Array(bytes);
@@ -11,15 +14,7 @@ function generateRandomHex(bytes: number): string {
   return Array.from(array, (b) => b.toString(16).padStart(2, "0")).join("");
 }
 
-const PAID_PAYMENT_STATUSES = new Set(["paid", "partially_paid"]);
-const PAID_ORDER_STATUSES = new Set(["paid", "processing", "completed", "fulfilled"]);
-
-export function isOrderEligibleForDigitalFulfillment(order: any) {
-  return (
-    PAID_PAYMENT_STATUSES.has(order?.paymentStatus) ||
-    PAID_ORDER_STATUSES.has(order?.status)
-  );
-}
+export const isOrderEligibleForDigitalFulfillment = isOrderPaidForDigitalAccess;
 
 export function resolveDigitalPolicy(product: any, variant?: any) {
   const deliveryMode =
@@ -167,7 +162,7 @@ async function assignMissingLicenseKeys(ctx: any, args: any) {
       break;
     }
 
-    await ctx.db.patch(key._id, {
+    await patchDynamicWithMediaReferences(ctx, key._id, {
       orderId: args.orderId,
       userId: args.userId,
       status: "assigned",
@@ -184,8 +179,10 @@ export async function fulfillOrderDigitalEntitlementsHandler(ctx: any, args: any
     const order = await ctx.db.get(args.orderId);
     if (!order) return { status: "failed", reason: "Order not found" };
 
+    if (["cancelled", "refunded", "failed"].includes(order.status)) return { status: "skipped", reason: "Order is no longer eligible for digital fulfillment" };
+
     if (!isOrderEligibleForDigitalFulfillment(order)) {
-      await ctx.db.patch(order._id, {
+      await patchDynamicWithMediaReferences(ctx, order._id, {
         digitalFulfillmentStatus: "pending",
         updatedAt: Date.now(),
       });
@@ -286,7 +283,7 @@ export async function fulfillOrderDigitalEntitlementsHandler(ctx: any, args: any
           : "needs_review"
         : "completed";
 
-    await ctx.db.patch(order._id, {
+    await patchDynamicWithMediaReferences(ctx, order._id, {
       digitalFulfillmentStatus: status,
       digitalFulfilledAt: status === "completed" || status === "not_required" ? now : undefined,
       digitalFulfillmentError: reviewMessages.length

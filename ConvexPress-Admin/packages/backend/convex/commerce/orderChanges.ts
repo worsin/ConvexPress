@@ -171,11 +171,11 @@ export const transition = mutation({
         .withIndex("by_order_change", (q: any) => q.eq("orderChangeId", args.orderChangeId))
         .collect();
       for (const action of actions) {
-        await ctx.db.patch(action._id, { applied: true, updatedAt: now });
+        await ctx.db.patch("commerce_order_change_actions", action._id, { applied: true, updatedAt: now });
       }
     }
     if (args.note) patch.internalNote = [change.internalNote, args.note].filter(Boolean).join("\n");
-    await ctx.db.patch(args.orderChangeId, patch);
+    await ctx.db.patch("commerce_order_changes", args.orderChangeId, patch);
     return args.orderChangeId;
   },
 });

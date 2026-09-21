@@ -3,6 +3,8 @@ import { ConvexError, v } from "convex/values";
 
 import { mutation, query } from "../_generated/server";
 import { requireCan } from "../helpers/permissions";
+import { patchDynamicWithMediaReferences } from "../media/attachmentGuard";
+
 
 function totalItems(items: any[]) {
   return items.reduce((sum, item) => sum + Number(item.lineTotalAmount ?? 0), 0);
@@ -21,7 +23,7 @@ async function recalculate(ctx: any, draftOrderId: any) {
     Number(draft.discountAmount ?? 0) +
     Number(draft.shippingAmount ?? 0) +
     Number(draft.taxAmount ?? 0);
-  await ctx.db.patch(draftOrderId, {
+  await patchDynamicWithMediaReferences(ctx, draftOrderId, {
     subtotalAmount,
     totalAmount,
     updatedAt: Date.now(),
@@ -124,7 +126,7 @@ export const upsertItem = mutation({
     const lineTotalAmount = args.quantity * args.unitPriceAmount;
     let id = args.itemId;
     if (id) {
-      await ctx.db.patch(id, {
+      await ctx.db.patch("commerce_draft_order_items", id, {
         productId: args.productId,
         variantId: args.variantId,
         title: args.title,
@@ -163,7 +165,7 @@ export const complete = mutation({
     const draft = await ctx.db.get(args.draftOrderId);
     if (!draft) throw new ConvexError({ code: "NOT_FOUND", message: "Draft order not found." });
     const now = Date.now();
-    await ctx.db.patch(args.draftOrderId, {
+    await ctx.db.patch("commerce_draft_orders", args.draftOrderId, {
       status: "completed",
       orderId: args.orderId,
       completedAt: now,

@@ -1,23 +1,26 @@
+import { readStockTarget, readReservedStock } from "../commerce/stockTarget";
+import { resolveStockPolicy, canOrderQuantity } from "../commerce/stockPolicy";
 import { ConvexError } from "convex/values";
+import { activePriceAmount } from "../commerce/activePrice";
+import type { RequestReadLedger } from "../helpers/requestReadLedger";
 
 import type { Doc, Id } from "../_generated/dataModel";
 import type { QueryCtx } from "../_generated/server";
 
 type BundleCtx = Pick<QueryCtx, "db">;
-type CommerceMoney = number | { amount: number; currencyCode?: string };
 type BundleDoc = Doc<"commerce_bundles">;
 type BundleComponentDoc = Doc<"commerce_bundle_components">;
 type ProductDoc = Doc<"commerce_products">;
 type VariantDoc = Doc<"commerce_product_variants">;
 
-type BundleSelectionInput = {
+export type BundleSelectionInput = {
   componentId: Id<"commerce_bundle_components">;
   productId?: Id<"commerce_products">;
   variantId?: Id<"commerce_product_variants">;
   quantity: number;
 };
 
-type BundleSelectionSnapshot = {
+export type BundleSelectionSnapshot = {
   componentId: Id<"commerce_bundle_components">;
   componentLabel?: string;
   productId: Id<"commerce_products">;
@@ -29,7 +32,7 @@ type BundleSelectionSnapshot = {
   lineTotalAmount: number;
 };
 
-type BundleSnapshotResult = {
+export type BundleSnapshotResult = {
   selections: BundleSelectionSnapshot[];
   totalItems: number;
   regularPriceAmount: number;
@@ -37,14 +40,14 @@ type BundleSnapshotResult = {
   resolvedBundlePriceAmount: number;
 };
 
-export function isConfigurableBundle(bundle: Pick<BundleDoc, "bundleType">) {
+export function isConfigurableBundle(bundle: { bundleType: "fixed" | "mix_and_match" | "bogo" }) {
   return bundle.bundleType === "mix_and_match" || bundle.bundleType === "bogo";
 }
 
 export async function getBundleByProductId(
   ctx: BundleCtx,
   productId: Id<"commerce_products">,
-) {
+): Promise<BundleDoc | null> {
   return ctx.db
     .query("commerce_bundles")
     .withIndex("by_product", (q) => q.eq("productId", productId))
@@ -54,7 +57,7 @@ export async function getBundleByProductId(
 export async function getBundleComponents(
   ctx: BundleCtx,
   bundleId: Id<"commerce_bundles">,
-) {
+): Promise<BundleComponentDoc[]> {
   const components = await ctx.db
     .query("commerce_bundle_components")
     .withIndex("by_bundle", (q) => q.eq("bundleId", bundleId))
@@ -63,50 +66,60 @@ export async function getBundleComponents(
   return components.sort((a, b) => a.sortOrder - b.sortOrder);
 }
 
-function getMoneyAmount(money: CommerceMoney): number {
-  if (typeof money === "number") return money;
-  return money.amount;
+function invalidPricing(message: string): never {
+  throw new ConvexError({ code: "invalid_bundle_pricing", message });
+}
+
+function money(amount: number): number {
+  if (!Number.isSafeInteger(amount) || amount < 0) invalidPricing("Bundle money must be a nonnegative safe integer in minor units.");
+  return amount;
+}
+
+function discount(percent: number): number {
+  if (!Number.isFinite(percent) || percent < 0 || percent > 100) invalidPricing("Bundle discounts must be between zero and 100 percent.");
+  return percent;
 }
 
 function getProductBaseUnitPrice(
   product: ProductDoc,
   variant: VariantDoc | null,
-): number {
-  if (variant) {
-    return getMoneyAmount(variant.salePrice ?? variant.price);
-  }
-  return getMoneyAmount(product.salePrice ?? product.basePrice);
+  now: number,
+): { amount: number; currencyCode: string } {
+  const price = variant ? variant.price : product.basePrice;
+  if (!/^[A-Z]{3}$/u.test(price.currencyCode) || price.currencyCode !== product.basePrice.currencyCode)
+    invalidPricing("Component and variant currencies must match.");
+  money(price.amount);
+  const source = variant ?? product;
+  return { amount: money(activePriceAmount(price, source.salePrice, source, now)), currencyCode: price.currencyCode };
 }
 
 export function getResolvedComponentUnitPrice(
-  component: Pick<BundleComponentDoc, "discountPercent" | "priceOverride">,
+  component: { discountPercent?: number; priceOverride?: number },
   baseUnitPrice: number,
 ): number {
+  money(baseUnitPrice);
+  if (component.discountPercent !== undefined) discount(component.discountPercent);
   if (component.priceOverride !== undefined && component.priceOverride !== null) {
-    return component.priceOverride;
+    return money(component.priceOverride);
   }
   if (typeof component.discountPercent === "number" && component.discountPercent > 0) {
-    return Math.round(baseUnitPrice * (1 - component.discountPercent / 100));
+    return money(Math.round(baseUnitPrice * (1 - component.discountPercent / 100)));
   }
   return baseUnitPrice;
 }
 
 export function applyBundlePricing(
-  bundle: Pick<
-    BundleDoc,
-    "discountAmount" | "discountPercent" | "fixedPrice" | "pricingType"
-  >,
+  bundle: { discountAmount?: number; discountPercent?: number; fixedPrice?: number; pricingType: "fixed" | "percent_off" | "amount_off" | "component_sum" },
   componentSubtotalAmount: number,
 ): number {
+  money(componentSubtotalAmount);
   switch (bundle.pricingType) {
     case "fixed":
-      return bundle.fixedPrice ?? componentSubtotalAmount;
+      return money(bundle.fixedPrice ?? componentSubtotalAmount);
     case "percent_off":
-      return Math.round(
-        componentSubtotalAmount * (1 - (bundle.discountPercent ?? 0) / 100),
-      );
+      return money(Math.round(componentSubtotalAmount * (1 - discount(bundle.discountPercent ?? 0) / 100)));
     case "amount_off":
-      return Math.max(0, componentSubtotalAmount - (bundle.discountAmount ?? 0));
+      return money(Math.max(0, componentSubtotalAmount - money(bundle.discountAmount ?? 0)));
     case "component_sum":
     default:
       return componentSubtotalAmount;
@@ -119,16 +132,26 @@ export async function resolveBundleSelectionSnapshot(
     bundle: BundleDoc;
     components?: BundleComponentDoc[];
     selections?: BundleSelectionInput[];
+    now?: number;
+    budget?: RequestReadLedger;
   },
 ): Promise<BundleSnapshotResult> {
   const components = args.components ?? (await getBundleComponents(ctx, args.bundle._id));
+  const now = args.now ?? Date.now();
+  if (!Number.isSafeInteger(now)) invalidPricing("Invalid bundle pricing time.");
+  const componentIds = new Set(components.map(component => component._id.toString()));
+  if (componentIds.size !== components.length) invalidPricing("Duplicate bundle component identity.");
   const selectionsByComponent = new Map(
     (args.selections ?? []).map((selection) => [selection.componentId.toString(), selection]),
   );
+  if (selectionsByComponent.size !== (args.selections ?? []).length ||
+      [...selectionsByComponent.keys()].some(id => !componentIds.has(id)))
+    throw new ConvexError({ code: "invalid_bundle_selection", message: "Every selection must identify one unique component of this bundle." });
   const selections: BundleSelectionSnapshot[] = [];
   let regularPriceAmount = 0;
   let componentSubtotalAmount = 0;
   let totalItems = 0;
+  let currencyCode: string | undefined;
 
   for (const component of components) {
     const inputSelection = selectionsByComponent.get(component._id.toString());
@@ -155,7 +178,9 @@ export async function resolveBundleSelectionSnapshot(
       });
     }
 
+    args.budget?.beforeRead();
     const product = await ctx.db.get(productId);
+    args.budget?.record(product);
     if (!product) {
       throw new ConvexError({
         code: "product_not_found",
@@ -186,7 +211,9 @@ export async function resolveBundleSelectionSnapshot(
       });
     }
 
+    if (selectedVariantId) args.budget?.beforeRead();
     const variant = selectedVariantId ? await ctx.db.get(selectedVariantId) : null;
+    if (selectedVariantId) args.budget?.record(variant);
     if (selectedVariantId && !variant) {
       throw new ConvexError({
         code: "variant_not_found",
@@ -204,12 +231,18 @@ export async function resolveBundleSelectionSnapshot(
       inputSelection?.quantity ??
       (configurable ? component.minQuantity ?? component.quantity : component.quantity);
 
-    if (!Number.isFinite(quantity) || quantity <= 0) {
+    if (!Number.isSafeInteger(quantity) || quantity <= 0) {
       throw new ConvexError({
         code: "invalid_quantity",
-        message: "Bundle component quantity must be greater than zero.",
+        message: "Bundle component quantity must be a positive safe integer.",
       });
     }
+    if (!configurable && quantity !== component.quantity)
+      throw new ConvexError({ code: "invalid_fixed_quantity", message: "Fixed bundle component quantities cannot be changed." });
+    for (const bound of [component.minQuantity, component.maxQuantity])
+      if (bound !== undefined && (!Number.isSafeInteger(bound) || bound <= 0)) invalidPricing("Invalid component quantity bound.");
+    if (component.minQuantity !== undefined && component.maxQuantity !== undefined && component.minQuantity > component.maxQuantity)
+      invalidPricing("Component quantity bounds are reversed.");
     if (component.minQuantity !== undefined && quantity < component.minQuantity) {
       throw new ConvexError({
         code: "component_min_quantity_not_met",
@@ -223,13 +256,17 @@ export async function resolveBundleSelectionSnapshot(
       });
     }
 
-    const baseUnitPrice = getProductBaseUnitPrice(product, variant);
+    const price = getProductBaseUnitPrice(product, variant, now);
+    if (currencyCode !== undefined && currencyCode !== price.currencyCode) invalidPricing("Bundle components cannot mix currencies.");
+    currencyCode = price.currencyCode;
+    const baseUnitPrice = price.amount;
     const resolvedUnitPrice = getResolvedComponentUnitPrice(component, baseUnitPrice);
-    const lineTotalAmount = resolvedUnitPrice * quantity;
+    const lineTotalAmount = money(resolvedUnitPrice * quantity);
 
-    regularPriceAmount += baseUnitPrice * quantity;
-    componentSubtotalAmount += lineTotalAmount;
+    regularPriceAmount = money(regularPriceAmount + money(baseUnitPrice * quantity));
+    componentSubtotalAmount = money(componentSubtotalAmount + lineTotalAmount);
     totalItems += quantity;
+    if (!Number.isSafeInteger(totalItems)) invalidPricing("Bundle item count exceeds the safe integer range.");
     selections.push({
       componentId: component._id,
       componentLabel: component.label,
@@ -344,34 +381,14 @@ export async function resolveBundleAvailability(
       continue;
     }
 
-    if (product.trackInventory !== true) {
-      continue;
-    }
-
-    const requiredQty = selection.quantity * lineQuantity;
-    let stock = product.stockQuantity ?? 0;
-    let label = selection.variantTitle
-      ? `${product.title} - ${selection.variantTitle}`
-      : product.title;
-
-    if (product.productType === "variable") {
-      if (!selection.variantId) {
-        unavailableComponents.push(label);
-        continue;
-      }
-
-      const variant = await ctx.db.get(selection.variantId);
-      if (!variant || variant.productId.toString() !== selection.productId.toString()) {
-        unavailableComponents.push(label);
-        continue;
-      }
-
-      stock = variant.stockQuantity ?? 0;
-      label = `${product.title} - ${variant.title}`;
-    }
-
-    if (stock < requiredQty && !product.allowBackorders) {
-      unavailableComponents.push(label);
+    try {
+      const target=await readStockTarget(ctx,selection.productId,selection.variantId);
+      const reserved=target.policy.tracked?await readReservedStock(ctx,selection.productId,target.inventoryVariantId):0;
+      const stock=resolveStockPolicy(product,target.variant,reserved);
+      if(!canOrderQuantity(stock,selection.quantity*lineQuantity))unavailableComponents.push(target.label);
+    } catch (error) {
+      if (!(error instanceof ConvexError) || !["NOT_FOUND","VALIDATION_ERROR"].includes((error.data as {code:string}).code)) throw error;
+      unavailableComponents.push(selection.variantTitle ? `${product.title} - ${selection.variantTitle}` : product.title);
     }
   }
 
@@ -386,11 +403,24 @@ export async function resolveBundleAvailability(
   return { available: true };
 }
 
-export function buildBundleLineMetadata(args: {
-  bundle: BundleDoc;
+export type BundlePurchaseMetadata = {
+  lineType: "bundle";
+  bundleId: Id<"commerce_bundles">;
+  bundleSlug: string;
+  bundleName: string;
   owningProductId: Id<"commerce_products">;
-  snapshot: Awaited<ReturnType<typeof resolveBundleSelectionSnapshot>>;
-}) {
+  bundleType: "fixed" | "mix_and_match" | "bogo";
+  pricingType: "fixed" | "percent_off" | "amount_off" | "component_sum";
+  regularPriceAmount: number;
+  resolvedBundlePriceAmount: number;
+  selections: BundleSelectionSnapshot[];
+};
+
+export function buildBundleLineMetadata(args: {
+  bundle: { _id: Id<"commerce_bundles">; name: string; slug: string; bundleType: BundlePurchaseMetadata["bundleType"]; pricingType: BundlePurchaseMetadata["pricingType"] };
+  owningProductId: Id<"commerce_products">;
+  snapshot: BundleSnapshotResult;
+}): BundlePurchaseMetadata {
   return {
     lineType: "bundle",
     bundleId: args.bundle._id,

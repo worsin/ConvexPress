@@ -27,6 +27,7 @@ import { getCurrentUser, requireCan } from "../helpers/permissions";
 import { isPluginEnabled } from "../helpers/plugins";
 import {
 	membershipGrantStatusValidator,
+	membershipTables,
 	membershipPlanStatusValidator,
 } from "../schema/membership";
 import { evaluateMembershipAccess } from "./access";
@@ -99,8 +100,26 @@ export const listPlans = query({
  * Returns plans with their benefits, sorted by priority.
  * No auth required — this is for the public-facing membership page.
  */
+const publicPlanFields = membershipTables.membership_plans.validator.fields;
+const publicBenefitFields = membershipTables.membership_plan_benefits.validator.fields;
 export const listPublicPlans = query({
 	args: {},
+	returns: v.union(v.null(), v.array(v.object({
+		_id: v.id("membership_plans"),
+		title: publicPlanFields.title,
+		slug: publicPlanFields.slug,
+		description: publicPlanFields.description,
+		grantMode: publicPlanFields.grantMode,
+		linkedSubscriptionCode: publicPlanFields.linkedSubscriptionCode,
+		priority: publicPlanFields.priority,
+		benefits: v.array(v.object({
+			_id: v.id("membership_plan_benefits"),
+			code: publicBenefitFields.code,
+			label: publicBenefitFields.label,
+			description: publicBenefitFields.description,
+			displayAsFeature: publicBenefitFields.displayAsFeature,
+		})),
+	}))),
 	handler: async (ctx: any) => {
 		if (!(await isPluginEnabled(ctx, "membership"))) return null;
 		await requireMembershipEnabled(ctx);

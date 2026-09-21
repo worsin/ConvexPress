@@ -11,15 +11,22 @@
  *   searchMeilisearch - Proxy a search query to Meilisearch; returns hits with
  *                      article IDs and relevance scores
  *
- * Index name: "kb_articles"
+ * Index name: derived from the registered site, environment and runtime backend.
  * Document shape: { id, title, excerpt, contentPlainText, categorySlug, tags, status }
  */
 
+import { makeFunctionReference, type RegisteredAction } from "convex/server";
+import type { SearchCandidate, ReadableCandidate } from "./searchCandidates";
+import type { Id } from "../_generated/dataModel";
 import { action } from "../_generated/server";
 import type { ActionCtx } from "../_generated/server";
 import { internal } from "../_generated/api";
 import { v, ConvexError } from "convex/values";
 import { requirePluginEnabled } from "../helpers/plugins";
+import { decryptSettingSecret } from "../helpers/settingsSecret";
+import { meilisearchConfigFingerprint } from "./searchDocument";
+import { searchJobStatusValidator, type SearchJobStatus } from "./searchJobs";
+import { fetchSearchProvider, readSearchProviderJson } from "./searchProviderHttp";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -29,7 +36,7 @@ import { requirePluginEnabled } from "../helpers/plugins";
  */
 async function resolveMeilisearchConfig(
   ctx: Pick<ActionCtx, "runQuery">,
-): Promise<{ url: string; apiKey: string }> {
+): Promise<{ url: string; apiKey: string; indexName: string; configFingerprint: string }> {
   const settings = (await ctx.runQuery(
     internal.settings.internals.getInternal,
     { section: "kb.search" },
@@ -45,7 +52,7 @@ async function resolveMeilisearchConfig(
   }
 
   const url = (settings?.meilisearchUrl as string) ?? "";
-  const apiKey = (settings?.meilisearchApiKey as string) ?? "";
+  const apiKey = await decryptSettingSecret(typeof settings?.meilisearchApiKey === "string" ? settings.meilisearchApiKey : "");
 
   if (!url || !apiKey) {
     throw new ConvexError({
@@ -55,135 +62,27 @@ async function resolveMeilisearchConfig(
     });
   }
 
-  return { url, apiKey };
+  let parsed: URL;
+  try { parsed = new URL(url); } catch { throw new ConvexError({ code: "CONFIGURATION_ERROR", message: "Meilisearch requires a valid HTTP or HTTPS URL." }); }
+  if (!["http:", "https:"].includes(parsed.protocol) || parsed.username || parsed.password || parsed.search || parsed.hash) throw new ConvexError({ code: "CONFIGURATION_ERROR", message: "Meilisearch URL cannot contain credentials, a query, or a fragment." });
+  const indexName = await ctx.runQuery(makeFunctionReference<"query", Record<string, never>, string>("kb/searchSecurity:meilisearchIndex"), {});
+  return { url: parsed.toString(), apiKey, indexName, configFingerprint: meilisearchConfigFingerprint(settings) };
 }
 
 /** Build the base Meilisearch index URL (no trailing slash). */
-function indexUrl(baseUrl: string, indexName = "kb_articles"): string {
+function indexUrl(baseUrl: string, indexName: string): string {
   return `${baseUrl.replace(/\/$/, "")}/indexes/${indexName}`;
 }
 
-// ─── syncArticle ─────────────────────────────────────────────────────────────
-
-/**
- * Push an article to the Meilisearch index.
- *
- * Reads the article and its category from Convex, formats the document, and
- * adds/updates it via the Meilisearch documents API.
- *
- * Also marks kb_articles.meilisearchSynced = true and records the sync timestamp.
- *
- * @throws CONFIGURATION_ERROR if Meilisearch is not configured
- * @throws NOT_FOUND if the article does not exist
- */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
-export const syncArticle = action({
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
-  args: { articleId: v.id("kb_articles") },
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
-  handler: async (ctx, args) => {
-    await requirePluginEnabled(ctx, "knowledgeBase");
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) {
-      throw new ConvexError({ code: "UNAUTHORIZED", message: "Authentication required" });
-    }
-
-    const { url, apiKey } = await resolveMeilisearchConfig(ctx);
-
-    // Load article + category via internal query
-    const article = await ctx.runQuery(internal.kb.internals.getArticleForSync, {
-      articleId: args.articleId,
-    });
-
-    if (!article) {
-      throw new ConvexError({ code: "NOT_FOUND", message: "Article not found" });
-    }
-
-    // Build the Meilisearch document
-    const document = {
-      id: article._id,
-      title: article.title,
-      slug: article.slug,
-      excerpt: article.excerpt ?? "",
-      contentPlainText: article.contentPlainText ?? "",
-      categorySlug: article.categorySlug ?? null,
-      tags: article.tags ?? [],
-      status: article.status,
-      publishedAt: article.publishedAt ?? null,
-      viewCount: article.viewCount ?? 0,
-    };
-
-    // Upsert into Meilisearch
-    const response = await fetch(`${indexUrl(url)}/documents`, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify([document]),
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new ConvexError({
-        code: "SYNC_ERROR",
-        message: `Meilisearch sync failed (${response.status}): ${errorText}`,
-      });
-    }
-
-    // Mark article as synced
-    await ctx.runMutation(internal.kb.internals.markMeilisearchSynced, {
-      articleId: args.articleId,
-    });
-
-    return { success: true, documentId: article._id };
-  },
+/** Durable jobs replace synchronous provider writes. Callers observe searchJobs.status
+ * and can resume a paused job without submitting a second external operation. */
+export const syncArticle: RegisteredAction<"public", { articleId: Id<"kb_articles"> }, SearchJobStatus> = action({
+  args: { articleId: v.id("kb_articles") }, returns: searchJobStatusValidator,
+  handler: async (ctx, args) => ctx.runMutation(makeFunctionReference<"mutation", { articleId: Id<"kb_articles">; operation: "sync" | "remove" }, SearchJobStatus>("kb/searchJobs:begin"), { ...args, operation: "sync" }),
 });
-
-// ─── removeArticle ───────────────────────────────────────────────────────────
-
-/**
- * Delete an article document from the Meilisearch index by its Convex ID.
- *
- * Safe to call even if the document does not exist in Meilisearch.
- *
- * @throws CONFIGURATION_ERROR if Meilisearch is not configured
- */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
-export const removeArticle = action({
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
-  args: { articleId: v.id("kb_articles") },
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
-  handler: async (ctx, args) => {
-    await requirePluginEnabled(ctx, "knowledgeBase");
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) {
-      throw new ConvexError({ code: "UNAUTHORIZED", message: "Authentication required" });
-    }
-
-    const { url, apiKey } = await resolveMeilisearchConfig(ctx);
-
-    const response = await fetch(
-      `${indexUrl(url)}/documents/${encodeURIComponent(args.articleId)}`,
-      {
-        method: "DELETE",
-        headers: {
-          Authorization: `Bearer ${apiKey}`,
-        },
-      },
-    );
-
-    // 404 is acceptable — document may not exist in the index
-    if (!response.ok && response.status !== 404) {
-      const errorText = await response.text();
-      throw new ConvexError({
-        code: "SYNC_ERROR",
-        message: `Meilisearch remove failed (${response.status}): ${errorText}`,
-      });
-    }
-
-    return { success: true };
-  },
+export const removeArticle: RegisteredAction<"public", { articleId: Id<"kb_articles"> }, SearchJobStatus> = action({
+  args: { articleId: v.id("kb_articles") }, returns: searchJobStatusValidator,
+  handler: async (ctx, args) => ctx.runMutation(makeFunctionReference<"mutation", { articleId: Id<"kb_articles">; operation: "sync" | "remove" }, SearchJobStatus>("kb/searchJobs:begin"), { ...args, operation: "remove" }),
 });
 
 // ─── searchMeilisearch ───────────────────────────────────────────────────────
@@ -197,39 +96,37 @@ export const removeArticle = action({
  *
  * @throws CONFIGURATION_ERROR if Meilisearch is not configured
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
-export const searchMeilisearch = action({
+type MeiliHit = { articleId: string; title: string; slug: string; excerpt: string; categorySlug: string; score: number };
+export const searchMeilisearch: RegisteredAction<"public", { query: string; categorySlug?: string; limit?: number }, { hits: MeiliHit[]; totalHits: number; processingTimeMs: number }> = action({
   args: {
     query: v.string(),
-    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     categorySlug: v.optional(v.string()),
-    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     limit: v.optional(v.number()),
   },
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.object({ hits: v.array(v.object({ articleId: v.string(), title: v.string(), slug: v.string(), excerpt: v.string(), categorySlug: v.string(), score: v.number() })), totalHits: v.number(), processingTimeMs: v.number() }),
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "knowledgeBase");
-    const { url, apiKey } = await resolveMeilisearchConfig(ctx);
-
     const limit = args.limit ?? 20;
+    if (!Number.isInteger(limit) || limit < 1 || limit > 50 || args.query.length > 500) throw new ConvexError({ code: "INVALID_SEARCH", message: "Search requires a query up to 500 characters and a limit from 1 to 50." });
+
+    if (args.categorySlug !== undefined && args.categorySlug.length > 256) throw new ConvexError({ code: "INVALID_SEARCH", message: "Category filter is too long." });
+    const allowed = await ctx.runQuery(makeFunctionReference<"query", { requiresIdentity: boolean }, boolean>("kb/searchSecurity:authorizeSearch"), { requiresIdentity: false });
+    if (!allowed) return { hits: [], totalHits: 0, processingTimeMs: 0 };
+    const { url, apiKey, indexName } = await resolveMeilisearchConfig(ctx);
 
     const searchBody: Record<string, unknown> = {
       q: args.query,
       limit,
-      attributesToRetrieve: ["id", "title", "slug", "excerpt", "categorySlug"],
-      attributesToHighlight: ["title", "excerpt", "contentPlainText"],
-      highlightPreTag: "<mark>",
-      highlightPostTag: "</mark>",
+      attributesToRetrieve: ["id"],
       filter: ["status = published"],
     };
 
     // Optionally filter by category — sanitize to prevent Meilisearch filter injection
     if (args.categorySlug) {
-      const safeCategorySlug = args.categorySlug.replace(/[\\"]/g, "");
-      (searchBody.filter as string[]).push(`categorySlug = "${safeCategorySlug}"`);
+      (searchBody.filter as string[]).push(`categorySlug = ${JSON.stringify(args.categorySlug)}`);
     }
 
-    const response = await fetch(`${indexUrl(url)}/search`, {
+    const response = await fetchSearchProvider(`${indexUrl(url, indexName)}/search`, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${apiKey}`,
@@ -239,34 +136,32 @@ export const searchMeilisearch = action({
     });
 
     if (!response.ok) {
-      const errorText = await response.text();
+      await response.body?.cancel();
       throw new ConvexError({
         code: "SEARCH_ERROR",
-        message: `Meilisearch search failed (${response.status}): ${errorText}`,
+        message: `Meilisearch search failed (${response.status}).`,
       });
     }
 
-    const data = (await response.json()) as {
-      hits: Array<Record<string, unknown>>;
-      estimatedTotalHits?: number;
-      processingTimeMs?: number;
-    };
+    const raw = await readSearchProviderJson(response);
+    if (!raw || typeof raw !== "object" || !("hits" in raw) || !Array.isArray(raw.hits)) throw new ConvexError({ code: "INVALID_SEARCH_PROVIDER_RESPONSE", message: "The search provider returned invalid results." });
+    const hitsRaw: unknown[] = raw.hits.slice(0, limit);
+    if (hitsRaw.some(hit => !hit || typeof hit !== "object" || !("id" in hit) || typeof hit.id !== "string" || hit.id.length > 100)) throw new ConvexError({ code: "INVALID_SEARCH_PROVIDER_RESPONSE", message: "The search provider returned invalid article identifiers." });
+    const data = { hits: hitsRaw as { id: string }[], processingTimeMs: "processingTimeMs" in raw ? raw.processingTimeMs : 0 };
+    if (typeof data.processingTimeMs !== "number" || !Number.isFinite(data.processingTimeMs) || data.processingTimeMs < 0) throw new ConvexError({ code: "INVALID_SEARCH_PROVIDER_RESPONSE", message: "The search provider returned invalid timing information." });
 
-    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
-    const hits = (data.hits ?? []).map((hit, index) => ({
-      articleId: hit["id"] as string,
-      title: hit["title"] as string,
-      slug: hit["slug"] as string,
-      excerpt: (hit["excerpt"] as string) ?? "",
-      categorySlug: (hit["categorySlug"] as string | null) ?? null,
-      // Meilisearch doesn't return a raw score — approximate with rank position
-      score: 1 - index / Math.max(data.hits.length, 1),
-      formatted: hit["_formatted"] as Record<string, string> | undefined,
-    }));
+    const candidates: SearchCandidate[] = [...new Set(data.hits.map(hit => hit.id))].map(id => ({ id }));
+    const readable: ReadableCandidate[] = await ctx.runQuery(makeFunctionReference<"query", { candidates: SearchCandidate[] }, ReadableCandidate[]>("kb/searchCandidates:readable"), { candidates });
+    const byId = new Map(readable.map(article => [article.articleId, article]));
+    const hits = candidates.flatMap((candidate, index) => {
+      const article = byId.get(candidate.id);
+      if (!article || args.categorySlug && article.categorySlug !== args.categorySlug) return [];
+      return [{ articleId: article.articleId, title: article.title, slug: article.slug, excerpt: article.excerpt, categorySlug: article.categorySlug, score: 1 - index / Math.max(candidates.length, 1) }];
+    });
 
     return {
       hits,
-      totalHits: data.estimatedTotalHits ?? hits.length,
+      totalHits: hits.length,
       processingTimeMs: data.processingTimeMs ?? 0,
     };
   },

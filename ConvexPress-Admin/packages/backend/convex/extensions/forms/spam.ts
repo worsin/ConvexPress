@@ -39,6 +39,7 @@ import {
 import { internal } from "../../_generated/api";
 import { v, ConvexError } from "convex/values";
 import type { Id } from "../../_generated/dataModel";
+import type { RequestReadLedger } from "../../helpers/requestReadLedger";
 import { requireCan } from "../../helpers/permissions";
 import { isPluginEnabled, requirePluginEnabled } from "../../helpers/plugins";
 import { emitEvent } from "../../helpers/events";
@@ -116,11 +117,15 @@ type ReadCtx = {
  */
 export async function loadSecuritySettings(
   ctx: ReadCtx,
+  budget?: RequestReadLedger,
 ): Promise<EffectiveSecuritySettings> {
+  budget?.beforeRead();
   const row = await ctx.db
     .query("form_security_settings")
     .withIndex("by_key", (q: any) => q.eq("key", "global"))
     .first();
+
+  budget?.record(row);
 
   if (!row) return { ...SECURITY_DEFAULTS };
 
@@ -482,7 +487,7 @@ export const guardSubmission = internalMutation({
 
       // Upsert the bucket REGARDLESS so the limiter records blocked attempts too.
       if (bucket) {
-        await ctx.db.patch(bucket._id, {
+        await ctx.db.patch("form_submission_attempts", bucket._id, {
           count: nextCount,
           lastAttemptAt: now,
           blockedCount: (bucket.blockedCount ?? 0) + (decision.blocked ? 1 : 0),
@@ -664,7 +669,7 @@ export const sweepAttempts = internalMutation({
       .take(500);
 
     for (const row of stale) {
-      await ctx.db.delete(row._id);
+      await ctx.db.delete("form_submission_attempts", row._id);
     }
     return { deleted: stale.length };
   },
@@ -689,7 +694,7 @@ function assertNoSecretKeyInArgs(args: Record<string, unknown>): void {
 function validateThresholds(args: {
   windowMs?: number;
   perIpPerFormLimit?: number;
-  perFormLimit?: number;
+  perFormLimit?: number | null;
   minFillMs?: number;
   maxFormAgeMs?: number;
   recaptchaMinScore?: number;
@@ -769,7 +774,8 @@ export const updateSecuritySettings = mutation({
     rateLimitEnabled: v.optional(v.boolean()),
     windowMs: v.optional(v.number()),
     perIpPerFormLimit: v.optional(v.number()),
-    perFormLimit: v.optional(v.number()),
+    // null explicitly clears a ceiling; omission leaves it unchanged.
+    perFormLimit: v.optional(v.union(v.number(), v.null())),
     attemptRetentionMs: v.optional(v.number()),
     failClosed: v.optional(v.boolean()),
     skipForLoggedIn: v.optional(v.boolean()),
@@ -785,6 +791,9 @@ export const updateSecuritySettings = mutation({
     for (const [key, value] of Object.entries(args)) {
       if (value !== undefined) patch[key] = value;
     }
+    // Convex patch removes optional fields when given undefined. Never persist
+    // the command's null sentinel in the numeric storage field.
+    if (args.perFormLimit === null) patch.perFormLimit = undefined;
 
     const existing = await ctx.db
       .query("form_security_settings")
@@ -793,7 +802,7 @@ export const updateSecuritySettings = mutation({
 
     const now = Date.now();
     if (existing) {
-      await ctx.db.patch(existing._id, {
+      await ctx.db.patch("form_security_settings", existing._id, {
         ...patch,
         updatedBy: user._id,
         updatedAt: now,

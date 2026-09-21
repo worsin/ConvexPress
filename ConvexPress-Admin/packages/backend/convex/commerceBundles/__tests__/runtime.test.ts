@@ -12,6 +12,11 @@ import {
   resolveBundleSelectionSnapshot,
 } from "../runtime";
 
+function emptyReservationQuery(table:string) {
+  if(table!=="commerce_stock_reservations")throw new Error(`Unexpected table ${table}`);
+  return {withIndex(){return {take:async()=>[]};}};
+}
+
 describe("commerceBundles runtime helpers", () => {
   test("prefers component price override over the base unit price", () => {
     expect(
@@ -165,6 +170,7 @@ describe("commerceBundles runtime helpers", () => {
 
     const ctx = {
       db: {
+        query: emptyReservationQuery,
         async get(id: string) {
           return rows.get(id) ?? null;
         },
@@ -220,6 +226,7 @@ describe("commerceBundles runtime helpers", () => {
 
     const ctx = {
       db: {
+        query: emptyReservationQuery,
         async get(id: string) {
           return rows.get(id) ?? null;
         },
@@ -276,6 +283,7 @@ describe("commerceBundles runtime helpers", () => {
 
     const ctx = {
       db: {
+        query: emptyReservationQuery,
         async get(id: string) {
           return rows.get(id) ?? null;
         },
@@ -343,6 +351,7 @@ describe("bundle variant correctness", () => {
 
     const ctx = {
       db: {
+        query: emptyReservationQuery,
         async get(id: string) {
           return rows.get(id) ?? null;
         },
@@ -400,6 +409,7 @@ describe("bundle variant correctness", () => {
 
     const ctx = {
       db: {
+        query: emptyReservationQuery,
         async get(id: string) {
           return rows.get(id) ?? null;
         },
@@ -457,6 +467,7 @@ describe("bundle variant correctness", () => {
 
     const ctx = {
       db: {
+        query: emptyReservationQuery,
         async get(id: string) {
           return rows.get(id) ?? null;
         },
@@ -515,6 +526,7 @@ describe("bundle variant correctness", () => {
 
     const ctx = {
       db: {
+        query: emptyReservationQuery,
         async get(id: string) {
           return rows.get(id) ?? null;
         },
@@ -576,6 +588,7 @@ describe("bundle variant correctness", () => {
 
     const ctx = {
       db: {
+        query: emptyReservationQuery,
         async get(id: string) {
           return rows.get(id) ?? null;
         },
@@ -633,6 +646,7 @@ describe("bundle variant correctness", () => {
 
     const ctx = {
       db: {
+        query: emptyReservationQuery,
         async get(id: string) {
           return rows.get(id) ?? null;
         },
@@ -693,6 +707,7 @@ describe("bundle variant correctness", () => {
 
     const ctx = {
       db: {
+        query: emptyReservationQuery,
         async get(id: string) {
           return rows.get(id) ?? null;
         },
@@ -764,6 +779,7 @@ describe("bundle variant correctness", () => {
 
     const ctx = {
       db: {
+        query: emptyReservationQuery,
         async get(id: string) {
           return rows.get(id) ?? null;
         },
@@ -836,6 +852,7 @@ describe("bundle variant correctness", () => {
 
     const ctx = {
       db: {
+        query: emptyReservationQuery,
         async get(id: string) {
           return rows.get(id) ?? null;
         },
@@ -896,6 +913,7 @@ describe("bundle variant correctness", () => {
 
     const ctx = {
       db: {
+        query: emptyReservationQuery,
         async get(id: string) {
           return rows.get(id) ?? null;
         },
@@ -955,6 +973,7 @@ describe("bundle variant correctness", () => {
 
     const ctx = {
       db: {
+        query: emptyReservationQuery,
         async get(id: string) {
           return rows.get(id) ?? null;
         },
@@ -1015,6 +1034,7 @@ describe("bundle variant correctness", () => {
 
     const ctx = {
       db: {
+        query: emptyReservationQuery,
         async get(id: string) {
           return rows.get(id) ?? null;
         },
@@ -1211,6 +1231,7 @@ describe("bundle variant correctness", () => {
 
     const ctx = {
       db: {
+        query: emptyReservationQuery,
         async get(id: string) {
           return rows.get(id) ?? null;
         },

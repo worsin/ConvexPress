@@ -18,7 +18,8 @@
     "convex": "catalog:",
     "electron-updater": "^6.3.0",
     "fix-path": "3",
-    "@convexpress/site-contract": "workspace:*"
+    "@convexpress/site-contract": "workspace:*",
+    "@convexpress/runtime-clients": "workspace:*"
   },
   "devDependencies": {
     "@electron/notarize": "^3.1.1",

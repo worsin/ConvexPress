@@ -7,7 +7,7 @@ import {
   makeFixtureForm,
   paidTesterFieldSet,
   paidTesterValues,
-} from "./fixtures";
+} from "./fixtures.test-support";
 
 describe("Forms deterministic fixtures", () => {
   test("form fixture is stable across calls", () => {

@@ -1,3 +1,5 @@
+import type { RegisteredMutation } from "convex/server";
+import type { Id } from "../_generated/dataModel";
 /**
  * Knowledge Base System - Comment Functions
  *
@@ -210,10 +212,8 @@ export const deleteComment = mutation({
 
 // ─── Vote ───────────────────────────────────────────────────────────────────
 
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
-export const vote = mutation({
+export const vote: RegisteredMutation<"public", { commentId: Id<"kb_comments">; voteType: "up" | "down" }, Id<"kb_commentVotes">> = mutation({
   args: voteCommentArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "knowledgeBase");
     const user = await getCurrentUser(ctx);
@@ -236,7 +236,7 @@ export const vote = mutation({
     // Check for existing vote
     const existingVote = await ctx.db
       .query("kb_commentVotes")
-      .withIndex("by_user_comment", (q: ConvexQueryBuilder) =>
+      .withIndex("by_user_comment", (q) =>
         q.eq("userId", user._id).eq("commentId", args.commentId),
       )
       .first();
@@ -289,10 +289,8 @@ export const vote = mutation({
 
 // ─── Remove Vote ────────────────────────────────────────────────────────────
 
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
-export const removeVote = mutation({
+export const removeVote: RegisteredMutation<"public", { commentId: Id<"kb_comments"> }, Id<"kb_commentVotes"> | null> = mutation({
   args: removeVoteArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "knowledgeBase");
     const user = await getCurrentUser(ctx);
@@ -302,7 +300,7 @@ export const removeVote = mutation({
 
     const existingVote = await ctx.db
       .query("kb_commentVotes")
-      .withIndex("by_user_comment", (q: ConvexQueryBuilder) =>
+      .withIndex("by_user_comment", (q) =>
         q.eq("userId", user._id).eq("commentId", args.commentId),
       )
       .first();

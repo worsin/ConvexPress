@@ -89,3 +89,10 @@ describe("management session policy", () => {
     );
   });
 });
+
+test('new sessions cannot outlive their controlling authority',()=>{
+ const input={now:NOW,envelopeExpiresAt:NOW+60000,maximumLifetimeMs:900000};
+ expect(getSessionExpiration({...input,authorityExpiresAt:NOW+15000})).toBe(NOW+15000);
+ expect(getSessionExpiration({...input,authorityExpiresAt:NOW+120000})).toBe(NOW+60000);
+ for(const authorityExpiresAt of [NOW,NOW-1,NaN,Infinity])expect(()=>getSessionExpiration({...input,authorityExpiresAt})).toThrow('authority');
+});

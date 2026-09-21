@@ -27,6 +27,8 @@ import type { Id } from "../../_generated/dataModel";
 import { requireCan } from "../../helpers/permissions";
 import { isPluginEnabled, requirePluginEnabled } from "../../helpers/plugins";
 import type { Capability } from "../../types/capabilities";
+import { patchDynamicWithMediaReferences } from "../../media/attachmentGuard";
+
 
 // ─── Constants ──────────────────────────────────────────────────────────────
 
@@ -432,7 +434,7 @@ async function incrementStage(
     )
     .first();
   if (existing) {
-    await ctx.db.patch(existing._id, { count: existing.count + 1 });
+    await patchDynamicWithMediaReferences(ctx, existing._id, { count: existing.count + 1 });
   } else {
     await ctx.db.insert("form_funnel_stats", { formId, day, stage, count: 1 });
   }
@@ -726,7 +728,7 @@ export const sweepAbandoned = internalMutation({
         utcDay(row.submittedAt ?? row.createdAt),
         "abandoned",
       );
-      await ctx.db.patch(row._id, {
+      await ctx.db.patch("form_submissions", row._id, {
         meta: JSON.stringify({ ...meta, abandonCounted: true }),
       });
       swept += 1;
@@ -755,7 +757,7 @@ export const sweepPublicFunnelEvents = internalMutation({
     let deleted = 0;
     for (const row of rows) {
       if (!publicFunnelEventExpired(row.createdAt, now)) continue;
-      await ctx.db.delete(row._id);
+      await ctx.db.delete("form_funnel_public_events", row._id);
       deleted += 1;
     }
     return { deleted };

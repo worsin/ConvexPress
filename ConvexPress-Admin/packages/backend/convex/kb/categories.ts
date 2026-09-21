@@ -1,3 +1,5 @@
+import type { RegisteredMutation, RegisteredQuery } from "convex/server";
+import type { Id, Doc } from "../_generated/dataModel";
 /**
  * Knowledge Base System - Category Functions
  *
@@ -12,10 +14,11 @@
  *   remove         - Delete a category (reassigns articles to uncategorized)
  */
 
-import { ConvexError } from "convex/values";
+import { ConvexError, v } from "convex/values";
 import { mutation, query } from "../_generated/server";
-import { requireCan, getCurrentUser } from "../helpers/permissions";
+import { requireCan } from "../helpers/permissions";
 import { generateCategorySlug } from "./helpers/utils";
+import { validateCategoryFields, validateCategoryParent, assertCategoryNotDeleting } from "./helpers/categoryHierarchy";
 import {
   createCategoryArgs,
   updateCategoryArgs,
@@ -24,19 +27,21 @@ import {
   getCategoryBySlugArgs,
 } from "./validators";
 import { isPluginEnabled, requirePluginEnabled } from "../helpers/plugins";
+import { createPublicKbAccess } from "./publicAccess";
+import { beginCategoryDeletion } from "./categoryDeletion";
+import { kbTables } from "../schema/kb";
 
 // ─── List (Admin) ───────────────────────────────────────────────────────────
 
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
-export const list = query({
+export const list: RegisteredQuery<"public", Record<string, never>, Doc<"kb_categories">[] | null> = query({
   args: {},
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.union(v.null(), v.array(v.object({
+    ...kbTables.kb_categories.validator.fields,
+    _id: v.id("kb_categories"), _creationTime: v.number(),
+  }))),
   handler: async (ctx) => {
     if (!(await isPluginEnabled(ctx, "knowledgeBase"))) return null;
-    const user = await getCurrentUser(ctx);
-    if (!user) {
-      throw new ConvexError({ code: "UNAUTHORIZED", message: "Authentication required" });
-    }
+    await requireCan(ctx, "kb.view");
 
     const categories = await ctx.db
       .query("kb_categories")
@@ -54,30 +59,34 @@ export const listPublished = query({
   args: {},
   // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx) => {
-    if (!(await isPluginEnabled(ctx, "knowledgeBase"))) return null;
+    const access = createPublicKbAccess(ctx);
+    if (!await access.available()) return null;
     const categories = await ctx.db
       .query("kb_categories")
       .withIndex("by_published_order", (q: ConvexQueryBuilder) => q.eq("isPublished", true))
       .take(500);
 
-    return categories;
+    const visible = [];
+    for (const category of categories) {
+      if (await access.allowedRoute(`/help/${encodeURIComponent(category.slug)}`)) visible.push(category);
+    }
+    return visible;
   },
 });
 
 // ─── Get By Slug (Public) ───────────────────────────────────────────────────
 
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
-export const getBySlug = query({
+export const getBySlug: RegisteredQuery<"public", { slug: string }, Doc<"kb_categories"> | null> = query({
   args: getCategoryBySlugArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
-    if (!(await isPluginEnabled(ctx, "knowledgeBase"))) return null;
+    const access = createPublicKbAccess(ctx);
+    if (!await access.available()) return null;
     const category = await ctx.db
       .query("kb_categories")
-      .withIndex("by_slug", (q: ConvexQueryBuilder) => q.eq("slug", args.slug))
+      .withIndex("by_slug", (q) => q.eq("slug", args.slug))
       .first();
 
-    if (!category || !category.isPublished) return null;
+    if (!category?.isPublished || !await access.allowedRoute(`/help/${encodeURIComponent(category.slug)}`)) return null;
     return category;
   },
 });
@@ -89,7 +98,8 @@ export const getHierarchy = query({
   args: {},
   // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx) => {
-    if (!(await isPluginEnabled(ctx, "knowledgeBase"))) return null;
+    const access = createPublicKbAccess(ctx);
+    if (!await access.available()) return null;
     const categories = await ctx.db
       .query("kb_categories")
       .withIndex("by_published_order", (q: ConvexQueryBuilder) => q.eq("isPublished", true))
@@ -101,11 +111,13 @@ export const getHierarchy = query({
     const roots: CategoryNode[] = [];
 
     for (const cat of categories) {
+      if (!await access.allowedRoute(`/help/${encodeURIComponent(cat.slug)}`)) continue;
       map.set(cat._id, { ...cat, children: [] });
     }
 
     for (const cat of categories) {
-      const node = map.get(cat._id)!;
+      const node = map.get(cat._id);
+      if (!node) continue;
       if (cat.parentId) {
         const parent = map.get(cat.parentId);
         if (parent) {
@@ -124,14 +136,15 @@ export const getHierarchy = query({
 
 // ─── Create ─────────────────────────────────────────────────────────────────
 
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
-export const create = mutation({
+export const create: RegisteredMutation<"public", { name: string; description?: string; icon?: string; parentId?: Id<"kb_categories"> }, Id<"kb_categories">> = mutation({
   args: createCategoryArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.id("kb_categories"),
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "knowledgeBase");
     const user = await requireCan(ctx, "kb.manageCategories");
 
+    validateCategoryFields(args);
+    await validateCategoryParent(ctx, args.parentId);
     const name = args.name.trim();
     if (!name) {
       throw new ConvexError({ code: "VALIDATION_ERROR", message: "Category name is required" });
@@ -168,10 +181,12 @@ export const create = mutation({
 
 // ─── Update ─────────────────────────────────────────────────────────────────
 
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
-export const update = mutation({
+export const update: RegisteredMutation<"public", {
+  categoryId: Id<"kb_categories">; name?: string; description?: string; icon?: string;
+  parentId?: Id<"kb_categories"> | null; isPublished?: boolean;
+}, Id<"kb_categories">> = mutation({
   args: updateCategoryArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.id("kb_categories"),
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "knowledgeBase");
     const user = await requireCan(ctx, "kb.manageCategories");
@@ -181,6 +196,8 @@ export const update = mutation({
       throw new ConvexError({ code: "NOT_FOUND", message: "Category not found" });
     }
 
+    assertCategoryNotDeleting(category);
+    validateCategoryFields(args);
     const updates: Record<string, unknown> = { updatedAt: Date.now() };
 
     if (args.name !== undefined) {
@@ -195,24 +212,8 @@ export const update = mutation({
     if (args.description !== undefined) updates.description = args.description;
     if (args.icon !== undefined) updates.icon = args.icon;
     if (args.parentId !== undefined) {
-      // Prevent self-parenting
-      if (args.parentId === args.categoryId) {
-        throw new ConvexError({ code: "VALIDATION_ERROR", message: "Category cannot be its own parent" });
-      }
-      // Prevent circular parenting (A -> B -> A)
-      if (args.parentId) {
-        let current = await ctx.db.get("kb_categories", args.parentId);
-        while (current) {
-          if (current._id === args.categoryId) {
-            throw new ConvexError({
-              code: "VALIDATION_ERROR",
-              message: "Circular parent reference detected: this would create a cycle",
-            });
-          }
-          current = current.parentId ? await ctx.db.get("kb_categories", current.parentId) : null;
-        }
-      }
-      updates.parentId = args.parentId;
+      await validateCategoryParent(ctx, args.parentId, args.categoryId);
+      updates.parentId = args.parentId ?? undefined;
     }
     if (args.isPublished !== undefined) updates.isPublished = args.isPublished;
 
@@ -236,6 +237,7 @@ export const reorder = mutation({
       throw new ConvexError({ code: "NOT_FOUND", message: "Category not found" });
     }
 
+    assertCategoryNotDeleting(category);
     await ctx.db.patch("kb_categories", args.categoryId, {
       order: args.newOrder,
       updatedAt: Date.now(),
@@ -247,46 +249,8 @@ export const reorder = mutation({
 
 // ─── Remove ─────────────────────────────────────────────────────────────────
 
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
-export const remove = mutation({
+export const remove: RegisteredMutation<"public", { categoryId: Id<"kb_categories"> }, Id<"kb_categories">> = mutation({
   args: removeCategoryArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
-  handler: async (ctx, args) => {
-    await requirePluginEnabled(ctx, "knowledgeBase");
-    const user = await requireCan(ctx, "kb.manageCategories");
-
-    const category = await ctx.db.get("kb_categories", args.categoryId);
-    if (!category) {
-      throw new ConvexError({ code: "NOT_FOUND", message: "Category not found" });
-    }
-
-    // Move child categories to parent (or root)
-    const children = await ctx.db
-      .query("kb_categories")
-      .withIndex("by_parent", (q: ConvexQueryBuilder) => q.eq("parentId", args.categoryId))
-      .take(200);
-    for (const child of children) {
-      await ctx.db.patch("kb_categories", child._id, {
-        parentId: category.parentId,
-        updatedAt: Date.now(),
-      });
-    }
-
-    // Unassign articles from this category
-    const articles = await ctx.db
-      .query("kb_articles")
-      .withIndex("by_category", (q: ConvexQueryBuilder) => q.eq("categoryId", args.categoryId))
-      .take(1000);
-    for (const article of articles) {
-      await ctx.db.patch("kb_articles", article._id, {
-        categoryId: undefined,
-        meilisearchSynced: false,
-        ragSynced: false,
-        updatedAt: Date.now(),
-      });
-    }
-
-    await ctx.db.delete("kb_categories", args.categoryId);
-    return args.categoryId;
-  },
+  returns: v.id("kb_categories"),
+  handler: async (ctx, args) => beginCategoryDeletion(ctx, args.categoryId),
 });

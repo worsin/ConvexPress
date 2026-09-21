@@ -1,0 +1,13 @@
+import type {Id} from "../_generated/dataModel";
+import type {PaginationOptions} from "convex/server";
+export type MailingListStatus="draft"|"active"|"archived";
+export type AudienceStatus="subscribed"|"unsubscribed"|"bounced";
+export type MailingListFields={name:string;description:string;consentText:string;privacyUrl:string;status:MailingListStatus};
+export type MailingListView=MailingListFields&{id:Id<"mailingLists">;revision:number;updatedAt:number};
+export type ListIdArgs={listId:Id<"mailingLists">};
+export type ListUpdateArgs=ListIdArgs&MailingListFields&{expectedRevision:number};
+export type ListPageArgs={paginationOpts:PaginationOptions;status?:MailingListStatus};
+export type Page<T>={page:T[];isDone:boolean;continueCursor:string};
+export type SubscriberView={id:Id<"mailingListSubscribers">;email:string;status:AudienceStatus;consentText:string;privacyUrl:string;consentedAt:number;unsubscribedAt:number|null;updatedAt:number};
+export type SubscriberPageArgs=ListIdArgs&{status:AudienceStatus;paginationOpts:PaginationOptions};
+export type SuppressArgs=ListIdArgs&{subscriberId:Id<"mailingListSubscribers">;reason:"unsubscribed"|"bounced";expectedUpdatedAt:number};

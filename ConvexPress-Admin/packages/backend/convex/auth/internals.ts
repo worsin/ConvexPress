@@ -1,3 +1,5 @@
+import type { RegisteredQuery, RegisteredMutation } from "convex/server";
+import type { Doc, Id } from "../_generated/dataModel";
 /**
  * Auth System - Internal Functions
  *
@@ -10,6 +12,8 @@
 import { v } from "convex/values";
 import { internalMutation, internalQuery } from "../_generated/server";
 import { hasActiveAdmin } from "./adminPresence";
+import { credentialBelongsToEnvironment, requireCredentialEnvironmentBinding } from "./environmentBinding";
+import { insertWithMediaReferences, patchWithMediaReferences } from "../media/attachmentGuard";
 
 const FIRST_ADMIN_SETUP_TOKEN_STATE_KEY = "first_admin_setup_token_consumed";
 
@@ -35,29 +39,25 @@ async function canUseAdminLocalAuth(
  * Find a local-auth user by email or username.
  * Returns null if the user doesn't exist or uses a non-local auth source.
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
-export const findLocalUser = internalQuery({
+export const findLocalUser: RegisteredQuery<"internal", {email?:string;username?:string}, (Doc<"users"> & {adminLoginAllowed:boolean}) | null> = internalQuery({
   args: {
-    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     email: v.optional(v.string()),
-    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     username: v.optional(v.string()),
   },
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     let user = null;
 
     if (args.email) {
       user = await ctx.db
         .query("users")
-        .withIndex("by_email", (q: ConvexQueryBuilder) => q.eq("email", args.email!))
+        .withIndex("by_email", (q) => q.eq("email", args.email!))
         .first();
     }
 
     if (!user && args.username) {
       user = await ctx.db
         .query("users")
-        .withIndex("by_username", (q: ConvexQueryBuilder) => q.eq("username", args.username!))
+        .withIndex("by_username", (q) => q.eq("username", args.username!))
         .first();
     }
 
@@ -151,6 +151,7 @@ export const createRefreshToken = internalMutation({
   handler: async (ctx, args) => {
     await ctx.db.insert("refreshTokens", {
       tokenHash: args.tokenHash,
+      environmentBinding: requireCredentialEnvironmentBinding(),
       userId: args.userId,
       expiresAt: args.expiresAt,
       createdAt: Date.now(),
@@ -180,7 +181,7 @@ export const rotateRefreshToken = internalMutation({
       .query("refreshTokens")
       .withIndex("by_tokenHash", (q: ConvexQueryBuilder) => q.eq("tokenHash", args.tokenHash))
       .first();
-    if (!token || token.userId !== args.userId) return { rotated: false as const, reason: "missing" as const };
+    if (!token || !credentialBelongsToEnvironment(token.environmentBinding) || token.userId !== args.userId) return { rotated: false as const, reason: "missing" as const };
     if (token.revokedAt) {
       // Reuse detected: revoke the whole family.
       const family = await ctx.db
@@ -197,6 +198,7 @@ export const rotateRefreshToken = internalMutation({
     await ctx.db.patch("refreshTokens", token._id, { revokedAt: now });
     await ctx.db.insert("refreshTokens", {
       tokenHash: args.nextTokenHash,
+      environmentBinding: requireCredentialEnvironmentBinding(),
       userId: args.userId,
       expiresAt: args.expiresAt,
       createdAt: now,
@@ -208,15 +210,14 @@ export const rotateRefreshToken = internalMutation({
 /**
  * Find a refresh token by its SHA-256 hash.
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
-export const findRefreshToken = internalQuery({
+export const findRefreshToken: RegisteredQuery<"internal", {tokenHash:string}, Doc<"refreshTokens"> | null> = internalQuery({
   args: { tokenHash: v.string() },
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
-    return await ctx.db
+    const token = await ctx.db
       .query("refreshTokens")
-      .withIndex("by_tokenHash", (q: ConvexQueryBuilder) => q.eq("tokenHash", args.tokenHash))
+      .withIndex("by_tokenHash", (q) => q.eq("tokenHash", args.tokenHash))
       .first();
+    return token && credentialBelongsToEnvironment(token.environmentBinding) ? token : null;
   },
 });
 
@@ -233,7 +234,7 @@ export const revokeRefreshToken = internalMutation({
       .query("refreshTokens")
       .withIndex("by_tokenHash", (q: ConvexQueryBuilder) => q.eq("tokenHash", args.tokenHash))
       .first();
-    if (token) {
+    if (token && credentialBelongsToEnvironment(token.environmentBinding)) {
       await ctx.db.patch("refreshTokens", token._id, { revokedAt: Date.now() });
     }
   },
@@ -254,7 +255,7 @@ export const setPasswordHash = internalMutation({
   },
   // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
-    await ctx.db.patch("users", args.userId, {
+    await patchWithMediaReferences<"users">(ctx, "users", args.userId, {
       passwordHash: args.passwordHash,
       lastPasswordChangedAt: Date.now(),
       updatedAt: Date.now(),
@@ -281,18 +282,15 @@ export const checkExistingAdmins = internalQuery({
  * Insert a new administrator user with a pre-hashed password.
  * Only called by the createFirstAdmin action after confirming no admins exist.
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
-export const createAdminUser = internalMutation({
+export const createAdminUser: RegisteredMutation<"internal", {email:string;username:string;passwordHash:string;displayName:string;setupTokenRequired:boolean;setupTokenHash?:string}, Id<"users">> = internalMutation({
   args: {
     email: v.string(),
     username: v.string(),
     passwordHash: v.string(),
     displayName: v.string(),
     setupTokenRequired: v.boolean(),
-    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     setupTokenHash: v.optional(v.string()),
   },
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     if (await hasActiveAdmin(ctx)) {
       throw new Error("An administrator account already exists");
@@ -305,7 +303,7 @@ export const createAdminUser = internalMutation({
 
       const consumed = await ctx.db
         .query("authSetupState")
-        .withIndex("by_setupTokenHash", (q: ConvexQueryBuilder) =>
+        .withIndex("by_setupTokenHash", (q) =>
           q.eq("setupTokenHash", args.setupTokenHash),
         )
         .first();
@@ -319,7 +317,7 @@ export const createAdminUser = internalMutation({
 
     const adminRole = await ctx.db
       .query("roles")
-      .withIndex("by_slug", (q: ConvexQueryBuilder) => q.eq("slug", "administrator"))
+      .withIndex("by_slug", (q) => q.eq("slug", "administrator"))
       .unique();
     if (!adminRole) {
       throw new Error("Administrator role is not seeded");
@@ -329,11 +327,11 @@ export const createAdminUser = internalMutation({
     const slug = args.username.toLowerCase().replace(/[^a-z0-9-]/g, "-");
     const existing = await ctx.db
       .query("users")
-      .withIndex("by_email", (q: ConvexQueryBuilder) => q.eq("email", args.email))
+      .withIndex("by_email", (q) => q.eq("email", args.email))
       .first();
     const existingUsername = await ctx.db
       .query("users")
-      .withIndex("by_username", (q: ConvexQueryBuilder) => q.eq("username", args.username))
+      .withIndex("by_username", (q) => q.eq("username", args.username))
       .first();
 
     if (
@@ -350,7 +348,7 @@ export const createAdminUser = internalMutation({
     }
 
     if (existing) {
-      await ctx.db.patch("users", existing._id, {
+      await patchWithMediaReferences<"users">(ctx, "users", existing._id, {
         authSource: "local",
         username: args.username,
         passwordHash: args.passwordHash,
@@ -389,7 +387,7 @@ export const createAdminUser = internalMutation({
       return existing._id;
     }
 
-    const userId = await ctx.db.insert("users", {
+    const userId: import("../_generated/dataModel").Id<"users"> = await insertWithMediaReferences<"users">(ctx, "users", {
       authSource: "local",
       email: args.email,
       username: args.username,

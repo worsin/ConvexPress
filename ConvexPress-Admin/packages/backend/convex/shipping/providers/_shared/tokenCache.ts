@@ -45,7 +45,7 @@ export const setCachedToken = internalMutation({
       .withIndex("by_connection", (q: any) => q.eq("connectionId", args.connectionId))
       .unique();
     if (existing) {
-      await ctx.db.patch(existing._id, {
+      await ctx.db.patch("shipping_provider_oauth_tokens", existing._id, {
         accessToken: args.accessToken,
         expiresAt: args.expiresAt,
         refreshedAt: now,
@@ -70,7 +70,7 @@ export const purgeExpiredTokens = internalMutation({
       .query("shipping_provider_oauth_tokens")
       .withIndex("by_expires", (q: any) => q.lt("expiresAt", now))
       .collect();
-    for (const row of expired) await ctx.db.delete(row._id);
+    for (const row of expired) await ctx.db.delete("shipping_provider_oauth_tokens", row._id);
     return { purged: expired.length };
   },
 });
@@ -103,7 +103,7 @@ export const invalidateForProvider = internalMutation({
         q.eq("connectionId", connection._id),
       )
       .collect();
-    for (const r of rows) await ctx.db.delete(r._id);
+    for (const r of rows) await ctx.db.delete("shipping_provider_oauth_tokens", r._id);
     return { invalidated: rows.length };
   },
 });

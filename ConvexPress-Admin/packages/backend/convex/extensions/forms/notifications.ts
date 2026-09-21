@@ -363,7 +363,7 @@ export const update = mutation({
     if (patch.enabled !== undefined) update.enabled = patch.enabled;
 
     if (Object.keys(update).length > 0) {
-      await ctx.db.patch(notificationId, update);
+      await ctx.db.patch("form_notifications", notificationId, update);
     }
     return await ctx.db.get(notificationId);
   },
@@ -385,7 +385,7 @@ export const reorder = mutation({
       });
     }
     await Promise.all(
-      orderedIds.map((id, index) => ctx.db.patch(id, { order: index })),
+      orderedIds.map((id, index) => ctx.db.patch("form_notifications", id, { order: index })),
     );
     return { success: true };
   },
@@ -396,7 +396,7 @@ export const remove = mutation({
   handler: async (ctx, { notificationId }) => {
     await requireCan(ctx, formCap("form.manage_notifications"));
     await requirePluginEnabled(ctx, "forms");
-    await ctx.db.delete(notificationId);
+    await ctx.db.delete("form_notifications", notificationId);
     return { success: true };
   },
 });
@@ -540,7 +540,7 @@ export const _claimProgressNotification = internalMutation({
     }
 
     const now = Date.now();
-    await ctx.db.patch(submissionId, {
+    await ctx.db.patch("form_submissions", submissionId, {
       meta: markProgressNotificationSentMeta(submission.meta, now),
       updatedAt: now,
     });

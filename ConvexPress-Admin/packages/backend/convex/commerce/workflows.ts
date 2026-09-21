@@ -101,7 +101,7 @@ export const complete = mutation({
     const run = await ctx.db.get(args.runId);
     if (!run) throw new ConvexError({ code: "NOT_FOUND", message: "Workflow run not found." });
     const now = Date.now();
-    await ctx.db.patch(args.runId, {
+    await ctx.db.patch("commerce_workflow_runs", args.runId, {
       status: "completed",
       result: args.result,
       completedAt: now,
@@ -121,7 +121,7 @@ export const fail = mutation({
     const run = await ctx.db.get(args.runId);
     if (!run) throw new ConvexError({ code: "NOT_FOUND", message: "Workflow run not found." });
     const now = Date.now();
-    await ctx.db.patch(args.runId, {
+    await ctx.db.patch("commerce_workflow_runs", args.runId, {
       status: "failed",
       error: args.error,
       failedAt: now,
@@ -150,7 +150,7 @@ export const completeInternal = internalMutation({
   },
   handler: async (ctx, args) => {
     const now = Date.now();
-    await ctx.db.patch(args.runId, {
+    await ctx.db.patch("commerce_workflow_runs", args.runId, {
       status: "completed",
       result: args.result,
       completedAt: now,
@@ -167,7 +167,7 @@ export const failInternal = internalMutation({
   },
   handler: async (ctx, args) => {
     const now = Date.now();
-    await ctx.db.patch(args.runId, {
+    await ctx.db.patch("commerce_workflow_runs", args.runId, {
       status: "failed",
       error: args.error,
       failedAt: now,

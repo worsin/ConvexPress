@@ -10,6 +10,7 @@
  *   - Yoast SEO data
  */
 
+import { insertWithMediaReferences, patchWithMediaReferences } from "../../media/attachmentGuard";
 import { internalAction, internalMutation } from "../../_generated/server";
 import { v } from "convex/values";
 import { internal } from "../../_generated/api";
@@ -604,12 +605,12 @@ export const pagesCreate = internalMutation({
     };
 
     if (existingId) {
-      await ctx.db.patch(existingId as Id<"posts">, fields);
+      await patchWithMediaReferences<"posts">(ctx, "posts", existingId as Id<"posts">, fields);
       return existingId;
     }
 
     // Create page
-    const pageId = await ctx.db.insert("posts", {
+    const pageId: import("../../_generated/dataModel").Id<"posts"> = await insertWithMediaReferences<"posts">(ctx, "posts", {
       ...fields,
       createdAt: now,
     });

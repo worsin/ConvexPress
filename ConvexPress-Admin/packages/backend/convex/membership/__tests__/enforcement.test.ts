@@ -1,538 +1,132 @@
-/**
- * Membership enforcement — unit tests.
- *
- * Covers:
- *   - expireGrants idempotency: calling twice on already-expired grants
- *     must not double-expire or produce extra patches.
- *   - expireGrants two-step transition: active + past endsAt + grace window
- *     remaining → grace; second call (grace + past graceEndsAt) → expired.
- *   - expireGrants self-scheduling: when 500+ grants are present the handler
- *     schedules a follow-up run.
- *   - trimAccessLog retention math: rows older than cutoff are deleted; rows
- *     newer than cutoff are kept; retentionDays <= 0 is a no-op.
- *   - trimAccessLog self-scheduling: when >= 500 rows are returned the handler
- *     schedules a follow-up run.
- *
- * Run with:
- *   bun test convex/membership/__tests__/enforcement.test.ts
- */
-
-// @ts-ignore Convex backend tsconfig does not include Bun test globals.
-import { beforeEach, describe, expect, test } from "bun:test";
-
-// ─── Minimal mock ctx ───────────────────────────────────────────────────────
-
-type MockGrant = {
-  _id: string;
-  userId: string;
-  planId: string;
-  status: "active" | "grace" | "expired" | "revoked";
-  startsAt: number;
-  endsAt?: number;
-  graceEndsAt?: number;
-  sourceType: string;
-  updatedAt?: number;
+import { expect, test, setSystemTime } from "bun:test";
+import { convexTest } from "convex-test";
+import { getFunctionName, makeFunctionReference } from "convex/server";
+import schema from "../../schema";
+import * as maintenance from "../internals";
+import * as repairs from "../enrollmentRepairs";
+import { queueMembershipEnrollmentRepair } from "../enrollmentRepairs";
+import { membershipGrantIsCurrent } from "../../helpers/membershipAuthority";
+const NOW = 1800000000000;
+const modules = {
+ "./convex/_generated/api.js":()=>import("../../_generated/api.js"),
+ "./convex/_generated/server.js":()=>import("../../_generated/server.js"),
+ "./convex/membership/policyReads.ts":()=>import("../policyReads"),
+ "./convex/membership/internals.ts":()=>import("../internals"),
+ "./convex/membership/enrollmentRepairs.ts":()=>import("../enrollmentRepairs"),
 };
-
-type MockAccessLogRow = {
-  _id: string;
-  createdAt: number;
-  resourceType: string;
-  resourceIdOrKey: string;
-  allowed: boolean;
-};
-
-type MockPlan = {
-  _id: string;
-  status: string;
-  gracePeriodDays?: number;
-};
-
-function makeGrantCtx({
-  grants,
-  plans,
-  pluginEnabled = true,
-}: {
-  grants: MockGrant[];
-  plans: MockPlan[];
-  pluginEnabled?: boolean;
-}) {
-  const patches: Record<string, Partial<MockGrant>> = {};
-  const scheduled: Array<{ fn: unknown; args: unknown }> = [];
-
-  const db = {
-    query: (table?: string) => ({
-      collect: async () => {
-        if (table === "settings") return [];
-        if (table === "membership_grants") return grants;
-        if (table === "membership_access_log") return [];
-        return [];
-      },
-      withIndex: (_idx: string, _fn?: any) => ({
-        unique: async () => {
-          // Settings row for membership.general
-          if (table === "settings") {
-            return pluginEnabled
-              ? { section: "membership.general", values: { logAccessChecks: true, accessLogRetentionDays: 30, membershipEnabled: true } }
-              : null;
-          }
-          return null;
-        },
-        collect: async () => [],
-        filter: () => ({ take: async (n: number) => [] }),
-      }),
-      filter: (_fn?: any) => ({
-        take: async (n: number) => [],
-      }),
-    }),
-    get: async (id: string) => {
-      return plans.find((p) => p._id === id) ?? null;
-    },
-    patch: async (id: string, patch: Partial<MockGrant>) => {
-      patches[id] = { ...(patches[id] ?? {}), ...patch };
-      // Apply patch to in-memory grant so second-call tests work
-      const grant = grants.find((g) => g._id === id);
-      if (grant) Object.assign(grant, patch);
-    },
-    insert: async () => "new-id",
-    delete: async (_id: string) => {},
-  };
-
-  const scheduler = {
-    runAfter: async (delay: number, fn: unknown, args: unknown) => {
-      scheduled.push({ fn, args });
-    },
-  };
-
-  const ctx = {
-    db,
-    scheduler,
-    _pluginEnabled: pluginEnabled,
-    _patches: patches,
-    _scheduled: scheduled,
-    _grants: grants,
-  };
-
-  return ctx;
-}
-
-function makeAccessLogCtx({
-  rows,
-  pluginEnabled = true,
-  retentionDays = 30,
-}: {
-  rows: MockAccessLogRow[];
-  pluginEnabled?: boolean;
-  retentionDays?: number;
-}) {
-  const deleted: string[] = [];
-  const scheduled: Array<{ fn: unknown; args: unknown }> = [];
-
-  // The settings row to be returned
-  const settingsRow =
-    pluginEnabled
-      ? {
-          section: "membership.general",
-          values: { logAccessChecks: true, accessLogRetentionDays: retentionDays },
-        }
-      : null;
-
-  const db = {
-    query: (table?: string) => ({
-      withIndex: (_idx: string, _fn?: any) => ({
-        unique: async () => {
-          if (table === "settings") return settingsRow;
-          return null;
-        },
-        collect: async () => [],
-      }),
-      filter: (_fn: any) => ({
-        take: async (n: number) => {
-          // Return filtered rows (simulating the timestamp filter)
-          return rows.slice(0, n);
-        },
-      }),
-      collect: async () => rows,
-    }),
-    get: async (_id: string) => null,
-    delete: async (id: string) => {
-      deleted.push(id);
-      // Remove from in-memory rows
-      const idx = rows.findIndex((r) => r._id === id);
-      if (idx !== -1) rows.splice(idx, 1);
-    },
-    insert: async () => "new-id",
-  };
-
-  const scheduler = {
-    runAfter: async (delay: number, fn: unknown, args: unknown) => {
-      scheduled.push({ fn, args });
-    },
-  };
-
-  return {
-    db,
-    scheduler,
-    _deleted: deleted,
-    _scheduled: scheduled,
-  };
-}
-
-// ─── Import handler bodies ─────────────────────────────────────────────────
-
-// We test the underlying logic directly since we can't boot the Convex runtime.
-// These are pure async functions that accept a mock ctx.
-
-// We replicate the minimal logic needed to test expireGrants idempotency.
-// (The actual handler is exported implicitly via the internalMutation wrapper;
-//  we test the logic by re-implementing the critical paths inline.)
-
-// ─── expireGrants idempotency ───────────────────────────────────────────────
-
-/**
- * Minimal re-implementation of the expireGrants handler body for testability.
- * Mirrors exactly what the real handler does (see internals.ts expireGrants).
- */
-async function expireGrantsLogic(
-  ctx: { db: any; scheduler: any },
-  now: number,
-) {
-  const allGrants: MockGrant[] = await ctx.db.query("membership_grants").collect();
-  const planCache = new Map<string, MockPlan | null>();
-  const getPlan = async (planId: string) => {
-    if (planCache.has(planId)) return planCache.get(planId) ?? null;
-    const plan = await ctx.db.get(planId);
-    planCache.set(planId, plan);
-    return plan;
-  };
-
-  let expiredCount = 0;
-  let movedToGraceCount = 0;
-
-  for (const grant of allGrants) {
-    if (grant.status === "active" && grant.endsAt && grant.endsAt < now) {
-      if (grant.graceEndsAt && grant.graceEndsAt > now) {
-        await ctx.db.patch(grant._id, { status: "grace", updatedAt: now });
-        movedToGraceCount++;
-      } else if (grant.graceEndsAt && grant.graceEndsAt <= now) {
-        await ctx.db.patch(grant._id, { status: "expired", updatedAt: now });
-        expiredCount++;
-      } else {
-        const plan = await getPlan(grant.planId);
-        const planGraceDays =
-          typeof plan?.gracePeriodDays === "number" && plan.gracePeriodDays > 0
-            ? plan.gracePeriodDays
-            : 0;
-        if (planGraceDays > 0) {
-          const graceEndsAt = now + planGraceDays * 24 * 60 * 60 * 1000;
-          await ctx.db.patch(grant._id, { status: "grace", graceEndsAt, updatedAt: now });
-          movedToGraceCount++;
-        } else {
-          await ctx.db.patch(grant._id, { status: "expired", updatedAt: now });
-          expiredCount++;
-        }
-      }
-    } else if (
-      grant.status === "grace" &&
-      grant.graceEndsAt &&
-      grant.graceEndsAt < now
-    ) {
-      await ctx.db.patch(grant._id, { status: "expired", updatedAt: now });
-      expiredCount++;
-    }
+async function fixture(courses=2) {
+ const t=convexTest({schema,modules}), scheduled:Array<{name:string;args:any;delay:number}>=[];
+ // Actual registered handler bodies and real Convex transactions/indexes. Only
+ // the clock/dispatch transport is controlled so lost jobs can be replayed.
+ const withScheduler=(ctx:any)=>({...ctx,scheduler:{runAfter:async(delay:number,fn:any,args:any)=>{scheduled.push({name:getFunctionName(fn),args,delay});return "fixture-scheduled";}}});
+ const call=(name:string,args:any={})=>t.run(ctx=>(name in repairs?(repairs as any)[name]:(maintenance as any)[name])._handler(withScheduler(ctx),args));
+ const ids=await t.run(async ctx=>{
+  const user=await ctx.db.insert("users",{authSource:"local",email:"maintenance@example.invalid",emailVerified:true,status:"active",createdAt:NOW,updatedAt:NOW});
+  const plugin=await ctx.db.insert("settings",{section:"plugins",values:{lmsEnabled:true,membershipEnabled:true},updatedAt:NOW,updatedBy:user});
+  const plan=await ctx.db.insert("membership_plans",{title:"Membership",slug:"membership",status:"active",grantMode:"manual",priority:1,createdAt:NOW,updatedAt:NOW});
+  const enrollmentIds=[];const courseIds=[];const ruleIds=[];
+  for(let n=0;n<courses;n++){
+   const course=await ctx.db.insert("lms_courses",{title:`Course ${n}`,slug:`course-${n}`,status:"published",accessMode:"members",authorId:user,createdAt:NOW,updatedAt:NOW});courseIds.push(course);
+   ruleIds.push(await ctx.db.insert("membership_restriction_rules",{resourceType:"course",resourceIdOrKey:String(course),ruleMode:"allow_only",planIds:[plan],teaserMode:"hide",loginRequired:true,createdAt:NOW,updatedAt:NOW}));
+   enrollmentIds.push(await ctx.db.insert("lms_enrollments",{userId:user,courseId:course,source:"membership_plan",membershipPlanId:plan,enrolledAt:NOW-1000,status:"active",createdAt:NOW,updatedAt:NOW}));
   }
-
-  return { expiredCount, movedToGraceCount };
+  return {user,plugin,plan,enrollmentIds,courseIds,ruleIds};
+ });
+ const grant=(patch:any={})=>t.run(ctx=>ctx.db.insert("membership_grants",{userId:ids.user,planId:ids.plan,sourceType:"manual",status:"active",startsAt:NOW-1000,endsAt:NOW,createdAt:NOW,updatedAt:NOW,...patch}));
+ const jobs=()=>t.run(ctx=>ctx.db.query("membership_enrollment_repairs").collect());
+ const drain=async()=>{for(let n=0;n<100;n++){const next=(await jobs())[0];if(!next)return;await call("advance",{jobId:next._id,version:next.version});}throw Error("Repair did not finish: "+JSON.stringify(await jobs()));};
+ const enrollments=()=>t.run(ctx=>ctx.db.query("lms_enrollments").collect());
+ return {t,ids,scheduled,call,grant,jobs,drain,enrollments,queue:()=>t.run(ctx=>queueMembershipEnrollmentRepair(withScheduler(ctx),ids.user,ids.plan)),work:(args:any)=>repairs.work._handler({runMutation:(fn:any,a:any)=>call(getFunctionName(fn).split(":")[1]!,a)} as any,args)};
 }
+async function timed(run:()=>Promise<void>){setSystemTime(NOW);try{await run();}finally{setSystemTime();}}
 
-/**
- * Minimal re-implementation of trimAccessLog handler body for testability.
- */
-async function trimAccessLogLogic(
-  ctx: { db: any; scheduler: any },
-  retentionDays: number,
-  now: number,
-) {
-  if (typeof retentionDays !== "number" || retentionDays <= 0) {
-    return { deleted: 0, skipped: "keep_forever" };
-  }
+test("real expiry handler bounds a large backlog, skips indefinite/future grants and atomically queues projection work",()=>timed(async()=>{
+ const f=await fixture();
+ for(let n=0;n<33;n++)await f.grant();
+ const indefinite=await f.grant({endsAt:undefined});const future=await f.grant({endsAt:NOW+100000});
+ const first=await f.call("expireGrants");expect(first.expiredCount).toBe(8);expect((await f.jobs()).length).toBe(1);
+ expect(f.scheduled.some(x=>x.name==="membership/internals:expireGrants"&&x.delay===500)).toBe(true);
+ for(let n=0;n<5;n++)await f.call("expireGrants");
+ const grants=await f.t.run(ctx=>ctx.db.query("membership_grants").collect());expect(grants.filter(g=>g.status==="expired")).toHaveLength(33);
+ expect(grants.find(g=>g._id===indefinite)!.status).toBe("active");expect(grants.find(g=>g._id===future)!.status).toBe("active");
+ await f.drain();expect((await f.enrollments()).every(e=>e.status==="active")).toBe(true);
+}));
+test("byte budget stops large source rows; exact end and explicit grace boundaries never gain sweep-time grace",()=>timed(async()=>{
+ const f=await fixture(0);await f.grant({metadata:{padding:"x".repeat(140*1024)}});await f.grant({metadata:{padding:"x".repeat(140*1024)}});
+ expect((await f.call("expireGrants")).expiredCount).toBe(1);expect((await f.call("expireGrants")).expiredCount).toBe(1);
+ const grace=await f.grant({graceEndsAt:NOW+1000});
+ expect(membershipGrantIsCurrent({planId:f.ids.plan,status:"active",startsAt:NOW-1000,endsAt:NOW,graceEndsAt:NOW+1000},NOW)).toBe(true);
+ expect((await f.call("expireGrants")).movedToGraceCount).toBe(1);
+ setSystemTime(NOW+1000);expect((await f.call("expireGrants")).expiredCount).toBe(1);
+ const row=await f.t.run(ctx=>ctx.db.get("membership_grants",grace));expect(row!.graceEndsAt).toBe(NOW+1000);expect(row!.status).toBe("expired");
+ expect((await f.call("expireGrants")).expiredCount).toBe(0);
+}));
+test("projection processes one enrollment per transaction and duplicate/late jobs cannot repeat events",()=>timed(async()=>{
+ const f=await fixture(3);await f.grant();await f.call("expireGrants");const job=(await f.jobs())[0]!;const args={jobId:job._id,version:job.version};
+ await f.call("advance",args);expect((await f.enrollments()).filter(e=>e.status==="revoked")).toHaveLength(1);
+ await f.call("advance",args);expect((await f.enrollments()).filter(e=>e.status==="revoked")).toHaveLength(1);
+ await f.drain();expect((await f.enrollments()).every(e=>e.status==="revoked")).toBe(true);
+ expect((await f.t.run(ctx=>ctx.db.query("events").collect())).length).toBe(3);expect(await f.jobs()).toHaveLength(0);
+}));
+test("retries use current replacement grants and current alternate-plan expiry, never stale status alone",()=>timed(async()=>{
+ const f=await fixture(2);await f.grant();await f.call("expireGrants");
+ const alternate=await f.t.run(async ctx=>{
+  const plan=await ctx.db.insert("membership_plans",{title:"Alternate",slug:"alternate",status:"active",grantMode:"manual",priority:1,createdAt:NOW,updatedAt:NOW});
+  for(const id of f.ids.ruleIds)await ctx.db.patch("membership_restriction_rules",id,{planIds:[f.ids.plan,plan]});return plan;
+ });
+ await f.grant({planId:alternate,endsAt:NOW+5000});await f.drain();
+ for(const row of await f.enrollments()){expect(row.status).toBe("active");expect(row.membershipPlanId).toBe(alternate);expect(row.expiresAt).toBe(NOW+5000);}
+ // A replacement on the original plan also supersedes a queued expiry decision.
+ const own=await fixture(1);await own.grant();await own.call("expireGrants");await own.grant({endsAt:NOW+3000});await own.drain();expect((await own.enrollments())[0]!.expiresAt).toBe(NOW+3000);
+}));
+test("lost workers recover; coalesced work keeps progress; a deleted frontier does not restart the scan",()=>timed(async()=>{
+ const f=await fixture(3);await f.grant();await f.call("expireGrants");const first=(await f.jobs())[0]!;
+ await f.call("advance",{jobId:first._id,version:first.version});const progress=(await f.jobs())[0]!;expect(progress.afterId).not.toBeNull();
+ await f.queue();const coalesced=(await f.jobs())[0]!;expect(coalesced.afterId).toBe(progress.afterId);expect(coalesced.restart).toBe(true);
+ await f.t.run(ctx=>ctx.db.delete("lms_enrollments",progress.afterId as any));
+ setSystemTime(NOW+60001);await f.call("recover");const recovered=(await f.jobs())[0]!;expect(recovered.version).toBe(progress.version+1);
+ await f.call("advance",{jobId:progress._id,version:progress.version});expect((await f.jobs())[0]!.version).toBe(recovered.version);
+ await f.drain();expect((await f.enrollments()).every(e=>e.status==="revoked")).toBe(true);
+}));
+test("failed projection rolls back enrollment writes and records bounded retry state in a separate transaction",()=>timed(async()=>{
+ const f=await fixture(1);await f.grant();await f.t.run(ctx=>ctx.db.patch("lms_enrollments",f.ids.enrollmentIds[0]!,{sourceRef:"x".repeat(110000)}));await f.call("expireGrants");const job=(await f.jobs())[0]!;
+ await f.work({jobId:job._id,version:job.version});const failed=(await f.jobs())[0]!;
+ expect(failed.attempts).toBe(1);expect(failed.lastError).toContain("failed");expect(failed.nextRetryAt).toBe(NOW+60000);expect((await f.enrollments())[0]!.status).toBe("active");expect(await f.t.run(ctx=>ctx.db.query("events").collect())).toHaveLength(0);
+ await f.t.run(ctx=>ctx.db.patch("lms_enrollments",f.ids.enrollmentIds[0]!,{sourceRef:undefined}));await f.drain();expect((await f.enrollments())[0]!.status).toBe("revoked");
+}));
+test("disabled plugins preserve repair jobs for recovery and never mutate enrollment projections",()=>timed(async()=>{
+ const f=await fixture(1);await f.grant();await f.call("expireGrants");await f.t.run(ctx=>ctx.db.patch("settings",f.ids.plugin,{values:{membershipEnabled:false,lmsEnabled:true}}));
+ const job=(await f.jobs())[0]!;await f.call("advance",{jobId:job._id,version:job.version});expect((await f.enrollments())[0]!.status).toBe("active");expect(await f.jobs()).toHaveLength(1);expect((await f.call("expireGrants")).expiredCount).toBe(0);
+ await f.t.run(ctx=>ctx.db.patch("settings",f.ids.plugin,{values:{membershipEnabled:true,lmsEnabled:true}}));await f.drain();expect((await f.enrollments())[0]!.status).toBe("revoked");
+}));
+test("actual log retention uses bounded indexed deletes, preserves boundary rows, and honors keep forever",()=>timed(async()=>{
+ const f=await fixture(0),cutoff=NOW-30*86400000;
+ await f.t.run(async ctx=>{for(let n=0;n<35;n++)await ctx.db.insert("membership_access_log",{resourceType:"course",resourceIdOrKey:"fixture",allowed:false,matchingPlanIds:[],createdAt:cutoff-1});await ctx.db.insert("membership_access_log",{resourceType:"course",resourceIdOrKey:"boundary",allowed:true,matchingPlanIds:[],createdAt:cutoff});});
+ expect((await f.call("trimAccessLog")).deleted).toBe(32);expect((await f.call("trimAccessLog")).deleted).toBe(3);expect((await f.call("trimAccessLog")).deleted).toBe(0);
+ await f.t.run(ctx=>ctx.db.insert("settings",{section:"membership.general",values:{accessLogRetentionDays:0},updatedBy:f.ids.user,updatedAt:NOW}));
+ expect((await f.call("trimAccessLog")).skipped).toBe("keep_forever");expect(await f.t.run(ctx=>ctx.db.query("membership_access_log").collect())).toHaveLength(1);
+}));
 
-  const cutoff = now - retentionDays * 24 * 60 * 60 * 1000;
-  const BATCH = 500;
+test("a restored cursorless job rebuilds its horizon and finishes against current enrollments",()=>timed(async()=>{
+ const f=await fixture(2);await f.grant();await f.call("expireGrants");const job=(await f.jobs())[0]!;
+ await f.t.run(ctx=>ctx.db.patch("membership_enrollment_repairs",job._id,{version:job.version+1,afterTime:null,afterId:null,horizonTime:null,horizonId:null,restart:true,attempts:0,nextRetryAt:0}));
+ await f.call("recover");await f.drain();expect(await f.jobs()).toHaveLength(0);expect((await f.enrollments()).every(e=>e.status==="revoked")).toBe(true);
+}));
 
-  const oldRows = await ctx.db
-    .query("membership_access_log")
-    .filter((q: any) => q.lt(q.field("createdAt"), cutoff))
-    .take(BATCH);
-
-  for (const row of oldRows) {
-    await ctx.db.delete(row._id);
-  }
-
-  if (oldRows.length >= BATCH) {
-    await ctx.scheduler.runAfter(0, "trimAccessLog", {});
-  }
-
-  return { deleted: oldRows.length, cutoff };
-}
-
-// ═══════════════════════════════════════════════════════════════════════════
-// Tests
-// ═══════════════════════════════════════════════════════════════════════════
-
-const NOW = 1_000_000;
-
-describe("expireGrants — idempotency", () => {
-  test("already-expired grant is not re-patched on second call", async () => {
-    const grant: MockGrant = {
-      _id: "g1",
-      userId: "u1",
-      planId: "p1",
-      status: "expired", // already expired
-      startsAt: 0,
-      endsAt: NOW - 10_000,
-    };
-    const plans: MockPlan[] = [{ _id: "p1", status: "active" }];
-    const ctx = makeGrantCtx({ grants: [grant], plans });
-
-    const r1 = await expireGrantsLogic(ctx as any, NOW);
-    const r2 = await expireGrantsLogic(ctx as any, NOW);
-
-    // Neither call should touch the already-expired grant
-    expect(r1.expiredCount).toBe(0);
-    expect(r1.movedToGraceCount).toBe(0);
-    expect(r2.expiredCount).toBe(0);
-    expect(r2.movedToGraceCount).toBe(0);
-    expect(Object.keys(ctx._patches)).toHaveLength(0);
-  });
-
-  test("already-grace grant past graceEndsAt is expired once, second call is no-op", async () => {
-    const grant: MockGrant = {
-      _id: "g2",
-      userId: "u1",
-      planId: "p1",
-      status: "grace",
-      startsAt: 0,
-      endsAt: NOW - 20_000,
-      graceEndsAt: NOW - 5_000, // grace window already closed
-    };
-    const plans: MockPlan[] = [{ _id: "p1", status: "active" }];
-    const ctx = makeGrantCtx({ grants: [grant], plans });
-
-    const r1 = await expireGrantsLogic(ctx as any, NOW);
-    expect(r1.expiredCount).toBe(1);
-    // Grant is now "expired" in memory (patch was applied)
-    expect(grant.status).toBe("expired");
-
-    // Second call: grant is now expired, should not re-patch
-    const r2 = await expireGrantsLogic(ctx as any, NOW);
-    expect(r2.expiredCount).toBe(0);
-    expect(r2.movedToGraceCount).toBe(0);
-  });
-});
-
-describe("expireGrants — two-step transition", () => {
-  test("active + past endsAt + future graceEndsAt → moves to grace only", async () => {
-    const grant: MockGrant = {
-      _id: "g3",
-      userId: "u1",
-      planId: "p1",
-      status: "active",
-      startsAt: 0,
-      endsAt: NOW - 1_000,
-      graceEndsAt: NOW + 86_400_000, // grace window still open
-    };
-    const plans: MockPlan[] = [{ _id: "p1", status: "active" }];
-    const ctx = makeGrantCtx({ grants: [grant], plans });
-
-    const r = await expireGrantsLogic(ctx as any, NOW);
-    expect(r.movedToGraceCount).toBe(1);
-    expect(r.expiredCount).toBe(0);
-    expect(grant.status).toBe("grace");
-  });
-
-  test("active + past endsAt + plan.gracePeriodDays → sets graceEndsAt, moves to grace", async () => {
-    const grant: MockGrant = {
-      _id: "g4",
-      userId: "u1",
-      planId: "p2",
-      status: "active",
-      startsAt: 0,
-      endsAt: NOW - 1_000,
-      // no graceEndsAt set yet
-    };
-    const plans: MockPlan[] = [{ _id: "p2", status: "active", gracePeriodDays: 7 }];
-    const ctx = makeGrantCtx({ grants: [grant], plans });
-
-    const r = await expireGrantsLogic(ctx as any, NOW);
-    expect(r.movedToGraceCount).toBe(1);
-    expect(r.expiredCount).toBe(0);
-    expect(grant.status).toBe("grace");
-    expect(grant.graceEndsAt).toBe(NOW + 7 * 24 * 60 * 60 * 1000);
-  });
-
-  test("active + past endsAt + no grace config → expires directly", async () => {
-    const grant: MockGrant = {
-      _id: "g5",
-      userId: "u1",
-      planId: "p3",
-      status: "active",
-      startsAt: 0,
-      endsAt: NOW - 1_000,
-    };
-    const plans: MockPlan[] = [{ _id: "p3", status: "active", gracePeriodDays: 0 }];
-    const ctx = makeGrantCtx({ grants: [grant], plans });
-
-    const r = await expireGrantsLogic(ctx as any, NOW);
-    expect(r.expiredCount).toBe(1);
-    expect(r.movedToGraceCount).toBe(0);
-    expect(grant.status).toBe("expired");
-  });
-
-  test("active grant with future endsAt is untouched", async () => {
-    const grant: MockGrant = {
-      _id: "g6",
-      userId: "u1",
-      planId: "p1",
-      status: "active",
-      startsAt: 0,
-      endsAt: NOW + 100_000, // still active
-    };
-    const plans: MockPlan[] = [{ _id: "p1", status: "active" }];
-    const ctx = makeGrantCtx({ grants: [grant], plans });
-
-    const r = await expireGrantsLogic(ctx as any, NOW);
-    expect(r.expiredCount).toBe(0);
-    expect(r.movedToGraceCount).toBe(0);
-    expect(grant.status).toBe("active");
-  });
-});
-
-describe("trimAccessLog — retention math", () => {
-  test("rows older than cutoff are deleted", async () => {
-    const cutoff = NOW - 30 * 24 * 60 * 60 * 1000;
-    const rows: MockAccessLogRow[] = [
-      { _id: "r1", createdAt: cutoff - 1, resourceType: "post", resourceIdOrKey: "p1", allowed: true },
-      { _id: "r2", createdAt: cutoff + 1, resourceType: "post", resourceIdOrKey: "p2", allowed: false },
-    ];
-
-    // Build a ctx where filter().take() returns only the old row
-    const deleted: string[] = [];
-    const scheduled: unknown[] = [];
-    const ctx = {
-      db: {
-        query: (_table?: string) => ({
-          withIndex: (_idx: string, _fn?: any) => ({
-            unique: async () => ({
-              section: "membership.general",
-              values: { logAccessChecks: true, accessLogRetentionDays: 30 },
-            }),
-          }),
-          filter: (_fn: any) => ({
-            take: async (n: number) => [rows[0]], // simulates rows older than cutoff
-          }),
-        }),
-        delete: async (id: string) => {
-          deleted.push(id);
-        },
-      },
-      scheduler: {
-        runAfter: async (_delay: number, _fn: unknown, _args: unknown) => {
-          scheduled.push({ _fn, _args });
-        },
-      },
-    };
-
-    const result = await trimAccessLogLogic(ctx as any, 30, NOW);
-    expect(result.deleted).toBe(1);
-    expect(deleted).toContain("r1");
-    expect(deleted).not.toContain("r2");
-    expect(scheduled).toHaveLength(0);
-  });
-
-  test("retentionDays = 0 is a no-op (keep forever)", async () => {
-    const rows: MockAccessLogRow[] = [
-      { _id: "r1", createdAt: 0, resourceType: "post", resourceIdOrKey: "p1", allowed: true },
-    ];
-    const deleted: string[] = [];
-    const ctx = {
-      db: { query: () => ({ filter: () => ({ take: async () => rows }) }), delete: async (id: string) => deleted.push(id) },
-      scheduler: { runAfter: async () => {} },
-    };
-
-    const result = await trimAccessLogLogic(ctx as any, 0, NOW);
-    expect(result).toMatchObject({ deleted: 0, skipped: "keep_forever" });
-    expect(deleted).toHaveLength(0);
-  });
-
-  test("retentionDays < 0 is a no-op (keep forever)", async () => {
-    const ctx = {
-      db: { query: () => ({ filter: () => ({ take: async () => [] }) }), delete: async () => {} },
-      scheduler: { runAfter: async () => {} },
-    };
-
-    const result = await trimAccessLogLogic(ctx as any, -1, NOW);
-    expect(result).toMatchObject({ deleted: 0, skipped: "keep_forever" });
-  });
-
-  test("self-schedules when exactly 500 rows are returned", async () => {
-    const BATCH = 500;
-    const oldRows = Array.from({ length: BATCH }, (_, i) => ({
-      _id: `r${i}`,
-      createdAt: 0,
-      resourceType: "post",
-      resourceIdOrKey: `p${i}`,
-      allowed: true,
-    }));
-
-    const deleted: string[] = [];
-    const scheduled: unknown[] = [];
-    const ctx = {
-      db: {
-        query: (_table?: string) => ({
-          withIndex: () => ({ unique: async () => null }),
-          filter: () => ({
-            take: async (n: number) => oldRows.slice(0, n),
-          }),
-        }),
-        delete: async (id: string) => deleted.push(id),
-      },
-      scheduler: {
-        runAfter: async (_delay: number, fn: unknown, args: unknown) => {
-          scheduled.push({ fn, args });
-        },
-      },
-    };
-
-    const result = await trimAccessLogLogic(ctx as any, 30, NOW);
-    expect(result.deleted).toBe(BATCH);
-    expect(scheduled).toHaveLength(1);
-  });
-
-  test("does NOT self-schedule when fewer than 500 rows are deleted", async () => {
-    const oldRows = [
-      { _id: "r1", createdAt: 0, resourceType: "post", resourceIdOrKey: "p1", allowed: true },
-    ];
-
-    const deleted: string[] = [];
-    const scheduled: unknown[] = [];
-    const ctx = {
-      db: {
-        query: () => ({
-          withIndex: () => ({ unique: async () => null }),
-          filter: () => ({ take: async () => oldRows }),
-        }),
-        delete: async (id: string) => deleted.push(id),
-      },
-      scheduler: {
-        runAfter: async (_delay: number, fn: unknown, args: unknown) => {
-          scheduled.push({ fn, args });
-        },
-      },
-    };
-
-    const result = await trimAccessLogLogic(ctx as any, 30, NOW);
-    expect(result.deleted).toBe(1);
-    expect(scheduled).toHaveLength(0);
-  });
-});
+test("registered expiry and real scheduled actions drain enrollment repair end to end",()=>timed(async()=>{
+ const f=await fixture(2);await f.grant();
+ await f.t.mutation(makeFunctionReference<"mutation",Record<string,never>>("membership/internals:expireGrants"),{});
+ // convex-test's finishAllScheduledFunctions expects synchronous fake-timer
+ // advancement. Bun uses real timers here: await dispatch, then inspect the
+ // actual scheduler records so an idle gap cannot masquerade as completion.
+ for(let n=0;n<100;n++){
+  await new Promise(resolve=>setTimeout(resolve,1));
+  await f.t.finishInProgressScheduledFunctions();
+  const scheduled=await f.t.run(ctx=>ctx.db.system.query("_scheduled_functions").collect());
+  expect(scheduled.filter(row=>row.state.kind==="failed")).toHaveLength(0);
+  if(scheduled.length && scheduled.every(row=>row.state.kind==="success"))break;
+  if(n===99)throw Error("Scheduled repair did not finish: "+JSON.stringify(scheduled));
+ }
+ expect(await f.jobs()).toHaveLength(0);expect((await f.enrollments()).every(e=>e.status==="revoked")).toBe(true);
+ expect(await f.t.run(ctx=>ctx.db.query("events").collect())).toHaveLength(2);
+}));

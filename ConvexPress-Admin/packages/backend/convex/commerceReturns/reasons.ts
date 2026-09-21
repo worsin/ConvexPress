@@ -112,7 +112,7 @@ export const update = mutation({
       patch.requiresRestock = args.requiresRestock;
     if (args.sortOrder !== undefined) patch.sortOrder = args.sortOrder;
     if (args.isActive !== undefined) patch.isActive = args.isActive;
-    await ctx.db.patch(args.id, patch);
+    await ctx.db.patch("commerce_return_reasons", args.id, patch);
     return { success: true };
   },
 });
@@ -124,7 +124,7 @@ export const remove = mutation({
   // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     await requireCan(ctx, "commerce.returns.manage");
-    await ctx.db.delete(args.id);
+    await ctx.db.delete("commerce_return_reasons", args.id);
     return { success: true };
   },
 });

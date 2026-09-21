@@ -1,3 +1,4 @@
+import { authoringDetails } from "../helpers/authoringSnapshot";
 /**
  * Revision System - Queries
  *
@@ -18,6 +19,8 @@
 import { ConvexError } from "convex/values";
 import { query } from "../_generated/server";
 import type { QueryCtx } from "../_generated/server";
+import type { Doc, Id } from "../_generated/dataModel";
+import type { RegisteredQuery } from "convex/server";
 import { getCurrentUser, lookupUserByIdentifier } from "../helpers/permissions";
 import { requireRevisionAccess, getRevisionCount } from "../helpers/revisions";
 import {
@@ -76,10 +79,8 @@ async function resolveRevisionAuthor(
  *
  * Used by: Revision comparison page (/admin/posts/$postId/revisions)
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
-export const listByPost = query({
+export const listByPost: import("convex/server").RegisteredQuery<"public", { parentId: import("../_generated/dataModel").Id<"posts">; type?: import("../_generated/dataModel").Doc<"revisions">["type"]; limit?: number }, { revisions: Array<import("../_generated/dataModel").Doc<"revisions"> & { details: ReturnType<typeof authoringDetails>; authorName: string; authorAvatar: string | undefined }>; total: number; hasMore: boolean }> = query({
   args: listByPostArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     const user = await getCurrentUser(ctx);
     if (!user) {
@@ -107,19 +108,18 @@ export const listByPost = query({
     if (args.type) {
       revisions = await ctx.db
         .query("revisions")
-        .withIndex("by_parent_type", (q: ConvexQueryBuilder) =>
+        .withIndex("by_parent_type", q =>
           q.eq("parentId", args.parentId).eq("type", args.type!),
         )
         .collect();
     } else {
       revisions = await ctx.db
         .query("revisions")
-        .withIndex("by_parent", (q: ConvexQueryBuilder) => q.eq("parentId", args.parentId))
+        .withIndex("by_parent", q => q.eq("parentId", args.parentId))
         .collect();
     }
 
     // ── Sort by revisionNumber descending (newest first) ────────────────
-    // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
     revisions.sort((a, b) => b.revisionNumber - a.revisionNumber);
 
     // ── Apply limit ─────────────────────────────────────────────────────
@@ -133,11 +133,11 @@ export const listByPost = query({
 
     // ── Denormalize author data ─────────────────────────────────────────
     const revisionsWithAuthors = await Promise.all(
-      // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
       paged.map(async (rev) => {
         const { authorName, authorAvatar } = await resolveRevisionAuthor(ctx, rev.authorId);
         return {
           ...rev,
+          details: authoringDetails(rev),
           authorName,
           authorAvatar,
         };
@@ -214,11 +214,14 @@ export const get = query({
  *
  * Used by: Revision comparison page with diff viewer
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
-export const compare = query({
+type ComparisonSide = Pick<Doc<"revisions">, "_id" | "revisionNumber" | "title" | "content" | "excerpt" | "createdAt" | "changedFields" | "type" | "contentLength"> & {
+  details: string; authorName: string; authorAvatar?: string;
+};
+type ComparisonResult = { left: ComparisonSide; right: ComparisonSide; parentId: Id<"posts">; parentTitle: string; totalRevisions: number };
+type ComparisonArgs = { leftRevisionId: Id<"revisions">; rightRevisionId: Id<"revisions"> };
+export const compare: RegisteredQuery<"public", ComparisonArgs, Promise<ComparisonResult>> = query({
   args: compareRevisionsArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
-  handler: async (ctx, args) => {
+  handler: async (ctx: QueryCtx, args: ComparisonArgs): Promise<ComparisonResult> => {
     const user = await getCurrentUser(ctx);
     if (!user) {
       throw new ConvexError({
@@ -276,6 +279,7 @@ export const compare = query({
         revisionNumber: left.revisionNumber,
         title: left.title,
         content: left.content,
+        details: authoringDetails(left),
         excerpt: left.excerpt,
         authorName: leftAuthor.authorName,
         authorAvatar: leftAuthor.authorAvatar,
@@ -289,6 +293,7 @@ export const compare = query({
         revisionNumber: right.revisionNumber,
         title: right.title,
         content: right.content,
+        details: authoringDetails(right),
         excerpt: right.excerpt,
         authorName: rightAuthor.authorName,
         authorAvatar: rightAuthor.authorAvatar,

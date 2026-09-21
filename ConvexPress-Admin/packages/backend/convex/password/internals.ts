@@ -20,6 +20,7 @@ import { internal } from "../_generated/api";
 import { v } from "convex/values";
 import { RESET_HEURISTIC_WINDOW_MS } from "./validators";
 import { timingSafeEquals } from "../helpers/timingSafe";
+import { patchWithMediaReferences } from "../media/attachmentGuard";
 
 // ─── verifyResetToken ──────────────────────────────────────────────────────
 
@@ -60,7 +61,7 @@ export const verifyResetToken = internalMutation({
     // Check token expiry
     if (Date.now() > user.passwordResetTokenExpiresAt) {
       // Token expired -- clear it
-      await ctx.db.patch(user._id, {
+      await patchWithMediaReferences<"users">(ctx, "users", user._id, {
         passwordResetToken: undefined,
         passwordResetTokenExpiresAt: undefined,
         updatedAt: Date.now(),

@@ -13,7 +13,12 @@
  *   prune           - Trim excess manual revisions to configured maximum
  */
 
-import { internalMutation } from "../_generated/server";
+import { deleteWithMediaReferences, insertWithMediaReferences, patchWithMediaReferences } from "../media/attachmentGuard";
+import { internalMutation, type MutationCtx } from "../_generated/server";
+import type { Id } from "../_generated/dataModel";
+import { v } from "convex/values";
+import type { RegisteredMutation } from "convex/server";
+import { AUTHORING_FIELDS, authoringSnapshot } from "../helpers/authoringSnapshot";
 import { asId } from "../helpers/types";
 import { emitEvent } from "../helpers/events";
 import { REVISION_EVENTS, SYSTEM } from "../events/constants";
@@ -45,14 +50,16 @@ import {
  *
  * @returns The new revision ID, or null if skipped
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
-export const createOnSave = internalMutation({
+type CreateOnSaveArgs = {
+  parentId: Id<"posts">; parentType: "post" | "page"; title: string;
+  content: string; excerpt?: string; authorId: string; changedFields: string[];
+};
+export const createOnSave: RegisteredMutation<"internal", CreateOnSaveArgs, Promise<Id<"revisions"> | null>> = internalMutation({
   args: createOnSaveArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
-  handler: async (ctx, args) => {
+  returns: v.union(v.id("revisions"), v.null()),
+  handler: async (ctx: MutationCtx, args: CreateOnSaveArgs): Promise<Id<"revisions"> | null> => {
     // ── Skip: no content fields changed ──────────────────────────────────
-    const contentFields = ["title", "content", "excerpt"];
-    // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
+    const contentFields: readonly string[] = AUTHORING_FIELDS;
     const hasContentChange = args.changedFields.some((f) =>
       contentFields.includes(f),
     );
@@ -64,7 +71,7 @@ export const createOnSave = internalMutation({
     // Checked by caller (Post System), but double-checked here to prevent
     // other callers from creating revisions for auto-drafts.
     const parentPost = await ctx.db.get("posts", args.parentId);
-    if (parentPost && parentPost.status === "auto-draft") {
+    if (!parentPost || parentPost.status === "auto-draft") {
       return null;
     }
 
@@ -86,7 +93,9 @@ export const createOnSave = internalMutation({
 
     // ── Insert the revision snapshot ────────────────────────────────────
     const now = Date.now();
-    const revisionId = await ctx.db.insert("revisions", {
+    const revisionId: import("../_generated/dataModel").Id<"revisions"> = await insertWithMediaReferences<"revisions">(ctx, "revisions", {
+      ...authoringSnapshot(parentPost),
+      snapshotVersion: 2,
       parentId: args.parentId,
       parentType: args.parentType,
       title: args.title,
@@ -95,7 +104,6 @@ export const createOnSave = internalMutation({
       revisionNumber,
       type: "manual",
       authorId: args.authorId,
-      // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
       changedFields: args.changedFields.filter((f) =>
         contentFields.includes(f),
       ),
@@ -108,19 +116,18 @@ export const createOnSave = internalMutation({
       // maxRevisions === -1 means unlimited, skip pruning
       const manualRevisions = await ctx.db
         .query("revisions")
-        .withIndex("by_parent_type", (q: ConvexQueryBuilder) =>
+        .withIndex("by_parent_type", (q) =>
           q.eq("parentId", args.parentId).eq("type", "manual"),
         )
         .collect();
 
       if (manualRevisions.length > maxRevisions) {
         // Sort by revisionNumber ascending (oldest first)
-        // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
         manualRevisions.sort((a, b) => a.revisionNumber - b.revisionNumber);
 
         const toDelete = manualRevisions.length - maxRevisions;
         for (let i = 0; i < toDelete; i++) {
-          await ctx.db.delete("revisions", manualRevisions[i]._id);
+          await deleteWithMediaReferences<"revisions">(ctx, "revisions", manualRevisions[i]._id);
         }
       }
     }
@@ -171,7 +178,7 @@ export const createOnSave = internalMutation({
 export const createAutosave = internalMutation({
   args: createAutosaveArgs,
   // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
-  handler: async (ctx, args) => {
+  handler: async (ctx, args): Promise<Id<"revisions">> => {
     // ── Check for existing autosave for this user + parent ──────────────
     const existingAutosaves = await ctx.db
       .query("revisions")
@@ -190,7 +197,7 @@ export const createAutosave = internalMutation({
 
     if (existingForUser) {
       // ── Update existing autosave in place ──────────────────────────────
-      await ctx.db.patch("revisions", existingForUser._id, {
+      await patchWithMediaReferences<"revisions">(ctx, "revisions", existingForUser._id, {
         title: args.title,
         content: args.content,
         excerpt: args.excerpt,
@@ -204,7 +211,7 @@ export const createAutosave = internalMutation({
     // ── Create new autosave revision ────────────────────────────────────
     const revisionNumber = await getNextRevisionNumber(ctx, args.parentId);
 
-    const revisionId = await ctx.db.insert("revisions", {
+    const revisionId: import("../_generated/dataModel").Id<"revisions"> = await insertWithMediaReferences<"revisions">(ctx, "revisions", {
       parentId: args.parentId,
       parentType: args.parentType,
       title: args.title,
@@ -246,7 +253,7 @@ export const deleteByParent = internalMutation({
       .collect();
 
     for (const revision of revisions) {
-      await ctx.db.delete("revisions", revision._id);
+      await deleteWithMediaReferences<"revisions">(ctx, "revisions", revision._id);
     }
 
     return { deleted: revisions.length };
@@ -307,7 +314,7 @@ export const prune = internalMutation({
         const toDelete = manualRevisions.length - maxRevisions;
 
         for (let i = 0; i < toDelete; i++) {
-          await ctx.db.delete("revisions", manualRevisions[i]._id);
+          await deleteWithMediaReferences<"revisions">(ctx, "revisions", manualRevisions[i]._id);
           prunedCount++;
         }
         postsAffected = 1;
@@ -350,7 +357,7 @@ export const prune = internalMutation({
           const toDelete = manualRevisions.length - maxRevisions;
 
           for (let i = 0; i < toDelete; i++) {
-            await ctx.db.delete("revisions", manualRevisions[i]._id);
+            await deleteWithMediaReferences<"revisions">(ctx, "revisions", manualRevisions[i]._id);
             prunedCount++;
           }
           postsAffected++;

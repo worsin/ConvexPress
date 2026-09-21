@@ -28,7 +28,9 @@
 import { v, ConvexError } from "convex/values";
 import { internalMutation, internalAction, internalQuery } from "../_generated/server";
 import { internal } from "../_generated/api";
-import { findMediaReferences } from "./references";
+import { prepareMediaDeletion, applyMediaDeletionPreflight, prepareSizeWipe, preflightOriginalSwap } from "./deletion";
+import { requireAttachableMedia } from "./attachmentGuard";
+import { makeFunctionReference } from "convex/server";
 import { requireCan } from "../helpers/permissions";
 import { getUserRoleLevel } from "./mediaAuth";
 import { emitEvent } from "../helpers/events";
@@ -1015,52 +1017,9 @@ export const deleteMediaInternal = internalMutation({
     const media = await ctx.db.get("media", args.mediaId);
     if (!media) return;
 
-    // Delete original storage file
-    try {
-      (media.storageId ? await ctx.storage.delete(media.storageId) : undefined);
-    } catch {
-      // Orphaned storage file
-    }
-
-    // Delete all generated sizes and their storage files
-    const sizes = await ctx.db
-      .query("mediaSizes")
-      .withIndex("by_media", (q) => q.eq("mediaId", args.mediaId))
-      .collect();
-
-    for (const size of sizes) {
-      if (size.storageId !== media.storageId) {
-        try {
-          (size.storageId ? await ctx.storage.delete(size.storageId) : undefined);
-        } catch {
-          // Orphaned
-        }
-      }
-      await ctx.db.delete("mediaSizes", size._id);
-    }
-
-    // Delete all mediaMeta records
-    const metaRecords = await ctx.db
-      .query("mediaMeta")
-      .withIndex("by_media", (q) => q.eq("mediaId", args.mediaId))
-      .collect();
-
-    for (const meta of metaRecords) {
-      await ctx.db.delete("mediaMeta", meta._id);
-    }
-
-    // Clear featuredImageId from posts/pages referencing this media
-    const postsWithFeatured = await ctx.db
-      .query("posts")
-      .filter((q) => q.eq(q.field("featuredImageId"), args.mediaId))
-      .collect();
-
-    for (const post of postsWithFeatured) {
-      await ctx.db.patch("posts", post._id, {
-        featuredImageId: undefined,
-        updatedAt: Date.now(),
-      });
-    }
+    const plan = await prepareMediaDeletion(ctx, [media], { force: false, permanent: true });
+    if (plan.blocked.size) throw new ConvexError({ code: "MEDIA_IN_USE", message: "Media is still referenced. Clear its references before deleting it." });
+    await applyMediaDeletionPreflight(ctx, plan);
 
     // Emit media.deleted event (LOW #21 fix)
     const { emitEvent } = await import("../helpers/events");
@@ -1369,6 +1328,7 @@ export const setMeta = internalMutation({
     value: v.string(),
   },
   handler: async (ctx, args) => {
+    await requireAttachableMedia(ctx, args.mediaId);
     // Check if this key already exists for this media
     const existing = await ctx.db
       .query("mediaMeta")
@@ -1463,8 +1423,8 @@ export const updateStorageId = internalMutation({
     mimeType: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const media = await ctx.db.get("media", args.mediaId);
-    if (!media) return;
+    const media = await requireAttachableMedia(ctx, args.mediaId);
+    const obsolete = await preflightOriginalSwap(ctx, media, args.storageId);
 
     const patch: Record<string, unknown> = {
       storageId: args.storageId,
@@ -1477,6 +1437,7 @@ export const updateStorageId = internalMutation({
     if (args.mimeType !== undefined) patch.mimeType = args.mimeType;
 
     await ctx.db.patch("media", args.mediaId, patch);
+    if (obsolete) await ctx.storage.delete(obsolete);
   },
 });
 
@@ -1491,16 +1452,12 @@ export const deleteAllSizes = internalMutation({
     mediaId: v.id("media"),
   },
   handler: async (ctx, args) => {
-    const sizes = await ctx.db
-      .query("mediaSizes")
-      .withIndex("by_media", (q) => q.eq("mediaId", args.mediaId))
-      .collect();
-
-    for (const size of sizes) {
-      await ctx.db.delete("mediaSizes", size._id);
-    }
-
-    return sizes.length;
+    await requireAttachableMedia(ctx, args.mediaId);
+    const plan = await prepareSizeWipe(ctx, args.mediaId);
+    // Preserve this endpoint's record-only contract; storage ownership was
+    // nevertheless completely checked before altering the size inventory.
+    for (const size of plan.records) await ctx.db.delete("mediaSizes", size.id as Id<"mediaSizes">);
+    return plan.records.length;
   },
 });
 
@@ -1515,8 +1472,7 @@ export const scheduleReprocess = internalMutation({
     mediaId: v.id("media"),
   },
   handler: async (ctx, args) => {
-    const media = await ctx.db.get("media", args.mediaId);
-    if (!media) return;
+    await requireAttachableMedia(ctx, args.mediaId);
 
     // Set status to processing so the action can pick it up
     await ctx.db.patch("media", args.mediaId, {
@@ -1559,6 +1515,18 @@ export const cleanupExpiredMedia = internalMutation({
       .withIndex("by_status", (q) => q.eq("status", "processing"))
       .take(200);
 
+    // ── Phase 2: Delete old "failed" items ──────────────────────────────
+    const failedThreshold = now - 30 * 24 * 60 * 60 * 1000; // 30 days
+
+    const checkpoint = await ctx.db.query("mediaMaintenance").withIndex("by_key", q => q.eq("key", "failed")).unique();
+    const page = await ctx.runQuery(trashPage, { cursor: checkpoint?.cursor ?? null, status: "failed" });
+    const failedItems = [];
+    for (const id of page.ids) {
+      const item = await ctx.db.get("media", id);
+      if (item?.status === "failed") failedItems.push(item);
+    }
+
+    const plan = await prepareMediaDeletion(ctx, failedItems.filter(item => item.createdAt < failedThreshold).slice(0, 8), { force: false, permanent: true });
     for (const item of processingItems) {
       if (item.createdAt < stuckThreshold) {
         await ctx.db.patch("media", item._id, {
@@ -1572,58 +1540,11 @@ export const cleanupExpiredMedia = internalMutation({
       if (markedFailed >= 50) break;
     }
 
-    // ── Phase 2: Delete old "failed" items ──────────────────────────────
-    const failedThreshold = now - 30 * 24 * 60 * 60 * 1000; // 30 days
+    await applyMediaDeletionPreflight(ctx, plan);
+    for (const item of plan.eligible) { await ctx.db.delete("media", item._id); cleaned++; }
 
-    const failedItems = await ctx.db
-      .query("media")
-      .withIndex("by_status", (q) => q.eq("status", "failed"))
-      .take(200);
-
-    for (const item of failedItems) {
-      if (item.createdAt >= failedThreshold) continue; // Not old enough
-      if (cleaned >= 50) break; // Batch limit
-
-      // Delete the original storage file
-      try {
-        (item.storageId ? await ctx.storage.delete(item.storageId) : undefined);
-      } catch {
-        // Storage file may already be gone
-      }
-
-      // Delete all generated sizes and their storage files
-      const sizes = await ctx.db
-        .query("mediaSizes")
-        .withIndex("by_media", (q) => q.eq("mediaId", item._id))
-        .collect();
-
-      for (const size of sizes) {
-        // Only delete storage if it's different from the original
-        if (size.storageId !== item.storageId) {
-          try {
-            (size.storageId ? await ctx.storage.delete(size.storageId) : undefined);
-          } catch {
-            // Orphaned storage file
-          }
-        }
-        await ctx.db.delete("mediaSizes", size._id);
-      }
-
-      // Delete all mediaMeta records
-      const metaRecords = await ctx.db
-        .query("mediaMeta")
-        .withIndex("by_media", (q) => q.eq("mediaId", item._id))
-        .collect();
-
-      for (const meta of metaRecords) {
-        await ctx.db.delete("mediaMeta", meta._id);
-      }
-
-      // Delete the media record itself
-      await ctx.db.delete("media", item._id);
-      cleaned++;
-    }
-
+    if (checkpoint) await ctx.db.patch("mediaMaintenance", checkpoint._id, { cursor: page.cursor, updatedAt: now });
+    else await ctx.db.insert("mediaMaintenance", { key: "failed", cursor: page.cursor, updatedAt: now });
     return { markedFailed, cleaned };
   },
 });
@@ -1655,18 +1576,10 @@ export const listImagesForRegeneration = internalQuery({
 export const wipeMediaSizes = internalMutation({
   args: { mediaId: v.id("media") },
   handler: async (ctx, args) => {
-    const sizes = await ctx.db
-      .query("mediaSizes")
-      .withIndex("by_media", (q) => q.eq("mediaId", args.mediaId))
-      .collect();
-    for (const size of sizes) {
-      try {
-        (size.storageId ? await ctx.storage.delete(size.storageId) : undefined);
-      } catch {
-        // Orphaned; ignore
-      }
-      await ctx.db.delete("mediaSizes", size._id);
-    }
+    await requireAttachableMedia(ctx, args.mediaId);
+    const plan = await prepareSizeWipe(ctx, args.mediaId);
+    for (const storageId of plan.deleteBlobs) await ctx.storage.delete(storageId);
+    for (const row of plan.records) await ctx.db.delete("mediaSizes", row.id as Id<"mediaSizes">);
   },
 });
 
@@ -1677,68 +1590,31 @@ export const wipeMediaSizes = internalMutation({
  * retention window (default 30 days, capped at 365). Reference-safe: items
  * that got re-referenced since trashing are skipped.
  */
+const trashPage = makeFunctionReference<"query", { cursor: string | null; status?: "failed" }, { ids: Id<"media">[]; cursor: string | null }>("media/referenceReads:trashPage");
 export const emptyTrashCron = internalMutation({
   args: {},
+  returns: v.object({ deleted: v.number(), skippedReferenced: v.number(), skippedTooNew: v.number(), retentionDays: v.number() }),
   handler: async (ctx) => {
     const now = Date.now();
-
-    const settings = await ctx.db.query("settings").take(50);
-    const mediaSettings = settings.find((s: any) => s.section === "media") as any;
-    const rawDays =
-      mediaSettings?.values?.trashRetentionDays ??
-      mediaSettings?.values?.trash_retention_days;
-    const retentionDays =
-      typeof rawDays === "number" && rawDays > 0 ? Math.min(rawDays, 365) : 30;
+    const settings = await ctx.db.query("settings").withIndex("by_section", q => q.eq("section", "media")).unique();
+    const rawDays = settings?.values?.trashRetentionDays ?? settings?.values?.trash_retention_days;
+    const retentionDays = typeof rawDays === "number" && Number.isFinite(rawDays) && rawDays > 0 ? Math.min(rawDays, 365) : 30;
     const threshold = now - retentionDays * 24 * 60 * 60 * 1000;
-
-    const trashed = await ctx.db
-      .query("media")
-      .withIndex("by_status", (q) => q.eq("status", "trashed"))
-      .take(200);
-
-    let deleted = 0;
-    let skippedReferenced = 0;
+    const checkpoint = await ctx.db.query("mediaMaintenance").withIndex("by_key", q => q.eq("key", "trash")).unique();
+    const page = await ctx.runQuery(trashPage, { cursor: checkpoint?.cursor ?? null });
+    const candidates = [];
     let skippedTooNew = 0;
-
-    for (const item of trashed) {
-      if (deleted >= 50) break;
-      const trashedAt = (item as any).trashedAt ?? item.updatedAt;
-      if (trashedAt >= threshold) {
-        skippedTooNew++;
-        continue;
-      }
-
-      const references = await findMediaReferences(ctx, item._id);
-      if (references.length > 0) {
-        skippedReferenced++;
-        continue;
-      }
-
-      try { (item.storageId ? await ctx.storage.delete(item.storageId) : undefined); } catch { /* orphaned */ }
-
-      const sizes = await ctx.db
-        .query("mediaSizes")
-        .withIndex("by_media", (q) => q.eq("mediaId", item._id))
-        .collect();
-      for (const size of sizes) {
-        if (size.storageId !== item.storageId) {
-          try { (size.storageId ? await ctx.storage.delete(size.storageId) : undefined); } catch { /* orphaned */ }
-        }
-        await ctx.db.delete("mediaSizes", size._id);
-      }
-
-      const metaRecords = await ctx.db
-        .query("mediaMeta")
-        .withIndex("by_media", (q) => q.eq("mediaId", item._id))
-        .collect();
-      for (const meta of metaRecords) {
-        await ctx.db.delete("mediaMeta", meta._id);
-      }
-
-      await ctx.db.delete("media", item._id);
-      deleted++;
+    for (const id of page.ids) {
+      const item = await ctx.db.get("media", id);
+      if (!item || item.status !== "trashed") continue;
+      if ((item.trashedAt ?? item.updatedAt) >= threshold) { skippedTooNew++; continue; }
+      candidates.push(item);
     }
-
-    return { deleted, skippedReferenced, skippedTooNew, retentionDays };
+    const plan = await prepareMediaDeletion(ctx, candidates, { force: false, permanent: true });
+    await applyMediaDeletionPreflight(ctx, plan);
+    for (const item of plan.eligible) await ctx.db.delete("media", item._id);
+    if (checkpoint) await ctx.db.patch("mediaMaintenance", checkpoint._id, { cursor: page.cursor, updatedAt: now });
+    else await ctx.db.insert("mediaMaintenance", { key: "trash", cursor: page.cursor, updatedAt: now });
+    return { deleted: plan.eligible.length, skippedReferenced: plan.blocked.size, skippedTooNew, retentionDays };
   },
 });

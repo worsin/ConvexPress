@@ -28,14 +28,11 @@ import { severityValidator, objectTypeValidator } from "./validators";
 
 const exportArgs = {
   actorId: v.optional(v.string()),
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   severity: v.optional(severityValidator),
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   objectType: v.optional(objectTypeValidator),
   eventCode: v.optional(v.string()),
   dateFrom: v.optional(v.number()),
   dateTo: v.optional(v.number()),
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   format: v.union(v.literal("csv"), v.literal("json")),
   maxRecords: v.optional(v.number()),
   includePayload: v.optional(v.boolean()),
@@ -66,10 +63,8 @@ function formatTimestamp(ts: number): string {
 
 // ─── Export Action ────────────────────────────────────────────────────────────
 
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
-export const exportAuditLog = action({
+export const exportAuditLog: import("convex/server").RegisteredAction<"public", { actorId?: string; severity?: import("../_generated/dataModel").Doc<"auditEntries">["severity"]; objectType?: import("../_generated/dataModel").Doc<"auditEntries">["objectType"]; eventCode?: string; dateFrom?: number; dateTo?: number; format: "csv" | "json"; maxRecords?: number; includePayload?: boolean }, { url: string | null; fileName: string; recordCount: number; fileSize: number }> = action({
   args: exportArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     // ─── 0. Authentication & Authorization ─────────────────────────────
     // Actions cannot use requireCan() directly (it needs MutationCtx/QueryCtx).

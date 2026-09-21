@@ -1,3 +1,11 @@
+import { contactSourceAllowed } from "../../canonicalDocuments/contactSource";
+import { sha256Hex } from "../../canonicalDocuments/foundation/shared/fingerprints";
+import { timingSafeEquals } from "../../helpers/timingSafe";
+import { evaluateMembershipAccess } from "../../membership/access";
+import { getCurrentUser } from "../../helpers/permissions";
+import { parseFormSettings, formRequiresLogin } from "./builderCore";
+import { isConfirmationToken } from "./tokens";
+import { RequestReadLedger } from "../../helpers/requestReadLedger";
 /**
  * ConvexPress Forms — Form Confirmation System (config CRUD + public resolver).
  * API path: api.extensions.forms.confirmations.*
@@ -435,7 +443,7 @@ export const updateConfirmation = mutation({
 
     update.updatedBy = user._id;
     update.updatedAt = Date.now();
-    await ctx.db.patch(confirmationId, update);
+    await ctx.db.patch("form_confirmations", confirmationId, update);
     return await ctx.db.get(confirmationId);
   },
 });
@@ -456,7 +464,7 @@ export const reorderConfirmations = mutation({
       });
     }
     await Promise.all(
-      order.map((id, index) => ctx.db.patch(id, { order: index })),
+      order.map((id, index) => ctx.db.patch("form_confirmations", id, { order: index })),
     );
     return { success: true };
   },
@@ -489,14 +497,14 @@ export const setDefaultConfirmation = mutation({
       .collect();
     for (const row of priorDefaults) {
       if (row._id === confirmationId) continue;
-      await ctx.db.patch(row._id, {
+      await ctx.db.patch("form_confirmations", row._id, {
         isDefault: false,
         updatedBy: user._id,
         updatedAt: now,
       });
     }
 
-    await ctx.db.patch(confirmationId, {
+    await ctx.db.patch("form_confirmations", confirmationId, {
       isDefault: true,
       updatedBy: user._id,
       updatedAt: now,
@@ -524,12 +532,12 @@ export const deleteConfirmation = mutation({
         message: "Cannot delete the default confirmation. Set another default first.",
       });
     }
-    await ctx.db.delete(confirmationId);
+    await ctx.db.delete("form_confirmations", confirmationId);
     return { success: true };
   },
 });
 
-// ─── Public resolver (UN-gated — NO requireCan) ──────────────────────────────
+// ─── Public resolver: short-lived submit receipt and current form access ──────
 
 /**
  * Resolve which confirmation a submission should see. First-match-by-order over
@@ -542,33 +550,37 @@ export const resolveConfirmation = query({
   args: {
     formId: v.id("forms"),
     submissionId: v.id("form_submissions"),
+    confirmationToken: v.optional(v.string()),
+    contactPassword: v.optional(v.string()),
   },
-  handler: async (ctx, { formId, submissionId }) => {
-    if (!(await isPluginEnabled(ctx, "forms"))) {
-      return buildConfirmationResult(null, null, {}, { title: "", slug: "" }, null);
+  returns: v.object({ confirmationId: v.string(), type: confirmationTypeValidator, renderedMessage: v.optional(v.string()), redirectUrl: v.optional(v.string()), pagePath: v.optional(v.string()) }),
+  handler: async (ctx, { formId, submissionId, confirmationToken, contactPassword }) => {
+    const refuse = (): never => { throw new ConvexError({ code: "CONFIRMATION_UNAVAILABLE", message: "This confirmation is not available." }); };
+    if (!confirmationToken || !isConfirmationToken(confirmationToken)) refuse();
+    const budget = new RequestReadLedger();
+    budget.beforeRead(); const submission = budget.record(await ctx.db.get("form_submissions", submissionId));
+    if (!submission || submission.formId !== formId || submission.status !== "complete" ||
+        !submission.confirmationTokenHash || !submission.confirmationExpiresAt || submission.confirmationExpiresAt <= Date.now() ||
+        !timingSafeEquals(submission.confirmationTokenHash, sha256Hex(confirmationToken!))) refuse();
+    budget.beforeRead(); const form = budget.record(await ctx.db.get("forms", formId));
+    if (!form || form.status !== "published" || !(await isPluginEnabled(ctx, "forms", budget))) refuse();
+    if (!(await contactSourceAllowed(ctx, form!, contactPassword, budget))) refuse();
+    if (!(await evaluateMembershipAccess(ctx, { resourceType: "route", resourceIdOrKey: `/forms/${encodeURIComponent(form!.slug)}` }, budget)).allowed) refuse();
+    if (formRequiresLogin(parseFormSettings(form!.settings))) {
+      const user = await getCurrentUser(ctx, budget);
+      if (!user || user.status !== "active") refuse();
     }
 
-    const all = await ctx.db
-      .query("form_confirmations")
-      .withIndex("by_form_order", (q) => q.eq("formId", formId))
-      .collect();
-
-    // Build value map (fieldName -> value); values are already strings.
-    const valueRows = await ctx.db
-      .query("fieldValues")
-      .withIndex("by_entity", (q) =>
-        q
-          .eq("entityType", "form_submission")
-          .eq("entityId", submissionId as string),
-      )
-      .collect();
-    const valueMap: Record<string, string> = {};
-    for (const row of valueRows) {
-      valueMap[row.fieldName] = row.value;
+    const all = [];
+    for await (const row of ctx.db.query("form_confirmations").withIndex("by_form_order", q => q.eq("formId", formId))) {
+      budget.beforeRead(); budget.record(row);
+      if (!form!.contactPostId || row._id === form!.contactConfirmationId) all.push(row);
+    }
+    const valueMap: Record<string, string> = Object.create(null);
+    for await (const row of ctx.db.query("fieldValues").withIndex("by_entity", q => q.eq("entityType", "form_submission").eq("entityId", String(submissionId)))) {
+      budget.beforeRead(); budget.record(row); valueMap[row.fieldName] = row.value;
     }
 
-    const form = await ctx.db.get(formId);
-    const submission = await ctx.db.get(submissionId);
     const formCtx: ConfirmationFormCtx = {
       title: form?.title ?? "",
       slug: form?.slug ?? "",

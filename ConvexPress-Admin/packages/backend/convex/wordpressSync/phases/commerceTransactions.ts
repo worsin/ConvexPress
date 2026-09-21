@@ -1,4 +1,5 @@
 // @ts-nocheck
+import {insertCountedReview, patchCountedReview} from "../../commerceReviews/ratingIndex";
 /**
  * WordPress Sync - WooCommerce Customers and Orders Import Phase
  *
@@ -35,6 +36,7 @@ import {
   type WooOrderRefund,
   type WooProductReview,
 } from "../helpers/wooClient";
+import { insertWithMediaReferences } from "../../media/attachmentGuard";
 
 const TRANSACTION_BATCH_SIZE = 25;
 
@@ -1559,7 +1561,7 @@ export const upsertCustomerProfile = internalMutation({
       if (customer.lastName !== undefined) patch.lastName = customer.lastName;
       if (customer.isGuest !== undefined) patch.isGuest = customer.isGuest;
 
-      await ctx.db.patch(targetId, patch);
+      await ctx.db.patch("commerce_customer_profiles", targetId, patch);
       return targetId;
     }
 
@@ -1618,7 +1620,7 @@ export const upsertCustomerDefaultAddress = internalMutation({
 
     let addressId: Id<"commerce_customer_addresses">;
     if (target) {
-      await ctx.db.patch(target._id, patch);
+      await ctx.db.patch("commerce_customer_addresses", target._id, patch);
       addressId = target._id;
     } else {
       addressId = await ctx.db.insert("commerce_customer_addresses", {
@@ -1630,11 +1632,11 @@ export const upsertCustomerDefaultAddress = internalMutation({
 
     for (const entry of existing) {
       if (entry.addressType === addressType && entry._id !== addressId) {
-        await ctx.db.patch(entry._id, { isDefault: false, updatedAt: now });
+        await ctx.db.patch("commerce_customer_addresses", entry._id, { isDefault: false, updatedAt: now });
       }
     }
 
-    await ctx.db.patch(customerId, {
+    await ctx.db.patch("commerce_customer_profiles", customerId, {
       phone: phone ?? undefined,
       defaultBillingAddressId:
         addressType === "billing" ? addressId : (await ctx.db.get(customerId))?.defaultBillingAddressId,
@@ -1750,7 +1752,7 @@ export const upsertOrder = internalMutation({
     };
 
     if (targetId) {
-      await ctx.db.patch(targetId, patch);
+      await ctx.db.patch("commerce_orders", targetId, patch);
       return targetId;
     }
 
@@ -1807,7 +1809,7 @@ export const upsertOrderItem = internalMutation({
     };
 
     if (existingId) {
-      await ctx.db.patch(existingId as Id<"commerce_order_items">, patch);
+      await ctx.db.patch("commerce_order_items", existingId as Id<"commerce_order_items">, patch);
       return existingId;
     }
 
@@ -1863,7 +1865,7 @@ export const upsertPaymentTransaction = internalMutation({
     };
 
     if (targetId) {
-      await ctx.db.patch(targetId, patch);
+      await ctx.db.patch("commerce_payment_transactions", targetId, patch);
       return targetId;
     }
 
@@ -1896,7 +1898,7 @@ export const upsertImportedReviewUser = internalMutation({
     const firstName = nameParts[0];
     const lastName = nameParts.length > 1 ? nameParts.slice(1).join(" ") : undefined;
 
-    const userId = await ctx.db.insert("users", {
+    const userId: import("../../_generated/dataModel").Id<"users"> = await insertWithMediaReferences<"users">(ctx, "users", {
       authSource: "local",
       email: normalizedEmail,
       emailVerified: false,
@@ -1995,7 +1997,7 @@ export const upsertDiscountCode = internalMutation({
     };
 
     if (targetId) {
-      await ctx.db.patch(targetId, patch);
+      await ctx.db.patch("commerce_discount_codes", targetId, patch);
       return targetId;
     }
 
@@ -2098,7 +2100,7 @@ export const upsertPaymentRefund = internalMutation({
     };
 
     if (existingId) {
-      await ctx.db.patch(existingId as Id<"commerce_payment_refunds">, patch);
+      await ctx.db.patch("commerce_payment_refunds", existingId as Id<"commerce_payment_refunds">, patch);
       return existingId;
     }
 
@@ -2158,11 +2160,11 @@ export const upsertCommerceReview = internalMutation({
     }
 
     if (targetId) {
-      await ctx.db.patch(targetId, patch);
+      await patchCountedReview(ctx, targetId, patch);
       return targetId;
     }
 
-    return await ctx.db.insert("commerce_review_items", {
+    return await insertCountedReview(ctx, {
       ...patch,
       createdAt: review.createdAtSource ?? now,
     });
@@ -2198,7 +2200,7 @@ export const reconcileOrderRefundStatus = internalMutation({
       .collect();
 
     for (const transaction of transactions) {
-      await ctx.db.patch(transaction._id, {
+      await ctx.db.patch("commerce_payment_transactions", transaction._id, {
         refundedAmount,
         status:
           refundedAmount >= transaction.amount.amount
@@ -2208,7 +2210,7 @@ export const reconcileOrderRefundStatus = internalMutation({
       });
     }
 
-    await ctx.db.patch(orderId, {
+    await ctx.db.patch("commerce_orders", orderId, {
       paymentStatus: isFullyRefunded ? "refunded" : "partially_refunded",
       status: isFullyRefunded ? "refunded" : order.status,
       updatedAt: Date.now(),
@@ -2236,7 +2238,7 @@ export const recomputeCustomerTotals = internalMutation({
       ["processing", "paid", "fulfilled", "completed", "refunded"].includes(order.status)
     );
 
-    await ctx.db.patch(targetId, {
+    await ctx.db.patch("commerce_customer_profiles", targetId, {
       totalOrders: completedOrders.length,
       totalSpentAmount: completedOrders.reduce(
         (sum, order) => sum + (order.totalAmount ?? 0),

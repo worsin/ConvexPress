@@ -17,6 +17,7 @@ import { internal } from "../../../_generated/api";
 import { rankQuotes } from "../../rates/ranking";
 import type { NormalizedShippingQuote } from "../../rates/types";
 import { computeAddressFingerprint } from "../../helpers/addressFingerprint";
+import { snapshotShippingOrigin } from "../../quoteProvenance";
 import { getEffectiveShipFrom } from "../../helpers/settings";
 import { getDhlBasicAuth, getDhlCredentialsV2 } from "./auth";
 import { getDhlServiceName } from "./serviceCodes";
@@ -195,6 +196,8 @@ export async function fetchDhlRatesV2(
       currency,
       estimatedDaysMin: estimatedDays,
       estimatedDaysMax: estimatedDays,
+      origin: snapshotShippingOrigin(shippingSettings),
+      packages: args.packages,
       rawQuote: product,
       addressKey,
       cartKey,

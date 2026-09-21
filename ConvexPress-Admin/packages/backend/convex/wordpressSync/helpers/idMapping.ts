@@ -260,7 +260,7 @@ export const create = internalMutation({
         patch.lastSeenAt = now;
       }
       if (Object.keys(patch).length > 0) {
-        await ctx.db.patch(existing._id, patch);
+        await ctx.db.patch("wpIdMappings", existing._id, patch);
       }
       return existing._id;
     }
@@ -330,7 +330,7 @@ export const createBatch = internalMutation({
           patch.lastSeenAt = now;
         }
         if (Object.keys(patch).length > 0) {
-          await ctx.db.patch(existing._id, patch);
+          await ctx.db.patch("wpIdMappings", existing._id, patch);
         }
         createdIds.push(existing._id);
       } else {
@@ -369,7 +369,7 @@ export const deleteAllForSite = internalMutation({
 
     let deleted = 0;
     for (const mapping of mappings) {
-      await ctx.db.delete(mapping._id);
+      await ctx.db.delete("wpIdMappings", mapping._id);
       deleted++;
     }
 
@@ -394,7 +394,7 @@ export const deleteByType = internalMutation({
 
     let deleted = 0;
     for (const mapping of mappings) {
-      await ctx.db.delete(mapping._id);
+      await ctx.db.delete("wpIdMappings", mapping._id);
       deleted++;
     }
 
@@ -424,7 +424,7 @@ export const touch = internalMutation({
 
     if (!mapping) return null;
 
-    await ctx.db.patch(mapping._id, {
+    await ctx.db.patch("wpIdMappings", mapping._id, {
       lastSeenJobId: jobId,
       lastSeenAt: Date.now(),
     });
@@ -476,7 +476,7 @@ export const updateSourceHash = internalMutation({
       .first();
 
     if (mapping) {
-      await ctx.db.patch(mapping._id, { sourceHash });
+      await ctx.db.patch("wpIdMappings", mapping._id, { sourceHash });
     }
   },
 });

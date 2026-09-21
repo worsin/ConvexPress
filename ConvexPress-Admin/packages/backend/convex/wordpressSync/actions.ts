@@ -5,10 +5,12 @@
  * Actions can make external HTTP calls (to WordPress API).
  */
 
+import type { RegisteredAction } from "convex/server";
+import type { WPSiteInfo } from "./helpers/wpClient";
 import { action } from "../_generated/server";
 import { v, ConvexError } from "convex/values";
 import { internal, api } from "../_generated/api";
-import type { Id } from "../_generated/dataModel";
+import type { Id, Doc } from "../_generated/dataModel";
 import {
   testConnection,
   getContentCounts,
@@ -50,31 +52,29 @@ async function decryptPassword(encryptedPassword: string): Promise<string> {
  * Makes an HTTP request to the WordPress REST API.
  * Can be called with siteId (to test an existing site) or with credentials directly.
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
-export const testSiteConnection = action({
+type ConnectionTestArgs = {
+  siteId?: Id<"wordpressSites">; siteUrl?: string; username?: string; applicationPassword?: string;
+  wooConsumerKey?: string; wooConsumerSecret?: string; wooAuthMode?: "shared" | "separate";
+  userPasswordExportPath?: string; userPasswordExportSecret?: string;
+};
+type ConnectionTestResult = (
+  | { success: true; siteInfo: Omit<WPSiteInfo, "routes" | "authentication"> }
+  | { success: false; error: string }
+) & { capabilities: Doc<"wordpressSites">["capabilities"] };
+export const testSiteConnection: RegisteredAction<"public", ConnectionTestArgs, ConnectionTestResult> = action({
   args: {
-    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     siteId: v.optional(v.id("wordpressSites")),
-    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     siteUrl: v.optional(v.string()),
-    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     username: v.optional(v.string()),
-    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     applicationPassword: v.optional(v.string()),
     // Optional Woo credentials for pre-save probe. Saved sites read these
     // from the wordpressSites row instead.
-    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     wooConsumerKey: v.optional(v.string()),
-    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     wooConsumerSecret: v.optional(v.string()),
-    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     wooAuthMode: v.optional(v.union(v.literal("shared"), v.literal("separate"))),
-    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     userPasswordExportPath: v.optional(v.string()),
-    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     userPasswordExportSecret: v.optional(v.string()),
   },
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     let credentials: { siteUrl: string; username: string; applicationPassword: string };
 

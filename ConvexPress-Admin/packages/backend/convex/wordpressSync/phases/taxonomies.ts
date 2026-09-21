@@ -1,3 +1,4 @@
+import { adjustTermCount } from "../../helpers/termCounts";
 /**
  * WordPress Sync - Taxonomies Import Phase
  *
@@ -550,7 +551,8 @@ export const taxonomiesCreateTerm = internalMutation({
     };
 
     if (existingId) {
-      await ctx.db.patch(existingId as Id<"terms">, fields);
+      await ctx.db.patch("terms", existingId as Id<"terms">, fields);
+      await adjustTermCount(ctx, existingId as Id<"terms">, null);
       return existingId;
     }
 
@@ -561,7 +563,8 @@ export const taxonomiesCreateTerm = internalMutation({
       .first();
 
     if (existing) {
-      await ctx.db.patch(existing._id, fields);
+      await ctx.db.patch("terms", existing._id, fields);
+      await adjustTermCount(ctx, existing._id, null);
       return existing._id;
     }
 
@@ -582,7 +585,7 @@ export const taxonomiesSetParent = internalMutation({
     parentId: v.optional(v.string()),
   },
   handler: async (ctx, { termId, parentId }) => {
-    await ctx.db.patch(termId as Id<"terms">, {
+    await ctx.db.patch("terms", termId as Id<"terms">, {
       parentId: parentId ? (parentId as Id<"terms">) : undefined,
       updatedAt: Date.now(),
     });

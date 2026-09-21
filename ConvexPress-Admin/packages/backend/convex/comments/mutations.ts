@@ -63,6 +63,7 @@ import {
   MAX_BULK_SIZE,
   TRASH_PURGE_DAYS_MS,
 } from "./validators";
+import { patchWithMediaReferences } from "../media/attachmentGuard";
 
 // ─── Create ──────────────────────────────────────────────────────────────────
 
@@ -291,7 +292,7 @@ export const approve = mutation({
     const post = await ctx.db.get("posts", comment.postId);
     if (post) {
       const currentCount = post.commentCount ?? 0;
-      await ctx.db.patch("posts", comment.postId, {
+      await patchWithMediaReferences<"posts">(ctx, "posts", comment.postId, {
         commentCount: currentCount + 1,
       });
     }
@@ -353,7 +354,7 @@ export const reject = mutation({
       const post = await ctx.db.get("posts", comment.postId);
       if (post) {
         const currentCount = post.commentCount ?? 0;
-        await ctx.db.patch("posts", comment.postId, {
+        await patchWithMediaReferences<"posts">(ctx, "posts", comment.postId, {
           commentCount: Math.max(0, currentCount - 1),
         });
       }
@@ -411,7 +412,7 @@ export const spam = mutation({
       const post = await ctx.db.get("posts", comment.postId);
       if (post) {
         const currentCount = post.commentCount ?? 0;
-        await ctx.db.patch("posts", comment.postId, {
+        await patchWithMediaReferences<"posts">(ctx, "posts", comment.postId, {
           commentCount: Math.max(0, currentCount - 1),
         });
       }
@@ -468,7 +469,7 @@ export const trash = mutation({
       const post = await ctx.db.get("posts", comment.postId);
       if (post) {
         const currentCount = post.commentCount ?? 0;
-        await ctx.db.patch("posts", comment.postId, {
+        await patchWithMediaReferences<"posts">(ctx, "posts", comment.postId, {
           commentCount: Math.max(0, currentCount - 1),
         });
       }
@@ -571,7 +572,7 @@ export const restore = mutation({
       const post = await ctx.db.get("posts", comment.postId);
       if (post) {
         const currentCount = post.commentCount ?? 0;
-        await ctx.db.patch("posts", comment.postId, {
+        await patchWithMediaReferences<"posts">(ctx, "posts", comment.postId, {
           commentCount: currentCount + 1,
         });
       }
@@ -811,7 +812,7 @@ export const flag = mutation({
       const post = await ctx.db.get("posts", comment.postId);
       if (post) {
         const currentCount = post.commentCount ?? 0;
-        await ctx.db.patch("posts", comment.postId, {
+        await patchWithMediaReferences<"posts">(ctx, "posts", comment.postId, {
           commentCount: Math.max(0, currentCount - 1),
         });
       }
@@ -944,7 +945,7 @@ export const bulkApprove = mutation({
         const post = await ctx.db.get("posts", comment.postId);
         if (post) {
           const currentCount = post.commentCount ?? 0;
-          await ctx.db.patch("posts", comment.postId, {
+          await patchWithMediaReferences<"posts">(ctx, "posts", comment.postId, {
             commentCount: currentCount + 1,
           });
         }
@@ -1016,7 +1017,7 @@ export const bulkSpam = mutation({
           const post = await ctx.db.get("posts", comment.postId);
           if (post) {
             const currentCount = post.commentCount ?? 0;
-            await ctx.db.patch("posts", comment.postId, {
+            await patchWithMediaReferences<"posts">(ctx, "posts", comment.postId, {
               commentCount: Math.max(0, currentCount - 1),
             });
           }
@@ -1087,7 +1088,7 @@ export const bulkTrash = mutation({
           const post = await ctx.db.get("posts", comment.postId);
           if (post) {
             const currentCount = post.commentCount ?? 0;
-            await ctx.db.patch("posts", comment.postId, {
+            await patchWithMediaReferences<"posts">(ctx, "posts", comment.postId, {
               commentCount: Math.max(0, currentCount - 1),
             });
           }

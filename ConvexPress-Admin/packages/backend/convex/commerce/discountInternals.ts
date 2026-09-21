@@ -37,7 +37,7 @@ export const recordStripeMirror = internalMutation({
       patch.stripeCouponId = args.stripeCouponId;
     if (args.stripePromotionCodeId !== undefined)
       patch.stripePromotionCodeId = args.stripePromotionCodeId;
-    await ctx.db.patch(args.discountId, patch);
+    await ctx.db.patch("commerce_discount_codes", args.discountId, patch);
     return { success: true };
   },
 });

@@ -18,7 +18,9 @@
  *   5. Event Dispatcher processes the event (audit log, notifications, etc.)
  */
 
-import { v } from "convex/values";
+import { v, type Infer } from "convex/values";
+import type { RegisteredMutation } from "convex/server";
+import type { Id } from "../_generated/dataModel";
 import { mutation, type MutationCtx } from "../_generated/server";
 import { getCurrentUser } from "../helpers/auth";
 import { requireCan } from "../helpers/permissions";
@@ -29,6 +31,7 @@ import {
   appIdentifierValidator,
   failureReasonValidator,
 } from "./validators";
+import { patchWithMediaReferences } from "../media/attachmentGuard";
 
 const MAX_EMAIL_LENGTH = 320;
 const MAX_IP_LENGTH = 45;
@@ -89,7 +92,7 @@ export const recordLogin = mutation({
     const now = Date.now();
 
     // Update lastLoginAt timestamp
-    await ctx.db.patch("users", user._id, {
+    await patchWithMediaReferences<"users">(ctx, "users", user._id, {
       lastLoginAt: now,
       updatedAt: now,
     });
@@ -176,20 +179,24 @@ export const recordLogout = mutation({
  * @param userAgent - Optional user agent string
  * @param description - Optional human-readable description
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
-export const recordFailedLogin = mutation({
+type FailedLoginArgs = {
+  email: string;
+  reason: Infer<typeof failureReasonValidator>;
+  app: Infer<typeof appIdentifierValidator>;
+  ip?: string;
+  userAgent?: string;
+  description?: string;
+};
+type FailedLoginResult = { success: boolean; error?: string; attemptId?: Id<"failedLoginAttempts"> };
+export const recordFailedLogin: RegisteredMutation<"public", FailedLoginArgs, FailedLoginResult> = mutation({
   args: {
     email: v.string(),
     reason: failureReasonValidator,
     app: appIdentifierValidator,
-    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     ip: v.optional(v.string()),
-    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     userAgent: v.optional(v.string()),
-    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     description: v.optional(v.string()),
   },
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     // ─── Input Sanitization (CRITICAL-1 fix) ──────────────────────────
     // This mutation is unauthenticated (the user failed to log in).
@@ -216,7 +223,7 @@ export const recordFailedLogin = mutation({
     // Check per-email rate limit
     const recentByEmail = await ctx.db
       .query("failedLoginAttempts")
-      .withIndex("by_email", (q: ConvexQueryBuilder) =>
+      .withIndex("by_email", (q) =>
         q.eq("email", email).gt("attemptedAt", windowStart),
       )
       .take(RATE_LIMIT_MAX + 1);
@@ -229,7 +236,7 @@ export const recordFailedLogin = mutation({
     if (ip) {
       const recentByIp = await ctx.db
         .query("failedLoginAttempts")
-        .withIndex("by_ip", (q: ConvexQueryBuilder) =>
+        .withIndex("by_ip", (q) =>
           q.eq("ip", ip).gt("attemptedAt", windowStart),
         )
         .take(RATE_LIMIT_MAX + 1);
@@ -244,7 +251,7 @@ export const recordFailedLogin = mutation({
     // Look up user by email (may not exist if typo / non-existent account)
     const user = await ctx.db
       .query("users")
-      .withIndex("by_email", (q: ConvexQueryBuilder) => q.eq("email", email))
+      .withIndex("by_email", (q) => q.eq("email", email))
       .first();
 
     // Insert the failed attempt record

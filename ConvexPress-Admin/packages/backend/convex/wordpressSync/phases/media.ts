@@ -647,7 +647,7 @@ export const mediaCreate = internalMutation({
     };
 
     if (existingId) {
-      await ctx.db.patch(existingId as Id<"media">, fields);
+      await ctx.db.patch("media", existingId as Id<"media">, fields);
       // Skip pre-generated WP-side size variants when there's no Convex
       // storageId (URL-only mode — the WP variants live on the WP server).
       if (storageId) {
@@ -714,7 +714,7 @@ export const mediaUpdateMetadata = internalMutation({
     const description = wpMedia.description ? stripHtml(wpMedia.description) : undefined;
     const caption = wpMedia.caption ? stripHtml(wpMedia.caption) : undefined;
 
-    await ctx.db.patch(existing._id, {
+    await ctx.db.patch("media", existing._id, {
       title: stripHtml(wpMedia.title),
       fileName: wpMedia.fileName,
       slug: wpMedia.slug,
@@ -761,7 +761,7 @@ async function replaceImportedMediaSizes(
     .collect();
 
   for (const size of existingSizes) {
-    await ctx.db.delete(size._id);
+    await ctx.db.delete("mediaSizes", size._id);
   }
 
   for (const size of wpMedia.sizes ?? []) {

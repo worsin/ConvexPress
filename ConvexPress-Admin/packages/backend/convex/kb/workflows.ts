@@ -1,3 +1,5 @@
+import type { RegisteredQuery, RegisteredMutation } from "convex/server";
+import type { Doc, Id } from "../_generated/dataModel";
 /**
  * Knowledge Base System - Workflow Functions
  *
@@ -28,6 +30,7 @@ import {
 } from "./validators";
 import { v } from "convex/values";
 import { isPluginEnabled, requirePluginEnabled } from "../helpers/plugins";
+import { patchWithMediaReferences } from "../media/attachmentGuard";
 
 // ─── List (Admin) ───────────────────────────────────────────────────────────
 
@@ -48,11 +51,8 @@ export const list = query({
 
 // ─── Get (Admin) ────────────────────────────────────────────────────────────
 
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
-export const get = query({
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+export const get: RegisteredQuery<"public", { workflowId: Id<"kb_workflows"> }, Doc<"kb_workflows"> | null> = query({
   args: { workflowId: v.id("kb_workflows") },
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "knowledgeBase"))) return null;
     const user = await getCurrentUser(ctx);
@@ -66,10 +66,8 @@ export const get = query({
 
 // ─── Get Default ────────────────────────────────────────────────────────────
 
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
-export const getDefault = query({
+export const getDefault: RegisteredQuery<"public", {}, Doc<"kb_workflows"> | null> = query({
   args: {},
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx) => {
     if (!(await isPluginEnabled(ctx, "knowledgeBase"))) return null;
     const user = await getCurrentUser(ctx);
@@ -79,7 +77,7 @@ export const getDefault = query({
 
     return ctx.db
       .query("kb_workflows")
-      .withIndex("by_default", (q: ConvexQueryBuilder) => q.eq("isDefault", true))
+      .withIndex("by_default", (q) => q.eq("isDefault", true))
       .first();
   },
 });
@@ -213,10 +211,8 @@ export const remove = mutation({
 
 // ─── Start Workflow ─────────────────────────────────────────────────────────
 
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
-export const startWorkflow = mutation({
+export const startWorkflow: RegisteredMutation<"public", { articleId: Id<"kb_articles">; workflowId?: Id<"kb_workflows"> }, Id<"kb_articleWorkflows">> = mutation({
   args: startWorkflowArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "knowledgeBase");
     const user = await getCurrentUser(ctx);
@@ -236,7 +232,7 @@ export const startWorkflow = mutation({
     } else {
       workflow = await ctx.db
         .query("kb_workflows")
-        .withIndex("by_default", (q: ConvexQueryBuilder) => q.eq("isDefault", true))
+        .withIndex("by_default", (q) => q.eq("isDefault", true))
         .first();
     }
 
@@ -251,10 +247,9 @@ export const startWorkflow = mutation({
     // Check for existing active workflow on this article
     const existingWorkflow = await ctx.db
       .query("kb_articleWorkflows")
-      .withIndex("by_article", (q: ConvexQueryBuilder) => q.eq("articleId", args.articleId))
+      .withIndex("by_article", (q) => q.eq("articleId", args.articleId))
       .take(50);
     const activeWorkflow = existingWorkflow.find(
-      // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
       (w) => w.status === "inProgress" || w.status === "pendingReview",
     );
     if (activeWorkflow) {
@@ -262,7 +257,7 @@ export const startWorkflow = mutation({
     }
 
     // Update article status to review
-    await ctx.db.patch("kb_articles", args.articleId, {
+    await patchWithMediaReferences<"kb_articles">(ctx, "kb_articles", args.articleId, {
       status: "review",
       updatedAt: Date.now(),
     });
@@ -360,7 +355,7 @@ export const approveStep = mutation({
               message: "Cannot publish: article has been archived",
             });
           }
-          await ctx.db.patch("kb_articles", articleWorkflow.articleId, {
+          await patchWithMediaReferences<"kb_articles">(ctx, "kb_articles", articleWorkflow.articleId, {
             status: "published",
             publishedAt: now,
             updatedAt: now,
@@ -452,7 +447,7 @@ export const rejectStep = mutation({
 
     // Revert article to draft
     const article = await ctx.db.get("kb_articles", articleWorkflow.articleId);
-    await ctx.db.patch("kb_articles", articleWorkflow.articleId, {
+    await patchWithMediaReferences<"kb_articles">(ctx, "kb_articles", articleWorkflow.articleId, {
       status: "draft",
       updatedAt: now,
     });

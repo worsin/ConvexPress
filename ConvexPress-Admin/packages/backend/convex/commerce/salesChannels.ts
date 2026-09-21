@@ -3,6 +3,8 @@ import { ConvexError, v } from "convex/values";
 
 import { mutation, query } from "../_generated/server";
 import { requireCan } from "../helpers/permissions";
+import { patchDynamicWithMediaReferences } from "../media/attachmentGuard";
+
 
 async function clearDefault(ctx: any, currentId?: any) {
   const current = await ctx.db
@@ -11,7 +13,7 @@ async function clearDefault(ctx: any, currentId?: any) {
     .collect();
   for (const channel of current) {
     if (!currentId || channel._id.toString() !== currentId.toString()) {
-      await ctx.db.patch(channel._id, { isDefault: false, updatedAt: Date.now() });
+      await patchDynamicWithMediaReferences(ctx, channel._id, { isDefault: false, updatedAt: Date.now() });
     }
   }
 }
@@ -65,7 +67,7 @@ export const update = mutation({
     const channel = await ctx.db.get(args.channelId);
     if (!channel) throw new ConvexError({ code: "NOT_FOUND", message: "Sales channel not found." });
     if (args.patch.isDefault) await clearDefault(ctx, args.channelId);
-    await ctx.db.patch(args.channelId, { ...args.patch, updatedAt: Date.now() });
+    await ctx.db.patch("commerce_sales_channels", args.channelId, { ...args.patch, updatedAt: Date.now() });
     return args.channelId;
   },
 });
@@ -86,7 +88,7 @@ export const assignProduct = mutation({
       .unique();
     const now = Date.now();
     if (existing) {
-      await ctx.db.patch(existing._id, {
+      await ctx.db.patch("commerce_product_sales_channels", existing._id, {
         isAvailable: args.isAvailable ?? true,
         updatedAt: now,
       });

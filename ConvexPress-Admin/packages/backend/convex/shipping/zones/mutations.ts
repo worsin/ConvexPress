@@ -13,6 +13,8 @@ import {
   toggleZoneEnabledArgs,
   updateZoneArgs,
 } from "./validators";
+import { deleteDynamicWithMediaReferences } from "../../media/attachmentGuard";
+
 
 const FALLBACK_SORT_ORDER = Number.MAX_SAFE_INTEGER;
 const DEFAULT_SORT_STEP = 10;
@@ -201,7 +203,7 @@ export const updateZone = mutation({
       patch.slug = await ensureUniqueSlug(ctx, normalized, args.zoneId);
     }
 
-    await ctx.db.patch(args.zoneId, patch);
+    await ctx.db.patch("commerce_shipping_zones", args.zoneId, patch);
 
     await emitEvent(ctx, SHIPPING_EVENTS.ZONE_UPDATED, "shipping", {
       zoneId: args.zoneId,
@@ -255,7 +257,7 @@ export const deleteZone = mutation({
         .withIndex("by_zone", (q: any) => q.eq("zoneId", args.zoneId))
         .collect();
       for (const row of rows) {
-        await ctx.db.delete(row._id);
+        await deleteDynamicWithMediaReferences(ctx, row._id);
         cascadedMethodCount++;
       }
     }
@@ -264,11 +266,11 @@ export const deleteZone = mutation({
       .withIndex("by_zone", (q: any) => q.eq("zoneId", args.zoneId))
       .collect();
     for (const zm of zmRows) {
-      await ctx.db.delete(zm._id);
+      await ctx.db.delete("commerce_shipping_zone_methods", zm._id);
       cascadedMethodCount++;
     }
 
-    await ctx.db.delete(args.zoneId);
+    await ctx.db.delete("commerce_shipping_zones", args.zoneId);
 
     await emitEvent(ctx, SHIPPING_EVENTS.ZONE_DELETED, "shipping", {
       zoneId: args.zoneId,
@@ -289,7 +291,7 @@ export const reorderZones = mutation({
       const zoneId = args.orderedIds[i]!;
       const zone = await ctx.db.get(zoneId);
       if (!zone || zone.isFallback) continue;
-      await ctx.db.patch(zoneId, {
+      await ctx.db.patch("commerce_shipping_zones", zoneId, {
         sortOrder: (i + 1) * DEFAULT_SORT_STEP,
         updatedAt: now,
         updatedBy: user?._id,
@@ -321,7 +323,7 @@ export const setFallbackZone = mutation({
     if (existing && (!args.zoneId || existing._id !== args.zoneId)) {
       // Demote prior fallback. Assign it a normal sort order.
       const nextOrder = await getNextSortOrder(ctx);
-      await ctx.db.patch(existing._id, {
+      await ctx.db.patch("commerce_shipping_zones", existing._id, {
         isFallback: false,
         sortOrder: nextOrder,
         updatedAt: now,
@@ -336,7 +338,7 @@ export const setFallbackZone = mutation({
       }
       // Fallback zones should not carry country/state/postcode restrictions.
       // Warn via clearing these to empty on promotion (merchant is notified in UI).
-      await ctx.db.patch(args.zoneId, {
+      await ctx.db.patch("commerce_shipping_zones", args.zoneId, {
         isFallback: true,
         sortOrder: FALLBACK_SORT_ORDER,
         countries: [],
@@ -362,7 +364,7 @@ export const toggleZoneEnabled = mutation({
     if (!zone) {
       throw new ConvexError({ code: "NOT_FOUND", message: "Zone not found." });
     }
-    await ctx.db.patch(args.zoneId, {
+    await ctx.db.patch("commerce_shipping_zones", args.zoneId, {
       enabled: args.enabled,
       updatedAt: Date.now(),
       updatedBy: user?._id,

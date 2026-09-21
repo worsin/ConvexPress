@@ -12,6 +12,7 @@
 
 import { internalMutation } from "../_generated/server";
 import { v } from "convex/values";
+import { patchWithMediaReferences } from "../media/attachmentGuard";
 
 // ─── deleteExpiredEntries ──────────────────────────────────────────────────
 
@@ -35,7 +36,7 @@ export const deleteExpiredEntries = internalMutation({
       .take(100);
 
     for (const entry of expired) {
-      await ctx.db.delete(entry._id);
+      await ctx.db.delete("gaCache", entry._id);
     }
 
     return { deleted: expired.length };
@@ -59,7 +60,7 @@ export const purgeAllCache = internalMutation({
       .collect();
 
     for (const entry of entries) {
-      await ctx.db.delete(entry._id);
+      await ctx.db.delete("gaCache", entry._id);
     }
 
     return { deleted: entries.length };
@@ -86,7 +87,7 @@ export const updateLastSync = internalMutation({
       const values = (settings.values as Record<string, unknown>) ?? {};
       // Only update if this is still the active property
       if (values.ga4PropertyId === args.propertyId) {
-        await ctx.db.patch(settings._id, {
+        await patchWithMediaReferences<"settings">(ctx, "settings", settings._id, {
           values: {
             ...values,
             ga4LastSync: Date.now(),
@@ -116,7 +117,7 @@ export const setError = internalMutation({
 
     if (settings) {
       const values = (settings.values as Record<string, unknown>) ?? {};
-      await ctx.db.patch(settings._id, {
+      await patchWithMediaReferences<"settings">(ctx, "settings", settings._id, {
         values: {
           ...values,
           ga4Error: args.error,

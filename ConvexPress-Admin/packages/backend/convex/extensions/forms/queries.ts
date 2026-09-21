@@ -1,3 +1,5 @@
+import { contactSourceAllowed } from "../../canonicalDocuments/contactSource";
+import { readCompletedFormCount } from "../../helpers/formSubmissionCounts";
 /**
  * ConvexPress Forms — queries (v2 Layer 2)
  * API path: api.extensions.forms.queries.*
@@ -12,6 +14,7 @@ import { v } from "convex/values";
 import { paginationOptsValidator } from "convex/server";
 import { currentUserCan } from "../../helpers/permissions";
 import { isPluginEnabled } from "../../helpers/plugins";
+import { evaluateMembershipAccess } from "../../membership/access";
 import type { Id } from "../../_generated/dataModel";
 import type { Capability } from "../../types/capabilities";
 import {
@@ -22,6 +25,8 @@ import {
 } from "./builderCore";
 import { loadSecuritySettings } from "./spam";
 import { isGeneratedResumeToken } from "./tokens";
+import { LAYOUT_FIELD_TYPES } from "../../customFields/validators";
+import { RequestReadLedger } from "../../helpers/requestReadLedger";
 
 function formCap(cap: string): Capability {
   return cap as Capability;
@@ -58,20 +63,6 @@ type SubmissionDoc = {
   createdAt: number;
   updatedAt: number;
 };
-
-async function completeSubmissionCountAtLimit(
-  ctx: { db: { query: any } },
-  formId: Id<"forms">,
-  limit: number,
-): Promise<boolean> {
-  const rows = await ctx.db
-    .query("form_submissions")
-    .withIndex("by_form_status", (q: any) =>
-      q.eq("formId", formId).eq("status", "complete"),
-    )
-    .take(limit);
-  return rows.length >= limit;
-}
 
 async function countFieldsForForm(
   ctx: { db: { query: any } },
@@ -226,12 +217,12 @@ export const list = query({
   },
   handler: async (ctx, { paginationOpts, status }) => {
     const identity = await ctx.auth.getUserIdentity();
-    if (!identity) return { page: [], isDone: true, continueCursor: null };
+    if (!identity) return { page: [], isDone: true, continueCursor: "" };
     if (!(await isPluginEnabled(ctx, "forms"))) {
-      return { page: [], isDone: true, continueCursor: null };
+      return { page: [], isDone: true, continueCursor: "" };
     }
     if (!(await currentUserCan(ctx, formCap("form.view")))) {
-      return { page: [], isDone: true, continueCursor: null };
+      return { page: [], isDone: true, continueCursor: "" };
     }
 
     if (status) {
@@ -271,8 +262,8 @@ export const getForm = query({
 
 // ─── Public: a published form + its field definitions (for rendering) ────────
 export const getBySlug = query({
-  args: { slug: v.string() },
-  handler: async (ctx, { slug }) => {
+  args: { slug: v.string(), contactPassword: v.optional(v.string()) },
+  handler: async (ctx, { slug, contactPassword }) => {
     if (!(await isPluginEnabled(ctx, "forms"))) return null;
 
     const form = await ctx.db
@@ -280,6 +271,8 @@ export const getBySlug = query({
       .withIndex("by_slug", (q) => q.eq("slug", slug))
       .first();
     if (!form || form.status !== "published") return null;
+    if (!(await contactSourceAllowed(ctx, form, contactPassword))) return null;
+    if (!(await evaluateMembershipAccess(ctx, { resourceType: "route", resourceIdOrKey: `/forms/${encodeURIComponent(form.slug)}` })).allowed) return null;
 
     const groupId = form.fieldGroupId;
     const fieldDefs = groupId
@@ -292,19 +285,18 @@ export const getBySlug = query({
     const security = await loadSecuritySettings(ctx);
     const timeAvailability = evaluateFormTimeAvailability(settings, Date.now());
     const entryLimit = formEntryLimit(settings);
-    const entryLimitReached =
-      entryLimit !== null
-        ? await completeSubmissionCountAtLimit(ctx, form._id, entryLimit)
-        : false;
+    const completeCount = entryLimit !== null ? await readCompletedFormCount(ctx, form._id) : 0;
+    const countPending = completeCount === null;
+    const entryLimitReached = entryLimit !== null && completeCount !== null && completeCount >= entryLimit;
     const closed =
-      !timeAvailability.open || entryLimitReached
+      !timeAvailability.open || countPending || entryLimitReached
         ? {
             code: !timeAvailability.open
               ? timeAvailability.code
-              : "ENTRY_LIMIT_REACHED",
+              : countPending ? "FORM_PREPARING" : "ENTRY_LIMIT_REACHED",
             message: !timeAvailability.open
               ? timeAvailability.message
-              : "This form has reached its entry limit.",
+              : countPending ? "This form is preparing its response count. Please try again shortly." : "This form has reached its entry limit.",
           }
         : null;
 
@@ -401,8 +393,8 @@ export function projectResumeValues(
  *     authoring metadata (createdBy/updatedBy/ip/meta/...) is ever projected.
  */
 export const resume = query({
-  args: { token: v.string() },
-  handler: async (ctx, { token }) => {
+  args: { token: v.string(), contactPassword: v.optional(v.string()) },
+  handler: async (ctx, { token, contactPassword }) => {
     if (!(await isPluginEnabled(ctx, "forms"))) return null;
     if (!isGeneratedResumeToken(token)) return null;
 
@@ -423,6 +415,7 @@ export const resume = query({
     // Parent form must exist + be published.
     const form = await ctx.db.get(sub.formId);
     if (!form || form.status !== "published") return null;
+    if (!(await contactSourceAllowed(ctx, form, contactPassword))) return null;
 
     // Read answers; project resume-safe { fieldKey -> value } only.
     const rows = await ctx.db
@@ -462,12 +455,12 @@ export const listSubmissions = query({
     { formId, paginationOpts, status, search, read, starred },
   ) => {
     const identity = await ctx.auth.getUserIdentity();
-    if (!identity) return { page: [], isDone: true, continueCursor: null };
+    if (!identity) return { page: [], isDone: true, continueCursor: "" };
     if (!(await isPluginEnabled(ctx, "forms"))) {
-      return { page: [], isDone: true, continueCursor: null };
+      return { page: [], isDone: true, continueCursor: "" };
     }
     if (!(await currentUserCan(ctx, formCap("form.view_entries")))) {
-      return { page: [], isDone: true, continueCursor: null };
+      return { page: [], isDone: true, continueCursor: "" };
     }
 
     const term = normalizeEntrySearch(search);
@@ -556,7 +549,6 @@ export const getSubmission = query({
 
     const submission = await ctx.db.get(id);
     if (!submission) return null;
-    const form = await ctx.db.get(submission.formId);
 
     const values = await ctx.db
       .query("fieldValues")
@@ -565,22 +557,13 @@ export const getSubmission = query({
       )
       .collect();
 
-    const fieldGroupId = form?.fieldGroupId;
-    const fieldDefs = fieldGroupId
-      ? await ctx.db
-          .query("fieldDefinitions")
-          .withIndex("by_group", (q) => q.eq("groupId", fieldGroupId))
-          .collect()
-      : [];
-    const fieldByKey = new Map(fieldDefs.map((field) => [field.key, field]));
-    const enrichedValues = values.map((value) => {
-      const field = fieldByKey.get(value.fieldKey);
-      return {
-        ...value,
-        fieldLabel: field?.label ?? value.fieldName ?? value.fieldKey,
-        fieldType: field?.type,
-      };
-    });
+    // Current definitions cannot establish which prompt a historical visitor
+    // answered. Preserve legacy names; never manufacture missing labels/types.
+    const enrichedValues = values.map((value) => ({
+      ...value,
+      fieldLabel: value.formFieldSnapshot?.label ?? value.fieldName ?? value.fieldKey,
+      fieldType: value.formFieldSnapshot?.type,
+    }));
 
     const notes = await ctx.db
       .query("form_submission_notes")
@@ -611,6 +594,45 @@ export const getSubmission = query({
       notes: enrichedNotes,
       pricing,
     };
+  },
+});
+
+/** Mutable correction policy is separate from the immutable answer history.
+ * Archived forms still allow authorized corrections, just like updateEntry.
+ * Absence from this list means a stored answer's definition was removed.
+ */
+export const getSubmissionEditing = query({
+  args: { id: v.id("form_submissions") },
+  returns: v.union(v.null(), v.array(v.object({
+    fieldKey: v.string(),
+    label: v.string(),
+    type: v.string(),
+    required: v.boolean(),
+    updatedAt: v.number(),
+    editable: v.boolean(),
+  }))),
+  handler: async (ctx, { id }) => {
+    if (!(await ctx.auth.getUserIdentity())) return null;
+    if (!(await isPluginEnabled(ctx, "forms"))) return null;
+    if (!(await currentUserCan(ctx, formCap("form.view_entries")))) return null;
+    if (!(await currentUserCan(ctx, formCap("form.edit_entry")))) return null;
+    const submission = await ctx.db.get(id);
+    if (!submission) return null;
+    const form = await ctx.db.get(submission.formId);
+    if (!form?.fieldGroupId) return [];
+    const budget = new RequestReadLedger();
+    const fields = [];
+    for await (const field of ctx.db.query("fieldDefinitions")
+      .withIndex("by_group", q => q.eq("groupId", form.fieldGroupId!))) {
+      budget.beforeRead();
+      budget.record(field);
+      fields.push({
+        fieldKey: field.key, label: field.label, type: field.type,
+        required: field.required, updatedAt: field.updatedAt,
+        editable: field.type !== "calculation" && !LAYOUT_FIELD_TYPES.has(field.type),
+      });
+    }
+    return fields;
   },
 });
 

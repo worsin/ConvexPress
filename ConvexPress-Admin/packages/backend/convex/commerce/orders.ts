@@ -1,3 +1,7 @@
+import { assertCheckoutAccess, assertShopperOwnership } from "./shopperAccess";
+import { restoreRecordedOrderStock } from "./stockLedger";
+import { readStockTarget as resolveInventoryTarget } from "./stockTarget";
+import { settleOrderCoupon } from "./couponLifecycle";
 import { ConvexError } from "convex/values";
 
 import { mutation, query } from "../_generated/server";
@@ -26,6 +30,8 @@ import {
 } from "./validators";
 import { fulfillOrderDigitalEntitlementsHandler } from "../commerceDigital/fulfillment";
 import { syncPurchasedCourseEnrollmentsHandler } from "../lms/enrollment/internals";
+import { patchDynamicWithMediaReferences } from "../media/attachmentGuard";
+
 
 async function enrichOrder(ctx: any, order: any) {
   const items = await ctx.db
@@ -138,52 +144,6 @@ async function createManualPaymentCollection(ctx: any, args: any) {
   return { collectionId, sessionId };
 }
 
-async function resolveInventoryTarget(
-  ctx: any,
-  productId: any,
-  variantId?: any,
-) {
-  const product = await ctx.db.get(productId);
-  if (!product) {
-    return null;
-  }
-
-  if (product.productType === "variable") {
-    if (!variantId) {
-      throw new ConvexError({
-        code: "VALIDATION_ERROR",
-        message: `Variable product "${product.title}" is missing a selected variant.`,
-      });
-    }
-
-    const variant = await ctx.db.get(variantId);
-    if (!variant || variant.productId !== productId) {
-      throw new ConvexError({
-        code: "VALIDATION_ERROR",
-        message: `Inventory target is invalid for "${product.title}".`,
-      });
-    }
-
-    return {
-      product,
-      variant,
-      stockQuantity:
-        typeof variant.stockQuantity === "number" ? variant.stockQuantity : 0,
-      label: `${product.title} - ${variant.title}`,
-      patchId: variant._id,
-    };
-  }
-
-  return {
-    product,
-    variant: null,
-    stockQuantity:
-      typeof product.stockQuantity === "number" ? product.stockQuantity : 0,
-    label: product.title,
-    patchId: product._id,
-  };
-}
-
 async function adjustBundleStockCapForOrderItem(
   ctx: any,
   args: {
@@ -209,7 +169,7 @@ async function adjustBundleStockCapForOrderItem(
     });
   }
 
-  await ctx.db.patch(delta.bundleId, {
+  await patchDynamicWithMediaReferences(ctx, delta.bundleId, {
     stockCount: nextStock,
     updatedAt: Date.now(),
   });
@@ -229,12 +189,14 @@ async function adjustInventoryForOrder(
     .withIndex("by_order", (q: any) => q.eq("orderId", args.order._id))
     .collect();
 
+  const restoredRecordedStock = args.mode === "restore" && await restoreRecordedOrderStock(ctx,args.order,args.actorUserId);
   for (const item of items) {
     await adjustBundleStockCapForOrderItem(ctx, {
       item,
       mode: args.mode,
     });
 
+    if (restoredRecordedStock) continue;
     const allocations = getOrderItemInventoryAllocations(item);
 
     for (const allocation of allocations) {
@@ -244,23 +206,24 @@ async function adjustInventoryForOrder(
         allocation.productId,
         allocation.variantId,
       );
-      if (!target || target.product.trackInventory === false) continue;
+      if (!target || !target.policy.tracked) continue;
       const adjustment = resolveInventoryAdjustment({
         mode: args.mode,
         stockQuantity: target.stockQuantity,
         allocationQuantity: allocation.quantity,
-        allowBackorders: target.product.allowBackorders,
+        allowBackorders: target.policy.allowBackorders,
         label: target.label,
       });
 
-      await ctx.db.patch(target.patchId, {
+      await patchDynamicWithMediaReferences(ctx, target.patchId, {
         stockQuantity: adjustment.nextStock,
         updatedAt: Date.now(),
       });
 
       await ctx.db.insert("commerce_inventory_adjustments", {
         productId: allocation.productId,
-        variantId: allocation.variantId,
+        variantId: target.inventoryVariantId,
+        orderId: args.order._id,
         adjustmentType: adjustment.adjustmentType,
         quantityDelta: adjustment.quantityDelta,
         reason: `${args.reason} (${args.order.orderNumber})`,
@@ -315,7 +278,7 @@ async function recalculateOrderFulfillment(ctx: any, orderId: any) {
         ? "fulfilled"
         : "partial";
 
-  await ctx.db.patch(orderId, {
+  await patchDynamicWithMediaReferences(ctx, orderId, {
     fulfillmentStatus: nextFulfillmentStatus,
     status:
       nextFulfillmentStatus === "fulfilled" && order.status === "paid"
@@ -532,26 +495,12 @@ export const bulkUpdateStatus = mutation({
   // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args): Promise<{ count: number }> => {
     await requireCommerceEnabled(ctx);
-    await requireCan(ctx, "manage_options");
-    const now = Date.now();
+    const actor = await requireCan(ctx, "manage_options");
     let count = 0;
-    for (const id of args.orderIds) {
+    for (const id of new Set(args.orderIds)) {
       const order = await ctx.db.get(id);
-      if (!order) continue;
-      await ctx.db.patch(id, { status: args.status as any, updatedAt: now });
-      await appendOrderHistory(ctx, {
-        orderId: id,
-        eventType: "bulk_status_update",
-        message: `Status changed to ${args.status} via bulk action`,
-      });
-      await ctx.runMutation((internal as any).purchases.internals.syncCommerceOrder, {
-        orderId: id,
-        eventType: "status_changed",
-        metadata: {
-          source: "bulk_status_update",
-          nextStatus: args.status,
-        },
-      });
+      if (!order || order.status === args.status) continue;
+      await transitionOrderStatus(ctx, { orderId: id, status: args.status }, actor);
       count++;
     }
     return { count };
@@ -564,27 +513,12 @@ export const bulkCancel = mutation({
   // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args): Promise<{ count: number }> => {
     await requireCommerceEnabled(ctx);
-    await requireCan(ctx, "manage_options");
-    const now = Date.now();
+    const actor = await requireCan(ctx, "manage_options");
     let count = 0;
-    for (const id of args.orderIds) {
+    for (const id of new Set(args.orderIds)) {
       const order = await ctx.db.get(id);
-      if (!order) continue;
-      if ((order as any).status === "cancelled") continue;
-      await ctx.db.patch(id, { status: "cancelled", updatedAt: now });
-      await appendOrderHistory(ctx, {
-        orderId: id,
-        eventType: "bulk_cancelled",
-        message: "Cancelled via bulk action",
-      });
-      await ctx.runMutation((internal as any).purchases.internals.syncCommerceOrder, {
-        orderId: id,
-        eventType: "status_changed",
-        metadata: {
-          source: "bulk_cancel",
-          nextStatus: "cancelled",
-        },
-      });
+      if (!order || order.status === "cancelled") continue;
+      await transitionOrderStatus(ctx, { orderId: id, status: "cancelled" }, actor);
       count++;
     }
     return { count };
@@ -664,6 +598,9 @@ export const getByCheckoutSession = query({
         message: "You cannot access this order.",
       });
     }
+
+    const { user } = await assertCheckoutAccess(ctx, session, args.sessionToken);
+    assertShopperOwnership(order, user?._id);
 
     return enrichOrder(ctx, order);
   },
@@ -746,13 +683,7 @@ export const getByTrackingToken = query({
   },
 });
 
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
-export const updateStatus = mutation({
-  args: updateOrderStatusArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
-  handler: async (ctx, args) => {
-    await requireCommerceEnabled(ctx);
-    const actor = await requireCan(ctx, "manage_options");
+async function transitionOrderStatus(ctx: any, args: any, actor: any) {
     const order = await ctx.db.get(args.orderId);
 
     if (!order) {
@@ -761,6 +692,8 @@ export const updateStatus = mutation({
         message: "Order not found.",
       });
     }
+
+    if (order.status === args.status) return order._id;
 
     const now = Date.now();
     const patch: Record<string, unknown> = {
@@ -785,6 +718,7 @@ export const updateStatus = mutation({
         reason: "Inventory allocated after order marked paid",
       });
       patch.inventoryCommittedAt = now;
+      patch.inventoryPolicyVersion = 1;
     }
 
     if (
@@ -801,11 +735,14 @@ export const updateStatus = mutation({
       patch.inventoryReleasedAt = now;
     }
 
+    if (args.status === "paid") await settleOrderCoupon(ctx, order, "consume");
+    if (["cancelled", "failed"].includes(args.status)) await settleOrderCoupon(ctx, order, "release");
+
     if (args.status === "fulfilled") {
       patch.fulfillmentStatus = "fulfilled";
     }
 
-	    await ctx.db.patch(order._id, patch);
+	    await patchDynamicWithMediaReferences(ctx, order._id, patch);
 	    if (args.status === "paid") {
 	      try {
 	        await fulfillOrderDigitalEntitlementsHandler(ctx, {
@@ -814,7 +751,7 @@ export const updateStatus = mutation({
 	          reason: "admin_status_paid",
 	        });
 	      } catch (error) {
-	        await ctx.db.patch(order._id, {
+	        await patchDynamicWithMediaReferences(ctx, order._id, {
 	          digitalFulfillmentStatus: "failed",
 	          digitalFulfillmentError:
 	            error instanceof Error ? error.message : "Digital fulfillment failed after status update.",
@@ -885,6 +822,16 @@ export const updateStatus = mutation({
     });
 
     return order._id;
+}
+
+// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+export const updateStatus = mutation({
+  args: updateOrderStatusArgs,
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  handler: async (ctx, args) => {
+    await requireCommerceEnabled(ctx);
+    const actor = await requireCan(ctx, "manage_options");
+    return transitionOrderStatus(ctx, args, actor);
   },
 });
 
@@ -904,7 +851,7 @@ export const updateFulfillment = mutation({
       });
     }
 
-    await ctx.db.patch(order._id, {
+    await ctx.db.patch("commerce_orders", order._id, {
       fulfillmentStatus: args.fulfillmentStatus,
       status:
         args.fulfillmentStatus === "fulfilled" && order.status === "paid"
@@ -1014,15 +961,16 @@ export const capturePayment = mutation({
       },
       createdAt: now,
     });
-    await ctx.db.patch(transactionId, { captureId, updatedAt: now });
+    await ctx.db.patch("commerce_payment_transactions", transactionId, { captureId, updatedAt: now });
 
-	    await ctx.db.patch(order._id, {
+	    await ctx.db.patch("commerce_orders", order._id, {
       paymentCollectionId: paymentCollection.collectionId,
 	      paymentStatus: capturedAmount >= order.totalAmount ? "paid" : "partially_paid",
       status:
         order.status === "pending" || order.status === "failed"
           ? "paid"
           : order.status,
+      inventoryPolicyVersion: capturedAmount >= order.totalAmount && !order.inventoryCommittedAt ? 1 : order.inventoryPolicyVersion,
       inventoryCommittedAt:
         capturedAmount >= order.totalAmount && !order.inventoryCommittedAt
           ? now
@@ -1039,7 +987,7 @@ export const capturePayment = mutation({
 	          reason: "manual_payment_capture",
 	        });
 	      } catch (error) {
-	        await ctx.db.patch(order._id, {
+	        await ctx.db.patch("commerce_orders", order._id, {
 	          digitalFulfillmentStatus: "failed",
 	          digitalFulfillmentError:
 	            error instanceof Error ? error.message : "Digital fulfillment failed after payment capture.",
@@ -1141,7 +1089,7 @@ export const createRefund = mutation({
       });
     }
 
-    await ctx.db.patch(order._id, {
+    await ctx.db.patch("commerce_orders", order._id, {
       paymentStatus: isFullyRefunded ? "refunded" : "partially_refunded",
       status: isFullyRefunded ? "refunded" : order.status,
       inventoryReleasedAt:
@@ -1384,7 +1332,7 @@ export const updateShipmentStatus = mutation({
     }
 
     const now = Date.now();
-    await ctx.db.patch(shipment._id, {
+    await ctx.db.patch("commerce_shipments", shipment._id, {
       status: args.status,
       provider: args.provider?.trim() || shipment.provider,
       carrier: args.carrier?.trim() || shipment.carrier,

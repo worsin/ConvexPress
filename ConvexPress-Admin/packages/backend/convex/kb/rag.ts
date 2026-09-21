@@ -15,15 +15,19 @@
  * Chunking strategy: 1000-character chunks with 200-character overlap.
  * Embedding models:
  *   - OpenAI: "text-embedding-3-small" (default) or configured ragModel
- *   - Anthropic: not currently supported for embeddings; falls back to OpenAI
- *     (Anthropic does not offer a public embeddings endpoint as of 2025)
+ *   - Other configured providers fail explicitly before any outbound request.
  */
 
 import { action } from "../_generated/server";
+import { makeFunctionReference, type RegisteredAction } from "convex/server";
+import type { SearchCandidate, ReadableCandidate } from "./searchCandidates";
 import type { ActionCtx } from "../_generated/server";
+import type { Id } from "../_generated/dataModel";
 import { internal } from "../_generated/api";
 import { v, ConvexError } from "convex/values";
 import { requirePluginEnabled } from "../helpers/plugins";
+import { decryptSettingSecret } from "../helpers/settingsSecret";
+import { fetchSearchProvider, readSearchProviderJson } from "./searchProviderHttp";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -82,7 +86,8 @@ async function resolveRagConfig(
   }
 
   const provider = ((settings?.ragProvider as string) ?? "openai") as "openai" | "anthropic";
-  const apiKey = (settings?.ragApiKey as string) ?? "";
+  if (provider !== "openai") throw new ConvexError({ code: "CONFIGURATION_ERROR", message: "Choose the supported OpenAI embedding provider. A different provider's key cannot be sent to OpenAI." });
+  const apiKey = await decryptSettingSecret(typeof settings?.ragApiKey === "string" ? settings.ragApiKey : "");
   const model =
     (settings?.ragModel as string) ||
     DEFAULT_OPENAI_EMBEDDING_MODEL;
@@ -129,17 +134,14 @@ function chunkText(
  * Generate an embedding vector for a single text string using OpenAI's
  * embeddings API.
  *
- * Anthropic does not offer a public embeddings endpoint (as of 2025), so when
- * the configured provider is "anthropic" we still call the OpenAI API. Callers
- * should note this and ensure an OpenAI key is stored as the ragApiKey when
- * using the Anthropic embedding path.
+ * A key is sent only after the configuration selects the OpenAI provider.
  */
 async function generateEmbedding(
   text: string,
   apiKey: string,
   model: string,
 ): Promise<number[]> {
-  const response = await fetch("https://api.openai.com/v1/embeddings", {
+  const response = await fetchSearchProvider("https://api.openai.com/v1/embeddings", {
     method: "POST",
     headers: {
       Authorization: `Bearer ${apiKey}`,
@@ -152,14 +154,14 @@ async function generateEmbedding(
   });
 
   if (!response.ok) {
-    const errorText = await response.text();
+    await response.body?.cancel();
     throw new ConvexError({
       code: "EMBEDDING_ERROR",
-      message: `OpenAI embeddings API error (${response.status}): ${errorText}`,
+      message: `OpenAI embeddings API error (${response.status}).`,
     });
   }
 
-  const data = (await response.json()) as {
+  const data = (await readSearchProviderJson(response)) as {
     data?: Array<{ embedding: number[] }>;
     error?: { message: string };
   };
@@ -195,17 +197,12 @@ async function generateEmbedding(
  * @throws NOT_FOUND if the article does not exist
  * @throws EMBEDDING_ERROR if the embedding API call fails
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
-export const ingestArticle = action({
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+export const ingestArticle: RegisteredAction<"public", { articleId: Id<"kb_articles"> }, { success: boolean; chunksCreated: number }> = action({
   args: { articleId: v.id("kb_articles") },
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.object({ success: v.boolean(), chunksCreated: v.number() }),
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "knowledgeBase");
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) {
-      throw new ConvexError({ code: "UNAUTHORIZED", message: "Authentication required" });
-    }
+    await ctx.runQuery(makeFunctionReference<"query", Record<string, never>, null>("kb/searchSecurity:authorizeWrite"), {});
 
     const { apiKey, model } = await resolveRagConfig(ctx);
 
@@ -280,27 +277,26 @@ export const ingestArticle = action({
  * @throws CONFIGURATION_ERROR if RAG is not configured
  * @throws EMBEDDING_ERROR if the embedding API call fails
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
-export const searchRag = action({
+type RagSearchHit = { articleId: string; articleSlug: string; title: string; excerpt?: string; categorySlug?: string; matchedChunk: string; score: number };
+export const searchRag: RegisteredAction<"public", { query: string; topK?: number }, { results: RagSearchHit[] }> = action({
   args: {
     query: v.string(),
-    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     topK: v.optional(v.number()),
   },
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.object({ results: v.array(v.object({ articleId: v.string(), articleSlug: v.string(), title: v.string(), excerpt: v.optional(v.string()), categorySlug: v.optional(v.string()), matchedChunk: v.string(), score: v.number() })) }),
   handler: async (ctx, args) => {
+    const topK = args.topK ?? DEFAULT_RAG_TOP_K;
+    if (!Number.isInteger(topK) || topK < 1 || topK > 50 || args.query.length > 500) throw new ConvexError({ code: "INVALID_SEARCH", message: "Search requires a query up to 500 characters and a result limit from 1 to 50." });
     await requirePluginEnabled(ctx, "knowledgeBase");
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) {
-      throw new ConvexError({ code: "UNAUTHORIZED", message: "Authentication required for search" });
-    }
+    const allowed = await ctx.runQuery(makeFunctionReference<"query", { requiresIdentity: boolean }, boolean>("kb/searchSecurity:authorizeSearch"), { requiresIdentity: true });
+    if (!allowed) return { results: [] };
 
     if (!args.query.trim()) {
       return { results: [] };
     }
 
     const { apiKey, model } = await resolveRagConfig(ctx);
-    const topK = args.topK ?? DEFAULT_RAG_TOP_K;
+
 
     // Embed the query
     const queryEmbedding = await generateEmbedding(args.query.trim(), apiKey, model);
@@ -346,6 +342,16 @@ export const searchRag = action({
     // Sort by descending score
     scored.sort((a, b) => b.score - a.score);
 
+    const candidateIds = new Set<string>();
+    const candidates: SearchCandidate[] = [];
+    for (const item of scored) {
+      if (candidateIds.has(item.articleId)) continue;
+      candidateIds.add(item.articleId); candidates.push({ id: item.articleId, chunk: item.chunkContent });
+      if (candidates.length === 50) break;
+    }
+    const readable: ReadableCandidate[] = await ctx.runQuery(makeFunctionReference<"query", { candidates: SearchCandidate[] }, ReadableCandidate[]>("kb/searchCandidates:readable"), { candidates });
+    const byId = new Map(readable.map(article => [article.articleId, article]));
+
     // Deduplicate to one result per article (best-scoring chunk wins)
     const seen = new Set<string>();
     const results: Array<{
@@ -361,14 +367,16 @@ export const searchRag = action({
     for (const item of scored) {
       if (seen.has(item.articleId)) continue;
       seen.add(item.articleId);
+      const current = byId.get(item.articleId);
+      if (!current || current.matchedChunk !== item.chunkContent) continue;
 
       results.push({
         articleId: item.articleId,
-        articleSlug: item.articleSlug,
-        title: item.metadata.title,
-        excerpt: item.metadata.excerpt,
-        categorySlug: item.metadata.categorySlug,
-        matchedChunk: item.chunkContent,
+        articleSlug: current.slug,
+        title: current.title,
+        excerpt: current.excerpt,
+        categorySlug: current.categorySlug,
+        matchedChunk: current.matchedChunk,
         score: item.score,
       });
 

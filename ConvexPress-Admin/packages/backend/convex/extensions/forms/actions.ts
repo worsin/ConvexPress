@@ -330,7 +330,7 @@ export const updateAction = mutation({
     }
 
     if (Object.keys(patch).length === 0) return action;
-    await ctx.db.patch(args.actionId, patch);
+    await ctx.db.patch("form_actions", args.actionId, patch);
     return await ctx.db.get(args.actionId);
   },
 });
@@ -347,7 +347,7 @@ export const reorderActions = mutation({
       const row = await ctx.db.get(orderedIds[i]!);
       // Only reorder rows that belong to this form (defensive).
       if (row && row.formId === formId && row.order !== i) {
-        await ctx.db.patch(orderedIds[i]!, { order: i });
+        await ctx.db.patch("form_actions", orderedIds[i]!, { order: i });
       }
     }
     return { success: true };
@@ -364,7 +364,7 @@ export const deleteAction = mutation({
       throw new ConvexError({ code: "NOT_FOUND", message: "Action not found." });
     }
     // Delete the config row only; run history (form_action_runs) is retained.
-    await ctx.db.delete(actionId);
+    await ctx.db.delete("form_actions", actionId);
     return { success: true };
   },
 });
@@ -387,7 +387,7 @@ export const replayRun = mutation({
       return { replayed: false };
     }
     const now = Date.now();
-    await ctx.db.patch(runId, {
+    await ctx.db.patch("form_action_runs", runId, {
       status: "pending",
       attempts: 0,
       error: undefined,
@@ -453,7 +453,7 @@ export const getRun = internalQuery({
 export const markAttempt = internalMutation({
   args: { runId: v.id("form_action_runs"), attempts: v.number() },
   handler: async (ctx, { runId, attempts }) => {
-    await ctx.db.patch(runId, { attempts, updatedAt: Date.now() });
+    await ctx.db.patch("form_action_runs", runId, { attempts, updatedAt: Date.now() });
   },
 });
 
@@ -465,7 +465,7 @@ export const scheduleRetry = internalMutation({
     nextAttemptAt: v.number(),
   },
   handler: async (ctx, { runId, error, nextAttemptAt }) => {
-    await ctx.db.patch(runId, {
+    await ctx.db.patch("form_action_runs", runId, {
       status: "pending",
       error,
       nextAttemptAt,
@@ -483,7 +483,7 @@ export const finalizeRun = internalMutation({
     error: v.optional(v.string()),
   },
   handler: async (ctx, { runId, status, result, error }) => {
-    await ctx.db.patch(runId, {
+    await ctx.db.patch("form_action_runs", runId, {
       status,
       result,
       error,
@@ -615,7 +615,7 @@ export const runActions = internalMutation({
       // Claim: reuse a prior pending/failed/awaiting_payment row, else insert.
       let runId: Id<"form_action_runs">;
       if (existing) {
-        await ctx.db.patch(existing._id, {
+        await ctx.db.patch("form_action_runs", existing._id, {
           status: "pending",
           nextAttemptAt: now,
           updatedAt: now,

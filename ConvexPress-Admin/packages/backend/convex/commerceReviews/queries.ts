@@ -19,6 +19,10 @@
  *   - getStats            Dashboard stats (counts, average, recent)
  */
 
+import type { RegisteredQuery } from "convex/server";
+import { publicReviewArgs, publicReviewPageValidator, readPublicProductReviews, type PublicReviewArgs, type PublicReviewPage } from "./publicFeed";
+import {readProductRatingSummary} from "./ratingIndex";
+import {evaluateMembershipAccess} from "../membership/access";
 import { v } from "convex/values";
 
 import { query } from "../_generated/server";
@@ -34,82 +38,10 @@ import { isPluginEnabled } from "../helpers/plugins";
 /**
  * Get reviews for a product (approved only)
  */
-export const getByProduct = query({
-  args: {
-    productId: v.id("commerce_products"),
-    limit: v.optional(v.number()),
-    offset: v.optional(v.number()),
-    sortBy: v.optional(
-      v.union(
-        v.literal("newest"),
-        v.literal("oldest"),
-        v.literal("highest"),
-        v.literal("lowest"),
-        v.literal("helpful"),
-      ),
-    ),
-  },
-  handler: async (ctx: any, args: any) => {
-    if (!(await isPluginEnabled(ctx, "commerceReviews"))) return null;
-    await requireCommerceReviewsEnabled(ctx);
-
-    const limit = args.limit || 10;
-    const offset = args.offset || 0;
-
-    // Get approved reviews for the product
-    const reviews = await ctx.db
-      .query("commerce_review_items")
-      .withIndex("by_product", (q: any) => q.eq("productId", args.productId))
-      .filter((q: any) => q.eq(q.field("status"), "approved"))
-      .collect();
-
-    // Sort based on preference
-    let sorted = [...reviews];
-    switch (args.sortBy) {
-      case "oldest":
-        sorted.sort((a: any, b: any) => a.createdAt - b.createdAt);
-        break;
-      case "highest":
-        sorted.sort((a: any, b: any) => b.rating - a.rating);
-        break;
-      case "lowest":
-        sorted.sort((a: any, b: any) => a.rating - b.rating);
-        break;
-      case "helpful":
-        sorted.sort(
-          (a: any, b: any) => (b.helpfulCount || 0) - (a.helpfulCount || 0),
-        );
-        break;
-      case "newest":
-      default:
-        sorted.sort((a: any, b: any) => b.createdAt - a.createdAt);
-        break;
-    }
-
-    // Paginate
-    const paginated = sorted.slice(offset, offset + limit);
-
-    // Enrich with user data
-    const enriched = await Promise.all(
-      paginated.map(async (review: any) => {
-        const user = review.userId
-          ? await ctx.db.get(review.userId)
-          : null;
-
-        return {
-          ...review,
-          userName: user?.displayName || user?.name || "Anonymous",
-          userAvatar: user?.imageUrl || user?.image,
-        };
-      }),
-    );
-
-    return {
-      reviews: enriched,
-      total: reviews.length,
-      hasMore: offset + limit < reviews.length,
-    };
-  },
+export const getByProduct: RegisteredQuery<"public", PublicReviewArgs, PublicReviewPage> = query({
+  args: publicReviewArgs,
+  returns: publicReviewPageValidator,
+  handler: readPublicProductReviews,
 });
 
 /**
@@ -117,38 +49,17 @@ export const getByProduct = query({
  */
 export const getProductRating = query({
   args: { productId: v.id("commerce_products") },
+  returns:v.union(v.null(),v.object({averageRating:v.number(),totalReviews:v.number(),distribution:v.record(v.string(),v.number())})),
   handler: async (ctx: any, args: any) => {
     if (!(await isPluginEnabled(ctx, "commerceReviews"))) return null;
     await requireCommerceReviewsEnabled(ctx);
 
-    const reviews = await ctx.db
-      .query("commerce_review_items")
-      .withIndex("by_product", (q: any) => q.eq("productId", args.productId))
-      .filter((q: any) => q.eq(q.field("status"), "approved"))
-      .collect();
-
-    if (reviews.length === 0) {
-      return {
-        averageRating: 0,
-        totalReviews: 0,
-        distribution: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 },
-      };
-    }
-
-    const totalRating = reviews.reduce(
-      (sum: number, r: any) => sum + r.rating,
-      0,
-    );
-    const distribution: Record<number, number> = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
-    reviews.forEach((r: any) => {
-      distribution[r.rating as keyof typeof distribution]++;
-    });
-
-    return {
-      averageRating: totalRating / reviews.length,
-      totalReviews: reviews.length,
-      distribution,
-    };
+    const product=await ctx.db.get("commerce_products",args.productId);
+    if(!product||product.status!=="publish"||(product.publishedAt!==undefined&&product.publishedAt>Date.now()))return null;
+    for(const target of [{resourceType:"product" as const,resourceIdOrKey:String(product._id)},{resourceType:"route" as const,resourceIdOrKey:`/products/${encodeURIComponent(product.slug)}`}])
+      if(!(await evaluateMembershipAccess(ctx,target)).allowed)return null;
+    const summary=await readProductRatingSummary(ctx,args.productId);
+    return summary?{averageRating:summary.average,totalReviews:summary.count,distribution:summary.distribution}:null;
   },
 });
 

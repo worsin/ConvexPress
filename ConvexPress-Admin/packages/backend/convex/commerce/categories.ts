@@ -6,6 +6,7 @@ import { CATEGORY_EVENTS, SYSTEM } from "../events/constants";
 import { emitEvent } from "../helpers/events";
 import { requireCan } from "../helpers/permissions";
 import { requireCommerceEnabled } from "./helpers";
+import { createCategoryVisibilityReader, filterPublicCategoryHierarchy } from "./categoryVisibility";
 import {
   createCommerceCategoryArgs,
   moveCommerceCategoryArgs,
@@ -13,6 +14,7 @@ import {
   reorderCommerceCategoriesArgs,
   updateCommerceCategoryArgs,
 } from "./validators";
+import { deleteWithMediaReferences, insertWithMediaReferences, patchWithMediaReferences } from "../media/attachmentGuard";
 
 const MAX_CATEGORY_DEPTH = 5;
 const DEFAULT_PRODUCT_CATEGORY_NAME = "Uncategorized";
@@ -206,7 +208,7 @@ async function updateDescendantPaths(ctx: any, categoryId: any) {
 
   for (const child of children) {
     const path = [...(parent.path ?? []), parent._id];
-    await ctx.db.patch("commerce_product_categories", child._id, {
+    await patchWithMediaReferences<"commerce_product_categories">(ctx, "commerce_product_categories", child._id, {
       path,
       depth: path.length,
       updatedAt: Date.now(),
@@ -254,7 +256,7 @@ export async function recomputeAllProductCategoryCounts(ctx: any) {
       category.productCount !== direct ||
       (category.totalProductCount ?? category.productCount ?? 0) !== total
     ) {
-      await ctx.db.patch("commerce_product_categories", category._id, {
+      await patchWithMediaReferences<"commerce_product_categories">(ctx, "commerce_product_categories", category._id, {
         productCount: direct,
         totalProductCount: total,
         updatedAt: Date.now(),
@@ -286,7 +288,7 @@ export async function ensureDefaultProductCategory(ctx: any) {
 
     if (Object.keys(patch).length > 0) {
       patch.updatedAt = Date.now();
-      await ctx.db.patch("commerce_product_categories", existing._id, patch);
+      await patchWithMediaReferences<"commerce_product_categories">(ctx, "commerce_product_categories", existing._id, patch);
       return { ...existing, ...patch };
     }
 
@@ -294,7 +296,7 @@ export async function ensureDefaultProductCategory(ctx: any) {
   }
 
   const now = Date.now();
-  const categoryId = await ctx.db.insert("commerce_product_categories", {
+  const categoryId: import("../_generated/dataModel").Id<"commerce_product_categories"> = await insertWithMediaReferences<"commerce_product_categories">(ctx, "commerce_product_categories", {
     name: DEFAULT_PRODUCT_CATEGORY_NAME,
     slug: DEFAULT_PRODUCT_CATEGORY_SLUG,
     depth: 0,
@@ -313,37 +315,23 @@ export async function ensureDefaultProductCategory(ctx: any) {
 }
 
 export const list = query({
-  args: {
-    includeHidden: v.optional(v.boolean()),
-  },
+  args: { includeHidden: v.optional(v.boolean()) },
   handler: async (ctx, args) => {
     await requireCommerceEnabled(ctx);
-    const categories = await ctx.db
-      .query("commerce_product_categories")
-      .take(1000);
-
-    const normalized = categories.map(normalizeCategory);
-    const visible =
-      args.includeHidden === false
-        ? normalized.filter((category) => category.isVisible)
-        : normalized;
-    return sortCategories(visible);
+    if (args.includeHidden === true) await requireCan(ctx, "manage_options");
+    const categories = await ctx.db.query("commerce_product_categories").take(1000);
+    const visible = args.includeHidden === true ? categories : await filterPublicCategoryHierarchy(ctx, categories);
+    return sortCategories(visible.map(normalizeCategory));
   },
 });
 
 export const getTree = query({
-  args: {
-    includeHidden: v.optional(v.boolean()),
-  },
+  args: { includeHidden: v.optional(v.boolean()) },
   handler: async (ctx, args) => {
     await requireCommerceEnabled(ctx);
-    const categories = await ctx.db
-      .query("commerce_product_categories")
-      .take(1000);
-    const visible =
-      args.includeHidden === true
-        ? categories
-        : categories.filter((category: any) => category.isVisible ?? true);
+    if (args.includeHidden === true) await requireCan(ctx, "manage_options");
+    const categories = await ctx.db.query("commerce_product_categories").take(1000);
+    const visible = args.includeHidden === true ? categories : await filterPublicCategoryHierarchy(ctx, categories);
     return buildTree(visible);
   },
 });
@@ -352,18 +340,11 @@ export const listPublic = query({
   args: {},
   handler: async (ctx) => {
     await requireCommerceEnabled(ctx);
-    const categories = await ctx.db
-      .query("commerce_product_categories")
-      .take(1000);
-    return sortCategories(
-      categories
-        .map(normalizeCategory)
-        .filter(
-          (category) =>
-            category.isVisible &&
-            (category.totalProductCount ?? category.productCount ?? 0) > 0,
-        ),
-    );
+    const categories = await ctx.db.query("commerce_product_categories").take(1000);
+    const visible = await filterPublicCategoryHierarchy(ctx, categories);
+    return sortCategories(visible.map(normalizeCategory).filter(
+      category => (category.totalProductCount ?? category.productCount ?? 0) > 0,
+    ));
   },
 });
 
@@ -371,37 +352,20 @@ export const getBySlug = query({
   args: { slug: v.string() },
   handler: async (ctx, args) => {
     await requireCommerceEnabled(ctx);
-    const category = await ctx.db
-      .query("commerce_product_categories")
-      .withIndex("by_slug", (q: any) => q.eq("slug", slugify(args.slug)))
-      .unique();
-
-    if (!category || (category.isVisible ?? true) === false) {
-      return null;
-    }
-
-    const allCategories = await ctx.db
-      .query("commerce_product_categories")
-      .take(1000);
-    const normalized = normalizeCategory(category);
-    const ancestorIds = normalized.path ?? [];
-    const ancestors = ancestorIds
-      .map((id: any) =>
-        allCategories.find((candidate: any) => sameId(candidate._id, id)),
-      )
-      .filter(Boolean)
-      .map(normalizeCategory);
-    const children = sortCategories(
-      allCategories
-        .filter((candidate: any) => sameId(candidate.parentId, category._id))
-        .map(normalizeCategory)
-        .filter((candidate: any) => candidate.isVisible),
-    );
-
+    const category = await ctx.db.query("commerce_product_categories")
+      .withIndex("by_slug", q => q.eq("slug", slugify(args.slug))).unique();
+    if (!category) return null;
+    const readHierarchy = createCategoryVisibilityReader(ctx, [category]);
+    const ancestors = await readHierarchy(category);
+    if (!ancestors) return null;
+    const children = await ctx.db.query("commerce_product_categories")
+      .withIndex("by_parent", q => q.eq("parentId", category._id)).take(1000);
+    const visibleChildren = [];
+    for (const child of children) if (await readHierarchy(child)) visibleChildren.push(child);
     return {
-      ...normalized,
-      ancestors,
-      children,
+      ...normalizeCategory(category),
+      ancestors: ancestors.map(normalizeCategory),
+      children: sortCategories(visibleChildren.map(normalizeCategory)),
     };
   },
 });
@@ -411,20 +375,12 @@ export const getFeatured = query({
   handler: async (ctx, args) => {
     await requireCommerceEnabled(ctx);
     const limit = Math.min(24, Math.max(1, args.limit ?? 8));
-    const categories = await ctx.db
-      .query("commerce_product_categories")
-      .withIndex("by_featured", (q: any) => q.eq("isFeatured", true))
-      .take(100);
-
-    return sortCategories(
-      categories
-        .map(normalizeCategory)
-        .filter(
-          (category) =>
-            category.isVisible &&
-            (category.totalProductCount ?? category.productCount ?? 0) > 0,
-        ),
-    ).slice(0, limit);
+    const categories = await ctx.db.query("commerce_product_categories")
+      .withIndex("by_featured", q => q.eq("isFeatured", true)).take(100);
+    const visible = await filterPublicCategoryHierarchy(ctx, categories);
+    return sortCategories(visible.map(normalizeCategory).filter(
+      category => (category.totalProductCount ?? category.productCount ?? 0) > 0,
+    )).slice(0, limit);
   },
 });
 
@@ -432,20 +388,12 @@ export const getNavCategories = query({
   args: {},
   handler: async (ctx) => {
     await requireCommerceEnabled(ctx);
-    const categories = await ctx.db
-      .query("commerce_product_categories")
-      .withIndex("by_nav", (q: any) => q.eq("showInNav", true))
-      .take(1000);
-
-    return buildTree(
-      categories
-        .map(normalizeCategory)
-        .filter(
-          (category) =>
-            category.isVisible &&
-            (category.totalProductCount ?? category.productCount ?? 0) > 0,
-        ),
-    );
+    const categories = await ctx.db.query("commerce_product_categories")
+      .withIndex("by_nav", q => q.eq("showInNav", true)).take(1000);
+    const visible = await filterPublicCategoryHierarchy(ctx, categories);
+    return buildTree(visible.map(normalizeCategory).filter(
+      category => (category.totalProductCount ?? category.productCount ?? 0) > 0,
+    ));
   },
 });
 
@@ -466,7 +414,7 @@ export const create = mutation({
     const parentId = args.parentId ?? undefined;
     const parentState = await getParentState(ctx, parentId);
     const now = Date.now();
-    const categoryId = await ctx.db.insert("commerce_product_categories", {
+    const categoryId: import("../_generated/dataModel").Id<"commerce_product_categories"> = await insertWithMediaReferences<"commerce_product_categories">(ctx, "commerce_product_categories", {
       name,
       slug: await getUniqueCategorySlug(ctx, args.slug?.trim() || name),
       description: cleanText(args.description),
@@ -610,7 +558,7 @@ export const update = mutation({
       changedFields.push("metaDescription");
     }
 
-    await ctx.db.patch("commerce_product_categories", args.categoryId, patch);
+    await patchWithMediaReferences<"commerce_product_categories">(ctx, "commerce_product_categories", args.categoryId, patch);
     if (changedFields.includes("parentId")) {
       await updateDescendantPaths(ctx, args.categoryId);
       await recomputeAllProductCategoryCounts(ctx);
@@ -646,7 +594,7 @@ export const move = mutation({
     const parentId = args.parentId ?? undefined;
     await validateParentMove(ctx, args.categoryId, parentId);
     const parentState = await getParentState(ctx, parentId);
-    await ctx.db.patch("commerce_product_categories", args.categoryId, {
+    await patchWithMediaReferences<"commerce_product_categories">(ctx, "commerce_product_categories", args.categoryId, {
       parentId,
       path: parentState.path,
       depth: parentState.depth,
@@ -685,7 +633,7 @@ export const reorder = mutation({
         });
       }
 
-      await ctx.db.patch("commerce_product_categories", categoryId, {
+      await patchWithMediaReferences<"commerce_product_categories">(ctx, "commerce_product_categories", categoryId, {
         sortOrder: index,
         updatedAt: now,
       });
@@ -738,8 +686,7 @@ export const rebuildMetadata = mutation({
         nextPatch.parentId = undefined;
       }
 
-      await ctx.db.patch(
-        "commerce_product_categories",
+      await patchWithMediaReferences<"commerce_product_categories">(ctx, "commerce_product_categories",
         category._id,
         nextPatch,
       );
@@ -849,14 +796,14 @@ export const remove = mutation({
           array.findIndex((candidate) => sameId(candidate, value)) === index,
       );
 
-      await ctx.db.patch("commerce_products", product._id, {
+      await patchWithMediaReferences<"commerce_products">(ctx, "commerce_products", product._id, {
         categoryIds: nextCategoryIds,
         updatedAt: Date.now(),
       });
       productsMoved++;
     }
 
-    await ctx.db.delete("commerce_product_categories", args.categoryId);
+    await deleteWithMediaReferences<"commerce_product_categories">(ctx, "commerce_product_categories", args.categoryId);
     await recomputeAllProductCategoryCounts(ctx);
 
     await emitEvent(ctx, CATEGORY_EVENTS.DELETED, SYSTEM.CATEGORY, {

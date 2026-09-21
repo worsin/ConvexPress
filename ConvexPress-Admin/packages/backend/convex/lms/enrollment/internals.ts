@@ -10,6 +10,8 @@ import { internalMutation } from "../../_generated/server";
 import { isPluginEnabled } from "../../helpers/plugins";
 import { emitEvent } from "../../helpers/events";
 import { LMS_EVENTS, SYSTEM } from "../../events/constants";
+import { patchDynamicWithMediaReferences } from "../../media/attachmentGuard";
+
 
 type SyncResult = {
   created: number;
@@ -77,7 +79,7 @@ export async function syncMembershipPlanCourseEnrollmentsHandler(
     if (alternatePlanId) {
       const enrollment = await findEnrollment(ctx, args.userId, courseId);
       if (enrollment?.source === "membership_plan") {
-        await ctx.db.patch(enrollment._id, {
+        await patchDynamicWithMediaReferences(ctx, enrollment._id, {
           membershipPlanId: alternatePlanId,
           updatedAt: Date.now(),
         });
@@ -183,7 +185,7 @@ export async function expireExpiredEnrollmentsHandler(
     .take(limit);
 
   for (const enrollment of enrollments) {
-    await ctx.db.patch(enrollment._id, { status: "expired", updatedAt: now });
+    await patchDynamicWithMediaReferences(ctx, enrollment._id, { status: "expired", updatedAt: now });
     await emitEvent(ctx, LMS_EVENTS.ENROLLMENT_EXPIRED, SYSTEM.LMS, {
       courseId: enrollment.courseId,
       userId: enrollment.userId,
@@ -283,7 +285,7 @@ async function upsertEnrollment(
       return "skippedSeatLimit";
     }
     const reactivated = !existingIsCurrentlyActive;
-    await ctx.db.patch(existing._id, {
+    await patchDynamicWithMediaReferences(ctx, existing._id, {
       source: args.source,
       membershipPlanId: args.membershipPlanId,
       sourceRef: args.sourceRef,
@@ -371,7 +373,7 @@ async function revokeEnrollment(
   ) {
     return false;
   }
-  await ctx.db.patch(existing._id, { status: "revoked", updatedAt: Date.now() });
+  await patchDynamicWithMediaReferences(ctx, existing._id, { status: "revoked", updatedAt: Date.now() });
   await emitEvent(ctx, LMS_EVENTS.UNENROLLED, SYSTEM.LMS, {
     courseId: args.courseId,
     userId: args.userId,

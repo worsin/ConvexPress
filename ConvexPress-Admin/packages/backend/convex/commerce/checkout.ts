@@ -1,9 +1,17 @@
+import { resolveStockPolicy, canOrderQuantity } from "./stockPolicy";
+import { prepareReservationCommit } from "./reservationCommit";
+import { readStockTarget, readReservedStock, readCheckoutReservations } from "./stockTarget";
+import type { RegisteredMutation } from "convex/server";
+import type { Id } from "../_generated/dataModel";
+import { isActiveCheckoutSession, isClosedCart } from "./cartLifecycle";
+import { evaluateCartCoupon, reserveOrderCoupon, settleOrderCoupon } from "./couponLifecycle";
 import { ConvexError } from "convex/values";
 
 import { mutation, query } from "../_generated/server";
 import { internal } from "../_generated/api";
 import { emitEvent } from "../helpers/events";
-import { getCurrentUser, requireCan } from "../helpers/permissions";
+import { requireCan } from "../helpers/permissions";
+import { assertCartAccess, assertCheckoutAccess, getCurrentShopper as getCurrentUser } from "./shopperAccess";
 import { CHECKOUT_EVENTS, SYSTEM } from "../events/constants";
 import {
   getCommercePaymentsSettings,
@@ -16,11 +24,13 @@ import { calculateTaxForLinesFromRules } from "./tax";
 import {
   buildOrderItemTitle,
   buildOrderItemMetadata,
+  getOrderItemInventoryAllocations,
 } from "./orderBundleHelpers";
 import {
   computeAddressKey,
   computeCartKey,
   isQuoteUsableForCheckout,
+  shippingQuoteLabel,
 } from "./checkoutShippingGuards";
 import {
   completeCheckoutArgs,
@@ -30,16 +40,17 @@ import {
   listAbandonedCheckoutSessionsArgs,
   updateCheckoutSessionArgs,
 } from "./validators";
-import {
-  resolveBundleAvailability,
-  resolveBundleSelectionSnapshot,
-} from "../commerceBundles/runtime";
+import { resolveCartBundle, assertCurrentBundlePrice, assertBundleCartInventory } from "./cartBundle";
+import { patchDynamicWithMediaReferences } from "../media/attachmentGuard";
+
 
 async function getCartBySession(ctx: any, sessionToken: string) {
-  return ctx.db
+  const cart = await ctx.db
     .query("commerce_carts")
     .withIndex("by_session", (q: any) => q.eq("sessionToken", sessionToken))
     .unique();
+  if (cart) assertCartAccess(cart, sessionToken, (await getCurrentUser(ctx))?._id);
+  return cart;
 }
 
 async function getCheckoutBySession(ctx: any, sessionToken: string) {
@@ -47,14 +58,14 @@ async function getCheckoutBySession(ctx: any, sessionToken: string) {
     .query("commerce_checkout_sessions")
     .withIndex("by_session", (q: any) => q.eq("sessionToken", sessionToken))
     .collect();
-  return (
-    sessions.find((session: any) =>
-      ["draft", "collecting_shipping", "collecting_payment", "ready_for_review", "payment_pending"].includes(session.status),
-    ) ??
+  const session = (
+    sessions.find((session: any) => isActiveCheckoutSession(session)) ??
     sessions.find((session: any) => session.status === "abandoned") ??
     sessions[0] ??
     null
   );
+  if (session) await assertCheckoutAccess(ctx, session, sessionToken);
+  return session;
 }
 
 function checkoutExpiresAt(now = Date.now()) {
@@ -214,7 +225,7 @@ async function selectCheckoutShippingMethod(
     }
 
     await staleCheckoutShippingMethods(ctx, input.session._id);
-    const label = `${selectedQuote.carrierName} ${selectedQuote.serviceName}`.trim();
+    const label = shippingQuoteLabel(selectedQuote);
     const methodId = await ctx.db.insert("commerce_checkout_shipping_methods", {
       checkoutSessionId: input.session._id,
       cartId: input.session.cartId,
@@ -337,79 +348,34 @@ async function getCartItemsWithProducts(ctx: any, cartId: any) {
   return enrichedItems;
 }
 
-function itemAllowsBackorders(item: any) {
-  if (!item.variant) return !!item.product?.allowBackorders;
-  return item.variant.backorders === "yes" || item.variant.backorders === "notify";
-}
-
 function itemInventoryTarget(item: any) {
-  if (!item.product?.trackInventory || itemAllowsBackorders(item)) return null;
-  const usesVariantStock =
-    item.variant && item.variant.manageStock !== "parent";
-  return {
-    productId: item.product._id,
-    variantId: usesVariantStock ? item.variant._id : undefined,
-    patchId: usesVariantStock ? item.variant._id : item.product._id,
-    stockQuantity: usesVariantStock
-      ? (item.variant.stockQuantity ?? 0)
-      : (item.product.stockQuantity ?? 0),
-  };
+  if (!Number.isSafeInteger(item.quantity) || item.quantity <= 0) throw new ConvexError({code:"VALIDATION_ERROR",message:"Quantity must be a positive whole number."});
+  const policy = resolveStockPolicy(item.product, item.variant);
+  if (!policy.tracked) {
+    if (!canOrderQuantity(policy,item.quantity)) throw new ConvexError({code:"INSUFFICIENT_STOCK",message:"This item is out of stock."});
+    return null;
+  }
+  const variantId = policy.owner === "variant" ? item.variant._id : undefined;
+  return {productId:item.product._id,variantId,patchId:variantId??item.product._id,stockQuantity:policy.stockQuantity,allowBackorders:policy.allowBackorders};
 }
 
-async function getReservedInventoryCount(
-  ctx: any,
-  args: {
-    productId: any;
-    variantId?: any;
-    locationId?: any;
-  },
-) {
-  const activeReservations = args.locationId
-    ? await ctx.db
-        .query("commerce_stock_reservations")
-        .withIndex("by_product_location_status", (q: any) =>
-          q
-            .eq("productId", args.productId)
-            .eq("locationId", args.locationId)
-            .eq("status", "active"),
-        )
-        .collect()
-    : await ctx.db
-        .query("commerce_stock_reservations")
-        .withIndex("by_product_status", (q: any) =>
-          q.eq("productId", args.productId).eq("status", "active"),
-        )
-        .collect();
-
-  return activeReservations
-    .filter(
-      (reservation: any) =>
-        (reservation.variantId?.toString() ?? null) ===
-        (args.variantId?.toString() ?? null),
-    )
-    .reduce((sum: number, reservation: any) => sum + reservation.quantity, 0);
+async function getReservedInventoryCount(ctx:any,args:{productId:any;variantId?:any;locationId?:any}) {
+  return readReservedStock(ctx,args.productId,args.variantId,args.locationId);
 }
 
-async function selectInventoryAllocation(ctx: any, target: any, quantity: number) {
-  const variantScopedLevels = target.variantId
-    ? await ctx.db
-        .query("commerce_inventory_levels")
-        .withIndex("by_product_variant", (q: any) =>
-          q.eq("productId", target.productId).eq("variantId", target.variantId),
-        )
-        .collect()
-    : [];
-  const productScopedLevels =
-    variantScopedLevels.length > 0
-      ? []
-      : await ctx.db
-          .query("commerce_inventory_levels")
-          .withIndex("by_product_variant", (q: any) =>
-            q.eq("productId", target.productId).eq("variantId", undefined),
-          )
-          .collect();
-  const levels = [...variantScopedLevels, ...productScopedLevels]
-    .filter((level: any) => level.isActive)
+async function selectInventoryAllocation(ctx: any, target: any, quantity: number, quotedLocationId?: any) {
+  const ownerLevels = await ctx.db.query("commerce_inventory_levels")
+    .withIndex("by_product_variant", (q:any)=>q.eq("productId",target.productId).eq("variantId",target.variantId))
+    .take(201);
+  if(ownerLevels.length>200)throw new ConvexError({code:"INVENTORY_CAPACITY",message:"Inventory locations exceed the supported checkout budget."});
+  const candidateLevels = ownerLevels.filter((level:any)=>level.isActive && (!quotedLocationId || level.locationId===quotedLocationId));
+  if(ownerLevels.length && !candidateLevels.length)throw new ConvexError({code:"INSUFFICIENT_STOCK",message:"No active stock is available at the quoted shipping origin."});
+  const locationIds = new Set<string>();
+  for(const level of candidateLevels){
+    if(locationIds.has(String(level.locationId)))throw new ConvexError({code:"INVENTORY_TARGET_MISSING",message:"Duplicate warehouse stock records need review."});
+    locationIds.add(String(level.locationId));
+  }
+  const levels = candidateLevels
     .sort((a: any, b: any) => {
       const aSafety = Number(a.safetyStockQuantity ?? 0);
       const bSafety = Number(b.safetyStockQuantity ?? 0);
@@ -428,7 +394,7 @@ async function selectInventoryAllocation(ctx: any, target: any, quantity: number
       Number(level.stockQuantity ?? 0) -
       Number(level.safetyStockQuantity ?? 0) -
       reservedCount;
-    if (available >= quantity || level.allowBackorders) {
+    if (available >= quantity || target.allowBackorders) {
       return {
         locationId: level.locationId,
         levelId: level._id,
@@ -438,6 +404,7 @@ async function selectInventoryAllocation(ctx: any, target: any, quantity: number
     }
   }
 
+  if (levels.length) return {locationId: levels[0].locationId, levelId: levels[0]._id, stockQuantity: Number(levels[0].stockQuantity ?? 0), available: 0};
   const reservedCount = await getReservedInventoryCount(ctx, {
     productId: target.productId,
     variantId: target.variantId,
@@ -450,23 +417,26 @@ async function selectInventoryAllocation(ctx: any, target: any, quantity: number
   };
 }
 
-async function reserveCheckoutInventory(ctx: any, session: any, items: any[]) {
-  const existingReservations = await ctx.db
-    .query("commerce_stock_reservations")
-    .withIndex("by_checkout", (q: any) => q.eq("checkoutSessionId", session._id))
-    .filter((q: any) => q.eq(q.field("status"), "active"))
-    .collect();
-  if (existingReservations.length > 0) return;
+async function reserveCheckoutInventory(ctx: any, session: any, items: any[], quotedLocationId?: any) {
+  const existingReservations = await readCheckoutReservations(ctx,session._id);
+  // Rebuild this checkout's holds atomically from its current selections.
+  for(const reservation of existingReservations) await ctx.db.patch("commerce_stock_reservations",reservation._id,{status:"released",updatedAt:Date.now()});
 
   const now = Date.now();
-  for (const item of items) {
+  const inventoryItems = [];
+  let reservedCount = 0;
+  for (const item of items) for (const allocation of getOrderItemInventoryAllocations(item)) {
+    const selected = await readStockTarget(ctx, allocation.productId, allocation.variantId);
+    inventoryItems.push({product:selected.product,variant:selected.variant,quantity:allocation.quantity});
+  }
+  for (const item of inventoryItems) {
     const target = itemInventoryTarget(item);
     if (!target) continue;
 
-    const allocation = await selectInventoryAllocation(ctx, target, item.quantity);
+    const allocation = await selectInventoryAllocation(ctx, target, item.quantity, item.product.isVirtual ? undefined : quotedLocationId);
     const available = allocation.available;
 
-    if (available < item.quantity) {
+    if (available < item.quantity && !target.allowBackorders) {
       throw new ConvexError({
         code: "INSUFFICIENT_STOCK",
         message: `Only ${available} available in stock for ${item.product.title}.`,
@@ -479,69 +449,30 @@ async function reserveCheckoutInventory(ctx: any, session: any, items: any[]) {
       variantId: target.variantId,
       locationId: allocation.locationId,
       quantity: item.quantity,
+      allowBackorders: target.allowBackorders,
       status: "active",
       expiresAt: now + 15 * 60 * 1000,
       createdAt: now,
       updatedAt: now,
     });
+    reservedCount++;
   }
+  return reservedCount;
 }
 
 async function commitCheckoutInventory(ctx: any, session: any, orderId: any) {
-  const reservations = await ctx.db
-    .query("commerce_stock_reservations")
-    .withIndex("by_checkout", (q: any) => q.eq("checkoutSessionId", session._id))
-    .filter((q: any) => q.eq(q.field("status"), "active"))
-    .collect();
-
   const now = Date.now();
-  for (const reservation of reservations) {
-    const product = await ctx.db.get(reservation.productId);
-    const variant = reservation.variantId
-      ? await ctx.db.get(reservation.variantId)
-      : null;
-    const target = variant ?? product;
-    if (!target) continue;
-
-    if (reservation.locationId) {
-      const levels = await ctx.db
-        .query("commerce_inventory_levels")
-        .withIndex("by_product_location", (q: any) =>
-          q.eq("productId", reservation.productId).eq("locationId", reservation.locationId),
-        )
-        .collect();
-      const level = levels.find(
-        (entry: any) =>
-          (entry.variantId?.toString() ?? null) ===
-          (reservation.variantId?.toString() ?? null),
-      );
-      if (level) {
-        await ctx.db.patch("commerce_inventory_levels", level._id, {
-          stockQuantity: Math.max(0, (level.stockQuantity ?? 0) - reservation.quantity),
-          updatedAt: now,
-        });
-      }
-    } else {
-      await ctx.db.patch(target._id, {
-        stockQuantity: Math.max(0, (target.stockQuantity ?? 0) - reservation.quantity),
-        updatedAt: now,
-      });
-    }
-    await ctx.db.patch(reservation._id, {
-      status: "converted",
-      updatedAt: now,
-    });
-    await ctx.db.insert("commerce_inventory_adjustments", {
-      productId: reservation.productId,
-      variantId: reservation.variantId,
-      locationId: reservation.locationId,
-      orderId,
-      adjustmentType: "sale",
-      quantityDelta: -reservation.quantity,
-      reason: "Stock committed for order",
-      createdAt: now,
+  const plan = await prepareReservationCommit(ctx,session._id,orderId,now);
+  if (plan.alreadyCommitted) return;
+  for (const {reservation,target,locationLevel,nextStock} of plan.entries) {
+    await patchDynamicWithMediaReferences(ctx,locationLevel?._id ?? target.patchId,{stockQuantity:nextStock,updatedAt:now});
+    await ctx.db.patch("commerce_stock_reservations",reservation._id,{status:"converted",updatedAt:now});
+    await ctx.db.insert("commerce_inventory_adjustments",{
+      productId:reservation.productId,variantId:reservation.variantId,locationId:reservation.locationId,
+      orderId,adjustmentType:"sale",quantityDelta:-reservation.quantity,reason:"Stock committed for order",createdAt:now,
     });
   }
+  await ctx.db.patch("commerce_orders",orderId,{inventoryCommittedAt:now,inventoryPolicyVersion:1});
 }
 
 async function upsertCustomerProfile(
@@ -567,7 +498,7 @@ async function upsertCustomerProfile(
   const now = Date.now();
 
   if (profile) {
-    await ctx.db.patch(profile._id, {
+    await patchDynamicWithMediaReferences(ctx, profile._id, {
       email: args.email,
       phone: args.phone,
       totalOrders: profile.totalOrders + 1,
@@ -648,9 +579,13 @@ export const createSession = mutation({
     }
 
     const existing = await getCheckoutBySession(ctx, args.sessionToken);
+    if (user && !cart.userId) {
+      await ctx.db.patch("commerce_carts", cart._id, { userId: user._id, updatedAt: Date.now() });
+    }
     if (existing && !["completed", "failed", "abandoned"].includes(existing.status)) {
       await ctx.db.patch("commerce_checkout_sessions", existing._id, {
         email: args.email ?? existing.email,
+        userId: existing.userId ?? user?._id,
         expiresAt: checkoutExpiresAt(),
         updatedAt: Date.now(),
       });
@@ -676,6 +611,7 @@ export const createSession = mutation({
       freeShippingByDynamicPricing: cart.freeShippingByDynamicPricing,
       subtotalAmount: cart.subtotalAmount,
       discountAmount: cart.discountAmount,
+      freeShippingByCoupon: cart.freeShippingByCoupon,
       shippingAmount: cart.shippingAmount,
       taxAmount: cart.taxAmount,
       totalAmount: cart.totalAmount,
@@ -710,6 +646,11 @@ export const updateSession = mutation({
       });
     }
 
+    const sessionCart = await ctx.db.get("commerce_carts", session.cartId);
+    if (session.orderId || session.status === "completed" || isClosedCart(sessionCart)) {
+      throw new ConvexError({ code: "CHECKOUT_CLOSED", message: "This checkout has already been placed. Start a new cart to shop again." });
+    }
+
     const patch: Record<string, unknown> = {
       updatedAt: Date.now(),
       expiresAt: checkoutExpiresAt(),
@@ -734,7 +675,7 @@ export const updateSession = mutation({
           .withIndex("by_checkout", (q: any) => q.eq("checkoutSessionId", session._id))
           .collect();
         for (const quote of staleQuotes) {
-          await ctx.db.delete(quote._id);
+          await ctx.db.delete("commerce_shipping_rate_quotes", quote._id);
         }
         await staleCheckoutShippingMethods(ctx, session._id);
         // Reset shipping cost — the old amount no longer applies
@@ -760,7 +701,7 @@ export const updateSession = mutation({
       });
       patch.selectedShippingMethodCode = selectedShippingMethod.code;
       patch.selectedShippingMethodLabel = selectedShippingMethod.label;
-      patch.shippingAmount = session.freeShippingByDynamicPricing
+      patch.shippingAmount = (session.freeShippingByDynamicPricing || session.freeShippingByCoupon)
         ? 0
         : selectedShippingMethod.amount;
     }
@@ -862,10 +803,8 @@ export const updateSession = mutation({
   },
 });
 
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
-export const complete = mutation({
+export const complete: RegisteredMutation<"public", { sessionToken: string }, Id<"commerce_orders">> = mutation({
   args: completeCheckoutArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     await requireCommerceEnabled(ctx);
     const user = await getCurrentUser(ctx);
@@ -951,48 +890,30 @@ export const complete = mutation({
       });
     }
 
+    const coupon = await evaluateCartCoupon(ctx, cart.appliedDiscountCode, items);
+    if (cart.appliedDiscountCode && !coupon.evaluation?.eligible) {
+      throw new ConvexError({ code: "COUPON_UNAVAILABLE", message: coupon.evaluation?.message ?? "Discount is unavailable. Refresh your cart." });
+    }
+    const currentDiscountAmount = Number(cart.dynamicPricingDiscountAmount ?? 0) + Number(coupon.evaluation?.discountAmount ?? 0);
+    if (cart.appliedDiscountCode && currentDiscountAmount !== Number(cart.discountAmount ?? 0)) {
+      throw new ConvexError({ code: "COUPON_CHANGED", message: "This discount changed. Refresh your cart before placing the order." });
+    }
+    cart.freeShippingByCoupon = coupon.evaluation?.suppressShipping === true;
+    session.freeShippingByCoupon = cart.freeShippingByCoupon;
+
     // Revalidate bundle items before order creation
     const createdOrderItems: Array<{ orderItemId: any; cartItemId?: any; lineTotalAmount: number }> = [];
     for (const item of items) {
-      if (item.metadata?.lineType === "bundle") {
-        const bundle = await ctx.db
-          .query("commerce_bundles")
-          .withIndex("by_product", (q: any) => q.eq("productId", item.productId))
-          .first();
-
-        if (!bundle || bundle.status !== "active") {
-          throw new ConvexError({
-            code: "BUNDLE_UNAVAILABLE",
-            message: `Bundle "${item.metadata.bundleName || "selected bundle"}" is no longer available.`,
-          });
-        }
-
-        // Revalidate availability with current selections
-        const snapshot = await resolveBundleSelectionSnapshot(ctx, {
-          bundle,
-          selections: item.metadata.selections,
-        });
-        const availability = await resolveBundleAvailability(ctx, {
-          bundle,
-          snapshot,
-          quantity: item.quantity,
-        });
-        if (!availability.available) {
-          throw new ConvexError({
-            code: "BUNDLE_UNAVAILABLE",
-            message: availability.reason || "Bundle is no longer available with current configuration.",
-          });
-        }
-      }
+      const bundle = await resolveCartBundle(ctx, { productId: item.productId, variantId: item.variantId, metadata: item.metadata, quantity: item.quantity, currencyCode: cart.currencyCode });
+      if (bundle) assertCurrentBundlePrice(item, bundle);
     }
+    await assertBundleCartInventory(ctx, items);
 
     const requiresShipping =
       settings.shippingEnabled &&
       items.some((item: any) => item.product && item.product.isVirtual !== true);
     const paymentMethods = getEnabledCheckoutPaymentMethods(settings);
-    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     const selectedPaymentMethod = paymentMethods.find(
-      // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
       (method) => method.code === session.selectedPaymentMethodCode,
     );
 
@@ -1064,9 +985,7 @@ export const complete = mutation({
         };
       } else {
         const shippingMethods = getEnabledShippingMethods(settings);
-        // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
         const fallbackMethod = shippingMethods.find(
-          // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
           (method) => method.code === session.selectedShippingMethodCode,
         );
         if (fallbackMethod) {
@@ -1109,7 +1028,7 @@ export const complete = mutation({
         items,
         Number(cart.discountAmount ?? 0),
         Boolean(settings.pricesIncludeTax),
-        Number(session.freeShippingByDynamicPricing ? 0 : cart.shippingAmount ?? 0),
+        Number((session.freeShippingByDynamicPricing || session.freeShippingByCoupon) ? 0 : cart.shippingAmount ?? 0),
         paymentSettings.shippingTaxClass,
       );
       finalTaxAmount = taxResult.taxAmount;
@@ -1117,9 +1036,17 @@ export const complete = mutation({
     }
     const finalTotalAmount =
       completionTaxableAmount +
-      Number(session.freeShippingByDynamicPricing ? 0 : cart.shippingAmount ?? 0) +
+      Number((session.freeShippingByDynamicPricing || session.freeShippingByCoupon) ? 0 : cart.shippingAmount ?? 0) +
       (settings.pricesIncludeTax ? 0 : finalTaxAmount);
-    await reserveCheckoutInventory(ctx, session, items);
+    const quotedOrigin = selectedShippingQuote?.origin;
+    const quotedLocationId = quotedOrigin?.shipFromLocationId as Id<"commerce_ship_from_locations"> | undefined;
+    if (quotedLocationId) {
+      const location = await ctx.db.get(quotedLocationId);
+      if (!location || !location.isActive || location.isArchived || computeAddressKey(location.address) !== computeAddressKey(quotedOrigin)) {
+        throw new ConvexError({code:"STALE_SHIPPING_RATE",message:"The shipping origin changed. Please refresh shipping rates."});
+      }
+    }
+    const inventoryReservationCount = await reserveCheckoutInventory(ctx, session, items, quotedLocationId);
 
     const now = Date.now();
     const orderNumber = `CP-${new Date(now).getFullYear()}-${String(now).slice(-6)}`;
@@ -1132,6 +1059,9 @@ export const complete = mutation({
     });
 
     const orderId = await ctx.db.insert("commerce_orders", {
+      inventoryPolicyVersion:1,
+      inventoryReservationCount,
+      shipFromLocationId:quotedLocationId,
       orderNumber,
       trackingToken: buildTrackingToken(),
       customerId,
@@ -1205,7 +1135,8 @@ export const complete = mutation({
       freeShippingByDynamicPricing: cart.freeShippingByDynamicPricing,
       subtotalAmount: cart.subtotalAmount,
       discountAmount: cart.discountAmount,
-      shippingAmount: cart.freeShippingByDynamicPricing ? 0 : cart.shippingAmount,
+      freeShippingByCoupon: cart.freeShippingByCoupon,
+      shippingAmount: (cart.freeShippingByDynamicPricing || cart.freeShippingByCoupon) ? 0 : cart.shippingAmount,
       taxAmount: finalTaxAmount,
       totalAmount: finalTotalAmount,
       paymentStatus: "pending",
@@ -1214,6 +1145,8 @@ export const complete = mutation({
       createdAt: now,
       updatedAt: now,
     });
+
+    await reserveOrderCoupon(ctx, orderId, coupon.discount, coupon.user, session.email, coupon.evaluation?.discountAmount ?? 0);
 
     for (const item of items) {
       if (item.variantId && !item.variant) {
@@ -1371,21 +1304,26 @@ export const complete = mutation({
       });
     }
 
-    await ctx.db.patch(session._id, {
+    await patchDynamicWithMediaReferences(ctx, session._id, {
       status: isExternalCardPayment ? "payment_pending" : "completed",
       orderId,
       appliedDiscountCode: cart.appliedDiscountCode,
       appliedDiscountDescription: cart.appliedDiscountDescription,
       subtotalAmount: cart.subtotalAmount,
       discountAmount: cart.discountAmount,
-      shippingAmount: session.freeShippingByDynamicPricing ? 0 : cart.shippingAmount,
+      freeShippingByCoupon: cart.freeShippingByCoupon,
+      shippingAmount: (session.freeShippingByDynamicPricing || session.freeShippingByCoupon) ? 0 : cart.shippingAmount,
       taxAmount: finalTaxAmount,
       totalAmount: finalTotalAmount,
       completedAt: isExternalCardPayment ? undefined : now,
       updatedAt: now,
     });
 
-    await ctx.db.patch(cart._id, {
+    await patchDynamicWithMediaReferences(ctx, cart._id, {
+      freeShippingByCoupon: cart.freeShippingByCoupon,
+      shippingAmount: (cart.freeShippingByDynamicPricing || cart.freeShippingByCoupon) ? 0 : cart.shippingAmount,
+      totalAmount: finalTotalAmount,
+      taxAmount: finalTaxAmount,
       status: isExternalCardPayment ? "pending_payment" : "converted",
       orderId,
       convertedAt: isExternalCardPayment ? undefined : now,
@@ -1394,16 +1332,7 @@ export const complete = mutation({
     });
 
     if (!isExternalCardPayment && cart.appliedDiscountCode) {
-      const discount = await ctx.db
-        .query("commerce_discount_codes")
-        .withIndex("by_code", (q: any) => q.eq("code", cart.appliedDiscountCode))
-        .unique();
-      if (discount) {
-        await ctx.db.patch(discount._id, {
-          usageCount: discount.usageCount + 1,
-          updatedAt: now,
-        });
-      }
+      await settleOrderCoupon(ctx, await ctx.db.get(orderId), "consume");
     }
 
     if (!isExternalCardPayment) {
@@ -1454,10 +1383,8 @@ export const abandonSession = mutation({
   },
 });
 
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
-export const listSessions = query({
+export const listSessions: import("convex/server").RegisteredQuery<"public", { limit?: number; olderThanMs?: number }, import("../_generated/dataModel").Doc<"commerce_checkout_sessions">[]> = query({
   args: listAbandonedCheckoutSessionsArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     await requireCan(ctx, "manage_options");
     const limit = Math.min(args.limit ?? 100, 500);

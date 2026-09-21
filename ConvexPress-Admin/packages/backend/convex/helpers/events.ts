@@ -32,6 +32,8 @@
  *   });
  */
 
+import type { RequestReadLedger } from "./requestReadLedger";
+import { ConvexError } from "convex/values";
 import type { Id } from "../_generated/dataModel";
 import { internal } from "../_generated/api";
 import type { MutationCtx } from "../_generated/server";
@@ -87,6 +89,7 @@ export async function emitEvent(
   system: string,
   payload: Record<string, unknown>,
   options?: EmitEventOptions,
+  budget?: RequestReadLedger,
 ): Promise<Id<"events">> {
   // ─── 1. Validate event code format ──────────────────────────────────────
   if (!code.includes(".")) {
@@ -117,7 +120,9 @@ export async function emitEvent(
     let depth = 0;
     let currentId: Id<"events"> | undefined = options.parentEventId;
     while (currentId && depth < MAX_EVENT_CHAIN_DEPTH) {
+      budget?.beforeRead();
       const parentEventDoc: Awaited<ReturnType<typeof ctx.db.get>> = await ctx.db.get("events", currentId);
+      budget?.record(parentEventDoc);
       if (!parentEventDoc) break;
       currentId = parentEventDoc.parentEventId;
       depth++;
@@ -185,13 +190,18 @@ export async function emitEvent(
   // listeners and filter in-memory. This is acceptable because the listener
   // table is small (typically < 200 records total across all systems).
 
+  budget?.beforeRead();
   const activeListeners = await ctx.db
     .query("eventListeners")
     .withIndex("by_active", (q) => q.eq("isActive", true))
     // Every active listener must be considered: sites register well over 100
     // (155 on the test fleet), and a lower cap silently dropped the
     // notification-engine listeners that sort after the first page.
-    .take(1000);
+    .take(budget ? 1001 : 1000);
+  if (budget) {
+    for (const listener of activeListeners) budget.record(listener);
+    if (activeListeners.length > 1000) throw new ConvexError({ code: "EVENT_LISTENER_BUDGET", message: "The complete publication listener inventory exceeds its safe read limit." });
+  }
 
   // Filter to those whose eventCode pattern matches this event code
   const matchedListeners = activeListeners

@@ -151,6 +151,9 @@ export const customFieldTables = {
     // --- Field Reference ---
     fieldKey: v.string(), // References fieldDefinitions.key
     fieldName: v.string(), // References fieldDefinitions.name (denormalized)
+    // The prompt answered by a form submitter, independent of later edits or
+    // deletion of its definition. Older answers have no historical snapshot.
+    formFieldSnapshot: v.optional(v.object({ label: v.string(), type: v.string() })),
 
     // --- Value ---
     value: v.string(), // JSON-encoded value (type depends on field type)

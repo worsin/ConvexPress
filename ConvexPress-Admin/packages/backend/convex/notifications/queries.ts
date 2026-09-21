@@ -464,10 +464,8 @@ export const getPreferences = query({
  * If no saved preference exists, returns the default from NOTIFICATION_TYPES.
  * Returns null if the key is not a known notification type.
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
-export const getPreference = query({
+export const getPreference: import("convex/server").RegisteredQuery<"public", { notificationKey: string }, { notificationKey: string; notificationName: string; category: string; siteEnabled: boolean; toastEnabled: boolean } | null> = query({
   args: getPreferenceArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     // 1. Authenticate
     const user = await getCurrentUser(ctx);
@@ -483,7 +481,7 @@ export const getPreference = query({
     // 3. Look up saved preference
     const saved = await ctx.db
       .query("notificationPreferences")
-      .withIndex("by_user_key", (q: ConvexQueryBuilder) =>
+      .withIndex("by_user_key", q =>
         q
           .eq("userId", getUserIdentifier(user))
           .eq("notificationKey", args.notificationKey),

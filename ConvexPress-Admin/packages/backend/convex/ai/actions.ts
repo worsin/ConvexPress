@@ -12,7 +12,8 @@
 
 import { action } from "../_generated/server";
 import { internal } from "../_generated/api";
-import { ConvexError } from "convex/values";
+import { ConvexError, v } from "convex/values";
+import { aiFailureMessage } from "../../lib/aiFailure";
 import { generateAllArgs, generateSectionArgs } from "./validators";
 import * as prompts from "./prompts";
 
@@ -20,6 +21,7 @@ import * as prompts from "./prompts";
 
 export const testProviderConnection = action({
   args: {},
+  returns: v.object({ ok: v.boolean(), message: v.string() }),
   handler: async (ctx): Promise<{ ok: boolean; message: string }> => {
     await ctx.runQuery(internal.settings.internals.requireManageOptionsInternal);
 
@@ -37,7 +39,7 @@ export const testProviderConnection = action({
     } catch (error) {
       return {
         ok: false,
-        message: error instanceof Error ? error.message : "AI provider connection failed.",
+        message: aiFailureMessage(error, "AI provider connection failed. Check your provider credentials and model in Settings > AI."),
       };
     }
   },

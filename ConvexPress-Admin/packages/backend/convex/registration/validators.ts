@@ -1,3 +1,4 @@
+import { INVITATION_ROLE_SLUGS } from "../../lib/auth/roleAssignment";
 /**
  * Registration System - Convex Validators
  *
@@ -13,15 +14,10 @@ import { v } from "convex/values";
 /**
  * Validator for invitation status filter.
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const invitationStatusValidator = v.union(
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   v.literal("pending"),
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   v.literal("accepted"),
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   v.literal("expired"),
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   v.literal("revoked"),
 );
 
@@ -31,13 +27,7 @@ export const invitationStatusValidator = v.union(
  * Valid roles for invitation assignment.
  * Matches the WordPress-standard role slugs.
  */
-export const VALID_ROLES = [
-  "subscriber",
-  "contributor",
-  "author",
-  "editor",
-  "administrator",
-] as const;
+export const VALID_ROLES = INVITATION_ROLE_SLUGS;
 
 export type ValidRole = (typeof VALID_ROLES)[number];
 
@@ -65,15 +55,14 @@ export const inviteUserArgs = {
 /**
  * Args for the resendInvitation mutation.
  */
-export const resendInvitationArgs = {
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+export const resendInvitationArgs: { invitationId: import("convex/values").VId<import("../_generated/dataModel").Id<"invitations">> } = {
   invitationId: v.id("invitations"),
 };
 
 /**
  * Args for the revokeInvitation mutation.
  */
-export const revokeInvitationArgs = {
+export const revokeInvitationArgs: { invitationId: import("convex/values").VId<import("../_generated/dataModel").Id<"invitations">> } = {
   invitationId: v.id("invitations"),
 };
 
@@ -81,17 +70,12 @@ export const revokeInvitationArgs = {
  * Args for the bulkInvite mutation.
  */
 export const bulkInviteArgs = {
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   invitations: v.array(
-    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     v.object({
       email: v.string(),
       role: v.string(),
-      // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
       firstName: v.optional(v.string()),
-      // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
       lastName: v.optional(v.string()),
-      // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
       message: v.optional(v.string()),
     }),
   ),
@@ -112,14 +96,13 @@ export const acceptInvitationArgs = {
  * Args for the listInvitations query.
  */
 export const listInvitationsArgs = {
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   status: v.optional(invitationStatusValidator),
 };
 
 /**
  * Args for the getInvitation query.
  */
-export const getInvitationArgs = {
+export const getInvitationArgs: { invitationId: import("convex/values").VId<import("../_generated/dataModel").Id<"invitations">> } = {
   invitationId: v.id("invitations"),
 };
 

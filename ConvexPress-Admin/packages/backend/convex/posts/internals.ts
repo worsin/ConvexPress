@@ -1,3 +1,5 @@
+import { deleteTermRelationship } from "../helpers/postDiscovery";
+import { publishScheduledCanonicalDocument } from "../canonicalDocuments/service";
 /**
  * Post System - Internal Functions
  *
@@ -12,11 +14,13 @@
  *   getAllPublished    - Return all published posts with minimal data (for bulk operations)
  */
 
+import { deleteWithMediaReferences, patchWithMediaReferences } from "../media/attachmentGuard";
 import { internalMutation, internalQuery } from "../_generated/server";
 import { internal } from "../_generated/api";
 import { v } from "convex/values";
+import { makeFunctionReference } from "convex/server";
 import { emitEvent } from "../helpers/events";
-import { POST_EVENTS, SYSTEM } from "../events/constants";
+import { POST_EVENTS, PAGE_EVENTS, SYSTEM } from "../events/constants";
 
 // ─── Publish Scheduled Post ─────────────────────────────────────────────────
 
@@ -30,16 +34,18 @@ import { POST_EVENTS, SYSTEM } from "../events/constants";
  * or its status changed before the scheduled time, this is a no-op.
  */
 export const publishScheduled = internalMutation({
-  args: { postId: v.id("posts") },
-  handler: async (ctx, { postId }) => {
+  args: { postId: v.id("posts"), expectedScheduledAt: v.optional(v.number()) },
+  handler: async (ctx, { postId, expectedScheduledAt }) => {
     const post = await ctx.db.get("posts", postId);
 
     // Post was deleted, or status changed from "future" - no-op
-    if (!post || post.status !== "future") return;
+    if (!post || post.status !== "future" || post.scheduledAt === undefined || post.scheduledAt > Date.now()) return;
+    if (expectedScheduledAt !== undefined && post.scheduledAt !== expectedScheduledAt) return;
 
+    if (post.blocksVersion === 2) return publishScheduledCanonicalDocument(ctx, post, expectedScheduledAt);
     const now = Date.now();
 
-    await ctx.db.patch("posts", postId, {
+    await patchWithMediaReferences<"posts">(ctx, "posts", postId, {
       status: "publish",
       publishedAt: now,
       scheduledAt: undefined,
@@ -47,12 +53,13 @@ export const publishScheduled = internalMutation({
     });
 
     // Emit post.published event
-    await emitEvent(ctx, POST_EVENTS.PUBLISHED, SYSTEM.POST, {
+    await emitEvent(ctx, post.type === "page" ? PAGE_EVENTS.PUBLISHED : POST_EVENTS.PUBLISHED, post.type === "page" ? SYSTEM.PAGE : SYSTEM.POST, {
       postId,
+      ...(post.type === "page" ? { pageId: postId } : {}),
       title: post.title,
       authorId: post.authorId,
       publishedAt: now,
-      url: `/blog/${post.slug}`,
+      url: post.type === "page" ? (post.path ?? `/${post.slug}`) : `/blog/${post.slug}`,
       scheduledPublish: true,
     });
 
@@ -91,7 +98,7 @@ export const purgeOldTrash = internalMutation({
       .collect();
 
     for (const meta of metaRecords) {
-      await ctx.db.delete("postMeta", meta._id);
+      await deleteWithMediaReferences<"postMeta">(ctx, "postMeta", meta._id);
     }
 
     // ── Delete all taxonomy relationships ────────────────────────────────
@@ -101,7 +108,7 @@ export const purgeOldTrash = internalMutation({
       .collect();
 
     for (const rel of termRels) {
-      await ctx.db.delete("termRelationships", rel._id);
+      await deleteTermRelationship(ctx, rel._id);
     }
 
     // ── Delete all revisions (H1 fix) ──────────────────────────────────
@@ -129,7 +136,7 @@ export const purgeOldTrash = internalMutation({
     };
 
     // ── Delete the post record ──────────────────────────────────────────
-    await ctx.db.delete("posts", postId);
+    await deleteWithMediaReferences<"posts">(ctx, "posts", postId);
 
     // ── Emit event ──────────────────────────────────────────────────────
     await emitEvent(ctx, POST_EVENTS.DELETED, SYSTEM.POST, eventPayload);
@@ -148,25 +155,10 @@ export const purgeOldTrash = internalMutation({
  */
 export const updatePostCount = internalMutation({
   args: { authorId: v.id("users") },
+  returns: v.null(),
   handler: async (ctx, { authorId }) => {
-    const author = await ctx.db.get("users", authorId);
-    if (!author) return;
-
-    // Count published posts by this author
-    const publishedPosts = await ctx.db
-      .query("posts")
-      .withIndex("by_author", (q) =>
-        q.eq("authorId", authorId).eq("type", "post").eq("status", "publish"),
-      )
-      .collect();
-
-    const count = publishedPosts.length;
-
-    // Update the denormalized count on the user record
-    await ctx.db.patch("users", authorId, {
-      postCount: count,
-      updatedAt: Date.now(),
-    });
+    await ctx.scheduler.runAfter(0, makeFunctionReference<"mutation", { authorId: typeof authorId }>("posts/authorCounts:request"), { authorId });
+    return null;
   },
 });
 

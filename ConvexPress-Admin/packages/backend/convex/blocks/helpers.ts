@@ -1,6 +1,7 @@
+import { assertLegacyAuthoring } from "../helpers/authoringVersionFence";
 import { ConvexError } from "convex/values";
 import type { Doc } from "../_generated/dataModel";
-import { getCatalogEntry, validateAttrsForCatalogEntry } from "./aiPromptBuilder";
+import { validateAttrsForCatalogEntry } from "./aiPromptBuilder";
 
 export type StoredBlock = {
   id: string;
@@ -34,6 +35,7 @@ function stripLegacyEnvelopeFields(block: any): StoredBlock {
 }
 
 export function getStoredBlocks(doc: Doc<"posts">): StoredBlock[] {
+  assertLegacyAuthoring(doc);
   if (!Array.isArray(doc.blocks)) return [];
   return (doc.blocks as any[]).map(stripLegacyEnvelopeFields);
 }
@@ -113,24 +115,15 @@ export function validateBlocks(blocks: StoredBlock[], depth = 0) {
   }
 }
 
-export function validateBlocksAgainstCatalog(blocks: StoredBlock[]) {
-  for (const block of blocks) {
-    // Custom/local/extension blocks may not be present in the core AI catalog.
-    // Their frontend Zod schema remains the source of truth; the backend
-    // catalog check hardens known core blocks without breaking extensibility.
-    if (!getCatalogEntry(block.name)) {
-      if (block.innerBlocks) validateBlocksAgainstCatalog(block.innerBlocks);
-      continue;
-    }
+export function validateBlocksAgainstCatalog(blocks: StoredBlock[]): StoredBlock[] {
+  return blocks.map((block) => {
     const result = validateAttrsForCatalogEntry(block.name, block.attrs);
-    if (!result.ok) {
-      throw new ConvexError({
-        code: "VALIDATION_ERROR",
-        message: result.message,
-      });
-    }
-    if (block.innerBlocks) validateBlocksAgainstCatalog(block.innerBlocks);
-  }
+    if (!result.ok) throw new ConvexError({ code: "VALIDATION_ERROR", message: result.message });
+    return {
+      ...block, attrs: result.attrs,
+      ...(block.innerBlocks ? { innerBlocks: validateBlocksAgainstCatalog(block.innerBlocks) } : {}),
+    };
+  });
 }
 
 export function countBlockNames(blocks: StoredBlock[], into = new Map<string, number>()) {

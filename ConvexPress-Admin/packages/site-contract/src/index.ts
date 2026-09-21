@@ -7,3 +7,4 @@ export * from "./operations";
 export * from "./receipts";
 export * from "./schemas";
 export * from "./versions";
+export * from "./content-promotion-media";

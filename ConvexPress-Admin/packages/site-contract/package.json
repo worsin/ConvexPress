@@ -10,11 +10,13 @@
     "./node": "./src/node.ts",
     "./runtime-protocol": "./src/runtime-protocol.ts",
     "./runtime-node": "./src/runtime-node.ts",
-    "./test-vectors": "./src/test-vectors.ts"
+    "./test-vectors": "./src/test-vectors.ts",
+    "./content-promotion": "./src/content-promotion.ts",
+    "./media-index-epoch": "./src/media-index-epoch.ts"
   },
   "scripts": {
     "check-types": "tsc --noEmit",
-    "test": "bun test src/__tests__"
+    "test": "bun test ./src/__tests__"
   },
   "dependencies": {
     "zod": "catalog:"

@@ -7,7 +7,7 @@ import {
   SHIPPING_PROVIDER_DEFAULTS,
 } from "../settings/defaults";
 
-type ShippingCtx = Pick<QueryCtx, "auth" | "db">;
+type ShippingCtx = Pick<QueryCtx, "auth" | "db" | "runQuery">;
 
 export const SHIPPING_PROVIDERS = [
   "shipstation",
@@ -63,10 +63,9 @@ export async function getShippingSettingsSection(
   ctx: ShippingCtx,
   section: ShippingSettingsSection,
 ) {
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   const doc = await ctx.db
     .query("settings")
-    .withIndex("by_section", (q: ConvexQueryBuilder) => q.eq("section", section))
+    .withIndex("by_section", q => q.eq("section", section))
     .unique();
 
   const defaults =

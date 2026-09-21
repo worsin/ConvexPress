@@ -67,7 +67,7 @@ export const create = mutation({
         .withIndex("by_default", (q: any) => q.eq("isDefault", true))
         .collect();
       for (const row of current) {
-        await ctx.db.patch(row._id, { isDefault: false, updatedAt: now });
+        await ctx.db.patch("commerce_tax_classes", row._id, { isDefault: false, updatedAt: now });
       }
     }
 
@@ -112,7 +112,7 @@ export const update = mutation({
         .withIndex("by_default", (q: any) => q.eq("isDefault", true))
         .collect();
       for (const r of current) {
-        await ctx.db.patch(r._id, { isDefault: false, updatedAt: now });
+        await ctx.db.patch("commerce_tax_classes", r._id, { isDefault: false, updatedAt: now });
       }
     }
 
@@ -120,7 +120,7 @@ export const update = mutation({
     if (args.label !== undefined) patch.label = args.label;
     if (args.description !== undefined) patch.description = args.description;
     if (args.isDefault !== undefined) patch.isDefault = args.isDefault;
-    await ctx.db.patch(args.id, patch);
+    await ctx.db.patch("commerce_tax_classes", args.id, patch);
     return { success: true };
   },
 });
@@ -140,7 +140,7 @@ export const remove = mutation({
         message: "Cannot delete the default tax class. Set another class as default first.",
       });
     }
-    await ctx.db.delete(args.id);
+    await ctx.db.delete("commerce_tax_classes", args.id);
     return { success: true };
   },
 });

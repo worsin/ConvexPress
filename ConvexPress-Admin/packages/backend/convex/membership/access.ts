@@ -1,3 +1,9 @@
+import type { RuleResult, RuleArgs, GrantResult } from "./policyReads";
+import { makeFunctionReference } from "convex/server";
+import type { RequestReadLedger, MeasuredPolicyPage } from "../helpers/requestReadLedger";
+import { readMembershipAuthorityGrants, membershipAuthorityReader } from "../helpers/membershipAuthority";
+const rulesRead = makeFunctionReference<"query", RuleArgs, RuleResult[]>("membership/policyReads:rules");
+const measuredRulesRead = makeFunctionReference<"query", RuleArgs, MeasuredPolicyPage<RuleResult>>("membership/policyReads:measuredRules");
 import type { Id } from "../_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
 import { isMembershipPluginEnabled } from "../commerce/helpers";
@@ -16,6 +22,7 @@ export type MembershipResourceType =
 export type MembershipTeaserMode = "hide" | "excerpt" | "custom_message";
 
 export interface MembershipRuleLike {
+	policyGroup?: string;
 	resourceType?: MembershipResourceType;
 	resourceIdOrKey?: string;
 	ruleMode: "allow_only" | "deny_if_missing";
@@ -132,6 +139,28 @@ function denialReasonFromFailure(input: {
 }
 
 export function evaluateRestrictionRules(
+	rules: MembershipRuleLike[],
+	principal: PrincipalAccessInput,
+): MembershipAccessDecision {
+	// Preserve the exact legacy decision path when all rules share one group.
+	const groups = new Map<string | undefined, MembershipRuleLike[]>();
+	for (const rule of rules) {
+		const group = groups.get(rule.policyGroup) ?? [];
+		group.push(rule);
+		groups.set(rule.policyGroup, group);
+	}
+	if (groups.size <= 1) return evaluateRestrictionGroup(rules, principal);
+	const matches: string[] = [];
+	for (const group of groups.values()) {
+		const decision = evaluateRestrictionGroup(group, principal);
+		if (!decision.allowed) return decision;
+		matches.push(...decision.matchingPlanIds);
+	}
+	return { allowed: true, reason: "all_rules_passed", teaserMode: null,
+		customMessage: null, matchingPlanIds: uniqueStrings(matches) };
+}
+
+function evaluateRestrictionGroup(
 	rules: MembershipRuleLike[],
 	principal: PrincipalAccessInput,
 ): MembershipAccessDecision {
@@ -268,81 +297,60 @@ function compareRouteRuleSpecificity(
 	return aKey.localeCompare(bKey);
 }
 
-async function loadMatchingRules(
+async function readRules(
+  ctx: MembershipCtx, resourceType: MembershipResourceType, resourceIdOrKey: string, budget?: RequestReadLedger,
+): Promise<RuleResult[]> {
+  if (!budget) return ctx.runQuery(rulesRead, { resourceType, resourceIdOrKey });
+  budget.beforeRead();
+  const measured = await ctx.runQuery(measuredRulesRead, { resourceType, resourceIdOrKey });
+  budget.recordPage(measured);
+  return measured.items;
+}
+function matchingRules(rules: RuleResult[], resourceType: MembershipResourceType, resourceIdOrKey: string): RuleResult[] {
+  if (resourceType !== "route") return rules;
+  const normalizedPath = normalizePathname(resourceIdOrKey);
+  return rules.filter(rule => rule.resourceType === "route" && matchesRoutePattern(rule.resourceIdOrKey, normalizedPath)).sort(compareRouteRuleSpecificity);
+}
+export async function loadMatchingRules(
 	ctx: MembershipCtx,
 	resourceType: MembershipResourceType,
 	resourceIdOrKey: string,
-): Promise<MembershipRuleLike[]> {
-	if (resourceType !== "route") {
-		return await ctx.db
-			.query("membership_restriction_rules")
-			.withIndex("by_resource", (q: any) =>
-				q
-					.eq("resourceType", resourceType)
-					.eq("resourceIdOrKey", resourceIdOrKey),
-			)
-			.collect();
-	}
-
-	const normalizedPath = normalizePathname(resourceIdOrKey);
-	const rules = await ctx.db.query("membership_restriction_rules").collect();
-	return rules
-		.filter(
-			(rule: any) =>
-				rule.resourceType === "route" &&
-				matchesRoutePattern(rule.resourceIdOrKey, normalizedPath),
-		)
-		.sort(compareRouteRuleSpecificity);
+	budget?: RequestReadLedger,
+): Promise<RuleResult[]> {
+  return matchingRules(await readRules(ctx, resourceType, resourceIdOrKey, budget), resourceType, resourceIdOrKey);
 }
 
-async function getValidMembershipGrants(
+export async function getValidMembershipGrants(
 	ctx: MembershipCtx,
 	userId: Id<"users">,
-): Promise<any[]> {
-	const now = Date.now();
-	const [activeGrants, graceGrants] = await Promise.all([
-		ctx.db
-			.query("membership_grants")
-			.withIndex("by_user_status", (q: any) =>
-				q.eq("userId", userId).eq("status", "active"),
-			)
-			.collect(),
-		ctx.db
-			.query("membership_grants")
-			.withIndex("by_user_status", (q: any) =>
-				q.eq("userId", userId).eq("status", "grace"),
-			)
-			.collect(),
-	]);
-
-	return [...activeGrants, ...graceGrants].filter((grant: any) => {
-		if (
-			grant.status === "grace" &&
-			grant.graceEndsAt &&
-			grant.graceEndsAt < now
-		) {
-			return false;
-		}
-		if (grant.endsAt && grant.endsAt < now && grant.status !== "grace") {
-			return false;
-		}
-		return true;
-	});
+	budget?: RequestReadLedger,
+): Promise<GrantResult[]> {
+  return readMembershipAuthorityGrants(ctx, userId, budget);
 }
 
 async function getValidUserPlanIds(
 	ctx: MembershipCtx,
 	userId: Id<"users">,
+	budget?: RequestReadLedger,
 ): Promise<string[]> {
-	const grants = await getValidMembershipGrants(ctx, userId);
-	return uniqueStrings(grants.map((grant: any) => String(grant.planId)));
+	const grants = await getValidMembershipGrants(ctx, userId, budget);
+	const reader = membershipAuthorityReader(ctx, budget);
+  const ids: string[] = [];
+  for (const grant of grants) {
+    const plan = await reader.plan(grant.planId);
+    if (plan?.status === "active") ids.push(String(plan._id));
+  }
+  return uniqueStrings(ids);
 }
 
 async function getUserById(
 	ctx: MembershipCtx,
 	userId: Id<"users"> | string,
+	budget?: RequestReadLedger,
 ): Promise<any | null> {
+	budget?.beforeRead();
 	const user = await ctx.db.get("users", userId as Id<"users">);
+	budget?.record(user);
 	if (!user || user.status !== "active") return null;
 	return user;
 }
@@ -351,6 +359,7 @@ async function getGrantedCapabilitiesForRules(
 	ctx: MembershipCtx,
 	rules: MembershipRuleLike[],
 	user: any,
+	budget?: RequestReadLedger,
 ): Promise<string[]> {
 	const requiredCapabilities = uniqueStrings(
 		rules.flatMap((rule) => rule.requiredCapabilities ?? []),
@@ -361,7 +370,7 @@ async function getGrantedCapabilitiesForRules(
 	const requiredSet = new Set(requiredCapabilities);
 	const grantedCapabilities: string[] = [];
 
-	const role = await resolveUserRole(ctx as any, user);
+	const role = await resolveUserRole(ctx as any, user, budget);
 	const roleCapabilities: string[] = Array.isArray(
 		(role as any)?.capabilities,
 	)
@@ -373,12 +382,10 @@ async function getGrantedCapabilitiesForRules(
 		}
 	}
 
-	const grants = await getValidMembershipGrants(ctx, user._id);
+	const grants = await getValidMembershipGrants(ctx, user._id, budget);
+	const reader = membershipAuthorityReader(ctx, budget);
 	for (const grant of grants) {
-		const plan = await ctx.db.get(
-			"membership_plans",
-			grant.planId as Id<"membership_plans">,
-		);
+		const plan = await reader.plan(grant.planId as Id<"membership_plans">);
 		if (!plan || plan.status !== "active") continue;
 		const linkedCapabilities: string[] = Array.isArray(plan.linkedCapabilities)
 			? plan.linkedCapabilities
@@ -393,34 +400,29 @@ async function getGrantedCapabilitiesForRules(
 	return uniqueStrings(grantedCapabilities);
 }
 
-export async function evaluateMembershipAccess(
-	ctx: MembershipCtx,
-	args: {
-		resourceType: MembershipResourceType;
-		resourceIdOrKey: string;
-		userId?: Id<"users"> | string;
-	},
-): Promise<MembershipAccessDecision> {
-	if (!(await isMembershipPluginEnabled(ctx))) {
-		return {
-			allowed: true,
-			reason: "plugin_disabled",
-			teaserMode: null,
-			customMessage: null,
-			matchingPlanIds: [],
-		};
-	}
-
-	const normalizedResourceId =
-		args.resourceType === "route"
-			? normalizePathname(args.resourceIdOrKey)
-			: args.resourceIdOrKey;
-	const rules = await loadMatchingRules(
-		ctx,
-		args.resourceType,
-		normalizedResourceId,
-	);
-
+type AccessArgs = { resourceType: MembershipResourceType; resourceIdOrKey: string; userId?: Id<"users"> | string };
+/** A fresh evaluator belongs to one read-only query snapshot. Never retain this
+ * closure across requests or reuse it after writes in a mutation. */
+export function createMembershipAccessEvaluator(ctx: QueryCtx, budget?: RequestReadLedger) {
+  let enabled: Promise<boolean> | undefined;
+  const rulesByTarget = new Map<string, Promise<RuleResult[]>>();
+  return async (args: AccessArgs): Promise<MembershipAccessDecision> => {
+    enabled ??= isMembershipPluginEnabled(ctx, budget);
+    if (!(await enabled)) return { allowed: true, reason: "plugin_disabled", teaserMode: null, customMessage: null, matchingPlanIds: [] };
+    // The route reader returns the complete bounded route-policy set, so one
+    // measured read can serve every product URL in this query snapshot.
+    const key = args.resourceType === "route" ? "route" : JSON.stringify([args.resourceType, args.resourceIdOrKey]);
+    let source = rulesByTarget.get(key);
+    if (!source) { source = readRules(ctx, args.resourceType, args.resourceIdOrKey, budget); rulesByTarget.set(key, source); }
+    return evaluateRulesForViewer(ctx, args, matchingRules(await source, args.resourceType, args.resourceIdOrKey), budget);
+  };
+}
+export async function evaluateMembershipAccess(ctx: MembershipCtx, args: AccessArgs, budget?: RequestReadLedger): Promise<MembershipAccessDecision> {
+  if (!(await isMembershipPluginEnabled(ctx, budget)))
+    return { allowed: true, reason: "plugin_disabled", teaserMode: null, customMessage: null, matchingPlanIds: [] };
+  return evaluateRulesForViewer(ctx, args, await loadMatchingRules(ctx, args.resourceType, args.resourceIdOrKey, budget), budget);
+}
+async function evaluateRulesForViewer(ctx: MembershipCtx, args: AccessArgs, rules: RuleResult[], budget?: RequestReadLedger): Promise<MembershipAccessDecision> {
 	if (rules.length === 0) {
 		return {
 			allowed: true,
@@ -432,9 +434,9 @@ export async function evaluateMembershipAccess(
 	}
 
 	const user = args.userId
-		? await getUserById(ctx, args.userId)
-		: await getCurrentUser(ctx as any);
-	if (!user) {
+		? await getUserById(ctx, args.userId, budget)
+		: await getCurrentUser(ctx as any, budget);
+	if (!user || user.status !== "active") {
 		return evaluateRestrictionRules(rules, {
 			isAuthenticated: false,
 			userPlanIds: [],
@@ -442,8 +444,8 @@ export async function evaluateMembershipAccess(
 		});
 	}
 
-	const userPlanIds = await getValidUserPlanIds(ctx, user._id);
-	const capabilities = await getGrantedCapabilitiesForRules(ctx, rules, user);
+	const userPlanIds = await getValidUserPlanIds(ctx, user._id, budget);
+	const capabilities = await getGrantedCapabilitiesForRules(ctx, rules, user, budget);
 
 	return evaluateRestrictionRules(rules, {
 		isAuthenticated: true,

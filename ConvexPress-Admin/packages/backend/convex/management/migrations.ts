@@ -2,6 +2,8 @@ import { v } from "convex/values";
 import { internalMutationGeneric as internalMutation } from "convex/server";
 
 import type { ManagementMutationCtx } from "./model";
+import { deleteDynamicWithMediaReferences } from "../media/attachmentGuard";
+
 
 const looseV: any = v;
 const defineInternalMutation: any = internalMutation;
@@ -36,7 +38,7 @@ export const purgeLegacySessions = defineInternalMutation({
           !Array.isArray(row.siteCapabilities),
       )
       .slice(0, batchSize);
-    for (const row of legacy) await ctx.db.delete(row._id);
+    for (const row of legacy) await deleteDynamicWithMediaReferences(ctx, row._id);
     return {
       deleted: legacy.length,
       remaining:

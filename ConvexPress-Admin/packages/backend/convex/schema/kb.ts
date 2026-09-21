@@ -94,6 +94,20 @@ export const kbWorkflowStepValidator = v.object({
 // ─── Tables ─────────────────────────────────────────────────────────
 
 export const kbTables = {
+  kb_search_jobs: defineTable({
+    articleId: v.id("kb_articles"), operation: v.union(v.literal("sync"), v.literal("remove")),
+    actor: v.object({ subject: v.string(), issuer: v.string(), tokenIdentifier: v.string() }),
+    generation: v.number(), lease: v.number(), leaseUntil: v.number(), nextRunAt: v.number(),
+    status: v.union(v.literal("running"), v.literal("paused"), v.literal("uncertain"), v.literal("failed"), v.literal("complete"), v.literal("stale")),
+    phase: v.union(v.literal("settings"), v.literal("settingsSubmitting"), v.literal("settingsPoll"), v.literal("document"), v.literal("documentSubmitting"), v.literal("documentPoll")),
+    indexName: v.string(), configFingerprint: v.string(), providerUrl: v.string(),
+    document: v.optional(v.string()), fingerprint: v.optional(v.string()), taskUid: v.optional(v.number()),
+    receiptVersion: v.optional(v.literal(1)), reconciliationCursor: v.optional(v.number()),
+    reconciledBy: v.optional(v.union(v.literal("document"), v.literal("task"))),
+    reconciliationEvidence: v.optional(v.array(v.object({ phase: v.union(v.literal("settings"), v.literal("document")), kind: v.union(v.literal("document"), v.literal("task")), taskUid: v.optional(v.number()), verifiedAt: v.number() }))),
+    message: v.optional(v.string()), createdAt: v.number(), updatedAt: v.number(),
+  }).index("by_article", ["articleId"]).index("by_status_due", ["status", "nextRunAt"]),
+
   // ── Core Content ──────────────────────────────────────────────────
 
   kb_articles: defineTable({
@@ -136,14 +150,20 @@ export const kbTables = {
     .index("by_parent", ["parentArticleId"])
     .index("by_published", ["publishedAt"])
     .index("by_scheduled", ["scheduledAt"])
+    .index("by_status_scheduled", ["status", "scheduledAt"])
     .index("by_featured", ["isFeatured"])
     .index("by_views", ["viewCount"])
     .index("by_status_updated", ["status", "updatedAt"])
+    .index("by_status_views", ["status", "viewCount"])
+    .index("by_status_published", ["status", "publishedAt"])
+    .index("by_featured_status_order", ["isFeatured", "status", "sortOrder"])
+    .index("by_category_status_views", ["categoryId", "status", "viewCount"])
     .index("by_meilisearch_sync", ["meilisearchSynced"])
     .index("by_rag_sync", ["ragSynced"])
+    .searchIndex("search_article_titles", { searchField: "title", filterFields: ["status"] })
     .searchIndex("search_articles", {
       searchField: "contentPlainText",
-      filterFields: ["status", "categoryId"],
+      filterFields: ["status", "categoryId", "authorId"],
     }),
 
   kb_articleVersions: defineTable({
@@ -164,6 +184,7 @@ export const kbTables = {
     description: v.optional(v.string()),
     icon: v.optional(v.string()),
     parentId: v.optional(v.id("kb_categories")),
+    deletionJobId: v.optional(v.id("kb_category_deletions")),
     order: v.number(),
     isActive: v.boolean(),
     isPublished: v.boolean(),
@@ -176,6 +197,27 @@ export const kbTables = {
     .index("by_order", ["order"])
     .index("by_published", ["isPublished"])
     .index("by_published_order", ["isPublished", "order"]),
+
+  kb_category_deletions: defineTable({
+    categoryId: v.id("kb_categories"), categoryName: v.string(), sourceSlug: v.string(),
+    sourcePublished: v.boolean(), originalParentId: v.optional(v.id("kb_categories")),
+    requestedBy: v.id("users"),
+    // A server-captured principal, never a JWT. Every batch rechecks live authority.
+    actor: v.object({ subject: v.string(), issuer: v.string(), tokenIdentifier: v.string() }),
+    status: v.union(v.literal("running"), v.literal("paused"), v.literal("failed"), v.literal("complete")),
+    phase: v.union(v.literal("children"), v.literal("articles")), generation: v.number(),
+    childrenMoved: v.number(), articlesMoved: v.number(), message: v.optional(v.string()),
+    scheduledId: v.optional(v.id("_scheduled_functions")),
+    createdAt: v.number(), updatedAt: v.number(), completedAt: v.optional(v.number()),
+  }).index("by_category", ["categoryId"]),
+
+  // Deleting a category must not discard its current or future route policies.
+  // These small provenance rows keep those policy identities after reassignment.
+  kb_article_category_guards: defineTable({
+    articleId: v.id("kb_articles"), jobId: v.id("kb_category_deletions"),
+    categorySlug: v.string(), articleSlug: v.string(), wasPublished: v.boolean(),
+    createdAt: v.number(),
+  }).index("by_article", ["articleId"]).index("by_job_article", ["jobId", "articleId"]),
 
   kb_tags: defineTable({
     name: v.string(),

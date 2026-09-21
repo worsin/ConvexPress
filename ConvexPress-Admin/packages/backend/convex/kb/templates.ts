@@ -9,6 +9,7 @@
  *   remove  - Delete a template
  */
 
+import { deleteWithMediaReferences, insertWithMediaReferences, patchWithMediaReferences } from "../media/attachmentGuard";
 import { ConvexError } from "convex/values";
 import { mutation, query } from "../_generated/server";
 import { requireCan, getCurrentUser } from "../helpers/permissions";
@@ -64,7 +65,7 @@ export const getById = query({
 export const create = mutation({
   args: createTemplateArgs,
   // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
-  handler: async (ctx, args) => {
+  handler: async (ctx, args): Promise<import("../_generated/dataModel").Id<"kb_templates">> => {
     await requirePluginEnabled(ctx, "knowledgeBase");
     const user = await requireCan(ctx, "kb.manageTemplates");
 
@@ -76,7 +77,7 @@ export const create = mutation({
     const slug = await generateTemplateSlug(ctx, name);
     const now = Date.now();
 
-    const templateId = await ctx.db.insert("kb_templates", {
+    const templateId: import("../_generated/dataModel").Id<"kb_templates"> = await insertWithMediaReferences<"kb_templates">(ctx, "kb_templates", {
       name,
       slug,
       description: args.description,
@@ -98,7 +99,7 @@ export const create = mutation({
         .take(100);
       for (const other of others) {
         if (other._id !== templateId && other.isDefault) {
-          await ctx.db.patch("kb_templates", other._id, { isDefault: false, updatedAt: now });
+          await patchWithMediaReferences<"kb_templates">(ctx, "kb_templates", other._id, { isDefault: false, updatedAt: now });
         }
       }
     }
@@ -148,13 +149,13 @@ export const update = mutation({
           .take(100);
         for (const other of others) {
           if (other._id !== args.templateId && other.isDefault) {
-            await ctx.db.patch("kb_templates", other._id, { isDefault: false, updatedAt: Date.now() });
+            await patchWithMediaReferences<"kb_templates">(ctx, "kb_templates", other._id, { isDefault: false, updatedAt: Date.now() });
           }
         }
       }
     }
 
-    await ctx.db.patch("kb_templates", args.templateId, updates);
+    await patchWithMediaReferences<"kb_templates">(ctx, "kb_templates", args.templateId, updates);
     return args.templateId;
   },
 });
@@ -174,7 +175,7 @@ export const remove = mutation({
       throw new ConvexError({ code: "NOT_FOUND", message: "Template not found" });
     }
 
-    await ctx.db.delete("kb_templates", args.templateId);
+    await deleteWithMediaReferences<"kb_templates">(ctx, "kb_templates", args.templateId);
     return args.templateId;
   },
 });

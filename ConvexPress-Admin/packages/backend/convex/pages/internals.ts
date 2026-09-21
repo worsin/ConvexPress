@@ -17,6 +17,7 @@
  *   - Slug uniqueness is scoped to `type: "page"` (pages and posts can share slugs)
  */
 
+import { patchWithMediaReferences } from "../media/attachmentGuard";
 import { ConvexError } from "convex/values";
 import type { Id } from "../_generated/dataModel";
 import { internalMutation, internalQuery } from "../_generated/server";
@@ -326,7 +327,7 @@ export async function recomputeDescendantPaths(
     const childPath = `${currentPath}/${child.slug}`;
     const childDepth = newDepth + 1;
 
-    await ctx.db.patch("posts", child._id, {
+    await patchWithMediaReferences<"posts">(ctx, "posts", child._id, {
       path: childPath,
       depth: childDepth,
       updatedAt: Date.now(),
@@ -363,7 +364,7 @@ export const recomputePaths = internalMutation({
     );
 
     // Update this page
-    await ctx.db.patch("posts", args.pageId, { path, depth, updatedAt: Date.now() });
+    await patchWithMediaReferences<"posts">(ctx, "posts", args.pageId, { path, depth, updatedAt: Date.now() });
 
     // Determine the parent's portion of the path for children
     const parentPath = path.substring(0, path.lastIndexOf("/")) || "";

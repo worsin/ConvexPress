@@ -319,7 +319,7 @@ export const rollupDailyAnalytics = internalMutation({
 
       if (existing) {
         // Update existing rollup
-        await ctx.db.patch(existing._id, {
+        await ctx.db.patch("pageAnalyticsDaily", existing._id, {
           pageviews,
           uniqueVisitors: visitorIds.size,
           sessions: sessionIds.size,
@@ -392,7 +392,7 @@ export const purgeExpiredEvents = internalMutation({
 
     // Delete the batch
     for (const event of expired) {
-      await ctx.db.delete(event._id);
+      await ctx.db.delete("pageEvents", event._id);
     }
 
     // If we got a full batch, there may be more -- reschedule

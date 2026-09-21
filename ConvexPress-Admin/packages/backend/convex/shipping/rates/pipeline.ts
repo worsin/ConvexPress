@@ -21,11 +21,13 @@ import { calculateLocalDelivery } from "../methods/localDelivery";
 import { calculateTableRate } from "../methods/tableRate";
 import { rankQuotes } from "./ranking";
 import type { NormalizedShippingQuote, PipelineStageTiming } from "./types";
+import { computeCartKey } from "../../commerce/checkoutShippingGuards";
 import { computeAddressFingerprint } from "../helpers/addressFingerprint";
 import type { RuleContext } from "../rulesEngine/types";
 import { packCart, type PackageTemplate, type PackedItemInput } from "../helpers/binPacking";
 import { evaluateRule } from "../rulesEngine/evaluator";
-import { getShippingIntegrationSettings } from "../helpers/settings";
+import { snapshotShippingOrigin } from "../quoteProvenance";
+import { getEffectiveShipFrom, getShippingIntegrationSettings } from "../helpers/settings";
 import { SHIPPING_EVENTS } from "../../events/constants";
 
 /**
@@ -105,10 +107,7 @@ export const calculateRates = action({
       );
       if (prefetchCtx?.checkoutSession?._id && prefetchCtx.items) {
         const prefetchAddressKey = computeAddressFingerprint(args.shippingAddress);
-        const prefetchCartKey = (prefetchCtx.items as any[])
-          .map((i: any) => `${i.productId}:${i.variantId ?? ""}:${i.quantity}`)
-          .sort()
-          .join(",");
+        const prefetchCartKey = computeCartKey(prefetchCtx.items);
         const cached: any[] | null = await ctx.runQuery(
           internal.shipping.rates.internals.getCachedQuotesForSession,
           {
@@ -255,16 +254,9 @@ export const calculateRates = action({
     // Resolve default ship-from BEFORE package lookup so we can scope the
     // package catalog to the warehouse's location. The same id is reused
     // later for class resolution + rule context.
-    let pipelineShipFromLocationId: string | null = null;
-    try {
-      const loc: any = await ctx.runQuery(
-        internal.shipping.shipFromLocations.internals.getDefault,
-        {},
-      );
-      pipelineShipFromLocationId = loc ? String(loc._id) : null;
-    } catch {
-      // non-critical — fall through to global package catalog
-    }
+    const pipelineOriginSettings = await getEffectiveShipFrom(ctx);
+    const pipelineShipFromLocationId = pipelineOriginSettings.shipFromLocationId;
+    const pipelineOrigin = snapshotShippingOrigin(pipelineOriginSettings);
 
     const packStartPre = now();
     const candidatePackagesPre: any[] = rateContextForMethods
@@ -353,7 +345,7 @@ export const calculateRates = action({
       liveRateMethods.length === 0 &&
       integrationSettings.liveRatesEnabled === true;
     const providerCalls: ProviderCall[] =
-      liveRateMethods.length > 0
+      integrationSettings.liveRatesEnabled !== false && liveRateMethods.length > 0
         ? liveRateMethods
             .filter((m) => m.provider)
             .map((m) => {
@@ -501,11 +493,8 @@ export const calculateRates = action({
         internal.shipping.rates.internals.listEnabledMethodsForZone,
         { zoneId: zoneMatch.zone._id },
       );
-      // Build a minimal cart context for method calculators.
-      const rateContextForMethods: any = await ctx.runQuery(
-        internal.shipping.internals.getRateContextForSession,
-        { sessionToken: args.sessionToken },
-      );
+      // Use the same cart snapshot as the carriers. Edits while rating must
+      // invalidate this result, never relabel an old price with a new cart key.
       if (rateContextForMethods) {
         const items = (rateContextForMethods.items ?? []) as any[];
         const itemCount = items.reduce((s, i) => s + (i.quantity ?? 0), 0);
@@ -522,10 +511,7 @@ export const calculateRates = action({
         const currencyCode =
           rateContextForMethods.cart?.currencyCode ?? "USD";
         const addressKey = computeAddressFingerprint(args.shippingAddress);
-        const cartKey = items
-          .map((i) => `${i.productId}:${i.variantId ?? ""}:${i.quantity}`)
-          .sort()
-          .join(",");
+        const cartKey = computeCartKey(items);
 
         // Stage 3a: Bin-pack the cart (PRD A3) so dimensional/carrier methods
         // see real packed boxes instead of a hardcoded placeholder. If no
@@ -917,7 +903,11 @@ export const calculateRates = action({
       recordStage("methods", methodsStart, false, message.slice(0, 200));
     }
 
-    const ranked = rankQuotes(collected);
+    // Carrier quotes retain the origin each provider actually rated. Manual
+    // methods use the warehouse resolved for this pipeline's package selection.
+    const ranked = rankQuotes(collected.map(quote => quote.provider === "manual"
+      ? {...quote,origin:quote.origin??pipelineOrigin}
+      : quote));
 
     // Persist ranked quotes into `commerce_shipping_rate_quotes` so the
     // checkout picker (website) and checkout validator can find them. Without
@@ -929,11 +919,7 @@ export const calculateRates = action({
       { sessionToken: args.sessionToken },
     );
     if (rateContextForPersist?.checkoutSession?._id) {
-      const items = (rateContextForPersist.items ?? []) as any[];
-      const cartKey = items
-        .map((i: any) => `${i.productId}:${i.variantId ?? ""}:${i.quantity}`)
-        .sort()
-        .join(",");
+      const cartKey = computeCartKey(cartItems);
       try {
         const expiresAt = now() + QUOTE_TTL_MS;
         await ctx.runMutation(
@@ -993,10 +979,7 @@ export const calculateRates = action({
       stages,
       providerResults,
       addressKey,
-      cartKey: (rateContextForPersist?.items ?? [])
-        .map((i: any) => `${i.productId}:${i.variantId ?? ""}:${i.quantity}`)
-        .sort()
-        .join(","),
+      cartKey: computeCartKey(cartItems),
     });
 
     await ctx.runMutation(internal.shipping.rates.internals.emitRateEvent, {

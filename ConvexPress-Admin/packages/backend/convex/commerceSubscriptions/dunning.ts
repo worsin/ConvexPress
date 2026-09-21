@@ -24,6 +24,7 @@
  */
 
 import { v } from "convex/values";
+import type { RegisteredAction } from "convex/server";
 
 import { internalAction } from "../_generated/server";
 import { internal } from "../_generated/api";
@@ -78,25 +79,23 @@ async function isLiveChargingEnabled(ctx: any): Promise<boolean> {
  * Hourly dunning retry sweep. Offset 15 minutes in `crons.ts` so renewals
  * complete before dunning runs.
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
-export const runDunningSweep = internalAction({
+export const runDunningSweep: RegisteredAction<
+  "internal", { limit?: number },
+  { processed: number; succeeded: number; failed: number; cancelled: number }
+> = internalAction({
   args: {
-    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     limit: v.optional(v.number()),
   },
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "commerceSubscriptions");
 
     const limit = args.limit ?? 100;
 
-    // Fetch retryable dunning attempts (past_due contracts with due retries).
     const retryable: Array<{
       attemptId: string;
       subscriptionId: string;
       invoiceId: string;
       attemptNumber: number;
-    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     }> | null = await ctx.runQuery(
       internal.commerceSubscriptions.internals.getRetryableDunningAttempts,
       { limit },

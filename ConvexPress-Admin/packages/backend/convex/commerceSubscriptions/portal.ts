@@ -45,6 +45,8 @@ import { isPluginEnabled, requirePluginEnabled } from "../helpers/plugins";
 import { computeProration } from "../helpers/proration";
 import { decideBridgeCall } from "./bridgeDecisions";
 import { requireCommerceSubscriptionsEnabled } from "./helpers";
+import { patchDynamicWithMediaReferences } from "../media/attachmentGuard";
+
 
 // ─── Local helpers ──────────────────────────────────────────────────────────
 
@@ -197,7 +199,7 @@ async function syncEntitlementsForContract(
 			subscription.status === "active" ||
 			subscription.status === "trialing"
 		) {
-			await ctx.db.patch(entitlement._id, {
+			await patchDynamicWithMediaReferences(ctx, entitlement._id, {
 				status: "active",
 				endsAt: undefined,
 				updatedAt: now,
@@ -206,7 +208,7 @@ async function syncEntitlementsForContract(
 			subscription.status === "past_due" ||
 			subscription.status === "paused"
 		) {
-			await ctx.db.patch(entitlement._id, {
+			await patchDynamicWithMediaReferences(ctx, entitlement._id, {
 				status: "grace",
 				graceEndsAt: addDays(now, gracePeriodDays),
 				updatedAt: now,
@@ -215,7 +217,7 @@ async function syncEntitlementsForContract(
 			subscription.status === "cancelled" ||
 			subscription.status === "expired"
 		) {
-			await ctx.db.patch(entitlement._id, {
+			await patchDynamicWithMediaReferences(ctx, entitlement._id, {
 				status: "revoked",
 				endsAt: now,
 				updatedAt: now,
@@ -775,7 +777,7 @@ export const requestPauseContract = mutation({
 		// helper directly. We can't invoke public mutations from a mutation, so
 		// we replicate the transition inline. This mirrors `mutations.pause` but
 		// tags the history eventType with "portal_" prefix.
-		await ctx.db.patch(args.contractId, {
+		await ctx.db.patch("commerce_subscriptions", args.contractId, {
 			status: "paused",
 			pausedAt: Date.now(),
 			updatedAt: Date.now(),
@@ -833,7 +835,7 @@ export const requestResumeContract = mutation({
 					)
 				: contract.currentPeriodEndAt;
 
-		await ctx.db.patch(args.contractId, {
+		await ctx.db.patch("commerce_subscriptions", args.contractId, {
 			status: "active",
 			pausedAt: undefined,
 			cancelAtPeriodEnd: false,
@@ -889,7 +891,7 @@ export const requestCancelContract = mutation({
 		}
 
 		if (args.immediate === true) {
-			await ctx.db.patch(args.contractId, {
+			await ctx.db.patch("commerce_subscriptions", args.contractId, {
 				status: "cancelled",
 				cancelledAt: now,
 				cancelAtPeriodEnd: false,
@@ -911,7 +913,7 @@ export const requestCancelContract = mutation({
 		}
 
 		// Schedule at period end.
-		await ctx.db.patch(args.contractId, {
+		await ctx.db.patch("commerce_subscriptions", args.contractId, {
 			status: "pending_cancel",
 			cancelAtPeriodEnd: true,
 			cancelScheduledAt: now,

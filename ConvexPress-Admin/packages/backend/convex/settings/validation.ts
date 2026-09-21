@@ -1,3 +1,4 @@
+import { shippingPromisesSchema } from "../canonicalDocuments/foundation/shippingPolicyContracts";
 import { PRODUCT_LAYOUT_IDS, SHOP_LAYOUT_IDS } from "./defaults";
 /**
  * Settings System - Server-Side Validation
@@ -796,6 +797,9 @@ function validateAnalytics(values: Record<string, unknown>): ValidationError[] {
 
 function validateCommerceGeneral(values: Record<string, unknown>): ValidationError[] {
   const errors: ValidationError[] = [];
+  if (values.storefrontPromises !== undefined && !shippingPromisesSchema.safeParse(values.storefrontPromises).success) {
+    errors.push({ field: "storefrontPromises", message: "Provide up to eight policies with a title, supported icon, description and safe policy link." });
+  }
 
   if (isString(values.storeEmail) && values.storeEmail.length > 0 && !isValidEmail(values.storeEmail)) {
     errors.push({ field: "storeEmail", message: "Store email must be a valid email." });
@@ -985,6 +989,14 @@ export function validateSectionValues(
       return validateAI(values);
     case "blocks":
       return validateBlocks(values);
+    case "membership.general": {
+      const errors: ValidationError[] = [];
+      for (const key of Object.keys(values)) if (!["logAccessChecks", "accessLogRetentionDays"].includes(key)) errors.push({field:key,message:"Unknown membership setting"});
+      if (typeof values.logAccessChecks !== "boolean") errors.push({field:"logAccessChecks",message:"Use true or false"});
+      if (typeof values.accessLogRetentionDays !== "number" || !Number.isSafeInteger(values.accessLogRetentionDays) || values.accessLogRetentionDays < 0 || values.accessLogRetentionDays > 3650)
+        errors.push({field:"accessLogRetentionDays",message:"Use a whole number from 0 (keep forever) to 3650 days"});
+      return errors;
+    }
     case "plugins":
       return [];
     case "search":

@@ -1,3 +1,7 @@
+import { RequestReadLedger } from "../helpers/requestReadLedger";
+import { archiveTimeZone } from "../canonicalDocuments/dateArchive";
+import { archivePeriodAt } from "../canonicalDocuments/foundation/archiveContracts";
+import { evaluateMembershipAccess } from "../membership/access";
 /**
  * Post System - Queries
  *
@@ -27,10 +31,18 @@
 import { ConvexError, v } from "convex/values";
 import type { Doc, Id } from "../_generated/dataModel";
 import { query } from "../_generated/server";
-import { getCurrentUser } from "../helpers/permissions";
-import type { AuthPost, AuthUser } from "../helpers/postAuth";
-import { checkPostCapability, getUserRoleLevel } from "../helpers/postAuth";
-import { evaluateMembershipAccess } from "../membership/access";
+import { getCurrentUser, requireCan } from "../helpers/permissions";
+import type { AuthUser } from "../helpers/postAuth";
+import { getUserRoleLevel } from "../helpers/postAuth";
+import {
+	canEditContent,
+	canDiscoverContent,
+ createContentDiscoveryEvaluator,
+	readPublicContent,
+	publicContentAuthor,
+	contentFeaturedImage,
+	PUBLIC_POST_META_KEYS,
+} from "../helpers/publicContent";
 import {
 	countsArgs,
 	DEFAULT_PER_PAGE_ADMIN,
@@ -100,6 +112,8 @@ export const list = query({
 			});
 		}
 
+		await requireCan(ctx, args.type === "page" ? "page.update" : "post.update");
+
 		const type = args.type ?? "post";
 		const page = Math.max(1, args.page ?? 1);
 		const perPage = Math.min(
@@ -126,7 +140,11 @@ export const list = query({
 				.collect();
 
 			// Apply role-based filtering
-			const filtered = filterByRole(searchResults, user._id, roleLevel);
+			const filtered = filterByRole(
+				args.status ? searchResults : searchResults.filter((post) => post.status !== "trash"),
+				user._id,
+				roleLevel,
+			);
 
 			const total = filtered.length;
 			const totalPages = Math.ceil(total / perPage);
@@ -138,7 +156,9 @@ export const list = query({
 				posts.map(async (post) => {
 					const author = await ctx.db.get("users", post.authorId);
 					return {
-						...post,
+						...((await canEditContent(ctx, post))
+							? post
+							: await readPublicContent(ctx, post)),
 						author: author
 							? {
 									_id: author._id,
@@ -154,7 +174,7 @@ export const list = query({
 		}
 
 		// ── Index-based query ───────────────────────────────────────────────
-		let allPosts;
+		let allPosts: PostRow[];
 
 		if (args.status) {
 			// Filter by specific status
@@ -181,7 +201,8 @@ export const list = query({
 		}
 
 		// Apply additional filters
-		let filtered = allPosts;
+		// All/Mine counts exclude trash; apply the same scope before pagination.
+		let filtered = args.status ? allPosts : allPosts.filter((post) => post.status !== "trash");
 
 		// Filter by author if status filter was used but not author index
 		if (args.authorId && args.status) {
@@ -289,7 +310,9 @@ export const list = query({
 			posts.map(async (post) => {
 				const author = await ctx.db.get("users", post.authorId);
 				return {
-					...post,
+					...((await canEditContent(ctx, post))
+						? post
+						: await readPublicContent(ctx, post)),
 					author: author
 						? {
 								_id: author._id,
@@ -316,87 +339,28 @@ export const list = query({
 export const get = query({
 	args: getPostArgs,
 	handler: async (ctx, args) => {
-		let post;
-
-		if (args.postId) {
-			post = await ctx.db.get("posts", args.postId);
-		} else if (args.slug) {
-			const type = args.type ?? "post";
-			post = await ctx.db
-				.query("posts")
-				.withIndex("by_slug", (q) => q.eq("slug", args.slug!).eq("type", type))
-				.first();
-		} else {
-			throw new ConvexError({
-				code: "VALIDATION_ERROR",
-				message: "Either postId or slug must be provided",
-			});
-		}
-
+		const post = args.postId
+			? await ctx.db.get("posts", args.postId)
+			: args.slug
+				? await ctx.db
+						.query("posts")
+						.withIndex("by_slug", (q) =>
+							q.eq("slug", args.slug!).eq("type", args.type ?? "post"),
+						)
+						.first()
+				: null;
 		if (!post) return null;
-
-		// ── Visibility checks ───────────────────────────────────────────────
-		if (post.status === "publish") {
-			// Check password protection
-			if (post.visibility === "password") {
-				// Return post with content withheld
-				const author = await ctx.db.get("users", post.authorId);
-				return {
-					...post,
-					content: undefined, // Withhold content
-					isPasswordProtected: true,
-					author: author
-						? {
-								_id: author._id,
-								displayName: author.displayName ?? author.email,
-								email: author.email,
-							}
-						: null,
-				};
-			}
-
-			// Public post - visible to all
-			const author = await ctx.db.get("users", post.authorId);
+		if (await canEditContent(ctx, post)) {
 			return {
 				...post,
-				isPasswordProtected: false,
-				author: author
-					? {
-							_id: author._id,
-							displayName: author.displayName ?? author.email,
-							email: author.email,
-						}
-					: null,
+				isPasswordProtected: post.visibility === "password",
+				author: await publicContentAuthor(ctx, post),
 			};
 		}
-
-		// Non-public statuses require auth
-		const user = await getCurrentUser(ctx);
-		if (!user) return null;
-
-		try {
-			await checkPostCapability(
-				ctx,
-				user as AuthUser,
-				post as AuthPost,
-				"read",
-			);
-		} catch {
-			return null; // User cannot view this post
-		}
-
-		const author = await ctx.db.get("users", post.authorId);
-		return {
-			...post,
-			isPasswordProtected: post.visibility === "password",
-			author: author
-				? {
-						_id: author._id,
-						displayName: author.displayName ?? author.email,
-						email: author.email,
-					}
-				: null,
-		};
+		const data = await readPublicContent(ctx, post);
+		return data
+			? { ...data, author: await publicContentAuthor(ctx, post) }
+			: null;
 	},
 });
 
@@ -407,102 +371,21 @@ export const get = query({
  * Returns only published posts. Used by the website frontend.
  */
 export const getPublished = query({
-	args: {
-		slug: v.string(),
-	},
+	args: { slug: v.string() },
 	handler: async (ctx, args) => {
 		const post = await ctx.db
 			.query("posts")
 			.withIndex("by_slug", (q) => q.eq("slug", args.slug).eq("type", "post"))
 			.first();
-
 		if (!post || post.status !== "publish") return null;
-
-		// ── Resolve featured image ──────────────────────────────────────────
-		let featuredImageUrl: string | undefined;
-		let featuredImageAlt: string | undefined;
-		if (post.featuredImageId) {
-			const media = await ctx.db.get("media", post.featuredImageId);
-			if (media) {
-				featuredImageUrl =
-					(media as MediaDoc).url || (media as MediaDoc).storageUrl;
-				featuredImageAlt = (media as MediaDoc).altText;
-			}
-		}
-
-		const membershipAccess = await evaluateMembershipAccess(ctx, {
-			resourceType: "post",
-			resourceIdOrKey: String(post._id),
-		});
-
-		// Password-protected posts: withhold content
-		if (post.visibility === "password") {
-			const author = await ctx.db.get("users", post.authorId);
-			return {
-				...post,
-				content: undefined,
-				isPasswordProtected: true,
-				isMembershipRestricted: !membershipAccess.allowed,
-				membershipAccess,
-				featuredImageUrl,
-				featuredImageAlt,
-				author: author
-					? {
-							_id: author._id,
-							displayName: author.displayName ?? author.email,
-							bio: (author as AuthorDoc).bio,
-							avatarUrl:
-								(author as AuthorDoc).avatarUrl ??
-								(author as AuthorDoc).profilePictureUrl,
-							slug: (author as AuthorDoc).slug,
-						}
-					: null,
-			};
-		}
-
-		const author = await ctx.db.get("users", post.authorId);
-		if (!membershipAccess.allowed) {
-			return {
-				...post,
-				content: undefined,
-				isPasswordProtected: false,
-				isMembershipRestricted: true,
-				membershipAccess,
-				featuredImageUrl,
-				featuredImageAlt,
-				author: author
-					? {
-							_id: author._id,
-							displayName: author.displayName ?? author.email,
-							bio: (author as AuthorDoc).bio,
-							avatarUrl:
-								(author as AuthorDoc).avatarUrl ??
-								(author as AuthorDoc).profilePictureUrl,
-							slug: (author as AuthorDoc).slug,
-						}
-					: null,
-			};
-		}
-
-		return {
-			...post,
-			isPasswordProtected: false,
-			isMembershipRestricted: false,
-			membershipAccess,
-			featuredImageUrl,
-			featuredImageAlt,
-			author: author
-				? {
-						_id: author._id,
-						displayName: author.displayName ?? author.email,
-						bio: (author as AuthorDoc).bio,
-						avatarUrl:
-							(author as AuthorDoc).avatarUrl ??
-							(author as AuthorDoc).profilePictureUrl,
-						slug: (author as AuthorDoc).slug,
-					}
-				: null,
-		};
+		const data = await readPublicContent(ctx, post);
+		return data
+			? {
+					...data,
+					...(await contentFeaturedImage(ctx, post)),
+					author: await publicContentAuthor(ctx, post),
+				}
+			: null;
 	},
 });
 
@@ -516,86 +399,25 @@ export const getPublished = query({
  * content that was withheld by getPublished.
  */
 export const verifyPostPassword = query({
-	args: {
-		slug: v.string(),
-		password: v.string(),
-	},
+	args: { slug: v.string(), password: v.string() },
 	handler: async (ctx, args) => {
 		const post = await ctx.db
 			.query("posts")
 			.withIndex("by_slug", (q) => q.eq("slug", args.slug).eq("type", "post"))
 			.first();
-
-		if (!post || post.status !== "publish") return null;
-		if (post.visibility !== "password") return null;
-
-		// Constant-time comparison to prevent timing attacks
+		if (!post || post.status !== "publish" || post.visibility !== "password")
+			return null;
 		const { timingSafeEquals } = await import("../helpers/timingSafe");
 		if (!post.password || !timingSafeEquals(post.password, args.password))
 			return null;
-
-		// Resolve featured image
-		let featuredImageUrl: string | undefined;
-		let featuredImageAlt: string | undefined;
-		if (post.featuredImageId) {
-			const media = await ctx.db.get("media", post.featuredImageId);
-			if (media) {
-				featuredImageUrl =
-					(media as MediaDoc).url || (media as MediaDoc).storageUrl;
-				featuredImageAlt = (media as MediaDoc).altText;
-			}
-		}
-
-		const author = await ctx.db.get("users", post.authorId);
-		const membershipAccess = await evaluateMembershipAccess(ctx, {
-			resourceType: "post",
-			resourceIdOrKey: String(post._id),
-		});
-
-		if (!membershipAccess.allowed) {
-			return {
-				...post,
-				content: undefined,
-				isPasswordProtected: true,
-				isMembershipRestricted: true,
-				passwordVerified: true,
-				membershipAccess,
-				featuredImageUrl,
-				featuredImageAlt,
-				author: author
-					? {
-							_id: author._id,
-							displayName: author.displayName ?? author.email,
-							bio: (author as AuthorDoc).bio,
-							avatarUrl:
-								(author as AuthorDoc).avatarUrl ??
-								(author as AuthorDoc).profilePictureUrl,
-							slug: (author as AuthorDoc).slug,
-						}
-					: null,
-			};
-		}
-
-		return {
-			...post,
-			isPasswordProtected: true,
-			isMembershipRestricted: false,
-			passwordVerified: true,
-			membershipAccess,
-			featuredImageUrl,
-			featuredImageAlt,
-			author: author
-				? {
-						_id: author._id,
-						displayName: author.displayName ?? author.email,
-						bio: (author as AuthorDoc).bio,
-						avatarUrl:
-							(author as AuthorDoc).avatarUrl ??
-							(author as AuthorDoc).profilePictureUrl,
-						slug: (author as AuthorDoc).slug,
-					}
-				: null,
-		};
+		const data = await readPublicContent(ctx, post, { passwordVerified: true });
+		return data
+			? {
+					...data,
+					...(await contentFeaturedImage(ctx, post)),
+					author: await publicContentAuthor(ctx, post),
+				}
+			: null;
 	},
 });
 
@@ -717,7 +539,7 @@ export const listPublished = query({
 		// Denormalize author data, resolve featured images, and find primary category
 		const postsWithAuthors = await Promise.all(
 			posts.map(async (post) => {
-				const author = await ctx.db.get("users", post.authorId);
+				const author = await publicContentAuthor(ctx, post);
 
 				// Resolve featured image URL
 				let featuredImageUrl: string | undefined;
@@ -756,14 +578,14 @@ export const listPublished = query({
 				}
 
 				return {
-					...post,
+					...(await readPublicContent(ctx, post))!,
 					featuredImageUrl,
 					featuredImageAlt,
 					primaryCategory,
 					author: author
 						? {
 								_id: author._id,
-								displayName: author.displayName ?? author.email,
+								displayName: author.displayName,
 								avatarUrl:
 									(author as AuthorDoc).avatarUrl ??
 									(author as AuthorDoc).profilePictureUrl,
@@ -869,40 +691,22 @@ export const counts = query({
 export const getSticky = query({
 	args: {},
 	handler: async (ctx) => {
-		// Bounded to 50 - sticky posts are typically < 10
-		const stickyPosts = await ctx.db
+		const rows = await ctx.db
 			.query("posts")
 			.withIndex("by_type_sticky", (q) =>
 				q.eq("type", "post").eq("isSticky", true),
 			)
 			.take(50);
-
-		// Filter to published + public only
-		const published = stickyPosts.filter(
+		const published = rows.filter(
 			(p) => p.status === "publish" && p.visibility === "public",
 		);
-
-		// Sort by publishedAt descending
 		published.sort((a, b) => (b.publishedAt ?? 0) - (a.publishedAt ?? 0));
-
-		// Denormalize author data
 		return Promise.all(
-			published.map(async (post) => {
-				const author = await ctx.db.get("users", post.authorId);
-				return {
-					...post,
-					author: author
-						? {
-								_id: author._id,
-								displayName: author.displayName ?? author.email,
-								avatarUrl:
-									(author as AuthorDoc).avatarUrl ??
-									(author as AuthorDoc).profilePictureUrl,
-								slug: (author as AuthorDoc).slug,
-							}
-						: null,
-				};
-			}),
+			published.map(async (post) => ({
+				...(await readPublicContent(ctx, post))!,
+				author: await publicContentAuthor(ctx, post),
+				...(await contentFeaturedImage(ctx, post)),
+			})),
 		);
 	},
 });
@@ -958,7 +762,12 @@ export const preview = query({
 		const post = await ctx.db.get("posts", args.postId);
 		if (!post) return null;
 
-		await checkPostCapability(ctx, user as AuthUser, post as AuthPost, "read");
+		if (!(await canEditContent(ctx, post))) {
+			throw new ConvexError({
+				code: "FORBIDDEN",
+				message: "Editorial access required",
+			});
+		}
 
 		// Merge autosave content if newer
 		const previewData = { ...post };
@@ -996,38 +805,17 @@ export const preview = query({
 export const getMetaByPost = query({
 	args: getMetaByPostArgs,
 	handler: async (ctx, args) => {
-		// Verify user can access the parent post's metadata
 		const post = await ctx.db.get("posts", args.postId);
 		if (!post) return [];
-
-		// Published public posts: meta is readable by all
-		// Bounded to 100 meta records per post - posts rarely have more than 20
-		if (post.status === "publish" && post.visibility !== "private") {
-			return await ctx.db
-				.query("postMeta")
-				.withIndex("by_post", (q) => q.eq("postId", args.postId))
-				.take(100);
-		}
-
-		// Non-public posts: require auth and capability check
-		const user = await getCurrentUser(ctx);
-		if (!user) return [];
-
-		try {
-			await checkPostCapability(
-				ctx,
-				user as AuthUser,
-				post as AuthPost,
-				"read",
-			);
-		} catch {
-			return []; // User cannot access this post's metadata
-		}
-
-		return await ctx.db
+		const editorial = await canEditContent(ctx, post);
+		if (!editorial && !(await canDiscoverContent(ctx, post))) return [];
+		const rows = await ctx.db
 			.query("postMeta")
 			.withIndex("by_post", (q) => q.eq("postId", args.postId))
 			.take(100);
+		return editorial
+			? rows
+			: rows.filter((row) => PUBLIC_POST_META_KEYS.has(row.key));
 	},
 });
 
@@ -1040,36 +828,15 @@ export const getMetaByPost = query({
 export const getMetaByKey = query({
 	args: getMetaByKeyArgs,
 	handler: async (ctx, args) => {
-		// Verify user can access the parent post's metadata
 		const post = await ctx.db.get("posts", args.postId);
 		if (!post) return null;
-
-		// Published public posts: meta is readable by all
-		if (post.status === "publish" && post.visibility !== "private") {
-			return await ctx.db
-				.query("postMeta")
-				.withIndex("by_post_key", (q) =>
-					q.eq("postId", args.postId).eq("key", args.key),
-				)
-				.unique();
-		}
-
-		// Non-public posts: require auth and capability check
-		const user = await getCurrentUser(ctx);
-		if (!user) return null;
-
-		try {
-			await checkPostCapability(
-				ctx,
-				user as AuthUser,
-				post as AuthPost,
-				"read",
-			);
-		} catch {
-			return null; // User cannot access this post's metadata
-		}
-
-		return await ctx.db
+		if (
+			!(await canEditContent(ctx, post)) &&
+			(!PUBLIC_POST_META_KEYS.has(args.key) ||
+				!(await canDiscoverContent(ctx, post)))
+		)
+			return null;
+		return ctx.db
 			.query("postMeta")
 			.withIndex("by_post_key", (q) =>
 				q.eq("postId", args.postId).eq("key", args.key),
@@ -1281,37 +1048,26 @@ export const getDateArchiveGroups = query({
 	handler: async (ctx, args) => {
 		const type = args.type ?? "post";
 
-		// Get all published posts of the specified type
-		const publishedPosts = await ctx.db
-			.query("posts")
-			.withIndex("by_type_status", (q) =>
-				q.eq("type", type).eq("status", "publish"),
-			)
-			.take(10000);
-
-		// Filter to public visibility
-		const publicPosts = publishedPosts.filter((p) => p.visibility === "public");
-
-		// Group by year/month from publishedAt
-		const groups = new Map<
-			string,
-			{ year: number; month: number; count: number }
-		>();
-
-		for (const post of publicPosts) {
-			if (!post.publishedAt) continue;
-			const date = new Date(post.publishedAt);
-			const year = date.getFullYear();
-			const month = date.getMonth() + 1; // 1-based
-			const key = `${year}-${month}`;
-
-			const existing = groups.get(key);
-			if (existing) {
-				existing.count++;
-			} else {
-				groups.set(key, { year, month, count: 1 });
-			}
-		}
+        const budget = new RequestReadLedger(), timeZone = await archiveTimeZone(ctx, budget);
+        const discover = createContentDiscoveryEvaluator(ctx, budget);
+        if (!(await evaluateMembershipAccess(ctx, {resourceType:"route",resourceIdOrKey:"/archive"}, budget)).allowed) return [];
+        const groups = new Map<string, {year:number;month:number;count:number}>();
+        const now = Date.now();
+        const iterator = ctx.db.query("posts").withIndex("by_public_discovery", q =>
+          q.eq("type", type).eq("status", "publish").eq("visibility", "public").lte("publishedAt", now)).order("desc")[Symbol.asyncIterator]();
+        try {
+          while (true) {
+            // Legacy count API has no continuation contract. Refuse explicitly
+            // when its budget is exhausted; never return silently partial totals.
+            budget.beforeRead(); const next = await iterator.next(); if(next.done) break;
+            const post = budget.record(next.value);
+            if (post.publishedAt === undefined || !await discover(post)) continue;
+            const {year,month} = archivePeriodAt(post.publishedAt, timeZone, "month");
+            const key = `${year}-${month}`, existing = groups.get(key);
+            if (existing) existing.count++;
+            else groups.set(key,{year,month:month!,count:1});
+          }
+        } finally { await iterator.return?.(); }
 
 		// Sort descending by year then month
 		const result = [...groups.values()].sort((a, b) => {

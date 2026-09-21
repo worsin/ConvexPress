@@ -1,3 +1,4 @@
+import {syncEventSearch} from "./events";
 /**
  * Search System - Internal Functions
  *
@@ -92,6 +93,10 @@ export const onContentChanged = internalMutation({
       await upsertMedia(ctx, contentId, now);
     } else if (contentType === "comment") {
       await upsertComment(ctx, contentId, now);
+    } else if (contentType === "event") {
+      const id=ctx.db.normalizeId("extension_events",contentId); if(id)await syncEventSearch(ctx,id);
+    } else if (contentType === "product") {
+      const id=ctx.db.normalizeId("commerce_products",contentId); if(id)await syncProductSearch(ctx,id);
     } else if (contentType === "course") {
       await upsertCourse(ctx, contentId, now);
     }
@@ -508,8 +513,8 @@ export const reindexAll = internalMutation({
   },
   handler: async (ctx, args) => {
     const now = Date.now();
-    const stats = { post: 0, page: 0, media: 0, comment: 0, course: 0, product: 0, removed: 0, errors: 0 };
-    const contentTypes: Array<"post" | "page" | "media" | "comment" | "course" | "product"> = args.contentType
+    const stats = { post: 0, page: 0, media: 0, comment: 0, course: 0, product: 0, event: 0, removed: 0, errors: 0 };
+    const contentTypes: Array<"post" | "page" | "media" | "comment" | "course" | "product" | "event"> = args.contentType
       ? [args.contentType]
       : ["post", "page", "media", "comment", "course", "product"];
 
@@ -530,6 +535,8 @@ export const reindexAll = internalMutation({
               stats.errors++;
             }
           }
+        } else if (ct === "event") {
+          throw new Error("Event search indexing uses search/eventBackfill:page with its returned continuation cursor.");
         } else if (ct === "media") {
           // Fetch all media items
           const items = await ctx.db.query("media").take(500); // H-16 FIX: bounded query

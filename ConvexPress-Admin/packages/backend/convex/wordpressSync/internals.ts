@@ -1,3 +1,4 @@
+import type { RegisteredQuery, RegisteredMutation } from "convex/server";
 /**
  * WordPress Sync System - Internals
  *
@@ -6,9 +7,9 @@
  */
 
 import { internalAction, internalMutation, internalQuery } from "../_generated/server";
-import { v, ConvexError } from "convex/values";
+import { v, ConvexError, type ObjectType } from "convex/values";
 import { internal } from "../_generated/api";
-import type { Id, Doc } from "../_generated/dataModel";
+import type { Id, Doc, TableNames } from "../_generated/dataModel";
 import { decryptSecret } from "../api/crypto_helpers";
 import {
   type SyncPhase,
@@ -16,6 +17,7 @@ import {
   type PhaseProgress,
   type ImportConfig,
   PHASE_ORDER,
+  createInitialProgress,
   getNextPhase,
   shouldRunPhase,
   normalizeImportConfig,
@@ -27,6 +29,8 @@ import {
   syncErrorValidator,
   type SiteCredentials,
 } from "./validators";
+import { deleteDynamicWithMediaReferences, patchDynamicWithMediaReferences } from "../media/attachmentGuard";
+
 
 // Environment variable for decrypting application passwords
 const WP_ENCRYPTION_KEY = process.env.WP_SYNC_ENCRYPTION_KEY;
@@ -57,7 +61,7 @@ async function deleteImportArtifactsForJob(ctx: any, jobId: any) {
       .take(ARTIFACT_DELETE_BATCH_SIZE);
 
     for (const report of reportBatch) {
-      await ctx.db.delete(report._id);
+      await deleteDynamicWithMediaReferences(ctx, report._id);
       reportsDeleted++;
     }
   } while (reportBatch.length === ARTIFACT_DELETE_BATCH_SIZE);
@@ -69,7 +73,7 @@ async function deleteImportArtifactsForJob(ctx: any, jobId: any) {
       .take(ARTIFACT_DELETE_BATCH_SIZE);
 
     for (const finding of findingBatch) {
-      await ctx.db.delete(finding._id);
+      await deleteDynamicWithMediaReferences(ctx, finding._id);
       findingsDeleted++;
     }
   } while (findingBatch.length === ARTIFACT_DELETE_BATCH_SIZE);
@@ -82,13 +86,10 @@ async function deleteImportArtifactsForJob(ctx: any, jobId: any) {
 /**
  * Get site with credentials (internal only).
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
-export const getSiteWithCredentials = internalQuery({
+export const getSiteWithCredentials: RegisteredQuery<"internal", { siteId: Id<"wordpressSites"> }, Doc<"wordpressSites"> | null> = internalQuery({
   args: {
-    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     siteId: v.id("wordpressSites"),
   },
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, { siteId }) => {
     return await ctx.db.get(siteId);
   },
@@ -97,13 +98,10 @@ export const getSiteWithCredentials = internalQuery({
 /**
  * Get job details (internal only).
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
-export const getJobInternal = internalQuery({
+export const getJobInternal: RegisteredQuery<"internal", { jobId: Id<"wordpressSyncJobs"> }, Doc<"wordpressSyncJobs"> | null> = internalQuery({
   args: {
-    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     jobId: v.id("wordpressSyncJobs"),
   },
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, { jobId }) => {
     return await ctx.db.get(jobId);
   },
@@ -112,11 +110,8 @@ export const getJobInternal = internalQuery({
 /**
  * Count/fetch reconciliation findings for a job (up to limit).
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
-export const countFindings = internalQuery({
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+export const countFindings: RegisteredQuery<"internal", { jobId: Id<"wordpressSyncJobs">; limit: number }, Doc<"wordpressSyncReconciliationFindings">[]> = internalQuery({
   args: { jobId: v.id("wordpressSyncJobs"), limit: v.number() },
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, { jobId, limit }) => {
     return await ctx.db
       .query("wordpressSyncReconciliationFindings")
@@ -128,16 +123,13 @@ export const countFindings = internalQuery({
 /**
  * Get a batch of ID mappings for a site, paginated by wpId.
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
-export const getMappingsBatch = internalQuery({
+export const getMappingsBatch: RegisteredQuery<"internal", { siteId: Id<"wordpressSites">; objectType: string; afterWpId: number; limit: number }, Doc<"wpIdMappings">[]> = internalQuery({
   args: {
-    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     siteId: v.id("wordpressSites"),
     objectType: v.string(),
     afterWpId: v.number(),
     limit: v.number(),
   },
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, { siteId, objectType, afterWpId, limit }) => {
     return await ctx.db
       .query("wpIdMappings")
@@ -153,11 +145,8 @@ export const getMappingsBatch = internalQuery({
 /**
  * Find a post by slug (for slug collision detection).
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
-export const findPostBySlug = internalQuery({
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+export const findPostBySlug: RegisteredQuery<"internal", { slug: string; type?: string }, Doc<"posts"> | null> = internalQuery({
   args: { slug: v.string(), type: v.optional(v.string()) },
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, { slug, type }) => {
     return await ctx.db
       .query("posts")
@@ -171,10 +160,8 @@ export const findPostBySlug = internalQuery({
 /**
  * Find a user by email (for email collision detection).
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
-export const findUserByEmail = internalQuery({
+export const findUserByEmail: RegisteredQuery<"internal", { email: string }, Doc<"users"> | null> = internalQuery({
   args: { email: v.string() },
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, { email }) => {
     return await ctx.db
       .query("users")
@@ -186,10 +173,8 @@ export const findUserByEmail = internalQuery({
 /**
  * Find a term by slug and taxonomy (for taxonomy collision detection).
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
-export const findTermBySlug = internalQuery({
+export const findTermBySlug: RegisteredQuery<"internal", { slug: string; taxonomy: string }, Doc<"terms"> | null> = internalQuery({
   args: { slug: v.string(), taxonomy: v.string() },
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, { slug, taxonomy }) => {
     return await ctx.db
       .query("terms")
@@ -203,10 +188,8 @@ export const findTermBySlug = internalQuery({
 /**
  * Find a menu by slug (for menu collision detection).
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
-export const findMenuBySlug = internalQuery({
+export const findMenuBySlug: RegisteredQuery<"internal", { slug: string }, Doc<"menus"> | null> = internalQuery({
   args: { slug: v.string() },
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, { slug }) => {
     return await ctx.db
       .query("menus")
@@ -218,10 +201,8 @@ export const findMenuBySlug = internalQuery({
 /**
  * Find a product by SKU (for SKU collision detection).
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
-export const findProductBySku = internalQuery({
+export const findProductBySku: RegisteredQuery<"internal", { sku: string }, Doc<"commerce_products"> | null> = internalQuery({
   args: { sku: v.string() },
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, { sku }) => {
     return await ctx.db
       .query("commerce_products")
@@ -233,10 +214,8 @@ export const findProductBySku = internalQuery({
 /**
  * Find a customer by email (for email collision detection).
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
-export const findCustomerByEmail = internalQuery({
+export const findCustomerByEmail: RegisteredQuery<"internal", { email: string }, Doc<"commerce_customer_profiles"> | null> = internalQuery({
   args: { email: v.string() },
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, { email }) => {
     return await ctx.db
       .query("commerce_customer_profiles")
@@ -248,10 +227,8 @@ export const findCustomerByEmail = internalQuery({
 /**
  * Find an order by orderNumber (for order number collision detection).
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
-export const findOrderByNumber = internalQuery({
+export const findOrderByNumber: RegisteredQuery<"internal", { orderNumber: string }, Doc<"commerce_orders"> | null> = internalQuery({
   args: { orderNumber: v.string() },
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, { orderNumber }) => {
     return await ctx.db
       .query("commerce_orders")
@@ -263,10 +240,8 @@ export const findOrderByNumber = internalQuery({
 /**
  * Find a discount code by code (for coupon code collision detection).
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
-export const findDiscountByCode = internalQuery({
+export const findDiscountByCode: RegisteredQuery<"internal", { code: string }, Doc<"commerce_discount_codes"> | null> = internalQuery({
   args: { code: v.string() },
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, { code }) => {
     return await ctx.db
       .query("commerce_discount_codes")
@@ -305,11 +280,12 @@ export const patchEntity = internalMutation({
   },
   // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, { table, id, fields }) => {
-    try {
-      await ctx.db.patch(id as any, fields);
-    } catch {
-      // Entity may have been deleted
-    }
+    const normalized = ctx.db.normalizeId(table as TableNames, id);
+    if (!normalized) throw new ConvexError({ code: "INVALID_ENTITY_ID", message: "The reconciliation ID does not belong to the requested table." });
+    // A concurrently deleted entity needs no repair. Other errors must abort the
+    // transaction so unavailable attachments never appear successfully repaired.
+    if (!await ctx.db.get(normalized)) return;
+    await patchDynamicWithMediaReferences(ctx, normalized, fields);
   },
 });
 
@@ -357,12 +333,8 @@ export const getMediaMappingsWithUrls = internalQuery({
 /**
  * Initialize job progress with content counts.
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
-export const initializeProgress = internalMutation({
-  args: {
-    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+const initializeProgressArgs = {
     jobId: v.id("wordpressSyncJobs"),
-    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     counts: v.object({
       users: v.number(),
       posts: v.number(),
@@ -372,13 +344,14 @@ export const initializeProgress = internalMutation({
       media: v.number(),
       comments: v.number(),
     }),
-  },
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  };
+export const initializeProgress: RegisteredMutation<"internal", { jobId: Id<"wordpressSyncJobs">; counts: { users: number; posts: number; pages: number; categories: number; tags: number; media: number; comments: number } }, void> = internalMutation({
+  args: initializeProgressArgs,
   handler: async (ctx, { jobId, counts }) => {
     const job = await ctx.db.get(jobId);
     if (!job) return;
 
-    const progress = { ...job.progress };
+    const progress = { ...createInitialProgress(), ...job.progress };
     progress.users.total = counts.users;
     progress.posts.total = counts.posts;
     progress.pages.total = counts.pages;
@@ -388,7 +361,7 @@ export const initializeProgress = internalMutation({
     progress.comments.total = counts.comments;
     // Menus count will be fetched during menus phase
 
-    await ctx.db.patch(jobId, {
+    await ctx.db.patch("wordpressSyncJobs", jobId, {
       progress,
       updatedAt: Date.now(),
     });
@@ -398,15 +371,13 @@ export const initializeProgress = internalMutation({
 /**
  * Update progress for a specific phase.
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
-export const updatePhaseProgress = internalMutation({
-  args: {
-    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+const updatePhaseProgressArgs = {
     jobId: v.id("wordpressSyncJobs"),
     phase: v.string(),
     progress: phaseProgressValidator,
-  },
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  };
+export const updatePhaseProgress: RegisteredMutation<"internal", ObjectType<typeof updatePhaseProgressArgs>, void> = internalMutation({
+  args: updatePhaseProgressArgs,
   handler: async (ctx, { jobId, phase, progress }) => {
     const job = await ctx.db.get(jobId);
     if (!job) return;
@@ -414,7 +385,7 @@ export const updatePhaseProgress = internalMutation({
     const updatedProgress = { ...job.progress };
     (updatedProgress as Record<string, PhaseProgress>)[phase] = progress;
 
-    await ctx.db.patch(jobId, {
+    await ctx.db.patch("wordpressSyncJobs", jobId, {
       progress: updatedProgress,
       updatedAt: Date.now(),
     });
@@ -424,20 +395,17 @@ export const updatePhaseProgress = internalMutation({
 /**
  * Add errors to a job.
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
-export const addErrors = internalMutation({
-  args: {
-    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+const addErrorsArgs = {
     jobId: v.id("wordpressSyncJobs"),
-    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     errors: v.array(syncErrorValidator),
-  },
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  };
+export const addErrors: RegisteredMutation<"internal", { jobId: Id<"wordpressSyncJobs">; errors: SyncError[] }, void> = internalMutation({
+  args: addErrorsArgs,
   handler: async (ctx, { jobId, errors }) => {
     const job = await ctx.db.get(jobId);
     if (!job) return;
 
-    await ctx.db.patch(jobId, {
+    await ctx.db.patch("wordpressSyncJobs", jobId, {
       errors: [...job.errors, ...errors],
       updatedAt: Date.now(),
     });
@@ -447,19 +415,17 @@ export const addErrors = internalMutation({
 /**
  * Advance to the next phase.
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
-export const advancePhase = internalMutation({
-  args: {
-    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+const advancePhaseArgs = {
     jobId: v.id("wordpressSyncJobs"),
     phase: syncPhaseValidator,
-  },
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  };
+export const advancePhase: RegisteredMutation<"internal", ObjectType<typeof advancePhaseArgs>, void> = internalMutation({
+  args: advancePhaseArgs,
   handler: async (ctx, { jobId, phase }) => {
     const job = await ctx.db.get(jobId);
     if (!job) return;
 
-    await ctx.db.patch(jobId, {
+    await ctx.db.patch("wordpressSyncJobs", jobId, {
       currentPhase: phase,
       updatedAt: Date.now(),
     });
@@ -469,27 +435,25 @@ export const advancePhase = internalMutation({
 /**
  * Mark job as completed.
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
-export const completeJob = internalMutation({
-  args: {
-    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+const completeJobArgs = {
     jobId: v.id("wordpressSyncJobs"),
-  },
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  };
+export const completeJob: RegisteredMutation<"internal", ObjectType<typeof completeJobArgs>, void> = internalMutation({
+  args: completeJobArgs,
   handler: async (ctx, { jobId }) => {
     const job = await ctx.db.get(jobId);
     if (!job) return;
 
     const now = Date.now();
 
-    await ctx.db.patch(jobId, {
+    await ctx.db.patch("wordpressSyncJobs", jobId, {
       status: "completed",
       completedAt: now,
       updatedAt: now,
     });
 
     // Update site's lastSyncAt
-    await ctx.db.patch(job.siteId, {
+    await ctx.db.patch("wordpressSites", job.siteId, {
       lastSyncAt: now,
       updatedAt: now,
     });
@@ -503,18 +467,12 @@ export const completeJob = internalMutation({
  * Upsert a sync report for a completed job.
  * Creates on first call, patches on subsequent calls.
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
-export const upsertReport = internalMutation({
-  args: {
-    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+const upsertReportArgs = {
     jobId: v.id("wordpressSyncJobs"),
-    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     siteId: v.id("wordpressSites"),
     startedAt: v.number(),
-    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     completedAt: v.optional(v.number()),
     finalStatus: v.string(),
-    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     detectedCapabilities: v.object({
       wpRest: v.boolean(),
       wpAuthValid: v.boolean(),
@@ -527,7 +485,6 @@ export const upsertReport = internalMutation({
     }),
     importConfig: v.string(),
     phaseCounts: v.string(),
-    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     totalCounts: v.object({
       created: v.number(),
       updated: v.number(),
@@ -537,8 +494,9 @@ export const upsertReport = internalMutation({
     }),
     findingSummary: v.string(),
     operatorSummary: v.string(),
-  },
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  };
+export const upsertReport: RegisteredMutation<"internal", Omit<Doc<"wordpressSyncReports">, "_id" | "_creationTime" | "createdAt">, Id<"wordpressSyncReports">> = internalMutation({
+  args: upsertReportArgs,
   handler: async (ctx, args) => {
     const existing = await ctx.db
       .query("wordpressSyncReports")
@@ -546,7 +504,7 @@ export const upsertReport = internalMutation({
       .first();
 
     if (existing) {
-      await ctx.db.patch(existing._id, {
+      await ctx.db.patch("wordpressSyncReports", existing._id, {
         completedAt: args.completedAt,
         finalStatus: args.finalStatus,
         phaseCounts: args.phaseCounts,
@@ -567,36 +525,24 @@ export const upsertReport = internalMutation({
 /**
  * Insert a single reconciliation finding.
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
-export const insertFinding = internalMutation({
-  args: {
-    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+const insertFindingArgs = {
     siteId: v.id("wordpressSites"),
-    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     jobId: v.id("wordpressSyncJobs"),
-    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     severity: v.union(v.literal("error"), v.literal("warning"), v.literal("info")),
     phase: v.string(),
-    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     code: v.optional(v.string()),
     message: v.string(),
-    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     sourceType: v.optional(v.string()),
-    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     sourceId: v.optional(v.string()),
-    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     destinationTable: v.optional(v.string()),
-    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     wpId: v.optional(v.number()),
-    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     objectType: v.optional(v.string()),
-    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     convexId: v.optional(v.string()),
-    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     metadata: v.optional(v.string()),
     createdAt: v.number(),
-  },
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  };
+export const insertFinding: RegisteredMutation<"internal", Omit<Doc<"wordpressSyncReconciliationFindings">, "_id" | "_creationTime">, void> = internalMutation({
+  args: insertFindingArgs,
   handler: async (ctx, args) => {
     await ctx.db.insert("wordpressSyncReconciliationFindings", args);
   },
@@ -605,14 +551,12 @@ export const insertFinding = internalMutation({
 /**
  * Mark job as failed.
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
-export const failJob = internalMutation({
-  args: {
-    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+const failJobArgs = {
     jobId: v.id("wordpressSyncJobs"),
     error: v.string(),
-  },
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  };
+export const failJob: RegisteredMutation<"internal", ObjectType<typeof failJobArgs>, void> = internalMutation({
+  args: failJobArgs,
   handler: async (ctx, { jobId, error }) => {
     const job = await ctx.db.get(jobId);
     if (!job) return;
@@ -627,7 +571,7 @@ export const failJob = internalMutation({
       timestamp: now,
     };
 
-    await ctx.db.patch(jobId, {
+    await ctx.db.patch("wordpressSyncJobs", jobId, {
       status: "failed",
       errors: [...job.errors, fatalError],
       completedAt: now,
@@ -1103,7 +1047,7 @@ export const cleanupOldJobs = internalMutation({
     for (const job of oldJobs) {
       if (job.completedAt && job.completedAt < cutoff) {
         await deleteImportArtifactsForJob(ctx, job._id);
-        await ctx.db.delete(job._id);
+        await ctx.db.delete("wordpressSyncJobs", job._id);
         deleted++;
       }
     }
@@ -1117,7 +1061,7 @@ export const cleanupOldJobs = internalMutation({
     for (const job of failedJobs) {
       if (job.completedAt && job.completedAt < cutoff) {
         await deleteImportArtifactsForJob(ctx, job._id);
-        await ctx.db.delete(job._id);
+        await ctx.db.delete("wordpressSyncJobs", job._id);
         deleted++;
       }
     }
@@ -1131,7 +1075,7 @@ export const cleanupOldJobs = internalMutation({
     for (const job of cancelledJobs) {
       if (job.completedAt && job.completedAt < cutoff) {
         await deleteImportArtifactsForJob(ctx, job._id);
-        await ctx.db.delete(job._id);
+        await ctx.db.delete("wordpressSyncJobs", job._id);
         deleted++;
       }
     }
@@ -1163,7 +1107,7 @@ export const cleanupOrphanedMappings = internalMutation({
 
     for (const mapping of mappings) {
       if (!siteIds.has(mapping.siteId)) {
-        await ctx.db.delete(mapping._id);
+        await ctx.db.delete("wpIdMappings", mapping._id);
         deleted++;
       }
     }
@@ -1194,7 +1138,7 @@ export const checkStaleJobs = internalMutation({
 
     for (const job of runningJobs) {
       if (job.updatedAt < cutoff) {
-        await ctx.db.patch(job._id, {
+        await ctx.db.patch("wordpressSyncJobs", job._id, {
           status: "failed",
           errors: [
             ...job.errors,

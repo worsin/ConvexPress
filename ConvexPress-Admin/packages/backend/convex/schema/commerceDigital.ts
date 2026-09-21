@@ -29,6 +29,29 @@ export const commerceLicenseKeyStatusValidator = v.union(
 );
 
 export const commerceDigitalTables = {
+  // Short-lived delivery capabilities. Secrets are hashed; the backing storage
+  // URL is never persisted here or exposed through the public lease API.
+  commerce_download_leases: defineTable({
+    downloadTokenId: v.id("commerce_download_tokens"),
+    digitalFileId: v.id("commerce_digital_files"),
+    orderId: v.id("commerce_orders"),
+    userId: v.optional(v.id("users")),
+    requestId: v.string(),
+    secretHash: v.string(),
+    websiteKey: v.string(),
+    instanceKey: v.string(),
+    deploymentOrigin: v.string(),
+    fileFingerprint: v.string(),
+    createdAt: v.number(),
+    expiresAt: v.number(),
+    started: v.boolean(),
+    startedAt: v.optional(v.number()),
+    allowanceOrdinal: v.optional(v.number()),
+  })
+    .index("by_token_request", ["downloadTokenId", "requestId"])
+    .index("by_token_pending_expires", ["downloadTokenId", "started", "expiresAt"])
+    .index("by_expires", ["expiresAt"]),
+
   // ─── Digital Files ──────────────────────────────────────────────────────────
   // Downloadable file records attached to commerce products / variants
   commerce_digital_files: defineTable({

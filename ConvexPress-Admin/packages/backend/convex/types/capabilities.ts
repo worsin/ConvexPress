@@ -138,6 +138,9 @@ type EditorCapability =
   | "editor.save_reusable"
   | "editor.autosave";
 
+/** Runtime definition authoring and provider use are independent of page edits. */
+type BlockCapability = "blocks.compose" | "blocks.ai" | "blocks.promote";
+
 // ─── Custom Field Capabilities (5) ──────────────────────────────────────────
 
 type CustomFieldCapability =
@@ -444,6 +447,7 @@ export type Capability =
   | RegistrationCapability
   | DashboardCapability
   | EditorCapability
+  | BlockCapability
   | CustomFieldCapability
   | RevisionCapability
   | SEOCapability
@@ -483,6 +487,9 @@ export type AnyCapability = Capability | MetaCapability;
  * Used for validation, seeding, and admin UI display.
  */
 export const ALL_CAPABILITIES: Capability[] = [
+  "blocks.compose",
+  "blocks.ai",
+  "blocks.promote",
   // Posts (13)
   "post.create",
   "post.read",
@@ -831,6 +838,7 @@ export function isMetaCapability(cap: string): cap is MetaCapability {
  * Capabilities grouped by domain, useful for admin UI rendering.
  */
 export const CAPABILITY_DOMAINS: Record<string, Capability[]> = {
+  "Custom Blocks": ["blocks.compose", "blocks.ai", "blocks.promote"],
   Posts: [
     "post.create",
     "post.read",

@@ -1,3 +1,5 @@
+import { deleteTermRelationship } from "../helpers/postDiscovery";
+import { insertTermRelationship } from "../helpers/postDiscovery";
 /**
  * Taxonomy System - Public Mutations
  *
@@ -26,7 +28,6 @@ import { TAXONOMY_EVENTS, SYSTEM } from "../events/constants";
 import {
   generateTermSlug,
   sanitizeSlug,
-  updateTermCount,
   ensureDefaultCategory,
   validateCategoryHierarchy,
   getTermDepth,
@@ -431,7 +432,7 @@ export const deleteCategory = mutation({
 
     for (const rel of relationships) {
       // Delete this relationship
-      await ctx.db.delete("termRelationships", rel._id);
+      await deleteTermRelationship(ctx, rel._id);
 
       // Check if post has any remaining categories (the deleted record
       // is already removed from the DB, so the query returns only live records)
@@ -461,18 +462,13 @@ export const deleteCategory = mutation({
           .unique();
 
         if (!existingDefault) {
-          await ctx.db.insert("termRelationships", {
+          await insertTermRelationship(ctx, {
             postId: rel.postId,
             termId: defaultCategoryId,
           });
         }
         reassignedPosts++;
       }
-    }
-
-    // 6. Update default category count if posts were reassigned
-    if (reassignedPosts > 0) {
-      await updateTermCount(ctx, defaultCategoryId);
     }
 
     // 7. Delete the term
@@ -720,7 +716,7 @@ export const deleteTag = mutation({
       .collect();
 
     for (const rel of relationships) {
-      await ctx.db.delete("termRelationships", rel._id);
+      await deleteTermRelationship(ctx, rel._id);
     }
 
     // 4. Delete the term
@@ -789,15 +785,11 @@ export const assign = mutation({
     }
 
     // 6. Create relationship
-    await ctx.db.insert("termRelationships", {
+    await insertTermRelationship(ctx, {
       postId: args.postId,
       termId: args.termId,
     });
 
-    // 7. Update term count (only if post is published)
-    if (postDoc.status === "publish") {
-      await updateTermCount(ctx, args.termId);
-    }
 
     // 8. Emit event
     await emitEvent(ctx, TAXONOMY_EVENTS.TERM_ASSIGNED, SYSTEM.TAXONOMY, {
@@ -884,24 +876,17 @@ export const unassign = mutation({
             .unique();
 
           if (!defaultRel) {
-            await ctx.db.insert("termRelationships", {
+            await insertTermRelationship(ctx, {
               postId: args.postId,
               termId: defaultCategoryId,
             });
-            // Update default category count
-            await updateTermCount(ctx, defaultCategoryId);
           }
         }
       }
     }
 
     // 6. Delete the relationship
-    await ctx.db.delete("termRelationships", relationship._id);
-
-    // 7. Update term count
-    if (postDoc.status === "publish") {
-      await updateTermCount(ctx, args.termId);
-    }
+    await deleteTermRelationship(ctx, relationship._id);
 
     // 8. Return success
     return { success: true, wasAssigned: true };
@@ -981,7 +966,7 @@ export const merge = mutation({
 
       if (!existingTarget) {
         // Create new relationship with target
-        await ctx.db.insert("termRelationships", {
+        await insertTermRelationship(ctx, {
           postId: rel.postId,
           termId: args.targetTermId,
           order: rel.order,
@@ -990,7 +975,7 @@ export const merge = mutation({
       }
 
       // Delete old relationship with source
-      await ctx.db.delete("termRelationships", rel._id);
+      await deleteTermRelationship(ctx, rel._id);
     }
 
     // 7. Re-parent child categories (if applicable)
@@ -1011,7 +996,7 @@ export const merge = mutation({
     }
 
     // 8. Recalculate target count
-    await updateTermCount(ctx, args.targetTermId);
+
 
     // 9. Delete source term
     const sourceName = source.name;

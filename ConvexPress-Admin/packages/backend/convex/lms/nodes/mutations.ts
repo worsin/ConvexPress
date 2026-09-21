@@ -6,6 +6,7 @@
  * a topic). Author-own-or-Editor gated.
  */
 
+import { deleteWithMediaReferences, insertWithMediaReferences, patchWithMediaReferences } from "../../media/attachmentGuard";
 import { ConvexError, v } from "convex/values";
 import { mutation } from "../../_generated/server";
 import type { Id } from "../../_generated/dataModel";
@@ -14,16 +15,6 @@ import { emitEvent } from "../../helpers/events";
 import { LMS_EVENTS, SYSTEM } from "../../events/constants";
 import { requireCourseAuthorOrEditor, requireNodeCourseAuthorOrEditor } from "../access";
 import { createNodeArgs, nodeIdArg, renameNodeArgs, moveNodeArgs } from "./validators";
-
-async function recountCourse(ctx: any, courseId: Id<"lms_courses">) {
-  const nodes = await ctx.db
-    .query("lms_nodes")
-    .withIndex("by_course", (q: any) => q.eq("courseId", courseId))
-    .collect();
-  const topicCount = nodes.filter((n: any) => n.kind === "topic").length;
-  const lessonCount = nodes.filter((n: any) => n.kind === "lesson").length;
-  await ctx.db.patch(courseId, { topicCount, lessonCount, updatedAt: Date.now() });
-}
 
 export const createNode = mutation({
   args: createNodeArgs,
@@ -55,17 +46,15 @@ export const createNode = mutation({
     }
 
     // Append at end of siblings.
-    const siblings = await ctx.db
+    const lastSibling = await ctx.db
       .query("lms_nodes")
-      .withIndex("by_course", (q) => q.eq("courseId", args.courseId))
-      .collect();
-    const sameParent = siblings.filter((n) =>
-      args.parentId ? n.parentId === args.parentId : !n.parentId,
-    );
-    const maxPos = sameParent.reduce((m, n) => Math.max(m, n.position), 0);
+      .withIndex("by_course_parent_position", q => q.eq("courseId", args.courseId).eq("parentId", args.parentId))
+      .order("desc")
+      .first();
+    const maxPos = Math.max(lastSibling?.position ?? 0, 0);
 
     const now = Date.now();
-    const nodeId = await ctx.db.insert("lms_nodes", {
+    const nodeId: import("../../_generated/dataModel").Id<"lms_nodes"> = await insertWithMediaReferences<"lms_nodes">(ctx, "lms_nodes", {
       courseId: args.courseId,
       parentId: args.parentId,
       kind: args.kind,
@@ -75,7 +64,6 @@ export const createNode = mutation({
       createdAt: now,
       updatedAt: now,
     });
-    await recountCourse(ctx, args.courseId);
     await emitEvent(ctx, LMS_EVENTS.NODE_CREATED, SYSTEM.LMS, {
       courseId: args.courseId,
       nodeId,
@@ -90,7 +78,7 @@ export const renameNode = mutation({
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "lms");
     await requireNodeCourseAuthorOrEditor(ctx, args.nodeId, "lms.builder.manage");
-    await ctx.db.patch(args.nodeId, {
+    await patchWithMediaReferences<"lms_nodes">(ctx, "lms_nodes", args.nodeId, {
       title: args.title.trim() || "Untitled",
       updatedAt: Date.now(),
     });
@@ -122,9 +110,8 @@ export const deleteNode = mutation({
       }
     }
     for (const idStr of toDelete) {
-      await ctx.db.delete(idStr as Id<"lms_nodes">);
+      await deleteWithMediaReferences<"lms_nodes">(ctx, "lms_nodes", idStr as Id<"lms_nodes">);
     }
-    await recountCourse(ctx, node.courseId);
     await emitEvent(ctx, LMS_EVENTS.NODE_DELETED, SYSTEM.LMS, {
       courseId: node.courseId,
       nodeId: args.nodeId,
@@ -155,8 +142,8 @@ export const moveNode = mutation({
 
     const a = siblings[idx];
     const b = siblings[swapWith];
-    await ctx.db.patch(a._id, { position: b.position, updatedAt: Date.now() });
-    await ctx.db.patch(b._id, { position: a.position, updatedAt: Date.now() });
+    await patchWithMediaReferences<"lms_nodes">(ctx, "lms_nodes", a._id, { position: b.position, updatedAt: Date.now() });
+    await patchWithMediaReferences<"lms_nodes">(ctx, "lms_nodes", b._id, { position: a.position, updatedAt: Date.now() });
     await emitEvent(ctx, LMS_EVENTS.NODE_REORDERED, SYSTEM.LMS, {
       courseId: node.courseId,
       nodeId: args.nodeId,
@@ -203,7 +190,7 @@ export const reorderNodes = mutation({
 
     let pos = 1;
     for (const nodeId of args.orderedIds) {
-      await ctx.db.patch(nodeId, { position: pos, updatedAt: Date.now() });
+      await patchWithMediaReferences<"lms_nodes">(ctx, "lms_nodes", nodeId, { position: pos, updatedAt: Date.now() });
       pos += 1;
     }
     await emitEvent(ctx, LMS_EVENTS.NODE_REORDERED, SYSTEM.LMS, {
