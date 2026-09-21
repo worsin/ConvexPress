@@ -3159,3 +3159,8 @@ Accepted original A06 and A08 after current-source isolated controller checks an
 ## September21 Depot defaults and nested starter sections
 
 Depot now respects compact heading scale and authored Card padding. Native authored-page review caught nested starter Sections shrinking feature cards and retaining excess height; shared definite sizing fixes both. All32 patterns pass desktop/mobile width and relevant card-height checks; native four-block save/reopen/publication and Depot/Journal/Core preservation pass.289 renderer tests, types/builds/canonical checks/lint pass; thumbnails and six MagicTables Notes rows refreshed. Original42 pages/two posts/media/listeners/settings preserved; owned sessions/processes cleaned up. [Evidence and exact remaining scope](depot-defaults-20260921.md). Original audit stays eight accepted/sixteen open; full block/template/release acceptance remains open.
+
+
+## September21 Journal and Depot Customizer workflow
+
+Native Journal/Depot presets, typography, radius, layout/shop fields, group/brand reset, history, saved drafts, publication and confirmed staging-to-live promotion passed on isolated databases. Fixed first-use live destination CSP preparation, unreadable conflict notifications and per-pack shop selections during activation. Stale live revision preserved; fresh review recovered.491 frontend tests, types/build/Oxlint pass. Both original site snapshots/content restored; owned sessions/processes cleaned up; two MagicTables Notes updates verified. See [exact evidence and remaining scope](customizer-packs-20260921.md). Original audit remains eight accepted/sixteen open; full on-site/all-surface/block/release requirements remain open.

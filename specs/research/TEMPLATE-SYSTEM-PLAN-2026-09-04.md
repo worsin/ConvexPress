@@ -322,6 +322,8 @@ Rules:
 
 ## 16. Progress log and how to resume (keep this current)
 
+September21: Native Journal/Depot customization, draft reset/history/save/reload, publication and confirmed staging-to-live settings promotion now pass. Fixed destination CSP preparation, conflict feedback and per-template shop variant restoration. See `ConvexPress-Admin/audits/2026-09-04/customizer-packs-20260921.md`. Full on-site/all-surface Customizer and handoff acceptance remain open.
+
 **Handoff (2026-09-04):** the next phase (harden + legacy deletion, Customizer v2 on-site, extension SDK kits, `site-build`) is handed to Astra in `specs/handoffs/HANDOFF-ASTRA-2026-09-04.md`. Update this table as items land.
 
 **Block system (2026-09-05):** the block re-foundation that adds `blocks` to the pack manifest and SDK primitives is specified in `specs/handoffs/HANDOFF-ASTRA-BLOCKS-2026-09-05.md`; SDK type changes from it land here first.

@@ -39,12 +39,12 @@ Every row remains open at full requirement scope. Consult the exact source requi
 
 | Requirement | Implemented checkpoint | Required acceptance / remaining work |
 |---|---|---|
-| HA1 | Template surfaces and scoped dashboard checks | All 22 signed-in dashboard surfaces per pack; Journal/Depot customization and publish/promote |
+| HA1 | Template surfaces, scoped dashboard checks, native Journal/Depot customization and publish/promote | All 22 signed-in dashboard surfaces per pack and remaining surface acceptance |
 | HA2 | Palette migration and legacy theme replacement | Fleet palette receipts and import checks before legacy tables/folders/redirect retirement |
 | HA3 | Commerce layout migration and replacement controls | Fleet variant/settings migration receipts and no legacy Shop layouts dependency |
 | HB1 | On-site Customizer | Authorized draft/publish on the actual Website with the site capability |
 | HB2 | Surface-aware fields, read tracking and click-to-edit | Correct groups and field focus on every affected surface |
-| HB3 | Presets/reset/history/conflict/promotion; native Core layout draft/publish/reset/history/conflict accepted | Other packs and fields, brand/group reset, and staging-to-live |
+| HB3 | Native Core layout plus Journal/Depot preset/font/radius/layout/shop draft/reset/history/publication and confirmed promotion accepted; stale live review refused | Other packs/fields and on-site workflow; [Journal/Depot evidence](customizer-packs-20260921.md) |
 | HB4 | Header/footer/menu Customize modules | All builders use template settings; legacy standalone screens retired |
 | HC1 | Template SDK/scaffold/skills and four installed packs | Scaffold-to-authored-site, per-surface rendering/screenshots and design quality |
 | HC2 | Events extension and manifest scaffolds | Complete reference-plugin lifecycle, Dashboard declaration, disabled access and SDK exercise |
@@ -275,3 +275,8 @@ A06/A08 are accepted. The final loaded Sites view uses seven subscriptions inste
 ## September21 Depot defaults and nested starter sections
 
 Depot now respects compact heading scale and authored Card padding. Native authored-page review caught nested starter Sections shrinking feature cards and retaining excess height; shared definite sizing fixes both. All32 patterns pass desktop/mobile width and relevant card-height checks; native four-block save/reopen/publication and Depot/Journal/Core preservation pass.289 renderer tests, types/builds/canonical checks/lint pass; thumbnails and six MagicTables Notes rows refreshed. Original42 pages/two posts/media/listeners/settings preserved; owned sessions/processes cleaned up. [Evidence and exact remaining scope](depot-defaults-20260921.md). Original audit stays eight accepted/sixteen open; full block/template/release acceptance remains open.
+
+
+## September21 Journal and Depot Customizer workflow
+
+Native Journal/Depot presets, typography, radius, layout/shop fields, group/brand reset, history, saved drafts, publication and confirmed staging-to-live promotion passed on isolated databases. Fixed first-use live destination CSP preparation, unreadable conflict notifications and per-pack shop selections during activation. Stale live revision preserved; fresh review recovered.491 frontend tests, types/build/Oxlint pass. Both original site snapshots/content restored; owned sessions/processes cleaned up; two MagicTables Notes updates verified. See [exact evidence and remaining scope](customizer-packs-20260921.md). Original audit remains eight accepted/sixteen open; full on-site/all-surface/block/release requirements remain open.

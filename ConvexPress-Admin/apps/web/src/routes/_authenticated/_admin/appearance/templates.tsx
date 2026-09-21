@@ -23,18 +23,13 @@ import { getElectronBridge } from "@/lib/electron";
 import { getPluginDefinition } from "@/lib/plugins/registry";
 import { COVERAGE_AREAS, SURFACE_CATALOG } from "@/lib/templates/catalog";
 import { TEMPLATE_PACKS, type TemplatePackSummary } from "@/lib/templates/packs";
-import { cn } from "@/lib/utils";
+import { activateTemplate } from "@/lib/templates/templateActivation";
+import type { TemplateSection } from "@/lib/templates/templatePublishing";
+import { cn, getErrorMessage } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/_admin/appearance/templates")({
   component: TemplatesPage,
 });
-
-interface TemplateSection {
-  active: string;
-  overrides: Record<string, string>;
-  variants: Record<string, string>;
-  settings: Record<string, Record<string, unknown>>;
-}
 
 type AreaState = "covered" | "partial" | "fallback" | "disabled";
 
@@ -118,11 +113,11 @@ function TemplatesPage() {
       try {
         await updateSettings({
           section: "appearance.template",
-          values: { ...(stored ?? { overrides: {}, variants: {}, settings: {} }), active: packId } as unknown as Record<string, unknown>,
+          values: activateTemplate(stored ?? { active: "core", overrides: {}, variants: {}, settings: {} }, packId) as unknown as Record<string, unknown>,
         });
         toast.success(`${TEMPLATE_PACKS.find((pack) => pack.id === packId)?.name ?? packId} is now the active template.`);
       } catch (error) {
-        toast.error(error instanceof Error ? error.message : "Could not activate the template.");
+        toast.error(getErrorMessage(error, "Could not activate the template."));
       } finally {
         setSaving(null);
       }

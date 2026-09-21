@@ -28,7 +28,7 @@ import { FooterSettingsEditor } from "@/components/appearance/FooterComposer";
 import { FooterRowsBuilder } from "@/components/appearance/FooterRowsBuilder";
 import { createDraftHistory, applyDraftChange, setDraftField, readDraftField, resetDraftModule, resetDraftBrand, applyColorPreset, undoDraft, redoDraft, draftChanges, type DraftSnapshot, type Values } from "@/lib/templates/draftModel";
 import { prepareTemplatePromotion, type TemplateSnapshot, type PromotionReview } from "@/lib/templates/templatePublishing";
-import { cn } from "@/lib/utils";
+import { cn, getErrorMessage } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/_admin/appearance/customize")({
   component: CustomizePage,
@@ -137,7 +137,7 @@ function CustomizePage() {
       const result = await saveStoredDraft({ packId: activeId, sourceRevision: base.revision, expectedDraftRevision: savedRevision === undefined ? savedDraft?.revision ?? null : savedRevision, values, variants });
       if (scopeRef.current !== requestScope) return;
       setSavedRevision(result.revision); toast.success("Draft saved. Published settings are unchanged.");
-    } catch (error) { if (scopeRef.current === requestScope) toast.error(error instanceof Error ? error.message : "Could not save the draft."); }
+    } catch (error) { if (scopeRef.current === requestScope) toast.error(getErrorMessage(error, "Could not save the draft.")); }
     finally { if (scopeRef.current === requestScope) setSaving(false); }
   };
   const publish = async () => {
@@ -152,7 +152,7 @@ function CustomizePage() {
         try { await discardStoredDraft({ packId: activeId, expectedDraftRevision: revision }); if (scopeRef.current === requestScope) setSavedRevision(null); }
         catch { if (scopeRef.current === requestScope) toast.info("Published successfully. A newer saved draft was retained."); }
       }
-    } catch (error) { if (scopeRef.current === requestScope) toast.error(error instanceof Error ? error.message : "Could not publish."); }
+    } catch (error) { if (scopeRef.current === requestScope) toast.error(getErrorMessage(error, "Could not publish.")); }
     finally { if (scopeRef.current === requestScope) setSaving(false); }
   };
   const reviewPromotion = async () => {
@@ -162,14 +162,14 @@ function CustomizePage() {
       const review = await prepareTemplatePromotion(server, live, control);
       if (scopeRef.current !== requestScope) { review.dispose(); return; }
       setPromotion(review); setConfirmPromotion(false);
-    } catch (error) { if (scopeRef.current === requestScope) toast.error(error instanceof Error ? error.message : "Could not prepare promotion."); }
+    } catch (error) { if (scopeRef.current === requestScope) toast.error(getErrorMessage(error, "Could not prepare promotion.")); }
     finally { if (scopeRef.current === requestScope) setSaving(false); }
   };
   const promote = async () => {
     if (!promotion || !confirmPromotion) return;
     setSaving(true); const requestScope = scope;
     try { await promotion.publish(); if (scopeRef.current === requestScope) toast.success("Staging template settings promoted to live."); }
-    catch (error) { if (scopeRef.current === requestScope) toast.error(error instanceof Error ? error.message : "Promotion failed. Prepare a fresh live review before retrying."); }
+    catch (error) { if (scopeRef.current === requestScope) toast.error(getErrorMessage(error, "Promotion failed. Prepare a fresh live review before retrying.")); }
     finally { promotion.dispose(); if (scopeRef.current === requestScope) { setPromotion(null); setSaving(false); } }
   };
 

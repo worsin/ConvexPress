@@ -29,6 +29,8 @@ import { EditorRecoveryProvider } from "@/components/blocks/canonical-editor/Edi
 
 export interface SelectedSiteTarget extends SiteClientTarget {
   siteOrigin: string;
+  /** Registered live backend for this staging website, without session authority. */
+  promotionOrigin?: string;
   websiteKey?: string;
   /** Current broker-selected role identity: invalidates the client, never grants a role. */
   sessionRoleKey?: string;

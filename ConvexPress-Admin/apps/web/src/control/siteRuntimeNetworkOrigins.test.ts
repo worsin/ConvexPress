@@ -1,5 +1,17 @@
 import { expect, test } from "bun:test";
-import { siteRuntimeNetworkOrigins } from "./siteRuntimeNetworkOrigins";
+import { siteRuntimeNetworkOrigins, sitePromotionNetworkOrigin } from "./siteRuntimeNetworkOrigins";
+
+test("staging prepares only its own website's live backend before promotion", () => {
+  const staging = { websiteId: "one", kind: "staging", deploymentOrigin: "http://192.168.1.10:4860" };
+  const live = { websiteId: "one", kind: "live", deploymentOrigin: "http://192.168.1.10:4870" };
+  const other = { ...live, websiteId: "two", deploymentOrigin: "https://other.invalid" };
+  const promotionOrigin = sitePromotionNetworkOrigin(staging, [other, staging, live]);
+  expect(siteRuntimeNetworkOrigins({ ...staging, promotionOrigin })).toEqual([staging.deploymentOrigin, live.deploymentOrigin]);
+  expect(sitePromotionNetworkOrigin(staging, [other])).toBeUndefined();
+  expect(sitePromotionNetworkOrigin(live, [staging, live])).toBeUndefined();
+  expect(sitePromotionNetworkOrigin(null, [live])).toBeUndefined();
+  expect(siteRuntimeNetworkOrigins({ ...staging, promotionOrigin: "https://user:secret@invalid.test" })).toEqual([staging.deploymentOrigin]);
+});
 
 test("cloud site selection permits the exact backend and independent preview website", () => {
   expect(siteRuntimeNetworkOrigins({ deploymentOrigin: "https://fictional.convex.cloud", siteOrigin: "https://studio.example/staging?mode=preview#document" })).toEqual(["https://fictional.convex.cloud", "https://studio.example"]);

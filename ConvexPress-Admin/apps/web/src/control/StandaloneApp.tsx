@@ -27,6 +27,7 @@ import type { SitesNode } from "./sites/sites-model";
 import { controlSurfaceVisibility } from "./components/site-manager-view";
 import { siteSessionRole } from "./site-session-role";
 import { prepareSiteScopeNavigation } from "./siteScopeNavigation";
+import { sitePromotionNetworkOrigin } from "./siteRuntimeNetworkOrigins";
 
 export function StandaloneApp({
   authClient,
@@ -197,8 +198,9 @@ function ControlPlaneShell({
       siteOrigin: selectedEnvironment.siteOrigin,
       websiteKey: selectedWebsite?.websiteKey,
       sessionRoleKey: siteRole,
+      promotionOrigin: sitePromotionNetworkOrigin(selectedEnvironment, context?.environments ?? []),
     };
-  }, [activeConnection, selectedEnvironment, selectedWebsite?.websiteKey, siteRole]);
+  }, [activeConnection, selectedEnvironment, selectedWebsite?.websiteKey, siteRole, context?.environments]);
 
   const exchangeSession = useCallback(
     async (requestedTarget: NonNullable<typeof target>) => {
