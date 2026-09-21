@@ -5,7 +5,7 @@ import type { AnyRouter } from "@tanstack/react-router";
 import { RouterProvider } from "@tanstack/react-router";
 import { useAction, useConvex, useMutation, useQuery } from "convex/react";
 import { AlertTriangle, Loader2, X } from "lucide-react";
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { BrandMark } from "@/components/brand/BrandMark";
 import type { ControlAuthClient } from "./auth-client";
@@ -30,13 +30,19 @@ import { prepareSiteScopeNavigation } from "./siteScopeNavigation";
 export function StandaloneApp({
   authClient,
   router,
+  setupLoginError,
 }: {
   authClient: ControlAuthClient;
   router: AnyRouter;
+  setupLoginError?: string;
 }) {
   const { data: session, isPending } = authClient.useSession();
+  const [loginError, setLoginError] = useState(setupLoginError);
+  useEffect(() => {
+    if (session) setLoginError(undefined);
+  }, [session]);
   if (isPending) return <StartupState label="Restoring protected operator session" />;
-  if (!session) return <OperatorLogin authClient={authClient} />;
+  if (!session) return <OperatorLogin authClient={authClient} initialError={loginError} />;
   return <ControlPlaneShell key={session.user.id} authClient={authClient} router={router} />;
 }
 

@@ -16,13 +16,13 @@ import { Label } from "@/components/ui/label";
 import type { ControlAuthClient } from "./auth-client";
 import { claimControlInvitation, signInControlOperator } from "./auth-client";
 
-export function OperatorLogin({ authClient }: { authClient: ControlAuthClient }) {
+export function OperatorLogin({ authClient, initialError }: { authClient: ControlAuthClient; initialError?: string }) {
   const [mode, setMode] = useState<"sign-in" | "claim">("sign-in");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
   const [claimSecret, setClaimSecret] = useState("");
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(initialError ?? null);
   const [pending, setPending] = useState(false);
   const claim = mode === "claim";
 

@@ -140,6 +140,7 @@ async function bootstrap() {
       controlPlaneUrl: config.controlPlaneUrl,
       controlPlaneSiteUrl: config.controlPlaneSiteUrl,
       rootElement,
+      pendingLoginCredentials: config.pendingLoginCredentials,
     });
     return;
   }

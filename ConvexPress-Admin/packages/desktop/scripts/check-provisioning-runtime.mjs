@@ -19,6 +19,7 @@ try {
     [path.join(cwd, "node_modules/convex/bin/main.js"), "--version"],
     ["scripts/generate-extension-index.mjs"],
     ["scripts/generate-local-api.mjs"],
+    ["scripts/generate-media-writer-coverage.mjs", "--check"],
     [path.join(cwd, "node_modules/typescript/bin/tsc"), "--noEmit", "-p", "convex/tsconfig.json"],
     ["-e", "require('esbuild').transformSync('export const ready: number = 1', {loader:'ts'}); console.log('Native bundler ready')"],
   ]) {

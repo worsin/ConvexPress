@@ -86,9 +86,9 @@ September 20 refresh: the eleven pairs above now have current **focused** browse
 
 ## Next execution
 
-1. Complete targeted state/keyboard and visual checks for uncovered controls; preserve the current three-block certificate/learning receipts separately.
-2. Use the changed-pair refresh receipts to target remaining field/state, native editor, live-data and visual/motion gaps; avoid repeating the same accepted specimen checks.
-3. Continue remaining template/kit and original audit gates; close an item only with evidence matching its full scope.
+1. Continue delivered-runtime security and provisioning/recovery acceptance after the packaged macOS onboarding result below; signed distribution, Windows and clean-machine execution remain open.
+2. Close the remaining content/access, commerce and publishing gates against the integrated application and isolated fleet.
+3. Complete the block/template authored-site and visual/motion reviews, plus live hosting/domain and backup/restore/fleet drills. Do not repeat already accepted specimen checks or infer release acceptance from test counts.
 
 ## September 20 native page milestone
 
@@ -202,3 +202,8 @@ Commit41f9e749 integrates public routes, customer dashboards, live block renderi
 ## September20 SDK/CI and main integration
 
 Application source and SDK/tooling are now integrated into main after preserving the current progress notes and reconciling Claude's nine document/history commits. Full Admin4439 tests and root block/SDK135 tests pass; generated contracts,77 distributed skill files and548 thumbnail integrity checks pass. Historical inventory inputs were moved out of ignored output into tracked fixtures. Independent dependency isolation exposed and repaired Website CI's missing Admin dependency install. Six workflows are wired; remote runs remain unverified. Main was fast-forwarded after preserving11 ignored collision files; existing app processes were left running. See [sdk-ci-and-source-integration-outcome.md](sdk-ci-and-source-integration-outcome.md). Only A05/B08 have full original-audit acceptance; release/native/provider/installer and block visual gates remain open.
+
+
+## September20 packaged macOS acceptance
+
+The actual unsigned macOS app now builds, runs outside the checkout, completes fresh onboarding with automatic operator sign-in, clears temporary credentials, and recovers from rejected sign-in. Fixed missing packaged safety-gate scripts and an external stock-policy import; embedded CLI/codegen/safety/compiler/bundler checks pass with PATH empty. The packaged library displays137 blocks; real mouse scroll/navigation and sandbox/context-isolation checks pass.472 Admin frontend tests and18 focused setup/auth tests pass; source types/builds/lint pass. All disposable sessions signed out and owned processes exited. See [packaged-native-onboarding-outcome.md](packaged-native-onboarding-outcome.md). C02 remains open for signed/notarized distribution, Windows and clean-machine provisioning; no new original audit row is closed.

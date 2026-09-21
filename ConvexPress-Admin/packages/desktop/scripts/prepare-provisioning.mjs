@@ -44,7 +44,21 @@ cpSync(path.join(backend, "convex"), path.join(stagedBackend, "convex"), { recur
 cpSync(path.join(backend, "lib"), path.join(stagedBackend, "lib"), { recursive: true, filter: copyFilter });
 cpSync(path.join(backend, "convex.json"), path.join(stagedBackend, "convex.json"));
 mkdirSync(path.join(stagedBackend, "scripts"));
-for (const script of ["generate-extension-index.mjs", "generate-local-api.mjs", "generate-media-writer-coverage.mjs", "media-writer-coverage.mjs", "check-media-schema.mjs", "generate-media-reference-inventory.ts"]) cpSync(path.join(backend, "scripts", script), path.join(stagedBackend, "scripts", script));
+// Include the complete safety-gate dependency closure. A gate that resolves only
+// from the developer checkout cannot protect a customer's installed deployment.
+for (const script of [
+  "generate-extension-index.mjs",
+  "generate-local-api.mjs",
+  "generate-media-writer-coverage.mjs",
+  "media-writer-coverage.mjs",
+  "check-media-schema.mjs",
+  "check-post-discovery-writers.mjs",
+  "check-catalog-source-writers.mjs",
+  "check-lms-progress-writers.mjs",
+  "check-wishlist-writers.mjs",
+  "generate-synced-consumer-coverage.mjs",
+  "generate-media-reference-inventory.ts",
+]) cpSync(path.join(backend, "scripts", script), path.join(stagedBackend, "scripts", script));
 // Rebuild after private local extensions were excluded from the release payload.
 checkedNode(path.join(stagedBackend, "scripts/generate-extension-index.mjs"), [], stagedBackend);
 

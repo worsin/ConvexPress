@@ -2,7 +2,7 @@
 
 Active goal: complete the revalidated Astra audit and Claude handoff, then prove production readiness for isolated client websites.
 
-Worktree: `/Users/worsin/.codex/worktrees/convexpress-hardening`; branch `codex/convexpress-hardening`; starting HEAD `3816d7af`. Main checkout `/Users/worsin/Development/ConvexPress` was freshly verified clean at `3895ed16` on September5. Handoff documents have been revalidated separately; original source remains untouched. Historical process notes below are checkpoints, not current process inventory; inspect actual process paths before acceptance.
+Worktree: `/Users/worsin/.codex/worktrees/convexpress-hardening`; branch `codex/convexpress-hardening`. Application source and Claude handoffs were integrated into main at `ee7087f4` on September20. Later verified fixes are recorded below; original live processes are preserved. The initial audit started at `3816d7af`. Historical process notes below are checkpoints, not current process inventory; inspect actual process paths before acceptance.
 
 No item is complete until implementation, regression verification and applicable runtime acceptance are recorded. Scope comes from `astra-audit.md`, Claude's handoff and the user's agency/client/database requirements. User authorized all implementation; provider accounts, live deployment and client acceptance must use verified targets and credentials, never guesses. Do not send external messages.
 
@@ -3089,3 +3089,8 @@ Commit41f9e749 integrates public routes, customer dashboards, live block renderi
 ## September20 SDK/CI and main integration
 
 Application source and SDK/tooling are now integrated into main after preserving the current progress notes and reconciling Claude's nine document/history commits. Full Admin4439 tests and root block/SDK135 tests pass; generated contracts,77 distributed skill files and548 thumbnail integrity checks pass. Historical inventory inputs were moved out of ignored output into tracked fixtures. Independent dependency isolation exposed and repaired Website CI's missing Admin dependency install. Six workflows are wired; remote runs remain unverified. Main was fast-forwarded after preserving11 ignored collision files; existing app processes were left running. See [sdk-ci-and-source-integration-outcome.md](sdk-ci-and-source-integration-outcome.md). Only A05/B08 have full original-audit acceptance; release/native/provider/installer and block visual gates remain open.
+
+
+## September20 packaged macOS acceptance
+
+The actual unsigned macOS app now builds, runs outside the checkout, completes fresh onboarding with automatic operator sign-in, clears temporary credentials, and recovers from rejected sign-in. Fixed missing packaged safety-gate scripts and an external stock-policy import; embedded CLI/codegen/safety/compiler/bundler checks pass with PATH empty. The packaged library displays137 blocks; real mouse scroll/navigation and sandbox/context-isolation checks pass.472 Admin frontend tests and18 focused setup/auth tests pass; source types/builds/lint pass. All disposable sessions signed out and owned processes exited. See [packaged-native-onboarding-outcome.md](packaged-native-onboarding-outcome.md). C02 remains open for signed/notarized distribution, Windows and clean-machine provisioning; no new original audit row is closed.

@@ -1,1 +1,1 @@
-export { resolveStockPolicy, canOrderQuantity, effectiveStockMode } from "../../canonical-blocks-foundation/commerceInventory";
+export { resolveStockPolicy, canOrderQuantity, effectiveStockMode } from "../canonicalDocuments/foundation/commerceInventory";
