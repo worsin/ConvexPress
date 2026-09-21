@@ -97,3 +97,11 @@ field matched except expected revision/update metadata. The other42 pages were u
 and the fixture was trashed. See
 `ConvexPress-Admin/audits/2026-09-04/inactive-migration-20260921.md`.
 Broader structured/mixed-tree/render parity and installed-fleet retirement remain open.
+
+Paragraph v2 now accepts up to20,000 authored text characters. Original TipTap
+paragraphs and structured article paragraphs above the former2,000-character
+limit retain their paragraph boundary, marks, hard breaks and links through the
+existing migration API. Unknown fields, unsafe links and the document byte/node
+limits still refuse conversion; no truncation or artificial paragraph splitting
+is permitted. Native conversion/edit/save/publish/withdraw/original recovery on
+isolated4860 is recorded in `ConvexPress-Admin/audits/2026-09-04/paragraph-migration-20260921.md`.

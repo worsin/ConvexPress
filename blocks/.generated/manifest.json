@@ -1,13 +1,13 @@
 {
   "files": {
-    "ai-catalog.ts": "1f051b397d018fd22c29f0a78869c1b401fa6b8a07c8a80555ae6b588787c385",
+    "ai-catalog.ts": "c80e29fdd1eb4a1005ccf6d54d271f10aa946021daac1c85d36049cbef78a9f7",
     "block-spec.schema.json": "9e894ec7c8d1e4b9d94f0c3c0e2cd98ad234c01ebec65bb92d21ac7ff9680396",
-    "catalog.json": "618c2c7a6f06afcf2adbe541d72b701edca65029f09119656accf82f49210f73",
+    "catalog.json": "c369694f69ac0a32f9c9f03c54fd5d4eaa0520a1c04fcfab5f2c6f58a3b635ee",
     "convex.ts": "260e25b952044e4279f557cb4f8136c24bf09e0e6a224902ee608276ce59d366",
     "coverage.json": "62728af4a5ea106fb6d9a9d66a1b60eefd8a987a659eed6843c793b6fa5a9a8d",
     "dependencies.json": "86bb886a1a55efdb76fa022247254524f28713cd07a2dccb3ee0615a6355d2c0",
-    "editor-metadata.ts": "e6bcd8d5ff38f57baa9b3a6487acf70bbc9ce9acbd08a3383df0ac7591c35cca",
-    "editors.json": "f8a1e005bd97523d3592c77acade871b595c6aaea3a25c4a909e96a6e5186b76",
+    "editor-metadata.ts": "6fa832ff9dffb8d7fa411a08a59a31d808d8ac0688a2935b2e196276fea885f0",
+    "editors.json": "4fdeaa1b06610c59ffd85f7f59c006f535257be7baac6b985ae2a724b9273262",
     "field-runtime.d.mts": "9e1d25230a1ff8ec61f818b6004c8927cef3c95502a2d0edb1c28604da3388ce",
     "field-runtime.mjs": "ce6b761fbbcd719779ca9c117948bbef5d50e45eff553904738c4998ed0b2e37",
     "instance-runtime.d.mts": "2bff709cae317fe2bbfc4656ef2921e16ad532e8c3fcd11da3d33e1d66ee0015",
@@ -19,7 +19,7 @@
     "patterns.ts": "2ec3505c0b75e44834a38aaf79a8ec7d6ce9f9c2273bb76b267eb7896449906e",
     "promotions.ts": "7545ede36ecd059123045889f0aa32d6c0c9f4b157fc29ace43d597a942633eb",
     "renderer-coverage.ts": "646fe78683882b53ec9994526f20dd09ce29371fac6e525b686b0e98de18fb06",
-    "schemas.ts": "47235ece6d3564e7b8dfa83b44ac72d5c3a1134e8ad7ba94d363a6fdad98ca38",
+    "schemas.ts": "9c4e40429464cf553a8acf3810025cfcf9d483db1296b34910cac29aecd519f3",
     "search-text.ts": "ec776042d472925e245a0a1a21277960271ff8a8fd0bd34d6b990cd4ded9cd30",
     "spec-runtime.d.mts": "7f8fbe9dd797c169b0d007e97f362072717c96b27397ff5c25441187ebfbbffa",
     "spec-runtime.mjs": "90b1f6b9d639ccb648b2e2de6fe5696a5a162f63da148c3187311053ae9dd913",
@@ -377,7 +377,7 @@
       "source": "blocks/core/newsletter-signup/block.json"
     },
     {
-      "sha256": "28bc63c576eee1be9d52264f8decd704942a5e22dcc44b09cd16c405ad8ebac3",
+      "sha256": "c1fd5d698472bfcab75605a41cf940dee3c1dcf1f154eb195195cb3692464cec",
       "source": "blocks/core/paragraph/block.json"
     },
     {

@@ -927,7 +927,7 @@ test("migration refuses unsafe precedence, unrepresented nodes, distinct autosav
   await f.t.run(async ctx => { await ctx.db.patch("posts", f.ids.post, { type: "post", contentMode: "article", content }); });
   const plan = await f.client.query(reference("prepareMigration"), { postId: f.ids.post });
   const args = { postId: f.ids.post, expectedRevision: plan.source.revision, expectedAuthoringDigest: plan.source.authoringDigest, expectedCandidateDigest: plan.candidate.document.digest, expectedPresentationRevision: plan.candidate.presentation.revision };
-  for (const patch of [{ hero: { content: "x".repeat(2001) } }, { autosaveTitle: "Unsaved title" }, { content: JSON.stringify({ type: "doc", content: [{ type: "table", content: [] }] }) }]) {
+  for (const patch of [{ hero: { content: "x".repeat(20001) } }, { autosaveTitle: "Unsaved title" }, { content: JSON.stringify({ type: "doc", content: [{ type: "table", content: [] }] }) }]) {
     await f.t.run(async ctx => { await ctx.db.patch("posts", f.ids.post, patch); });
     await expect(f.client.query(reference("prepareMigration"), { postId: f.ids.post })).rejects.toThrow();
     await f.t.run(async ctx => { await ctx.db.patch("posts", f.ids.post, { hero: undefined, autosaveTitle: undefined, content }); });
@@ -2363,4 +2363,32 @@ test("inactive legacy settings require exact reviewed acknowledgement and remain
   expect(restored!.blocks).toEqual(blocks);
   expect(restored!.content).toBe("Hidden source");
   expect(restored!.blocksVersion).toBe(1);
+});
+
+
+test("long article paragraphs migrate, save, reopen and recover without splitting their authored structure", async () => {
+  for (const structured of [false,true]) {
+    const f=await fixture();
+    const text="An article worth keeping. ".repeat(240);
+    const originalBody={type:"doc",content:[{type:"paragraph",content:[{type:"text",text,marks:[{type:"italic"}]},{type:"hardBreak"},{type:"text",text:"Source",marks:[{type:"link",attrs:{href:"https://example.org/source"}}]}]}]};
+    const originalContent=JSON.stringify(originalBody);
+    await f.t.run(ctx=>ctx.db.patch("posts",f.ids.post,{type:"post",contentMode:"article",content:originalContent,...(structured?{hero:{content:text+"https://example.org/source"}}:{})}));
+    const review=await f.client.query(reference("prepareMigration"),{postId:f.ids.post});
+    const receipt=await f.client.mutation(reference("migrate","mutation"),{postId:f.ids.post,expectedRevision:review.source.revision,expectedAuthoringDigest:review.source.authoringDigest,expectedCandidateDigest:review.candidate.document.digest,expectedPresentationRevision:review.candidate.presentation.revision});
+    const reopened=await f.client.query(reference("get"),{postId:f.ids.post});
+    const block=structured?reopened.document.blocks[0].children[0]:reopened.document.blocks[0];
+    expect(block.name).toBe("core/paragraph");
+    expect(block.attrs.body.content).toHaveLength(1);
+    if(!structured) expect(block.attrs.body).toEqual(originalBody);
+    else expect(block.attrs.body.content[0].content.map((node:{text?:string})=>node.text??"").join("")).toBe(text+"https://example.org/source");
+    block.attrs.body.content[0].content[0].text+="An editorial addition.";
+    const saved=await f.client.mutation(reference("save","mutation"),{postId:f.ids.post,expectedRevision:receipt.revision,title:reopened.document.title,blocks:reopened.document.blocks});
+    const savedRead=await f.client.query(reference("get"),{postId:f.ids.post});
+    expect(savedRead.document.blocks).toEqual(reopened.document.blocks);
+    const history=await f.client.query(reference("pageRevisions"),{postId:f.ids.post,paginationOpts:{numItems:20,cursor:null}});
+    const original=history.page.find((row:{action:string})=>row.action==="recover-legacy");expect(original).toBeDefined();
+    await f.client.mutation(reference("recoverLegacy","mutation"),{postId:f.ids.post,revisionId:original.id,expectedRevision:saved.revision});
+    const restored=await f.t.run(ctx=>ctx.db.get("posts",f.ids.post));expect(restored!.content).toBe(originalContent);
+    expect(restored!.hero).toEqual(structured?{content:text+"https://example.org/source"}:undefined);
+  }
 });

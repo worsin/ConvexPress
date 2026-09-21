@@ -314,3 +314,6 @@ September21 follow-up: Phase5 lead-magnet production-host lifecycle repaired and
 
 
 September21 inactive-settings migration follow-up: explicit per-block review now handles known unused legacy layout/locks without activating them or losing the recoverable original. Missing acknowledgement and stale source are server-refused. Native isolated conversion/edit/reopen/Website rendering/original recovery passed; all42 original pages preserved. See `ConvexPress-Admin/audits/2026-09-04/inactive-migration-20260921.md`. Phase2 remains open for other unsupported structured/mixed-tree/render cases and fleet retirement; no full block acceptance flag advanced.
+
+
+September21 Paragraph:2k→20k canonical text capacity is backward-compatible for existing v2 documents. Real native migration/edit/save/publish/withdraw/original recovery and public desktop/mobile output verified on isolated4860; four-pack generated editor/render checks pass. See `ConvexPress-Admin/audits/2026-09-04/paragraph-migration-20260921.md`. Other structures, mixed-tree/fleet retirement and complete block/template acceptance remain open.

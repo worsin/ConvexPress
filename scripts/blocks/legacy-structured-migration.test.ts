@@ -52,7 +52,7 @@ test("legacy video and CTA refusals retain their existing safe fallback instead 
 test("duplicate anchors, unknown fields, invalid values and capacity limits refuse the whole conversion", () => {
   for (const source of [
     { topics: [{ title: "Duplicate" }, { title: "Duplicate" }] },
-    { hero: { content: "x".repeat(2001) } },
+    { hero: { content: "x".repeat(20001) } },
     { topics: Array.from({ length: 81 }, (_, i) => ({ title: `Topic ${i}` })) },
     { hero: { content: "Visible", unrecognized: "Never discard" } },
     { summary: { content: 12 } },

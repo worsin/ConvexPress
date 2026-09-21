@@ -330,3 +330,17 @@ test("consecutive paragraph blocks use article flow while explicit section spaci
   expect(html.includes('data-spacing="default"')).toBe(true);
   expect(html.includes('<strong>Paragraph 1</strong>')).toBe(true);
 });
+
+
+test("long paragraphs render complete literal copy and safe inline semantics", () => {
+  const renderers=discoverRenderers({"/blocks/core/paragraph/render.tsx":paragraph});
+  const text="Copy worth preserving. ".repeat(250)+"<script>literal text</script>";
+  const body={type:"doc",content:[{type:"paragraph",content:[{type:"text",text,marks:[{type:"italic"}]},{type:"hardBreak"},{type:"text",text:"Source",marks:[{type:"link",attrs:{href:"https://example.org/source",target:"_blank"}}]}]}]};
+  const html=renderToStaticMarkup(prepareBlocks([{id:"long-prose",name:"core/paragraph",version:2,attrs:{body}}],renderers,policy));
+  expect(html).toContain("Copy worth preserving. ".repeat(250));
+  expect(html).toContain("&lt;script&gt;literal text&lt;/script&gt;");
+  expect(html).not.toContain("<script>");
+  expect(html).toContain("<em>");expect(html).toContain("<br");
+  expect(html).toContain('href="https://example.org/source"');
+  expect(html).toContain('rel="noopener noreferrer"');
+});

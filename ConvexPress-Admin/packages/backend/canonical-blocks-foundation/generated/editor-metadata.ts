@@ -5569,7 +5569,7 @@ export const editorDefinitions: Record<BlockName, EditorDefinition> = {
         },
         "id": "body",
         "inline": false,
-        "max": 2000,
+        "max": 20000,
         "type": "richtext"
       }
     ],

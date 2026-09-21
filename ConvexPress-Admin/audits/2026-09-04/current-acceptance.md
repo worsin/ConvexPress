@@ -287,3 +287,6 @@ Native Journal/Depot presets, typography, radius, layout/shop fields, group/bran
 
 
 September21 inactive-settings migration: known unused legacy layout/locks now have an explicit native review and acknowledgement; server refuses missing acknowledgement, changed source and lost authority. Native conversion/edit/save/reopen, actual Website H2 and exact original-editor recovery passed on isolated4860; all42 original pages unchanged, fixture trashed and owned sessions/processes cleaned up.89 document-service tests and22 converter tests pass. See [evidence](inactive-migration-20260921.md). Broader structured/mixed-tree/render parity and retirement remain open; original audit8accepted/16open.
+
+
+September21 Paragraph migration: canonical Paragraph v2 now accepts20k text characters without altering existing values or splitting paragraphs. Original rich-text and structured migration preserve marks/links/breaks. Native isolated conversion/edit/save/reopen/publish/withdraw/original recovery and public desktop/mobile rendering pass; four-pack local editor/render checks pass.25 converter cases,90 document-service cases,290 renderer cases, types/build/parity pass. All42 original pages and appearance unchanged; cleanup complete. [Evidence](paragraph-migration-20260921.md). Other migration/block/template/release scope remains open; original audit8accepted/16open.

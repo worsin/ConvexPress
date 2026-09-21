@@ -70,7 +70,7 @@
     "resolve.ts": "4304913c3b6c17dd860f9c38f29ce839439fd8f9f134be71915e6a15a236f6f6",
     "generated/metadata.ts": "1babc340dc5d1cb684db84655cab0bbb692614036b899b151ee4aef0a2c42624",
     "generated/promotions.ts": "7545ede36ecd059123045889f0aa32d6c0c9f4b157fc29ace43d597a942633eb",
-    "generated/schemas.ts": "47235ece6d3564e7b8dfa83b44ac72d5c3a1134e8ad7ba94d363a6fdad98ca38",
+    "generated/schemas.ts": "9c4e40429464cf553a8acf3810025cfcf9d483db1296b34910cac29aecd519f3",
     "generated/types.ts": "d7dc7f8b23163e082db94f17a47e83f797d278716c614c2b6d9ea2022f48ea32",
     "generated/instances.ts": "b221da7be40282981b196a29fb625f14ba8a2759fe43dc52bea09b4a61a3c684",
     "generated/instance-runtime.mjs": "4666e3d5bc43d1187f4ac9b8c06c0109a8485175c0d6fa44c327ffa62d275000",
