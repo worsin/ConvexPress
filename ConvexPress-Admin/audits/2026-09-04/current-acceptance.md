@@ -261,3 +261,8 @@ Native eight-block guide plus real child/private/grandchild/menu fixtures passes
 ## September 21 B07 recovery acceptance closed
 
 Original rich-text post/page editing now preserves nested source content instead of silently converting it. Native save/reopen and actual original-editor recovery/editing pass; a native canonical body edit/restore refreshes search automatically. Together with current-source earlier image/layout, structured-article and atomic/refusal evidence, the original B07 acceptance is complete. Final frontend485pass, focused document/composed100pass, types/build pass; original content/settings/listeners/processes preserved. [Exact scope and remaining migration/quality work](original-text-recovery-20260921.md). Six original rows accepted/eighteen open.
+
+
+## September 21 Latest Posts default-template and native acceptance
+
+Journal now uses a lead story and rule-separated entries; Depot uses compact thumbnail rows and container-responsive typography. Five browser cases,289 renderer cases, presentation/contract/type/build checks pass. Real Electron insertion/edit/save/reopen/publication, Journal/Depot previews, native Journal/Depot/Core activation and actual desktop/mobile production Website checks preserve saved content. Count/excerpt controls persist and alter public output. Two thumbnails refreshed; one MagicTables row updated with scoped evidence and accurate fields. Owned fixtures removed; original42 pages/2 posts/4 images/settings/155 listeners preserved. [Exact evidence and remaining scope](latest-posts-treatments-20260921.md). Original production audit remains six accepted/eighteen open; all-block/template production acceptance remains incomplete.

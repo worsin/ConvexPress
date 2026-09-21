@@ -9,6 +9,18 @@
 .cp-owned-journal .journal-feature, .cp-owned-journal .journal-plan, .cp-owned-journal .journal-testimonial { min-width: 0; }
 .cp-owned-journal .journal-price .cp-text { font-variant-numeric: tabular-nums; font-size: clamp(1.8rem, 3vw, 3rem); line-height: 1.1; letter-spacing: -.04em; }
 .cp-owned-journal .journal-story { display: flex; flex-direction: column; gap: var(--stack-gap-md, 1.25rem); }
+.cp-owned-journal .journal-stories { container: journal-stories / inline-size; }
+.cp-owned-journal .journal-stories > .cp-grid { grid-template-columns: minmax(0, 1fr); }
+.cp-owned-journal .journal-story { padding-block-end: var(--stack-gap-lg, 2rem); border-block-end: 1px solid var(--border); }
+.cp-owned-journal .journal-story-copy { min-inline-size: 0; }
+.cp-owned-journal .journal-story[data-lead="true"] { grid-column: 1 / -1; }
+.cp-owned-journal .journal-story .cp-heading { max-inline-size: none; text-wrap: pretty; }
+.cp-owned-journal .journal-story .cp-heading a { color: inherit; text-decoration-thickness: .04em; text-underline-offset: .16em; }
+.cp-owned-journal .journal-story .cp-image { min-inline-size: 0; }
+@container journal-stories (min-width: 44rem) {
+  .cp-owned-journal .journal-stories > .cp-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .cp-owned-journal .journal-story[data-lead="true"][data-has-image="true"] { display: grid; grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); align-items: center; gap: var(--stack-gap-lg, 2rem); }
+}
 .cp-owned-journal .journal-form-fields { min-width: 0; }
 @media (max-width: 640px) { .cp-owned-journal .journal-banner-image img { aspect-ratio: 16/9; } }
 

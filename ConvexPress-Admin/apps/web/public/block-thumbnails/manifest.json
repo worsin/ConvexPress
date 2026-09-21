@@ -2119,8 +2119,9 @@
       "core/latest-posts": {
         "src": "/block-thumbnails/depot/core--latest-posts.jpg",
         "example": 1,
-        "sha256": "c612bd33c868a78ddc0d27e704dc741a6db63a889a91edc6920e808584d632b4",
-        "bytes": 50804
+        "sha256": "e46e37ac3ab355065b7947db94977149b1abea5f0ef08263b40f96265211ee3c",
+        "bytes": 36410,
+        "capturedAt": "2026-09-21T10:53:25.176Z"
       },
       "core/lead-magnet": {
         "src": "/block-thumbnails/depot/core--lead-magnet.jpg",
@@ -2944,8 +2945,9 @@
       "core/latest-posts": {
         "src": "/block-thumbnails/journal/core--latest-posts.jpg",
         "example": 1,
-        "sha256": "b2db7c208b711b95d62f3108a8d240ae6c668fbecd1f690dc36534d4219bb5c6",
-        "bytes": 42389
+        "sha256": "eae909f518ee5f3f70a95333bdeb10f5b1d5155c84f7d4311ba9192bbfb6dec4",
+        "bytes": 39733,
+        "capturedAt": "2026-09-21T10:53:24.916Z"
       },
       "core/lead-magnet": {
         "src": "/block-thumbnails/journal/core--lead-magnet.jpg",

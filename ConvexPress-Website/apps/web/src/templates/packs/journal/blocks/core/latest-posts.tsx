@@ -19,34 +19,41 @@ export default defineDataBlock(
 				{data.items.length ? (
 					<div className="journal-stories">
 						<P.Grid columns={{ base: 1, md: 2, lg: 2 }} gap="lg">
-							{data.items.map((post) => (
-								<article className="journal-story" key={post.id}>
+							{data.items.map((post, index) => (
+								<article
+									className="journal-story"
+									key={post.id}
+									data-lead={index === 0}
+									data-has-image={!!post.image}
+								>
 									{post.image && <P.Image media={post.image} aspect="3/2" />}
-									<P.Stack gap="sm">
-										{post.publishedAt !== null && (
-											<P.Text size="sm" tone="muted">
-												<time
-													dateTime={new Date(post.publishedAt).toISOString()}
-												>
-													{formatSiteDate(post.publishedAt, timeZone)}
-												</time>
-											</P.Text>
-										)}
-										<P.Heading level={3} size="md">
-											<P.Link
-												href={post.href}
-												label={post.title || "Untitled post"}
-											/>
-										</P.Heading>
-										{attrs.showExcerpts && post.excerpt && (
-											<Prose text={post.excerpt} />
-										)}
-										{attrs.showAuthors && post.author && (
-											<P.Text size="sm" tone="muted">
-												By {post.author}
-											</P.Text>
-										)}
-									</P.Stack>
+									<div className="journal-story-copy">
+										<P.Stack gap="sm">
+											{post.publishedAt !== null && (
+												<P.Text size="sm" tone="muted">
+													<time
+														dateTime={new Date(post.publishedAt).toISOString()}
+													>
+														{formatSiteDate(post.publishedAt, timeZone)}
+													</time>
+												</P.Text>
+											)}
+											<P.Heading level={3} size={index === 0 ? "lg" : "md"}>
+												<P.Link
+													href={post.href}
+													label={post.title || "Untitled post"}
+												/>
+											</P.Heading>
+											{attrs.showExcerpts && post.excerpt && (
+												<Prose text={post.excerpt} />
+											)}
+											{attrs.showAuthors && post.author && (
+												<P.Text size="sm" tone="muted">
+													By {post.author}
+												</P.Text>
+											)}
+										</P.Stack>
+									</div>
 								</article>
 							))}
 						</P.Grid>

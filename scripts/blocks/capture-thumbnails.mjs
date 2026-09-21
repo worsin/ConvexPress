@@ -52,7 +52,7 @@ try {
 	);
 	await page.addStyleTag({
 		content:
-			".canonical-canvas{width:800px!important;max-width:none!important;max-height:480px!important;overflow:hidden!important}",
+			".canonical-canvas{width:800px!important;max-width:none!important;max-height:480px!important;overflow:hidden!important}.canonical-canvas [data-demo-controls]{display:none!important}",
 	});
 	for (const pack of packs) {
 		manifest.packs[pack] = {};

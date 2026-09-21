@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useId, useMemo, useState } from "react";
 import {
 	createDemoContentPageHost,
 	type InstalledDemoPageData,
@@ -12,6 +12,7 @@ import {
 import {
 	navigationSpecimenTree,
 	resolveNavigationDemo,
+	type LatestStorySpecimen,
 } from "./navigation-adapter";
 const baseContext = {
 	scope: { websiteKey: "block-demo", instanceKey: "isolated-demo" },
@@ -21,7 +22,11 @@ const baseContext = {
 };
 const policy = {
 	enabledPlugins: [],
-	capabilities: ["tree.children", "reference.targetResolution", "viewer.authorization"],
+	capabilities: [
+		"tree.children",
+		"reference.targetResolution",
+		"viewer.authorization",
+	],
 	disabledBlocks: [],
 };
 export function NavigationDemo({
@@ -31,11 +36,19 @@ export function NavigationDemo({
 	instance: BlockInstance;
 	registry: RendererRegistry;
 }) {
+	const storyControlId = useId();
 	const host = useMemo(() => createDemoContentPageHost(), []);
 	const [signedIn, setSignedIn] = useState(false);
-	const context = {...baseContext, viewerKey: signedIn ? 'synthetic-signed-in-viewer' : 'synthetic-public-viewer'};
+	const [storySpecimen, setStorySpecimen] =
+		useState<LatestStorySpecimen>("available");
+	const context = {
+		...baseContext,
+		viewerKey: signedIn
+			? "synthetic-signed-in-viewer"
+			: "synthetic-public-viewer",
+	};
 	const tree = navigationSpecimenTree(instance);
-	const key = stableKey({tree, viewerKey:context.viewerKey});
+	const key = stableKey({ tree, viewerKey: context.viewerKey, storySpecimen });
 	const [resolved, setResolved] = useState<{
 		key: string;
 		grant: InstalledDemoPageData;
@@ -45,7 +58,14 @@ export function NavigationDemo({
 		let active = true;
 		host.invalidate();
 		setFailure(null);
-		void resolveNavigationDemo(tree, context.scope, policy, undefined, signedIn ? 'signed-in' : 'signed-out')
+		void resolveNavigationDemo(
+			tree,
+			context.scope,
+			policy,
+			undefined,
+			signedIn ? "signed-in" : "signed-out",
+			storySpecimen,
+		)
 			.then((envelope) => {
 				if (active)
 					setResolved({
@@ -72,9 +92,39 @@ export function NavigationDemo({
 			data-demo-ready={resolved?.key === key ? "true" : "false"}
 		>
 			<p className="specimen-note">
-				{instance.name === 'core/account-teaser' ? 'Synthetic account specimen · no authenticated session' : 'Synthetic navigation context · actual tree anchors and production renderer'}
+				{instance.name === "core/account-teaser"
+					? "Synthetic account specimen · no authenticated session"
+					: instance.name === "core/latest-posts"
+						? "Fictional stories · production template renderer"
+						: "Synthetic navigation context · actual tree anchors and production renderer"}
 			</p>
-      {instance.name === 'core/account-teaser' && <button type="button" aria-pressed={signedIn} onClick={()=>setSignedIn(value=>!value)}>Use signed-in specimen</button>}
+			{instance.name === "core/latest-posts" && (
+				<div data-demo-controls>
+					<label htmlFor={storyControlId}>Story specimen</label>{" "}
+					<select
+						id={storyControlId}
+						value={storySpecimen}
+						onChange={(event) =>
+							setStorySpecimen(event.target.value as LatestStorySpecimen)
+						}
+					>
+						<option value="available">Latest stories</option>
+						<option value="single">One story</option>
+						<option value="empty">No stories</option>
+						<option value="text-only">Text only, no metadata</option>
+						<option value="long">Long titles and excerpts</option>
+					</select>
+				</div>
+			)}
+			{instance.name === "core/account-teaser" && (
+				<button
+					type="button"
+					aria-pressed={signedIn}
+					onClick={() => setSignedIn((value) => !value)}
+				>
+					Use signed-in specimen
+				</button>
+			)}
 			{failure ? (
 				<p role="status">{failure}</p>
 			) : resolved?.key === key ? (
