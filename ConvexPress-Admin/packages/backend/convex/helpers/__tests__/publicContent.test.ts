@@ -660,3 +660,19 @@ test("product search does not disclose descendants of hidden categories", async 
   tables.commerce_product_categories[0].isVisible = true;
   expect((await invoke(search.search, ctx, {q: "Product"})).results[0].categoryNames).toEqual(["Hidden descendant"]);
 });
+
+test("removed title/body terms cannot identify current public documents through stale search rows", async () => {
+  const {ctx,tables}=fixture([document({title:'Current title',content:'Current body',excerpt:'Current excerpt'})]);
+  Object.assign(tables.searchIndex[0],{title:'Retiredtitle',content:'Retiredbody'});
+  for(const q of ['Retiredtitle','Retiredbody'])expect((await invoke(search.search,ctx,{q})).results).toEqual([]);
+  expect((await invoke(search.suggest,ctx,{q:'Retiredtitle'})).suggestions).toEqual([]);
+  expect((await invoke(search.search,ctx,{q:'Curr'})).results).toHaveLength(1);
+  expect((await invoke(search.suggest,ctx,{q:'Curr'})).suggestions).toHaveLength(1);
+});
+
+test("canonical legacy body terms never identify a page through the public search cache", async () => {
+  const {ctx,tables}=fixture([document({title:'Current canonical page',blocksVersion:2,content:'Hiddenlegacyword',excerpt:''})]);
+  tables.searchIndex[0].content='Hiddenlegacyword';
+  expect((await invoke(search.search,ctx,{q:'Hiddenlegacyword'})).results).toEqual([]);
+  expect((await invoke(search.search,ctx,{q:'canonical'})).results).toHaveLength(1);
+});

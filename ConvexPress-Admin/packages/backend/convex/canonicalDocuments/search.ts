@@ -1,3 +1,4 @@
+import { matchesCurrentSearchText } from "../search/currentMatch";
 import {makeFunctionReference} from "convex/server";
 import type {SearchCandidateArgs,SearchCandidatePage} from "../search/candidates";
 import {z} from "zod";
@@ -54,7 +55,7 @@ export async function readSearch(ctx:QueryCtx,rawArgs:unknown,scope:DataScope,do
     const title=budget.record(await ctx.db.query("searchIndex").withSearchIndex("search_title",q=>q.search("title",query).eq("status","publish").eq("contentType",row.contentType).eq("contentId",row.contentId)).first());
     if(title)continue;
    }
-   const source=await readSource(row);if(!source)continue;
+   const source=await readSource(row);if(!source || !matchesCurrentSearchText(query, source.title, source.content))continue;
    const key=`${row.contentType}:${row.contentId}`;if(seen.has(key))continue;seen.add(key);
    items.push({id:source.contentId,kind:row.contentType,title:source.title,href:source.url,excerpt:stripContentForSearch(source.excerpt||source.content).slice(0,1000),author:source.authorName||null,publishedAt:source.publishedAt??null});
   }

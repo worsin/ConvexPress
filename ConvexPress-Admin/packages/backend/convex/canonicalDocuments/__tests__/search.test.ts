@@ -61,7 +61,9 @@ test("event publishing, edits and archival update search and current event autho
  const args={query:"orchid",kinds:["event"],pageSize:12};
  const result=await t.run(ctx=>readSearch(ctx,args,scope,"document"));expect(result.items).toHaveLength(1);expect(result.items[0]).toMatchObject({id:eventId,kind:"event",title:"Orchid workshop",href:"/events/orchid-workshop"});
  await t.run(async ctx=>{await ctx.db.patch("extension_events",eventId,{title:"Updated workshop",description:"Fresh event summary"});});
- const current=await t.run(ctx=>readSearch(ctx,args,scope,"document"));expect(current.items[0]?.title).toBe("Updated workshop");expect(current.items[0]?.excerpt).toBe("Fresh event summary");
+ const current=await t.run(ctx=>readSearch(ctx,args,scope,"document"));expect(current.items).toEqual([]);
+ await t.run(async ctx=>{const {syncEventSearch}=await import("../../search/events");await syncEventSearch(ctx,eventId);});
+ const fresh=await t.run(ctx=>readSearch(ctx,{...args,query:"Updated"},scope,"document"));expect(fresh.items[0]?.title).toBe("Updated workshop");expect(fresh.items[0]?.excerpt).toBe("Fresh event summary");
  await t.run(async ctx=>{await ctx.db.patch("extension_events",eventId,{status:"archived"});const {syncEventSearch}=await import("../../search/events");await syncEventSearch(ctx,eventId);});
  expect((await t.run(ctx=>readSearch(ctx,args,scope,"document"))).items).toEqual([]);
 });
@@ -94,4 +96,11 @@ test("partial batches reject changed ranking and recheck changed source visibili
  expect(next.items).toHaveLength(2);expect(next.items.map(row=>row.id)).not.toContain(ids[2]);
  await t.run(async ctx=>{const index=await ctx.db.query("searchIndex").withIndex("by_content",q=>q.eq("contentType","post").eq("contentId",ids[0])).first();await ctx.db.delete("searchIndex",index!._id);});
  await expect(t.run(ctx=>readSearch(ctx,{query:"Orchid",pageSize:2,cursor:first.nextCursor},scope,"document"))).rejects.toThrow("Search results changed");
+});
+
+test("search blocks exclude stale term associations while still filling current matches",async()=>{
+ const {t,ids}=await fixture();
+ await t.run(async ctx=>{for(const id of ids.slice(0,8))await ctx.db.patch('posts',id,{title:'Changed title',content:'Changed body',excerpt:'Orchid teaser is not an indexed body'});});
+ const result=await t.run(ctx=>readSearch(ctx,{query:'Orchid',pageSize:2},scope,'document'));
+ expect(result.items.map(row=>row.id).sort()).toEqual(ids.slice(8).sort());
 });

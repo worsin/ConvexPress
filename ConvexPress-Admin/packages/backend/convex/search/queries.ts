@@ -19,6 +19,7 @@
  *   Results are merged with deduplication and sorted by composite relevance score.
  */
 
+import { matchesCurrentSearchText } from "./currentMatch";
 import { createPublicSearchSourceReader, type PublicSearchSource } from "./publicSource";
 import { canDiscoverContent, canEditContent } from "../helpers/publicContent";
 import { evaluateMembershipAccess } from "../membership/access";
@@ -250,7 +251,7 @@ export const search = query({
     let results: Array<{doc: PublicSearchSource; relevanceScore: number}> = [];
     for (const candidate of resultMap.values()) {
       const doc = await readSource(candidate.doc);
-      if (doc) results.push({doc, relevanceScore: candidate.relevanceScore});
+      if (doc && matchesCurrentSearchText(searchQuery, doc.title, doc.content)) results.push({doc, relevanceScore: candidate.relevanceScore});
     }
 
     if (args.category) {
@@ -583,7 +584,7 @@ export const suggest = query({
     const titleSuggestions: Array<{text: string; type: "content"; contentType: PublicSearchSource["contentType"]}> = [];
     for (const candidate of titleMatches) {
       const doc = await readSource(candidate);
-      if (doc) titleSuggestions.push({text: doc.title, type: "content", contentType: doc.contentType});
+      if (doc && matchesCurrentSearchText(trimmed, doc.title)) titleSuggestions.push({text: doc.title, type: "content", contentType: doc.contentType});
     }
     // Search history can contain private terms; suggestions only use content.
     const seen = new Set<string>();
