@@ -1,5 +1,8 @@
 /** Progressive enhancement: pending sections stay visible until a one-shot entry animation. */
-export function observeSectionReveal(node: HTMLElement): () => void {
+// Also usable as a React 19 callback ref: React invokes the returned cleanup
+// when an individual card is replaced or removed.
+export function observeSectionReveal(node: HTMLElement | null): () => void {
+	if (!node) return () => {};
 	const view = node.ownerDocument.defaultView;
 	if (!view?.matchMedia || !view.IntersectionObserver) return () => {};
 	const preference = view.matchMedia("(prefers-reduced-motion: reduce)");

@@ -1,3 +1,4 @@
+import { observeSectionReveal } from "../../../ConvexPress-Website/apps/web/src/templates/sdk/primitives/reveal";
 import {useEffect,useRef,useState} from "react";
 import {defineDataBlock} from "../../../ConvexPress-Website/apps/web/src/templates/sdk/block-renderer/model";
 import {useBlockPageHref} from "../../../ConvexPress-Website/apps/web/src/templates/sdk/block-renderer/pagination";
@@ -14,7 +15,7 @@ function Gallery({items}:{items:TaggedMediaResult["items"]}){
  const move=(direction:number)=>setActive(value=>value===null?null:(value+direction+items.length)%items.length);
  const credit=(item:TaggedMediaResult["items"][number])=>item.creditUrl?<a href={item.creditUrl} target="_blank" rel="noopener noreferrer">{item.credit} <span aria-hidden="true">↗</span></a>:<span>{item.credit}</span>;
  return <>
-  <div className="cp-ugc-grid">{items.map((item,index)=><figure className="cp-ugc-frame" key={item.id}>
+  <div className="cp-ugc-grid">{items.map((item,index)=><figure className="cp-ugc-frame" ref={observeSectionReveal} key={item.id}>
    <button className="cp-ugc-photo" type="button" disabled={failed.has(item.id)} aria-haspopup="dialog" aria-label={`View photograph: ${item.image.alt}`} onClick={event=>{trigger.current=event.currentTarget;setActive(index);}}>
     {failed.has(item.id)?<span className="cp-ugc-image-error" role="status">This photograph could not be loaded.</span>:<img {...imageAttributes(item.image)} loading="lazy" decoding="async" onError={()=>setFailed(value=>new Set(value).add(item.id))}/>}
     {!failed.has(item.id)&&<span className="cp-ugc-expand" aria-hidden="true">↗</span>}

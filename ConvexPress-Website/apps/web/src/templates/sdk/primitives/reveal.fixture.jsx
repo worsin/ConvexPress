@@ -1,8 +1,9 @@
 import { JSDOM } from "jsdom";
 import assert from "node:assert/strict";
-import { act } from "react";
+import { act, StrictMode } from "react";
 import { renderToString } from "react-dom/server";
 import { Section } from "./index";
+import { observeSectionReveal } from "./reveal";
 const dom = new JSDOM('<!doctype html><div id="root"></div>', {
 	url: "https://example.test",
 	pretendToBeVisual: true,
@@ -115,6 +116,24 @@ assert.equal(
 );
 assert.equal(observers.at(-1).disconnected, true);
 await act(async () => root.unmount());
+// React 19 ref cleanup supports individual dynamic cards without restarting
+// their entrance on unrelated updates (for example a download busy label).
+reduce = false;
+const card = label => <StrictMode><ul><li key="card" ref={observeSectionReveal}><a href="#card">{label}</a></li></ul></StrictMode>;
+await act(async () => { root = createRoot(host); root.render(card("Download")); });
+const entry = host.querySelector("li");
+assert.equal(entry.dataset.reveal, "pending");
+assert.equal(observers.filter(item => !item.disconnected).length, 1);
+const cardObserver = observers.at(-1);
+await act(async () => cardObserver.callback([{ target: entry, isIntersecting: true }]));
+assert.equal(entry.dataset.reveal, "entered");
+const observerCount = observers.length;
+await act(async () => root.render(card("Preparing…")));
+assert.equal(observers.length, observerCount, "ordinary card updates do not restart observers");
+assert.equal(entry.dataset.reveal, "entered");
+await act(async () => root.unmount());
+assert.equal(listeners.size, 0, "ref cleanup releases preference listeners");
+assert.equal(observers.every(item => item.disconnected), true);
 delete dom.window.IntersectionObserver;
 reduce = false;
 await act(async () => {

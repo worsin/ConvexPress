@@ -1,3 +1,4 @@
+import { observeSectionReveal } from "../../../ConvexPress-Website/apps/web/src/templates/sdk/primitives/reveal";
 import {useSocialMedia} from "../../../ConvexPress-Website/apps/web/src/templates/sdk/block-renderer/social-media";
 import { useEffect, useState } from "react";
 import { defineDataBlock } from "../../../ConvexPress-Website/apps/web/src/templates/sdk/block-renderer/model";
@@ -19,7 +20,7 @@ function Feed({ data }: { data: SocialFeedResult }) {
  return <section className="cp-social" aria-label={`${data.profile.name} on ${provider}`}>
   <header className="cp-social-header"><div><span className="cp-social-eyebrow">Elsewhere / {provider}</span><h2>{data.profile.name}</h2><a className="cp-social-profile" href={data.profile.url} target="_blank" rel="noopener noreferrer">@{data.profile.handle} <span aria-hidden="true">↗</span><span className="cp-social-sr"> (opens in a new tab)</span></a></div><p>Public posts,<br/>from the source.</p></header>
   {hasImages && <div className="cp-social-media-choice"><p>{images ? "Images are loaded directly from this account’s approved media host." : "Read the notes here. Load photographs when you’re ready."}</p><button type="button" onClick={() => setImages(value => !value)} aria-pressed={images}>{images ? "Hide photographs" : "Load photographs"}</button></div>}
-  {data.items.length ? <ol className="cp-social-grid">{data.items.map((item, index) => <li className="cp-social-card" key={item.id}>
+  {data.items.length ? <ol className="cp-social-grid">{data.items.map((item, index) => <li className="cp-social-card" ref={observeSectionReveal} key={item.id}>
    <article><div className="cp-social-card-top"><span aria-hidden="true">{String(index + 1).padStart(2, "0")}</span><time dateTime={new Date(item.publishedAt).toISOString()}>{date(item.publishedAt)}</time></div>
     {item.image && images && <div className="cp-social-photo">{failed.has(item.id) ? <p role="status">This photograph could not be loaded.</p> : <img src={media[item.image.url] ?? item.image.url} alt={item.image.alt} width={item.image.width ?? undefined} height={item.image.height ?? undefined} loading="lazy" decoding="async" referrerPolicy="no-referrer" onError={() => setFailed(current => new Set(current).add(item.id))}/>}</div>}
     {item.text && <p className="cp-social-text">{item.text}</p>}

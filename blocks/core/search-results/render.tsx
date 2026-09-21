@@ -1,3 +1,4 @@
+import { observeSectionReveal } from "../../../ConvexPress-Website/apps/web/src/templates/sdk/primitives/reveal";
 import {useId} from "react";
 import {defineDataBlock} from "../../../ConvexPress-Website/apps/web/src/templates/sdk/block-renderer/model";
 import {useBlockPageHref,useBlockSearchForm} from "../../../ConvexPress-Website/apps/web/src/templates/sdk/block-renderer/pagination";
@@ -14,7 +15,7 @@ export default defineDataBlock("core/search-results","content.search",({attrs,da
    <div className="cp-search-input"><SearchIcon/><input id={id} key={data.query} type="search" name="q" defaultValue={data.query} maxLength={500} placeholder="A topic, a product, a new idea…" disabled={!form}/><button type="submit" disabled={!form}>Search <span aria-hidden="true">↗</span></button></div>
   </form>
   {data.items.length>0?<><p className="cp-search-count" role="status">{data.items.length} {data.items.length===1?"result":"results"} on this page{data.nextCursor?" · More to explore":""}</p><ol className="cp-search-list">
-   {data.items.map(item=><li key={`${item.kind}:${item.id}`} className="cp-search-item"><article>
+   {data.items.map(item=><li key={`${item.kind}:${item.id}`} className="cp-search-item" ref={observeSectionReveal}><article>
     <div className="cp-search-meta"><span className="cp-search-kind">{labels[item.kind]}</span>{item.author&&<span>{item.author}</span>}</div>
     <h3><a href={item.href}>{item.title||"Untitled"}<span className="cp-search-arrow" aria-hidden="true">↗</span></a></h3>
     {item.excerpt&&<p className="cp-search-excerpt">{item.excerpt}</p>}
