@@ -251,3 +251,8 @@ Fixed reproduced ordinary-search/autocomplete read-budget failure on ten real st
 ## September 21 six-block editor and template milestone
 
 Repaired silent heading/cell association corruption across Table, Comparison Table and Pricing Table. Real Electron six-block creation/edit/save/reopen/publication and all four packs at desktop/mobile pass the recorded interaction checks. Native previews, exact content preservation, restored baseline, session cleanup and six MagicTables Notes updates verified. Full Admin frontend480pass; types/build/generated and kit checks pass. See [matrix repair and authored workflow](interactive-blocks-native-20260921.md) for exact coverage, inherited lint diagnostics and remaining scope. This closes this specimen and repair, not all-block/full-template or production acceptance; five original audit rows accepted/nineteen open.
+
+
+## September 21 native navigation milestone
+
+Native eight-block guide plus real child/private/grandchild/menu fixtures passes four packs at1440/390: target focus/current state, visible hierarchy, private exclusion and child-link/Back. Repaired missing manual target validation before Save with a specific editable diagnostic. Document regression/editor/composed checks, types/web+desktop builds and canonical freshness pass. All originals restored; six MagicTables Notes updates verified. [Exact evidence and remaining variants](navigation-native-20260921.md). Full production remains five accepted/nineteen open.

@@ -3,6 +3,7 @@ import { templatePatterns } from "../../../../../../../blocks/.generated/pattern
 import { instantiatePattern } from "./patterns";
 import { planCanonicalData } from "@backend/canonical-blocks-foundation/planner";
 import { containsSyncedContent } from "@backend/canonical-blocks-foundation/syncedDisplay";
+import { navigationTreeIndex } from "@backend/canonical-blocks-foundation/navigationTree";
 import {
 	planSyncedOccurrenceData,
 	resolveSyncedOccurrencesSnapshot,
@@ -270,6 +271,23 @@ export function canonicalEditorAdapter(
 					);
 				if (!visit(checked.blocks))
 					return "A block is unavailable in this environment. Remove it or enable its required feature.";
+				// Ordinary authored anchors can be checked locally with the same index
+				// used by the server. Reusable/composed content may supply targets only
+				// after authorized expansion; leave that check to the server.
+				const hasManualNavigation = (nodes: readonly EditableBlock[]): boolean =>
+					nodes.some((node) =>
+						(node.name === "core/anchor-nav" && node.attrs.source === "manual") ||
+						hasManualNavigation(node.children ?? []),
+					);
+				if (hasManualNavigation(checked.blocks) && !checked.composedDefinitions && !containsSyncedContent(checked.blocks)) {
+					try {
+						navigationTreeIndex(checked.blocks);
+					} catch (error) {
+						return error instanceof Error
+							? `${error.message} Correct the jump link or restore its target. Your edits are still here.`
+							: "A jump link needs a target in this document. Your edits are still here.";
+					}
+				}
 				// Unsaved references have no authorized source snapshot here. Validate
 				// their structure and policy, plus ordinary authored data, without
 				// treating content.syncedBlock as an ordinary resolver. This preflight

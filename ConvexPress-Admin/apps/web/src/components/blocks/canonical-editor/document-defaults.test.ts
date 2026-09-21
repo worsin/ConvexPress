@@ -4,6 +4,24 @@ import { loadStaged } from "../schema-editor/test-harness";
 const loaded = await loadStaged("../canonical-editor/document-adapter.ts");
 afterAll(loaded.cleanup);
 const { canonicalEditorAdapter, checkedDraft } = loaded.module;
+test("manual navigation reports missing targets before save and recovers when headings are corrected", () => {
+ const editor=canonicalEditorAdapter({disabledBlocks:[],enabledPlugins:[],capabilities:[]});
+ const nav=editor.createBlock('core/anchor-nav');nav.attrs={source:'manual',items:[{label:'Make',anchor:'make'}]};
+ const heading=editor.createBlock('core/heading');heading.attrs.anchor='arrive';
+ const value={title:'Guide',blocks:[nav,heading]};
+ const original=structuredClone(value);
+ expect(editor.validate(value)).toContain('make');
+ expect(value).toEqual(original);
+ heading.attrs.anchor='make';expect(editor.validate(value)).toBeNull();
+ value.blocks.pop();expect(editor.validate(value)).toContain('make');
+ nav.attrs.items=[];expect(editor.validate(value)).toBeNull();
+});
+test("unresolved reusable anchors retain server validation instead of a false local missing-target error",()=>{
+ const editor=canonicalEditorAdapter({disabledBlocks:[],enabledPlugins:[],capabilities:['tree.children','reference.targetResolution']});
+ const nav=editor.createBlock('core/anchor-nav');nav.attrs={source:'manual',items:[{label:'Source section',anchor:'source-section'}]};
+ const synced=editor.createBlock('core/synced');synced.attrs={syncedBlock:'source-id',revisionPolicy:'latest'};
+ expect(editor.validate({title:'Guide',blocks:[nav,synced]})).toBeNull();
+});
 const adapter = canonicalEditorAdapter({
   disabledBlocks: [], enabledPlugins: ["commerce", "commerceWishlists"],
   capabilities: ["viewer.authorization"],

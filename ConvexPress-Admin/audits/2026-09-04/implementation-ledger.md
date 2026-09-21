@@ -3137,3 +3137,6 @@ Ten-page/300-paragraph corpus reproduced two real CANONICAL_READ_BUDGET failures
 
 
 2026-09-21 interactive block workflow: PROGRESS. Three table editor data-association regressions repaired using generated matrix constraints. Native six-block guide authored/published and checked across four default packs at1440/390; exact revision4 readback and baseline cleanup pass.480 Admin frontend tests, types/build, generated/kit freshness; six MagicTables Notes changes read back across137 rows. Full details and inherited lint/coverage limits: [interactive-blocks-native-20260921.md](interactive-blocks-native-20260921.md). Original5accepted/19open unchanged.
+
+
+2026-09-21 navigation workflow: PROGRESS. Native authoring/save/reopen/publication, scoped menu picker, real child hierarchy and four-template browser checks now pass this eight-block specimen. Missing-target editor repair has a failing-before regression and native after proof. Reusable/custom target expansion remains server-authoritative. Cleanup and six tracking Notes changes verified. [Evidence](navigation-native-20260921.md). Original5accepted/19open unchanged.
