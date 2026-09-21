@@ -1,0 +1,11 @@
+.cp-library-pricing-scroll {max-inline-size:100%;overflow:auto;}
+.cp-library-pricing-scroll:focus-visible {outline:2px solid var(--primary);outline-offset:3px;}
+.cp-library-pricing-table {inline-size:100%;min-inline-size:36rem;border-collapse:collapse;text-align:start;font-size:.9rem;line-height:1.65;}
+.cp-library-pricing-table caption {text-align:start;font-family:var(--font-heading,inherit);font-size:1.5rem;padding-block-end:1.5rem;}
+.cp-library-pricing-table th,.cp-library-pricing-table td {min-inline-size:12rem;padding:1rem 1.25rem;border-block-end:1px solid var(--border);vertical-align:top;overflow-wrap:anywhere;}
+.cp-library-pricing-table thead {background:var(--muted);}
+.cp-library-pricing-table th:first-child {position:sticky;inset-inline-start:0;z-index:1;min-inline-size:9rem;background:var(--background);text-align:start;font-weight:600;}
+.cp-library-pricing-table thead th:first-child {background:var(--muted);}
+.cp-library-pricing-table td .cp-list {margin:0;}
+
+.cp-library-price-unspecified {color:var(--muted-foreground);font-size:.85rem;}

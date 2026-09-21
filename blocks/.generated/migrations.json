@@ -1,0 +1,479 @@
+{
+  "blocks/product-collection": {
+    "fromVersion": 1,
+    "preserveLegacyRender": true,
+    "toVersion": 2,
+    "transforms": [
+      {
+        "kind": "pack-treatment",
+        "path": [
+          "display"
+        ]
+      },
+      {
+        "kind": "pack-treatment",
+        "path": [
+          "columns"
+        ]
+      }
+    ]
+  },
+  "blocks/story-timeline": {
+    "fromVersion": 1,
+    "preserveLegacyRender": true,
+    "toVersion": 2,
+    "transforms": [
+      {
+        "kind": "pack-treatment",
+        "path": [
+          "items",
+          "*",
+          "side"
+        ]
+      }
+    ]
+  },
+  "blocks/tabbed-content": {
+    "fromVersion": 1,
+    "preserveLegacyRender": true,
+    "toVersion": 2,
+    "transforms": [
+      {
+        "kind": "pack-treatment",
+        "path": [
+          "orientation"
+        ]
+      }
+    ]
+  },
+  "commerce/category-tiles": {
+    "fromVersion": 1,
+    "preserveLegacyRender": true,
+    "toVersion": 2,
+    "transforms": [
+      {
+        "kind": "pack-treatment",
+        "path": [
+          "columns"
+        ]
+      }
+    ]
+  },
+  "commerce/product-showcase": {
+    "fromVersion": 1,
+    "preserveLegacyRender": true,
+    "toVersion": 2,
+    "transforms": [
+      {
+        "kind": "pack-treatment",
+        "path": [
+          "columns"
+        ]
+      }
+    ]
+  },
+  "core/accordion": {
+    "fromVersion": 1,
+    "preserveLegacyRender": true,
+    "toVersion": 2,
+    "transforms": []
+  },
+  "core/author-bio": {
+    "fromVersion": 1,
+    "preserveLegacyRender": true,
+    "toVersion": 2,
+    "transforms": []
+  },
+  "core/bento-grid": {
+    "fromVersion": 1,
+    "preserveLegacyRender": true,
+    "toVersion": 2,
+    "transforms": [
+      {
+        "kind": "pack-treatment",
+        "path": [
+          "items",
+          "*",
+          "size"
+        ]
+      }
+    ]
+  },
+  "core/booking-cta": {
+    "fromVersion": 1,
+    "preserveLegacyRender": true,
+    "toVersion": 2,
+    "transforms": [
+      {
+        "kind": "empty-to-null",
+        "path": [
+          "heading"
+        ]
+      }
+    ]
+  },
+  "core/code": {
+    "fromVersion": 1,
+    "preserveLegacyRender": true,
+    "toVersion": 2,
+    "transforms": []
+  },
+  "core/comparison-table": {
+    "fromVersion": 1,
+    "preserveLegacyRender": true,
+    "toVersion": 2,
+    "transforms": [
+      {
+        "kind": "empty-to-null",
+        "path": [
+          "columns"
+        ]
+      }
+    ]
+  },
+  "core/contact-form": {
+    "fromVersion": 1,
+    "preserveLegacyRender": true,
+    "toVersion": 2,
+    "transforms": []
+  },
+  "core/cta-band": {
+    "fromVersion": 1,
+    "preserveLegacyRender": true,
+    "toVersion": 2,
+    "transforms": [
+      {
+        "kind": "empty-to-null",
+        "path": [
+          "heading"
+        ]
+      }
+    ]
+  },
+  "core/cta-with-form": {
+    "fromVersion": 1,
+    "preserveLegacyRender": true,
+    "toVersion": 2,
+    "transforms": [
+      {
+        "kind": "empty-to-null",
+        "path": [
+          "heading"
+        ]
+      }
+    ]
+  },
+  "core/divider": {
+    "fromVersion": 1,
+    "preserveLegacyRender": true,
+    "toVersion": 2,
+    "transforms": [
+      {
+        "kind": "pack-treatment",
+        "path": [
+          "variant"
+        ]
+      }
+    ]
+  },
+  "core/embed": {
+    "fromVersion": 1,
+    "preserveLegacyRender": true,
+    "toVersion": 2,
+    "transforms": []
+  },
+  "core/faq": {
+    "fromVersion": 1,
+    "preserveLegacyRender": true,
+    "toVersion": 2,
+    "transforms": []
+  },
+  "core/feature-grid": {
+    "fromVersion": 1,
+    "preserveLegacyRender": true,
+    "toVersion": 2,
+    "transforms": []
+  },
+  "core/feature-list-alternating": {
+    "fromVersion": 1,
+    "preserveLegacyRender": true,
+    "toVersion": 2,
+    "transforms": []
+  },
+  "core/featured-products": {
+    "fromVersion": 1,
+    "preserveLegacyRender": true,
+    "toVersion": 2,
+    "transforms": []
+  },
+  "core/heading": {
+    "fromVersion": 1,
+    "preserveLegacyRender": true,
+    "toVersion": 2,
+    "transforms": [
+      {
+        "kind": "empty-to-null",
+        "path": [
+          "text"
+        ]
+      },
+      {
+        "kind": "text-to-richtext",
+        "mode": "plain-inline",
+        "path": [
+          "text"
+        ]
+      }
+    ]
+  },
+  "core/hero": {
+    "fromVersion": 1,
+    "preserveLegacyRender": true,
+    "toVersion": 2,
+    "transforms": [
+      {
+        "kind": "empty-to-null",
+        "path": [
+          "title"
+        ]
+      }
+    ]
+  },
+  "core/hero-split": {
+    "fromVersion": 1,
+    "preserveLegacyRender": true,
+    "toVersion": 2,
+    "transforms": [
+      {
+        "kind": "empty-to-null",
+        "path": [
+          "title"
+        ]
+      },
+      {
+        "kind": "pack-treatment",
+        "path": [
+          "mediaSide"
+        ]
+      }
+    ]
+  },
+  "core/hero-text-only": {
+    "fromVersion": 1,
+    "preserveLegacyRender": true,
+    "toVersion": 2,
+    "transforms": [
+      {
+        "kind": "empty-to-null",
+        "path": [
+          "title"
+        ]
+      },
+      {
+        "kind": "pack-treatment",
+        "path": [
+          "alignment"
+        ]
+      }
+    ]
+  },
+  "core/image": {
+    "fromVersion": 1,
+    "preserveLegacyRender": true,
+    "toVersion": 2,
+    "transforms": []
+  },
+  "core/latest-posts": {
+    "fromVersion": 1,
+    "preserveLegacyRender": true,
+    "toVersion": 2,
+    "transforms": []
+  },
+  "core/list": {
+    "fromVersion": 1,
+    "preserveLegacyRender": true,
+    "toVersion": 2,
+    "transforms": [
+      {
+        "kind": "text-to-richtext",
+        "mode": "markdown-inline",
+        "path": [
+          "items",
+          "*",
+          "text"
+        ]
+      }
+    ]
+  },
+  "core/logo-cloud": {
+    "fromVersion": 1,
+    "preserveLegacyRender": true,
+    "toVersion": 2,
+    "transforms": []
+  },
+  "core/media-text": {
+    "fromVersion": 1,
+    "preserveLegacyRender": true,
+    "toVersion": 2,
+    "transforms": [
+      {
+        "kind": "pack-treatment",
+        "path": [
+          "mediaPosition"
+        ]
+      }
+    ]
+  },
+  "core/newsletter-signup": {
+    "fromVersion": 1,
+    "preserveLegacyRender": true,
+    "toVersion": 2,
+    "transforms": [
+      {
+        "kind": "pack-treatment",
+        "path": [
+          "variant"
+        ]
+      }
+    ]
+  },
+  "core/paragraph": {
+    "fromVersion": 1,
+    "preserveLegacyRender": true,
+    "toVersion": 2,
+    "transforms": [
+      {
+        "kind": "text-to-richtext",
+        "mode": "markdown-prose",
+        "path": [
+          "body"
+        ]
+      }
+    ]
+  },
+  "core/pricing-cards": {
+    "fromVersion": 1,
+    "preserveLegacyRender": true,
+    "toVersion": 2,
+    "transforms": []
+  },
+  "core/process-steps": {
+    "fromVersion": 1,
+    "preserveLegacyRender": true,
+    "toVersion": 2,
+    "transforms": []
+  },
+  "core/quote": {
+    "fromVersion": 1,
+    "preserveLegacyRender": true,
+    "toVersion": 2,
+    "transforms": [
+      {
+        "kind": "empty-to-null",
+        "path": [
+          "text"
+        ]
+      }
+    ]
+  },
+  "core/rich-text": {
+    "fromVersion": 1,
+    "preserveLegacyRender": true,
+    "toVersion": 2,
+    "transforms": [
+      {
+        "kind": "text-to-richtext",
+        "mode": "plain-prose",
+        "path": [
+          "body"
+        ]
+      }
+    ]
+  },
+  "core/roadmap-timeline": {
+    "fromVersion": 1,
+    "preserveLegacyRender": true,
+    "toVersion": 2,
+    "transforms": []
+  },
+  "core/social-links": {
+    "fromVersion": 1,
+    "preserveLegacyRender": true,
+    "toVersion": 2,
+    "transforms": []
+  },
+  "core/spacer": {
+    "fromVersion": 1,
+    "preserveLegacyRender": true,
+    "toVersion": 2,
+    "transforms": [
+      {
+        "kind": "pack-treatment",
+        "path": [
+          "size"
+        ]
+      }
+    ]
+  },
+  "core/stats-band": {
+    "fromVersion": 1,
+    "preserveLegacyRender": true,
+    "toVersion": 2,
+    "transforms": []
+  },
+  "core/tabs": {
+    "fromVersion": 1,
+    "preserveLegacyRender": true,
+    "toVersion": 2,
+    "transforms": []
+  },
+  "core/tag-cloud": {
+    "fromVersion": 1,
+    "preserveLegacyRender": true,
+    "toVersion": 2,
+    "transforms": []
+  },
+  "core/team-grid": {
+    "fromVersion": 1,
+    "preserveLegacyRender": true,
+    "toVersion": 2,
+    "transforms": []
+  },
+  "core/testimonials": {
+    "fromVersion": 1,
+    "preserveLegacyRender": true,
+    "toVersion": 2,
+    "transforms": []
+  },
+  "reference/field-guide": {
+    "fromVersion": 1,
+    "preserveLegacyRender": true,
+    "toVersion": 2,
+    "transforms": [
+      {
+        "kind": "pack-treatment",
+        "path": [
+          "spacing"
+        ]
+      },
+      {
+        "kind": "pack-treatment",
+        "path": [
+          "alignment"
+        ]
+      },
+      {
+        "kind": "pack-treatment",
+        "path": [
+          "ink"
+        ]
+      },
+      {
+        "kind": "pack-treatment",
+        "path": [
+          "font"
+        ]
+      }
+    ]
+  }
+}

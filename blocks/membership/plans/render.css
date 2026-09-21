@@ -1,0 +1,22 @@
+.cp-membership-plans { width:100%; min-width:0; color:var(--foreground); }
+.cp-membership-plans-intro { max-width:46rem; margin-block-end:var(--stack-gap-lg,2rem); }
+.cp-membership-plans-grid { container-type:inline-size; }
+.cp-membership-plans-grid > .cp-grid { grid-template-columns:minmax(0,1fr); align-items:stretch; }
+@container (min-width:40rem) { .cp-membership-plans-grid > .cp-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+@container (min-width:64rem) { .cp-membership-plans-grid > .cp-grid { grid-template-columns:repeat(3,minmax(0,1fr)); } }
+.cp-membership-plan { min-width:0; }
+.cp-membership-plan > .cp-card { height:100%; border-block-start:3px solid var(--primary,currentColor); }
+.cp-membership-plan .cp-heading { overflow-wrap:anywhere; }
+.cp-membership-benefits { list-style:none; margin:0; padding:0; border-block-start:1px solid var(--border,currentColor); }
+.cp-membership-benefits > li { display:grid; grid-template-columns:1.1rem minmax(0,1fr); gap:.75rem; padding-block:1rem; border-block-end:1px solid var(--border,currentColor); }
+.cp-membership-benefits p { margin:0; }
+.cp-membership-benefit-mark { color:var(--primary,currentColor); line-height:1.7; }
+.cp-membership-plan-pagination { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:1rem 2rem; margin-block-start:var(--stack-gap-lg,2rem); }
+.cp-membership-plan-pagination > div { display:flex; flex-wrap:wrap; gap:.5rem 2rem; }
+.cp-membership-plan-pagination a,.cp-membership-plans-action a { display:inline-flex; align-items:center; min-height:44px; }
+.cp-membership-plans-action { margin-block-start:var(--stack-gap-lg,2rem); }
+.cp-membership-plans a:focus-visible { outline:2px solid var(--primary); outline-offset:4px; }
+@media (hover:hover) and (prefers-reduced-motion:no-preference) {
+ .cp-membership-plans a { transition:transform 180ms ease-out; }
+ .cp-membership-plans a:hover { transform:translateX(3px); }
+}

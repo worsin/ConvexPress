@@ -1,0 +1,24 @@
+.cp-curriculum { min-width:0; container-type:inline-size; }
+.cp-curriculum-intro { display:flex; flex-wrap:wrap; align-items:end; justify-content:space-between; gap:1.5rem 2rem; margin-block-end:2rem; }
+.cp-curriculum-intro > .cp-stack { min-width:0; flex:1 1 20rem; overflow-wrap:anywhere; }
+.cp-curriculum-groups { border-block-start:1px solid var(--border,currentColor); }
+.cp-curriculum-module,.cp-curriculum-standalone { border-block-end:1px solid var(--border,currentColor); }
+.cp-curriculum-module summary { list-style:none; display:flex; align-items:center; justify-content:space-between; gap:1.5rem; cursor:pointer; padding-block:1.6rem; min-height:76px; }
+.cp-curriculum-module summary::-webkit-details-marker { display:none; }
+.cp-curriculum-module summary > div { min-width:0; overflow-wrap:anywhere; }
+.cp-curriculum-module summary .cp-heading { margin-block-start:.55rem; }
+.cp-curriculum-chevron { width:24px; height:24px; flex-shrink:0; }
+.cp-curriculum-module[open] > summary .cp-curriculum-chevron { transform:rotate(180deg); }
+.cp-curriculum-outline { padding-block:0 1.5rem; min-width:0; }
+.cp-curriculum-outline ul { list-style:none; margin:0; padding:0; }
+.cp-curriculum-lesson { display:grid; grid-template-columns:.5rem minmax(0,1fr) auto; align-items:start; gap:.9rem; padding-block:1rem; border-block-start:1px solid var(--border,currentColor); overflow-wrap:anywhere; }
+.cp-curriculum-dot { width:5px; height:5px; border:1px solid currentColor; border-radius:50%; margin-block-start:.6rem; }
+.cp-curriculum-kind { font-size:.72rem; color:var(--muted-foreground,currentColor); padding-block-start:.2rem; }
+.cp-curriculum-section { padding-block:1.25rem .65rem; overflow-wrap:anywhere; }
+.cp-curriculum-standalone { padding-block-start:1.5rem; }
+.cp-curriculum-standalone > .cp-heading { margin-block-end:1rem; }
+.cp-curriculum-pagination { display:flex; flex-wrap:wrap; justify-content:flex-end; gap:1rem 2rem; padding-block-start:1.5rem; }
+.cp-curriculum a { display:inline-flex; align-items:center; min-height:44px; }
+.cp-curriculum summary:focus-visible,.cp-curriculum a:focus-visible { outline:2px solid var(--primary,currentColor); outline-offset:4px; }
+@container (min-width:44rem) { .cp-curriculum-outline { padding-inline:1.5rem; } }
+@media (prefers-reduced-motion:no-preference) { .cp-curriculum-chevron { transition:transform 180ms ease-out; } }

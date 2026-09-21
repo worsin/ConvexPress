@@ -136,7 +136,114 @@
   },
   "defaults": {
     "layout": {
-      "contentWidth": "full"
+      "contentWidth": "full",
+      "sectionSpacing": "compact",
+      "elementSpacing": "compact",
+      "blockGap": "none"
+    }
+  },
+  "presets": {
+    "colors": [
+      {
+        "id": "workshop",
+        "name": "Workshop",
+        "colors": {
+          "background": "#f7f8f9",
+          "foreground": "#16202b",
+          "card": "#f7f8f9",
+          "card-foreground": "#16202b",
+          "primary": "#235e91",
+          "primary-foreground": "#ffffff",
+          "secondary": "#e9edf0",
+          "secondary-foreground": "#16202b",
+          "muted": "#e9edf0",
+          "muted-foreground": "#16202b",
+          "accent": "#e9edf0",
+          "accent-foreground": "#16202b",
+          "border": "#c0cbd3",
+          "input": "#c0cbd3",
+          "ring": "#235e91",
+          "destructive": "#b42318"
+        }
+      },
+      {
+        "id": "night-shift",
+        "name": "Night shift",
+        "colors": {
+          "background": "#111820",
+          "foreground": "#edf4f8",
+          "card": "#111820",
+          "card-foreground": "#edf4f8",
+          "primary": "#f5ad42",
+          "primary-foreground": "#111820",
+          "secondary": "#222e3a",
+          "secondary-foreground": "#edf4f8",
+          "muted": "#222e3a",
+          "muted-foreground": "#edf4f8",
+          "accent": "#222e3a",
+          "accent-foreground": "#edf4f8",
+          "border": "#455567",
+          "input": "#455567",
+          "ring": "#f5ad42",
+          "destructive": "#b42318"
+        }
+      },
+      {
+        "id": "signal",
+        "name": "Signal",
+        "colors": {
+          "background": "#fbfaf4",
+          "foreground": "#25352d",
+          "card": "#fbfaf4",
+          "card-foreground": "#25352d",
+          "primary": "#326d4f",
+          "primary-foreground": "#ffffff",
+          "secondary": "#e8eee5",
+          "secondary-foreground": "#25352d",
+          "muted": "#e8eee5",
+          "muted-foreground": "#25352d",
+          "accent": "#e8eee5",
+          "accent-foreground": "#25352d",
+          "border": "#b7c9b7",
+          "input": "#b7c9b7",
+          "ring": "#326d4f",
+          "destructive": "#b42318"
+        }
+      }
+    ]
+  },
+  "blocks": {
+    "treatments": {
+      "reference/field-guide": [
+        "editorial"
+      ],
+      "blocks/product-collection": [
+        "gallery"
+      ]
+    },
+    "patterns": "./patterns/*.json",
+    "renderers": {
+      "core/section": "./blocks/core/section.tsx",
+      "core/columns": "./blocks/core/columns.tsx",
+      "core/feature-grid": "./blocks/core/feature-grid.tsx",
+      "core/cta-band": "./blocks/core/cta-band.tsx",
+      "core/pricing-cards": "./blocks/core/pricing-cards.tsx",
+      "core/faq": "./blocks/core/faq.tsx",
+      "core/testimonials": "./blocks/core/testimonials.tsx",
+      "core/hero": "./blocks/core/hero.tsx",
+      "core/hero-split": "./blocks/core/hero-split.tsx",
+      "core/media-text": "./blocks/core/media-text.tsx",
+      "blocks/page-banner": "./blocks/blocks/page-banner.tsx",
+      "core/form": "./blocks/core/form.tsx",
+      "core/latest-posts": "./blocks/core/latest-posts.tsx",
+      "commerce/product-showcase": "./blocks/commerce/product-showcase.tsx",
+      "commerce/category-tiles": "./blocks/commerce/category-tiles.tsx"
+    },
+    "styles": {
+      "core/cta-band": [
+        "default",
+        "outline"
+      ]
     }
   }
 }

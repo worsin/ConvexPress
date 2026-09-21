@@ -1,0 +1,203 @@
+.cp-library-utility-control {
+	appearance: none;
+	min-block-size: 48px;
+	padding: 0.75rem 1rem;
+	border: 1px solid var(--border);
+	border-radius: var(--radius);
+	background: var(--background);
+	color: var(--foreground);
+	font: 600 0.8rem / 1.4 var(--font-sans);
+	cursor: pointer;
+}
+.cp-library-utility-control:focus-visible,
+.cp-library-search-form input:focus-visible {
+	outline: 2px solid var(--ring, var(--foreground));
+	outline-offset: 3px;
+}
+.cp-library-utility-control:disabled {
+	cursor: default;
+	color: var(--muted-foreground);
+}
+.cp-library-search-form {
+	inline-size: 100%;
+	display: grid;
+	gap: 0.75rem;
+}
+.cp-library-search-form label {
+	font: 600 0.85rem / 1.5 var(--font-sans);
+}
+.cp-library-search-form > div {
+	display: flex;
+	gap: 0.75rem;
+	flex-wrap: wrap;
+}
+.cp-library-search-form input[type="search"] {
+	min-inline-size: min(100%, 12rem);
+	flex: 1;
+	padding: 0.85rem 1rem;
+	min-block-size: 48px;
+	border: 1px solid var(--border);
+	border-radius: var(--radius);
+	background: var(--background);
+	color: var(--foreground);
+	font: 1rem / 1.5 var(--font-sans);
+}
+.cp-library-search-suggestions {
+	list-style: none;
+	display: flex;
+	flex-wrap: wrap;
+	gap: 1rem 2rem;
+	margin: 0;
+	padding: 0;
+}
+.cp-library-announcement {
+	inline-size: 100%;
+	padding: 1rem 1.25rem;
+	border-block: 1px solid var(--border);
+	background: var(--muted);
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) auto;
+	gap: 1rem;
+	align-items: start;
+}
+.cp-library-announcement > div {
+	min-inline-size: 0;
+}
+.cp-library-announcement-close {
+	display: grid;
+	place-items: center;
+	inline-size: 44px;
+	block-size: 44px;
+	border: 0;
+	border-radius: var(--radius);
+	background: transparent;
+	color: var(--foreground);
+	cursor: pointer;
+}
+.cp-library-announcement-close:hover {
+	background: var(--background);
+}
+.cp-library-announcement-close:focus-visible {
+	outline: 2px solid var(--ring, var(--foreground));
+	outline-offset: 3px;
+}
+.cp-library-carousel {
+	inline-size: 100%;
+	min-inline-size: 0;
+}
+.cp-library-carousel [hidden] {
+	display: none;
+}
+.cp-library-carousel-controls {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 1rem;
+	flex-wrap: wrap;
+	border-block-start: 1px solid var(--border);
+	padding-block-start: 1.5rem;
+	font: 500 0.85rem / 1.4 var(--font-sans);
+}
+.cp-library-trust-badges {
+	inline-size: 100%;
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(min(100%, 14rem), 1fr));
+	gap: 1.5rem;
+	list-style: none;
+	padding: 0;
+	margin: 0;
+}
+.cp-library-trust-badges > li {
+	display: flex;
+	align-items: center;
+	gap: 1rem;
+	border-block: 1px solid var(--border);
+	padding-block: 1.5rem;
+}
+.cp-library-trust-media {
+	inline-size: 4rem;
+	flex-shrink: 0;
+}
+.cp-library-trust-media .cp-image {
+	margin: 0;
+}
+.cp-library-trust-media img {
+	inline-size: 100%;
+	aspect-ratio: 1;
+	object-fit: contain;
+}
+.cp-library-author {
+	inline-size: 100%;
+	display: grid;
+	gap: 2rem;
+	grid-template-columns: minmax(0, 1fr);
+	align-items: center;
+}
+.cp-library-author-portrait {
+	max-inline-size: 14rem;
+}
+.cp-library-author-portrait .cp-image {
+	margin: 0;
+}
+.cp-library-author-portrait img {
+	inline-size: 100%;
+	aspect-ratio: 1;
+	object-fit: cover;
+}
+@media (min-width: 760px) {
+	.cp-library-author[data-media="true"] {
+		grid-template-columns: minmax(8rem, 14rem) minmax(0, 1fr);
+	}
+}
+.cp-library-safe-html {
+	font-family: var(--font-sans);
+	line-height: 1.7;
+	inline-size: 100%;
+	overflow-wrap: anywhere;
+}
+.cp-library-safe-html :where(h2, h3, h4, blockquote) {
+	font-family: var(--font-display);
+}
+.cp-library-safe-html :where(h2, h3, h4) {
+	font-weight: 500;
+	line-height: 1.2;
+}
+.cp-library-safe-html a {
+	color: var(--primary);
+	text-underline-offset: 0.2em;
+}
+.cp-library-safe-html a:focus-visible {
+	outline: 2px solid var(--ring, var(--foreground));
+	outline-offset: 3px;
+}
+.cp-library-safe-html :where(pre, table) {
+	max-inline-size: 100%;
+	overflow-x: auto;
+}
+.cp-library-share {
+	inline-size: 100%;
+}
+.cp-library-share-controls {
+	display: flex;
+	gap: 0.75rem;
+	flex-wrap: wrap;
+}
+.cp-library-share-controls a {
+	display: inline-flex;
+	align-items: center;
+	text-decoration: none;
+}
+.cp-library-share-manual {
+	display: grid;
+	gap: 0.75rem;
+	inline-size: 100%;
+	font-family: var(--font-sans);
+}
+.cp-library-share-manual input {
+	inline-size: 100%;
+	min-block-size: 48px;
+	padding: 0.75rem;
+	border: 1px solid var(--border);
+	background: var(--background);
+	color: var(--foreground);
+}

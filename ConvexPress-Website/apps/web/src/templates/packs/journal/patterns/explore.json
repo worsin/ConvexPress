@@ -1,0 +1,90 @@
+{
+  "id": "explore",
+  "title": "Explore more",
+  "description": "An editorial introduction and this website\u2019s latest published posts.",
+  "category": "collection",
+  "blocks": [
+    {
+      "id": "pattern_1",
+      "name": "core/section",
+      "version": 1,
+      "attrs": {},
+      "children": [
+        {
+          "id": "pattern_2",
+          "name": "core/heading",
+          "version": 2,
+          "attrs": {
+            "text": {
+              "type": "doc",
+              "content": [
+                {
+                  "type": "paragraph",
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "Fresh perspectives"
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "id": "pattern_3",
+          "name": "core/paragraph",
+          "version": 2,
+          "attrs": {
+            "body": {
+              "type": "doc",
+              "content": [
+                {
+                  "type": "paragraph",
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "The latest essays, conversations, and dispatches from the journal."
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        }
+      ],
+      "layout": {
+        "width": "contained",
+        "spacing": "default",
+        "tone": "default",
+        "align": "start"
+      }
+    },
+    {
+      "id": "pattern_4",
+      "name": "core/section",
+      "version": 1,
+      "attrs": {},
+      "children": [
+        {
+          "id": "pattern_5",
+          "name": "core/post-grid",
+          "version": 1,
+          "attrs": {
+            "limit": 6,
+            "showExcerpt": true
+          },
+          "layout": {
+            "spacing": "none"
+          }
+        }
+      ],
+      "layout": {
+        "width": "contained",
+        "spacing": "default",
+        "tone": "default",
+        "align": "start"
+      }
+    }
+  ]
+}

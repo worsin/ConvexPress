@@ -1,0 +1,7 @@
+.cp-library-roadmap {list-style:none;margin:0;padding:0;border-block-start:1px solid var(--border);}
+.cp-library-roadmap>li {display:grid;grid-template-columns:minmax(0,1fr);gap:1.25rem;padding-block:2rem;border-block-end:1px solid var(--border);}
+.cp-library-roadmap-date {display:flex;align-items:start;gap:.75rem;flex-wrap:wrap;}
+.cp-library-roadmap-date .cp-badge {text-transform:capitalize;}
+.cp-library-roadmap>li[data-status=done] {border-inline-start:3px solid var(--primary);padding-inline-start:1rem;}
+.cp-library-roadmap>li[data-status=in_progress] {border-inline-start:3px dashed var(--primary);padding-inline-start:1rem;}
+@media(min-width:768px){.cp-library-roadmap>li {grid-template-columns:minmax(8rem,1fr) minmax(0,3fr);gap:3rem;}.cp-library-roadmap-date {flex-direction:column;}}

@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { cn } from "@/lib/utils";
 import {
@@ -149,7 +149,8 @@ function HoneypotInput({
   return (
     <div
       aria-hidden="true"
-      className="absolute left-[-10000px] top-auto h-px w-px overflow-hidden"
+      data-slot="form-honeypot"
+      style={{ position: "absolute", left: -10000, top: "auto", width: 1, height: 1, overflow: "hidden" }}
     >
       <label htmlFor={inputId}>Leave this field blank</label>
       <input
@@ -175,6 +176,21 @@ function CaptchaChallenge({
   onErrorChange: (message: string | null) => void;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const [widgetSize, setWidgetSize] = useState<"normal" | "compact">("normal");
+
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container || !captchaIsRequired(security)) return;
+    const measure = () => {
+      const width = container.getBoundingClientRect().width;
+      if (width > 0) setWidgetSize(width < 300 ? "compact" : "normal");
+    };
+    measure();
+    if (!window.ResizeObserver) return;
+    const observer = new window.ResizeObserver(measure);
+    observer.observe(container);
+    return () => observer.disconnect();
+  }, [security?.captchaEnabled, security?.captchaProvider]);
 
   useEffect(() => {
     onTokenChange("");
@@ -233,11 +249,14 @@ function CaptchaChallenge({
 
         widgetId = renderer.render(container, {
           sitekey: siteKey,
+          size: widgetSize,
           callback: (token: string) => {
+            if (cancelled) return;
             onTokenChange(token);
             onErrorChange(null);
           },
           "expired-callback": () => {
+            if (cancelled) return;
             onTokenChange("");
           },
           "error-callback": fail,
@@ -254,7 +273,7 @@ function CaptchaChallenge({
         window.hcaptcha?.remove?.(widgetId);
       }
     };
-  }, [security, onTokenChange, onErrorChange]);
+  }, [security, onTokenChange, onErrorChange, widgetSize]);
 
   if (!captchaIsRequired(security)) return null;
 
@@ -281,7 +300,8 @@ function CaptchaChallenge({
   return (
     <div
       data-slot="forms-captcha"
-      className={cn("min-h-16", "overflow-hidden")}
+      className={cn("min-h-16", "my-4")}
+      style={{ minWidth: 0, marginBlock: 16 }}
       ref={containerRef}
     />
   );

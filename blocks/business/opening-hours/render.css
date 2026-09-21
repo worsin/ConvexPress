@@ -1,0 +1,5 @@
+.cp-block-hours { width:100%; margin:0; }
+.cp-block-hours-row { display:grid; grid-template-columns:minmax(7rem,1fr) 2fr; gap:1.5rem; padding-block:1.1rem; border-bottom:1px solid var(--border,#ccc); }
+.cp-block-hours dt { text-transform:capitalize; font-weight:600; }
+.cp-block-hours dd { margin:0; font-variant-numeric:tabular-nums; }
+@media(max-width:480px){.cp-block-hours-row{grid-template-columns:1fr;gap:.5rem}}

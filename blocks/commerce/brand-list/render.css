@@ -1,0 +1,14 @@
+.cp-brand-list{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,15rem),1fr));gap:clamp(1rem,2vw,2rem);color:var(--foreground)}
+.cp-brand-list>li{min-width:0}
+.cp-brand-link{display:flex;flex-direction:column;height:100%;text-decoration:none;color:inherit;border-block:1px solid var(--border);transition:border-color 180ms ease}
+.cp-brand-mark{display:flex;align-items:center;justify-content:center;min-height:10rem;aspect-ratio:2.5/1;padding:2rem 1.25rem;overflow:hidden}
+.cp-brand-mark img{display:block;max-width:100%;max-height:7rem;width:auto;height:auto;object-fit:contain}
+.cp-brand-wordmark{font-family:var(--font-heading);font-size:clamp(1.6rem,3vw,2.5rem);font-weight:500;line-height:1.12;letter-spacing:-.035em;text-align:center;overflow-wrap:anywhere}
+.cp-brand-caption{display:flex;align-items:center;justify-content:space-between;gap:1rem;padding:1rem 0;min-width:0}
+.cp-brand-caption .cp-text{margin:0;font-family:var(--font-body);overflow-wrap:anywhere}
+.cp-brand-arrow{display:inline-block;font-size:1.25rem;line-height:1;transition:transform 180ms ease}
+.cp-brand-link:hover{border-color:var(--foreground)}
+.cp-brand-link:hover .cp-brand-arrow{transform:translate3d(2px,-2px,0)}
+.cp-brand-link:focus-visible{outline:2px solid var(--primary);outline-offset:5px}
+@media(max-width:540px){.cp-brand-list{grid-template-columns:repeat(2,minmax(0,1fr));gap:1rem}.cp-brand-mark{min-height:8rem;padding:1.5rem .5rem}.cp-brand-wordmark{font-size:1.5rem}.cp-brand-caption{align-items:flex-start;gap:.4rem}}
+@media(prefers-reduced-motion:reduce){.cp-brand-link,.cp-brand-arrow{transition:none}.cp-brand-link:hover .cp-brand-arrow{transform:none}}

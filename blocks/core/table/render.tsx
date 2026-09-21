@@ -1,0 +1,3 @@
+import { defineBlock } from "../../../ConvexPress-Website/apps/web/src/templates/sdk/block-renderer/model";
+import "./render.css";
+export default defineBlock("core/table",({attrs})=><div className="cp-canonical-table-scroll" role="region" aria-label={attrs.caption||"Data table"} tabIndex={0}><table className="cp-canonical-table">{attrs.caption&&<caption>{attrs.caption}</caption>}{attrs.columns.length>0&&<thead><tr>{attrs.columns.map((heading,index)=><th key={index} scope="col">{heading}</th>)}</tr></thead>}<tbody>{attrs.rows.map((row,index)=><tr key={index}>{row.map((cell,column)=><td key={column}>{cell}</td>)}</tr>)}</tbody></table></div>);

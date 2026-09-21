@@ -124,7 +124,8 @@
     "header",
     "footer",
     "shop",
-    "pageTemplates"
+    "pageTemplates",
+    "menuLayout"
   ],
   "menuLocations": {
     "primary": "header",
@@ -134,7 +135,114 @@
   },
   "defaults": {
     "layout": {
-      "contentWidth": "wide"
+      "contentWidth": "wide",
+      "sectionSpacing": "comfortable",
+      "elementSpacing": "spacious",
+      "blockGap": "none"
+    }
+  },
+  "presets": {
+    "colors": [
+      {
+        "id": "parchment",
+        "name": "Parchment",
+        "colors": {
+          "background": "#faf7f0",
+          "foreground": "#29241e",
+          "card": "#faf7f0",
+          "card-foreground": "#29241e",
+          "primary": "#80532a",
+          "primary-foreground": "#ffffff",
+          "secondary": "#eee7db",
+          "secondary-foreground": "#29241e",
+          "muted": "#eee7db",
+          "muted-foreground": "#29241e",
+          "accent": "#eee7db",
+          "accent-foreground": "#29241e",
+          "border": "#d6ccbc",
+          "input": "#d6ccbc",
+          "ring": "#80532a",
+          "destructive": "#b42318"
+        }
+      },
+      {
+        "id": "ink",
+        "name": "Ink",
+        "colors": {
+          "background": "#191c20",
+          "foreground": "#f3efe7",
+          "card": "#191c20",
+          "card-foreground": "#f3efe7",
+          "primary": "#dec398",
+          "primary-foreground": "#191c20",
+          "secondary": "#292d33",
+          "secondary-foreground": "#f3efe7",
+          "muted": "#292d33",
+          "muted-foreground": "#f3efe7",
+          "accent": "#292d33",
+          "accent-foreground": "#f3efe7",
+          "border": "#53575f",
+          "input": "#53575f",
+          "ring": "#dec398",
+          "destructive": "#b42318"
+        }
+      },
+      {
+        "id": "rosewood",
+        "name": "Rosewood",
+        "colors": {
+          "background": "#fff7f3",
+          "foreground": "#3c2527",
+          "card": "#fff7f3",
+          "card-foreground": "#3c2527",
+          "primary": "#91444b",
+          "primary-foreground": "#ffffff",
+          "secondary": "#f4e4df",
+          "secondary-foreground": "#3c2527",
+          "muted": "#f4e4df",
+          "muted-foreground": "#3c2527",
+          "accent": "#f4e4df",
+          "accent-foreground": "#3c2527",
+          "border": "#d9bdb5",
+          "input": "#d9bdb5",
+          "ring": "#91444b",
+          "destructive": "#b42318"
+        }
+      }
+    ]
+  },
+  "blocks": {
+    "treatments": {
+      "reference/field-guide": [
+        "editorial"
+      ],
+      "blocks/product-collection": [
+        "gallery"
+      ]
+    },
+    "patterns": "./patterns/*.json",
+    "renderers": {
+      "core/section": "./blocks/core/section.tsx",
+      "core/columns": "./blocks/core/columns.tsx",
+      "core/feature-grid": "./blocks/core/feature-grid.tsx",
+      "core/cta-band": "./blocks/core/cta-band.tsx",
+      "core/pricing-cards": "./blocks/core/pricing-cards.tsx",
+      "core/faq": "./blocks/core/faq.tsx",
+      "core/testimonials": "./blocks/core/testimonials.tsx",
+      "core/hero": "./blocks/core/hero.tsx",
+      "core/hero-split": "./blocks/core/hero-split.tsx",
+      "core/media-text": "./blocks/core/media-text.tsx",
+      "blocks/page-banner": "./blocks/blocks/page-banner.tsx",
+      "core/form": "./blocks/core/form.tsx",
+      "core/latest-posts": "./blocks/core/latest-posts.tsx",
+      "commerce/product-showcase": "./blocks/commerce/product-showcase.tsx",
+      "commerce/category-tiles": "./blocks/commerce/category-tiles.tsx"
+    },
+    "styles": {
+      "core/cta-band": [
+        "default",
+        "inset"
+      ]
     }
   }
 }

@@ -1,0 +1,49 @@
+{
+  "id": "principles",
+  "title": "Three guiding ideas",
+  "description": "A concise introduction to the principles behind your work.",
+  "category": "features",
+  "blocks": [
+    {
+      "id": "pattern_1",
+      "name": "core/section",
+      "version": 1,
+      "attrs": {},
+      "children": [
+        {
+          "id": "pattern_2",
+          "name": "core/feature-grid",
+          "version": 2,
+          "attrs": {
+            "eyebrow": "Our approach",
+            "heading": "Small details. Lasting value.",
+            "body": "Three ideas that guide the choices we make.",
+            "items": [
+              {
+                "title": "Ideas",
+                "description": "Start with a clear purpose and the people it serves."
+              },
+              {
+                "title": "Culture",
+                "description": "Pay attention to the details that shape the experience."
+              },
+              {
+                "title": "In the field",
+                "description": "Build something useful enough to return to."
+              }
+            ]
+          },
+          "layout": {
+            "spacing": "none"
+          }
+        }
+      ],
+      "layout": {
+        "width": "contained",
+        "spacing": "default",
+        "tone": "default",
+        "align": "start"
+      }
+    }
+  ]
+}

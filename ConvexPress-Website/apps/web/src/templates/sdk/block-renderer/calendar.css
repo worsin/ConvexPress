@@ -1,0 +1,32 @@
+.cp-calendar { container-type:inline-size; min-width:0; color:var(--foreground); }
+.cp-calendar-header { display:flex; flex-wrap:wrap; align-items:end; justify-content:space-between; gap:1.5rem; padding-block-end:2rem; }
+.cp-calendar-header .cp-heading { margin-block:.35rem .65rem; }
+.cp-calendar-month-actions { display:flex; flex-wrap:wrap; gap:.5rem 1.25rem; align-items:center; font-size:.875rem; }
+.cp-calendar a { text-underline-offset:.25em; }
+.cp-calendar-month-actions a,.cp-calendar-paging a { display:inline-flex; min-height:44px; align-items:center; }
+.cp-calendar-toolbar { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:1rem; margin-block-end:1.25rem; }
+.cp-calendar-view { display:flex; padding:.25rem; border:1px solid var(--border); border-radius:var(--radius,.5rem); gap:.25rem; }
+.cp-calendar-view button { min-height:44px; padding:.5rem 1rem; border:0; border-radius:calc(var(--radius,.5rem)*.6); background:transparent; color:var(--muted-foreground); font:inherit; font-size:.875rem; cursor:pointer; transition:background-color 140ms ease,color 140ms ease; }
+.cp-calendar-view button[aria-pressed=true] { background:var(--foreground); color:var(--background); }
+.cp-calendar :is(a,button):focus-visible { outline:2px solid var(--primary); outline-offset:3px; }
+.cp-calendar-month table { width:100%; table-layout:fixed; border-collapse:collapse; }
+.cp-calendar-month th { padding:.75rem .25rem; font-weight:400; font-size:.75rem; color:var(--muted-foreground); }
+.cp-calendar-month abbr { text-decoration:none; }
+.cp-calendar-month td { vertical-align:top; height:7.5rem; padding:.5rem; border:1px solid var(--border); background:var(--background); }
+.cp-calendar-month td.cp-calendar-blank { background:var(--muted); }
+.cp-calendar-day { display:block; margin-block-end:.5rem; font-variant-numeric:tabular-nums; font-size:.8rem; color:var(--muted-foreground); }
+.cp-calendar-month ul { margin:0; padding:0; list-style:none; display:grid; gap:.35rem; }
+.cp-calendar-month li a { display:flex; align-items:center; min-height:44px; padding:.5rem; background:var(--muted); border-inline-start:2px solid var(--primary); border-radius:2px; font-size:.75rem; line-height:1.45; overflow-wrap:anywhere; text-decoration:none; transition:background-color 140ms ease; }
+.cp-calendar-month li a:hover { text-decoration:underline; }
+.cp-calendar-agenda article { display:grid; grid-template-columns:minmax(9rem,.4fr) minmax(0,1fr); gap:1.5rem; padding-block:1.75rem; border-block-start:1px solid var(--border); }
+.cp-calendar-agenda article:last-child { border-block-end:1px solid var(--border); }
+.cp-calendar-agenda .cp-heading { margin-block-end:.75rem; overflow-wrap:anywhere; }
+.cp-calendar-agenda-date { font-variant-numeric:tabular-nums; }
+.cp-calendar-empty { padding-block:2rem; border-block-end:1px solid var(--border); color:var(--muted-foreground); }
+.cp-calendar-paging { display:flex; flex-wrap:wrap; gap:1rem; justify-content:space-between; padding-block:1.5rem; }
+.cp-calendar-sr { position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0; }
+@container (max-width:600px) { .cp-calendar-month td { padding:.25rem; height:5rem; } .cp-calendar-month li a { font-size:.65rem; padding:.2rem; } .cp-calendar-agenda article { grid-template-columns:minmax(0,1fr); gap:.75rem; } }
+@media (prefers-reduced-motion:reduce) { .cp-calendar :is(button,a) { transition:none; } }
+
+.cp-calendar-compact-events { display:none; list-style:none; margin:1.5rem 0 0; padding:0; }
+@container (max-width:600px) { .cp-calendar-month li a { font-size:0; justify-content:center; padding:0; border:0; background:transparent; } .cp-calendar-month li a::before { content:""; width:.4rem; height:.4rem; border-radius:50%; background:var(--primary); } .cp-calendar-compact-events { display:grid; gap:1rem; } .cp-calendar-compact-events li > a { display:flex; min-height:44px; justify-content:start; padding:0; font-size:1rem; text-decoration:underline; } .cp-calendar-compact-events li > a::before { content:none; } }

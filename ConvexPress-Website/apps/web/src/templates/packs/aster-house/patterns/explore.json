@@ -1,0 +1,188 @@
+{
+  "id": "explore",
+  "title": "Explore more",
+  "description": "A short introduction followed by two editable areas of focus.",
+  "category": "collection",
+  "blocks": [
+    {
+      "id": "pattern_1",
+      "name": "core/section",
+      "version": 1,
+      "attrs": {},
+      "children": [
+        {
+          "id": "pattern_2",
+          "name": "core/heading",
+          "version": 2,
+          "attrs": {
+            "text": {
+              "type": "doc",
+              "content": [
+                {
+                  "type": "paragraph",
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "Explore the details"
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "id": "pattern_3",
+          "name": "core/paragraph",
+          "version": 2,
+          "attrs": {
+            "body": {
+              "type": "doc",
+              "content": [
+                {
+                  "type": "paragraph",
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "A place to introduce the work, ideas, or services you want people to discover."
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        }
+      ],
+      "layout": {
+        "width": "contained",
+        "spacing": "default",
+        "tone": "default",
+        "align": "start"
+      }
+    },
+    {
+      "id": "pattern_4",
+      "name": "core/columns",
+      "version": 1,
+      "attrs": {},
+      "children": [
+        {
+          "id": "pattern_5",
+          "name": "core/section",
+          "version": 1,
+          "attrs": {},
+          "children": [
+            {
+              "id": "pattern_6",
+              "name": "core/heading",
+              "version": 2,
+              "attrs": {
+                "text": {
+                  "type": "doc",
+                  "content": [
+                    {
+                      "type": "paragraph",
+                      "content": [
+                        {
+                          "type": "text",
+                          "text": "Natural materials"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "id": "pattern_7",
+              "name": "core/paragraph",
+              "version": 2,
+              "attrs": {
+                "body": {
+                  "type": "doc",
+                  "content": [
+                    {
+                      "type": "paragraph",
+                      "content": [
+                        {
+                          "type": "text",
+                          "text": "Introduce the first area of your work. Explain what makes it useful and who it is for."
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          ],
+          "layout": {
+            "width": "contained",
+            "spacing": "none",
+            "tone": "default",
+            "align": "start"
+          }
+        },
+        {
+          "id": "pattern_8",
+          "name": "core/section",
+          "version": 1,
+          "attrs": {},
+          "children": [
+            {
+              "id": "pattern_9",
+              "name": "core/heading",
+              "version": 2,
+              "attrs": {
+                "text": {
+                  "type": "doc",
+                  "content": [
+                    {
+                      "type": "paragraph",
+                      "content": [
+                        {
+                          "type": "text",
+                          "text": "Everyday rituals"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "id": "pattern_10",
+              "name": "core/paragraph",
+              "version": 2,
+              "attrs": {
+                "body": {
+                  "type": "doc",
+                  "content": [
+                    {
+                      "type": "paragraph",
+                      "content": [
+                        {
+                          "type": "text",
+                          "text": "Share a complementary idea. Keep the focus on what your visitors can discover here."
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          ],
+          "layout": {
+            "width": "contained",
+            "spacing": "none",
+            "tone": "default",
+            "align": "start"
+          }
+        }
+      ],
+      "layout": {
+        "width": "wide",
+        "spacing": "default"
+      }
+    }
+  ]
+}

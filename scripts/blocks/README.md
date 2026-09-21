@@ -37,3 +37,9 @@ bun test ./scripts/blocks/generator.test.ts ./scripts/blocks/pack-design.test.mj
 ```
 
 These tests use the Admin workspace's pinned Zod, Convex, convex-test and TypeScript dependencies. Generation does not activate a runtime registry or deploy a backend. Consumer parity (`generator-consumers.test.ts`), installed pack inventory (`pack-inventory.test.mjs`) and full generation freshness remain separate integration gates as those sources are committed.
+
+## Canonical renderer foundation
+
+The Library renderers, pack-owned treatments and their pure data contracts can be checked independently of deployed provider handlers and the complete demo. Run `bun scripts/blocks/test-renderer-foundation.mjs` for the existing model, content, pack ownership and legacy treatment comparison cases. It bundles against the installed Website runtime, executes the original cases, and removes its temporary bundle. The full renderer suite retains these assertions along with provider, live-state and demo integration tests.
+
+`node scripts/blocks/backend-foundation.mjs --check` and `node scripts/blocks/portable-data.mjs --check` verify exact generated and portable source copies. Generation does not deploy registered handlers. Data contract and static-renderer success does not establish that a provider operation or authorized customer flow works end to end.

@@ -1,0 +1,27 @@
+/* Owned block presentation. No authored CSS and no cross-template selectors. */
+.cp-owned-journal { min-width: 0; }
+.cp-owned-journal .journal-features, .cp-owned-journal .journal-stories, .cp-owned-journal .journal-testimonials { inline-size: 100%; min-inline-size: 0; }
+.cp-owned-journal .journal-ordinal { font: 500 .7rem/1 var(--font-sans, sans-serif); letter-spacing: .14em; color: var(--muted-foreground); }
+.cp-owned-journal .journal-hero .cp-heading { max-width: 18ch; }
+.cp-owned-journal .journal-hero-image img, .cp-owned-journal .journal-banner-image img { width: 100%; object-fit: cover; }
+.cp-owned-journal .journal-hero-image img { aspect-ratio: 4/5; }
+.cp-owned-journal .journal-banner-image img { aspect-ratio: 3/1; }
+.cp-owned-journal .journal-feature, .cp-owned-journal .journal-plan, .cp-owned-journal .journal-testimonial { min-width: 0; }
+.cp-owned-journal .journal-price .cp-text { font-variant-numeric: tabular-nums; font-size: clamp(1.8rem, 3vw, 3rem); line-height: 1.1; letter-spacing: -.04em; }
+.cp-owned-journal .journal-story { display: flex; flex-direction: column; gap: var(--stack-gap-md, 1.25rem); }
+.cp-owned-journal .journal-form-fields { min-width: 0; }
+@media (max-width: 640px) { .cp-owned-journal .journal-banner-image img { aspect-ratio: 16/9; } }
+
+.cp-owned-journal .journal-feature, .cp-owned-journal .journal-plan { border-block-start: 1px solid var(--border); padding-block-start: 1.5rem; }
+.cp-owned-journal .journal-plan[data-featured="true"] { border-block-start: 3px solid var(--primary); }
+.cp-owned-journal .journal-cta, .cp-owned-journal .journal-banner { border-block: 1px solid var(--border); padding-block: var(--section-py-compact, 2rem); }
+.cp-owned-journal .journal-hero { border-block-end: 1px solid var(--border); padding-block-end: var(--section-py-compact, 2rem); }
+.cp-owned-journal .journal-price .cp-text { font-family: var(--font-heading, Georgia, serif); font-style: italic; }
+.cp-owned-journal .journal-products .cp-showcase-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--grid-gap, 2rem); }
+.cp-owned-journal .journal-products .cp-collection-card { border-block-end: 1px solid var(--border); padding-block-end: 1.5rem; }
+.cp-owned-journal .journal-categories .cp-category-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--grid-gap, 2rem); }
+.cp-owned-journal .journal-categories .cp-category-image { aspect-ratio: 3/2; border-radius: 0; }
+.cp-owned-journal .journal-categories .cp-category-index { font-style: italic; }
+@media (max-width: 640px) { .cp-owned-journal .journal-products .cp-showcase-grid, .cp-owned-journal .journal-categories .cp-category-grid { grid-template-columns: minmax(0,1fr); } }
+
+.cp-owned-journal .journal-cta[data-block-style="inset"] { border: 1px solid var(--border); padding: clamp(1.25rem, 4vw, 3rem); background: var(--muted); border-radius: var(--radius, 0.5rem); }

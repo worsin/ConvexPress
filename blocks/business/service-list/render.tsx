@@ -1,0 +1,3 @@
+import { defineBlock } from "../../../ConvexPress-Website/apps/web/src/templates/sdk/block-renderer/model";
+import * as P from "../../../ConvexPress-Website/apps/web/src/templates/sdk/primitives";
+export default defineBlock("business/service-list", ({attrs}) => <P.Stack gap="lg">{attrs.services.map((service,index)=><P.Card key={index}><P.Stack gap="md"><P.Heading level={3} size="md">{service.name}</P.Heading>{service.description && <P.Text>{service.description}</P.Text>}<P.Stack direction="horizontal" gap="md">{service.duration && <P.Badge label={service.duration} tone="muted" />}{service.priceLabel && <P.Text>{service.priceLabel}</P.Text>}</P.Stack>{service.link && <P.Link {...service.link} />}</P.Stack></P.Card>)}</P.Stack>);

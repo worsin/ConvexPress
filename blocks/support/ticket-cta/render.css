@@ -1,0 +1,7 @@
+.cp-support-ticket{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:clamp(1.5rem,4vw,4rem);padding:clamp(1.5rem,4vw,3.5rem) 0;border-block:1px solid color-mix(in srgb,currentColor 18%,transparent)}
+.cp-support-ticket-copy{display:grid;gap:1rem;min-width:0;max-width:42rem;overflow-wrap:anywhere}
+.cp-support-ticket-action{display:grid;justify-items:start;gap:1rem;max-width:22rem;min-width:0;overflow-wrap:anywhere}
+.cp-support-ticket-action a{max-width:100%;white-space:normal;text-align:center;transition:transform 180ms ease}
+@media(hover:hover) and (prefers-reduced-motion:no-preference){.cp-support-ticket-action a:hover{transform:translateY(-2px)}}
+@media(max-width:640px){.cp-support-ticket{grid-template-columns:minmax(0,1fr)}.cp-support-ticket-action{max-width:100%}}
+@media(prefers-reduced-motion:reduce){.cp-support-ticket-action a{transition:none}}

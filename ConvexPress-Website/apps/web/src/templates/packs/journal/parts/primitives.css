@@ -1,0 +1,31 @@
+.journal-primitive-heading .cp-heading {
+	font-style: italic;
+	font-weight: 400;
+	line-height: 1.06;
+	max-width: 22ch;
+}
+.journal-primitive-eyebrow .cp-eyebrow {
+	letter-spacing: 0.25em;
+	font-size: 0.65rem;
+}
+.journal-primitive-card {
+	height: 100%;
+	border-block-start: 1px solid currentColor;
+}
+.journal-primitive-card .cp-card {
+	border-radius: 0;
+	height: 100%;
+}
+.journal-primitive-card .cp-card[data-variant="plain"] {
+	padding-inline: 0;
+}
+.journal-primitive-quote blockquote {
+	border: 0;
+	padding-inline-start: 0;
+	font-style: italic;
+	font-size: clamp(1.8rem, 3.2vw, 3rem);
+}
+.journal-primitive-quote figcaption {
+	border-block-start: 1px solid var(--border);
+	padding-block-start: 1rem;
+}

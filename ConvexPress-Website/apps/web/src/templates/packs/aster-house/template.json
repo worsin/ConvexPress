@@ -1,0 +1,290 @@
+{
+  "id": "aster-house",
+  "name": "Aster House",
+  "version": "1.0.0",
+  "sdk": "^1",
+  "tagline": "A field journal for places worth finding",
+  "description": "An image-led editorial template for retreats, outdoor experiences and thoughtfully made objects. Monumental serif headlines, a limestone canvas, forest ink and precise vermillion accents.",
+  "author": "ConvexPress",
+  "bestFor": [
+    "Retreats and hospitality",
+    "Outdoor experiences",
+    "Design-led shops",
+    "Member communities"
+  ],
+  "surfaces": [
+    "chrome.header",
+    "chrome.mobileNav",
+    "chrome.footer",
+    "chrome.searchOverlay",
+    "chrome.cartDrawer",
+    "system.notFound",
+    "system.error",
+    "system.restricted",
+    "system.passwordGate",
+    "home",
+    "page",
+    "blog.index",
+    "blog.post",
+    "blog.archive",
+    "blog.author",
+    "blog.category",
+    "blog.tag",
+    "search",
+    "shop.catalog",
+    "shop.product",
+    "shop.categories",
+    "shop.category",
+    "cart",
+    "cart.shared",
+    "checkout.details",
+    "checkout.shipping",
+    "checkout.payment",
+    "checkout.review",
+    "checkout.confirmation",
+    "order.track",
+    "bundles.index",
+    "bundles.detail",
+    "wishlist.shared",
+    "pricing",
+    "signup.offer",
+    "courses.index",
+    "courses.detail",
+    "courses.lessonPreview",
+    "certificates.verify",
+    "certificates.view",
+    "help.home",
+    "help.search",
+    "help.category",
+    "help.article",
+    "help.collection",
+    "support.home",
+    "support.new",
+    "support.tickets",
+    "support.ticket",
+    "gallery.index",
+    "gallery.album",
+    "gallery.category",
+    "recipes.index",
+    "recipes.detail",
+    "recipes.category",
+    "forms.form",
+    "forms.resume",
+    "dashboard.shell",
+    "dashboard.home",
+    "dashboard.profile",
+    "dashboard.settings",
+    "dashboard.security",
+    "dashboard.notifications",
+    "dashboard.comments",
+    "dashboard.posts",
+    "dashboard.courses",
+    "dashboard.lesson",
+    "dashboard.orders",
+    "dashboard.order",
+    "dashboard.orderReturn",
+    "dashboard.returns",
+    "dashboard.return",
+    "dashboard.subscriptions",
+    "dashboard.subscription",
+    "dashboard.downloads",
+    "dashboard.reviews",
+    "dashboard.wishlist",
+    "dashboard.addresses",
+    "dashboard.membership",
+    "events.index",
+    "events.detail",
+    "dashboard.events",
+    "auth.shell",
+    "auth.login",
+    "auth.register",
+    "auth.logout",
+    "auth.forgot",
+    "auth.reset",
+    "auth.verify"
+  ],
+  "variants": {
+    "page": [
+      "default",
+      "sidebar-left",
+      "full-width",
+      "no-sidebar",
+      "landing",
+      "blank"
+    ],
+    "shop.catalog": [
+      "boutique"
+    ],
+    "shop.product": [
+      "split",
+      "classic",
+      "minimal"
+    ]
+  },
+  "modules": [
+    "colors",
+    "typography",
+    "layout",
+    "header",
+    "footer",
+    "shop",
+    "pageTemplates",
+    "menuLayout"
+  ],
+  "menuLocations": {
+    "primary": "header",
+    "footer-1": "footer-1",
+    "footer-2": "footer-2",
+    "footer-3": "footer-3"
+  },
+  "defaults": {
+    "colors": {
+      "background": "#eee9dc",
+      "foreground": "#21392e",
+      "card": "#f8f4e9",
+      "card-foreground": "#21392e",
+      "muted": "#e1dccd",
+      "muted-foreground": "#637164",
+      "primary": "#ae412a",
+      "primary-foreground": "#fff9ec",
+      "secondary": "#294535",
+      "secondary-foreground": "#f8f4e9",
+      "accent": "#d2c7a9",
+      "accent-foreground": "#21392e",
+      "border": "#c7cbb9",
+      "input": "#bcc3b3",
+      "ring": "#ae412a",
+      "destructive": "#b43e2c",
+      "dark-background": "#172a22",
+      "dark-foreground": "#eee9dc",
+      "dark-card": "#21392e",
+      "dark-card-foreground": "#eee9dc",
+      "dark-muted": "#2e4337",
+      "dark-muted-foreground": "#b1bdad",
+      "dark-primary": "#ed9472",
+      "dark-primary-foreground": "#172a22",
+      "dark-secondary": "#d2c7a9",
+      "dark-secondary-foreground": "#172a22",
+      "dark-border": "#48614f",
+      "dark-input": "#48614f",
+      "dark-ring": "#ed9472"
+    },
+    "typography": {
+      "display": "Cormorant Garamond",
+      "body": "DM Sans",
+      "scale": "spacious"
+    },
+    "layout": {
+      "radius": "sharp",
+      "contentWidth": "full",
+      "sectionSpacing": "comfortable",
+      "elementSpacing": "comfortable",
+      "blockGap": "none"
+    },
+    "shop": {
+      "catalogVariant": "boutique",
+      "productVariant": "split",
+      "gridDensity": "comfortable",
+      "cartPanel": "drawer"
+    },
+    "header": {
+      "layout": {
+        "height": "tall",
+        "background": "solid"
+      },
+      "navigation": {
+        "style": "underline"
+      }
+    },
+    "footer": {
+      "layout": {
+        "padding": "spacious"
+      }
+    }
+  },
+  "presets": {
+    "colors": [
+      {
+        "id": "limestone",
+        "name": "Limestone & forest",
+        "colors": {
+          "background": "#eee9dc",
+          "foreground": "#21392e",
+          "card": "#f8f4e9",
+          "card-foreground": "#21392e",
+          "muted": "#e1dccd",
+          "muted-foreground": "#637164",
+          "primary": "#ae412a",
+          "primary-foreground": "#fff9ec",
+          "secondary": "#294535",
+          "secondary-foreground": "#f8f4e9",
+          "accent": "#d2c7a9",
+          "accent-foreground": "#21392e",
+          "border": "#c7cbb9",
+          "input": "#bcc3b3",
+          "ring": "#ae412a",
+          "destructive": "#b43e2c",
+          "dark-background": "#172a22",
+          "dark-foreground": "#eee9dc",
+          "dark-card": "#21392e",
+          "dark-card-foreground": "#eee9dc",
+          "dark-muted": "#2e4337",
+          "dark-muted-foreground": "#b1bdad",
+          "dark-primary": "#ed9472",
+          "dark-primary-foreground": "#172a22",
+          "dark-secondary": "#d2c7a9",
+          "dark-secondary-foreground": "#172a22",
+          "dark-border": "#48614f",
+          "dark-input": "#48614f",
+          "dark-ring": "#ed9472"
+        }
+      },
+      {
+        "id": "dusk",
+        "name": "Dusk & ember",
+        "colors": {
+          "background": "#172a22",
+          "foreground": "#eee9dc",
+          "card": "#21392e",
+          "card-foreground": "#eee9dc",
+          "muted": "#2e4337",
+          "muted-foreground": "#b1bdad",
+          "primary": "#ed9472",
+          "primary-foreground": "#172a22",
+          "secondary": "#294535",
+          "secondary-foreground": "#f8f4e9",
+          "accent": "#d2c7a9",
+          "accent-foreground": "#21392e",
+          "border": "#48614f",
+          "input": "#48614f",
+          "ring": "#ae412a",
+          "destructive": "#b43e2c",
+          "dark-background": "#172a22",
+          "dark-foreground": "#eee9dc",
+          "dark-card": "#21392e",
+          "dark-card-foreground": "#eee9dc",
+          "dark-muted": "#2e4337",
+          "dark-muted-foreground": "#b1bdad",
+          "dark-primary": "#ed9472",
+          "dark-primary-foreground": "#172a22",
+          "dark-secondary": "#d2c7a9",
+          "dark-secondary-foreground": "#172a22",
+          "dark-border": "#48614f",
+          "dark-input": "#48614f",
+          "dark-ring": "#ed9472"
+        }
+      }
+    ]
+  },
+  "blocks": {
+    "treatments": {
+      "reference/field-guide": [
+        "editorial"
+      ],
+      "blocks/product-collection": [
+        "gallery"
+      ]
+    },
+    "patterns": "./patterns/*.json"
+  }
+}

@@ -1,0 +1,4 @@
+.cp-library-code { margin:0; max-inline-size:100%; overflow:auto; padding:1.5rem; background:var(--muted); color:var(--foreground); border:1px solid var(--border); border-radius:var(--radius,.25rem); font: .9rem/1.75 ui-monospace,SFMono-Regular,Consolas,monospace; tab-size:2; }
+.cp-library-code:focus-visible {outline:2px solid var(--primary); outline-offset:3px;}
+
+.cp-library-code pre {margin:0;font:inherit;}

@@ -1,0 +1,9 @@
+.cp-library-card-collection {inline-size:100%;min-inline-size:0;}
+.cp-library-plan-content {display:flex;flex-direction:column;align-items:flex-start;block-size:100%;min-inline-size:0;gap:var(--stack-gap-md,1.25rem);}
+.cp-library-plan-content > .cp-stack {inline-size:100%;min-inline-size:0;}
+.cp-library-plan-action {margin-block-start:auto;max-inline-size:100%;}
+.cp-library-card-copy {container-type:inline-size;inline-size:100%;min-inline-size:0;}
+.cp-library-card-copy .cp-heading[data-size="md"] {
+  font-size:clamp(1.25rem,calc(1rem + 2cqi),2.25rem);
+  overflow-wrap:normal;word-break:normal;hyphens:none;text-wrap:balance;
+}

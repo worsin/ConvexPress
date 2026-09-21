@@ -1,0 +1,96 @@
+{
+  "id": "reading-note",
+  "title": "A reading note",
+  "description": "A short introduction, a focused quotation, and a closing observation.",
+  "category": "story",
+  "blocks": [
+    {
+      "id": "pattern_1",
+      "name": "core/section",
+      "version": 1,
+      "attrs": {},
+      "children": [
+        {
+          "id": "pattern_2",
+          "name": "core/heading",
+          "version": 2,
+          "attrs": {
+            "text": {
+              "type": "doc",
+              "content": [
+                {
+                  "type": "paragraph",
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "Worth a closer look"
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "id": "pattern_3",
+          "name": "core/paragraph",
+          "version": 2,
+          "attrs": {
+            "body": {
+              "type": "doc",
+              "content": [
+                {
+                  "type": "paragraph",
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "Some ideas need a little more space. Use this section to introduce a story, explain a choice, or share something you have learned."
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "id": "pattern_4",
+          "name": "core/quote",
+          "version": 2,
+          "attrs": {
+            "text": "The details become the story."
+          },
+          "layout": {
+            "spacing": "compact"
+          }
+        },
+        {
+          "id": "pattern_5",
+          "name": "core/paragraph",
+          "version": 2,
+          "attrs": {
+            "body": {
+              "type": "doc",
+              "content": [
+                {
+                  "type": "paragraph",
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "Continue the thought here. Keep it specific, give it context, and leave the reader with something useful."
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        }
+      ],
+      "layout": {
+        "width": "contained",
+        "spacing": "default",
+        "tone": "default",
+        "align": "start"
+      }
+    }
+  ]
+}

@@ -1,0 +1,4 @@
+.cp-canonical-tabs .cp-tabs { width:100%; }
+.cp-canonical-tabs [role="tabpanel"] { white-space:pre-line; }
+.cp-canonical-tabs [role="tablist"] { overflow:auto; max-width:100%; }
+.cp-canonical-tabs [role="tab"] { min-height:44px; flex-shrink:0; }

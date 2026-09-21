@@ -1,0 +1,112 @@
+/* Closed editorial axes, mapped to each installed pack's own semantic tokens.
+   Persisted treatments never contain classes, declarations or CSS values. */
+/* The original view fills its parent without another page gutter. Migration
+   selects full width; explicit contained/wide layouts retain their gutters. */
+.cp-container[data-width="full"]:has(> .cp-field-guide-treatment) {
+	padding-inline: 0;
+}
+.cp-field-guide-treatment > .cp-stack {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr);
+	align-items: stretch;
+}
+.cp-field-guide-treatment[data-spacing="0"] > .cp-stack {
+	gap: 0;
+}
+.cp-field-guide-treatment[data-spacing="1"] > .cp-stack {
+	gap: 0.25rem;
+}
+.cp-field-guide-treatment[data-spacing="2"] > .cp-stack {
+	gap: 0.5rem;
+}
+.cp-field-guide-treatment[data-spacing="3"] > .cp-stack {
+	gap: 0.75rem;
+}
+.cp-field-guide-treatment[data-spacing="4"] > .cp-stack {
+	gap: 1rem;
+}
+.cp-field-guide-treatment[data-spacing="5"] > .cp-stack {
+	gap: 1.25rem;
+}
+.cp-field-guide-treatment[data-spacing="6"] > .cp-stack {
+	gap: 1.5rem;
+}
+.cp-field-guide-treatment[data-spacing="7"] > .cp-stack {
+	gap: 1.75rem;
+}
+.cp-field-guide-treatment[data-spacing="8"] > .cp-stack {
+	gap: 2rem;
+}
+.cp-field-guide-treatment[data-alignment="left"] .cp-stack {
+	text-align: left;
+}
+.cp-field-guide-treatment[data-alignment="center"] .cp-stack {
+	text-align: center;
+}
+.cp-field-guide-treatment[data-alignment="right"] .cp-stack {
+	text-align: right;
+}
+.cp-field-guide-treatment[data-ink="foreground"] {
+	color: var(--foreground);
+}
+.cp-field-guide-treatment[data-ink="primary"] {
+	color: var(--primary);
+}
+.cp-field-guide-treatment[data-ink="muted"] {
+	color: var(--muted-foreground);
+}
+.cp-field-guide-treatment[data-font="body"] .cp-heading {
+	/* Existing legacy font-sans compiles to this inline body face. */
+	font-family: "Inter Variable", sans-serif;
+}
+.cp-field-guide-treatment[data-font="display"] .cp-heading {
+	font-family: var(--font-display, var(--font-sans));
+}
+.cp-field-guide-original-body {
+	white-space: pre-line;
+}
+
+/* Legacy authored rhythm is intentional and independent of showcase headings. */
+.cp-field-guide-treatment .cp-heading[data-size] {
+	font-size: 1.875rem;
+	line-height: 2.25rem;
+	font-weight: inherit;
+	font-style: normal;
+	letter-spacing: normal;
+	text-transform: none;
+	max-width: none;
+	text-wrap: wrap;
+}
+.cp-field-guide-treatment .cp-text {
+	line-height: 1.75rem;
+}
+.cp-field-guide-treatment .cp-editorial-detail-list {
+	display: block;
+	margin: 0;
+	padding: 0;
+	border: 0;
+}
+.cp-field-guide-treatment .cp-editorial-detail-list > div {
+	display: flex;
+	justify-content: space-between;
+	gap: 1.25rem;
+	padding-block: 0.75rem;
+}
+.cp-field-guide-treatment .cp-editorial-detail-list > div + div {
+	border-top: 1px solid var(--border);
+}
+.cp-field-guide-treatment .cp-editorial-detail-list dt,
+.cp-field-guide-treatment .cp-editorial-detail-list dd {
+	font: inherit;
+	color: inherit;
+	margin: 0;
+}
+.cp-field-guide-treatment .cp-link {
+	color: inherit;
+	line-height: inherit;
+	text-decoration: underline;
+	text-underline-offset: 0.25rem;
+}
+.cp-field-guide-treatment .cp-text[data-size="sm"] {
+	line-height: 1.25rem;
+}

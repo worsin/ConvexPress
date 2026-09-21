@@ -1,0 +1,5 @@
+.cp-library-footnotes {margin:0;padding-inline-start:1.5rem;border-block-start:1px solid var(--border);}
+.cp-library-footnotes li {padding-block:1.25rem;padding-inline-start:.5rem;border-block-end:1px solid var(--border);scroll-margin-block-start:calc(var(--site-header-offset,0px) + 1.5rem);}
+.cp-library-footnotes li::marker {color:var(--primary);font-weight:600;}
+.cp-library-footnotes .cp-link {font-size:.8rem;}
+.cp-library-footnotes li:target {background:var(--muted);}

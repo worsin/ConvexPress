@@ -1,0 +1,332 @@
+import { expect, test } from "bun:test";
+import { renderToStaticMarkup } from "react-dom/server";
+import {
+	BlockRenderError,
+	discoverRenderers,
+	prepareBlocks,
+	type RenderPolicy,
+} from "./model";
+import heading from "../../../../../../../blocks/core/heading/render";
+import section from "../../../../../../../blocks/core/section/render";
+import paragraph from "../../../../../../../blocks/core/paragraph/render";
+import image from "../../../../../../../blocks/core/image/render";
+import catalog from "../../../../../../../blocks/.generated/catalog.json";
+const registry = discoverRenderers({
+	"/blocks/core/heading/render.tsx": heading,
+	"/blocks/core/section/render.tsx": section,
+	"/blocks/core/image/render.tsx": image,
+});
+const policy: RenderPolicy = {
+	enabledPlugins: [],
+	capabilities: ["tree.children"],
+	disabledBlocks: [],
+};
+const instance = {
+	id: "heading",
+	name: "core/heading",
+	version: catalog.find((item) => item.name === "core/heading")!.version,
+	attrs: {
+		text: {
+			type: "doc",
+			content: [
+				{
+					type: "paragraph",
+					content: [{ type: "text", text: "A real heading" }],
+				},
+			],
+		},
+		level: 2,
+	},
+};
+function code(input: unknown, selected = registry, permissions = policy) {
+	try {
+		prepareBlocks(input, selected, permissions);
+		return "NO_ERROR";
+	} catch (error) {
+		if (!(error instanceof BlockRenderError)) throw error;
+		return error.code;
+	}
+}
+test("canonical validation, version and disabled policy fail before renderer selection", () => {
+	expect(code([{ ...instance, name: "core/made-up" }])).toBe("UNKNOWN_BLOCK");
+	expect(code([{ ...instance, version: 999 }])).toBe("VERSION_MISMATCH");
+	expect(
+		code([{ ...instance, attrs: { text: "safe", className: "escape" } }]),
+	).toBe("INVALID_ATTRS");
+	expect(
+		code([instance], registry, { ...policy, disabledBlocks: [instance.name] }),
+	).toBe("DISABLED_BLOCK");
+	expect(code([{ ...instance, style: "invented" }])).toBe("NO_ERROR");
+  expect(code([{ ...instance, style: 12 }])).toBe("INVALID_STYLE");
+	expect(code([{ ...instance, visibility: { role: "admin" } }])).toBe(
+		"UNSUPPORTED_INSTANCE_FIELD",
+	);
+	expect(code([instance, instance])).toBe("INVALID_ID");
+});
+test("missing renderer, unmet capability, resolver and media remain explicit", () => {
+	expect(code([instance], {})).toBe("UNSUPPORTED_RENDERER");
+	expect(
+		code(
+			[{ id: "section", name: "core/section", version: 1, attrs: {} }],
+			registry,
+			{ ...policy, capabilities: [] },
+		),
+	).toBe("MISSING_CAPABILITY");
+	const dynamic = catalog.find((item) => item.name === "events/upcoming")!;
+	expect(
+		code(
+			[
+				{
+					id: "events",
+					name: dynamic.name,
+					version: dynamic.version,
+					attrs: dynamic.examples[0],
+				},
+			],
+			registry,
+			{
+				...policy,
+				enabledPlugins: ["events"],
+				capabilities: ["events.upcoming"],
+			},
+		),
+	).not.toBe("NO_ERROR");
+	expect(
+		code(
+			[
+				{
+					id: "image",
+					name: "core/image",
+					version: 2,
+					attrs: { mediaId: "source-media" },
+				},
+			],
+			registry,
+			{ ...policy, capabilities: ["reference.targetResolution"] },
+		),
+	).toBe("UNRESOLVED_MEDIA");
+});
+test("bounded children require canonical capability and preserve real semantics", () => {
+	const parent = {
+		id: "section",
+		name: "core/section",
+		version: 1,
+		attrs: {},
+		children: [instance],
+	};
+	const html = renderToStaticMarkup(
+		<>{prepareBlocks([parent], registry, policy)}</>,
+	);
+	expect(html).toContain("A real heading");
+	expect(html).toContain("<h2");
+	expect(
+		code([{ ...instance, children: [{ ...instance, id: "child" }] }]),
+	).toBe("CHILDREN_FORBIDDEN");
+	expect(
+		code(Array.from({ length: 81 }, (_, i) => ({ ...instance, id: `h${i}` }))),
+	).toBe("TREE_BUDGET");
+	expect(code([{ ...instance, attrs: { text: "x".repeat(600000) } }])).toBe(
+		"TREE_BUDGET",
+	);
+});
+test("canonical path ownership prevents a renderer pretending to be another block", () => {
+	expect(() =>
+		discoverRenderers({ "/blocks/core/image/render.tsx": heading }),
+	).toThrow();
+	expect(() =>
+		discoverRenderers({
+			"/blocks/core/heading/render.tsx": heading,
+			"/other/core/heading/render.tsx": heading,
+		}),
+	).toThrow();
+});
+
+test("page-wide anchors reject collisions across wrappers, headings and nested footnotes", async () => {
+	const footnotes = (
+		await import("../../../../../../../blocks/core/footnotes/render")
+	).default;
+	const all = discoverRenderers({
+		"/blocks/core/heading/render.tsx": heading,
+		"/blocks/core/section/render.tsx": section,
+		"/blocks/core/footnotes/render.tsx": footnotes,
+	});
+	const note = {
+		id: "notes",
+		name: "core/footnotes",
+		version: 1,
+		attrs: { notes: [{ key: "shared-note" }] },
+	};
+	const anchored = {
+		...instance,
+		attrs: { ...instance.attrs, anchor: "shared-note" },
+	};
+	for (const tree of [
+		[
+			{ ...instance, anchor: "same" },
+			{ ...instance, id: "other", anchor: "same" },
+		],
+		[{ ...instance, anchor: "shared-note" }, note],
+		[anchored, note],
+		[note, { ...note, id: "other-notes" }],
+		[
+			{
+				id: "parent",
+				name: "core/section",
+				version: 1,
+				attrs: {},
+				anchor: "shared-note",
+				children: [note],
+			},
+		],
+	])
+		expect(code(tree, all)).toBe("DUPLICATE_ANCHOR");
+	expect(
+		code(
+			[
+				{
+					...instance,
+					attrs: { ...instance.attrs, anchor: "not a valid anchor" },
+				},
+			],
+			all,
+		),
+	).toBe("INVALID_ANCHOR");
+	const safe = [
+		{
+			...instance,
+			anchor: "section-heading",
+			attrs: { ...instance.attrs, anchor: "specific-heading" },
+		},
+		note,
+	];
+	const html = renderToStaticMarkup(<>{prepareBlocks(safe, all, policy)}</>);
+	expect(html.match(/id="shared-note"/gu)).toHaveLength(1);
+	expect(html).toContain('href="#shared-note"');
+	expect(html).toContain('id="specific-heading"');
+});
+
+test("media resources expose only validated declared public dependencies", () => {
+	let names: string[] = [];
+	const inspecting = {
+		...registry,
+		"core/image": {
+			blockName: "core/image" as const,
+			View: (props: import("./model").RenderInput) => {
+				names = Object.keys(props.resources.media);
+				return null;
+			},
+		},
+	};
+	const node = {
+		id: "image",
+		name: "core/image",
+		version: 2,
+		attrs: { mediaId: "declared" },
+	};
+	renderToStaticMarkup(
+		<>
+			{prepareBlocks([node], inspecting, policy, {
+				media: {
+					declared: { src: "/public.png", alt: "Public view" },
+					unreferenced: { src: "/other.png", alt: "Other view" },
+				},
+			})}
+		</>,
+	);
+	expect(names).toEqual(["declared"]);
+	expect(() =>
+		prepareBlocks([node], inspecting, policy, {
+			media: { declared: { src: "javascript:alert(1)", alt: "Unsafe" } },
+		}),
+	).toThrow();
+});
+
+test("structural views retain disclosure state, tab labels, table headers and every sticky child", async () => {
+	const accordion = (
+		await import("../../../../../../../blocks/core/accordion/render")
+	).default;
+	const tabs = (await import("../../../../../../../blocks/core/tabs/render"))
+		.default;
+	const table = (await import("../../../../../../../blocks/core/table/render"))
+		.default;
+	const sticky = (
+		await import("../../../../../../../blocks/core/sticky-aside/render")
+	).default;
+	const structural = discoverRenderers({
+		"/blocks/core/accordion/render.tsx": accordion,
+		"/blocks/core/tabs/render.tsx": tabs,
+		"/blocks/core/table/render.tsx": table,
+		"/blocks/core/sticky-aside/render.tsx": sticky,
+		"/blocks/core/heading/render.tsx": heading,
+	});
+	const markup = (node: unknown) =>
+		renderToStaticMarkup(<>{prepareBlocks([node], structural, policy)}</>);
+	const disclosure = markup({
+		id: "details",
+		name: "core/accordion",
+		version: 2,
+		attrs: {
+			defaultOpen: 1,
+			items: [
+				{ title: "First", body: "One" },
+				{ title: "Second", body: "Two" },
+			],
+		},
+	});
+	expect(disclosure.match(/<details[^>]* open=""/gu)?.length).toBe(1);
+	expect(disclosure).toContain("Second");
+	const outOfRange = markup({
+		id: "details",
+		name: "core/accordion",
+		version: 2,
+		attrs: { defaultOpen: 1.5, items: [{ title: "First", body: "One" }] },
+	});
+	expect(outOfRange.includes('open=""')).toBe(false);
+	const tabbed = markup({
+		id: "tabs",
+		name: "core/tabs",
+		version: 2,
+		attrs: {
+			tabs: [
+				{ label: "", body: "A" },
+				{ label: "Second", body: "B" },
+			],
+		},
+	});
+	expect(tabbed).toContain("Section 1");
+	expect(tabbed).toContain('role="tablist"');
+	expect(tabbed).toContain('aria-selected="true"');
+	const tabular = markup({
+		id: "table",
+		name: "core/table",
+		version: 1,
+		attrs: {
+			columns: ["Name", "Notes"],
+			rows: [["Studio", "Quiet"]],
+			caption: "Workshop details",
+		},
+	});
+	expect(tabular).toContain('<th scope="col">Name</th>');
+	expect(tabular).toContain("<caption>Workshop details</caption>");
+	expect(tabular).toContain('tabindex="0"');
+	const nested = markup({
+		id: "sticky",
+		name: "core/sticky-aside",
+		version: 1,
+		attrs: {},
+		children: [0, 1, 2].map((i) => ({ ...instance, id: `child-${i}` })),
+	});
+	expect(nested.match(/A real heading/gu)?.length).toBe(3);
+	expect(nested).toContain("<aside");
+});
+
+test("consecutive paragraph blocks use article flow while explicit section spacing survives", () => {
+  const withParagraph = discoverRenderers({"/blocks/core/paragraph/render.tsx": paragraph, "/blocks/core/section/render.tsx": section});
+  const node = (index: number) => ({id: `prose-${index}`, name: "core/paragraph", version: 2, attrs: {body: {type: "doc", content: [{type: "paragraph", content: [{type: "text", text: `Paragraph ${index}`, marks: [{type: "bold"}]}]}]}}});
+  const html = renderToStaticMarkup(prepareBlocks([node(1), node(2), node(3), {...node(4), layout: {spacing: "spacious"}}, {id: "intentional-section", name: "core/section", version: 1, attrs: {}}], withParagraph, policy));
+  expect((html.match(/data-prose-flow="true"/g) ?? []).length).toBe(3);
+  expect((html.match(/data-spacing="none"/g) ?? []).length).toBe(3);
+  expect(html.includes('data-spacing="spacious"')).toBe(true);
+  expect(html.includes('data-spacing="default"')).toBe(true);
+  expect(html.includes('<strong>Paragraph 1</strong>')).toBe(true);
+});

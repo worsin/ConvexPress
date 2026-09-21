@@ -1,0 +1,14 @@
+.cp-child-pages { color: var(--foreground); }
+.cp-child-pages-label { margin: 0 0 1.25rem; color: var(--muted-foreground); font-size: .72rem; letter-spacing: .12em; text-transform: uppercase; }
+.cp-child-pages ul { list-style: none; padding: 0; margin: 0; }
+.cp-child-pages > ul { border-top: 1px solid var(--border); }
+.cp-child-pages > ul > li { border-bottom: 1px solid var(--border); }
+.cp-child-pages li > ul { margin: 0 0 .75rem 1rem; padding-inline-start: 1rem; border-inline-start: 1px solid var(--border); }
+.cp-child-pages a { display: flex; justify-content: space-between; align-items: center; gap: 1rem; padding-block: 1rem; color: inherit; text-decoration: none; font-family: var(--font-display, inherit); font-size: clamp(1.1rem, 2vw, 1.5rem); line-height: 1.4; }
+.cp-child-pages li > ul a { font-family: inherit; font-size: .9rem; padding-block: .65rem; }
+.cp-child-pages a span { min-width: 0; overflow-wrap: anywhere; }
+.cp-child-pages a svg { flex-shrink: 0; color: var(--muted-foreground); transition: transform 160ms ease, color 160ms ease; }
+.cp-child-pages a:hover svg, .cp-child-pages a:focus-visible svg { transform: translate(2px,-2px); color: var(--primary); }
+.cp-child-pages a:focus-visible { outline: 2px solid var(--primary); outline-offset: 3px; }
+.cp-child-pages-empty { color: var(--muted-foreground); margin: 0; }
+@media (prefers-reduced-motion: reduce) { .cp-child-pages a svg { transition: none; transform: none !important; } }

@@ -63,6 +63,7 @@ interface Choice {
 }
 
 interface FieldSettings {
+  inputType?: "tel";
   choices?: Choice[];
   multiple?: boolean;
   placeholder?: string;
@@ -329,7 +330,7 @@ export function FormFieldRenderer({
         return (
           <Input
             id={inputId}
-            type="text"
+            type={settings.inputType === "tel" ? "tel" : "text"}
             value={value}
             placeholder={settings.placeholder}
             onChange={(e) => onChange(e.target.value)}

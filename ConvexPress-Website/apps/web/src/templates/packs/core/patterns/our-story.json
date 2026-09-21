@@ -1,0 +1,145 @@
+{
+  "id": "our-story",
+  "title": "Our story",
+  "description": "A reading section with an inset editorial statement.",
+  "category": "story",
+  "blocks": [
+    {
+      "id": "pattern_1",
+      "name": "core/section",
+      "version": 1,
+      "attrs": {},
+      "children": [
+        {
+          "id": "pattern_2",
+          "name": "core/heading",
+          "version": 2,
+          "attrs": {
+            "text": {
+              "type": "doc",
+              "content": [
+                {
+                  "type": "paragraph",
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "A little about us"
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "id": "pattern_3",
+          "name": "core/paragraph",
+          "version": 2,
+          "attrs": {
+            "body": {
+              "type": "doc",
+              "content": [
+                {
+                  "type": "paragraph",
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "Good work starts with listening. Tell your visitors what matters to you, how you work, and why you care about the people you serve."
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        }
+      ],
+      "layout": {
+        "width": "contained",
+        "spacing": "default",
+        "tone": "default",
+        "align": "start"
+      }
+    },
+    {
+      "id": "pattern_4",
+      "name": "core/section",
+      "version": 1,
+      "attrs": {},
+      "children": [
+        {
+          "id": "pattern_5",
+          "name": "core/quote",
+          "version": 2,
+          "attrs": {
+            "text": "Choose what matters. Give it room to last."
+          },
+          "layout": {
+            "spacing": "compact"
+          }
+        }
+      ],
+      "layout": {
+        "width": "contained",
+        "spacing": "default",
+        "tone": "muted",
+        "align": "start"
+      }
+    },
+    {
+      "id": "pattern_6",
+      "name": "core/section",
+      "version": 1,
+      "attrs": {},
+      "children": [
+        {
+          "id": "pattern_7",
+          "name": "core/heading",
+          "version": 2,
+          "attrs": {
+            "text": {
+              "type": "doc",
+              "content": [
+                {
+                  "type": "paragraph",
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "What comes next"
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "id": "pattern_8",
+          "name": "core/paragraph",
+          "version": 2,
+          "attrs": {
+            "body": {
+              "type": "doc",
+              "content": [
+                {
+                  "type": "paragraph",
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "Share the next chapter of your story here. Introduce the people, places, and decisions that shape your work."
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        }
+      ],
+      "layout": {
+        "width": "contained",
+        "spacing": "default",
+        "tone": "default",
+        "align": "start"
+      }
+    }
+  ]
+}

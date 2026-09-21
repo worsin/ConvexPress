@@ -1,0 +1,5 @@
+.cp-canonical-definitions { margin:0; }
+.cp-canonical-definitions>div { display:grid; grid-template-columns:minmax(8rem,1fr) minmax(0,2fr); gap:var(--stack-gap-lg,1.75rem); padding-block:1.5rem; border-block-end:1px solid var(--border,#ccc); }
+.cp-canonical-definitions dt { font-family:var(--font-display,Georgia,serif); font-size:1.4rem; line-height:1.35; }
+.cp-canonical-definitions dd { margin:0; }
+@media(max-width:640px){.cp-canonical-definitions>div{grid-template-columns:1fr;gap:.75rem}}

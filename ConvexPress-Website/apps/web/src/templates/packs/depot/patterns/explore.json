@@ -1,0 +1,78 @@
+{
+  "id": "explore",
+  "title": "Explore the collection",
+  "description": "An introduction and a collection using this website\u2019s recent products; requires Commerce.",
+  "category": "collection",
+  "blocks": [
+    {
+      "id": "pattern_1",
+      "name": "core/section",
+      "version": 1,
+      "attrs": {},
+      "children": [
+        {
+          "id": "pattern_2",
+          "name": "core/heading",
+          "version": 2,
+          "attrs": {
+            "text": {
+              "type": "doc",
+              "content": [
+                {
+                  "type": "paragraph",
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "The latest additions"
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "id": "pattern_3",
+          "name": "core/paragraph",
+          "version": 2,
+          "attrs": {
+            "body": {
+              "type": "doc",
+              "content": [
+                {
+                  "type": "paragraph",
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "Explore the newest pieces in our collection."
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        }
+      ],
+      "layout": {
+        "width": "contained",
+        "spacing": "default",
+        "tone": "default",
+        "align": "start"
+      }
+    },
+    {
+      "id": "pattern_4",
+      "name": "blocks/product-collection",
+      "version": 2,
+      "attrs": {
+        "heading": "New to the collection",
+        "mode": "recent",
+        "count": 4,
+        "showPrice": true
+      },
+      "layout": {
+        "spacing": "default"
+      }
+    }
+  ]
+}

@@ -1,0 +1,5 @@
+.cp-canonical-table-scroll { width:100%; overflow:auto; }
+.cp-canonical-table { width:100%; border-collapse:collapse; font-size:.9rem; line-height:1.7; }
+.cp-canonical-table caption { text-align:start; font-family:var(--font-display,Georgia,serif); font-size:1.35rem; padding-block-end:1.4rem; }
+.cp-canonical-table th { font-size:.7rem; letter-spacing:.06em; text-align:start; background:var(--muted,#eee); font-weight:600; }
+.cp-canonical-table td,.cp-canonical-table th { padding:1rem 1.25rem; border-bottom:1px solid var(--border,#ccc); vertical-align:top; min-width:9rem; overflow-wrap:anywhere; }

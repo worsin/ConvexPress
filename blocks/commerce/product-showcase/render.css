@@ -1,0 +1,16 @@
+.cp-showcase-intro { display:flex; flex-wrap:wrap; justify-content:space-between; align-items:end; gap:1.5rem 3rem; padding-block-end:2rem; margin-block-end:2rem; border-block-end:1px solid var(--border); }
+.cp-showcase-intro > div { flex:1 1 25rem; min-width:0; max-width:47rem; }
+.cp-showcase-intro .cp-heading { margin-block:.75rem; text-wrap:balance; overflow-wrap:anywhere; }
+.cp-showcase-intro p { margin-block-end:0; max-width:52ch; overflow-wrap:anywhere; }
+.cp-showcase-more { display:inline-flex; align-items:center; justify-content:space-between; gap:2.5rem; min-height:44px; color:inherit; font-size:.8rem; text-underline-offset:5px; }
+.cp-showcase-more span { font-size:1.15rem; }
+.cp-showcase-grid { list-style:none; padding:0; margin:0; }
+.cp-showcase-grid > li { display:flex; flex-direction:column; min-width:0; }
+.cp-showcase-grid .cp-collection-card { width:100%; flex:1; }
+.cp-product-showcase a:focus-visible,.cp-product-showcase button:focus-visible { outline:2px solid currentColor; outline-offset:5px; }
+.cp-showcase-empty { padding-block:1rem 2rem; }
+.cp-showcase-empty .cp-heading { margin-block:0 .75rem; }
+.cp-showcase-empty a { display:inline-flex; align-items:center; min-height:44px; }
+@container(max-width:30rem) { .cp-showcase-intro { padding-block-end:1.5rem; margin-block-end:1.5rem; } .cp-showcase-grid { gap:2.5rem; } }
+
+.cp-showcase-stock { margin:.75rem 0 0; font-size:.75rem; line-height:1.5; color:var(--muted-foreground); }

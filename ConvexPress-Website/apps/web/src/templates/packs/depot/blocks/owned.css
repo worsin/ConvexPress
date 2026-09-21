@@ -1,0 +1,33 @@
+/* Owned block presentation. No authored CSS and no cross-template selectors. */
+.cp-owned-depot { min-width: 0; }
+.cp-owned-depot .depot-features, .cp-owned-depot .depot-stories, .cp-owned-depot .depot-testimonials { inline-size: 100%; min-inline-size: 0; }
+.cp-owned-depot .depot-ordinal { font: 500 .7rem/1 var(--font-sans, sans-serif); letter-spacing: .14em; color: var(--muted-foreground); }
+.cp-owned-depot .depot-hero .cp-heading { max-width: 18ch; }
+.cp-owned-depot .depot-hero-image img, .cp-owned-depot .depot-banner-image img { width: 100%; object-fit: cover; }
+.cp-owned-depot .depot-hero-image img { aspect-ratio: 4/5; }
+.cp-owned-depot .depot-banner-image img { aspect-ratio: 3/1; }
+.cp-owned-depot .depot-feature, .cp-owned-depot .depot-plan, .cp-owned-depot .depot-testimonial { min-width: 0; }
+.cp-owned-depot .depot-price .cp-text { font-variant-numeric: tabular-nums; font-size: clamp(1.8rem, 3vw, 3rem); line-height: 1.1; letter-spacing: -.04em; }
+.cp-owned-depot .depot-story { display: flex; flex-direction: column; gap: var(--stack-gap-md, 1.25rem); }
+.cp-owned-depot .depot-form-fields { min-width: 0; }
+@media (max-width: 640px) { .cp-owned-depot .depot-banner-image img { aspect-ratio: 16/9; } }
+
+.cp-owned-depot .depot-hero .cp-heading { font-size: clamp(2rem, 4vw, 4rem); max-width: 22ch; }
+.cp-owned-depot .depot-hero-image img { aspect-ratio: 4/3; }
+.cp-owned-depot .depot-feature, .cp-owned-depot .depot-plan, .cp-owned-depot .depot-testimonial, .cp-owned-depot .depot-form-fields { border: 1px solid var(--border); border-radius: .375rem; padding: var(--card-pad, 1.5rem); background: var(--card, var(--background)); }
+.cp-owned-depot .depot-plan[data-featured="true"] { border-color: var(--primary); box-shadow: inset 0 3px var(--primary); }
+.cp-owned-depot .depot-cta { border: 1px solid var(--border); padding: var(--card-pad, 1.5rem); background: var(--muted); }
+.cp-owned-depot .depot-banner { border-inline-start: 4px solid var(--primary); padding-inline-start: var(--card-pad, 1.5rem); }
+.cp-owned-depot .depot-faq details { border: 1px solid var(--border); padding-inline: 1rem; margin-block-end: .5rem; }
+.cp-owned-depot .depot-testimonial blockquote { font-family: var(--font-sans, sans-serif); font-size: 1.125rem; font-style: normal; }
+.cp-owned-depot .depot-products .cp-showcase-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--stack-gap-sm, .75rem); }
+.cp-owned-depot .depot-products .cp-collection-card { border: 1px solid var(--border); border-radius: .375rem; padding: .85rem; background: var(--card, var(--background)); }
+.cp-owned-depot .depot-products .cp-collection-image { aspect-ratio: 1/1; }
+.cp-owned-depot .depot-products .cp-collection-card .cp-heading { font-size: 1rem; letter-spacing: -.015em; text-transform: none; }
+.cp-owned-depot .depot-categories .cp-category-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--stack-gap-sm, .75rem); }
+.cp-owned-depot .depot-categories .cp-category-tile { display: block; border: 1px solid var(--border); border-radius: .375rem; padding: .85rem; }
+.cp-owned-depot .depot-categories .cp-category-image { aspect-ratio: 16/9; border-radius: .25rem; }
+@media (max-width: 900px) { .cp-owned-depot .depot-products .cp-showcase-grid { grid-template-columns: repeat(2,minmax(0,1fr)); } }
+@media (max-width: 640px) { .cp-owned-depot .depot-products .cp-showcase-grid, .cp-owned-depot .depot-categories .cp-category-grid { grid-template-columns: minmax(0,1fr); } }
+
+.cp-owned-depot .depot-cta[data-block-style="outline"] { background: transparent; border: 2px solid var(--primary); padding: clamp(1.25rem, 4vw, 3rem); }

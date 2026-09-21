@@ -1,0 +1,36 @@
+.cp-editorial-wide {inline-size:100%;min-inline-size:0;}
+.cp-editorial-pair {inline-size:100%;display:grid;grid-template-columns:minmax(0,1fr);gap:2rem;align-items:center;}
+.cp-editorial-pair > * {min-inline-size:0;}
+.cp-editorial-pair .cp-image {margin:0;}
+.cp-editorial-pair .cp-image img {inline-size:100%;aspect-ratio:4/3;object-fit:cover;}
+.cp-editorial-banner {inline-size:100%;display:grid;gap:2rem;}
+.cp-editorial-banner .cp-image {margin:0;}
+.cp-editorial-banner .cp-image img {inline-size:100%;aspect-ratio:16/7;object-fit:cover;}
+.cp-editorial-detail-list {display:grid;gap:1rem 2rem;grid-template-columns:repeat(auto-fit,minmax(min(100%,10rem),1fr));margin:0;padding-block:1.5rem;border-block:1px solid var(--border);inline-size:100%;}
+.cp-editorial-detail-list dt {font-family:var(--font-sans);font-size:.75rem;color:var(--muted-foreground);margin-block-end:.4rem;}
+.cp-editorial-detail-list dd {margin:0;font-family:var(--font-sans);line-height:1.6;overflow-wrap:anywhere;}
+.cp-editorial-rows {inline-size:100%;display:grid;gap:2.5rem;list-style:none;margin:0;padding:0;}
+.cp-editorial-rows > li,.cp-editorial-rows > article {min-inline-size:0;border-block-start:1px solid var(--border);padding-block-start:2rem;}
+.cp-editorial-timeline > li {position:relative;padding-inline-start:1.75rem;border-inline-start:1px solid var(--border);}
+.cp-editorial-timeline > li::before {content:"";position:absolute;inset-inline-start:-.3rem;inset-block-start:2rem;inline-size:.55rem;block-size:.55rem;border-radius:50%;background:var(--foreground);}
+.cp-editorial-quotes {inline-size:100%;display:grid;grid-template-columns:minmax(0,1fr);gap:2.5rem;align-items:start;}
+.cp-editorial-quotes > article {min-inline-size:0;}
+.cp-editorial-portrait {inline-size:4.5rem;}
+.cp-editorial-portrait .cp-image {margin:0;}
+.cp-editorial-portrait img {aspect-ratio:1;object-fit:cover;border-radius:50%;}
+.cp-editorial-tabs {inline-size:100%;min-inline-size:0;}
+.cp-editorial-tabs [role=tablist] {display:flex;gap:.5rem;overflow-x:auto;border-block-end:1px solid var(--border);padding:.25rem .25rem 0;scrollbar-width:thin;}
+.cp-editorial-tabs [role=tab] {flex:0 0 auto;appearance:none;border:0;border-block-end:2px solid transparent;background:transparent;color:var(--muted-foreground);font:500 .9rem/1.4 var(--font-sans);min-block-size:48px;padding:.85rem 1rem;cursor:pointer;}
+.cp-editorial-tabs [role=tab][aria-selected=true] {border-block-end-color:var(--foreground);color:var(--foreground);}
+.cp-editorial-tabs [role=tab]:focus-visible,.cp-editorial-tabs [role=tabpanel]:focus-visible {outline:2px solid var(--ring,var(--foreground));outline-offset:2px;}
+.cp-editorial-tabs [role=tabpanel] {padding-block:2rem;}
+.cp-editorial-tabs [role=tabpanel][hidden] {display:none;}
+@media(min-width:760px) {
+ .cp-editorial-pair[data-media=true] {grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:clamp(2rem,4vw,4rem);}
+ .cp-editorial-quotes {grid-template-columns:repeat(2,minmax(0,1fr));}
+}
+@media(max-width:759px) {.cp-editorial-banner .cp-image img {aspect-ratio:4/3;}}
+
+/* Keep attribution readable as two deliberate lines without changing authored text. */
+.cp-editorial-testimonial-wall .cp-quote figcaption {display:grid;gap:.35rem;font-family:var(--font-sans);font-weight:600;line-height:1.5;color:var(--foreground);}
+.cp-editorial-testimonial-wall .cp-quote cite {display:block;margin:0;font-size:.8rem;font-weight:400;font-style:normal;color:var(--muted-foreground);}

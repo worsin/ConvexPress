@@ -1,0 +1,42 @@
+.cp-embedded-form { display: grid; gap: 2rem; min-inline-size: 0; inline-size: 100%; }
+.cp-embedded-form .cp-library-intro { max-inline-size: 42rem; }
+.cp-embedded-form-preview { display: grid; gap: 1.5rem; }
+.cp-embedded-form-preview fieldset { display: grid; gap: 1.5rem; min-inline-size: 0; border: 0; padding: 0; margin: 0; }
+.cp-embedded-form input, .cp-embedded-form textarea, .cp-embedded-form select { font-family: var(--font-sans); }
+.cp-embedded-form input:disabled, .cp-embedded-form textarea:disabled, .cp-embedded-form select:disabled { opacity: 1; color: var(--muted-foreground); }
+.cp-embedded-form [data-slot="form-wizard"] { border: 0; background: transparent; padding: 0; border-radius: 0; }
+.cp-embedded-form-step { display: flex; flex-wrap: wrap; gap: .5rem 1.5rem; align-items: baseline; padding-block-end: 1rem; border-block-end: 1px solid var(--border); font-family: var(--font-sans); }
+.cp-embedded-form-step span, .cp-embedded-form-notice { font: 400 .875rem/1.6 var(--font-sans); color: var(--muted-foreground); }
+.cp-embedded-form-step strong { font-weight: 500; }
+.cp-embedded-form-actions { display: flex; flex-wrap: wrap; gap: .75rem; }
+.cp-embedded-form-actions button { min-block-size: 44px; padding: .7rem 1rem; border: 1px solid var(--border); background: var(--card); color: var(--foreground); border-radius: var(--radius); font: 500 .875rem/1.4 var(--font-sans); }
+.cp-embedded-form-actions button:disabled { color: var(--muted-foreground); cursor: not-allowed; }
+.cp-embedded-form-actions button:focus-visible { outline: 2px solid var(--primary); outline-offset: 3px; }
+.cp-embedded-form-notice { margin: 0; }
+/* This block also runs outside the Website Tailwind build (SDK and BlockDemo).
+   Style the shared Forms slots explicitly so packs receive complete controls. */
+.cp-embedded-form { max-inline-size: 48rem; }
+.cp-embedded-form [data-slot="form-field"] { display: grid; gap: .625rem; min-inline-size: 0; }
+.cp-embedded-form [data-slot="form-field"] > label { display: flex; align-items: baseline; gap: .25rem; font: 500 .875rem/1.5 var(--font-sans); color: var(--foreground); }
+.cp-embedded-form [data-slot="form-field"] > p { margin: 0; font: 400 .8125rem/1.6 var(--font-sans); color: var(--muted-foreground); }
+.cp-embedded-form :is(input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]),textarea,select) {
+ box-sizing: border-box; inline-size: 100%; min-inline-size: 0; min-block-size: 3rem;
+ border: 1px solid var(--border); border-radius: var(--radius); padding: .8rem 1rem;
+ background: var(--card); color: var(--foreground); font: 400 1rem/1.5 var(--font-sans);
+ box-shadow: none; outline-offset: 3px;
+}
+.cp-embedded-form textarea { min-block-size: 9rem; resize: vertical; }
+.cp-embedded-form select { appearance: auto; padding-inline-end: 2rem; }
+.cp-embedded-form :is(input,textarea,select)::placeholder { color: var(--muted-foreground); opacity: 1; }
+.cp-embedded-form :is(input,textarea,select):focus-visible { outline: 2px solid var(--primary); }
+.cp-embedded-form :is(input,textarea,select)[aria-invalid="true"] { border-color: var(--destructive); }
+.cp-embedded-form [data-slot="form-field"] :is(input[type="radio"],input[type="checkbox"]) { inline-size: 1.125rem; block-size: 1.125rem; accent-color: var(--primary); }
+.cp-embedded-form-actions button:not(:disabled) { background: var(--foreground); color: var(--background); border-color: var(--foreground); }
+
+.cp-embedded-form [data-slot="form-wizard"] { display:grid; gap:1.5rem; }
+.cp-embedded-form [data-slot="auth-error"] { display:flex; align-items:flex-start; gap:.6rem; padding:1rem; border:1px solid var(--destructive); background:var(--card); color:var(--destructive); font:400 .875rem/1.5 var(--font-sans); }
+.cp-embedded-form [data-slot="auth-error"] svg { inline-size:1.15rem; block-size:1.15rem; flex-shrink:0; }
+.cp-embedded-form [data-slot="form-success"] { display:flex; flex-direction:column; align-items:center; gap:1.25rem; text-align:center; color:var(--foreground); font:400 1rem/1.6 var(--font-sans); }
+.cp-embedded-form [data-slot="form-success"]>svg { inline-size:2.5rem; block-size:2.5rem; color:var(--primary); }
+.cp-embedded-form [data-slot="form-success"]:focus-visible,.cp-embedded-form [data-slot="form-submit-error"]:focus-visible { outline:2px solid var(--primary); outline-offset:4px; }
+.cp-embedded-form [data-slot="step-nav"] svg { inline-size:1.1rem; block-size:1.1rem; margin-inline-end:.5rem; vertical-align:middle; }

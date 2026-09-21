@@ -31,6 +31,7 @@
     "search",
     "shop.catalog",
     "shop.product",
+    "shop.brand",
     "shop.categories",
     "shop.category",
     "cart",
@@ -90,6 +91,9 @@
     "dashboard.wishlist",
     "dashboard.addresses",
     "dashboard.membership",
+    "events.index",
+    "events.detail",
+    "dashboard.events",
     "auth.shell",
     "auth.login",
     "auth.register",
@@ -135,5 +139,71 @@
     "footer-1": "footer-1",
     "footer-2": "footer-2",
     "footer-3": "footer-3"
+  },
+  "presets": {
+    "colors": [
+      {
+        "id": "clear",
+        "name": "Clear",
+        "colors": {
+          "background": "#ffffff",
+          "foreground": "#182230",
+          "card": "#ffffff",
+          "card-foreground": "#182230",
+          "primary": "#205ea6",
+          "primary-foreground": "#ffffff",
+          "secondary": "#f1f5f9",
+          "secondary-foreground": "#182230",
+          "muted": "#f1f5f9",
+          "muted-foreground": "#182230",
+          "accent": "#f1f5f9",
+          "accent-foreground": "#182230",
+          "border": "#cbd5e1",
+          "input": "#cbd5e1",
+          "ring": "#205ea6",
+          "destructive": "#b42318"
+        }
+      },
+      {
+        "id": "midnight",
+        "name": "Midnight",
+        "colors": {
+          "background": "#101828",
+          "foreground": "#f1f5f9",
+          "card": "#101828",
+          "card-foreground": "#f1f5f9",
+          "primary": "#93c5fd",
+          "primary-foreground": "#101828",
+          "secondary": "#1e293b",
+          "secondary-foreground": "#f1f5f9",
+          "muted": "#1e293b",
+          "muted-foreground": "#f1f5f9",
+          "accent": "#1e293b",
+          "accent-foreground": "#f1f5f9",
+          "border": "#475569",
+          "input": "#475569",
+          "ring": "#93c5fd",
+          "destructive": "#b42318"
+        }
+      }
+    ]
+  },
+  "blocks": {
+    "treatments": {
+      "reference/field-guide": [
+        "editorial"
+      ],
+      "blocks/product-collection": [
+        "gallery"
+      ]
+    },
+    "patterns": "./patterns/*.json"
+  },
+  "defaults": {
+    "layout": {
+      "sectionSpacing": "comfortable",
+      "elementSpacing": "comfortable",
+      "blockGap": "none"
+    }
   }
 }

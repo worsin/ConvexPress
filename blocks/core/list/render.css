@@ -1,0 +1,5 @@
+.cp-block-list { margin:0; padding-inline-start:1.5em; line-height:1.7; }
+.cp-block-list li+li { margin-block-start:var(--stack-gap-sm,.65rem); }
+.cp-block-list[data-list-kind="task"] { list-style:none; padding-inline-start:0; }
+.cp-block-list[data-list-kind="task"] li { display:flex; align-items:baseline; gap:.8rem; }
+.cp-block-task-state { flex:none; color:var(--primary,currentColor); }

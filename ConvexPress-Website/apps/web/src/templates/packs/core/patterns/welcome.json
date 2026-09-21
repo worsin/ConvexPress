@@ -1,0 +1,77 @@
+{
+  "id": "welcome",
+  "title": "Welcome & introduction",
+  "description": "An opening statement followed by a short introduction.",
+  "category": "intro",
+  "blocks": [
+    {
+      "id": "pattern_1",
+      "name": "core/hero",
+      "version": 2,
+      "attrs": {
+        "eyebrow": "Welcome",
+        "title": "Make room for your next good idea.",
+        "body": "A clear place to share what you do, who you help, and what comes next."
+      },
+      "layout": {
+        "spacing": "default"
+      }
+    },
+    {
+      "id": "pattern_2",
+      "name": "core/section",
+      "version": 1,
+      "attrs": {},
+      "children": [
+        {
+          "id": "pattern_3",
+          "name": "core/heading",
+          "version": 2,
+          "attrs": {
+            "text": {
+              "type": "doc",
+              "content": [
+                {
+                  "type": "paragraph",
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "A little about us"
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "id": "pattern_4",
+          "name": "core/paragraph",
+          "version": 2,
+          "attrs": {
+            "body": {
+              "type": "doc",
+              "content": [
+                {
+                  "type": "paragraph",
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "Good work starts with listening. Tell your visitors what matters to you, how you work, and why you care about the people you serve."
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        }
+      ],
+      "layout": {
+        "width": "contained",
+        "spacing": "default",
+        "tone": "default",
+        "align": "start"
+      }
+    }
+  ]
+}

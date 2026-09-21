@@ -1,0 +1,38 @@
+.cp-reviews { color:var(--foreground); }
+.cp-reviews-header { display:flex; flex-wrap:wrap; justify-content:space-between; align-items:flex-end; gap:1.5rem; padding-bottom:clamp(2rem,5vw,4rem); border-bottom:1px solid var(--border); }
+.cp-reviews-header > :first-child { max-width:44rem; overflow-wrap:anywhere; }
+.cp-reviews-layout { display:grid; grid-template-columns:minmax(12rem,.7fr) minmax(0,2fr); gap:clamp(2rem,5vw,5rem); padding-top:clamp(2rem,4vw,3.5rem); }
+.cp-reviews-summary { align-self:start; min-width:0; }
+.cp-reviews-average { display:flex; align-items:baseline; gap:.7rem; margin:0 0 .75rem; }
+.cp-reviews-average > :first-child { font-family:var(--font-heading,inherit); font-size:clamp(4rem,7vw,6.5rem); font-weight:500; letter-spacing:-.065em; line-height:1; font-variant-numeric:tabular-nums; }
+.cp-reviews-average > :last-child { font-size:.875rem; color:var(--muted-foreground); }
+.cp-reviews-distribution { display:grid; gap:.8rem; margin:2rem 0 1.5rem; padding:0; list-style:none; }
+.cp-reviews-distribution li { display:grid; grid-template-columns:3.1rem 1fr 2rem; gap:.65rem; align-items:center; font-size:.75rem; font-variant-numeric:tabular-nums; }
+.cp-reviews-distribution li > :last-child { text-align:right; }
+.cp-reviews-track { display:block; overflow:hidden; height:4px; background:var(--border); }
+.cp-reviews-track > span { display:block; height:100%; background:var(--primary); transform-origin:left; }
+.cp-reviews-filter { margin-top:1.5rem; padding-top:1rem; border-top:1px solid var(--border); font-size:.8125rem; }
+.cp-reviews-main { min-width:0; }
+.cp-reviews-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); column-gap:clamp(1.5rem,3vw,3rem); row-gap:2.5rem; }
+.cp-review-card { min-width:0; display:flex; flex-direction:column; border-bottom:1px solid var(--border); padding-bottom:1.5rem; overflow-wrap:anywhere; }
+.cp-review-card:only-child { grid-column:1 / -1; }
+.cp-review-card-top { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:.75rem; margin-bottom:1.5rem; }
+.cp-review-stars { display:inline-flex; gap:2px; color:var(--primary); }
+.cp-review-stars svg { width:15px; height:15px; fill:none; stroke:currentColor; stroke-width:1.5; }
+.cp-review-stars .is-filled { fill:currentColor; }
+.cp-review-card time,.cp-review-excerpt { color:var(--muted-foreground); font-size:.75rem; }
+.cp-review-words { flex:1; }
+.cp-review-words p { margin:.75rem 0 0; font-size:.9375rem; line-height:1.8; white-space:pre-line; }
+.cp-review-excerpt { display:block; margin-top:.5rem; }
+.cp-review-author { display:flex; align-items:center; gap:.75rem; margin-top:1.75rem; }
+.cp-review-initial { display:grid; place-items:center; flex:0 0 2.25rem; height:2.25rem; border:1px solid var(--border); border-radius:50%; background:var(--muted); font-size:.875rem; }
+.cp-review-verified { display:flex; gap:.3rem; align-items:center; margin-top:.2rem; font-size:.7rem; color:var(--muted-foreground); }
+.cp-review-product { margin-top:1rem; font-size:.8125rem; }
+.cp-review-product a,.cp-reviews-pagination a,.cp-reviews-header > a { display:inline-flex; align-items:center; min-height:44px; }
+.cp-reviews a:focus-visible { outline:3px solid var(--primary); outline-offset:4px; }
+.cp-reviews-pagination { display:flex; justify-content:space-between; flex-wrap:wrap; gap:1.5rem; padding-top:2rem; margin-top:1rem; }
+@media (min-width:1000px) { .cp-reviews-summary { position:sticky; top:2rem; } }
+@media (max-width:760px) { .cp-reviews-layout { grid-template-columns:1fr; } .cp-reviews-summary { max-width:26rem; width:100%; } }
+@media (max-width:520px) { .cp-reviews-grid { grid-template-columns:1fr; } .cp-review-card-top { margin-bottom:1rem; } }
+@media (prefers-reduced-motion:no-preference) { .cp-reviews[data-reveal="entered"] .cp-review-card { animation:cp-review-enter 420ms cubic-bezier(.2,.65,.3,1) both; } .cp-reviews[data-reveal="entered"] .cp-review-card:nth-child(even) { animation-delay:60ms; } }
+@keyframes cp-review-enter { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:translateY(0); } }

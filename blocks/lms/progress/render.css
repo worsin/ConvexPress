@@ -1,0 +1,18 @@
+.cp-learner-progress { min-width:0; container-type:inline-size; }
+.cp-learner-progress > * + * { margin-block-start:2rem; }
+.cp-learner-progress-grid { display:grid; grid-template-columns:minmax(0,1fr); gap:1.5rem 2.5rem; }
+.cp-learner-progress-card { display:grid; grid-template-columns:minmax(0,1fr); min-width:0; gap:1.5rem; padding-block:1.75rem; border-block-start:1px solid var(--border,currentColor); }
+.cp-learner-progress-measure { display:flex; align-items:baseline; flex-wrap:wrap; gap:.5rem 1rem; }
+.cp-learner-progress-number { font-family:var(--font-heading,inherit); font-size:clamp(3rem,9cqi,5rem); line-height:1; letter-spacing:-.055em; font-variant-numeric:tabular-nums; }
+.cp-learner-progress-number > span { font-size:.38em; margin-inline-start:.18em; letter-spacing:0; }
+.cp-learner-progress-detail { min-width:0; overflow-wrap:anywhere; }
+.cp-learner-progress-detail > * + * { margin-block-start:.9rem; }
+.cp-learner-progress progress { display:block; width:100%; height:5px; appearance:none; border:0; border-radius:4px; background:var(--muted); color:var(--primary,currentColor); overflow:hidden; }
+.cp-learner-progress progress::-webkit-progress-bar { background:var(--muted); }
+.cp-learner-progress progress::-webkit-progress-value { background:var(--primary,currentColor); }
+.cp-learner-progress progress::-moz-progress-bar { background:var(--primary,currentColor); }
+.cp-learner-progress a { display:inline-flex; align-items:center; min-height:44px; }
+.cp-learner-progress a:focus-visible { outline:2px solid var(--primary,currentColor); outline-offset:4px; }
+.cp-learner-progress-pagination { display:flex; flex-wrap:wrap; justify-content:flex-end; gap:1rem 2rem; border-block-start:1px solid var(--border,currentColor); padding-block-start:1rem; }
+@container (min-width:44rem) { .cp-learner-progress-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+@media (hover:hover) and (prefers-reduced-motion:no-preference) { .cp-learner-progress a { transition:transform 180ms ease-out; } .cp-learner-progress a:hover { transform:translateX(3px); } }

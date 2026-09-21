@@ -1,0 +1,11 @@
+.cp-tag-cloud { min-width: 0; color: var(--foreground); }
+.cp-tag-cloud-topics { display: flex; flex-wrap: wrap; gap: .75rem; list-style: none; padding: 0; margin: 0; }
+.cp-tag-cloud-topics li { max-width: 100%; min-width: 0; }
+.cp-tag-cloud-topics a { display: flex; align-items: center; justify-content: space-between; gap: 1.5em; min-height: 48px; box-sizing: border-box; max-width: 100%; padding: .7em 1.1em; border: 1px solid var(--border); border-radius: var(--radius, .5rem); color: inherit; background: var(--card, var(--background)); text-decoration: none; overflow-wrap: anywhere; line-height: 1.4; transition: transform 180ms ease; }
+.cp-tag-cloud-topics a::after { content: "↗"; flex-shrink: 0; color: var(--muted-foreground); }
+.cp-tag-cloud-pagination { width: 100%; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .75rem 2rem; padding-block-start: .75rem; border-block-start: 1px solid var(--border); }
+.cp-tag-cloud-pagination a { display: inline-flex; align-items: center; min-height: 44px; text-underline-offset: .25em; }
+.cp-tag-cloud a:focus-visible, .cp-tag-cloud-pagination a:focus-visible { outline: 2px solid var(--primary); outline-offset: 4px; }
+@media (hover: hover) { .cp-tag-cloud-topics a:hover { background: var(--muted); border-color: var(--foreground); } }
+@media (hover: hover) and (prefers-reduced-motion: no-preference) { .cp-tag-cloud-topics a:hover { transform: translateY(-2px); } }
+@media (prefers-reduced-motion: reduce) { .cp-tag-cloud-topics a { transition: none; } }

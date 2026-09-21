@@ -1,0 +1,38 @@
+.cp-recipe-card { container-type:inline-size; min-width:0; color:var(--foreground); }
+.cp-recipe-header { display:grid; grid-template-columns:minmax(0,1fr); gap:clamp(2rem,5vw,5rem); padding-bottom:2.5rem; border-bottom:1px solid var(--border); }
+.cp-recipe-header:has(.cp-recipe-photo) { grid-template-columns:minmax(0,1.1fr) minmax(0,.9fr); align-items:center; }
+.cp-recipe-header .cp-heading { font-size:clamp(2.5rem,5vw,5rem); line-height:1.05; letter-spacing:-.04em; margin-block:1rem 1.5rem; text-wrap:balance; }
+.cp-recipe-description { max-width:55ch; color:var(--muted-foreground); line-height:1.8; white-space:pre-line; }
+.cp-recipe-facts { display:flex; flex-wrap:wrap; gap:1.5rem 2.5rem; margin-block:2rem 0; }
+.cp-recipe-card dt { font-size:.7rem; text-transform:uppercase; letter-spacing:.1em; color:var(--muted-foreground); margin-bottom:.4rem; }
+.cp-recipe-card dd { margin:0; font-size:1.15rem; }
+.cp-recipe-facts dd span { font-size:.8rem; }
+.cp-recipe-difficulty { text-transform:capitalize; }
+.cp-recipe-yield { font-size:.85rem; color:var(--muted-foreground); margin-top:1.5rem; }
+.cp-recipe-photo { margin:0; aspect-ratio:4/5; overflow:hidden; background:var(--muted); border-radius:var(--radius); }
+.cp-recipe-photo img { width:100%; height:100%; object-fit:cover; display:block; }
+.cp-recipe-card h3 { font-family:var(--font-display,Georgia,serif); font-size:1.75rem; font-weight:500; line-height:1.2; margin:0 0 1rem; letter-spacing:-.02em; }
+.cp-recipe-method { display:grid; grid-template-columns:minmax(0,.7fr) minmax(0,1.3fr); gap:clamp(2rem,6vw,6rem); margin-block:3rem; }
+.cp-recipe-check-hint { font-size:.8rem; color:var(--muted-foreground); margin-block:0 1.5rem; }
+.cp-recipe-ingredients { list-style:none; padding:0; margin:0; }
+.cp-recipe-ingredients li { border-bottom:1px solid var(--border); }
+.cp-recipe-ingredients label { display:flex; align-items:start; gap:.9rem; padding-block:.85rem; min-height:44px; cursor:pointer; line-height:1.6; }
+.cp-recipe-ingredients input { appearance:none; flex:none; width:20px; height:20px; border:1px solid currentColor; border-radius:3px; margin:.2rem 0 0; display:grid; place-content:center; color:var(--foreground); background:transparent; }
+.cp-recipe-ingredients input::before { content:""; width:9px; height:5px; border-left:2px solid currentColor; border-bottom:2px solid currentColor; transform:rotate(-45deg) scale(0); transition:transform 160ms ease; }
+.cp-recipe-ingredients input:checked::before { transform:rotate(-45deg) scale(1); }
+.cp-recipe-ingredients input:checked + span { text-decoration:line-through; color:var(--muted-foreground); }
+.cp-recipe-ingredients input:focus-visible { outline:2px solid currentColor; outline-offset:4px; }
+.cp-recipe-directions ol { list-style:none; padding:0; margin:0; }
+.cp-recipe-directions li { display:grid; grid-template-columns:2rem minmax(0,1fr); gap:1.25rem; padding-block:1.25rem; border-bottom:1px solid var(--border); }
+.cp-recipe-directions li:first-child { padding-top:.5rem; }
+.cp-recipe-step { font-size:.75rem; font-variant-numeric:tabular-nums; color:var(--muted-foreground); padding-top:.35rem; }
+.cp-recipe-directions p,.cp-recipe-notes p { margin:0; line-height:1.9; white-space:pre-line; }
+.cp-recipe-notes { border-left:2px solid var(--foreground); padding:1rem 0 1rem 1.5rem; max-width:70ch; margin-block:2rem; }
+.cp-recipe-notes h3,.cp-recipe-nutrition h3 { font-size:1.1rem; }
+.cp-recipe-nutrition { margin-top:2.5rem; padding-top:1.5rem; border-top:1px solid var(--border); }
+.cp-recipe-nutrition dl { display:flex; flex-wrap:wrap; gap:1rem 2rem; }
+.cp-recipe-card p,.cp-recipe-card h2,.cp-recipe-card dd,.cp-recipe-card label { overflow-wrap:anywhere; }
+.cp-recipe-empty { border-block:1px solid var(--border); padding-block:2rem; }
+@container(max-width:42rem) { .cp-recipe-header:has(.cp-recipe-photo),.cp-recipe-method { grid-template-columns:minmax(0,1fr); } .cp-recipe-photo { aspect-ratio:4/3; } .cp-recipe-method { gap:2.5rem; margin-block:2rem; } }
+@media(prefers-reduced-motion:reduce) { .cp-recipe-ingredients input::before { transition:none; } }
+@media print { .cp-recipe-ingredients input { display:none; } .cp-recipe-ingredients input:checked + span { text-decoration:none; } .cp-recipe-directions li { break-inside:avoid; } }

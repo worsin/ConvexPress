@@ -1,0 +1,91 @@
+{
+  "id": "invitation",
+  "title": "An invitation",
+  "description": "A quiet closing statement with a place for contact information.",
+  "category": "contact",
+  "blocks": [
+    {
+      "id": "pattern_1",
+      "name": "core/section",
+      "version": 1,
+      "attrs": {},
+      "children": [
+        {
+          "id": "pattern_2",
+          "name": "core/cta-band",
+          "version": 2,
+          "attrs": {
+            "eyebrow": "The next chapter",
+            "heading": "Let\u2019s make something worth keeping.",
+            "body": "Tell us what you have in mind. A good conversation is a useful place to begin."
+          },
+          "layout": {
+            "spacing": "none"
+          }
+        }
+      ],
+      "layout": {
+        "width": "contained",
+        "spacing": "default",
+        "tone": "inverted",
+        "align": "start"
+      }
+    },
+    {
+      "id": "pattern_3",
+      "name": "core/section",
+      "version": 1,
+      "attrs": {},
+      "children": [
+        {
+          "id": "pattern_4",
+          "name": "core/heading",
+          "version": 2,
+          "attrs": {
+            "text": {
+              "type": "doc",
+              "content": [
+                {
+                  "type": "paragraph",
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "Get in touch"
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "id": "pattern_5",
+          "name": "core/paragraph",
+          "version": 2,
+          "attrs": {
+            "body": {
+              "type": "doc",
+              "content": [
+                {
+                  "type": "paragraph",
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "Add your preferred contact details here, or insert a form connected to this website."
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        }
+      ],
+      "layout": {
+        "width": "contained",
+        "spacing": "default",
+        "tone": "default",
+        "align": "start"
+      }
+    }
+  ]
+}

@@ -1,0 +1,11 @@
+/* Reusable children are complete block sections, not inline copy. Stretch
+ * their containing boxes so percentage-width layouts retain the page width. */
+.cp-synced-content {
+  display: grid;
+  inline-size: 100%;
+  min-inline-size: 0;
+  gap: var(--stack-gap-lg, 2.5rem);
+}
+.cp-synced-content > * {
+  min-inline-size: 0;
+}

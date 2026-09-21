@@ -1,0 +1,2 @@
+.cp-library-download { display: inline-flex; align-items: center; justify-content: space-between; gap: 2rem; min-block-size: 2.75rem; padding: .8rem 1.1rem; border: 1px solid var(--foreground); background: var(--foreground); color: var(--background); font-weight: 600; text-decoration: none; border-radius: var(--radius,.25rem); overflow-wrap:anywhere; }
+.cp-library-download:focus-visible {outline: 2px solid var(--primary); outline-offset:4px;}
