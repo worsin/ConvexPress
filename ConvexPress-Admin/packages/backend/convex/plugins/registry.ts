@@ -28,7 +28,8 @@ export type PluginId =
   | "recipes"
   | "gallery"
   | "lms"
-  | "forms";
+  | "forms"
+  | (string & {});
 
 /** Maps pluginId → the key in the `plugins` settings section. */
 export const PLUGIN_SETTINGS_KEY: Record<PluginId, string> = {
@@ -77,3 +78,18 @@ export const PLUGIN_DEFAULTS: Record<PluginId, boolean> = {
   lms: true,
   forms: false,
 };
+
+/** Shared, runtime-independent policy for handlers and Dashboard navigation. */
+export function isPluginEnabledFromValues(
+  pluginId: PluginId,
+  stored: Record<string, unknown>,
+  seen = new Set<string>(),
+): boolean {
+  if (seen.has(pluginId) || !Object.prototype.hasOwnProperty.call(PLUGIN_SETTINGS_KEY, pluginId)) return false;
+  seen.add(pluginId);
+  const key = PLUGIN_SETTINGS_KEY[pluginId];
+  const enabled = typeof stored[key] === "boolean" ? stored[key] : PLUGIN_DEFAULTS[pluginId];
+  if (!enabled) return false;
+  const parent = PLUGIN_PARENT[pluginId];
+  return parent ? isPluginEnabledFromValues(parent, stored, seen) : true;
+}

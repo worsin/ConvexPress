@@ -17,9 +17,7 @@ import { ConvexError } from "convex/values";
 import type { QueryCtx, MutationCtx, ActionCtx } from "../_generated/server";
 import { api } from "../_generated/api";
 import {
-  PLUGIN_DEFAULTS,
-  PLUGIN_PARENT,
-  PLUGIN_SETTINGS_KEY,
+  isPluginEnabledFromValues,
   type PluginId,
 } from "../plugins/registry";
 
@@ -53,23 +51,9 @@ export async function isPluginEnabled(
   pluginId: PluginId,
 ): Promise<boolean> {
   const stored = await readPluginsSettings(ctx);
-  return isEnabledFromValues(pluginId, stored);
+  return isPluginEnabledFromValues(pluginId, stored);
 }
 
-function isEnabledFromValues(
-  pluginId: PluginId,
-  stored: Record<string, boolean>,
-): boolean {
-  const key = PLUGIN_SETTINGS_KEY[pluginId];
-  const self =
-    typeof stored[key] === "boolean" ? stored[key] : PLUGIN_DEFAULTS[pluginId];
-  if (!self) return false;
-  const parent = PLUGIN_PARENT[pluginId];
-  if (parent) {
-    return isEnabledFromValues(parent, stored);
-  }
-  return true;
-}
 
 /** Throw PLUGIN_DISABLED if not enabled. Use at the top of every mutation/action. */
 export async function requirePluginEnabled(

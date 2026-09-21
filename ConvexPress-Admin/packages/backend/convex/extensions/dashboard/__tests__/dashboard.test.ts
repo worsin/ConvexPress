@@ -7,7 +7,9 @@ import {
   DASHBOARD_WIDGETS,
   buildDefaultLayoutItems,
   pluginIsEnabled,
+  pluginSettingsKey,
 } from "../registry";
+import { PLUGIN_DEFAULTS, PLUGIN_PARENT, PLUGIN_SETTINGS_KEY } from "../../../plugins/registry";
 import { ANONYMOUS_VIEWER, menuItemVisibleFor } from "../visibility";
 
 describe("dashboard registry", () => {
@@ -22,6 +24,30 @@ describe("dashboard registry", () => {
     expect(pluginIsEnabled("commerceReturns", { commerceReturnsEnabled: true })).toBe(false);
     expect(pluginIsEnabled("commerceReturns", { commerceReturnsEnabled: true, commerceEnabled: true })).toBe(true);
     expect(pluginIsEnabled("core", {})).toBe(true);
+  });
+
+  test("installed declarations own Dashboard keys, defaults and parent chains", () => {
+    const id = "dashboard-test-sessions";
+    expect(Object.prototype.hasOwnProperty.call(PLUGIN_SETTINGS_KEY, id)).toBe(false);
+    PLUGIN_SETTINGS_KEY[id] = "sessionBookingsEnabled";
+    PLUGIN_DEFAULTS[id] = true;
+    try {
+      expect(pluginSettingsKey(id)).toBe("sessionBookingsEnabled");
+      expect(pluginIsEnabled(id, {})).toBe(true);
+      expect(pluginIsEnabled(id, { sessionBookingsEnabled: false })).toBe(false);
+      PLUGIN_PARENT[id] = "commerceReturns";
+      expect(pluginIsEnabled(id, { commerceReturnsEnabled: true })).toBe(false);
+      expect(pluginIsEnabled(id, { commerceReturnsEnabled: true, commerceEnabled: true })).toBe(true);
+      PLUGIN_PARENT[id] = id;
+      expect(pluginIsEnabled(id, { sessionBookingsEnabled: true })).toBe(false);
+    } finally {
+      delete PLUGIN_SETTINGS_KEY[id];
+      delete PLUGIN_DEFAULTS[id];
+      delete PLUGIN_PARENT[id];
+    }
+    expect(pluginSettingsKey(id)).toBeNull();
+    expect(pluginIsEnabled(id, { [`${id}Enabled`]: true })).toBe(false);
+    expect(pluginIsEnabled("constructor", { constructorEnabled: true })).toBe(false);
   });
 
   test("the default layout packs enabled widgets into the grid without overlap", () => {

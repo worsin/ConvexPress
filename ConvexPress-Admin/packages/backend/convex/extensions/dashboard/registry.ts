@@ -20,6 +20,7 @@
  */
 
 import { extensionDashboardContributions } from "../../schema/_dashboardIndex.generated";
+import { PLUGIN_SETTINGS_KEY, isPluginEnabledFromValues } from "../../plugins/registry";
 
 export type DashboardPluginId =
   | "core"
@@ -176,19 +177,14 @@ export function getDashboardWidget(id: string): DashboardWidgetDefinition | unde
 /** Settings key that gates a plugin, e.g. "commerce" → "commerceEnabled". */
 export function pluginSettingsKey(pluginId: DashboardPluginId): string | null {
   if (pluginId === "core") return null;
-  return `${pluginId}Enabled`;
+  return Object.prototype.hasOwnProperty.call(PLUGIN_SETTINGS_KEY, pluginId)
+    ? PLUGIN_SETTINGS_KEY[pluginId]
+    : null;
 }
 
-/** Commerce sub-plugins also require the parent commerce plugin. */
+/** Use the installed declaration's key, default and complete parent chain. */
 export function pluginIsEnabled(pluginId: DashboardPluginId, flags: Record<string, unknown>): boolean {
-  if (pluginId === "core") return true;
-  const key = pluginSettingsKey(pluginId);
-  if (!key) return true;
-  if (flags[key] !== true) return false;
-  if (pluginId.startsWith("commerce") && pluginId !== "commerce") {
-    return flags.commerceEnabled === true;
-  }
-  return true;
+  return pluginId === "core" || isPluginEnabledFromValues(pluginId, flags);
 }
 
 // ─── Layouts ────────────────────────────────────────────────────────────────
