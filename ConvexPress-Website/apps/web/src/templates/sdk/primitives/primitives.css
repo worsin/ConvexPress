@@ -90,6 +90,11 @@
 	align-self: stretch;
 	min-width: 0;
 }
+/* Size nested sections before flex measures their container-query contents.
+ * Cross-axis stretch alone can retain a height measured at intrinsic width. */
+.cp-stack[data-direction="vertical"] > .cp-section {
+	inline-size: 100%;
+}
 .cp-p[data-gap="none"] {
 	gap: 0;
 }

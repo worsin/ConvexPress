@@ -3154,3 +3154,8 @@ Journal now uses a lead story and rule-separated entries; Depot uses compact thu
 ## September21 A06/A08 acceptance and reactive Sites repair
 
 Accepted original A06 and A08 after current-source isolated controller checks and final native acceptance. Typed capacity recovery replaces the generic crash message. Consolidated operator-scoped capability subscriptions and reused the authorized website description after reproducing a twelve-query reconnect loop on the eight-query backend. Final seven-query Sites view clears overflow, recovers, reacts to ordinary deny/reversal and switches websites without reload or reconnect.383 controller/488 Admin tests, types/build/lint passed. Scoped infrastructure and private inputs removed; other resources preserved. Full evidence and limitations: [permission-boundaries-20260921.md](permission-boundaries-20260921.md). Current original audit count: eight accepted/sixteen open.
+
+
+## September21 Depot defaults and nested starter sections
+
+Depot now respects compact heading scale and authored Card padding. Native authored-page review caught nested starter Sections shrinking feature cards and retaining excess height; shared definite sizing fixes both. All32 patterns pass desktop/mobile width and relevant card-height checks; native four-block save/reopen/publication and Depot/Journal/Core preservation pass.289 renderer tests, types/builds/canonical checks/lint pass; thumbnails and six MagicTables Notes rows refreshed. Original42 pages/two posts/media/listeners/settings preserved; owned sessions/processes cleaned up. [Evidence and exact remaining scope](depot-defaults-20260921.md). Original audit stays eight accepted/sixteen open; full block/template/release acceptance remains open.

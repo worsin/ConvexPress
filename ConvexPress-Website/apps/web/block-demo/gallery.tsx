@@ -1,3 +1,4 @@
+import { DensityStudy } from "./density-study";
 import type { ReactNode } from "react";
 import * as P from "../src/templates/sdk/primitives";
 import workshop from "./assets/ceramic-workshop-editorial.png";
@@ -271,6 +272,7 @@ export function Gallery() {
 					</div>
 				</P.Grid>
 			</P.Section>
+			<DensityStudy />
 		</>
 	);
 }

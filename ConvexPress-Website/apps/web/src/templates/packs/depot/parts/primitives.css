@@ -1,25 +1,31 @@
 .depot-primitive-heading .cp-heading {
 	font-family: var(--font-sans, ui-sans-serif, sans-serif);
-	font-weight: 750;
-	text-transform: uppercase;
-	letter-spacing: -0.045em;
-	line-height: 1.02;
+	font-weight: 650;
+	text-transform: none;
+	letter-spacing: -0.02em;
+	line-height: 1.25;
 }
+.depot-primitive-heading .cp-heading[data-size="sm"] { font-size: 1rem; }
+/* Pack scale wins over the SDK's responsive card-copy fallback. */
+.depot-primitive-heading[data-pack-primitive] .cp-heading[data-size="md"] { font-size: 1.125rem; }
+.depot-primitive-heading .cp-heading[data-size="lg"] { font-size: clamp(1.25rem, 1.7vw, 1.5rem); }
+.depot-primitive-heading .cp-heading[data-size="display"] { font-size: clamp(1.75rem, 2.2vw, 2rem); }
 .depot-primitive-card {
 	height: 100%;
 }
 .depot-primitive-card .cp-card {
 	height: 100%;
-	border-radius: 0;
-	border: 1px solid var(--foreground);
-	padding: calc(var(--card-pad, 1.75rem) * 1.15);
+	border-radius: var(--radius, .375rem);
+}
+.depot-primitive-card .cp-card:not([data-variant="plain"]) {
+	border: 1px solid var(--border);
 }
 .depot-primitive-badge .cp-badge {
-	border-radius: 0;
-	letter-spacing: 0.09em;
+	border-radius: var(--radius, .375rem);
+	letter-spacing: 0.06em;
 	font-weight: 700;
 	text-transform: uppercase;
-	border: 1px solid currentColor;
+	border: 1px solid var(--border);
 }
 .depot-primitive-stat {
 	border-block-start: 3px solid currentColor;

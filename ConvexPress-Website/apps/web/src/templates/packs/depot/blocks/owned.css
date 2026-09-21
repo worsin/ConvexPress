@@ -9,7 +9,7 @@
 .cp-owned-depot .depot-feature, .cp-owned-depot .depot-plan, .cp-owned-depot .depot-testimonial { min-width: 0; }
 .cp-owned-depot .depot-price .cp-text { font-variant-numeric: tabular-nums; font-size: clamp(1.8rem, 3vw, 3rem); line-height: 1.1; letter-spacing: -.04em; }
 .cp-owned-depot .depot-stories { container: depot-stories / inline-size; }
-.cp-owned-depot .depot-stories-intro .cp-heading { font-size: clamp(1.5rem, 2.5vw, 2rem); line-height: 1.2; }
+.cp-owned-depot .depot-stories-intro .cp-heading { font-size: clamp(1.25rem, 1.7vw, 1.5rem); line-height: 1.25; }
 .cp-owned-depot .depot-stories > .cp-grid { grid-template-columns: minmax(0, 1fr); align-items: start; }
 .cp-owned-depot .depot-story { display: grid; gap: var(--stack-gap-md, 1.25rem); grid-template-columns: minmax(0, 1fr); min-inline-size: 0; padding: var(--card-pad, 1rem); border: 1px solid var(--border); border-radius: var(--radius, .375rem); background: var(--card, var(--background)); }
 .cp-owned-depot .depot-story-copy { min-inline-size: 0; }
@@ -27,13 +27,13 @@
 .cp-owned-depot .depot-form-fields { min-width: 0; }
 .cp-owned-depot .depot-form { max-inline-size: none; container: depot-form / inline-size; }
 .cp-owned-depot .depot-form > .cp-split { grid-template-columns: minmax(0, 1fr); }
-.cp-owned-depot .depot-form .cp-heading { font-size: clamp(1.75rem, 3.5cqi, 2.5rem); }
+.cp-owned-depot .depot-form .cp-heading { font-size: clamp(1.25rem, 2.2cqi, 1.5rem); }
 @container depot-form (min-width: 52rem) {
   .cp-owned-depot .depot-form > .cp-split { grid-template-columns: minmax(0, 1fr) minmax(0, 1.5fr); }
 }
 @media (max-width: 640px) { .cp-owned-depot .depot-banner-image img { aspect-ratio: 16/9; } }
 
-.cp-owned-depot .depot-hero .cp-heading { font-size: clamp(2rem, 4vw, 4rem); max-width: 22ch; }
+.cp-owned-depot .depot-hero .cp-heading { font-size: clamp(1.75rem, 2.2vw, 2rem); max-width: 28ch; }
 .cp-owned-depot .depot-hero-image img { aspect-ratio: 4/3; }
 .cp-owned-depot .depot-feature, .cp-owned-depot .depot-plan, .cp-owned-depot .depot-testimonial, .cp-owned-depot .depot-form-fields { border: 1px solid var(--border); border-radius: .375rem; padding: var(--card-pad, 1.5rem); background: var(--card, var(--background)); }
 .cp-owned-depot .depot-plan[data-featured="true"] { border-color: var(--primary); box-shadow: inset 0 3px var(--primary); }

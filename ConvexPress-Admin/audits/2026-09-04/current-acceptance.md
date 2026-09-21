@@ -270,3 +270,8 @@ Journal now uses a lead story and rule-separated entries; Depot uses compact thu
 ## September21 permission boundaries and native subscription repair
 
 A06/A08 are accepted. The final loaded Sites view uses seven subscriptions instead of twelve; shared operator-scoped permission batches retain target separation and reactive denial. Actual Electron cleared the oversized-policy portfolio in928ms, recovered through Try Again, removed ordinary denied editing controls in971ms and switched website successfully. Zero reconnects or backend concurrency errors occurred during the67-second final window.383 controller and488 Admin tests, types/build and focused lint pass. Temporary controller/volume/profile removed; original processes and52 other containers preserved. Evidence: [permission-boundaries-20260921.md](permission-boundaries-20260921.md). Eight original audit rows accepted, sixteen open; full block/template/release scope remains open.
+
+
+## September21 Depot defaults and nested starter sections
+
+Depot now respects compact heading scale and authored Card padding. Native authored-page review caught nested starter Sections shrinking feature cards and retaining excess height; shared definite sizing fixes both. All32 patterns pass desktop/mobile width and relevant card-height checks; native four-block save/reopen/publication and Depot/Journal/Core preservation pass.289 renderer tests, types/builds/canonical checks/lint pass; thumbnails and six MagicTables Notes rows refreshed. Original42 pages/two posts/media/listeners/settings preserved; owned sessions/processes cleaned up. [Evidence and exact remaining scope](depot-defaults-20260921.md). Original audit stays eight accepted/sixteen open; full block/template/release acceptance remains open.
