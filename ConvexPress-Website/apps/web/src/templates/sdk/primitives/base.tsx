@@ -435,10 +435,14 @@ function Tabs(p: PrimitiveProps<"Tabs">) {
 						}}
 						onClick={() => choose(item.id)}
 						onKeyDown={(event) => {
+							const rtl = event.currentTarget.ownerDocument.defaultView
+								?.getComputedStyle(event.currentTarget).direction === "rtl";
+							const forward = rtl ? "ArrowLeft" : "ArrowRight";
+							const backward = rtl ? "ArrowRight" : "ArrowLeft";
 							const next =
-								event.key === "ArrowRight"
+								event.key === forward
 									? (index + 1) % p.items.length
-									: event.key === "ArrowLeft"
+									: event.key === backward
 										? (index + p.items.length - 1) % p.items.length
 										: event.key === "Home"
 											? 0

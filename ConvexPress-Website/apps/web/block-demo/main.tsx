@@ -20,6 +20,7 @@ import { OriginalUtilitiesStudy } from "./original-utilities";
 import { CoreTextLayoutStudy } from "./core-text-layout";
 import { TextFamilyStudy } from "./text-family";
 import { ContentFamilyStudy } from "./content-family";
+import { DisclosureFamilyStudy } from "./disclosure-family";
 const CanonicalBlocks = lazy(() =>
 	import("./canonical-blocks").then((module) => ({
 		default: module.CanonicalBlocks,
@@ -254,6 +255,7 @@ function App() {
 					<CoreTextLayoutStudy />
 					<TextFamilyStudy packId={packId} />
 					<ContentFamilyStudy packId={packId} />
+					<DisclosureFamilyStudy packId={packId} />
 					<OriginalUtilitiesStudy packId={packId} />
 					<FieldGuideTreatmentStudy packId={packId} />
 				</PrimitiveProvider>

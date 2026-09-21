@@ -370,6 +370,10 @@
 ol.cp-list {
 	list-style: decimal;
 }
+.cp-accordion {
+	min-inline-size: 0;
+	overflow-wrap: anywhere;
+}
 .cp-accordion details {
 	border-block-end: 1px solid var(--border, #d8d8d0);
 }
@@ -428,6 +432,7 @@ ol.cp-list {
 	padding-block: 1.5rem;
 	line-height: 1.7;
 	white-space: pre-line;
+	overflow-wrap: anywhere;
 }
 .cp-tabs [hidden] {
 	display: none;

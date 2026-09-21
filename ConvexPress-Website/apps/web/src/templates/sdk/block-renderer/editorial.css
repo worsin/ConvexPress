@@ -20,7 +20,7 @@
 .cp-editorial-portrait img {aspect-ratio:1;object-fit:cover;border-radius:50%;}
 .cp-editorial-tabs {inline-size:100%;min-inline-size:0;}
 .cp-editorial-tabs [role=tablist] {display:flex;gap:.5rem;overflow-x:auto;border-block-end:1px solid var(--border);padding:.25rem .25rem 0;scrollbar-width:thin;}
-.cp-editorial-tabs [role=tab] {flex:0 0 auto;appearance:none;border:0;border-block-end:2px solid transparent;background:transparent;color:var(--muted-foreground);font:500 .9rem/1.4 var(--font-sans);min-block-size:48px;padding:.85rem 1rem;cursor:pointer;}
+.cp-editorial-tabs [role=tab] {flex:0 0 auto;box-sizing:border-box;max-inline-size:100%;overflow-wrap:anywhere;appearance:none;border:0;border-block-end:2px solid transparent;background:transparent;color:var(--muted-foreground);font:500 .9rem/1.4 var(--font-sans);min-block-size:48px;padding:.85rem 1rem;cursor:pointer;}
 .cp-editorial-tabs [role=tab][aria-selected=true] {border-block-end-color:var(--foreground);color:var(--foreground);}
 .cp-editorial-tabs [role=tab]:focus-visible,.cp-editorial-tabs [role=tabpanel]:focus-visible {outline:2px solid var(--ring,var(--foreground));outline-offset:2px;}
 .cp-editorial-tabs [role=tabpanel] {padding-block:2rem;}

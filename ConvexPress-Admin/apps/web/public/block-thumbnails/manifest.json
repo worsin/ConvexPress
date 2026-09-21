@@ -67,8 +67,9 @@
       "blocks/tabbed-content": {
         "src": "/block-thumbnails/aster-house/blocks--tabbed-content.jpg",
         "example": 1,
-        "sha256": "5d056e3a74cfa52e46ba57120a91ebc60dc3015b202ae4d489df4ff7646a616c",
-        "bytes": 5465
+        "sha256": "0cbf15f67920a42280afbc4c7b5286921a3370dc46b89d15a43617e2dd092c3f",
+        "bytes": 6026,
+        "capturedAt": "2026-09-21T18:55:26.270Z"
       },
       "business/locations": {
         "src": "/block-thumbnails/aster-house/business--locations.jpg",
@@ -193,8 +194,9 @@
       "core/accordion": {
         "src": "/block-thumbnails/aster-house/core--accordion.jpg",
         "example": 1,
-        "sha256": "d742b4e50605838f27e0109dd871b8996e9c1c8982cf195fe69ad0d50eb0d5e1",
-        "bytes": 8065
+        "sha256": "56683cf191d8ffd8c76cffea9ba110c6418a7771861e09316dbff62248f07073",
+        "bytes": 8928,
+        "capturedAt": "2026-09-21T18:55:26.369Z"
       },
       "core/account-teaser": {
         "src": "/block-thumbnails/aster-house/core--account-teaser.jpg",
@@ -351,8 +353,9 @@
       "core/faq": {
         "src": "/block-thumbnails/aster-house/core--faq.jpg",
         "example": 1,
-        "sha256": "cca602813fea4a6eed4a7f4b7720cdfed28eb20a57e9dda2c20b9aa7f11cb813",
-        "bytes": 10894
+        "sha256": "099ebd0ec9ee2072d3339287946fbc82464162a24d4720928da6382520afd0a4",
+        "bytes": 11325,
+        "capturedAt": "2026-09-21T18:55:26.472Z"
       },
       "core/feature-grid": {
         "src": "/block-thumbnails/aster-house/core--feature-grid.jpg",
@@ -369,8 +372,9 @@
       "core/feature-tabs": {
         "src": "/block-thumbnails/aster-house/core--feature-tabs.jpg",
         "example": 1,
-        "sha256": "ebefed73592a1161ed55a1f9206f459e43b43d7bab00e8d57110488964659bc7",
-        "bytes": 27932
+        "sha256": "b5496d76b24ba1b199a2534ee06d4053a6615378a2e8d186ec30205484af3c78",
+        "bytes": 28042,
+        "capturedAt": "2026-09-21T18:55:26.572Z"
       },
       "core/featured-page": {
         "src": "/block-thumbnails/aster-house/core--featured-page.jpg",
@@ -699,8 +703,9 @@
       "core/tabs": {
         "src": "/block-thumbnails/aster-house/core--tabs.jpg",
         "example": 1,
-        "sha256": "0c6bc44f5e03c1729de9ad207c27ab436f277d12e268d8a7d210c9240b0a1ac2",
-        "bytes": 4088
+        "sha256": "e5d24435d36e7b00dced5784b5c05e15c4ea9080c6df59a2d9029dea96d8b3b1",
+        "bytes": 4835,
+        "capturedAt": "2026-09-21T18:55:26.669Z"
       },
       "core/tag-cloud": {
         "src": "/block-thumbnails/aster-house/core--tag-cloud.jpg",
@@ -899,8 +904,9 @@
       "blocks/tabbed-content": {
         "src": "/block-thumbnails/core/blocks--tabbed-content.jpg",
         "example": 1,
-        "sha256": "09f7b438011e9a588fefb3ab1e9417fdba6baa85f8d23cfaeea2d84c0c22f624",
-        "bytes": 6020
+        "sha256": "a789ffde0ece901666d73b5dafe64524870b76fce0425261ebfdc0a526cd2a22",
+        "bytes": 6673,
+        "capturedAt": "2026-09-21T18:55:23.971Z"
       },
       "business/locations": {
         "src": "/block-thumbnails/core/business--locations.jpg",
@@ -1025,8 +1031,9 @@
       "core/accordion": {
         "src": "/block-thumbnails/core/core--accordion.jpg",
         "example": 1,
-        "sha256": "f6dd6c04f4613e0b4c3594b5a4d267d546147e1867a8b3ca0a2113591ce67b31",
-        "bytes": 8972
+        "sha256": "d60e4ebdb38610ad5c774d7d29eba13ac8582f255ea1871df5957b76f9fd95ec",
+        "bytes": 9935,
+        "capturedAt": "2026-09-21T18:55:24.069Z"
       },
       "core/account-teaser": {
         "src": "/block-thumbnails/core/core--account-teaser.jpg",
@@ -1183,8 +1190,9 @@
       "core/faq": {
         "src": "/block-thumbnails/core/core--faq.jpg",
         "example": 1,
-        "sha256": "3a6b90519240f089a3915fd196eef686ddeb1b7fed5df8097fe7e3edb8c87387",
-        "bytes": 12849
+        "sha256": "ec36bcbcdaf2fe6fd5ea51a86a392a042267ca7f21cca8ef9d4044cec3d080d6",
+        "bytes": 13067,
+        "capturedAt": "2026-09-21T18:55:24.162Z"
       },
       "core/feature-grid": {
         "src": "/block-thumbnails/core/core--feature-grid.jpg",
@@ -1201,8 +1209,9 @@
       "core/feature-tabs": {
         "src": "/block-thumbnails/core/core--feature-tabs.jpg",
         "example": 1,
-        "sha256": "58a960c77316e07a1b184c566f6f8ed84d808ff35caf274d7616084db78aa26a",
-        "bytes": 29768
+        "sha256": "43615f98040725906f5470617841dd9cd1d93813431c06ac36b8cd90f5fa77ec",
+        "bytes": 29711,
+        "capturedAt": "2026-09-21T18:55:24.264Z"
       },
       "core/featured-page": {
         "src": "/block-thumbnails/core/core--featured-page.jpg",
@@ -1531,8 +1540,9 @@
       "core/tabs": {
         "src": "/block-thumbnails/core/core--tabs.jpg",
         "example": 1,
-        "sha256": "f384ae69cb87a63590b70ba4d35da31f09919f6566f855f055a0d46d65be7e61",
-        "bytes": 4244
+        "sha256": "121376fcb464ce71263644065e51302318a6c02f7afbbce1297eb4b8b4277357",
+        "bytes": 5035,
+        "capturedAt": "2026-09-21T18:55:24.344Z"
       },
       "core/tag-cloud": {
         "src": "/block-thumbnails/core/core--tag-cloud.jpg",
@@ -1743,7 +1753,7 @@
         "example": 1,
         "sha256": "180ec49bac1657965ef17d113bb2dd992fbe8c0f390ded0e8330fc5f903b89be",
         "bytes": 5414,
-        "capturedAt": "2026-09-21T11:57:14.213Z"
+        "capturedAt": "2026-09-21T18:55:25.173Z"
       },
       "business/locations": {
         "src": "/block-thumbnails/depot/business--locations.jpg",
@@ -1890,7 +1900,7 @@
         "example": 1,
         "sha256": "d1d02a7fcaa87da44ce934b2e1f12a5299525cf58d7f4aa34f079f13b7e0025c",
         "bytes": 7757,
-        "capturedAt": "2026-09-21T11:57:16.189Z"
+        "capturedAt": "2026-09-21T18:55:25.260Z"
       },
       "core/account-teaser": {
         "src": "/block-thumbnails/depot/core--account-teaser.jpg",
@@ -2072,7 +2082,7 @@
         "example": 1,
         "sha256": "21e5bdc73bb6430dfcf446bae89f9c7125bfbd44fcd8298bae0de17c90378f93",
         "bytes": 9467,
-        "capturedAt": "2026-09-21T11:57:18.636Z"
+        "capturedAt": "2026-09-21T18:55:25.345Z"
       },
       "core/feature-grid": {
         "src": "/block-thumbnails/depot/core--feature-grid.jpg",
@@ -2093,7 +2103,7 @@
         "example": 1,
         "sha256": "41c5b89971fd54792d7333d2100569141803917184aacb290bcfd2d157a96622",
         "bytes": 28899,
-        "capturedAt": "2026-09-21T11:57:18.921Z"
+        "capturedAt": "2026-09-21T18:55:25.433Z"
       },
       "core/featured-page": {
         "src": "/block-thumbnails/depot/core--featured-page.jpg",
@@ -2471,7 +2481,7 @@
         "example": 1,
         "sha256": "a91058ba9c3a1edcfa908d32b651115368d84d66581c9cf38133885f82508971",
         "bytes": 4467,
-        "capturedAt": "2026-09-21T11:57:24.052Z"
+        "capturedAt": "2026-09-21T18:55:25.514Z"
       },
       "core/tag-cloud": {
         "src": "/block-thumbnails/depot/core--tag-cloud.jpg",
@@ -2692,8 +2702,9 @@
       "blocks/tabbed-content": {
         "src": "/block-thumbnails/journal/blocks--tabbed-content.jpg",
         "example": 1,
-        "sha256": "96811ded1695f0646a727c0917d6a946117aacdf2e17dbbfcec74ce0bee200f1",
-        "bytes": 6080
+        "sha256": "f1bc838c22b2ceae8845dd740a2ad5b408b3e08304bef3bb3130d26d9294cf9d",
+        "bytes": 6696,
+        "capturedAt": "2026-09-21T18:55:24.562Z"
       },
       "business/locations": {
         "src": "/block-thumbnails/journal/business--locations.jpg",
@@ -2818,8 +2829,9 @@
       "core/accordion": {
         "src": "/block-thumbnails/journal/core--accordion.jpg",
         "example": 1,
-        "sha256": "95a47613f342e6d749dd41fbc227f5bcab95b6c2c7efac9df4ba37e816f28bf1",
-        "bytes": 9301
+        "sha256": "4fc89654e8c610e6fcb4575130e5662889aeac6d3c3bfa40cffe748ad3c18993",
+        "bytes": 10092,
+        "capturedAt": "2026-09-21T18:55:24.646Z"
       },
       "core/account-teaser": {
         "src": "/block-thumbnails/journal/core--account-teaser.jpg",
@@ -2976,8 +2988,9 @@
       "core/faq": {
         "src": "/block-thumbnails/journal/core--faq.jpg",
         "example": 1,
-        "sha256": "8259a421a196db6d9927e13e2c456983f20498bf430f3c4c67da5420a015c074",
-        "bytes": 11703
+        "sha256": "50b5de2a1011112cbf388b021c4a92567ac1992f9e5152cfb51ad2f20b65486d",
+        "bytes": 12334,
+        "capturedAt": "2026-09-21T18:55:24.727Z"
       },
       "core/feature-grid": {
         "src": "/block-thumbnails/journal/core--feature-grid.jpg",
@@ -2994,8 +3007,9 @@
       "core/feature-tabs": {
         "src": "/block-thumbnails/journal/core--feature-tabs.jpg",
         "example": 1,
-        "sha256": "4850c2710b641ad30e24247ee0b5cded342e62bd528545144d76c237766f32ca",
-        "bytes": 28824
+        "sha256": "2d0206a15c827e37f71e5e2af79e7c970d4f3aef4e7d77c3649da70792eae893",
+        "bytes": 28817,
+        "capturedAt": "2026-09-21T18:55:24.829Z"
       },
       "core/featured-page": {
         "src": "/block-thumbnails/journal/core--featured-page.jpg",
@@ -3326,8 +3340,9 @@
       "core/tabs": {
         "src": "/block-thumbnails/journal/core--tabs.jpg",
         "example": 1,
-        "sha256": "bd5063ae5e981dd306753974388ff8837ab704a67c8c6d3153de27fb26d604f9",
-        "bytes": 4159
+        "sha256": "2b94bf86ab4e2ddee6110c4dd8e3993573089f1b9df958be534eea69f94da53d",
+        "bytes": 4932,
+        "capturedAt": "2026-09-21T18:55:24.927Z"
       },
       "core/tag-cloud": {
         "src": "/block-thumbnails/journal/core--tag-cloud.jpg",
