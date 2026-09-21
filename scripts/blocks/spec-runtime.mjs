@@ -1,0 +1,235 @@
+// Pure compiler shared by build tooling, browser and Convex. No code evaluation.
+import { createRichTextSchema, dateSchema, safeLinkSchema, formattedTextSchema, constrainObject } from "./field-runtime.mjs";
+const own = (value, key) => Object.prototype.hasOwnProperty.call(value, key);
+/** Validate untrusted definitions before recursive schemas or serialization can run. */
+export function copyBlockSpecJson(input) {
+  let nodes = 0, bytes = 0;
+  const ancestors = new Set(), encoder = new TextEncoder();
+  const charge = value => { bytes += encoder.encode(value).length; if (bytes > 128 * 1024) throw Error("Block spec exceeds 128 KiB"); };
+  function visit(value, depth) {
+    if (++nodes > 20000 || depth > 32) throw Error("Block spec exceeds JSON complexity limits");
+    if (value === null || typeof value === "boolean") { charge(String(value)); return value; }
+    if (typeof value === "string") { if (value.length > 128 * 1024) throw Error("Block spec exceeds 128 KiB"); charge(JSON.stringify(value)); return value; }
+    if (typeof value === "number" && Number.isFinite(value)) { charge(String(value)); return value; }
+    if (!value || typeof value !== "object" || ancestors.has(value)) throw Error("Block spec requires finite acyclic JSON");
+    const array = Array.isArray(value), prototype = Object.getPrototypeOf(value);
+    if ((!array && prototype !== Object.prototype && prototype !== null) || (array && prototype !== Array.prototype)) throw Error("Block spec requires plain JSON");
+    const keys = Reflect.ownKeys(value);
+    if (keys.length > 20000 || (array && value.length > 20000)) throw Error("Block spec exceeds JSON complexity limits");
+    if (array && keys.length !== value.length + 1) throw Error("Block spec requires dense arrays");
+    ancestors.add(value); charge("{}");
+    const result = array ? [] : {};
+    let entries = 0;
+    for (const key of keys) {
+      if (array && key === "length") continue;
+      if (typeof key !== "string" || ["__proto__", "prototype", "constructor"].includes(key)) throw Error("Unsafe block spec key");
+      if (array && (!/^(0|[1-9][0-9]*)$/.test(key) || Number(key) >= value.length)) throw Error("Block spec requires plain arrays");
+      const property = Object.getOwnPropertyDescriptor(value, key);
+      if (!property || !own(property, "value") || !property.enumerable) throw Error("Block spec requires plain JSON properties");
+      charge((entries++ ? "," : "") + (array ? "" : JSON.stringify(key) + ":"));
+      result[key] = visit(property.value, depth + 1);
+    }
+    ancestors.delete(value);
+    return result;
+  }
+  return visit(input, 0);
+}
+export function createBlockSpecCompiler(z) {
+  const id = z.string().regex(/^[a-zA-Z][a-zA-Z0-9_]*$/).max(80).refine(v => !["constructor", "prototype", "__proto__"].includes(v));
+  const common = { id, title: z.string().max(160).optional(), description: z.string().max(1000).optional(), required: z.boolean().optional(), nullable: z.boolean().optional(), default: z.json().optional() };
+  const size = z.number().int().min(0).max(100000);
+  const constraintSchema = z.discriminatedUnion("kind", [
+    z.object({ kind: z.literal("matrix"), headers: id, rows: id, rowField: id.optional(), headerOffset: z.number().int().min(0).max(1).optional() }).strict(),
+    z.object({ kind: z.literal("unique-by"), field: id, key: id }).strict(),
+    z.object({ kind: z.literal("ordered"), lower: id, upper: id }).strict(),
+    z.object({ kind: z.literal("non-overlap"), field: id, start: id, end: id }).strict(),
+    z.object({ kind: z.literal("at-most-one"), fields: z.array(id).min(2).max(10) }).strict(),
+  ]);
+  const constraints = z.array(constraintSchema).max(20).optional();
+  const variants = [
+    z.object({ ...common, type: z.literal("text"), min: size.optional(), max: size.optional(), format: z.enum(["timezone", "anchor", "resource-id"]).optional(), domId: z.literal(true).optional() }).strict(),
+    z.object({ ...common, type: z.literal("richtext"), max: size.optional(), inline: z.boolean().optional() }).strict(),
+    z.object({ ...common, type: z.literal("number"), integer: z.boolean().optional(), min: z.number().optional(), max: z.number().optional() }).strict(),
+    z.object({ ...common, type: z.literal("select"), options: z.array(z.union([z.string().min(1).max(100), z.number()])).min(1).max(100) }).strict(),
+    z.object({ ...common, type: z.literal("reference"), of: z.enum(["product", "productCategory", "productTag", "post", "page", "category", "course", "event", "eventCategory", "tag", "user", "bundle", "membershipPlan", "recipe", "album", "syncedBlock", "mailingList", "poll", "instructor", "kbCategory"]), storage: z.enum(["id", "slug"]).optional(), allowEmpty: z.boolean().optional(), max: size.optional() }).strict(),
+    z.object({ ...common, type: z.literal("media"), storage: z.literal("id").optional(), allowEmpty: z.boolean().optional(), max: size.optional() }).strict(),
+    z.object({ ...common, type: z.literal("link"), protocols: z.array(z.enum(["http", "https", "relative", "anchor", "mailto", "tel"])).min(1).max(6).optional(), storage: z.literal("href").optional(), allowEmpty: z.boolean().optional(), max: size.optional() }).strict(),
+    ...["boolean", "icon", "color-role", "date", "menu", "form"].map(type => z.object({ ...common, type: z.literal(type) }).strict()),
+    z.object({ ...common, type: z.literal("repeater"), constraints, min: z.number().int().min(0).max(1000).optional(), max: z.number().int().min(0).max(1000).optional(), fields: z.lazy(() => z.array(fieldSchema).min(1).max(100)).optional(), item: z.lazy(() => fieldSchema).optional() }).strict(),
+    z.object({ ...common, type: z.literal("object"), constraints, fields: z.lazy(() => z.array(fieldSchema).min(1).max(100)) }).strict(),
+  ];
+  const fieldSchema = z.discriminatedUnion("type", variants);
+  const fieldTypeNames = variants.map(variant => variant.shape.type.value);
+  const treatmentAxisSchema = z.discriminatedUnion("type", [
+    z.object({ id, title: z.string().min(1).max(160), type: z.literal("select"), options: z.array(z.string().regex(/^[a-z][a-zA-Z0-9-]*$/).max(80)).min(1).max(32), default: z.string() }).strict(),
+    z.object({ id, title: z.string().min(1).max(160), type: z.literal("number"), min: z.number().int().min(0).max(100), max: z.number().int().min(0).max(100), default: z.number().int() }).strict(),
+  ]);
+  const blockSpecSchema = z.object({
+    name: z.string().regex(/^[a-z][a-z0-9-]*\/[a-z][a-z0-9-]*$/).max(160),
+    title: z.string().min(1).max(160), description: z.string().min(1).max(2000),
+    category: z.enum(["text", "layout", "media", "openers", "marketing", "social", "commerce", "discovery", "forms", "plugin", "site"]),
+    role: z.enum(["hero", "opener", "content", "cta", "aside", "utility"]), version: z.number().int().min(1).max(1000000),
+    keywords: z.array(z.string().min(1).max(80)).max(50),
+    ai: z.object({ useFor: z.string().min(1).max(2000), avoid: z.string().max(2000) }).strict(),
+    fields: z.array(fieldSchema).max(100), constraints,
+    treatments: z.array(z.object({ name: id, title: z.string().min(1).max(160), axes: z.array(treatmentAxisSchema).min(1).max(8) }).strict()).max(8).optional(),
+    supports: z.object({ children: z.boolean(), styles: z.boolean(), layout: z.array(z.enum(["width", "tone", "spacing", "align"])).max(4), anchor: z.boolean(), visibility: z.boolean() }).strict(),
+    data: z.object({ resolver: z.string().regex(/^[a-z][a-zA-Z0-9]*(?:\.[a-z][a-zA-Z0-9]*)+$/).max(160), args: z.record(id, z.json()) }).strict().nullable(),
+    preview: z.string().max(500), examples: z.array(z.record(z.string(), z.json())).min(1).max(20),
+    requires: z.object({
+      plugins: z.array(z.string().regex(/^[a-z][a-zA-Z0-9-]*$/).max(80)).max(20),
+      capabilities: z.array(z.enum(["html.sanitize", "embed.sandbox", "embed.approvedScript", "feed.approvedProvider", "map.approvedProvider", "viewer.authorization", "form.submission", "contact.submission", "poll.submission", "tree.children", "locale.routing", "reference.targetResolution"])).max(20),
+    }).strict().optional(),
+    migration: z.object({
+      fromVersion: z.number().int().min(1), preserveLegacyRender: z.literal(true),
+      transforms: z.array(z.union([
+        z.object({ kind: z.enum(["empty-to-null", "pack-treatment"]), path: z.array(z.string().regex(/^(?:[a-zA-Z][a-zA-Z0-9_]*|\*)$/)).min(1).max(16) }).strict(),
+        z.object({ kind: z.literal("text-to-richtext"), path: z.array(z.string().regex(/^(?:[a-zA-Z][a-zA-Z0-9_]*|\*)$/)).min(1).max(16), mode: z.enum(["plain-prose", "markdown-prose", "plain-inline", "markdown-inline"]) }).strict(),
+      ])).max(100),
+    }).strict().optional(),
+  }).strict();
+
+  function runtimeField(field) {
+    let schema;
+    switch (field.type) {
+      case "text": schema = field.format ? formattedTextSchema(z, field.format) : z.string(); break;
+      case "number": schema = field.integer ? z.number().int() : z.number(); break;
+      case "boolean": schema = z.boolean(); break;
+      case "select": schema = field.options.length === 1 ? z.literal(field.options[0]) : z.union(field.options.map(value => z.literal(value))); break;
+      case "color-role": schema = z.enum(["primary", "accent", "muted"]); break;
+      case "icon": schema = z.string().max(100).regex(/^[a-z][a-z0-9-]*$/); break;
+      case "date": schema = dateSchema(z); break;
+      case "link": {
+        const href = safeLinkSchema(z, field.protocols);
+        if (field.storage === "href") {
+          schema = field.max === undefined ? href : href.max(field.max);
+          if (field.allowEmpty) schema = schema.or(z.literal(""));
+        } else schema = z.object({ label: z.string().max(160), href, newTab: z.boolean().optional() }).strict();
+        break;
+      }
+      case "media":
+        if (field.storage === "id") {
+          schema = field.allowEmpty ? z.string() : z.string().min(1);
+          if (field.max !== undefined) schema = schema.max(field.max);
+        } else schema = z.object({ id: z.string().min(1).max(256), alt: z.string().max(1000).optional(), focalPoint: z.object({ x: z.number().min(0).max(1), y: z.number().min(0).max(1) }).strict().optional() }).strict();
+        break;
+      case "reference":
+        schema = field.allowEmpty ? z.string() : z.string().min(1);
+        if (field.max !== undefined) schema = schema.max(field.max);
+        break;
+      case "menu": case "form": schema = z.string().min(1).max(256); break;
+      case "richtext": schema = createRichTextSchema(z, field.max ?? 100000, field.inline === true); break;
+      case "object": schema = attrsSchema(field.fields, field.constraints); break;
+      case "repeater": schema = z.array(field.item ? runtimeField(field.item) : attrsSchema(field.fields, field.constraints)); break;
+      default: throw Error(`Unknown field type ${field.type}`);
+    }
+    if (["text", "number", "repeater"].includes(field.type)) {
+      if (field.max !== undefined) schema = schema.max(field.max);
+      if (field.min !== undefined) schema = schema.min(field.min);
+    }
+    if (field.nullable) schema = schema.nullable();
+    if (own(field, "default")) schema = schema.prefault(field.default);
+    else if (!field.required) schema = schema.optional();
+    return schema;
+  }
+  function attrsSchema(fields, constraints) {
+    const schema = z.object(Object.fromEntries(fields.map(field => [field.id, runtimeField(field)]))).strict();
+    return constraints?.length ? constrainObject(schema, constraints) : schema;
+  }
+  function checkFieldTree(fields, depth = 0, budget = { count: 0 }) {
+    if (depth > 8) throw new Error("Field nesting exceeds depth 8");
+    const ids = new Set();
+    for (const field of fields) {
+      if (++budget.count > 500) throw new Error("Block exceeds 500 fields");
+      if (ids.has(field.id)) throw new Error(`Duplicate field ID ${field.id}`);
+      ids.add(field.id);
+      if (field.min !== undefined && field.max !== undefined && field.min > field.max) throw new Error(`Inverted bounds for ${field.id}`);
+      if (field.options && new Set(field.options).size !== field.options.length) throw new Error(`Duplicate options for ${field.id}`);
+      if (field.options && new Set(field.options.map(value => typeof value)).size !== 1) throw new Error(`Mixed select types for ${field.id}`);
+      if (field.type === "media" && field.storage !== "id" && (field.allowEmpty !== undefined || field.max !== undefined)) throw new Error("ID media options require storage=id");
+      if (field.type === "link" && field.storage !== "href" && (field.allowEmpty !== undefined || field.max !== undefined)) throw new Error("Href link options require storage=href");
+      if (field.type === "repeater" && Boolean(field.fields) === Boolean(field.item)) throw new Error("Repeater requires exactly one of fields or item");
+      if (field.item) {
+        if (field.item.required !== true || own(field.item, "default")) throw new Error("Scalar repeater item must be required without a default");
+        checkFieldTree([field.item], depth + 1, budget);
+      }
+      if (field.protocols && new Set(field.protocols).size !== field.protocols.length) throw new Error("Duplicate link protocols");
+      if (field.constraints && !field.fields) throw new Error("Object constraints require object fields");
+      if (field.fields) { checkFieldTree(field.fields, depth + 1, budget); checkConstraints(field.fields, field.constraints); }
+      if (own(field, "default")) attrsSchema([{ ...field, required: true }]).parse({ [field.id]: field.default });
+    }
+  }
+  function pathExists(fields, path) {
+    const [head, ...tail] = path;
+    const field = fields.find(field => field.id === head);
+    if (!field) return false;
+    if (!tail.length) return true;
+    if (tail.length === 1 && tail[0] === "length" && ["repeater", "text"].includes(field.type)) return true;
+    return field.type === "object" && pathExists(field.fields, tail);
+  }
+  function checkBindings(value, fields, depth = 0) {
+    if (depth > 8) throw new Error("Resolver args exceed depth 8");
+    if (typeof value === "string" && value.startsWith("attrs.")) {
+      if (!pathExists(fields, value.slice(6).split("."))) throw new Error(`Unknown attribute binding ${value}`);
+    } else if (value && typeof value === "object") for (const child of Object.values(value)) checkBindings(child, fields, depth + 1);
+  }
+  function parseBlockSpec(input) {
+    input = copyBlockSpecJson(input);
+    const spec = blockSpecSchema.parse(input);
+    if (spec.migration && spec.migration.fromVersion >= spec.version) throw new Error("Migration must advance the block version");
+    checkFieldTree(spec.fields);
+    if (new Set((spec.treatments ?? []).map(item => item.name)).size !== (spec.treatments ?? []).length) throw Error("Duplicate treatment name");
+    for (const treatment of spec.treatments ?? []) {
+      if (new Set(treatment.axes.map(axis => axis.id)).size !== treatment.axes.length) throw Error("Duplicate treatment axis");
+      for (const axis of treatment.axes) {
+        if (axis.type === "select" && (new Set(axis.options).size !== axis.options.length || !axis.options.includes(axis.default))) throw Error("Invalid treatment options/default");
+        if (axis.type === "number" && (axis.min > axis.max || axis.max - axis.min > 32 || axis.default < axis.min || axis.default > axis.max)) throw Error("Invalid bounded treatment range/default");
+      }
+    }
+    if (spec.requires && (new Set(spec.requires.plugins).size !== spec.requires.plugins.length || new Set(spec.requires.capabilities).size !== spec.requires.capabilities.length)) throw new Error("Duplicate block requirement");
+    if (new Set(spec.supports.layout).size !== spec.supports.layout.length) throw new Error("Duplicate layout support");
+    for (const match of spec.preview.matchAll(/\{([^{}]+)\}/g)) if (!pathExists(spec.fields, match[1].split("."))) throw new Error(`Unknown preview field ${match[1]}`);
+    if (/[{}]/.test(spec.preview.replace(/\{[^{}]+\}/g, ""))) throw new Error("Malformed preview template");
+    if (spec.data) checkBindings(spec.data.args, spec.fields);
+    checkConstraints(spec.fields, spec.constraints);
+    const schema = attrsSchema(spec.fields, spec.constraints);
+    for (const example of spec.examples) schema.parse(example);
+    return spec;
+  }
+
+  function checkConstraints(fields, constraints = []) {
+    const get = name => { const field = fields.find(item => item.id === name); if (!field) throw new Error(`Unknown constraint field ${name}`); return field; };
+    for (const rule of constraints) {
+      if (rule.kind === "at-most-one") { if (new Set(rule.fields).size !== rule.fields.length) throw new Error("Duplicate constraint field"); rule.fields.forEach(get); }
+      if (rule.kind === "ordered") { const low = get(rule.lower), high = get(rule.upper); if (!["number", "date"].includes(low.type) || high.type !== low.type) throw new Error("Ordered fields must share numeric or date type"); }
+      if (rule.kind === "matrix") {
+        const rows = get(rule.rows);
+        const cells = rule.rowField ? rows.fields?.find(field => field.id === rule.rowField) : rows.item;
+        if (get(rule.headers).type !== "repeater" || rows.type !== "repeater" || cells?.type !== "repeater") throw new Error("Matrix requires headers and row arrays or a declared row array field");
+      }
+      if (["unique-by", "non-overlap"].includes(rule.kind)) {
+        const field = get(rule.field); if (field.type !== "repeater" || !field.fields) throw new Error("Row constraint requires object repeater");
+        const keys = rule.kind === "unique-by" ? [rule.key] : [rule.start, rule.end];
+        for (const key of keys) if (!field.fields.some(item => item.id === key && (rule.kind !== "non-overlap" || item.type === "number"))) throw new Error(`Invalid row constraint field ${key}`);
+      }
+    }
+  }
+  return { fieldSchema, fieldTypeNames, treatmentAxisSchema, blockSpecSchema, attrsSchema, parseBlockSpec };
+}
+
+export function dependencyFields(fields, parent = []) {
+  return fields.flatMap(field => {
+    const fieldPath = [...parent, field.id];
+    if (["media", "reference", "menu", "form"].includes(field.type)) return [{ path: fieldPath, type: field.type, ...(field.of ? { of: field.of } : {}), ...(field.storage ? { storage: field.storage } : {}), ...(field.allowEmpty ? { allowEmpty: true } : {}), valuePath: field.type === "media" && field.storage !== "id" ? ["id"] : [] }];
+    if (field.item) return dependencyFields([{ ...field.item, id: "*" }], fieldPath);
+    return field.fields ? dependencyFields(field.fields, field.type === "repeater" ? [...fieldPath, "*"] : fieldPath) : [];
+  });
+}
+export function anchorFields(fields, parent = []) {
+  return fields.flatMap(field => {
+    const fieldPath = [...parent, field.id];
+    if (field.domId) return [{ path: fieldPath }];
+    if (field.item) return anchorFields([{ ...field.item, id: "*" }], fieldPath);
+    return field.fields ? anchorFields(field.fields, field.type === "repeater" ? [...fieldPath, "*"] : fieldPath) : [];
+  });
+}

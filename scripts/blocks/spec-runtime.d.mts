@@ -1,0 +1,59 @@
+import type { z } from "zod";
+export type SpecJson = null | boolean | number | string | SpecJson[] | { [key: string]: SpecJson };
+type CommonField = { id: string; title?: string; description?: string; required?: boolean; nullable?: boolean; default?: SpecJson };
+export type FieldConstraint =
+  | { kind: "matrix"; headers: string; rows: string; rowField?: string; headerOffset?: number }
+  | { kind: "unique-by"; field: string; key: string }
+  | { kind: "ordered"; lower: string; upper: string }
+  | { kind: "non-overlap"; field: string; start: string; end: string }
+  | { kind: "at-most-one"; fields: string[] };
+export type ReferenceKind = "product" | "productCategory" | "productTag" | "post" | "page" | "category" | "course" | "event" | "eventCategory" | "tag" | "user" | "bundle" | "membershipPlan" | "recipe" | "album" | "syncedBlock" | "mailingList" | "poll" | "instructor" | "kbCategory";
+export type BlockField = CommonField & (
+  | { type: "text"; min?: number; max?: number; format?: "timezone" | "anchor" | "resource-id"; domId?: true }
+  | { type: "richtext"; max?: number; inline?: boolean }
+  | { type: "number"; integer?: boolean; min?: number; max?: number }
+  | { type: "select"; options: (string | number)[] }
+  | { type: "reference"; of: ReferenceKind; storage?: "id" | "slug"; allowEmpty?: boolean; max?: number }
+  | { type: "media"; storage?: "id"; allowEmpty?: boolean; max?: number }
+  | { type: "link"; protocols?: ("http" | "https" | "relative" | "anchor" | "mailto" | "tel")[]; storage?: "href"; allowEmpty?: boolean; max?: number }
+  | { type: "boolean" | "icon" | "color-role" | "date" | "menu" | "form" }
+  | { type: "repeater"; constraints?: FieldConstraint[]; min?: number; max?: number; fields?: BlockField[]; item?: BlockField }
+  | { type: "object"; constraints?: FieldConstraint[]; fields: BlockField[] }
+);
+export type TreatmentAxis = { id: string; title: string } & (
+  | { type: "select"; options: string[]; default: string }
+  | { type: "number"; min: number; max: number; default: number }
+);
+export type BlockSpec = {
+  name: string; title: string; description: string;
+  category: "text" | "layout" | "media" | "openers" | "marketing" | "social" | "commerce" | "discovery" | "forms" | "plugin" | "site";
+  role: "hero" | "opener" | "content" | "cta" | "aside" | "utility";
+  version: number; keywords: string[]; ai: { useFor: string; avoid: string };
+  fields: BlockField[]; constraints?: FieldConstraint[];
+  treatments?: { name: string; title: string; axes: TreatmentAxis[] }[];
+  supports: { children: boolean; styles: boolean; layout: ("width" | "tone" | "spacing" | "align")[]; anchor: boolean; visibility: boolean };
+  data: { resolver: string; args: Record<string, SpecJson> } | null;
+  preview: string; examples: Record<string, SpecJson>[];
+  requires?: { plugins: string[]; capabilities: ("html.sanitize" | "embed.sandbox" | "embed.approvedScript" | "feed.approvedProvider" | "map.approvedProvider" | "viewer.authorization" | "form.submission" | "contact.submission" | "poll.submission" | "tree.children" | "locale.routing" | "reference.targetResolution")[] };
+  migration?: { fromVersion: number; preserveLegacyRender: true; transforms: (
+    | { kind: "empty-to-null" | "pack-treatment"; path: string[] }
+    | { kind: "text-to-richtext"; path: string[]; mode: "plain-prose" | "markdown-prose" | "plain-inline" | "markdown-inline" }
+  )[] };
+};
+export function copyBlockSpecJson(input: unknown): SpecJson;
+export function createBlockSpecCompiler(zod: typeof z): {
+  fieldSchema: z.ZodType<BlockField>;
+  fieldTypeNames: BlockField["type"][];
+  treatmentAxisSchema: z.ZodType<TreatmentAxis>;
+  blockSpecSchema: z.ZodType<BlockSpec>;
+  /** Fields must come from parseBlockSpec; low-level compilation assumes a checked spec. */
+  attrsSchema(fields: BlockField[], constraints?: FieldConstraint[]): z.ZodType<Record<string, unknown>>;
+  parseBlockSpec(input: unknown): BlockSpec;
+};
+
+export interface FieldDependency {
+  path: string[]; type: "media" | "reference" | "menu" | "form";
+  of?: ReferenceKind; storage?: "id" | "slug"; allowEmpty?: boolean; valuePath: string[];
+}
+export function dependencyFields(fields: readonly BlockField[], parent?: string[]): FieldDependency[];
+export function anchorFields(fields: readonly BlockField[], parent?: string[]): { path: string[] }[];
