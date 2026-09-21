@@ -1,0 +1,19 @@
+# Local canonical authoring preview
+
+BlockDemo's canonical block study now has a collapsed **Try local field edits** section. Opening it lazily loads the existing Admin `SchemaBlockForm`, using the same generated field definitions and validators. The form's explicit preview mode has no submit button and accepts no commit callback. Valid draft notifications render through the existing Website `RenderExample`, canonical renderer registry and active pack primitives. Invalid fields remain editable while the last valid preview stays visible with a warning.
+
+The new adapter has no Convex client, persistence, browser storage, mutation or resource picker. Scope uses explicit synthetic `block-demo-local / sample-a` or `sample-b` identities. Switching synthetic scope, changing the selected specimen, resetting, closing the panel or reloading discards the draft. Existing reference values are preserved; unavailable resource picking and child-outline editing are disclosed. Canonical field metadata and runtime requirements are inspectable. Unsupported renderers/policies still use the existing error boundary.
+
+The staged form imports only React and pure generated/model code. Existing BlockDemo Vite aliases/dedupe select Website's pinned React, ReactDOM and Zod for both apps' source. The production build succeeded with a separate authoring-preview chunk of approximately 91KB (14KB gzip); no Admin shell/provider import or second control implementation was introduced. Rich text retains the canonical document and inline marks through the existing controls; this is not yet a full visual page editor, undo/redo history, child outline or production save integration.
+
+Actual DOM acceptance covers canonical CTA heading edits through the real renderer, unsafe URL rejection, preserving the previous safe rendered link, correction, lack of a submit action, synthetic scope reset, manual reset, specimen replacement and unchanged source attributes. Tests execute against one pinned Website React runtime with network calls forbidden. Both new DOM cases passed; the existing four schema-form DOM cases still pass. Admin isolated editor TypeScript passed. The final Website/BlockDemo TypeScript check also passed after the shared pending renderer was corrected. Generated drift/catalog checks and scoped whitespace checks passed. No browser/live acceptance was performed by this agent.
+
+The gallery's second specimen now binds distinct existing local generated Aster mug, field-notebook and retreat images, with descriptions checked against the actual images. They remain synthetic demo references. The comparison slider retains the same workshop image on both sides and its explicit caveat. No customer or remote media was read, copied or attached.
+
+
+Root browser acceptance subsequently verified live heading and bold markup, unsafe URL refusal retaining the prior safe URL, correction, environment/manual resets, zero page errors and no overflow at390px. Evidence: output/block-demo/authoring-preview-acceptance.json and companion desktop/mobile images. Root owns subsequent visual CSS polish.
+
+
+## Root rendered acceptance
+
+Actual Chromium browser checks passed text edits, bold mark rendering, unsafe URL refusal retaining /signup, correction to /start, environment reset and explicit reset. Zero page errors, no390px overflow. Root then supplied scoped demo form styles because Admin Tailwind utilities are intentionally absent from this bundle: hidden labels retain accessibility, duplicate visible labels disappear, desktop fields scroll while the pack preview retains its own styles; mobile uses natural flow. Post-polish editing and layout checks pass. See output/block-demo/authoring-preview-acceptance.json, authoring-preview-polish-acceptance.json and authoring-preview-*-polished.png. This is a functional/rendered local preview checkpoint, not a completed persisted editor.

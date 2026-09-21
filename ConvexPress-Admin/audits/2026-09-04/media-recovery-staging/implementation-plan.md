@@ -1,0 +1,9 @@
+# Approved implementation sequence
+
+Root released the deployment hold after membership staging and production verification. Implementation and tests now live in the canonical contentPromotion modules; temporary TypeScript scaffolds were removed.
+
+1. Target immutable grants indexed by recovery key: original creator, authenticated beneficiary, exact intent and verified storage identity, new review fingerprint, bounded reason and immutable grant digest. Target inspection remains privileged and exact-key only. Target completion resolves storage from the grant; it cannot select a replacement ID. Record grant and completion audit events atomically.
+2. Controller durable recovery receipts indexed by own review and transfer key. Prepare only after fresh source re-export and target inspection. Public controller inputs never accept storage IDs or URLs: known IDs come solely from the durable controller transfer row or exact target intent. The normal target grant API still validates actual target storage bytes against the original intent when receiving that internally resolved ID; it does not trust a hash claim as storage evidence.
+3. Explicit confirmation claims the existing global transfer lease and preserves creator, original reviewed bytes and dispatch count. Target grant acknowledgement and completion are retried by exact immutable recovery identity. No branch calls upload or requests an upload URL.
+4. Controller grant activates only after verified target acknowledgement, then permits bounded status/new review for that beneficiary and review. Normal transfer dispatch stays creator-only. Unknown ID without target verification remains refused; only known-ID or verified-byte states qualify.
+5. Real target/controller handler tests before activation, then integrated action transports with lost acknowledgements, current permission checks, scope changes, concurrency and zero upload/Apply assertions. Parent deploys and native remains inactive.

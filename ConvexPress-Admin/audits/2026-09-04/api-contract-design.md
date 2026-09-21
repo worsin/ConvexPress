@@ -1,0 +1,12 @@
+# D01 compact consumer API contracts — implementation design
+
+The backend generated fullApi imports every handler module, which previously exhausted TypeScript's instantiation depth in the frontends. The consumer boundary will be generated offline using the installed TypeScript compiler against the backend's own tsconfig. It will inspect exported registered queries/mutations/actions, resolve arguments and return types once, and write terminal structural FunctionReference declarations. Consumer declarations must not import backend implementation modules or use ApiFromModules/FilterApi, so frontend checking cannot expand the backend graph.
+
+Preserve existing import paths and runtime anyApi proxies. Admin's explicit declaration mapping stays; Website's generated/api.d.ts receives the same compact contract. The proxy is a runtime function-reference mechanism, not a consumer type exemption. Separate public and internal trees by the handler's registered visibility.
+
+Generation is deterministic, supports --check, and fails on unresolved function signatures. Compiler-level regression fixtures prove valid arguments/DTOs compile and wrong fields/argument types/visibility fail. Guardrails require typed compact exports and freshness rather than requiring any. Existing v.any return boundaries and already-untyped helper results will be inventoried explicitly; source handler inference and validators will be followed before choosing an honest representation. No live provider or schema changes are needed by contract generation.
+
+
+The generator reads validator argument types before handler inference, so a legacy `handler(ctx: any, args: any)` cannot erase a declared `v.id`, enum, required field, or pagination argument. It preserves explicit return validators and otherwise materializes awaited handler return types. Generation uses a temporary in-memory bootstrap for the backend's recursive API dependency, then repeats against its own terminal contracts until the output stabilizes. That bootstrap is never emitted or used by application typechecks. Undeclared or legacy any payloads become unknown and are listed in the inventory.
+
+Run `bun run codegen:site-contracts` in Admin after changing handlers, arguments, return projections, schemas, or backend API exports. Run `bun run check:site-contracts` in CI alongside frontend and backend typechecks. Backend Convex runtime code generation remains separate; these declarations preserve the existing runtime proxies and import paths.

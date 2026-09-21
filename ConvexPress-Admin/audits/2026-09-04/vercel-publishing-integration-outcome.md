@@ -1,0 +1,26 @@
+# Vercel publishing integration — source checkpoint, September 5
+
+The native website publishing panel now offers Vercel alongside Cloudflare. Vercel uses a dedicated project per website environment, an integrity-checked generic Node SSR resource, desktop-only file uploads, and control-plane-owned project/deployment creation. The staging database remains independent from production. This source is not yet deployed to the control plane or accepted through the real native Vercel flow.
+
+## Implemented
+
+- Durable target and release records save account, project ownership marker, site/database/instance bindings, artifact digest and operator before provider writes. Only internal actions claim non-idempotent dispatches. Unknown project/deployment writes remain fenced across interruption, cancellation and lease takeover; missing provider readback never authorizes reissue.
+- Creation-time public project markers prevent adoption of an unrelated same-name project. Exact provider project/account/metadata bindings are checked before recording receipts. Fresh releases do not scan all deployment history; uncertain receipts use the bounded reconciler. Unused targets can be safely retired and corrected while their audit history remains. Before deployment dispatch, corrected settings can create a new release without releasing an unknown project write fence.
+- Both public SSR routes must return exact release, artifact and instance identity. The provider deployment must still be READY, own the assigned registered alias, and have a verified project domain after probing. Custom-domain requests resolve only public addresses and pin that lookup into the actual Node HTTPS connection while retaining TLS hostname verification. They forward no credentials, follow no redirects and cannot retry against a second DNS answer.
+- Lost completion responses read the known release receipt. Explicit resume requests return the already-committed success; they cannot silently allocate a new release. A separate explicit publish remains a new operation.
+- Desktop verifies every file's SHA1, SHA256, size, safe relative path and required SSR files; rejects symlinks/unlisted files; and ignores the manifest's original filesystem path. Packaging runs the same loader on freshly built output, copies checked bytes into the dedicated resource and verifies the copy. Installer configuration includes and verifies the Vercel resource.
+
+## Verification
+
+- Full control-plane suite: **337 tests / 1,913 assertions**, all passed (`/tmp/convexpress-vercel-control-plane-tests.log`). Includes actual Convex handler contention, scope/revoke, dispatch/recovery, safe retarget, completed retry and provider-service tests, plus DNS/socket policy checks.
+- Desktop artifact/upload/IPC suite: **9 tests / 40 Bun assertions**, plus isolated Node assertions inside IPC processes; all passed. Both development and packaged IPC select the Vercel artifact and preserve resume identity. Upload tests cover content-addressed deduplication, cancelled runs, reconciliation and lost completion acknowledgements.
+- Website Node runtime/packager suite: **7 passed**. Covers HTTP streaming, cookies, HEAD, error redaction, bound runtime receipts, malformed/changed bindings and packaging.
+- Control-plane, Admin and Electron TypeScript checks passed; Electron main/preload build passed. CP bindings regenerated at121 modules /2 components. The media owner separately verified the new site schemas/contracts; no live rollout occurred here.
+- Prepared Vercel resource:142 files,9,824,883bytes; digest `1a1b7c00c0a8222f7b4908cf779a0ba6569df36d07ecbf4e147e5437db3310cc`. The exact packaged Node function ran locally against the real Aster staging Convex database. Home and neutral private-preview routes returned200; retained draft and missing-page routes returned404. All responses carried the correct immutable identity; homepage contained Aster House. Durable receipt: worktree-root `output/aster-house/vercel-runtime/node-ssr-receipt.json`. This is configured local SSR proof, not a Vercel deployment or browser acceptance.
+- The DNS-pinned transport ran under actual Node against the real staging Cloudflare homepage:200,48,679bytes, correct staging instance header and Aster House content. No provider writes were made by that read.
+
+## Still open
+
+Live native Vercel publication, failure/restart recovery against the actual provider, project-marker API readback and final domain acceptance remain unproven. A protected read through the actual Electron operator session found active Convex and Cloudflare accounts for Aster, but no Vercel account; the local Vercel CLI is absent. Account readback is recorded without credentials at `output/aster-house/vercel-runtime/hosting-account-readback.json`.
+
+Custom-domain attachment/verification-record setup is not yet connected to the native publishing form: the current final gate waits for an already attached and verified domain. Complete that product path before claiming account-to-domain one-click acceptance. Broader public self-hosted database hosting and retained-artifact recovery across desktop upgrades also remain separate acceptance/design work. No production Worker was changed, and no commits, pushes or checkout integration were performed.

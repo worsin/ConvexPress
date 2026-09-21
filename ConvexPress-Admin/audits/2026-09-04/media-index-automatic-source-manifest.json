@@ -1,0 +1,97 @@
+{
+  "scope": "Automatic media index source gate; no live changes",
+  "files": [
+    {
+      "path": "packages/site-contract/src/media-index-epoch.ts",
+      "sha256": "b888af9354835122b6d7a8a71f827e18c0d828bf373f816b28e9a15fbe6a2a24"
+    },
+    {
+      "path": "packages/site-contract/package.json",
+      "sha256": "74b9bd0ba9dd34222fd55c9a8a185849787ecbdeab5cbbe827613457f782b3be"
+    },
+    {
+      "path": "packages/runtime-clients/src/media-index-maintenance.ts",
+      "sha256": "3dbf8f24e5811ef512fef9a641b4e0ec3e9348d123effc8b0761a570ac1776d1"
+    },
+    {
+      "path": "packages/runtime-clients/package.json",
+      "sha256": "127137e913d7874c651221d2f33ad76e086ab58e808c4044b2786ff483a0085f"
+    },
+    {
+      "path": "packages/backend/convex/schema/media.ts",
+      "sha256": "eaaf686757e85d951db91b8cfc8d86e178826fcea6616589afe9374e6443eb6a"
+    },
+    {
+      "path": "packages/backend/convex/media/epochAuthority.ts",
+      "sha256": "1e592e4286504dc029549163d4786da233dea04951f90514071c6b3fb5ea98b3"
+    },
+    {
+      "path": "packages/backend/convex/media/reverseIndex.ts",
+      "sha256": "2a74a3f84ccb0d0eedcc69130bcaa7527bfc589161fb58c5eaaa543c244d63f0"
+    },
+    {
+      "path": "packages/backend/convex/media/reverseBackfill.ts",
+      "sha256": "5f5b51fcbf9193c659fb14a0b70cf16383a3269139015ff0b9b68807a6e962f6"
+    },
+    {
+      "path": "packages/backend/convex/media/writerCoverage.generated.ts",
+      "sha256": "adf0321a092c5d5b8fd3052299bc4c31e5c2390cb6dd5a8d3efc4715abbd6d08"
+    },
+    {
+      "path": "packages/backend/convex/_generated/api.d.ts",
+      "sha256": "c527127d89664ffd88d6cab12b6f914bea429edf876dafac7513d0c98555dd67"
+    },
+    {
+      "path": "packages/backend/convex/_generated/api.js",
+      "sha256": "aee7d315a8b05bbb068da6a36b0e8c1269c6dbfdc26d239d16aabc988ac4d7ee"
+    },
+    {
+      "path": "packages/control-plane/convex/siteBroker/mediaIndex.ts",
+      "sha256": "b51e76ed41238bc0656f93310e6670bf7e6125c76367bb3f66441851c003a9ed"
+    },
+    {
+      "path": "packages/control-plane/convex/operations/snapshotImportApi.ts",
+      "sha256": "dfafca0abea76195c2c5f587451b327f094bbed7d66df8e6da57abc1c69ea3be"
+    },
+    {
+      "path": "packages/control-plane/convex/operations/actions.ts",
+      "sha256": "bd481ad3671b247de33c76cf262feaf52cab989570ce084c6bda9b818562242a"
+    },
+    {
+      "path": "packages/control-plane/convex/operations/snapshotRestoreArchive.ts",
+      "sha256": "a878e6ddc01943d55da2a8527d3af2ab0e5f9c6505cb4802510fa694f69c0e19"
+    },
+    {
+      "path": "packages/desktop/electron/deployment/mediaIndex.ts",
+      "sha256": "2ab8ddfa047b5491e435fb1006d22850bd9387d3d28701c59c4bcaa127b50d6f"
+    },
+    {
+      "path": "packages/desktop/electron/deployment/journal.ts",
+      "sha256": "5b3fa305796eb35312f3224e9b83cf97ee3fd644cab9f13433d5f04e648ebd6c"
+    },
+    {
+      "path": "packages/desktop/electron/ipc/setup.ts",
+      "sha256": "13a6053023b0ae85f2026253de064a689b5e097e1956cb72454cacac37e97ae7"
+    },
+    {
+      "path": "packages/desktop/electron/ipc/siteDeploy.ts",
+      "sha256": "4aa150e32091e17cfecd882c1fc1f3d272b358b2b4d00713fc64abdc1ae8eead"
+    },
+    {
+      "path": "apps/web/src/components/media/MediaIndexAutoMaintenance.tsx",
+      "sha256": "031f8a04792cb55e83d1ff5d1d922d2251ab6fc2ce7d934f908d86003f218668"
+    },
+    {
+      "path": "apps/web/src/components/media/MediaIndexAutoRunner.tsx",
+      "sha256": "d09e26e82bd718f48725f3dd3ec9d9a1972b434ce7fed390fdcf07f9b34159cf"
+    },
+    {
+      "path": "apps/web/src/routes/_authenticated/_admin.tsx",
+      "sha256": "c557469af50e0d81d95da56d59cb9a292a4c2e4ff9ffd56b93d85513425a9964"
+    },
+    {
+      "path": "packages/control-plane/convex/operations/remoteSnapshotArchive.ts",
+      "sha256": "ae0d4b9bc90a052d57c219b6c71aa8915d9d706a1808200e7bc430ec5a45444f"
+    }
+  ]
+}

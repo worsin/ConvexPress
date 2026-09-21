@@ -1,0 +1,122 @@
+{
+  "snapshot": "/Users/worsin/.codex/worktrees/convexpress-hardening/ConvexPress-Admin/output/backend-checkpoints/canonical-publication-20260905",
+  "recordedFileCount": 978,
+  "snapshotManifestMismatches": [],
+  "currentSourceDifferences": [
+    "canonical-blocks-foundation/documentContracts.ts",
+    "canonical-blocks-foundation/documentState.ts",
+    "convex/canonicalDocuments/__tests__/documents.test.ts",
+    "convex/canonicalDocuments/foundation/documentContracts.ts",
+    "convex/canonicalDocuments/foundation/documentState.ts",
+    "convex/canonicalDocuments/foundation/manifest.json",
+    "convex/canonicalDocuments/service.ts",
+    "convex/canonicalDocuments/validators.ts",
+    "convex/canonicalDocuments.ts",
+    "convex/helpers/__tests__/authoring-version-fence.test.ts",
+    "convex/helpers/authoringVersionFence.ts",
+    "convex/helpers/pageRouteGuard.ts",
+    "convex/helpers/slug.ts",
+    "convex/membership/policyCopy.ts",
+    "convex/posts/mutations.ts",
+    "convex/posts/validators.ts"
+  ],
+  "mediaFiles": {
+    "convex/schema/media.ts": {
+      "sha256": "afec5feab820616f0bbc00fae79322a3333ba196c70c7098eb96fd38bf60ea4e",
+      "recordedMatch": true,
+      "currentSourceMatch": true
+    },
+    "convex/schema.ts": {
+      "sha256": "f41f3a28b1fe20a25cb7075f2ecf5cb67c52ecd3c439af6a1d28d70c04e78320",
+      "recordedMatch": true,
+      "currentSourceMatch": true
+    },
+    "convex/media/attachmentGuard.ts": {
+      "sha256": "bb9f8122c415e8f1f87c4c9816ed38a2c6d27a5af1d1ed38642e07eebe6ae4f6",
+      "recordedMatch": true,
+      "currentSourceMatch": true
+    },
+    "convex/media/reverseIndex.ts": {
+      "sha256": "91f4702434f8676b7c7afd858cfc801fa4f2d889744df2648c2164d22442db83",
+      "recordedMatch": true,
+      "currentSourceMatch": true
+    },
+    "convex/media/reverseBackfill.ts": {
+      "sha256": "2582a1cf951c62fb3f71ae882cfc39aede0a39732f46d00eee194b2b7bd68184",
+      "recordedMatch": true,
+      "currentSourceMatch": true
+    },
+    "convex/media/reverseIndexVersion.ts": {
+      "sha256": "d15a568d6e8ac3fb8c3b9fe80f29255a323857740730690543461d5a9a9847d1",
+      "recordedMatch": true,
+      "currentSourceMatch": true
+    },
+    "convex/media/writerCoverage.generated.ts": {
+      "sha256": "f887fe2510ed4a40cc9abb6086c778f4ba0e758a465bf154efd2eb2dc0224409",
+      "recordedMatch": true,
+      "currentSourceMatch": true
+    },
+    "convex/media/referenceInventory.generated.ts": {
+      "sha256": "8ee54df0a17619386675c093d7b24609c66489a81fa5247bb887c13a969b0430",
+      "recordedMatch": true,
+      "currentSourceMatch": true
+    },
+    "convex/media/referenceScan.ts": {
+      "sha256": "a056627eda9a1a8c920b0b3416abadde1ef9b94689e0536bfad893f1049c2b6c",
+      "recordedMatch": true,
+      "currentSourceMatch": true
+    },
+    "convex/media/referenceReads.ts": {
+      "sha256": "b7646e3329b90262f1c8ded26167a4fd9631810e47835840cebc7a61647c84d6",
+      "recordedMatch": true,
+      "currentSourceMatch": true
+    },
+    "convex/media/references.ts": {
+      "sha256": "9a28df3af1ed41d3fd1ad1d58326245656178eaa26f9865bab7dafd353351f64",
+      "recordedMatch": true,
+      "currentSourceMatch": true
+    },
+    "convex/media/deletion.ts": {
+      "sha256": "8f96cc809ef1f2de9691ba05e87f029375f6c85052e1de24904cbbe90b7d3536",
+      "recordedMatch": true,
+      "currentSourceMatch": true
+    },
+    "convex/_devPurge.ts": {
+      "sha256": "bac82364cdccaa6a91e52a6e1675091c4f6e335ba891ae2a8896560a39d7eccc",
+      "recordedMatch": true,
+      "currentSourceMatch": true
+    },
+    "convex/contentPromotion/shared.ts": {
+      "sha256": "1627e6298b11a5b5a6c9173dfc41442d17322b20ee3bc02edc419a7c1ae56a17",
+      "recordedMatch": true,
+      "currentSourceMatch": true
+    },
+    "convex/contentPromotion/operations.ts": {
+      "sha256": "a7ac6cbb0cd45b52ad727a0927fbecd5c627cc5d34c1792da7416e44319b1b96",
+      "recordedMatch": true,
+      "currentSourceMatch": true
+    },
+    "scripts/media-writer-coverage.mjs": {
+      "sha256": "6c75042a800fcdc16df2ea456443589ffe554e2a4cfb3c7f6860661b0c204298",
+      "recordedMatch": true,
+      "currentSourceMatch": true
+    },
+    "scripts/generate-media-writer-coverage.mjs": {
+      "sha256": "d2f580cfcd4310481c739c98a22bb0edf6f7dae2f793a1c4cc72cabb3b5cbd02",
+      "recordedMatch": true,
+      "currentSourceMatch": true
+    },
+    "scripts/check-media-schema.mjs": {
+      "sha256": "1435cc8bf0a793926a95c2bfed43a3bb46341a82e926bab424c142cd80c34a77",
+      "recordedMatch": true,
+      "currentSourceMatch": true
+    }
+  },
+  "readOnlyCoverageRecalculation": {
+    "writes": 1255,
+    "owners": 26,
+    "violations": 0,
+    "version": "media-edges-13307be7aa0ff27f592d2a7b"
+  },
+  "liveActionsPerformed": false
+}

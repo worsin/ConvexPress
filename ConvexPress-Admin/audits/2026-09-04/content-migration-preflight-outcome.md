@@ -1,0 +1,11 @@
+# Stored content migration preflight
+
+Root captured eight real Aster authored records through authenticated page/post queries and added a deterministic, read-only record migration preflight. It retains the complete captured source revision and a source hash. Proposed candidates never delete legacy fields or write application data. The source identity/revision guard is a reusable function; it is not yet an atomic backend migration endpoint.
+
+The capture exposed a rendering-precedence case: three posts store `contentMode: blocks` but have no block array, so the existing Website renders their legacy TipTap document. Following the mode flag alone would lose their visible text. The planner follows the actual page/post fallback behavior, preserves supported structured paragraphs/marks/links/line breaks, and explicitly refuses hidden page text, unsupported document nodes, HTML, unknown blocks, invalid identities, unsafe links and unsupported child conversions.
+
+Five of eight records produce rich-text candidates. Three existing block pages require verified Aster pack treatments. The homepage reports both its field-guide typography/internal-gap mapping and its product-showcase column mapping in the same review; it does not expose a partial candidate. Those treatment proposals still require actual old/new render comparison. Nested conversion failures currently report the failing branch; this is not a complete arbitrary-document converter.
+
+The fresh capture includes the Materials and care draft with a bold mark, and exact readback proves its entire structured document survives in the candidate. Other captured articles contain plain paragraphs; this live result does not prove all rich-text styles. Separate tests cover marked content, hard breaks, safe links, preservation, deterministic IDs, revision/environment conflicts, duplicate block IDs and explicit refusal. The root record-preflight suite passes 3 tests/27 assertions.
+
+Files: `scripts/blocks/content-migration.mjs`, `content-migration.test.ts`, `preflight-content.ts`; evidence `output/aster-house/block-migration/{live-content-input,preflight-report}.json`. Runtime activation and legacy field removal remain prohibited until complete conversion, atomic source revision checks, retained recovery revisions and render acceptance are implemented.
