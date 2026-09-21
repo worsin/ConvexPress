@@ -1,5 +1,5 @@
 import { expect, mock, test } from "bun:test";
-import { act, StrictMode, useEffect } from "react";
+import { act, StrictMode, useEffect, useState } from "react";
 import { JSDOM } from "jsdom";
 
 const customer = { isLoaded: true, isSignedIn: true, userId: "customer", sessionId: "customer-session", orgId: null };
@@ -8,8 +8,21 @@ mock.module("./clerk", () => ({ useAuth: () => customer }));
 mock.module("convex/react-clerk", () => ({ ConvexProviderWithClerk: ({ children, useAuth }) => <div data-customer={useAuth().sessionId}>{children}</div> }));
 mock.module("convex/react", () => ({ ConvexProviderWithAuth: ({ children, useAuth }) => { lastOperatorAuth = useAuth(); return <div data-operator="true">{children}</div>; } }));
 const { SessionBoundConvexProvider } = await import("./SessionBoundConvexProvider");
-const { WebsiteOperatorNotice } = await import("./WebsiteOperatorContext");
-function Child() { useEffect(() => { childMounts++; }, []); return <WebsiteOperatorNotice />; }
+const { WebsiteOperatorNotice, useWebsiteOperator } = await import("./WebsiteOperatorContext");
+const { useOperatorDraftRecovery } = await import("./OperatorDraftContext");
+let editorOwner = "one:staging:alice", showEditor = false, editDraft;
+const recoveredDraft = { packId: "journal", base: { values: {}, variants: {} }, revision: "original-publication", draftRevision: "original-private", history: { past: [{ values: {}, variants: {} }], present: { values: { colors: { primary: "#123456" } }, variants: {} }, future: [] } };
+function Editor() {
+  const recovery = useOperatorDraftRecovery();
+  const [draft, setDraft] = useState(() => recovery?.read(editorOwner));
+  editDraft = () => { recovery.write(editorOwner, recoveredDraft); setDraft(recoveredDraft); };
+  return <div data-editor>{draft?.history.present.values.colors.primary ?? "unchanged"}</div>;
+}
+function Child() {
+  const operator = useWebsiteOperator();
+  useEffect(() => { childMounts++; }, []);
+  return <><WebsiteOperatorNotice />{showEditor && operator.active && <Editor />}</>;
+}
 
 async function environment(run) {
   const dom = new JSDOM("<div id='root'></div>", { url: `https://site.example/?customize=1#cp-customize=${"ab".repeat(32)}` });
@@ -24,7 +37,7 @@ async function environment(run) {
   const root = createRoot(document.getElementById("root"));
   const render = () => act(async () => root.render(<StrictMode><SessionBoundConvexProvider client={{}}><Child /></SessionBoundConvexProvider></StrictMode>));
   try { await run({ root, render }); }
-  finally { await act(async () => root.unmount()); globalThis.fetch = oldFetch; dom.window.close(); for (const [key, desc] of Object.entries(prior)) { if (desc) Object.defineProperty(globalThis, key, desc); else delete globalThis[key]; } }
+  finally { await act(async () => root.unmount()); showEditor = false; editorOwner = "one:staging:alice"; globalThis.fetch = oldFetch; dom.window.close(); for (const [key, desc] of Object.entries(prior)) { if (desc) Object.defineProperty(globalThis, key, desc); else delete globalThis[key]; } }
 }
 
 test("StrictMode redeems once, removes the secret, separates customer authority and remounts on explicit end", async () => environment(async ({ render }) => {
@@ -86,4 +99,48 @@ test("a new same-tab link replaces an in-flight exchange and obsolete responses 
   expect(responses.length).toBe(3);
   await act(async () => responses[2](Response.json({ token: "reopened-token", expiresAt: Date.now() + 60000, instanceKey: "one:staging" })));
   expect(await lastOperatorAuth.fetchAccessToken()).toBe("reopened-token");
+}));
+
+test("unsaved work survives expiry, is hidden from the customer and recovers on same-account reopening", async () => environment(async ({ render }) => {
+  showEditor = true;
+  globalThis.fetch = async () => Response.json({ token: "short-token", expiresAt: Date.now() + 100, instanceKey: "one:staging" });
+  await render();
+  await act(async () => editDraft());
+  const unload = new Event("beforeunload", { cancelable: true });
+  window.dispatchEvent(unload);
+  expect(unload.defaultPrevented).toBe(true);
+  await act(async () => new Promise(done => setTimeout(done, 150)));
+  expect(document.querySelector("[data-editor]")).toBeNull();
+  expect(document.body.textContent).not.toContain("#123456");
+  expect(document.body.textContent).toContain("unsaved draft is kept in this tab");
+  expect(window.localStorage.length).toBe(0); expect(window.sessionStorage.length).toBe(0);
+  globalThis.fetch = async () => Response.json({ token: "renewed-token", expiresAt: Date.now() + 60000, instanceKey: "one:staging" });
+  await act(async () => {
+    window.history.replaceState(null, "", `/?customize=1#cp-customize=${"ef".repeat(32)}`);
+    window.dispatchEvent(new Event("hashchange"));
+  });
+  expect(document.querySelector("[data-editor]").textContent).toBe("#123456");
+  window.confirm = () => false;
+  await act(async () => document.querySelector("button").click());
+  expect(document.querySelector("[data-editor]").textContent).toBe("#123456");
+  window.confirm = () => true;
+  await act(async () => document.querySelector("button").click());
+  expect(document.querySelector("[data-editor]")).toBeNull();
+  const cleanUnload = new Event("beforeunload", { cancelable: true }); window.dispatchEvent(cleanUnload);
+  expect(cleanUnload.defaultPrevented).toBe(false);
+}));
+
+test("a different operator cannot recover the previous operator's draft", async () => environment(async ({ render }) => {
+  showEditor = true;
+  globalThis.fetch = async () => Response.json({ token: "alice", expiresAt: Date.now() + 60000, instanceKey: "one:staging" });
+  await render(); await act(async () => editDraft());
+  editorOwner = "one:staging:bob";
+  globalThis.fetch = async () => Response.json({ token: "bob", expiresAt: Date.now() + 60000, instanceKey: "one:staging" });
+  await act(async () => {
+    window.history.replaceState(null, "", `/?customize=1#cp-customize=${"cd".repeat(32)}`);
+    window.dispatchEvent(new Event("hashchange"));
+  });
+  expect(document.querySelector("[data-editor]").textContent).toBe("unchanged");
+  const unload = new Event("beforeunload", { cancelable: true }); window.dispatchEvent(unload);
+  expect(unload.defaultPrevented).toBe(false);
 }));

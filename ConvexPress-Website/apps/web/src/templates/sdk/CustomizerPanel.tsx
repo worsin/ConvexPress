@@ -1,4 +1,6 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useOperatorDraftRecovery } from "@/lib/auth/OperatorDraftContext";
+import { useWebsiteOperator } from "@/lib/auth/WebsiteOperatorContext";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "@convexpress-website/backend/generated/api";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -43,30 +45,33 @@ import { toast } from "sonner";
 const controlClass =
   "w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground";
 
-export default function CustomizerPanel() {
+export default function CustomizerPanel({ recoveryOwner }: { recoveryOwner: string }) {
+  const recovery = useOperatorDraftRecovery();
+  const operator = useWebsiteOperator();
+  const [recovered] = useState(() => recovery?.read(recoveryOwner) ?? null);
   const controller = useTemplateCustomizer();
   const template = useTemplate();
   const { modules, values } = useTemplateSettings();
   const snapshot = useQuery(api.settings.templateDrafts.snapshot, {});
   const publish = useMutation(api.settings.templateDrafts.publish);
-  const [packId, setPackId] = useState(template.config.active);
+  const [packId, setPackId] = useState(recovered?.packId ?? template.config.active);
   const storedDraft = useQuery(api.settings.templateDrafts.getDraft, {
     packId,
   });
   const saveDraft = useMutation(api.settings.templateDrafts.saveDraft);
   const discardDraft = useMutation(api.settings.templateDrafts.discardDraft);
   const [draftRevision, setDraftRevision] = useState<string | null | undefined>(
-    undefined,
+    recovered?.draftRevision,
   );
-  const [notice, setNotice] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(recovered ? "Recovered your unsaved changes and history from this tab. Review them before publishing." : null);
   useEffect(() => {
     if (draftRevision === undefined && storedDraft !== undefined)
       setDraftRevision(storedDraft?.revision ?? null);
   }, [draftRevision, storedDraft]);
-  const [base, setBase] = useState<DraftSnapshot | null>(null);
-  const [revision, setRevision] = useState<string | null>(null);
+  const [base, setBase] = useState<DraftSnapshot | null>(recovered?.base ?? null);
+  const [revision, setRevision] = useState<string | null>(recovered?.revision ?? null);
   const [history, setHistory] = useState(() =>
-    createDraftHistory({ values: {}, variants: {} }),
+    recovered?.history ?? createDraftHistory({ values: {}, variants: {} }),
   );
   const [query, setQuery] = useState("");
   const [picking, setPicking] = useState(false);
@@ -76,6 +81,11 @@ export default function CustomizerPanel() {
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [review, setReview] = useState(false);
+  const mounted = useRef(false);
+  useLayoutEffect(() => {
+    mounted.current = true;
+    return () => { mounted.current = false; };
+  }, []);
   const frame = useRef<HTMLIFrameElement>(null);
   const panel = useRef<HTMLElement>(null);
   const trigger = useRef<HTMLElement | null>(null);
@@ -168,7 +178,12 @@ export default function CustomizerPanel() {
     [base, history.present, packId, snapshot],
   );
   const conflict = revision !== null && snapshot?.revision !== revision;
+  useLayoutEffect(() => {
+    if (!base || !revision || !snapshot) return;
+    recovery?.write(recoveryOwner, changes.length ? { packId, base, revision, history, draftRevision } : null);
+  }, [recovery, recoveryOwner, base, revision, history, packId, draftRevision, changes, snapshot]);
   const close = () => {
+    recovery?.write(recoveryOwner, null);
     controller.setDraft(EMPTY_PREVIEW);
     controller.setOpen(false);
   };
@@ -200,14 +215,16 @@ export default function CustomizerPanel() {
         expectedDraftRevision: draftRevision,
         ...history.present,
       });
+      if (!mounted.current) return;
       setDraftRevision(result.revision);
       setNotice("Draft saved for your account.");
     } catch (cause) {
+      if (!mounted.current) return;
       setError(
         getErrorMessage(cause, "Could not save this draft."),
       );
     } finally {
-      setSaving(false);
+      if (mounted.current) setSaving(false);
     }
   };
   const restoreDraft = () => {
@@ -250,18 +267,21 @@ export default function CustomizerPanel() {
         expectedRevision: revision,
         confirmLive: true,
       });
+      if (!mounted.current) return;
       if (draftRevision) {
         try { await discardDraft({ packId, expectedDraftRevision: draftRevision }); }
-        catch { toast.info("Published successfully. A newer saved draft was retained."); }
+        catch { if (mounted.current) toast.info("Published successfully. A newer saved draft was retained."); }
       }
+      if (!mounted.current) return;
       toast.success("Template settings published.");
       close();
     } catch (cause) {
+      if (!mounted.current) return;
       setError(
         getErrorMessage(cause, "Publishing failed. Your draft is still open."),
       );
     } finally {
-      setSaving(false);
+      if (mounted.current) setSaving(false);
     }
   };
   const previewUrl =
@@ -311,6 +331,7 @@ export default function CustomizerPanel() {
               Close and discard
             </button>
           </div>
+          {operator.active && operator.expiresAt && <p className="text-xs text-muted-foreground">Editing access ends at {new Date(operator.expiresAt).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}. If it expires, keep this tab open and reopen editing here from ConvexPress to recover unsaved changes.</p>}
           <label className="block text-xs">
             Template
             <select

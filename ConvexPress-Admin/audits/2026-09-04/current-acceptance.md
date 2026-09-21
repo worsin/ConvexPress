@@ -4,6 +4,8 @@
 
 Latest follow-up: A06 permission boundaries and A08 owner protection are accepted after isolated live-handler and native recovery verification; see [permission acceptance](permission-boundaries-20260921.md). Eight original audit rows are accepted and sixteen remain open. Dated entries below retain their historical counts.
 
+Customizer continuity follow-up: same-tab draft recovery now retains authored values/history and original revision guards through client-session expiry, with actual built Website and scoped lifecycle evidence. Automatic renewal and native reconnection into that same tab remain open; HB1 is not closed. See [recovery evidence](customizer-recovery-20260921.md).
+
 Implementation and historical tests are recorded in the linked outcomes. The last column identifies required final acceptance; it does not imply none of its individual cases has ever passed. No percentage or release-complete flag is inferred.
 
 | ID | Original problem | Evidence index | Required final acceptance |
