@@ -9,6 +9,7 @@ mock.module("convex/react-clerk", () => ({ ConvexProviderWithClerk: ({ children,
 mock.module("convex/react", () => ({ ConvexProviderWithAuth: ({ children, useAuth }) => { lastOperatorAuth = useAuth(); return <div data-operator="true">{children}</div>; } }));
 const { SessionBoundConvexProvider } = await import("./SessionBoundConvexProvider");
 const { WebsiteOperatorNotice, useWebsiteOperator } = await import("./WebsiteOperatorContext");
+let operatorControls;
 const { useOperatorDraftRecovery } = await import("./OperatorDraftContext");
 let editorOwner = "one:staging:alice", showEditor = false, editDraft;
 const recoveredDraft = { packId: "journal", base: { values: {}, variants: {} }, revision: "original-publication", draftRevision: "original-private", history: { past: [{ values: {}, variants: {} }], present: { values: { colors: { primary: "#123456" } }, variants: {} }, future: [] } };
@@ -20,6 +21,7 @@ function Editor() {
 }
 function Child() {
   const operator = useWebsiteOperator();
+  operatorControls = operator;
   useEffect(() => { childMounts++; }, []);
   return <><WebsiteOperatorNotice />{showEditor && operator.active && <Editor />}</>;
 }
@@ -143,4 +145,81 @@ test("a different operator cannot recover the previous operator's draft", async 
   expect(document.querySelector("[data-editor]").textContent).toBe("unchanged");
   const unload = new Event("beforeunload", { cancelable: true }); window.dispatchEvent(unload);
   expect(unload.defaultPrevented).toBe(false);
+}));
+
+const desktop = () => ({ endpoint: "http://127.0.0.1:51234/convexpress/website-editing", key: "de".repeat(32), expiresAt: Date.now() + 600000 });
+const setDesktopLaunch = () => window.history.replaceState(null, "", `/?customize=1#${new URLSearchParams({ "cp-customize": "ab".repeat(32), "cp-desktop": JSON.stringify(desktop()) })}`);
+
+test("failed desktop renewal preserves the draft and the visible reconnect action recovers it", async () => environment(async ({ render }) => {
+  showEditor = true; setDesktopLaunch(); let unavailable = true, exchanges = 0;
+  globalThis.fetch = async url => {
+    if (String(url).includes("website-editing")) {
+      if (unavailable) throw Error("connection refused");
+      return Response.json({ code: "cd".repeat(32) });
+    }
+    return Response.json({ token: `token-${++exchanges}`, userId: "alice", expiresAt: Date.now() + (exchanges === 1 ? 100 : 60000), instanceKey: "one:staging" });
+  };
+  await render(); await act(async () => editDraft());
+  await act(async () => new Promise(resolve => setTimeout(resolve, 150)));
+  await act(async () => operatorControls.reconnect());
+  expect(document.querySelector("[data-editor]")).toBeNull();
+  expect(document.body.textContent).toContain("Your draft stays in this tab");
+  expect(operatorControls.pending).toBe(false);
+  unavailable = false;
+  const retry = [...document.querySelectorAll("button")].find(button => button.textContent === "Reconnect editing");
+  expect(retry).toBeDefined();
+  await act(async () => { retry.click(); });
+  expect(document.querySelector("[data-editor]").textContent).toBe("#123456");
+  expect(operatorControls.error).toBeNull();
+}));
+
+test("same-operator renewal preserves the editor subtree and draft, and unrelated hash changes cannot replay old authority", async () => environment(async ({ render }) => {
+  showEditor = true; setDesktopLaunch(); let exchanges = 0;
+  globalThis.fetch = async url => String(url).includes("website-editing") ? Response.json({ code: "cd".repeat(32) }) : Response.json({ token: `token-${++exchanges}`, userId: "alice", expiresAt: Date.now() + 60000, instanceKey: "one:staging" });
+  await render(); await act(async () => editDraft());
+  const mounts = childMounts;
+  expect(operatorControls.canReconnect).toBe(true);
+  await act(async () => operatorControls.reconnect());
+  expect(exchanges).toBe(2);
+  expect(await lastOperatorAuth.fetchAccessToken()).toBe("token-2");
+  expect(childMounts).toBe(mounts);
+  expect(document.querySelector("[data-editor]").textContent).toBe("#123456");
+  await act(async () => { window.history.replaceState(null, "", "/?customize=1#section"); window.dispatchEvent(new Event("hashchange")); });
+  expect(await lastOperatorAuth.fetchAccessToken()).toBe("token-2");
+  expect(exchanges).toBe(2);
+}));
+
+test("renewal of an expired session recovers in the same tab and ending cancels a pending renewal", async () => environment(async ({ render }) => {
+  showEditor = true; setDesktopLaunch(); let exchanges = 0, finish;
+  globalThis.fetch = async (url, init) => {
+    if (String(url).includes("website-editing")) {
+      if (JSON.parse(init.body).action === "end") return Response.json({ ended: true });
+      return Response.json({ code: "cd".repeat(32) });
+    }
+    exchanges++;
+    if (exchanges === 3) return new Promise(resolve => { finish = resolve; });
+    return Response.json({ token: `token-${exchanges}`, userId: "alice", expiresAt: Date.now() + (exchanges === 1 ? 100 : 60000), instanceKey: "one:staging" });
+  };
+  await render(); await act(async () => editDraft());
+  await act(async () => new Promise(resolve => setTimeout(resolve, 150)));
+  expect(document.querySelector("[data-editor]")).toBeNull();
+  await act(async () => operatorControls.reconnect());
+  expect(document.querySelector("[data-editor]").textContent).toBe("#123456");
+  await act(async () => { void operatorControls.reconnect(); });
+  window.confirm = () => true;
+  await act(async () => operatorControls.end());
+  await act(async () => finish(Response.json({ token: "obsolete", userId: "alice", expiresAt: Date.now() + 60000, instanceKey: "one:staging" })));
+  expect(document.querySelector("[data-operator]")).toBeNull();
+  expect(operatorControls.canReconnect).toBe(false);
+}));
+
+test("renewal refuses a different backend principal instead of preserving the old editor under new authority", async () => environment(async ({ render }) => {
+  showEditor = true; setDesktopLaunch(); let exchanges = 0;
+  globalThis.fetch = async url => String(url).includes("website-editing") ? Response.json({ code: "cd".repeat(32) }) : Response.json({ token: `token-${++exchanges}`, userId: exchanges === 1 ? "alice" : "bob", expiresAt: Date.now() + 60000, instanceKey: "one:staging" });
+  await render(); await act(async () => editDraft());
+  await act(async () => operatorControls.reconnect());
+  expect(document.querySelector("[data-operator]")).toBeNull();
+  expect(document.body.textContent).not.toContain("#123456");
+  expect(document.body.textContent).toContain("editing account changed");
+  expect(operatorControls.canReconnect).toBe(false);
 }));

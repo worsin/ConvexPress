@@ -31,6 +31,8 @@ import { prepareTemplatePromotion, type TemplateSnapshot, type PromotionReview }
 import { cn, getErrorMessage } from "@/lib/utils";
 import { getElectronBridge } from "@/lib/electron";
 import { createWebsiteOperatorLink } from "@/lib/templates/websiteOperatorLink";
+import { useWebsiteEditing } from "@/control/WebsiteEditingProvider";
+import { useVerifiedSiteRuntime } from "@/control/SiteRuntimeProvider";
 
 export const Route = createFileRoute("/_authenticated/_admin/appearance/customize")({
   component: CustomizePage,
@@ -55,6 +57,8 @@ const DEVICES = [
 const FONT_SUGGESTIONS = ["Inter", "Fraunces", "Space Grotesk", "Playfair Display", "DM Sans", "Instrument Serif", "Lora", "Manrope", "Newsreader", "Source Serif 4", "IBM Plex Sans", "Work Sans"];
 
 function CustomizePage() {
+  const websiteEditing = useWebsiteEditing();
+  const verifiedRuntime = useVerifiedSiteRuntime();
   const server = useQuery(api.settings.templateDrafts.snapshot, {}) as TemplateSnapshot | undefined;
   const general = useQuery(api.settings.queries.getBySection, { section: "general" }) as { siteUrl?: string } | undefined;
   const publishSettings = useMutation(api.settings.templateDrafts.publish);
@@ -122,6 +126,13 @@ function CustomizePage() {
     if (!bridge?.siteRunner?.openUrl) { toast.error("Open website editing from the ConvexPress desktop app."); return; }
     setOpeningWebsite(true);
     try {
+      if (websiteEditing && verifiedRuntime && bridge.websiteEditing) {
+        const launch = await websiteEditing.start(verifiedRuntime.target, siteUrl);
+        if (scopeRef.current !== requestScope) { await launch.stop(); return; }
+        try { await bridge.siteRunner.openUrl(launch.url); }
+        catch (error) { await launch.stop(); throw error; }
+        return;
+      }
       const url = await createWebsiteOperatorLink(createOperatorHandoff, { siteUrl, instanceKey: server.identity.instanceKey });
       if (scopeRef.current !== requestScope) return;
       await bridge.siteRunner.openUrl(url);

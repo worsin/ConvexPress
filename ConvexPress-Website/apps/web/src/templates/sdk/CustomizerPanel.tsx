@@ -292,6 +292,15 @@ export default function CustomizerPanel({ recoveryOwner }: { recoveryOwner: stri
           url.searchParams.set("customize", "preview");
           return url.href;
         })();
+  if (!base) return (
+    <aside ref={panel} tabIndex={-1} role="region" aria-label="Customize template" aria-busy="true"
+      onKeyDown={(event) => { if (event.key === "Escape" && !event.defaultPrevented) close(); }}
+      className="fixed inset-y-0 right-0 z-[100] flex w-full max-w-sm flex-col gap-4 border-l border-border bg-background p-4 text-foreground shadow-xl">
+      <h2 className="text-lg font-semibold">Customize</h2>
+      <p role="status">Loading published settings…</p>
+      <button type="button" onClick={close} className="self-start rounded px-2 py-1 text-sm">Close and discard</button>
+    </aside>
+  );
   return (
     <>
       {hovered && (
@@ -331,7 +340,8 @@ export default function CustomizerPanel({ recoveryOwner }: { recoveryOwner: stri
               Close and discard
             </button>
           </div>
-          {operator.active && operator.expiresAt && <p className="text-xs text-muted-foreground">Editing access ends at {new Date(operator.expiresAt).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}. If it expires, keep this tab open and reopen editing here from ConvexPress to recover unsaved changes.</p>}
+          {operator.active && operator.expiresAt && <p className="text-xs text-muted-foreground">{operator.canReconnect ? "Keep ConvexPress open and signed in. Editing access renews automatically; if the connection stops, your draft stays in this tab." : `Editing access ends at ${new Date(operator.expiresAt).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}. Keep this tab open to recover unsaved changes with a fresh editing link.`}</p>}
+          {operator.canReconnect && operator.error && <div role="alert" className="text-xs"><p>{operator.error}</p><button type="button" className="mt-2 underline" disabled={operator.pending} onClick={operator.reconnect}>{operator.pending ? "Reconnecting…" : "Reconnect editing"}</button></div>}
           <label className="block text-xs">
             Template
             <select

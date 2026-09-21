@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { exchangeOperatorCode, takeOperatorCode, operatorNetworkFailure } from "./websiteOperator";
+import { exchangeOperatorCode, takeOperatorCode, takeOperatorLaunch, renewWebsiteOperator, operatorNetworkFailure } from "./websiteOperator";
 
 const code = "ab".repeat(32);
 test("handoff fragments are removed while preserving router history, query and unrelated anchors", () => {
@@ -13,6 +13,34 @@ test("handoff fragments are removed while preserving router history, query and u
     expect(calls.at(-1)?.[2]).toBe("/");
   }
   expect(takeOperatorCode({ href: "https://site.example/#section" }, history)).toBeNull();
+});
+
+test("desktop launch secrets are scrubbed and only a bounded loopback endpoint is accepted", () => {
+  const desktop = { endpoint: "http://127.0.0.1:51234/convexpress/website-editing", key: "cd".repeat(32), expiresAt: Date.now() + 60000 };
+  let scrubbed = "";
+  const history = { state: null, replaceState: (_state: unknown, _title: string, url?: string | URL | null) => { scrubbed = String(url); } };
+  const href = (bridge: unknown) => `https://site.example/?customize=1#${new URLSearchParams({ "cp-customize": code, "cp-desktop": JSON.stringify(bridge) })}`;
+  expect(takeOperatorLaunch({ href: href(desktop) }, history)).toEqual({ code, desktop });
+  expect(scrubbed).toBe("/?customize=1");
+  for (const endpoint of ["https://attacker.example/convexpress/website-editing", "http://127.0.0.1:51234/other", "http://localhost:51234/convexpress/website-editing", desktop.endpoint + "?extra=1", "http://user@127.0.0.1:51234/convexpress/website-editing"]) {
+    expect(() => takeOperatorLaunch({ href: href({ ...desktop, endpoint }) }, history)).toThrow();
+    expect(scrubbed).toBe("/?customize=1");
+  }
+  expect(() => takeOperatorLaunch({ href: href({ ...desktop, expiresAt: Date.now() - 1 }) }, history)).toThrow();
+});
+
+test("renewal gets only a one-use code from the desktop and redeems against the configured site", async () => {
+  const desktop = { endpoint: "http://127.0.0.1:51234/convexpress/website-editing", key: "cd".repeat(32), expiresAt: Date.now() + 60000 };
+  const runtime = { convexUrl: "https://db.convex.cloud", convexSiteUrl: "https://db.convex.site", instanceKey: "staging" };
+  const session = { token: "fresh", expiresAt: Date.now() + 60000, instanceKey: "staging", userId: "alice" };
+  const calls: Array<{ url: string; body: unknown }> = [];
+  const fetcher = (async (url: URL | RequestInfo, init?: RequestInit) => {
+    expect(init?.credentials).toBe("omit"); expect(init?.redirect).toBe("error");
+    calls.push({ url: String(url), body: JSON.parse(String(init?.body)) });
+    return Response.json(calls.length === 1 ? { code } : session);
+  }) as typeof fetch;
+  expect(await renewWebsiteOperator(desktop, runtime, fetcher)).toEqual(session);
+  expect(calls).toEqual([{ url: desktop.endpoint, body: { key: desktop.key, action: "renew" } }, { url: "https://db.convex.site/auth/operator-handoff", body: { code } }]);
 });
 
 test("exchange uses the selected backend without cookies, redirect or cache and validates deployment and expiry", async () => {

@@ -42,7 +42,7 @@ function Harness({ access, version, owner = "staging:alice" }) {
   </TemplateDraftContext.Provider></OperatorDraftContext.Provider>;
 }
 
-async function environment(run) {
+async function environment(run, prepare = () => {}) {
   const dom = new JSDOM("<div id='root'></div>", { url: "https://site.example/?customize=1" });
   const prior = {};
   for (const key of ["window", "document", "navigator", "HTMLElement", "Element", "Event", "IS_REACT_ACT_ENVIRONMENT"]) {
@@ -62,9 +62,17 @@ async function environment(run) {
     expect(button).toBeDefined(); expect(button.disabled).toBe(false);
     await act(async () => button.click());
   };
-  try { await render(); await run({ store, render, reopen, click, root }); }
+  try { prepare(); await render(); await run({ store, render, reopen, click, root }); }
   finally { await act(async () => root.unmount()); useGate = false; authenticated = true; allowed = true; profile = { _id: "alice" }; dom.window.close(); for (const [key, desc] of Object.entries(prior)) { if (desc) Object.defineProperty(globalThis, key, desc); else delete globalThis[key]; } }
 }
+
+test("the panel waits for its published baseline before accepting edits that initialization would erase", () => environment(async ({ render, click }) => {
+  expect(document.querySelector("#customize-colors-primary")).toBeNull();
+  expect(document.body.textContent).toContain("Loading published settings");
+  snapshot = { revision: "published-before", values: { active: "core", variants: {}, settings: { core: { colors: { primary: "#112233" } } } }, identity: { environmentKind: "staging" } };
+  await render(); await click("Ink preset"); await render();
+  expect(document.querySelector("#customize-colors-primary").value).toBe("#445566");
+}, () => { snapshot = undefined; }));
 
 test("real panel restores authored values, Undo/Redo and both revision guards without publishing automatically", () => environment(async ({ store, reopen, click }) => {
   expect(store.hasDraft()).toBe(false);

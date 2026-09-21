@@ -4,7 +4,7 @@
 
 Latest follow-up: A06 permission boundaries and A08 owner protection are accepted after isolated live-handler and native recovery verification; see [permission acceptance](permission-boundaries-20260921.md). Eight original audit rows are accepted and sixteen remain open. Dated entries below retain their historical counts.
 
-Customizer continuity follow-up: same-tab draft recovery now retains authored values/history and original revision guards through client-session expiry, with actual built Website and scoped lifecycle evidence. Automatic renewal and native reconnection into that same tab remain open; HB1 is not closed. See [recovery evidence](customizer-recovery-20260921.md).
+Desktop-mediated editing renewal September21: scoped native connection, fresh controller authorization and same-tab reconnect are implemented. Final built Website retained the same editor DOM and unsaved values beyond natural expiry after a desktop environment switch; injected disconnect/expiry recovery, End and native logout passed. Real Convex-provider testing caught and repaired auth-context remounting; delayed-baseline testing caught and repaired early-edit loss. Published appearance/all42 pages are unchanged. Public HTTPS permissions, all packs and live revocation/customer denial remain open; HB1 and the eight accepted/sixteen open original audit counts are unchanged. See [continuity evidence](website-editing-continuity-20260921.md).
 
 Implementation and historical tests are recorded in the linked outcomes. The last column identifies required final acceptance; it does not imply none of its individual cases has ever passed. No percentage or release-complete flag is inferred.
 

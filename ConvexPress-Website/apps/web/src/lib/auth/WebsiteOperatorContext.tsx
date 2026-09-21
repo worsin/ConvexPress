@@ -1,7 +1,7 @@
 import { createContext, useContext } from "react";
 
-export type WebsiteOperatorState = { active: boolean; expiresAt: number | null; pending: boolean; error: string | null; end: () => void; dismiss: () => void };
-export const WebsiteOperatorContext = createContext<WebsiteOperatorState>({ active: false, expiresAt: null, pending: false, error: null, end() {}, dismiss() {} });
+export type WebsiteOperatorState = { active: boolean; expiresAt: number | null; pending: boolean; error: string | null; end: () => void; dismiss: () => void; reconnect(): void; canReconnect: boolean };
+export const WebsiteOperatorContext = createContext<WebsiteOperatorState>({ active: false, expiresAt: null, pending: false, error: null, end() {}, dismiss() {}, reconnect() {}, canReconnect: false });
 export const useWebsiteOperator = () => useContext(WebsiteOperatorContext);
 
 export function WebsiteOperatorNotice() {
@@ -10,7 +10,8 @@ export function WebsiteOperatorNotice() {
   return <div role={operator.error ? "alert" : "status"} className="relative z-50 flex flex-wrap items-center gap-x-4 gap-y-2 border-b bg-background px-4 py-3 text-sm text-foreground">
     <span>{operator.error ?? (operator.active ? "Website editing is active for this tab." : "Opening website editing…")}</span>
     {operator.active && <button type="button" className="underline" onClick={operator.end}>End website editing</button>}
-    {operator.active && operator.expiresAt && <span className="text-xs">Ends at {new Date(operator.expiresAt).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}. Save a private draft to keep unpublished changes.</span>}
+    {operator.active && operator.expiresAt && <span className="text-xs">{operator.canReconnect ? "Keep ConvexPress open to renew editing access." : `Ends at ${new Date(operator.expiresAt).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}. Save a private draft to keep unpublished changes.`}</span>}
+    {operator.canReconnect && operator.error && <button type="button" className="underline" disabled={operator.pending} onClick={operator.reconnect}>{operator.pending ? "Reconnecting…" : "Reconnect editing"}</button>}
     {operator.error && <button type="button" className="underline" onClick={operator.dismiss}>Dismiss</button>}
   </div>;
 }

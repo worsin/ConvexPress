@@ -195,6 +195,22 @@ contextBridge.exposeInMainWorld("convexpress", {
     },
   },
 
+  websiteEditing: {
+    start: (input: { leaseId: string; siteUrl: string }) => ipcRenderer.invoke("website-editing:start", input),
+    respond: (input: { requestId: string; url: string | null }) => ipcRenderer.invoke("website-editing:respond", input),
+    stop: (leaseId: string) => ipcRenderer.invoke("website-editing:stop", leaseId),
+    onClosed: (callback: (input: { leaseId: string }) => void) => {
+      const handler = (_event: Electron.IpcRendererEvent, input: { leaseId: string }) => callback(input);
+      ipcRenderer.on("website-editing:closed", handler);
+      return () => ipcRenderer.removeListener("website-editing:closed", handler);
+    },
+    onRequest: (callback: (input: { requestId: string; leaseId: string }) => void) => {
+      const handler = (_event: Electron.IpcRendererEvent, input: { requestId: string; leaseId: string }) => callback(input);
+      ipcRenderer.on("website-editing:request", handler);
+      return () => ipcRenderer.removeListener("website-editing:request", handler);
+    },
+  },
+
   security: {
     /** Allow the renderer to reach a site deployment; `added` lists origins new to the policy. */
     registerDeploymentOrigins: (origins: string[]) =>

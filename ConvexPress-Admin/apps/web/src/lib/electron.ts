@@ -61,6 +61,13 @@ export interface ConvexpressBridge {
   };
   /** Present in desktop builds that ship the local storefront runner. */
   siteRunner?: ConvexpressSiteRunner;
+  websiteEditing?: {
+    start(input: { leaseId: string; siteUrl: string }): Promise<{ endpoint: string; key: string; expiresAt: number }>;
+    respond(input: { requestId: string; url: string | null }): Promise<boolean>;
+    stop(leaseId: string): Promise<boolean>;
+    onClosed(callback: (input: { leaseId: string }) => void): () => void;
+    onRequest(callback: (input: { requestId: string; leaseId: string }) => void): () => void;
+  };
   /** Present in desktop builds that allow-list site deployment origins at runtime. */
   security?: {
     registerDeploymentOrigins: (

@@ -28,6 +28,7 @@ import { controlSurfaceVisibility } from "./components/site-manager-view";
 import { siteSessionRole } from "./site-session-role";
 import { prepareSiteScopeNavigation } from "./siteScopeNavigation";
 import { sitePromotionNetworkOrigin } from "./siteRuntimeNetworkOrigins";
+import { WebsiteEditingProvider } from "./WebsiteEditingProvider";
 
 export function StandaloneApp({
   authClient,
@@ -218,6 +219,16 @@ function ControlPlaneShell({
     [exchange, siteRole],
   );
 
+  const issueWebsiteSession = useCallback(async (requestedTarget: Pick<SelectedSiteTarget, "connectionId" | "websiteKey" | "instanceKey" | "deploymentOrigin">) => {
+    const result = await exchange({
+      connectionId: requestedTarget.connectionId as Id<"overseer_connections">,
+      requestedCapabilities: ["health.read", "compatibility.read"],
+      requestedSiteRole: "administrator",
+    });
+    if (result.instanceKey !== requestedTarget.instanceKey || result.websiteKey !== requestedTarget.websiteKey || !result.siteCapabilities.includes("manage_options")) throw Error("Website editing access changed");
+    return { token: result.token, expiresAt: result.expiresAt };
+  }, [exchange]);
+
   const changeScope = useCallback(
     (next: ScopeSelection) => {
       const generation = ++switchGeneration.current;
@@ -359,6 +370,7 @@ function ControlPlaneShell({
 
   return (
     <ControlShellProvider value={shellValue}>
+      <WebsiteEditingProvider key={operatorIdentity.id} issue={issueWebsiteSession}>
       <div className="relative flex h-svh min-h-0 flex-col overflow-hidden bg-background text-foreground">
         <ShellNotices
           scopeError={scopeError}
@@ -439,6 +451,7 @@ function ControlPlaneShell({
           ) : null}
         </div>
       </div>
+      </WebsiteEditingProvider>
     </ControlShellProvider>
   );
 }

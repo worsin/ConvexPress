@@ -98,6 +98,7 @@ test("HTTP exchange rejects invalid origins and signs a bounded existing-provide
     const result = await run(operatorHandoffHandler, ctx, request());
     expect(result.status).toBe(200); expect(result.headers.get("cache-control")).toBe("no-store");
     const data = await result.json();
+    expect(data.userId).toBe("admin");
     const verified = await jwtVerify(data.token, keys.publicKey, { issuer: "https://convexpress-admin.local", audience: "convexpress-admin" });
     expect(verified.payload.sub).toBe("admin"); expect(verified.payload.exp! * 1000).toBeLessThanOrEqual(Date.now() + 300_000);
     expect((await run(operatorHandoffHandler, ctx, request())).status).toBe(403);
