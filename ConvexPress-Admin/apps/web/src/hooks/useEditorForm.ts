@@ -161,10 +161,12 @@ interface UseEditorFormOptions {
   postId?: string;
   initialData?: Partial<EditorFormValues>;
   defaultCommentStatus?: CommentStatus;
+  /** Original text can be visible beneath legacy block mode with no block tree. */
+  originalText?: boolean;
 }
 
 export function useEditorForm(options: UseEditorFormOptions) {
-  const { contentType, mode, postId, initialData, defaultCommentStatus } =
+  const { contentType, mode, postId, initialData, defaultCommentStatus, originalText = false } =
     options;
   const [isSubmitting, startTransition] = useTransition();
 
@@ -256,7 +258,7 @@ export function useEditorForm(options: UseEditorFormOptions) {
         ? savedBaseline.current.values : defaultValues;
       Object.assign(args, structuredArticlePatch(values, baseline));
       if (values.contentMode !== undefined) args.contentMode = values.contentMode;
-      if (values.blocks !== undefined) {
+      if (!originalText && values.contentMode === "blocks" && values.blocks !== undefined) {
         args.blocks = values.blocks;
         args.blocksVersion = values.blocksVersion;
         args.blocksRevision = values.blocksRevision;
@@ -264,7 +266,7 @@ export function useEditorForm(options: UseEditorFormOptions) {
 
       return args;
     },
-    [contentType, form, postId, defaultValues],
+    [contentType, form, postId, defaultValues, originalText],
   );
 
   const runUpdate = useCallback(

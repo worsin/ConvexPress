@@ -2,7 +2,7 @@
 
 **Release acceptance is incomplete.** This index retains all 24 original audit IDs separately. It supersedes grouped historical tables for finding remaining work, not their dated evidence.
 
-Latest follow-up: canonical visibility/password controls, incremental reindex authorization and unrelated membership-rule deletion are repaired and verified; see [September 21 access follow-ups](access-settings-acceptance.md). Five original audit rows remain accepted and nineteen remain open. These three follow-ups do not inflate that count.
+Latest follow-up: B07 revision recovery is accepted after original-text editing and native block-body search/restore verification; see [recovery acceptance](original-text-recovery-20260921.md). Six original audit rows are accepted and eighteen remain open. Dated entries below retain their historical counts.
 
 Implementation and historical tests are recorded in the linked outcomes. The last column identifies required final acceptance; it does not imply none of its individual cases has ever passed. No percentage or release-complete flag is inferred.
 
@@ -22,7 +22,7 @@ Implementation and historical tests are recorded in the linked outcomes. The las
 | B04 | Customer-specific coupon restrictions are bypassed | [commerce-outcome.md](commerce-outcome.md) | Ineligible customer and final-use coupon restrictions at finalization |
 | B05 | Downgrades bill the old price at the boundary | [commerce-outcome.md](commerce-outcome.md) | Boundary downgrade bills new amount exactly once under repeated sweeps |
 | B06 | Postponing publication leaves the old job active | [publishing-recovery-outcome.md](publishing-recovery-outcome.md) | Post/page scheduler with current canonical publication integration |
-| B07 | Block content is not recoverable through revisions | [publishing-recovery-outcome.md](publishing-recovery-outcome.md) | Full canonical/rich-text/article/layout revision restore and rendered recovery |
+| B07 | Block content is not recoverable through revisions | [publishing-recovery-outcome.md](publishing-recovery-outcome.md) | **Accepted September21:** complete versioned recovery, native stored/rendered text/image/layout, editor-mode round trips and live search refresh; [evidence](original-text-recovery-20260921.md) |
 | B08 | A failed session write poisons later logout cleanup | [auth-runtime-outcome.md](auth-runtime-outcome.md) | **Accepted September20:** real Electron EACCES → actual key removal → encrypted new write, then native logout/new login in the same renderer; output/auth-storage-recovery-20260920 |
 | B09 | Free-shipping coupons do not remove shipping | [commerce-outcome.md](commerce-outcome.md) | Shipping coupon apply/remove/invalidate reflected in final charged totals |
 | C01 | Provider provisioning/domain workflow is absent | [c01-website-publishing-outcome.md](c01-website-publishing-outcome.md) | Two independent client launches, provider/domain/TLS, retry and client isolation |
@@ -256,3 +256,8 @@ Repaired silent heading/cell association corruption across Table, Comparison Tab
 ## September 21 native navigation milestone
 
 Native eight-block guide plus real child/private/grandchild/menu fixtures passes four packs at1440/390: target focus/current state, visible hierarchy, private exclusion and child-link/Back. Repaired missing manual target validation before Save with a specific editable diagnostic. Document regression/editor/composed checks, types/web+desktop builds and canonical freshness pass. All originals restored; six MagicTables Notes updates verified. [Exact evidence and remaining variants](navigation-native-20260921.md). Full production remains five accepted/nineteen open.
+
+
+## September 21 B07 recovery acceptance closed
+
+Original rich-text post/page editing now preserves nested source content instead of silently converting it. Native save/reopen and actual original-editor recovery/editing pass; a native canonical body edit/restore refreshes search automatically. Together with current-source earlier image/layout, structured-article and atomic/refusal evidence, the original B07 acceptance is complete. Final frontend485pass, focused document/composed100pass, types/build pass; original content/settings/listeners/processes preserved. [Exact scope and remaining migration/quality work](original-text-recovery-20260921.md). Six original rows accepted/eighteen open.

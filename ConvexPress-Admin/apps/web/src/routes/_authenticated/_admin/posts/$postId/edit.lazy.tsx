@@ -13,7 +13,7 @@ import { EditorLayout } from "@/components/editor/EditorLayout";
 import { CanonicalEditorEntry } from "@/components/blocks/canonical-editor/NativeCanonicalEditor";
 import { Skeleton } from "@/components/ui/skeleton";
 import { usePostMutations } from "@/hooks/posts/usePostMutations";
-import { tiptapContentToBlocks } from "@/lib/blocks/tiptap-to-blocks";
+import { usesOriginalTextEditor } from "@/components/editor/original-text";
 import type { Id } from "@backend/convex/_generated/dataModel";
 import type { EditorFormValues, PostStatus, PostVisibility, CommentStatus } from "@/types/editor";
 
@@ -115,6 +115,7 @@ function EditPostPage() {
   }
 
   const originalArticle = usesOriginalArticleEditor(post);
+  const originalText = usesOriginalTextEditor(post);
 
   // ─── Map Convex post data to EditorFormValues ──────────────────────────
   const initialData: Partial<EditorFormValues> = {
@@ -163,12 +164,8 @@ function EditPostPage() {
     pagePrompt: ("pagePrompt" in post ? post.pagePrompt : undefined) ?? "",
     // A recovered article keeps its original authoring format. Conversion to
     // canonical blocks belongs to the explicit review above this editor.
-    contentMode: originalArticle ? "article" as const : "blocks" as const,
-    blocks: originalArticle
-      ? ((post.blocks ?? []) as [])
-      : Array.isArray(post.blocks) && post.blocks.length > 0
-        ? (post.blocks as [])
-        : (tiptapContentToBlocks(post.content) as unknown as []),
+    contentMode: originalText ? post.contentMode ?? "article" : originalArticle ? "article" as const : "blocks" as const,
+    blocks: (post.blocks ?? []) as [],
     blocksVersion: (post as any).blocksVersion ?? 1,
     blocksRevision: (post as any).blocksRevision ?? 0,
   };
@@ -178,6 +175,7 @@ function EditPostPage() {
     <EditorLayout
       contentType="post"
       originalArticle={originalArticle}
+      originalText={originalText}
       mode="edit"
       postId={postId}
       initialData={initialData}

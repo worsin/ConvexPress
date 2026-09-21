@@ -7,6 +7,7 @@
  */
 
 import { OriginalArticleEditor } from "./OriginalArticleEditor";
+import { OriginalTextEditor } from "./OriginalTextEditor";
 
 import { Component, useCallback, useEffect, useMemo, useRef, useState, type ErrorInfo, type ReactNode } from "react";
 import { DndContext, closestCenter } from "@dnd-kit/core";
@@ -59,6 +60,7 @@ import type { EditorContentType, EditorFormValues, TagItem, CompositionBlock } f
 interface EditorLayoutProps {
   contentType: EditorContentType;
   originalArticle?: boolean;
+  originalText?: boolean;
   mode: "new" | "edit";
   postId?: string;
   initialData?: Partial<EditorFormValues>;
@@ -76,6 +78,7 @@ interface EditorLayoutProps {
 function EditorLayoutInner({
   contentType,
   originalArticle = false,
+  originalText = false,
   mode,
   postId,
   initialData,
@@ -133,6 +136,7 @@ function EditorLayoutInner({
     mode,
     postId,
     initialData,
+    originalText,
   });
 
   // TanStack Form state must be subscribed to for reactive re-renders.
@@ -190,7 +194,7 @@ function EditorLayoutInner({
 
   // Editor stats for EditorFooter (computed from content)
   const editorStats = useMemo(() => {
-    if (contentMode === "blocks") {
+    if (contentMode === "blocks" && !originalText) {
       const plainText = blocksToPlainText(compositionBlocks);
       const words = plainText.trim().split(/\s+/).filter(Boolean);
       return {
@@ -231,7 +235,7 @@ function EditorLayoutInner({
     }
     const readingTime = Math.max(1, Math.ceil(wordCount / 200));
     return { wordCount, characterCount, blockCount, readingTime };
-  }, [compositionBlocks, content, contentMode]);
+  }, [compositionBlocks, content, contentMode, originalText]);
 
   // NOTE: SEO state is managed by the dedicated SeoMetabox component
   // (components/seo/SeoMetabox.tsx) which uses its own seo table via usePostSeo.
@@ -605,6 +609,8 @@ function EditorLayoutInner({
               content: value => form.setFieldValue("content", value),
               pagePrompt: value => form.setFieldValue("pagePrompt", value),
             }} disabled={isSubmitting} />
+          ) : originalText ? (
+            <OriginalTextEditor value={content} onChange={value => form.setFieldValue("content", value)} disabled={isSubmitting} />
           ) : postId ? (
             <div className="space-y-3">
               <PageGenerationPrompt
@@ -677,7 +683,7 @@ function EditorLayoutInner({
           />
 
           {/* Block outline panel — jump-to-block sidebar */}
-          {!originalArticle && compositionBlocks.length > 0 && (
+          {!originalArticle && !originalText && compositionBlocks.length > 0 && (
             <BlockOutlinePanel blocks={compositionBlocks} />
           )}
 

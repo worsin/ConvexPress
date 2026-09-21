@@ -14,8 +14,8 @@ const { useEditorForm } = await import("./useEditorForm");
 const { createRoot } = await import("react-dom/client");
 let root, editor;
 const options = { contentType: "page", mode: "edit", postId: "page-id", initialData: { title: "Original", status: "draft" } };
-function Harness() { editor = useEditorForm(options); return null; }
-async function mount() { root = createRoot(document.getElementById("app")); await act(async () => root.render(<Harness />)); }
+function Harness({ config = options }) { editor = useEditorForm(config); return null; }
+async function mount(config = options) { root = createRoot(document.getElementById("app")); await act(async () => root.render(<Harness config={config} />)); }
 afterEach(async () => { await act(async () => root?.unmount()); mutate = async () => "page-id"; });
 
 test("successful draft save clears the navigation warning baseline", async () => {
@@ -24,6 +24,17 @@ test("successful draft save clears the navigation warning baseline", async () =>
   expect(editor.form.state.isDirty).toBe(true);
   await act(async () => editor.handleSaveDraft());
   expect(editor.form.state.values.title).toBe("Saved title");
+  expect(editor.form.state.isDirty).toBe(false);
+});
+
+test("original fallback text saves without rewriting its legacy block mode or block metadata", async () => {
+  await mount({ ...options, originalText: true, initialData: { title: "Original", contentMode: "blocks", content: "Original body", blocks: [] } });
+  let saved;
+  mutate = async args => { saved = args; return "page-id"; };
+  await act(async () => editor.form.setFieldValue("content", "Edited body"));
+  await act(async () => editor.handleSaveDraft());
+  expect(saved).toMatchObject({ content: "Edited body", contentMode: "blocks" });
+  for (const field of ["blocks", "blocksVersion", "blocksRevision"]) expect(saved).not.toHaveProperty(field);
   expect(editor.form.state.isDirty).toBe(false);
 });
 
@@ -108,5 +119,8 @@ test("article section removals persist and unchanged sections are not rewritten"
   await act(async () => editor.handleSaveDraft());
   const serialized=JSON.parse(JSON.stringify(calls[2]));
   expect(serialized).toMatchObject({contentMode:'article',hero:{},topics:[],summary:{},sources:'',tableOfContents:'',pagePrompt:''});
+  expect(serialized).not.toHaveProperty('blocks');
+  expect(serialized).not.toHaveProperty('blocksVersion');
+  expect(serialized).not.toHaveProperty('blocksRevision');
   expect(editor.form.state.isDirty).toBe(false);
 });

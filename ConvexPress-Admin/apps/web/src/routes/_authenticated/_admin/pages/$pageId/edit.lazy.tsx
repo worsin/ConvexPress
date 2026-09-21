@@ -12,7 +12,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { usePage } from "@/hooks/pages/usePage";
 import { usePageMutations } from "@/hooks/pages/usePageMutations";
 import { pageSectionsToBlocks } from "@/lib/blocks/page-sections";
-import { tiptapContentToBlocks } from "@/lib/blocks/tiptap-to-blocks";
+import { usesOriginalTextEditor } from "@/components/editor/original-text";
+import { usesOriginalArticleEditor } from "@/components/editor/legacy-article";
 import type { Id } from "@backend/convex/_generated/dataModel";
 
 export const Route = createLazyFileRoute(
@@ -103,6 +104,8 @@ function EditPagePage() {
 
   // Map Convex page data to EditorFormValues shape
   const legacyBlocks = pageSectionsToBlocks((page as any).pageSections);
+  const originalArticle = usesOriginalArticleEditor(page);
+  const originalText = legacyBlocks.length === 0 && usesOriginalTextEditor(page);
   const initialData = {
     title: page.title ?? "",
     slug: page.slug ?? "",
@@ -149,14 +152,9 @@ function EditPagePage() {
     sources: (page as any).sources ?? "",
     tableOfContents: (page as any).tableOfContents ?? "",
     pagePrompt: (page as any).pagePrompt ?? "",
-    // Phase 3 of the editor refactor: always blocks. If the page has no
-    // blocks yet, try legacy `pageSections`, then fall back to TipTap content.
-    contentMode: "blocks" as const,
-    blocks: (((page as any).blocks && (page as any).blocks.length > 0)
-      ? (page as any).blocks
-      : legacyBlocks.length > 0
-        ? legacyBlocks
-        : tiptapContentToBlocks(page.content)) as [],
+    // Existing text stays in its source format until reviewed conversion.
+    contentMode: originalText ? page.contentMode ?? "article" : originalArticle ? "article" as const : "blocks" as const,
+    blocks: (Array.isArray(page.blocks) && page.blocks.length > 0 ? page.blocks : legacyBlocks) as [],
     blocksVersion: (page as any).blocksVersion ?? 1,
     blocksRevision: (page as any).blocksRevision ?? 0,
   };
@@ -165,6 +163,8 @@ function EditPagePage() {
     <CanonicalEditorEntry key={pageId} initialOpen={editor === "blocks"} postId={pageId as Id<"posts">} canonical={"blocksVersion" in page && page.blocksVersion === 2} draft={page.status === "draft"}>
     <EditorLayout
       contentType="page"
+      originalArticle={originalArticle}
+      originalText={originalText}
       mode="edit"
       postId={pageId}
       initialData={initialData}
