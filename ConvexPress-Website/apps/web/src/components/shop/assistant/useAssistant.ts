@@ -11,6 +11,7 @@ import { toast } from "sonner";
 
 import { useCart } from "@/hooks/useCart";
 import { useAuth } from "@/lib/auth/clerk";
+import { getSiteRuntime } from "@/lib/site-runtime";
 import { assistantIdentityReady } from "./prompt-handoff";
 import type { ProductCardData } from "@/components/shop/ProductMiniCard";
 
@@ -54,8 +55,26 @@ function productIdsIn(blocks: AssistantBlock[]): string[] {
 
 export function useAssistant(input: { kind: BriefKind | "catalog" | "checkout" | "search"; query?: string; productId?: string; active: boolean }) {
   const { sessionToken, cart } = useCart();
-  const identityReady = assistantIdentityReady(useAuth(), useConvexAuth());
+  const identity = useAuth(), auth = useConvexAuth(), runtime = getSiteRuntime();
+  const identityReady = assistantIdentityReady(identity, auth);
   const active = input.active && identityReady;
+  const scope = JSON.stringify([runtime.convexUrl, runtime.instanceKey, identity.userId, identity.sessionId,
+    identity.isLoaded, identity.isSignedIn, auth.isLoading, auth.isAuthenticated, sessionToken, active]);
+  const lifetime = useRef({ scope, generation: 0, mounted: false });
+  if (lifetime.current.scope !== scope) {
+    lifetime.current.scope = scope;
+    lifetime.current.generation++;
+  }
+  type RequestOwner = { scope: string; generation: number };
+  const sendingRef = useRef<RequestOwner | null>(null);
+  useEffect(() => {
+    lifetime.current.mounted = true;
+    return () => {
+      lifetime.current.mounted = false;
+      lifetime.current.generation++;
+      sendingRef.current = null;
+    };
+  }, [scope]);
   const anyApi = api as any;
   const thread = useQuery(anyApi.commerce.assistant.queries.getThread, sessionToken && active ? { sessionToken, limit: 30 } : "skip") as
     | { session: { lastQuery: string | null } | null; messages: AssistantMessage[] }
@@ -70,14 +89,14 @@ export function useAssistant(input: { kind: BriefKind | "catalog" | "checkout" |
   const clearMutation = useMutation(anyApi.commerce.assistant.mutations.clearThread);
   const logEvent = useMutation(anyApi.commerce.assistant.mutations.logEvent);
 
-  const [pendingText, setPendingText] = useState<string | null>(null);
-  const [sending, setSending] = useState(false);
-  const sendingRef = useRef(false);
-  const [brief, setBrief] = useState<{ key: string; blocks: AssistantBlock[]; loading: boolean }>({ key: "", blocks: [], loading: false });
-  const briefTimer = useRef<number | null>(null);
+  const [pending, setPending] = useState<(RequestOwner & { text: string }) | null>(null);
+  const sending = active && pending?.scope === scope && pending.generation === lifetime.current.generation;
+  const pendingText = sending ? pending.text : null;
+  const [briefState, setBrief] = useState<(RequestOwner & { key: string; blocks: AssistantBlock[]; loading: boolean }) | null>(null);
 
   const cartKey = useMemo(
-    () => (cart?.items ?? []).map((line) => `${line.productId}:${line.quantity}`).sort().join(","),
+    () => cart?.items.length ? JSON.stringify([cart.currencyCode, cart.totalAmount,
+      cart.items.map(line => [line.productId, line.variantId, line.quantity, line.unitPriceAmount, line.lineTotalAmount]).sort()]) : "",
     [cart],
   );
 
@@ -96,51 +115,58 @@ export function useAssistant(input: { kind: BriefKind | "catalog" | "checkout" |
             ? "cart"
             : null
           : null;
-  const briefKey = briefKind ? `${briefKind}|${input.query ?? ""}|${input.productId ?? ""}|${cartKey}` : "";
+  const briefKey = briefKind ? JSON.stringify([briefKind, input.query, input.productId, cartKey]) : "";
+  // Mask obsolete state during render, before effect cleanup can run. Generation
+  // also distinguishes leaving an identity/environment and returning to it.
+  const brief = active && briefState?.scope === scope && briefState.generation === lifetime.current.generation && briefState.key === briefKey
+    ? briefState : { key: "", blocks: [] as AssistantBlock[], loading: false };
 
   useEffect(() => {
-    if (!active || !sessionToken || !briefKind) {
-      setBrief((current) => (current.key === "" && !current.blocks.length ? current : { key: "", blocks: [], loading: false }));
-      return;
-    }
+    if (!active || !sessionToken || !briefKind) return;
     if (brief.key === briefKey && !brief.loading) return;
-    if (briefTimer.current) window.clearTimeout(briefTimer.current);
-    briefTimer.current = window.setTimeout(() => {
-      setBrief((current) => ({ key: briefKey, blocks: current.key === briefKey ? current.blocks : [], loading: true }));
+    const owner = { scope, generation: lifetime.current.generation };
+    let cancelled = false;
+    const isCurrent = () => !cancelled && lifetime.current.mounted && lifetime.current.scope === scope && lifetime.current.generation === owner.generation;
+    const timer = window.setTimeout(() => {
+      if (!isCurrent()) return;
+      setBrief({ ...owner, key: briefKey, blocks: [], loading: true });
       briefAction({ sessionToken, kind: briefKind, query: input.query, productId: input.productId })
         .then((result: { blocks: AssistantBlock[] }) => {
-          setBrief({ key: briefKey, blocks: result.blocks ?? [], loading: false });
+          if (isCurrent()) setBrief({ ...owner, key: briefKey, blocks: result.blocks ?? [], loading: false });
         })
         .catch(() => {
-          setBrief({ key: briefKey, blocks: [], loading: false });
+          if (isCurrent()) setBrief({ ...owner, key: briefKey, blocks: [], loading: false });
         });
     }, 450);
     return () => {
-      if (briefTimer.current) window.clearTimeout(briefTimer.current);
+      cancelled = true;
+      window.clearTimeout(timer);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [briefKey, active, sessionToken]);
+  }, [briefKey, active, sessionToken, scope]);
 
   // ── Send ───────────────────────────────────────────────────────────────
   const send = useCallback(
     async (message: string) => {
       const text = message.trim();
-      if (!text || !sessionToken || !active || sendingRef.current) return;
-      sendingRef.current = true;
-      setPendingText(text);
-      setSending(true);
+      if (!text || !sessionToken || !active || !lifetime.current.mounted || lifetime.current.scope !== scope || sendingRef.current) return;
+      const owner = { scope, generation: lifetime.current.generation };
+      const isCurrent = () => lifetime.current.mounted && lifetime.current.scope === scope && lifetime.current.generation === owner.generation && sendingRef.current === owner;
+      sendingRef.current = owner;
+      setPending({ ...owner, text });
       try {
         await respond({ sessionToken, message: text, route: input.kind, query: input.query });
       } catch (error) {
         const detail = (error as { data?: { message?: string } })?.data?.message ?? (error as Error)?.message;
-        toast.error(detail && detail.length < 160 ? detail : "The assistant could not answer just now.");
+        if (isCurrent()) toast.error(detail && detail.length < 160 ? detail : "The assistant could not answer just now.");
       } finally {
-        sendingRef.current = false;
-        setSending(false);
-        setPendingText(null);
+        if (isCurrent()) {
+          sendingRef.current = null;
+          setPending(null);
+        }
       }
     },
-    [input.kind, input.query, active, respond, sessionToken],
+    [input.kind, input.query, active, respond, sessionToken, scope],
   );
 
   const feedback = useCallback(

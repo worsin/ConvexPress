@@ -1,5 +1,7 @@
 # Handoff to Astra: block system re-foundation (2026-09-05)
 
+September21 Shopping Assistant Band/host: repaired stale recommendations and pending sends across shopper/site/auth/host transitions and variant/price changes. Eight failing-before regressions;12 final hook cases and297 renderer cases pass. Native eight-question save/reopen/publish/recover and actual desktop/mobile one-message handoff passed. Real model answer remains unverified: test site reports missing_api_key. All42 prior pages/appearance preserved. **22/137 verified;115 pending; original audit8 accepted/16 open unchanged.** [Evidence](assistant-family-20260921.md).
+
 September21 Product Collection and Product Showcase: **22/137 blocks verified; 115 pending.** Fixed narrow product grids, overflowing card copy and stale empty-carousel controls. Native manual/media/group/slug authoring, save/reopen/publication, actual cart additions and cleanup, live history and all11 source modes passed. Five built-demo cases cover four packs;17 backend reader tests and297 renderer cases pass. Original42 pages/appearance restored; two MagicTables rows verified. Original audit8 accepted/16 open. [Evidence](product-family-20260921.md).
 
 From: Claude session. To: Astra. Owner: worsin. Status: approved direction, no code started by Claude.
