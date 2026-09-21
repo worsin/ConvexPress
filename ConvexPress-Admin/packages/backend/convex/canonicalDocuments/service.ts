@@ -67,7 +67,7 @@ import {
 import { resolveCanonicalPageData } from "./data";
 import { projectPublicBlocks } from "./publicBlocks";
 import { LegacyMigrationError, migrateLegacyDocument } from "./foundation/legacyDocumentMigration";
-import { migrateLegacyBlocks } from "./foundation/legacyBlockMigration";
+import { reviewLegacyBlocks } from "./foundation/legacyBlockMigration";
 import { hasStructuredArticle, migrateStructuredArticle } from "./foundation/legacyStructuredMigration";
 import { migrateLegacySections } from "./foundation/legacySectionMigration";
 import { parseCanonicalMigration, type CanonicalMigrationDto } from "./foundation/migrationContracts";
@@ -588,7 +588,7 @@ export async function pageOptions(
 
 /** Select the same visible source as current public page/post surfaces. Hidden
  * source fields remain in the original revision; they are never chosen by guess. */
-function prepareAuthoredMigration(post: Doc<"posts">): PreparedCanonicalWrite {
+function prepareAuthoredMigration(post: Doc<"posts">): PreparedCanonicalWrite & {inactiveSettings?: CanonicalMigrationDto["inactiveSettings"]} {
   if (post.status !== "draft") refuse("CANONICAL_DRAFT_REQUIRED", "Migrate an editable draft before publishing it.");
   if (post.blocksVersion !== undefined && post.blocksVersion !== 1) refuse("UNSUPPORTED_AUTHORING_VERSION", "This is not a supported legacy authoring document.");
   if (post.contentMode !== undefined && post.contentMode !== "article" && post.contentMode !== "blocks") refuse("UNSUPPORTED_AUTHORING_VERSION", "The legacy content mode is unsupported.");
@@ -598,12 +598,13 @@ function prepareAuthoredMigration(post: Doc<"posts">): PreparedCanonicalWrite {
   // Match the Website's visible-source precedence. In particular, block-mode
   // posts prefer nonempty blocks to structured content, and block-mode pages
   // use sections (including an empty list) rather than hidden article text.
-  const blocks = post.contentMode === "blocks" && post.blocks?.length
-    ? migrateLegacyBlocks(post.blocks)
+  const blockReview = post.contentMode === "blocks" && post.blocks?.length ? reviewLegacyBlocks(post.blocks) : null;
+  const blocks = blockReview
+    ? blockReview.blocks
     : post.contentMode === "blocks" && post.type === "page"
       ? migrateLegacySections(post.pageSections ?? [])
       : migrateArticleSource();
-  return { title: post.title, blocks, digest: canonicalContentDigest(post.title, blocks), revision: revision + 1, changed: true };
+  return { title: post.title, blocks, digest: canonicalContentDigest(post.title, blocks), revision: revision + 1, changed: true, ...(blockReview?.inactiveSettings.length ? {inactiveSettings:blockReview.inactiveSettings} : {}) };
 
   function migrateArticleSource() {
    if (post.type === "post" && hasStructuredArticle(post)) return migrateStructuredArticle({
@@ -618,9 +619,9 @@ export async function prepareMigrationDocument(ctx: QueryCtx, args: { postId: Id
   const { post } = await authorized(ctx, args.postId, budget);
   if (!post) refuse("NOT_FOUND", "Document not found.");
   const prepared = prepareAuthoredMigration(post);
-  return parseCanonicalMigration({ contract: "canonical-migration-v1", source: { postId: post._id, revision: authoringRevision(post), authoringDigest: authoringSourceDigest(post) }, candidate: await project(ctx, post, budget, prepared) });
+  return parseCanonicalMigration({ contract: "canonical-migration-v1", source: { postId: post._id, revision: authoringRevision(post), authoringDigest: authoringSourceDigest(post) }, candidate: await project(ctx, post, budget, prepared), ...(prepared.inactiveSettings ? {inactiveSettings:prepared.inactiveSettings} : {}) });
 }
-export type MigrateArgs = { postId: Id<"posts">; expectedRevision: number; expectedAuthoringDigest: string; expectedCandidateDigest: string; expectedPresentationRevision: string };
+export type MigrateArgs = { postId: Id<"posts">; expectedRevision: number; expectedAuthoringDigest: string; expectedCandidateDigest: string; expectedPresentationRevision: string; preserveInactiveSettings?: boolean };
 export async function migrateDocument(ctx: MutationCtx, args: MigrateArgs): Promise<CanonicalWriteReceipt> {
   const budget = new RequestReadLedger();
   const { post, user } = await authorized(ctx, args.postId, budget);
@@ -628,6 +629,7 @@ export async function migrateDocument(ctx: MutationCtx, args: MigrateArgs): Prom
   // Check complete source CAS before converting or starting dependent reads.
   if (!Number.isSafeInteger(args.expectedRevision) || authoringRevision(post) !== args.expectedRevision || authoringSourceDigest(post) !== args.expectedAuthoringDigest) refuse("CONFLICT", "The authoring source changed after migration review.");
   const prepared = prepareAuthoredMigration(post);
+  if (prepared.inactiveSettings?.length && args.preserveInactiveSettings !== true) refuse("MIGRATION_INTENT_REVIEW_REQUIRED", "Confirm that unused layout and lock settings remain in the original revision before converting.");
   if (prepared.digest !== args.expectedCandidateDigest) refuse("MIGRATION_REVIEW_MISMATCH", "The reviewed candidate does not match this source conversion.");
   const candidate = await project(ctx, post, budget, prepared);
   if (candidate.presentation.revision !== args.expectedPresentationRevision) refuse("MIGRATION_REVIEW_MISMATCH", "The template presentation changed after migration review.");

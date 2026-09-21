@@ -507,7 +507,7 @@ test("native write adapter refuses wrong scope, digest, document and revision re
 	}
 });
 
-test("existing authored migration reviews generated fields and commits only source hashes before reopening", async () => {
+test.each([false,true])("existing authored migration binds source review and unused-settings acknowledgement (%s)", async (inactive) => {
 	const loaded = await loadStaged("../canonical-editor/workspace.fixture.ts"),
 		m = loaded.module;
 	const dom = new JSDOM('<div id="app"></div>', { url: "http://localhost" }),
@@ -595,6 +595,7 @@ test("existing authored migration reviews generated fields and commits only sour
 		},
 		candidate,
 	};
+    if(inactive) review.inactiveSettings=[{blockId:"paragraph",name:"core/paragraph",layout:{padding:"spacious"},lock:{edit:true}}];
 	let current = original,
 		writes = [],
 		gets = 0;
@@ -603,7 +604,7 @@ test("existing authored migration reviews generated fields and commits only sour
 			gets++;
 			return current;
 		},
-		prepareMigration: async () => review,
+		prepareMigration: async () => structuredClone(review),
 		migrate: async (args) => {
 			writes.push(args);
 			current = candidate;
@@ -647,9 +648,23 @@ test("existing authored migration reviews generated fields and commits only sour
 		);
 		expect(document.querySelector('[contenteditable="true"]')).toBeNull();
 		expect(writes.length).toBe(0);
+        if(inactive) {
+          expect(document.body.textContent).toContain("padding: spacious");
+          expect(document.body.textContent).toContain("edit: on");
+          expect(button("Convert reviewed content").disabled).toBe(true);
+          await act(async()=>button("Convert reviewed content").click());
+          expect(writes).toHaveLength(0);
+          await act(async()=>document.querySelector('input[type="checkbox"]').click());
+          expect(button("Convert reviewed content").disabled).toBe(false);
+          await act(async()=>button("Refresh migration review").click());
+          expect(button("Convert reviewed content").disabled).toBe(true);
+          expect(document.querySelector('input[type="checkbox"]').checked).toBe(false);
+          await act(async()=>document.querySelector('input[type="checkbox"]').click());
+        }
 		await act(async () => button("Convert reviewed content").click());
 		expect(writes).toEqual([
 			{
+				...(inactive ? {preserveInactiveSettings:true} : {}),
 				expectedRevision: 2,
 				expectedAuthoringDigest: "a".repeat(64),
 				expectedCandidateDigest: candidate.document.digest,

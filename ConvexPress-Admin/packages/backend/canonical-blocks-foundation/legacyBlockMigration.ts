@@ -5,6 +5,7 @@ import {legacyTextToRichText} from './compatibility/rich_text.mjs';
 import {validateBlockAttrs,validateBlockTreatment} from './generated/schemas';
 import {validateCanonicalTree,CANONICAL_TREE_LIMITS} from './generated/instances';
 import type {CanonicalTree} from './generated/types';
+import {inactiveLegacySettingsSchema, type InactiveLegacySettings} from './migrationContracts';
 import {LegacyMigrationError} from './legacyDocumentMigration';
 type Row=Record<string,unknown>;
 type Schema={shape?:Record<string,Schema>;element?:Schema;unwrap?:()=>Schema;_zod?:{def?:{innerType?:Schema}}};
@@ -25,7 +26,14 @@ function transformAt(root:unknown,path:readonly string[],fn:(owner:Row,key:strin
   if(key==='*'){if(!Array.isArray(root))fail(at,'Expected legacy repeated values');root.forEach((item,index)=>rest.length?transformAt(item,rest,fn,[...at,index]):fn(root as unknown as Row,String(index),[...at,index]));}
   else if(root&&typeof root==='object'&&own(root,key)){const row=root as Row;if(rest.length)transformAt(row[key],rest,fn,[...at,key]);else fn(row,key,[...at,key]);}
 }
-export function migrateLegacyBlocks(input:unknown):CanonicalTree{
+export function migrateLegacyBlocks(input:unknown):CanonicalTree {
+  return convertLegacyBlocks(input, false).blocks;
+}
+export function reviewLegacyBlocks(input:unknown):{blocks:CanonicalTree;inactiveSettings:InactiveLegacySettings[]} {
+  return convertLegacyBlocks(input, true);
+}
+function convertLegacyBlocks(input:unknown, reviewInactive:boolean):{blocks:CanonicalTree;inactiveSettings:InactiveLegacySettings[]} {
+  const inactiveSettings:InactiveLegacySettings[]=[];
   let serialized:string;try{serialized=JSON.stringify(input);}catch{fail(['blocks'],'Legacy tree must be JSON');}
   if(!serialized||new TextEncoder().encode(serialized).length>CANONICAL_TREE_LIMITS.bytes)fail(['blocks'],'Legacy tree exceeds byte budget');
   if(!Array.isArray(input))fail(['blocks'],'Expected legacy block array');
@@ -34,11 +42,16 @@ export function migrateLegacyBlocks(input:unknown):CanonicalTree{
     if(++count>CANONICAL_TREE_LIMITS.nodes||depth>CANONICAL_TREE_LIMITS.depth)fail(path,'Legacy tree exceeds depth/node budget');
     const row=object(input,path);
     for(const key of Object.keys(row))if(!['id','name','version','attrs','innerBlocks','layout','lock'].includes(key))fail([...path,key],'Unknown legacy envelope property');
-    // Legacy rendering ignored layout and the old editor did not enforce locks.
-    // Even overlapping canonical keys would silently activate new behavior.
-    // Retain these in the source revision until an explicit intent review exists.
-    if(row.layout!==undefined&&Object.keys(object(row.layout,[...path,'layout'])).length)fail([...path,'layout'],'Saved inactive layout needs an explicit intent review');
-    if(row.lock!==undefined&&Object.values(object(row.lock,[...path,'lock'])).some(Boolean))fail([...path,'lock'],'Saved inactive locks need an explicit intent review');
+    // Validate even inactive values: an unknown envelope must not disappear.
+    let settings:InactiveLegacySettings;
+    try { settings=inactiveLegacySettingsSchema.parse({blockId:row.id,name:row.name,...(row.layout!==undefined?{layout:row.layout}:{}),...(row.lock!==undefined?{lock:row.lock}:{})}); }
+    catch { fail(path,'Saved layout or lock settings differ from the legacy contract'); }
+    const hasLayout=settings.layout && Object.keys(settings.layout).length>0;
+    const hasLocks=settings.lock && Object.values(settings.lock).some(Boolean);
+    if(hasLayout||hasLocks) {
+      if(!reviewInactive) fail([...path,hasLayout?'layout':'lock'],'Saved inactive settings need an explicit intent review');
+      inactiveSettings.push(settings);
+    }
     if(typeof row.name!=='string'||!own(legacyCompatibility,row.name))fail([...path,'name'],'No generated legacy schema');
     const definition=legacyCompatibility[row.name];
     if(row.version!==definition.fromVersion)fail([...path,'version'],'Legacy version differs from its compatibility source');
@@ -55,7 +68,7 @@ export function migrateLegacyBlocks(input:unknown):CanonicalTree{
     if(Object.keys(treatmentValues).length){const keys=Object.keys(treatmentValues).sort();const matches=definition.treatments.filter(item=>JSON.stringify([...item.axes].sort())===JSON.stringify(keys));if(matches.length!==1)fail([...path,'treatment'],'Exact composable treatment mapping required');treatment={name:matches[0].name,values:treatmentValues};try{validateBlockTreatment(row.name,treatment);}catch{fail([...path,'treatment'],'Authored treatment axes exceed their exact target contract');}}
     let canonicalAttrs:unknown;try{canonicalAttrs=validateBlockAttrs(row.name,attrs);}catch{fail([...path,'attrs'],'Legacy rendered attrs require a further target adapter');}
     if(row.innerBlocks!==undefined&&!Array.isArray(row.innerBlocks))fail([...path,'innerBlocks'],'Legacy children must be an array');
-    return {id:row.id,name:row.name,version:definition.toVersion,attrs:canonicalAttrs,...(treatment?{treatment}:{}),...(row.layout!==undefined?{layout:row.layout}:row.name==='reference/field-guide'&&treatment?{layout:{spacing:'none',width:'full'}}:{}),...(row.lock!==undefined?{lock:row.lock}:{}),...(row.innerBlocks!==undefined?{children:(row.innerBlocks as unknown[]).map((child,index)=>visit(child,[...path,'innerBlocks',index],depth+1))}:{})};
+    return {id:row.id,name:row.name,version:definition.toVersion,attrs:canonicalAttrs,...(treatment?{treatment}:{}),...(row.name==='reference/field-guide'&&treatment?{layout:{spacing:'none',width:'full'}}:{}),...(row.innerBlocks!==undefined?{children:(row.innerBlocks as unknown[]).map((child,index)=>visit(child,[...path,'innerBlocks',index],depth+1))}:{})};
   };
-  return validateCanonicalTree(input.map((row,index)=>visit(row,['blocks',index],1)));
+  return {blocks:validateCanonicalTree(input.map((row,index)=>visit(row,['blocks',index],1))),inactiveSettings};
 }

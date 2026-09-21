@@ -1,5 +1,5 @@
 import {test,expect} from 'bun:test';
-import {migrateLegacyBlocks} from '../../ConvexPress-Admin/packages/backend/canonical-blocks-foundation/legacyBlockMigration';
+import {migrateLegacyBlocks, reviewLegacyBlocks} from '../../ConvexPress-Admin/packages/backend/canonical-blocks-foundation/legacyBlockMigration';
 import {legacyCompatibility} from '../../ConvexPress-Admin/packages/backend/canonical-blocks-foundation/compatibility/legacy_schemas.mjs';
 const guide=(attrs:Record<string,unknown>={})=>({id:'guide',name:'reference/field-guide',version:1,attrs});
 test('actual legacy defaults and every editorial axis survive as content plus separate treatment',()=>{
@@ -21,4 +21,16 @@ test('unknown fields, unsafe links, wrong versions, active locks and unsupported
 test('old inline grammar preserves literal markup and canonical marks under actual schema defaults',()=>{
   const result=migrateLegacyBlocks([{id:'heading',name:'core/heading',version:1,attrs:{text:'Literal **stars**',level:2}}]);
   expect(result[0].attrs.text).toEqual({type:'doc',content:[{type:'paragraph',content:[{type:'text',text:'Literal **stars**'}]}]});
+});
+
+test('explicit review preserves inactive settings in a separate receipt without activating layout or locks',()=>{
+  const source=[{...guide(),layout:{tone:'contrast',padding:'spacious',container:'full'},lock:{edit:true,move:true,remove:false}}];
+  const before=structuredClone(source);
+  const review=reviewLegacyBlocks(source);
+  expect(review.blocks).toEqual(migrateLegacyBlocks([guide()]));
+  expect(review.inactiveSettings).toEqual([{blockId:'guide',name:'reference/field-guide',layout:source[0].layout,lock:source[0].lock}]);
+  expect(source).toEqual(before);
+  expect(()=>migrateLegacyBlocks(source)).toThrow('explicit intent review');
+  for(const changed of [{layout:{padding:'invented'}},{lock:{edit:'yes'}},{lock:{unknown:false}}])
+    expect(()=>reviewLegacyBlocks([{...guide(),...changed}])).toThrow();
 });

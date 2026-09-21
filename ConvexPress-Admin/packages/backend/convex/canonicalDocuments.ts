@@ -129,7 +129,7 @@ export const prepareMigration: RegisteredQuery<"public", ReadArgs, Promise<Canon
   handler: (ctx, args) => canonicalBoundary(() => prepareMigrationDocument(ctx, args)),
 });
 export const migrate: RegisteredMutation<"public", MigrateArgs, Promise<CanonicalWriteReceipt>> = mutation({
-  args: { postId: v.id("posts"), expectedRevision: v.number(), expectedAuthoringDigest: v.string(), expectedCandidateDigest: v.string(), expectedPresentationRevision: v.string() }, returns: receiptValidator,
+  args: { postId: v.id("posts"), expectedRevision: v.number(), expectedAuthoringDigest: v.string(), expectedCandidateDigest: v.string(), expectedPresentationRevision: v.string(), preserveInactiveSettings: v.optional(v.boolean()) }, returns: receiptValidator,
   handler: (ctx, args) => canonicalBoundary(() => migrateDocument(ctx, args)),
 });
 

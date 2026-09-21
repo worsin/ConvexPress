@@ -54,7 +54,7 @@ Every row remains open at full requirement scope. Consult the exact source requi
 | HD1 | Site-build workflow | Brand-to-template/plugins/pages/menus/media/shop and screenshot audit end-to-end |
 | HX1 | Reserved route-collision checks | Warnings and write guards across exact/nested reserved routes and reparenting |
 | Block Phase 0–1 | 137 specifications/renderers; generated contracts | All supported fields, state and failure coverage in the installed editor |
-| Block Phase 2 | Canonical authoring/recovery; native page and bounded structured-article round trips | Broader structured/legacy render acceptance, inactive layout/lock intent, mixed-tree limits and legacy retirement |
+| Block Phase 2 | Canonical authoring/recovery; native page and bounded structured-article round trips | Broader structured/legacy render acceptance, mixed-tree limits and legacy retirement; known inactive settings now explicitly reviewed |
 | Block Phase 3 | Four packs, 32 patterns; working template spacing/width controls and secondary actions | Flagship treatments, final content switching and per-block visual/motion signoff |
 | Block Phase 4 | Live editor, history, insertion, diagnostics, element approval | Wider field/keyboard/selection coverage, successful provider generation and cloud hover rollout |
 | Block Phase 5 | Resolver, composition/style/promotion paths | Resource discovery and broader live data/media/child-slot/provider exercises |
@@ -284,3 +284,6 @@ Depot now respects compact heading scale and authored Card padding. Native autho
 ## September21 Journal and Depot Customizer workflow
 
 Native Journal/Depot presets, typography, radius, layout/shop fields, group/brand reset, history, saved drafts, publication and confirmed staging-to-live promotion passed on isolated databases. Fixed first-use live destination CSP preparation, unreadable conflict notifications and per-pack shop selections during activation. Stale live revision preserved; fresh review recovered.491 frontend tests, types/build/Oxlint pass. Both original site snapshots/content restored; owned sessions/processes cleaned up; two MagicTables Notes updates verified. See [exact evidence and remaining scope](customizer-packs-20260921.md). Original audit remains eight accepted/sixteen open; full on-site/all-surface/block/release requirements remain open.
+
+
+September21 inactive-settings migration: known unused legacy layout/locks now have an explicit native review and acknowledgement; server refuses missing acknowledgement, changed source and lost authority. Native conversion/edit/save/reopen, actual Website H2 and exact original-editor recovery passed on isolated4860; all42 original pages unchanged, fixture trashed and owned sessions/processes cleaned up.89 document-service tests and22 converter tests pass. See [evidence](inactive-migration-20260921.md). Broader structured/mixed-tree/render parity and retirement remain open; original audit8accepted/16open.

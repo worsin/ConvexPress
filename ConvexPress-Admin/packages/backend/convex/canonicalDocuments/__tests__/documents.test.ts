@@ -60,7 +60,7 @@ test("legacy block and section migration commits the visible source and recovers
   }
 });
 
-test("legacy block migration refuses unknown fields, active intent and stale nested sources without any writes", async () => {
+test("legacy block migration refuses unknown fields and stale settings reviews without any writes", async () => {
   const f = await fixture(), block = { id: "saved-heading", name: "core/heading", version: 1, attrs: { text: "Original", level: 2 } };
   await f.t.run(ctx => ctx.db.patch("posts", f.ids.post, { contentMode: "blocks", blocksVersion: 1, blocks: [block] }));
   const review = await f.client.query(reference("prepareMigration"), { postId: f.ids.post });
@@ -72,7 +72,10 @@ test("legacy block migration refuses unknown fields, active intent and stale nes
   ]) {
     await f.t.run(ctx => ctx.db.patch("posts", f.ids.post, { blocks: [changed] }));
     const before = await f.t.run(async ctx => ({ post: await ctx.db.get("posts", f.ids.post), revisions: await ctx.db.query("revisions").collect() }));
-    await expect(f.client.query(reference("prepareMigration"), { postId: f.ids.post })).rejects.toThrow();
+    if ("layout" in changed || "lock" in changed) {
+      const refreshed = await f.client.query(reference("prepareMigration"), { postId: f.ids.post });
+      expect(refreshed.inactiveSettings).toHaveLength(1);
+    } else await expect(f.client.query(reference("prepareMigration"), { postId: f.ids.post })).rejects.toThrow();
     await expect(f.client.mutation(reference("migrate", "mutation"), args)).rejects.toThrow();
     expect(await f.t.run(async ctx => ({ post: await ctx.db.get("posts", f.ids.post), revisions: await ctx.db.query("revisions").collect() }))).toEqual(before);
   }
@@ -2332,4 +2335,32 @@ test("canonical writes and recovery notify content listeners, while no-ops and c
       expect(JSON.parse(event.payload)).not.toHaveProperty("content");
     }
   }
+});
+
+
+test("inactive legacy settings require exact reviewed acknowledgement and remain fully recoverable", async () => {
+  const f=await fixture();
+  const blocks=[{id:"old-heading",name:"core/heading",version:1,attrs:{text:"Preserve this appearance",level:2},layout:{tone:"contrast" as const,padding:"spacious" as const},lock:{edit:true,move:true}}];
+  await f.t.run(ctx=>ctx.db.patch("posts",f.ids.post,{contentMode:"blocks",blocksVersion:1,blocks,content:"Hidden source"}));
+  const review=await f.client.query(reference("prepareMigration"),{postId:f.ids.post});
+  expect(review.inactiveSettings).toEqual([{blockId:"old-heading",name:"core/heading",layout:blocks[0].layout,lock:blocks[0].lock}]);
+  expect(review.candidate.document.blocks[0].layout).toBeUndefined();
+  expect(review.candidate.document.blocks[0].lock).toBeUndefined();
+  const args={postId:f.ids.post,expectedRevision:review.source.revision,expectedAuthoringDigest:review.source.authoringDigest,expectedCandidateDigest:review.candidate.document.digest,expectedPresentationRevision:review.candidate.presentation.revision};
+  for(const acknowledge of [undefined,false]) await expect(f.client.mutation(reference("migrate","mutation"),{...args,...(acknowledge===undefined?{}:{preserveInactiveSettings:acknowledge})})).rejects.toThrow();
+  expect(await f.t.run(ctx=>ctx.db.query("revisions").collect())).toHaveLength(0);
+  await f.t.run(ctx=>ctx.db.patch("posts",f.ids.post,{blocks:[{...blocks[0],lock:{edit:false}}]}));
+  await expect(f.client.mutation(reference("migrate","mutation"),{...args,preserveInactiveSettings:true})).rejects.toThrow();
+  await f.t.run(ctx=>ctx.db.patch("posts",f.ids.post,{blocks}));
+  await expect(f.as(f.ids.denied).mutation(reference("migrate","mutation"),{...args,preserveInactiveSettings:true})).rejects.toThrow();
+  const receipt=await f.client.mutation(reference("migrate","mutation"),{...args,preserveInactiveSettings:true});
+  const history=await f.client.query(reference("pageRevisions"),{postId:f.ids.post,paginationOpts:{numItems:20,cursor:null}});
+  expect(history.page[0].restorable).toBe(true);
+  const stored=await f.t.run(ctx=>ctx.db.get("revisions",history.page[0].id));
+  expect(stored!.blocks).toEqual(blocks);
+  await f.client.mutation(reference("recoverLegacy","mutation"),{postId:f.ids.post,revisionId:history.page[0].id,expectedRevision:receipt.revision});
+  const restored=await f.t.run(ctx=>ctx.db.get("posts",f.ids.post));
+  expect(restored!.blocks).toEqual(blocks);
+  expect(restored!.content).toBe("Hidden source");
+  expect(restored!.blocksVersion).toBe(1);
 });

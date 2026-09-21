@@ -37,8 +37,16 @@ Website's visible-source precedence. Structured conversion preserves visible her
 manual table-of-contents links, topic anchors, summary, sources, media references
 and consent-gated video. Hidden sources stay in the original revision. It refuses
 unsupported structured fields, duplicate anchors, capacity overflow, distinct unsaved autosaves,
-unknown authoring versions, and saved inactive layout/lock intent that would
-silently become active. Do not bypass those refusals.
+unknown authoring versions and unknown layout/lock fields. Do not bypass those refusals.
+
+Known saved layout and lock settings that the old renderer/editor ignored are now
+listed in `prepareMigration.inactiveSettings`. Review them in Electron and explicitly
+acknowledge leaving them inactive before conversion. The write requires
+`preserveInactiveSettings: true` when this list is nonempty; source/candidate/presentation
+bindings still apply. The canonical candidate does not activate those settings; the
+complete original revision retains them and supports exact original-editor recovery.
+Refreshing a review clears the acknowledgement. This is not permission to drop unknown
+fields or to activate old settings by copying them onto the canonical envelope.
 
 September 20 acceptance on disposable target 4870 proved a heading page's native
 review, conversion, reload, actual Website rendering, and recovery to the original
@@ -59,6 +67,8 @@ legacy styling or complete structured-article migration. See
 3. `canonicalDocuments:migrate` takes `postId`, `expectedRevision`,
    `expectedAuthoringDigest`, `expectedCandidateDigest` and
    `expectedPresentationRevision`. Use the exact values from that reviewed result.
+   Include `preserveInactiveSettings: true` only after the explicit inactive-settings
+   review described above; a pure conversion does not provide that acknowledgement.
 4. Read `canonicalDocuments:get` and `canonicalDocuments:pageRevisions` to verify
    the committed revision and original recovery source. Test
    `canonicalDocuments:recoverLegacy` in a disposable target using its selected
@@ -79,3 +89,11 @@ Local checks cannot substitute for complete installed-data preflight, native
 authoring recovery and rendered acceptance in every environment to be migrated.
 
 `check:blocks-migration` is also a retirement gate: it exits nonzero while staged conversions or old/new schema differences remain, even when every schema is representable. Inspect `pendingRenderAcceptance`, schema/default differences and conversion issues; do not remove the gate to make a docs check green.
+
+September21 isolated source4860 acceptance completed native acknowledgement/reset,
+conversion, edit/save/reopen, actual Website H2 rendering and original-editor recovery
+for a legacy heading with unused layout and all three locks. Every original returned
+field matched except expected revision/update metadata. The other42 pages were unchanged
+and the fixture was trashed. See
+`ConvexPress-Admin/audits/2026-09-04/inactive-migration-20260921.md`.
+Broader structured/mixed-tree/render parity and installed-fleet retirement remain open.

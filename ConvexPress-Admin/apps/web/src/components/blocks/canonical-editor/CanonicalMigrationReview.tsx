@@ -1,3 +1,4 @@
+import { editorDefinitions } from "../../../../../../../blocks/.generated/editor-metadata";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
 	parseCanonicalMigration,
@@ -20,6 +21,7 @@ export interface MigrationClient {
 		expectedAuthoringDigest: string;
 		expectedCandidateDigest: string;
 		expectedPresentationRevision: string;
+		preserveInactiveSettings?: boolean;
 	}): Promise<unknown>;
 }
 /** The server owns conversion. Review is immutable and commit sends only exact
@@ -35,6 +37,7 @@ export function CanonicalMigrationReview({
 	client: MigrationClient;
 	onMigrated: () => Promise<unknown>;
 }) {
+	const [acknowledgedReview, setAcknowledgedReview] = useState<CanonicalMigrationDto | null>(null);
 	const [review, setReview] = useState<CanonicalMigrationDto | null>(null),
 		[busy, setBusy] = useState(false),
 		[error, setError] = useState<string | null>(null),
@@ -57,18 +60,15 @@ export function CanonicalMigrationReview({
 		() => (current ? canonicalEditorAdapter(current.candidate.policy) : null),
 		[current],
 	);
-	const selected =
-		current && adapter
-			? outline(current.candidate.document.blocks, adapter).find(
-					(row) => row.node.id === selection,
-				)?.node
-			: null;
+	const rows = current && adapter ? outline(current.candidate.document.blocks, adapter) : [];
+	const selected = rows.find((row) => row.node.id === selection)?.node ?? null;
 	const prepare = async () => {
 		if (pending.current) return;
 		pending.current = true;
 		setBusy(true);
 		setError(null);
 		setReview(null);
+		setAcknowledgedReview(null);
 		try {
 			const next = parseCanonicalMigration(await client.prepareMigration());
 			readForEditor(next.candidate, documentKey);
@@ -119,6 +119,34 @@ export function CanonicalMigrationReview({
 						{current.candidate.document.title} ·{" "}
 						{current.candidate.document.blocks.length} top-level blocks
 					</p>
+					{!!current.inactiveSettings?.length && (
+						<fieldset className="space-y-3 rounded border border-border p-4">
+							<legend className="px-1 font-medium">Unused settings in the original document</legend>
+							<p className="text-sm text-muted-foreground">
+								These settings were saved but never applied by the original editor.
+								Conversion will leave these settings inactive. The saved
+								settings remain in the original revision and can be recovered with it.
+							</p>
+							<ul className="space-y-2 text-sm">
+								{current.inactiveSettings.map((setting) => {
+									const index = rows.findIndex((row) => row.node.id === setting.blockId);
+									const title = Object.hasOwn(editorDefinitions, setting.name)
+										? editorDefinitions[setting.name as keyof typeof editorDefinitions].title : "Block";
+									return <li key={setting.blockId}>
+										<strong>{title ?? "Block"} · {index + 1}</strong>
+										{setting.layout && <p>Layout: {Object.entries(setting.layout).map(([key, value]) => `${key}: ${value}`).join(", ") || "none"}</p>}
+										{setting.lock && <p>Locks: {Object.entries(setting.lock).map(([key, value]) => `${key}: ${value ? "on" : "off"}`).join(", ") || "none"}</p>}
+									</li>;
+								})}
+							</ul>
+							<label className="flex min-h-11 items-center gap-3 text-sm">
+								<input type="checkbox" disabled={busy}
+									checked={acknowledgedReview === current}
+									onChange={(event) => setAcknowledgedReview(event.target.checked ? current : null)} />
+								Leave these settings inactive and retain them in the original revision.
+							</label>
+						</fieldset>
+					)}
 					<div className="grid gap-5 md:grid-cols-[minmax(180px,1fr)_minmax(0,2fr)]">
 						<CanonicalOutline
 							nodes={current.candidate.document.blocks}
@@ -143,17 +171,18 @@ export function CanonicalMigrationReview({
 					</div>
 					<button
 						type="button"
-						disabled={busy}
+						disabled={busy || (!!current.inactiveSettings?.length && acknowledgedReview !== current)}
 						className="min-h-11 rounded bg-primary px-4 text-sm text-primary-foreground disabled:opacity-50"
 						onClick={() =>
 							void (async () => {
-								if (pending.current) return;
+								if (pending.current || (current.inactiveSettings?.length && acknowledgedReview !== current)) return;
 								pending.current = true;
 								setBusy(true);
 								setError(null);
 								try {
 									const receipt = canonicalWriteReceiptSchema.parse(
 										await client.migrate({
+											...(current.inactiveSettings?.length ? {preserveInactiveSettings: true} : {}),
 											expectedRevision: current.source.revision,
 											expectedAuthoringDigest: current.source.authoringDigest,
 											expectedCandidateDigest:
