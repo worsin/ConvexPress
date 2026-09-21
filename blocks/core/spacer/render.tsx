@@ -1,4 +1,5 @@
-/** Staged Library treatment; legacy content activation requires separate acceptance. */
 import { defineBlock } from "../../../ConvexPress-Website/apps/web/src/templates/sdk/block-renderer/model";
-import * as P from "../../../ConvexPress-Website/apps/web/src/templates/sdk/primitives";
-export default defineBlock("core/spacer", () => (<P.Section spacing="compact" label="Intentional spacing" />));
+
+// The canonical Section owns the saved spacing intent and template tokens.
+// A second padded section would add an unwanted gap even for spacing="none".
+export default defineBlock("core/spacer", () => null);

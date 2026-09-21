@@ -5,6 +5,57 @@ const loaded = await loadStaged("../canonical-editor/presentation.fixture.ts");
 afterAll(() => loaded.cleanup());
 const { canonicalEditorAdapter, checkedDraft, packBlockPresentation } = loaded.module;
 const policy = { enabledPlugins: [], capabilities: ["tree.children", "reference.targetResolution"], disabledBlocks: [] };
+test("block layout edits retain content, survive template changes, reset by omission and refuse unsupported input", () => {
+	const adapter = canonicalEditorAdapter(policy, "core");
+	for (const name of [
+		"core/heading",
+		"core/paragraph",
+		"core/divider",
+		"core/spacer",
+	]) {
+		const original = adapter.createBlock(name);
+		let edited = original;
+		for (const [field, choices] of Object.entries<readonly string[]>(
+			adapter.layoutOptions(original),
+		)) {
+			for (const choice of choices) {
+				edited = adapter.withLayout(edited, field, choice);
+				expect(adapter.layoutValue(edited, field)).toBe(choice);
+				expect(
+					checkedDraft({ title: "Layout", blocks: [edited] }).blocks[0].layout[
+						field
+					],
+				).toBe(choice);
+				expect(
+					canonicalEditorAdapter(policy, "journal").layoutValue(edited, field),
+				).toBe(choice);
+				expect(edited.attrs).toEqual(original.attrs);
+			}
+			edited = adapter.withLayout(edited, field, "");
+			expect(edited.layout).toBeUndefined();
+		}
+		expect(original.layout).toBeUndefined();
+		expect(() => adapter.withLayout(original, "spacing", "42px")).toThrow();
+		expect(() => adapter.withLayout(original, "position", "fixed")).toThrow();
+		const anchored = adapter.withAnchor(original, "chapter-two");
+		expect(
+			checkedDraft({ title: "Anchored", blocks: [anchored] }).blocks[0].anchor,
+		).toBe("chapter-two");
+		expect(adapter.withAnchor(anchored, "").anchor).toBeUndefined();
+		expect(() =>
+			checkedDraft({
+				title: "Invalid",
+				blocks: [adapter.withAnchor(original, "1 invalid")],
+			}),
+		).toThrow();
+		expect(() =>
+			checkedDraft({
+				title: "Duplicate",
+				blocks: [anchored, { ...anchored, id: "second" }],
+			}),
+		).toThrow();
+	}
+});
 test("editor offers pack styles while preserving unsupported saved choices across template switches", () => {
   const journal = canonicalEditorAdapter(policy, "journal"), core = canonicalEditorAdapter(policy, "core");
   const node = journal.createBlock("core/cta-band");

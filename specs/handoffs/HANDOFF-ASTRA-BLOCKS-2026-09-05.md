@@ -317,3 +317,6 @@ September21 inactive-settings migration follow-up: explicit per-block review now
 
 
 September21 Paragraph:2k→20k canonical text capacity is backward-compatible for existing v2 documents. Real native migration/edit/save/publish/withdraw/original recovery and public desktop/mobile output verified on isolated4860; four-pack generated editor/render checks pass. See `ConvexPress-Admin/audits/2026-09-04/paragraph-migration-20260921.md`. Other structures, mixed-tree/fleet retirement and complete block/template acceptance remain open.
+
+
+September21 native block layout: Heading/Paragraph/Divider/Spacer authored and saved in Electron, four-pack public desktop/mobile checks pass. Added declared width/tone/spacing/alignment and instance-anchor controls with draft/undo/CAS/validation guards. Fixed Spacer retaining64px for spacing=none and announcing an empty region.291 renderer and6 editor/adapter/composition checks pass; types/build/freshness pass. Original42pages and complete appearance values restored; owned fixtures/sessions/processes cleaned up. Evidence: ConvexPress-Admin/audits/2026-09-04/core-text-layout-20260921.md. Original audit8accepted/16open; full-block statuses remain open.

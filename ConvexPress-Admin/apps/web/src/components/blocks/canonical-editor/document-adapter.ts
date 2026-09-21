@@ -1,4 +1,6 @@
 import thumbnailCatalog from "./block-thumbnails.generated.json";
+import { z } from "zod";
+import { BLOCK_LAYOUT_VALUES, createCanonicalLayoutSchema } from "../../../../../../../blocks/.generated/instance-runtime.mjs";
 import { templatePatterns } from "../../../../../../../blocks/.generated/patterns";
 import { instantiatePattern } from "./patterns";
 import { planCanonicalData } from "@backend/canonical-blocks-foundation/planner";
@@ -222,6 +224,42 @@ export function canonicalEditorAdapter(
 	);
 	return {
 		contract,
+		anchorValue: (node) =>
+			metadata(node.name, node.version)?.supports.anchor
+				? (node.anchor ?? "")
+				: undefined,
+		withAnchor: (node, value) => {
+			if (!metadata(node.name, node.version)?.supports.anchor)
+				throw new Error("This block does not support an anchor.");
+			const { anchor: _previous, ...rest } = node;
+			return value ? { ...rest, anchor: value } : rest;
+		},
+		layoutOptions: (node) =>
+			Object.fromEntries(
+				Object.entries(BLOCK_LAYOUT_VALUES).filter(([field]) =>
+					metadata(node.name, node.version)?.supports.layout.includes(field),
+				),
+			),
+		layoutValue: (node, field) =>
+			node.layout?.[field as keyof typeof BLOCK_LAYOUT_VALUES] ?? "",
+		withLayout: (node, field, value) => {
+			if (
+				!Object.hasOwn(BLOCK_LAYOUT_VALUES, field) ||
+				!metadata(node.name, node.version)?.supports.layout.includes(field)
+			)
+				throw new Error("This block does not support that layout setting.");
+			const layout = createCanonicalLayoutSchema(z).parse({
+				...node.layout,
+				[field]: value || undefined,
+			});
+			const defined = Object.fromEntries(
+				Object.entries(layout).filter(([, item]) => item !== undefined),
+			);
+			const { layout: _previous, ...rest } = node;
+			return Object.keys(defined).length
+				? { ...rest, layout: createCanonicalLayoutSchema(z).parse(defined) }
+				: rest;
+		},
 		styleOptions: (node) => stylesForBlock(packId, node.name),
 		styleValue: (node) => node.style ?? "default",
 		withStyle: (node, style) => {
@@ -274,12 +312,20 @@ export function canonicalEditorAdapter(
 				// Ordinary authored anchors can be checked locally with the same index
 				// used by the server. Reusable/composed content may supply targets only
 				// after authorized expansion; leave that check to the server.
-				const hasManualNavigation = (nodes: readonly EditableBlock[]): boolean =>
-					nodes.some((node) =>
-						(node.name === "core/anchor-nav" && node.attrs.source === "manual") ||
-						hasManualNavigation(node.children ?? []),
+				const hasManualNavigation = (
+					nodes: readonly EditableBlock[],
+				): boolean =>
+					nodes.some(
+						(node) =>
+							(node.name === "core/anchor-nav" &&
+								node.attrs.source === "manual") ||
+							hasManualNavigation(node.children ?? []),
 					);
-				if (hasManualNavigation(checked.blocks) && !checked.composedDefinitions && !containsSyncedContent(checked.blocks)) {
+				if (
+					hasManualNavigation(checked.blocks) &&
+					!checked.composedDefinitions &&
+					!containsSyncedContent(checked.blocks)
+				) {
 					try {
 						navigationTreeIndex(checked.blocks);
 					} catch (error) {

@@ -9,6 +9,7 @@ import {
 import heading from "../../../../../../../blocks/core/heading/render";
 import section from "../../../../../../../blocks/core/section/render";
 import paragraph from "../../../../../../../blocks/core/paragraph/render";
+import spacer from "../../../../../../../blocks/core/spacer/render";
 import image from "../../../../../../../blocks/core/image/render";
 import catalog from "../../../../../../../blocks/.generated/catalog.json";
 const registry = discoverRenderers({
@@ -21,6 +22,16 @@ const policy: RenderPolicy = {
 	capabilities: ["tree.children"],
 	disabledBlocks: [],
 };
+test("spacers use one layout boundary without a fixed inner gap or empty landmark", () => {
+  const renderers = discoverRenderers({"/blocks/core/spacer/render.tsx": spacer});
+  for (const spacing of ["none", "compact", "default", "spacious"]) {
+    const html = renderToStaticMarkup(prepareBlocks([{id:"space", name:"core/spacer", version:2, attrs:{}, layout:{spacing}, anchor:"breathing-room"}], renderers, policy));
+    expect((html.match(/class="cp-p cp-section"/g) ?? [])).toHaveLength(1);
+    expect(html).toContain(`data-spacing="${spacing}"`);
+    expect(html).toContain('id="breathing-room"');
+    expect(html).not.toContain('aria-label="Intentional spacing"');
+  }
+});
 const instance = {
 	id: "heading",
 	name: "core/heading",

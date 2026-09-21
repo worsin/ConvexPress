@@ -43,6 +43,11 @@ export interface CanonicalEditorAdapter<N, V> extends TreeAdapter<N> {
 	styleOptions?(node: N): readonly string[];
 	styleValue?(node: N): string;
 	withStyle?(node: N, style: string): N;
+	layoutOptions?(node: N): Readonly<Record<string, readonly string[]>>;
+	layoutValue?(node: N, field: string): string;
+	withLayout?(node: N, field: string, value: string): N;
+	anchorValue?(node: N): string | undefined;
+	withAnchor?(node: N, value: string): N;
 	title?(value: V): string;
 	withTitle?(value: V, title: string): V;
 	validate?(value: V): string | null;
@@ -333,6 +338,7 @@ function EditorBody<N, V>({
 		}
 	};
 	const selected = rows.find((row) => adapter.id(row.node) === selection)?.node;
+	const layoutOptions = selected ? adapter.layoutOptions?.(selected) ?? {} : {};
 	const insertBlock = (inside: boolean) => {
 		const now = current.current;
 		if (
@@ -902,6 +908,125 @@ function EditorBody<N, V>({
 										);
 									})()
 								: null}
+							{selected &&
+								adapter.withLayout &&
+								Object.keys(layoutOptions).length > 0 && (
+									<fieldset
+										className="mb-5 space-y-3"
+										disabled={
+											contentLocked ||
+											!!state.pending ||
+											!!state.conflict ||
+											adapter.locked?.(selected, "edit")
+										}
+									>
+										<legend className="mb-2 text-sm font-semibold">
+											Block layout
+										</legend>
+										<div className="grid gap-3 sm:grid-cols-2">
+											{Object.entries(layoutOptions).map(([field, choices]) => (
+												<label key={field} className="space-y-1 text-sm">
+													<span>
+														{field === "align"
+															? "Alignment"
+															: field.charAt(0).toUpperCase() + field.slice(1)}
+													</span>
+													<select
+														aria-label={`Block ${field}`}
+														className="block min-h-11 w-full rounded-md border border-input bg-background px-3"
+														value={adapter.layoutValue?.(selected, field) ?? ""}
+														onChange={(event) => {
+															const now = current.current;
+															if (
+																!mounted.current ||
+																lockedNow.current ||
+																now.pending ||
+																now.conflict ||
+																adapter.locked?.(selected, "edit")
+															)
+																return;
+															const value = event.currentTarget.value;
+															const next = changeNode(
+																adapter.nodes(now.draft),
+																adapter.id(selected),
+																adapter,
+																(node) =>
+																	adapter.withLayout!(node, field, value),
+															);
+															update(
+																editDocument(
+																	now,
+																	adapter.withNodes(now.draft, next),
+																),
+															);
+														}}
+													>
+														<option value="">Template default</option>
+														{choices.map((value) => (
+															<option key={value} value={value}>
+																{value === "default"
+																	? "Standard"
+																	: value.charAt(0).toUpperCase() +
+																		value.slice(1)}
+															</option>
+														))}
+													</select>
+												</label>
+											))}
+										</div>
+									</fieldset>
+								)}
+							{selected &&
+								adapter.withAnchor &&
+								adapter.anchorValue?.(selected) !== undefined && (
+									<label className="mb-5 block space-y-1 text-sm">
+										<span>Block anchor</span>
+										<input
+											aria-label="Block anchor"
+											className="block min-h-11 w-full rounded-md border border-input bg-background px-3"
+											maxLength={101}
+											value={adapter.anchorValue(selected)}
+											disabled={
+												contentLocked ||
+												!!state.pending ||
+												!!state.conflict ||
+												adapter.locked?.(selected, "edit")
+											}
+											onChange={(event) => {
+												const now = current.current;
+												if (
+													!mounted.current ||
+													lockedNow.current ||
+													now.pending ||
+													now.conflict ||
+													adapter.locked?.(selected, "edit")
+												)
+													return;
+												const value = event.currentTarget.value;
+												const next = changeNode(
+													adapter.nodes(now.draft),
+													adapter.id(selected),
+													adapter,
+													(node) => adapter.withAnchor!(node, value),
+												);
+												update(
+													editDocument(
+														now,
+														adapter.withNodes(now.draft, next),
+														{
+															group: `anchor:${adapter.id(selected)}:${typingGroup.current}`,
+															at: Date.now(),
+														},
+													),
+												);
+											}}
+										/>
+										<span className="block text-xs text-muted-foreground">
+											Optional address for links to this block. Start with a
+											letter and use letters, numbers, hyphens or underscores.
+										</span>
+									</label>
+								)}
 							{selected ? (
 								<SelectedFields
 									key={`${adapter.id(selected)}:${state.base.revision}:${formGeneration}`}

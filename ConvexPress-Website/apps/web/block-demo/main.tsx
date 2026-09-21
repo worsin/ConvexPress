@@ -16,6 +16,7 @@ import {
 import { Gallery } from "./gallery";
 import { FieldGuideTreatmentStudy } from "./field-guide-treatment";
 import { ArticleFlow } from "./article-flow";
+import { CoreTextLayoutStudy } from "./core-text-layout";
 const CanonicalBlocks = lazy(() =>
 	import("./canonical-blocks").then((module) => ({
 		default: module.CanonicalBlocks,
@@ -247,6 +248,7 @@ function App() {
 					registry={registry}
 				>
 					<ArticleFlow />
+					<CoreTextLayoutStudy />
 					<FieldGuideTreatmentStudy packId={packId} />
 				</PrimitiveProvider>
 				<section id="coverage" className="coverage">

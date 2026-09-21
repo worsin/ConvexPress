@@ -644,8 +644,9 @@
       "core/spacer": {
         "src": "/block-thumbnails/aster-house/core--spacer.jpg",
         "example": 1,
-        "sha256": "ab325b97f7fa18adeb8b11fdd8e9acc64827ba720fb808d4ce463dd7e63bd311",
-        "bytes": 1736
+        "sha256": "c2a3657002edae6a2c8204c7c86ec2e9ef92f1cdfd108632464fe11d9a4acd1a",
+        "bytes": 2225,
+        "capturedAt": "2026-09-21T15:49:31.768Z"
       },
       "core/split": {
         "src": "/block-thumbnails/aster-house/core--split.jpg",
@@ -1469,8 +1470,9 @@
       "core/spacer": {
         "src": "/block-thumbnails/core/core--spacer.jpg",
         "example": 1,
-        "sha256": "250621eea1bfc5fc4471d97daf113971db4b24014dc268352b8a212fc8a7b6c3",
-        "bytes": 1733
+        "sha256": "63f9afc59120a513813f7e7b77271bedf61146be54cfdda5c596cfaf5461adbc",
+        "bytes": 2306,
+        "capturedAt": "2026-09-21T15:49:30.749Z"
       },
       "core/split": {
         "src": "/block-thumbnails/core/core--split.jpg",
@@ -2401,7 +2403,7 @@
         "example": 1,
         "sha256": "6e24e2205f24aab8fc1f28a7252fcc1ed4548130f64a6840e913ad6d93f3c2e3",
         "bytes": 2271,
-        "capturedAt": "2026-09-21T11:57:23.261Z"
+        "capturedAt": "2026-09-21T15:49:31.162Z"
       },
       "core/split": {
         "src": "/block-thumbnails/depot/core--split.jpg",
@@ -3257,8 +3259,9 @@
       "core/spacer": {
         "src": "/block-thumbnails/journal/core--spacer.jpg",
         "example": 1,
-        "sha256": "8fbc2f700da744044e2b0d1f3842d7ae9468a56fe9ae82f1036dc8beb2073f78",
-        "bytes": 1736
+        "sha256": "94de053ddb8e6d6fc8aa3bf8b0dbbf41c132c206e7d5f58c4d3fd3f4079253ff",
+        "bytes": 2292,
+        "capturedAt": "2026-09-21T15:49:30.960Z"
       },
       "core/split": {
         "src": "/block-thumbnails/journal/core--split.jpg",
