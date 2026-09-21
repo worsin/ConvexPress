@@ -10,7 +10,7 @@
 .cp-owned-depot .depot-price .cp-text { font-variant-numeric: tabular-nums; font-size: clamp(1.8rem, 3vw, 3rem); line-height: 1.1; letter-spacing: -.04em; }
 .cp-owned-depot .depot-stories { container: depot-stories / inline-size; }
 .cp-owned-depot .depot-stories-intro .cp-heading { font-size: clamp(1.25rem, 1.7vw, 1.5rem); line-height: 1.25; }
-.cp-owned-depot .depot-stories > .cp-grid { grid-template-columns: minmax(0, 1fr); align-items: start; }
+.cp-owned-depot .depot-stories > .cp-layout-query > .cp-grid { grid-template-columns: minmax(0, 1fr); align-items: start; }
 .cp-owned-depot .depot-story { display: grid; gap: var(--stack-gap-md, 1.25rem); grid-template-columns: minmax(0, 1fr); min-inline-size: 0; padding: var(--card-pad, 1rem); border: 1px solid var(--border); border-radius: var(--radius, .375rem); background: var(--card, var(--background)); }
 .cp-owned-depot .depot-story-copy { min-inline-size: 0; }
 .cp-owned-depot .depot-story .cp-heading { font-size: 1.125rem; line-height: 1.3; letter-spacing: -.015em; text-transform: none; text-wrap: pretty; }
@@ -22,14 +22,14 @@
   .cp-owned-depot .depot-story[data-has-image="true"] { grid-template-columns: minmax(0, 1fr) minmax(0, 2.4fr); align-items: start; }
 }
 @container depot-stories (min-width: 60rem) {
-  .cp-owned-depot .depot-stories > .cp-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .cp-owned-depot .depot-stories > .cp-layout-query > .cp-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 .cp-owned-depot .depot-form-fields { min-width: 0; }
 .cp-owned-depot .depot-form { max-inline-size: none; container: depot-form / inline-size; }
-.cp-owned-depot .depot-form > .cp-split { grid-template-columns: minmax(0, 1fr); }
+.cp-owned-depot .depot-form > .cp-layout-query > .cp-split { grid-template-columns: minmax(0, 1fr); }
 .cp-owned-depot .depot-form .cp-heading { font-size: clamp(1.25rem, 2.2cqi, 1.5rem); }
 @container depot-form (min-width: 52rem) {
-  .cp-owned-depot .depot-form > .cp-split { grid-template-columns: minmax(0, 1fr) minmax(0, 1.5fr); }
+  .cp-owned-depot .depot-form > .cp-layout-query > .cp-split { grid-template-columns: minmax(0, 1fr) minmax(0, 1.5fr); }
 }
 @media (max-width: 640px) { .cp-owned-depot .depot-banner-image img { aspect-ratio: 16/9; } }
 

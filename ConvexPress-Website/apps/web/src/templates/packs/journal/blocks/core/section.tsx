@@ -3,8 +3,6 @@ import * as P from "../../../../sdk/primitives";
 import "../owned.css";
 export default defineBlock("core/section", ({ children }) => (
 	<div className="journal-section">
-		<P.Container>
-			<P.Stack gap="lg">{children}</P.Stack>
-		</P.Container>
+		<P.Stack gap="lg">{children}</P.Stack>
 	</div>
 ));

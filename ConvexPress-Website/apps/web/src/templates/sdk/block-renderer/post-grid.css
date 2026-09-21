@@ -1,8 +1,8 @@
 .cp-post-grid { width: 100%; min-width: 0; color: var(--foreground); }
 .cp-post-grid-layout { container-type: inline-size; }
-.cp-post-grid-layout > .cp-grid { grid-template-columns: minmax(0, 1fr); }
-@container (min-width: 36rem) { .cp-post-grid-layout > .cp-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-@container (min-width: 56rem) { .cp-post-grid-layout > .cp-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+.cp-post-grid-layout > .cp-layout-query > .cp-grid { grid-template-columns: minmax(0, 1fr); }
+@container (min-width: 36rem) { .cp-post-grid-layout > .cp-layout-query > .cp-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@container (min-width: 56rem) { .cp-post-grid-layout > .cp-layout-query > .cp-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
 .cp-post-grid-card { min-width: 0; padding-block-end: var(--stack-gap-lg, 2rem); border-block-end: 1px solid var(--border); }
 .cp-post-grid-image { overflow: hidden; border-radius: var(--radius, .5rem); margin-block-end: var(--stack-gap-md, 1.25rem); }
 .cp-post-grid-image figure { margin: 0; }

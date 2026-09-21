@@ -114,15 +114,17 @@ function Stack(p: PrimitiveProps<"Stack">) {
 }
 function Grid(p: PrimitiveProps<"Grid">) {
 	return (
-		<div
-			className="cp-p cp-grid"
-			data-base={p.columns?.base ?? 1}
-			data-md={p.columns?.md ?? p.columns?.base ?? 1}
-			data-lg={p.columns?.lg ?? p.columns?.md ?? p.columns?.base ?? 1}
-			data-gap={p.gap}
-			data-align={p.align}
-		>
-			{p.children}
+		<div className="cp-p cp-layout-query">
+			<div
+				className="cp-p cp-grid"
+				data-base={p.columns?.base ?? 1}
+				data-md={p.columns?.md ?? p.columns?.base ?? 1}
+				data-lg={p.columns?.lg ?? p.columns?.md ?? p.columns?.base ?? 1}
+				data-gap={p.gap}
+				data-align={p.align}
+			>
+				{p.children}
+			</div>
 		</div>
 	);
 }
@@ -135,14 +137,16 @@ function Columns(p: PrimitiveProps<"Columns">) {
 }
 function Split(p: PrimitiveProps<"Split">) {
 	return (
-		<div
-			className="cp-p cp-split"
-			data-ratio={p.ratio ?? "equal"}
-			data-gap={p.gap ?? "lg"}
-			data-align={p.align}
-			data-reverse={p.reverse ?? false}
-		>
-			{p.children}
+		<div className="cp-p cp-layout-query">
+			<div
+				className="cp-p cp-split"
+				data-ratio={p.ratio ?? "equal"}
+				data-gap={p.gap ?? "lg"}
+				data-align={p.align}
+				data-reverse={p.reverse ?? false}
+			>
+				{p.children}
+			</div>
 		</div>
 	);
 }

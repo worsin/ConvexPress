@@ -1,7 +1,7 @@
 .cp-latest-posts-layout { container-type: inline-size; width: 100%; min-width: 0; }
-.cp-latest-posts-layout > .cp-grid { grid-template-columns: minmax(0, 1fr); }
-@container (min-width: 36rem) { .cp-latest-posts-layout > .cp-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-@container (min-width: 56rem) { .cp-latest-posts-layout > .cp-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+.cp-latest-posts-layout > .cp-layout-query > .cp-grid { grid-template-columns: minmax(0, 1fr); }
+@container (min-width: 36rem) { .cp-latest-posts-layout > .cp-layout-query > .cp-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@container (min-width: 56rem) { .cp-latest-posts-layout > .cp-layout-query > .cp-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
 .cp-latest-post { min-width: 0; padding-block-end: var(--stack-gap-lg, 2rem); border-block-end: 1px solid var(--border); color: var(--foreground); }
 .cp-latest-post-image { overflow: hidden; border-radius: var(--radius, .5rem); margin-block-end: var(--stack-gap-md, 1.25rem); }
 .cp-latest-post-image figure { margin: 0; }

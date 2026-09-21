@@ -91,7 +91,7 @@
 	align-items: flex-end;
 }
 /* Structural layouts fill a vertical stack; text and actions retain its alignment. */
-.cp-stack[data-direction="vertical"] > :is(.cp-grid, .cp-split, .cp-accordion) {
+.cp-stack[data-direction="vertical"] > :is(.cp-layout-query, .cp-accordion) {
 	align-self: stretch;
 	min-width: 0;
 }
@@ -111,6 +111,11 @@
 }
 .cp-p[data-gap="lg"] {
 	gap: var(--stack-gap-lg, 2.5rem);
+}
+/* Each layout measures its own placement, including inside another grid cell. */
+.cp-layout-query {
+	container: cp-layout / inline-size;
+	inline-size: 100%;
 }
 .cp-grid,
 .cp-split {
@@ -564,7 +569,7 @@ ol.cp-list {
 		display: none;
 	}
 }
-@media (min-width: 48rem) {
+@container cp-layout (min-width: 48rem) {
 	.cp-grid[data-md="1"] {
 		grid-template-columns: minmax(0, 1fr);
 	}
@@ -596,7 +601,7 @@ ol.cp-list {
 		order: 2;
 	}
 }
-@media (min-width: 72rem) {
+@container cp-layout (min-width: 72rem) {
 	.cp-grid[data-lg="1"] {
 		grid-template-columns: minmax(0, 1fr);
 	}
