@@ -1,4 +1,5 @@
 import { InsertionTabs } from "./InsertionTabs";
+import { TreatmentControls, type TreatmentOption } from "./TreatmentControls";
 import { BlockInserter, type InserterBlock } from "./BlockInserter";
 import {
 	useId,
@@ -43,6 +44,11 @@ export interface CanonicalEditorAdapter<N, V> extends TreeAdapter<N> {
 	styleOptions?(node: N): readonly string[];
 	styleValue?(node: N): string;
 	withStyle?(node: N, style: string): N;
+	treatmentOptions?(node: N): readonly TreatmentOption[];
+	treatmentValue?(node: N): string;
+	treatmentAxisValue?(node: N, field: string): string;
+	withTreatment?(node: N, value: string): N;
+	withTreatmentAxis?(node: N, field: string, value: string): N;
 	layoutOptions?(node: N): Readonly<Record<string, readonly string[]>>;
 	layoutValue?(node: N, field: string): string;
 	withLayout?(node: N, field: string, value: string): N;
@@ -339,6 +345,7 @@ function EditorBody<N, V>({
 	};
 	const selected = rows.find((row) => adapter.id(row.node) === selection)?.node;
 	const layoutOptions = selected ? adapter.layoutOptions?.(selected) ?? {} : {};
+	const treatmentOptions = selected ? adapter.treatmentOptions?.(selected) ?? [] : [];
 	const insertBlock = (inside: boolean) => {
 		const now = current.current;
 		if (
@@ -908,6 +915,22 @@ function EditorBody<N, V>({
 										);
 									})()
 								: null}
+							{selected && adapter.withTreatment && adapter.withTreatmentAxis &&
+								(treatmentOptions.length > 0 || adapter.treatmentValue?.(selected)) && (
+									<TreatmentControls
+										options={treatmentOptions}
+										value={adapter.treatmentValue?.(selected) ?? ""}
+										axisValue={field => adapter.treatmentAxisValue?.(selected, field) ?? ""}
+										disabled={contentLocked || !!state.pending || !!state.conflict || !!adapter.locked?.(selected, "edit")}
+										onChange={(value, field) => {
+											const now = current.current;
+											if (!mounted.current || lockedNow.current || now.pending || now.conflict || adapter.locked?.(selected, "edit")) return;
+											const next = changeNode(adapter.nodes(now.draft), adapter.id(selected), adapter, node =>
+												field === undefined ? adapter.withTreatment!(node, value) : adapter.withTreatmentAxis!(node, field, value));
+											update(editDocument(now, adapter.withNodes(now.draft, next)));
+										}}
+									/>
+								)}
 							{selected &&
 								adapter.withLayout &&
 								Object.keys(layoutOptions).length > 0 && (

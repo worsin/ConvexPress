@@ -1,13 +1,13 @@
 {
   "name": "core/spacer",
   "title": "Spacer",
-  "description": "Semantic vertical spacing — the skill decides actual height.",
+  "description": "Semantic vertical spacing \u2014 the skill decides actual height.",
   "category": "layout",
   "role": "utility",
   "version": 2,
   "keywords": [],
   "ai": {
-    "useFor": "Semantic vertical spacing — the skill decides actual height.",
+    "useFor": "Semantic vertical spacing \u2014 the skill decides actual height.",
     "avoid": ""
   },
   "fields": [],
@@ -41,5 +41,25 @@
       }
     ]
   },
-  "searchText": []
+  "searchText": [],
+  "treatments": [
+    {
+      "name": "original",
+      "title": "Original spacing",
+      "axes": [
+        {
+          "id": "size",
+          "title": "Size",
+          "type": "select",
+          "options": [
+            "small",
+            "medium",
+            "large",
+            "xlarge"
+          ],
+          "default": "medium"
+        }
+      ]
+    }
+  ]
 }

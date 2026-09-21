@@ -2084,7 +2084,25 @@
       "visibility": true
     },
     "supportsChildren": false,
-    "treatments": [],
+    "treatments": [
+      {
+        "axes": [
+          {
+            "default": "default",
+            "id": "variant",
+            "options": [
+              "default",
+              "section",
+              "subtle"
+            ],
+            "title": "Variant",
+            "type": "select"
+          }
+        ],
+        "name": "original",
+        "title": "Original divider"
+      }
+    ],
     "version": 2
   },
   "core/embed": {
@@ -3969,7 +3987,26 @@
       "visibility": true
     },
     "supportsChildren": false,
-    "treatments": [],
+    "treatments": [
+      {
+        "axes": [
+          {
+            "default": "medium",
+            "id": "size",
+            "options": [
+              "small",
+              "medium",
+              "large",
+              "xlarge"
+            ],
+            "title": "Size",
+            "type": "select"
+          }
+        ],
+        "name": "original",
+        "title": "Original spacing"
+      }
+    ],
     "version": 2
   },
   "core/split": {

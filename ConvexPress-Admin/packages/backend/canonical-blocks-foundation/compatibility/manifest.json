@@ -77,7 +77,7 @@
     "blocks/core/contact-form/block.json": "3e2d3c80622a269e8d55116489ca3c46a26992ba396128f996789226a50483c6",
     "blocks/core/cta-band/block.json": "3742d1d47c6f5b9a0235d6a7ccf15ca84c7b301a02442a1dac9f8e837f132206",
     "blocks/core/cta-with-form/block.json": "499ef91d39272309925223d65523b86b34b20c7d914545b260ae99b1dfe70c00",
-    "blocks/core/divider/block.json": "519ec94a7aef64943489886cc61bc318dca45c46b78472b8e24daa65b9bdd73f",
+    "blocks/core/divider/block.json": "d1fc8ffdd66aad1a1fc9c05d9ce767b7b8a016c2006902bb180cbdc00de66c2e",
     "blocks/core/embed/block.json": "fe64b8edd9529de1c1debf26f3b1644e6f89d75feb7a59f491ec2d10eb788786",
     "blocks/core/faq/block.json": "fe0507fe09d7915a5268d514247680117ac8bf94bb6462c0f9eb0595d8885f89",
     "blocks/core/feature-grid/block.json": "858c810b3d1e94c0203c46826a97c4b38bf08437fd85b8d44c87c1ee5235eaef",
@@ -100,7 +100,7 @@
     "blocks/core/rich-text/block.json": "f667147153487b4b44036e472457afe6b6ee25bce0178dc3db20a175ac5b7ea4",
     "blocks/core/roadmap-timeline/block.json": "ff22b64b3ccdd55c858053371399caf54ebbb860a15b42da8dcd6e305ab88ecb",
     "blocks/core/social-links/block.json": "1dceba57bde56ff2dd807070a68d6dab4445667951a956ef972bcf7728b37115",
-    "blocks/core/spacer/block.json": "c57b32d093a46690229be05d5b6d7defb3997ff90af6f92c9da7fc5820157b86",
+    "blocks/core/spacer/block.json": "0690e36a892e6bc24ae38eb1d2db46b8ab1918611f279f5638fcfc8bec658eaf",
     "blocks/core/stats-band/block.json": "d2fb561138602b0496d9e239c37c5a7165f01842eb189fa11e1b4fde7988fd30",
     "blocks/core/tabs/block.json": "4d9ceaa3cd5886eef6f20296ded02695eac3cafdd5229e5045cfd52fbc16d6d7",
     "blocks/core/tag-cloud/block.json": "a229778ea5aeea0562405cf5c9edba60b08f142303dd8000d5dbd034f9e8d907",
@@ -152,7 +152,7 @@
   "files": {
     "rich_text.mjs": "3349516bb2c8b12ff8be5119f64272b278f1216adaf79606a647f3770e9e1c8f",
     "rich_text.d.mts": "5da566831696a1632ba432c888fdce65d00ee177770a06dd14c4497cb5641177",
-    "legacy_schemas.mjs": "352bdf73d1c174760dc0f823872d150a85cac59b458fe9aa260d69f56f53703e",
+    "legacy_schemas.mjs": "d872f9088f5642a0ccd2bfca3512bbd36f0f12fd0e146a4cc86116b7307773b3",
     "legacy_schemas.d.mts": "3de9ddcd3bbd863e6cb71f7179614bc2faa1b7d9ff93a4d9cb50d9fb64600169"
   },
   "descriptors": {
@@ -411,7 +411,14 @@
           ]
         }
       ],
-      "treatments": []
+      "treatments": [
+        {
+          "name": "original",
+          "axes": [
+            "variant"
+          ]
+        }
+      ]
     },
     "core/embed": {
       "name": "core/embed",
@@ -673,7 +680,14 @@
           ]
         }
       ],
-      "treatments": []
+      "treatments": [
+        {
+          "name": "original",
+          "axes": [
+            "size"
+          ]
+        }
+      ]
     },
     "core/stats-band": {
       "name": "core/stats-band",

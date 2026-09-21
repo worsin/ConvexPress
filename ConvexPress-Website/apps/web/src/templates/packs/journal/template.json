@@ -218,6 +218,12 @@
       ],
       "blocks/product-collection": [
         "gallery"
+      ],
+      "core/divider": [
+        "original"
+      ],
+      "core/spacer": [
+        "original"
       ]
     },
     "patterns": "./patterns/*.json",

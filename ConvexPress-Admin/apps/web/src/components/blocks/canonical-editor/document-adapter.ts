@@ -20,7 +20,9 @@ import {
 	dependencyDescriptors,
 	blockPresentationForPack,
 	stylesForBlock,
+	packTreatmentSupport,
 } from "../../../../../../../blocks/.generated/metadata";
+import { validateBlockTreatment } from "../../../../../../../blocks/.generated/schemas";
 import { validateCanonicalTree } from "../../../../../../../blocks/.generated/instances";
 import {
 	createComposedRegistry,
@@ -222,8 +224,45 @@ export function canonicalEditorAdapter(
 	const patterns = templatePatterns.filter(
 		(pattern) => pattern.packId === packId && allowedTree(pattern.blocks),
 	);
+	const treatments = (node: EditableBlock) => {
+		const support = packTreatmentSupport[packId as keyof typeof packTreatmentSupport] as Record<string, readonly string[]> | undefined;
+		return (dependencyDescriptors[node.name as BlockName]?.treatments ?? [])
+			.filter(treatment => support?.[node.name]?.includes(treatment.name));
+	};
 	return {
 		contract,
+		treatmentOptions: node => treatments(node).map(treatment => ({
+			name: treatment.name,
+			title: treatment.title,
+			axes: treatment.axes.map(axis => ({
+				id: axis.id,
+				title: axis.title,
+				choices: axis.type === "select" ? axis.options : Array.from({ length: axis.max - axis.min + 1 }, (_, index) => String(axis.min + index)),
+			})),
+		})),
+		treatmentValue: node => node.treatment?.name ?? "",
+		treatmentAxisValue: (node, field) => String(Object.entries(node.treatment?.values ?? {}).find(([key]) => key === field)?.[1] ?? ""),
+		withTreatment: (node, value) => {
+			const { treatment: previous, ...rest } = node;
+			if (!value) return rest;
+			const definition = treatments(node).find(treatment => treatment.name === value);
+			if (!definition) throw new Error("This treatment is unavailable for the current template.");
+			const treatment = validateBlockTreatment(node.name, previous?.name === value ? previous : {
+				name: value,
+				values: Object.fromEntries(definition.axes.map(axis => [axis.id, axis.default])),
+			});
+			return { ...rest, treatment } as EditableBlock;
+		},
+		withTreatmentAxis: (node, field, value) => {
+			const definition = treatments(node).find(treatment => treatment.name === node.treatment?.name);
+			const axis = definition?.axes.find(axis => axis.id === field);
+			if (!axis || !node.treatment) throw new Error("This treatment setting is unavailable.");
+			const treatment = validateBlockTreatment(node.name, {
+				...node.treatment,
+				values: { ...node.treatment.values, [field]: axis.type === "number" ? (value.trim() === "" ? NaN : Number(value)) : value },
+			});
+			return { ...node, treatment } as EditableBlock;
+		},
 		anchorValue: (node) =>
 			metadata(node.name, node.version)?.supports.anchor
 				? (node.anchor ?? "")

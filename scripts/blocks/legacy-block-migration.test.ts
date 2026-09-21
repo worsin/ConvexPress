@@ -34,3 +34,21 @@ test('explicit review preserves inactive settings in a separate receipt without 
   for(const changed of [{layout:{padding:'invented'}},{lock:{edit:'yes'}},{lock:{unknown:false}}])
     expect(()=>reviewLegacyBlocks([{...guide(),...changed}])).toThrow();
 });
+
+test('legacy Divider and Spacer preserve every original visual choice in a closed treatment',()=>{
+  for(const [name,field,values] of [
+    ['core/divider','variant',['default','section','subtle']],
+    ['core/spacer','size',['small','medium','large','xlarge']],
+  ] as const){
+    for(const value of values){
+      const source={id:'utility',name,version:1,attrs:{[field]:value}};
+      const original=structuredClone(source),converted=migrateLegacyBlocks([source])[0];
+      expect(source).toEqual(original);
+      expect(converted).toEqual({id:'utility',name,version:2,attrs:{},treatment:{name:'original',values:{[field]:value}},layout:{spacing:'none',width:'full'}});
+    }
+    expect(()=>migrateLegacyBlocks([{id:'utility',name,version:1,attrs:{[field]:'arbitrary-css'}}])).toThrow();
+    expect(()=>migrateLegacyBlocks([{id:'utility',name,version:1,attrs:{[field]:values[0],unknown:'keep this'}}])).toThrow();
+  }
+  expect(migrateLegacyBlocks([{id:'s',name:'core/spacer',version:1,attrs:{}}])[0].treatment).toEqual({name:'original',values:{size:'medium'}});
+  expect(migrateLegacyBlocks([{id:'d',name:'core/divider',version:1,attrs:{}}])[0].treatment).toEqual({name:'original',values:{variant:'default'}});
+});

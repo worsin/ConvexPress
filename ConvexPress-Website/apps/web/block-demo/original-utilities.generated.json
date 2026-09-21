@@ -1,0 +1,19 @@
+{
+  "candidates": [
+    "my-4",
+    "border-t-2",
+    "border-border",
+    "my-2",
+    "border-t",
+    "border-border/40",
+    "h-4",
+    "h-8",
+    "h-16",
+    "h-24"
+  ],
+  "version": "4.1.18",
+  "rendererSourceHash": "6d15bbcc9f97265a06edb24893f11ebdba1a8f089ef6271a9632939cb02595f8",
+  "themeHash": "5d1f0002f98471fa59bc53ec2bd2488ff3e4661d965f7fa665408218d63187cb",
+  "preflightHash": "fa2d5ae43ae561061b7ce348b89636dbdc6cd71ab5992d4e1cdd046d0b4f28f9",
+  "cssHash": "dd831466c1aa08b3b9b1549bdac20a2b8b9a7047bec8d0b870d62d48fbea337c"
+}

@@ -3,8 +3,32 @@ import { afterAll, expect, test } from "bun:test";
 import { loadStaged } from "../schema-editor/test-harness";
 const loaded = await loadStaged("../canonical-editor/presentation.fixture.ts");
 afterAll(() => loaded.cleanup());
-const { canonicalEditorAdapter, checkedDraft, packBlockPresentation } = loaded.module;
+const { canonicalEditorAdapter, checkedDraft, packBlockPresentation, packTreatmentSupport } = loaded.module;
 const policy = { enabledPlugins: [], capabilities: ["tree.children", "reference.targetResolution"], disabledBlocks: [] };
+test("treatment controls preserve legacy choices and validate every declared axis", () => {
+	for (const pack of ["core", "journal", "depot", "aster-house"]) {
+		const adapter = canonicalEditorAdapter({ ...policy, enabledPlugins: ["commerce"] }, pack);
+		for (const name of ["core/spacer", "core/divider", "reference/field-guide", "blocks/product-collection"]) {
+			const original = adapter.createBlock(name);
+			for (const treatment of adapter.treatmentOptions(original)) {
+				let edited = adapter.withTreatment(original, treatment.name);
+				for (const axis of treatment.axes) {
+					for (const choice of axis.choices) {
+						edited = adapter.withTreatmentAxis(edited, axis.id, choice);
+						expect(adapter.treatmentAxisValue(edited, axis.id)).toBe(choice);
+						expect(checkedDraft({ title: "Treatments", blocks: [edited] }).blocks[0].treatment).toEqual(edited.treatment);
+						expect(edited.attrs).toEqual(original.attrs);
+					}
+					expect(() => adapter.withTreatmentAxis(edited, axis.id, "unlisted")).toThrow();
+				}
+				expect(() => adapter.withTreatmentAxis(edited, "unknown", "value")).toThrow();
+				expect(adapter.withTreatment(edited, "").treatment).toBeUndefined();
+				expect(original.treatment).toBeUndefined();
+			}
+			expect(() => adapter.withTreatment(original, "unlisted")).toThrow();
+		}
+	}
+});
 test("block layout edits retain content, survive template changes, reset by omission and refuse unsupported input", () => {
 	const adapter = canonicalEditorAdapter(policy, "core");
 	for (const name of [
@@ -54,6 +78,24 @@ test("block layout edits retain content, survive template changes, reset by omis
 				blocks: [anchored, { ...anchored, id: "second" }],
 			}),
 		).toThrow();
+	}
+});
+test("unavailable saved treatments survive a template change until explicitly reset", () => {
+	const core = canonicalEditorAdapter(policy, "core");
+	const node = core.withTreatmentAxis(core.withTreatment(core.createBlock("core/spacer"), "original"), "size", "xlarge");
+	const advertised = packTreatmentSupport.journal["core/spacer"];
+	const previous = [...advertised];
+	advertised.length = 0;
+	try {
+		const journal = canonicalEditorAdapter(policy, "journal");
+		expect(journal.treatmentOptions(node)).toEqual([]);
+		expect(journal.treatmentValue(node)).toBe("original");
+		expect(journal.treatmentAxisValue(node, "size")).toBe("xlarge");
+		expect(checkedDraft({ title: "Preserved", blocks: [node] }).blocks[0].treatment).toEqual(node.treatment);
+		expect(() => journal.withTreatmentAxis(node, "size", "small")).toThrow();
+		expect(journal.withTreatment(node, "").treatment).toBeUndefined();
+	} finally {
+		advertised.push(...previous);
 	}
 });
 test("editor offers pack styles while preserving unsupported saved choices across template switches", () => {

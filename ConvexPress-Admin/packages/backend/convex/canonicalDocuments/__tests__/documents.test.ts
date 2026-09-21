@@ -6,6 +6,27 @@ import { parseCanonicalDocumentRead } from "../foundation/documentContracts";
 const reference = (name: string, kind: "query" | "mutation" = "query") =>
 	makeFunctionReference<any, any, any>(`canonicalDocuments:${name}`);
 
+test("legacy utility variants migrate together, save and recover their exact original attrs", async () => {
+  const f = await fixture();
+  const blocks = [
+    ...["small","medium","large","xlarge"].map(size=>({id:`space-${size}`,name:"core/spacer",version:1,attrs:{size}})),
+    ...["default","section","subtle"].map(variant=>({id:`rule-${variant}`,name:"core/divider",version:1,attrs:{variant}})),
+  ];
+  await f.t.run(ctx=>ctx.db.patch("posts",f.ids.post,{contentMode:"blocks",blocksVersion:1,blocks}));
+  const review=await f.client.query(reference("prepareMigration"),{postId:f.ids.post});
+  expect(review.candidate.document.blocks.map((node:any)=>node.treatment.values)).toEqual(blocks.map(node=>node.attrs));
+  const receipt=await f.client.mutation(reference("migrate","mutation"),{postId:f.ids.post,expectedRevision:review.source.revision,expectedAuthoringDigest:review.source.authoringDigest,expectedCandidateDigest:review.candidate.document.digest,expectedPresentationRevision:review.candidate.presentation.revision});
+  const reopened=await f.client.query(reference("get"),{postId:f.ids.post});
+  expect(reopened.document.blocks).toEqual(review.candidate.document.blocks);
+  reopened.document.blocks[0].anchor="first-space";
+  const saved=await f.client.mutation(reference("save","mutation"),{postId:f.ids.post,expectedRevision:receipt.revision,title:reopened.document.title,blocks:reopened.document.blocks});
+  expect((await f.client.query(reference("get"),{postId:f.ids.post})).document.blocks).toEqual(reopened.document.blocks);
+  const history=await f.client.query(reference("pageRevisions"),{postId:f.ids.post,paginationOpts:{cursor:null,numItems:20}});
+  const original=history.page.find((row:any)=>row.action==="recover-legacy");expect(original).toBeDefined();
+  await f.client.mutation(reference("recoverLegacy","mutation"),{postId:f.ids.post,revisionId:original.id,expectedRevision:saved.revision});
+  const restored=await f.t.run(ctx=>ctx.db.get("posts",f.ids.post));expect(restored!.blocks).toEqual(blocks);expect(restored!.blocksVersion).toBe(1);
+});
+
 test("structured article migration retains visible order, links, anchors and complete original recovery", async () => {
   const f = await fixture();
   const authored = {

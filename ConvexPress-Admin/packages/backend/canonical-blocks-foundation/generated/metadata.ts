@@ -2085,7 +2085,25 @@ export const dependencyDescriptors = {
       "visibility": true
     },
     "supportsChildren": false,
-    "treatments": [],
+    "treatments": [
+      {
+        "axes": [
+          {
+            "default": "default",
+            "id": "variant",
+            "options": [
+              "default",
+              "section",
+              "subtle"
+            ],
+            "title": "Variant",
+            "type": "select"
+          }
+        ],
+        "name": "original",
+        "title": "Original divider"
+      }
+    ],
     "version": 2
   },
   "core/embed": {
@@ -3970,7 +3988,26 @@ export const dependencyDescriptors = {
       "visibility": true
     },
     "supportsChildren": false,
-    "treatments": [],
+    "treatments": [
+      {
+        "axes": [
+          {
+            "default": "medium",
+            "id": "size",
+            "options": [
+              "small",
+              "medium",
+              "large",
+              "xlarge"
+            ],
+            "title": "Size",
+            "type": "select"
+          }
+        ],
+        "name": "original",
+        "title": "Original spacing"
+      }
+    ],
     "version": 2
   },
   "core/split": {
@@ -5373,6 +5410,12 @@ export const packTreatmentSupport = {
     "blocks/product-collection": [
       "gallery"
     ],
+    "core/divider": [
+      "original"
+    ],
+    "core/spacer": [
+      "original"
+    ],
     "reference/field-guide": [
       "editorial"
     ]
@@ -5380,6 +5423,12 @@ export const packTreatmentSupport = {
   "core": {
     "blocks/product-collection": [
       "gallery"
+    ],
+    "core/divider": [
+      "original"
+    ],
+    "core/spacer": [
+      "original"
     ],
     "reference/field-guide": [
       "editorial"
@@ -5389,6 +5438,12 @@ export const packTreatmentSupport = {
     "blocks/product-collection": [
       "gallery"
     ],
+    "core/divider": [
+      "original"
+    ],
+    "core/spacer": [
+      "original"
+    ],
     "reference/field-guide": [
       "editorial"
     ]
@@ -5396,6 +5451,12 @@ export const packTreatmentSupport = {
   "journal": {
     "blocks/product-collection": [
       "gallery"
+    ],
+    "core/divider": [
+      "original"
+    ],
+    "core/spacer": [
+      "original"
     ],
     "reference/field-guide": [
       "editorial"

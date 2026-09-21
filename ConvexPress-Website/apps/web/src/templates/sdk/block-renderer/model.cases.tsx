@@ -9,6 +9,7 @@ import {
 import heading from "../../../../../../../blocks/core/heading/render";
 import section from "../../../../../../../blocks/core/section/render";
 import paragraph from "../../../../../../../blocks/core/paragraph/render";
+import divider from "../../../../../../../blocks/core/divider/render";
 import spacer from "../../../../../../../blocks/core/spacer/render";
 import image from "../../../../../../../blocks/core/image/render";
 import catalog from "../../../../../../../blocks/.generated/catalog.json";
@@ -354,4 +355,23 @@ test("long paragraphs render complete literal copy and safe inline semantics", (
   expect(html).toContain("<em>");expect(html).toContain("<br");
   expect(html).toContain('href="https://example.org/source"');
   expect(html).toContain('rel="noopener noreferrer"');
+});
+
+test("original utility treatments preserve closed visual choices and reject arbitrary values", () => {
+  for (const [name, field, values] of [
+    ["core/spacer", "size", ["small", "medium", "large", "xlarge"]],
+    ["core/divider", "variant", ["default", "section", "subtle"]],
+  ] as const) {
+    const renderer = name === "core/spacer" ? spacer : divider;
+    const renderers = discoverRenderers({[`/blocks/${name}/render.tsx`]: renderer});
+    for (const pack of ["core", "journal", "depot", "aster-house"]) {
+      for (const value of values) {
+        const node = {id:"original",name,version:2,attrs:{},layout:{spacing:"none",width:"full"},treatment:{name:"original",values:{[field]:value}}};
+        const html = renderToStaticMarkup(prepareBlocks([node],renderers,policy,{media:{}},undefined,pack));
+        expect(html).toContain(`data-${field}="${value}"`);
+        expect(html).toContain('data-spacing="none"');
+        expect(() => prepareBlocks([{...node,treatment:{name:"original",values:{[field]:"arbitrary-css"}}}],renderers,policy,{media:{}},undefined,pack)).toThrow();
+      }
+    }
+  }
 });

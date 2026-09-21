@@ -41,5 +41,24 @@
       }
     ]
   },
-  "searchText": []
+  "searchText": [],
+  "treatments": [
+    {
+      "name": "original",
+      "title": "Original divider",
+      "axes": [
+        {
+          "id": "variant",
+          "title": "Variant",
+          "type": "select",
+          "options": [
+            "default",
+            "section",
+            "subtle"
+          ],
+          "default": "default"
+        }
+      ]
+    }
+  ]
 }

@@ -68,7 +68,8 @@ function convertLegacyBlocks(input:unknown, reviewInactive:boolean):{blocks:Cano
     if(Object.keys(treatmentValues).length){const keys=Object.keys(treatmentValues).sort();const matches=definition.treatments.filter(item=>JSON.stringify([...item.axes].sort())===JSON.stringify(keys));if(matches.length!==1)fail([...path,'treatment'],'Exact composable treatment mapping required');treatment={name:matches[0].name,values:treatmentValues};try{validateBlockTreatment(row.name,treatment);}catch{fail([...path,'treatment'],'Authored treatment axes exceed their exact target contract');}}
     let canonicalAttrs:unknown;try{canonicalAttrs=validateBlockAttrs(row.name,attrs);}catch{fail([...path,'attrs'],'Legacy rendered attrs require a further target adapter');}
     if(row.innerBlocks!==undefined&&!Array.isArray(row.innerBlocks))fail([...path,'innerBlocks'],'Legacy children must be an array');
-    return {id:row.id,name:row.name,version:definition.toVersion,attrs:canonicalAttrs,...(treatment?{treatment}:{}),...(row.name==='reference/field-guide'&&treatment?{layout:{spacing:'none',width:'full'}}:{}),...(row.innerBlocks!==undefined?{children:(row.innerBlocks as unknown[]).map((child,index)=>visit(child,[...path,'innerBlocks',index],depth+1))}:{})};
+    const preservesOwnSpacing = ['reference/field-guide','core/divider','core/spacer'].includes(row.name) && treatment;
+    return {id:row.id,name:row.name,version:definition.toVersion,attrs:canonicalAttrs,...(treatment?{treatment}:{}),...(preservesOwnSpacing?{layout:{spacing:'none',width:'full'}}:{}),...(row.innerBlocks!==undefined?{children:(row.innerBlocks as unknown[]).map((child,index)=>visit(child,[...path,'innerBlocks',index],depth+1))}:{})};
   };
   return {blocks:validateCanonicalTree(input.map((row,index)=>visit(row,['blocks',index],1))),inactiveSettings};
 }

@@ -82,6 +82,21 @@ test("native layout controls preview, undo, save with CAS and refuse changes whi
 		);
 	try {
 		await render();
+		const treatment = () => host.querySelector('select[aria-label="Block treatment"]');
+		const size = () => host.querySelector('select[aria-label="Treatment Size"]');
+		const setSelect = (input, value) => act(async () => {
+			input.value = value;
+			input.dispatchEvent(new dom.window.Event("change", { bubbles: true }));
+		});
+		expect(treatment().value).toBe("");
+		await setSelect(treatment(), "original");
+		expect(size().value).toBe("medium");
+		await setSelect(size(), "xlarge");
+		expect(previews.at(-1).draft.blocks[0].treatment.values.size).toBe("xlarge");
+		await act(async () => button("Undo").click());
+		expect(size().value).toBe("medium");
+		await act(async () => button("Redo").click());
+		expect(size().value).toBe("xlarge");
 		expect(field("spacing").value).toBe("");
 		await choose("spacing", "none");
 		expect(previews.at(-1).draft.blocks[0].layout).toEqual({ spacing: "none" });
@@ -115,6 +130,7 @@ test("native layout controls preview, undo, save with CAS and refuse changes whi
 			tone: "muted",
 		});
 		expect(saves[0].value.blocks[0].anchor).toBe("breathing-room");
+		expect(saves[0].value.blocks[0].treatment.values.size).toBe("xlarge");
 		props = {
 			...props,
 			snapshot: { key, revision: 4, value: saves[0].value },
@@ -122,10 +138,16 @@ test("native layout controls preview, undo, save with CAS and refuse changes whi
 		};
 		await render();
 		expect(field("spacing").closest("fieldset").disabled).toBe(true);
+		expect(treatment().closest("fieldset").disabled).toBe(true);
+		await setSelect(size(), "small");
+		expect(previews.at(-1).draft.blocks[0].treatment.values.size).toBe("xlarge");
 		await choose("spacing", "spacious");
 		expect(previews.at(-1).draft.blocks[0].layout.spacing).toBe("none");
 		props = { ...props, contentLocked: false };
 		await render();
+		await setSelect(treatment(), "");
+		expect(size()).toBeNull();
+		expect(previews.at(-1).draft.blocks[0].treatment).toBeUndefined();
 		await choose("spacing", "");
 		await choose("tone", "");
 		expect(previews.at(-1).draft.blocks[0].layout).toBeUndefined();

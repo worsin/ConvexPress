@@ -1,0 +1,20 @@
+/* Finite legacy choices retain their original measurements and semantic border
+   token. New blocks continue to use the SDK and template layout defaults. */
+.cp-container[data-width="full"]:has(> .cp-original-spacer),
+.cp-container[data-width="full"]:has(> .cp-original-divider) {
+	padding-inline: 0;
+}
+.cp-original-spacer[data-size="small"] { height: calc(var(--spacing, 0.25rem) * 4); }
+.cp-original-spacer[data-size="medium"] { height: calc(var(--spacing, 0.25rem) * 8); }
+.cp-original-spacer[data-size="large"] { height: calc(var(--spacing, 0.25rem) * 16); }
+.cp-original-spacer[data-size="xlarge"] { height: calc(var(--spacing, 0.25rem) * 24); }
+.cp-original-divider {
+	border: 0;
+	border-top: 1px solid var(--border);
+	margin: calc(var(--spacing, 0.25rem) * 4) 0;
+}
+.cp-original-divider[data-variant="section"] { border-top-width: 2px; }
+.cp-original-divider[data-variant="subtle"] {
+	margin-block: calc(var(--spacing, 0.25rem) * 2);
+	border-color: color-mix(in oklab, var(--border) 40%, transparent);
+}
