@@ -7,7 +7,7 @@ import "./render.css";
 export default defineBlock("commerce/cart-cta", ({ attrs }) => {
   const cart = useCartSummary();
   const populated = cart.state === "ready" || cart.state === "payment-pending";
-  return <div className="cp-cart-cta" data-cart-state={cart.state}>
+  return <div className="cp-cart-cta-layout"><div className="cp-cart-cta" data-cart-state={cart.state}>
     <div className="cp-cart-cta-intro">
       <P.Eyebrow>Your selection</P.Eyebrow>
       {attrs.title && <P.Heading>{attrs.title}</P.Heading>}
@@ -29,5 +29,5 @@ export default defineBlock("commerce/cart-cta", ({ attrs }) => {
       </> : cart.state === "empty" ? <P.Button label="Explore the shop" href="/products" /> :
         <P.Link label="View basket" href="/cart" />}
     </div>
-  </div>;
+  </div></div>;
 });
