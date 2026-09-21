@@ -113,3 +113,9 @@ ConvexPress-Website/.codex/skills/*
 
 # Orphaned unused assets at repo root
 /data/
+
+# Local acceptance screenshots, logs and copied deployment checkpoints.
+# Existing tracked evidence stays tracked; new runs remain available on disk.
+/output/
+/ConvexPress-Admin/output/
+/ConvexPress-Website/output/
