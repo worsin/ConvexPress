@@ -36,6 +36,9 @@ import {
 } from "./draftModel";
 import { listTemplatePacks } from "./registry";
 import type { TemplateSettingsField } from "./types";
+import { activateTemplate } from "./templateActivation";
+import { getErrorMessage } from "@/lib/utils";
+import { toast } from "sonner";
 
 const controlClass =
   "w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground";
@@ -51,6 +54,7 @@ export default function CustomizerPanel() {
     packId,
   });
   const saveDraft = useMutation(api.settings.templateDrafts.saveDraft);
+  const discardDraft = useMutation(api.settings.templateDrafts.discardDraft);
   const [draftRevision, setDraftRevision] = useState<string | null | undefined>(
     undefined,
   );
@@ -160,8 +164,8 @@ export default function CustomizerPanel() {
     }
   }, [selected]);
   const changes = useMemo(
-    () => (base ? draftChanges(base, history.present) : []),
-    [base, history.present],
+    () => [...(base ? draftChanges(base, history.present) : []), ...(snapshot && packId !== snapshot.values.active ? ["template.active"] : [])],
+    [base, history.present, packId, snapshot],
   );
   const conflict = revision !== null && snapshot?.revision !== revision;
   const close = () => {
@@ -174,11 +178,12 @@ export default function CustomizerPanel() {
   };
   const switchPack = (next: string) => {
     if (!snapshot) return;
+    const activated = activateTemplate(snapshot.values, next);
     setPackId(next);
     setDraftRevision(undefined);
     const initial = {
-      values: snapshot.values.settings?.[next] ?? {},
-      variants: snapshot.values.variants ?? {},
+      values: activated.settings?.[next] ?? {},
+      variants: activated.variants ?? {},
     };
     setBase(initial);
     setHistory(createDraftHistory(initial));
@@ -199,7 +204,7 @@ export default function CustomizerPanel() {
       setNotice("Draft saved for your account.");
     } catch (cause) {
       setError(
-        cause instanceof Error ? cause.message : "Could not save this draft.",
+        getErrorMessage(cause, "Could not save this draft."),
       );
     } finally {
       setSaving(false);
@@ -230,12 +235,13 @@ export default function CustomizerPanel() {
     setSaving(true);
     setError(null);
     try {
+      const activated = activateTemplate(snapshot.values, packId);
       const next = {
-        ...snapshot.values,
+        ...activated,
         active: packId,
         variants: history.present.variants,
         settings: {
-          ...snapshot.values.settings,
+          ...activated.settings,
           [packId]: history.present.values,
         },
       };
@@ -244,12 +250,15 @@ export default function CustomizerPanel() {
         expectedRevision: revision,
         confirmLive: true,
       });
+      if (draftRevision) {
+        try { await discardDraft({ packId, expectedDraftRevision: draftRevision }); }
+        catch { toast.info("Published successfully. A newer saved draft was retained."); }
+      }
+      toast.success("Template settings published.");
       close();
     } catch (cause) {
       setError(
-        cause instanceof Error
-          ? cause.message
-          : "Publishing failed. Your draft is still open.",
+        getErrorMessage(cause, "Publishing failed. Your draft is still open."),
       );
     } finally {
       setSaving(false);

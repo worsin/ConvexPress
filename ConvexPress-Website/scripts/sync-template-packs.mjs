@@ -104,6 +104,7 @@ console.log(`admin mirror written: ${manifests.length} packs`);
 // One authoritative draft model; the Admin mirror is generated for its independent build.
 const draftModel = join(root, "apps/web/src/templates/sdk/draftModel.ts");
 writeFileSync(resolve(root, "../ConvexPress-Admin/apps/web/src/lib/templates/draftModel.ts"), readFileSync(draftModel, "utf8"));
+writeFileSync(resolve(root, "../ConvexPress-Admin/apps/web/src/lib/templates/templateActivation.ts"), readFileSync(join(root, "apps/web/src/templates/sdk/templateActivation.ts"), "utf8"));
 
 const chromeDefinitions = join(root, "apps/web/src/templates/sdk/chromeDefinitions.ts");
 if (existsSync(chromeDefinitions)) writeFileSync(resolve(root, "../ConvexPress-Admin/apps/web/src/lib/templates/chromeDefinitions.ts"), readFileSync(chromeDefinitions, "utf8"));

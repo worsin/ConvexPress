@@ -42,7 +42,7 @@ Every row remains open at full requirement scope. Consult the exact source requi
 | HA1 | Template surfaces, scoped dashboard checks, native Journal/Depot customization and publish/promote | All 22 signed-in dashboard surfaces per pack and remaining surface acceptance |
 | HA2 | Palette migration and legacy theme replacement | Fleet palette receipts and import checks before legacy tables/folders/redirect retirement |
 | HA3 | Commerce layout migration and replacement controls | Fleet variant/settings migration receipts and no legacy Shop layouts dependency |
-| HB1 | On-site Customizer | Authorized draft/publish on the actual Website with the site capability |
+| HB1 | Native-to-Website operator handoff and Core on-site draft/publish/end verified on isolated staging | All packs, signed-in customer denial, live revocation and unsaved-draft continuity through session expiry; [evidence](onsite-customizer-20260921.md) |
 | HB2 | Surface-aware fields, read tracking and click-to-edit | Correct groups and field focus on every affected surface |
 | HB3 | Native Core layout plus Journal/Depot preset/font/radius/layout/shop draft/reset/history/publication and confirmed promotion accepted; stale live review refused | Other packs/fields and on-site workflow; [Journal/Depot evidence](customizer-packs-20260921.md) |
 | HB4 | Header/footer/menu Customize modules | All builders use template settings; legacy standalone screens retired |

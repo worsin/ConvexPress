@@ -25,6 +25,7 @@ export async function signAccessToken(payload: {
   userId: string;
   email: string;
   name: string;
+  expiresAt?: number;
 }): Promise<string> {
   const privateKeyPem = requireAuthPrivateKey();
   const privateKey = await importPKCS8(privateKeyPem, ALG);
@@ -38,7 +39,7 @@ export async function signAccessToken(payload: {
     .setIssuer(ISSUER)
     .setAudience(AUDIENCE)
     .setIssuedAt()
-    .setExpirationTime(ACCESS_TOKEN_EXPIRY)
+    .setExpirationTime(payload.expiresAt === undefined ? ACCESS_TOKEN_EXPIRY : Math.floor(payload.expiresAt / 1_000))
     .sign(privateKey);
 }
 

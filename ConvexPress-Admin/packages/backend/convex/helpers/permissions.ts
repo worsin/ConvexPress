@@ -164,7 +164,7 @@ type ActiveManagementSession = {
   expiresAt: number;
 };
 
-async function getActiveManagementSession(
+export async function getActiveManagementSession(
   ctx: AuthReadCtx,
   budget?: RequestReadLedger,
 ): Promise<ActiveManagementSession | null> {
@@ -182,7 +182,7 @@ async function getActiveManagementSession(
 /** Database verification shared by authenticated requests and captured jobs.
  * A session ID alone is not a grant; background callers must also validate the
  * persisted operation, captured principal and installation. */
-async function readActiveManagementSession(
+export async function readActiveManagementSession(
   ctx: DbReadCtx,
   sessionId: Id<"convexpress_managementSessions">,
   budget?: RequestReadLedger,

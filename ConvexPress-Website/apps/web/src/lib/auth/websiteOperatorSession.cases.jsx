@@ -1,0 +1,89 @@
+import { expect, mock, test } from "bun:test";
+import { act, StrictMode, useEffect } from "react";
+import { JSDOM } from "jsdom";
+
+const customer = { isLoaded: true, isSignedIn: true, userId: "customer", sessionId: "customer-session", orgId: null };
+let lastOperatorAuth, childMounts = 0;
+mock.module("./clerk", () => ({ useAuth: () => customer }));
+mock.module("convex/react-clerk", () => ({ ConvexProviderWithClerk: ({ children, useAuth }) => <div data-customer={useAuth().sessionId}>{children}</div> }));
+mock.module("convex/react", () => ({ ConvexProviderWithAuth: ({ children, useAuth }) => { lastOperatorAuth = useAuth(); return <div data-operator="true">{children}</div>; } }));
+const { SessionBoundConvexProvider } = await import("./SessionBoundConvexProvider");
+const { WebsiteOperatorNotice } = await import("./WebsiteOperatorContext");
+function Child() { useEffect(() => { childMounts++; }, []); return <WebsiteOperatorNotice />; }
+
+async function environment(run) {
+  const dom = new JSDOM("<div id='root'></div>", { url: `https://site.example/?customize=1#cp-customize=${"ab".repeat(32)}` });
+  const prior = {};
+  for (const key of ["window", "document", "navigator", "HTMLElement", "Event", "IS_REACT_ACT_ENVIRONMENT"]) {
+    prior[key] = Object.getOwnPropertyDescriptor(globalThis, key);
+    Object.defineProperty(globalThis, key, { configurable: true, writable: true, value: key === "IS_REACT_ACT_ENVIRONMENT" ? true : dom.window[key] });
+  }
+  window.__CONVEXPRESS_SITE__ = { convexUrl: "https://db.convex.cloud", convexSiteUrl: "https://db.convex.site", instanceKey: "one:staging" };
+  const oldFetch = globalThis.fetch;
+  const { createRoot } = await import("react-dom/client");
+  const root = createRoot(document.getElementById("root"));
+  const render = () => act(async () => root.render(<StrictMode><SessionBoundConvexProvider client={{}}><Child /></SessionBoundConvexProvider></StrictMode>));
+  try { await run({ root, render }); }
+  finally { await act(async () => root.unmount()); globalThis.fetch = oldFetch; dom.window.close(); for (const [key, desc] of Object.entries(prior)) { if (desc) Object.defineProperty(globalThis, key, desc); else delete globalThis[key]; } }
+}
+
+test("StrictMode redeems once, removes the secret, separates customer authority and remounts on explicit end", async () => environment(async ({ render }) => {
+  let resolve, calls = 0;
+  globalThis.fetch = () => { calls++; expect(window.location.hash).toBe(""); return new Promise(done => { resolve = done; }); };
+  await render();
+  expect(calls).toBe(1);
+  expect(document.body.textContent).toContain("Opening website editing");
+  const before = childMounts;
+  await act(async () => resolve(Response.json({ token: "operator-token", expiresAt: Date.now() + 60000, instanceKey: "one:staging" })));
+  expect(document.querySelector("[data-operator]")).not.toBeNull();
+  expect(document.querySelector("[data-customer]")).toBeNull();
+  expect(await lastOperatorAuth.fetchAccessToken()).toBe("operator-token");
+  expect(childMounts).toBeGreaterThan(before);
+  expect(window.localStorage.length).toBe(0); expect(window.sessionStorage.length).toBe(0);
+  await act(async () => document.querySelector("button").click());
+  expect(document.querySelector("[data-operator]")).toBeNull();
+  expect(document.querySelector("[data-customer]").dataset.customer).toBe("customer-session");
+  expect(customer.sessionId).toBe("customer-session");
+  await render(); expect(calls).toBe(1);
+}));
+
+test("failed redemption keeps the customer session and presents a safe actionable error", async () => environment(async ({ render }) => {
+  globalThis.fetch = async () => new Response("private provider details", { status: 403 });
+  await render();
+  expect(document.querySelector("[data-operator]")).toBeNull();
+  expect(document.querySelector("[role=alert]").textContent).toContain("Open a new link from ConvexPress");
+  expect(document.body.textContent).not.toContain("private provider");
+}));
+
+test("expiration clears operator authority and restores the separate customer provider", async () => environment(async ({ render }) => {
+  globalThis.fetch = async () => Response.json({ token: "short-token", expiresAt: Date.now() + 100, instanceKey: "one:staging" });
+  await render();
+  expect(document.querySelector("[data-operator]")).not.toBeNull();
+  await act(async () => new Promise(done => setTimeout(done, 150)));
+  expect(await lastOperatorAuth.fetchAccessToken()).toBeNull();
+  expect(document.querySelector("[data-operator]")).toBeNull();
+  expect(document.querySelector("[data-customer]")).not.toBeNull();
+  expect(document.querySelector("[role=alert]").textContent).toContain("editing expired");
+}));
+
+test("a new same-tab link replaces an in-flight exchange and obsolete responses cannot restore authority", async () => environment(async ({ render }) => {
+  const responses = [];
+  globalThis.fetch = () => new Promise(resolve => responses.push(resolve));
+  await render();
+  await act(async () => {
+    window.history.replaceState(null, "", `/?customize=1#cp-customize=${"cd".repeat(32)}`);
+    window.dispatchEvent(new Event("hashchange"));
+  });
+  expect(responses.length).toBe(2); expect(window.location.hash).toBe("");
+  await act(async () => responses[1](Response.json({ token: "current-token", expiresAt: Date.now() + 60000, instanceKey: "one:staging" })));
+  await act(async () => responses[0](Response.json({ token: "obsolete-token", expiresAt: Date.now() + 60000, instanceKey: "one:staging" })));
+  expect(await lastOperatorAuth.fetchAccessToken()).toBe("current-token");
+  await act(async () => document.querySelector("button").click());
+  await act(async () => {
+    window.history.replaceState(null, "", `/?customize=1#cp-customize=${"ef".repeat(32)}`);
+    window.dispatchEvent(new Event("hashchange"));
+  });
+  expect(responses.length).toBe(3);
+  await act(async () => responses[2](Response.json({ token: "reopened-token", expiresAt: Date.now() + 60000, instanceKey: "one:staging" })));
+  expect(await lastOperatorAuth.fetchAccessToken()).toBe("reopened-token");
+}));

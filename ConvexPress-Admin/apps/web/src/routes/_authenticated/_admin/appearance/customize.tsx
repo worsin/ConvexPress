@@ -29,6 +29,8 @@ import { FooterRowsBuilder } from "@/components/appearance/FooterRowsBuilder";
 import { createDraftHistory, applyDraftChange, setDraftField, readDraftField, resetDraftModule, resetDraftBrand, applyColorPreset, undoDraft, redoDraft, draftChanges, type DraftSnapshot, type Values } from "@/lib/templates/draftModel";
 import { prepareTemplatePromotion, type TemplateSnapshot, type PromotionReview } from "@/lib/templates/templatePublishing";
 import { cn, getErrorMessage } from "@/lib/utils";
+import { getElectronBridge } from "@/lib/electron";
+import { createWebsiteOperatorLink } from "@/lib/templates/websiteOperatorLink";
 
 export const Route = createFileRoute("/_authenticated/_admin/appearance/customize")({
   component: CustomizePage,
@@ -58,6 +60,8 @@ function CustomizePage() {
   const publishSettings = useMutation(api.settings.templateDrafts.publish);
   const saveStoredDraft = useMutation(api.settings.templateDrafts.saveDraft);
   const discardStoredDraft = useMutation(api.settings.templateDrafts.discardDraft);
+  const createOperatorHandoff = useMutation(api.auth.operatorHandoffs.create);
+  const [openingWebsite, setOpeningWebsite] = useState(false);
   const shell = useControlShell();
   const control = useControlClient();
   const [base, setBase] = useState<TemplateSnapshot | null>(null);
@@ -110,6 +114,20 @@ function CustomizePage() {
 
   const siteUrl = general?.siteUrl?.replace(/\/$/, "") ?? "";
   const previewUrl = siteUrl ? `${siteUrl}${page.path}${page.path.includes("?") ? "&" : "?"}customize=preview&template=${activeId}` : null;
+
+  const openWebsiteEditor = async () => {
+    if (!siteUrl || !server?.identity || openingWebsite) return;
+    const requestScope = scope;
+    const bridge = getElectronBridge();
+    if (!bridge?.siteRunner?.openUrl) { toast.error("Open website editing from the ConvexPress desktop app."); return; }
+    setOpeningWebsite(true);
+    try {
+      const url = await createWebsiteOperatorLink(createOperatorHandoff, { siteUrl, instanceKey: server.identity.instanceKey });
+      if (scopeRef.current !== requestScope) return;
+      await bridge.siteRunner.openUrl(url);
+    } catch { if (scopeRef.current === requestScope) toast.error("Could not open website editing. Check the site's public URL and your access, then try again."); }
+    finally { setOpeningWebsite(false); }
+  };
 
   // Push the draft whenever it changes, and whenever the preview says it is ready.
   const post = useCallback(() => {
@@ -199,6 +217,7 @@ function CustomizePage() {
         ]}
         actions={
           <div className="flex flex-wrap gap-2">
+            <Button variant="outline" disabled={openingWebsite || !siteUrl || !server?.identity} onClick={() => void openWebsiteEditor()}>{openingWebsite ? "Opening website…" : "Customize on website"}</Button>
             <Button variant="outline" aria-label="Undo draft change" disabled={!history.past.length || saving} onClick={() => { setHistory(undoDraft); setReviewing(false); }}><Undo2 className="size-4" /></Button>
             <Button variant="outline" aria-label="Redo draft change" disabled={!history.future.length || saving} onClick={() => { setHistory(redoDraft); setReviewing(false); }}><Redo2 className="size-4" /></Button>
             <Button variant="outline" onClick={() => change(resetDraftBrand(history.present, modules))} disabled={saving}>Use brand values</Button>

@@ -13,6 +13,7 @@ import {
 } from "@tanstack/react-router";
 import { ClerkProvider } from "@/lib/auth/clerk";
 import { SessionBoundConvexProvider } from "@/lib/auth/SessionBoundConvexProvider";
+import { WebsiteOperatorNotice } from "@/lib/auth/WebsiteOperatorContext";
 import { AuthConfigProvider } from "@/contexts/AuthConfigContext";
 import { coerceAuthConfig, defaultWebsiteAuthConfig, type WebsiteAuthConfig } from "@/lib/auth/capabilities";
 
@@ -205,6 +206,7 @@ function RootDocument() {
               <HeadContent />
             </head>
             <body className="min-h-svh" suppressHydrationWarning>
+              <WebsiteOperatorNotice />
               <SettingsProvider>
               <TemplateSettingsDraftProvider>
               {/* Site palette, brand type and template settings apply to every route, not just the marketing layout. */}

@@ -69,7 +69,7 @@ if (problems.length) {
   process.exit(1);
 }
 
-for (const module of ["draftModel", "chromeDefinitions"]) {
+for (const module of ["draftModel", "chromeDefinitions", "templateActivation"]) {
   const source = join(root, `apps/web/src/templates/sdk/${module}.ts`);
   const mirror = resolve(root, `../ConvexPress-Admin/apps/web/src/lib/templates/${module}.ts`);
   if (existsSync(source) && (!existsSync(mirror) || readFileSync(source, "utf8") !== readFileSync(mirror, "utf8"))) throw new Error(`${module}: Admin mirror is stale; run sync:templates`);

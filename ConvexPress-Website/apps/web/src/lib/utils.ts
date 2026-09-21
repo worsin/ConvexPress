@@ -11,9 +11,6 @@ export function cn(...inputs: ClassValue[]) {
  * and falls back to a default message.
  */
 export function getErrorMessage(error: unknown, fallback = "An error occurred"): string {
-  if (error instanceof Error) {
-    return error.message;
-  }
   if (
     typeof error === "object" &&
     error !== null &&
@@ -22,5 +19,6 @@ export function getErrorMessage(error: unknown, fallback = "An error occurred"):
   ) {
     return (error as { data: { message: string } }).data.message;
   }
+  if (error instanceof Error) return error.message;
   return fallback;
 }

@@ -3,6 +3,7 @@ import { useRouterState } from "@tanstack/react-router";
 import { useQuery } from "convex/react";
 import { api } from "@convexpress-website/backend/generated/api";
 import { useAuth } from "@/lib/auth/clerk";
+import { useWebsiteOperator } from "@/lib/auth/WebsiteOperatorContext";
 
 import { useCan } from "@/hooks/useCan";
 
@@ -23,6 +24,7 @@ export function useAdminBarVisibility(): {
   editUrl: string | null;
 } {
   const { isSignedIn, isLoaded } = useAuth();
+  const operator = useWebsiteOperator();
   // Use the proper capability check from the Role & Capability System
   const isAdmin = useCan("manage_options");
   const routerState = useRouterState();
@@ -47,7 +49,7 @@ export function useAdminBarVisibility(): {
   );
 
   // Don't show admin bar while loading or if not authenticated
-  if (!isLoaded || !isSignedIn) {
+  if (!operator.active && (!isLoaded || !isSignedIn)) {
     return {
       showAdminBar: false,
       isAdmin: false,

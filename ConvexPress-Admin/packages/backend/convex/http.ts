@@ -1,3 +1,4 @@
+import { operatorHandoffHandler, operatorHandoffPreflight } from "./auth/operatorHttp";
 import {downloadBytes as leadMagnetBytes} from "./leadMagnets/http";
 import { downloadBytes } from "./commerceDigital/http";
 import { httpRouter } from "convex/server";
@@ -69,6 +70,9 @@ import {
 } from "./management/http";
 
 const http = httpRouter();
+
+http.route({ path: "/auth/operator-handoff", method: "OPTIONS", handler: operatorHandoffPreflight });
+http.route({ path: "/auth/operator-handoff", method: "POST", handler: operatorHandoffHandler });
 
 http.route({ path: "/commerce/downloads/bytes", method: "POST", handler: downloadBytes });
 http.route({ path: "/lead-magnets/downloads/bytes", method: "POST", handler: leadMagnetBytes });
