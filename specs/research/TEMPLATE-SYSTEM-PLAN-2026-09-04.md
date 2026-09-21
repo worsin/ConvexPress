@@ -322,6 +322,10 @@ Rules:
 
 ## 16. Progress log and how to resume (keep this current)
 
+**Handoff (2026-09-04):** the next phase (harden + legacy deletion, Customizer v2 on-site, extension SDK kits, `site-build`) is handed to Astra in `specs/handoffs/HANDOFF-ASTRA-2026-09-04.md`. Update this table as items land.
+
+**Block system (2026-09-05):** the block re-foundation that adds `blocks` to the pack manifest and SDK primitives is specified in `specs/handoffs/HANDOFF-ASTRA-BLOCKS-2026-09-05.md`; SDK type changes from it land here first.
+
 **Resume procedure for a fresh session:** read this section, then `ConvexPress-Website/apps/web/src/templates/sdk/*` (the SDK) and `templates/packs/core/template.json`. Run `bun run check-types` in both apps and `bun run check:templates` in the Website to see the state. Everything below is additive; the site keeps working at every step because `<Surface>` falls back to the route's own component when a pack has no implementation.
 
 | Step | State | Where |

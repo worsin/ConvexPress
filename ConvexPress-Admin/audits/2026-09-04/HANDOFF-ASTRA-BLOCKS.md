@@ -230,72 +230,13 @@ The generator script that produced the initial rows is kept at `ConvexPress-Admi
 
 ## 9. Progress table (Astra keeps this current)
 
-Updated September 20 from current source and dated acceptance receipts. “Implemented” does not mean the whole phase is accepted. Earlier dated notes below remain historical.
-
-| Item | State | Where / evidence | Remaining acceptance or implementation |
+| Item | State | Where | Notes |
 |---|---|---|---|
-| Phase 0 — truth and tests | Contract/security checks implemented; partial rendered acceptance | Root block/catalog tests and `output/block-layout-motion-20260916`; current `check:blocks` and generated parity pass | Full per-block interaction/data/editor/visual acceptance; no library-wide premium-quality verdict |
-| Phase 1 — schema first | Runtime integration implemented: 137 specs / 285 examples | `blocks/`, generated contracts, native schema controls; `output/definition-promotion-editor-20260916` | Complete installed-catalog/editor acceptance, including all supported field states |
-| Phase 2 — one content model | Canonical editing, revisions, reusable definitions and recovery implemented; legacy retirement incomplete | `canonicalDocuments`, `syncedBlocks`, canonical editor; content migration references in block-kit | `contentMode` remains in schema. Deployed migration supports legacy block trees and page sections; one heading page completed native conversion, Website rendering and original-editor recovery on disposable target4870. A bounded structured article also completed native conversion to 22 blocks, actual Website desktop/mobile rendering and original-editor recovery with original fields preserved (output/structured-migration-20260920). Unsupported structured fields/capacity and inactive layout/lock intent still refuse; full legacy render acceptance and retirement remain open |
-| Phase 3 — SDK and template control | SDK baseline and four installed packs; 32 starter patterns; closed layout controls wired to all11 SDK variables | SDK primitives, pack manifests/owned renderers; four-pack/five-layout desktop/mobile proof in output/default-pack-review-20260920; historical example and scoped hardware motion proof | Finish flagship pack treatments and full visual/motion/state signoff; verify switching on final content |
-| Phase 4 — live editor | Live unsaved Website pane and selection/highlight; bounded undo/redo; multi-selection and lock-aware bulk removal; core keyboard workflows implemented and selectively accepted in owned Electron | `output/live-editor-20260920/acceptance-review.md`, `output/editor-history-20260920/acceptance-review.md`: no preview/history writes, explicit save/reopen, post-save undo semantics and stable rendered DOM | Aster House hosted staging and Journal/Depot local Heading/Paragraph live-editor acceptance passed; hover accepted locally in Core. Visual block inserter has548 per-pack thumbnails with scoped Core native acceptance. Tabbed Blocks/Patterns/Saved/Create integration and native pinned/latest/pattern/custom insertion with Undo are accepted locally (`output/inserter-workflows-20260920/acceptance-review.md`); Create is the existing whole-page AI composer. Diagnostics and canonical management accepted on local target and Aster staging:137 entries, bounded editable-document scans and incomplete-usage handling (`output/block-diagnostics-20260920/acceptance-review.md`). Create now integrates description/manual element creation, reviewed draft, Website preview, approval and insertion; native manual workflow and page preservation accepted (`output/editor-element-creation-20260920/acceptance-review.md`). Live permission grant/revocation and missing-provider-key recovery accepted (`output/editor-ai-live-20260920/acceptance-review.md`); successful AI generation needs an authorized provider key on the disposable site. Cloud hover rollout and broader keyboard/selection polish remain open |
-| Phase 5 — data and AI | Scoped resolver planning, SSR, selected-resource AI, immutable custom definitions/style/promotion implemented | `blockDefinitions`, canonical data foundation; September16 compose/style/promotion receipts | Natural-language resource discovery and wider dynamic/media/child-slot/provider acceptance; static promotion is not the full matrix |
-| Phase 6 — library, packs, kits | All 137 renderers and all eight kit workflows distributed; four packs and internal BlockDemo | `block-kit/skills`, `output/block-kit-completion-20260920`, Standalone MagicTables | Per-skill end-to-end prompt acceptance, all-block polished behavior and pack demo/site acceptance remain required |
-| Original Astra audit and template handoff | Active; not superseded by block progress | `ConvexPress-Admin/audits/2026-09-04/implementation-ledger.md` | Original 24-item audit, Customizer/SDK/provider/fleet/packaging gates and safe main integration |
-
-## September 5 integration notes
-
-Schema migration refinement approved by root on September 5: the closed field vocabulary remains sixteen types, with explicit scalar repeater items, numeric select values, flat media-ID and href storage forms for lossless imports. `reference.of` additionally permits `tag` and `user`: tags require intended target-taxonomy resolution; users require a reviewed exact source-to-target author mapping, never customer copying or email guessing. Nonempty unresolved/wrong-target references fail. New optional `migration` metadata records `fromVersion`, preservation of legacy render output, and bounded `empty-to-null` / `pack-treatment` paths. These are staged contracts; the existing runtime does not execute them. The original revision and old Website render attrs must survive until accepted rendering replaces them.
-
-The owner asked Claude to provide the spec for implementation in Astra’s isolated hardening worktree. The spec supersedes the earlier ledger characterization of the content-model rewrite and expanded block library as unadopted proposals. All seven phases above are now tracked requirements; none is being substituted by the prior bounded validation repair.
-
-Existing work to preserve: rejection of unknown names at write boundaries, expanded portable-block AI catalog, safe AI JSON extraction, nested disabled-block duplication checks, revision recovery, and Aster House’s Field Guide / Upcoming Events demonstrations. These must migrate to the generated contracts rather than grow the handwritten registries. Current block trees still use `innerBlocks`, old content models remain, and the SDK/renderer/editor composition contracts above are not implemented.
-
-Promotion is being built alongside this work. Its block dependency scanner and ID mapping must consume the generated reference/media field metadata and accept the new `children` tree before the unified model is activated. Saved snapshots and revisions must retain lossless pre-migration content.
-
-## Owner additions — inventory refinement and BlockDemo
-
-The owner explicitly authorizes Astra to refine Claude’s complete block inventory, add missing blocks and supporting work to the new Blocks table in the Standalone ConvexPress MagicTables base, and implement the entire resulting inventory. This is additive completion scope, not a fixed limit of roughly120 blocks. Resolve the finished handoff/table schema and deduplicate before writing while Claude is populating it. Currently resolved standalone base: `p5771rm40m4pjw4q4t4x9kdbb18dnm0b` (ORM-APP-ConvexPress Standalone Roadmap), Blocks table `q97ft31dnn52vbeha9fdd3zfg98dv4sq`. Live names/schema were inspected via mt; rows are still being created by Claude.
-
-The final collection must include several simple, well-styled default templates, with a finished basic treatment for every block. Create an internal **BlockDemo** website that presents every block in organized categories, using a shared content set across the default packs. It is not shipped as a customer starter; later public promotion is a separate decision. Use real rendered desktop/mobile and keyboard checks, meaningful content variants and dynamic loading/empty/error states where applicable. Coverage must enumerate the complete approved inventory, actual rendered block states and pack names, not infer success from renderer-file presence. This site supplies the screenshot matrix and makes visual gaps directly reviewable.
-
-## September 5 — tracker refinement and motion acceptance
-
-Astra added11 reviewed inventory entries and reconciled planned `events/event-list` into the existing `events/upcoming` row (no duplicate). The complete live readback contains136 unique named blocks. Added names: `core/synced`, `core/definition-list`, `business/opening-hours`, `business/locations`, `business/service-list`, `business/menu`, `commerce/wishlist`, `commerce/download-library`, `core/search-results`, `reference/field-guide`, `local/sample-alert`. Rationale and field contracts are in row Notes and `ConvexPress-Admin/output/blocks-tracker/astra-additions-2026-09-05.json`. Source presence is separate from new-contract completion. No new block is marked Verified. Event row metadata now matches the preserved generated v1 attrs and proposed page-level resolver.
-
-The owner additionally requires premium visual design, gorgeous smooth animations and no stuttering or pixelated gradients. Current inspection finds Framer Motion12.38.0 in Admin; Website declares tw-animate-css but no Motion, GSAP or WebGL runtime. Verify the shared SDK motion choice before installing; use compositor-friendly transforms/opacity and bounded visible work, preserve reduced-motion behavior, and profile actual BlockDemo frames/paint costs at tested sizes/DPRs. GPU availability alone is insufficient acceptance. Each default pack must receive real visual and motion review.
-
-Original imagery is explicitly authorized, with UploadThing API/account setup authorized as an alternative if Convex storage proves inadequate. Convex already stored Aster images successfully; no UploadThing dependency or account was created by Astra. The first original BlockDemo photo, exact prompt, hash, alt text and crop focal point are stored in `output/block-demo/`; it is not uploaded or attached to a completed site yet.
-
-### September 5 canonical inventory and inline-content checkpoint
-
-All 136 verified tracker names now have canonical specs: 54 migrated existing
-contracts plus 82 newly authored planned contracts. Proposed tracker updates are
-in `blocks/.migration/planned-contracts.json`; no runtime or Verified status is
-implied by this coverage. Generated metadata now carries closed plugin/capability
-requirements, typed target references, and cross-field constraints. Structural
-containers use children/shared layout intent; visual ratios, gaps and motion stay
-in template treatments. Missing dynamic/reference/security adapters must refuse
-activation. HTML/iframe/script specifications are declarations pending their
-reviewed safety implementations.
-
-Paragraph/rich-text bodies and heading/list inline content now use the same closed
-TipTap-compatible `RichTextDoc` vocabulary as SDK RichText, including hardBreak,
-bold/italic/strike/underline/code/link marks. Heading/list fields use the same
-storage with a single-paragraph restriction. The staged v1-to-v2 converter retains
-original revisions and exact legacy renderer inputs and distinguishes legacy
-Markdown from literal prose. Unsupported structural editor nodes require explicit
-tree mappings and fail rather than flattening. Runtime registration and actual
-stored-record/pack acceptance remain separate root-owned gates.
-
-### Canonical table/anchor refinement (staged)
-
-The generated `matrix` constraint supports a declared nested `rowField` and `headerOffset` of 0 or1, in addition to existing scalar row arrays. Pricing values associate exactly with plan count; comparison cells associate with authored columns excluding their label column. Missing headers with populated rows and mismatched widths fail with a path, preserving the original legacy record for repair. `columns:null` remains permitted only with no rows. Footnote keys use the existing anchor format and within-block uniqueness; page-wide anchor collisions require tree preflight before activation. No formatter/renderer may silently pad, truncate, rename keys or invent header labels.
-
-### Approved composable treatment refinement (2026-09-05)
-
-Root approved optional instance `treatment: {name, values}` beside attrs/style/layout, with a closed generated validator per block. This separates authored visual intent from content without creating combinatorial public named styles. Initial `reference/field-guide` treatment `editorial` preserves spacing 0–8, physical alignment left/center/right, ink foreground/primary/muted and font body/display. All axes are required when treatment is present; defaults are spec metadata for deliberate editors/converters. Four pack `template.json` files declare `blocks.treatments: {"reference/field-guide":["editorial"]}` and actual SDK mappings must support each axis. Unknown/missing axes and unsupported active-pack treatment are errors. Existing `style` remains independent; no raw CSS or arbitrary JSON intent is accepted. Actual legacy conversion uses the generated compatibility artifact and does not invent a legacy-only permanent style identity. Service activation requires old/new rendered equivalence, not merely schema acceptance.
-
-## September 20 current library and pricing milestone
-
-Full source-discovered example matrix:137 blocks/285 examples × four packs ×1440/390px,2280 captures and eight completed browser cases. Added actual generated-form submission preservation across all285 examples. Visual review found and repaired pricing cards reserving unused columns and misaligned actions; three final browser cases cover all four packs at1440/900/390px with0–6 plans, add/remove/reset, maximum-length copy and retained destinations.281 renderer tests/4936 assertions, Admin/Website/demo types, block/thumbnail checks, demo build and focused lint pass. Four pricing thumbnails refreshed; one existing MagicTables block row updated and all137 read back. Evidence: output/block-library-current-20260920/acceptance-review.md. The full matrix predates only the pricing repair and its final focused evidence supersedes those16 pricing captures; other136 source pairs match. Fixture/DOM evidence does not close native persistence, full visual/motion/live-data acceptance or original production gates.
+| Phase 0 | not started | | |
+| Phase 1 | not started | | |
+| Phase 2 | not started | | |
+| Phase 3 | not started | | |
+| Phase 4 | not started | | |
+| Phase 5 | not started | | |
+| Phase 6 | not started | | |
+| Reconciled with Astra's in-flight work | pending | | list what you already had and how it maps |
