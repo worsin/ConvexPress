@@ -21,10 +21,10 @@
  * loosely-typed extension function path, mirroring `SignupForm.tsx`.
  */
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { useAuth } from "@/lib/auth/clerk";
 import { useAction, useMutation, useConvex } from "convex/react";
-import DOMPurify from "isomorphic-dompurify";
+import DOMPurify from "@/lib/html-sanitizer";
 import { CheckCircle2, Loader2 } from "lucide-react";
 import { api } from "@convexpress-website/backend/generated/api";
 
@@ -176,6 +176,8 @@ export function FormRenderer({
   const [values, setValues] = useState<Record<string, string>>(() =>
     deriveInitialValues(form.fields, initialValues),
   );
+  // Event-time values preserve consecutive edits before React commits a render.
+  const valuesRef = useRef(values);
 
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [formError, setFormError] = useState<string | null>(null);
@@ -186,6 +188,7 @@ export function FormRenderer({
   const [honeypotValue, setHoneypotValue] = useState("");
   const [captchaToken, setCaptchaToken] = useState("");
   const [captchaError, setCaptchaError] = useState<string | null>(null);
+  const instanceId = useId();
   const startedAtRef = useRef(Date.now());
 
   // Visibility recompute on every render from the current value map. When a
@@ -239,13 +242,11 @@ export function FormRenderer({
   }, [fields, values]);
 
   function setFieldValue(key: string, next: string) {
-    setValues((prev) => {
-      const updated = { ...prev, [key]: next };
-      // Lift the new value map for the wizard (autosave + step gating). Done
-      // here (inside the updater) so the wizard always sees the latest map.
-      onValuesChange?.(updated);
-      return updated;
-    });
+    const updated = { ...valuesRef.current, [key]: next };
+    valuesRef.current = updated;
+    setValues(updated);
+    // Notify the wizard in the event, never in a replayable state updater.
+    onValuesChange?.(updated);
     // Clear a field's prior error as soon as the user edits it.
     setFieldErrors((prev) => {
       if (!prev[key]) return prev;
@@ -267,7 +268,9 @@ export function FormRenderer({
       }
     }
     setFieldErrors(errors);
-    return Object.keys(errors).length === 0;
+    const firstError = Object.keys(errors)[0];
+    if (firstError) requestAnimationFrame(() => document.getElementById(`${instanceId}-${firstError}`)?.focus());
+    return !firstError;
   }
 
   // Publish a STABLE imperative handle to the wizard. `validate` closes over the
@@ -335,7 +338,7 @@ export function FormRenderer({
       try {
         const ref = await convex.query(
           (api as any).extensions.forms.confirmations.resolveConfirmation,
-          { formId: form._id as any, submissionId: res.submissionId },
+          { formId: form._id as any, submissionId: res.submissionId, confirmationToken: res.confirmationToken },
         );
 
         if (ref?.type === "redirect" && ref.redirectUrl) {
@@ -384,9 +387,9 @@ export function FormRenderer({
 
   // Shared field list — identical markup in both standalone + hosted modes.
   const fieldList = (
-    <div className="flex flex-col gap-5">
+    <div data-slot="form-fields" className="flex flex-col gap-5">
       {visibleFields.map((field) => {
-        const inputId = `form-${form._id}-${field.key}`;
+        const inputId = `${instanceId}-${field.key}`;
         const error = fieldErrors[field.key];
         // Computed fields display the recomputed value (fallback: stored, then
         // ""). A `calculation` is fully read-only (its onChange is a no-op); a
@@ -399,7 +402,7 @@ export function FormRenderer({
               }
             : (next: string) => setFieldValue(field.key, next);
         return (
-          <div key={field._id} className="flex flex-col gap-1.5">
+          <div key={field._id} data-form-field-type={field.type} className="flex flex-col gap-1.5">
             <FormFieldRenderer
               field={field}
               value={fieldValue}

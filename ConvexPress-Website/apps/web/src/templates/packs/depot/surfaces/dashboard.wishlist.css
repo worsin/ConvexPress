@@ -1,0 +1,45 @@
+/* Keep the dense Depot table on wide panels; expose every action in narrow ones. */
+[data-slot="dashboard-wishlist"][data-pack="depot"] {
+  container-type: inline-size;
+}
+@container (max-width: 40rem) {
+  .depot-wishlist-lists, .depot-wishlist-items { overflow: visible; }
+  .depot-wishlist-lists table, .depot-wishlist-lists tbody { display: block; }
+  .depot-wishlist-lists thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+  .depot-wishlist-lists tr { display: grid; grid-template-columns: 1fr; }
+  .depot-wishlist-lists td {
+    display: block;
+    min-width: 0;
+    white-space: normal;
+    text-align: left;
+    overflow-wrap: anywhere;
+  }
+  .depot-wishlist-lists > table > tbody > .depot-wishlist-row {
+    grid-template-columns: 44px minmax(0, 1fr);
+    padding: 12px;
+  }
+  .depot-wishlist-lists > table > tbody > .depot-wishlist-row > td {
+    grid-column: 1 / -1;
+  }
+  .depot-wishlist-lists > table > tbody > .depot-wishlist-row > td:first-child { grid-column: 1; padding: 0; }
+  .depot-wishlist-lists > table > tbody > .depot-wishlist-row > td:nth-child(2) { grid-column: 2; padding-inline: 0; align-self: center; }
+  .depot-wishlist-lists td[data-label] { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .depot-wishlist-lists td[data-label]::before {
+    content: attr(data-label);
+    color: var(--muted-foreground);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+  }
+  .depot-wishlist-items tr { padding: 12px 0; }
+  .depot-wishlist-lists td > span { flex-wrap: wrap; justify-content: flex-start; }
+  .depot-wishlist-lists button, .depot-wishlist-lists a { min-height: 44px; }
+  .depot-wishlist-lists button:has(> svg:only-child) { min-width: 44px; }
+}

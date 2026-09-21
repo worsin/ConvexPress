@@ -1,0 +1,63 @@
+import { test, expect } from "@playwright/test";
+import { selectPackReady } from "./pack-ready";
+
+for (const pack of ["core", "journal", "depot", "aster-house"])
+  for (const width of [1440, 390])
+    test(`learning outline and progress navigation · ${pack} · ${width}px`, async ({ page }, info) => {
+      await page.setViewportSize({ width, height: 1000 });
+      await page.emulateMedia({ reducedMotion: "reduce" });
+      const errors: string[] = [];
+      page.on("pageerror", error => errors.push(error.message));
+      await page.goto("/?block=lms%2Fcurriculum", { waitUntil: "networkidle" });
+      await selectPackReady(page, pack);
+      const canvas = page.locator(".canonical-canvas");
+      const module = canvas.locator("summary").first();
+      await expect(module).toBeVisible();
+      await module.focus();
+      const open = await module.locator("..").getAttribute("open");
+      await page.keyboard.press("Enter");
+      if (open === null) await expect(module.locator("..")).toHaveAttribute("open", "");
+      else await expect(module.locator("..")).not.toHaveAttribute("open", "");
+      await page.keyboard.press("Space");
+      const next = canvas.getByRole("link", { name: "Continue outline →", exact: true });
+      await next.focus();
+      await page.keyboard.press("Enter");
+      await expect(canvas.getByLabel("Curriculum study", { exact: true })).toBeFocused();
+      await expect(canvas).toContainText("Module · continued");
+      await expect(canvas).toContainText("Finding your own expression");
+      await expect(next).toHaveCount(0);
+      await page.reload();
+      await expect(canvas).toContainText("Finding your own expression");
+      await canvas.getByRole("link", { name: "Back to first modules" }).click();
+      await expect(next).toBeVisible();
+      await page.goBack();
+      await expect(canvas).toContainText("Finding your own expression");
+      await canvas.scrollIntoViewIfNeeded();
+      expect(await canvas.evaluate(node => node.scrollWidth <= node.clientWidth + 1)).toBe(true);
+      await canvas.screenshot({ path: info.outputPath("curriculum.png"), animations: "disabled" });
+
+      await page.goto(`/?block=lms%2Fprogress&pack=${pack}`, { waitUntil: "networkidle" });
+      const cards = canvas.locator(".cp-learner-progress-card");
+      await expect(cards).toHaveCount(6);
+      await expect(canvas.getByRole("progressbar", { name: "Working with clay completion" })).toHaveAttribute("value", "42");
+      await expect(canvas.getByRole("progressbar", { name: "Everyday typography completion" })).toHaveAttribute("value", "100");
+      const preparing = cards.filter({ has: page.getByRole("heading", { name: "A practice of observation" }) });
+      await expect(preparing).toContainText("Updating progress");
+      await expect(preparing.getByRole("progressbar")).toHaveCount(0);
+      await expect(preparing.getByRole("link", { name: "View course →" })).toHaveAttribute("href", "/courses/studio-course-2");
+      await canvas.getByRole("link", { name: "More courses →", exact: true }).focus();
+      await page.keyboard.press("Enter");
+      await expect(canvas.getByLabel("Learner progress study", { exact: true })).toBeFocused();
+      await expect(cards).toHaveCount(1);
+      await expect(cards).toContainText("Designing with purpose");
+      await page.reload();
+      await expect(cards).toHaveCount(1);
+      await canvas.getByRole("link", { name: "Back to first courses" }).click();
+      await expect(cards).toHaveCount(6);
+      await page.goBack();
+      await expect(cards).toHaveCount(1);
+      await canvas.scrollIntoViewIfNeeded();
+      expect(await canvas.evaluate(node => node.scrollWidth <= node.clientWidth + 1)).toBe(true);
+      await canvas.screenshot({ path: info.outputPath("progress.png"), animations: "disabled" });
+      expect(errors).toEqual([]);
+    });

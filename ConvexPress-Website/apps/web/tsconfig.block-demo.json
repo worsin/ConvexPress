@@ -1,0 +1,22 @@
+{
+	"extends": "./tsconfig.json",
+	"include": [
+		"src/types/*.d.ts",
+		"vite.block-demo.config.ts",
+		"playwright.block-demo.config.ts",
+		"block-demo/**/*.ts",
+		"block-demo/**/*.tsx",
+		"src/templates/sdk/block-renderer/**/*.ts",
+		"src/templates/sdk/block-renderer/**/*.tsx",
+		"../../../blocks/**/*.tsx"
+	],
+	"exclude": ["node_modules", "block-demo/.dist"],
+	"compilerOptions": {
+		"paths": {
+			"@/*": ["./src/*"],
+			"zod": ["./node_modules/zod"],
+			"react": ["./node_modules/@types/react/index.d.ts"],
+			"react/*": ["./node_modules/@types/react/*"]
+		}
+	}
+}

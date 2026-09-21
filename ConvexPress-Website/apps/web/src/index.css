@@ -1,4 +1,9 @@
-@import "tailwindcss";
+@import "tailwindcss" source(none);
+/* Only shipped components supply utilities. Broad directory scanning registers
+   internal gallery CSS as watch dependencies, which Start's development style
+   collector can then deliver to public pages as unlayered global styles. */
+@source "./**/*.{ts,tsx,js,jsx}";
+@source "../../../../blocks/**/*.{ts,tsx,js,jsx}";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 @import "@fontsource-variable/inter";

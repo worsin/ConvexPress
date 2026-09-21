@@ -1,0 +1,35 @@
+/* Internal study controls only. Every rendered block inherits its real pack. */
+.synced-study-controls {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem 1.5rem;
+  padding: 1.5rem;
+  border-block-end: 1px solid var(--border, #c8c7bd);
+}
+.synced-study-controls label {
+  display: grid;
+  gap: .5rem;
+  font-size: .75rem;
+  font-weight: 600;
+  letter-spacing: .035em;
+}
+.synced-study-controls select {
+  width: 100%;
+  min-height: 2.75rem;
+  padding: .65rem .75rem;
+  border: 1px solid var(--border, #c8c7bd);
+  border-radius: .3rem;
+  background: var(--background, #fff);
+  color: var(--foreground, #252923);
+  font-size: .875rem;
+}
+.synced-study-controls p {
+  grid-column: 1 / -1;
+  margin: 0;
+  max-width: 78ch;
+  font-size: .8rem;
+  line-height: 1.65;
+}
+@media (max-width: 640px) {
+  .synced-study-controls { grid-template-columns: minmax(0, 1fr); padding: 1.25rem; }
+}

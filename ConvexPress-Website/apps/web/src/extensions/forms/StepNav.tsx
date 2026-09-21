@@ -32,6 +32,7 @@ interface StepNavProps {
   nextLabel?: string;
   /** Optional label override for the Back button (from the page_break). */
   prevLabel?: string;
+  submitLabel?: string;
 }
 
 export function StepNav({
@@ -43,6 +44,7 @@ export function StepNav({
   isSubmitting,
   nextLabel,
   prevLabel,
+  submitLabel,
 }: StepNavProps) {
   return (
     <div
@@ -78,7 +80,7 @@ export function StepNav({
               Submitting…
             </>
           ) : (
-            "Submit"
+            submitLabel || "Submit"
           )}
         </Button>
       ) : (

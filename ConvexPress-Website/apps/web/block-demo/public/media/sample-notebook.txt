@@ -1,0 +1,3 @@
+BlockDemo synthetic download fixture
+
+This is a sample notebook for verifying file links. It is not business content.

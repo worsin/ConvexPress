@@ -1,3 +1,4 @@
+import { SiteTimeZoneProvider } from "./SiteTimeZoneContext";
 /**
  * Settings Context - Website Frontend
  *
@@ -145,7 +146,7 @@ export interface PublicSettings {
   // Shopping assistant rail configuration (Settings > Shop assistant).
   assistantConfig?: Record<string, unknown> | null;
 
-  // Storefront layout presets (Settings > Shop layouts).
+  // Derived compatibility response for older storefront integrations.
   layoutConfig?: {
     shopLayout?: string;
     productLayout?: string;
@@ -188,7 +189,9 @@ export function SettingsProvider({ children }: SettingsProviderProps) {
 
   return (
     <SettingsContext value={settings ?? null}>
-      {children}
+      <SiteTimeZoneProvider timeZone={settings?.timezone ?? "UTC"}>
+        {children}
+      </SiteTimeZoneProvider>
     </SettingsContext>
   );
 }

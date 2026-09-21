@@ -1,0 +1,33 @@
+import {test,expect} from "@playwright/test";
+import {readFile,writeFile} from "node:fs/promises";
+const origin=process.env.CONVEXPRESS_LEAD_ACCEPTANCE_ORIGIN;
+test.use({trace:"off",screenshot:"off"});
+test("published Lead Magnet delivers stored bytes and supports opt-out",async({page},info)=>{
+ test.skip(!origin,"Requires the owned Website and disposable Lead Magnet fixture");if(!origin)return;
+ test.setTimeout(60000);expect(origin).toBe("http://127.0.0.1:4322");
+ const journalPath="/Users/worsin/.codex/convexpress-acceptance-secrets/lead-magnet-browser-r2-20260915.json";
+ const previous=await readFile(journalPath,"utf8").then(JSON.parse).catch(error=>{if(error.code==="ENOENT")return null;throw error;});
+ if(previous?.submissionAttempted)throw Error("Inspect the existing browser submission before retrying live acceptance");
+ const state={submissionAttempted:false,downloaded:false,optedOut:false};
+ const save=()=>writeFile(journalPath,JSON.stringify(state,null,2)+"\n",{mode:0o600});
+ const errors:string[]=[];page.on("pageerror",error=>errors.push(error.name));
+ const response=await page.goto(origin+"/page/field-notebook-20260915",{waitUntil:"networkidle"});expect(response?.status()).toBe(200);
+ const block=page.locator(".cp-lead");await expect(block).toHaveCount(1);await expect(block).toContainText("Make a field notebook");
+ await expect(block).toContainText("308 bytes");await expect(block.getByRole("checkbox")).not.toBeChecked();
+ await expect(block.getByRole("button",{name:"Get the guide",exact:true})).toBeEnabled();
+ const privacy=block.getByRole("link",{name:"privacy policy"});await expect(privacy).toHaveAttribute("href","/page/field-notebook-data-notice-20260915");
+ const notice=await page.request.get(origin+"/page/field-notebook-data-notice-20260915");expect(notice.status()).toBe(200);expect(await notice.text()).toContain("Use a synthetic test email");
+ await block.screenshot({path:info.outputPath("published-lead-magnet.png"),animations:"disabled"});
+ await block.getByRole("textbox",{name:"Email address"}).fill("lead-reader-20260915@example.invalid");await block.getByRole("checkbox").check();
+ // Exercise the configured minimum form age without weakening server policy.
+ await page.waitForFunction(deadline=>Date.now()>=deadline,Date.now()+2500);
+ state.submissionAttempted=true;await save();await block.getByRole("button",{name:"Get the guide",exact:true}).click();
+ await expect(block.getByRole("button",{name:"Download your guide"})).toBeVisible();
+ const event=page.waitForEvent("download");await block.getByRole("button",{name:"Download your guide"}).click();const download=await event;
+ expect(download.suggestedFilename()).toBe("field-notebook.txt");expect(await download.failure()).toBeNull();
+ const path=info.outputPath("field-notebook.txt");await download.saveAs(path);
+ const expected=await readFile("/Users/worsin/.codex/worktrees/convexpress-hardening/output/lead-magnet-block-20260915/field-notebook.txt");expect(await readFile(path)).toEqual(expected);
+ state.downloaded=true;await save();await block.getByRole("button",{name:"Stop email updates"}).click();
+ await expect(block.getByRole("status")).toHaveText("Your opt-out request has been received.");state.optedOut=true;await save();
+ await block.screenshot({path:info.outputPath("published-lead-magnet-delivered.png"),animations:"disabled"});expect(errors).toEqual([]);
+});

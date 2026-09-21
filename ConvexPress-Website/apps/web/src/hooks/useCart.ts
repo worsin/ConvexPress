@@ -11,8 +11,8 @@ import { api } from "@convexpress-website/backend/generated/api";
 import { useCallback, useMemo, useState } from "react";
 import { toast } from "sonner";
 
-import { useSettings } from "@/contexts/SettingsContext";
-import { useCommerceSessionToken } from "@/hooks/useCommerceSessionToken";
+import { useSettings } from "../contexts/SettingsContext";
+import { useCommerceSessionToken } from "./useCommerceSessionToken";
 
 export interface CartLineSummary {
   itemId: string;
@@ -131,6 +131,7 @@ export function useCart() {
     sessionToken,
     isReady,
     loading,
+    paymentPending: raw?.status === "pending_payment",
     cart,
     lineByProduct,
     add,

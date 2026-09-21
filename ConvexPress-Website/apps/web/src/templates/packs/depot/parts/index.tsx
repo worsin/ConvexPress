@@ -1,3 +1,6 @@
+import { useProductCardPricing } from "@/components/shop/product/useProductCardPricing";
+import { formatSiteDate } from "@/lib/blog/date";
+import { useSetting } from "@/contexts/SettingsContext";
 /**
  * Depot · parts — the small vocabulary every Depot surface is built from.
  *
@@ -486,11 +489,8 @@ export interface PostCardInput {
   commentCount?: number;
 }
 
-export function formatDate(value: string | number | null | undefined): string | null {
-  if (value === null || value === undefined || value === "") return null;
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return null;
-  return new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric" }).format(date);
+export function formatDate(value: string | number | null | undefined, timeZone = "UTC"): string | null {
+  return formatSiteDate(value, timeZone);
 }
 
 /**
@@ -498,7 +498,7 @@ export function formatDate(value: string | number | null | undefined): string | 
  * thumbnail above the text for card rows.
  */
 export function PostCard({ post, layout = "row", className }: { post: PostCardInput; layout?: "row" | "tile"; className?: string }) {
-  const date = formatDate(post.date);
+  const date = formatDate(post.date, useSetting("timezone") ?? "UTC");
   const thumb = (
     <Link to="/blog/$slug" params={{ slug: post.slug }} className={cn("block shrink-0 overflow-hidden rounded-md bg-muted", layout === "row" ? "w-32 sm:w-40" : "w-full")} aria-hidden={!post.imageUrl}>
       <div className="aspect-video w-full">
@@ -538,7 +538,8 @@ export function PostCard({ post, layout = "row", className }: { post: PostCardIn
  * Product card: square image, category label, two-line name, one-line
  * excerpt, price + full-width add to cart. Same cart stepper as Core.
  */
-export function ProductCard({ product, className }: { product: ProductCardData; className?: string }) {
+export function ProductCard({ product: sourceProduct, className }: { product: ProductCardData; className?: string }) {
+  const product = useProductCardPricing(sourceProduct);
   const off = percentOff(product.price.amount, product.compareAtPrice?.amount);
   const low = product.inStock && product.stockQuantity !== null && product.stockQuantity <= 5;
   return (

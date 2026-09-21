@@ -1,0 +1,29 @@
+.featured-demo-controls {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.75rem;
+	align-items: center;
+	border-block: 1px solid var(--border);
+	padding-block: 1rem;
+	margin-block: 1rem 2rem;
+	font: 500 0.8rem / 1.5 var(--font-sans);
+}
+.featured-demo-controls :is(button, select) {
+	min-block-size: 44px;
+	padding: 0.6rem 0.8rem;
+	border: 1px solid var(--border);
+	border-radius: var(--radius);
+	background: var(--background);
+	color: var(--foreground);
+	font: inherit;
+}
+.featured-demo-controls :is(button, select):focus-visible {
+	outline: 2px solid var(--ring, var(--foreground));
+	outline-offset: 3px;
+}
+.featured-demo-controls button {
+	cursor: pointer;
+}
+.featured-demo-result {
+	inline-size: 100%;
+}

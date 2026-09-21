@@ -6,7 +6,12 @@
  * a change is live the moment the draft or the saved value changes.
  */
 
+import { blockLayoutCss } from "./blockLayout";
+import { paletteStyleBlocks, colorSchemeFor } from "@/lib/theme/palette";
+import { HEADER_DEFAULTS, FOOTER_DEFAULTS, HEADER_SECTIONS, FOOTER_SECTIONS } from "./chromeDefinitions";
 import type { TemplateSettingsField, TemplateSettingsGroup } from "./types";
+
+import { readDraftField } from "./draftModel";
 
 export const COLOR_TOKENS = [
   ["background", "Background"],
@@ -45,6 +50,15 @@ const field = (id: string, label: string, type: TemplateSettingsField["type"], d
   default: def,
   ...extra,
 });
+
+function chromeFields(sections: Array<{ id: string; label: string; hasToggle: boolean; fields: Array<{ id: string; label: string; type: string; options?: Array<{ value: string; label: string }> }> }>, defaults: Record<string, unknown>, surface: string): TemplateSettingsField[] {
+  return sections.flatMap(section => {
+    const values = defaults[section.id] as Record<string, unknown>;
+    const fields = section.fields.map(item => field(`${section.id}.${item.id}`, `${section.label}: ${item.label}`, item.type === "variant-grid" ? "select" : item.type as TemplateSettingsField["type"], values?.[item.id], { options: item.options, surfaces: [surface] }));
+    if (section.hasToggle) fields.unshift(field(`${section.id}.enabled`, `Show ${section.label.toLowerCase()}`, "toggle", values?.enabled ?? true, { surfaces: [surface] }));
+    return fields;
+  });
+}
 
 /** Standard modules. `default: null` for colours means "use the site palette / brand value". */
 export const STANDARD_MODULES: Record<string, SettingsModule> = {
@@ -88,6 +102,15 @@ export const STANDARD_MODULES: Record<string, SettingsModule> = {
           { value: "full", label: "Full" },
         ],
       }),
+      field("sectionSpacing", "Section spacing", "select", "comfortable", {
+        options: [{ value: "compact", label: "Compact" }, { value: "comfortable", label: "Comfortable" }, { value: "spacious", label: "Spacious" }],
+      }),
+      field("elementSpacing", "Content spacing", "select", "comfortable", {
+        options: [{ value: "compact", label: "Compact" }, { value: "comfortable", label: "Comfortable" }, { value: "spacious", label: "Spacious" }],
+      }),
+      field("blockGap", "Space between blocks", "select", "none", {
+        options: [{ value: "none", label: "None" }, { value: "small", label: "Small" }, { value: "medium", label: "Medium" }, { value: "large", label: "Large" }],
+      }),
     ],
   },
   shop: {
@@ -96,6 +119,10 @@ export const STANDARD_MODULES: Record<string, SettingsModule> = {
     fields: [
       field("catalogVariant", "Catalog layout", "select", null, { surfaces: ["shop.catalog"] }),
       field("productVariant", "Product page layout", "select", null, { surfaces: ["shop.product"] }),
+      field("gridDensity", "Product grid density", "select", "comfortable", {
+        surfaces: ["shop.catalog"],
+        options: [{ value: "comfortable", label: "Comfortable" }, { value: "dense", label: "Dense" }],
+      }),
       field("cartPanel", "Cart", "select", "persistent", {
         surfaces: ["shop.catalog", "shop.product"],
         options: [
@@ -106,22 +133,20 @@ export const STANDARD_MODULES: Record<string, SettingsModule> = {
     ],
   },
   header: {
-    id: "header",
-    title: "Header",
-    fields: [
-      field("sticky", "Sticky header", "toggle", true, { surfaces: ["chrome.header"] }),
-      field("showTagline", "Show tagline", "toggle", false, { surfaces: ["chrome.header"] }),
-      field("ctaLabel", "Button label", "text", "", { surfaces: ["chrome.header"] }),
-      field("ctaUrl", "Button link", "text", "", { surfaces: ["chrome.header"] }),
-    ],
+    id: "header", title: "Header",
+    fields: chromeFields(HEADER_SECTIONS, HEADER_DEFAULTS, "chrome.header"),
   },
   footer: {
-    id: "footer",
-    title: "Footer",
+    id: "footer", title: "Footer",
+    fields: chromeFields(FOOTER_SECTIONS, FOOTER_DEFAULTS, "chrome.footer"),
+  },
+  menuLayout: {
+    id: "menuLayout", title: "Menu locations",
     fields: [
-      field("showNewsletter", "Newsletter signup", "toggle", true, { surfaces: ["chrome.footer"] }),
-      field("showSocial", "Social links", "toggle", true, { surfaces: ["chrome.footer"] }),
-      field("copyright", "Copyright line", "text", "", { surfaces: ["chrome.footer"] }),
+      field("primary", "Primary menu location", "menuLocation", "header", { surfaces: ["chrome.header", "chrome.mobileNav"] }),
+      field("secondary", "Secondary menu location", "menuLocation", "secondary", { surfaces: ["chrome.header"] }),
+      field("footer", "Footer menu location", "menuLocation", "footer", { surfaces: ["chrome.footer"] }),
+      ...[1, 2, 3, 4].map(index => field(`footer-${index}`, `Footer column ${index} location`, "menuLocation", `footer-${index}`, { surfaces: ["chrome.footer"] })),
     ],
   },
 };
@@ -140,21 +165,32 @@ export const CONTENT_WIDTH_VALUES: Record<string, string> = {
 };
 
 /** Modules a pack includes, in order, with the pack's own groups appended. */
-export function modulesFor(manifest: { modules?: string[]; settings?: TemplateSettingsGroup[] } | undefined): SettingsModule[] {
-  const included = (manifest?.modules ?? []).map((id) => STANDARD_MODULES[id]).filter((m): m is SettingsModule => Boolean(m));
-  return [...included, ...((manifest?.settings ?? []) as SettingsModule[])];
+export function modulesFor(manifest: { modules?: string[]; settings?: TemplateSettingsGroup[]; presets?: Record<string, ColorPreset[]>; menuLocations?: Record<string, string>; defaults?: Record<string, Record<string, unknown>> } | undefined): SettingsModule[] {
+  const included = (manifest?.modules ?? []).map((id) => STANDARD_MODULES[id]).filter((m): m is SettingsModule => Boolean(m)).map((module) => ({ ...module, presets: manifest?.presets?.[module.id] ?? module.presets, ...(module.id === "menuLayout" ? { fields: module.fields.map((field) => ({ ...field, default: manifest?.menuLocations?.[field.id] ?? field.default })) } : {}) }));
+  return [...included, ...((manifest?.settings ?? []) as SettingsModule[])].map(module => ({
+    ...module,
+    fields: module.fields.map(field => {
+      const packDefault = readDraftField(manifest?.defaults?.[module.id], field.id);
+      return packDefault === undefined ? field : { ...field, default: packDefault };
+    }),
+  }));
 }
 
 /** Default values per module from the schema. */
 export function defaultsFor(modules: SettingsModule[]): Record<string, Record<string, unknown>> {
   const out: Record<string, Record<string, unknown>> = {};
   for (const module of modules) {
-    out[module.id] = Object.fromEntries(module.fields.map((f) => [f.id, f.default]));
+    out[module.id] = module.id === "header" ? structuredClone(HEADER_DEFAULTS) : module.id === "footer" ? structuredClone(FOOTER_DEFAULTS) : {};
+    for (const f of module.fields) {
+      const path = f.id.split(".");
+      let cursor = out[module.id];
+      for (const key of path.slice(0, -1)) cursor = (cursor[key] ??= {}) as Record<string, unknown>;
+      cursor[path[path.length - 1]] = f.default;
+    }
   }
   return out;
 }
 
-const HEX = /^#[0-9a-fA-F]{3,8}$/;
 const FONT = /^[A-Za-z0-9][A-Za-z0-9 +-]{0,60}$/;
 
 /** CSS for the colour / typography / layout modules. Unknown or empty values are skipped. */
@@ -162,10 +198,9 @@ export function settingsCss(values: Record<string, Record<string, unknown>>): { 
   const vars: string[] = [];
   const fonts: string[] = [];
   const colors = values.colors ?? {};
-  for (const [token] of COLOR_TOKENS) {
-    const value = colors[token];
-    if (typeof value === "string" && HEX.test(value.trim())) vars.push(`--${token}: ${value.trim()};`);
-  }
+  const entries = Object.entries(colors).map(([slug, color]) => ({ slug, color }));
+  const colorCss = paletteStyleBlocks(entries);
+  const scheme = colorSchemeFor(entries);
   const typography = values.typography ?? {};
   const display = typeof typography.display === "string" && FONT.test(typography.display) ? typography.display : null;
   const body = typeof typography.body === "string" && FONT.test(typography.body) ? typography.body : null;
@@ -181,8 +216,9 @@ export function settingsCss(values: Record<string, Record<string, unknown>>): { 
   if (scale === "compact") vars.push("--type-scale: 0.94;");
   if (scale === "spacious") vars.push("--type-scale: 1.06;");
   const layout = values.layout ?? {};
-  if (typeof layout.radius === "string" && RADIUS_VALUES[layout.radius]) vars.push(`--radius: ${RADIUS_VALUES[layout.radius]};`);
-  if (typeof layout.contentWidth === "string" && CONTENT_WIDTH_VALUES[layout.contentWidth]) vars.push(`--content-max-width: ${CONTENT_WIDTH_VALUES[layout.contentWidth]};`);
+  if (typeof layout.radius === "string" && Object.hasOwn(RADIUS_VALUES, layout.radius)) vars.push(`--radius: ${RADIUS_VALUES[layout.radius]};`);
+  if (typeof layout.contentWidth === "string" && Object.hasOwn(CONTENT_WIDTH_VALUES, layout.contentWidth)) vars.push(`--content-max-width: ${CONTENT_WIDTH_VALUES[layout.contentWidth]};`);
   else vars.push("--content-max-width: 80rem;");
-  return { css: vars.length ? `:root {\n${vars.join("\n")}\n}` : "", fonts };
+  vars.push(...blockLayoutCss(layout));
+  return { css: [colorCss, scheme ? `:root:not(.dark) { color-scheme: ${scheme}; }\n.dark { color-scheme: dark; }` : "", vars.length ? `:root {\n${vars.join("\n")}\n}` : ""].filter(Boolean).join("\n"), fonts };
 }

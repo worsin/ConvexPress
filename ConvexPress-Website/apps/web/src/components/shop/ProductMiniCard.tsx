@@ -10,8 +10,10 @@ import { MediaImage } from "@/components/media/MediaImage";
 import { useCart } from "@/hooks/useCart";
 import { formatMoney, percentOff } from "@/lib/commerce/format";
 import { cn } from "@/lib/utils";
+import { useProductCardPricing, type CardPricing } from "./product/useProductCardPricing";
 
 export interface ProductCardData {
+  pricing?: CardPricing["pricing"];
   productId: string;
   slug: string;
   title: string;
@@ -102,7 +104,7 @@ export function CartStepper({
 }
 
 export function ProductMiniCard({
-  product,
+  product: sourceProduct,
   rationale,
   onNavigate,
   onAdded,
@@ -114,6 +116,7 @@ export function ProductMiniCard({
   onAdded?: () => void;
   className?: string;
 }) {
+  const product = useProductCardPricing(sourceProduct);
   const off = percentOff(product.price.amount, product.compareAtPrice?.amount);
   return (
     <article

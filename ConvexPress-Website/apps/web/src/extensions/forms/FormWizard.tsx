@@ -89,6 +89,9 @@ function browserNonce(prefix: string): string {
 }
 
 export interface FormWizardOptions {
+  /** The embedding block owns its heading and introduction. */
+  embedded?: boolean;
+  submitLabel?: string;
   autosave?: boolean;
   autosaveDelayMs?: number;
   showProgress?: boolean;
@@ -97,6 +100,7 @@ export interface FormWizardOptions {
 
 interface FormWizardProps {
   form: PublicForm;
+  contactPassword?: string;
   /** Present on the resume path — seeds the resume key + shows the banner. */
   resumeToken?: string;
   /** Prefilled / resumed values (override per-field defaults in the renderer). */
@@ -319,6 +323,7 @@ export function buildWizardPayload(
 
 export function FormWizard({
   form,
+  contactPassword,
   resumeToken,
   initialValues,
   initialStep,
@@ -391,6 +396,8 @@ export function FormWizard({
   const [savedAt, setSavedAt] = useState<number | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const submitErrorRef = useRef<HTMLDivElement>(null);
+  useEffect(() => { if (submitError) submitErrorRef.current?.focus(); }, [submitError]);
   const [submittedResult, setSubmittedResult] = useState<{
     submissionId: string;
     isComplete: boolean;
@@ -508,6 +515,7 @@ export function FormWizard({
     try {
       const res = await submit({
         formId: form._id as any,
+        contactPassword,
         values: buildPayload(),
         isComplete: false,
         resumeToken: resumeTokenRef.current || undefined,
@@ -533,6 +541,7 @@ export function FormWizard({
     submit,
     form._id,
     form.security,
+    contactPassword,
     honeypotValue,
     buildPayload,
     clampedIndex,
@@ -627,6 +636,7 @@ export function FormWizard({
         : submit;
       const res = await submitComplete({
         formId: form._id as any,
+        contactPassword,
         values: buildPayload(),
         isComplete: true,
         resumeToken: resumeTokenRef.current,
@@ -693,7 +703,7 @@ export function FormWizard({
       try {
         const ref = await convex.query(
           (api as any).extensions.forms.confirmations.resolveConfirmation,
-          { formId: form._id as any, submissionId: res.submissionId },
+          { formId: form._id as any, submissionId: res.submissionId, confirmationToken: res.confirmationToken, contactPassword },
         );
 
         if (ref?.type === "redirect" && ref.redirectUrl) {
@@ -744,6 +754,7 @@ export function FormWizard({
     form._id,
     form.slug,
     form.security,
+    contactPassword,
     buildPayload,
     beginOrderPayment,
     orderFormSettings.enabled,
@@ -792,14 +803,15 @@ export function FormWizard({
   const wizardCard = (
     <div
       data-slot="form-wizard"
+      aria-busy={isSubmitting}
       className="flex flex-col gap-6 rounded-lg border border-border bg-card p-6"
     >
-      <div className="flex flex-col gap-1.5 border-b border-border pb-4">
+      {!options?.embedded && <div className="flex flex-col gap-1.5 border-b border-border pb-4">
         <h1 className="text-xl font-semibold text-foreground">{form.title}</h1>
         {form.description ? (
           <p className="text-sm text-muted-foreground">{form.description}</p>
         ) : null}
-      </div>
+      </div>}
 
       {resumeToken ? <ResumeBanner stepNumber={clampedIndex + 1} /> : null}
 
@@ -819,7 +831,7 @@ export function FormWizard({
             />
           ) : null}
 
-          {submitError ? <AuthError message={submitError} /> : null}
+          {submitError ? <div ref={submitErrorRef} data-slot="form-submit-error" tabIndex={-1}><AuthError message={submitError} /></div> : null}
 
           <FormRenderer
             // Re-mount the renderer per step so its internal field error state is
@@ -857,6 +869,7 @@ export function FormWizard({
             isSubmitting={isSubmitting}
             nextLabel={labels.nextLabel}
             prevLabel={labels.prevLabel}
+            submitLabel={options?.submitLabel}
           />
 
           <AutosaveIndicator saveState={saveState} savedAt={savedAt} />

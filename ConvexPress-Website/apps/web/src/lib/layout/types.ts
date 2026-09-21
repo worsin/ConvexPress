@@ -20,7 +20,7 @@ export interface ResolvedMenuItem {
   /** CSS classes from admin configuration */
   cssClasses?: string;
   /** Item type (page, post, category, tag, custom) */
-  type: "page" | "post" | "category" | "tag" | "custom";
+  type: "page" | "post" | "category" | "tag" | "custom" | "heading" | "separator" | "dashboard";
   /** Nesting depth (0 = top-level) */
   depth: number;
   /** Child menu items (for tree rendering) */

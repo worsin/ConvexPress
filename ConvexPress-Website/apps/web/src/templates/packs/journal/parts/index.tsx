@@ -1,3 +1,6 @@
+import { useProductCardPricing } from "@/components/shop/product/useProductCardPricing";
+import { formatSiteDate } from "@/lib/blog/date";
+import { useSetting } from "@/contexts/SettingsContext";
 /**
  * Journal · parts — the small vocabulary every Journal surface is built from.
  *
@@ -318,11 +321,8 @@ export interface JournalPostLike {
   commentCount?: number;
 }
 
-export function formatDate(value: string | number | null | undefined): string | null {
-  if (value === null || value === undefined || value === "") return null;
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return null;
-  return new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric" }).format(date);
+export function formatDate(value: string | number | null | undefined, timeZone = "UTC"): string | null {
+  return formatSiteDate(value, timeZone);
 }
 
 function isoDate(value: string | number | null | undefined): string | undefined {
@@ -333,7 +333,7 @@ function isoDate(value: string | number | null | undefined): string | undefined 
 
 /** Author · date · reading time, in small caps. Any part may be missing. */
 export function PostMetaLine({ post, className }: { post: JournalPostLike; className?: string }) {
-  const date = formatDate(post.publishedAt);
+  const date = formatDate(post.publishedAt, useSetting("timezone") ?? "UTC");
   const author = post.author?.displayName ? post.author : null;
   const minutes = post.readingTime && post.readingTime > 0 ? post.readingTime : null;
   if (!date && !author && !minutes) return null;
@@ -369,7 +369,7 @@ function Dot() {
 }
 
 export function PostCard({ post, variant = "default", className }: { post: JournalPostLike; variant?: "default" | "feature"; className?: string }) {
-  const date = formatDate(post.publishedAt);
+  const date = formatDate(post.publishedAt, useSetting("timezone") ?? "UTC");
   const image = post.featuredImageUrl ? (
     <Link to="/blog/$slug" params={{ slug: post.slug }} className="group/image block overflow-hidden rounded-2xl bg-muted" tabIndex={-1} aria-hidden="true">
       <img
@@ -493,7 +493,8 @@ export function AddPill({
   );
 }
 
-export function ProductCard({ product, className }: { product: ProductCardData; className?: string }) {
+export function ProductCard({ product: sourceProduct, className }: { product: ProductCardData; className?: string }) {
+  const product = useProductCardPricing(sourceProduct);
   const compareAt = product.compareAtPrice && product.compareAtPrice.amount > product.price.amount ? product.compareAtPrice.amount : null;
   return (
     <article data-slot="journal-product-card" className={cn("group flex flex-col gap-4", className)}>

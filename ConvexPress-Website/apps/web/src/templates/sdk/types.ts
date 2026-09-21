@@ -29,6 +29,8 @@ export interface TemplateSettingsGroup {
 }
 
 export interface TemplateManifest {
+  /** Explicit per-block treatment opt-ins; generated backend support uses the same manifest. */
+  blocks?: { hidden?: import("../../../../../../blocks/.generated/types").BlockName[]; styles?: Partial<Record<import("../../../../../../blocks/.generated/types").BlockName, string[]>>; renderers?: Partial<Record<import("../../../../../../blocks/.generated/types").BlockName, string>>; patterns?: "./patterns/*.json"; treatments?: Partial<Record<import("../../../../../../blocks/.generated/types").BlockName, string[]>> };
   id: string;
   name: string;
   version: string;
@@ -46,6 +48,8 @@ export interface TemplateManifest {
   modules?: string[];
   /** Pack-specific Customize groups. */
   settings?: TemplateSettingsGroup[];
+  /** Named settings presets offered by the pack. */
+  presets?: Record<string, Array<{ id: string; name: string; colors: Record<string, string> }>>;
   /** Per-pack defaults for module fields, e.g. { layout: { contentWidth: "full" } }. */
   defaults?: Record<string, Record<string, unknown>>;
   /** Menu locations rendered, keyed by role. */

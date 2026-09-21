@@ -254,7 +254,7 @@ export interface TaxonomyTerm {
   slug: string;
   description?: string;
   parentId?: string;
-  count: number;
+  count?: number;
 }
 
 export interface PostCategory extends TaxonomyTerm {
@@ -335,6 +335,7 @@ export interface PostDetail extends PostCard {
 
 export interface PageDetail {
   _id: string;
+  excerpt?: string;
   title: string;
   slug: string;
   path: string;

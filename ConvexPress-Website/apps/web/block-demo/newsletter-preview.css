@@ -1,0 +1,45 @@
+.newsletter-demo-controls {
+	padding: 1.25rem;
+	margin-block-end: 1rem;
+	border-block: 1px solid var(--border);
+	font: 400 0.8rem / 1.6 var(--font-sans);
+}
+.newsletter-demo-controls label {
+	display: grid;
+	gap: 0.5rem;
+	max-inline-size: 32rem;
+}
+.newsletter-demo-controls select,
+.newsletter-demo-controls input {
+	min-inline-size: 0;
+	inline-size: 100%;
+	min-block-size: 44px;
+	padding: 0.6rem;
+	border: 1px solid var(--border);
+	background: var(--background);
+	color: var(--foreground);
+	font: inherit;
+}
+.newsletter-demo-controls button {
+	min-block-size: 44px;
+	padding: 0.6rem 1rem;
+	margin-block: 0.75rem;
+	border: 1px solid var(--border);
+	background: var(--card);
+	color: var(--foreground);
+	font: inherit;
+	cursor: pointer;
+}
+.newsletter-demo-controls summary {
+	cursor: pointer;
+	min-block-size: 44px;
+	padding-block: 0.6rem;
+}
+.newsletter-demo-controls p {
+	max-inline-size: 65ch;
+	overflow-wrap: anywhere;
+}
+.newsletter-demo-controls :focus-visible {
+	outline: 2px solid var(--ring);
+	outline-offset: 3px;
+}

@@ -1,0 +1,22 @@
+import { test, expect } from "@playwright/test";
+import { writeFile } from "node:fs/promises";
+test("published Download Library protects purchases for a signed-out Website visitor", async ({ page }, info) => {
+  const url = process.env.CONVEXPRESS_DOWNLOAD_ACCEPTANCE_URL;
+  test.skip(!url, "Requires an explicitly retained live Download Library acceptance page");
+  if (!url) return;
+  const endpoint = new URL(url);
+  if (endpoint.protocol !== "http:" || !["127.0.0.1", "localhost"].includes(endpoint.hostname) || endpoint.username || endpoint.password) throw Error("Acceptance URL must be an owned local Website server");
+  const errors: string[] = [];
+  page.on("pageerror", error => errors.push(error.message));
+  await page.goto(url, { waitUntil: "networkidle" });
+  const library = page.locator('.cp-download-library[data-download-state="signed-out"]');
+  await expect(library).toBeVisible();
+  await expect(library.locator(".cp-download-file")).toHaveCount(0);
+  await expect(library.getByRole("link", { name: "Sign in", exact: true })).toHaveAttribute("href", "/login");
+  await library.screenshot({ path: info.outputPath("published-signed-out.png") });
+  await library.getByRole("link", { name: "Sign in", exact: true }).click();
+  await expect(page).toHaveURL(/\/login\/?(?:\?.*)?$/);
+  await page.screenshot({ path: info.outputPath("customer-login.png") });
+  await writeFile(info.outputPath("runtime-observations.json"), JSON.stringify({ pageErrors: errors, loginText: (await page.locator("body").innerText()).slice(-2500) }, null, 2));
+  expect(errors).toEqual([]);
+});
