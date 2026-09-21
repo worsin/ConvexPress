@@ -1,0 +1,148 @@
+{
+  "name": "blocks/contact-stack",
+  "title": "Contact Stack",
+  "description": "A contact information section with phone, email, address, hours, extra rows, and optional map embed.",
+  "category": "site",
+  "role": "content",
+  "version": 1,
+  "keywords": [
+    "site",
+    "contact",
+    "map",
+    "address",
+    "hours",
+    "email"
+  ],
+  "ai": {
+    "useFor": "contact pages and informational pages that need location or communication details",
+    "avoid": "newsletter forms or support-ticket flows"
+  },
+  "fields": [
+    {
+      "id": "heading",
+      "default": "Contact the site",
+      "type": "text",
+      "max": 140
+    },
+    {
+      "id": "intro",
+      "default": "",
+      "type": "text",
+      "max": 800
+    },
+    {
+      "id": "phone",
+      "default": "",
+      "type": "text",
+      "max": 80
+    },
+    {
+      "id": "email",
+      "default": "",
+      "type": "text",
+      "max": 160
+    },
+    {
+      "id": "address",
+      "default": "",
+      "type": "text",
+      "max": 500
+    },
+    {
+      "id": "hours",
+      "default": "",
+      "type": "text",
+      "max": 500
+    },
+    {
+      "id": "mapEmbedUrl",
+      "default": "",
+      "type": "text",
+      "max": 1000
+    },
+    {
+      "id": "items",
+      "default": [],
+      "type": "repeater",
+      "max": 8,
+      "fields": [
+        {
+          "id": "label",
+          "default": "",
+          "type": "text",
+          "max": 80
+        },
+        {
+          "id": "value",
+          "default": "",
+          "type": "text",
+          "max": 300
+        },
+        {
+          "id": "href",
+          "default": "",
+          "type": "text",
+          "max": 500
+        }
+      ]
+    }
+  ],
+  "supports": {
+    "children": false,
+    "styles": true,
+    "layout": [
+      "width",
+      "tone",
+      "spacing",
+      "align"
+    ],
+    "anchor": true,
+    "visibility": true
+  },
+  "data": null,
+  "preview": "{heading}",
+  "examples": [
+    {
+      "heading": "Contact the site",
+      "intro": "",
+      "phone": "",
+      "email": "",
+      "address": "",
+      "hours": "",
+      "mapEmbedUrl": "",
+      "items": []
+    },
+    {
+      "heading": "Contact the site",
+      "intro": "",
+      "phone": "",
+      "email": "",
+      "address": "",
+      "hours": "",
+      "mapEmbedUrl": "",
+      "items": []
+    },
+    {
+      "heading": "A little closer to the mountains",
+      "intro": "A fictional Aster House contact study. Plan a slower afternoon of making, walking and good conversation. The map shows a sample region, not a business location.",
+      "phone": "+1 (202) 555-0142",
+      "email": "hello@example.invalid",
+      "address": "Aster House\nIllustrative mountain-retreat address",
+      "hours": "Tuesday\u2013Saturday\n10:00\u201317:00 \u00b7 by arrangement",
+      "mapEmbedUrl": "https://www.openstreetmap.org/export/embed.html?bbox=-111.8%2C40.5%2C-111.5%2C40.8&layer=mapnik",
+      "items": [
+        {
+          "label": "Before you visit",
+          "value": "Read the field notes",
+          "href": "/#composition"
+        }
+      ]
+    }
+  ],
+  "requires": {
+    "plugins": [],
+    "capabilities": [
+      "embed.sandbox"
+    ]
+  }
+}

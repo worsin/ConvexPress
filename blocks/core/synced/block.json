@@ -1,0 +1,70 @@
+{
+  "name": "core/synced",
+  "title": "Synced content",
+  "description": "Reusable content reference with shared updates and explicit revision/conflict handling.",
+  "category": "layout",
+  "role": "content",
+  "version": 1,
+  "keywords": [
+    "synced"
+  ],
+  "ai": {
+    "useFor": "Reusable content reference with shared updates and explicit revision/conflict handling.",
+    "avoid": "Resolve a target-owned reusable content revision with cycle/depth budgets. Promotion must pin/review dependencies; never copy runtime/customer data."
+  },
+  "fields": [
+    {
+      "id": "syncedBlock",
+      "type": "reference",
+      "of": "syncedBlock",
+      "max": 256
+    },
+    {
+      "id": "revisionPolicy",
+      "type": "select",
+      "options": [
+        "pinned",
+        "latest"
+      ],
+      "default": "pinned"
+    },
+    {
+      "id": "revision",
+      "type": "number",
+      "min": 1,
+      "max": 1000000,
+      "integer": true
+    }
+  ],
+  "supports": {
+    "children": false,
+    "styles": true,
+    "layout": [
+      "width",
+      "tone",
+      "spacing",
+      "align"
+    ],
+    "anchor": true,
+    "visibility": true
+  },
+  "data": {
+    "resolver": "content.syncedBlock",
+    "args": {
+      "syncedBlock": "attrs.syncedBlock",
+      "revisionPolicy": "attrs.revisionPolicy",
+      "revision": "attrs.revision"
+    }
+  },
+  "preview": "Synced content",
+  "examples": [
+    {}
+  ],
+  "requires": {
+    "plugins": [],
+    "capabilities": [
+      "tree.children",
+      "reference.targetResolution"
+    ]
+  }
+}

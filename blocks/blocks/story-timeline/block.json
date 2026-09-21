@@ -1,0 +1,162 @@
+{
+  "name": "blocks/story-timeline",
+  "title": "Story Timeline",
+  "description": "A chronological story/history timeline with dated milestones, copy, optional images, and links.",
+  "category": "marketing",
+  "role": "content",
+  "version": 2,
+  "keywords": [
+    "site",
+    "story",
+    "history",
+    "timeline",
+    "milestones"
+  ],
+  "ai": {
+    "useFor": "company history, origin stories, founder timeline, or multi-year milestones",
+    "avoid": "unordered feature lists or grade comparisons"
+  },
+  "fields": [
+    {
+      "id": "eyebrow",
+      "default": "",
+      "type": "text",
+      "max": 80
+    },
+    {
+      "id": "heading",
+      "default": "",
+      "type": "text",
+      "max": 140
+    },
+    {
+      "id": "intro",
+      "default": "",
+      "type": "text",
+      "max": 800
+    },
+    {
+      "id": "items",
+      "default": [],
+      "type": "repeater",
+      "max": 40,
+      "fields": [
+        {
+          "id": "label",
+          "default": "",
+          "type": "text",
+          "max": 80
+        },
+        {
+          "id": "title",
+          "default": "",
+          "type": "text",
+          "max": 160
+        },
+        {
+          "id": "body",
+          "default": "",
+          "type": "text",
+          "max": 1600
+        },
+        {
+          "id": "mediaId",
+          "default": "",
+          "type": "media",
+          "storage": "id",
+          "allowEmpty": true
+        },
+        {
+          "id": "mediaAlt",
+          "default": "",
+          "type": "text",
+          "max": 200
+        },
+        {
+          "id": "linkLabel",
+          "default": "",
+          "type": "text",
+          "max": 60
+        },
+        {
+          "id": "linkUrl",
+          "default": "",
+          "type": "text",
+          "max": 500
+        }
+      ]
+    }
+  ],
+  "supports": {
+    "children": false,
+    "styles": true,
+    "layout": [
+      "width",
+      "tone",
+      "spacing",
+      "align"
+    ],
+    "anchor": true,
+    "visibility": true
+  },
+  "data": null,
+  "preview": "{heading}",
+  "examples": [
+    {
+      "eyebrow": "",
+      "heading": "",
+      "intro": "",
+      "items": []
+    },
+    {
+      "eyebrow": "",
+      "heading": "",
+      "intro": "",
+      "items": []
+    },
+    {
+      "eyebrow": "An imagined beginning",
+      "heading": "From a note to a place.",
+      "intro": "Three fictional chapters; the labels preserve the author’s sequence.",
+      "items": [
+        {
+          "label": "The first note",
+          "title": "A question worth keeping",
+          "body": "What would a space made for observation feel like?",
+          "mediaId": "demo-image-field-notebook",
+          "mediaAlt": "A closed notebook and pencil"
+        },
+        {
+          "label": "The everyday object",
+          "title": "Something useful, made carefully",
+          "body": "A cup becomes a small ritual, a reason to pause.",
+          "mediaId": "demo-image-camp-mug",
+          "mediaAlt": "A ceramic mug on stone"
+        },
+        {
+          "label": "A place to gather",
+          "title": "Room for what comes next",
+          "body": "A fictional retreat beneath the trees, waiting for its next chapter.",
+          "mediaId": "demo-image-retreat",
+          "mediaAlt": "A retreat near a forest",
+          "linkLabel": "Explore the study",
+          "linkUrl": "#studies"
+        }
+      ]
+    }
+  ],
+  "migration": {
+    "fromVersion": 1,
+    "preserveLegacyRender": true,
+    "transforms": [
+      {
+        "kind": "pack-treatment",
+        "path": [
+          "items",
+          "*",
+          "side"
+        ]
+      }
+    ]
+  }
+}

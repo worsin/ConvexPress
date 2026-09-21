@@ -1,0 +1,143 @@
+{
+  "name": "blocks/grade-gallery",
+  "title": "Grade Gallery",
+  "description": "A grade-by-grade gallery for product sets, visual examples, descriptions, and notes.",
+  "category": "media",
+  "role": "content",
+  "version": 1,
+  "keywords": [
+    "site",
+    "grade",
+    "gallery",
+    "product",
+    "figure",
+    "sets"
+  ],
+  "ai": {
+    "useFor": "explaining product grades, visual quality examples, or product grading standards",
+    "avoid": "customer project photos or press mentions"
+  },
+  "fields": [
+    {
+      "id": "heading",
+      "default": "Product grades",
+      "type": "text",
+      "max": 140
+    },
+    {
+      "id": "intro",
+      "default": "",
+      "type": "text",
+      "max": 800
+    },
+    {
+      "id": "sections",
+      "default": [],
+      "type": "repeater",
+      "max": 12,
+      "fields": [
+        {
+          "id": "grade",
+          "default": "Grade",
+          "type": "text",
+          "max": 80
+        },
+        {
+          "id": "description",
+          "default": "",
+          "type": "text",
+          "max": 1600
+        },
+        {
+          "id": "notes",
+          "default": "",
+          "type": "text",
+          "max": 800
+        },
+        {
+          "id": "images",
+          "default": [],
+          "type": "repeater",
+          "max": 16,
+          "fields": [
+            {
+              "id": "mediaId",
+              "default": "",
+              "type": "media",
+              "storage": "id",
+              "allowEmpty": true
+            },
+            {
+              "id": "alt",
+              "default": "",
+              "type": "text",
+              "max": 200
+            },
+            {
+              "id": "caption",
+              "default": "",
+              "type": "text",
+              "max": 220
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "supports": {
+    "children": false,
+    "styles": true,
+    "layout": [
+      "width",
+      "tone",
+      "spacing",
+      "align"
+    ],
+    "anchor": true,
+    "visibility": true
+  },
+  "data": null,
+  "preview": "{heading}",
+  "examples": [
+    {
+      "heading": "Product grades",
+      "intro": "",
+      "sections": []
+    },
+    {
+      "heading": "Product grades",
+      "intro": "",
+      "sections": []
+    },
+    {
+      "heading": "A closer look at the material.",
+      "intro": "Two fictional material studies; these are editorial descriptions, not commercial grading claims.",
+      "sections": [
+        {
+          "grade": "Quiet texture",
+          "description": "A notebook surface in changing light.",
+          "notes": "Sample material description.",
+          "images": [
+            {
+              "mediaId": "demo-image-field-notebook",
+              "alt": "A closed field notebook",
+              "caption": "Paper and stone in afternoon light."
+            }
+          ]
+        },
+        {
+          "grade": "Everyday glaze",
+          "description": "A useful cup with depth and variation.",
+          "notes": "Sample material description.",
+          "images": [
+            {
+              "mediaId": "demo-image-camp-mug",
+              "alt": "A dark green ceramic mug",
+              "caption": "A ceramic study by the window."
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

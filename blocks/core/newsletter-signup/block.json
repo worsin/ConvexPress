@@ -1,0 +1,109 @@
+{
+  "name": "core/newsletter-signup",
+  "title": "Newsletter signup",
+  "description": "Email signup — inline or large card variant.",
+  "category": "forms",
+  "role": "cta",
+  "version": 2,
+  "keywords": [],
+  "ai": {
+    "useFor": "growing email list anywhere on a page",
+    "avoid": ""
+  },
+  "fields": [
+    {
+      "id": "eyebrow",
+      "default": "",
+      "type": "text",
+      "max": 80
+    },
+    {
+      "id": "heading",
+      "default": "",
+      "type": "text",
+      "max": 120
+    },
+    {
+      "id": "body",
+      "default": "",
+      "type": "text",
+      "max": 300
+    },
+    {
+      "id": "placeholder",
+      "default": "Your email",
+      "type": "text",
+      "max": 80
+    },
+    {
+      "id": "submitLabel",
+      "default": "Subscribe",
+      "type": "text",
+      "max": 40
+    },
+    {
+      "id": "successMessage",
+      "default": "You're subscribed.",
+      "type": "text",
+      "max": 200
+    }
+  ],
+  "supports": {
+    "children": false,
+    "styles": true,
+    "layout": [
+      "width",
+      "tone",
+      "spacing",
+      "align"
+    ],
+    "anchor": true,
+    "visibility": true
+  },
+  "data": null,
+  "preview": "{heading}",
+  "examples": [
+    {
+      "eyebrow": "",
+      "heading": "",
+      "body": "",
+      "placeholder": "Your email",
+      "submitLabel": "Subscribe",
+      "successMessage": "You're subscribed."
+    },
+    {
+      "eyebrow": "",
+      "heading": "Get weekly updates",
+      "body": "",
+      "placeholder": "you@company.com",
+      "submitLabel": "Subscribe",
+      "successMessage": "You're subscribed."
+    },
+    {
+      "eyebrow": "The Aster field notes",
+      "heading": "Small observations. Sent thoughtfully.",
+      "body": "Notes on making, mountain paths and objects worth keeping. Fictional publication copy for this studio study.",
+      "placeholder": "you@example.com",
+      "submitLabel": "Join the field notes",
+      "successMessage": "You’re on the list. Thank you for joining the field notes."
+    }
+  ],
+  "migration": {
+    "fromVersion": 1,
+    "preserveLegacyRender": true,
+    "transforms": [
+      {
+        "kind": "pack-treatment",
+        "path": [
+          "variant"
+        ]
+      }
+    ]
+  },
+  "requires": {
+    "plugins": [],
+    "capabilities": [
+      "form.submission"
+    ]
+  }
+}

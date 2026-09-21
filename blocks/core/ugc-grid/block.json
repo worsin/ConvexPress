@@ -1,0 +1,61 @@
+{
+  "name": "core/ugc-grid",
+  "title": "UGC grid",
+  "description": "Grid of tagged customer media from the media library.",
+  "category": "social",
+  "role": "content",
+  "version": 1,
+  "keywords": [
+    "ugc-grid"
+  ],
+  "ai": {
+    "useFor": "Grid of tagged customer media from the media library.",
+    "avoid": "Only approved, public, permissioned media may resolve. Tags must be resolved in the target site taxonomy."
+  },
+  "fields": [
+    {
+      "id": "tag",
+      "type": "reference",
+      "of": "tag",
+      "max": 256,
+      "storage": "id"
+    },
+    {
+      "id": "limit",
+      "type": "number",
+      "min": 1,
+      "max": 48,
+      "integer": true,
+      "default": 6
+    }
+  ],
+  "supports": {
+    "children": false,
+    "styles": true,
+    "layout": [
+      "width",
+      "tone",
+      "spacing",
+      "align"
+    ],
+    "anchor": true,
+    "visibility": true
+  },
+  "data": {
+    "resolver": "media.tagged",
+    "args": {
+      "tag": "attrs.tag",
+      "limit": "attrs.limit"
+    }
+  },
+  "preview": "UGC grid",
+  "examples": [
+    {}
+  ],
+  "requires": {
+    "plugins": [],
+    "capabilities": [
+      "reference.targetResolution"
+    ]
+  }
+}

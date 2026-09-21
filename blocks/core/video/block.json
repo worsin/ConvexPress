@@ -1,0 +1,89 @@
+{
+  "name": "core/video",
+  "title": "Video",
+  "description": "Self-hosted or provider video with poster.",
+  "category": "media",
+  "role": "content",
+  "version": 1,
+  "keywords": [
+    "video"
+  ],
+  "ai": {
+    "useFor": "Self-hosted or provider video with poster.",
+    "avoid": "Select one owned video or supported URL. Autoplay and loop are template behavior; do not fabricate a video or silently embed unsupported providers."
+  },
+  "fields": [
+    {
+      "id": "media",
+      "type": "media"
+    },
+    {
+      "id": "url",
+      "type": "link",
+      "protocols": [
+        "https"
+      ]
+    },
+    {
+      "id": "poster",
+      "type": "media"
+    },
+    {
+      "id": "title",
+      "type": "text",
+      "max": 160,
+      "default": ""
+    },
+    {
+      "id": "transcript",
+      "type": "link"
+    }
+  ],
+  "supports": {
+    "children": false,
+    "styles": true,
+    "layout": [
+      "width",
+      "tone",
+      "spacing",
+      "align"
+    ],
+    "anchor": true,
+    "visibility": true
+  },
+  "data": null,
+  "preview": "Video",
+  "examples": [
+    {},
+    {
+      "media": {
+        "id": "demo-video-field-notes",
+        "alt": "Synthetic BlockDemo video fixture"
+      },
+      "poster": {
+        "id": "demo-image-video-poster",
+        "alt": "A fictional field notebook beside a window"
+      },
+      "title": "Field notes: a quiet morning",
+      "transcript": {
+        "href": "/block-demo/transcripts/field-notes",
+        "label": "Read the sample transcript"
+      }
+    }
+  ],
+  "requires": {
+    "plugins": [],
+    "capabilities": [
+      "reference.targetResolution"
+    ]
+  },
+  "constraints": [
+    {
+      "kind": "at-most-one",
+      "fields": [
+        "media",
+        "url"
+      ]
+    }
+  ]
+}

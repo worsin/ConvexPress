@@ -1,0 +1,60 @@
+{
+  "name": "support/kb-search",
+  "title": "Knowledge base search",
+  "description": "Search published help articles, with an optional knowledge-base category and useful articles to start with.",
+  "category": "plugin",
+  "role": "content",
+  "version": 1,
+  "keywords": [
+    "kb-search"
+  ],
+  "ai": {
+    "useFor": "Search published help articles, with an optional knowledge-base category and useful articles to start with.",
+    "avoid": "Do not invent records, permissions, prices, endorsements or resource identifiers. Presentation comes from the selected template."
+  },
+  "fields": [
+    {
+      "id": "placeholder",
+      "type": "text",
+      "max": 160,
+      "default": "Search help articles"
+    },
+    {
+      "id": "category",
+      "type": "reference",
+      "of": "kbCategory",
+      "max": 256,
+      "storage": "id"
+    }
+  ],
+  "supports": {
+    "children": false,
+    "styles": true,
+    "layout": [
+      "width",
+      "tone",
+      "spacing",
+      "align"
+    ],
+    "anchor": true,
+    "visibility": true
+  },
+  "data": {
+    "resolver": "support.search",
+    "args": {
+      "category": "attrs.category"
+    }
+  },
+  "preview": "Knowledge base search",
+  "examples": [
+    {}
+  ],
+  "requires": {
+    "plugins": [
+      "knowledgeBase"
+    ],
+    "capabilities": [
+      "reference.targetResolution"
+    ]
+  }
+}

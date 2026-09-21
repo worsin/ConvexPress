@@ -1,0 +1,95 @@
+{
+  "name": "core/stats-band",
+  "title": "Stats band",
+  "description": "Big-number stats with labels.",
+  "category": "marketing",
+  "role": "content",
+  "version": 2,
+  "keywords": [],
+  "ai": {
+    "useFor": "headline metrics that build credibility",
+    "avoid": ""
+  },
+  "fields": [
+    {
+      "id": "eyebrow",
+      "default": "",
+      "type": "text",
+      "max": 80
+    },
+    {
+      "id": "heading",
+      "default": "",
+      "type": "text",
+      "max": 120
+    },
+    {
+      "id": "body",
+      "default": "",
+      "type": "text",
+      "max": 300
+    },
+    {
+      "id": "stats",
+      "default": [],
+      "type": "repeater",
+      "max": 6,
+      "fields": [
+        {
+          "id": "value",
+          "default": "",
+          "type": "text",
+          "max": 40
+        },
+        {
+          "id": "label",
+          "default": "",
+          "type": "text",
+          "max": 80
+        }
+      ]
+    }
+  ],
+  "supports": {
+    "children": false,
+    "styles": true,
+    "layout": [
+      "width",
+      "tone",
+      "spacing",
+      "align"
+    ],
+    "anchor": true,
+    "visibility": true
+  },
+  "data": null,
+  "preview": "{heading}",
+  "examples": [
+    {
+      "eyebrow": "",
+      "heading": "",
+      "body": "",
+      "stats": []
+    },
+    {
+      "eyebrow": "",
+      "heading": "By the numbers",
+      "body": "",
+      "stats": [
+        {
+          "value": "10k+",
+          "label": "active users"
+        },
+        {
+          "value": "99.9%",
+          "label": "uptime"
+        }
+      ]
+    }
+  ],
+  "migration": {
+    "fromVersion": 1,
+    "preserveLegacyRender": true,
+    "transforms": []
+  }
+}

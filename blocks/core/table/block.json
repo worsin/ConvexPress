@@ -1,0 +1,97 @@
+{
+  "name": "core/table",
+  "title": "Table",
+  "description": "Data table with header row and optional caption.",
+  "category": "text",
+  "role": "content",
+  "version": 1,
+  "keywords": [
+    "table"
+  ],
+  "ai": {
+    "useFor": "Data table with header row and optional caption.",
+    "avoid": "Never use tables for page layout. Row/header consistency and accessible headers must be checked before publishing; striping belongs to the template."
+  },
+  "fields": [
+    {
+      "id": "columns",
+      "type": "repeater",
+      "item": {
+        "id": "value",
+        "type": "text",
+        "max": 160,
+        "required": true
+      },
+      "max": 12,
+      "default": []
+    },
+    {
+      "id": "rows",
+      "type": "repeater",
+      "item": {
+        "id": "value",
+        "type": "repeater",
+        "item": {
+          "id": "cell",
+          "type": "text",
+          "max": 2000,
+          "required": true
+        },
+        "max": 12,
+        "required": true
+      },
+      "max": 100,
+      "default": []
+    },
+    {
+      "id": "caption",
+      "type": "text",
+      "max": 500,
+      "default": ""
+    }
+  ],
+  "supports": {
+    "children": false,
+    "styles": true,
+    "layout": [
+      "width",
+      "tone",
+      "spacing",
+      "align"
+    ],
+    "anchor": true,
+    "visibility": true
+  },
+  "data": null,
+  "preview": "Table",
+  "examples": [
+    {
+      "columns": [
+        "Practice",
+        "What to bring"
+      ],
+      "rows": [
+        [
+          "Morning observation",
+          "A few quiet minutes"
+        ],
+        [
+          "Field notes",
+          "A small notebook"
+        ]
+      ],
+      "caption": "Two ways to begin a field notebook."
+    }
+  ],
+  "requires": {
+    "plugins": [],
+    "capabilities": []
+  },
+  "constraints": [
+    {
+      "kind": "matrix",
+      "headers": "columns",
+      "rows": "rows"
+    }
+  ]
+}

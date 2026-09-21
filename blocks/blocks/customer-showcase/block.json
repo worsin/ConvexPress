@@ -1,0 +1,142 @@
+{
+  "name": "blocks/customer-showcase",
+  "title": "Customer Showcase",
+  "description": "Customer quotes and project showcases with images, roles, companies, and links.",
+  "category": "marketing",
+  "role": "content",
+  "version": 1,
+  "keywords": [
+    "customer",
+    "testimonial",
+    "showcase",
+    "project",
+    "portfolio"
+  ],
+  "ai": {
+    "useFor": "customer stories, customer examples, testimonial grids, and project galleries",
+    "avoid": "press mentions or product cards"
+  },
+  "fields": [
+    {
+      "id": "heading",
+      "default": "Built with site product",
+      "type": "text",
+      "max": 140
+    },
+    {
+      "id": "intro",
+      "default": "",
+      "type": "text",
+      "max": 800
+    },
+    {
+      "id": "items",
+      "default": [],
+      "type": "repeater",
+      "max": 24,
+      "fields": [
+        {
+          "id": "quote",
+          "default": "",
+          "type": "text",
+          "max": 900
+        },
+        {
+          "id": "name",
+          "default": "",
+          "type": "text",
+          "max": 120
+        },
+        {
+          "id": "role",
+          "default": "",
+          "type": "text",
+          "max": 120
+        },
+        {
+          "id": "company",
+          "default": "",
+          "type": "text",
+          "max": 140
+        },
+        {
+          "id": "mediaId",
+          "default": "",
+          "type": "media",
+          "storage": "id",
+          "allowEmpty": true
+        },
+        {
+          "id": "mediaAlt",
+          "default": "",
+          "type": "text",
+          "max": 200
+        },
+        {
+          "id": "instrumentType",
+          "default": "",
+          "type": "text",
+          "max": 120
+        },
+        {
+          "id": "url",
+          "default": "",
+          "type": "text",
+          "max": 500
+        }
+      ]
+    }
+  ],
+  "supports": {
+    "children": false,
+    "styles": true,
+    "layout": [
+      "width",
+      "tone",
+      "spacing",
+      "align"
+    ],
+    "anchor": true,
+    "visibility": true
+  },
+  "data": null,
+  "preview": "{heading}",
+  "examples": [
+    {
+      "heading": "Built with site product",
+      "intro": "",
+      "items": []
+    },
+    {
+      "heading": "Built with site product",
+      "intro": "",
+      "items": []
+    },
+    {
+      "heading": "Made-up voices. Real layout studies.",
+      "intro": "The following names, projects and quotations are fictional examples, not customer endorsements.",
+      "items": [
+        {
+          "quote": "A notebook gives the small things somewhere to stay.",
+          "name": "Rowan Vale (fictional)",
+          "role": "Sample contributor",
+          "company": "Imaginary Paper Studio",
+          "mediaId": "demo-image-field-notebook",
+          "mediaAlt": "A field notebook on sunlit stone",
+          "instrumentType": "Notebook study",
+          "url": "https://example.invalid/paper-study"
+        },
+        {
+          "quote": "The objects we use every day deserve our attention.",
+          "name": "Ellis Reed (fictional)",
+          "role": "Sample maker",
+          "company": "Imaginary Clay Workshop",
+          "mediaId": "demo-image-camp-mug",
+          "mediaAlt": "A green ceramic mug by folded linen",
+          "instrumentType": "Ceramic study",
+          "url": "https://example.invalid/clay-study"
+        }
+      ]
+    }
+  ]
+}

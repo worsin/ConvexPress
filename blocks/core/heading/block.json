@@ -1,0 +1,127 @@
+{
+  "name": "core/heading",
+  "title": "Heading",
+  "description": "A section heading (H1 through H6).",
+  "category": "text",
+  "role": "content",
+  "version": 2,
+  "keywords": [],
+  "ai": {
+    "useFor": "section headings inside an article or page",
+    "avoid": "the page title itself (it lives outside the block list)"
+  },
+  "fields": [
+    {
+      "id": "level",
+      "default": 2,
+      "type": "select",
+      "options": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ]
+    },
+    {
+      "id": "text",
+      "default": {
+        "type": "doc",
+        "content": [
+          {
+            "type": "paragraph",
+            "content": [
+              {
+                "type": "text",
+                "text": "Heading"
+              }
+            ]
+          }
+        ]
+      },
+      "type": "richtext",
+      "max": 200,
+      "nullable": true,
+      "inline": true
+    },
+    {
+      "id": "anchor",
+      "domId": true,
+      "default": "",
+      "type": "text",
+      "max": 80
+    }
+  ],
+  "supports": {
+    "children": false,
+    "styles": true,
+    "layout": [
+      "width",
+      "tone",
+      "spacing",
+      "align"
+    ],
+    "anchor": true,
+    "visibility": true
+  },
+  "data": null,
+  "preview": "Heading",
+  "examples": [
+    {
+      "level": 2,
+      "text": {
+        "type": "doc",
+        "content": [
+          {
+            "type": "paragraph",
+            "content": [
+              {
+                "type": "text",
+                "text": "Heading"
+              }
+            ]
+          }
+        ]
+      },
+      "anchor": ""
+    },
+    {
+      "level": 2,
+      "text": {
+        "type": "doc",
+        "content": [
+          {
+            "type": "paragraph",
+            "content": [
+              {
+                "type": "text",
+                "text": "How it works"
+              }
+            ]
+          }
+        ]
+      },
+      "anchor": "how-it-works"
+    }
+  ],
+  "migration": {
+    "fromVersion": 1,
+    "preserveLegacyRender": true,
+    "transforms": [
+      {
+        "kind": "empty-to-null",
+        "path": [
+          "text"
+        ]
+      },
+      {
+        "kind": "text-to-richtext",
+        "path": [
+          "text"
+        ],
+        "mode": "plain-inline"
+      }
+    ]
+  }
+}

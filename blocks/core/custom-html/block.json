@@ -1,0 +1,51 @@
+{
+  "name": "core/custom-html",
+  "title": "Custom HTML",
+  "description": "Sanitised HTML (no scripts). The only raw-markup escape hatch.",
+  "category": "site",
+  "role": "utility",
+  "version": 1,
+  "keywords": [
+    "custom-html"
+  ],
+  "ai": {
+    "useFor": "Sanitised HTML (no scripts). The only raw-markup escape hatch.",
+    "avoid": "Untrusted markup must pass the reviewed sanitizer on every render. Scripts, styles, event handlers and active URL protocols are forbidden. Schema validation does not sanitize HTML."
+  },
+  "fields": [
+    {
+      "id": "html",
+      "type": "text",
+      "max": 20000,
+      "default": ""
+    }
+  ],
+  "supports": {
+    "children": false,
+    "styles": true,
+    "layout": [
+      "width",
+      "tone",
+      "spacing",
+      "align"
+    ],
+    "anchor": true,
+    "visibility": true
+  },
+  "data": null,
+  "preview": "Custom HTML",
+  "examples": [
+    {
+      "html": "<p>A small note from the field.</p>"
+    },
+    {
+      "html": "<h2>A small note from the field.</h2><p>Give an ordinary object your <strong>undivided attention</strong>. Notice its edges, the way it catches the light, the work of the hands that made it.</p><blockquote><p>Begin with what is here.</p></blockquote><p><a href=\"#studies\">Explore the editorial studies</a></p>"
+    }
+  ],
+  "requires": {
+    "plugins": [],
+    "capabilities": [
+      "html.sanitize"
+    ]
+  }
+}

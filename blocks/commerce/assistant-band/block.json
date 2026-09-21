@@ -1,0 +1,124 @@
+{
+  "name": "commerce/assistant-band",
+  "title": "Shopping Assistant Band",
+  "description": "A call-out that invites shoppers to ask the store's shopping assistant, with tappable example questions that open the assistant with that question.",
+  "category": "commerce",
+  "role": "cta",
+  "version": 1,
+  "keywords": [
+    "assistant",
+    "ai",
+    "help",
+    "questions",
+    "shop",
+    "recommendation",
+    "cta"
+  ],
+  "ai": {
+    "useFor": "homepage or landing sections that hand the visitor to the shopping assistant with a starting question",
+    "avoid": "plain calls to action without a question (use CTA Band)"
+  },
+  "fields": [
+    {
+      "id": "eyebrow",
+      "default": "",
+      "type": "text",
+      "max": 80
+    },
+    {
+      "id": "heading",
+      "default": "Not sure what fits? Ask.",
+      "type": "text",
+      "max": 140
+    },
+    {
+      "id": "body",
+      "default": "",
+      "type": "text",
+      "max": 600
+    },
+    {
+      "id": "prompts",
+      "default": [],
+      "type": "repeater",
+      "max": 8,
+      "item": {
+        "id": "value",
+        "required": true,
+        "type": "text",
+        "max": 160
+      }
+    },
+    {
+      "id": "ctaLabel",
+      "default": "Browse the shop",
+      "type": "text",
+      "max": 60
+    },
+    {
+      "id": "ctaUrl",
+      "default": "/products",
+      "type": "text",
+      "max": 500
+    }
+  ],
+  "supports": {
+    "children": false,
+    "styles": true,
+    "layout": [
+      "width",
+      "tone",
+      "spacing",
+      "align"
+    ],
+    "anchor": true,
+    "visibility": true
+  },
+  "data": null,
+  "preview": "{heading}",
+  "examples": [
+    {
+      "eyebrow": "",
+      "heading": "Not sure what fits? Ask.",
+      "body": "",
+      "prompts": [],
+      "ctaLabel": "Browse the shop",
+      "ctaUrl": "/products"
+    },
+    {
+      "eyebrow": "Considered choices for everyday adventures",
+      "heading": "A thoughtful place to start when you are choosing something to keep for years.",
+      "body": "Tell us how you spend your days, what matters most to you, and who you are shopping for. Explore materials, compare practical details, and find a useful starting point for your next adventure. These questions are invitations to browse at your own pace.",
+      "prompts": [
+        "Which notebook would work well for someone who sketches outdoors, writes every morning, and needs pages that stay flat?",
+        "Can you help me choose a practical gift for a friend who enjoys camping, cooking, and spending quiet weekends away?",
+        "What is the difference between these materials, and which one needs the least care when I use it every single day?",
+        "I have a small apartment and limited storage. Which useful everyday objects would you suggest I take a closer look at?",
+        "What should I bring for a weekend trip if I want to pack lightly and make the most of the things I already have?",
+        "Help me compare the notebooks for drawing, keeping a travel journal, or planning my week without wasting paper.",
+        "Which of these objects would make a good starting point for someone building a small collection of lasting essentials?",
+        "Where can I find more information about dimensions, care instructions, and the materials used to make these products?"
+      ],
+      "ctaLabel": "Browse the shop",
+      "ctaUrl": "/products"
+    },
+    {
+      "eyebrow": "A little guidance",
+      "heading": "Good questions. Thoughtful choices.",
+      "body": "Find something useful for the way you spend your days. Start with a question, and explore the shop together.",
+      "prompts": [
+        "What should I pack for a quiet weekend away?",
+        "Help me choose a gift for someone who loves making things.",
+        "Which notebook would suit a daily writing habit?"
+      ],
+      "ctaLabel": "Explore the objects",
+      "ctaUrl": "/products"
+    }
+  ],
+  "requires": {
+    "plugins": [
+      "commerce"
+    ],
+    "capabilities": []
+  }
+}

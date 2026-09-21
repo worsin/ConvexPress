@@ -1,0 +1,83 @@
+{
+  "name": "core/social-links",
+  "title": "Social links",
+  "description": "Icon row of social profile links.",
+  "category": "site",
+  "role": "utility",
+  "version": 2,
+  "keywords": [],
+  "ai": {
+    "useFor": "footers, about pages",
+    "avoid": ""
+  },
+  "fields": [
+    {
+      "id": "heading",
+      "default": "",
+      "type": "text",
+      "max": 80
+    },
+    {
+      "id": "links",
+      "default": [],
+      "type": "repeater",
+      "max": 12,
+      "fields": [
+        {
+          "id": "platform",
+          "default": "",
+          "type": "text",
+          "max": 40
+        },
+        {
+          "id": "label",
+          "default": "",
+          "type": "text",
+          "max": 40
+        },
+        {
+          "id": "href",
+          "default": "",
+          "type": "link",
+          "storage": "href",
+          "allowEmpty": true
+        }
+      ]
+    }
+  ],
+  "supports": {
+    "children": false,
+    "styles": true,
+    "layout": [
+      "width",
+      "tone",
+      "spacing",
+      "align"
+    ],
+    "anchor": true,
+    "visibility": true
+  },
+  "data": null,
+  "preview": "{heading}",
+  "examples": [
+    {
+      "heading": "",
+      "links": []
+    },
+    {
+      "heading": "Find us",
+      "links": [
+        {
+          "platform": "twitter",
+          "label": "Twitter",
+          "href": "https://twitter.com/example"
+        }
+      ]
+    }
+  ],
+  "migration": {
+    "fromVersion": 1,
+    "preserveLegacyRender": true,
+    "transforms": []
+  }
+}

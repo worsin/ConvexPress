@@ -1,0 +1,73 @@
+{
+  "name": "core/featured-page",
+  "title": "Featured page",
+  "description": "Card for a chosen page with its featured image and excerpt.",
+  "category": "discovery",
+  "role": "content",
+  "version": 1,
+  "keywords": [
+    "featured-page"
+  ],
+  "ai": {
+    "useFor": "Card for a chosen page with its featured image and excerpt.",
+    "avoid": "Do not invent records, permissions, prices, endorsements or resource identifiers. Presentation comes from the selected template."
+  },
+  "fields": [
+    {
+      "id": "page",
+      "type": "reference",
+      "of": "page",
+      "max": 256
+    },
+    {
+      "id": "ctaLabel",
+      "type": "text",
+      "max": 160,
+      "default": "Read more"
+    }
+  ],
+  "supports": {
+    "children": false,
+    "styles": true,
+    "layout": [
+      "width",
+      "tone",
+      "spacing",
+      "align"
+    ],
+    "anchor": true,
+    "visibility": true
+  },
+  "data": {
+    "resolver": "content.page",
+    "args": {
+      "page": "attrs.page"
+    }
+  },
+  "preview": "Featured page",
+  "examples": [
+    {},
+    {
+      "page": "demo-featured-notes",
+      "ctaLabel": "Read the notes"
+    },
+    {
+      "page": "demo-featured-long",
+      "ctaLabel": "Continue reading"
+    },
+    {
+      "page": "demo-featured-unavailable",
+      "ctaLabel": "Read more"
+    },
+    {
+      "page": "demo-featured-studio",
+      "ctaLabel": "Explore the study"
+    }
+  ],
+  "requires": {
+    "plugins": [],
+    "capabilities": [
+      "reference.targetResolution"
+    ]
+  }
+}

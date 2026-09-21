@@ -1,0 +1,67 @@
+{
+  "name": "core/embed",
+  "title": "Embed",
+  "description": "Embed a YouTube, Vimeo, or other rich-media URL.",
+  "category": "media",
+  "role": "content",
+  "version": 2,
+  "keywords": [],
+  "ai": {
+    "useFor": "Embed a YouTube, Vimeo, or other rich-media URL.",
+    "avoid": "Requires a reviewed provider URL adapter and sandboxed embed runtime. A valid URL alone does not authorize embedding arbitrary HTML or scripts."
+  },
+  "fields": [
+    {
+      "id": "url",
+      "default": "",
+      "type": "link",
+      "storage": "href",
+      "allowEmpty": true
+    },
+    {
+      "id": "caption",
+      "default": "",
+      "type": "text",
+      "max": 300
+    }
+  ],
+  "supports": {
+    "children": false,
+    "styles": true,
+    "layout": [
+      "width",
+      "tone",
+      "spacing",
+      "align"
+    ],
+    "anchor": true,
+    "visibility": true
+  },
+  "data": null,
+  "preview": "Embed",
+  "examples": [
+    {
+      "url": "",
+      "caption": ""
+    },
+    {
+      "url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+      "caption": ""
+    },
+    {
+      "url": "https://www.youtube.com/watch?v=M7lc1UVf-VE",
+      "caption": "YouTube player demonstration. Loading this external video is optional; it is not an Aster House film."
+    }
+  ],
+  "migration": {
+    "fromVersion": 1,
+    "preserveLegacyRender": true,
+    "transforms": []
+  },
+  "requires": {
+    "plugins": [],
+    "capabilities": [
+      "embed.sandbox"
+    ]
+  }
+}

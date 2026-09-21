@@ -1,0 +1,143 @@
+{
+  "name": "core/feature-list-alternating",
+  "title": "Feature list (alternating)",
+  "description": "Sequence of feature blocks with media alternating sides.",
+  "category": "marketing",
+  "role": "content",
+  "version": 2,
+  "keywords": [],
+  "ai": {
+    "useFor": "deeper feature storytelling sections",
+    "avoid": ""
+  },
+  "fields": [
+    {
+      "id": "eyebrow",
+      "default": "",
+      "type": "text",
+      "max": 80
+    },
+    {
+      "id": "heading",
+      "default": "",
+      "type": "text",
+      "max": 120
+    },
+    {
+      "id": "body",
+      "default": "",
+      "type": "text",
+      "max": 400
+    },
+    {
+      "id": "items",
+      "default": [],
+      "type": "repeater",
+      "max": 10,
+      "fields": [
+        {
+          "id": "title",
+          "default": "",
+          "type": "text",
+          "max": 80
+        },
+        {
+          "id": "body",
+          "default": "",
+          "type": "text",
+          "max": 400
+        },
+        {
+          "id": "mediaId",
+          "default": "",
+          "type": "media",
+          "storage": "id",
+          "allowEmpty": true
+        },
+        {
+          "id": "mediaAlt",
+          "default": "",
+          "type": "text",
+          "max": 200
+        },
+        {
+          "id": "ctaLabel",
+          "default": "",
+          "type": "text",
+          "max": 40
+        },
+        {
+          "id": "ctaUrl",
+          "default": "",
+          "type": "link",
+          "storage": "href",
+          "allowEmpty": true
+        }
+      ]
+    }
+  ],
+  "supports": {
+    "children": false,
+    "styles": true,
+    "layout": [
+      "width",
+      "tone",
+      "spacing",
+      "align"
+    ],
+    "anchor": true,
+    "visibility": true
+  },
+  "data": null,
+  "preview": "{heading}",
+  "examples": [
+    {
+      "eyebrow": "",
+      "heading": "",
+      "body": "",
+      "items": []
+    },
+    {
+      "eyebrow": "How it works",
+      "heading": "Three reasons to switch",
+      "body": "",
+      "items": [
+        {
+          "title": "Fast",
+          "body": "Sub-second responses.",
+          "mediaId": "",
+          "mediaAlt": "",
+          "ctaLabel": "",
+          "ctaUrl": ""
+        }
+      ]
+    },
+    {
+      "eyebrow": "A fictional field practice",
+      "heading": "A little attention goes a long way",
+      "items": [
+        {
+          "title": "Start with an ordinary object",
+          "body": "Describe its weight, texture and the way it catches the light.",
+          "mediaId": "demo-image-camp-mug",
+          "mediaAlt": "A dark green ceramic mug on a stone windowsill beside folded linen",
+          "ctaLabel": "See the studies",
+          "ctaUrl": "#studies"
+        },
+        {
+          "title": "Leave a record for tomorrow",
+          "body": "Keep the date with your note, then return and see what has changed.",
+          "mediaId": "demo-image-field-notebook",
+          "mediaAlt": "A closed green field notebook and pencil on sunlit stone",
+          "ctaLabel": "Return to composition",
+          "ctaUrl": "#composition"
+        }
+      ]
+    }
+  ],
+  "migration": {
+    "fromVersion": 1,
+    "preserveLegacyRender": true,
+    "transforms": []
+  }
+}

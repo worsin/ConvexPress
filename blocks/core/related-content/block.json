@@ -1,0 +1,61 @@
+{
+  "name": "core/related-content",
+  "title": "Related content",
+  "description": "Posts or pages related by topic or page hierarchy to the current document.",
+  "category": "discovery",
+  "role": "aside",
+  "version": 1,
+  "keywords": [
+    "related-content"
+  ],
+  "ai": {
+    "useFor": "Posts or pages related by topic or page hierarchy to the current document.",
+    "avoid": "Do not invent records, permissions, prices, endorsements or resource identifiers. Presentation comes from the selected template."
+  },
+  "fields": [
+    {
+      "id": "limit",
+      "type": "number",
+      "min": 1,
+      "max": 48,
+      "integer": true,
+      "default": 3
+    },
+    {
+      "id": "type",
+      "type": "select",
+      "options": [
+        "post",
+        "page"
+      ],
+      "default": "post"
+    }
+  ],
+  "supports": {
+    "children": false,
+    "styles": true,
+    "layout": [
+      "width",
+      "tone",
+      "spacing",
+      "align"
+    ],
+    "anchor": true,
+    "visibility": true
+  },
+  "data": {
+    "resolver": "content.related",
+    "args": {
+      "type": "attrs.type",
+      "limit": "attrs.limit"
+    }
+  },
+  "preview": "Related content",
+  "examples": [
+    {}
+  ],
+  "requires": {
+    "plugins": [],
+    "capabilities": []
+  }
+}

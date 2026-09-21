@@ -1,0 +1,130 @@
+{
+  "name": "business/menu",
+  "title": "Food and drink menu",
+  "description": "Categorized menu items with prices, descriptions and clearly authored dietary labels.",
+  "category": "site",
+  "role": "content",
+  "version": 1,
+  "keywords": [
+    "menu"
+  ],
+  "ai": {
+    "useFor": "Categorized menu items with prices, descriptions and clearly authored dietary labels.",
+    "avoid": "Use verified current offerings and dietary information. Editorial price labels do not authorize checkout totals or allergy guarantees. Examples are fictional internal BlockDemo specimens; never publish their contact details, hours, prices or dietary claims as a real business."
+  },
+  "fields": [
+    {
+      "id": "sections",
+      "type": "repeater",
+      "fields": [
+        {
+          "id": "title",
+          "type": "text",
+          "max": 160,
+          "required": true,
+          "min": 1
+        },
+        {
+          "id": "items",
+          "type": "repeater",
+          "fields": [
+            {
+              "id": "name",
+              "type": "text",
+              "max": 160,
+              "required": true,
+              "min": 1
+            },
+            {
+              "id": "description",
+              "type": "text",
+              "max": 2000,
+              "default": ""
+            },
+            {
+              "id": "priceLabel",
+              "type": "text",
+              "max": 160,
+              "default": ""
+            },
+            {
+              "id": "dietaryLabels",
+              "type": "repeater",
+              "item": {
+                "id": "value",
+                "type": "text",
+                "max": 80,
+                "required": true
+              },
+              "max": 12,
+              "default": []
+            }
+          ],
+          "max": 100,
+          "default": []
+        }
+      ],
+      "max": 20,
+      "default": []
+    }
+  ],
+  "supports": {
+    "children": false,
+    "styles": true,
+    "layout": [
+      "width",
+      "tone",
+      "spacing",
+      "align"
+    ],
+    "anchor": true,
+    "visibility": true
+  },
+  "data": null,
+  "preview": "Food and drink menu",
+  "examples": [
+    {
+      "sections": []
+    },
+    {
+      "sections": [
+        {
+          "title": "Sample drinks",
+          "items": [
+            {
+              "name": "Filter coffee",
+              "description": "A freshly brewed cup. Fictional menu specimen.",
+              "priceLabel": "$4.00 \u00b7 sample",
+              "dietaryLabels": [
+                "Vegan option"
+              ]
+            },
+            {
+              "name": "Mint tea",
+              "description": "A warm herbal infusion. Fictional menu specimen.",
+              "priceLabel": "$3.50 \u00b7 sample",
+              "dietaryLabels": [
+                "Caffeine free"
+              ]
+            }
+          ]
+        },
+        {
+          "title": "Sample bakes",
+          "items": [
+            {
+              "name": "Oat biscuit",
+              "description": "A simple biscuit. Verify real allergen information before publishing.",
+              "priceLabel": "$2.00 \u00b7 sample",
+              "dietaryLabels": []
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "requires": {
+    "plugins": [],
+    "capabilities": []
+  }
+}

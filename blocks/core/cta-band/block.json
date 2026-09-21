@@ -1,0 +1,107 @@
+{
+  "name": "core/cta-band",
+  "title": "CTA Band",
+  "description": "A focused call-to-action section.",
+  "category": "marketing",
+  "role": "cta",
+  "version": 2,
+  "keywords": [],
+  "ai": {
+    "useFor": "the closing section of a landing page",
+    "avoid": ""
+  },
+  "fields": [
+    {
+      "id": "eyebrow",
+      "default": "",
+      "type": "text",
+      "max": 80
+    },
+    {
+      "id": "heading",
+      "default": null,
+      "type": "text",
+      "min": 1,
+      "max": 120,
+      "nullable": true
+    },
+    {
+      "id": "body",
+      "default": "",
+      "type": "text",
+      "max": 400
+    },
+    {
+      "id": "primaryCtaLabel",
+      "default": "",
+      "type": "text",
+      "max": 40
+    },
+    {
+      "id": "primaryCtaUrl",
+      "default": "",
+      "type": "link",
+      "storage": "href",
+      "allowEmpty": true
+    },
+    {
+      "id": "secondaryCtaLabel",
+      "default": "",
+      "type": "text",
+      "max": 40
+    },
+    {
+      "id": "secondaryCtaUrl",
+      "default": "",
+      "type": "link",
+      "storage": "href",
+      "allowEmpty": true
+    }
+  ],
+  "supports": {
+    "children": false,
+    "styles": true,
+    "layout": [
+      "width",
+      "tone",
+      "spacing",
+      "align"
+    ],
+    "anchor": true,
+    "visibility": true
+  },
+  "data": null,
+  "preview": "{heading}",
+  "examples": [
+    {
+      "eyebrow": "",
+      "heading": null,
+      "body": "",
+      "primaryCtaLabel": "",
+      "primaryCtaUrl": "",
+      "secondaryCtaLabel": "",
+      "secondaryCtaUrl": ""
+    },
+    {
+      "eyebrow": "Next step",
+      "heading": "Ready to ship?",
+      "body": "Try ConvexPress free for 14 days.",
+      "primaryCtaLabel": "Start free trial",
+      "primaryCtaUrl": "/signup",
+      "secondaryCtaLabel": "",
+      "secondaryCtaUrl": ""
+    }
+  ],
+  "migration": {
+    "fromVersion": 1,
+    "preserveLegacyRender": true,
+    "transforms": [
+      {
+        "kind": "empty-to-null",
+        "path": [
+          "heading"
+        ]
+      }
+    ]
+  }
+}

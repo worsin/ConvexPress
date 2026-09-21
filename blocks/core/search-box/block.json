@@ -1,0 +1,59 @@
+{
+  "name": "core/search-box",
+  "title": "Search box",
+  "description": "Site search input.",
+  "category": "discovery",
+  "role": "utility",
+  "version": 1,
+  "keywords": [
+    "search-box"
+  ],
+  "ai": {
+    "useFor": "Site search input.",
+    "avoid": "Do not invent records, permissions, prices, endorsements or resource identifiers. Presentation comes from the selected template."
+  },
+  "fields": [
+    {
+      "id": "placeholder",
+      "type": "text",
+      "max": 160,
+      "default": "Search this site"
+    },
+    {
+      "id": "scope",
+      "type": "select",
+      "options": [
+        "all",
+        "posts",
+        "pages",
+        "products"
+      ],
+      "default": "all"
+    }
+  ],
+  "supports": {
+    "children": false,
+    "styles": true,
+    "layout": [
+      "width",
+      "tone",
+      "spacing",
+      "align"
+    ],
+    "anchor": true,
+    "visibility": true
+  },
+  "data": null,
+  "preview": "Search box",
+  "examples": [
+    {},
+    {
+      "placeholder": "Try a material, a place or a question",
+      "scope": "all"
+    }
+  ],
+  "requires": {
+    "plugins": [],
+    "capabilities": []
+  }
+}

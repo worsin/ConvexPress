@@ -1,0 +1,58 @@
+{
+  "name": "support/ticket-cta",
+  "title": "Ticket CTA",
+  "description": "Invite visitors to the existing support request flow.",
+  "category": "plugin",
+  "role": "content",
+  "version": 1,
+  "keywords": [
+    "ticket-cta"
+  ],
+  "ai": {
+    "useFor": "Invite visitors to the existing support request flow.",
+    "avoid": "Do not invent records, permissions, prices, endorsements or resource identifiers. Presentation comes from the selected template."
+  },
+  "fields": [
+    {
+      "id": "title",
+      "type": "text",
+      "max": 160,
+      "default": "How can we help?"
+    },
+    {
+      "id": "body",
+      "type": "text",
+      "max": 3000,
+      "default": ""
+    }
+  ],
+  "supports": {
+    "children": false,
+    "styles": true,
+    "layout": [
+      "width",
+      "tone",
+      "spacing",
+      "align"
+    ],
+    "anchor": true,
+    "visibility": true
+  },
+  "data": {
+    "resolver": "support.form",
+    "args": {}
+  },
+  "preview": "Ticket CTA",
+  "examples": [
+    {
+      "title": "Good questions deserve a real conversation.",
+      "body": "A question about your order, your account or what comes next? Start here."
+    }
+  ],
+  "requires": {
+    "plugins": [
+      "tickets"
+    ],
+    "capabilities": []
+  }
+}

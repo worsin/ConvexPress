@@ -1,0 +1,95 @@
+{
+  "name": "core/faq",
+  "title": "FAQ",
+  "description": "Question/answer accordion.",
+  "category": "text",
+  "role": "content",
+  "version": 2,
+  "keywords": [],
+  "ai": {
+    "useFor": "FAQ sections, objection handling",
+    "avoid": ""
+  },
+  "fields": [
+    {
+      "id": "eyebrow",
+      "default": "",
+      "type": "text",
+      "max": 80
+    },
+    {
+      "id": "heading",
+      "default": "",
+      "type": "text",
+      "max": 120
+    },
+    {
+      "id": "body",
+      "default": "",
+      "type": "text",
+      "max": 400
+    },
+    {
+      "id": "items",
+      "default": [],
+      "type": "repeater",
+      "max": 40,
+      "fields": [
+        {
+          "id": "question",
+          "default": "",
+          "type": "text",
+          "max": 200
+        },
+        {
+          "id": "answer",
+          "default": "",
+          "type": "text",
+          "max": 1000
+        }
+      ]
+    }
+  ],
+  "supports": {
+    "children": false,
+    "styles": true,
+    "layout": [
+      "width",
+      "tone",
+      "spacing",
+      "align"
+    ],
+    "anchor": true,
+    "visibility": true
+  },
+  "data": null,
+  "preview": "{heading}",
+  "examples": [
+    {
+      "eyebrow": "",
+      "heading": "",
+      "body": "",
+      "items": []
+    },
+    {
+      "eyebrow": "FAQ",
+      "heading": "Common questions",
+      "body": "",
+      "items": [
+        {
+          "question": "How does it work?",
+          "answer": "Type a prompt, hit Generate."
+        },
+        {
+          "question": "Is it free?",
+          "answer": "There's a free tier."
+        }
+      ]
+    }
+  ],
+  "migration": {
+    "fromVersion": 1,
+    "preserveLegacyRender": true,
+    "transforms": []
+  }
+}

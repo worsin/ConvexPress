@@ -1,0 +1,75 @@
+{
+  "name": "core/before-after",
+  "title": "Before / after",
+  "description": "Slider comparing two images.",
+  "category": "media",
+  "role": "content",
+  "version": 1,
+  "keywords": [
+    "before-after"
+  ],
+  "ai": {
+    "useFor": "Slider comparing two images.",
+    "avoid": "Do not invent records, permissions, prices, endorsements or resource identifiers. Presentation comes from the selected template."
+  },
+  "fields": [
+    {
+      "id": "before",
+      "type": "media"
+    },
+    {
+      "id": "after",
+      "type": "media"
+    },
+    {
+      "id": "beforeLabel",
+      "type": "text",
+      "max": 80,
+      "default": "Before"
+    },
+    {
+      "id": "afterLabel",
+      "type": "text",
+      "max": 80,
+      "default": "After"
+    }
+  ],
+  "supports": {
+    "children": false,
+    "styles": true,
+    "layout": [
+      "width",
+      "tone",
+      "spacing",
+      "align"
+    ],
+    "anchor": true,
+    "visibility": true
+  },
+  "data": null,
+  "preview": "Before / after",
+  "examples": [
+    {
+      "beforeLabel": "Before",
+      "afterLabel": "After"
+    },
+    {
+      "before": {
+        "id": "demo-image-before",
+        "alt": "Synthetic comparison fixture before the change"
+      },
+      "after": {
+        "id": "demo-image-after",
+        "alt": "Synthetic comparison fixture after the change"
+      },
+      "beforeLabel": "Before \u2014 sample",
+      "afterLabel": "After \u2014 sample"
+    }
+  ],
+  "requires": {
+    "plugins": [],
+    "capabilities": [
+      "reference.targetResolution"
+    ]
+  }
+}

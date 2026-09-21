@@ -1,0 +1,74 @@
+{
+  "name": "commerce/product-compare",
+  "title": "Product compare",
+  "description": "Side-by-side attribute comparison of chosen products.",
+  "category": "commerce",
+  "role": "content",
+  "version": 1,
+  "keywords": [
+    "product-compare"
+  ],
+  "ai": {
+    "useFor": "Side-by-side attribute comparison of chosen products.",
+    "avoid": "Compare only selected, accessible published products and public options. Price ranges cover eligible public variants. Never infer specifications from private metadata or invent missing values. Attribute names select SKU, Product type, Format or public option names; option:Name disambiguates reserved names. Empty attributes select the available public details."
+  },
+  "fields": [
+    {
+      "id": "products",
+      "type": "repeater",
+      "item": {
+        "id": "value",
+        "type": "reference",
+        "of": "product",
+        "max": 256,
+        "required": true,
+        "storage": "id"
+      },
+      "max": 6,
+      "default": []
+    },
+    {
+      "id": "attributes",
+      "type": "repeater",
+      "item": {
+        "id": "value",
+        "type": "text",
+        "max": 80,
+        "required": true
+      },
+      "max": 20,
+      "default": []
+    }
+  ],
+  "supports": {
+    "children": false,
+    "styles": true,
+    "layout": [
+      "width",
+      "tone",
+      "spacing",
+      "align"
+    ],
+    "anchor": true,
+    "visibility": true
+  },
+  "data": {
+    "resolver": "commerce.productCompare",
+    "args": {
+      "products": "attrs.products",
+      "attributes": "attrs.attributes"
+    }
+  },
+  "preview": "Product compare",
+  "examples": [
+    {}
+  ],
+  "requires": {
+    "plugins": [
+      "commerce"
+    ],
+    "capabilities": [
+      "reference.targetResolution"
+    ]
+  }
+}

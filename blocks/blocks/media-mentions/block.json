@@ -1,0 +1,155 @@
+{
+  "name": "blocks/media-mentions",
+  "title": "Media Mentions",
+  "description": "A curated list of articles, PDFs, videos, or audio features about the site.",
+  "category": "marketing",
+  "role": "content",
+  "version": 1,
+  "keywords": [
+    "site",
+    "media",
+    "press",
+    "articles",
+    "mentions"
+  ],
+  "ai": {
+    "useFor": "press pages, external articles, PDF downloads, interviews, and feature videos",
+    "avoid": "testimonials or customer project showcases"
+  },
+  "fields": [
+    {
+      "id": "heading",
+      "default": "In the media",
+      "type": "text",
+      "max": 140
+    },
+    {
+      "id": "intro",
+      "default": "",
+      "type": "text",
+      "max": 800
+    },
+    {
+      "id": "items",
+      "default": [],
+      "type": "repeater",
+      "max": 24,
+      "fields": [
+        {
+          "id": "title",
+          "default": "",
+          "type": "text",
+          "max": 180
+        },
+        {
+          "id": "source",
+          "default": "",
+          "type": "text",
+          "max": 120
+        },
+        {
+          "id": "byline",
+          "default": "",
+          "type": "text",
+          "max": 160
+        },
+        {
+          "id": "summary",
+          "default": "",
+          "type": "text",
+          "max": 700
+        },
+        {
+          "id": "mediaId",
+          "default": "",
+          "type": "media",
+          "storage": "id",
+          "allowEmpty": true
+        },
+        {
+          "id": "mediaAlt",
+          "default": "",
+          "type": "text",
+          "max": 200
+        },
+        {
+          "id": "ctaLabel",
+          "default": "Read more",
+          "type": "text",
+          "max": 60
+        },
+        {
+          "id": "ctaUrl",
+          "default": "",
+          "type": "text",
+          "max": 500
+        },
+        {
+          "id": "kind",
+          "default": "article",
+          "type": "select",
+          "options": [
+            "article",
+            "pdf",
+            "video",
+            "audio"
+          ]
+        }
+      ]
+    }
+  ],
+  "supports": {
+    "children": false,
+    "styles": true,
+    "layout": [
+      "width",
+      "tone",
+      "spacing",
+      "align"
+    ],
+    "anchor": true,
+    "visibility": true
+  },
+  "data": null,
+  "preview": "{heading}",
+  "examples": [
+    {
+      "heading": "In the media",
+      "intro": "",
+      "items": []
+    },
+    {
+      "heading": "In the media",
+      "intro": "",
+      "items": []
+    },
+    {
+      "heading": "A small reading shelf.",
+      "intro": "Fictional publications and credits, written only to demonstrate this layout.",
+      "items": [
+        {
+          "title": "What we notice when we slow down",
+          "source": "Imaginary Field Review",
+          "byline": "Fictional editorial credit",
+          "summary": "Notes on a useful object, a quiet room and the practice of paying attention.",
+          "mediaId": "demo-image-field-notebook",
+          "mediaAlt": "A field notebook and pencil on stone",
+          "ctaLabel": "Read the sample article",
+          "ctaUrl": "https://example.invalid/field-review",
+          "kind": "article"
+        },
+        {
+          "title": "Inside a room for making",
+          "source": "Imaginary Studio Quarterly",
+          "byline": "Fictional editorial credit",
+          "summary": "A sample interview about materials and everyday rituals.",
+          "mediaId": "demo-image-camp-mug",
+          "mediaAlt": "A dark green ceramic mug",
+          "ctaLabel": "Open the sample interview",
+          "ctaUrl": "https://example.invalid/studio-interview",
+          "kind": "audio"
+        }
+      ]
+    }
+  ]
+}

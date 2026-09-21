@@ -1,0 +1,87 @@
+{
+  "name": "core/hero-video",
+  "title": "Hero video",
+  "description": "Full-bleed looping video with overlay copy.",
+  "category": "openers",
+  "role": "hero",
+  "version": 1,
+  "keywords": [
+    "hero-video"
+  ],
+  "ai": {
+    "useFor": "Full-bleed looping video with overlay copy.",
+    "avoid": "Do not invent records, permissions, prices, endorsements or resource identifiers. Presentation comes from the selected template."
+  },
+  "fields": [
+    {
+      "id": "video",
+      "type": "media"
+    },
+    {
+      "id": "poster",
+      "type": "media"
+    },
+    {
+      "id": "title",
+      "type": "text",
+      "max": 160,
+      "default": ""
+    },
+    {
+      "id": "subtitle",
+      "type": "text",
+      "max": 1000,
+      "default": ""
+    },
+    {
+      "id": "cta",
+      "type": "link"
+    }
+  ],
+  "supports": {
+    "children": false,
+    "styles": true,
+    "layout": [
+      "width",
+      "tone",
+      "spacing",
+      "align"
+    ],
+    "anchor": true,
+    "visibility": true
+  },
+  "data": null,
+  "preview": "Hero video",
+  "examples": [
+    {
+      "title": "Look a little closer",
+      "subtitle": "Make room for a new way of noticing."
+    },
+    {
+      "title": "A moment from the workshop.",
+      "subtitle": "A silent synthetic video fixture, presented with native controls.",
+      "video": {
+        "id": "demo-video-field-notes",
+        "alt": "Silent workshop video fixture"
+      },
+      "poster": {
+        "id": "demo-image-camp-mug",
+        "alt": "A ceramic mug on stone",
+        "focalPoint": {
+          "x": 0.5,
+          "y": 0.55
+        }
+      },
+      "cta": {
+        "label": "Explore the studies",
+        "href": "#studies"
+      }
+    }
+  ],
+  "requires": {
+    "plugins": [],
+    "capabilities": [
+      "reference.targetResolution"
+    ]
+  }
+}

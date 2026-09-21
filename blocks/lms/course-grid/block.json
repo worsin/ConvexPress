@@ -1,0 +1,68 @@
+{
+  "name": "lms/course-grid",
+  "title": "Course grid",
+  "description": "Courses as cards with progress for signed-in learners.",
+  "category": "plugin",
+  "role": "content",
+  "version": 1,
+  "keywords": [
+    "course-grid"
+  ],
+  "ai": {
+    "useFor": "Courses as cards with progress for signed-in learners.",
+    "avoid": "Do not invent records, permissions, prices, endorsements or resource identifiers. Presentation comes from the selected template."
+  },
+  "fields": [
+    {
+      "id": "query",
+      "type": "object",
+      "fields": [
+        {
+          "id": "category",
+          "type": "text",
+          "max": 256
+        }
+      ]
+    },
+    {
+      "id": "limit",
+      "type": "number",
+      "min": 1,
+      "max": 48,
+      "integer": true,
+      "default": 6
+    }
+  ],
+  "supports": {
+    "children": false,
+    "styles": true,
+    "layout": [
+      "width",
+      "tone",
+      "spacing",
+      "align"
+    ],
+    "anchor": true,
+    "visibility": true
+  },
+  "data": {
+    "resolver": "lms.courses",
+    "args": {
+      "query": "attrs.query",
+      "limit": "attrs.limit"
+    }
+  },
+  "preview": "Course grid",
+  "examples": [
+    {}
+  ],
+  "requires": {
+    "plugins": [
+      "lms"
+    ],
+    "capabilities": [
+      "reference.targetResolution",
+      "viewer.authorization"
+    ]
+  }
+}

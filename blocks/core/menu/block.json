@@ -1,0 +1,73 @@
+{
+  "name": "core/menu",
+  "title": "Menu",
+  "description": "Renders a menu location inline.",
+  "category": "site",
+  "role": "utility",
+  "version": 1,
+  "keywords": [
+    "menu"
+  ],
+  "ai": {
+    "useFor": "Renders a menu location inline.",
+    "avoid": "Do not invent records, permissions, prices, endorsements or resource identifiers. Presentation comes from the selected template."
+  },
+  "fields": [
+    {
+      "id": "source",
+      "type": "select",
+      "options": [
+        "location",
+        "menu"
+      ],
+      "default": "location"
+    },
+    {
+      "id": "location",
+      "type": "text",
+      "max": 80,
+      "default": "primary"
+    },
+    {
+      "id": "menu",
+      "type": "menu"
+    }
+  ],
+  "supports": {
+    "children": false,
+    "styles": true,
+    "layout": [
+      "width",
+      "tone",
+      "spacing",
+      "align"
+    ],
+    "anchor": true,
+    "visibility": true
+  },
+  "data": {
+    "resolver": "site.menu",
+    "args": {
+      "source": "attrs.source",
+      "location": "attrs.location",
+      "menu": "attrs.menu"
+    }
+  },
+  "preview": "Menu",
+  "examples": [
+    {
+      "source": "location",
+      "location": "primary"
+    },
+    {
+      "source": "menu",
+      "menu": "demo-menu"
+    }
+  ],
+  "requires": {
+    "plugins": [],
+    "capabilities": [
+      "reference.targetResolution"
+    ]
+  }
+}

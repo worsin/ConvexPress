@@ -1,0 +1,84 @@
+{
+  "name": "core/reviews",
+  "title": "Reviews",
+  "description": "Live product or site reviews with rating summary.",
+  "category": "social",
+  "role": "content",
+  "version": 1,
+  "keywords": [
+    "reviews"
+  ],
+  "ai": {
+    "useFor": "Live product or site reviews with rating summary.",
+    "avoid": "Only approved reviews of accessible published products. Product summaries cover all approved product reviews; site summaries explicitly describe the reviews on the displayed page. Never invent endorsements or disclose customer, order or moderation data."
+  },
+  "fields": [
+    {
+      "id": "source",
+      "type": "select",
+      "options": [
+        "site",
+        "product"
+      ],
+      "default": "site"
+    },
+    {
+      "id": "product",
+      "type": "reference",
+      "of": "product",
+      "max": 256,
+      "storage": "id",
+      "allowEmpty": true
+    },
+    {
+      "id": "limit",
+      "type": "number",
+      "min": 1,
+      "max": 48,
+      "integer": true,
+      "default": 6
+    },
+    {
+      "id": "minRating",
+      "type": "number",
+      "min": 1,
+      "max": 5,
+      "integer": true,
+      "default": 1
+    }
+  ],
+  "supports": {
+    "children": false,
+    "styles": true,
+    "layout": [
+      "width",
+      "tone",
+      "spacing",
+      "align"
+    ],
+    "anchor": true,
+    "visibility": true
+  },
+  "data": {
+    "resolver": "commerce.reviews",
+    "args": {
+      "source": "attrs.source",
+      "product": "attrs.product",
+      "limit": "attrs.limit",
+      "minRating": "attrs.minRating"
+    }
+  },
+  "preview": "Reviews",
+  "examples": [
+    {}
+  ],
+  "requires": {
+    "plugins": [
+      "commerce",
+      "commerceReviews"
+    ],
+    "capabilities": [
+      "reference.targetResolution"
+    ]
+  }
+}

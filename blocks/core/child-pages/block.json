@@ -1,0 +1,56 @@
+{
+  "name": "core/child-pages",
+  "title": "Child pages",
+  "description": "List of the current page's children (replaces the copied ChildPages in pack surfaces).",
+  "category": "discovery",
+  "role": "aside",
+  "version": 1,
+  "keywords": [
+    "child-pages"
+  ],
+  "ai": {
+    "useFor": "List of the current page's children (replaces the copied ChildPages in pack surfaces).",
+    "avoid": "Do not invent records, permissions, prices, endorsements or resource identifiers. Presentation comes from the selected template."
+  },
+  "fields": [
+    {
+      "id": "depth",
+      "type": "number",
+      "min": 1,
+      "max": 4,
+      "integer": true,
+      "default": 1
+    }
+  ],
+  "supports": {
+    "children": false,
+    "styles": true,
+    "layout": [
+      "width",
+      "tone",
+      "spacing",
+      "align"
+    ],
+    "anchor": true,
+    "visibility": true
+  },
+  "data": {
+    "resolver": "content.childPages",
+    "args": {
+      "depth": "attrs.depth"
+    }
+  },
+  "preview": "Child pages",
+  "examples": [
+    {
+      "depth": 1
+    },
+    {
+      "depth": 3
+    }
+  ],
+  "requires": {
+    "plugins": [],
+    "capabilities": []
+  }
+}

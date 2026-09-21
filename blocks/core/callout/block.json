@@ -1,0 +1,77 @@
+{
+  "name": "core/callout",
+  "title": "Callout",
+  "description": "Highlighted note, tip or warning.",
+  "category": "text",
+  "role": "content",
+  "version": 1,
+  "keywords": [
+    "callout"
+  ],
+  "ai": {
+    "useFor": "Highlighted note, tip or warning.",
+    "avoid": "Do not invent records, permissions, prices, endorsements or resource identifiers. Presentation comes from the selected template."
+  },
+  "fields": [
+    {
+      "id": "kind",
+      "type": "select",
+      "options": [
+        "note",
+        "tip",
+        "important",
+        "warning"
+      ],
+      "default": "note"
+    },
+    {
+      "id": "title",
+      "type": "text",
+      "max": 160,
+      "default": ""
+    },
+    {
+      "id": "body",
+      "type": "richtext",
+      "max": 12000
+    }
+  ],
+  "supports": {
+    "children": false,
+    "styles": true,
+    "layout": [
+      "width",
+      "tone",
+      "spacing",
+      "align"
+    ],
+    "anchor": true,
+    "visibility": true
+  },
+  "data": null,
+  "preview": "Callout",
+  "examples": [
+    {
+      "kind": "tip",
+      "title": "Start small",
+      "body": {
+        "type": "doc",
+        "content": [
+          {
+            "type": "paragraph",
+            "content": [
+              {
+                "type": "text",
+                "text": "Choose one familiar object and describe it without naming it."
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ],
+  "requires": {
+    "plugins": [],
+    "capabilities": []
+  }
+}

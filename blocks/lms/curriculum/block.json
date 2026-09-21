@@ -1,0 +1,59 @@
+{
+  "name": "lms/curriculum",
+  "title": "Curriculum",
+  "description": "Module and lesson outline for a course.",
+  "category": "plugin",
+  "role": "content",
+  "version": 1,
+  "keywords": [
+    "curriculum"
+  ],
+  "ai": {
+    "useFor": "Module and lesson outline for a course.",
+    "avoid": "Do not invent records, permissions, prices, endorsements or resource identifiers. Presentation comes from the selected template."
+  },
+  "fields": [
+    {
+      "id": "course",
+      "type": "reference",
+      "of": "course",
+      "max": 256,
+      "storage": "id"
+    },
+    {
+      "id": "expanded",
+      "type": "boolean",
+      "default": false
+    }
+  ],
+  "supports": {
+    "children": false,
+    "styles": true,
+    "layout": [
+      "width",
+      "tone",
+      "spacing",
+      "align"
+    ],
+    "anchor": true,
+    "visibility": true
+  },
+  "data": {
+    "resolver": "lms.curriculum",
+    "args": {
+      "course": "attrs.course"
+    }
+  },
+  "preview": "Curriculum",
+  "examples": [
+    {}
+  ],
+  "requires": {
+    "plugins": [
+      "lms"
+    ],
+    "capabilities": [
+      "reference.targetResolution"
+    ]
+  }
+}

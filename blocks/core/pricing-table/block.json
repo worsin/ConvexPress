@@ -1,0 +1,181 @@
+{
+  "name": "core/pricing-table",
+  "title": "Pricing table",
+  "description": "Dense plan comparison table with toggles.",
+  "category": "marketing",
+  "role": "content",
+  "version": 1,
+  "keywords": [
+    "pricing-table"
+  ],
+  "ai": {
+    "useFor": "Dense plan comparison table with toggles.",
+    "avoid": "Price labels are editorial copy, never checkout authority. Billing controls and real plans require a verified commerce resolver."
+  },
+  "fields": [
+    {
+      "id": "plans",
+      "type": "repeater",
+      "fields": [
+        {
+          "id": "name",
+          "type": "text",
+          "max": 160,
+          "required": true,
+          "min": 1
+        },
+        {
+          "id": "description",
+          "type": "text",
+          "max": 1000,
+          "default": ""
+        },
+        {
+          "id": "priceLabel",
+          "type": "text",
+          "max": 160,
+          "default": ""
+        },
+        {
+          "id": "features",
+          "type": "repeater",
+          "item": {
+            "id": "value",
+            "type": "text",
+            "max": 500,
+            "required": true
+          },
+          "max": 30,
+          "default": []
+        },
+        {
+          "id": "cta",
+          "type": "link"
+        }
+      ],
+      "max": 8,
+      "default": []
+    },
+    {
+      "id": "rows",
+      "type": "repeater",
+      "fields": [
+        {
+          "id": "label",
+          "type": "text",
+          "max": 160,
+          "required": true,
+          "min": 1
+        },
+        {
+          "id": "values",
+          "type": "repeater",
+          "item": {
+            "id": "value",
+            "type": "text",
+            "max": 500,
+            "required": true
+          },
+          "max": 8,
+          "default": []
+        }
+      ],
+      "max": 50,
+      "default": []
+    }
+  ],
+  "supports": {
+    "children": false,
+    "styles": true,
+    "layout": [
+      "width",
+      "tone",
+      "spacing",
+      "align"
+    ],
+    "anchor": true,
+    "visibility": true
+  },
+  "data": null,
+  "preview": "Pricing table",
+  "examples": [
+    {
+      "plans": [
+        {
+          "name": "Open notebook",
+          "description": "A simple place to begin.",
+          "priceLabel": "Free",
+          "features": [
+            "Read the field guide",
+            "Try a short observation exercise"
+          ]
+        }
+      ],
+      "rows": []
+    },
+    {
+      "plans": [
+        {
+          "name": "Open notebook",
+          "description": "A simple self-guided practice.",
+          "priceLabel": "Free sample",
+          "features": [
+            "Short field guide"
+          ],
+          "cta": {
+            "label": "See the study",
+            "href": "#studies"
+          }
+        },
+        {
+          "name": "Studio notes",
+          "description": "A fictional extended study set.",
+          "priceLabel": "Illustrative plan",
+          "features": [
+            "Printable notebook",
+            "Three observation prompts"
+          ],
+          "cta": {
+            "label": "Explore the details",
+            "href": "#details"
+          }
+        }
+      ],
+      "rows": [
+        {
+          "label": "Observation prompts",
+          "values": [
+            "One",
+            "Three"
+          ]
+        },
+        {
+          "label": "Format",
+          "values": [
+            "Read online",
+            "Read and print"
+          ]
+        },
+        {
+          "label": "Pace",
+          "values": [
+            "Your own",
+            "Your own"
+          ]
+        }
+      ]
+    }
+  ],
+  "requires": {
+    "plugins": [],
+    "capabilities": []
+  },
+  "constraints": [
+    {
+      "kind": "matrix",
+      "headers": "plans",
+      "rows": "rows",
+      "rowField": "values"
+    }
+  ]
+}

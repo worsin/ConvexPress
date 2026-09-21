@@ -1,0 +1,92 @@
+{
+  "name": "core/gallery",
+  "title": "Gallery",
+  "description": "Grid or masonry gallery with lightbox.",
+  "category": "media",
+  "role": "content",
+  "version": 1,
+  "keywords": [
+    "gallery"
+  ],
+  "ai": {
+    "useFor": "Grid or masonry gallery with lightbox.",
+    "avoid": "Do not invent records, permissions, prices, endorsements or resource identifiers. Presentation comes from the selected template."
+  },
+  "fields": [
+    {
+      "id": "items",
+      "type": "repeater",
+      "fields": [
+        {
+          "id": "media",
+          "type": "media"
+        },
+        {
+          "id": "caption",
+          "type": "text",
+          "max": 1000,
+          "default": ""
+        }
+      ],
+      "max": 100,
+      "default": []
+    },
+    {
+      "id": "lightbox",
+      "type": "boolean",
+      "default": true
+    }
+  ],
+  "supports": {
+    "children": false,
+    "styles": true,
+    "layout": [
+      "width",
+      "tone",
+      "spacing",
+      "align"
+    ],
+    "anchor": true,
+    "visibility": true
+  },
+  "data": null,
+  "preview": "Gallery",
+  "examples": [
+    {
+      "items": [],
+      "lightbox": true
+    },
+    {
+      "items": [
+        {
+          "media": {
+            "id": "demo-image-camp-mug",
+            "alt": "A dark green ceramic mug on a stone windowsill beside folded linen"
+          },
+          "caption": "A useful object, close at hand."
+        },
+        {
+          "media": {
+            "id": "demo-image-field-notebook",
+            "alt": "A closed green field notebook and pencil on sunlit stone"
+          },
+          "caption": "Leave room for the next observation."
+        },
+        {
+          "media": {
+            "id": "demo-image-retreat",
+            "alt": "A low wood and stone retreat beneath forested mountain cliffs"
+          },
+          "caption": "A fictional place to slow down."
+        }
+      ],
+      "lightbox": true
+    }
+  ],
+  "requires": {
+    "plugins": [],
+    "capabilities": [
+      "reference.targetResolution"
+    ]
+  }
+}

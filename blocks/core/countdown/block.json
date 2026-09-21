@@ -1,0 +1,69 @@
+{
+  "name": "core/countdown",
+  "title": "Countdown",
+  "description": "Timer to a date with expired state.",
+  "category": "marketing",
+  "role": "content",
+  "version": 1,
+  "keywords": [
+    "countdown"
+  ],
+  "ai": {
+    "useFor": "Timer to a date with expired state.",
+    "avoid": "Choose a real future date. Avoid fabricated urgency, automatically resetting deadlines, or misleading expired offers."
+  },
+  "fields": [
+    {
+      "id": "target",
+      "type": "date"
+    },
+    {
+      "id": "title",
+      "type": "text",
+      "max": 160,
+      "default": ""
+    },
+    {
+      "id": "expiredText",
+      "type": "text",
+      "max": 240,
+      "default": "This date has arrived."
+    },
+    {
+      "id": "cta",
+      "type": "link"
+    }
+  ],
+  "supports": {
+    "children": false,
+    "styles": true,
+    "layout": [
+      "width",
+      "tone",
+      "spacing",
+      "align"
+    ],
+    "anchor": true,
+    "visibility": true
+  },
+  "data": null,
+  "preview": "Countdown",
+  "examples": [
+    {
+      "title": "A date worth making time for"
+    },
+    {
+      "title": "A fictional date for a future gathering.",
+      "target": "2040-06-01T09:00:00Z",
+      "expiredText": "This sample date has arrived. No offer or booking is implied.",
+      "cta": {
+        "label": "Explore the editorial studies",
+        "href": "#studies"
+      }
+    }
+  ],
+  "requires": {
+    "plugins": [],
+    "capabilities": []
+  }
+}

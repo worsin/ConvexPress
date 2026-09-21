@@ -1,0 +1,71 @@
+{
+  "name": "commerce/bundle-offer",
+  "title": "Bundle offer",
+  "description": "Bundle with combined price and add-all-to-cart.",
+  "category": "commerce",
+  "role": "content",
+  "version": 1,
+  "keywords": [
+    "bundle-offer"
+  ],
+  "ai": {
+    "useFor": "Bundle with combined price and add-all-to-cart.",
+    "avoid": "Do not invent records, permissions, prices, endorsements or resource identifiers. Presentation comes from the selected template."
+  },
+  "fields": [
+    {
+      "id": "bundle",
+      "type": "reference",
+      "of": "bundle",
+      "max": 256,
+      "storage": "id"
+    },
+    {
+      "id": "title",
+      "type": "text",
+      "max": 160,
+      "default": ""
+    },
+    {
+      "id": "body",
+      "type": "text",
+      "max": 3000,
+      "default": ""
+    }
+  ],
+  "supports": {
+    "children": false,
+    "styles": true,
+    "layout": [
+      "width",
+      "tone",
+      "spacing",
+      "align"
+    ],
+    "anchor": true,
+    "visibility": true
+  },
+  "data": {
+    "resolver": "commerce.bundle",
+    "args": {
+      "bundle": "attrs.bundle"
+    }
+  },
+  "preview": "Bundle offer",
+  "examples": [
+    {},
+    {
+      "title": "Better together.",
+      "body": "Build a set that feels like you. Choose your favorites, then make it yours."
+    }
+  ],
+  "requires": {
+    "plugins": [
+      "commerce",
+      "commerceBundles"
+    ],
+    "capabilities": [
+      "reference.targetResolution"
+    ]
+  }
+}

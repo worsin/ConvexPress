@@ -1,0 +1,149 @@
+{
+  "name": "commerce/category-tiles",
+  "title": "Category Tiles",
+  "description": "Live shop categories as image tiles with product counts, linking into the catalog. Pick specific categories or show every visible one.",
+  "category": "commerce",
+  "role": "content",
+  "version": 2,
+  "keywords": [
+    "categories",
+    "shop",
+    "tiles",
+    "navigation",
+    "collections",
+    "catalog"
+  ],
+  "ai": {
+    "useFor": "homepage 'shop by category' sections and department landing pages",
+    "avoid": "product lists (use Product Showcase) or editorial image grids"
+  },
+  "fields": [
+    {
+      "id": "eyebrow",
+      "default": "",
+      "type": "text",
+      "max": 80
+    },
+    {
+      "id": "heading",
+      "default": "Shop by category",
+      "type": "text",
+      "max": 140
+    },
+    {
+      "id": "intro",
+      "default": "",
+      "type": "text",
+      "max": 700
+    },
+    {
+      "id": "categorySlugs",
+      "default": [],
+      "type": "repeater",
+      "max": 24,
+      "item": {
+        "id": "value",
+        "required": true,
+        "type": "reference",
+        "max": 160,
+        "of": "productCategory",
+        "storage": "slug",
+        "allowEmpty": true
+      }
+    },
+    {
+      "id": "limit",
+      "default": 6,
+      "type": "number",
+      "min": 1,
+      "max": 24,
+      "integer": true
+    },
+    {
+      "id": "showCounts",
+      "default": true,
+      "type": "boolean"
+    },
+    {
+      "id": "showDescriptions",
+      "default": false,
+      "type": "boolean"
+    },
+    {
+      "id": "ctaLabel",
+      "default": "",
+      "type": "text",
+      "max": 60
+    },
+    {
+      "id": "ctaUrl",
+      "default": "",
+      "type": "text",
+      "max": 500
+    }
+  ],
+  "supports": {
+    "children": false,
+    "styles": true,
+    "layout": [
+      "width",
+      "tone",
+      "spacing",
+      "align"
+    ],
+    "anchor": true,
+    "visibility": true
+  },
+  "data": {
+    "resolver": "commerce.categoryTiles",
+    "args": {
+      "categorySlugs": "attrs.categorySlugs",
+      "count": "attrs.limit",
+      "showCounts": "attrs.showCounts",
+      "showDescriptions": "attrs.showDescriptions"
+    }
+  },
+  "preview": "{heading}",
+  "examples": [
+    {},
+    {
+      "eyebrow": "Find your everyday",
+      "heading": "Objects with a place.",
+      "intro": "A few good things, chosen for the way you live.",
+      "limit": 3,
+      "showDescriptions": true,
+      "ctaLabel": "Explore the whole collection",
+      "ctaUrl": "/products"
+    },
+    {
+      "heading": "For slow mornings, well-worn paths, and all the moments in between.",
+      "categorySlugs": [
+        "home",
+        "field",
+        "gifts"
+      ],
+      "showCounts": false,
+      "showDescriptions": true
+    }
+  ],
+  "migration": {
+    "fromVersion": 1,
+    "preserveLegacyRender": true,
+    "transforms": [
+      {
+        "kind": "pack-treatment",
+        "path": [
+          "columns"
+        ]
+      }
+    ]
+  },
+  "requires": {
+    "plugins": [
+      "commerce"
+    ],
+    "capabilities": [
+      "viewer.authorization"
+    ]
+  }
+}

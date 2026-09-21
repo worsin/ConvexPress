@@ -1,0 +1,156 @@
+{
+  "name": "blocks/promo-band",
+  "title": "Promo Band",
+  "description": "A reusable promotional band with supporting copy, media, CTAs, and small detail facts.",
+  "category": "marketing",
+  "role": "cta",
+  "version": 1,
+  "keywords": [
+    "promotion",
+    "campaign",
+    "promo",
+    "cta"
+  ],
+  "ai": {
+    "useFor": "campaign cross-promotions and reusable marketing callouts",
+    "avoid": "generic page banners or detailed product collections"
+  },
+  "fields": [
+    {
+      "id": "eyebrow",
+      "default": "Promotion",
+      "type": "text",
+      "max": 80
+    },
+    {
+      "id": "heading",
+      "default": "Promotion",
+      "type": "text",
+      "max": 140
+    },
+    {
+      "id": "body",
+      "default": "",
+      "type": "text",
+      "max": 1000
+    },
+    {
+      "id": "mediaId",
+      "default": "",
+      "type": "media",
+      "storage": "id",
+      "allowEmpty": true
+    },
+    {
+      "id": "mediaAlt",
+      "default": "",
+      "type": "text",
+      "max": 200
+    },
+    {
+      "id": "primaryCtaLabel",
+      "default": "",
+      "type": "text",
+      "max": 60
+    },
+    {
+      "id": "primaryCtaUrl",
+      "default": "",
+      "type": "text",
+      "max": 500
+    },
+    {
+      "id": "secondaryCtaLabel",
+      "default": "",
+      "type": "text",
+      "max": 60
+    },
+    {
+      "id": "secondaryCtaUrl",
+      "default": "",
+      "type": "text",
+      "max": 500
+    },
+    {
+      "id": "details",
+      "default": [],
+      "type": "repeater",
+      "max": 6,
+      "fields": [
+        {
+          "id": "label",
+          "default": "",
+          "type": "text",
+          "max": 80
+        },
+        {
+          "id": "value",
+          "default": "",
+          "type": "text",
+          "max": 180
+        }
+      ]
+    }
+  ],
+  "supports": {
+    "children": false,
+    "styles": true,
+    "layout": [
+      "width",
+      "tone",
+      "spacing",
+      "align"
+    ],
+    "anchor": true,
+    "visibility": true
+  },
+  "data": null,
+  "preview": "{heading}",
+  "examples": [
+    {
+      "eyebrow": "Promotion",
+      "heading": "Promotion",
+      "body": "",
+      "mediaId": "",
+      "mediaAlt": "",
+      "primaryCtaLabel": "",
+      "primaryCtaUrl": "",
+      "secondaryCtaLabel": "",
+      "secondaryCtaUrl": "",
+      "details": []
+    },
+    {
+      "eyebrow": "Promotion",
+      "heading": "Promotion",
+      "body": "",
+      "mediaId": "",
+      "mediaAlt": "",
+      "primaryCtaLabel": "",
+      "primaryCtaUrl": "",
+      "secondaryCtaLabel": "",
+      "secondaryCtaUrl": "",
+      "details": []
+    },
+    {
+      "eyebrow": "Workshop study",
+      "heading": "Make room for the everyday.",
+      "body": "An imagined weekend of observation, notebook sketches and shared work. This is sample editorial content, not an available booking.",
+      "mediaId": "demo-image-camp-mug",
+      "mediaAlt": "A ceramic mug on a stone windowsill",
+      "primaryCtaLabel": "See the materials",
+      "primaryCtaUrl": "#studies",
+      "secondaryCtaLabel": "Read the notebook",
+      "secondaryCtaUrl": "#coverage",
+      "details": [
+        {
+          "label": "Format",
+          "value": "Fictional weekend study"
+        },
+        {
+          "label": "Materials",
+          "value": "Paper, clay and light"
+        }
+      ]
+    }
+  ]
+}

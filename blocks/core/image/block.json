@@ -1,0 +1,80 @@
+{
+  "name": "core/image",
+  "title": "Image",
+  "description": "A standalone image with optional caption and link.",
+  "category": "media",
+  "role": "content",
+  "version": 2,
+  "keywords": [],
+  "ai": {
+    "useFor": "inline images in blog content or page bodies",
+    "avoid": "hero media (use core/hero) or side-by-side media (use core/media-text)"
+  },
+  "fields": [
+    {
+      "id": "mediaId",
+      "default": "",
+      "type": "media",
+      "storage": "id",
+      "allowEmpty": true
+    },
+    {
+      "id": "alt",
+      "default": "",
+      "type": "text",
+      "max": 200
+    },
+    {
+      "id": "caption",
+      "default": "",
+      "type": "text",
+      "max": 300
+    },
+    {
+      "id": "href",
+      "default": "",
+      "type": "link",
+      "storage": "href",
+      "allowEmpty": true
+    }
+  ],
+  "supports": {
+    "children": false,
+    "styles": true,
+    "layout": [
+      "width",
+      "tone",
+      "spacing",
+      "align"
+    ],
+    "anchor": true,
+    "visibility": true
+  },
+  "data": null,
+  "preview": "Image",
+  "examples": [
+    {
+      "mediaId": "",
+      "alt": "",
+      "caption": "",
+      "href": ""
+    },
+    {
+      "mediaId": "",
+      "alt": "Diagram of the architecture",
+      "caption": "Figure 1 \u2014 system overview",
+      "href": ""
+    },
+    {
+      "mediaId": "demo-image-retreat",
+      "alt": "A low wood and stone retreat beneath forested mountain cliffs",
+      "caption": "A quiet place to pause. Aster House demo photography.",
+      "href": ""
+    }
+  ],
+  "migration": {
+    "fromVersion": 1,
+    "preserveLegacyRender": true,
+    "transforms": []
+  }
+}

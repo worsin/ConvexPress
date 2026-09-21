@@ -1,0 +1,39 @@
+{
+  "name": "core/grid",
+  "title": "Grid",
+  "description": "Responsive grid of child blocks.",
+  "category": "layout",
+  "role": "content",
+  "version": 1,
+  "keywords": [
+    "grid"
+  ],
+  "ai": {
+    "useFor": "Responsive grid of child blocks.",
+    "avoid": "Use canonical child blocks for structure. Ratios, breakpoints, gaps, sticky placement and visual column counts belong to named template treatments, not content attributes."
+  },
+  "fields": [],
+  "supports": {
+    "children": true,
+    "styles": true,
+    "layout": [
+      "width",
+      "tone",
+      "spacing",
+      "align"
+    ],
+    "anchor": true,
+    "visibility": true
+  },
+  "data": null,
+  "preview": "Grid",
+  "examples": [
+    {}
+  ],
+  "requires": {
+    "plugins": [],
+    "capabilities": [
+      "tree.children"
+    ]
+  }
+}

@@ -1,0 +1,125 @@
+{
+  "name": "core/footnotes",
+  "title": "Footnotes",
+  "description": "Numbered notes referenced from rich text.",
+  "category": "text",
+  "role": "utility",
+  "version": 1,
+  "keywords": [
+    "footnotes"
+  ],
+  "ai": {
+    "useFor": "Numbered notes referenced from rich text.",
+    "avoid": "Do not invent records, permissions, prices, endorsements or resource identifiers. Presentation comes from the selected template."
+  },
+  "fields": [
+    {
+      "id": "notes",
+      "type": "repeater",
+      "fields": [
+        {
+          "id": "key",
+          "domId": true,
+          "type": "text",
+          "max": 80,
+          "required": true,
+          "min": 1,
+          "format": "anchor"
+        },
+        {
+          "id": "body",
+          "type": "richtext",
+          "max": 12000
+        }
+      ],
+      "max": 100,
+      "default": []
+    }
+  ],
+  "supports": {
+    "children": false,
+    "styles": true,
+    "layout": [
+      "width",
+      "tone",
+      "spacing",
+      "align"
+    ],
+    "anchor": true,
+    "visibility": true
+  },
+  "data": null,
+  "preview": "Footnotes",
+  "examples": [
+    {
+      "notes": [
+        {
+          "key": "field-note",
+          "body": {
+            "type": "doc",
+            "content": [
+              {
+                "type": "paragraph",
+                "content": [
+                  {
+                    "type": "text",
+                    "text": "Keep the original date beside a note when you revisit it."
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "notes": [
+        {
+          "key": "demo-note-date",
+          "body": {
+            "type": "doc",
+            "content": [
+              {
+                "type": "paragraph",
+                "content": [
+                  {
+                    "type": "text",
+                    "text": "These notes are fictional specimens. Keep the date beside an observation when revisiting it."
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "key": "demo-note-place",
+          "body": {
+            "type": "doc",
+            "content": [
+              {
+                "type": "paragraph",
+                "content": [
+                  {
+                    "type": "text",
+                    "text": "A place can change between visits. Describe what you actually saw rather than filling gaps from memory."
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "requires": {
+    "plugins": [],
+    "capabilities": []
+  },
+  "constraints": [
+    {
+      "kind": "unique-by",
+      "field": "notes",
+      "key": "key"
+    }
+  ]
+}

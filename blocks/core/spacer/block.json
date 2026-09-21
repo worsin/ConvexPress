@@ -1,0 +1,44 @@
+{
+  "name": "core/spacer",
+  "title": "Spacer",
+  "description": "Semantic vertical spacing — the skill decides actual height.",
+  "category": "layout",
+  "role": "utility",
+  "version": 2,
+  "keywords": [],
+  "ai": {
+    "useFor": "Semantic vertical spacing — the skill decides actual height.",
+    "avoid": ""
+  },
+  "fields": [],
+  "supports": {
+    "children": false,
+    "styles": true,
+    "layout": [
+      "width",
+      "tone",
+      "spacing",
+      "align"
+    ],
+    "anchor": true,
+    "visibility": true
+  },
+  "data": null,
+  "preview": "Spacer",
+  "examples": [
+    {},
+    {}
+  ],
+  "migration": {
+    "fromVersion": 1,
+    "preserveLegacyRender": true,
+    "transforms": [
+      {
+        "kind": "pack-treatment",
+        "path": [
+          "size"
+        ]
+      }
+    ]
+  }
+}

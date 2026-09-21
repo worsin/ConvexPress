@@ -1,0 +1,103 @@
+{
+  "name": "core/testimonials",
+  "title": "Testimonials",
+  "description": "Customer quotes with attribution.",
+  "category": "marketing",
+  "role": "content",
+  "version": 2,
+  "keywords": [],
+  "ai": {
+    "useFor": "social proof sections",
+    "avoid": "a single quote (use core/quote)"
+  },
+  "fields": [
+    {
+      "id": "eyebrow",
+      "default": "",
+      "type": "text",
+      "max": 80
+    },
+    {
+      "id": "heading",
+      "default": "",
+      "type": "text",
+      "max": 120
+    },
+    {
+      "id": "body",
+      "default": "",
+      "type": "text",
+      "max": 400
+    },
+    {
+      "id": "items",
+      "default": [],
+      "type": "repeater",
+      "max": 20,
+      "fields": [
+        {
+          "id": "quote",
+          "default": "",
+          "type": "text",
+          "max": 500
+        },
+        {
+          "id": "name",
+          "default": "",
+          "type": "text",
+          "max": 80
+        },
+        {
+          "id": "role",
+          "default": "",
+          "type": "text",
+          "max": 80
+        }
+      ]
+    }
+  ],
+  "supports": {
+    "children": false,
+    "styles": true,
+    "layout": [
+      "width",
+      "tone",
+      "spacing",
+      "align"
+    ],
+    "anchor": true,
+    "visibility": true
+  },
+  "data": null,
+  "preview": "{heading}",
+  "examples": [
+    {
+      "eyebrow": "",
+      "heading": "",
+      "body": "",
+      "items": []
+    },
+    {
+      "eyebrow": "Customers",
+      "heading": "What people are saying",
+      "body": "",
+      "items": [
+        {
+          "quote": "Saved us a week.",
+          "name": "Jane Doe",
+          "role": "Marketing Lead, Acme"
+        },
+        {
+          "quote": "Replaced our copywriter.",
+          "name": "John Smith",
+          "role": "Founder, Beta Inc"
+        }
+      ]
+    }
+  ],
+  "migration": {
+    "fromVersion": 1,
+    "preserveLegacyRender": true,
+    "transforms": []
+  }
+}

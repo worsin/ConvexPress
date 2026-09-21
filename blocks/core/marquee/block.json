@@ -1,0 +1,112 @@
+{
+  "name": "core/marquee",
+  "title": "Marquee",
+  "description": "Scrolling strip of words or logos.",
+  "category": "marketing",
+  "role": "content",
+  "version": 1,
+  "keywords": [
+    "marquee"
+  ],
+  "ai": {
+    "useFor": "Scrolling strip of words or logos.",
+    "avoid": "Movement speed and reduced-motion behavior belong to the template; content must remain readable without animation."
+  },
+  "fields": [
+    {
+      "id": "items",
+      "type": "repeater",
+      "fields": [
+        {
+          "id": "text",
+          "type": "text",
+          "max": 160,
+          "required": true,
+          "min": 1
+        },
+        {
+          "id": "media",
+          "type": "media"
+        },
+        {
+          "id": "link",
+          "type": "link"
+        }
+      ],
+      "max": 30,
+      "default": []
+    }
+  ],
+  "supports": {
+    "children": false,
+    "styles": true,
+    "layout": [
+      "width",
+      "tone",
+      "spacing",
+      "align"
+    ],
+    "anchor": true,
+    "visibility": true
+  },
+  "data": null,
+  "preview": "Marquee",
+  "examples": [
+    {
+      "items": [
+        {
+          "text": "Notice"
+        },
+        {
+          "text": "Record"
+        },
+        {
+          "text": "Return"
+        }
+      ]
+    },
+    {
+      "items": [
+        {
+          "text": "Notice what is here.",
+          "media": {
+            "id": "demo-image-field-notebook",
+            "alt": "A notebook on stone"
+          },
+          "link": {
+            "label": "The notebook study",
+            "href": "#studies"
+          }
+        },
+        {
+          "text": "Make something useful.",
+          "media": {
+            "id": "demo-image-camp-mug",
+            "alt": "A ceramic mug by a window"
+          },
+          "link": {
+            "label": "The ceramic study",
+            "href": "#studies"
+          }
+        },
+        {
+          "text": "Leave a little space.",
+          "media": {
+            "id": "demo-image-retreat",
+            "alt": "A retreat at the forest edge"
+          },
+          "link": {
+            "label": "The retreat study",
+            "href": "#studies"
+          }
+        }
+      ]
+    }
+  ],
+  "requires": {
+    "plugins": [],
+    "capabilities": [
+      "reference.targetResolution"
+    ]
+  }
+}

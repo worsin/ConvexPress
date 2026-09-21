@@ -1,0 +1,134 @@
+{
+  "name": "core/roadmap-timeline",
+  "title": "Roadmap timeline",
+  "description": "Timeline of past, current, and upcoming items.",
+  "category": "marketing",
+  "role": "content",
+  "version": 2,
+  "keywords": [],
+  "ai": {
+    "useFor": "public roadmap pages",
+    "avoid": ""
+  },
+  "fields": [
+    {
+      "id": "eyebrow",
+      "default": "",
+      "type": "text",
+      "max": 80
+    },
+    {
+      "id": "heading",
+      "default": "",
+      "type": "text",
+      "max": 120
+    },
+    {
+      "id": "body",
+      "default": "",
+      "type": "text",
+      "max": 300
+    },
+    {
+      "id": "items",
+      "default": [],
+      "type": "repeater",
+      "max": 30,
+      "fields": [
+        {
+          "id": "label",
+          "default": "",
+          "type": "text",
+          "max": 40
+        },
+        {
+          "id": "title",
+          "default": "",
+          "type": "text",
+          "max": 120
+        },
+        {
+          "id": "body",
+          "default": "",
+          "type": "text",
+          "max": 400
+        },
+        {
+          "id": "status",
+          "default": "planned",
+          "type": "select",
+          "options": [
+            "done",
+            "in_progress",
+            "planned"
+          ]
+        }
+      ]
+    }
+  ],
+  "supports": {
+    "children": false,
+    "styles": true,
+    "layout": [
+      "width",
+      "tone",
+      "spacing",
+      "align"
+    ],
+    "anchor": true,
+    "visibility": true
+  },
+  "data": null,
+  "preview": "{heading}",
+  "examples": [
+    {
+      "eyebrow": "",
+      "heading": "",
+      "body": "",
+      "items": []
+    },
+    {
+      "eyebrow": "Roadmap",
+      "heading": "What we're building",
+      "body": "",
+      "items": [
+        {
+          "label": "Q3 2026",
+          "title": "AI image gen",
+          "body": "Inline image generation.",
+          "status": "in_progress"
+        }
+      ]
+    },
+    {
+      "eyebrow": "Fictional studio journal",
+      "heading": "A small practice, growing slowly",
+      "body": "An illustrative sequence, not a product delivery commitment.",
+      "items": [
+        {
+          "label": "Chapter one",
+          "title": "Open the notebook",
+          "body": "Start with one place and write down three things you notice.",
+          "status": "done"
+        },
+        {
+          "label": "Chapter two",
+          "title": "Return to the same place",
+          "body": "Compare the light, sounds and small movements on a second visit.",
+          "status": "in_progress"
+        },
+        {
+          "label": "Chapter three",
+          "title": "Share a field note",
+          "body": "Choose a short passage to read with a friend.",
+          "status": "planned"
+        }
+      ]
+    }
+  ],
+  "migration": {
+    "fromVersion": 1,
+    "preserveLegacyRender": true,
+    "transforms": []
+  }
+}

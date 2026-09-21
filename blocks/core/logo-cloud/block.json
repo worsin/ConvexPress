@@ -1,0 +1,186 @@
+{
+  "name": "core/logo-cloud",
+  "title": "Logo cloud",
+  "description": "Row of customer or partner logos.",
+  "category": "marketing",
+  "role": "content",
+  "version": 2,
+  "keywords": [],
+  "ai": {
+    "useFor": "social proof via brand logos",
+    "avoid": ""
+  },
+  "fields": [
+    {
+      "id": "eyebrow",
+      "default": "",
+      "type": "text",
+      "max": 80
+    },
+    {
+      "id": "heading",
+      "default": "",
+      "type": "text",
+      "max": 120
+    },
+    {
+      "id": "logos",
+      "default": [],
+      "type": "repeater",
+      "max": 24,
+      "fields": [
+        {
+          "id": "name",
+          "default": "",
+          "type": "text",
+          "max": 80
+        },
+        {
+          "id": "mediaId",
+          "default": "",
+          "type": "media",
+          "storage": "id",
+          "allowEmpty": true
+        },
+        {
+          "id": "href",
+          "default": "",
+          "type": "link",
+          "storage": "href",
+          "allowEmpty": true
+        }
+      ]
+    }
+  ],
+  "supports": {
+    "children": false,
+    "styles": true,
+    "layout": [
+      "width",
+      "tone",
+      "spacing",
+      "align"
+    ],
+    "anchor": true,
+    "visibility": true
+  },
+  "data": null,
+  "preview": "{heading}",
+  "examples": [
+    {
+      "eyebrow": "",
+      "heading": "",
+      "logos": []
+    },
+    {
+      "eyebrow": "",
+      "heading": "Trusted by teams at",
+      "logos": [
+        {
+          "name": "Acme",
+          "mediaId": "",
+          "href": ""
+        }
+      ]
+    },
+    {
+      "eyebrow": "A fictional maker community",
+      "heading": "Good things, made with care.",
+      "logos": [
+        {
+          "name": "Aster Objects",
+          "mediaId": "demo-image-aster-mark",
+          "href": "/makers/aster-objects"
+        },
+        {
+          "name": "Fieldwork",
+          "mediaId": "",
+          "href": "/makers/fieldwork"
+        },
+        {
+          "name": "Still House",
+          "mediaId": "",
+          "href": ""
+        },
+        {
+          "name": "Common Ground",
+          "mediaId": "",
+          "href": ""
+        }
+      ]
+    },
+    {
+      "eyebrow": "A fictional maker community",
+      "heading": "Independent ideas, shared care.",
+      "logos": [
+        {
+          "name": "Aster Objects",
+          "mediaId": "demo-image-aster-mark",
+          "href": "/makers/aster-objects"
+        },
+        {
+          "name": "Fieldwork",
+          "mediaId": "",
+          "href": "/makers/fieldwork"
+        }
+      ]
+    },
+    {
+      "eyebrow": "A fictional maker community",
+      "heading": "Independent ideas, shared care.",
+      "logos": [
+        {
+          "name": "Aster Objects",
+          "mediaId": "demo-image-aster-mark",
+          "href": "/makers/aster-objects"
+        },
+        {
+          "name": "Fieldwork",
+          "mediaId": "",
+          "href": "/makers/fieldwork"
+        },
+        {
+          "name": "Still House",
+          "mediaId": "",
+          "href": ""
+        }
+      ]
+    },
+    {
+      "eyebrow": "A fictional maker community",
+      "heading": "Independent ideas, shared care.",
+      "logos": [
+        {
+          "name": "Aster Objects",
+          "mediaId": "demo-image-aster-mark",
+          "href": "/makers/aster-objects"
+        },
+        {
+          "name": "Fieldwork",
+          "mediaId": "",
+          "href": "/makers/fieldwork"
+        },
+        {
+          "name": "Still House",
+          "mediaId": "",
+          "href": ""
+        },
+        {
+          "name": "Common Ground",
+          "mediaId": "",
+          "href": ""
+        },
+        {
+          "name": "North Studio",
+          "mediaId": "",
+          "href": ""
+        }
+      ]
+    }
+  ],
+  "migration": {
+    "fromVersion": 1,
+    "preserveLegacyRender": true,
+    "transforms": []
+  }
+}

@@ -1,0 +1,96 @@
+{
+  "name": "core/tabs",
+  "title": "Tabs",
+  "description": "Tabbed content panels.",
+  "category": "layout",
+  "role": "content",
+  "version": 2,
+  "keywords": [],
+  "ai": {
+    "useFor": "segmenting comparable content into tabs",
+    "avoid": ""
+  },
+  "fields": [
+    {
+      "id": "heading",
+      "default": "",
+      "type": "text",
+      "max": 120
+    },
+    {
+      "id": "tabs",
+      "default": [],
+      "type": "repeater",
+      "max": 8,
+      "fields": [
+        {
+          "id": "label",
+          "default": "",
+          "type": "text",
+          "max": 40
+        },
+        {
+          "id": "body",
+          "default": "",
+          "type": "text",
+          "max": 2000
+        }
+      ]
+    }
+  ],
+  "supports": {
+    "children": false,
+    "styles": true,
+    "layout": [
+      "width",
+      "tone",
+      "spacing",
+      "align"
+    ],
+    "anchor": true,
+    "visibility": true
+  },
+  "data": null,
+  "preview": "{heading}",
+  "examples": [
+    {
+      "heading": "",
+      "tabs": []
+    },
+    {
+      "heading": "",
+      "tabs": [
+        {
+          "label": "Overview",
+          "body": "..."
+        },
+        {
+          "label": "Details",
+          "body": "..."
+        }
+      ]
+    },
+    {
+      "heading": "A notebook for the everyday",
+      "tabs": [
+        {
+          "label": "The idea",
+          "body": "Keep a small place for the things you notice. A familiar street, a good question, the light at the end of an afternoon."
+        },
+        {
+          "label": "In practice",
+          "body": "Start with one observation each morning. Add a sketch, a few words or a detail you would otherwise forget."
+        },
+        {
+          "label": "Make it yours",
+          "body": "There is no perfect format. Leave room between entries and return to the ideas that keep asking for your attention."
+        }
+      ]
+    }
+  ],
+  "migration": {
+    "fromVersion": 1,
+    "preserveLegacyRender": true,
+    "transforms": []
+  }
+}

@@ -1,0 +1,92 @@
+{
+  "name": "core/anchor-nav",
+  "title": "Anchor nav",
+  "description": "In-page jump links built from block anchors.",
+  "category": "site",
+  "role": "utility",
+  "version": 1,
+  "keywords": [
+    "anchor-nav"
+  ],
+  "ai": {
+    "useFor": "In-page jump links built from block anchors.",
+    "avoid": "Do not invent records, permissions, prices, endorsements or resource identifiers. Presentation comes from the selected template."
+  },
+  "fields": [
+    {
+      "id": "source",
+      "type": "select",
+      "options": [
+        "auto",
+        "manual"
+      ],
+      "default": "auto"
+    },
+    {
+      "id": "items",
+      "type": "repeater",
+      "fields": [
+        {
+          "id": "label",
+          "type": "text",
+          "max": 160,
+          "required": true,
+          "min": 1
+        },
+        {
+          "id": "anchor",
+          "type": "text",
+          "max": 80,
+          "required": true,
+          "min": 1,
+          "format": "anchor"
+        }
+      ],
+      "max": 30,
+      "default": []
+    }
+  ],
+  "supports": {
+    "children": false,
+    "styles": true,
+    "layout": [
+      "width",
+      "tone",
+      "spacing",
+      "align"
+    ],
+    "anchor": true,
+    "visibility": true
+  },
+  "data": {
+    "resolver": "content.anchors",
+    "args": {
+      "source": "attrs.source"
+    }
+  },
+  "preview": "Anchor nav",
+  "examples": [
+    {},
+    {
+      "source": "manual",
+      "items": [
+        {
+          "label": "Materials",
+          "anchor": "study-section-1"
+        },
+        {
+          "label": "Process",
+          "anchor": "study-section-2"
+        },
+        {
+          "label": "Details",
+          "anchor": "study-section-3"
+        }
+      ]
+    }
+  ],
+  "requires": {
+    "plugins": [],
+    "capabilities": []
+  }
+}

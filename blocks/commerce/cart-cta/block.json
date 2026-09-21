@@ -1,0 +1,62 @@
+{
+  "name": "commerce/cart-cta",
+  "title": "Cart CTA",
+  "description": "Cart summary strip with checkout button.",
+  "category": "commerce",
+  "role": "cta",
+  "version": 1,
+  "keywords": [
+    "cart-cta"
+  ],
+  "ai": {
+    "useFor": "Cart summary strip with checkout button.",
+    "avoid": "The basket is private visitor state, read through the authenticated storefront cart host after session settlement. Never put cart IDs, tokens, counts or prices in authored attributes, resolved page data or an SSR cache."
+  },
+  "fields": [
+    {
+      "id": "title",
+      "type": "text",
+      "max": 160,
+      "default": "Your basket"
+    },
+    {
+      "id": "emptyText",
+      "type": "text",
+      "max": 500,
+      "default": "Your basket is empty."
+    }
+  ],
+  "supports": {
+    "children": false,
+    "styles": true,
+    "layout": [
+      "width",
+      "tone",
+      "spacing",
+      "align"
+    ],
+    "anchor": true,
+    "visibility": true
+  },
+  "preview": "Cart CTA",
+  "examples": [
+    {},
+    {
+      "title": "A few good things, chosen by you.",
+      "emptyText": "Good things take time. Browse the collection and bring a little of the outside home."
+    },
+    {
+      "title": "Your everyday essentials, ready for the days and adventures ahead",
+      "emptyText": "You have not chosen anything yet. Take your time exploring the collection of useful, lasting objects, then return here whenever you are ready."
+    }
+  ],
+  "requires": {
+    "plugins": [
+      "commerce"
+    ],
+    "capabilities": [
+      "viewer.authorization"
+    ]
+  },
+  "data": null
+}

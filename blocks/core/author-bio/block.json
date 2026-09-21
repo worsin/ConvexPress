@@ -1,0 +1,119 @@
+{
+  "name": "core/author-bio",
+  "title": "Author bio",
+  "description": "Author card with photo, role, bio, and links.",
+  "category": "site",
+  "role": "content",
+  "version": 2,
+  "keywords": [],
+  "ai": {
+    "useFor": "blog post footers, about-the-author sections",
+    "avoid": ""
+  },
+  "fields": [
+    {
+      "id": "userId",
+      "default": "",
+      "type": "reference",
+      "of": "user",
+      "storage": "id",
+      "allowEmpty": true
+    },
+    {
+      "id": "name",
+      "default": "",
+      "type": "text",
+      "max": 80
+    },
+    {
+      "id": "role",
+      "default": "",
+      "type": "text",
+      "max": 80
+    },
+    {
+      "id": "bio",
+      "default": "",
+      "type": "text",
+      "max": 500
+    },
+    {
+      "id": "mediaId",
+      "default": "",
+      "type": "media",
+      "storage": "id",
+      "allowEmpty": true
+    },
+    {
+      "id": "links",
+      "default": [],
+      "type": "repeater",
+      "max": 6,
+      "fields": [
+        {
+          "id": "label",
+          "default": "",
+          "type": "text",
+          "max": 40
+        },
+        {
+          "id": "href",
+          "default": "",
+          "type": "link",
+          "storage": "href",
+          "allowEmpty": true
+        }
+      ]
+    }
+  ],
+  "supports": {
+    "children": false,
+    "styles": true,
+    "layout": [
+      "width",
+      "tone",
+      "spacing",
+      "align"
+    ],
+    "anchor": true,
+    "visibility": true
+  },
+  "data": null,
+  "preview": "Author bio",
+  "examples": [
+    {
+      "userId": "",
+      "name": "",
+      "role": "",
+      "bio": "",
+      "mediaId": "",
+      "links": []
+    },
+    {
+      "userId": "",
+      "name": "Jane Doe",
+      "role": "Author",
+      "bio": "Writes about software.",
+      "mediaId": "",
+      "links": []
+    },
+    {
+      "userId": "",
+      "name": "Rowan Vale",
+      "role": "Fictional field journal editor",
+      "bio": "A fictional writer for this editorial study, interested in useful objects and the things we notice when we slow down.",
+      "mediaId": "",
+      "links": [
+        {
+          "label": "Read the sample journal",
+          "href": "https://example.invalid/journal"
+        }
+      ]
+    }
+  ],
+  "migration": {
+    "fromVersion": 1,
+    "preserveLegacyRender": true,
+    "transforms": []
+  }
+}

@@ -1,0 +1,92 @@
+{
+  "name": "core/breadcrumbs",
+  "title": "Breadcrumbs",
+  "description": "Explicit breadcrumb trail when the surface does not render one.",
+  "category": "openers",
+  "role": "utility",
+  "version": 1,
+  "keywords": [
+    "breadcrumbs"
+  ],
+  "ai": {
+    "useFor": "Explicit breadcrumb trail when the surface does not render one.",
+    "avoid": "Do not invent records, permissions, prices, endorsements or resource identifiers. Presentation comes from the selected template."
+  },
+  "fields": [
+    {
+      "id": "source",
+      "type": "select",
+      "options": [
+        "auto",
+        "manual"
+      ],
+      "default": "auto"
+    },
+    {
+      "id": "items",
+      "type": "repeater",
+      "fields": [
+        {
+          "id": "label",
+          "type": "text",
+          "max": 160,
+          "required": true,
+          "min": 1
+        },
+        {
+          "id": "link",
+          "type": "link"
+        }
+      ],
+      "max": 12,
+      "default": []
+    }
+  ],
+  "supports": {
+    "children": false,
+    "styles": true,
+    "layout": [
+      "width",
+      "tone",
+      "spacing",
+      "align"
+    ],
+    "anchor": true,
+    "visibility": true
+  },
+  "data": {
+    "resolver": "content.breadcrumbs",
+    "args": {
+      "source": "attrs.source"
+    }
+  },
+  "preview": "Breadcrumbs",
+  "examples": [
+    {},
+    {
+      "source": "manual",
+      "items": [
+        {
+          "label": "Journal",
+          "link": {
+            "href": "/page/journal",
+            "label": "Journal",
+            "newTab": false
+          }
+        },
+        {
+          "label": "Studio field notes",
+          "link": {
+            "href": "/page/journal/studio-field-notes",
+            "label": "Studio field notes",
+            "newTab": false
+          }
+        }
+      ]
+    }
+  ],
+  "requires": {
+    "plugins": [],
+    "capabilities": []
+  }
+}

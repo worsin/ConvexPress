@@ -1,0 +1,81 @@
+{
+  "name": "events/calendar",
+  "title": "Event calendar",
+  "description": "Month or list calendar of events.",
+  "category": "plugin",
+  "role": "content",
+  "version": 1,
+  "keywords": [
+    "calendar"
+  ],
+  "ai": {
+    "useFor": "Month or list calendar of events.",
+    "avoid": "Do not invent records, permissions, prices, endorsements or resource identifiers. Presentation comes from the selected template."
+  },
+  "fields": [
+    {
+      "id": "view",
+      "type": "select",
+      "options": [
+        "month",
+        "agenda"
+      ],
+      "default": "month"
+    },
+    {
+      "id": "category",
+      "type": "reference",
+      "of": "eventCategory",
+      "max": 256,
+      "title": "Event category",
+      "description": "A category from this site\u2019s Events plugin."
+    },
+    {
+      "id": "limit",
+      "type": "number",
+      "min": 1,
+      "max": 48,
+      "integer": true,
+      "default": 24
+    },
+    {
+      "id": "timeZone",
+      "type": "text",
+      "max": 100,
+      "title": "Time zone",
+      "description": "Optional IANA time zone, such as America/Denver. Uses the website time zone when omitted."
+    }
+  ],
+  "supports": {
+    "children": false,
+    "styles": true,
+    "layout": [
+      "width",
+      "tone",
+      "spacing",
+      "align"
+    ],
+    "anchor": true,
+    "visibility": true
+  },
+  "data": {
+    "resolver": "events.list",
+    "args": {
+      "category": "attrs.category",
+      "limit": "attrs.limit",
+      "timeZone": "attrs.timeZone"
+    }
+  },
+  "preview": "Event calendar",
+  "examples": [
+    {}
+  ],
+  "requires": {
+    "plugins": [
+      "events"
+    ],
+    "capabilities": [
+      "reference.targetResolution"
+    ]
+  }
+}

@@ -1,0 +1,111 @@
+{
+  "name": "core/cta-with-form",
+  "title": "CTA with inline form",
+  "description": "Conversion CTA with email capture inline.",
+  "category": "forms",
+  "role": "cta",
+  "version": 2,
+  "keywords": [],
+  "ai": {
+    "useFor": "page-bottom conversions",
+    "avoid": ""
+  },
+  "fields": [
+    {
+      "id": "eyebrow",
+      "default": "",
+      "type": "text",
+      "max": 80
+    },
+    {
+      "id": "heading",
+      "default": null,
+      "type": "text",
+      "min": 1,
+      "max": 120,
+      "nullable": true
+    },
+    {
+      "id": "body",
+      "default": "",
+      "type": "text",
+      "max": 400
+    },
+    {
+      "id": "placeholder",
+      "default": "you@company.com",
+      "type": "text",
+      "max": 80
+    },
+    {
+      "id": "submitLabel",
+      "default": "Get started",
+      "type": "text",
+      "max": 40
+    },
+    {
+      "id": "fineprint",
+      "default": "",
+      "type": "text",
+      "max": 200
+    }
+  ],
+  "supports": {
+    "children": false,
+    "styles": true,
+    "layout": [
+      "width",
+      "tone",
+      "spacing",
+      "align"
+    ],
+    "anchor": true,
+    "visibility": true
+  },
+  "data": null,
+  "preview": "{heading}",
+  "examples": [
+    {
+      "eyebrow": "",
+      "heading": null,
+      "body": "",
+      "placeholder": "you@company.com",
+      "submitLabel": "Get started",
+      "fineprint": ""
+    },
+    {
+      "eyebrow": "",
+      "heading": "Stay in the loop",
+      "body": "Receive occasional email updates.",
+      "placeholder": "you@company.com",
+      "submitLabel": "Subscribe",
+      "fineprint": "Choose the updates you want to receive."
+    },
+    {
+      "eyebrow": "Keep a little room for curiosity",
+      "heading": "A slower rhythm, in your inbox.",
+      "body": "Seasonal ideas from the workshop and the trail. This fictional study demonstrates a newsletter subscription, not a free trial or account registration.",
+      "placeholder": "Your email address",
+      "submitLabel": "Join the notes",
+      "fineprint": "Subscribe only if you would like to receive this site’s email updates."
+    }
+  ],
+  "migration": {
+    "fromVersion": 1,
+    "preserveLegacyRender": true,
+    "transforms": [
+      {
+        "kind": "empty-to-null",
+        "path": [
+          "heading"
+        ]
+      }
+    ]
+  },
+  "requires": {
+    "plugins": [],
+    "capabilities": [
+      "form.submission"
+    ]
+  }
+}

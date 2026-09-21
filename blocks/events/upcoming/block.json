@@ -1,0 +1,86 @@
+{
+  "name": "events/upcoming",
+  "title": "Upcoming Events",
+  "description": "Live public events, updated from the Events plugin without storing event copies in page content.",
+  "category": "site",
+  "role": "content",
+  "version": 1,
+  "keywords": [
+    "events",
+    "live",
+    "experiences"
+  ],
+  "ai": {
+    "useFor": "Show a short list of the site's upcoming public events. Event records stay in the Events plugin.",
+    "avoid": "Invented event dates or copied event records. Enable Events and create real events first."
+  },
+  "fields": [
+    {
+      "id": "heading",
+      "type": "text",
+      "max": 160,
+      "default": "Upcoming events"
+    },
+    {
+      "id": "intro",
+      "type": "text",
+      "max": 1000,
+      "default": ""
+    },
+    {
+      "id": "count",
+      "type": "number",
+      "integer": true,
+      "min": 1,
+      "max": 12,
+      "default": 3
+    },
+    {
+      "id": "showDescription",
+      "type": "boolean",
+      "default": true
+    },
+    {
+      "id": "emptyText",
+      "type": "text",
+      "max": 240,
+      "default": "New dates are on the way."
+    }
+  ],
+  "supports": {
+    "children": false,
+    "styles": true,
+    "layout": [
+      "width",
+      "tone",
+      "spacing",
+      "align"
+    ],
+    "anchor": true,
+    "visibility": true
+  },
+  "data": {
+    "resolver": "events.upcoming",
+    "args": {
+      "limit": "attrs.count",
+      "showDescription": "attrs.showDescription"
+    }
+  },
+  "preview": "{heading} \u00b7 up to {count} events",
+  "examples": [
+    {},
+    {
+      "heading": "Gather at Aster House",
+      "intro": "Small gatherings for noticing the world around us.",
+      "count": 3,
+      "showDescription": true,
+      "emptyText": "Our next gathering is taking shape."
+    }
+  ],
+  "requires": {
+    "plugins": [
+      "events"
+    ],
+    "capabilities": []
+  }
+}

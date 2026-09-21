@@ -1,0 +1,139 @@
+{
+  "name": "core/poll",
+  "title": "Poll",
+  "description": "Single-question poll with live results.",
+  "category": "forms",
+  "role": "content",
+  "version": 1,
+  "keywords": [
+    "poll"
+  ],
+  "ai": {
+    "useFor": "Single-question poll with live results.",
+    "avoid": "The server must bind votes to the persisted block and authorized response policy. Content attrs never authorize votes or fabricate results."
+  },
+  "fields": [
+    {
+      "id": "question",
+      "type": "text",
+      "max": 500,
+      "default": ""
+    },
+    {
+      "id": "options",
+      "type": "repeater",
+      "fields": [
+        {
+          "id": "key",
+          "type": "text",
+          "max": 80,
+          "required": true,
+          "min": 1
+        },
+        {
+          "id": "label",
+          "type": "text",
+          "max": 240,
+          "required": true,
+          "min": 1
+        }
+      ],
+      "max": 12,
+      "default": []
+    },
+    {
+      "id": "showResults",
+      "type": "boolean",
+      "default": true
+    },
+    {
+      "id": "responsePolicy",
+      "type": "select",
+      "options": [
+        "visitor",
+        "signedIn"
+      ],
+      "default": "visitor"
+    }
+  ],
+  "supports": {
+    "children": false,
+    "styles": true,
+    "layout": [
+      "width",
+      "tone",
+      "spacing",
+      "align"
+    ],
+    "anchor": true,
+    "visibility": true
+  },
+  "data": {
+    "resolver": "forms.poll",
+    "args": {
+      "blockId": "block.id"
+    }
+  },
+  "preview": "Poll",
+  "examples": [
+    {
+      "question": "Which practice would you like to try?",
+      "options": [
+        {
+          "key": "observe",
+          "label": "A morning observation"
+        },
+        {
+          "key": "notebook",
+          "label": "A field notebook"
+        }
+      ]
+    },
+    {
+      "question": "How would you spend a slower morning?",
+      "options": [
+        {
+          "key": "walk",
+          "label": "A walk with no destination"
+        },
+        {
+          "key": "coffee",
+          "label": "Coffee, a book, and an open window"
+        },
+        {
+          "key": "make",
+          "label": "Making something with my hands"
+        },
+        {
+          "key": "quiet",
+          "label": "A little time to do nothing"
+        }
+      ],
+      "showResults": true,
+      "responsePolicy": "visitor"
+    },
+    {
+      "question": "What should we explore together next?",
+      "options": [
+        {
+          "key": "place",
+          "label": "The stories a place can tell"
+        },
+        {
+          "key": "craft",
+          "label": "The pleasure of learning a craft"
+        }
+      ],
+      "showResults": false,
+      "responsePolicy": "signedIn"
+    }
+  ],
+  "requires": {
+    "plugins": [
+      "forms"
+    ],
+    "capabilities": [
+      "poll.submission"
+    ]
+  }
+}

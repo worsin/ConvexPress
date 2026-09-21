@@ -1,0 +1,118 @@
+{
+  "name": "blocks/studio-services",
+  "title": "Studio services",
+  "description": "A premium editorial studio services section with an eyebrow, headline, short introduction and a responsive grid of quietly bordered service cards. Designed for the Journal template's generous whitespace and display-type headings.",
+  "category": "marketing",
+  "role": "content",
+  "version": 1,
+  "keywords": [
+    "services",
+    "studio",
+    "editorial",
+    "grid",
+    "journal"
+  ],
+  "ai": {
+    "useFor": "Editorial studio, agency or practice pages that need a calm services overview with three to six short service cards under a clear headline.",
+    "avoid": "Do not use for pricing tables, product grids, testimonials or long-form process narratives. Do not use to advertise services the studio does not actually offer."
+  },
+  "fields": [
+    {
+      "id": "eyebrow",
+      "title": "Section eyebrow",
+      "description": "Short label displayed above the headline in small caps.",
+      "default": "Our approach",
+      "type": "text",
+      "max": 60
+    },
+    {
+      "id": "headline",
+      "title": "Headline",
+      "description": "Primary section headline set in the display face.",
+      "default": "Thoughtful from the start",
+      "type": "text",
+      "max": 120
+    },
+    {
+      "id": "introduction",
+      "title": "Introduction",
+      "description": "Short introductory sentence sitting under the headline.",
+      "default": "From first sketch to final detail, make room for good ideas.",
+      "type": "text",
+      "max": 240
+    },
+    {
+      "id": "services",
+      "title": "Services",
+      "description": "Cards describing each service the studio offers.",
+      "default": [
+        {
+          "description": "Shape a clear direction.",
+          "title": "Design"
+        },
+        {
+          "description": "Bring the details together.",
+          "title": "Build"
+        },
+        {
+          "description": "Make every interaction feel considered.",
+          "title": "Refine"
+        }
+      ],
+      "type": "repeater",
+      "min": 1,
+      "max": 6,
+      "fields": [
+        {
+          "id": "title",
+          "title": "Title",
+          "required": true,
+          "type": "text",
+          "max": 80
+        },
+        {
+          "id": "description",
+          "title": "Description",
+          "required": true,
+          "type": "text",
+          "max": 240
+        }
+      ]
+    }
+  ],
+  "supports": {
+    "children": false,
+    "styles": true,
+    "layout": [
+      "width",
+      "tone",
+      "spacing",
+      "align"
+    ],
+    "anchor": true,
+    "visibility": true
+  },
+  "data": null,
+  "preview": "Editorial studio services section with eyebrow, display headline, short introduction and a responsive three-up grid of quietly bordered service cards.",
+  "examples": [
+    {
+      "eyebrow": "Our approach",
+      "headline": "Thoughtful from the start",
+      "introduction": "From first sketch to final detail, make room for good ideas.",
+      "services": [
+        {
+          "description": "Shape a clear direction.",
+          "title": "Design"
+        },
+        {
+          "description": "Bring the details together.",
+          "title": "Build"
+        },
+        {
+          "description": "Make every interaction feel considered.",
+          "title": "Refine"
+        }
+      ]
+    }
+  ]
+}

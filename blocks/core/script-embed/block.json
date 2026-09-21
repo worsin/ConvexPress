@@ -1,0 +1,63 @@
+{
+  "name": "core/script-embed",
+  "title": "Script embed",
+  "description": "Allow-listed third-party script (chat widget, analytics).",
+  "category": "site",
+  "role": "utility",
+  "version": 1,
+  "keywords": [
+    "script-embed"
+  ],
+  "ai": {
+    "useFor": "Allow-listed third-party script (chat widget, analytics).",
+    "avoid": "Provider ID is data, never code. Only fixed reviewed adapters may construct URLs/load scripts after consent. No script text, arbitrary config, credentials or unknown hosts."
+  },
+  "fields": [
+    {
+      "id": "provider",
+      "type": "select",
+      "options": [
+        "youtube",
+        "vimeo"
+      ],
+      "default": "youtube"
+    },
+    {
+      "id": "resourceId",
+      "type": "text",
+      "max": 160,
+      "format": "resource-id"
+    }
+  ],
+  "supports": {
+    "children": false,
+    "styles": true,
+    "layout": [
+      "width",
+      "tone",
+      "spacing",
+      "align"
+    ],
+    "anchor": true,
+    "visibility": true
+  },
+  "data": null,
+  "preview": "Script embed",
+  "examples": [
+    {},
+    {
+      "provider": "vimeo",
+      "resourceId": "76979871"
+    },
+    {
+      "provider": "youtube",
+      "resourceId": "M7lc1UVf-VE"
+    }
+  ],
+  "requires": {
+    "plugins": [],
+    "capabilities": [
+      "embed.approvedScript"
+    ]
+  }
+}

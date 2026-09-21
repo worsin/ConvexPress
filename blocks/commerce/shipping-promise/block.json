@@ -1,0 +1,44 @@
+{
+  "name": "commerce/shipping-promise",
+  "title": "Shipping promise",
+  "description": "Delivery, returns and care policies explicitly published in Commerce Settings.",
+  "category": "commerce",
+  "role": "utility",
+  "version": 1,
+  "keywords": [
+    "shipping-promise"
+  ],
+  "ai": {
+    "useFor": "Delivery, returns and guarantee strip from settings.",
+    "avoid": "Only show verified shipping policy. Do not invent delivery promises, costs or timelines."
+  },
+  "fields": [],
+  "supports": {
+    "children": false,
+    "styles": true,
+    "layout": [
+      "width",
+      "tone",
+      "spacing",
+      "align"
+    ],
+    "anchor": true,
+    "visibility": true
+  },
+  "data": {
+    "resolver": "commerce.shippingPolicy",
+    "args": {}
+  },
+  "preview": "Shipping promise",
+  "examples": [
+    {}
+  ],
+  "requires": {
+    "plugins": [
+      "commerce"
+    ],
+    "capabilities": [
+      "viewer.authorization"
+    ]
+  }
+}

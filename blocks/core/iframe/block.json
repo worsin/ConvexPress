@@ -1,0 +1,60 @@
+{
+  "name": "core/iframe",
+  "title": "Iframe",
+  "description": "Sandboxed iframe for allow-listed hosts.",
+  "category": "site",
+  "role": "utility",
+  "version": 1,
+  "keywords": [
+    "iframe"
+  ],
+  "ai": {
+    "useFor": "Sandboxed iframe for allow-listed hosts.",
+    "avoid": "Only approved HTTPS hosts may render in a restrictive sandbox with consent, title and fallback link. No arbitrary allow flags, srcdoc, script or size CSS in attrs."
+  },
+  "fields": [
+    {
+      "id": "url",
+      "type": "link",
+      "protocols": [
+        "https"
+      ]
+    },
+    {
+      "id": "title",
+      "type": "text",
+      "max": 160,
+      "default": ""
+    }
+  ],
+  "supports": {
+    "children": false,
+    "styles": true,
+    "layout": [
+      "width",
+      "tone",
+      "spacing",
+      "align"
+    ],
+    "anchor": true,
+    "visibility": true
+  },
+  "data": null,
+  "preview": "Iframe",
+  "examples": [
+    {},
+    {
+      "url": {
+        "label": "Open the sample regional map",
+        "href": "https://www.openstreetmap.org/export/embed.html?bbox=-111.8%2C40.5%2C-111.5%2C40.8&layer=mapnik"
+      },
+      "title": "A sample mountain region — OpenStreetMap"
+    }
+  ],
+  "requires": {
+    "plugins": [],
+    "capabilities": [
+      "embed.sandbox"
+    ]
+  }
+}

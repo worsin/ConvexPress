@@ -1,0 +1,212 @@
+{
+  "name": "core/contact-form",
+  "title": "Contact form",
+  "description": "Configurable contact form with custom fields.",
+  "category": "forms",
+  "role": "content",
+  "version": 2,
+  "keywords": [],
+  "ai": {
+    "useFor": "contact pages, lead capture",
+    "avoid": ""
+  },
+  "fields": [
+    {
+      "id": "eyebrow",
+      "default": "",
+      "type": "text",
+      "max": 80
+    },
+    {
+      "id": "heading",
+      "default": "",
+      "type": "text",
+      "max": 120
+    },
+    {
+      "id": "body",
+      "default": "",
+      "type": "text",
+      "max": 400
+    },
+    {
+      "id": "fields",
+      "default": [],
+      "type": "repeater",
+      "max": 12,
+      "fields": [
+        {
+          "id": "name",
+          "default": "name",
+          "type": "text",
+          "max": 40
+        },
+        {
+          "id": "label",
+          "default": "Name",
+          "type": "text",
+          "max": 80
+        },
+        {
+          "id": "type",
+          "default": "text",
+          "type": "select",
+          "options": [
+            "text",
+            "email",
+            "tel",
+            "textarea",
+            "select"
+          ]
+        },
+        {
+          "id": "required",
+          "default": false,
+          "type": "boolean"
+        },
+        {
+          "id": "placeholder",
+          "default": "",
+          "type": "text",
+          "max": 120
+        },
+        {
+          "id": "options",
+          "default": [],
+          "type": "repeater",
+          "item": {
+            "id": "value",
+            "required": true,
+            "type": "text",
+            "max": 80
+          }
+        }
+      ]
+    },
+    {
+      "id": "submitLabel",
+      "default": "Send message",
+      "type": "text",
+      "max": 40
+    },
+    {
+      "id": "recipientEmail",
+      "default": "",
+      "type": "text",
+      "max": 200
+    },
+    {
+      "id": "successMessage",
+      "default": "Thanks — we'll be in touch.",
+      "type": "text",
+      "max": 200
+    }
+  ],
+  "supports": {
+    "children": false,
+    "styles": true,
+    "layout": [
+      "width",
+      "tone",
+      "spacing",
+      "align"
+    ],
+    "anchor": true,
+    "visibility": true
+  },
+  "data": {
+    "resolver": "forms.contact",
+    "args": {
+      "blockId": "block.id"
+    }
+  },
+  "preview": "{heading}",
+  "examples": [
+    {
+      "eyebrow": "",
+      "heading": "",
+      "body": "",
+      "fields": [],
+      "submitLabel": "Send message",
+      "recipientEmail": "",
+      "successMessage": "Thanks — we'll be in touch."
+    },
+    {
+      "eyebrow": "",
+      "heading": "Contact us",
+      "body": "",
+      "fields": [
+        {
+          "name": "name",
+          "label": "Name",
+          "type": "text",
+          "required": true,
+          "placeholder": "",
+          "options": []
+        }
+      ],
+      "submitLabel": "Send",
+      "recipientEmail": "hello@example.com",
+      "successMessage": "Thanks!"
+    },
+    {
+      "eyebrow": "A conversation starts here",
+      "heading": "Tell us what you have in mind.",
+      "body": "A place, a project, or a question worth exploring. Leave a few details and our studio will be in touch.",
+      "fields": [
+        {
+          "name": "name",
+          "label": "Your name",
+          "type": "text",
+          "required": true,
+          "placeholder": "Alex Morgan",
+          "options": []
+        },
+        {
+          "name": "email",
+          "label": "Email address",
+          "type": "email",
+          "required": true,
+          "placeholder": "alex@example.com",
+          "options": []
+        },
+        {
+          "name": "interest",
+          "label": "What brings you here?",
+          "type": "select",
+          "required": true,
+          "placeholder": "Choose a topic",
+          "options": [
+            "A new project",
+            "A collaboration",
+            "A question"
+          ]
+        },
+        {
+          "name": "message",
+          "label": "A few details",
+          "type": "textarea",
+          "required": true,
+          "placeholder": "Tell us a little about your plans…",
+          "options": []
+        }
+      ],
+      "submitLabel": "Start a conversation",
+      "recipientEmail": "",
+      "successMessage": "Thank you. Your note is with our studio."
+    }
+  ],
+  "migration": {
+    "fromVersion": 1,
+    "preserveLegacyRender": true,
+    "transforms": []
+  },
+  "requires": {
+    "plugins": [
+      "forms"
+    ],
+    "capabilities": [
+      "contact.submission"
+    ]
+  }
+}

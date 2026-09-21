@@ -1,0 +1,69 @@
+{
+  "name": "core/site-info",
+  "title": "Site info",
+  "description": "Site name, tagline, logo from settings.",
+  "category": "site",
+  "role": "utility",
+  "version": 1,
+  "keywords": [
+    "site-info"
+  ],
+  "ai": {
+    "useFor": "Site name, tagline, logo from settings.",
+    "avoid": "Do not invent records, permissions, prices, endorsements or resource identifiers. Presentation comes from the selected template."
+  },
+  "fields": [
+    {
+      "id": "show",
+      "type": "repeater",
+      "item": {
+        "id": "value",
+        "type": "select",
+        "options": [
+          "logo",
+          "name",
+          "tagline"
+        ],
+        "required": true
+      },
+      "max": 3,
+      "default": []
+    }
+  ],
+  "supports": {
+    "children": false,
+    "styles": true,
+    "layout": [
+      "width",
+      "tone",
+      "spacing",
+      "align"
+    ],
+    "anchor": true,
+    "visibility": true
+  },
+  "data": {
+    "resolver": "site.info",
+    "args": {}
+  },
+  "preview": "Site info",
+  "examples": [
+    {
+      "show": [
+        "name",
+        "tagline"
+      ]
+    },
+    {
+      "show": [
+        "logo",
+        "name",
+        "tagline"
+      ]
+    }
+  ],
+  "requires": {
+    "plugins": [],
+    "capabilities": []
+  }
+}

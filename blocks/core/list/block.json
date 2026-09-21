@@ -1,0 +1,147 @@
+{
+  "name": "core/list",
+  "title": "List",
+  "description": "Bulleted, numbered, or task list.",
+  "category": "text",
+  "role": "content",
+  "version": 2,
+  "keywords": [],
+  "ai": {
+    "useFor": "any list of items — features, steps, checklist, points",
+    "avoid": "feature grids with descriptions (use core/feature-grid)"
+  },
+  "fields": [
+    {
+      "id": "style",
+      "default": "bullet",
+      "type": "select",
+      "options": [
+        "bullet",
+        "ordered",
+        "task"
+      ]
+    },
+    {
+      "id": "items",
+      "default": [
+        {
+          "text": {
+            "type": "doc",
+            "content": [
+              {
+                "type": "paragraph",
+                "content": []
+              }
+            ]
+          }
+        }
+      ],
+      "type": "repeater",
+      "fields": [
+        {
+          "id": "text",
+          "default": {
+            "type": "doc",
+            "content": [
+              {
+                "type": "paragraph",
+                "content": []
+              }
+            ]
+          },
+          "type": "richtext",
+          "max": 500,
+          "inline": true
+        },
+        {
+          "id": "done",
+          "type": "boolean"
+        }
+      ]
+    }
+  ],
+  "supports": {
+    "children": false,
+    "styles": true,
+    "layout": [
+      "width",
+      "tone",
+      "spacing",
+      "align"
+    ],
+    "anchor": true,
+    "visibility": true
+  },
+  "data": null,
+  "preview": "List",
+  "examples": [
+    {
+      "style": "bullet",
+      "items": [
+        {
+          "text": {
+            "type": "doc",
+            "content": [
+              {
+                "type": "paragraph",
+                "content": []
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "style": "bullet",
+      "items": [
+        {
+          "text": {
+            "type": "doc",
+            "content": [
+              {
+                "type": "paragraph",
+                "content": [
+                  {
+                    "type": "text",
+                    "text": "First item"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "text": {
+            "type": "doc",
+            "content": [
+              {
+                "type": "paragraph",
+                "content": [
+                  {
+                    "type": "text",
+                    "text": "Second item"
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "migration": {
+    "fromVersion": 1,
+    "preserveLegacyRender": true,
+    "transforms": [
+      {
+        "kind": "text-to-richtext",
+        "path": [
+          "items",
+          "*",
+          "text"
+        ],
+        "mode": "markdown-inline"
+      }
+    ]
+  }
+}

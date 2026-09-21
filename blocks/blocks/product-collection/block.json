@@ -1,0 +1,417 @@
+{
+  "name": "blocks/product-collection",
+  "title": "Product Collection",
+  "description": "A grid, carousel, or grouped product collection with manual fallback cards and dynamic query metadata.",
+  "category": "commerce",
+  "role": "content",
+  "version": 2,
+  "keywords": [
+    "site",
+    "products",
+    "product",
+    "shop",
+    "carousel",
+    "cart"
+  ],
+  "ai": {
+    "useFor": "featured products, recently viewed products, sale items, category collections, and manual product carousels",
+    "avoid": "single product pages or non-commerce story sections"
+  },
+  "fields": [
+    {
+      "id": "eyebrow",
+      "default": "",
+      "type": "text",
+      "max": 80
+    },
+    {
+      "id": "heading",
+      "default": "Featured products",
+      "type": "text",
+      "max": 140
+    },
+    {
+      "id": "intro",
+      "default": "",
+      "type": "text",
+      "max": 700
+    },
+    {
+      "id": "mode",
+      "default": "manual",
+      "type": "select",
+      "options": [
+        "manual",
+        "category",
+        "tag",
+        "sale",
+        "featured",
+        "recent",
+        "recentlyViewed"
+      ]
+    },
+    {
+      "id": "productIds",
+      "default": [],
+      "type": "repeater",
+      "max": 48,
+      "item": {
+        "id": "value",
+        "required": true,
+        "type": "reference",
+        "max": 120,
+        "of": "product",
+        "storage": "id",
+        "allowEmpty": true
+      }
+    },
+    {
+      "id": "categorySlug",
+      "default": "",
+      "type": "reference",
+      "max": 160,
+      "of": "productCategory",
+      "storage": "slug",
+      "allowEmpty": true
+    },
+    {
+      "id": "tagSlug",
+      "default": "",
+      "type": "reference",
+      "max": 160,
+      "of": "productTag",
+      "storage": "slug",
+      "allowEmpty": true
+    },
+    {
+      "id": "count",
+      "default": 4,
+      "type": "number",
+      "min": 1,
+      "max": 24
+    },
+    {
+      "id": "showPrice",
+      "default": true,
+      "type": "boolean"
+    },
+    {
+      "id": "showRating",
+      "default": false,
+      "type": "boolean"
+    },
+    {
+      "id": "showSaleBadge",
+      "default": true,
+      "type": "boolean"
+    },
+    {
+      "id": "showAddToCart",
+      "default": false,
+      "type": "boolean"
+    },
+    {
+      "id": "ctaLabel",
+      "default": "",
+      "type": "text",
+      "max": 60
+    },
+    {
+      "id": "ctaUrl",
+      "default": "",
+      "type": "text",
+      "max": 500
+    },
+    {
+      "id": "products",
+      "default": [],
+      "type": "repeater",
+      "max": 24,
+      "fields": [
+        {
+          "id": "title",
+          "default": "",
+          "type": "text",
+          "max": 160
+        },
+        {
+          "id": "summary",
+          "default": "",
+          "type": "text",
+          "max": 400
+        },
+        {
+          "id": "href",
+          "default": "",
+          "type": "text",
+          "max": 500
+        },
+        {
+          "id": "price",
+          "default": "",
+          "type": "text",
+          "max": 60
+        },
+        {
+          "id": "badge",
+          "default": "",
+          "type": "text",
+          "max": 60
+        },
+        {
+          "id": "mediaId",
+          "default": "",
+          "type": "media",
+          "storage": "id",
+          "allowEmpty": true
+        },
+        {
+          "id": "imageAlt",
+          "default": "",
+          "type": "text",
+          "max": 200
+        }
+      ]
+    },
+    {
+      "id": "groups",
+      "default": [],
+      "type": "repeater",
+      "max": 8,
+      "fields": [
+        {
+          "id": "label",
+          "default": "Group",
+          "type": "text",
+          "max": 80
+        },
+        {
+          "id": "productIds",
+          "default": [],
+          "type": "repeater",
+          "max": 24,
+          "item": {
+            "id": "value",
+            "required": true,
+            "type": "reference",
+            "max": 120,
+            "of": "product",
+            "storage": "id",
+            "allowEmpty": true
+          }
+        },
+        {
+          "id": "products",
+          "default": [],
+          "type": "repeater",
+          "max": 24,
+          "fields": [
+            {
+              "id": "title",
+              "default": "",
+              "type": "text",
+              "max": 160
+            },
+            {
+              "id": "summary",
+              "default": "",
+              "type": "text",
+              "max": 400
+            },
+            {
+              "id": "href",
+              "default": "",
+              "type": "text",
+              "max": 500
+            },
+            {
+              "id": "price",
+              "default": "",
+              "type": "text",
+              "max": 60
+            },
+            {
+              "id": "badge",
+              "default": "",
+              "type": "text",
+              "max": 60
+            },
+            {
+              "id": "mediaId",
+              "default": "",
+              "type": "media",
+              "storage": "id",
+              "allowEmpty": true
+            },
+            {
+              "id": "imageAlt",
+              "default": "",
+              "type": "text",
+              "max": 200
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "supports": {
+    "children": false,
+    "styles": true,
+    "layout": [
+      "width",
+      "tone",
+      "spacing",
+      "align"
+    ],
+    "anchor": true,
+    "visibility": true
+  },
+  "data": {
+    "resolver": "commerce.productCollection",
+    "args": {
+      "mode": "attrs.mode",
+      "productIds": "attrs.productIds",
+      "categorySlug": "attrs.categorySlug",
+      "tagSlug": "attrs.tagSlug",
+      "count": "attrs.count",
+      "showPrice": "attrs.showPrice",
+      "showRating": "attrs.showRating",
+      "showAddToCart": "attrs.showAddToCart",
+      "groups": "attrs.groups"
+    }
+  },
+  "preview": "{heading}",
+  "examples": [
+    {
+      "eyebrow": "",
+      "heading": "Featured products",
+      "intro": "",
+      "mode": "manual",
+      "productIds": [],
+      "categorySlug": "",
+      "tagSlug": "",
+      "count": 4,
+      "showPrice": true,
+      "showRating": false,
+      "showSaleBadge": true,
+      "showAddToCart": false,
+      "ctaLabel": "",
+      "ctaUrl": "",
+      "products": [],
+      "groups": []
+    },
+    {
+      "eyebrow": "",
+      "heading": "Featured products",
+      "intro": "",
+      "mode": "manual",
+      "productIds": [],
+      "categorySlug": "",
+      "tagSlug": "",
+      "count": 4,
+      "showPrice": true,
+      "showRating": false,
+      "showSaleBadge": true,
+      "showAddToCart": false,
+      "ctaLabel": "",
+      "ctaUrl": "",
+      "products": [],
+      "groups": []
+    },
+    {
+      "eyebrow": "Objects worth keeping",
+      "heading": "A slower kind of everyday",
+      "intro": "Thoughtful pieces for the rituals that make a day your own.",
+      "mode": "manual",
+      "productIds": [
+        "demo-product-mug",
+        "demo-product-notebook",
+        "demo-product-pair",
+        "demo-product-journal"
+      ],
+      "count": 4,
+      "showRating": true,
+      "showAddToCart": true,
+      "ctaLabel": "Explore the studio",
+      "ctaUrl": "#catalog",
+      "groups": [
+        {
+          "label": "For the kitchen",
+          "productIds": [
+            "demo-product-mug",
+            "demo-product-pair"
+          ],
+          "products": []
+        },
+        {
+          "label": "For your thoughts",
+          "productIds": [
+            "demo-product-notebook",
+            "demo-product-journal"
+          ],
+          "products": []
+        }
+      ]
+    }
+  ],
+  "migration": {
+    "fromVersion": 1,
+    "preserveLegacyRender": true,
+    "transforms": [
+      {
+        "kind": "pack-treatment",
+        "path": [
+          "display"
+        ]
+      },
+      {
+        "kind": "pack-treatment",
+        "path": [
+          "columns"
+        ]
+      }
+    ]
+  },
+  "requires": {
+    "plugins": [
+      "commerce"
+    ],
+    "capabilities": []
+  },
+  "treatments": [
+    {
+      "name": "gallery",
+      "title": "Product gallery",
+      "axes": [
+        {
+          "id": "display",
+          "title": "Layout",
+          "type": "select",
+          "options": [
+            "grid",
+            "carousel"
+          ],
+          "default": "grid"
+        },
+        {
+          "id": "columns",
+          "title": "Columns",
+          "type": "number",
+          "min": 2,
+          "max": 4,
+          "default": 4
+        },
+        {
+          "id": "aspect",
+          "title": "Image shape",
+          "type": "select",
+          "options": [
+            "portrait",
+            "square"
+          ],
+          "default": "portrait"
+        }
+      ]
+    }
+  ]
+}

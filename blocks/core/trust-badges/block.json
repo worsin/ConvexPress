@@ -1,0 +1,86 @@
+{
+  "name": "core/trust-badges",
+  "title": "Trust badges",
+  "description": "Guarantees, certifications, payment marks.",
+  "category": "marketing",
+  "role": "content",
+  "version": 1,
+  "keywords": [
+    "trust-badges"
+  ],
+  "ai": {
+    "useFor": "Guarantees, certifications, payment marks.",
+    "avoid": "Do not invent records, permissions, prices, endorsements or resource identifiers. Presentation comes from the selected template."
+  },
+  "fields": [
+    {
+      "id": "items",
+      "type": "repeater",
+      "fields": [
+        {
+          "id": "icon",
+          "type": "icon"
+        },
+        {
+          "id": "media",
+          "type": "media"
+        },
+        {
+          "id": "label",
+          "type": "text",
+          "max": 160,
+          "required": true,
+          "min": 1
+        }
+      ],
+      "max": 20,
+      "default": []
+    }
+  ],
+  "supports": {
+    "children": false,
+    "styles": true,
+    "layout": [
+      "width",
+      "tone",
+      "spacing",
+      "align"
+    ],
+    "anchor": true,
+    "visibility": true
+  },
+  "data": null,
+  "preview": "Trust badges",
+  "examples": [
+    {
+      "items": [
+        {
+          "icon": "book-open",
+          "label": "Original field notes"
+        }
+      ]
+    },
+    {
+      "items": [
+        {
+          "icon": "book-open",
+          "label": "Original field notes — sample label"
+        },
+        {
+          "icon": "clock",
+          "label": "Time to notice — sample label"
+        },
+        {
+          "icon": "heart",
+          "label": "Made with care — sample label"
+        }
+      ]
+    }
+  ],
+  "requires": {
+    "plugins": [],
+    "capabilities": [
+      "reference.targetResolution"
+    ]
+  }
+}

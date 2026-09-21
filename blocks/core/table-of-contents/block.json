@@ -1,0 +1,59 @@
+{
+  "name": "core/table-of-contents",
+  "title": "Table of contents",
+  "description": "Auto-built from the page's headings.",
+  "category": "text",
+  "role": "aside",
+  "version": 1,
+  "keywords": [
+    "table-of-contents"
+  ],
+  "ai": {
+    "useFor": "Auto-built from the page's headings.",
+    "avoid": "Do not invent records, permissions, prices, endorsements or resource identifiers. Presentation comes from the selected template."
+  },
+  "fields": [
+    {
+      "id": "title",
+      "type": "text",
+      "max": 160,
+      "default": "On this page"
+    },
+    {
+      "id": "depth",
+      "type": "number",
+      "min": 1,
+      "max": 6,
+      "integer": true,
+      "default": 3
+    }
+  ],
+  "supports": {
+    "children": false,
+    "styles": true,
+    "layout": [
+      "width",
+      "tone",
+      "spacing",
+      "align"
+    ],
+    "anchor": true,
+    "visibility": true
+  },
+  "data": {
+    "resolver": "content.headings",
+    "args": {}
+  },
+  "preview": "Table of contents",
+  "examples": [
+    {},
+    {
+      "title": "Inside the field notes",
+      "depth": 3
+    }
+  ],
+  "requires": {
+    "plugins": [],
+    "capabilities": []
+  }
+}

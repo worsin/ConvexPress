@@ -1,0 +1,84 @@
+{
+  "name": "core/map",
+  "title": "Map",
+  "description": "Static or embedded map with pin and address.",
+  "category": "media",
+  "role": "content",
+  "version": 1,
+  "keywords": [
+    "map"
+  ],
+  "ai": {
+    "useFor": "Static or embedded map with pin and address.",
+    "avoid": "Confirm coordinates and public address. Renderer must use its approved map provider with consent and a text alternative; provider credentials never belong in attrs."
+  },
+  "fields": [
+    {
+      "id": "address",
+      "type": "text",
+      "max": 500,
+      "default": ""
+    },
+    {
+      "id": "latitude",
+      "type": "number",
+      "min": -90,
+      "max": 90,
+      "integer": false
+    },
+    {
+      "id": "longitude",
+      "type": "number",
+      "min": -180,
+      "max": 180,
+      "integer": false
+    },
+    {
+      "id": "provider",
+      "type": "select",
+      "options": [
+        "openstreetmap"
+      ],
+      "default": "openstreetmap"
+    },
+    {
+      "id": "directions",
+      "type": "link"
+    }
+  ],
+  "supports": {
+    "children": false,
+    "styles": true,
+    "layout": [
+      "width",
+      "tone",
+      "spacing",
+      "align"
+    ],
+    "anchor": true,
+    "visibility": true
+  },
+  "data": null,
+  "preview": "Map",
+  "examples": [
+    {
+      "address": "Choose a verified location before publishing."
+    },
+    {
+      "address": "A mountain-region study\nIllustrative coordinates, not an Aster House business address.",
+      "latitude": 40.72,
+      "longitude": -111.61,
+      "provider": "openstreetmap",
+      "directions": {
+        "label": "Open directions to the sample point",
+        "href": "https://www.openstreetmap.org/directions?to=40.72%2C-111.61"
+      }
+    }
+  ],
+  "requires": {
+    "plugins": [],
+    "capabilities": [
+      "map.approvedProvider"
+    ]
+  }
+}

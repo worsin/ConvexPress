@@ -1,0 +1,69 @@
+{
+  "name": "commerce/variant-picker-teaser",
+  "title": "Variant picker teaser",
+  "description": "Colour or size swatches leading to the product page.",
+  "category": "commerce",
+  "role": "content",
+  "version": 1,
+  "keywords": [
+    "variant-picker-teaser"
+  ],
+  "ai": {
+    "useFor": "Colour or size swatches leading to the product page.",
+    "avoid": "Do not invent records, permissions, prices, endorsements or resource identifiers. Presentation comes from the selected template."
+  },
+  "fields": [
+    {
+      "id": "product",
+      "type": "reference",
+      "of": "product",
+      "max": 256,
+      "storage": "id"
+    },
+    {
+      "id": "attribute",
+      "type": "text",
+      "max": 80,
+      "default": ""
+    }
+  ],
+  "supports": {
+    "children": false,
+    "styles": true,
+    "layout": [
+      "width",
+      "tone",
+      "spacing",
+      "align"
+    ],
+    "anchor": true,
+    "visibility": true
+  },
+  "data": {
+    "resolver": "commerce.productOptions",
+    "args": {
+      "product": "attrs.product",
+      "attribute": "attrs.attribute"
+    }
+  },
+  "preview": "Variant picker teaser",
+  "examples": [
+    {
+      "product": "demo-product-notebook",
+      "attribute": "Color"
+    },
+    {
+      "product": "demo-product-notebook",
+      "attribute": ""
+    },
+    {}
+  ],
+  "requires": {
+    "plugins": [
+      "commerce"
+    ],
+    "capabilities": [
+      "reference.targetResolution"
+    ]
+  }
+}

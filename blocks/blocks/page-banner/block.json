@@ -1,0 +1,116 @@
+{
+  "name": "blocks/page-banner",
+  "title": "Page Banner",
+  "description": "A marketing page header with optional breadcrumb label, supporting copy, media, and CTA.",
+  "category": "marketing",
+  "role": "opener",
+  "version": 1,
+  "keywords": [
+    "site",
+    "banner",
+    "hero",
+    "page",
+    "header"
+  ],
+  "ai": {
+    "useFor": "top sections on story, history, policies, media, and informational pages",
+    "avoid": "small inline headings inside long-form content"
+  },
+  "fields": [
+    {
+      "id": "eyebrow",
+      "default": "",
+      "type": "text",
+      "max": 80
+    },
+    {
+      "id": "title",
+      "default": "Page title",
+      "type": "text",
+      "max": 140
+    },
+    {
+      "id": "subtitle",
+      "default": "",
+      "type": "text",
+      "max": 500
+    },
+    {
+      "id": "mediaId",
+      "default": "",
+      "type": "media",
+      "storage": "id",
+      "allowEmpty": true
+    },
+    {
+      "id": "mediaAlt",
+      "default": "",
+      "type": "text",
+      "max": 200
+    },
+    {
+      "id": "breadcrumbLabel",
+      "default": "",
+      "type": "text",
+      "max": 80
+    },
+    {
+      "id": "ctaLabel",
+      "default": "",
+      "type": "text",
+      "max": 60
+    },
+    {
+      "id": "ctaUrl",
+      "default": "",
+      "type": "text",
+      "max": 500
+    }
+  ],
+  "supports": {
+    "children": false,
+    "styles": true,
+    "layout": [
+      "width",
+      "tone",
+      "spacing",
+      "align"
+    ],
+    "anchor": true,
+    "visibility": true
+  },
+  "data": null,
+  "preview": "{title}",
+  "examples": [
+    {
+      "eyebrow": "",
+      "title": "Page title",
+      "subtitle": "",
+      "mediaId": "",
+      "mediaAlt": "",
+      "breadcrumbLabel": "",
+      "ctaLabel": "",
+      "ctaUrl": ""
+    },
+    {
+      "eyebrow": "",
+      "title": "Page title",
+      "subtitle": "",
+      "mediaId": "",
+      "mediaAlt": "",
+      "breadcrumbLabel": "",
+      "ctaLabel": "",
+      "ctaUrl": ""
+    },
+    {
+      "eyebrow": "An imagined field journal",
+      "title": "A place for slower mornings.",
+      "subtitle": "A fictional retreat study in stone, paper and the space between.",
+      "breadcrumbLabel": "Field journal / Places",
+      "mediaId": "demo-image-retreat",
+      "mediaAlt": "A retreat beneath forested mountain cliffs",
+      "ctaLabel": "Explore the studies",
+      "ctaUrl": "#studies"
+    }
+  ]
+}

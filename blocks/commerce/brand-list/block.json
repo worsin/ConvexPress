@@ -1,0 +1,55 @@
+{
+  "name": "commerce/brand-list",
+  "title": "Brand list",
+  "description": "Brand logos linking to filtered catalog.",
+  "category": "commerce",
+  "role": "content",
+  "version": 1,
+  "keywords": [
+    "brand-list"
+  ],
+  "ai": {
+    "useFor": "Brand logos linking to filtered catalog.",
+    "avoid": "Do not invent records, permissions, prices, endorsements or resource identifiers. Presentation comes from the selected template."
+  },
+  "fields": [
+    {
+      "id": "limit",
+      "type": "number",
+      "min": 1,
+      "max": 48,
+      "integer": true,
+      "default": 12
+    }
+  ],
+  "supports": {
+    "children": false,
+    "styles": true,
+    "layout": [
+      "width",
+      "tone",
+      "spacing",
+      "align"
+    ],
+    "anchor": true,
+    "visibility": true
+  },
+  "data": {
+    "resolver": "commerce.brands",
+    "args": {
+      "limit": "attrs.limit"
+    }
+  },
+  "preview": "Brand list",
+  "examples": [
+    {}
+  ],
+  "requires": {
+    "plugins": [
+      "commerce"
+    ],
+    "capabilities": [
+      "viewer.authorization"
+    ]
+  }
+}

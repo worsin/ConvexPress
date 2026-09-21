@@ -1,0 +1,113 @@
+{
+  "name": "core/hero-text-only",
+  "title": "Hero (text only)",
+  "description": "Hero without media, for minimalist openers.",
+  "category": "marketing",
+  "role": "hero",
+  "version": 2,
+  "keywords": [],
+  "ai": {
+    "useFor": "minimalist landing-page openers",
+    "avoid": "when the page benefits from product imagery (use core/hero or core/hero-split)"
+  },
+  "fields": [
+    {
+      "id": "eyebrow",
+      "default": "",
+      "type": "text",
+      "max": 80
+    },
+    {
+      "id": "title",
+      "default": null,
+      "type": "text",
+      "min": 1,
+      "max": 120,
+      "nullable": true
+    },
+    {
+      "id": "body",
+      "default": "",
+      "type": "text",
+      "max": 600
+    },
+    {
+      "id": "primaryCtaLabel",
+      "default": "",
+      "type": "text",
+      "max": 40
+    },
+    {
+      "id": "primaryCtaUrl",
+      "default": "",
+      "type": "link",
+      "storage": "href",
+      "allowEmpty": true
+    },
+    {
+      "id": "secondaryCtaLabel",
+      "default": "",
+      "type": "text",
+      "max": 40
+    },
+    {
+      "id": "secondaryCtaUrl",
+      "default": "",
+      "type": "link",
+      "storage": "href",
+      "allowEmpty": true
+    }
+  ],
+  "supports": {
+    "children": false,
+    "styles": true,
+    "layout": [
+      "width",
+      "tone",
+      "spacing",
+      "align"
+    ],
+    "anchor": true,
+    "visibility": true
+  },
+  "data": null,
+  "preview": "{title}",
+  "examples": [
+    {
+      "eyebrow": "",
+      "title": null,
+      "body": "",
+      "primaryCtaLabel": "",
+      "primaryCtaUrl": "",
+      "secondaryCtaLabel": "",
+      "secondaryCtaUrl": ""
+    },
+    {
+      "eyebrow": "Launching now",
+      "title": "A clean opener",
+      "body": "Short, punchy intro.",
+      "primaryCtaLabel": "Get started",
+      "primaryCtaUrl": "/signup",
+      "secondaryCtaLabel": "",
+      "secondaryCtaUrl": ""
+    }
+  ],
+  "migration": {
+    "fromVersion": 1,
+    "preserveLegacyRender": true,
+    "transforms": [
+      {
+        "kind": "empty-to-null",
+        "path": [
+          "title"
+        ]
+      },
+      {
+        "kind": "pack-treatment",
+        "path": [
+          "alignment"
+        ]
+      }
+    ]
+  }
+}

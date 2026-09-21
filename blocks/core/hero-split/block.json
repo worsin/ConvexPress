@@ -1,0 +1,141 @@
+{
+  "name": "core/hero-split",
+  "title": "Hero (split)",
+  "description": "Hero with copy on one side and media on the other.",
+  "category": "marketing",
+  "role": "hero",
+  "version": 2,
+  "keywords": [],
+  "ai": {
+    "useFor": "SaaS landing pages with a product screenshot",
+    "avoid": ""
+  },
+  "fields": [
+    {
+      "id": "eyebrow",
+      "default": "",
+      "type": "text",
+      "max": 80
+    },
+    {
+      "id": "title",
+      "default": null,
+      "type": "text",
+      "min": 1,
+      "max": 120,
+      "nullable": true
+    },
+    {
+      "id": "body",
+      "default": "",
+      "type": "text",
+      "max": 600
+    },
+    {
+      "id": "primaryCtaLabel",
+      "default": "",
+      "type": "text",
+      "max": 40
+    },
+    {
+      "id": "primaryCtaUrl",
+      "default": "",
+      "type": "link",
+      "storage": "href",
+      "allowEmpty": true
+    },
+    {
+      "id": "secondaryCtaLabel",
+      "default": "",
+      "type": "text",
+      "max": 40
+    },
+    {
+      "id": "secondaryCtaUrl",
+      "default": "",
+      "type": "link",
+      "storage": "href",
+      "allowEmpty": true
+    },
+    {
+      "id": "mediaId",
+      "default": "",
+      "type": "media",
+      "storage": "id",
+      "allowEmpty": true
+    },
+    {
+      "id": "mediaAlt",
+      "default": "",
+      "type": "text",
+      "max": 200
+    }
+  ],
+  "supports": {
+    "children": false,
+    "styles": true,
+    "layout": [
+      "width",
+      "tone",
+      "spacing",
+      "align"
+    ],
+    "anchor": true,
+    "visibility": true
+  },
+  "data": null,
+  "preview": "{title}",
+  "examples": [
+    {
+      "eyebrow": "",
+      "title": null,
+      "body": "",
+      "primaryCtaLabel": "",
+      "primaryCtaUrl": "",
+      "secondaryCtaLabel": "",
+      "secondaryCtaUrl": "",
+      "mediaId": "",
+      "mediaAlt": ""
+    },
+    {
+      "eyebrow": "",
+      "title": "Two-column hero",
+      "body": "Copy + product shot.",
+      "primaryCtaLabel": "Get started",
+      "primaryCtaUrl": "/signup",
+      "secondaryCtaLabel": "",
+      "secondaryCtaUrl": "",
+      "mediaId": "",
+      "mediaAlt": ""
+    },
+    {
+      "eyebrow": "Aster House \u00b7 A fictional retreat",
+      "title": "Make room for a slower morning.",
+      "body": "Explore a considered space for restful weekends, forest walks and time together. An example of a simple hospitality website built with ConvexPress.",
+      "primaryCtaLabel": "Explore the retreat",
+      "primaryCtaUrl": "/retreat",
+      "secondaryCtaLabel": "Our story",
+      "secondaryCtaUrl": "/about",
+      "mediaId": "demo-image-retreat",
+      "mediaAlt": "A low wood and stone retreat beneath forested mountain cliffs"
+    }
+  ],
+  "migration": {
+    "fromVersion": 1,
+    "preserveLegacyRender": true,
+    "transforms": [
+      {
+        "kind": "empty-to-null",
+        "path": [
+          "title"
+        ]
+      },
+      {
+        "kind": "pack-treatment",
+        "path": [
+          "mediaSide"
+        ]
+      }
+    ]
+  }
+}

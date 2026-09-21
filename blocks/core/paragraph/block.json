@@ -1,0 +1,106 @@
+{
+  "name": "core/paragraph",
+  "title": "Paragraph",
+  "description": "A plain text paragraph. Supports inline markdown emphasis.",
+  "category": "text",
+  "role": "content",
+  "version": 2,
+  "keywords": [],
+  "ai": {
+    "useFor": "regular prose paragraphs, transitional copy, blog post body text",
+    "avoid": "headings (use core/heading) or lists (use core/list)"
+  },
+  "fields": [
+    {
+      "id": "body",
+      "default": {
+        "type": "doc",
+        "content": []
+      },
+      "type": "richtext",
+      "max": 2000,
+      "inline": false
+    }
+  ],
+  "supports": {
+    "children": false,
+    "styles": true,
+    "layout": [
+      "width",
+      "tone",
+      "spacing",
+      "align"
+    ],
+    "anchor": true,
+    "visibility": true
+  },
+  "data": null,
+  "preview": "Paragraph",
+  "examples": [
+    {
+      "body": {
+        "type": "doc",
+        "content": []
+      }
+    },
+    {
+      "body": {
+        "type": "doc",
+        "content": [
+          {
+            "type": "paragraph",
+            "content": [
+              {
+                "type": "text",
+                "text": "This is a paragraph with "
+              },
+              {
+                "type": "text",
+                "text": "emphasis",
+                "marks": [
+                  {
+                    "type": "bold"
+                  }
+                ]
+              },
+              {
+                "type": "text",
+                "text": " and a "
+              },
+              {
+                "type": "text",
+                "text": "link",
+                "marks": [
+                  {
+                    "type": "link",
+                    "attrs": {
+                      "href": "https://example.com",
+                      "target": "_blank"
+                    }
+                  }
+                ]
+              },
+              {
+                "type": "text",
+                "text": "."
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ],
+  "migration": {
+    "fromVersion": 1,
+    "preserveLegacyRender": true,
+    "transforms": [
+      {
+        "kind": "text-to-richtext",
+        "path": [
+          "body"
+        ],
+        "mode": "markdown-prose"
+      }
+    ]
+  }
+}

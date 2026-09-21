@@ -15,3 +15,11 @@ bun test ./scripts/blocks/schema.test.ts ./scripts/blocks/spec-contract.test.ts 
 ```
 
 These independent contract tests require neither generated block catalogs nor a running backend. Catalog parity, renderer and live editor checks remain separate acceptance requirements.
+
+The canonical Library specifications live in `blocks/<namespace>/<name>/block.json`. Their examples contain synthetic media and resource identities for documentation and local previews; they do not provision records. Validate the source specifications and each example's complete document envelope with:
+
+```sh
+bun test ./scripts/blocks/library-contract.test.ts
+```
+
+This source-contract gate is independent of generated catalogs and renderers. It does not establish that a block's declared data resolver, editor, template treatment or provider integration is accepted.

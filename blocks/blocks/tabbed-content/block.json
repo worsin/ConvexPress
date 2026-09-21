@@ -1,0 +1,212 @@
+{
+  "name": "blocks/tabbed-content",
+  "title": "Tabbed Content",
+  "description": "A real tabbed section for grouped story, process, grade, or product information.",
+  "category": "layout",
+  "role": "content",
+  "version": 2,
+  "keywords": [
+    "site",
+    "tabs",
+    "tabbed",
+    "comparison",
+    "grouped"
+  ],
+  "ai": {
+    "useFor": "content where each item needs a label and its own visible panel",
+    "avoid": "linear history sections that should use blocks/story-timeline"
+  },
+  "fields": [
+    {
+      "id": "heading",
+      "default": "",
+      "type": "text",
+      "max": 140
+    },
+    {
+      "id": "intro",
+      "default": "",
+      "type": "text",
+      "max": 700
+    },
+    {
+      "id": "tabs",
+      "default": [
+        {
+          "label": "Overview",
+          "title": "Overview",
+          "body": "",
+          "mediaId": "",
+          "mediaAlt": "",
+          "ctaLabel": "",
+          "ctaUrl": ""
+        },
+        {
+          "label": "Details",
+          "title": "Details",
+          "body": "",
+          "mediaId": "",
+          "mediaAlt": "",
+          "ctaLabel": "",
+          "ctaUrl": ""
+        }
+      ],
+      "type": "repeater",
+      "max": 12,
+      "fields": [
+        {
+          "id": "label",
+          "default": "Tab",
+          "type": "text",
+          "max": 60
+        },
+        {
+          "id": "title",
+          "default": "",
+          "type": "text",
+          "max": 140
+        },
+        {
+          "id": "body",
+          "default": "",
+          "type": "text",
+          "max": 3000
+        },
+        {
+          "id": "mediaId",
+          "default": "",
+          "type": "media",
+          "storage": "id",
+          "allowEmpty": true
+        },
+        {
+          "id": "mediaAlt",
+          "default": "",
+          "type": "text",
+          "max": 200
+        },
+        {
+          "id": "ctaLabel",
+          "default": "",
+          "type": "text",
+          "max": 60
+        },
+        {
+          "id": "ctaUrl",
+          "default": "",
+          "type": "text",
+          "max": 500
+        }
+      ]
+    }
+  ],
+  "supports": {
+    "children": false,
+    "styles": true,
+    "layout": [
+      "width",
+      "tone",
+      "spacing",
+      "align"
+    ],
+    "anchor": true,
+    "visibility": true
+  },
+  "data": null,
+  "preview": "{heading}",
+  "examples": [
+    {
+      "heading": "",
+      "intro": "",
+      "tabs": [
+        {
+          "label": "Overview",
+          "title": "Overview",
+          "body": "",
+          "mediaId": "",
+          "mediaAlt": "",
+          "ctaLabel": "",
+          "ctaUrl": ""
+        },
+        {
+          "label": "Details",
+          "title": "Details",
+          "body": "",
+          "mediaId": "",
+          "mediaAlt": "",
+          "ctaLabel": "",
+          "ctaUrl": ""
+        }
+      ]
+    },
+    {
+      "heading": "",
+      "intro": "",
+      "tabs": [
+        {
+          "label": "Overview",
+          "title": "Overview",
+          "body": "",
+          "mediaId": "",
+          "mediaAlt": "",
+          "ctaLabel": "",
+          "ctaUrl": ""
+        },
+        {
+          "label": "Details",
+          "title": "Details",
+          "body": "",
+          "mediaId": "",
+          "mediaAlt": "",
+          "ctaLabel": "",
+          "ctaUrl": ""
+        }
+      ]
+    },
+    {
+      "heading": "A closer look at the everyday.",
+      "intro": "Three sample studies, each with its own words and image.",
+      "tabs": [
+        {
+          "label": "Paper",
+          "title": "Keep a question close",
+          "body": "Start with a blank page and **one observation**.",
+          "mediaId": "demo-image-field-notebook",
+          "mediaAlt": "A notebook and pencil",
+          "ctaLabel": "Explore paper",
+          "ctaUrl": "#studies"
+        },
+        {
+          "label": "Clay",
+          "title": "A useful morning ritual",
+          "body": "A cup, warm light and a few unhurried minutes.",
+          "mediaId": "demo-image-camp-mug",
+          "mediaAlt": "A ceramic mug",
+          "ctaLabel": "Explore clay",
+          "ctaUrl": "#studies"
+        },
+        {
+          "label": "Place",
+          "title": "Room to pay attention",
+          "body": "An imagined retreat at the forest edge.",
+          "mediaId": "demo-image-retreat",
+          "mediaAlt": "A retreat beneath mountain cliffs",
+          "ctaLabel": "Explore place",
+          "ctaUrl": "#studies"
+        }
+      ]
+    }
+  ],
+  "migration": {
+    "fromVersion": 1,
+    "preserveLegacyRender": true,
+    "transforms": [
+      {
+        "kind": "pack-treatment",
+        "path": [
+          "orientation"
+        ]
+      }
+    ]
+  }
+}

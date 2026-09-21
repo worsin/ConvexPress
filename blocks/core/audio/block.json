@@ -1,0 +1,70 @@
+{
+  "name": "core/audio",
+  "title": "Audio",
+  "description": "Audio player with title and transcript link.",
+  "category": "media",
+  "role": "content",
+  "version": 1,
+  "keywords": [
+    "audio"
+  ],
+  "ai": {
+    "useFor": "Audio player with title and transcript link.",
+    "avoid": "Do not invent records, permissions, prices, endorsements or resource identifiers. Presentation comes from the selected template."
+  },
+  "fields": [
+    {
+      "id": "media",
+      "type": "media"
+    },
+    {
+      "id": "title",
+      "type": "text",
+      "max": 160,
+      "default": ""
+    },
+    {
+      "id": "transcript",
+      "type": "link",
+      "protocols": [
+        "https",
+        "http",
+        "relative"
+      ]
+    }
+  ],
+  "supports": {
+    "children": false,
+    "styles": true,
+    "layout": [
+      "width",
+      "tone",
+      "spacing",
+      "align"
+    ],
+    "anchor": true,
+    "visibility": true
+  },
+  "data": null,
+  "preview": "Audio",
+  "examples": [
+    {},
+    {
+      "media": {
+        "id": "demo-audio-morning-notes",
+        "alt": "Synthetic BlockDemo audio fixture"
+      },
+      "title": "Morning notes \u2014 sample audio",
+      "transcript": {
+        "href": "/block-demo/transcripts/morning-notes",
+        "label": "Read the sample transcript"
+      }
+    }
+  ],
+  "requires": {
+    "plugins": [],
+    "capabilities": [
+      "reference.targetResolution"
+    ]
+  }
+}

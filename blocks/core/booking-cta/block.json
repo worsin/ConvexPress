@@ -1,0 +1,113 @@
+{
+  "name": "core/booking-cta",
+  "title": "Booking CTA",
+  "description": "Book-a-time CTA with optional embedded scheduler.",
+  "category": "forms",
+  "role": "cta",
+  "version": 2,
+  "keywords": [],
+  "ai": {
+    "useFor": "demo or consultation booking",
+    "avoid": ""
+  },
+  "fields": [
+    {
+      "id": "eyebrow",
+      "default": "",
+      "type": "text",
+      "max": 80
+    },
+    {
+      "id": "heading",
+      "default": null,
+      "type": "text",
+      "min": 1,
+      "max": 120,
+      "nullable": true
+    },
+    {
+      "id": "body",
+      "default": "",
+      "type": "text",
+      "max": 400
+    },
+    {
+      "id": "ctaLabel",
+      "default": "Book a time",
+      "type": "text",
+      "max": 40
+    },
+    {
+      "id": "ctaUrl",
+      "default": "",
+      "type": "link",
+      "storage": "href",
+      "allowEmpty": true
+    },
+    {
+      "id": "embedUrl",
+      "default": "",
+      "type": "link",
+      "storage": "href",
+      "allowEmpty": true
+    }
+  ],
+  "supports": {
+    "children": false,
+    "styles": true,
+    "layout": [
+      "width",
+      "tone",
+      "spacing",
+      "align"
+    ],
+    "anchor": true,
+    "visibility": true
+  },
+  "data": null,
+  "preview": "{heading}",
+  "examples": [
+    {
+      "eyebrow": "",
+      "heading": null,
+      "body": "",
+      "ctaLabel": "Book a time",
+      "ctaUrl": "",
+      "embedUrl": ""
+    },
+    {
+      "eyebrow": "",
+      "heading": "Book a demo",
+      "body": "Pick a time that works.",
+      "ctaLabel": "Book",
+      "ctaUrl": "/contact",
+      "embedUrl": ""
+    },
+    {
+      "eyebrow": "A fictional studio invitation",
+      "heading": "Make time for a new perspective",
+      "body": "A small-group afternoon, an unhurried conversation, a place to begin. This scheduling address is a demonstration placeholder; no appointment is offered or confirmed.",
+      "ctaLabel": "Explore the workshop",
+      "ctaUrl": "/#composition",
+      "embedUrl": "https://calendly.com/convexpress-example-invalid/studio-visit"
+    }
+  ],
+  "migration": {
+    "fromVersion": 1,
+    "preserveLegacyRender": true,
+    "transforms": [
+      {
+        "kind": "empty-to-null",
+        "path": [
+          "heading"
+        ]
+      }
+    ]
+  },
+  "requires": {
+    "plugins": [],
+    "capabilities": [
+      "embed.sandbox"
+    ]
+  }
+}

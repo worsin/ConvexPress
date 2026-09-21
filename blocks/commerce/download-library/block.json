@@ -1,0 +1,59 @@
+{
+  "name": "commerce/download-library",
+  "title": "Purchased downloads",
+  "description": "Current customer authorized digital purchases and bounded download actions.",
+  "category": "commerce",
+  "role": "content",
+  "version": 1,
+  "keywords": [
+    "download-library"
+  ],
+  "ai": {
+    "useFor": "Current customer authorized digital purchases and bounded download actions.",
+    "avoid": "Entitlements and expiring download URLs must be resolved for the current authorized viewer, never copied into page content."
+  },
+  "fields": [
+    {
+      "id": "heading",
+      "type": "text",
+      "max": 160,
+      "default": "Your downloads"
+    },
+    {
+      "id": "emptyMessage",
+      "type": "text",
+      "max": 500,
+      "default": "Your available downloads will appear here."
+    },
+    {
+      "id": "helpLink",
+      "type": "link"
+    }
+  ],
+  "supports": {
+    "children": false,
+    "styles": true,
+    "layout": [
+      "width",
+      "tone",
+      "spacing",
+      "align"
+    ],
+    "anchor": true,
+    "visibility": true
+  },
+  "data": null,
+  "preview": "Purchased downloads",
+  "examples": [
+    {}
+  ],
+  "requires": {
+    "plugins": [
+      "commerce",
+      "commerceDigital"
+    ],
+    "capabilities": [
+      "viewer.authorization"
+    ]
+  }
+}

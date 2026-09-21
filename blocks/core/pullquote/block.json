@@ -1,0 +1,53 @@
+{
+  "name": "core/pullquote",
+  "title": "Pullquote",
+  "description": "Large editorial quote that breaks the reading measure.",
+  "category": "text",
+  "role": "content",
+  "version": 1,
+  "keywords": [
+    "pullquote"
+  ],
+  "ai": {
+    "useFor": "Large editorial quote that breaks the reading measure.",
+    "avoid": "Do not invent records, permissions, prices, endorsements or resource identifiers. Presentation comes from the selected template."
+  },
+  "fields": [
+    {
+      "id": "text",
+      "type": "text",
+      "max": 3000,
+      "default": ""
+    },
+    {
+      "id": "cite",
+      "type": "text",
+      "max": 240,
+      "default": ""
+    }
+  ],
+  "supports": {
+    "children": false,
+    "styles": true,
+    "layout": [
+      "width",
+      "tone",
+      "spacing",
+      "align"
+    ],
+    "anchor": true,
+    "visibility": true
+  },
+  "data": null,
+  "preview": "Pullquote",
+  "examples": [
+    {
+      "text": "Attention begins with a little time and a place to look.",
+      "cite": "From the Aster House field notebook"
+    }
+  ],
+  "requires": {
+    "plugins": [],
+    "capabilities": []
+  }
+}

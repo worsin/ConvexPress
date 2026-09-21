@@ -1,0 +1,59 @@
+{
+  "name": "commerce/wishlist",
+  "title": "Saved products",
+  "description": "Current customer saved products with view, remove and move-to-cart actions.",
+  "category": "commerce",
+  "role": "content",
+  "version": 1,
+  "keywords": [
+    "wishlist"
+  ],
+  "ai": {
+    "useFor": "Current customer saved products with view, remove and move-to-cart actions.",
+    "avoid": "Do not invent records, permissions, prices, endorsements or resource identifiers. Presentation comes from the selected template."
+  },
+  "fields": [
+    {
+      "id": "heading",
+      "type": "text",
+      "max": 160,
+      "default": "Your wishlist"
+    },
+    {
+      "id": "emptyMessage",
+      "type": "text",
+      "max": 500,
+      "default": "Save something you would like to revisit."
+    },
+    {
+      "id": "browseLink",
+      "type": "link"
+    }
+  ],
+  "supports": {
+    "children": false,
+    "styles": true,
+    "layout": [
+      "width",
+      "tone",
+      "spacing",
+      "align"
+    ],
+    "anchor": true,
+    "visibility": true
+  },
+  "data": null,
+  "preview": "Saved products",
+  "examples": [
+    {}
+  ],
+  "requires": {
+    "plugins": [
+      "commerce",
+      "commerceWishlists"
+    ],
+    "capabilities": [
+      "viewer.authorization"
+    ]
+  }
+}

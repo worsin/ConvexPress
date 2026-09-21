@@ -1,0 +1,126 @@
+{
+  "name": "core/hero",
+  "title": "Hero",
+  "description": "Opening section with title, body, CTAs, and optional media.",
+  "category": "marketing",
+  "role": "hero",
+  "version": 2,
+  "keywords": [],
+  "ai": {
+    "useFor": "the first block on landing pages, product pages, marketing pages",
+    "avoid": "blog posts (use core/heading + core/paragraph)"
+  },
+  "fields": [
+    {
+      "id": "eyebrow",
+      "default": "",
+      "type": "text",
+      "max": 80
+    },
+    {
+      "id": "title",
+      "default": null,
+      "type": "text",
+      "min": 1,
+      "max": 120,
+      "nullable": true
+    },
+    {
+      "id": "body",
+      "default": "",
+      "type": "text",
+      "max": 600
+    },
+    {
+      "id": "primaryCtaLabel",
+      "default": "",
+      "type": "text",
+      "max": 40
+    },
+    {
+      "id": "primaryCtaUrl",
+      "default": "",
+      "type": "link",
+      "storage": "href",
+      "allowEmpty": true
+    },
+    {
+      "id": "secondaryCtaLabel",
+      "default": "",
+      "type": "text",
+      "max": 40
+    },
+    {
+      "id": "secondaryCtaUrl",
+      "default": "",
+      "type": "link",
+      "storage": "href",
+      "allowEmpty": true
+    },
+    {
+      "id": "mediaId",
+      "default": "",
+      "type": "media",
+      "storage": "id",
+      "allowEmpty": true
+    }
+  ],
+  "supports": {
+    "children": false,
+    "styles": true,
+    "layout": [
+      "width",
+      "tone",
+      "spacing",
+      "align"
+    ],
+    "anchor": true,
+    "visibility": true
+  },
+  "data": null,
+  "preview": "{title}",
+  "examples": [
+    {
+      "eyebrow": "",
+      "title": null,
+      "body": "",
+      "primaryCtaLabel": "",
+      "primaryCtaUrl": "",
+      "secondaryCtaLabel": "",
+      "secondaryCtaUrl": "",
+      "mediaId": ""
+    },
+    {
+      "eyebrow": "New release",
+      "title": "Ship faster with ConvexPress",
+      "body": "An AI-first CMS that builds beautiful pages from a prompt and lets you polish in seconds.",
+      "primaryCtaLabel": "Get started",
+      "primaryCtaUrl": "/signup",
+      "secondaryCtaLabel": "Read the docs",
+      "secondaryCtaUrl": "/docs",
+      "mediaId": ""
+    },
+    {
+      "eyebrow": "An imagined retreat",
+      "title": "Make room for a quieter kind of day.",
+      "body": "A fictional place for useful objects, open notebooks and time spent looking closely.",
+      "primaryCtaLabel": "Explore the studies",
+      "primaryCtaUrl": "#studies",
+      "secondaryCtaLabel": "See the details",
+      "secondaryCtaUrl": "#details",
+      "mediaId": "demo-image-retreat"
+    }
+  ],
+  "migration": {
+    "fromVersion": 1,
+    "preserveLegacyRender": true,
+    "transforms": [
+      {
+        "kind": "empty-to-null",
+        "path": [
+          "title"
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,49 @@
+{
+  "name": "core/carousel",
+  "title": "Carousel",
+  "description": "Slides of media or child blocks with autoplay.",
+  "category": "media",
+  "role": "content",
+  "version": 1,
+  "keywords": [
+    "carousel"
+  ],
+  "ai": {
+    "useFor": "Slides of media or child blocks with autoplay.",
+    "avoid": "Slides are child blocks. Auto-advance, motion timing and controls require accessible template behavior; never store duplicate slide content in attrs."
+  },
+  "fields": [
+    {
+      "id": "accessibleLabel",
+      "type": "text",
+      "max": 160,
+      "default": "Featured stories"
+    }
+  ],
+  "supports": {
+    "children": true,
+    "styles": true,
+    "layout": [
+      "width",
+      "tone",
+      "spacing",
+      "align"
+    ],
+    "anchor": true,
+    "visibility": true
+  },
+  "data": null,
+  "preview": "Carousel",
+  "examples": [
+    {},
+    {
+      "accessibleLabel": "A sequence of editorial studies"
+    }
+  ],
+  "requires": {
+    "plugins": [],
+    "capabilities": [
+      "tree.children"
+    ]
+  }
+}

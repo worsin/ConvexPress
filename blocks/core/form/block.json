@@ -1,0 +1,62 @@
+{
+  "name": "core/form",
+  "title": "Form embed",
+  "description": "Renders a form built in the Forms extension.",
+  "category": "forms",
+  "role": "content",
+  "version": 1,
+  "keywords": [
+    "form"
+  ],
+  "ai": {
+    "useFor": "Renders a form built in the Forms extension.",
+    "avoid": "Do not invent records, permissions, prices, endorsements or resource identifiers. Presentation comes from the selected template."
+  },
+  "fields": [
+    {
+      "id": "form",
+      "type": "form"
+    },
+    {
+      "id": "title",
+      "type": "text",
+      "max": 160,
+      "default": ""
+    }
+  ],
+  "supports": {
+    "children": false,
+    "styles": true,
+    "layout": [
+      "width",
+      "tone",
+      "spacing",
+      "align"
+    ],
+    "anchor": true,
+    "visibility": true
+  },
+  "data": {
+    "resolver": "forms.form",
+    "args": {
+      "form": "attrs.form"
+    }
+  },
+  "preview": "Form embed",
+  "examples": [
+    {},
+    {
+      "form": "demo-form-studio",
+      "title": ""
+    }
+  ],
+  "requires": {
+    "plugins": [
+      "forms"
+    ],
+    "capabilities": [
+      "form.submission",
+      "reference.targetResolution"
+    ]
+  }
+}

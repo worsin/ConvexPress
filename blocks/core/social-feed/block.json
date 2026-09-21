@@ -1,0 +1,70 @@
+{
+  "name": "core/social-feed",
+  "title": "Social feed",
+  "description": "Embedded provider feed (allow-listed).",
+  "category": "social",
+  "role": "content",
+  "version": 1,
+  "keywords": [
+    "social-feed"
+  ],
+  "ai": {
+    "useFor": "Embedded provider feed (allow-listed).",
+    "avoid": "Only approved, configured provider adapters may fetch public posts. No provider tokens or arbitrary feed URLs belong in content."
+  },
+  "fields": [
+    {
+      "id": "provider",
+      "type": "select",
+      "options": [
+        "instagram",
+        "mastodon"
+      ],
+      "default": "instagram"
+    },
+    {
+      "id": "handle",
+      "type": "text",
+      "max": 160,
+      "default": ""
+    },
+    {
+      "id": "limit",
+      "type": "number",
+      "min": 1,
+      "max": 48,
+      "integer": true,
+      "default": 6
+    }
+  ],
+  "supports": {
+    "children": false,
+    "styles": true,
+    "layout": [
+      "width",
+      "tone",
+      "spacing",
+      "align"
+    ],
+    "anchor": true,
+    "visibility": true
+  },
+  "data": {
+    "resolver": "social.feed",
+    "args": {
+      "provider": "attrs.provider",
+      "handle": "attrs.handle",
+      "limit": "attrs.limit"
+    }
+  },
+  "preview": "Social feed",
+  "examples": [
+    {}
+  ],
+  "requires": {
+    "plugins": [],
+    "capabilities": [
+      "feed.approvedProvider"
+    ]
+  }
+}

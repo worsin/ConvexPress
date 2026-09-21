@@ -1,0 +1,78 @@
+{
+  "name": "core/announcement-bar",
+  "title": "Announcement bar",
+  "description": "Dismissible strip for promotions or notices.",
+  "category": "openers",
+  "role": "utility",
+  "version": 1,
+  "keywords": [
+    "announcement-bar"
+  ],
+  "ai": {
+    "useFor": "Dismissible strip for promotions or notices.",
+    "avoid": "Do not invent records, permissions, prices, endorsements or resource identifiers. Presentation comes from the selected template."
+  },
+  "fields": [
+    {
+      "id": "text",
+      "type": "text",
+      "max": 500,
+      "default": ""
+    },
+    {
+      "id": "link",
+      "type": "link"
+    },
+    {
+      "id": "dismissible",
+      "type": "boolean",
+      "default": true
+    },
+    {
+      "id": "schedule",
+      "type": "object",
+      "fields": [
+        {
+          "id": "startsAt",
+          "type": "date"
+        },
+        {
+          "id": "endsAt",
+          "type": "date"
+        }
+      ]
+    }
+  ],
+  "supports": {
+    "children": false,
+    "styles": true,
+    "layout": [
+      "width",
+      "tone",
+      "spacing",
+      "align"
+    ],
+    "anchor": true,
+    "visibility": true
+  },
+  "data": null,
+  "preview": "Announcement bar",
+  "examples": [
+    {
+      "text": "A new field guide is taking shape.",
+      "dismissible": true
+    },
+    {
+      "text": "A new fictional field guide is taking shape.",
+      "link": {
+        "label": "Explore the studies",
+        "href": "#studies"
+      },
+      "dismissible": true
+    }
+  ],
+  "requires": {
+    "plugins": [],
+    "capabilities": []
+  }
+}

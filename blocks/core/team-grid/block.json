@@ -1,0 +1,133 @@
+{
+  "name": "core/team-grid",
+  "title": "Team grid",
+  "description": "Team members with photo, role, and bio.",
+  "category": "marketing",
+  "role": "content",
+  "version": 2,
+  "keywords": [],
+  "ai": {
+    "useFor": "about pages",
+    "avoid": ""
+  },
+  "fields": [
+    {
+      "id": "eyebrow",
+      "default": "",
+      "type": "text",
+      "max": 80
+    },
+    {
+      "id": "heading",
+      "default": "",
+      "type": "text",
+      "max": 120
+    },
+    {
+      "id": "body",
+      "default": "",
+      "type": "text",
+      "max": 400
+    },
+    {
+      "id": "members",
+      "default": [],
+      "type": "repeater",
+      "max": 20,
+      "fields": [
+        {
+          "id": "name",
+          "default": "",
+          "type": "text",
+          "max": 80
+        },
+        {
+          "id": "role",
+          "default": "",
+          "type": "text",
+          "max": 80
+        },
+        {
+          "id": "bio",
+          "default": "",
+          "type": "text",
+          "max": 400
+        },
+        {
+          "id": "mediaId",
+          "default": "",
+          "type": "media",
+          "storage": "id",
+          "allowEmpty": true
+        },
+        {
+          "id": "href",
+          "default": "",
+          "type": "link",
+          "storage": "href",
+          "allowEmpty": true
+        }
+      ]
+    }
+  ],
+  "supports": {
+    "children": false,
+    "styles": true,
+    "layout": [
+      "width",
+      "tone",
+      "spacing",
+      "align"
+    ],
+    "anchor": true,
+    "visibility": true
+  },
+  "data": null,
+  "preview": "{heading}",
+  "examples": [
+    {
+      "eyebrow": "",
+      "heading": "",
+      "body": "",
+      "members": []
+    },
+    {
+      "eyebrow": "",
+      "heading": "The team",
+      "body": "",
+      "members": [
+        {
+          "name": "Jane Doe",
+          "role": "Founder",
+          "bio": "Background in design.",
+          "mediaId": "",
+          "href": ""
+        }
+      ]
+    },
+    {
+      "eyebrow": "Fictional collaborators",
+      "heading": "The people in this imagined studio",
+      "body": "Demonstration names and roles; no portraits, credentials or endorsements are implied.",
+      "members": [
+        {
+          "name": "Rowan Vale",
+          "role": "Notebook editor",
+          "bio": "Collects observation prompts and makes room for clear, thoughtful prose.",
+          "href": "#studies"
+        },
+        {
+          "name": "Morgan Reed",
+          "role": "Material study lead",
+          "bio": "Explores how simple objects can support a daily practice.",
+          "href": "#details"
+        }
+      ]
+    }
+  ],
+  "migration": {
+    "fromVersion": 1,
+    "preserveLegacyRender": true,
+    "transforms": []
+  }
+}

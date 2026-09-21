@@ -1,0 +1,226 @@
+{
+  "name": "business/opening-hours",
+  "title": "Opening hours",
+  "description": "Weekly opening hours with timezone, closed days and dated exceptions.",
+  "category": "site",
+  "role": "content",
+  "version": 1,
+  "keywords": [
+    "opening-hours"
+  ],
+  "ai": {
+    "useFor": "Weekly opening hours with timezone, closed days and dated exceptions.",
+    "avoid": "Confirm actual timezone and hours. Empty days mean no hours supplied, not open/closed. Publish validation must reject duplicate days, invalid zones and overlapping/reversed intervals; empty intervals explicitly mark a closed day. Examples are fictional internal BlockDemo specimens; never publish their contact details, hours, prices or dietary claims as a real business."
+  },
+  "fields": [
+    {
+      "id": "timezone",
+      "type": "text",
+      "max": 100,
+      "default": "UTC",
+      "format": "timezone"
+    },
+    {
+      "id": "week",
+      "type": "repeater",
+      "fields": [
+        {
+          "id": "day",
+          "type": "select",
+          "options": [
+            "monday",
+            "tuesday",
+            "wednesday",
+            "thursday",
+            "friday",
+            "saturday",
+            "sunday"
+          ],
+          "required": true
+        },
+        {
+          "id": "intervals",
+          "type": "repeater",
+          "fields": [
+            {
+              "id": "opensAtMinute",
+              "type": "number",
+              "min": 0,
+              "max": 1439,
+              "integer": true,
+              "required": true
+            },
+            {
+              "id": "closesAtMinute",
+              "type": "number",
+              "min": 1,
+              "max": 1440,
+              "integer": true,
+              "required": true
+            }
+          ],
+          "max": 4,
+          "default": [],
+          "constraints": [
+            {
+              "kind": "ordered",
+              "lower": "opensAtMinute",
+              "upper": "closesAtMinute"
+            }
+          ]
+        }
+      ],
+      "max": 7,
+      "default": [],
+      "constraints": [
+        {
+          "kind": "non-overlap",
+          "field": "intervals",
+          "start": "opensAtMinute",
+          "end": "closesAtMinute"
+        }
+      ]
+    },
+    {
+      "id": "exceptions",
+      "type": "repeater",
+      "fields": [
+        {
+          "id": "date",
+          "type": "date",
+          "required": true
+        },
+        {
+          "id": "intervals",
+          "type": "repeater",
+          "fields": [
+            {
+              "id": "opensAtMinute",
+              "type": "number",
+              "min": 0,
+              "max": 1439,
+              "integer": true,
+              "required": true
+            },
+            {
+              "id": "closesAtMinute",
+              "type": "number",
+              "min": 1,
+              "max": 1440,
+              "integer": true,
+              "required": true
+            }
+          ],
+          "max": 4,
+          "default": [],
+          "constraints": [
+            {
+              "kind": "ordered",
+              "lower": "opensAtMinute",
+              "upper": "closesAtMinute"
+            }
+          ]
+        },
+        {
+          "id": "note",
+          "type": "text",
+          "max": 240,
+          "default": ""
+        }
+      ],
+      "max": 100,
+      "default": [],
+      "constraints": [
+        {
+          "kind": "non-overlap",
+          "field": "intervals",
+          "start": "opensAtMinute",
+          "end": "closesAtMinute"
+        }
+      ]
+    },
+    {
+      "id": "contactLink",
+      "type": "link"
+    }
+  ],
+  "supports": {
+    "children": false,
+    "styles": true,
+    "layout": [
+      "width",
+      "tone",
+      "spacing",
+      "align"
+    ],
+    "anchor": true,
+    "visibility": true
+  },
+  "data": null,
+  "preview": "Opening hours",
+  "examples": [
+    {
+      "timezone": "UTC",
+      "week": [],
+      "exceptions": []
+    },
+    {
+      "timezone": "America/Denver",
+      "week": [
+        {
+          "day": "monday",
+          "intervals": [
+            {
+              "opensAtMinute": 540,
+              "closesAtMinute": 720
+            },
+            {
+              "opensAtMinute": 780,
+              "closesAtMinute": 1020
+            }
+          ]
+        },
+        {
+          "day": "saturday",
+          "intervals": [
+            {
+              "opensAtMinute": 600,
+              "closesAtMinute": 840
+            }
+          ]
+        },
+        {
+          "day": "sunday",
+          "intervals": []
+        }
+      ],
+      "exceptions": [
+        {
+          "date": "2026-12-25",
+          "intervals": [],
+          "note": "Sample holiday closure"
+        }
+      ],
+      "contactLink": {
+        "label": "Ask about our example hours",
+        "href": "mailto:studio@example.invalid"
+      }
+    }
+  ],
+  "requires": {
+    "plugins": [],
+    "capabilities": []
+  },
+  "constraints": [
+    {
+      "kind": "unique-by",
+      "field": "week",
+      "key": "day"
+    },
+    {
+      "kind": "unique-by",
+      "field": "exceptions",
+      "key": "date"
+    }
+  ]
+}

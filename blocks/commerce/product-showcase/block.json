@@ -1,0 +1,177 @@
+{
+  "name": "commerce/product-showcase",
+  "title": "Product Showcase",
+  "description": "A live product grid pulled from the catalog: newest, a category, items on sale, or hand-picked products by slug. Cards carry live prices, stock and add-to-cart.",
+  "category": "commerce",
+  "role": "content",
+  "version": 2,
+  "keywords": [
+    "products",
+    "shop",
+    "featured",
+    "catalog",
+    "grid",
+    "cart",
+    "live"
+  ],
+  "ai": {
+    "useFor": "homepage featured products, category landing sections, sale sections, and hand-picked bundles that must show live prices and stock",
+    "avoid": "manual product cards with typed prices (use Product Collection) or a single product page"
+  },
+  "fields": [
+    {
+      "id": "eyebrow",
+      "default": "",
+      "type": "text",
+      "max": 80
+    },
+    {
+      "id": "heading",
+      "default": "Featured products",
+      "type": "text",
+      "max": 140
+    },
+    {
+      "id": "intro",
+      "default": "",
+      "type": "text",
+      "max": 700
+    },
+    {
+      "id": "source",
+      "default": "newest",
+      "type": "select",
+      "options": [
+        "newest",
+        "category",
+        "sale",
+        "slugs"
+      ]
+    },
+    {
+      "id": "categorySlug",
+      "default": "",
+      "type": "reference",
+      "max": 160,
+      "of": "productCategory",
+      "storage": "slug",
+      "allowEmpty": true
+    },
+    {
+      "id": "productSlugs",
+      "default": [],
+      "type": "repeater",
+      "max": 24,
+      "item": {
+        "id": "value",
+        "required": true,
+        "type": "reference",
+        "max": 160,
+        "of": "product",
+        "storage": "slug",
+        "allowEmpty": true
+      }
+    },
+    {
+      "id": "count",
+      "default": 4,
+      "type": "number",
+      "min": 1,
+      "max": 24
+    },
+    {
+      "id": "showAddToCart",
+      "default": true,
+      "type": "boolean"
+    },
+    {
+      "id": "ctaLabel",
+      "default": "",
+      "type": "text",
+      "max": 60
+    },
+    {
+      "id": "ctaUrl",
+      "default": "",
+      "type": "text",
+      "max": 500
+    }
+  ],
+  "supports": {
+    "children": false,
+    "styles": true,
+    "layout": [
+      "width",
+      "tone",
+      "spacing",
+      "align"
+    ],
+    "anchor": true,
+    "visibility": true
+  },
+  "data": {
+    "resolver": "commerce.productShowcase",
+    "args": {
+      "source": "attrs.source",
+      "categorySlug": "attrs.categorySlug",
+      "productSlugs": "attrs.productSlugs",
+      "count": "attrs.count",
+      "showAddToCart": "attrs.showAddToCart"
+    }
+  },
+  "preview": "{heading}",
+  "examples": [
+    {
+      "eyebrow": "The considered collection",
+      "heading": "Objects for the everyday.",
+      "intro": "Useful things. Quiet details. Chosen to be kept.",
+      "source": "newest",
+      "count": 4,
+      "ctaLabel": "Explore the shop",
+      "ctaUrl": "/products"
+    },
+    {
+      "heading": "A pair worth keeping.",
+      "source": "slugs",
+      "productSlugs": [
+        "demo-product-notebook",
+        "demo-product-mug"
+      ],
+      "count": 4
+    },
+    {
+      "heading": "From the studio.",
+      "source": "category",
+      "categorySlug": "studio"
+    },
+    {
+      "heading": "Good things, a little less.",
+      "source": "sale"
+    },
+    {
+      "heading": "Coming into view.",
+      "source": "slugs",
+      "productSlugs": []
+    }
+  ],
+  "migration": {
+    "fromVersion": 1,
+    "preserveLegacyRender": true,
+    "transforms": [
+      {
+        "kind": "pack-treatment",
+        "path": [
+          "columns"
+        ]
+      }
+    ]
+  },
+  "requires": {
+    "plugins": [
+      "commerce"
+    ],
+    "capabilities": [
+      "reference.targetResolution"
+    ]
+  }
+}

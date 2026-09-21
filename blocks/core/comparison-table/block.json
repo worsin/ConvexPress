@@ -1,0 +1,183 @@
+{
+  "name": "core/comparison-table",
+  "title": "Comparison table",
+  "description": "Feature comparison versus competitors.",
+  "category": "marketing",
+  "role": "content",
+  "version": 2,
+  "keywords": [],
+  "ai": {
+    "useFor": "vs-competitor pages",
+    "avoid": ""
+  },
+  "fields": [
+    {
+      "id": "eyebrow",
+      "default": "",
+      "type": "text",
+      "max": 80
+    },
+    {
+      "id": "heading",
+      "default": "",
+      "type": "text",
+      "max": 120
+    },
+    {
+      "id": "body",
+      "default": "",
+      "type": "text",
+      "max": 300
+    },
+    {
+      "id": "columns",
+      "default": [
+        "Feature",
+        "Us",
+        "Them"
+      ],
+      "type": "repeater",
+      "min": 2,
+      "max": 6,
+      "item": {
+        "id": "value",
+        "required": true,
+        "type": "text",
+        "max": 40
+      },
+      "nullable": true
+    },
+    {
+      "id": "rows",
+      "default": [],
+      "type": "repeater",
+      "max": 40,
+      "fields": [
+        {
+          "id": "label",
+          "default": "",
+          "type": "text",
+          "max": 80
+        },
+        {
+          "id": "cells",
+          "default": [],
+          "type": "repeater",
+          "item": {
+            "id": "value",
+            "required": true,
+            "type": "text",
+            "max": 80
+          }
+        }
+      ]
+    }
+  ],
+  "supports": {
+    "children": false,
+    "styles": true,
+    "layout": [
+      "width",
+      "tone",
+      "spacing",
+      "align"
+    ],
+    "anchor": true,
+    "visibility": true
+  },
+  "data": null,
+  "preview": "{heading}",
+  "examples": [
+    {
+      "eyebrow": "",
+      "heading": "",
+      "body": "",
+      "columns": [
+        "Feature",
+        "Us",
+        "Them"
+      ],
+      "rows": []
+    },
+    {
+      "eyebrow": "",
+      "heading": "Compare",
+      "body": "",
+      "columns": [
+        "Feature",
+        "Us",
+        "Them"
+      ],
+      "rows": [
+        {
+          "label": "Free tier",
+          "cells": [
+            "\u2713",
+            "\u2717"
+          ]
+        },
+        {
+          "label": "AI built-in",
+          "cells": [
+            "\u2713",
+            "Add-on"
+          ]
+        }
+      ]
+    },
+    {
+      "eyebrow": "Illustrative comparison",
+      "heading": "Two ways to keep a field note",
+      "body": "Compare formats, not competing businesses.",
+      "columns": [
+        "Detail",
+        "Digital notebook",
+        "Paper notebook"
+      ],
+      "rows": [
+        {
+          "label": "What to bring",
+          "cells": [
+            "A charged device",
+            "A notebook and pencil"
+          ]
+        },
+        {
+          "label": "How to organize",
+          "cells": [
+            "Searchable headings",
+            "Dates and page numbers"
+          ]
+        },
+        {
+          "label": "A useful habit",
+          "cells": [
+            "Save a copy",
+            "Leave a margin"
+          ]
+        }
+      ]
+    }
+  ],
+  "migration": {
+    "fromVersion": 1,
+    "preserveLegacyRender": true,
+    "transforms": [
+      {
+        "kind": "empty-to-null",
+        "path": [
+          "columns"
+        ]
+      }
+    ]
+  },
+  "constraints": [
+    {
+      "kind": "matrix",
+      "headers": "columns",
+      "rows": "rows",
+      "rowField": "cells",
+      "headerOffset": 1
+    }
+  ]
+}

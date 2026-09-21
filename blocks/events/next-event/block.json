@@ -1,0 +1,55 @@
+{
+  "name": "events/next-event",
+  "title": "Next event",
+  "description": "Spotlight on the next upcoming event.",
+  "category": "plugin",
+  "role": "content",
+  "version": 1,
+  "keywords": [
+    "next-event"
+  ],
+  "ai": {
+    "useFor": "Spotlight on the next upcoming event.",
+    "avoid": "Do not invent records, permissions, prices, endorsements or resource identifiers. Presentation comes from the selected template."
+  },
+  "fields": [
+    {
+      "id": "category",
+      "type": "reference",
+      "of": "eventCategory",
+      "max": 256,
+      "title": "Event category",
+      "description": "A category from this site\u2019s Events plugin."
+    }
+  ],
+  "supports": {
+    "children": false,
+    "styles": true,
+    "layout": [
+      "width",
+      "tone",
+      "spacing",
+      "align"
+    ],
+    "anchor": true,
+    "visibility": true
+  },
+  "data": {
+    "resolver": "events.next",
+    "args": {
+      "category": "attrs.category"
+    }
+  },
+  "preview": "Next event",
+  "examples": [
+    {}
+  ],
+  "requires": {
+    "plugins": [
+      "events"
+    ],
+    "capabilities": [
+      "reference.targetResolution"
+    ]
+  }
+}

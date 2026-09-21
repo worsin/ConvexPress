@@ -1,0 +1,83 @@
+{
+  "name": "core/lightbox-grid",
+  "title": "Lightbox grid",
+  "description": "Thumbnail grid opening a full-screen viewer.",
+  "category": "media",
+  "role": "content",
+  "version": 1,
+  "keywords": [
+    "lightbox-grid"
+  ],
+  "ai": {
+    "useFor": "Thumbnail grid opening a full-screen viewer.",
+    "avoid": "Do not invent records, permissions, prices, endorsements or resource identifiers. Presentation comes from the selected template."
+  },
+  "fields": [
+    {
+      "id": "items",
+      "type": "repeater",
+      "fields": [
+        {
+          "id": "media",
+          "type": "media"
+        },
+        {
+          "id": "caption",
+          "type": "text",
+          "max": 1000,
+          "default": ""
+        }
+      ],
+      "max": 100,
+      "default": []
+    }
+  ],
+  "supports": {
+    "children": false,
+    "styles": true,
+    "layout": [
+      "width",
+      "tone",
+      "spacing",
+      "align"
+    ],
+    "anchor": true,
+    "visibility": true
+  },
+  "data": null,
+  "preview": "Lightbox grid",
+  "examples": [
+    {},
+    {
+      "items": [
+        {
+          "media": {
+            "id": "demo-image-field-notebook",
+            "alt": "A notebook and pencil on stone"
+          },
+          "caption": "The first note."
+        },
+        {
+          "media": {
+            "id": "demo-image-camp-mug",
+            "alt": "A green ceramic mug by the window"
+          },
+          "caption": "A useful ritual."
+        },
+        {
+          "media": {
+            "id": "demo-image-retreat",
+            "alt": "A retreat beneath forested cliffs"
+          },
+          "caption": "A place to return."
+        }
+      ]
+    }
+  ],
+  "requires": {
+    "plugins": [],
+    "capabilities": [
+      "reference.targetResolution"
+    ]
+  }
+}

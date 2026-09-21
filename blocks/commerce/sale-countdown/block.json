@@ -1,0 +1,81 @@
+{
+  "name": "commerce/sale-countdown",
+  "title": "Sale countdown",
+  "description": "A real campaign deadline alongside currently discounted public catalog products.",
+  "category": "commerce",
+  "role": "cta",
+  "version": 1,
+  "keywords": [
+    "sale-countdown"
+  ],
+  "ai": {
+    "useFor": "A dated sale campaign backed by actual catalog sale prices. Use the real campaign deadline; omit it for an undated sale selection.",
+    "avoid": "Never fabricate urgency or reset the deadline. Only current public discounted products are shown. A campaign deadline does not alter product sale prices or checkout eligibility."
+  },
+  "fields": [
+    {
+      "id": "target",
+      "type": "date"
+    },
+    {
+      "id": "title",
+      "type": "text",
+      "max": 160,
+      "default": ""
+    },
+    {
+      "id": "limit",
+      "type": "number",
+      "min": 1,
+      "max": 48,
+      "integer": true,
+      "default": 6
+    }
+  ],
+  "supports": {
+    "children": false,
+    "styles": true,
+    "layout": [
+      "width",
+      "tone",
+      "spacing",
+      "align"
+    ],
+    "anchor": true,
+    "visibility": true
+  },
+  "data": {
+    "resolver": "commerce.productCollection",
+    "args": {
+      "mode": "sale",
+      "count": "attrs.limit",
+      "showPrice": true,
+      "showRating": false,
+      "showAddToCart": false,
+      "groups": []
+    }
+  },
+  "preview": "Sale countdown",
+  "examples": [
+    {
+      "title": "Good things, a little less",
+      "limit": 6
+    },
+    {
+      "title": "Small discoveries. A little more room.",
+      "target": "2040-06-01T18:00:00Z",
+      "limit": 6
+    },
+    {
+      "title": "A thoughtful selection for slower mornings, longer walks, and everything in between",
+      "target": "2000-01-01T00:00:00Z",
+      "limit": 6
+    }
+  ],
+  "requires": {
+    "plugins": [
+      "commerce"
+    ],
+    "capabilities": []
+  }
+}

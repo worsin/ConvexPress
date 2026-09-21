@@ -1,0 +1,266 @@
+{
+  "name": "reference/field-guide",
+  "title": "Field Guide",
+  "description": "A portable block reference covering each editor control and JSON-safe attribute type.",
+  "category": "site",
+  "role": "content",
+  "version": 2,
+  "keywords": [
+    "reference",
+    "fields"
+  ],
+  "ai": {
+    "useFor": "A portable block reference covering each editor control and JSON-safe attribute type.",
+    "avoid": ""
+  },
+  "fields": [
+    {
+      "id": "heading",
+      "default": "",
+      "type": "text",
+      "max": 160
+    },
+    {
+      "id": "body",
+      "default": "",
+      "type": "text",
+      "max": 4000
+    },
+    {
+      "id": "count",
+      "default": 3,
+      "type": "number",
+      "integer": true,
+      "min": 1,
+      "max": 12
+    },
+    {
+      "id": "showDetails",
+      "default": true,
+      "type": "boolean"
+    },
+    {
+      "id": "mediaId",
+      "default": "",
+      "type": "media",
+      "max": 256,
+      "storage": "id",
+      "allowEmpty": true
+    },
+    {
+      "id": "mediaAlt",
+      "default": "",
+      "type": "text",
+      "max": 250
+    },
+    {
+      "id": "note",
+      "default": null,
+      "nullable": true,
+      "type": "text",
+      "max": 160
+    },
+    {
+      "id": "link",
+      "default": {
+        "label": "",
+        "href": "",
+        "newTab": false
+      },
+      "type": "object",
+      "fields": [
+        {
+          "id": "label",
+          "default": "",
+          "type": "text",
+          "max": 80
+        },
+        {
+          "id": "href",
+          "default": "",
+          "type": "link",
+          "max": 2000,
+          "storage": "href",
+          "allowEmpty": true
+        },
+        {
+          "id": "newTab",
+          "default": false,
+          "type": "boolean"
+        }
+      ]
+    },
+    {
+      "id": "items",
+      "default": [],
+      "type": "repeater",
+      "max": 12,
+      "fields": [
+        {
+          "id": "label",
+          "required": true,
+          "type": "text",
+          "max": 100
+        },
+        {
+          "id": "value",
+          "required": true,
+          "type": "text",
+          "max": 300
+        }
+      ]
+    }
+  ],
+  "supports": {
+    "children": false,
+    "styles": true,
+    "layout": [
+      "width",
+      "tone",
+      "spacing",
+      "align"
+    ],
+    "anchor": true,
+    "visibility": true
+  },
+  "data": null,
+  "preview": "{heading}",
+  "examples": [
+    {
+      "heading": "",
+      "body": "",
+      "count": 3,
+      "showDetails": true,
+      "mediaId": "",
+      "mediaAlt": "",
+      "note": null,
+      "link": {
+        "label": "",
+        "href": "",
+        "newTab": false
+      },
+      "items": []
+    },
+    {
+      "heading": "",
+      "body": "",
+      "count": 3,
+      "showDetails": true,
+      "mediaId": "",
+      "mediaAlt": "",
+      "note": null,
+      "link": {
+        "label": "",
+        "href": "",
+        "newTab": false
+      },
+      "items": []
+    },
+    {
+      "heading": "Three ways to pay attention.",
+      "body": "A small reference for looking, recording and returning.",
+      "count": 3,
+      "showDetails": true,
+      "mediaId": "demo-image-field-notebook",
+      "mediaAlt": "A field notebook on sunlit stone",
+      "note": "Fictional editorial example.",
+      "link": {
+        "label": "Explore the studies",
+        "href": "#studies",
+        "newTab": false
+      },
+      "items": [
+        {
+          "label": "Look",
+          "value": "Find one detail you have not noticed."
+        },
+        {
+          "label": "Record",
+          "value": "Give the observation a place to stay."
+        },
+        {
+          "label": "Return",
+          "value": "See what changes with the light."
+        }
+      ]
+    }
+  ],
+  "migration": {
+    "fromVersion": 1,
+    "preserveLegacyRender": true,
+    "transforms": [
+      {
+        "kind": "pack-treatment",
+        "path": [
+          "spacing"
+        ]
+      },
+      {
+        "kind": "pack-treatment",
+        "path": [
+          "alignment"
+        ]
+      },
+      {
+        "kind": "pack-treatment",
+        "path": [
+          "ink"
+        ]
+      },
+      {
+        "kind": "pack-treatment",
+        "path": [
+          "font"
+        ]
+      }
+    ]
+  },
+  "treatments": [
+    {
+      "name": "editorial",
+      "title": "Editorial",
+      "axes": [
+        {
+          "id": "spacing",
+          "title": "Spacing",
+          "type": "number",
+          "min": 0,
+          "max": 8,
+          "default": 4
+        },
+        {
+          "id": "alignment",
+          "title": "Alignment",
+          "type": "select",
+          "options": [
+            "left",
+            "center",
+            "right"
+          ],
+          "default": "left"
+        },
+        {
+          "id": "ink",
+          "title": "Ink",
+          "type": "select",
+          "options": [
+            "foreground",
+            "primary",
+            "muted"
+          ],
+          "default": "foreground"
+        },
+        {
+          "id": "font",
+          "title": "Font",
+          "type": "select",
+          "options": [
+            "body",
+            "display"
+          ],
+          "default": "display"
+        }
+      ]
+    }
+  ]
+}

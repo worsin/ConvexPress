@@ -1,0 +1,105 @@
+{
+  "name": "business/locations",
+  "title": "Business locations",
+  "description": "Accessible location cards with addresses, contact details and directions links.",
+  "category": "site",
+  "role": "content",
+  "version": 1,
+  "keywords": [
+    "locations"
+  ],
+  "ai": {
+    "useFor": "Accessible location cards with addresses, contact details and directions links.",
+    "avoid": "Use verified public business addresses/contact links. Do not fabricate an address, phone number or map location. Examples are fictional internal BlockDemo specimens; never publish their contact details, hours, prices or dietary claims as a real business."
+  },
+  "fields": [
+    {
+      "id": "locations",
+      "type": "repeater",
+      "fields": [
+        {
+          "id": "name",
+          "type": "text",
+          "max": 160,
+          "required": true,
+          "min": 1
+        },
+        {
+          "id": "address",
+          "type": "text",
+          "max": 1000,
+          "default": ""
+        },
+        {
+          "id": "phone",
+          "type": "link",
+          "protocols": [
+            "tel"
+          ]
+        },
+        {
+          "id": "email",
+          "type": "link",
+          "protocols": [
+            "mailto"
+          ]
+        },
+        {
+          "id": "directionsLink",
+          "type": "link"
+        },
+        {
+          "id": "media",
+          "type": "media"
+        }
+      ],
+      "max": 30,
+      "default": []
+    }
+  ],
+  "supports": {
+    "children": false,
+    "styles": true,
+    "layout": [
+      "width",
+      "tone",
+      "spacing",
+      "align"
+    ],
+    "anchor": true,
+    "visibility": true
+  },
+  "data": null,
+  "preview": "Business locations",
+  "examples": [
+    {
+      "locations": []
+    },
+    {
+      "locations": [
+        {
+          "name": "Example studio \u2014 fictional specimen",
+          "address": "Example Town \u00b7 demonstration address only",
+          "phone": {
+            "label": "Sample telephone",
+            "href": "tel:+12025550123"
+          },
+          "email": {
+            "label": "Sample email",
+            "href": "mailto:studio@example.invalid"
+          },
+          "directionsLink": {
+            "label": "Example directions",
+            "href": "https://example.invalid/directions"
+          }
+        }
+      ]
+    }
+  ],
+  "requires": {
+    "plugins": [],
+    "capabilities": [
+      "reference.targetResolution"
+    ]
+  }
+}

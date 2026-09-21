@@ -1,0 +1,91 @@
+{
+  "name": "core/testimonial-wall",
+  "title": "Testimonial wall",
+  "description": "Masonry of many short quotes.",
+  "category": "marketing",
+  "role": "content",
+  "version": 1,
+  "keywords": [
+    "testimonial-wall"
+  ],
+  "ai": {
+    "useFor": "Masonry of many short quotes.",
+    "avoid": "Use only real, permissioned testimonials. Empty example intentionally contains no fabricated endorsement."
+  },
+  "fields": [
+    {
+      "id": "items",
+      "type": "repeater",
+      "fields": [
+        {
+          "id": "quote",
+          "type": "text",
+          "max": 3000,
+          "required": true,
+          "min": 1
+        },
+        {
+          "id": "name",
+          "type": "text",
+          "max": 160,
+          "required": true,
+          "min": 1
+        },
+        {
+          "id": "context",
+          "type": "text",
+          "max": 240,
+          "default": ""
+        },
+        {
+          "id": "portrait",
+          "type": "media"
+        }
+      ],
+      "max": 50,
+      "default": []
+    }
+  ],
+  "supports": {
+    "children": false,
+    "styles": true,
+    "layout": [
+      "width",
+      "tone",
+      "spacing",
+      "align"
+    ],
+    "anchor": true,
+    "visibility": true
+  },
+  "data": null,
+  "preview": "Testimonial wall",
+  "examples": [
+    {},
+    {
+      "items": [
+        {
+          "quote": "A little space can change the way we see an ordinary day.",
+          "name": "Rowan Vale",
+          "context": "Fictional workshop guest"
+        },
+        {
+          "quote": "Make fewer things, and give each one the attention it deserves.",
+          "name": "Ellis Reed",
+          "context": "Fictional designer"
+        },
+        {
+          "quote": "The best part of a notebook is the question you have not answered yet.",
+          "name": "Mara Finch",
+          "context": "Fictional editor"
+        }
+      ]
+    }
+  ],
+  "requires": {
+    "plugins": [],
+    "capabilities": [
+      "reference.targetResolution"
+    ]
+  }
+}
