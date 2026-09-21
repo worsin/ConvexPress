@@ -158,5 +158,37 @@
         ]
       }
     ]
-  }
+  },
+  "searchText": [
+    [
+      "eyebrow"
+    ],
+    [
+      "heading"
+    ],
+    {
+      "path": [
+        "intro"
+      ],
+      "format": "prose"
+    },
+    [
+      "items",
+      "*",
+      "label"
+    ],
+    [
+      "items",
+      "*",
+      "title"
+    ],
+    {
+      "path": [
+        "items",
+        "*",
+        "body"
+      ],
+      "format": "prose"
+    }
+  ]
 }

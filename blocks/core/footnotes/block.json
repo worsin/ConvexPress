@@ -121,5 +121,12 @@
       "field": "notes",
       "key": "key"
     }
+  ],
+  "searchText": [
+    [
+      "notes",
+      "*",
+      "body"
+    ]
   ]
 }

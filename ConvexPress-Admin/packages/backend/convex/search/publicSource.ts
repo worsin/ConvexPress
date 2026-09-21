@@ -1,4 +1,5 @@
-import type { RequestReadLedger } from "../helpers/requestReadLedger";
+import { RequestReadLedger } from "../helpers/requestReadLedger";
+import { createCanonicalSearchTextReader } from "./canonicalText";
 import { createExtensionSearchSourceReader } from "./extensionSources";
 import { ConvexError } from "convex/values";
 import type { Doc, Id, TableNames } from "../_generated/dataModel";
@@ -31,6 +32,7 @@ function postUrl(post: Doc<"posts">): string {
  * authority come from the same current database snapshot. Never copy cache text,
  * legacy v2 bodies, account emails, or canonical block payloads into a result. */
 export function createPublicSearchSourceReader(ctx: QueryCtx, now = Date.now(), budget?: RequestReadLedger) {
+  const canonicalText = createCanonicalSearchTextReader(ctx, budget ?? new RequestReadLedger());
   const read = async <T extends TableNames>(table:T,id:Id<T>):Promise<Doc<T>|null> => {budget?.beforeRead();return budget ? budget.record(await ctx.db.get(table,id)) : ctx.db.get(table,id);};
   const evaluate = createMembershipAccessEvaluator(ctx,budget);
   const readExtension = createExtensionSearchSourceReader(ctx, budget);
@@ -72,7 +74,7 @@ export function createPublicSearchSourceReader(ctx: QueryCtx, now = Date.now(), 
         if (term?.taxonomy === "category") categoryNames.push(term.name);
         if (term?.taxonomy === "post_tag") tagNames.push(term.name);
       }
-      return {...base, title: post.title, content: post.blocksVersion === 2 ? "" : stripContentForSearch(post.content ?? ""),
+      return {...base, title: post.title, content: post.blocksVersion === 2 ? await canonicalText(post) : stripContentForSearch(post.content ?? ""),
         excerpt: post.excerpt ?? "", url: postUrl(post), authorName: await authorName(post.authorId), publishedAt: post.publishedAt, categoryNames, tagNames};
     }
     if (row.contentType === "product") {

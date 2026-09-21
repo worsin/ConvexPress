@@ -73,5 +73,13 @@
   "requires": {
     "plugins": [],
     "capabilities": []
-  }
+  },
+  "searchText": [
+    [
+      "title"
+    ],
+    [
+      "body"
+    ]
+  ]
 }

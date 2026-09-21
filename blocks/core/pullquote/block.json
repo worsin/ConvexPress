@@ -49,5 +49,13 @@
   "requires": {
     "plugins": [],
     "capabilities": []
-  }
+  },
+  "searchText": [
+    [
+      "text"
+    ],
+    [
+      "cite"
+    ]
+  ]
 }

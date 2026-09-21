@@ -94,7 +94,7 @@
             {
               "name": "Filter coffee",
               "description": "A freshly brewed cup. Fictional menu specimen.",
-              "priceLabel": "$4.00 \u00b7 sample",
+              "priceLabel": "$4.00 · sample",
               "dietaryLabels": [
                 "Vegan option"
               ]
@@ -102,7 +102,7 @@
             {
               "name": "Mint tea",
               "description": "A warm herbal infusion. Fictional menu specimen.",
-              "priceLabel": "$3.50 \u00b7 sample",
+              "priceLabel": "$3.50 · sample",
               "dietaryLabels": [
                 "Caffeine free"
               ]
@@ -115,7 +115,7 @@
             {
               "name": "Oat biscuit",
               "description": "A simple biscuit. Verify real allergen information before publishing.",
-              "priceLabel": "$2.00 \u00b7 sample",
+              "priceLabel": "$2.00 · sample",
               "dietaryLabels": []
             }
           ]
@@ -126,5 +126,41 @@
   "requires": {
     "plugins": [],
     "capabilities": []
-  }
+  },
+  "searchText": [
+    [
+      "sections",
+      "*",
+      "title"
+    ],
+    [
+      "sections",
+      "*",
+      "items",
+      "*",
+      "name"
+    ],
+    [
+      "sections",
+      "*",
+      "items",
+      "*",
+      "description"
+    ],
+    [
+      "sections",
+      "*",
+      "items",
+      "*",
+      "priceLabel"
+    ],
+    [
+      "sections",
+      "*",
+      "items",
+      "*",
+      "dietaryLabels",
+      "*"
+    ]
+  ]
 }

@@ -87,5 +87,22 @@
     "capabilities": [
       "reference.targetResolution"
     ]
-  }
+  },
+  "searchText": [
+    [
+      "items",
+      "*",
+      "quote"
+    ],
+    [
+      "items",
+      "*",
+      "name"
+    ],
+    [
+      "items",
+      "*",
+      "context"
+    ]
+  ]
 }

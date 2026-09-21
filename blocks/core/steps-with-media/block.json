@@ -164,5 +164,17 @@
     "capabilities": [
       "reference.targetResolution"
     ]
-  }
+  },
+  "searchText": [
+    [
+      "steps",
+      "*",
+      "title"
+    ],
+    [
+      "steps",
+      "*",
+      "body"
+    ]
+  ]
 }

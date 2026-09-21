@@ -177,5 +177,39 @@
       "rows": "rows",
       "rowField": "values"
     }
+  ],
+  "searchText": [
+    [
+      "plans",
+      "*",
+      "name"
+    ],
+    [
+      "plans",
+      "*",
+      "description"
+    ],
+    [
+      "plans",
+      "*",
+      "priceLabel"
+    ],
+    [
+      "plans",
+      "*",
+      "features",
+      "*"
+    ],
+    [
+      "rows",
+      "*",
+      "label"
+    ],
+    [
+      "rows",
+      "*",
+      "values",
+      "*"
+    ]
   ]
 }

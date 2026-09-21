@@ -130,5 +130,37 @@
     "fromVersion": 1,
     "preserveLegacyRender": true,
     "transforms": []
-  }
+  },
+  "searchText": [
+    [
+      "eyebrow"
+    ],
+    [
+      "heading"
+    ],
+    {
+      "path": [
+        "body"
+      ],
+      "format": "prose"
+    },
+    [
+      "items",
+      "*",
+      "label"
+    ],
+    [
+      "items",
+      "*",
+      "title"
+    ],
+    {
+      "path": [
+        "items",
+        "*",
+        "body"
+      ],
+      "format": "prose"
+    }
+  ]
 }

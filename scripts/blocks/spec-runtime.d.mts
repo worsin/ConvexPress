@@ -30,6 +30,7 @@ export type BlockSpec = {
   role: "hero" | "opener" | "content" | "cta" | "aside" | "utility";
   version: number; keywords: string[]; ai: { useFor: string; avoid: string };
   fields: BlockField[]; constraints?: FieldConstraint[];
+  searchText?: (string[] | { path: string[]; format: "prose" })[];
   treatments?: { name: string; title: string; axes: TreatmentAxis[] }[];
   supports: { children: boolean; styles: boolean; layout: ("width" | "tone" | "spacing" | "align")[]; anchor: boolean; visibility: boolean };
   data: { resolver: string; args: Record<string, SpecJson> } | null;
@@ -57,3 +58,4 @@ export interface FieldDependency {
 }
 export function dependencyFields(fields: readonly BlockField[], parent?: string[]): FieldDependency[];
 export function anchorFields(fields: readonly BlockField[], parent?: string[]): { path: string[] }[];
+export function searchableFields(fields: readonly BlockField[], paths: readonly (readonly string[] | { path: readonly string[]; format: "prose" })[]): { path: readonly string[]; type: "text" | "richtext" | "prose" }[];

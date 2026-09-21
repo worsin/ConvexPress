@@ -163,5 +163,22 @@
     "capabilities": [
       "reference.targetResolution"
     ]
-  }
+  },
+  "searchText": [
+    [
+      "tabs",
+      "*",
+      "label"
+    ],
+    [
+      "tabs",
+      "*",
+      "title"
+    ],
+    [
+      "tabs",
+      "*",
+      "body"
+    ]
+  ]
 }

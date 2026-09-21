@@ -139,5 +139,34 @@
         }
       ]
     }
+  ],
+  "searchText": [
+    [
+      "heading"
+    ],
+    {
+      "path": [
+        "intro"
+      ],
+      "format": "prose"
+    },
+    [
+      "sections",
+      "*",
+      "grade"
+    ],
+    {
+      "path": [
+        "sections",
+        "*",
+        "description"
+      ],
+      "format": "prose"
+    },
+    [
+      "sections",
+      "*",
+      "notes"
+    ]
   ]
 }

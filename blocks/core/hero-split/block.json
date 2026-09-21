@@ -109,7 +109,7 @@
       "mediaAlt": ""
     },
     {
-      "eyebrow": "Aster House \u00b7 A fictional retreat",
+      "eyebrow": "Aster House · A fictional retreat",
       "title": "Make room for a slower morning.",
       "body": "Explore a considered space for restful weekends, forest walks and time together. An example of a simple hospitality website built with ConvexPress.",
       "primaryCtaLabel": "Explore the retreat",
@@ -137,5 +137,19 @@
         ]
       }
     ]
-  }
+  },
+  "searchText": [
+    [
+      "eyebrow"
+    ],
+    [
+      "title"
+    ],
+    {
+      "path": [
+        "body"
+      ],
+      "format": "prose"
+    }
+  ]
 }

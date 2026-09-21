@@ -109,5 +109,19 @@
         ]
       }
     ]
-  }
+  },
+  "searchText": [
+    [
+      "eyebrow"
+    ],
+    [
+      "title"
+    ],
+    {
+      "path": [
+        "body"
+      ],
+      "format": "prose"
+    }
+  ]
 }

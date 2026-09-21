@@ -129,5 +129,37 @@
     "fromVersion": 1,
     "preserveLegacyRender": true,
     "transforms": []
-  }
+  },
+  "searchText": [
+    [
+      "eyebrow"
+    ],
+    [
+      "heading"
+    ],
+    {
+      "path": [
+        "body"
+      ],
+      "format": "prose"
+    },
+    [
+      "members",
+      "*",
+      "name"
+    ],
+    [
+      "members",
+      "*",
+      "role"
+    ],
+    {
+      "path": [
+        "members",
+        "*",
+        "bio"
+      ],
+      "format": "prose"
+    }
+  ]
 }

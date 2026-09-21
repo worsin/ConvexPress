@@ -76,7 +76,7 @@ describe("schema-first generation", () => {
     const root = await fixture(), s = await spec();
     await put(root, "blocks/events/upcoming", s);
     const generated = await syncBlocks({ root });
-    expect(generated.changed.length).toBe(25);
+    expect(generated.changed.length).toBe(26);
     expect(generated.changed).toContain("spec-runtime.mjs");
     expect(generated.changed).toContain("spec-runtime.d.mts");
     expect(generated.changed).toContain("patterns.ts");

@@ -1503,6 +1503,64 @@
       ],
       "type": "string"
     },
+    "searchText": {
+      "items": {
+        "anyOf": [
+          {
+            "items": {
+              "anyOf": [
+                {
+                  "maxLength": 80,
+                  "pattern": "^[a-zA-Z][a-zA-Z0-9_]*$",
+                  "type": "string"
+                },
+                {
+                  "const": "*",
+                  "type": "string"
+                }
+              ]
+            },
+            "maxItems": 16,
+            "minItems": 1,
+            "type": "array"
+          },
+          {
+            "additionalProperties": false,
+            "properties": {
+              "format": {
+                "const": "prose",
+                "type": "string"
+              },
+              "path": {
+                "items": {
+                  "anyOf": [
+                    {
+                      "maxLength": 80,
+                      "pattern": "^[a-zA-Z][a-zA-Z0-9_]*$",
+                      "type": "string"
+                    },
+                    {
+                      "const": "*",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "maxItems": 16,
+                "minItems": 1,
+                "type": "array"
+              }
+            },
+            "required": [
+              "path",
+              "format"
+            ],
+            "type": "object"
+          }
+        ]
+      },
+      "maxItems": 100,
+      "type": "array"
+    },
     "supports": {
       "additionalProperties": false,
       "properties": {

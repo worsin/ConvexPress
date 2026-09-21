@@ -80,5 +80,27 @@
   "requires": {
     "plugins": [],
     "capabilities": []
-  }
+  },
+  "searchText": [
+    [
+      "services",
+      "*",
+      "name"
+    ],
+    [
+      "services",
+      "*",
+      "description"
+    ],
+    [
+      "services",
+      "*",
+      "duration"
+    ],
+    [
+      "services",
+      "*",
+      "priceLabel"
+    ]
+  ]
 }

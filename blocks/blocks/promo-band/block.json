@@ -152,5 +152,29 @@
         }
       ]
     }
+  ],
+  "searchText": [
+    [
+      "eyebrow"
+    ],
+    [
+      "heading"
+    ],
+    {
+      "path": [
+        "body"
+      ],
+      "format": "prose"
+    },
+    [
+      "details",
+      "*",
+      "label"
+    ],
+    [
+      "details",
+      "*",
+      "value"
+    ]
   ]
 }

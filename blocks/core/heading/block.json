@@ -123,5 +123,10 @@
         "mode": "plain-inline"
       }
     ]
-  }
+  },
+  "searchText": [
+    [
+      "text"
+    ]
+  ]
 }

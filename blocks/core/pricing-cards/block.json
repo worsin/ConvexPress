@@ -144,5 +144,40 @@
     "fromVersion": 1,
     "preserveLegacyRender": true,
     "transforms": []
-  }
+  },
+  "searchText": [
+    [
+      "eyebrow"
+    ],
+    [
+      "heading"
+    ],
+    {
+      "path": [
+        "body"
+      ],
+      "format": "prose"
+    },
+    [
+      "plans",
+      "*",
+      "name"
+    ],
+    [
+      "plans",
+      "*",
+      "price"
+    ],
+    [
+      "plans",
+      "*",
+      "description"
+    ],
+    [
+      "plans",
+      "*",
+      "features",
+      "*"
+    ]
+  ]
 }

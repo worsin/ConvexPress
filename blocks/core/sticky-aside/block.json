@@ -35,5 +35,6 @@
     "capabilities": [
       "tree.children"
     ]
-  }
+  },
+  "searchText": []
 }

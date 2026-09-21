@@ -64,6 +64,7 @@ export function createBlockSpecCompiler(z) {
     z.object({ id, title: z.string().min(1).max(160), type: z.literal("select"), options: z.array(z.string().regex(/^[a-z][a-zA-Z0-9-]*$/).max(80)).min(1).max(32), default: z.string() }).strict(),
     z.object({ id, title: z.string().min(1).max(160), type: z.literal("number"), min: z.number().int().min(0).max(100), max: z.number().int().min(0).max(100), default: z.number().int() }).strict(),
   ]);
+  const searchPath = z.array(z.union([id, z.literal("*")])).min(1).max(16);
   const blockSpecSchema = z.object({
     name: z.string().regex(/^[a-z][a-z0-9-]*\/[a-z][a-z0-9-]*$/).max(160),
     title: z.string().min(1).max(160), description: z.string().min(1).max(2000),
@@ -72,6 +73,8 @@ export function createBlockSpecCompiler(z) {
     keywords: z.array(z.string().min(1).max(80)).max(50),
     ai: z.object({ useFor: z.string().min(1).max(2000), avoid: z.string().max(2000) }).strict(),
     fields: z.array(fieldSchema).max(100), constraints,
+    // Editorial text only. This declaration is not permission to disclose it.
+    searchText: z.array(z.union([searchPath, z.object({ path: searchPath, format: z.literal("prose") }).strict()])).max(100).optional(),
     treatments: z.array(z.object({ name: id, title: z.string().min(1).max(160), axes: z.array(treatmentAxisSchema).min(1).max(8) }).strict()).max(8).optional(),
     supports: z.object({ children: z.boolean(), styles: z.boolean(), layout: z.array(z.enum(["width", "tone", "spacing", "align"])).max(4), anchor: z.boolean(), visibility: z.boolean() }).strict(),
     data: z.object({ resolver: z.string().regex(/^[a-z][a-zA-Z0-9]*(?:\.[a-z][a-zA-Z0-9]*)+$/).max(160), args: z.record(id, z.json()) }).strict().nullable(),
@@ -178,6 +181,7 @@ export function createBlockSpecCompiler(z) {
     const spec = blockSpecSchema.parse(input);
     if (spec.migration && spec.migration.fromVersion >= spec.version) throw new Error("Migration must advance the block version");
     checkFieldTree(spec.fields);
+    searchableFields(spec.fields, spec.searchText ?? []);
     if (new Set((spec.treatments ?? []).map(item => item.name)).size !== (spec.treatments ?? []).length) throw Error("Duplicate treatment name");
     for (const treatment of spec.treatments ?? []) {
       if (new Set(treatment.axes.map(axis => axis.id)).size !== treatment.axes.length) throw Error("Duplicate treatment axis");
@@ -215,6 +219,36 @@ export function createBlockSpecCompiler(z) {
     }
   }
   return { fieldSchema, fieldTypeNames, treatmentAxisSchema, blockSpecSchema, attrsSchema, parseBlockSpec };
+}
+
+/** Compile explicit paths; never infer search text from arbitrary string attrs. */
+export function searchableFields(fields, paths) {
+  const seen = new Set();
+  function leaf(field, rest) {
+    if (!rest.length) {
+      if (field.type === "richtext") return "richtext";
+      if (field.type === "text" && !field.format && !field.domId) return "text";
+      throw Error("Search text must select editorial text or richtext fields");
+    }
+    if (field.type === "object") return object(field.fields, rest);
+    if (field.type === "repeater" && rest[0] === "*")
+      return field.item ? leaf(field.item, rest.slice(1)) : object(field.fields, rest.slice(1));
+    throw Error("Invalid search text traversal");
+  }
+  function object(items, path) {
+    const field = items.find(item => item.id === path[0]);
+    if (!field) throw Error("Unknown search text field");
+    return leaf(field, path.slice(1));
+  }
+  return paths.map(rule => {
+    const path = Array.isArray(rule) ? rule : rule.path;
+    const key = path.join(".");
+    if (seen.has(key)) throw Error("Duplicate search text field");
+    seen.add(key);
+    const type = object(fields, path);
+    if (!Array.isArray(rule) && type !== "text") throw Error("Prose search format requires a plain text field");
+    return { path, type: Array.isArray(rule) ? type : "prose" };
+  });
 }
 
 export function dependencyFields(fields, parent = []) {

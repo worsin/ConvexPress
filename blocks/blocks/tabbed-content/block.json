@@ -208,5 +208,34 @@
         ]
       }
     ]
-  }
+  },
+  "searchText": [
+    [
+      "heading"
+    ],
+    {
+      "path": [
+        "intro"
+      ],
+      "format": "prose"
+    },
+    [
+      "tabs",
+      "*",
+      "label"
+    ],
+    [
+      "tabs",
+      "*",
+      "title"
+    ],
+    {
+      "path": [
+        "tabs",
+        "*",
+        "body"
+      ],
+      "format": "prose"
+    }
+  ]
 }

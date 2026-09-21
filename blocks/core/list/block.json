@@ -143,5 +143,12 @@
         "mode": "markdown-inline"
       }
     ]
-  }
+  },
+  "searchText": [
+    [
+      "items",
+      "*",
+      "text"
+    ]
+  ]
 }

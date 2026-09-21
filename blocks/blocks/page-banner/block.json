@@ -112,5 +112,19 @@
       "ctaLabel": "Explore the studies",
       "ctaUrl": "#studies"
     }
+  ],
+  "searchText": [
+    [
+      "eyebrow"
+    ],
+    [
+      "title"
+    ],
+    {
+      "path": [
+        "subtitle"
+      ],
+      "format": "prose"
+    }
   ]
 }

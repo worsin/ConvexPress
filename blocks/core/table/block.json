@@ -93,5 +93,19 @@
       "headers": "columns",
       "rows": "rows"
     }
+  ],
+  "searchText": [
+    [
+      "columns",
+      "*"
+    ],
+    [
+      "rows",
+      "*",
+      "*"
+    ],
+    [
+      "caption"
+    ]
   ]
 }

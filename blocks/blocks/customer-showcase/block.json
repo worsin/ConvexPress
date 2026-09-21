@@ -138,5 +138,41 @@
         }
       ]
     }
+  ],
+  "searchText": [
+    [
+      "heading"
+    ],
+    {
+      "path": [
+        "intro"
+      ],
+      "format": "prose"
+    },
+    [
+      "items",
+      "*",
+      "quote"
+    ],
+    [
+      "items",
+      "*",
+      "name"
+    ],
+    [
+      "items",
+      "*",
+      "role"
+    ],
+    [
+      "items",
+      "*",
+      "company"
+    ],
+    [
+      "items",
+      "*",
+      "instrumentType"
+    ]
   ]
 }

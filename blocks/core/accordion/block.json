@@ -87,5 +87,26 @@
     "fromVersion": 1,
     "preserveLegacyRender": true,
     "transforms": []
-  }
+  },
+  "searchText": [
+    [
+      "heading"
+    ],
+    {
+      "path": [
+        "body"
+      ],
+      "format": "prose"
+    },
+    [
+      "items",
+      "*",
+      "title"
+    ],
+    [
+      "items",
+      "*",
+      "body"
+    ]
+  ]
 }

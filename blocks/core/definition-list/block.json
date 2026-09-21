@@ -74,5 +74,17 @@
   "requires": {
     "plugins": [],
     "capabilities": []
-  }
+  },
+  "searchText": [
+    [
+      "items",
+      "*",
+      "term"
+    ],
+    [
+      "items",
+      "*",
+      "definition"
+    ]
+  ]
 }

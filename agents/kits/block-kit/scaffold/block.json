@@ -11,6 +11,7 @@
     { "id": "heading", "type": "text", "required": true, "min": 1, "max": 160, "default": "A useful update" },
     { "id": "body", "type": "text", "max": 2000, "default": "Share the details your visitors need." }
   ],
+  "searchText": [["heading"], ["body"]],
   "supports": { "children": false, "styles": true, "layout": ["width", "tone", "spacing", "align"], "anchor": true, "visibility": true },
   "data": null,
   "preview": "{heading}",

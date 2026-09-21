@@ -112,14 +112,14 @@
         {
           "label": "Free tier",
           "cells": [
-            "\u2713",
-            "\u2717"
+            "✓",
+            "✗"
           ]
         },
         {
           "label": "AI built-in",
           "cells": [
-            "\u2713",
+            "✓",
             "Add-on"
           ]
         }
@@ -179,5 +179,34 @@
       "rowField": "cells",
       "headerOffset": 1
     }
+  ],
+  "searchText": [
+    [
+      "eyebrow"
+    ],
+    [
+      "heading"
+    ],
+    {
+      "path": [
+        "body"
+      ],
+      "format": "prose"
+    },
+    [
+      "columns",
+      "*"
+    ],
+    [
+      "rows",
+      "*",
+      "label"
+    ],
+    [
+      "rows",
+      "*",
+      "cells",
+      "*"
+    ]
   ]
 }

@@ -95,5 +95,32 @@
     "fromVersion": 1,
     "preserveLegacyRender": true,
     "transforms": []
-  }
+  },
+  "searchText": [
+    [
+      "eyebrow"
+    ],
+    [
+      "heading"
+    ],
+    {
+      "path": [
+        "body"
+      ],
+      "format": "prose"
+    },
+    [
+      "steps",
+      "*",
+      "title"
+    ],
+    {
+      "path": [
+        "steps",
+        "*",
+        "body"
+      ],
+      "format": "prose"
+    }
+  ]
 }

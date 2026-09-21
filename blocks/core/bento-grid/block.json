@@ -1,7 +1,7 @@
 {
   "name": "core/bento-grid",
   "title": "Bento grid",
-  "description": "Modern asymmetric feature layout \u2014 large + small cells.",
+  "description": "Modern asymmetric feature layout — large + small cells.",
   "category": "marketing",
   "role": "content",
   "version": 2,
@@ -142,5 +142,32 @@
         ]
       }
     ]
-  }
+  },
+  "searchText": [
+    [
+      "eyebrow"
+    ],
+    [
+      "heading"
+    ],
+    {
+      "path": [
+        "body"
+      ],
+      "format": "prose"
+    },
+    [
+      "items",
+      "*",
+      "title"
+    ],
+    {
+      "path": [
+        "items",
+        "*",
+        "body"
+      ],
+      "format": "prose"
+    }
+  ]
 }

@@ -13,7 +13,13 @@ import { createComposedRegistry, type RuntimeCanonicalTree } from "./foundation/
 import { installation } from "../syncedBlocks/model";
 
 interface Projection<Tree> { blocks: Tree; resolverTree: Tree; authoringTree: Tree; synced?: SyncedDisplay; composed?: ComposedDataContext }
-interface ProjectionOptions { validateAuthoringPolicy?: boolean; composed?: ComposedDataContext }
+interface ProjectionOptions {
+  validateAuthoringPolicy?: boolean;
+  composed?: ComposedDataContext;
+  /** Server-owned visibility policy, applied before retaining an occurrence.
+   * A rejected ancestor prunes its entire subtree, including reusable sources. */
+  isVisible?: (node: RuntimeCanonicalTree[number]) => boolean;
+}
 
 /** Called only after current page access. Authorization is evaluated before
  * any selected block's dynamic data/media is loaded or serialized. Cache one
@@ -49,7 +55,7 @@ export async function projectPublicBlocks(ctx: QueryCtx, input: unknown, scope: 
     if (options.validateAuthoringPolicy) planCanonicalData(authored, scope, policy, {}, composed);
     const filter = async (nodes: RuntimeCanonicalTree): Promise<RuntimeCanonicalTree> => {
       const result: RuntimeCanonicalTree = [];
-      for (const node of nodes) if (await permitted([node.id, node.name])) result.push({ ...node, ...(node.children ? { children: await filter(node.children) } : {}) });
+      for (const node of nodes) if ((!options.isVisible || options.isVisible(node)) && await permitted([node.id, node.name])) result.push({ ...node, ...(node.children ? { children: await filter(node.children) } : {}) });
       return result;
     };
     const filtered = await filter(authored);
@@ -66,7 +72,7 @@ export async function projectPublicBlocks(ctx: QueryCtx, input: unknown, scope: 
   const plan = await resolvePublishedOccurrences(ctx, validateCanonicalTree(authored), budget), visible = new Set<string>();
   if (options.validateAuthoringPolicy) planSyncedOccurrenceData(plan, scope, policy);
   const visit = async (nodes: SyncedOccurrence[]) => {
-    for (const node of nodes) if (await permitted([node.id, node.node.id, node.node.name])) { visible.add(node.id);await visit(node.children); }
+    for (const node of nodes) if ((!options.isVisible || options.isVisible(node.node)) && await permitted([node.id, node.node.id, node.node.name])) { visible.add(node.id);await visit(node.children); }
   };
   await visit(plan.roots);
   const projected = projectSyncedDisplay(plan, visible);
