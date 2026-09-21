@@ -55,7 +55,9 @@ export async function projectPublicBlocks(ctx: QueryCtx, input: unknown, scope: 
     if (options.validateAuthoringPolicy) planCanonicalData(authored, scope, policy, {}, composed);
     const filter = async (nodes: RuntimeCanonicalTree): Promise<RuntimeCanonicalTree> => {
       const result: RuntimeCanonicalTree = [];
-      for (const node of nodes) if ((!options.isVisible || options.isVisible(node)) && await permitted([node.id, node.name])) result.push({ ...node, ...(node.children ? { children: await filter(node.children) } : {}) });
+      const candidates = nodes.filter(node => !options.isVisible || options.isVisible(node));
+      await membership.preloadBlocks(candidates.flatMap(node => [node.id, node.name]));
+      for (const node of candidates) if (await permitted([node.id, node.name])) result.push({ ...node, ...(node.children ? { children: await filter(node.children) } : {}) });
       return result;
     };
     const filtered = await filter(authored);
@@ -72,7 +74,9 @@ export async function projectPublicBlocks(ctx: QueryCtx, input: unknown, scope: 
   const plan = await resolvePublishedOccurrences(ctx, validateCanonicalTree(authored), budget), visible = new Set<string>();
   if (options.validateAuthoringPolicy) planSyncedOccurrenceData(plan, scope, policy);
   const visit = async (nodes: SyncedOccurrence[]) => {
-    for (const node of nodes) if ((!options.isVisible || options.isVisible(node.node)) && await permitted([node.id, node.node.id, node.node.name])) { visible.add(node.id);await visit(node.children); }
+    const candidates = nodes.filter(node => !options.isVisible || options.isVisible(node.node));
+    await membership.preloadBlocks(candidates.flatMap(node => [node.id, node.node.id, node.node.name]));
+    for (const node of candidates) if (await permitted([node.id, node.node.id, node.node.name])) { visible.add(node.id);await visit(node.children); }
   };
   await visit(plan.roots);
   const projected = projectSyncedDisplay(plan, visible);

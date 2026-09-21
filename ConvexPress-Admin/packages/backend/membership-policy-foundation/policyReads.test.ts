@@ -89,3 +89,51 @@ test("complete-looking oversized raw documents refuse before allowing access", a
   await t.run(async ctx => { await ctx.db.insert("membership_restriction_rules", { ...rule("/member", "route"), customMessage: "x".repeat(POLICY_PAGE.maximumBytesRead + 1) }); });
   await expect(t.query(makeFunctionReference<"query">("fixtures:decision"), { userId, resourceIdOrKey: "/member" })).rejects.toThrow("MEMBERSHIP_POLICY_BUDGET");
 });
+
+const blockBatchRef = makeFunctionReference<"query">("membership/policyReads:measuredBlockRules");
+const blockRule = (key: string) => ({ ...rule(key), resourceType: "block" as const });
+test("block batches measure raw rows, isolate target types and retain a late deny", async () => {
+  const { t, userId, planId } = await fixture();
+  await t.run(async ctx => {
+    for (let i = 0; i < 300; i++) await ctx.db.insert("membership_restriction_rules", blockRule(`unrelated-${i}`));
+    await ctx.db.insert("membership_restriction_rules", rule("intro"));
+    for (let i = 0; i < 255; i++) await ctx.db.insert("membership_restriction_rules", blockRule("intro"));
+    await ctx.db.insert("membership_restriction_rules", { ...blockRule("intro"), ruleMode: "deny_if_missing", planIds: [planId], customMessage: "Last rule must survive" });
+  });
+  const result = await t.query(blockBatchRef, { keys: ["missing", "intro"] });
+  expect(result.rows).toBe(256);
+  expect(result.items).toHaveLength(256);
+  expect(result.items.at(-1).ruleMode).toBe("deny_if_missing");
+  expect(result.items.every((row: { resourceType: string; resourceIdOrKey: string }) => row.resourceType === "block" && row.resourceIdOrKey === "intro")).toBe(true);
+  const { getDocumentSize } = await import("convex/values");
+  const raw = await t.run(ctx => ctx.db.query("membership_restriction_rules").withIndex("by_resource", q => q.eq("resourceType", "block").eq("resourceIdOrKey", "intro")).take(257));
+  expect(result.bytes).toBe(raw.reduce((sum, row) => sum + getDocumentSize(row), 0));
+  const { createMembershipAccessEvaluator } = await import("../convex/membership/access");
+  expect(await t.run(async ctx => {
+    const access = createMembershipAccessEvaluator(ctx);
+    await access.preloadBlocks(["missing", "intro"]);
+    return (await access({ userId, resourceType: "block", resourceIdOrKey: "intro" })).allowed;
+  })).toBe(false);
+  await t.run(ctx => ctx.db.insert("membership_restriction_rules", blockRule("intro")));
+  await expect(t.query(blockBatchRef, { keys: ["missing", "intro"] })).rejects.toThrow("MEMBERSHIP_POLICY_BUDGET");
+});
+test("block batches reject aggregate row and byte overflow instead of returning partial policy", async () => {
+  const { t } = await fixture();
+  const keys = Array.from({ length: 9 }, (_, i) => `target-${i}`);
+  await t.run(async ctx => {
+    for (const key of keys) for (let i = 0; i < 256; i++) await ctx.db.insert("membership_restriction_rules", blockRule(key));
+  });
+  await expect(t.query(blockBatchRef, { keys })).rejects.toThrow("MEMBERSHIP_POLICY_BUDGET");
+  const oversized = await fixture();
+  await oversized.t.run(async ctx => {
+    for (const key of ["a", "b"]) await ctx.db.insert("membership_restriction_rules", { ...blockRule(key), customMessage: "x".repeat(270_000) });
+  });
+  expect((await oversized.t.query(blockBatchRef, { keys: ["a"] })).rows).toBe(1);
+  await expect(oversized.t.query(blockBatchRef, { keys: ["a", "b"] })).rejects.toThrow("MEMBERSHIP_POLICY_BUDGET");
+});
+test("block batches reject malformed and unbounded target sets", async () => {
+  const { t } = await fixture();
+  for (const keys of [[], [""], ["a", "a"], ["a".repeat(257)], Array.from({ length: 129 }, (_, i) => `key-${i}`)])
+    await expect(t.query(blockBatchRef, { keys })).rejects.toThrow("MEMBERSHIP_POLICY_KEYS");
+  expect(await t.query(blockBatchRef, { keys: Array.from({ length: 128 }, (_, i) => `key-${i}`) })).toEqual({ items: [], rows: 0, bytes: 0 });
+});

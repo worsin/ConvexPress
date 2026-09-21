@@ -580,7 +580,7 @@ export const suggest = query({
       )
       .take(limit);
 
-    const readSource = createPublicSearchSourceReader(ctx);
+    const readSource = createPublicSearchSourceReader(ctx, Date.now(), undefined, { includePostBody: false });
     const titleSuggestions: Array<{text: string; type: "content"; contentType: PublicSearchSource["contentType"]}> = [];
     for (const candidate of titleMatches) {
       const doc = await readSource(candidate);

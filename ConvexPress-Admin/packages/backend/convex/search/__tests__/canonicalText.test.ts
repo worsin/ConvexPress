@@ -87,3 +87,68 @@ test("unsupported visibility on persisted content fails closed without matching 
   expect((await t.run(ctx => readSearch(ctx, { query: "Sunflowerneedle" }, scope, "host"))).items).toEqual([]);
   await expect(t.mutation(upsert, { contentType: "page", contentId: ids.post, action: "upsert" })).rejects.toThrow("Visibility filtering");
 });
+
+async function editorialPages() {
+  const { t, ids } = await fixture();
+  const pages = await t.run(async ctx => {
+    await ctx.db.patch("settings", ids.plugins, { values: { membershipEnabled: true } });
+    const result = [];
+    for (let page = 0; page < 10; page++) {
+      const id = await ctx.db.insert("posts", { type: "page", title: `Scalebloom page ${page}`, slug: `scale-${page}`, status: "publish", visibility: "public", authorId: ids.user, commentStatus: "closed", blocksVersion: 2, blocks: Array.from({ length: 30 }, (_, n) => paragraph(`page-${page}-copy-${n}`, `Meadowbody ${page} paragraph ${n}`)), createdAt: 1, updatedAt: 1 });
+      result.push(id);
+    }
+    return result;
+  });
+  for (const id of pages) await t.mutation(upsert, { contentType: "page", contentId: id, action: "upsert" });
+  return { t, ids, pages };
+}
+test("title suggestions do not exhaust their budget projecting unrelated block bodies", async () => {
+  const { t } = await editorialPages();
+  const result = await t.query(ref<"query">("search/queries:suggest"), { q: "Scalebloom", limit: 10 });
+  expect(result.suggestions).toHaveLength(10);
+});
+test("ordinary body search handles ten real editorial pages with thirty paragraphs each", async () => {
+  const { t, pages } = await editorialPages();
+  const result = await t.query(ref<"query">("search/queries:search"), { q: "Meadowbody", perPage: 20 });
+  expect(new Set(result.results.map((item: { contentId: string }) => item.contentId))).toEqual(new Set(pages));
+});
+test("search block traverses the editorial corpus with bounded reads and no omissions", async () => {
+  const { t, pages } = await editorialPages();
+  const seen: string[] = []; let cursor: string | null = null, rounds = 0;
+  do {
+    const budget = new RequestReadLedger();
+    const result = await t.run(ctx => readSearch(ctx, { query: "Meadowbody", pageSize: 5, cursor }, scope, "host", budget));
+    expect(budget.queries).toBeLessThanOrEqual(budget.limits.queries);
+    seen.push(...result.items.map(row => row.id)); cursor = result.nextCursor;
+    if (++rounds > 20) throw Error("Search cursor failed to converge");
+  } while (cursor);
+  expect(seen).toHaveLength(pages.length); expect(new Set(seen)).toEqual(new Set(pages));
+});
+
+test("denied ancestors do not preload overflowing child policies and batches charge full raw bytes", async () => {
+  const { t, ids } = await fixture();
+  await t.run(async ctx => {
+    await ctx.db.patch("settings", ids.plugins, { values: { membershipEnabled: true } });
+    await ctx.db.patch("posts", ids.post, { blocks: [
+      { id: "parent", name: "core/group", version: 1, attrs: {}, children: [paragraph("child", "Neverpublic")] },
+      paragraph("public", "Publicgarden"),
+    ] });
+    const policy = { resourceType: "block" as const, ruleMode: "allow_only" as const, planIds: [], loginRequired: true, teaserMode: "hide" as const, createdAt: 1, updatedAt: 1 };
+    await ctx.db.insert("membership_restriction_rules", { ...policy, resourceIdOrKey: "parent" });
+    for (let i = 0; i < 257; i++) await ctx.db.insert("membership_restriction_rules", { ...policy, resourceIdOrKey: "child" });
+    await ctx.db.insert("membership_restriction_rules", { ...policy, resourceIdOrKey: "public", customMessage: "x".repeat(30_000) });
+  });
+  // A hidden child's overflow must not poison an otherwise readable document.
+  expect((await t.run(ctx => createPublicSearchSourceReader(ctx)({ contentType: "page", contentId: ids.post })))?.content).toBe("");
+  await t.run(async ctx => {
+    const publicPolicy = await ctx.db.query("membership_restriction_rules").withIndex("by_resource", q => q.eq("resourceType", "block").eq("resourceIdOrKey", "public")).unique();
+    await ctx.db.delete("membership_restriction_rules", publicPolicy!._id);
+  });
+  expect((await t.run(ctx => createPublicSearchSourceReader(ctx)({ contentType: "page", contentId: ids.post })))?.content).toBe("Publicgarden");
+  await t.run(async ctx => {
+    const parent = await ctx.db.query("membership_restriction_rules").withIndex("by_resource", q => q.eq("resourceType", "block").eq("resourceIdOrKey", "parent")).unique();
+    await ctx.db.patch("membership_restriction_rules", parent!._id, { customMessage: "x".repeat(30_000) });
+  });
+  const budget = new RequestReadLedger({ queries: 256, documents: 2048, bytes: 25_000, documentBytes: 512 * 1024 });
+  await expect(t.run(ctx => createPublicSearchSourceReader(ctx, Date.now(), budget)({ contentType: "page", contentId: ids.post }))).rejects.toThrow("CANONICAL_READ_BUDGET");
+});

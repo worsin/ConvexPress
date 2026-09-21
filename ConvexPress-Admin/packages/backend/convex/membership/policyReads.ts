@@ -1,4 +1,5 @@
-/** Internal policy reads. Each function owns one bounded pagination journal. */
+/** Internal policy reads. Paginated readers own separate journals; the block
+ * batch uses bounded exact-index reads and refuses overflow before projection. */
 import { ConvexError, v, getDocumentSize, type Value, type Validator } from "convex/values";
 import type { PaginationResult, RegisteredQuery } from "convex/server";
 import { internalQuery, type QueryCtx } from "../_generated/server";
@@ -70,6 +71,31 @@ export const measuredRules: RegisteredQuery<"internal", RuleArgs, Promise<Measur
   handler: async (ctx, args): Promise<MeasuredPolicyPage<RuleResult>> => {
     const rows = await readRuleRows(ctx, args);
     return { items: projectRules(rows), rows: rows.length, bytes: rows.reduce((sum, row) => sum + getDocumentSize(row), 0) };
+  },
+});
+
+export type BlockRuleBatchArgs = { keys: string[] };
+/** Coalesce exact indexed lookups, not a scan of unrelated site policy. The
+ * child query bounds its own reads; the caller charges all raw rows/bytes. A
+ * partial or overflowing target never becomes a cached empty/allowed policy. */
+export const measuredBlockRules: RegisteredQuery<"internal", BlockRuleBatchArgs, Promise<MeasuredPolicyPage<RuleResult>>> = internalQuery({
+  args: { keys: v.array(v.string()) },
+  returns: v.object({ items: v.array(policyRuleValidator), rows: v.number(), bytes: v.number() }),
+  handler: async (ctx, args) => {
+    if (!args.keys.length || args.keys.length > 128 || args.keys.some(key => !key.length || key.length > 256) || new Set(args.keys).size !== args.keys.length)
+      throw new ConvexError({ code: "MEMBERSHIP_POLICY_KEYS", message: "Block policy batches require up to 128 distinct bounded keys." });
+    const rows: Doc<"membership_restriction_rules">[] = [];
+    let bytes = 0;
+    for (const key of args.keys) {
+      const selected = await ctx.db.query("membership_restriction_rules")
+        .withIndex("by_resource", q => q.eq("resourceType", "block").eq("resourceIdOrKey", key))
+        .take(Math.min(POLICY_PAGE.numItems + 1, 2048 - rows.length + 1));
+      bytes += selected.reduce((sum, row) => sum + getDocumentSize(row), 0);
+      if (selected.length > POLICY_PAGE.numItems || rows.length + selected.length > 2048 || bytes > POLICY_PAGE.maximumBytesRead)
+        throw new ConvexError({ code: "MEMBERSHIP_POLICY_BUDGET", message: "Membership policy exceeds the safe read budget; access cannot be determined." });
+      rows.push(...selected);
+    }
+    return { items: projectRules(rows), rows: rows.length, bytes };
   },
 });
 export const measuredGrants: RegisteredQuery<"internal", GrantArgs, Promise<MeasuredPolicyPage<GrantResult>>> = internalQuery({
