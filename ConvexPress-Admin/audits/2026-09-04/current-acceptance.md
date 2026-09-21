@@ -66,6 +66,8 @@ Every row remains open at full requirement scope. Consult the exact source requi
 
 ## Block evidence inventory
 
+September21 lead-magnet lifecycle: repaired stale receipt/download/unsubscribe completion after account round trips and authority/readiness changes; eight real-provider cases and two four-pack desktop/mobile UI cases pass. MagicTables existence/resolver/plugin metadata is reconciled from source without advancing full acceptance. See [focused evidence](lead-magnet-lifecycle-20260921.md).
+
 137 canonical blocks, 285 examples, 4 packs. Full acceptance is not established for any block solely by this index.
 
 [Machine-readable requirements and all block entries](../../../output/acceptance-reconciliation-20260920/requirements.json) preserve exact original audit bodies, current source hashes and candidate browser-test files.
