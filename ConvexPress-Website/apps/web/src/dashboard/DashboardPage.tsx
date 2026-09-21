@@ -5,9 +5,12 @@
  */
 
 import { CircleDashed } from "lucide-react";
+import type { ReactNode } from "react";
 
 import { NotFoundPage } from "@/components/blog/NotFoundPage";
+import { useCapabilityAccess } from "@/hooks/useCan";
 import { getPageModule } from "./registry";
+import { useDashboardShell } from "./shell/DashboardShellContext";
 
 interface DashboardPageProps {
   id: string;
@@ -16,6 +19,29 @@ interface DashboardPageProps {
 }
 
 export function DashboardPage({ id, subpath = "" }: DashboardPageProps) {
+  const { registry } = useDashboardShell();
+  if (!registry) return <PageLoading />;
+  // The same reactive registry governs navigation and direct URLs, including
+  // generated extensions and pages already open when their owner is disabled.
+  const definition = registry.pages.find((page) => page.id === id);
+  if (!definition) return <NotFoundPage />;
+  const page = <AllowedDashboardPage id={id} subpath={subpath} />;
+  return definition.capability
+    ? <CapabilityGate capability={definition.capability}>{page}</CapabilityGate>
+    : page;
+}
+
+function CapabilityGate({ capability, children }: { capability: string; children: ReactNode }) {
+  const access = useCapabilityAccess(capability);
+  if (access === "pending") return <PageLoading />;
+  return access === "allowed" ? children : <NotFoundPage />;
+}
+
+function PageLoading() {
+  return <p role="status" className="p-6 text-sm text-muted-foreground">Loading page…</p>;
+}
+
+function AllowedDashboardPage({ id, subpath = "" }: DashboardPageProps) {
   const module = getPageModule(id);
   if (!module) return <PageUnavailable id={id} />;
   if (module.matchSubpath && !module.matchSubpath(subpath)) return <NotFoundPage />;

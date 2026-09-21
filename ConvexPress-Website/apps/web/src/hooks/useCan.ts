@@ -49,7 +49,7 @@ import {
  * to get capabilities, slug, and level. This is a separate reactive query
  * so role changes propagate to capability checks in real-time.
  */
-function useWebsiteAuthUser(): WebsiteAuthUser | null {
+function useWebsiteAuthUser(): WebsiteAuthUser | null | undefined {
   const { user } = useCurrentUser();
 
   // Fetch the user's role to get capabilities, slug, and level.
@@ -62,6 +62,7 @@ function useWebsiteAuthUser(): WebsiteAuthUser | null {
   );
 
   return useMemo(() => {
+    if (user === undefined || (user?.roleId && role === undefined)) return undefined;
     if (!user) return null;
 
     // Role data may still be loading -- provide empty capabilities until loaded.
@@ -82,6 +83,13 @@ function useWebsiteAuthUser(): WebsiteAuthUser | null {
 }
 
 // --- Hooks ---
+
+/** Distinguishes unresolved role data from a confirmed denial for route gates. */
+export function useCapabilityAccess(capability: string): "pending" | "allowed" | "denied" {
+  const user = useWebsiteAuthUser();
+  return user === undefined ? "pending" : userCan(user, capability) ? "allowed" : "denied";
+}
+
 
 /**
  * Check if the current user has a specific capability.
