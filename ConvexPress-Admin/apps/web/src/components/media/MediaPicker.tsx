@@ -265,6 +265,7 @@ function MediaPickerContent({
                     maxLength={256}
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
+                    aria-label="Search media"
                     placeholder="Search media..."
                     className="w-full pl-7 pr-2 py-1 border border-border bg-background text-xs rounded-none focus:outline-hidden focus:ring-1 focus:ring-primary"
                   />
@@ -290,40 +291,49 @@ function MediaPickerContent({
                   </div>
                 ) : (
                   <div className="grid grid-cols-4 gap-1">
-                    {items.map((item: { _id: Id<"media">; mediaType: string; url?: string; altText?: string; title: string }) => {
+                    {items.map((item: { _id: Id<"media">; mediaType: string; url?: string; altText?: string; title: string; fileName?: string }) => {
                       const isSelected = pendingId === item._id;
                       const isImage = item.mediaType === "image";
+                      const itemLabel = item.title.trim() || item.fileName || "Untitled media";
                       return (
                         <button
                           key={item._id}
                           type="button"
+                          aria-label={`Select ${itemLabel} (${item.mediaType})`}
+                          aria-pressed={isSelected}
+                          title={itemLabel}
                           onClick={() => setPendingId(item._id)}
                           className={cn(
-                            "relative aspect-square border transition-all",
+                            "relative flex aspect-square min-w-0 flex-col overflow-hidden border transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary",
                             isSelected
                               ? "border-primary ring-2 ring-primary/50"
                               : "border-border hover:border-muted-foreground",
                           )}
                         >
-                          {isImage && item.url ? (
-                            <img
-                              src={item.url}
-                              alt={item.altText || item.title}
-                              className="size-full object-cover"
-                            />
-                          ) : (
-                            <div className="flex items-center justify-center size-full bg-muted/50">
-                              {item.mediaType === "video" ? (
-                                <VideoIcon className="size-4 text-muted-foreground" />
-                              ) : item.mediaType === "audio" ? (
-                                <MusicIcon className="size-4 text-muted-foreground" />
-                              ) : (
-                                <FileIcon className="size-4 text-muted-foreground" />
-                              )}
-                            </div>
-                          )}
+                          <div className="min-h-0 w-full flex-1 overflow-hidden">
+                            {isImage && item.url ? (
+                              <img
+                                src={item.url}
+                                alt={item.altText || item.title}
+                                className="size-full object-cover"
+                              />
+                            ) : (
+                              <div className="flex items-center justify-center size-full bg-muted/50">
+                                {item.mediaType === "video" ? (
+                                  <VideoIcon className="size-4 text-muted-foreground" />
+                                ) : item.mediaType === "audio" ? (
+                                  <MusicIcon className="size-4 text-muted-foreground" />
+                                ) : (
+                                  <FileIcon className="size-4 text-muted-foreground" />
+                                )}
+                              </div>
+                            )}
+                          </div>
+                          <span className="block w-full shrink-0 truncate border-t border-border bg-card px-1.5 py-1 text-left text-[11px] leading-4 text-foreground">
+                            {itemLabel}
+                          </span>
                           {isSelected && (
-                            <div className="absolute top-0.5 right-0.5 size-4 bg-primary rounded-full flex items-center justify-center">
+                            <div aria-hidden="true" className="absolute top-0.5 right-0.5 size-4 bg-primary rounded-full flex items-center justify-center">
                               <svg
                                 className="size-2.5 text-primary-foreground"
                                 fill="none"

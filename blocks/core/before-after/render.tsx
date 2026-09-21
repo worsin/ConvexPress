@@ -1,5 +1,5 @@
 /** Staged Library treatment. No legacy activation. */
-import { useId, useState } from "react";
+import { type CSSProperties, useId, useState } from "react";
 import {
 	defineBlock,
 	BlockRenderError,
@@ -25,19 +25,18 @@ export default defineBlock("core/before-after", ({ attrs, resources }) => {
 	const afterLabel = attrs.afterLabel.trim() || "After";
 	return (
 		<P.Stack gap="md">
-			<div className="cp-library-comparison">
+			<div
+				className="cp-library-comparison"
+				style={{ "--comparison-position": `${position}%` } as CSSProperties}
+			>
 				<div className="cp-library-comparison-before">
 					<ResolvedImage {...attrs.before} resources={resources} />
 				</div>
-				<div
-					className="cp-library-comparison-after"
-					style={{ clipPath: `inset(0 0 0 ${position}%)` }}
-				>
+				<div className="cp-library-comparison-after">
 					<ResolvedImage {...attrs.after} resources={resources} />
 				</div>
 				<div
 					className="cp-library-comparison-line"
-					style={{ left: `${position}%` }}
 					aria-hidden="true"
 				/>
 				<span className="cp-library-comparison-label" data-side="before">
