@@ -386,6 +386,7 @@ async function commit(
 		);
 		// Dependency reconciliation already succeeded for this exact candidate.
 		await clearSyncedConsumerDirty(ctx, post._id, budget);
+		await authoringUpdatedEvent(ctx, { ...post, ...value }, Object.keys(value), budget, post);
 	}
 	return {
 		postId: post._id,
@@ -684,6 +685,17 @@ export async function getPublicDocument(ctx: QueryCtx, args: { postId: Id<"posts
 import { replacePublicationSchedule, clearPublicationSchedule } from "../helpers/publicationSchedule";
 import { emitEvent } from "../helpers/events";
 import { PAGE_EVENTS, POST_EVENTS, SYSTEM } from "../events/constants";
+/** Canonical authoring uses the same incremental listeners as the original
+ * editors. Only identities and field names enter the event; protected bodies
+ * and access secrets stay in the authorized source document. */
+async function authoringUpdatedEvent(ctx: MutationCtx, post: Doc<"posts">, fields: string[], budget: RequestReadLedger, previous: Doc<"posts">): Promise<void> {
+  await emitEvent(ctx, post.type === "page" ? PAGE_EVENTS.UPDATED : POST_EVENTS.UPDATED,
+    post.type === "page" ? SYSTEM.PAGE : SYSTEM.POST, {
+      postId: post._id, ...(post.type === "page" ? { pageId: post._id } : {}),
+      title: post.title, authorId: post.authorId, changedFields: fields,
+      changes: fields.map(field => ({ field, ...(field === "slug" ? { oldValue: previous.slug, newValue: post.slug } : {}) })),
+    }, undefined, budget);
+}
 export type PublicationArgs = { postId: Id<"posts">; expectedRevision: number; status: PublicationStatus; scheduledAt?: number };
 async function publishedEvent(ctx: MutationCtx, post: Doc<"posts">, now: number, scheduled: boolean, budget: RequestReadLedger): Promise<void> {
   await emitEvent(ctx, post.type === "page" ? PAGE_EVENTS.PUBLISHED : POST_EVENTS.PUBLISHED, post.type === "page" ? SYSTEM.PAGE : SYSTEM.POST, { postId: post._id, ...(post.type === "page" ? { pageId: post._id } : {}), title: post.title, authorId: post.authorId, publishedAt: now, url: post.type === "page" ? post.path ?? `/${post.slug}` : `/blog/${post.slug}`, scheduledPublish: scheduled }, undefined, budget);
@@ -829,6 +841,7 @@ export async function recoverLegacyDocument(ctx: MutationCtx, args: LegacyRecove
   await snapshot(ctx, post, String(user._id), budget);
   const permit = permitValidatedLegacyRecoveryWrite({ table: "posts", operation: "patch", id: post._id, previous: post, value });
   await patchWithMediaReferences(ctx, "posts", post._id, value, permit, budget);
+  await authoringUpdatedEvent(ctx, candidate, Object.keys(value), budget, post);
   return parseCanonicalRecoveryReceipt({ postId: post._id, revision: authoringRevision(candidate), blocksVersion: 1, authoringDigest: authoringSourceDigest(candidate) });
 }
 
@@ -979,7 +992,12 @@ export async function setDocumentSettings(ctx: MutationCtx, args: CanonicalSetti
   await snapshot(ctx,post,String(user._id),budget);
   const permit = permitValidatedCanonicalAuthoringWrite({table:"posts",operation:"patch",id:postId,previous:post,value:patch});
   await patchWithMediaReferences(ctx,"posts",postId,patch,permit,budget);
-  for (const route of routes.slice(1)) await patchWithMediaReferences(ctx,"posts",route.post._id,{path:route.path,depth:route.depth,updatedAt:Date.now()},undefined,budget);
+  await authoringUpdatedEvent(ctx, {...post,...patch}, Object.keys(patch), budget, post);
+  for (const route of routes.slice(1)) {
+    const routePatch = {path:route.path,depth:route.depth,updatedAt:Date.now()};
+    await patchWithMediaReferences(ctx,"posts",route.post._id,routePatch,undefined,budget);
+    await authoringUpdatedEvent(ctx, {...route.post,...routePatch}, Object.keys(routePatch), budget, route.post);
+  }
   return {postId,revision,digest:prepared.digest,changed:true};
 }
 

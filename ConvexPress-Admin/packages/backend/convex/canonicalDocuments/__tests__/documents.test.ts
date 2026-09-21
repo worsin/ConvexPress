@@ -2295,3 +2295,41 @@ test("canonical access changes require publishing authority without blocking ord
   expect((await f.client.mutation(reference("setSettings", "mutation"), settingsWrite(current, { hideFooter: true }))).changed).toBe(true);
   const row = await f.t.run(ctx => ctx.db.get("posts", f.ids.post)); expect(row?.status).toBe("draft"); expect(row?.visibility).toBe("public"); expect(row?.password).toBeUndefined();
 });
+
+test("canonical writes and recovery notify content listeners, while no-ops and conflicts stay silent", async () => {
+  for (const type of ["page", "post"] as const) {
+    const f = await fixture();
+    await f.t.run(ctx => ctx.db.patch("posts", f.ids.post, { type }));
+    const updates = () => f.t.run(async ctx => (await ctx.db.query("events").take(30)).filter(event => event.code === `${type}.updated`));
+    const first = await initialize(f);
+    expect(await updates()).toHaveLength(1);
+    await f.client.mutation(reference("save", "mutation"), { postId: f.ids.post, expectedRevision: first.revision, title: "Disposable draft", blocks: tree });
+    expect(await updates()).toHaveLength(1);
+    const saved = await f.client.mutation(reference("save", "mutation"), { postId: f.ids.post, expectedRevision: first.revision, title: "Searchable changed title", blocks: tree });
+    expect(await updates()).toHaveLength(2);
+    await expect(f.client.mutation(reference("save", "mutation"), { postId: f.ids.post, expectedRevision: first.revision, title: "Stale title", blocks: tree })).rejects.toThrow();
+    expect(await updates()).toHaveLength(2);
+    const history = await f.client.query(reference("pageRevisions"), { postId: f.ids.post, paginationOpts: { cursor: null, numItems: 20 } });
+    const original = history.page.find((row: any) => row.action === "restore-canonical")!;
+    const restored = await f.client.mutation(reference("restore", "mutation"), { postId: f.ids.post, revisionId: original.id, expectedRevision: saved.revision });
+    expect(await updates()).toHaveLength(3);
+    const settings = await f.client.query(reference("getSettings"), { postId: f.ids.post });
+    const settingsArgs = { postId: f.ids.post, expectedRevision: restored.revision, expectedSettingsDigest: settings.settingsDigest, slug: settings.slug + "-updated", pageTemplate: settings.pageTemplate, hideHeader: true, hideFooter: false };
+    const changed = await f.client.mutation(reference("setSettings", "mutation"), settingsArgs);
+    expect(await updates()).toHaveLength(4);
+    expect(JSON.parse((await updates())[3]!.payload).changes).toContainEqual({ field: "slug", oldValue: settings.slug, newValue: settings.slug + "-updated" });
+    const current = await f.client.query(reference("getSettings"), { postId: f.ids.post });
+    await f.client.mutation(reference("setSettings", "mutation"), { ...settingsArgs, expectedRevision: current.revision, expectedSettingsDigest: current.settingsDigest });
+    expect(await updates()).toHaveLength(4);
+    const legacy = history.page.find((row: any) => row.action === "recover-legacy")!;
+    await f.client.mutation(reference("recoverLegacy", "mutation"), { postId: f.ids.post, revisionId: legacy.id, expectedRevision: changed.revision });
+    const events = await updates();
+    expect(events).toHaveLength(5);
+    for (const event of events) {
+      expect(event.system).toBe(type);
+      expect(JSON.parse(event.payload)).toMatchObject({ postId: f.ids.post, ...(type === "page" ? { pageId: f.ids.post } : {}) });
+      expect(JSON.parse(event.payload)).not.toHaveProperty("blocks");
+      expect(JSON.parse(event.payload)).not.toHaveProperty("content");
+    }
+  }
+});
