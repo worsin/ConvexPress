@@ -10,6 +10,12 @@
 .cp-owned-depot .depot-price .cp-text { font-variant-numeric: tabular-nums; font-size: clamp(1.8rem, 3vw, 3rem); line-height: 1.1; letter-spacing: -.04em; }
 .cp-owned-depot .depot-story { display: flex; flex-direction: column; gap: var(--stack-gap-md, 1.25rem); }
 .cp-owned-depot .depot-form-fields { min-width: 0; }
+.cp-owned-depot .depot-form { max-inline-size: none; container: depot-form / inline-size; }
+.cp-owned-depot .depot-form > .cp-split { grid-template-columns: minmax(0, 1fr); }
+.cp-owned-depot .depot-form .cp-heading { font-size: clamp(1.75rem, 3.5cqi, 2.5rem); }
+@container depot-form (min-width: 52rem) {
+  .cp-owned-depot .depot-form > .cp-split { grid-template-columns: minmax(0, 1fr) minmax(0, 1.5fr); }
+}
 @media (max-width: 640px) { .cp-owned-depot .depot-banner-image img { aspect-ratio: 16/9; } }
 
 .cp-owned-depot .depot-hero .cp-heading { font-size: clamp(2rem, 4vw, 4rem); max-width: 22ch; }

@@ -1,3 +1,6 @@
+// Resolve through Vite's module graph: an HTML ../src link escapes the demo root
+// in development and receives the HTML fallback instead of the Website CSS.
+import "../src/index.css";
 import { useState, type ComponentType } from "react";
 import { createRoot } from "react-dom/client";
 import {

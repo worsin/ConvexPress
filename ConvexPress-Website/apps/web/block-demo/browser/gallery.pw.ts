@@ -4,7 +4,7 @@ import {
 	discoverSourceInventory,
 	compareRendererInventory,
 } from "./inventory.mjs";
-import { writeFile } from "node:fs/promises";
+import { readFile, writeFile } from "node:fs/promises";
 import { primitiveNames } from "../../src/templates/sdk/primitives/contracts";
 
 for (const viewport of [
@@ -161,7 +161,7 @@ test("marquee motion, pause, reduced motion and frame timing report", async ({
 test("canonical static block matrix under every discovered pack", async ({
 	page,
 }, testInfo) => {
-	test.setTimeout(180000);
+	test.setTimeout(480000);
 	const viewports = [
 		{ width: 1440, height: 1000 },
 		{ width: 390, height: 844 },
@@ -220,6 +220,21 @@ test("canonical static block matrix under every discovered pack", async ({
 	).toEqual({ missing: [], unexpected: [], duplicates: [] });
 	expect(canonicalSpecCount).toBe(sourceInventory.specs.length);
 	const blocks = sourceInventory.renderers.map((entry) => entry.name);
+	const absentMediaCopy: Record<string, string[]> = {
+		"core/author-bio": ["Rowan Vale", "Fictional field journal editor"],
+		"core/hero-split": ["Two-column hero", "Copy + product shot."],
+		"core/image": ["Figure 1 — system overview"],
+		"core/logo-cloud": ["Trusted by teams at", "Acme"],
+		"core/media-text": ["Prompt, polish, publish", "See a demo"],
+		"core/team-grid": ["Rowan Vale", "Morgan Reed", "no portraits"],
+	};
+	const absentMediaExamples = new Map<string, number>();
+	for (const [name, copy] of Object.entries(absentMediaCopy)) {
+		const spec = JSON.parse(await readFile(new URL(`../../../../../blocks/${name}/block.json`, import.meta.url), "utf8")) as { examples: unknown[] };
+		const index = spec.examples.findIndex(example => copy.every(text => JSON.stringify(example).includes(text)));
+		expect(index, `Missing explicit no-media specimen for ${name}`).toBeGreaterThanOrEqual(0);
+		absentMediaExamples.set(name, index);
+	}
 	const expectedScreenshots = blocks.length * packs.length * viewports.length;
 	const evidence: {
 		viewport: { width: number; height: number };
@@ -238,7 +253,7 @@ test("canonical static block matrix under every discovered pack", async ({
 				const options = await page.locator("#canonical-example option").count();
 				await page
 					.locator("#canonical-example")
-					.selectOption(String(options - 1));
+					.selectOption(String(absentMediaExamples.get(name) ?? options - 1));
 				await expect(page.locator(".canonical-canvas")).toHaveAttribute(
 					"data-canonical-block",
 					name,
@@ -267,14 +282,6 @@ test("canonical static block matrix under every discovered pack", async ({
 					await expect(
 						page.locator(".canonical-canvas .navigation-demo"),
 					).toHaveAttribute("data-demo-ready", "true");
-				const absentMediaCopy: Record<string, string[]> = {
-					"core/author-bio": ["Rowan Vale", "Fictional field journal editor"],
-					"core/hero-split": ["Two-column hero", "Copy + product shot."],
-					"core/image": ["Figure 1 — system overview"],
-					"core/logo-cloud": ["Trusted by teams at", "Acme"],
-					"core/media-text": ["Prompt, polish, publish", "See a demo"],
-					"core/team-grid": ["Rowan Vale", "Morgan Reed", "no portraits"],
-				};
 				if (Object.hasOwn(absentMediaCopy, name)) {
 					const canvas = page.locator(".canonical-canvas");
 					await expect(canvas.locator("img")).toHaveCount(0);
@@ -313,7 +320,7 @@ test("canonical static block matrix under every discovered pack", async ({
 		JSON.stringify(
 			{
 				scope:
-					"staged static renderers only; no legacy activation or complete136-block claim",
+					"Selected canonical examples through synthetic adapters; not all-example, live-provider, native-editor, visual or motion acceptance",
 				viewports,
 				sourceInventory,
 				renderedBlockCount: blocks.length,

@@ -15,15 +15,28 @@ export function useDownloadPurchase() {
   const begin = useMutation(beginLease);
   const { userId, sessionId } = useAuth();
   const auth = useConvexAuth(), connection = useLiveConnection();
-  const scope = `${getSiteRuntime().convexUrl}|${userId ?? "guest"}|${sessionId ?? "guest"}`;
-  const currentScope = useRef(scope);
-  currentScope.current = scope;
+  const runtime = getSiteRuntime();
+  const scope = JSON.stringify([runtime.convexUrl, runtime.instanceKey, userId, sessionId, auth.isLoading, auth.isAuthenticated]);
+  const lifetime = useRef({ scope, generation: 0, active: false });
+  if (lifetime.current.scope !== scope) {
+    lifetime.current.scope = scope;
+    lifetime.current.generation++;
+  }
   const attempts = useRef(new Map<string, Attempt>());
   const [busyTokens, setBusyTokens] = useState<ReadonlySet<string>>(new Set());
-  useEffect(() => { attempts.current.clear(); setBusyTokens(new Set()); }, [scope]);
+  useEffect(() => {
+    lifetime.current.active = true;
+    attempts.current.clear();
+    setBusyTokens(new Set());
+    return () => {
+      lifetime.current.active = false;
+      lifetime.current.generation++;
+      attempts.current.clear();
+    };
+  }, [scope]);
 
   async function download(token: string): Promise<void> {
-    if (auth.isLoading || !auth.isAuthenticated || !connection.isWebSocketConnected) throw Error("Reconnect before starting a download.");
+    if (!lifetime.current.active || lifetime.current.scope !== scope || auth.isLoading || !auth.isAuthenticated || !connection.isWebSocketConnected) throw Error("Reconnect before starting a download.");
     let attempt = attempts.current.get(token);
     if (attempt?.busy) return;
     if (!attempt || (attempt.expiresAt !== undefined && attempt.expiresAt <= Date.now())) {
@@ -31,8 +44,11 @@ export function useDownloadPurchase() {
       attempt = { secret: Array.from(bytes, value => value.toString(16).padStart(2, "0")).join(""), requestId: crypto.randomUUID(), busy: false };
       attempts.current.set(token, attempt);
     }
-    const activeScope = scope;
-    const assertCurrent = () => { if (currentScope.current !== activeScope) throw Error("Your account or site changed. Start the download again."); };
+    const generation = lifetime.current.generation;
+    // Scope equality alone misses switching away and back. A late response must
+    // belong to this mounted host and this exact authority generation.
+    const isCurrent = () => lifetime.current.active && lifetime.current.scope === scope && lifetime.current.generation === generation;
+    const assertCurrent = () => { if (!isCurrent()) throw Error("Your account or site changed, or this page closed. Start the download again."); };
     attempt.busy = true;
     setBusyTokens(previous => new Set([...previous, token]));
     try {
@@ -42,7 +58,7 @@ export function useDownloadPurchase() {
       const path = `/api/downloads/${encodeURIComponent(lease.leaseId)}`;
       const response = await fetch(path, { method: "POST", credentials: "same-origin", headers: { Accept: "application/json", "Content-Type": "application/x-www-form-urlencoded" }, body: new URLSearchParams({ secret: attempt.secret }) });
       if (response.status !== 204) {
-        if (response.status === 403 && currentScope.current === activeScope) attempts.current.delete(token);
+        if (response.status === 403 && isCurrent()) attempts.current.delete(token);
         throw Error("The download could not start. Please try again.");
       }
       assertCurrent();
@@ -55,13 +71,13 @@ export function useDownloadPurchase() {
       attempts.current.delete(token);
     } catch (error) {
       if (error instanceof ConvexError && error.data && typeof error.data === "object" && "code" in error.data) {
-        if (error.data.code === "DOWNLOAD_UNAVAILABLE" && currentScope.current === activeScope) attempts.current.delete(token);
+        if (error.data.code === "DOWNLOAD_UNAVAILABLE" && isCurrent()) attempts.current.delete(token);
         throw Error("This download is currently unavailable. Refresh your purchases and try again.");
       }
       throw error;
     } finally {
       attempt.busy = false;
-      if (currentScope.current === activeScope) setBusyTokens(previous => { const next = new Set(previous); next.delete(token); return next; });
+      if (isCurrent()) setBusyTokens(previous => { const next = new Set(previous); next.delete(token); return next; });
     }
   }
   return { download, busyTokens };

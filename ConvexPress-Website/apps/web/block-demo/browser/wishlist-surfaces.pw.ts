@@ -8,6 +8,12 @@ for (const width of [1440, 390])
 		const errors: string[] = [];
 		page.on("pageerror", (error) => errors.push(error.message));
 		await page.goto("/wishlist-surfaces.html", { waitUntil: "networkidle" });
+		// Prove the real Website utility sheet loaded before evaluating pack layout.
+		await expect(page.locator("body")).toHaveCSS("margin", "0px");
+		await expect(page.locator("#surface-canvas img").first()).toHaveCSS(
+			"object-fit",
+			"cover",
+		);
 		for (const pack of ["core", "journal", "depot", "aster-house"]) {
 			await page.locator("#surface-pack").selectOption(pack);
 			const canvas = page.locator("#surface-canvas");
