@@ -24,16 +24,20 @@ export function asId<T extends TableNames>(id: string): Id<T> {
  * and falls back to a default message.
  */
 export function getErrorMessage(error: unknown, fallback = "An error occurred"): string {
-  if (error instanceof Error) {
-    return error.message;
+  // ConvexError extends Error, so inspect its public payload before the
+  // diagnostic Error.message (which includes server stack and request data).
+  if (typeof error === "object" && error !== null && "data" in error) {
+    const data: unknown = error.data;
+    if (typeof data === "string" && data.trim()) return data;
+    if (typeof data === "object" && data !== null && "message" in data &&
+      typeof data.message === "string" && data.message.trim()) return data.message;
+    return fallback;
   }
-  if (
-    typeof error === "object" &&
-    error !== null &&
-    "data" in error &&
-    typeof (error as { data?: { message?: string } }).data?.message === "string"
-  ) {
-    return (error as { data: { message: string } }).data.message;
+  if (error instanceof Error) {
+    // Unexpected Convex failures carry transport/request/stack diagnostics, not
+    // a reviewed public message. Keep those out of user-facing notifications.
+    if (error.message.startsWith("[CONVEX ")) return fallback;
+    return error.message || fallback;
   }
   return fallback;
 }

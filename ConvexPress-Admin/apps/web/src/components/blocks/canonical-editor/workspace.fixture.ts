@@ -1,0 +1,16 @@
+export { CanonicalDocumentWorkspace } from "./CanonicalDocumentWorkspace";
+export * from "./document-adapter";
+export { canonicalContentDigest } from "@backend/canonical-blocks-foundation/documentContracts";
+export { resolveCanonicalData } from "@backend/canonical-blocks-foundation/resolve";
+export { resolveCanonicalDataWithDefinitions } from "@backend/canonical-blocks-foundation/resolve";
+export { CanonicalPublicationControls } from "./CanonicalPublicationControls";
+export { migrationIssue } from "./CanonicalMigrationReview";
+export {useCanonicalDocumentQuery} from "./document-query";
+export {recoverableCanonicalRead} from "./read-recovery";
+export {ConvexProvider} from "convex/react";
+export {CanonicalSettingsControls} from "./CanonicalSettingsControls";
+export { encodeComposedDefinition } from "@backend/canonical-blocks-foundation/composedDefinitions";
+export { createComposedRegistry } from "@backend/canonical-blocks-foundation/composedRegistry";
+export { composedEditorContract } from "../schema-editor/composed-contract";
+export { applyPickerResult, validateDraft } from "../schema-editor/model";
+export { customBlockOptions, appendCustomBlock } from "./composed-picker";

@@ -83,6 +83,8 @@ Thumbs.db
 **/convex/_generated/
 !ConvexPress-Admin/packages/backend/convex/_generated/
 !ConvexPress-Admin/packages/backend/convex/_generated/**
+!ConvexPress-Admin/packages/control-plane/convex/_generated/
+!ConvexPress-Admin/packages/control-plane/convex/_generated/**
 
 # Local Claude Code workspace state
 .claude/projects/

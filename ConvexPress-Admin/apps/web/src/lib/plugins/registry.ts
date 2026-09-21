@@ -95,6 +95,7 @@ export interface AdminPluginDefinition {
    * plugins set it via `DEFAULT_PLUGIN_SETTINGS` below.
    */
   defaultEnabled?: boolean;
+  parentId?: string;
   /**
    * Optional. Source: "platform" = hand-edited in this repo;
    * "official" = scanner-discovered from apps/web/src/extensions/;
@@ -367,7 +368,7 @@ const PLATFORM_DEFAULT_SETTINGS: BuiltinPluginSettingsValues = {
 export const DEFAULT_PLUGIN_SETTINGS: PluginSettingsValues = (() => {
   const merged: Record<string, boolean> = { ...PLATFORM_DEFAULT_SETTINGS };
   for (const ext of [...OFFICIAL_EXTENSIONS, ...LOCAL_EXTENSIONS]) {
-    if (!merged.hasOwnProperty(ext.settingsKey)) {
+    if (!Object.hasOwn(merged, ext.settingsKey)) {
       merged[ext.settingsKey] = ext.defaultEnabled ?? false;
     }
   }
@@ -386,6 +387,7 @@ export const PLUGIN_PARENT: Partial<Record<string, AdminPluginId>> = {
   commerceBundles: "commerce",
   commerceReturns: "commerce",
   commerceSubscriptions: "commerce",
+  ...Object.fromEntries([...OFFICIAL_EXTENSIONS, ...LOCAL_EXTENSIONS].filter(plugin => plugin.parentId).map(plugin => [plugin.id, plugin.parentId])),
 };
 
 export function getPluginDefinition(pluginId: AdminPluginId) {
@@ -399,12 +401,14 @@ export function getPluginParent(pluginId: AdminPluginId) {
 export function isPluginEnabled(
   pluginId: AdminPluginId,
   values: Partial<PluginSettingsValues> | null | undefined,
+  seen = new Set<string>(),
 ) {
   const plugin = getPluginDefinition(pluginId);
-  if (!plugin) return true;
-  const merged = { ...DEFAULT_PLUGIN_SETTINGS, ...(values ?? {}) };
+  if (!plugin || seen.has(pluginId)) return false;
+  seen.add(pluginId);
+  const merged = { ...DEFAULT_PLUGIN_SETTINGS, ...values };
   const parentId = getPluginParent(pluginId);
-  if (parentId && !isPluginEnabled(parentId, merged)) {
+  if (parentId && !isPluginEnabled(parentId, merged, seen)) {
     return false;
   }
   return Boolean(merged[plugin.settingsKey]);

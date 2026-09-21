@@ -1,3 +1,5 @@
+import { syncedBlockTables } from "./schema/syncedBlocks";
+import { blockDefinitionTables } from "./schema/blockDefinitions";
 import { defineSchema } from "convex/server";
 import type {} from "./types/convexQueryBuilder";
 
@@ -67,6 +69,8 @@ import { integrationsTables } from "./schema/integrations";
 
 // ─── Compose Schema ──────────────────────────────────────────────────────────
 export default defineSchema({
+  ...syncedBlockTables,
+  ...blockDefinitionTables,
   ...usersTables,
   ...rolesTables,
   ...eventsTables,

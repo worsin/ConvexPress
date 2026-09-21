@@ -1,0 +1,1777 @@
+{
+  "blocks/contact-stack": {
+    "category": "site",
+    "description": "A contact information section with phone, email, address, hours, extra rows, and optional map embed.",
+    "keywords": [
+      "site",
+      "contact",
+      "map",
+      "address",
+      "hours",
+      "email"
+    ],
+    "previews": {
+      "aster-house": "/block-thumbnails/aster-house/blocks--contact-stack.jpg",
+      "core": "/block-thumbnails/core/blocks--contact-stack.jpg",
+      "depot": "/block-thumbnails/depot/blocks--contact-stack.jpg",
+      "journal": "/block-thumbnails/journal/blocks--contact-stack.jpg"
+    }
+  },
+  "blocks/customer-showcase": {
+    "category": "marketing",
+    "description": "Customer quotes and project showcases with images, roles, companies, and links.",
+    "keywords": [
+      "customer",
+      "testimonial",
+      "showcase",
+      "project",
+      "portfolio"
+    ],
+    "previews": {
+      "aster-house": "/block-thumbnails/aster-house/blocks--customer-showcase.jpg",
+      "core": "/block-thumbnails/core/blocks--customer-showcase.jpg",
+      "depot": "/block-thumbnails/depot/blocks--customer-showcase.jpg",
+      "journal": "/block-thumbnails/journal/blocks--customer-showcase.jpg"
+    }
+  },
+  "blocks/grade-gallery": {
+    "category": "media",
+    "description": "A grade-by-grade gallery for product sets, visual examples, descriptions, and notes.",
+    "keywords": [
+      "site",
+      "grade",
+      "gallery",
+      "product",
+      "figure",
+      "sets"
+    ],
+    "previews": {
+      "aster-house": "/block-thumbnails/aster-house/blocks--grade-gallery.jpg",
+      "core": "/block-thumbnails/core/blocks--grade-gallery.jpg",
+      "depot": "/block-thumbnails/depot/blocks--grade-gallery.jpg",
+      "journal": "/block-thumbnails/journal/blocks--grade-gallery.jpg"
+    }
+  },
+  "blocks/media-mentions": {
+    "category": "marketing",
+    "description": "A curated list of articles, PDFs, videos, or audio features about the site.",
+    "keywords": [
+      "site",
+      "media",
+      "press",
+      "articles",
+      "mentions"
+    ],
+    "previews": {
+      "aster-house": "/block-thumbnails/aster-house/blocks--media-mentions.jpg",
+      "core": "/block-thumbnails/core/blocks--media-mentions.jpg",
+      "depot": "/block-thumbnails/depot/blocks--media-mentions.jpg",
+      "journal": "/block-thumbnails/journal/blocks--media-mentions.jpg"
+    }
+  },
+  "blocks/page-banner": {
+    "category": "marketing",
+    "description": "A marketing page header with optional breadcrumb label, supporting copy, media, and CTA.",
+    "keywords": [
+      "site",
+      "banner",
+      "hero",
+      "page",
+      "header"
+    ],
+    "previews": {
+      "aster-house": "/block-thumbnails/aster-house/blocks--page-banner.jpg",
+      "core": "/block-thumbnails/core/blocks--page-banner.jpg",
+      "depot": "/block-thumbnails/depot/blocks--page-banner.jpg",
+      "journal": "/block-thumbnails/journal/blocks--page-banner.jpg"
+    }
+  },
+  "blocks/product-collection": {
+    "category": "commerce",
+    "description": "A grid, carousel, or grouped product collection with manual fallback cards and dynamic query metadata.",
+    "keywords": [
+      "site",
+      "products",
+      "product",
+      "shop",
+      "carousel",
+      "cart"
+    ],
+    "previews": {
+      "aster-house": "/block-thumbnails/aster-house/blocks--product-collection.jpg",
+      "core": "/block-thumbnails/core/blocks--product-collection.jpg",
+      "depot": "/block-thumbnails/depot/blocks--product-collection.jpg",
+      "journal": "/block-thumbnails/journal/blocks--product-collection.jpg"
+    }
+  },
+  "blocks/promo-band": {
+    "category": "marketing",
+    "description": "A reusable promotional band with supporting copy, media, CTAs, and small detail facts.",
+    "keywords": [
+      "promotion",
+      "campaign",
+      "promo",
+      "cta"
+    ],
+    "previews": {
+      "aster-house": "/block-thumbnails/aster-house/blocks--promo-band.jpg",
+      "core": "/block-thumbnails/core/blocks--promo-band.jpg",
+      "depot": "/block-thumbnails/depot/blocks--promo-band.jpg",
+      "journal": "/block-thumbnails/journal/blocks--promo-band.jpg"
+    }
+  },
+  "blocks/social-share": {
+    "category": "site",
+    "description": "A compact share panel for marketing pages, product stories, posts, and media features.",
+    "keywords": [
+      "site",
+      "share",
+      "social",
+      "facebook",
+      "pinterest",
+      "email"
+    ],
+    "previews": {
+      "aster-house": "/block-thumbnails/aster-house/blocks--social-share.jpg",
+      "core": "/block-thumbnails/core/blocks--social-share.jpg",
+      "depot": "/block-thumbnails/depot/blocks--social-share.jpg",
+      "journal": "/block-thumbnails/journal/blocks--social-share.jpg"
+    }
+  },
+  "blocks/story-timeline": {
+    "category": "marketing",
+    "description": "A chronological story/history timeline with dated milestones, copy, optional images, and links.",
+    "keywords": [
+      "site",
+      "story",
+      "history",
+      "timeline",
+      "milestones"
+    ],
+    "previews": {
+      "aster-house": "/block-thumbnails/aster-house/blocks--story-timeline.jpg",
+      "core": "/block-thumbnails/core/blocks--story-timeline.jpg",
+      "depot": "/block-thumbnails/depot/blocks--story-timeline.jpg",
+      "journal": "/block-thumbnails/journal/blocks--story-timeline.jpg"
+    }
+  },
+  "blocks/studio-services": {
+    "category": "marketing",
+    "description": "A premium editorial studio services section with an eyebrow, headline, short introduction and a responsive grid of quietly bordered service cards. Designed for the Journal template's generous whitespace and display-type headings.",
+    "keywords": [
+      "services",
+      "studio",
+      "editorial",
+      "grid",
+      "journal"
+    ],
+    "previews": {
+      "aster-house": "/block-thumbnails/aster-house/blocks--studio-services.jpg",
+      "core": "/block-thumbnails/core/blocks--studio-services.jpg",
+      "depot": "/block-thumbnails/depot/blocks--studio-services.jpg",
+      "journal": "/block-thumbnails/journal/blocks--studio-services.jpg"
+    }
+  },
+  "blocks/tabbed-content": {
+    "category": "layout",
+    "description": "A real tabbed section for grouped story, process, grade, or product information.",
+    "keywords": [
+      "site",
+      "tabs",
+      "tabbed",
+      "comparison",
+      "grouped"
+    ],
+    "previews": {
+      "aster-house": "/block-thumbnails/aster-house/blocks--tabbed-content.jpg",
+      "core": "/block-thumbnails/core/blocks--tabbed-content.jpg",
+      "depot": "/block-thumbnails/depot/blocks--tabbed-content.jpg",
+      "journal": "/block-thumbnails/journal/blocks--tabbed-content.jpg"
+    }
+  },
+  "business/locations": {
+    "category": "site",
+    "description": "Accessible location cards with addresses, contact details and directions links.",
+    "keywords": [
+      "locations"
+    ],
+    "previews": {
+      "aster-house": "/block-thumbnails/aster-house/business--locations.jpg",
+      "core": "/block-thumbnails/core/business--locations.jpg",
+      "depot": "/block-thumbnails/depot/business--locations.jpg",
+      "journal": "/block-thumbnails/journal/business--locations.jpg"
+    }
+  },
+  "business/menu": {
+    "category": "site",
+    "description": "Categorized menu items with prices, descriptions and clearly authored dietary labels.",
+    "keywords": [
+      "menu"
+    ],
+    "previews": {
+      "aster-house": "/block-thumbnails/aster-house/business--menu.jpg",
+      "core": "/block-thumbnails/core/business--menu.jpg",
+      "depot": "/block-thumbnails/depot/business--menu.jpg",
+      "journal": "/block-thumbnails/journal/business--menu.jpg"
+    }
+  },
+  "business/opening-hours": {
+    "category": "site",
+    "description": "Weekly opening hours with timezone, closed days and dated exceptions.",
+    "keywords": [
+      "opening-hours"
+    ],
+    "previews": {
+      "aster-house": "/block-thumbnails/aster-house/business--opening-hours.jpg",
+      "core": "/block-thumbnails/core/business--opening-hours.jpg",
+      "depot": "/block-thumbnails/depot/business--opening-hours.jpg",
+      "journal": "/block-thumbnails/journal/business--opening-hours.jpg"
+    }
+  },
+  "business/service-list": {
+    "category": "marketing",
+    "description": "Structured services with descriptions, duration, indicative pricing and enquiry links.",
+    "keywords": [
+      "service-list"
+    ],
+    "previews": {
+      "aster-house": "/block-thumbnails/aster-house/business--service-list.jpg",
+      "core": "/block-thumbnails/core/business--service-list.jpg",
+      "depot": "/block-thumbnails/depot/business--service-list.jpg",
+      "journal": "/block-thumbnails/journal/business--service-list.jpg"
+    }
+  },
+  "certificates/verify": {
+    "category": "plugin",
+    "description": "Enter a code to verify a certificate.",
+    "keywords": [
+      "verify"
+    ],
+    "previews": {
+      "aster-house": "/block-thumbnails/aster-house/certificates--verify.jpg",
+      "core": "/block-thumbnails/core/certificates--verify.jpg",
+      "depot": "/block-thumbnails/depot/certificates--verify.jpg",
+      "journal": "/block-thumbnails/journal/certificates--verify.jpg"
+    }
+  },
+  "commerce/assistant-band": {
+    "category": "commerce",
+    "description": "A call-out that invites shoppers to ask the store's shopping assistant, with tappable example questions that open the assistant with that question.",
+    "keywords": [
+      "assistant",
+      "ai",
+      "help",
+      "questions",
+      "shop",
+      "recommendation",
+      "cta"
+    ],
+    "previews": {
+      "aster-house": "/block-thumbnails/aster-house/commerce--assistant-band.jpg",
+      "core": "/block-thumbnails/core/commerce--assistant-band.jpg",
+      "depot": "/block-thumbnails/depot/commerce--assistant-band.jpg",
+      "journal": "/block-thumbnails/journal/commerce--assistant-band.jpg"
+    }
+  },
+  "commerce/brand-list": {
+    "category": "commerce",
+    "description": "Brand logos linking to filtered catalog.",
+    "keywords": [
+      "brand-list"
+    ],
+    "previews": {
+      "aster-house": "/block-thumbnails/aster-house/commerce--brand-list.jpg",
+      "core": "/block-thumbnails/core/commerce--brand-list.jpg",
+      "depot": "/block-thumbnails/depot/commerce--brand-list.jpg",
+      "journal": "/block-thumbnails/journal/commerce--brand-list.jpg"
+    }
+  },
+  "commerce/bundle-offer": {
+    "category": "commerce",
+    "description": "Bundle with combined price and add-all-to-cart.",
+    "keywords": [
+      "bundle-offer"
+    ],
+    "previews": {
+      "aster-house": "/block-thumbnails/aster-house/commerce--bundle-offer.jpg",
+      "core": "/block-thumbnails/core/commerce--bundle-offer.jpg",
+      "depot": "/block-thumbnails/depot/commerce--bundle-offer.jpg",
+      "journal": "/block-thumbnails/journal/commerce--bundle-offer.jpg"
+    }
+  },
+  "commerce/cart-cta": {
+    "category": "commerce",
+    "description": "Cart summary strip with checkout button.",
+    "keywords": [
+      "cart-cta"
+    ],
+    "previews": {
+      "aster-house": "/block-thumbnails/aster-house/commerce--cart-cta.jpg",
+      "core": "/block-thumbnails/core/commerce--cart-cta.jpg",
+      "depot": "/block-thumbnails/depot/commerce--cart-cta.jpg",
+      "journal": "/block-thumbnails/journal/commerce--cart-cta.jpg"
+    }
+  },
+  "commerce/category-tiles": {
+    "category": "commerce",
+    "description": "Live shop categories as image tiles with product counts, linking into the catalog. Pick specific categories or show every visible one.",
+    "keywords": [
+      "categories",
+      "shop",
+      "tiles",
+      "navigation",
+      "collections",
+      "catalog"
+    ],
+    "previews": {
+      "aster-house": "/block-thumbnails/aster-house/commerce--category-tiles.jpg",
+      "core": "/block-thumbnails/core/commerce--category-tiles.jpg",
+      "depot": "/block-thumbnails/depot/commerce--category-tiles.jpg",
+      "journal": "/block-thumbnails/journal/commerce--category-tiles.jpg"
+    }
+  },
+  "commerce/download-library": {
+    "category": "commerce",
+    "description": "Current customer authorized digital purchases and bounded download actions.",
+    "keywords": [
+      "download-library"
+    ],
+    "previews": {
+      "aster-house": "/block-thumbnails/aster-house/commerce--download-library.jpg",
+      "core": "/block-thumbnails/core/commerce--download-library.jpg",
+      "depot": "/block-thumbnails/depot/commerce--download-library.jpg",
+      "journal": "/block-thumbnails/journal/commerce--download-library.jpg"
+    }
+  },
+  "commerce/product-compare": {
+    "category": "commerce",
+    "description": "Side-by-side attribute comparison of chosen products.",
+    "keywords": [
+      "product-compare"
+    ],
+    "previews": {
+      "aster-house": "/block-thumbnails/aster-house/commerce--product-compare.jpg",
+      "core": "/block-thumbnails/core/commerce--product-compare.jpg",
+      "depot": "/block-thumbnails/depot/commerce--product-compare.jpg",
+      "journal": "/block-thumbnails/journal/commerce--product-compare.jpg"
+    }
+  },
+  "commerce/product-hero": {
+    "category": "commerce",
+    "description": "Single product spotlight with price and add to cart.",
+    "keywords": [
+      "product-hero"
+    ],
+    "previews": {
+      "aster-house": "/block-thumbnails/aster-house/commerce--product-hero.jpg",
+      "core": "/block-thumbnails/core/commerce--product-hero.jpg",
+      "depot": "/block-thumbnails/depot/commerce--product-hero.jpg",
+      "journal": "/block-thumbnails/journal/commerce--product-hero.jpg"
+    }
+  },
+  "commerce/product-showcase": {
+    "category": "commerce",
+    "description": "A live product grid pulled from the catalog: newest, a category, items on sale, or hand-picked products by slug. Cards carry live prices, stock and add-to-cart.",
+    "keywords": [
+      "products",
+      "shop",
+      "featured",
+      "catalog",
+      "grid",
+      "cart",
+      "live"
+    ],
+    "previews": {
+      "aster-house": "/block-thumbnails/aster-house/commerce--product-showcase.jpg",
+      "core": "/block-thumbnails/core/commerce--product-showcase.jpg",
+      "depot": "/block-thumbnails/depot/commerce--product-showcase.jpg",
+      "journal": "/block-thumbnails/journal/commerce--product-showcase.jpg"
+    }
+  },
+  "commerce/recently-viewed": {
+    "category": "commerce",
+    "description": "Products this visitor recently explored, in newest-first order.",
+    "keywords": [
+      "recently-viewed"
+    ],
+    "previews": {
+      "aster-house": "/block-thumbnails/aster-house/commerce--recently-viewed.jpg",
+      "core": "/block-thumbnails/core/commerce--recently-viewed.jpg",
+      "depot": "/block-thumbnails/depot/commerce--recently-viewed.jpg",
+      "journal": "/block-thumbnails/journal/commerce--recently-viewed.jpg"
+    }
+  },
+  "commerce/sale-countdown": {
+    "category": "commerce",
+    "description": "A real campaign deadline alongside currently discounted public catalog products.",
+    "keywords": [
+      "sale-countdown"
+    ],
+    "previews": {
+      "aster-house": "/block-thumbnails/aster-house/commerce--sale-countdown.jpg",
+      "core": "/block-thumbnails/core/commerce--sale-countdown.jpg",
+      "depot": "/block-thumbnails/depot/commerce--sale-countdown.jpg",
+      "journal": "/block-thumbnails/journal/commerce--sale-countdown.jpg"
+    }
+  },
+  "commerce/search-band": {
+    "category": "commerce",
+    "description": "Product search input with suggested queries.",
+    "keywords": [
+      "search-band"
+    ],
+    "previews": {
+      "aster-house": "/block-thumbnails/aster-house/commerce--search-band.jpg",
+      "core": "/block-thumbnails/core/commerce--search-band.jpg",
+      "depot": "/block-thumbnails/depot/commerce--search-band.jpg",
+      "journal": "/block-thumbnails/journal/commerce--search-band.jpg"
+    }
+  },
+  "commerce/shipping-promise": {
+    "category": "commerce",
+    "description": "Delivery, returns and care policies explicitly published in Commerce Settings.",
+    "keywords": [
+      "shipping-promise"
+    ],
+    "previews": {
+      "aster-house": "/block-thumbnails/aster-house/commerce--shipping-promise.jpg",
+      "core": "/block-thumbnails/core/commerce--shipping-promise.jpg",
+      "depot": "/block-thumbnails/depot/commerce--shipping-promise.jpg",
+      "journal": "/block-thumbnails/journal/commerce--shipping-promise.jpg"
+    }
+  },
+  "commerce/variant-picker-teaser": {
+    "category": "commerce",
+    "description": "Colour or size swatches leading to the product page.",
+    "keywords": [
+      "variant-picker-teaser"
+    ],
+    "previews": {
+      "aster-house": "/block-thumbnails/aster-house/commerce--variant-picker-teaser.jpg",
+      "core": "/block-thumbnails/core/commerce--variant-picker-teaser.jpg",
+      "depot": "/block-thumbnails/depot/commerce--variant-picker-teaser.jpg",
+      "journal": "/block-thumbnails/journal/commerce--variant-picker-teaser.jpg"
+    }
+  },
+  "commerce/wishlist": {
+    "category": "commerce",
+    "description": "Current customer saved products with view, remove and move-to-cart actions.",
+    "keywords": [
+      "wishlist"
+    ],
+    "previews": {
+      "aster-house": "/block-thumbnails/aster-house/commerce--wishlist.jpg",
+      "core": "/block-thumbnails/core/commerce--wishlist.jpg",
+      "depot": "/block-thumbnails/depot/commerce--wishlist.jpg",
+      "journal": "/block-thumbnails/journal/commerce--wishlist.jpg"
+    }
+  },
+  "core/accordion": {
+    "category": "layout",
+    "description": "Collapsible Q&A or progressive-disclosure list.",
+    "keywords": [],
+    "previews": {
+      "aster-house": "/block-thumbnails/aster-house/core--accordion.jpg",
+      "core": "/block-thumbnails/core/core--accordion.jpg",
+      "depot": "/block-thumbnails/depot/core--accordion.jpg",
+      "journal": "/block-thumbnails/journal/core--accordion.jpg"
+    }
+  },
+  "core/account-teaser": {
+    "category": "site",
+    "description": "Sign in / dashboard prompt aware of the viewer.",
+    "keywords": [
+      "account-teaser"
+    ],
+    "previews": {
+      "aster-house": "/block-thumbnails/aster-house/core--account-teaser.jpg",
+      "core": "/block-thumbnails/core/core--account-teaser.jpg",
+      "depot": "/block-thumbnails/depot/core--account-teaser.jpg",
+      "journal": "/block-thumbnails/journal/core--account-teaser.jpg"
+    }
+  },
+  "core/anchor-nav": {
+    "category": "site",
+    "description": "In-page jump links built from block anchors.",
+    "keywords": [
+      "anchor-nav"
+    ],
+    "previews": {
+      "aster-house": "/block-thumbnails/aster-house/core--anchor-nav.jpg",
+      "core": "/block-thumbnails/core/core--anchor-nav.jpg",
+      "depot": "/block-thumbnails/depot/core--anchor-nav.jpg",
+      "journal": "/block-thumbnails/journal/core--anchor-nav.jpg"
+    }
+  },
+  "core/announcement-bar": {
+    "category": "openers",
+    "description": "Dismissible strip for promotions or notices.",
+    "keywords": [
+      "announcement-bar"
+    ],
+    "previews": {
+      "aster-house": "/block-thumbnails/aster-house/core--announcement-bar.jpg",
+      "core": "/block-thumbnails/core/core--announcement-bar.jpg",
+      "depot": "/block-thumbnails/depot/core--announcement-bar.jpg",
+      "journal": "/block-thumbnails/journal/core--announcement-bar.jpg"
+    }
+  },
+  "core/archive-list": {
+    "category": "discovery",
+    "description": "Month or year archive links in the site time zone.",
+    "keywords": [
+      "archive-list"
+    ],
+    "previews": {
+      "aster-house": "/block-thumbnails/aster-house/core--archive-list.jpg",
+      "core": "/block-thumbnails/core/core--archive-list.jpg",
+      "depot": "/block-thumbnails/depot/core--archive-list.jpg",
+      "journal": "/block-thumbnails/journal/core--archive-list.jpg"
+    }
+  },
+  "core/audio": {
+    "category": "media",
+    "description": "Audio player with title and transcript link.",
+    "keywords": [
+      "audio"
+    ],
+    "previews": {
+      "aster-house": "/block-thumbnails/aster-house/core--audio.jpg",
+      "core": "/block-thumbnails/core/core--audio.jpg",
+      "depot": "/block-thumbnails/depot/core--audio.jpg",
+      "journal": "/block-thumbnails/journal/core--audio.jpg"
+    }
+  },
+  "core/author-bio": {
+    "category": "site",
+    "description": "Author card with photo, role, bio, and links.",
+    "keywords": [],
+    "previews": {
+      "aster-house": "/block-thumbnails/aster-house/core--author-bio.jpg",
+      "core": "/block-thumbnails/core/core--author-bio.jpg",
+      "depot": "/block-thumbnails/depot/core--author-bio.jpg",
+      "journal": "/block-thumbnails/journal/core--author-bio.jpg"
+    }
+  },
+  "core/before-after": {
+    "category": "media",
+    "description": "Slider comparing two images.",
+    "keywords": [
+      "before-after"
+    ],
+    "previews": {
+      "aster-house": "/block-thumbnails/aster-house/core--before-after.jpg",
+      "core": "/block-thumbnails/core/core--before-after.jpg",
+      "depot": "/block-thumbnails/depot/core--before-after.jpg",
+      "journal": "/block-thumbnails/journal/core--before-after.jpg"
+    }
+  },
+  "core/bento-grid": {
+    "category": "marketing",
+    "description": "Modern asymmetric feature layout — large + small cells.",
+    "keywords": [],
+    "previews": {
+      "aster-house": "/block-thumbnails/aster-house/core--bento-grid.jpg",
+      "core": "/block-thumbnails/core/core--bento-grid.jpg",
+      "depot": "/block-thumbnails/depot/core--bento-grid.jpg",
+      "journal": "/block-thumbnails/journal/core--bento-grid.jpg"
+    }
+  },
+  "core/booking-cta": {
+    "category": "forms",
+    "description": "Book-a-time CTA with optional embedded scheduler.",
+    "keywords": [],
+    "previews": {
+      "aster-house": "/block-thumbnails/aster-house/core--booking-cta.jpg",
+      "core": "/block-thumbnails/core/core--booking-cta.jpg",
+      "depot": "/block-thumbnails/depot/core--booking-cta.jpg",
+      "journal": "/block-thumbnails/journal/core--booking-cta.jpg"
+    }
+  },
+  "core/breadcrumbs": {
+    "category": "openers",
+    "description": "Explicit breadcrumb trail when the surface does not render one.",
+    "keywords": [
+      "breadcrumbs"
+    ],
+    "previews": {
+      "aster-house": "/block-thumbnails/aster-house/core--breadcrumbs.jpg",
+      "core": "/block-thumbnails/core/core--breadcrumbs.jpg",
+      "depot": "/block-thumbnails/depot/core--breadcrumbs.jpg",
+      "journal": "/block-thumbnails/journal/core--breadcrumbs.jpg"
+    }
+  },
+  "core/callout": {
+    "category": "text",
+    "description": "Highlighted note, tip or warning.",
+    "keywords": [
+      "callout"
+    ],
+    "previews": {
+      "aster-house": "/block-thumbnails/aster-house/core--callout.jpg",
+      "core": "/block-thumbnails/core/core--callout.jpg",
+      "depot": "/block-thumbnails/depot/core--callout.jpg",
+      "journal": "/block-thumbnails/journal/core--callout.jpg"
+    }
+  },
+  "core/carousel": {
+    "category": "media",
+    "description": "Slides of media or child blocks with autoplay.",
+    "keywords": [
+      "carousel"
+    ],
+    "previews": {
+      "aster-house": "/block-thumbnails/aster-house/core--carousel.jpg",
+      "core": "/block-thumbnails/core/core--carousel.jpg",
+      "depot": "/block-thumbnails/depot/core--carousel.jpg",
+      "journal": "/block-thumbnails/journal/core--carousel.jpg"
+    }
+  },
+  "core/child-pages": {
+    "category": "discovery",
+    "description": "List of the current page's children (replaces the copied ChildPages in pack surfaces).",
+    "keywords": [
+      "child-pages"
+    ],
+    "previews": {
+      "aster-house": "/block-thumbnails/aster-house/core--child-pages.jpg",
+      "core": "/block-thumbnails/core/core--child-pages.jpg",
+      "depot": "/block-thumbnails/depot/core--child-pages.jpg",
+      "journal": "/block-thumbnails/journal/core--child-pages.jpg"
+    }
+  },
+  "core/code": {
+    "category": "text",
+    "description": "A fenced code block with syntax highlighting.",
+    "keywords": [],
+    "previews": {
+      "aster-house": "/block-thumbnails/aster-house/core--code.jpg",
+      "core": "/block-thumbnails/core/core--code.jpg",
+      "depot": "/block-thumbnails/depot/core--code.jpg",
+      "journal": "/block-thumbnails/journal/core--code.jpg"
+    }
+  },
+  "core/columns": {
+    "category": "layout",
+    "description": "2-4 columns with responsive stacking; each column is a child group.",
+    "keywords": [
+      "columns"
+    ],
+    "previews": {
+      "aster-house": "/block-thumbnails/aster-house/core--columns.jpg",
+      "core": "/block-thumbnails/core/core--columns.jpg",
+      "depot": "/block-thumbnails/depot/core--columns.jpg",
+      "journal": "/block-thumbnails/journal/core--columns.jpg"
+    }
+  },
+  "core/comparison-table": {
+    "category": "marketing",
+    "description": "Feature comparison versus competitors.",
+    "keywords": [],
+    "previews": {
+      "aster-house": "/block-thumbnails/aster-house/core--comparison-table.jpg",
+      "core": "/block-thumbnails/core/core--comparison-table.jpg",
+      "depot": "/block-thumbnails/depot/core--comparison-table.jpg",
+      "journal": "/block-thumbnails/journal/core--comparison-table.jpg"
+    }
+  },
+  "core/contact-form": {
+    "category": "forms",
+    "description": "Configurable contact form with custom fields.",
+    "keywords": [],
+    "previews": {
+      "aster-house": "/block-thumbnails/aster-house/core--contact-form.jpg",
+      "core": "/block-thumbnails/core/core--contact-form.jpg",
+      "depot": "/block-thumbnails/depot/core--contact-form.jpg",
+      "journal": "/block-thumbnails/journal/core--contact-form.jpg"
+    }
+  },
+  "core/countdown": {
+    "category": "marketing",
+    "description": "Timer to a date with expired state.",
+    "keywords": [
+      "countdown"
+    ],
+    "previews": {
+      "aster-house": "/block-thumbnails/aster-house/core--countdown.jpg",
+      "core": "/block-thumbnails/core/core--countdown.jpg",
+      "depot": "/block-thumbnails/depot/core--countdown.jpg",
+      "journal": "/block-thumbnails/journal/core--countdown.jpg"
+    }
+  },
+  "core/cta-band": {
+    "category": "marketing",
+    "description": "A focused call-to-action section.",
+    "keywords": [],
+    "previews": {
+      "aster-house": "/block-thumbnails/aster-house/core--cta-band.jpg",
+      "core": "/block-thumbnails/core/core--cta-band.jpg",
+      "depot": "/block-thumbnails/depot/core--cta-band.jpg",
+      "journal": "/block-thumbnails/journal/core--cta-band.jpg"
+    }
+  },
+  "core/cta-with-form": {
+    "category": "forms",
+    "description": "Conversion CTA with email capture inline.",
+    "keywords": [],
+    "previews": {
+      "aster-house": "/block-thumbnails/aster-house/core--cta-with-form.jpg",
+      "core": "/block-thumbnails/core/core--cta-with-form.jpg",
+      "depot": "/block-thumbnails/depot/core--cta-with-form.jpg",
+      "journal": "/block-thumbnails/journal/core--cta-with-form.jpg"
+    }
+  },
+  "core/custom-html": {
+    "category": "site",
+    "description": "Sanitised HTML (no scripts). The only raw-markup escape hatch.",
+    "keywords": [
+      "custom-html"
+    ],
+    "previews": {
+      "aster-house": "/block-thumbnails/aster-house/core--custom-html.jpg",
+      "core": "/block-thumbnails/core/core--custom-html.jpg",
+      "depot": "/block-thumbnails/depot/core--custom-html.jpg",
+      "journal": "/block-thumbnails/journal/core--custom-html.jpg"
+    }
+  },
+  "core/definition-list": {
+    "category": "text",
+    "description": "Semantic terms and definitions for glossaries, specifications and service details.",
+    "keywords": [
+      "definition-list"
+    ],
+    "previews": {
+      "aster-house": "/block-thumbnails/aster-house/core--definition-list.jpg",
+      "core": "/block-thumbnails/core/core--definition-list.jpg",
+      "depot": "/block-thumbnails/depot/core--definition-list.jpg",
+      "journal": "/block-thumbnails/journal/core--definition-list.jpg"
+    }
+  },
+  "core/divider": {
+    "category": "layout",
+    "description": "A horizontal separator between sections.",
+    "keywords": [],
+    "previews": {
+      "aster-house": "/block-thumbnails/aster-house/core--divider.jpg",
+      "core": "/block-thumbnails/core/core--divider.jpg",
+      "depot": "/block-thumbnails/depot/core--divider.jpg",
+      "journal": "/block-thumbnails/journal/core--divider.jpg"
+    }
+  },
+  "core/embed": {
+    "category": "media",
+    "description": "Embed a YouTube, Vimeo, or other rich-media URL.",
+    "keywords": [],
+    "previews": {
+      "aster-house": "/block-thumbnails/aster-house/core--embed.jpg",
+      "core": "/block-thumbnails/core/core--embed.jpg",
+      "depot": "/block-thumbnails/depot/core--embed.jpg",
+      "journal": "/block-thumbnails/journal/core--embed.jpg"
+    }
+  },
+  "core/event-rsvp": {
+    "category": "forms",
+    "description": "RSVP form for an event.",
+    "keywords": [
+      "event-rsvp"
+    ],
+    "previews": {
+      "aster-house": "/block-thumbnails/aster-house/core--event-rsvp.jpg",
+      "core": "/block-thumbnails/core/core--event-rsvp.jpg",
+      "depot": "/block-thumbnails/depot/core--event-rsvp.jpg",
+      "journal": "/block-thumbnails/journal/core--event-rsvp.jpg"
+    }
+  },
+  "core/faq": {
+    "category": "text",
+    "description": "Question/answer accordion.",
+    "keywords": [],
+    "previews": {
+      "aster-house": "/block-thumbnails/aster-house/core--faq.jpg",
+      "core": "/block-thumbnails/core/core--faq.jpg",
+      "depot": "/block-thumbnails/depot/core--faq.jpg",
+      "journal": "/block-thumbnails/journal/core--faq.jpg"
+    }
+  },
+  "core/feature-grid": {
+    "category": "marketing",
+    "description": "Grid of feature cards with a section intro.",
+    "keywords": [],
+    "previews": {
+      "aster-house": "/block-thumbnails/aster-house/core--feature-grid.jpg",
+      "core": "/block-thumbnails/core/core--feature-grid.jpg",
+      "depot": "/block-thumbnails/depot/core--feature-grid.jpg",
+      "journal": "/block-thumbnails/journal/core--feature-grid.jpg"
+    }
+  },
+  "core/feature-list-alternating": {
+    "category": "marketing",
+    "description": "Sequence of feature blocks with media alternating sides.",
+    "keywords": [],
+    "previews": {
+      "aster-house": "/block-thumbnails/aster-house/core--feature-list-alternating.jpg",
+      "core": "/block-thumbnails/core/core--feature-list-alternating.jpg",
+      "depot": "/block-thumbnails/depot/core--feature-list-alternating.jpg",
+      "journal": "/block-thumbnails/journal/core--feature-list-alternating.jpg"
+    }
+  },
+  "core/feature-tabs": {
+    "category": "marketing",
+    "description": "Tabs switching a large media preview.",
+    "keywords": [
+      "feature-tabs"
+    ],
+    "previews": {
+      "aster-house": "/block-thumbnails/aster-house/core--feature-tabs.jpg",
+      "core": "/block-thumbnails/core/core--feature-tabs.jpg",
+      "depot": "/block-thumbnails/depot/core--feature-tabs.jpg",
+      "journal": "/block-thumbnails/journal/core--feature-tabs.jpg"
+    }
+  },
+  "core/featured-page": {
+    "category": "discovery",
+    "description": "Card for a chosen page with its featured image and excerpt.",
+    "keywords": [
+      "featured-page"
+    ],
+    "previews": {
+      "aster-house": "/block-thumbnails/aster-house/core--featured-page.jpg",
+      "core": "/block-thumbnails/core/core--featured-page.jpg",
+      "depot": "/block-thumbnails/depot/core--featured-page.jpg",
+      "journal": "/block-thumbnails/journal/core--featured-page.jpg"
+    }
+  },
+  "core/featured-products": {
+    "category": "commerce",
+    "description": "A product grid with hand-picked products or the latest added products, resolved from the current store.",
+    "keywords": [],
+    "previews": {
+      "aster-house": "/block-thumbnails/aster-house/core--featured-products.jpg",
+      "core": "/block-thumbnails/core/core--featured-products.jpg",
+      "depot": "/block-thumbnails/depot/core--featured-products.jpg",
+      "journal": "/block-thumbnails/journal/core--featured-products.jpg"
+    }
+  },
+  "core/file-download": {
+    "category": "media",
+    "description": "Downloadable file card with size and type.",
+    "keywords": [
+      "file-download"
+    ],
+    "previews": {
+      "aster-house": "/block-thumbnails/aster-house/core--file-download.jpg",
+      "core": "/block-thumbnails/core/core--file-download.jpg",
+      "depot": "/block-thumbnails/depot/core--file-download.jpg",
+      "journal": "/block-thumbnails/journal/core--file-download.jpg"
+    }
+  },
+  "core/footnotes": {
+    "category": "text",
+    "description": "Numbered notes referenced from rich text.",
+    "keywords": [
+      "footnotes"
+    ],
+    "previews": {
+      "aster-house": "/block-thumbnails/aster-house/core--footnotes.jpg",
+      "core": "/block-thumbnails/core/core--footnotes.jpg",
+      "depot": "/block-thumbnails/depot/core--footnotes.jpg",
+      "journal": "/block-thumbnails/journal/core--footnotes.jpg"
+    }
+  },
+  "core/form": {
+    "category": "forms",
+    "description": "Renders a form built in the Forms extension.",
+    "keywords": [
+      "form"
+    ],
+    "previews": {
+      "aster-house": "/block-thumbnails/aster-house/core--form.jpg",
+      "core": "/block-thumbnails/core/core--form.jpg",
+      "depot": "/block-thumbnails/depot/core--form.jpg",
+      "journal": "/block-thumbnails/journal/core--form.jpg"
+    }
+  },
+  "core/gallery": {
+    "category": "media",
+    "description": "Grid or masonry gallery with lightbox.",
+    "keywords": [
+      "gallery"
+    ],
+    "previews": {
+      "aster-house": "/block-thumbnails/aster-house/core--gallery.jpg",
+      "core": "/block-thumbnails/core/core--gallery.jpg",
+      "depot": "/block-thumbnails/depot/core--gallery.jpg",
+      "journal": "/block-thumbnails/journal/core--gallery.jpg"
+    }
+  },
+  "core/grid": {
+    "category": "layout",
+    "description": "Responsive grid of child blocks.",
+    "keywords": [
+      "grid"
+    ],
+    "previews": {
+      "aster-house": "/block-thumbnails/aster-house/core--grid.jpg",
+      "core": "/block-thumbnails/core/core--grid.jpg",
+      "depot": "/block-thumbnails/depot/core--grid.jpg",
+      "journal": "/block-thumbnails/journal/core--grid.jpg"
+    }
+  },
+  "core/group": {
+    "category": "layout",
+    "description": "Plain container for nesting and locking.",
+    "keywords": [
+      "group"
+    ],
+    "previews": {
+      "aster-house": "/block-thumbnails/aster-house/core--group.jpg",
+      "core": "/block-thumbnails/core/core--group.jpg",
+      "depot": "/block-thumbnails/depot/core--group.jpg",
+      "journal": "/block-thumbnails/journal/core--group.jpg"
+    }
+  },
+  "core/heading": {
+    "category": "text",
+    "description": "A section heading (H1 through H6).",
+    "keywords": [],
+    "previews": {
+      "aster-house": "/block-thumbnails/aster-house/core--heading.jpg",
+      "core": "/block-thumbnails/core/core--heading.jpg",
+      "depot": "/block-thumbnails/depot/core--heading.jpg",
+      "journal": "/block-thumbnails/journal/core--heading.jpg"
+    }
+  },
+  "core/hero": {
+    "category": "marketing",
+    "description": "Opening section with title, body, CTAs, and optional media.",
+    "keywords": [],
+    "previews": {
+      "aster-house": "/block-thumbnails/aster-house/core--hero.jpg",
+      "core": "/block-thumbnails/core/core--hero.jpg",
+      "depot": "/block-thumbnails/depot/core--hero.jpg",
+      "journal": "/block-thumbnails/journal/core--hero.jpg"
+    }
+  },
+  "core/hero-split": {
+    "category": "marketing",
+    "description": "Hero with copy on one side and media on the other.",
+    "keywords": [],
+    "previews": {
+      "aster-house": "/block-thumbnails/aster-house/core--hero-split.jpg",
+      "core": "/block-thumbnails/core/core--hero-split.jpg",
+      "depot": "/block-thumbnails/depot/core--hero-split.jpg",
+      "journal": "/block-thumbnails/journal/core--hero-split.jpg"
+    }
+  },
+  "core/hero-text-only": {
+    "category": "marketing",
+    "description": "Hero without media, for minimalist openers.",
+    "keywords": [],
+    "previews": {
+      "aster-house": "/block-thumbnails/aster-house/core--hero-text-only.jpg",
+      "core": "/block-thumbnails/core/core--hero-text-only.jpg",
+      "depot": "/block-thumbnails/depot/core--hero-text-only.jpg",
+      "journal": "/block-thumbnails/journal/core--hero-text-only.jpg"
+    }
+  },
+  "core/hero-video": {
+    "category": "openers",
+    "description": "Full-bleed looping video with overlay copy.",
+    "keywords": [
+      "hero-video"
+    ],
+    "previews": {
+      "aster-house": "/block-thumbnails/aster-house/core--hero-video.jpg",
+      "core": "/block-thumbnails/core/core--hero-video.jpg",
+      "depot": "/block-thumbnails/depot/core--hero-video.jpg",
+      "journal": "/block-thumbnails/journal/core--hero-video.jpg"
+    }
+  },
+  "core/iframe": {
+    "category": "site",
+    "description": "Sandboxed iframe for allow-listed hosts.",
+    "keywords": [
+      "iframe"
+    ],
+    "previews": {
+      "aster-house": "/block-thumbnails/aster-house/core--iframe.jpg",
+      "core": "/block-thumbnails/core/core--iframe.jpg",
+      "depot": "/block-thumbnails/depot/core--iframe.jpg",
+      "journal": "/block-thumbnails/journal/core--iframe.jpg"
+    }
+  },
+  "core/image": {
+    "category": "media",
+    "description": "A standalone image with optional caption and link.",
+    "keywords": [],
+    "previews": {
+      "aster-house": "/block-thumbnails/aster-house/core--image.jpg",
+      "core": "/block-thumbnails/core/core--image.jpg",
+      "depot": "/block-thumbnails/depot/core--image.jpg",
+      "journal": "/block-thumbnails/journal/core--image.jpg"
+    }
+  },
+  "core/language-switcher": {
+    "category": "site",
+    "description": "Locale links when multilingual is enabled.",
+    "keywords": [
+      "language-switcher"
+    ],
+    "previews": {
+      "aster-house": "/block-thumbnails/aster-house/core--language-switcher.jpg",
+      "core": "/block-thumbnails/core/core--language-switcher.jpg",
+      "depot": "/block-thumbnails/depot/core--language-switcher.jpg",
+      "journal": "/block-thumbnails/journal/core--language-switcher.jpg"
+    }
+  },
+  "core/latest-posts": {
+    "category": "site",
+    "description": "Auto-list of recent blog posts.",
+    "keywords": [],
+    "previews": {
+      "aster-house": "/block-thumbnails/aster-house/core--latest-posts.jpg",
+      "core": "/block-thumbnails/core/core--latest-posts.jpg",
+      "depot": "/block-thumbnails/depot/core--latest-posts.jpg",
+      "journal": "/block-thumbnails/journal/core--latest-posts.jpg"
+    }
+  },
+  "core/lead-magnet": {
+    "category": "forms",
+    "description": "Download in exchange for email.",
+    "keywords": [
+      "lead-magnet"
+    ],
+    "previews": {
+      "aster-house": "/block-thumbnails/aster-house/core--lead-magnet.jpg",
+      "core": "/block-thumbnails/core/core--lead-magnet.jpg",
+      "depot": "/block-thumbnails/depot/core--lead-magnet.jpg",
+      "journal": "/block-thumbnails/journal/core--lead-magnet.jpg"
+    }
+  },
+  "core/lightbox-grid": {
+    "category": "media",
+    "description": "Thumbnail grid opening a full-screen viewer.",
+    "keywords": [
+      "lightbox-grid"
+    ],
+    "previews": {
+      "aster-house": "/block-thumbnails/aster-house/core--lightbox-grid.jpg",
+      "core": "/block-thumbnails/core/core--lightbox-grid.jpg",
+      "depot": "/block-thumbnails/depot/core--lightbox-grid.jpg",
+      "journal": "/block-thumbnails/journal/core--lightbox-grid.jpg"
+    }
+  },
+  "core/list": {
+    "category": "text",
+    "description": "Bulleted, numbered, or task list.",
+    "keywords": [],
+    "previews": {
+      "aster-house": "/block-thumbnails/aster-house/core--list.jpg",
+      "core": "/block-thumbnails/core/core--list.jpg",
+      "depot": "/block-thumbnails/depot/core--list.jpg",
+      "journal": "/block-thumbnails/journal/core--list.jpg"
+    }
+  },
+  "core/logo-cloud": {
+    "category": "marketing",
+    "description": "Row of customer or partner logos.",
+    "keywords": [],
+    "previews": {
+      "aster-house": "/block-thumbnails/aster-house/core--logo-cloud.jpg",
+      "core": "/block-thumbnails/core/core--logo-cloud.jpg",
+      "depot": "/block-thumbnails/depot/core--logo-cloud.jpg",
+      "journal": "/block-thumbnails/journal/core--logo-cloud.jpg"
+    }
+  },
+  "core/map": {
+    "category": "media",
+    "description": "Static or embedded map with pin and address.",
+    "keywords": [
+      "map"
+    ],
+    "previews": {
+      "aster-house": "/block-thumbnails/aster-house/core--map.jpg",
+      "core": "/block-thumbnails/core/core--map.jpg",
+      "depot": "/block-thumbnails/depot/core--map.jpg",
+      "journal": "/block-thumbnails/journal/core--map.jpg"
+    }
+  },
+  "core/marquee": {
+    "category": "marketing",
+    "description": "Scrolling strip of words or logos.",
+    "keywords": [
+      "marquee"
+    ],
+    "previews": {
+      "aster-house": "/block-thumbnails/aster-house/core--marquee.jpg",
+      "core": "/block-thumbnails/core/core--marquee.jpg",
+      "depot": "/block-thumbnails/depot/core--marquee.jpg",
+      "journal": "/block-thumbnails/journal/core--marquee.jpg"
+    }
+  },
+  "core/media-text": {
+    "category": "media",
+    "description": "Split section: copy on one side, media on the other.",
+    "keywords": [],
+    "previews": {
+      "aster-house": "/block-thumbnails/aster-house/core--media-text.jpg",
+      "core": "/block-thumbnails/core/core--media-text.jpg",
+      "depot": "/block-thumbnails/depot/core--media-text.jpg",
+      "journal": "/block-thumbnails/journal/core--media-text.jpg"
+    }
+  },
+  "core/menu": {
+    "category": "site",
+    "description": "Renders a menu location inline.",
+    "keywords": [
+      "menu"
+    ],
+    "previews": {
+      "aster-house": "/block-thumbnails/aster-house/core--menu.jpg",
+      "core": "/block-thumbnails/core/core--menu.jpg",
+      "depot": "/block-thumbnails/depot/core--menu.jpg",
+      "journal": "/block-thumbnails/journal/core--menu.jpg"
+    }
+  },
+  "core/newsletter-signup": {
+    "category": "forms",
+    "description": "Email signup — inline or large card variant.",
+    "keywords": [],
+    "previews": {
+      "aster-house": "/block-thumbnails/aster-house/core--newsletter-signup.jpg",
+      "core": "/block-thumbnails/core/core--newsletter-signup.jpg",
+      "depot": "/block-thumbnails/depot/core--newsletter-signup.jpg",
+      "journal": "/block-thumbnails/journal/core--newsletter-signup.jpg"
+    }
+  },
+  "core/paragraph": {
+    "category": "text",
+    "description": "A plain text paragraph. Supports inline markdown emphasis.",
+    "keywords": [],
+    "previews": {
+      "aster-house": "/block-thumbnails/aster-house/core--paragraph.jpg",
+      "core": "/block-thumbnails/core/core--paragraph.jpg",
+      "depot": "/block-thumbnails/depot/core--paragraph.jpg",
+      "journal": "/block-thumbnails/journal/core--paragraph.jpg"
+    }
+  },
+  "core/poll": {
+    "category": "forms",
+    "description": "Single-question poll with live results.",
+    "keywords": [
+      "poll"
+    ],
+    "previews": {
+      "aster-house": "/block-thumbnails/aster-house/core--poll.jpg",
+      "core": "/block-thumbnails/core/core--poll.jpg",
+      "depot": "/block-thumbnails/depot/core--poll.jpg",
+      "journal": "/block-thumbnails/journal/core--poll.jpg"
+    }
+  },
+  "core/post-grid": {
+    "category": "discovery",
+    "description": "Posts by taxonomy query with pagination.",
+    "keywords": [
+      "post-grid"
+    ],
+    "previews": {
+      "aster-house": "/block-thumbnails/aster-house/core--post-grid.jpg",
+      "core": "/block-thumbnails/core/core--post-grid.jpg",
+      "depot": "/block-thumbnails/depot/core--post-grid.jpg",
+      "journal": "/block-thumbnails/journal/core--post-grid.jpg"
+    }
+  },
+  "core/pricing-cards": {
+    "category": "commerce",
+    "description": "Plan comparison cards.",
+    "keywords": [],
+    "previews": {
+      "aster-house": "/block-thumbnails/aster-house/core--pricing-cards.jpg",
+      "core": "/block-thumbnails/core/core--pricing-cards.jpg",
+      "depot": "/block-thumbnails/depot/core--pricing-cards.jpg",
+      "journal": "/block-thumbnails/journal/core--pricing-cards.jpg"
+    }
+  },
+  "core/pricing-table": {
+    "category": "marketing",
+    "description": "Dense plan comparison table with toggles.",
+    "keywords": [
+      "pricing-table"
+    ],
+    "previews": {
+      "aster-house": "/block-thumbnails/aster-house/core--pricing-table.jpg",
+      "core": "/block-thumbnails/core/core--pricing-table.jpg",
+      "depot": "/block-thumbnails/depot/core--pricing-table.jpg",
+      "journal": "/block-thumbnails/journal/core--pricing-table.jpg"
+    }
+  },
+  "core/process-steps": {
+    "category": "marketing",
+    "description": "Numbered step-by-step process.",
+    "keywords": [],
+    "previews": {
+      "aster-house": "/block-thumbnails/aster-house/core--process-steps.jpg",
+      "core": "/block-thumbnails/core/core--process-steps.jpg",
+      "depot": "/block-thumbnails/depot/core--process-steps.jpg",
+      "journal": "/block-thumbnails/journal/core--process-steps.jpg"
+    }
+  },
+  "core/pullquote": {
+    "category": "text",
+    "description": "Large editorial quote that breaks the reading measure.",
+    "keywords": [
+      "pullquote"
+    ],
+    "previews": {
+      "aster-house": "/block-thumbnails/aster-house/core--pullquote.jpg",
+      "core": "/block-thumbnails/core/core--pullquote.jpg",
+      "depot": "/block-thumbnails/depot/core--pullquote.jpg",
+      "journal": "/block-thumbnails/journal/core--pullquote.jpg"
+    }
+  },
+  "core/quote": {
+    "category": "text",
+    "description": "A pull quote or blockquote with optional attribution.",
+    "keywords": [],
+    "previews": {
+      "aster-house": "/block-thumbnails/aster-house/core--quote.jpg",
+      "core": "/block-thumbnails/core/core--quote.jpg",
+      "depot": "/block-thumbnails/depot/core--quote.jpg",
+      "journal": "/block-thumbnails/journal/core--quote.jpg"
+    }
+  },
+  "core/related-content": {
+    "category": "discovery",
+    "description": "Posts or pages related by topic or page hierarchy to the current document.",
+    "keywords": [
+      "related-content"
+    ],
+    "previews": {
+      "aster-house": "/block-thumbnails/aster-house/core--related-content.jpg",
+      "core": "/block-thumbnails/core/core--related-content.jpg",
+      "depot": "/block-thumbnails/depot/core--related-content.jpg",
+      "journal": "/block-thumbnails/journal/core--related-content.jpg"
+    }
+  },
+  "core/reviews": {
+    "category": "social",
+    "description": "Live product or site reviews with rating summary.",
+    "keywords": [
+      "reviews"
+    ],
+    "previews": {
+      "aster-house": "/block-thumbnails/aster-house/core--reviews.jpg",
+      "core": "/block-thumbnails/core/core--reviews.jpg",
+      "depot": "/block-thumbnails/depot/core--reviews.jpg",
+      "journal": "/block-thumbnails/journal/core--reviews.jpg"
+    }
+  },
+  "core/rich-text": {
+    "category": "text",
+    "description": "A copy-only section with eyebrow, heading, and body.",
+    "keywords": [],
+    "previews": {
+      "aster-house": "/block-thumbnails/aster-house/core--rich-text.jpg",
+      "core": "/block-thumbnails/core/core--rich-text.jpg",
+      "depot": "/block-thumbnails/depot/core--rich-text.jpg",
+      "journal": "/block-thumbnails/journal/core--rich-text.jpg"
+    }
+  },
+  "core/roadmap-timeline": {
+    "category": "marketing",
+    "description": "Timeline of past, current, and upcoming items.",
+    "keywords": [],
+    "previews": {
+      "aster-house": "/block-thumbnails/aster-house/core--roadmap-timeline.jpg",
+      "core": "/block-thumbnails/core/core--roadmap-timeline.jpg",
+      "depot": "/block-thumbnails/depot/core--roadmap-timeline.jpg",
+      "journal": "/block-thumbnails/journal/core--roadmap-timeline.jpg"
+    }
+  },
+  "core/script-embed": {
+    "category": "site",
+    "description": "Allow-listed third-party script (chat widget, analytics).",
+    "keywords": [
+      "script-embed"
+    ],
+    "previews": {
+      "aster-house": "/block-thumbnails/aster-house/core--script-embed.jpg",
+      "core": "/block-thumbnails/core/core--script-embed.jpg",
+      "depot": "/block-thumbnails/depot/core--script-embed.jpg",
+      "journal": "/block-thumbnails/journal/core--script-embed.jpg"
+    }
+  },
+  "core/search-box": {
+    "category": "discovery",
+    "description": "Site search input.",
+    "keywords": [
+      "search-box"
+    ],
+    "previews": {
+      "aster-house": "/block-thumbnails/aster-house/core--search-box.jpg",
+      "core": "/block-thumbnails/core/core--search-box.jpg",
+      "depot": "/block-thumbnails/depot/core--search-box.jpg",
+      "journal": "/block-thumbnails/journal/core--search-box.jpg"
+    }
+  },
+  "core/search-results": {
+    "category": "discovery",
+    "description": "Bounded paginated site-search results for an explicit query and allowed content kinds.",
+    "keywords": [
+      "search-results"
+    ],
+    "previews": {
+      "aster-house": "/block-thumbnails/aster-house/core--search-results.jpg",
+      "core": "/block-thumbnails/core/core--search-results.jpg",
+      "depot": "/block-thumbnails/depot/core--search-results.jpg",
+      "journal": "/block-thumbnails/journal/core--search-results.jpg"
+    }
+  },
+  "core/section": {
+    "category": "layout",
+    "description": "Container carrying layout intents; the unit packs style with tokens and Section part.",
+    "keywords": [
+      "section"
+    ],
+    "previews": {
+      "aster-house": "/block-thumbnails/aster-house/core--section.jpg",
+      "core": "/block-thumbnails/core/core--section.jpg",
+      "depot": "/block-thumbnails/depot/core--section.jpg",
+      "journal": "/block-thumbnails/journal/core--section.jpg"
+    }
+  },
+  "core/site-info": {
+    "category": "site",
+    "description": "Site name, tagline, logo from settings.",
+    "keywords": [
+      "site-info"
+    ],
+    "previews": {
+      "aster-house": "/block-thumbnails/aster-house/core--site-info.jpg",
+      "core": "/block-thumbnails/core/core--site-info.jpg",
+      "depot": "/block-thumbnails/depot/core--site-info.jpg",
+      "journal": "/block-thumbnails/journal/core--site-info.jpg"
+    }
+  },
+  "core/social-feed": {
+    "category": "social",
+    "description": "Embedded provider feed (allow-listed).",
+    "keywords": [
+      "social-feed"
+    ],
+    "previews": {
+      "aster-house": "/block-thumbnails/aster-house/core--social-feed.jpg",
+      "core": "/block-thumbnails/core/core--social-feed.jpg",
+      "depot": "/block-thumbnails/depot/core--social-feed.jpg",
+      "journal": "/block-thumbnails/journal/core--social-feed.jpg"
+    }
+  },
+  "core/social-links": {
+    "category": "site",
+    "description": "Icon row of social profile links.",
+    "keywords": [],
+    "previews": {
+      "aster-house": "/block-thumbnails/aster-house/core--social-links.jpg",
+      "core": "/block-thumbnails/core/core--social-links.jpg",
+      "depot": "/block-thumbnails/depot/core--social-links.jpg",
+      "journal": "/block-thumbnails/journal/core--social-links.jpg"
+    }
+  },
+  "core/spacer": {
+    "category": "layout",
+    "description": "Semantic vertical spacing — the skill decides actual height.",
+    "keywords": [],
+    "previews": {
+      "aster-house": "/block-thumbnails/aster-house/core--spacer.jpg",
+      "core": "/block-thumbnails/core/core--spacer.jpg",
+      "depot": "/block-thumbnails/depot/core--spacer.jpg",
+      "journal": "/block-thumbnails/journal/core--spacer.jpg"
+    }
+  },
+  "core/split": {
+    "category": "layout",
+    "description": "Two-pane split with a media or child side and a content side.",
+    "keywords": [
+      "split"
+    ],
+    "previews": {
+      "aster-house": "/block-thumbnails/aster-house/core--split.jpg",
+      "core": "/block-thumbnails/core/core--split.jpg",
+      "depot": "/block-thumbnails/depot/core--split.jpg",
+      "journal": "/block-thumbnails/journal/core--split.jpg"
+    }
+  },
+  "core/stats-band": {
+    "category": "marketing",
+    "description": "Big-number stats with labels.",
+    "keywords": [],
+    "previews": {
+      "aster-house": "/block-thumbnails/aster-house/core--stats-band.jpg",
+      "core": "/block-thumbnails/core/core--stats-band.jpg",
+      "depot": "/block-thumbnails/depot/core--stats-band.jpg",
+      "journal": "/block-thumbnails/journal/core--stats-band.jpg"
+    }
+  },
+  "core/steps-with-media": {
+    "category": "marketing",
+    "description": "Sticky media that changes as the reader scrolls through steps.",
+    "keywords": [
+      "steps-with-media"
+    ],
+    "previews": {
+      "aster-house": "/block-thumbnails/aster-house/core--steps-with-media.jpg",
+      "core": "/block-thumbnails/core/core--steps-with-media.jpg",
+      "depot": "/block-thumbnails/depot/core--steps-with-media.jpg",
+      "journal": "/block-thumbnails/journal/core--steps-with-media.jpg"
+    }
+  },
+  "core/sticky-aside": {
+    "category": "layout",
+    "description": "Sidebar column that sticks while the main column scrolls.",
+    "keywords": [
+      "sticky-aside"
+    ],
+    "previews": {
+      "aster-house": "/block-thumbnails/aster-house/core--sticky-aside.jpg",
+      "core": "/block-thumbnails/core/core--sticky-aside.jpg",
+      "depot": "/block-thumbnails/depot/core--sticky-aside.jpg",
+      "journal": "/block-thumbnails/journal/core--sticky-aside.jpg"
+    }
+  },
+  "core/synced": {
+    "category": "layout",
+    "description": "Reusable content reference with shared updates and explicit revision/conflict handling.",
+    "keywords": [
+      "synced"
+    ],
+    "previews": {
+      "aster-house": "/block-thumbnails/aster-house/core--synced.jpg",
+      "core": "/block-thumbnails/core/core--synced.jpg",
+      "depot": "/block-thumbnails/depot/core--synced.jpg",
+      "journal": "/block-thumbnails/journal/core--synced.jpg"
+    }
+  },
+  "core/table": {
+    "category": "text",
+    "description": "Data table with header row and optional caption.",
+    "keywords": [
+      "table"
+    ],
+    "previews": {
+      "aster-house": "/block-thumbnails/aster-house/core--table.jpg",
+      "core": "/block-thumbnails/core/core--table.jpg",
+      "depot": "/block-thumbnails/depot/core--table.jpg",
+      "journal": "/block-thumbnails/journal/core--table.jpg"
+    }
+  },
+  "core/table-of-contents": {
+    "category": "text",
+    "description": "Auto-built from the page's headings.",
+    "keywords": [
+      "table-of-contents"
+    ],
+    "previews": {
+      "aster-house": "/block-thumbnails/aster-house/core--table-of-contents.jpg",
+      "core": "/block-thumbnails/core/core--table-of-contents.jpg",
+      "depot": "/block-thumbnails/depot/core--table-of-contents.jpg",
+      "journal": "/block-thumbnails/journal/core--table-of-contents.jpg"
+    }
+  },
+  "core/tabs": {
+    "category": "layout",
+    "description": "Tabbed content panels.",
+    "keywords": [],
+    "previews": {
+      "aster-house": "/block-thumbnails/aster-house/core--tabs.jpg",
+      "core": "/block-thumbnails/core/core--tabs.jpg",
+      "depot": "/block-thumbnails/depot/core--tabs.jpg",
+      "journal": "/block-thumbnails/journal/core--tabs.jpg"
+    }
+  },
+  "core/tag-cloud": {
+    "category": "site",
+    "description": "An alphabetical collection of topics with accessible published stories.",
+    "keywords": [],
+    "previews": {
+      "aster-house": "/block-thumbnails/aster-house/core--tag-cloud.jpg",
+      "core": "/block-thumbnails/core/core--tag-cloud.jpg",
+      "depot": "/block-thumbnails/depot/core--tag-cloud.jpg",
+      "journal": "/block-thumbnails/journal/core--tag-cloud.jpg"
+    }
+  },
+  "core/team-grid": {
+    "category": "marketing",
+    "description": "Team members with photo, role, and bio.",
+    "keywords": [],
+    "previews": {
+      "aster-house": "/block-thumbnails/aster-house/core--team-grid.jpg",
+      "core": "/block-thumbnails/core/core--team-grid.jpg",
+      "depot": "/block-thumbnails/depot/core--team-grid.jpg",
+      "journal": "/block-thumbnails/journal/core--team-grid.jpg"
+    }
+  },
+  "core/testimonial-wall": {
+    "category": "marketing",
+    "description": "Masonry of many short quotes.",
+    "keywords": [
+      "testimonial-wall"
+    ],
+    "previews": {
+      "aster-house": "/block-thumbnails/aster-house/core--testimonial-wall.jpg",
+      "core": "/block-thumbnails/core/core--testimonial-wall.jpg",
+      "depot": "/block-thumbnails/depot/core--testimonial-wall.jpg",
+      "journal": "/block-thumbnails/journal/core--testimonial-wall.jpg"
+    }
+  },
+  "core/testimonials": {
+    "category": "marketing",
+    "description": "Customer quotes with attribution.",
+    "keywords": [],
+    "previews": {
+      "aster-house": "/block-thumbnails/aster-house/core--testimonials.jpg",
+      "core": "/block-thumbnails/core/core--testimonials.jpg",
+      "depot": "/block-thumbnails/depot/core--testimonials.jpg",
+      "journal": "/block-thumbnails/journal/core--testimonials.jpg"
+    }
+  },
+  "core/trust-badges": {
+    "category": "marketing",
+    "description": "Guarantees, certifications, payment marks.",
+    "keywords": [
+      "trust-badges"
+    ],
+    "previews": {
+      "aster-house": "/block-thumbnails/aster-house/core--trust-badges.jpg",
+      "core": "/block-thumbnails/core/core--trust-badges.jpg",
+      "depot": "/block-thumbnails/depot/core--trust-badges.jpg",
+      "journal": "/block-thumbnails/journal/core--trust-badges.jpg"
+    }
+  },
+  "core/ugc-grid": {
+    "category": "social",
+    "description": "Grid of tagged customer media from the media library.",
+    "keywords": [
+      "ugc-grid"
+    ],
+    "previews": {
+      "aster-house": "/block-thumbnails/aster-house/core--ugc-grid.jpg",
+      "core": "/block-thumbnails/core/core--ugc-grid.jpg",
+      "depot": "/block-thumbnails/depot/core--ugc-grid.jpg",
+      "journal": "/block-thumbnails/journal/core--ugc-grid.jpg"
+    }
+  },
+  "core/video": {
+    "category": "media",
+    "description": "Self-hosted or provider video with poster.",
+    "keywords": [
+      "video"
+    ],
+    "previews": {
+      "aster-house": "/block-thumbnails/aster-house/core--video.jpg",
+      "core": "/block-thumbnails/core/core--video.jpg",
+      "depot": "/block-thumbnails/depot/core--video.jpg",
+      "journal": "/block-thumbnails/journal/core--video.jpg"
+    }
+  },
+  "events/calendar": {
+    "category": "plugin",
+    "description": "Month or list calendar of events.",
+    "keywords": [
+      "calendar"
+    ],
+    "previews": {
+      "aster-house": "/block-thumbnails/aster-house/events--calendar.jpg",
+      "core": "/block-thumbnails/core/events--calendar.jpg",
+      "depot": "/block-thumbnails/depot/events--calendar.jpg",
+      "journal": "/block-thumbnails/journal/events--calendar.jpg"
+    }
+  },
+  "events/next-event": {
+    "category": "plugin",
+    "description": "Spotlight on the next upcoming event.",
+    "keywords": [
+      "next-event"
+    ],
+    "previews": {
+      "aster-house": "/block-thumbnails/aster-house/events--next-event.jpg",
+      "core": "/block-thumbnails/core/events--next-event.jpg",
+      "depot": "/block-thumbnails/depot/events--next-event.jpg",
+      "journal": "/block-thumbnails/journal/events--next-event.jpg"
+    }
+  },
+  "events/upcoming": {
+    "category": "site",
+    "description": "Live public events, updated from the Events plugin without storing event copies in page content.",
+    "keywords": [
+      "events",
+      "live",
+      "experiences"
+    ],
+    "previews": {
+      "aster-house": "/block-thumbnails/aster-house/events--upcoming.jpg",
+      "core": "/block-thumbnails/core/events--upcoming.jpg",
+      "depot": "/block-thumbnails/depot/events--upcoming.jpg",
+      "journal": "/block-thumbnails/journal/events--upcoming.jpg"
+    }
+  },
+  "gallery/album": {
+    "category": "plugin",
+    "description": "Album from the Gallery extension.",
+    "keywords": [
+      "album"
+    ],
+    "previews": {
+      "aster-house": "/block-thumbnails/aster-house/gallery--album.jpg",
+      "core": "/block-thumbnails/core/gallery--album.jpg",
+      "depot": "/block-thumbnails/depot/gallery--album.jpg",
+      "journal": "/block-thumbnails/journal/gallery--album.jpg"
+    }
+  },
+  "gallery/recipe-card": {
+    "category": "plugin",
+    "description": "Recipe with ingredients, steps and schema.org markup.",
+    "keywords": [
+      "recipe-card"
+    ],
+    "previews": {
+      "aster-house": "/block-thumbnails/aster-house/gallery--recipe-card.jpg",
+      "core": "/block-thumbnails/core/gallery--recipe-card.jpg",
+      "depot": "/block-thumbnails/depot/gallery--recipe-card.jpg",
+      "journal": "/block-thumbnails/journal/gallery--recipe-card.jpg"
+    }
+  },
+  "lms/course-grid": {
+    "category": "plugin",
+    "description": "Courses as cards with progress for signed-in learners.",
+    "keywords": [
+      "course-grid"
+    ],
+    "previews": {
+      "aster-house": "/block-thumbnails/aster-house/lms--course-grid.jpg",
+      "core": "/block-thumbnails/core/lms--course-grid.jpg",
+      "depot": "/block-thumbnails/depot/lms--course-grid.jpg",
+      "journal": "/block-thumbnails/journal/lms--course-grid.jpg"
+    }
+  },
+  "lms/curriculum": {
+    "category": "plugin",
+    "description": "Module and lesson outline for a course.",
+    "keywords": [
+      "curriculum"
+    ],
+    "previews": {
+      "aster-house": "/block-thumbnails/aster-house/lms--curriculum.jpg",
+      "core": "/block-thumbnails/core/lms--curriculum.jpg",
+      "depot": "/block-thumbnails/depot/lms--curriculum.jpg",
+      "journal": "/block-thumbnails/journal/lms--curriculum.jpg"
+    }
+  },
+  "lms/instructor": {
+    "category": "plugin",
+    "description": "Instructor profile with courses taught.",
+    "keywords": [
+      "instructor"
+    ],
+    "previews": {
+      "aster-house": "/block-thumbnails/aster-house/lms--instructor.jpg",
+      "core": "/block-thumbnails/core/lms--instructor.jpg",
+      "depot": "/block-thumbnails/depot/lms--instructor.jpg",
+      "journal": "/block-thumbnails/journal/lms--instructor.jpg"
+    }
+  },
+  "lms/progress": {
+    "category": "plugin",
+    "description": "Signed-in learner's progress summary.",
+    "keywords": [
+      "progress"
+    ],
+    "previews": {
+      "aster-house": "/block-thumbnails/aster-house/lms--progress.jpg",
+      "core": "/block-thumbnails/core/lms--progress.jpg",
+      "depot": "/block-thumbnails/depot/lms--progress.jpg",
+      "journal": "/block-thumbnails/journal/lms--progress.jpg"
+    }
+  },
+  "local/sample-alert": {
+    "category": "site",
+    "description": "A local proof-of-registration alert block with a heading, body, variant, and optional CTA.",
+    "keywords": [
+      "alert",
+      "notice",
+      "local",
+      "sample"
+    ],
+    "previews": {
+      "aster-house": "/block-thumbnails/aster-house/local--sample-alert.jpg",
+      "core": "/block-thumbnails/core/local--sample-alert.jpg",
+      "depot": "/block-thumbnails/depot/local--sample-alert.jpg",
+      "journal": "/block-thumbnails/journal/local--sample-alert.jpg"
+    }
+  },
+  "membership/gated-teaser": {
+    "category": "plugin",
+    "description": "Preview with an upgrade prompt for gated content.",
+    "keywords": [
+      "gated-teaser"
+    ],
+    "previews": {
+      "aster-house": "/block-thumbnails/aster-house/membership--gated-teaser.jpg",
+      "core": "/block-thumbnails/core/membership--gated-teaser.jpg",
+      "depot": "/block-thumbnails/depot/membership--gated-teaser.jpg",
+      "journal": "/block-thumbnails/journal/membership--gated-teaser.jpg"
+    }
+  },
+  "membership/plans": {
+    "category": "plugin",
+    "description": "Plan cards from the Membership extension.",
+    "keywords": [
+      "plans"
+    ],
+    "previews": {
+      "aster-house": "/block-thumbnails/aster-house/membership--plans.jpg",
+      "core": "/block-thumbnails/core/membership--plans.jpg",
+      "depot": "/block-thumbnails/depot/membership--plans.jpg",
+      "journal": "/block-thumbnails/journal/membership--plans.jpg"
+    }
+  },
+  "reference/field-guide": {
+    "category": "site",
+    "description": "A portable block reference covering each editor control and JSON-safe attribute type.",
+    "keywords": [
+      "reference",
+      "fields"
+    ],
+    "previews": {
+      "aster-house": "/block-thumbnails/aster-house/reference--field-guide.jpg",
+      "core": "/block-thumbnails/core/reference--field-guide.jpg",
+      "depot": "/block-thumbnails/depot/reference--field-guide.jpg",
+      "journal": "/block-thumbnails/journal/reference--field-guide.jpg"
+    }
+  },
+  "support/kb-search": {
+    "category": "plugin",
+    "description": "Search published help articles, with an optional knowledge-base category and useful articles to start with.",
+    "keywords": [
+      "kb-search"
+    ],
+    "previews": {
+      "aster-house": "/block-thumbnails/aster-house/support--kb-search.jpg",
+      "core": "/block-thumbnails/core/support--kb-search.jpg",
+      "depot": "/block-thumbnails/depot/support--kb-search.jpg",
+      "journal": "/block-thumbnails/journal/support--kb-search.jpg"
+    }
+  },
+  "support/ticket-cta": {
+    "category": "plugin",
+    "description": "Invite visitors to the existing support request flow.",
+    "keywords": [
+      "ticket-cta"
+    ],
+    "previews": {
+      "aster-house": "/block-thumbnails/aster-house/support--ticket-cta.jpg",
+      "core": "/block-thumbnails/core/support--ticket-cta.jpg",
+      "depot": "/block-thumbnails/depot/support--ticket-cta.jpg",
+      "journal": "/block-thumbnails/journal/support--ticket-cta.jpg"
+    }
+  }
+}

@@ -39,6 +39,8 @@ export function useUnsavedChangesWarning(
   // from shouldBlockFn means "yes, block navigation", so we invert the
   // result of window.confirm (confirm = proceed = don't block).
   useBlocker({
+    // Router defaults beforeunload protection to true even when the callback allows navigation.
+    enableBeforeUnload: shouldBlock,
     shouldBlockFn: () => {
       if (!shouldBlock) return false;
       return !window.confirm(

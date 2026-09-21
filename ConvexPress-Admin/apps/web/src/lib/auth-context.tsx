@@ -6,8 +6,8 @@
  * `current_user_can()` function.
  *
  * The provider fetches the current user via `api.users.getCurrentUser` and
- * resolves their role via `api.roles.queries.getRole`. The role's capabilities
- * and pageAccess arrays drive all client-side permission checks.
+ * reads their effective role via `api.users.getCurrentRoleAccess`. Management
+ * session ceilings apply before capabilities reach the UI.
  *
  * IMPORTANT: Client-side checks are for UI convenience only.
  * The backend `requireCan()` is the actual security boundary.
@@ -17,22 +17,14 @@ import {
   createContext,
   useContext,
   useMemo,
+  useEffect,
+  useState,
   type ReactNode,
 } from "react";
 import { useQuery } from "convex-helpers/react/cache";
 import { api } from "@backend/convex/_generated/api";
-import type { Id } from "@backend/convex/_generated/dataModel";
 import { hasCapability } from "./admin-shell/capabilities";
 import { matchesPageAccess, pageAccessCandidates } from "./page-access";
-
-const LEGACY_ROLE_SLUG_MAP: Record<string, string> = {
-  admin: "administrator",
-  editor: "editor",
-  author: "author",
-  contributor: "contributor",
-  support: "editor",
-  customer: "subscriber",
-};
 
 // --- Types ---
 
@@ -99,44 +91,35 @@ export function AuthProvider({ children }: AuthProviderProps) {
   // Step 1: Fetch the current authenticated user from Convex
   const currentUser = useQuery(api.users.getCurrentUser);
 
-  // Step 2: Resolve role via roleId first, then legacy internalRole slug fallback.
-  const userRoleId = (currentUser as UserData | null | undefined)?.roleId;
-  const internalRole = (currentUser as UserData | null | undefined)?.internalRole;
-  const legacyRoleSlug =
-    internalRole && internalRole.length > 0
-      ? (LEGACY_ROLE_SLUG_MAP[internalRole] ?? internalRole)
-      : null;
-
-  const roleById = useQuery(
-    api.roles.queries.getRole,
-    userRoleId
-      ? { roleId: userRoleId as Id<"roles"> }
-      : "skip",
-  );
-  const roleBySlug = useQuery(
-    api.roles.queries.getRoleBySlug,
-    !userRoleId && legacyRoleSlug
-      ? { slug: legacyRoleSlug }
-      : "skip",
-  );
-
-  // Determine loading state:
-  // - currentUser === undefined means the user query hasn't resolved yet
-  // - roleById/roleBySlug === undefined means the active role query hasn't resolved yet
-  const isResolvingRoleById =
-    userRoleId !== undefined &&
-    userRoleId !== null &&
-    roleById === undefined;
-  const isResolvingRoleBySlug =
-    !userRoleId &&
-    !!legacyRoleSlug &&
-    roleBySlug === undefined;
-  const isLoading =
-    currentUser === undefined ||
-    isResolvingRoleById ||
-    isResolvingRoleBySlug;
-
-  const resolvedRole = roleById ?? roleBySlug;
+  const [refresh, setRefresh] = useState(0);
+  const access = useQuery(api.users.getCurrentRoleAccess, { refresh });
+  const validUntil = access?.validUntil;
+  useEffect(() => {
+    if (validUntil == null) return;
+    // Convex subscriptions react to writes, not the passage of time. Renew at
+    // the earliest session/authority/membership boundary, also after sleep.
+    let timer: ReturnType<typeof setTimeout>;
+    let renewed = false;
+    const check = () => {
+      if (renewed) return;
+      if (Date.now() >= validUntil) {
+        renewed = true;
+        setRefresh(value => value + 1);
+      } else {
+        clearTimeout(timer);
+        timer = setTimeout(check, Math.min(validUntil - Date.now(), 2_147_483_647));
+      }
+    };
+    check();
+    window.addEventListener("focus", check);
+    document.addEventListener("visibilitychange", check);
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener("focus", check);
+      document.removeEventListener("visibilitychange", check);
+    };
+  }, [validUntil, access]);
+  const isLoading = currentUser === undefined || access === undefined;
 
   // Map the current user to our UserData shape.
   // The Convex query returns the full user document; we extract the fields we need.
@@ -158,24 +141,14 @@ export function AuthProvider({ children }: AuthProviderProps) {
     };
   }, [currentUser]);
 
-  // Map the role document to our RoleData shape.
-  // The Convex query returns the full role document; we extract the fields we need.
+  // Fail closed while switching identity, renewing an expired display grant,
+  // or reacting to an inactive user. Role metadata never grants permissions.
   const roleData = useMemo<RoleData | null>(() => {
-    if (!resolvedRole) return null;
-    const r = resolvedRole as Record<string, unknown>;
-    // Only use active roles -- inactive roles deny all permissions
-    if (r.status !== "active") return null;
-    return {
-      _id: r._id as string,
-      name: r.name as string,
-      slug: r.slug as string,
-      level: r.level as number,
-      type: r.type as string,
-      capabilities: (r.capabilities as string[]) ?? [],
-      pageAccess: (r.pageAccess as string[]) ?? [],
-      status: r.status as string,
-    };
-  }, [resolvedRole]);
+    if (!access || !currentUser || currentUser.status !== "active"
+      || access.userId !== currentUser._id
+      || (access.validUntil !== null && access.validUntil <= Date.now())) return null;
+    return access.role;
+  }, [access, currentUser, refresh]);
 
   const value = useMemo<AuthContextValue>(() => {
     const can = (capability: string): boolean => {

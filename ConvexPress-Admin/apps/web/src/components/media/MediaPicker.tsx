@@ -16,7 +16,6 @@ import {
   ChevronDownIcon,
   ChevronUpIcon,
   FileIcon,
-  ImageIcon,
   MusicIcon,
   SearchIcon,
   UploadCloudIcon,
@@ -24,7 +23,8 @@ import {
   XIcon,
 } from "lucide-react";
 import { toast } from "sonner";
-import { useMutation } from "convex/react";
+import { useMutation, usePaginatedQuery } from "convex/react";
+import { MediaContinuation, MediaReadBoundary } from "./MediaPagination";
 import { useQuery } from "convex-helpers/react/cache";
 import { api } from "@backend/convex/_generated/api";
 import type { Id } from "@backend/convex/_generated/dataModel";
@@ -47,7 +47,9 @@ interface MediaPickerProps {
   onClear?: () => void;
 }
 
-export function MediaPicker({
+export function MediaPicker(props: MediaPickerProps) { return <MediaReadBoundary><MediaPickerContent {...props} /></MediaReadBoundary>; }
+
+function MediaPickerContent({
   onSelect,
   allowedTypes,
   selectedId,
@@ -57,18 +59,16 @@ export function MediaPicker({
   const [isOpen, setIsOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<"library" | "upload">("library");
   const [search, setSearch] = useState("");
-  const [hoveredId, setHoveredId] = useState<string | null>(null);
   const [pendingId, setPendingId] = useState<Id<"media"> | null>(
     selectedId || null,
   );
 
   // ── Convex Queries ────────────────────────────────────────────────────
-  const mediaResult = useQuery(api.media.queries.list, {
+  const mediaPages = usePaginatedQuery(api.media.queries.list, {
     mediaType:
       allowedTypes && allowedTypes.length === 1 ? allowedTypes[0] : undefined,
     search: search.trim() || undefined,
-    paginationOpts: { numItems: 20, cursor: null },
-  });
+  }, { initialNumItems: 20 });
 
   // Get the selected media details for preview
   const selectedMedia = useQuery(
@@ -171,7 +171,7 @@ export function MediaPicker({
     [uploadOne],
   );
 
-  const items = mediaResult?.page ?? [];
+  const items = mediaPages.results;
 
   return (
     <div className="border border-border bg-card rounded-none">
@@ -262,6 +262,7 @@ export function MediaPicker({
                   <SearchIcon className="absolute left-2 top-1/2 -translate-y-1/2 size-3 text-muted-foreground" />
                   <input
                     type="text"
+                    maxLength={256}
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
                     placeholder="Search media..."
@@ -272,7 +273,7 @@ export function MediaPicker({
 
               {/* Grid */}
               <div className="max-h-[240px] overflow-y-auto p-2">
-                {mediaResult === undefined ? (
+                {mediaPages.status === "LoadingFirstPage" ? (
                   <div className="grid grid-cols-4 gap-1">
                     {Array.from({ length: 8 }).map((_, i) => (
                       <div
@@ -284,7 +285,7 @@ export function MediaPicker({
                 ) : items.length === 0 ? (
                   <div className="text-center py-8">
                     <p className="text-xs text-muted-foreground">
-                      No media found.
+                      {mediaPages.status === "Exhausted" ? "No media found." : "No matches in the loaded pages."}
                     </p>
                   </div>
                 ) : (
@@ -297,8 +298,6 @@ export function MediaPicker({
                           key={item._id}
                           type="button"
                           onClick={() => setPendingId(item._id)}
-                          onMouseEnter={() => setHoveredId(item._id)}
-                          onMouseLeave={() => setHoveredId(null)}
                           className={cn(
                             "relative aspect-square border transition-all",
                             isSelected
@@ -346,6 +345,8 @@ export function MediaPicker({
                   </div>
                 )}
               </div>
+
+              <MediaContinuation status={mediaPages.status} count={items.length} loadMore={mediaPages.loadMore} pageSize={20} />
 
               {/* Confirm Button */}
               <div className="px-3 py-2 border-t border-border">

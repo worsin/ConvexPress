@@ -8,9 +8,7 @@
 
 // ---- Type definitions for the preload bridge ----
 
-type RendererClearableConfigKey =
-  | "pendingAdminCredentials"
-  | "pendingLoginCredentials";
+type RendererClearableConfigKey = "pendingAdminCredentials" | "pendingLoginCredentials";
 
 export interface ConvexpressConfig {
   get: (key: string) => Promise<unknown>;
@@ -65,10 +63,21 @@ export interface ConvexpressBridge {
   siteRunner?: ConvexpressSiteRunner;
   /** Present in desktop builds that allow-list site deployment origins at runtime. */
   security?: {
-    registerDeploymentOrigins: (origins: string[]) => Promise<{ added: string[]; origins: string[] }>;
+    registerDeploymentOrigins: (
+      origins: string[],
+    ) => Promise<{ added: string[]; origins: string[]; reloadRequired?: boolean }>;
     listDeploymentOrigins: () => Promise<string[]>;
   };
   /** Present in desktop builds that can apply site auth env vars and redeploy a site backend. */
+  hosting?: {
+    connectCloudflareOAuth(input: { organizationId: string; businessId?: string; externalAccountId: string; expectedRevision: number; authToken: string }): Promise<{ accountId: string; provider: "cloudflare"; externalAccountId: string; label: string; revision: number }>;
+    cancelCloudflareOAuth(): Promise<boolean>;
+  };
+  websitePublish?: {
+    run(input: { instanceId: string; accountId: string; authToken: string; clerkPublishableKey?: string; confirmLive?: boolean } & ({ provider?: "cloudflare"; workerName: string } | { provider: "vercel"; projectName: string; resumeReleaseId?: string })): Promise<{ releaseId: string; siteOrigin: string }>;
+    cancel(instanceId: string): Promise<boolean>;
+    onProgress(callback: (event: { instanceId: string; message: string }) => void): () => void;
+  };
   siteDeploy?: ConvexpressSiteDeploy;
   connections: {
     provision: (input: {
@@ -135,10 +144,19 @@ export interface SiteDeployRequest {
   envOnly?: boolean;
 }
 
-export type SiteDeployPhase = "environment" | "codegen" | "deploy" | "identity" | "connect" | "complete" | "failed";
+export type SiteDeployPhase =
+  | "environment"
+  | "codegen"
+  | "deploy"
+  | "identity"
+  | "connect"
+  | "complete"
+  | "failed"
+  | "interrupted";
 
 export interface SiteDeployProgress {
   runId: string;
+  targetOrigin: string;
   phase: SiteDeployPhase;
   message: string;
   at: number;
@@ -170,8 +188,17 @@ export interface SiteInitializeRequest {
 
 export interface ConvexpressSiteDeploy {
   run: (input: SiteDeployRequest) => Promise<SiteDeployRunResult>;
-  status: () => Promise<
-    | (SiteDeployRunResult & {
+  cancel: (runId: string) => Promise<{ cancelled: boolean }>;
+  status: (input?: { deploymentOrigin?: string }) => Promise<
+    | (Omit<SiteDeployRunResult, "ok"> & {
+        ok: boolean | null;
+        targetOrigin: string;
+        receipts: Array<{
+          phase: SiteDeployPhase;
+          status: "started" | "completed";
+          at: number;
+          attempt: number;
+        }>;
         label: string;
         startedAt: number;
         finishedAt: number | null;
@@ -183,7 +210,9 @@ export interface ConvexpressSiteDeploy {
     { available: true; convexUrl: string; deployment: string } | { available: false }
   >;
   /** Empty deployment → ConvexPress site + controller connection, one credential prompt. */
-  initialize: (input: SiteInitializeRequest) => Promise<SiteDeployRunResult & { connectionId: string | null }>;
+  initialize: (
+    input: SiteInitializeRequest,
+  ) => Promise<SiteDeployRunResult & { connectionId: string | null }>;
   onProgress: (callback: (event: SiteDeployProgress) => void) => () => void;
 }
 
