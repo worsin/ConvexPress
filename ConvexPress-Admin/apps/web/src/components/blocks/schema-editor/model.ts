@@ -1,3 +1,4 @@
+import { assertAuthoringResolverArgs } from "@backend/canonical-blocks-foundation/resolverBindings";
 import {
 	validateBlockAuthoringAttrs,
 	validateBlockField,
@@ -118,9 +119,11 @@ export type DraftValidation =
 export function validateDraft(name: string, draft: Draft, contract?: BlockEditorContract): DraftValidation {
 	try {
 		if (contract && contract.name !== name) throw new Error("Mismatched block contract");
+		const attrs = contract ? contract.validateAttrs(draft) : validateBlockAuthoringAttrs(name, draft) as Draft;
+    if (!contract) assertAuthoringResolverArgs(name, attrs);
 		return {
 			ok: true,
-			attrs: contract ? contract.validateAttrs(draft) : validateBlockAuthoringAttrs(name, draft) as Draft,
+			attrs,
 			issues: [],
 		};
 	} catch (error) {

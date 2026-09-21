@@ -1,5 +1,8 @@
 # Handoff to Astra — template system, next phase (2026-09-04)
 
+September21 commerce authoring: shared resolver argument validation now prevents fractional counts and missing category/tag selections before editor/server writes while preserving legacy repair and draft recovery. Native save/reopen/publish/public catalog link/withdraw/recovery and deployed10refusals/5positive previews passed;3469backend tests and297renderer cases pass. Installed plugin,42pages/settings and original processes preserved. MagicTables two Notes updates;19/137blocks verified and original8accepted/16open unchanged. [Evidence](commerce-authoring-20260921.md).
+
+
 From: Claude session (template system, phases 1–4). To: Astra session. Owner: worsin.
 Scope: continue the template system to completion, plus the items on Astra's own audit list.
 

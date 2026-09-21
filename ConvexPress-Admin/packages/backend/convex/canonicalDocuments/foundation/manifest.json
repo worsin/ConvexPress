@@ -1,12 +1,13 @@
 {
   "source": "ConvexPress-Admin/packages/backend/canonical-blocks-foundation",
   "files": {
+    "resolverBindings.ts": "f00859caff82100ee259b781673449cc1b5533ce50d1eddea81d59fbbf8df1a4",
     "searchText.ts": "2285e47ec7c7a37a9c28b594ad8352b3791f2090d390c2eb4d21422e3d7603f3",
     "generated/search_text.ts": "ec776042d472925e245a0a1a21277960271ff8a8fd0bd34d6b990cd4ded9cd30",
     "blockPromotion.ts": "a29a8b7b58da05b62d739b265df55649b0716e5013627d2a3810fb0832ace23b",
     "resolverReferences.ts": "09eef4e2d4cdf3d6b4ccbdbbb189a0336dd8704d135bbefd43bbe89ec2d42921",
     "composedPresentation.ts": "ab3fc31fd9dc9c69642a0bf1d55d7b4aea102643aa748e3f2a85f902bb0d6668",
-    "authoredDefinitions.ts": "352c9307bf7b3c7a8559988c35c714ea13a8b3928b664f9f5d74733b74168568",
+    "authoredDefinitions.ts": "90d0e8adea5ed7c145dfb1198315986aa2fbf522e43519934a3cc71609a580e4",
     "composedRegistry.ts": "67f392dc44e336d80d40efbd38f8a87cb65c898c73576bed533d5932ea25adf6",
     "composedDefinitions.ts": "725a23ac208e115b6538e80d0cf2f39abadbbfd3b611110ec7f5fcc555d3ce31",
     "composition.ts": "b018c1a2f8d49c8fb7777e7df7d1ff37681d5838eae2107c3d2da8d8d2f4b906",
@@ -66,7 +67,7 @@
     "renderResources.ts": "7511d1d6eaef63a4e629d9360f6dc3bc16d7d601a25445ee835dc39f9645ccd9",
     "shared/fingerprints.ts": "5ea5822cb0ecb9386c2695ee6941b04ae85fc736573f157516d7316f2b795ddc",
     "contracts.ts": "8b23c834c0697bc39ca539db1d7bbd40c16c414d7e039266ecd673ba7f2e37e3",
-    "planner.ts": "85c8cdc5b1d7cecc039ad0963a23e39d3494e5a64df5adf442eb7929eed0be62",
+    "planner.ts": "af1238106fdac6163d24dde0b12c956dab3285c7ed2399a36e4f81c79680849c",
     "resolve.ts": "4304913c3b6c17dd860f9c38f29ce839439fd8f9f134be71915e6a15a236f6f6",
     "generated/metadata.ts": "724ea4d7a239730ebabaa89cf4605de05df17fe9af86c912556125c28e96b317",
     "generated/promotions.ts": "7545ede36ecd059123045889f0aa32d6c0c9f4b157fc29ace43d597a942633eb",

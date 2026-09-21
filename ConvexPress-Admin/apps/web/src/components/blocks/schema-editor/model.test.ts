@@ -3,6 +3,23 @@ import { expect, test, afterAll } from "bun:test";
 import { loadStaged } from "./test-harness";
 const loaded = await loadStaged("./model.ts");
 afterAll(loaded.cleanup);
+test("commerce source requirements and whole-product counts fail at the edited field without altering the draft", () => {
+  const cases = [
+    ["blocks/product-collection", { count: 1.5 }, "count"],
+    ["commerce/product-showcase", { count: 1.5 }, "count"],
+    ["blocks/product-collection", { mode: "category", categorySlug: " " }, "categorySlug"],
+    ["blocks/product-collection", { mode: "tag", tagSlug: "" }, "tagSlug"],
+    ["commerce/product-showcase", { source: "category", categorySlug: "" }, "categorySlug"],
+  ] as const;
+  for (const [name, attrs, field] of cases) {
+    const before = JSON.stringify(attrs);
+    const result = loaded.module.validateDraft(name, attrs);
+    expect(result.ok).toBe(false);
+    expect(result.issues.some((issue: { path: string[] }) => issue.path.join(".") === field)).toBe(true);
+    expect(JSON.stringify(attrs)).toBe(before);
+    expect(loaded.module.validateDraft(name, { ...attrs, [field]: field === "count" ? 2 : "studio" }).ok).toBe(true);
+  }
+});
 const {
 	draftAt,
 	updateDraft,

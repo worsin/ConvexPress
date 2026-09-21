@@ -1,5 +1,6 @@
 import {SEARCH_QUERY_REQUEST_KEY} from "./searchContracts";
-import {parseCalendarNavigation} from "./calendarContracts";
+import { parseBoundResolverArgs, supportsResolverPagination } from "./resolverBindings";
+export { bindResolverArguments } from "./resolverBindings";
 import { parsePollDefinition } from "./pollContracts";
 import { blockPageRequestSchema, type BlockPageRequest } from "./postGridContracts";
 import { dependencyDescriptors } from "./generated/metadata";
@@ -38,45 +39,6 @@ const descriptors: Readonly<
 > = dependencyDescriptors;
 function fail(code: string, path: string, message: string): never {
 	throw new CanonicalDataError(code, path, message);
-}
-/** Bind only compiled specification values. An instance cannot provide a data descriptor. */
-export function bindResolverArguments(
-	value: unknown,
-	attrs: Record<string, unknown>,
-  blockId: string,
-	path: string,
-	depth = 0,
-): unknown {
-	if (depth > 12)
-		return fail(
-			"BINDING_BUDGET",
-			path,
-			"Resolver binding nesting exceeds its limit",
-		);
-  if (value === "block.id") return blockId;
-	if (typeof value === "string" && value.startsWith("attrs.")) {
-		let result: unknown = attrs;
-		for (const part of value.slice(6).split(".")) {
-			if (["__proto__", "constructor", "prototype"].includes(part))
-				return fail("INVALID_BINDING", path, "Unsafe binding path");
-			if (!result || typeof result !== "object" || !Object.prototype.hasOwnProperty.call(result, part))
-				return undefined;
-			result = (result as Record<string, unknown>)[part];
-		}
-		return result;
-	}
-	if (Array.isArray(value))
-		return value.map((item, index) =>
-			bindResolverArguments(item, attrs, blockId, `${path}.${index}`, depth + 1),
-		);
-	if (value && typeof value === "object")
-		return Object.fromEntries(
-			Object.entries(value).flatMap(([key, item]) => {
-				const result = bindResolverArguments(item, attrs, blockId, `${path}.${key}`, depth + 1);
-				return result === undefined ? [] : [[key, result]];
-			}),
-		);
-	return value;
 }
 export function planCanonicalData(tree: unknown, scope: DataScope, policy: ResolverPolicy, request: BlockPageRequest = {}, composed?: ComposedDataContext): CanonicalDataPlan {
   const pages = blockPageRequestSchema.parse(request);
@@ -128,29 +90,11 @@ export function planCanonicalData(tree: unknown, scope: DataScope, policy: Resol
             fail("MISSING_RUNTIME_POLICY", path, "Custom definitions cannot weaken the installed resolver policy");
         }
       }
-      let bound = bindResolverArguments(data.args, node.attrs, node.id, `${path}.data`);
-      if (resolver === "commerce.productCollection") {
-        // Authored group labels/cards belong to presentation, not query authority.
-        // Read only validated group product IDs into the closed resolver contract.
-        if (node.name === "blocks/product-collection") {
-          bound = { ...(bound as object), groups: node.attrs.groups.map(group => ({productIds:group.productIds})) };
-        } else if (node.name === "commerce/sale-countdown") {
-          // Campaign timing is presentation; attrs cannot widen source selection
-          // or request private/cart disclosures.
-          bound = { mode: "sale", count: node.attrs.limit, showPrice: true, showRating: false, showAddToCart: false, groups: [] };
-        } else if (node.name === "commerce/product-hero") {
-          // Empty or unavailable selections remain empty, never latest products.
-          bound = { mode: "manual", productIds: [node.attrs.product ?? ""], count: 1, showPrice: true, showRating: false, showAddToCart: true, groups: [] };
-        } else if (node.name === "commerce/recently-viewed") {
-          // History is supplied separately by the settled visitor host.
-          bound = { mode: "recentlyViewed", count: node.attrs.limit, showPrice: true, showRating: false, showAddToCart: false, groups: [] };
-        } else if (!definition) fail("INVALID_BINDING", path, "Unsupported collection binding");
-      }
       if (requested.has(node.id)) {
-        if (resolver !== "media.tagged" && resolver !== "content.search" && resolver !== "commerce.reviews" && resolver !== "content.archive" && resolver !== "content.related" && resolver !== "gallery.album" && resolver !== "lms.curriculum" && resolver !== "lms.progress" && resolver !== "lms.instructor" && resolver !== "lms.courses" && resolver !== "membership.plans" && resolver !== "content.posts" && resolver !== "content.tags" && resolver !== "events.list" && resolver !== "commerce.categoryTiles") fail("INVALID_PAGE_REQUEST", path, "This block does not support visitor pagination");
+        if (!supportsResolverPagination(resolver)) fail("INVALID_PAGE_REQUEST", path, "This block does not support visitor pagination");
         requested.delete(node.id);
       }
-      const result = resolverArgs[resolver].safeParse(resolver === "content.search" ? {...(bound as object),query:pages[SEARCH_QUERY_REQUEST_KEY]??"",cursor:pages[node.id]??null} : resolver === "events.list" ? {...(bound as object),...(pages[node.id]?parseCalendarNavigation(pages[node.id]!):{})} : (resolver === "media.tagged" || resolver === "commerce.reviews" || resolver === "content.archive" || resolver === "content.related" || resolver === "gallery.album" || resolver === "lms.curriculum" || resolver === "lms.progress" || resolver === "lms.instructor" || resolver === "lms.courses" || resolver === "membership.plans" || resolver === "content.posts" || resolver === "content.tags" || resolver === "commerce.categoryTiles") ? { ...(bound as object), cursor: pages[node.id] ?? null } : bound);
+      const result = parseBoundResolverArgs(node.name, node.attrs, node.id, data, path, pages);
       if (!result.success) fail("INVALID_RESOLVER_ARGS", path, "Bound arguments do not match the allowlisted resolver");
       const bindingKey = stableKey({ resolver, args: result.data });
       jobs.set(bindingKey, { key: bindingKey, resolver, args: result.data } as ResolverJob);

@@ -6,6 +6,27 @@ import { parseCanonicalDocumentRead } from "../foundation/documentContracts";
 const reference = (name: string, kind: "query" | "mutation" = "query") =>
 	makeFunctionReference<any, any, any>(`canonicalDocuments:${name}`);
 
+test("commerce resolver-invalid edits are refused before saving or previewing without changing history", async () => {
+  const f = await fixture();
+  await initialize(f);
+  const opened = await f.client.query(reference("get"), { postId: f.ids.post });
+  const snapshot = () => f.t.run(async ctx => ({ post: await ctx.db.get("posts", f.ids.post), history: await ctx.db.query("revisions").collect() }));
+  const before = await snapshot();
+  for (const [name, attrs, diagnostic] of [
+    ["blocks/product-collection", { count: 1.5 }, /int/],
+    ["commerce/product-showcase", { count: 1.5 }, /int/],
+    ["blocks/product-collection", { mode: "category" }, /Choose a product category/],
+    ["blocks/product-collection", { mode: "tag" }, /Choose a product tag/],
+    ["commerce/product-showcase", { source: "category" }, /Choose a product category/],
+  ] as const) {
+    const args = { postId: f.ids.post, expectedRevision: opened.document.revision, title: opened.document.title, blocks: [{ id: "products", name, version: 2, attrs }] };
+    for (const operation of [() => f.client.mutation(reference("save", "mutation"), args), () => f.client.query(reference("previewDraft"), args)]) {
+      await expect(operation()).rejects.toThrow(diagnostic);
+      expect(await snapshot()).toEqual(before);
+    }
+  }
+});
+
 test("CTA family writes reject unusable actions without changing content or history", async () => {
   const cases = [
     ["blocks/media-mentions", 1, { items: [{ ctaUrl: "javascript:alert(1)", ctaLabel: "Read" }] }],

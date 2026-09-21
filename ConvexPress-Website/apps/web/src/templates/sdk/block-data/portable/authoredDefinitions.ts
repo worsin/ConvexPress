@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { assertAuthoringResolverArgs } from "./resolverBindings";
 import { createComposedRegistry, composedRegistrySnapshotSchema, type ComposedRegistrySnapshot, type RuntimeCanonicalTree } from "./composedRegistry";
 import { canonicalContentDigest, DOCUMENT_LIMITS } from "./documentContracts";
 import { validateCanonicalTree } from "./generated/instances";
@@ -24,7 +25,11 @@ export function assertAuthoredActions(content: Pick<AuthoredDefinitionContent, "
         const definition = registry?.definition(node.name, node.version);
         if (!definition) throw Error("Composed authoring requires the current site definition");
         validateAuthoringActions(z, node.attrs, definition.spec.authoringActions);
-      } else validateBlockAuthoringAttrs(node.name, node.attrs);
+        assertAuthoringResolverArgs(node.name, node.attrs, definition.spec.data);
+      } else {
+        validateBlockAuthoringAttrs(node.name, node.attrs);
+        assertAuthoringResolverArgs(node.name, node.attrs);
+      }
       if (node.children) visit(node.children);
     }
   }
