@@ -23,7 +23,7 @@ import { syncProductSearch } from "./products";
 import type { MutationCtx } from "../_generated/server";
 import type { Id } from "../_generated/dataModel";
 import { v } from "convex/values";
-import { getUserIdentifier, lookupUserByIdentifier } from "../helpers/permissions";
+import { currentUserCan, getUserIdentifier } from "../helpers/permissions";
 import {
   onContentChangedArgs,
   logSearchQueryArgs,
@@ -726,26 +726,11 @@ export const checkReindexPermission = internalQuery({
     userId: v.string(),
   },
   handler: async (ctx, args): Promise<boolean> => {
-    // Look up user by identifier (clerkUserId or Convex _id)
-    const user = await lookupUserByIdentifier(ctx, args.userId);
-
-    if (!user) return false;
-
-    // Resolve role and check for capability
-    if (user.roleId) {
-      const role = await ctx.db.get("roles", user.roleId);
-      if (!role) return false;
-      return (
-        Array.isArray(role.capabilities) &&
-        (role.capabilities.includes("search.reindex") ||
-          role.capabilities.includes("manage_options"))
-      );
-    }
-
-    // Legacy role fallback: administrators always have all capabilities
-    if (user.internalRole === "administrator") return true;
-
-    return false;
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity || identity.subject !== args.userId) return false;
+    // Resolve the caller's active account and current management-session scope.
+    return (await currentUserCan(ctx, "search.reindex")) ||
+      (await currentUserCan(ctx, "manage_options"));
   },
 });
 

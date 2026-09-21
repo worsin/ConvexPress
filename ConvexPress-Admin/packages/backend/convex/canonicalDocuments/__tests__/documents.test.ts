@@ -2249,3 +2249,49 @@ test("ordinary editor drafts preview without AI permission and never write conte
   await expect(f.client.query(reference("previewDraft"), { ...args, blocks: [{ ...args.blocks[0], attrs: { unexpected: true } }] })).rejects.toThrow();
   expect(await f.t.run(async ctx => ({ post: await ctx.db.get("posts", f.ids.post), history: await ctx.db.query("revisions").collect() }))).toEqual(before);
 });
+
+for (const type of ["page", "post"] as const) test(`canonical ${type} visibility and write-only password changes preserve content and enforce access`, async () => {
+  const f = await fixture();
+  await f.t.run(async ctx => {
+    await ctx.db.patch("posts", f.ids.post, { type });
+    const user = await ctx.db.get("users", f.ids.user);
+    const role = await ctx.db.get("roles", user!.roleId!);
+    await ctx.db.patch("roles", role!._id, { capabilities: [...role!.capabilities, `${type}.publish`] });
+  });
+  const initial = await initialize(f);
+  await f.client.mutation(reference("setPublication", "mutation"), { postId: f.ids.post, expectedRevision: initial.revision, status: "publish" });
+  const first = await f.client.query(reference("getSettings"), { postId: f.ids.post });
+  expect(first.visibility).toBe("public"); expect(first.hasPassword).toBe(false);
+  await expect(f.client.mutation(reference("setSettings", "mutation"), settingsWrite(first, { visibility: "password" }))).rejects.toThrow("Enter a password");
+  await f.client.mutation(reference("setSettings", "mutation"), settingsWrite(first, { visibility: "password", password: "first-secret" }));
+  const protectedSettings = await f.client.query(reference("getSettings"), { postId: f.ids.post });
+  expect(protectedSettings.hasPassword).toBe(true); expect(protectedSettings).not.toHaveProperty("password"); expect(JSON.stringify(protectedSettings)).not.toContain("first-secret");
+  expect((await f.t.query(reference("getForRender"), { postId: f.ids.post })).state).toBe("restricted");
+  expect((await f.t.query(reference("getForRender"), { postId: f.ids.post, password: "first-secret" })).state).toBe("ready");
+  await f.client.mutation(reference("setSettings", "mutation"), settingsWrite(protectedSettings, { password: "second-secret" }));
+  await expect(f.client.mutation(reference("setSettings", "mutation"), settingsWrite(protectedSettings, { visibility: "public" }))).rejects.toThrow("changed");
+  expect((await f.t.query(reference("getForRender"), { postId: f.ids.post, password: "first-secret" })).state).toBe("restricted");
+  expect((await f.t.query(reference("getForRender"), { postId: f.ids.post, password: "second-secret" })).state).toBe("ready");
+  const current = await f.client.query(reference("getSettings"), { postId: f.ids.post });
+  await f.client.mutation(reference("setSettings", "mutation"), settingsWrite(current, { visibility: "private" }));
+  expect(await f.t.query(reference("getForRender"), { postId: f.ids.post, password: "second-secret" })).toBeNull();
+  let row = await f.t.run(ctx => ctx.db.get("posts", f.ids.post));
+  expect(row?.password).toBeUndefined(); expect(row?.blocks).toEqual(tree); expect(row?.status).toBe("publish");
+  const history = await f.client.query(reference("pageRevisions"), { postId: f.ids.post, paginationOpts: { numItems: 20, cursor: null } });
+  expect(JSON.stringify(history)).not.toContain("first-secret"); expect(JSON.stringify(history)).not.toContain("second-secret");
+  const privateSettings = await f.client.query(reference("getSettings"), { postId: f.ids.post });
+  await f.client.mutation(reference("restore", "mutation"), { postId: f.ids.post, revisionId: history.page[0].id, expectedRevision: privateSettings.revision });
+  row = await f.t.run(ctx => ctx.db.get("posts", f.ids.post)); expect(row?.visibility).toBe("private"); expect(row?.password).toBeUndefined();
+  const restored = await f.client.query(reference("getSettings"), { postId: f.ids.post });
+  await f.client.mutation(reference("setSettings", "mutation"), settingsWrite(restored, { visibility: "public" }));
+  expect((await f.t.query(reference("getForRender"), { postId: f.ids.post })).state).toBe("ready");
+});
+test("canonical access changes require publishing authority without blocking ordinary layout changes", async () => {
+  const f = await fixture(); await initialize(f);
+  const current = await f.client.query(reference("getSettings"), { postId: f.ids.post });
+  await expect(f.client.mutation(reference("setSettings", "mutation"), settingsWrite(current, { visibility: "private" }))).rejects.toThrow();
+  await expect(f.client.mutation(reference("setSettings", "mutation"), settingsWrite(current, { visibility: "password", password: "secret" }))).rejects.toThrow();
+  await expect(f.client.mutation(reference("setSettings", "mutation"), settingsWrite(current, { visibility: "public", password: "secret" }))).rejects.toThrow("Choose password protection");
+  expect((await f.client.mutation(reference("setSettings", "mutation"), settingsWrite(current, { hideFooter: true }))).changed).toBe(true);
+  const row = await f.t.run(ctx => ctx.db.get("posts", f.ids.post)); expect(row?.status).toBe("draft"); expect(row?.visibility).toBe("public"); expect(row?.password).toBeUndefined();
+});

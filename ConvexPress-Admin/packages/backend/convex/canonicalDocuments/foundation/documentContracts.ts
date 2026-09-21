@@ -230,11 +230,14 @@ export const canonicalLayoutSchema = z.strictObject({
 export const canonicalDocumentSettingsSchema = z.strictObject({
   postId: id, type: z.enum(["page", "post"]), revision, settingsDigest: digest,
   slug: z.string().min(1).max(512), path: z.string().max(2048),
+  visibility: z.enum(["public", "private", "password"]), hasPassword: z.boolean(),
   ...canonicalLayoutSchema.shape,
 });
 export const canonicalSettingsWriteSchema = z.strictObject({
   expectedRevision: revision, expectedSettingsDigest: digest,
   slug: z.string().min(1).max(512), ...canonicalLayoutSchema.shape,
+  visibility: z.enum(["public", "private", "password"]).optional(),
+  password: z.string().min(1).max(128).optional(),
 });
 export type CanonicalDocumentSettings = z.infer<typeof canonicalDocumentSettingsSchema>;
 export type CanonicalSettingsWrite = z.infer<typeof canonicalSettingsWriteSchema>;

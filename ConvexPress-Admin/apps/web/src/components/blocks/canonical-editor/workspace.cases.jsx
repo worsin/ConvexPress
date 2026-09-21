@@ -1063,6 +1063,8 @@ test("document settings require saved content, serialize writes and retain edits
 		type: "page",
 		revision: 3,
 		settingsDigest: "a".repeat(64),
+		visibility: "public",
+		hasPassword: false,
 		slug: "studio",
 		path: "/studio",
 		pageTemplate: "default",
@@ -1119,6 +1121,29 @@ test("document settings require saved content, serialize writes and retain edits
 		expect(button("Save document settings").disabled).toBe(true);
 		await render(false);
 		await act(async () => {
+			const select = document.querySelector('select[aria-label="Visibility"]');
+			select.value = "password";
+			select.dispatchEvent(new dom.window.Event("change", { bubbles: true }));
+		});
+		expect(document.querySelector('input[aria-label="Document password"]').type).toBe("password");
+		expect(document.querySelector('input[aria-label="Document password"]').value).toBe("");
+		expect(button("Save document settings").disabled).toBe(true);
+		await act(async () => {
+			const input = document.querySelector('input[aria-label="Document password"]');
+			Object.getOwnPropertyDescriptor(dom.window.HTMLInputElement.prototype, "value").set.call(input, "fixture-secret");
+			input.dispatchEvent(new dom.window.Event("input", { bubbles: true }));
+		});
+		expect(button("Save document settings").disabled).toBe(false);
+		await act(async () => button("Save document settings").click());
+		expect(writes.at(-1).password).toBe("fixture-secret");
+		expect(writes.at(-1).visibility).toBe("password");
+		await act(async () => release({postId:"page",revision:4,digest:"b".repeat(64),changed:true}));
+		expect(document.querySelector('input[aria-label="Document password"]').value).toBe("");
+		// Mount a fresh settings session for the remaining layout/conflict checks.
+		await act(async () => root.render(null));
+		writes.length = 0; refreshes = 0;
+		await render(false);
+		await act(async () => {
 			const select = document.querySelector("select");
 			select.value = "full-width";
 			select.dispatchEvent(new dom.window.Event("change", { bubbles: true }));
@@ -1146,6 +1171,7 @@ test("document settings require saved content, serialize writes and retain edits
 		expect(writes[0]).toEqual({
 			expectedRevision: 3,
 			expectedSettingsDigest: "a".repeat(64),
+			visibility: "public",
 			slug: "studio",
 			pageTemplate: "full-width",
 			hideHeader: false,

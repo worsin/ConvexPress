@@ -330,6 +330,7 @@ export const deletePlan = mutation({
       .collect();
 
     for (const rule of rules) {
+      if (!(rule.planIds ?? []).includes(args.planId)) continue;
       const filteredPlanIds = (rule.planIds ?? []).filter(
         (pid: string) => pid !== args.planId,
       );

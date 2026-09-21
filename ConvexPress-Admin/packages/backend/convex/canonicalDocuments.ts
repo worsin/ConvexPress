@@ -225,13 +225,14 @@ const layoutFields = {
   pageTemplate: v.union(v.literal("default"),v.literal("full-width"),v.literal("sidebar-left"),v.literal("sidebar-right"),v.literal("no-sidebar"),v.literal("landing"),v.literal("blank")),
   hideHeader: v.boolean(), hideFooter: v.boolean(),
 };
+const documentVisibility = v.union(v.literal("public"), v.literal("private"), v.literal("password"));
 export const getSettings: RegisteredQuery<"public",ReadArgs,Promise<CanonicalDocumentSettings>> = query({
   args:{postId:v.id("posts")},
-  returns:v.object({postId:v.string(),type:v.union(v.literal("page"),v.literal("post")),revision:v.number(),settingsDigest:v.string(),slug:v.string(),path:v.string(),...layoutFields}),
+  returns:v.object({postId:v.string(),type:v.union(v.literal("page"),v.literal("post")),revision:v.number(),settingsDigest:v.string(),slug:v.string(),path:v.string(),visibility:documentVisibility,hasPassword:v.boolean(),...layoutFields}),
   handler:(ctx,args)=>canonicalBoundary(()=>getDocumentSettings(ctx,args)),
 });
 export const setSettings: RegisteredMutation<"public",ReadArgs & CanonicalSettingsWrite,Promise<CanonicalWriteReceipt>> = mutation({
-  args:{postId:v.id("posts"),expectedRevision:v.number(),expectedSettingsDigest:v.string(),slug:v.string(),...layoutFields},
+  args:{postId:v.id("posts"),expectedRevision:v.number(),expectedSettingsDigest:v.string(),slug:v.string(),visibility:v.optional(documentVisibility),password:v.optional(v.string()),...layoutFields},
   returns:receiptValidator,
   handler:(ctx,args)=>canonicalBoundary(()=>setDocumentSettings(ctx,args)),
 });

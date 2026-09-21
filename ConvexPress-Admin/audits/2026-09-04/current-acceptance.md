@@ -1,6 +1,8 @@
-# Current production acceptance index — September 20
+# Current production acceptance index — September 21
 
 **Release acceptance is incomplete.** This index retains all 24 original audit IDs separately. It supersedes grouped historical tables for finding remaining work, not their dated evidence.
+
+Latest follow-up: canonical visibility/password controls, incremental reindex authorization and unrelated membership-rule deletion are repaired and verified; see [September 21 access follow-ups](access-settings-acceptance.md). Five original audit rows remain accepted and nineteen remain open. These three follow-ups do not inflate that count.
 
 Implementation and historical tests are recorded in the linked outcomes. The last column identifies required final acceptance; it does not imply none of its individual cases has ever passed. No percentage or release-complete flag is inferred.
 

@@ -1013,7 +1013,7 @@ export type Dto1008 = { "id": string; "type": ("post" | "page"); "digest": strin
 export type Dto1009 = { "contract": "canonical-public-document-v1"; "state": "restricted"; "viewerSubject": (null | string); "accessLease": (null | Dto1007); "historyDigest"?: (undefined | string); "document": Dto1010; "restriction": Dto1011; };
 export type Dto1010 = { "id": string; "type": ("post" | "page"); "title": string; "path": (null | string); "excerpt": (null | string); };
 export type Dto1011 = { "password": boolean; "membership": boolean; };
-export type Dto1012 = { "type": ("post" | "page"); "revision": number; "slug": string; "path": string; "postId": string; "pageTemplate": ("default" | "landing" | "full-width" | "sidebar-left" | "sidebar-right" | "no-sidebar" | "blank"); "hideHeader": boolean; "hideFooter": boolean; "settingsDigest": string; };
+export type Dto1012 = { "type": ("post" | "page"); "revision": number; "slug": string; "path": string; "postId": string; "visibility": ("private" | "public" | "password"); "pageTemplate": ("default" | "landing" | "full-width" | "sidebar-left" | "sidebar-right" | "no-sidebar" | "blank"); "hideHeader": boolean; "hideFooter": boolean; "settingsDigest": string; "hasPassword": boolean; };
 export type Dto1013 = { "layout"?: (undefined | Dto1014); "style"?: (undefined | string); "visibility"?: (undefined | "everyone" | "signedIn" | "signedOut"); "children"?: (undefined | Array<unknown>); "treatment"?: (undefined | Dto1015); "lock"?: (undefined | Dto1016); "anchor"?: (undefined | string); "id": string; "name": string; "version": number; "attrs": Dto1017; };
 export type Dto1014 = { "width"?: (undefined | "contained" | "wide" | "full"); "tone"?: (undefined | "default" | "muted" | "inverted" | "accent"); "spacing"?: (undefined | "none" | "default" | "compact" | "spacious"); "align"?: (undefined | "start" | "center"); };
 export type Dto1015 = { "values": Dto5; "name": string; };
@@ -3433,7 +3433,7 @@ export type PublicApi = {
   "restore": FunctionReference<"mutation", "public", { "postId": GenericId<"posts">; "revisionId": GenericId<"revisions">; "expectedRevision": number; "expectedAuthoringDigest"?: (undefined | string); }, Dto998>;
   "save": FunctionReference<"mutation", "public", { "postId": GenericId<"posts">; "expectedRevision": number; "title": string; "blocks": Array<Dto1013>; }, Dto998>;
   "setPublication": FunctionReference<"mutation", "public", { "postId": GenericId<"posts">; "expectedRevision": number; "status": ("draft" | "publish" | "future" | "private"); "scheduledAt"?: (undefined | number); }, Dto998>;
-  "setSettings": FunctionReference<"mutation", "public", { "pageTemplate": ("default" | "landing" | "full-width" | "sidebar-left" | "sidebar-right" | "no-sidebar" | "blank"); "hideHeader": boolean; "hideFooter": boolean; "postId": GenericId<"posts">; "expectedRevision": number; "expectedSettingsDigest": string; "slug": string; }, Dto998>;
+  "setSettings": FunctionReference<"mutation", "public", { "pageTemplate": ("default" | "landing" | "full-width" | "sidebar-left" | "sidebar-right" | "no-sidebar" | "blank"); "hideHeader": boolean; "hideFooter": boolean; "postId": GenericId<"posts">; "expectedRevision": number; "expectedSettingsDigest": string; "slug": string; "visibility"?: (undefined | "private" | "public" | "password"); "password"?: (undefined | string); }, Dto998>;
   "termOptions": FunctionReference<"query", "public", { "postId": GenericId<"posts">; "taxonomy": ("category" | "tag"); "paginationOpts": Dto97; }, Dto1041>;
 };
   "canonicalDocuments/ai": {

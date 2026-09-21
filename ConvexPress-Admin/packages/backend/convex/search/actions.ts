@@ -141,21 +141,16 @@ export const reindex = action({
       });
     }
 
-    // For full reindex, check capability
-    if (!args.contentId) {
-      const canReindex = await ctx.runQuery(
-        internal.search.internals.checkReindexPermission,
-        { userId: identity.subject },
-      );
-      if (!canReindex) {
-        console.warn(
-          `Search reindex access denied: subject=${identity.subject}`,
-        );
-        throw new ConvexError({
-          code: "FORBIDDEN",
-          message: "Insufficient permissions",
-        });
-      }
+    // Selecting one document changes the amount of work, not its authority.
+    const canReindex = await ctx.runQuery(
+      internal.search.internals.checkReindexPermission,
+      { userId: identity.subject },
+    );
+    if (!canReindex) {
+      throw new ConvexError({
+        code: "FORBIDDEN",
+        message: "Insufficient permissions",
+      });
     }
 
     // Delegate to internal implementation

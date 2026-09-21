@@ -930,8 +930,9 @@ function documentSettings(post: Doc<"posts">): CanonicalDocumentSettings {
     postId: post._id, type: post.type, revision: authoringRevision(post), slug: post.slug,
     path: post.type === "post" ? `/blog/${post.slug}` : post.path ?? `/${post.slug}`,
     pageTemplate: post.pageTemplate ?? "default", hideHeader: post.hideHeader ?? false, hideFooter: post.hideFooter ?? false,
+    visibility: post.visibility ?? "public", hasPassword: Boolean(post.password),
   };
-  return canonicalDocumentSettingsSchema.parse({...values,settingsDigest:sha256Hex(canonicalJson({...values,parentId:post.parentId??null}))});
+  return canonicalDocumentSettingsSchema.parse({...values,settingsDigest:sha256Hex(canonicalJson({...values,parentId:post.parentId??null,updatedAt:post.updatedAt}))});
 }
 export async function getDocumentSettings(ctx: QueryCtx, args: {postId: Id<"posts">}): Promise<CanonicalDocumentSettings> {
   const budget = new RequestReadLedger();
@@ -947,6 +948,15 @@ export async function setDocumentSettings(ctx: MutationCtx, args: CanonicalSetti
   const previous = documentSettings(post);
   if (previous.revision !== requested.expectedRevision || previous.settingsDigest !== requested.expectedSettingsDigest)
     refuse("CONFLICT", "The document or its settings changed. Reload before saving.");
+  const visibility = requested.visibility ?? previous.visibility;
+  if (requested.password !== undefined && visibility !== "password")
+    refuse("DOCUMENT_VISIBILITY_INVALID", "Choose password protection before setting a password.");
+  const password = visibility === "password" ? requested.password ?? post.password
+    : requested.visibility === undefined ? post.password : undefined;
+  if (visibility === "password" && !password)
+    refuse("DOCUMENT_PASSWORD_REQUIRED", "Enter a password to protect this document.");
+  const accessChanged = visibility !== previous.visibility || password !== post.password;
+  if (accessChanged) await requireCan(ctx, post.type === "page" ? "page.publish" : "post.publish", budget);
   // Reuses canonical format, full-tree and exact revision preparation. A settings
   // save never sends a stale client copy of the body back to the server.
   const prepared = prepareCanonicalSave(post,{expectedRevision:requested.expectedRevision,title:post.title,blocks:post.blocks});
@@ -955,15 +965,17 @@ export async function setDocumentSettings(ctx: MutationCtx, args: CanonicalSetti
     refuse("DOCUMENT_LAYOUT_INVALID", "Page layouts apply to pages. Posts use the active template's article layout.");
   const routes = await planDocumentSlug(ctx,post,requested.slug,budget);
   const layoutChanged = requested.pageTemplate !== previous.pageTemplate || requested.hideHeader !== previous.hideHeader || requested.hideFooter !== previous.hideFooter;
-  if (!routes.length && !layoutChanged) return {postId,revision:previous.revision,digest:prepared.digest,changed:false};
+  if (!routes.length && !layoutChanged && !accessChanged) return {postId,revision:previous.revision,digest:prepared.digest,changed:false};
   const revision = previous.revision + 1;
   const patch = {
     ...(routes.length ? {slug:requested.slug,...(post.type === "page" ? {path:routes[0]!.path,depth:routes[0]!.depth} : {})} : {}),
     pageTemplate:requested.pageTemplate, hideHeader:requested.hideHeader, hideFooter:requested.hideFooter,
+    ...(accessChanged ? { visibility, password } : {}),
     blocksRevision:revision, updatedAt:Date.now(),
   };
   assertStoredSize({...post,...patch},budget);
-  // Layout fields belong to the content snapshot; URLs intentionally do not.
+  // Layout belongs to content history; URLs and access policy do not. Restoring
+  // old content must not restore an old password or reopen a protected page.
   await snapshot(ctx,post,String(user._id),budget);
   const permit = permitValidatedCanonicalAuthoringWrite({table:"posts",operation:"patch",id:postId,previous:post,value:patch});
   await patchWithMediaReferences(ctx,"posts",postId,patch,permit,budget);
