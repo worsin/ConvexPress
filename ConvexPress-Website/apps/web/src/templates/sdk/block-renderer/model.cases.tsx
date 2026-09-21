@@ -11,6 +11,9 @@ import section from "../../../../../../../blocks/core/section/render";
 import paragraph from "../../../../../../../blocks/core/paragraph/render";
 import divider from "../../../../../../../blocks/core/divider/render";
 import spacer from "../../../../../../../blocks/core/spacer/render";
+import quote from "../../../../../../../blocks/core/quote/render";
+import pullquote from "../../../../../../../blocks/core/pullquote/render";
+import codeBlock from "../../../../../../../blocks/core/code/render";
 import image from "../../../../../../../blocks/core/image/render";
 import catalog from "../../../../../../../blocks/.generated/catalog.json";
 import { publicCanonicalTree } from "../block-data/portable/publicTree";
@@ -25,6 +28,26 @@ const policy: RenderPolicy = {
 	capabilities: ["tree.children"],
 	disabledBlocks: [],
 };
+const editorialRegistry = discoverRenderers({
+  "/blocks/core/quote/render.tsx": quote,
+  "/blocks/core/pullquote/render.tsx": pullquote,
+  "/blocks/core/code/render.tsx": codeBlock,
+});
+test("quotation source is a real link and empty quotations do not invent an empty figure", () => {
+  const render = (name: string, version: number, attrs: unknown) => renderToStaticMarkup(prepareBlocks([{ id: "quotation", name, version, attrs }], editorialRegistry, policy));
+  expect(render("core/quote", 2, { text: "A careful observation.", cite: "Field notebook", source: "https://example.com/source" })).toContain('href="https://example.com/source"');
+  expect(render("core/quote", 2, { text: null })).not.toContain("<blockquote");
+  expect(render("core/pullquote", 1, { text: "" })).not.toContain("<blockquote");
+});
+test("code highlighting preserves literal source and falls back for unknown languages", () => {
+  const render = (language: string, source: string) => renderToStaticMarkup(prepareBlocks([{ id: "code", name: "core/code", version: 2, attrs: { language, code: source, filename: "example.ts" } }], editorialRegistry, policy));
+  expect(render("typescript", "const value = 42;")).toContain("hljs-keyword");
+  const hostile = render("html", '<script>alert("literal")</script><img src=x onerror=alert(1)>');
+  expect(hostile).not.toContain("<script>");
+  expect(hostile).not.toContain("<img");
+  expect(render("unregistered", "unchanged <value> & text")).toContain("unchanged &lt;value&gt; &amp; text");
+  expect(render("typescript", "x".repeat(50001))).not.toContain("hljs-");
+});
 test("authored heading levels use the template typography hierarchy", () => {
   for (const [level, size] of [[1, "display"], [2, "lg"], [3, "md"], [4, "sm"], [5, "sm"], [6, "sm"]] as const) {
     const html = renderToStaticMarkup(prepareBlocks([{ ...instance, attrs: { ...instance.attrs, level } }], registry, policy));

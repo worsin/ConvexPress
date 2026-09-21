@@ -1,5 +1,6 @@
 import { test, expect } from "bun:test";
 import { renderToStaticMarkup } from "react-dom/server";
+import { JSDOM } from "jsdom";
 import {
 	prepareBlocks,
 	type RendererDefinition,
@@ -202,7 +203,10 @@ test("code is escaped literal text with keyboard-scrollable region and language 
 		code: '<script>alert("x")</script>',
 	});
 	expect(content).not.toContain("<script>");
-	expect(content).toContain("&lt;script&gt;");
+	const dom = new JSDOM(content);
+	expect(dom.window.document.querySelector("code")?.textContent).toBe('<script>alert("x")</script>');
+	expect(dom.window.document.querySelectorAll("script").length).toBe(0);
+	dom.window.close();
 	expect(content).toContain('tabindex="0"');
 	expect(content).toContain('aria-label="Code: example.html"');
 });

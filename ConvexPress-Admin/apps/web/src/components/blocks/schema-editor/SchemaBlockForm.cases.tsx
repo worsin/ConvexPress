@@ -248,6 +248,31 @@ test("richtext text edits retain marks and unsafe link drafts stay editable but 
 		]);
 		expect(nodes[1]).toEqual({ type: "hardBreak" });
 	}));
+test("code source preserves newlines when opened, edited and committed through generated controls", async () =>
+	domTest(async (host, render, win) => {
+		const writes: any[] = [];
+		const original = "// An actual line comment\nexport const note = 'hello';";
+		await render({
+			name: "core/code",
+			version: 2,
+			value: { language: "typescript", code: original, filename: "note.ts" },
+			revision: "r1",
+			scope,
+			onCommit: async (value: any) => writes.push(value),
+		});
+		const label = Array.from(host.querySelectorAll("label")).find(
+			(item) => item.textContent === "Code",
+		)!;
+		const source = host.querySelector(`#${label.htmlFor}`) as HTMLTextAreaElement;
+		expect(source.value).toBe(original);
+		expect(source.tagName).toBe("TEXTAREA");
+		const edited = `${original}\nconsole.log(note);\n`;
+		await change(win, source, edited);
+		await act(async () => button(host, "Save content").click());
+		expect(writes[0].attrs.code).toBe(edited);
+		expect(writes[0].attrs.language).toBe("typescript");
+		expect(writes[0].attrs.filename).toBe("note.ts");
+	}));
 test("unavailable and stale cross-environment resource pickers cannot introduce IDs", async () =>
 	domTest(async (host, render) => {
 		const writes: any[] = [];

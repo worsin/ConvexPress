@@ -1,6 +1,7 @@
 /** Staged Library treatment. No legacy activation. */
 import { defineBlock } from "../../../ConvexPress-Website/apps/web/src/templates/sdk/block-renderer/model";
 import * as P from "../../../ConvexPress-Website/apps/web/src/templates/sdk/primitives";
+import { CodeHighlight } from "../../../ConvexPress-Website/apps/web/src/templates/sdk/block-renderer/code-highlight";
 import "./code.css";
 export default defineBlock("core/code", ({ attrs }) => (
 	<P.Card>
@@ -16,7 +17,7 @@ export default defineBlock("core/code", ({ attrs }) => (
 				aria-label={attrs.filename ? `Code: ${attrs.filename}` : "Code sample"}
 			>
 				<pre>
-					<code>{attrs.code}</code>
+					<code><CodeHighlight source={attrs.code} language={attrs.language} /></code>
 				</pre>
 			</section>
 		</P.Stack>

@@ -323,3 +323,5 @@ September21 native block layout: Heading/Paragraph/Divider/Spacer authored and s
 
 
 September21 family closeout: core/heading, core/paragraph, core/spacer and core/divider now have current contract/editor/public/four-pack visual acceptance; MagicTables advances these four to Verified with exact evidence. Heading empty accessibility and size hierarchy are repaired. Remaining133 blocks, full templates, dynamic/provider/SDK/fleet/legacy-retirement and release requirements remain open. See `ConvexPress-Admin/audits/2026-09-04/core-family-20260921.md`.
+
+September21 editorial family closeout: core/list, core/definition-list, core/quote, core/pullquote, core/callout and core/code advance to Verified after native authoring/save/reopen/publication/recovery, four-pack desktop/mobile review and complete tracker readback. Code newline loss and missing highlighting, list markers, quote links and long-text overflow are repaired. Total10/137 verified;127 pending. Original audit8accepted/16open and full template/SDK/fleet/production requirements remain open. Evidence: `ConvexPress-Admin/audits/2026-09-04/content-family-20260921.md`.

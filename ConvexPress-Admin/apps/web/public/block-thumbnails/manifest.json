@@ -277,8 +277,9 @@
       "core/code": {
         "src": "/block-thumbnails/aster-house/core--code.jpg",
         "example": 1,
-        "sha256": "7a8787057be2e7d085eab6adb688cb71461a2ac7b437240efa2f94fabf3bb9f2",
-        "bytes": 8937
+        "sha256": "a3350ead922c41d915f7417798f3dbf967b21a2cb49d49c4f49e4f2a4a9be864",
+        "bytes": 10224,
+        "capturedAt": "2026-09-21T18:33:06.119Z"
       },
       "core/columns": {
         "src": "/block-thumbnails/aster-house/core--columns.jpg",
@@ -325,8 +326,9 @@
       "core/definition-list": {
         "src": "/block-thumbnails/aster-house/core--definition-list.jpg",
         "example": 0,
-        "sha256": "caf8a7a255c96eba5ad3373682708b605945ade705ce43ea5d565ecf8c7fd984",
-        "bytes": 6855
+        "sha256": "9666a3cb674663b5bac35d4980a6279bcdba57f77da0a46282d0ab790f162bb0",
+        "bytes": 7393,
+        "capturedAt": "2026-09-21T18:33:06.204Z"
       },
       "core/divider": {
         "src": "/block-thumbnails/aster-house/core--divider.jpg",
@@ -488,8 +490,9 @@
       "core/list": {
         "src": "/block-thumbnails/aster-house/core--list.jpg",
         "example": 1,
-        "sha256": "e0172a3d6e587f044b4df8da325d7241a88fe9465dd414e03127f37866a4742a",
-        "bytes": 3559
+        "sha256": "11ef73eedf06015fe5d0fdf85ebc4eac3423c6a61c74f272e062e869b3e184da",
+        "bytes": 4160,
+        "capturedAt": "2026-09-21T18:33:06.295Z"
       },
       "core/logo-cloud": {
         "src": "/block-thumbnails/aster-house/core--logo-cloud.jpg",
@@ -567,14 +570,16 @@
       "core/pullquote": {
         "src": "/block-thumbnails/aster-house/core--pullquote.jpg",
         "example": 0,
-        "sha256": "1920daefeb25eed22b68773fcb272b3e4b6a16276e2eb9ddd62a2f4d343fe4c6",
-        "bytes": 12521
+        "sha256": "1013cde92aed3603b0c1e09df43d7414821eca4fcdc3f31a2143d42c9a533e46",
+        "bytes": 18376,
+        "capturedAt": "2026-09-21T18:33:06.381Z"
       },
       "core/quote": {
         "src": "/block-thumbnails/aster-house/core--quote.jpg",
         "example": 1,
-        "sha256": "149c4e02362d087852ffe7a3ffa24b338e1fabbaf543b4995734f10d245fb6b5",
-        "bytes": 10034
+        "sha256": "02a84b6aabd854eab4b780f3f66e769f85bf9391a51a092b650d204c7929d90c",
+        "bytes": 10110,
+        "capturedAt": "2026-09-21T18:33:06.484Z"
       },
       "core/related-content": {
         "src": "/block-thumbnails/aster-house/core--related-content.jpg",
@@ -1104,8 +1109,9 @@
       "core/code": {
         "src": "/block-thumbnails/core/core--code.jpg",
         "example": 1,
-        "sha256": "d4d0cb1428897dd8f2728032c05f4ada095fffc87e8857517c1fc78b0f57031c",
-        "bytes": 9489
+        "sha256": "910b38302cfe6791e925fe6593408339bf84f8e35b10683f86bc0ba9c2ae101d",
+        "bytes": 11095,
+        "capturedAt": "2026-09-21T18:33:04.141Z"
       },
       "core/columns": {
         "src": "/block-thumbnails/core/core--columns.jpg",
@@ -1152,8 +1158,9 @@
       "core/definition-list": {
         "src": "/block-thumbnails/core/core--definition-list.jpg",
         "example": 0,
-        "sha256": "965b1498d461f8637053c199598f950e441dc165773a146c2e5866996fe7da74",
-        "bytes": 7663
+        "sha256": "2d581d93ff78ab62e10d0b5fc39f5657cf950c6bdfd9af425010043d88a5bf20",
+        "bytes": 8168,
+        "capturedAt": "2026-09-21T18:33:04.236Z"
       },
       "core/divider": {
         "src": "/block-thumbnails/core/core--divider.jpg",
@@ -1315,8 +1322,9 @@
       "core/list": {
         "src": "/block-thumbnails/core/core--list.jpg",
         "example": 1,
-        "sha256": "b450af236ccbff8b36ec6857cc534f2007344a893419cddbf9c85489f27da5f8",
-        "bytes": 3675
+        "sha256": "b9555675587805e48558d2ad9fc80daee764545f392e74ce9e53373fd2e7d3c8",
+        "bytes": 4330,
+        "capturedAt": "2026-09-21T18:33:04.327Z"
       },
       "core/logo-cloud": {
         "src": "/block-thumbnails/core/core--logo-cloud.jpg",
@@ -1394,14 +1402,16 @@
       "core/pullquote": {
         "src": "/block-thumbnails/core/core--pullquote.jpg",
         "example": 0,
-        "sha256": "1469d10645822fabf5a41351be9a10683352199f9dd254551d939bee0054fd12",
-        "bytes": 14518
+        "sha256": "3dcb49d1a6d5739f29c776e1bdee22d66027ac43bd63754caa7a41fdb022aa26",
+        "bytes": 22325,
+        "capturedAt": "2026-09-21T18:33:04.419Z"
       },
       "core/quote": {
         "src": "/block-thumbnails/core/core--quote.jpg",
         "example": 1,
-        "sha256": "cf540bc057a3f724a3d1fbd1c16f3f0a367ecfa5dff321cf5d30081f41270607",
-        "bytes": 11972
+        "sha256": "2b398ef6101581325b5f81f65fbec4672681167e44f46f68c5e0de18655a4e46",
+        "bytes": 12684,
+        "capturedAt": "2026-09-21T18:33:04.497Z"
       },
       "core/related-content": {
         "src": "/block-thumbnails/core/core--related-content.jpg",
@@ -1976,9 +1986,9 @@
       "core/code": {
         "src": "/block-thumbnails/depot/core--code.jpg",
         "example": 1,
-        "sha256": "f2574a7f73005fa29fe2da2aef68305acbfbfb768259f7b01f18b75c84beffa0",
-        "bytes": 10001,
-        "capturedAt": "2026-09-21T11:57:17.503Z"
+        "sha256": "bdd3645cf3d045083959dc67facc048d239277e0854948b2bfc3e75c9ccb154a",
+        "bytes": 10662,
+        "capturedAt": "2026-09-21T18:33:05.289Z"
       },
       "core/columns": {
         "src": "/block-thumbnails/depot/core--columns.jpg",
@@ -2034,7 +2044,7 @@
         "example": 0,
         "sha256": "e59d406ec1408d43c2b790fd7665c3bd337159a7cd18d58499f8c398bd856ca0",
         "bytes": 7768,
-        "capturedAt": "2026-09-21T11:57:18.226Z"
+        "capturedAt": "2026-09-21T18:33:05.393Z"
       },
       "core/divider": {
         "src": "/block-thumbnails/depot/core--divider.jpg",
@@ -2223,7 +2233,7 @@
         "example": 1,
         "sha256": "cb1fb6736d81bd3daeba39e29b9a2c3034cd75750767bfc04b3f62e8b9512723",
         "bytes": 4234,
-        "capturedAt": "2026-09-21T11:57:20.811Z"
+        "capturedAt": "2026-09-21T18:33:05.491Z"
       },
       "core/logo-cloud": {
         "src": "/block-thumbnails/depot/core--logo-cloud.jpg",
@@ -2312,16 +2322,16 @@
       "core/pullquote": {
         "src": "/block-thumbnails/depot/core--pullquote.jpg",
         "example": 0,
-        "sha256": "f74052a8d44fe6ed1623b2f88541923c714b008b1720feb2987c22a7800f77aa",
-        "bytes": 14650,
-        "capturedAt": "2026-09-21T11:57:22.044Z"
+        "sha256": "0e4ed7158c0763dcd6be3a3a4bc2b57e843c6aedbae36e429dbb6e53f4c4f7c8",
+        "bytes": 21101,
+        "capturedAt": "2026-09-21T18:33:05.562Z"
       },
       "core/quote": {
         "src": "/block-thumbnails/depot/core--quote.jpg",
         "example": 1,
         "sha256": "5e335f80b99e7c025c629d9efba4f683abdac6377fcb358418134637c721208a",
         "bytes": 12138,
-        "capturedAt": "2026-09-21T11:57:22.129Z"
+        "capturedAt": "2026-09-21T18:33:05.630Z"
       },
       "core/related-content": {
         "src": "/block-thumbnails/depot/core--related-content.jpg",
@@ -2892,8 +2902,9 @@
       "core/code": {
         "src": "/block-thumbnails/journal/core--code.jpg",
         "example": 1,
-        "sha256": "261cd9add08faf1d5ba47493ad698185b9eb390bfcbb34fe2b2dd156330bbd95",
-        "bytes": 8546
+        "sha256": "1633f017575e06ed08110a0f9ebe193900b942a6a3287c28aa5f8ea782d37c56",
+        "bytes": 10324,
+        "capturedAt": "2026-09-21T18:33:04.704Z"
       },
       "core/columns": {
         "src": "/block-thumbnails/journal/core--columns.jpg",
@@ -2940,8 +2951,9 @@
       "core/definition-list": {
         "src": "/block-thumbnails/journal/core--definition-list.jpg",
         "example": 0,
-        "sha256": "7d63b1843d9182e70356631f8dcd53415fa64bfd06afb786bda5530f88debb01",
-        "bytes": 7485
+        "sha256": "5ef9198d6915ea3642f7f93a5b35b84f6b70aaa441abc3e464277740ec46a490",
+        "bytes": 8000,
+        "capturedAt": "2026-09-21T18:33:04.760Z"
       },
       "core/divider": {
         "src": "/block-thumbnails/journal/core--divider.jpg",
@@ -3104,8 +3116,9 @@
       "core/list": {
         "src": "/block-thumbnails/journal/core--list.jpg",
         "example": 1,
-        "sha256": "a0a510899fe616d9e0c3427cea07b1728600d5b2f27dccdd12b2cad0a0dccf31",
-        "bytes": 3605
+        "sha256": "0ed0b7ad86b56712af9bc79aa373ef25c767d274dc037c3d4ce25e90816f5b96",
+        "bytes": 4241,
+        "capturedAt": "2026-09-21T18:33:04.867Z"
       },
       "core/logo-cloud": {
         "src": "/block-thumbnails/journal/core--logo-cloud.jpg",
@@ -3183,14 +3196,16 @@
       "core/pullquote": {
         "src": "/block-thumbnails/journal/core--pullquote.jpg",
         "example": 0,
-        "sha256": "cb54b1b3c818ddb01af9ca3c8ca527630f372f226e35a2ee018f3ae199b11fc1",
-        "bytes": 16918
+        "sha256": "0f6334096dcf89a42f205a21f5c85d1907bf8cf631ddfc738fc503dacfe17b89",
+        "bytes": 22842,
+        "capturedAt": "2026-09-21T18:33:04.932Z"
       },
       "core/quote": {
         "src": "/block-thumbnails/journal/core--quote.jpg",
         "example": 1,
-        "sha256": "7ede0922dd484d755c5a920d7bb3427f5026417b82bae7e0f7ce114e6b8abc5d",
-        "bytes": 14002
+        "sha256": "fe1fa1cbf2982763ffc979b56d773eb57fb5ae765efb523469ca2ce6bcf7554c",
+        "bytes": 14044,
+        "capturedAt": "2026-09-21T18:33:05.062Z"
       },
       "core/related-content": {
         "src": "/block-thumbnails/journal/core--related-content.jpg",

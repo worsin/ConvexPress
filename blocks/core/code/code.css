@@ -1,4 +1,14 @@
-.cp-library-code { margin:0; max-inline-size:100%; overflow:auto; padding:1.5rem; background:var(--muted); color:var(--foreground); border:1px solid var(--border); border-radius:var(--radius,.25rem); font: .9rem/1.75 ui-monospace,SFMono-Regular,Consolas,monospace; tab-size:2; }
+.cp-library-code { margin:0; inline-size:100%; max-inline-size:100%; box-sizing:border-box; overflow:auto; padding:1.5rem; background:var(--muted); color:var(--foreground); border:1px solid var(--border); border-radius:var(--radius,.25rem); font: .9rem/1.75 ui-monospace,SFMono-Regular,Consolas,monospace; tab-size:2; }
 .cp-library-code:focus-visible {outline:2px solid var(--primary); outline-offset:3px;}
 
 .cp-library-code pre {margin:0;font:inherit;}
+.cp-library-code .hljs-keyword,
+.cp-library-code .hljs-selector-tag,
+.cp-library-code .hljs-tag .hljs-name { color:var(--primary); font-weight:650; }
+.cp-library-code .hljs-string,
+.cp-library-code .hljs-attr { color:color-mix(in oklab,var(--foreground) 75%,var(--primary)); }
+.cp-library-code .hljs-number,
+.cp-library-code .hljs-literal { color:var(--primary); }
+.cp-library-code .hljs-comment,
+.cp-library-code .hljs-quote { color:var(--muted-foreground); font-style:italic; }
+.cp-library-code .hljs-title { font-weight:650; }

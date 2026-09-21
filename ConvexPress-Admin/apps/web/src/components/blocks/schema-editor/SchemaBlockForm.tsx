@@ -403,7 +403,10 @@ function Field(props: FieldProps) {
 			["text", "icon", "date"].includes(field.type) ||
 			(field.type === "link" && field.storage === "href")
 		)
-			return field.type === "text" && (field.max ?? 0) > 500 ? (
+			return field.type === "text" &&
+				(field.max === undefined ||
+					field.max > 500 ||
+					(typeof value === "string" && /[\r\n]/.test(value))) ? (
 				<textarea
 					{...common}
 					value={typeof value === "string" ? value : ""}

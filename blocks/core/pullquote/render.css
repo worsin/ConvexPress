@@ -1,0 +1,4 @@
+.cp-library-pullquote { border-block:1px solid var(--border); padding-block:clamp(1.5rem,4vw,3rem); text-align:center; overflow-wrap:anywhere; }
+.cp-library-pullquote .cp-quote { margin:0; }
+.cp-library-pullquote .cp-quote blockquote { border-inline:0; padding-inline:0; font-size:clamp(1.8rem,4vw,3.4rem); line-height:1.2; text-wrap:balance; }
+.cp-library-pullquote .cp-quote figcaption { margin-block-start:1.5rem; }
