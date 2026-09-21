@@ -23,3 +23,17 @@ bun test ./scripts/blocks/library-contract.test.ts
 ```
 
 This source-contract gate is independent of generated catalogs and renderers. It does not establish that a block's declared data resolver, editor, template treatment or provider integration is accepted.
+
+## Discovery and generation
+
+`node scripts/blocks/cli.mjs` discovers specifications in the Library and conventional plugin/template folders, then emits `blocks/.generated`. `node scripts/blocks/cli.mjs --check` compares those outputs without writing. The generator rejects duplicate identities, unsafe source/output links, invalid pack declarations and unexpected output files. It does not delete obsolete files automatically.
+
+Generated contracts include Zod semantic validators, Convex shape validators, TypeScript types, editor field definitions, dependency paths and catalog metadata. Template manifests supply named styles, hidden blocks, owned renderers and portable starter patterns. Pattern validation rejects persisted site-owned resources, duplicate anchors/IDs and unsupported template choices. Pack design guides carry a deterministic revision so consumers can invalidate stale context.
+
+Test the generator and parsers independently of installed pack contents with:
+
+```sh
+bun test ./scripts/blocks/generator.test.ts ./scripts/blocks/pack-design.test.mjs ./scripts/blocks/pack-presentation.test.mjs ./scripts/blocks/patterns.test.mjs
+```
+
+These tests use the Admin workspace's pinned Zod, Convex, convex-test and TypeScript dependencies. Generation does not activate a runtime registry or deploy a backend. Consumer parity (`generator-consumers.test.ts`), installed pack inventory (`pack-inventory.test.mjs`) and full generation freshness remain separate integration gates as those sources are committed.
