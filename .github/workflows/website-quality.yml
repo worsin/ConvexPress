@@ -10,6 +10,9 @@ on:
       - "scripts/website/**"
       - "scripts/shared/**"
       - "ConvexPress-Admin/packages/site-contract/**"
+      - "ConvexPress-Admin/packages/backend/**"
+      - "ConvexPress-Admin/bun.lock"
+      - "ConvexPress-Admin/package.json"
       - ".github/workflows/website-quality.yml"
   push:
     branches:
@@ -23,6 +26,9 @@ on:
       - "scripts/website/**"
       - "scripts/shared/**"
       - "ConvexPress-Admin/packages/site-contract/**"
+      - "ConvexPress-Admin/packages/backend/**"
+      - "ConvexPress-Admin/bun.lock"
+      - "ConvexPress-Admin/package.json"
       - ".github/workflows/website-quality.yml"
 
 jobs:
@@ -45,6 +51,16 @@ jobs:
       - name: Install workspace dependencies
         working-directory: ConvexPress-Website
         run: bun install --frozen-lockfile
+
+      # Renderer integration cases exercise the actual site handlers as well as
+      # the consumer; resolve their dependencies from the owning workspace.
+      - name: Install backend integration dependencies
+        working-directory: ConvexPress-Admin
+        run: bun install --frozen-lockfile
+
+      - name: Generate backend extension indexes
+        working-directory: ConvexPress-Admin/packages/backend
+        run: bun run codegen:extensions
 
       - name: Unit and integration regressions
         working-directory: ConvexPress-Website

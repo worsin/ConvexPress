@@ -58,7 +58,7 @@ Every row remains open at full requirement scope. Consult the exact source requi
 | Owner: tracking | Standalone MagicTables inventory | Keep evidence per block and never infer Verified from renderer presence |
 | Owner: premium motion/images | Scoped motion proof and original assets | No stutter/gradient defects on reviewed blocks, reduced motion and actual hardware profiling |
 | Original audit follow-up | Focused fixes and partial acceptance | Forms/LMS/support/shipping/AI/email/import surfaces; import restart/ownership; media cleanup; notification retry/deduplication; plugin enable/disable; webhook replay/reorder; schema/engine compatibility; real per-role Electron across unrelated organizations |
-| Integration | Isolated worktree; main clean | Review/integrate without losing existing work, then final release checks |
+| Integration | Main and hardening source reconciled; Claude history preserved | Remote CI, final integrated native/release checks and push remain pending |
 
 ## Block evidence inventory
 
@@ -198,3 +198,7 @@ Commitec8dabf4 integrates467 source/configuration files. Isolated frozen install
 ## September20 Website runtime/hosting source integration
 
 Commit41f9e749 integrates public routes, customer dashboards, live block rendering, Customizer and hosting builders. Isolated frozen Website install,640 tests, full types, client/SSR builds and four-pack/90-surface template checks pass. Actual Cloudflare bundle passes workerd with all network intercepted; Vercel638-file output builds. Generated-extension screenshot IDs repaired with failing-before/passing-after regression; focused3cases pass after full suite. Final lint0errors/1warning; redacted secret scan and exact source identity pass. Report: output/website-integration-20260920/acceptance-review.md. Local artifacts do not establish live provider/domain, full visual/native or clean-machine release acceptance. A05/B08 remain the only fully accepted original audit rows.
+
+## September20 SDK/CI and main integration
+
+Application source and SDK/tooling are now integrated into main after preserving the current progress notes and reconciling Claude's nine document/history commits. Full Admin4439 tests and root block/SDK135 tests pass; generated contracts,77 distributed skill files and548 thumbnail integrity checks pass. Historical inventory inputs were moved out of ignored output into tracked fixtures. Independent dependency isolation exposed and repaired Website CI's missing Admin dependency install. Six workflows are wired; remote runs remain unverified. Main was fast-forwarded after preserving11 ignored collision files; existing app processes were left running. See [sdk-ci-and-source-integration-outcome.md](sdk-ci-and-source-integration-outcome.md). Only A05/B08 have full original-audit acceptance; release/native/provider/installer and block visual gates remain open.
