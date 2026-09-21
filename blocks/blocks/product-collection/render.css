@@ -19,7 +19,8 @@
 .cp-collection-arrow { position:absolute; inset-inline-end:1rem; inset-block-end:1rem; width:2.5rem; height:2.5rem; display:grid; place-items:center; border-radius:50%; background:var(--background); color:var(--foreground); transition:transform 300ms ease; }
 .cp-collection-description { color:var(--muted-foreground); font-size:.95rem; overflow-wrap:anywhere; }
 .cp-collection-description p { margin:0; }
-.cp-collection-price { display:flex; flex-wrap:wrap; align-items:center; gap:.6rem; margin-block-start:auto; font-variant-numeric:tabular-nums; }
+.cp-collection-price { display:flex; flex-wrap:wrap; align-items:center; gap:.6rem; margin-block-start:auto; font-variant-numeric:tabular-nums; overflow-wrap:anywhere; }
+.cp-collection-price > *, .cp-collection-badge { min-inline-size:0; max-inline-size:100%; overflow-wrap:anywhere; }
 .cp-collection-price del { color:var(--muted-foreground); font-size:.85em; }
 .cp-collection-badge { align-self:start; font-size:.68rem; text-transform:uppercase; letter-spacing:.08em; padding:.2rem .5rem; border:1px solid var(--border); border-radius:2px; }
 .cp-collection-rating { color:var(--muted-foreground); font-size:.8rem; font-variant-numeric:tabular-nums; }

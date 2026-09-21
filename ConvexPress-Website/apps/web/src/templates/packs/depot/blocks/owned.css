@@ -48,8 +48,8 @@
 .cp-owned-depot .depot-categories .cp-category-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--stack-gap-sm, .75rem); }
 .cp-owned-depot .depot-categories .cp-category-tile { display: block; border: 1px solid var(--border); border-radius: .375rem; padding: .85rem; }
 .cp-owned-depot .depot-categories .cp-category-image { aspect-ratio: 16/9; border-radius: .25rem; }
-@media (max-width: 900px) { .cp-owned-depot .depot-products .cp-showcase-grid { grid-template-columns: repeat(2,minmax(0,1fr)); } }
-@media (max-width: 640px) { .cp-owned-depot .depot-products .cp-showcase-grid { grid-template-columns: minmax(0,1fr); } }
+@container (max-width: 54rem) { .cp-owned-depot .depot-products .cp-showcase-grid { grid-template-columns: repeat(2,minmax(0,1fr)); } }
+@container (max-width: 30rem) { .cp-owned-depot .depot-products .cp-showcase-grid { grid-template-columns: minmax(0,1fr); } }
 @container (max-width: 48rem) { .cp-owned-depot .depot-categories .cp-category-grid { grid-template-columns: repeat(2,minmax(0,1fr)); } }
 @container (max-width: 30rem) { .cp-owned-depot .depot-categories .cp-category-grid { grid-template-columns: minmax(0,1fr); } }
 

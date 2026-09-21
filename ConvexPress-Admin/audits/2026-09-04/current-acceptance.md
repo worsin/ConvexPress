@@ -1,5 +1,7 @@
 # Current production acceptance index — September 21
 
+September21 Product Collection and Product Showcase: **22/137 blocks verified; 115 pending.** Fixed narrow product grids, overflowing card copy and stale empty-carousel controls. Native manual/media/group/slug authoring, save/reopen/publication, actual cart additions and cleanup, live history and all11 source modes passed. Five built-demo cases cover four packs;17 backend reader tests and297 renderer cases pass. Original42 pages/appearance restored; two MagicTables rows verified. Original audit8 accepted/16 open. [Evidence](product-family-20260921.md).
+
 September21 Category Tiles: **20/137blocks verified;117pending.** Closed native picker/copy/limit/count controls/save/reopen/publication/archive navigation/recovery and current four-pack state/layout/motion review, reusing prior live177-product continuation/visibility evidence. Fixed Journal/Depot narrow-column layouts and a cross-workspace editor import. All42pages/settings preserved; one MagicTables acceptance row verified. Original audit8accepted/16open. [Evidence](category-family-20260921.md).
 
 

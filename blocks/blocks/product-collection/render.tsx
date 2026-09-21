@@ -20,7 +20,10 @@ export default defineDataBlock("blocks/product-collection","commerce.productColl
   const [railState,setRailState]=useState({before:false,after:false,overflow:false});
   const display=treatment?.values.display??"grid",columns=treatment?.values.columns??4,aspect=treatment?.values.aspect??"portrait";
   useEffect(()=>{
-    const el=rail.current;if(!el || display!=="carousel")return;
+    const el=rail.current;if(!el || display!=="carousel"){
+      setRailState(previous=>previous.before||previous.after||previous.overflow?{before:false,after:false,overflow:false}:previous);
+      return;
+    }
     const measure=()=>{const maximum=Math.max(0,el.scrollWidth-el.clientWidth),position=Math.abs(el.scrollLeft);setRailState(previous=>{const next={before:position>2,after:position<maximum-2,overflow:maximum>2};return previous.before===next.before && previous.after===next.after && previous.overflow===next.overflow?previous:next;});};
     measure();const observer=new ResizeObserver(measure);observer.observe(el);el.addEventListener("scroll",measure,{passive:true});
     return()=>{observer.disconnect();el.removeEventListener("scroll",measure);};
@@ -45,6 +48,6 @@ export default defineDataBlock("blocks/product-collection","commerce.productColl
         {authored.slice(0,attrs.count).map((card,index)=><article key={`authored-${index}`} className="cp-collection-card"><div className="cp-collection-image">{card.mediaId?<ResolvedImage id={card.mediaId} alt={card.imageAlt||undefined} resources={resources}/>:<div className="cp-collection-placeholder" aria-hidden="true">{card.title}</div>}</div><P.Heading level={3} size="md">{hrefFor(card.href)?<a href={hrefFor(card.href)}>{card.title}</a>:card.title}</P.Heading>{card.summary && <div className="cp-collection-description"><Prose text={card.summary}/></div>}{attrs.showPrice && card.price && <div className="cp-collection-price">{card.price}</div>}{card.badge && <span className="cp-collection-badge">{card.badge}</span>}</article>)}
       </div>:<div className="cp-collection-empty"><P.Heading level={3} size="md">{attrs.mode==="recentlyViewed" && !group?"Your discoveries belong here":"More good things are on the way"}</P.Heading><P.Text tone="muted">{attrs.mode==="recentlyViewed" && !group?"Products you explore will appear in this collection.":"There are no products in this collection right now."}</P.Text></div>}
     </div>
-    {display==="carousel" && railState.overflow && <div className="cp-collection-controls"><span>Explore the collection</span><button type="button" aria-label="Previous products" disabled={!railState.before} onClick={()=>move(-1)}>←</button><button type="button" aria-label="Next products" disabled={!railState.after} onClick={()=>move(1)}>→</button></div>}
+    {display==="carousel" && (items.length>0 || authored.length>0) && railState.overflow && <div className="cp-collection-controls"><span>Explore the collection</span><button type="button" aria-label="Previous products" disabled={!railState.before} onClick={()=>move(-1)}>←</button><button type="button" aria-label="Next products" disabled={!railState.after} onClick={()=>move(1)}>→</button></div>}
   </div>;
 });
