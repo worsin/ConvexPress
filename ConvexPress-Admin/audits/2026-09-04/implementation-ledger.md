@@ -3094,3 +3094,8 @@ Application source and SDK/tooling are now integrated into main after preserving
 ## September20 packaged macOS acceptance
 
 The actual unsigned macOS app now builds, runs outside the checkout, completes fresh onboarding with automatic operator sign-in, clears temporary credentials, and recovers from rejected sign-in. Fixed missing packaged safety-gate scripts and an external stock-policy import; embedded CLI/codegen/safety/compiler/bundler checks pass with PATH empty. The packaged library displays137 blocks; real mouse scroll/navigation and sandbox/context-isolation checks pass.472 Admin frontend tests and18 focused setup/auth tests pass; source types/builds/lint pass. All disposable sessions signed out and owned processes exited. See [packaged-native-onboarding-outcome.md](packaged-native-onboarding-outcome.md). C02 remains open for signed/notarized distribution, Windows and clean-machine provisioning; no new original audit row is closed.
+
+
+## September20 live content-access closure
+
+A01/A02/A03 accepted at original scope; evidence and explicit separate follow-ups in [content-access-live-acceptance.md](content-access-live-acceptance.md). Deployed two static-import fixes, validated real customer/password/member/editor/SSR/feed/search/homepage paths, corrected disposable worker starvation, and preserved original content/settings. Five original audit items now accepted (A01/A02/A03/A05/B08), nineteen remain. Next: resolve the three source-confirmed authoring/mutation follow-ups and continue the existing block/template and release gates.

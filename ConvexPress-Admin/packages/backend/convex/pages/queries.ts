@@ -30,6 +30,7 @@
 import { v } from "convex/values";
 import type { Id } from "../_generated/dataModel";
 import { query } from "../_generated/server";
+import { timingSafeEquals } from "../helpers/timingSafe";
 import { currentUserCan, getCurrentUser } from "../helpers/permissions";
 import {
 	canEditContent,
@@ -808,7 +809,6 @@ export const verifyPassword = query({
 			page.visibility !== "password"
 		)
 			return null;
-		const { timingSafeEquals } = await import("../helpers/timingSafe");
 		if (!page.password || !timingSafeEquals(page.password, args.password))
 			return null;
 		const data = await readPublicContent(ctx, page, { passwordVerified: true });

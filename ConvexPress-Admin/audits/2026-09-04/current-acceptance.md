@@ -6,9 +6,9 @@ Implementation and historical tests are recorded in the linked outcomes. The las
 
 | ID | Original problem | Evidence index | Required final acceptance |
 |---|---|---|---|
-| A01 | Public post/page responses expose protected fields | [content-access-outcome.md](content-access-outcome.md) | Protected DTO fields across public endpoints and authenticated editor roles |
-| A02 | Customer login is treated as editorial authority | [content-access-outcome.md](content-access-outcome.md) | Customer versus editor preview access, including guessed identifiers |
-| A03 | Alternate publishing channels bypass protection | [content-access-outcome.md](content-access-outcome.md) | Feed/search/archive/homepage restrictions under each visibility state |
+| A01 | Public post/page responses expose protected fields | [content-access-outcome.md](content-access-outcome.md) | **Accepted September20:** live public/customer/editor DTO and password/membership matrix; [evidence](content-access-live-acceptance.md) |
+| A02 | Customer login is treated as editorial authority | [content-access-outcome.md](content-access-outcome.md) | **Accepted September20:** real Subscriber ID/slug/path and preview denial; authorized local administrator positive reads; [evidence](content-access-live-acceptance.md) |
+| A03 | Alternate publishing channels bypass protection | [content-access-outcome.md](content-access-outcome.md) | **Accepted September20:** current-source search filtering with stale indexes, actual feeds, protected homepage HTML and browser unlock; [evidence](content-access-live-acceptance.md) |
 | A04 | Disabling a parent does not disable site access | [auth-runtime-outcome.md](auth-runtime-outcome.md) | Live parent disable across organization/business/site and existing sessions |
 | A05 | Permission reassignment misses the previous holder | [auth-runtime-outcome.md](auth-runtime-outcome.md) | **Accepted September20:** live user allow/deny transfers revoke both old sessions; role-to-user transfer invalidates broadly; two-operator Electron evidence in output/permission-reassignment-20260920 |
 | A06 | Permission truncation can discard explicit denies | [auth-runtime-outcome.md](auth-runtime-outcome.md) | Deny overflow at production policy boundaries and loaded clients |
@@ -207,3 +207,8 @@ Application source and SDK/tooling are now integrated into main after preserving
 ## September20 packaged macOS acceptance
 
 The actual unsigned macOS app now builds, runs outside the checkout, completes fresh onboarding with automatic operator sign-in, clears temporary credentials, and recovers from rejected sign-in. Fixed missing packaged safety-gate scripts and an external stock-policy import; embedded CLI/codegen/safety/compiler/bundler checks pass with PATH empty. The packaged library displays137 blocks; real mouse scroll/navigation and sandbox/context-isolation checks pass.472 Admin frontend tests and18 focused setup/auth tests pass; source types/builds/lint pass. All disposable sessions signed out and owned processes exited. See [packaged-native-onboarding-outcome.md](packaged-native-onboarding-outcome.md). C02 remains open for signed/notarized distribution, Windows and clean-machine provisioning; no new original audit row is closed.
+
+
+## September20 content access acceptance closed
+
+A01/A02/A03 now pass their original live acceptance requirements:318 API checks,36 SSR checks,48 password/membership combinations,12 grant/revoke checks,36 homepage/stale-index checks, actual RSS/Atom and rendered password/homepage flows. Fixed unsupported dynamic imports in both password endpoints. Corrected the disposable staging worker pool from8 to32 after reproducing queue starvation; four open member pages revoke in833ms. Original44 non-trash documents and setting values preserved; fixtures trashed, customer removed/deactivated, sessions signed out and owned processes stopped. See [content-access-live-acceptance.md](content-access-live-acceptance.md). **Five original rows are accepted: A01, A02, A03, A05 and B08; nineteen remain open.** Canonical visibility editing, incremental reindex authorization and unrelated empty membership-rule deletion are recorded follow-ups, not silently included in this closure.

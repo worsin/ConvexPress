@@ -31,6 +31,7 @@ import { evaluateMembershipAccess } from "../membership/access";
 import { ConvexError, v } from "convex/values";
 import type { Doc, Id } from "../_generated/dataModel";
 import { query } from "../_generated/server";
+import { timingSafeEquals } from "../helpers/timingSafe";
 import { getCurrentUser, requireCan } from "../helpers/permissions";
 import type { AuthUser } from "../helpers/postAuth";
 import { getUserRoleLevel } from "../helpers/postAuth";
@@ -407,7 +408,6 @@ export const verifyPostPassword = query({
 			.first();
 		if (!post || post.status !== "publish" || post.visibility !== "password")
 			return null;
-		const { timingSafeEquals } = await import("../helpers/timingSafe");
 		if (!post.password || !timingSafeEquals(post.password, args.password))
 			return null;
 		const data = await readPublicContent(ctx, post, { passwordVerified: true });
