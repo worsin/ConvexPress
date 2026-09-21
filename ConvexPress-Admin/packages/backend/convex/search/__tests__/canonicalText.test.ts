@@ -81,11 +81,29 @@ for (const key of ["intro", "core/paragraph"]) test(`current block membership ru
   expect((await member.run(ctx => readSearch(ctx, { query: "Sunflowerneedle" }, scope, "host"))).items).toEqual([]);
 });
 
-test("unsupported visibility on persisted content fails closed without matching its stale index", async () => {
+test("audience visibility filters current search text and stale candidates for active and inactive visitors", async () => {
   const { t, ids } = await fixture();
-  await t.run(ctx => ctx.db.patch("posts", ids.post, { blocks: [{ ...paragraph("intro", "Sunflowerneedle"), visibility: "signedIn" }] }));
-  expect((await t.run(ctx => readSearch(ctx, { query: "Sunflowerneedle" }, scope, "host"))).items).toEqual([]);
-  await expect(t.mutation(upsert, { contentType: "page", contentId: ids.post, action: "upsert" })).rejects.toThrow("Visibility filtering");
+  const blocks = [
+    { ...paragraph("intro", "Memberonlyneedle"), visibility: "signedIn" },
+    { ...paragraph("guest", "Guestonlyneedle"), visibility: "signedOut" },
+    { id: "parent", name: "core/section", version: 1, attrs: {}, visibility: "signedIn", children: [paragraph("nested", "Nestedmemberneedle")] },
+  ];
+  await t.run(ctx => ctx.db.patch("posts", ids.post, { blocks }));
+  await t.mutation(upsert, { contentType: "page", contentId: ids.post, action: "upsert" });
+  const member = t.withIdentity({ subject: ids.user, issuer: "https://convexpress-admin.local" });
+  const search = (client: typeof t, query: string) => client.run(ctx => readSearch(ctx, { query }, scope, "host"));
+  for (const word of ["Memberonlyneedle", "Nestedmemberneedle"]) {
+    expect((await search(t, word)).items).toEqual([]);
+    expect((await search(member, word)).items.map(row => row.id)).toEqual([ids.post]);
+  }
+  expect((await search(t, "Guestonlyneedle")).items.map(row => row.id)).toEqual([ids.post]);
+  expect((await search(member, "Guestonlyneedle")).items).toEqual([]);
+  await t.run(ctx => ctx.db.patch("users", ids.user, { status: "inactive" }));
+  expect((await search(member, "Memberonlyneedle")).items).toEqual([]);
+  expect((await search(member, "Guestonlyneedle")).items.map(row => row.id)).toEqual([ids.post]);
+  // The index has not changed: current visibility remains the authority.
+  await t.run(ctx => ctx.db.patch("posts", ids.post, { blocks: [{ ...paragraph("intro", "Memberonlyneedle"), visibility: "everyone" }] }));
+  expect((await search(t, "Memberonlyneedle")).items.map(row => row.id)).toEqual([ids.post]);
 });
 
 async function editorialPages() {

@@ -1,3 +1,4 @@
+import { BlockVisibilityControls, type BlockVisibility } from "./BlockVisibilityControls";
 import { InsertionTabs } from "./InsertionTabs";
 import { TreatmentControls, type TreatmentOption } from "./TreatmentControls";
 import { BlockLockControls, type BlockLockOperation } from "./BlockLockControls";
@@ -55,6 +56,8 @@ export interface CanonicalEditorAdapter<N, V> extends TreeAdapter<N> {
 	withLayout?(node: N, field: string, value: string): N;
 	anchorValue?(node: N): string | undefined;
 	withAnchor?(node: N, value: string): N;
+	visibilityValue?(node: N): BlockVisibility | undefined;
+	withVisibility?(node: N, value: BlockVisibility): N;
 	lockValue?(node: N, operation: BlockLockOperation): boolean;
 	withLock?(node: N, operation: BlockLockOperation, enabled: boolean): N;
 	lockedInDocument?(value: V, id: string, operation: BlockLockOperation): boolean;
@@ -930,6 +933,16 @@ function EditorBody<N, V>({
 									if (mounted.current && !lockedNow.current && next) update(editDocument(current.current, next));
 								}}>Move {direction === -1 ? "up" : "down"}</button>)}
 							</div>}
+							{selected && adapter.withVisibility && adapter.visibilityValue?.(selected) !== undefined && <BlockVisibilityControls
+								value={adapter.visibilityValue!(selected)!}
+								disabled={contentLocked || !!state.pending || !!state.conflict || isBlockLocked(selected, "edit")}
+								onChange={visibility => {
+									const now = current.current;
+									if (!mounted.current || lockedNow.current || now.pending || now.conflict || isBlockLocked(selected, "edit")) return;
+									const next = changeNode(adapter.nodes(now.draft), adapter.id(selected), adapter, node => adapter.withVisibility!(node, visibility));
+									update(editDocument(now, adapter.withNodes(now.draft, next)));
+								}}
+							/>}
 							{selected && adapter.withLock && <BlockLockControls
 								value={operation => adapter.lockValue?.(selected, operation) ?? false}
 								disabled={contentLocked || !!state.pending || !!state.conflict}

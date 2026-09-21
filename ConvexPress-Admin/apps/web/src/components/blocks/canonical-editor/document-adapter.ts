@@ -1,6 +1,6 @@
 import thumbnailCatalog from "./block-thumbnails.generated.json";
 import { z } from "zod";
-import { BLOCK_LAYOUT_VALUES, createCanonicalLayoutSchema, assertCanonicalBlockLocks } from "../../../../../../../blocks/.generated/instance-runtime.mjs";
+import { BLOCK_LAYOUT_VALUES, MENU_VISIBILITY_VALUES, createCanonicalLayoutSchema, assertCanonicalBlockLocks } from "../../../../../../../blocks/.generated/instance-runtime.mjs";
 import { templatePatterns } from "../../../../../../../blocks/.generated/patterns";
 import { instantiatePattern } from "./patterns";
 import { planCanonicalData } from "@backend/canonical-blocks-foundation/planner";
@@ -231,6 +231,11 @@ export function canonicalEditorAdapter(
 	};
 	return {
 		contract,
+		visibilityValue: node => metadata(node.name, node.version)?.supports.visibility ? node.visibility ?? "everyone" : undefined,
+		withVisibility: (node, value) => {
+			if (!metadata(node.name, node.version)?.supports.visibility || !MENU_VISIBILITY_VALUES.includes(value)) throw new Error("This block visibility choice is unavailable.");
+			return { ...node, visibility: value };
+		},
 		lockValue: (node, field) => node.lock?.[field] === true,
 		withLock: (node, field, enabled) => {
 			if (!["edit", "move", "remove"].includes(field)) throw new Error("Unknown block protection.");

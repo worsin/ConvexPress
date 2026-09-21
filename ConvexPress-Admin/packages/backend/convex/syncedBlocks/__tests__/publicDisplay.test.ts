@@ -85,3 +85,19 @@ test("reusable placement membership expiry is carried into the shared public aut
     expect((await read()).ids).toContain(f.plan.roots[1]!.children[1]!.id);
   } finally { setSystemTime(); }
 });
+
+test("audience rules filter reusable bodies and placement ancestors before public serialization", async () => {
+  const f = await fixture();
+  const blocks = ["everyone", "signedIn", "signedOut"].map(visibility => ({ id: visibility, name: "core/paragraph", version: 2, visibility, attrs: { body: { type: "doc", content: [{ type: "paragraph", content: [{ type: "text", text: visibility + "_SOURCE_COPY" }] }] } } }));
+  const { id } = await f.operator.mutation(create, { title: "Audience-aware source", blocks });
+  await f.release(id, 1, 1);
+  const placements = [{ ...reference(id)[0]!, id: "shared" }, { ...reference(id)[0]!, id: "guest-only", visibility: "signedOut" }];
+  const read = (client = f.t) => client.run(ctx => projectPublicBlocks(ctx, placements, scope, policy, new RequestReadLedger()));
+  const anonymous = await read(), member = await read(f.operator);
+  expect(anonymous.blocks.map(node => node.id)).toEqual(["shared", "guest-only"]);
+  expect(member.blocks.map(node => node.id)).toEqual(["shared"]);
+  expect(JSON.stringify({ blocks: anonymous.blocks, synced: anonymous.synced })).not.toContain("signedIn_SOURCE_COPY");
+  expect(JSON.stringify({ blocks: member.blocks, synced: member.synced })).not.toContain("signedOut_SOURCE_COPY");
+  expect(anonymous.resolverTree).toHaveLength(4);
+  expect(member.resolverTree).toHaveLength(2);
+});

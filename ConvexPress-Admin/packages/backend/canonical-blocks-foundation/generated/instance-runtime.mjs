@@ -73,7 +73,7 @@ export function validateCanonicalTree(input, contract) {
     // Style is a bounded saved identity. Active-template rendering resolves unknown
     // identities to default so switching templates never invalidates saved content.
     if (node.style !== undefined && !descriptor.supports.styles) fail("UNSUPPORTED_STYLE", `${path}.style`, "This block does not support styles");
-    if (node.visibility !== undefined && (!descriptor.supports.visibility || node.visibility !== "everyone")) fail("UNSUPPORTED_VISIBILITY", `${path}.visibility`, "Visibility filtering must be implemented before this rule can be saved");
+    if (node.visibility !== undefined && !descriptor.supports.visibility) fail("UNSUPPORTED_VISIBILITY", `${path}.visibility`, "This block does not support visibility rules");
     if (node.treatment !== undefined) {
       try {
         if (composed) {

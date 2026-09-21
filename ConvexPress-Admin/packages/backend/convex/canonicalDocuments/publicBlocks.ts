@@ -11,10 +11,14 @@ import { planSyncedOccurrenceData, type SyncedOccurrence } from "./foundation/sy
 import { publicCanonicalTree } from "./foundation/publicTree";
 import { createComposedRegistry, type RuntimeCanonicalTree } from "./foundation/composedRegistry";
 import { installation } from "../syncedBlocks/model";
+import { getCurrentUser } from "../helpers/permissions";
+import { ANONYMOUS_VIEWER, menuItemVisibleFor } from "../extensions/dashboard/visibility";
 
 interface Projection<Tree> { blocks: Tree; resolverTree: Tree; authoringTree: Tree; synced?: SyncedDisplay; composed?: ComposedDataContext }
 interface ProjectionOptions {
   validateAuthoringPolicy?: boolean;
+  /** Internal authorized editor preview only; public queries never expose this option. */
+  includeHiddenForAuthoring?: boolean;
   composed?: ComposedDataContext;
   /** Server-owned visibility policy, applied before retaining an occurrence.
    * A rejected ancestor prunes its entire subtree, including reusable sources. */
@@ -41,6 +45,14 @@ export async function projectPublicBlocks(ctx: QueryCtx, input: unknown, scope: 
     if (registry!.snapshotFor(authored).definitions.length !== composed.definitions.definitions.length)
       throw new CanonicalDataError("DEFINITION_BINDING_MISMATCH", "definitions", "Projection requires exactly the authored definitions");
   }
+  let viewer: Promise<boolean> | undefined;
+  const audienceAllows = async (node: RuntimeCanonicalTree[number]) => {
+    if (options.includeHiddenForAuthoring || !node.visibility || node.visibility === "everyone") return true;
+    // A JWT subject alone is insufficient: use this database's active user and
+    // management-session checks, matching the menu and submission policies.
+    viewer ??= getCurrentUser(ctx, budget).then(user => user?.status === "active");
+    return menuItemVisibleFor(node, { ...ANONYMOUS_VIEWER, signedIn: await viewer });
+  };
   const membership = createMembershipAccessEvaluator(ctx, budget);
   const decisions = new Map<string, Promise<boolean>>();
   const permitted = async (keys: string[]) => {
@@ -55,7 +67,8 @@ export async function projectPublicBlocks(ctx: QueryCtx, input: unknown, scope: 
     if (options.validateAuthoringPolicy) planCanonicalData(authored, scope, policy, {}, composed);
     const filter = async (nodes: RuntimeCanonicalTree): Promise<RuntimeCanonicalTree> => {
       const result: RuntimeCanonicalTree = [];
-      const candidates = nodes.filter(node => !options.isVisible || options.isVisible(node));
+      const candidates: RuntimeCanonicalTree = [];
+      for (const node of nodes) if ((!options.isVisible || options.isVisible(node)) && await audienceAllows(node)) candidates.push(node);
       await membership.preloadBlocks(candidates.flatMap(node => [node.id, node.name]));
       for (const node of candidates) if (await permitted([node.id, node.name])) result.push({ ...node, ...(node.children ? { children: await filter(node.children) } : {}) });
       return result;
@@ -74,7 +87,8 @@ export async function projectPublicBlocks(ctx: QueryCtx, input: unknown, scope: 
   const plan = await resolvePublishedOccurrences(ctx, validateCanonicalTree(authored), budget), visible = new Set<string>();
   if (options.validateAuthoringPolicy) planSyncedOccurrenceData(plan, scope, policy);
   const visit = async (nodes: SyncedOccurrence[]) => {
-    const candidates = nodes.filter(node => !options.isVisible || options.isVisible(node.node));
+    const candidates: SyncedOccurrence[] = [];
+    for (const node of nodes) if ((!options.isVisible || options.isVisible(node.node)) && await audienceAllows(node.node)) candidates.push(node);
     await membership.preloadBlocks(candidates.flatMap(node => [node.id, node.node.id, node.node.name]));
     for (const node of candidates) if (await permitted([node.id, node.node.id, node.node.name])) { visible.add(node.id);await visit(node.children); }
   };

@@ -1,7 +1,6 @@
 import type { Doc } from "../_generated/dataModel";
 import type { QueryCtx } from "../_generated/server";
 import { RequestReadLedger, isRequestReadBudgetError } from "../helpers/requestReadLedger";
-import { getCurrentUser } from "../helpers/permissions";
 import { readStoredDocument } from "../canonicalDocuments/definitions";
 import { displayContext } from "../canonicalDocuments/displayContext";
 import { projectPublicBlocks } from "../canonicalDocuments/publicBlocks";
@@ -49,20 +48,17 @@ export async function canonicalSearchCandidates(ctx: QueryCtx, post: Doc<"posts"
  * recursion. Unavailable documents fail closed; budget exhaustion propagates. */
 export function createCanonicalSearchTextReader(ctx: QueryCtx, budget: RequestReadLedger) {
   let context: Promise<Awaited<ReturnType<typeof displayContext>>> | undefined;
-  let viewer: Promise<boolean> | undefined;
   return async (post: Doc<"posts">): Promise<string> => {
     if (!post.blocks?.length) return "";
     try {
       const authored = await readStoredDocument(ctx, post, budget);
       context ??= displayContext(ctx, budget);
-      viewer ??= getCurrentUser(ctx, budget).then(user => user?.status === "active");
-      const display = await context, signedIn = await viewer;
+      const display = await context;
       const denied = new Set([...display.policy.disabledBlocks, ...blockPresentationForPack(display.presentation.packId).hidden]);
       const composed = authored.composedDefinitions ? { scope: authored.composedDefinitions.scope, definitions: authored.composedDefinitions } : undefined;
       const projected = await projectPublicBlocks(ctx, authored.blocks, display.scope, display.policy, budget, {
         composed,
-        isVisible: node => !node.name.startsWith("composed/") && !denied.has(node.name) &&
-          !(node.visibility === "signedIn" && !signedIn) && !(node.visibility === "signedOut" && signedIn),
+        isVisible: node => !node.name.startsWith("composed/") && !denied.has(node.name),
       });
       assertPackTreatments(projected.resolverTree, display.presentation.packId);
       return textFromTree(projected.resolverTree);

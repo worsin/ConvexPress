@@ -68,7 +68,7 @@ test("document envelopes reject unsupported policy, vocabulary, versions and dup
 	code([{ ...node("a"), extra: true }], "INVALID_INSTANCE");
 	code([{ ...node("a"), name: "unknown/block" }], "UNKNOWN_BLOCK");
 	code([{ ...node("a"), version: 2 }], "VERSION_MISMATCH");
-	code([{ ...node("a"), visibility: "signedIn" }], "UNSUPPORTED_VISIBILITY");
+	for (const visibility of ["everyone", "signedIn", "signedOut"]) expect(validateCanonicalTree([{ ...node("a"), visibility }], contract)[0].visibility).toBe(visibility);
 	expect(validateCanonicalTree([{ ...node("a"), lock: { edit: true, move: true, remove: true } }], contract)[0].lock).toEqual({ edit: true, move: true, remove: true });
 	code([{ ...node("a"), layout: { tone: "muted" } }], "UNSUPPORTED_LAYOUT");
 	code([{ ...node("a"), attrs: { unexpected: true } }], "INVALID_ATTRS");

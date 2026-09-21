@@ -2441,3 +2441,38 @@ test("revision restore and original-editor recovery honor saved locks before cre
   await f.client.mutation(reference("recoverLegacy", "mutation"), { postId: f.ids.post, revisionId: legacy.id, expectedRevision: restored.revision });
   expect((await f.t.run(ctx => ctx.db.get("posts", f.ids.post)))!.blocksVersion).toBe(1);
 });
+
+
+test("audience visibility prunes public ancestors and resources while authorized editing retains every block", async () => {
+  const f = await fixture(); await initialize(f);
+  const heading = (id: string, text: string) => ({ id, name: "core/heading", version: 2, attrs: { text: { type: "doc", content: [{ type: "paragraph", content: [{ type: "text", text }] }] } } });
+  const blocks = [heading("everyone", "Everyone sees this"),
+    { ...heading("members", "MEMBER_ONLY_COPY"), visibility: "signedIn" },
+    { ...heading("guests", "GUEST_ONLY_COPY"), visibility: "signedOut" },
+    { id: "member-section", name: "core/section", version: 1, attrs: {}, visibility: "signedIn", children: [heading("inherited", "INHERITED_MEMBER_COPY")] }];
+  const saved = await f.client.mutation(reference("save", "mutation"), { postId: f.ids.post, expectedRevision: 1, title: "Audience controls", blocks });
+  const editor = await f.client.query(reference("get"), { postId: f.ids.post });
+  expect(editor.document.blocks.map((node: any) => node.id)).toEqual(blocks.map(node => node.id));
+  expect(editor.displayBlocks.map((node: any) => node.id)).toEqual(blocks.map(node => node.id));
+  await f.t.run(ctx => ctx.db.patch("posts", f.ids.post, { status: "publish", publishedAt: 1 }));
+  const publicRead = (client = f.t) => client.query(reference("getForRender"), { postId: f.ids.post });
+  const anonymous = await publicRead();
+  expect(anonymous.document.blocks.map((node: any) => node.id)).toEqual(["everyone", "guests"]);
+  expect(JSON.stringify(anonymous)).not.toContain("MEMBER_ONLY_COPY");
+  expect(JSON.stringify(anonymous)).not.toContain("INHERITED_MEMBER_COPY");
+  const signedIn = await publicRead(f.as(f.ids.denied));
+  expect(signedIn.document.blocks.map((node: any) => node.id)).toEqual(["everyone", "members", "member-section"]);
+  expect(JSON.stringify(signedIn)).not.toContain("GUEST_ONLY_COPY");
+  expect(signedIn.document.blocks[2].children[0].id).toBe("inherited");
+  await f.t.run(ctx => ctx.db.patch("users", f.ids.denied, { status: "inactive" }));
+  expect((await publicRead(f.as(f.ids.denied))).document.blocks).toEqual(anonymous.document.blocks);
+  const stale = f.t.withIdentity({ subject: "unmapped-customer", issuer: "https://fixture.clerk.accounts.dev" });
+  expect((await publicRead(stale)).document.blocks).toEqual(anonymous.document.blocks);
+  // Hidden media IDs must not trigger a resource lookup or appear in the DTO.
+  await f.t.run(ctx => ctx.db.patch("posts", f.ids.post, { blocks: [...blocks, { id: "private-image", name: "core/image", version: 2, attrs: { mediaId: "invalid-hidden-media-id", alt: "PRIVATE_MEDIA" }, visibility: "signedIn" }] }));
+  const withoutMedia = await publicRead();
+  expect(JSON.stringify(withoutMedia)).not.toContain("invalid-hidden-media-id");
+  expect(JSON.stringify(withoutMedia)).not.toContain("PRIVATE_MEDIA");
+  expect(withoutMedia.resources.media).toEqual({});
+  expect(saved.revision).toBe(2);
+});

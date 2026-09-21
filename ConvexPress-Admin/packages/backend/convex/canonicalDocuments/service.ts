@@ -202,7 +202,7 @@ async function project(
   assertPackTreatments(blocks, display.presentation.packId);
 	// Validate authoring policy without replacing authored content with its
   // permission-filtered preview. Source descendants are never authoring input.
-  const projected = await projectPublicBlocks(ctx, blocks, display.scope, display.policy, budget, { validateAuthoringPolicy: true, composed });
+  const projected = await projectPublicBlocks(ctx, blocks, display.scope, display.policy, budget, { validateAuthoringPolicy: true, includeHiddenForAuthoring: true, composed });
   if (prepared || definitionPreview) await catalogRevisionWrites.assertMediaAttachments(ctx, "posts", {}, budget, collectCanonicalMediaIds(blocks, composed));
   // Only visible occurrences may load dynamic data or display media.
 	const data = await resolveCanonicalPageData(

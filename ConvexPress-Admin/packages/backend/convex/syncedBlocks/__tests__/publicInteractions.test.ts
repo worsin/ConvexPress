@@ -103,3 +103,16 @@ test("nested reusable parents enforce restrictions and foreign installation owne
     await f.t.run(ctx => ctx.db.patch("syncedBlocks", f.sourceId, { [key]: prior }));
   }
 });
+
+test("audience-hidden reusable polls cannot be read or submitted through retained placement IDs", async () => {
+  const f = await setup();
+  await f.t.run(ctx => ctx.db.patch("posts", f.postIds.post, { blocks: f.placements.map(node => ({ ...node, visibility: "signedIn" as const })) }));
+  expect(await f.read()).toBeNull(); await expect(f.submit()).rejects.toThrow();
+  expect(await f.operator.query(get, f.target)).toMatchObject({ total: 0 });
+  await f.operator.mutation(vote, f.args);
+  await f.t.run(ctx => ctx.db.patch("posts", f.postIds.post, { blocks: f.placements.map(node => ({ ...node, visibility: "signedOut" as const })) }));
+  expect(await f.operator.query(get, f.target)).toBeNull();
+  await expect(f.operator.mutation(vote, f.args)).rejects.toThrow();
+  expect(await f.read()).toMatchObject({ total: 1 });
+  expect(await f.t.run(ctx => ctx.db.query("form_poll_votes").take(10))).toHaveLength(1);
+});

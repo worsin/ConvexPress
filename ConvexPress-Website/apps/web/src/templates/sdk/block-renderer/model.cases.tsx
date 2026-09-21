@@ -13,6 +13,8 @@ import divider from "../../../../../../../blocks/core/divider/render";
 import spacer from "../../../../../../../blocks/core/spacer/render";
 import image from "../../../../../../../blocks/core/image/render";
 import catalog from "../../../../../../../blocks/.generated/catalog.json";
+import { publicCanonicalTree } from "../block-data/portable/publicTree";
+import { validateCanonicalTree } from "../block-data/portable/generated/instances";
 const registry = discoverRenderers({
 	"/blocks/core/heading/render.tsx": heading,
 	"/blocks/core/section/render.tsx": section,
@@ -23,6 +25,16 @@ const policy: RenderPolicy = {
 	capabilities: ["tree.children"],
 	disabledBlocks: [],
 };
+test("server-selected audience blocks render after authoring policy metadata is removed", () => {
+  for (const visibility of ["everyone", "signedIn", "signedOut"] as const) {
+    const authored = validateCanonicalTree([{ ...instance, visibility }]);
+    expect(() => prepareBlocks(authored, registry, policy)).toThrow("instance-policy adapter");
+    const display = publicCanonicalTree(authored);
+    expect(renderToStaticMarkup(prepareBlocks(display, registry, policy))).toContain("A real heading");
+    expect(display[0]).not.toHaveProperty("visibility");
+    expect(authored[0]!.visibility).toBe(visibility);
+  }
+});
 test("spacers use one layout boundary without a fixed inner gap or empty landmark", () => {
   const renderers = discoverRenderers({"/blocks/core/spacer/render.tsx": spacer});
   for (const spacing of ["none", "compact", "default", "spacious"]) {
