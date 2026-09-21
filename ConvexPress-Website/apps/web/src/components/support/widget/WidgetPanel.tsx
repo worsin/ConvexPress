@@ -1,12 +1,12 @@
 /**
- * Slide-up panel container for the support widget.
+ * Nonmodal panel container for the support widget.
  *
- * Renders a fixed-position panel that slides up from the bottom corner.
+ * Renders a fixed-position panel in the bottom corner while open.
  * Contains a header with title, back button, and close button.
  * Children are rendered in a scrollable content area.
  */
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { ArrowLeft, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -20,12 +20,6 @@ interface WidgetPanelProps {
   children: React.ReactNode;
 }
 
-export function getWidgetPanelA11yProps(isOpen: boolean):
-  | { "aria-modal": true }
-  | { inert: true } {
-  return isOpen ? { "aria-modal": true } : { inert: true };
-}
-
 export function WidgetPanel({
   isOpen,
   position,
@@ -35,31 +29,38 @@ export function WidgetPanel({
   onClose,
   children,
 }: WidgetPanelProps) {
+  const panelRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (!isOpen) return;
+    const trigger = document.activeElement;
+    panelRef.current?.querySelector<HTMLButtonElement>("button")?.focus();
     const handleEscape = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
     };
     document.addEventListener("keydown", handleEscape);
-    return () => document.removeEventListener("keydown", handleEscape);
+    return () => {
+      document.removeEventListener("keydown", handleEscape);
+      if (trigger instanceof HTMLElement && trigger.isConnected) trigger.focus();
+    };
   }, [isOpen, onClose]);
+
+  // A closed panel has no interactive descendants or accessibility-tree entry.
+  // Widget navigation state remains in the parent and reopening starts at Home.
+  if (!isOpen) return null;
 
   return (
     <div
+      ref={panelRef}
       className={cn(
         "fixed z-50 flex flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-2xl",
         "w-[380px] max-w-[calc(100vw-2rem)]",
-        "transition-all duration-300 ease-out",
         position === "bottomRight"
           ? "bottom-24 right-6 origin-bottom-right"
           : "bottom-24 left-6 origin-bottom-left",
-        isOpen
-          ? "h-[min(600px,calc(100vh-8rem))] scale-100 opacity-100"
-          : "pointer-events-none h-0 scale-95 opacity-0",
+        "h-[min(600px,calc(100vh-8rem))]",
       )}
       role="dialog"
       aria-label="Support widget"
-      {...getWidgetPanelA11yProps(isOpen)}
     >
       {/* Header */}
       <div className="flex shrink-0 items-center gap-2 border-b border-border bg-muted/50 px-4 py-3">

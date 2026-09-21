@@ -1,3 +1,4 @@
+import { isPublicVariant } from "@/templates/sdk/block-data/portable/commercePricing";
 export type ProductOptionType = {
 	id: string;
 	name: string;
@@ -33,7 +34,7 @@ export type ProductVariant = {
 export function getInitialSelectedOptions(
 	variant: ProductVariant | null | undefined,
 ) {
-	if (!variant?.selections?.length) return {};
+	if (!variant || !isPublicVariant(variant) || !variant.selections?.length) return {};
 	return Object.fromEntries(
 		variant.selections.map((selection) => [
 			selection.optionTypeId,
@@ -50,7 +51,7 @@ export function findMatchingVariant(
 	return (
 		variants.find(
 			(variant) =>
-				(variant.selections ?? []).every(
+				isPublicVariant(variant) && (variant.selections ?? []).every(
 					(selection) =>
 						selectedOptions[selection.optionTypeId] === selection.optionValueId,
 				) && (variant.selections ?? []).length === optionTypes.length,
@@ -66,7 +67,7 @@ export function isOptionValueEnabled(
 ) {
 	return variants.some(
 		(variant) =>
-			(variant.selections ?? []).some(
+			isPublicVariant(variant) && (variant.selections ?? []).some(
 				(selection) =>
 					selection.optionTypeId === optionTypeId &&
 					selection.optionValueId === optionValueId,
@@ -82,4 +83,28 @@ export function isOptionValueEnabled(
 							),
 			),
 	);
+}
+
+/** Link hints never authorize or invent an option. Start from a complete public
+ * combination containing the requested choice, then allow ordinary changes. */
+export function getLinkedSelectedOptions(optionTypes: ProductOptionType[], variants: ProductVariant[],
+ hint?: {optionType?:string;optionValue?:string}): Record<string,string> | null {
+ if(!hint?.optionType||!hint.optionValue||!optionTypes.some(group=>group.id===hint.optionType&&group.values?.some(value=>value.id===hint.optionValue)))return null;
+ const match=variants.find(variant=>isPublicVariant(variant)&&variant.selections?.length===optionTypes.length
+  &&new Set(variant.selections.map(value=>value.optionTypeId)).size===optionTypes.length
+  &&variant.selections.every(selection=>optionTypes.some(group=>group.id===selection.optionTypeId&&group.values?.some(value=>value.id===selection.optionValueId)))
+  &&variant.selections.some(selection=>selection.optionTypeId===hint.optionType&&selection.optionValueId===hint.optionValue));
+ return match?getInitialSelectedOptions(match):null;
+}
+
+/** Prefer a complete public combination preserving the most current choices.
+ * A sparse catalog must not trap the visitor in mutually disabled dimensions. */
+export function getNextSelectedOptions(optionTypes: ProductOptionType[], variants: ProductVariant[],
+ current: Record<string,string>, optionType: string, optionValue: string): Record<string,string> | null {
+ const candidates=variants.flatMap(variant=>{
+  const selection=getLinkedSelectedOptions(optionTypes,[variant],{optionType,optionValue});
+  return selection?[{selection,score:Object.entries(current).filter(([key,value])=>key!==optionType&&selection[key]===value).length}]:[];
+ });
+ candidates.sort((a,b)=>b.score-a.score);
+ return candidates[0]?.selection??null;
 }

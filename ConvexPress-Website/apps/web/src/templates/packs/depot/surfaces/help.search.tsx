@@ -46,7 +46,7 @@ export default function DepotHelpSearch({ data }: SurfaceProps<HelpSearchSurface
           title="Results"
           count={
             <>
-              {total} {total === 1 ? "result" : "results"} for &ldquo;{q}&rdquo;
+              {total} {total === 1 ? "result" : "results"} on this page for &ldquo;{q}&rdquo;
             </>
           }
           action={{ label: "Browse categories", to: "/help" }}
@@ -68,9 +68,9 @@ export default function DepotHelpSearch({ data }: SurfaceProps<HelpSearchSurface
         </div>
       ) : null}
 
-      {hasQuery && results.length === 0 ? (
+      {hasQuery && results.length === 0 && !data.hasMore ? (
         <EmptyState
-          title="No articles found"
+          title="No matching articles on this page"
           description={
             <>
               Try different keywords or{" "}

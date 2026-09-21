@@ -1,3 +1,4 @@
+import { resolveStockPolicy } from "@/templates/sdk/block-data/portable/commerceInventory";
 /**
  * Everything a product page needs to decide, independent of how it is laid
  * out: variant selection, effective price, stock, gallery and add-to-cart.
@@ -5,6 +6,9 @@
  */
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { isPublicVariant, type PriceAmount } from "@/templates/sdk/block-data/portable/commercePricing";
+import { productPricing, productPriceInputs } from "./productPricing";
+import { usePriceTime } from "./usePriceTime";
 
 import { useSettings } from "@/contexts/SettingsContext";
 import { useCart } from "@/hooks/useCart";
@@ -13,7 +17,8 @@ import { formatMoney } from "@/lib/commerce/format";
 import {
   findMatchingVariant,
   getInitialSelectedOptions,
-  isOptionValueEnabled,
+  getLinkedSelectedOptions,
+  getNextSelectedOptions,
 } from "@/routes/_marketing/products/-variantSelection";
 
 export interface ProductVariant {
@@ -24,8 +29,8 @@ export interface ProductVariant {
   stockQuantity?: number;
   isDefault?: boolean;
   featuredMediaId?: string;
-  price?: { amount: number };
-  salePrice?: { amount: number };
+  price?: PriceAmount;
+  salePrice?: PriceAmount;
   selections?: Array<{ optionTypeId: string; optionValueId: string; optionValueLabel: string }>;
   stockStatus?: "instock" | "outofstock" | "onbackorder";
   backorders?: "yes" | "no" | "notify";
@@ -44,12 +49,18 @@ export interface ProductDetail {
   excerpt?: string;
   productType?: "simple" | "variable" | "external";
   displayPrice?: number;
+  basePrice?: PriceAmount;
+  salePrice?: PriceAmount;
+  salePriceFrom?: number;
+  salePriceTo?: number;
+  pricedAt?: number;
   compareAtPrice?: number;
   featuredMediaId?: string;
   galleryMediaIds?: string[];
   sku?: string;
   stockQuantity?: number;
   trackInventory?: boolean;
+  allowBackorders?: boolean;
   isVirtual?: boolean;
   isDownloadable?: boolean;
   categories?: Array<{ _id: string; name: string; slug: string }>;
@@ -58,33 +69,27 @@ export interface ProductDetail {
   variants?: ProductVariant[];
 }
 
-function isVariantOnSale(variant: Pick<ProductVariant, "salePrice" | "salePriceFrom" | "salePriceTo"> | null | undefined): boolean {
-  if (!variant?.salePrice?.amount) return false;
-  const now = Date.now();
-  if (variant.salePriceFrom && variant.salePriceFrom > now) return false;
-  if (variant.salePriceTo && variant.salePriceTo < now) return false;
-  return true;
-}
-
-export function useProductPage(product: ProductDetail | null) {
+export function useProductPage(product: ProductDetail | null, optionHint?: {optionType?:string;optionValue?:string}) {
   const settings = useSettings();
   const currency = settings?.commerceConfig?.currencyCode || "USD";
   const cart = useCart();
   const access = useProductAccess(product?._id ?? undefined);
 
   const optionTypes = product?.optionTypes ?? [];
-  const variants = product?.variants ?? [];
+  const variants = useMemo(() => (product?.variants ?? []).filter(isPublicVariant), [product?.variants]);
   const defaultVariant = variants.find((variant) => variant.isDefault) ?? variants[0] ?? null;
-  const isVariable = product?.productType === "variable" && optionTypes.length > 0;
+  const isVariable = product?.productType === "variable";
+  const priceInputs = useMemo(() => productPriceInputs(product, variants), [product, variants]);
+  const priceTime = usePriceTime(priceInputs, product?.pricedAt);
 
   const [selectedOptions, setSelectedOptions] = useState<Record<string, string>>({});
   const [quantity, setQuantity] = useState(1);
   const [activeMediaId, setActiveMediaId] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!product || !isVariable || !defaultVariant?.selections?.length) return;
-    setSelectedOptions(getInitialSelectedOptions(defaultVariant));
-  }, [defaultVariant, isVariable, product]);
+    if (!product || !isVariable) { setSelectedOptions({}); return; }
+    setSelectedOptions(getLinkedSelectedOptions(product.optionTypes ?? [], variants, optionHint) ?? getInitialSelectedOptions(defaultVariant));
+  }, [defaultVariant, isVariable, product, variants, optionHint?.optionType, optionHint?.optionValue]);
 
   const selectedVariant = useMemo(() => {
     if (!product || !isVariable) return null;
@@ -93,26 +98,10 @@ export function useProductPage(product: ProductDetail | null) {
 
   const currentVariant = selectedVariant ?? defaultVariant;
   const requiresSelection = isVariable && !selectedVariant;
-  const stockStatus = currentVariant?.stockStatus ?? "instock";
-  const backorders = currentVariant?.backorders ?? "no";
+  const stock = resolveStockPolicy(product ?? {}, currentVariant);
+  const {stockStatus, backorders} = stock;
   const outOfStock = stockStatus === "outofstock";
-  const onSale = isVariantOnSale(currentVariant);
-  const price = currentVariant
-    ? onSale
-      ? currentVariant.salePrice!.amount
-      : (currentVariant.price?.amount ?? product?.displayPrice)
-    : product?.displayPrice;
-  const regularPrice = currentVariant ? currentVariant.price?.amount : product?.compareAtPrice;
-  const showCompare = currentVariant ? onSale && !!regularPrice : !!regularPrice && !!price && regularPrice > price;
-
-  const priceRange = useMemo(() => {
-    if (!isVariable || variants.length === 0) return null;
-    const amounts = variants
-      .filter((v) => v.status !== "draft" && v.status !== "private" && v.price?.amount)
-      .map((v) => (isVariantOnSale(v) ? v.salePrice!.amount : v.price!.amount));
-    if (!amounts.length) return null;
-    return { min: Math.min(...amounts), max: Math.max(...amounts) };
-  }, [isVariable, variants]);
+  const { price, regularPrice, showCompare, priceRange } = productPricing(product, currentVariant, variants, isVariable, priceTime);
 
   const gallery = useMemo(() => {
     const ids = [currentVariant?.featuredMediaId, product?.featuredMediaId, ...(product?.galleryMediaIds ?? [])].filter(
@@ -130,22 +119,22 @@ export function useProductPage(product: ProductDetail | null) {
 
   const optionEnabled = useCallback(
     (optionTypeId: string, optionValueId: string) =>
-      !isVariable || isOptionValueEnabled(optionTypeId, optionValueId, selectedOptions, variants),
-    [isVariable, selectedOptions, variants],
+      !isVariable || getLinkedSelectedOptions(optionTypes, variants, {optionType:optionTypeId,optionValue:optionValueId}) !== null,
+    [isVariable, optionTypes, variants],
   );
 
   const selectOption = useCallback((optionTypeId: string, optionValueId: string) => {
-    setSelectedOptions((current) => ({ ...current, [optionTypeId]: optionValueId }));
-  }, []);
+    setSelectedOptions((current) => getNextSelectedOptions(optionTypes, variants, current, optionTypeId, optionValueId) ?? current);
+  }, [optionTypes, variants]);
 
   const addToCart = useCallback(async () => {
-    if (!product || requiresSelection || outOfStock) return false;
+    if (!product || requiresSelection || outOfStock || price === undefined || access.isLoading || !access.allowed) return false;
     return cart.add(product._id, {
       variantId: isVariable ? selectedVariant?._id : undefined,
       quantity,
       label: product.title,
     });
-  }, [cart, isVariable, outOfStock, product, quantity, requiresSelection, selectedVariant?._id]);
+  }, [access.allowed, access.isLoading, cart, isVariable, outOfStock, price, product, quantity, requiresSelection, selectedVariant?._id]);
 
   const priceLabel = (() => {
     if (requiresSelection && priceRange) {
@@ -185,9 +174,9 @@ export function useProductPage(product: ProductDetail | null) {
     setQuantity,
     addToCart,
     inCart,
-    busy: cart.busyProductId === product?._id || !cart.isReady,
+    busy: cart.busyProductId === product?._id || !cart.isReady || access.isLoading || price === undefined,
     sku: currentVariant?.sku ?? product?.sku,
-    stockQuantity: currentVariant?.stockQuantity ?? product?.stockQuantity,
+    stockQuantity: stock.tracked ? stock.available : undefined,
   };
 }
 

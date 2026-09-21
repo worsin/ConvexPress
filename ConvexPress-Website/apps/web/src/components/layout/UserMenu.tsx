@@ -15,7 +15,7 @@ import {
 import { useHeaderConfig } from "@/hooks/layout/useHeaderConfig";
 import { useDashboardConfig, useDashboardPath } from "@/hooks/useDashboardConfig";
 import { resolveIcon } from "@/dashboard/icons";
-import { useDashboardMenu } from "@/dashboard/shell/useDashboardNav";
+import { useDashboardMenu } from "@/dashboard/shell/useDashboardMenu";
 import type { NavItem } from "@/dashboard/nav";
 
 /**

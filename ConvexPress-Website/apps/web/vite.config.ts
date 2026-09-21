@@ -1,3 +1,4 @@
+import { canonicalBlockWatch } from "./canonical-block-watch.mjs";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -9,6 +10,7 @@ import tsconfigPaths from "vite-tsconfig-paths";
 
 const appDir = fileURLToPath(new URL(".", import.meta.url));
 const workspaceDir = path.resolve(appDir, "../..");
+const canonicalBlocksDir = path.resolve(workspaceDir, "../blocks");
 
 function realpathIfPresent(target: string) {
   try {
@@ -24,6 +26,7 @@ const fsAllow = Array.from(
     realpathIfPresent(workspaceDir),
     realpathIfPresent(path.join(appDir, "node_modules")),
     realpathIfPresent(path.join(workspaceDir, "node_modules")),
+    realpathIfPresent(canonicalBlocksDir),
   ]),
 );
 
@@ -40,7 +43,19 @@ export default defineConfig(() => {
   // comes from the site database, then process env, then VITE_ env. No
   // build-time alias, so one build serves every site.
   return {
+    // Canonical renderer/schema sources live above this package's dependency
+    // tree. Resolve their shared runtime from this installed storefront, rather
+    // than relying on a root node_modules that is deliberately not installed.
+    resolve: {
+      alias: {
+        zod: path.join(appDir, "node_modules/zod"),
+      },
+      // Keep React imports bare for SSR externalization. Absolute React aliases
+      // bundle a second hook dispatcher beside external react-dom/server.
+      dedupe: ["react", "react-dom", "zod"],
+    },
     plugins: [
+      canonicalBlockWatch({root:canonicalBlocksDir,discoveryId:path.join(appDir,"src/templates/sdk/block-renderer/discovery.ts")}),
       tsconfigPaths(),
       tailwindcss(),
       tanstackStart({
@@ -77,6 +92,11 @@ export default defineConfig(() => {
               return undefined;
             }
 
+            // Cache routing/query libraries independently from frequently changed
+            // site code. Start's app-entry integration stays with the application.
+            if (/\/@tanstack\/(?:react-router|router-core|history|react-query|query-core|react-store|store)\//.test(id)) {
+              return "vendor-tanstack";
+            }
             if (id.includes("/@clerk/")) {
               return "vendor-clerk";
             }

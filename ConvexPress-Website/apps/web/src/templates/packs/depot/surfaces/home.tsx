@@ -34,7 +34,7 @@ export default function DepotHome({ data }: SurfaceProps<HomeSurfaceData>) {
   const posts = latestPosts ?? [];
 
   return (
-    <Container as="main" padded={false} className="flex flex-col gap-6 py-6 md:py-8">
+    <Container as="div" padded={false} className="flex flex-col gap-6 py-6 md:py-8">
       <div className="flex flex-wrap items-end justify-between gap-3 border-b border-border pb-4">
         <div className="flex flex-col gap-1">
           <Label>News</Label>

@@ -1,3 +1,4 @@
+import type { Id } from "@convexpress-website/backend/generated/dataModel";
 /**
  * Ticket attachment uploads.
  *
@@ -10,7 +11,7 @@ import { validateAttachment } from "@/lib/support-tickets";
 
 export interface UploadedAttachment {
   name: string;
-  storageId: string;
+  storageId: Id<"_storage">;
   mimeType: string;
   size: number;
 }
@@ -27,7 +28,10 @@ export async function uploadTicketAttachments(requestUploadUrl: UploadUrlRequest
     if (!uploadUrl) throw new Error(`Couldn't prepare the upload for ${file.name}`);
     const res = await fetch(uploadUrl, { method: "POST", headers: { "Content-Type": file.type }, body: file });
     if (!res.ok) throw new Error(`Couldn't upload ${file.name}`);
-    const { storageId } = (await res.json()) as { storageId: string };
+    const payload: unknown = await res.json();
+    if (!payload || typeof payload !== "object" || !("storageId" in payload) || typeof payload.storageId !== "string" || !payload.storageId) throw new Error(`The upload for ${file.name} returned no storage ID`);
+    // IDs cross the storage HTTP boundary as opaque strings; Convex validates the brand again on mutation.
+    const storageId = payload.storageId as Id<"_storage">;
     out.push({ storageId, name: file.name, mimeType: file.type, size: file.size });
   }
   return out;

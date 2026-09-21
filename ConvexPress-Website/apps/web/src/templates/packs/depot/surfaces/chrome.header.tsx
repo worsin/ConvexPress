@@ -1,3 +1,4 @@
+import { useStickyHeaderOffset } from "@/hooks/layout/useStickyHeaderOffset";
 /**
  * Depot · chrome.header — two sticky rows.
  *
@@ -39,6 +40,7 @@ export default function DepotHeader({ data }: SurfaceProps<HeaderSurfaceData>) {
   const stickyHeader = layoutConfig?.stickyHeader !== false;
   const stickyMode = headerConfig.layout.sticky;
   const isSticky = stickyMode === "always" || (stickyMode === "scroll-up" && stickyHeader);
+  const headerRef = useStickyHeaderOffset(isSticky);
   const backgroundClass =
     headerConfig.layout.background === "transparent" ? "bg-transparent" : headerConfig.layout.background === "glass" ? "bg-background/85 backdrop-blur-md" : "bg-background";
   const borderClass =
@@ -56,7 +58,8 @@ export default function DepotHeader({ data }: SurfaceProps<HeaderSurfaceData>) {
 
   return (
     <header
-      data-slot="site-header"
+      ref={headerRef}
+      data-slot="site-header" data-customize="header.layout.sticky"
       data-pack="depot"
       role="banner"
       className={cn("z-40 w-full transition-shadow", backgroundClass, borderClass, isSticky && "sticky top-0", isScrolled && headerConfig.layout.background !== "glass" && "bg-background/95 shadow-sm backdrop-blur-sm")}
@@ -111,10 +114,10 @@ function Wordmark({ siteIdentity, logo }: { siteIdentity: SiteIdentity | undefin
   const showImage = logo.enabled && logo.showImage && !!siteIdentity.logoUrl;
   const showTitle = !showImage || (logo.showTitle && siteIdentity.showTitleWithLogo !== false);
   return (
-    <Link to="/" data-slot="site-brand" className="flex shrink-0 items-center gap-2 text-foreground no-underline">
-      {showImage && <img src={siteIdentity.logoUrl} alt={siteIdentity.logoAlt || siteIdentity.title} className="h-8 w-auto" width={32} height={32} />}
-      {showTitle && <span className="text-base font-bold tracking-tight">{siteIdentity.title}</span>}
-      {logo.showTagline && siteIdentity.tagline ? <span className="hidden text-[13px] text-muted-foreground xl:inline">{siteIdentity.tagline}</span> : null}
+    <Link to="/" data-slot="site-brand" data-customize="header.logo.showTitle" className="flex min-w-0 items-center gap-2 text-foreground no-underline md:max-w-[35%]">
+      {showImage && <img src={siteIdentity.logoUrl} alt={siteIdentity.logoAlt || siteIdentity.title} className="h-8 w-auto min-w-0 max-w-32 object-contain" width={32} height={32} />}
+      {showTitle && <span className="min-w-0 truncate text-base font-bold tracking-tight">{siteIdentity.title}</span>}
+      {logo.showTagline && siteIdentity.tagline ? <span className="hidden min-w-0 truncate text-[13px] text-muted-foreground xl:inline">{siteIdentity.tagline}</span> : null}
     </Link>
   );
 }
@@ -193,7 +196,7 @@ function HeaderCluster({ headerConfig, className }: { headerConfig: HeaderConfig
           ) : (
             guestDisplay !== "hidden" && (
               <div className="flex items-center gap-1">
-                <Link to="/login" className={cn(buttonClasses("quiet", "sm", "px-2"), "gap-1.5")}>
+                <Link to="/login" aria-label="Sign in" className={cn(buttonClasses("quiet", "sm", "px-2"), "gap-1.5")}>
                   <User className="size-4" aria-hidden="true" />
                   <span className="hidden sm:inline">Sign in</span>
                 </Link>

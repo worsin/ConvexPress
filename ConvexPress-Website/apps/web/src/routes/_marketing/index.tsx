@@ -1,3 +1,7 @@
+import { canonicalPaginationSearch } from "@/templates/sdk/block-public/pagination-search";
+import { loadAnonymousCanonical } from "@/templates/sdk/block-public/anonymous-loader";
+import { PublicCanonicalScope } from "@/templates/sdk/block-public/PublicCanonicalBody";
+import { parseTipTapDocument } from "@/lib/schemas/content";
 /**
  * Home Page Route - /_marketing/
  *
@@ -10,6 +14,13 @@
  * The `getFrontPage` query handles all settings lookup internally. Rendering
  * belongs to the `home` surface of the active template pack.
  */
+
+import { useState } from "react";
+import { useQuery } from "convex/react";
+import { useAuth } from "@/lib/auth/clerk";
+import type { Id } from "@convexpress-website/backend/generated/dataModel";
+import CorePasswordGate from "@/templates/packs/core/surfaces/system.passwordGate";
+import CoreRestricted from "@/templates/packs/core/surfaces/system.restricted";
 
 import { convexQuery } from "@convex-dev/react-query";
 import { useQuery as useTanStackQuery } from "@tanstack/react-query";
@@ -28,7 +39,9 @@ const latestPostsQuery = convexQuery(api.posts.queries.listPublished, {
 });
 
 export const Route = createFileRoute("/_marketing/")({
-	loader: async ({ context: { queryClient } }) => {
+  validateSearch: canonicalPaginationSearch,
+  loaderDeps: ({ search }) => ({ request: search.blockPages }),
+	loader: async ({ context: { queryClient }, deps }) => {
 		// Shops land visitors on the catalog (Reading settings → "The shop").
 		const publicSettings = (await queryClient.ensureQueryData(
 			convexQuery(api.settings.queries.getPublic, {}),
@@ -43,6 +56,7 @@ export const Route = createFileRoute("/_marketing/")({
 		}
 
 		return {
+      canonical: await loadAnonymousCanonical(frontPage, deps.request),
 			seoHead: buildIndexablePageHead({
 				title: frontPage?.title
 					? `${frontPage.title} – ${siteTitle}`
@@ -59,20 +73,49 @@ export const Route = createFileRoute("/_marketing/")({
 });
 
 function HomeComponent() {
-  const { data: frontPage } = useTanStackQuery(frontPageQuery);
+  const {canonical} = Route.useLoaderData();
+  const {blockPages: request} = Route.useSearch();
+  const { data: rawFrontPage } = useTanStackQuery(frontPageQuery);
+  const { isSignedIn } = useAuth();
+  const [attempt, setAttempt] = useState<{ pageId: string; password: string } | null>(null);
+  const submitted = attempt?.pageId === rawFrontPage?._id ? attempt : null;
+  const verifiedPage = useQuery(api.pages.queries.verifyPassword,
+    rawFrontPage?.isPasswordProtected && submitted
+      ? { pageId: rawFrontPage._id as Id<"posts">, password: submitted.password }
+      : "skip");
+  const frontPage = verifiedPage ?? rawFrontPage;
   const { data: latestPosts } = useTanStackQuery({
     ...latestPostsQuery,
     enabled: frontPage === null,
   });
+
+  if (rawFrontPage?.isPasswordProtected && !verifiedPage) {
+    return <Surface name="system.passwordGate" data={{
+      kind: "page", title: rawFrontPage.title,
+      onSubmit: (password: string) => setAttempt({ pageId: rawFrontPage._id, password }),
+      isVerifying: !!submitted && verifiedPage === undefined,
+      error: submitted && verifiedPage === null ? "Incorrect password. Please try again." : undefined,
+    }} fallback={CorePasswordGate} />;
+  }
+  if (frontPage?.isMembershipRestricted && frontPage.membershipAccess) {
+    const access = frontPage.membershipAccess;
+    return <Surface name="system.restricted" data={{
+      title: frontPage.title, mode: access.teaserMode ?? "hide", rule: access,
+      excerpt: frontPage.excerpt, userState: isSignedIn ? "logged_in_non_member" : "logged_out",
+    }} fallback={CoreRestricted} />;
+  }
 
   // Map the configured front page to the Page System's PageDetail shape.
   const page: PageDetail | null | undefined = frontPage
     ? {
         _id: frontPage._id,
         title: frontPage.title,
+        excerpt: frontPage.excerpt,
+        featuredImageUrl: (frontPage as { featuredImageUrl?: string }).featuredImageUrl,
+        featuredImageAlt: (frontPage as { featuredImageAlt?: string }).featuredImageAlt,
         slug: frontPage.slug,
         path: frontPage.path ?? "/",
-        content: frontPage.content ? (frontPage.content as BlockDocument) : null,
+        content: frontPage.content ? (parseTipTapDocument(frontPage.content) as BlockDocument | null) : null,
         template: (frontPage.pageTemplate as PageDetail["template"]) ?? "full-width",
         contentMode: (frontPage as { contentMode?: PageDetail["contentMode"] }).contentMode,
         blocks: (frontPage as { blocks?: PageDetail["blocks"] }).blocks,
@@ -94,5 +137,5 @@ function HomeComponent() {
       }))
     : undefined;
 
-  return <Surface name="home" data={{ frontPage: page, latestPosts: posts }} fallback={CoreHome} />;
+  return <PublicCanonicalScope request={request} documentId={page?._id ?? ""} initial={canonical} password={submitted?.password}><Surface name="home" data={{ frontPage: page, latestPosts: posts }} fallback={CoreHome} /></PublicCanonicalScope>;
 }

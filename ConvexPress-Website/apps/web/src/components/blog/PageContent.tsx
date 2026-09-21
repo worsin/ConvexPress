@@ -1,3 +1,4 @@
+import { PublicCanonicalBody } from "@/templates/sdk/block-public/PublicCanonicalBody";
 import { cn } from "@/lib/utils";
 import type { PageDetail } from "@/lib/blog/types";
 import { BlockListRenderer } from "@/components/blocks/BlockListRenderer";
@@ -50,7 +51,9 @@ export function PageContent({ page, className }: PageContentProps) {
       )}
 
       {/* Content */}
-      {page.contentMode === "blocks" ? (
+      {page.blocksVersion === 2 ? (
+        <PublicCanonicalBody documentId={page._id} />
+      ) : page.contentMode === "blocks" ? (
         <BlockListRenderer
           blocks={
             page.blocks && page.blocks.length > 0

@@ -9,8 +9,9 @@
 import { convexQuery } from "@convex-dev/react-query";
 import { api } from "@convexpress-website/backend/generated/api";
 import { useSuspenseQuery } from "@tanstack/react-query";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, notFound } from "@tanstack/react-router";
 import { z } from "zod";
+import { useRecordProductView } from "../../../hooks/useProductHistory";
 
 import { NotFoundPage } from "@/components/blog/NotFoundPage";
 import { useProductPage, type ProductDetail } from "@/components/shop/product/useProductPage";
@@ -21,6 +22,8 @@ import CoreProduct from "@/templates/packs/core/surfaces/shop.product";
 import { Surface } from "@/templates/sdk/Surface";
 
 const searchSchema = z.object({
+  optionType: z.string().min(1).max(256).optional().catch(undefined),
+  optionValue: z.string().min(1).max(256).optional().catch(undefined),
   /** Admin preview overrides (Settings › Shop layouts). Never persisted. */
   productLayout: z.enum(PRODUCT_LAYOUT_IDS).optional(),
   layout: z.enum(SHOP_LAYOUT_IDS).optional(),
@@ -36,15 +39,11 @@ export const Route = createFileRoute("/_marketing/products/$slug")({
     const siteUrl = normalizeSiteUrl((publicSettings as { siteUrl?: string | null })?.siteUrl);
     const siteTitle = (publicSettings as { siteTitle?: string | null })?.siteTitle || "Shop";
     if ((publicSettings as any)?.plugins?.commerceEnabled !== true) {
-      return {
-        seoHead: buildSeoHead({
-          title: `Product – ${siteTitle}`,
-          canonical: toAbsoluteUrl(`/products/${params.slug}`, siteUrl),
-        }),
-      };
+      throw notFound();
     }
 
     const product = await queryClient.ensureQueryData(convexQuery(api.commerce.products.getBySlug, { slug: params.slug }));
+    if (!product) throw notFound();
 
     return {
       seoHead: buildSeoHead({
@@ -56,12 +55,15 @@ export const Route = createFileRoute("/_marketing/products/$slug")({
   },
   head: ({ loaderData }) => loaderData?.seoHead ?? {},
   component: ProductDetailPage,
+  notFoundComponent: NotFoundPage,
 });
 
 function ProductDetailPage() {
   const { slug } = Route.useParams();
   const { data: product } = useSuspenseQuery(convexQuery(api.commerce.products.getBySlug, { slug }) as any) as { data: ProductDetail | null };
-  const state = useProductPage(product);
+  const {optionType,optionValue} = Route.useSearch();
+  const state = useProductPage(product,{optionType,optionValue});
+  useRecordProductView(product?._id ?? null);
 
   if (!product) return <NotFoundPage />;
 

@@ -56,7 +56,7 @@ export default function JournalHelpCategory({ data }: SurfaceProps<HelpCategoryS
           }
         />
 
-        {articles.length === 0 ? (
+        {articles.length === 0 && !data.hasMore ? (
           <EmptyState eyebrow="Nothing yet" title="No articles in this category yet." />
         ) : (
           <ul className="flex flex-col divide-y divide-border border-y border-border">

@@ -181,7 +181,7 @@ export default function CoreCoursesIndex({ data }: SurfaceProps<CoursesIndexSurf
           ) : null}
         </aside>
 
-        <main className="min-w-0">
+        <div className="min-w-0">
           <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
             <p className="text-sm text-muted-foreground">
               {catalog.total === 1 ? "1 course" : `${catalog.total} courses`}
@@ -280,7 +280,7 @@ export default function CoreCoursesIndex({ data }: SurfaceProps<CoursesIndexSurf
             </div>
           )}
           <Pagination catalog={catalog} filters={activeFilters} />
-        </main>
+        </div>
       </div>
     </div>
   );

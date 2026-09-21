@@ -1,0 +1,31 @@
+import { mock } from "bun:test";
+import assert from "node:assert/strict";
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
+
+let access = "pending";
+let queryCalls = 0;
+mock.module("@/hooks/useCan", () => ({ useCapabilityAccess: () => access }));
+mock.module("@/hooks/useCurrentUser", () => ({ useCurrentUser: () => ({ user: { _id: "test-author" }, isLoading: false }) }));
+mock.module("convex/react", () => ({ useQuery: (_ref, args) => {
+  assert.equal(access, "allowed", "Protected query started before access was resolved");
+  assert.deepEqual(args, { type: "post", authorId: "test-author", perPage: 50 });
+  queryCalls++;
+  return { posts: [] };
+} }));
+mock.module("@convexpress-website/backend/generated/api", () => ({ api: { posts: { queries: { list: "protected-posts" } } } }));
+mock.module("@/templates/packs/core/surfaces/dashboard.posts", () => ({ default: () => null }));
+mock.module("@/templates/sdk/Surface", () => ({ Surface: () => createElement("h1", null, "My posts") }));
+const { MyPostsPage } = await import("@/dashboard/pages/posts/PostsPage");
+assert.match(renderToStaticMarkup(createElement(MyPostsPage)), /Loading your access/);
+assert.equal(queryCalls, 0);
+access = "denied";
+assert.match(renderToStaticMarkup(createElement(MyPostsPage)), /Posting is not available/);
+assert.equal(queryCalls, 0);
+access = "allowed";
+assert.match(renderToStaticMarkup(createElement(MyPostsPage)), /My posts/);
+assert.equal(queryCalls, 1);
+access = "denied";
+assert.match(renderToStaticMarkup(createElement(MyPostsPage)), /Posting is not available/);
+assert.equal(queryCalls, 1, "Revoked access must not mount the query loader again");
+console.log("Dashboard posts: pending/denied/revoked skip protected loader; authorized author loads own posts.");

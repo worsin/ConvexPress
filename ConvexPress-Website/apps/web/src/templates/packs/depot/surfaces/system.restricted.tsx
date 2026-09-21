@@ -6,7 +6,7 @@
  * `UpgradeCTA` (it resolves the matching plan for the pricing deep link).
  */
 import { Link, useLocation } from "@tanstack/react-router";
-import DOMPurify from "isomorphic-dompurify";
+import DOMPurify from "@/lib/html-sanitizer";
 import { LogIn } from "lucide-react";
 import { useMemo } from "react";
 

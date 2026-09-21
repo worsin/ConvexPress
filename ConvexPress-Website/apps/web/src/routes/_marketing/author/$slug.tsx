@@ -85,7 +85,7 @@ function AuthorArchive() {
   );
 
   // Loading state
-  if (author === undefined) {
+  if (author === undefined || (author !== null && postsData === undefined)) {
     return (
       <div className="flex flex-col gap-6">
         <div className="flex items-center gap-4">
@@ -118,8 +118,8 @@ function AuthorArchive() {
     title: author.displayName ?? "Unknown Author",
     description: author.bio,
     slug: author.slug ?? slug,
-    postCount: author.postCount ?? postsData?.total ?? 0,
-    imageUrl: author.avatarUrl,
+    postCount: postsData?.total ?? 0,
+    imageUrl: author.avatarUrl ?? undefined,
   };
 
   // Map posts data

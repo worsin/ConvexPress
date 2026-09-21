@@ -15,13 +15,12 @@ import { useQuery } from "convex/react";
 import { Crown } from "lucide-react";
 
 import { api } from "@convexpress-website/backend/generated/api";
-import type { Id } from "@convexpress-website/backend/generated/dataModel";
 import { cn } from "@/lib/utils";
 import { buttonVariants } from "@/components/ui/button";
 
 interface UpgradeCTAProps {
   /** Matching plan ids returned by checkAccess (if any). */
-  matchingPlanIds?: Id<"membership_plans">[] | null;
+  matchingPlanIds?: string[] | null;
   /** Optional heading override. */
   title?: string;
   /** Optional description override. */
@@ -43,10 +42,8 @@ export function UpgradeCTA({
     if (!plans || !matchingPlanIds || matchingPlanIds.length === 0) {
       return undefined;
     }
-    const firstMatch = (plans as Array<{ _id: string; slug?: string }>).find(
-      (p) => matchingPlanIds.includes(p._id as Id<"membership_plans">),
-    );
-    return firstMatch?.slug ?? undefined;
+    const firstMatch = plans.find((p) => typeof p._id === "string" && matchingPlanIds.includes(p._id));
+    return typeof firstMatch?.slug === "string" ? firstMatch.slug : undefined;
   }, [plans, matchingPlanIds]);
 
   const href = matchingSlug

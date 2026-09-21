@@ -16,11 +16,13 @@ import { useShopShell } from "@/components/shop/ShopShell";
 import { useSettings } from "@/contexts/SettingsContext";
 import { useAssistantConfig } from "@/hooks/useAssistantConfig";
 import { useShopLayout } from "@/hooks/useShopLayout";
+import { useCommerceSessionToken } from "@/hooks/useCommerceSessionToken";
 import { formatMoney } from "@/lib/commerce/format";
 import { perPageFor, queryArgs, type SearchResponse, type ShopSearch, type Sort } from "@/lib/commerce/shopSearch";
 import { cn } from "@/lib/utils";
 
 export function ShopCatalog({ variant }: { variant?: string }) {
+  const { sessionToken } = useCommerceSessionToken();
   const search = useSearch({ from: "/_marketing/products/" }) as ShopSearch;
   const navigate = useNavigate({ from: "/products" });
   const settings = useSettings();
@@ -33,7 +35,7 @@ export function ShopCatalog({ variant }: { variant?: string }) {
   const args = queryArgs(search, perPageFor(layout.shopLayout, layout.gridDensity));
   const commerceEnabled = settings?.plugins?.commerceEnabled === true;
   const { data } = useTanStackQuery(convexQuery((api as any).commerce.storefront.searchProducts, args) as any) as { data: SearchResponse | undefined };
-  const facets = useQuery((api as any).commerce.storefront.facetsForQuery, q && config.searchFacets ? { q } : "skip") as
+  const facets = useQuery((api as any).commerce.storefront.facetsForQuery, q && config.searchFacets && sessionToken ? { q, sessionToken } : "skip") as
     | { chips: Array<{ label: string; query?: string; categorySlug?: string }> }
     | null
     | undefined;

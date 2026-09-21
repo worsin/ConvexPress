@@ -1,3 +1,6 @@
+import { canonicalPaginationSearch } from "@/templates/sdk/block-public/pagination-search";
+import { loadAnonymousCanonical } from "@/templates/sdk/block-public/anonymous-loader";
+import { PublicCanonicalScope } from "@/templates/sdk/block-public/PublicCanonicalBody";
 /**
  * Single Page Route - /_marketing/page/$
  *
@@ -22,7 +25,7 @@ import { useAuth } from "@/lib/auth/clerk";
 import { convexQuery } from "@convex-dev/react-query";
 import { api } from "@convexpress-website/backend/generated/api";
 import type { Id } from "@convexpress-website/backend/generated/dataModel";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, notFound } from "@tanstack/react-router";
 import { useQuery } from "convex/react";
 import { useQuery as useTanStackQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
@@ -39,8 +42,10 @@ import CoreRestricted from "@/templates/packs/core/surfaces/system.restricted";
 import { Surface } from "@/templates/sdk/Surface";
 
 export const Route = createFileRoute("/_marketing/page/$")({
+  validateSearch: canonicalPaginationSearch,
+  loaderDeps: ({ search }) => ({ request: search.blockPages }),
 	component: SinglePage,
-	loader: async ({ context: { queryClient }, params }) => {
+	loader: async ({ context: { queryClient }, params, deps }) => {
 		// Extract the full path from the splat param (mirrors component logic).
 		const splatPath = params._splat ?? "";
 		const segments = splatPath.split("/").filter(Boolean);
@@ -50,6 +55,13 @@ export const Route = createFileRoute("/_marketing/page/$")({
 		const page = await queryClient.ensureQueryData(
 			convexQuery(api.pages.queries.getByPath, { path: pagePath }),
 		);
+		// A rendered not-found surface alone leaves SSR at HTTP200. Signal the
+		// router so missing, draft and private-denied documents return HTTP404.
+		if (page === null) throw notFound();
+		const canonical = await loadAnonymousCanonical(page, deps.request);
+		// Metadata and canonical policy are separate reads. Do not return a
+		// successful page if publication/access was revoked between them.
+		if (page.blocksVersion === 2 && canonical === null) throw notFound();
 
 		// Prefetch the membership access decision. Same pattern as blog/$slug.
 		if (page && typeof page === "object" && "_id" in page && page._id) {
@@ -62,6 +74,7 @@ export const Route = createFileRoute("/_marketing/page/$")({
 		}
 
 		return {
+      canonical,
 			seoHead: buildSeoHead({
 				title:
 					page && typeof page === "object" && "title" in page
@@ -79,6 +92,8 @@ export const Route = createFileRoute("/_marketing/page/$")({
 
 function SinglePage() {
 	const params = Route.useParams();
+  const {canonical} = Route.useLoaderData();
+  const {blockPages: request} = Route.useSearch();
 	const { isSignedIn } = useAuth();
 
 	// ── All hooks called unconditionally at the top ──────────────────────
@@ -302,7 +317,7 @@ function SinglePage() {
 		(rawPage && "membershipAccess" in rawPage
 			? rawPage.membershipAccess
 			: null);
-	const effectiveAccess = access ?? embeddedAccess ?? null;
+	const effectiveAccess = embeddedAccess ?? access ?? null;
 	const isAccessRestricted = Boolean(
 		effectiveAccess &&
 			effectiveAccess.allowed === false &&
@@ -339,5 +354,5 @@ function SinglePage() {
 		);
 	}
 
-	return <Surface name="page" data={{ page }} fallback={CorePage} />;
+	return <PublicCanonicalScope request={request} documentId={page._id} initial={canonical} password={submittedPassword ?? undefined}><Surface name="page" data={{ page }} fallback={CorePage} /></PublicCanonicalScope>;
 }

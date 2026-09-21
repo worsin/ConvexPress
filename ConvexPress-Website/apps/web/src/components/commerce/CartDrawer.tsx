@@ -1,3 +1,4 @@
+import type { Id } from "@convexpress-website/backend/generated/dataModel";
 import { Dialog as DialogPrimitive } from "@base-ui/react/dialog";
 import { Link } from "@tanstack/react-router";
 import { useMutation, useQuery } from "convex/react";
@@ -30,7 +31,7 @@ type CartDrawerCart =
       subtotalAmount: number;
       totalAmount: number;
       items: Array<{
-        _id: string;
+        _id: Id<"commerce_cart_items">;
         quantity: number;
         lineTotalAmount: number;
         metadata?: {
@@ -62,7 +63,7 @@ export function CartDrawer({ open, onOpenChange }: CartDrawerProps) {
   const commerceEnabled = settings?.plugins?.commerceEnabled === true;
   const { sessionToken, isReady } = useCommerceSessionToken();
   const cart = useQuery(
-    (api as any).commerce.cart.getMine,
+    api.commerce.cart.getMine,
     commerceEnabled && isReady && sessionToken ? { sessionToken } : "skip",
   ) as CartDrawerCart;
   const updateItemQuantity = useMutation(api.commerce.cart.updateItemQuantity);
@@ -73,7 +74,7 @@ export function CartDrawer({ open, onOpenChange }: CartDrawerProps) {
   const freeShippingRemaining =
     freeShippingThreshold > 0 ? Math.max(0, freeShippingThreshold - (cart?.subtotalAmount ?? 0)) : 0;
 
-  async function handleQuantity(itemId: string, quantity: number) {
+  async function handleQuantity(itemId: Id<"commerce_cart_items">, quantity: number) {
     if (!sessionToken) return;
     setBusyAction(`quantity:${itemId}`);
     try {
@@ -88,7 +89,7 @@ export function CartDrawer({ open, onOpenChange }: CartDrawerProps) {
     }
   }
 
-  async function handleRemove(itemId: string) {
+  async function handleRemove(itemId: Id<"commerce_cart_items">) {
     if (!sessionToken) return;
     setBusyAction(`remove:${itemId}`);
     try {
@@ -152,7 +153,7 @@ export function CartDrawer({ open, onOpenChange }: CartDrawerProps) {
                   </p>
                 </div>
                 <Link
-                  to="/shop"
+                  to="/products"
                   onClick={() => onOpenChange(false)}
                   className="inline-flex min-h-11 items-center justify-center rounded-md bg-primary px-5 text-sm font-medium text-primary-foreground"
                 >

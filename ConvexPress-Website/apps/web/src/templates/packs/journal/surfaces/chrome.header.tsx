@@ -1,3 +1,4 @@
+import { useStickyHeaderOffset } from "@/hooks/layout/useStickyHeaderOffset";
 /**
  * Journal · chrome.header — one calm row: wordmark left, primary menu centred
  * as text links, search / account / cart on the right. Sticky, translucent,
@@ -38,6 +39,7 @@ export default function JournalChromeHeader({ data }: SurfaceProps<HeaderSurface
 
   const stickyMode = headerConfig.layout.sticky;
   const isSticky = stickyMode === "always" || (stickyMode === "scroll-up" && layoutConfig?.stickyHeader !== false);
+  const headerRef = useStickyHeaderOffset(isSticky);
   const showBorder = headerConfig.layout.bottomBorder !== "none";
   const isHome = pathname === "/";
   const tagline = siteIdentity?.tagline?.trim();
@@ -45,7 +47,8 @@ export default function JournalChromeHeader({ data }: SurfaceProps<HeaderSurface
 
   return (
     <header
-      data-slot="site-header"
+      ref={headerRef}
+      data-slot="site-header" data-customize="header.layout.sticky"
       role="banner"
       className={cn(
         "z-40 w-full bg-background/90 backdrop-blur",
@@ -55,13 +58,13 @@ export default function JournalChromeHeader({ data }: SurfaceProps<HeaderSurface
     >
       {headerConfig.topBar.enabled ? <TopBar config={headerConfig.topBar} /> : null}
 
-      <Container className="grid h-16 grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-4 lg:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)]">
+      <Container className="grid h-16 grid-cols-[minmax(0,1fr)_auto] items-center gap-4 lg:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)]">
         {/* Left: hamburger (mobile) + wordmark */}
-        <div className="flex items-center gap-3">
+        <div className="flex min-w-0 items-center gap-3">
           <button
             type="button"
             onClick={toggleMobileNav}
-            className="-ml-2 flex size-10 items-center justify-center text-muted-foreground transition-colors hover:text-foreground lg:hidden"
+            className="-ml-2 flex size-10 shrink-0 items-center justify-center text-muted-foreground transition-colors hover:text-foreground lg:hidden"
             aria-label="Open navigation menu"
           >
             <Menu className="size-5" aria-hidden="true" />
@@ -71,7 +74,7 @@ export default function JournalChromeHeader({ data }: SurfaceProps<HeaderSurface
 
         {/* Centre: primary menu */}
         {headerConfig.navigation.enabled ? (
-          <nav data-slot="desktop-nav" aria-label="Primary navigation" className="hidden justify-center lg:flex">
+          <nav data-slot="desktop-nav" data-customize="menuLayout.primary" aria-label="Primary navigation" className="hidden justify-center lg:flex">
             {visibleItems.length > 0 ? (
               <ul role="list" className="flex items-center gap-1">
                 {visibleItems.map((item) => (
@@ -85,7 +88,7 @@ export default function JournalChromeHeader({ data }: SurfaceProps<HeaderSurface
         )}
 
         {/* Right: search · account · cart */}
-        <div data-slot="header-actions" className="flex items-center justify-end gap-1">
+        <div data-slot="header-actions" className="flex items-center justify-end gap-1 whitespace-nowrap">
           {headerConfig.search.enabled ? (
             <button
               type="button"
@@ -138,7 +141,7 @@ export default function JournalChromeHeader({ data }: SurfaceProps<HeaderSurface
 function Wordmark({ siteIdentity, logo }: { siteIdentity: SiteIdentity | undefined; logo: HeaderConfig["logo"] }) {
   if (!siteIdentity) {
     return (
-      <div data-slot="site-brand" className="flex items-center">
+      <div data-slot="site-brand" data-customize="header.logo.showTitle" className="flex items-center">
         <div className="h-5 w-28 animate-pulse rounded-full bg-muted" />
       </div>
     );
@@ -146,9 +149,9 @@ function Wordmark({ siteIdentity, logo }: { siteIdentity: SiteIdentity | undefin
   const showLogo = logo.enabled && logo.showImage && !!siteIdentity.logoUrl;
   const showTitle = !showLogo || (logo.showTitle && siteIdentity.showTitleWithLogo !== false);
   return (
-    <Link to="/" data-slot="site-brand" className="flex items-center gap-3 text-foreground no-underline">
-      {showLogo ? <img src={siteIdentity.logoUrl} alt={siteIdentity.logoAlt || siteIdentity.title} className="h-7 w-auto" width={28} height={28} /> : null}
-      {showTitle ? <span className="font-display text-xl tracking-tight">{siteIdentity.title}</span> : null}
+    <Link to="/" data-slot="site-brand" data-customize="header.logo.showTitle" className="flex min-w-0 items-center gap-3 text-foreground no-underline">
+      {showLogo ? <img src={siteIdentity.logoUrl} alt={siteIdentity.logoAlt || siteIdentity.title} className="h-7 w-auto max-w-full shrink-0 object-contain" width={28} height={28} /> : null}
+      {showTitle ? <span className="truncate font-display text-xl tracking-tight">{siteIdentity.title}</span> : null}
     </Link>
   );
 }

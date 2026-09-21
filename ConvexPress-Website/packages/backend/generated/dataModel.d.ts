@@ -1,10 +1,3 @@
-/**
- * Consumer-only Convex data model placeholder.
- *
- * Website app does not own schema; ConvexPress-Admin owns schema and function deployment.
- * Keep this type intentionally broad for consumer-side type imports.
- */
-
-export type Id<TableName extends string = string> = string & {
-  readonly __tableName?: TableName;
-};
+/** Consumer ID contract. ConvexPress-Admin owns the schema and deployments. */
+import type { GenericId } from "convex/values";
+export type Id<TableName extends string = string> = GenericId<TableName>;

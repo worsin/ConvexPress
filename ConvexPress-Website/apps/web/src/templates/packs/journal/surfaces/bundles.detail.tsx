@@ -14,23 +14,12 @@ import { Check, Minus, Plus } from "lucide-react";
 
 import { formatMoney } from "@/lib/commerce/format";
 import { cn } from "@/lib/utils";
-import type { BundleComponent, BundleDetailSurfaceData } from "@/templates/packs/core/surfaces/bundles.detail";
+import type { BundleDetailSurfaceData } from "@/templates/sdk/bundle-view-model";
 import type { SurfaceProps } from "@/templates/sdk/types";
 
 import { Badge, Breadcrumbs, Button, Container, Price, Prose, Rule, SectionHeading, SkeletonBlock, SmallCaps, buttonClasses } from "../parts";
 import { ReceiptList, ReceiptRow, UnderlineSelect } from "../parts/extra-commerce";
 
-function unitPrice(component: BundleComponent): number {
-  if (component.variant?.price) {
-    const price = component.variant.price;
-    return typeof price === "object" ? price.amount : price;
-  }
-  if (component.product?.basePrice) {
-    const price = component.product.basePrice;
-    return typeof price === "object" ? price.amount : price;
-  }
-  return 0;
-}
 
 export default function JournalBundleDetail({ data }: SurfaceProps<BundleDetailSurfaceData>) {
   const { bundle, currencyCode, isConfigurable, priceData, selections, totalSelectedItems, meetsMinItems, canAddToCart, onToggleComponent, onUpdateQuantity, onSetVariant, onResetDefaults, onAddToCart } = data;
@@ -144,7 +133,8 @@ export default function JournalBundleDetail({ data }: SurfaceProps<BundleDetailS
         />
         <ul className="flex flex-col divide-y divide-border border-y border-border" aria-label="Bundle components">
           {bundle.components.map((component) => {
-            const price = unitPrice(component);
+            const selectedVariant = component.variants.find(variant => variant._id === selections.get(component._id)?.variantId) ?? component.variant;
+            const price = selectedVariant?.unitPriceAmount ?? component.unitPriceAmount;
             const isSelected = isConfigurable ? selections.has(component._id) : true;
             const quantity = selections.get(component._id)?.quantity ?? component.quantity;
             const title = component.product?.title ?? "Product";
@@ -183,12 +173,11 @@ export default function JournalBundleDetail({ data }: SurfaceProps<BundleDetailS
                         )}
                       </h3>
                       {component.label ? <p className="text-sm text-muted-foreground">{component.label}</p> : null}
-                      {component.variant?.name ? <SmallCaps>Variant · {component.variant.name}</SmallCaps> : null}
+                      {selectedVariant?.name ? <SmallCaps>Variant · {selectedVariant.name}</SmallCaps> : null}
                     </div>
                     {price > 0 ? (
                       <div className="flex shrink-0 flex-col items-end">
                         <span className="font-display text-lg tabular-nums text-foreground">{money(price)}</span>
-                        {component.priceOverride != null ? <span className="text-xs tabular-nums text-muted-foreground line-through">{money(price)}</span> : null}
                       </div>
                     ) : null}
                   </div>

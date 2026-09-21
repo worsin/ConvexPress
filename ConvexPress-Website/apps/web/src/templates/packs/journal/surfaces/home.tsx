@@ -40,7 +40,7 @@ export default function JournalHome({ data }: SurfaceProps<HomeSurfaceData>) {
   const [feature, ...rest] = posts;
 
   return (
-    <Container as="main" className="flex flex-col gap-14 py-14 md:gap-20 md:py-20">
+    <Container as="div" className="flex flex-col gap-14 py-14 md:gap-20 md:py-20">
       <SectionHeading
         level={1}
         eyebrow={siteIdentity?.title}

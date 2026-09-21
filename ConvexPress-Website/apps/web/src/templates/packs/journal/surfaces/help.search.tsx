@@ -43,7 +43,7 @@ export default function JournalHelpSearch({ data }: SurfaceProps<HelpSearchSurfa
 
         {hasQuery ? (
           <SmallCaps as="p" className="tabular-nums" aria-live="polite">
-            {total} {total === 1 ? "result" : "results"}
+            {total} {total === 1 ? "result" : "results"} on this page
           </SmallCaps>
         ) : null}
 
@@ -62,10 +62,10 @@ export default function JournalHelpSearch({ data }: SurfaceProps<HelpSearchSurfa
           </ul>
         ) : null}
 
-        {hasQuery && results.length === 0 ? (
+        {hasQuery && results.length === 0 && !data.hasMore ? (
           <EmptyState
             eyebrow="No results"
-            title="No articles found. Try different keywords."
+            title="No matching articles on this page. Try different keywords."
             action={
               <LinkButton to="/help" variant="ghost">
                 Browse by category

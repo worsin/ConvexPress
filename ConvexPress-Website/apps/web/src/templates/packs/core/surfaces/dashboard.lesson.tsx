@@ -146,7 +146,7 @@ export default function CoreDashboardLesson({ data }: SurfaceProps<DashboardLess
         </nav>
       </aside>
 
-      <main className="space-y-6">
+      <div className="space-y-6">
         <div className="border border-border bg-card p-6">
           {lessonLocked || !lesson ? (
             <div className="flex min-h-64 flex-col items-center justify-center gap-3 text-center">
@@ -317,7 +317,7 @@ export default function CoreDashboardLesson({ data }: SurfaceProps<DashboardLess
             </div>
           </div>
         ) : null}
-      </main>
+      </div>
     </div>
   );
 }

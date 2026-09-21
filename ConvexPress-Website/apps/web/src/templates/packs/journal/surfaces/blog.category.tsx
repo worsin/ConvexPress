@@ -1,3 +1,4 @@
+import { ArchiveContinuation } from "@/components/blog/ArchiveContinuation";
 /**
  * Journal · blog.category — small-caps breadcrumbs, the category in display
  * type with its description and count, subcategories as a row of pills, then
@@ -22,7 +23,7 @@ export default function JournalBlogCategory({ data }: SurfaceProps<BlogCategoryS
           eyebrow="Category"
           title={category.name}
           lede={category.description}
-          action={
+          action={category.count===undefined?undefined:
             <SmallCaps className="tabular-nums">
               {category.count} {category.count === 1 ? "post" : "posts"}
             </SmallCaps>
@@ -34,22 +35,23 @@ export default function JournalBlogCategory({ data }: SurfaceProps<BlogCategoryS
             <ul className="flex flex-wrap items-center gap-2">
               {subcategories.map((sub) => (
                 <li key={sub._id}>
-                  <Link to="/category/$slug" params={{ slug: sub.slug }} className="inline-flex items-baseline gap-1.5 rounded-full border border-border px-3 py-1 text-xs text-foreground transition-colors hover:border-foreground/40 hover:text-primary">
+                  <Link to="/category/$slug" params={{ slug: sub.slug }} className="inline-flex min-h-11 items-center gap-1.5 rounded-full border border-border px-3 py-1 text-xs text-foreground transition-colors hover:border-foreground/40 hover:text-primary">
                     {sub.name}
-                    <span className="text-[10px] tabular-nums text-muted-foreground">{sub.count}</span>
+                    {sub.count!==undefined&&<span className="text-[10px] tabular-nums text-muted-foreground">{sub.count}</span>}
                   </Link>
                 </li>
               ))}
             </ul>
           </div>
         ) : null}
+        {data.subcategoryContinuation&&<ArchiveContinuation data={data.subcategoryContinuation}/>}
       </header>
 
       <ArchivePosts
         posts={posts}
         pagination={pagination}
         getLink={(page) => ({ to: "/category/$slug", params: { slug }, search: page > 1 ? { page } : {} })}
-        empty={
+        empty={data.continuation?null:
           <EmptyState
             eyebrow="Nothing yet"
             title="No posts in this category yet."
@@ -61,6 +63,7 @@ export default function JournalBlogCategory({ data }: SurfaceProps<BlogCategoryS
           />
         }
       />
+      {data.continuation&&<ArchiveContinuation data={data.continuation}/>}
     </Container>
   );
 }

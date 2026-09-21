@@ -1,3 +1,4 @@
+import type { Id } from "@convexpress-website/backend/generated/dataModel";
 /**
  * Support tickets — customer-facing model and copy.
  *
@@ -32,7 +33,7 @@ export interface ThreadMessage {
 
 /** Row from tickets.queries.getMyTicketsOverview */
 export interface TicketOverview {
-  _id: string;
+  _id: Id<"ticket_tickets">;
   ticketNumber: string;
   subject: string;
   category: TicketCategory | string;
@@ -71,7 +72,7 @@ export interface TicketOverviewResult {
 
 /** Result of tickets.queries.getMyTicketThread */
 export interface TicketThreadTicket {
-  _id: string;
+  _id: Id<"ticket_tickets">;
   ticketNumber: string;
   subject: string;
   description: string;
@@ -105,7 +106,7 @@ export interface TicketThreadData {
 }
 
 export interface TicketCategoryOption {
-  value: string;
+  value: TicketCategory;
   label: string;
   responseWindow: string;
 }
@@ -374,4 +375,8 @@ export function groupByDay<T extends { createdAt: number }>(items: T[], now = Da
 /** Ticket numbers look like TKT-YYYYMM-NNNNN; anything else is a document id. */
 export function looksLikeTicketNumber(value: string): boolean {
   return /^TKT-\d{6}-\d{5}$/iu.test(value.trim());
+}
+
+export function isTicketCategory(value: unknown): value is TicketCategory {
+ return typeof value === "string" && ["billing", "technical", "account", "featureRequest", "general", "other"].includes(value);
 }

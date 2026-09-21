@@ -1,10 +1,11 @@
+import type { Id } from "@convexpress-website/backend/generated/dataModel";
 /** Core · help.category — a knowledge base category and its published articles. */
 import { Link } from "@tanstack/react-router";
 
 import type { SurfaceProps } from "@/templates/sdk/types";
 
 export type KbCategory = {
-  _id: string;
+  _id: Id<"kb_categories">;
   name: string;
   slug: string;
   description?: string;
@@ -26,6 +27,7 @@ export interface HelpCategorySurfaceData {
   /** null when no published category matches the slug. */
   category: KbCategory | null;
   articles: KbArticleItem[];
+  hasMore?: boolean;
 }
 
 export default function CoreHelpCategory({ data }: SurfaceProps<HelpCategorySurfaceData>) {
@@ -82,7 +84,7 @@ export default function CoreHelpCategory({ data }: SurfaceProps<HelpCategorySurf
             )}
           </Link>
         ))}
-        {articleItems.length === 0 && (
+        {articleItems.length === 0 && !data.hasMore && (
           <p className="text-muted-foreground">
             No articles in this category yet.
           </p>

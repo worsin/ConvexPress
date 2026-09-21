@@ -29,7 +29,7 @@ export default function DepotFooter({ data }: SurfaceProps<FooterSurfaceData>) {
 
   if (variant === "minimal") {
     return (
-      <footer data-slot="site-footer" data-pack="depot" role="contentinfo" className="border-t border-border bg-background">
+      <footer data-slot="site-footer" data-customize="footer.layout.background" data-pack="depot" role="contentinfo" className="border-t border-border bg-background">
         <Container className="py-4">
           <BottomRow siteTitle={siteTitle} footerConfig={footerConfig} showFooterMenu />
         </Container>
@@ -40,7 +40,7 @@ export default function DepotFooter({ data }: SurfaceProps<FooterSurfaceData>) {
   const hasRows = !!footerConfig.rows && footerConfig.rows.length > 0;
 
   return (
-    <footer data-slot="site-footer" data-pack="depot" role="contentinfo" className="mt-8 border-t border-border bg-background">
+    <footer data-slot="site-footer" data-customize="footer.layout.background" data-pack="depot" role="contentinfo" className="mt-8 border-t border-border bg-background">
       <BackToTopBar />
       {hasRows ? <FooterRowsRenderer rows={footerConfig.rows!} /> : <LinkColumns siteIdentity={siteIdentity} siteTitle={siteTitle} footerConfig={footerConfig} />}
       {!hasRows && footerConfig.bottomBar.enabled && (
@@ -235,7 +235,7 @@ function ContactColumn({ config }: { config: FooterConfig["contactInfo"] }) {
 function BottomRow({ siteTitle, footerConfig, showFooterMenu }: { siteTitle: string; footerConfig: FooterConfig; showFooterMenu: boolean }) {
   const year = new Date().getFullYear();
   const copyrightText = footerConfig.bottomBar.copyrightText
-    ? footerConfig.bottomBar.copyrightText.replace("{year}", String(year)).replace("{site}", siteTitle)
+    ? footerConfig.bottomBar.copyrightText.replace(/\{year\}/g, () => String(year)).replace(/\{(?:site|siteName)\}/g, () => siteTitle)
     : `© ${year} ${siteTitle}. All rights reserved.`;
   const showPoweredBy = footerConfig.bottomBar.poweredBy !== false;
 

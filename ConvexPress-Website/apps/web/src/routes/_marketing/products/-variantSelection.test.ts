@@ -288,3 +288,10 @@ describe("product variant selection helpers", () => {
     });
   });
 });
+
+test("unpublished variants cannot initialize, match or enable storefront selections", () => {
+  const hidden = [{ ...variants[0], status: "draft" }, { ...variants[1], status: "private" }];
+  expect(getInitialSelectedOptions(hidden[0])).toEqual({});
+  expect(findMatchingVariant(optionTypes, hidden, { color: "black", size: "small" })).toBeNull();
+  expect(isOptionValueEnabled("color", "black", {}, hidden)).toBe(false);
+});

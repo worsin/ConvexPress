@@ -4,12 +4,14 @@
  * Product cards referenced by any block are loaded once and shared.
  */
 
-import { useAction, useMutation, useQuery } from "convex/react";
+import { useAction, useMutation, useQuery, useConvexAuth } from "convex/react";
 import { api } from "@convexpress-website/backend/generated/api";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 
 import { useCart } from "@/hooks/useCart";
+import { useAuth } from "@/lib/auth/clerk";
+import { assistantIdentityReady } from "./prompt-handoff";
 import type { ProductCardData } from "@/components/shop/ProductMiniCard";
 
 export type AssistantBlock =
@@ -52,11 +54,13 @@ function productIdsIn(blocks: AssistantBlock[]): string[] {
 
 export function useAssistant(input: { kind: BriefKind | "catalog" | "checkout" | "search"; query?: string; productId?: string; active: boolean }) {
   const { sessionToken, cart } = useCart();
+  const identityReady = assistantIdentityReady(useAuth(), useConvexAuth());
+  const active = input.active && identityReady;
   const anyApi = api as any;
-  const thread = useQuery(anyApi.commerce.assistant.queries.getThread, sessionToken && input.active ? { sessionToken, limit: 30 } : "skip") as
+  const thread = useQuery(anyApi.commerce.assistant.queries.getThread, sessionToken && active ? { sessionToken, limit: 30 } : "skip") as
     | { session: { lastQuery: string | null } | null; messages: AssistantMessage[] }
     | undefined;
-  const memory = useQuery(anyApi.commerce.assistant.queries.listMemory, sessionToken && input.active ? { sessionToken } : "skip") as
+  const memory = useQuery(anyApi.commerce.assistant.queries.listMemory, sessionToken && active ? { sessionToken } : "skip") as
     | MemoryItem[]
     | undefined;
   const respond = useAction(anyApi.commerce.assistant.actions.respond);
@@ -68,6 +72,7 @@ export function useAssistant(input: { kind: BriefKind | "catalog" | "checkout" |
 
   const [pendingText, setPendingText] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
+  const sendingRef = useRef(false);
   const [brief, setBrief] = useState<{ key: string; blocks: AssistantBlock[]; loading: boolean }>({ key: "", blocks: [], loading: false });
   const briefTimer = useRef<number | null>(null);
 
@@ -94,7 +99,7 @@ export function useAssistant(input: { kind: BriefKind | "catalog" | "checkout" |
   const briefKey = briefKind ? `${briefKind}|${input.query ?? ""}|${input.productId ?? ""}|${cartKey}` : "";
 
   useEffect(() => {
-    if (!input.active || !sessionToken || !briefKind) {
+    if (!active || !sessionToken || !briefKind) {
       setBrief((current) => (current.key === "" && !current.blocks.length ? current : { key: "", blocks: [], loading: false }));
       return;
     }
@@ -114,13 +119,14 @@ export function useAssistant(input: { kind: BriefKind | "catalog" | "checkout" |
       if (briefTimer.current) window.clearTimeout(briefTimer.current);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [briefKey, input.active, sessionToken]);
+  }, [briefKey, active, sessionToken]);
 
   // ── Send ───────────────────────────────────────────────────────────────
   const send = useCallback(
     async (message: string) => {
       const text = message.trim();
-      if (!text || !sessionToken || sending) return;
+      if (!text || !sessionToken || !active || sendingRef.current) return;
+      sendingRef.current = true;
       setPendingText(text);
       setSending(true);
       try {
@@ -129,11 +135,12 @@ export function useAssistant(input: { kind: BriefKind | "catalog" | "checkout" |
         const detail = (error as { data?: { message?: string } })?.data?.message ?? (error as Error)?.message;
         toast.error(detail && detail.length < 160 ? detail : "The assistant could not answer just now.");
       } finally {
+        sendingRef.current = false;
         setSending(false);
         setPendingText(null);
       }
     },
-    [input.kind, input.query, respond, sending, sessionToken],
+    [input.kind, input.query, active, respond, sessionToken],
   );
 
   const feedback = useCallback(
@@ -180,7 +187,7 @@ export function useAssistant(input: { kind: BriefKind | "catalog" | "checkout" |
 
   return {
     sessionToken,
-    ready: thread !== undefined,
+    ready: identityReady && thread !== undefined,
     messages,
     memory: memory ?? [],
     pendingText,

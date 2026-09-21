@@ -130,15 +130,18 @@ export function MobileNav({ menu, siteIdentity, config, open, onClose }: MobileN
         />
       )}
 
-      {/* Slide-in panel */}
+      {/* Clip the translated panel to its own viewport, preserving page scroll. */}
+      <div className="pointer-events-none fixed inset-0 z-50 overflow-hidden lg:hidden">
       <div
         ref={panelRef}
           data-slot="mobile-nav"
         role="dialog"
         aria-modal={mobileNavOpen}
         aria-label="Navigation menu"
+        inert={!mobileNavOpen}
         className={cn(
-          "fixed inset-y-0 z-50 flex flex-col bg-background shadow-lg transition-transform duration-300 lg:hidden",
+          "absolute inset-y-0 flex flex-col bg-background shadow-lg transition-transform duration-300 motion-reduce:transition-none",
+          mobileNavOpen && "pointer-events-auto",
           isFullscreen ? "left-0 right-0 w-full" : "w-72",
           !isFullscreen && side === "left" && "left-0",
           !isFullscreen && side === "right" && "right-0",
@@ -254,6 +257,7 @@ export function MobileNav({ menu, siteIdentity, config, open, onClose }: MobileN
             </>
           )}
         </div>
+      </div>
       </div>
     </>
   );

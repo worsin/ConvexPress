@@ -4,108 +4,8 @@ import { Check, Minus, Package, Plus, ShoppingCart } from "lucide-react";
 
 import type { SurfaceProps } from "@/templates/sdk/types";
 
-export interface BundleComponent {
-  _id: string;
-  productId: string;
-  variantId?: string;
-  quantity: number;
-  minQuantity?: number;
-  maxQuantity?: number;
-  isRequired: boolean;
-  isDefault?: boolean;
-  allowVariantChange?: boolean;
-  label?: string;
-  sortOrder: number;
-  priceOverride?: number;
-  discountPercent?: number;
-  product?: {
-    _id: string;
-    title: string;
-    slug: string;
-    featuredMediaId?: string;
-    basePrice?: number | { amount: number };
-    stockQuantity?: number;
-    trackInventory?: boolean;
-  };
-  variant?: {
-    _id: string;
-    name?: string;
-    title?: string;
-    price?: number | { amount: number };
-  };
-  variants?: Array<{
-    _id: string;
-    name?: string;
-    title?: string;
-    price?: number | { amount: number };
-  }>;
-}
-
-export interface BundleData {
-  _id: string;
-  productId: string;
-  name: string;
-  slug: string;
-  description?: string;
-  shortDescription?: string;
-  images: string[];
-  bundleType: string;
-  pricingType: string;
-  fixedPrice?: number;
-  discountPercent?: number;
-  discountAmount?: number;
-  regularPrice?: number;
-  bundlePrice?: number;
-  minItems?: number;
-  maxItems?: number;
-  status: string;
-  components: BundleComponent[];
-}
-
-export interface BundleSelection {
-  componentId: string;
-  productId: string;
-  variantId?: string;
-  quantity: number;
-}
-
-export interface BundlePriceData {
-  regularPrice: number;
-  bundlePrice: number;
-  savings: number;
-  savingsPercent: number;
-}
-
-export interface BundleDetailSurfaceData {
-  bundle: BundleData;
-  currencyCode: string;
-  /** True for mix-and-match / BOGO bundles where the shopper picks components. */
-  isConfigurable: boolean;
-  /** Live price from the backend for the current selections; `undefined` while loading. */
-  priceData: BundlePriceData | undefined;
-  /** Current component selections keyed by component id (owned by the route: it feeds the price query). */
-  selections: Map<string, BundleSelection>;
-  totalSelectedItems: number;
-  meetsMinItems: boolean;
-  canAddToCart: boolean;
-  onToggleComponent: (component: BundleComponent) => void;
-  onUpdateQuantity: (componentId: string, delta: number) => void;
-  onSetVariant: (componentId: string, variantId: string | undefined) => void;
-  onResetDefaults: () => void;
-  onAddToCart: () => Promise<void>;
-}
-
-function getProductPrice(comp: BundleComponent): number {
-  if (comp.variant?.price) {
-    const vp = comp.variant.price;
-    return typeof vp === "object" ? vp.amount : vp;
-  }
-  if (comp.product?.basePrice) {
-    const bp = comp.product.basePrice;
-    return typeof bp === "object" ? bp.amount : bp;
-  }
-  return 0;
-}
+import type { BundleDetailSurfaceData } from "@/templates/sdk/bundle-view-model";
+export type { BundleData, BundleComponent, BundlePriceData, BundleSelection, BundleDetailSurfaceData } from "@/templates/sdk/bundle-view-model";
 
 export default function CoreBundleDetail({ data }: SurfaceProps<BundleDetailSurfaceData>) {
   const {
@@ -328,9 +228,10 @@ export default function CoreBundleDetail({ data }: SurfaceProps<BundleDetailSurf
           </p>
         )}
 
-        <div className="mt-6 grid gap-4 md:grid-cols-2">
+        <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-2">
           {bundle.components.map((comp) => {
-            const unitPrice = getProductPrice(comp);
+            const selectedVariant = comp.variants.find(variant => variant._id === selections.get(comp._id)?.variantId) ?? comp.variant;
+            const unitPrice = selectedVariant?.unitPriceAmount ?? comp.unitPriceAmount;
             const isSelected = isConfigurable
               ? selections.has(comp._id)
               : true;
@@ -339,7 +240,7 @@ export default function CoreBundleDetail({ data }: SurfaceProps<BundleDetailSurf
             return (
               <div
                 key={comp._id}
-                className={`flex items-start gap-4 rounded-2xl border p-5 transition-colors ${
+                className={`flex min-w-0 items-start gap-4 rounded-2xl border p-5 transition-colors ${
                   isSelected
                     ? "border-primary/40 bg-primary/5"
                     : "border-border bg-background"
@@ -376,9 +277,9 @@ export default function CoreBundleDetail({ data }: SurfaceProps<BundleDetailSurf
                           {comp.label}
                         </p>
                       )}
-                      {comp.variant?.name && (
+                      {selectedVariant?.name && (
                         <p className="mt-0.5 text-xs text-muted-foreground">
-                          Variant: {comp.variant.name}
+                          Variant: {selectedVariant.name}
                         </p>
                       )}
                     </div>
@@ -388,21 +289,18 @@ export default function CoreBundleDetail({ data }: SurfaceProps<BundleDetailSurf
                           {formatPrice(unitPrice)}
                         </p>
                       )}
-                      {comp.priceOverride != null && unitPrice > 0 && (
-                        <p className="text-xs text-muted-foreground line-through">
-                          {formatPrice(unitPrice)}
-                        </p>
-                      )}
                     </div>
                   </div>
 
-                  <div className="mt-3 flex items-center gap-3">
+                  <div className="mt-3 flex flex-wrap items-center gap-3">
                     {/* Quantity control for configurable */}
                     {isConfigurable && isSelected ? (
                       <div className="flex items-center gap-2">
                         <button
                           type="button"
                           onClick={() => onUpdateQuantity(comp._id, -1)}
+                          aria-label={`Decrease ${comp.product.title}`}
+                          disabled={selQty <= (comp.minQuantity ?? 1)}
                           className="rounded-md border border-border p-1 text-muted-foreground hover:bg-muted"
                         >
                           <Minus className="h-3.5 w-3.5" />
@@ -413,6 +311,8 @@ export default function CoreBundleDetail({ data }: SurfaceProps<BundleDetailSurf
                         <button
                           type="button"
                           onClick={() => onUpdateQuantity(comp._id, 1)}
+                          aria-label={`Increase ${comp.product.title}`}
+                          disabled={selQty >= (comp.maxQuantity ?? 99)}
                           className="rounded-md border border-border p-1 text-muted-foreground hover:bg-muted"
                         >
                           <Plus className="h-3.5 w-3.5" />
@@ -429,6 +329,8 @@ export default function CoreBundleDetail({ data }: SurfaceProps<BundleDetailSurf
                       <select
                         value={selections.get(comp._id)?.variantId ?? ""}
                         onChange={(e) => onSetVariant(comp._id, e.target.value || undefined)}
+                        aria-label={`${comp.product.title} variant`}
+                        disabled={isConfigurable && !isSelected}
                         className="rounded border border-border bg-background px-2 py-1 text-sm"
                       >
                         <option value="">Default variant</option>

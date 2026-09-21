@@ -1,3 +1,4 @@
+import type { Id } from "@convexpress-website/backend/generated/dataModel";
 import { convexQuery } from "@convex-dev/react-query";
 import { useQuery as useTanStackQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
@@ -12,7 +13,10 @@ import CoreSearch from "@/templates/packs/core/surfaces/search";
 import { Surface } from "@/templates/sdk/Surface";
 
 /** Content type filter for search API */
-type SearchContentType = "post" | "page" | "media" | "course" | undefined;
+type SearchContentType = "post" | "page" | "media" | "course" | "product" | "comment";
+function isSearchContentType(value: unknown): value is SearchContentType {
+ return typeof value === "string" && ["post", "page", "media", "course", "product", "comment"].includes(value);
+}
 /** Sort order for search API */
 type SearchOrderBy = "relevance" | "date" | "title";
 
@@ -40,7 +44,7 @@ export const Route = createFileRoute("/_marketing/search")({
           q: q!.trim(),
           page: page ?? 1,
           perPage: 10,
-          contentType: type as SearchContentType,
+          contentType: isSearchContentType(type) ? type : undefined,
           orderBy: (sort as SearchOrderBy) ?? "relevance",
         }),
       );
@@ -71,7 +75,7 @@ function SearchPage() {
           q: query!.trim(),
           page: page ?? 1,
           perPage: postsPerPage,
-          contentType: type as SearchContentType,
+          contentType: isSearchContentType(type) ? type : undefined,
           orderBy: (sort as SearchOrderBy) ?? "relevance",
         }
       : "skip",) as any,
@@ -80,7 +84,7 @@ function SearchPage() {
   // ── Analytics: Log search query after results return (#23) ──────────
   const logSearch = useMutation(api.search.mutations.logSearch);
   const logClick = useMutation(api.search.mutations.logClick);
-  const searchQueryIdRef = useRef<string | null>(null);
+  const searchQueryIdRef = useRef<Id<"searchQueries"> | null>(null);
   const lastLoggedRef = useRef<string>("");
 
   useEffect(() => {
@@ -101,9 +105,9 @@ function SearchPage() {
       normalizedQuery,
       resultCount: searchData.total,
       source: "website",
-      contentTypeFilter: type as SearchContentType,
+      contentTypeFilter: isSearchContentType(type) ? type : undefined,
     })
-      .then((id: string) => {
+      .then((id) => {
         searchQueryIdRef.current = id;
       })
       .catch(() => {
@@ -115,10 +119,10 @@ function SearchPage() {
   const handleResultClick = useCallback(
     (contentType: string, contentId: string, position: number) => {
       const sqId = searchQueryIdRef.current;
-      if (!sqId) return;
+      if (!sqId || !isSearchContentType(contentType)) return;
       logClick({
         searchQueryId: sqId,
-        contentType: contentType as SearchContentType,
+        contentType,
         contentId,
         position,
       }).catch(() => {

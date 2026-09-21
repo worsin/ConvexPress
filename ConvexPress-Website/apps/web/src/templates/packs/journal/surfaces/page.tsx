@@ -1,3 +1,4 @@
+import { PublicCanonicalBody } from "@/templates/sdk/block-public/PublicCanonicalBody";
 /**
  * Journal · page — a page from the Pages system. Variants map to measure:
  * default / no-sidebar = centred Prose; full-width = Container; landing = no
@@ -48,7 +49,7 @@ export default function JournalPage({ data, variant }: SurfaceProps<PageSurfaceD
 
   if (layout === "landing") {
     return (
-      <Container as="main" data-slot="template-landing" className={cn("pb-14 md:pb-20", className)}>
+      <Container as="div" data-slot="template-landing" className={cn("pb-14 md:pb-20", className)}>
         <Body page={page} />
       </Container>
     );
@@ -56,7 +57,7 @@ export default function JournalPage({ data, variant }: SurfaceProps<PageSurfaceD
 
   if (layout === "full-width") {
     return (
-      <Container as="main" data-slot="template-full-width" className={cn("flex flex-col gap-10 py-14 md:py-20", className)}>
+      <Container as="div" data-slot="template-full-width" className={cn("flex flex-col gap-10 py-14 md:py-20", className)}>
         <PageBreadcrumbs page={page} />
         <Body page={page} />
         {hasChildren ? <ChildPages pages={children} /> : null}
@@ -71,7 +72,7 @@ export default function JournalPage({ data, variant }: SurfaceProps<PageSurfaceD
       </aside>
     );
     return (
-      <Container as="main" data-slot={`template-${layout}`} className={cn("flex flex-col gap-10 py-14 md:py-20", className)}>
+      <Container as="div" data-slot={`template-${layout}`} className={cn("flex flex-col gap-10 py-14 md:py-20", className)}>
         <PageBreadcrumbs page={page} />
         <div className={cn("grid gap-10 lg:gap-16", layout === "sidebar-left" ? "lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]" : "lg:grid-cols-[minmax(0,7fr)_minmax(0,5fr)]")}>
           {layout === "sidebar-left" ? aside : null}
@@ -86,7 +87,7 @@ export default function JournalPage({ data, variant }: SurfaceProps<PageSurfaceD
 
   // default / no-sidebar: the reading measure, centred.
   return (
-    <Container as="main" data-slot={`template-${layout}`} className={cn("py-14 md:py-20", className)}>
+    <Container as="div" data-slot={`template-${layout}`} className={cn("py-14 md:py-20", className)}>
       <Prose className="flex flex-col gap-10">
         <PageBreadcrumbs page={page} />
         <Body page={page} />
@@ -124,6 +125,7 @@ function Body({ page }: { page: PageDetail }) {
 }
 
 function Blocks({ page }: { page: PageDetail }) {
+  if (page.blocksVersion === 2) return <PublicCanonicalBody documentId={page._id} />;
   if (page.contentMode === "blocks") {
     return <BlockListRenderer blocks={page.blocks && page.blocks.length > 0 ? page.blocks : pageSectionsToBlocks(page.pageSections)} />;
   }

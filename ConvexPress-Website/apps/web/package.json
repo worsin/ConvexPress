@@ -19,7 +19,10 @@
     "auth:provision": "echo 'User provisioning is now handled via Clerk dashboard'",
     "auth:list": "echo 'User listing is now handled via Clerk dashboard'",
     "check:templates": "node ../../scripts/check-template-packs.mjs",
-    "sync:templates": "node ../../scripts/sync-template-packs.mjs"
+    "sync:templates": "node ../../scripts/sync-template-packs.mjs",
+    "create:template": "node ../../scripts/create-template.mjs",
+    "check:templates:ssr": "node ../../scripts/check-template-ssr.mjs",
+    "sync:extensions": "node ../../scripts/sync-extension-manifests.mjs"
   },
   "dependencies": {
     "@base-ui/react": "^1.0.0",

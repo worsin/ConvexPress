@@ -89,7 +89,7 @@ export default function CoreShopCategory({ data }: SurfaceProps<CategoryArchiveS
         ) : null}
         <div className="grid gap-3 p-6">
           <div className="text-sm font-medium text-muted-foreground">
-            {category.totalProductCount ?? category.productCount ?? 0} products
+            {results.total} {results.total === 1 ? "product" : "products"}
           </div>
           <h1 className="text-4xl font-semibold tracking-tight text-foreground">
             {category.name}

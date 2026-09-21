@@ -5,9 +5,9 @@
  * existing RMAs) under their own rules. A non-storefront purchase (form
  * order, subscription invoice, …) renders the purchase ledger view instead.
  */
+import { orderAmountRows, carrierServiceLabel, recordedOrderMoney } from "@/lib/commerce/order-summary";
 import { Link } from "@tanstack/react-router";
 
-import { formatMoney } from "@/lib/commerce/format";
 import type { DashboardOrderSurfaceData } from "@/templates/packs/core/surfaces/dashboard.order";
 import type { SurfaceProps } from "@/templates/sdk/types";
 
@@ -69,7 +69,7 @@ export default function JournalDashboardOrder({ data }: SurfaceProps<DashboardOr
                       ) : null}
                       {item.metadata?.variantSku ? <SmallCaps>SKU {item.metadata.variantSku}</SmallCaps> : null}
                     </div>
-                    <p className="shrink-0 font-display text-lg tabular-nums text-foreground">{formatMoney(item.lineTotalAmount, order.currencyCode || "USD")}</p>
+                    <p className="shrink-0 font-display text-lg tabular-nums text-foreground">{recordedOrderMoney(item.lineTotalAmount, order.currencyCode)}</p>
                   </Row>
                 );
               })}
@@ -83,10 +83,11 @@ export default function JournalDashboardOrder({ data }: SurfaceProps<DashboardOr
                 <ReceiptRow label="Payment" value={<span className="capitalize">{String(order.paymentStatus ?? "").replace(/_/g, " ")}</span>} />
                 <ReceiptRow label="Payment method" value={order.selectedPaymentMethodLabel || order.selectedPaymentMethodCode || "—"} />
                 <ReceiptRow label="Fulfillment" value={<span className="capitalize">{String(order.fulfillmentStatus ?? "").replace(/_/g, " ")}</span>} />
-                <ReceiptRow label="Shipping method" value={order.selectedShippingMethodLabel || order.selectedShippingMethodCode || "Not required"} />
-                {order.shippingCarrierName || order.shippingServiceName ? <ReceiptRow label="Carrier service" value={[order.shippingCarrierName, order.shippingServiceName].filter(Boolean).join(" • ")} /> : null}
-                {order.discountAmount > 0 ? <ReceiptRow label={`Discount${order.appliedDiscountCode ? ` (${order.appliedDiscountCode})` : ""}`} value={`-${formatMoney(order.discountAmount, order.currencyCode || "USD")}`} /> : null}
-                <ReceiptTotal value={formatMoney(order.totalAmount, order.currencyCode || "USD")} />
+                <ReceiptRow label="Shipping method" value={order.selectedShippingMethodLabel || order.selectedShippingMethodCode || "Not recorded"} />
+                {carrierServiceLabel(order.shippingCarrierName, order.shippingServiceName) ? <ReceiptRow label="Carrier service" value={carrierServiceLabel(order.shippingCarrierName, order.shippingServiceName)} /> : null}
+                {orderAmountRows(order).map(row => row.key === "total"
+                  ? <ReceiptTotal key={row.key} value={row.value} />
+                  : <ReceiptRow key={row.key} label={row.label} value={row.value} />)}
               </ReceiptList>
             </aside>
           </div>
@@ -101,10 +102,9 @@ export default function JournalDashboardOrder({ data }: SurfaceProps<DashboardOr
                       <div className="flex min-w-0 flex-col gap-1">
                         <p className="text-base font-medium text-foreground">{shipment.shipmentNumber}</p>
                         <p className="text-sm text-muted-foreground">
-                          {shipment.carrier || "Carrier pending"}
+                          {carrierServiceLabel(shipment.carrier, shipment.serviceName) || "Carrier pending"}
                           {shipment.trackingNumber ? ` • ${shipment.trackingNumber}` : ""}
                         </p>
-                        {shipment.serviceName ? <p className="text-xs text-muted-foreground">{shipment.serviceName}</p> : null}
                         {shipment.trackingStatus ? <p className="text-xs text-muted-foreground">Provider status: {shipment.trackingStatus}</p> : null}
                       </div>
                       <StatusPill status={shipment.status} />
@@ -204,7 +204,7 @@ function PurchaseDetail({ purchase }: { purchase: any }) {
                     {line.subtitle ? <p className="text-sm text-muted-foreground">{line.subtitle}</p> : null}
                     <SmallCaps className="tabular-nums">Quantity {line.quantity}</SmallCaps>
                   </div>
-                  <p className="shrink-0 font-display text-lg tabular-nums text-foreground">{formatMoney(line.lineTotalAmount ?? 0, line.currencyCode || "USD")}</p>
+                  <p className="shrink-0 font-display text-lg tabular-nums text-foreground">{recordedOrderMoney(line.lineTotalAmount, line.currencyCode)}</p>
                 </Row>
               ))}
             </RowList>
@@ -220,7 +220,9 @@ function PurchaseDetail({ purchase }: { purchase: any }) {
             <ReceiptRow label="Payment" value={<span className="capitalize">{String(purchase.paymentStatus ?? "").replace(/_/g, " ")}</span>} />
             <ReceiptRow label="Placed" value={dashDateTime(purchase.placedAt ?? purchase.createdAt)} />
             <ReceiptRow label="Paid" value={dashDateTime(purchase.paidAt)} />
-            <ReceiptTotal value={formatMoney(purchase.totalAmount ?? 0, purchase.currencyCode || "USD")} />
+            {orderAmountRows(purchase).map(row => row.key === "total"
+              ? <ReceiptTotal key={row.key} value={row.value} />
+              : <ReceiptRow key={row.key} label={row.label} value={row.value} />)}
           </ReceiptList>
         </aside>
       </div>
@@ -237,7 +239,7 @@ function PurchaseDetail({ purchase }: { purchase: any }) {
                     {payment.failureMessage ? ` · ${payment.failureMessage}` : ""}
                   </p>
                 </div>
-                <p className="font-display text-lg tabular-nums text-foreground">{formatMoney(payment.amount ?? 0, payment.currencyCode || "USD")}</p>
+                <p className="font-display text-lg tabular-nums text-foreground">{recordedOrderMoney(payment.amount, payment.currencyCode)}</p>
               </Row>
             ))}
           </RowList>

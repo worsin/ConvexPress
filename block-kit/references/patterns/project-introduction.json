@@ -1,0 +1,108 @@
+{
+  "id": "project-introduction",
+  "title": "A considered beginning",
+  "description": "A studio introduction, three practical commitments, and an invitation to discuss a project. Contains no site-owned assets or record IDs.",
+  "category": "contact",
+  "blocks": [
+    {
+      "id": "introduction",
+      "name": "core/section",
+      "version": 1,
+      "attrs": {},
+      "layout": {
+        "width": "contained",
+        "spacing": "spacious",
+        "tone": "default"
+      },
+      "children": [
+        {
+          "id": "heading",
+          "name": "core/heading",
+          "version": 2,
+          "attrs": {
+            "level": 2,
+            "text": {
+              "type": "doc",
+              "content": [
+                {
+                  "type": "paragraph",
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "Good work starts with a conversation."
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "id": "intro-copy",
+          "name": "core/paragraph",
+          "version": 2,
+          "attrs": {
+            "body": {
+              "type": "doc",
+              "content": [
+                {
+                  "type": "paragraph",
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "Bring your questions, your ambitions, and the details that matter. We will help you turn them into a clear next step."
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "commitments",
+      "name": "core/feature-grid",
+      "version": 2,
+      "attrs": {
+        "eyebrow": "How we work",
+        "heading": "Clarity from the first hello.",
+        "items": [
+          {
+            "title": "A thoughtful first meeting",
+            "description": "Time to understand the people, purpose, and practical needs behind your project."
+          },
+          {
+            "title": "A clear scope",
+            "description": "An agreed plan, realistic milestones, and a shared understanding of what comes next."
+          },
+          {
+            "title": "Room to collaborate",
+            "description": "Regular conversations and considered feedback as the work takes shape."
+          }
+        ]
+      },
+      "layout": {
+        "width": "wide",
+        "tone": "muted",
+        "spacing": "spacious"
+      }
+    },
+    {
+      "id": "invitation",
+      "name": "core/cta-band",
+      "version": 2,
+      "attrs": {
+        "eyebrow": "Your next chapter",
+        "heading": "Tell us what you have in mind.",
+        "body": "A short introduction is all it takes to begin.",
+        "primaryCtaLabel": "Start a conversation",
+        "primaryCtaUrl": "/contact"
+      },
+      "layout": {
+        "width": "contained",
+        "spacing": "spacious"
+      }
+    }
+  ]
+}

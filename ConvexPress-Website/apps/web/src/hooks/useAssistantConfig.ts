@@ -62,9 +62,9 @@ export function useAssistantConfig(): AssistantConfig {
   return useMemo(() => {
     const merged: AssistantConfig = {
       ...FALLBACK,
-      ...(raw ?? {}),
-      routes: { ...FALLBACK.routes, ...(raw?.routes ?? {}) },
-      groups: { ...FALLBACK.groups, ...(raw?.groups ?? {}) },
+      ...raw,
+      routes: { ...FALLBACK.routes, ...raw?.routes },
+      groups: { ...FALLBACK.groups, ...raw?.groups },
     };
     if (!commerceEnabled) merged.enabled = false;
     merged.railWidthPx = Math.min(480, Math.max(260, Number(merged.railWidthPx) || 320));

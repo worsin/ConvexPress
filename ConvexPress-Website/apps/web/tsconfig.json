@@ -3,7 +3,9 @@
   "exclude": [
     "../../design-kit/**",
     "node_modules",
-    "dist"
+    "dist",
+    "block-demo",
+    "src/templates/sdk/block-renderer"
   ],
   "compilerOptions": {
     "target": "ES2022",
@@ -27,7 +29,8 @@
     "noUncheckedSideEffectImports": true,
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "zod": ["./node_modules/zod"]
     }
   }
 }

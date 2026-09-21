@@ -50,7 +50,7 @@ export default function CoreHome({ data }: SurfaceProps<HomeSurfaceData>) {
   const posts = latestPosts ?? [];
 
   return (
-    <main className="mx-auto flex w-full max-w-6xl flex-col gap-12 px-4 py-10 sm:py-14">
+    <div className="mx-auto flex w-full max-w-6xl flex-col gap-12 px-4 py-10 sm:py-14">
       <section className="flex flex-col gap-5 border-b border-border pb-10">
         <p className="text-xs font-semibold uppercase text-primary">
           ConvexPress
@@ -139,7 +139,7 @@ export default function CoreHome({ data }: SurfaceProps<HomeSurfaceData>) {
           </div>
         </section>
       )}
-    </main>
+    </div>
   );
 }
 

@@ -18,7 +18,7 @@ export function FooterBottom({ siteTitle, className, footerConfig }: FooterBotto
 
   // Use custom copyright text if provided, otherwise generate default
   const copyrightText = footerConfig?.bottomBar?.copyrightText
-    ? footerConfig.bottomBar.copyrightText.replace("{year}", String(year)).replace("{site}", siteTitle)
+    ? footerConfig.bottomBar.copyrightText.replace(/\{year\}/g, () => String(year)).replace(/\{(?:site|siteName)\}/g, () => siteTitle)
     : `\u00A9 ${year} ${siteTitle}. All rights reserved.`;
 
   const showPoweredBy = footerConfig?.bottomBar?.poweredBy !== false;

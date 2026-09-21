@@ -91,6 +91,7 @@ export function MobileMenu({
         aria-modal={isOpen}
         aria-label="Navigation menu"
         aria-hidden={!isOpen}
+        inert={!isOpen}
         className={cn(
           "fixed inset-y-0 left-0 z-50 flex w-72 flex-col bg-background shadow-lg transition-transform duration-300 lg:hidden",
           isOpen ? "translate-x-0" : "-translate-x-full",

@@ -48,7 +48,6 @@ function BlogIndex() {
   // SSR-compatible: data is pre-fetched in the loader via ensureQueryData.
   // useSuspenseQuery suspends until data is ready (no undefined state).
   const { data: postsData } = useSuspenseQuery(
-    // @ts-expect-error - Convex query type mismatch with useSuspenseQuery
     convexQuery(api.posts.queries.listPublished, {
       page: page ?? 1,
       perPage: postsPerPage,

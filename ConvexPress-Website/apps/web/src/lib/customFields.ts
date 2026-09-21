@@ -198,7 +198,7 @@ export async function getFields(
     if (!result) return {};
 
     const fields: Record<string, unknown> = {};
-    for (const item of result) {
+    for (const item of result ?? []) {
       fields[item.fieldName] = parseFieldValue(item.value, item.type);
     }
     return fields;
@@ -313,7 +313,7 @@ export function useFields(
   if (result === undefined) return undefined;
 
   const fields: Record<string, unknown> = {};
-  for (const item of result) {
+  for (const item of result ?? []) {
     fields[item.fieldName] = parseFieldValue(item.value, item.type);
   }
   return fields;
@@ -389,7 +389,7 @@ export function useRawField(
 export function useRawFields(
   entityType: string,
   entityId: string,
-): FieldValue[] | undefined {
+): FieldValue[] | null | undefined {
   return useQuery(api.customFields.queries.getAllValues, {
     entityType,
     entityId,

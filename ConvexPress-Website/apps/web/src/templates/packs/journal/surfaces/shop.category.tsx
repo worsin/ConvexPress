@@ -15,7 +15,7 @@ import { Breadcrumbs, Container, EmptyState, LinkButton, Pagination, Price, Sect
 
 export default function JournalShopCategory({ data }: SurfaceProps<CategoryArchiveSurfaceData>) {
   const { slug, category, currencyCode, results } = data;
-  const count = category.totalProductCount ?? category.productCount ?? 0;
+  const count = results.total;
   const children = category.children ?? [];
 
   return (

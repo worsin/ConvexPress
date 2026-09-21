@@ -29,7 +29,7 @@ export function DesktopNav({
     // No menu assigned or still loading — render empty nav to avoid layout shift
     return (
       <nav
-        data-slot="desktop-nav"
+        data-slot="desktop-nav" data-customize="menuLayout.primary"
         aria-label="Primary navigation"
         className={cn("hidden lg:flex items-center gap-1", className)}
       />
@@ -42,7 +42,7 @@ export function DesktopNav({
 
   return (
     <nav
-      data-slot="desktop-nav"
+      data-slot="desktop-nav" data-customize="menuLayout.primary"
       aria-label="Primary navigation"
       className={cn("hidden lg:flex items-center gap-1", className)}
     >

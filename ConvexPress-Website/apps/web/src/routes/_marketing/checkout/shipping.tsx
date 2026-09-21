@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
+import { computeAddressKey as addressKey } from "@convexpress-website/backend/generated/checkoutShippingGuards";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { createFileRoute, useRouter } from "@tanstack/react-router";
 import { useAction, useMutation, useQuery } from "convex/react";
 import { api } from "@convexpress-website/backend/generated/api";
@@ -24,26 +25,6 @@ const COUNTRY_OPTIONS = [
   { code: "AU", label: "Australia" },
   { code: "NZ", label: "New Zealand" },
 ] as const;
-
-function addressKey(address: {
-  line1: string;
-  line2?: string;
-  city: string;
-  state: string;
-  postalCode: string;
-  countryCode: string;
-}) {
-  return [
-    address.line1,
-    address.line2 ?? "",
-    address.city,
-    address.state,
-    address.postalCode,
-    address.countryCode,
-  ]
-    .map((part) => part ?? "")
-    .join("|");
-}
 
 function CheckoutShippingPage() {
   const settings = useSettings();
@@ -71,6 +52,7 @@ function CheckoutShippingPage() {
       settings?.commerceConfig?.shippingMethods,
     ],
   );
+  const addressEdited = useRef(false);
   const [form, setForm] = useState<ShippingAddressForm>({
     firstName: "",
     lastName: "",
@@ -123,7 +105,7 @@ function CheckoutShippingPage() {
   };
 
   useEffect(() => {
-    if (session?.shippingAddress) {
+    if (session?.shippingAddress && !addressEdited.current) {
       setForm({
         firstName: session.shippingAddress.firstName ?? "",
         lastName: session.shippingAddress.lastName ?? "",
@@ -169,7 +151,7 @@ function CheckoutShippingPage() {
 
   async function handleRefreshRates() {
     if (!sessionToken || !hasCompleteAddress) {
-      toast.error("Complete the shipping address before requesting live rates.");
+      toast.error("Complete the shipping address before calculating delivery options.");
       return;
     }
 
@@ -201,16 +183,16 @@ function CheckoutShippingPage() {
         if (cheapest?.quoteKey) {
           setShippingMethod(cheapest.quoteKey);
         }
-        toast.success("Live shipping rates refreshed.");
+        toast.success("Delivery options updated.");
       } else if (result?.provider === "manual_fallback") {
-        toast.info("Live rates unavailable. Using manual shipping methods.");
+        toast.info("Delivery options could not be calculated for this address.");
       } else {
-        toast.error("No live rates were returned for this address.");
+        toast.error("No delivery options are available for this address.");
       }
     } catch (error) {
       toast.error(
         (error as { data?: { message?: string } })?.data?.message ??
-          (error instanceof Error ? error.message : "Failed to fetch live rates"),
+          (error instanceof Error ? error.message : "Unable to calculate delivery options"),
       );
     } finally {
       setIsLoadingRates(false);
@@ -276,7 +258,10 @@ function CheckoutShippingPage() {
     isReady,
     session,
     form,
-    onFieldChange: (key, value) => setForm((current) => ({ ...current, [key]: value })),
+    onFieldChange: (key, value) => {
+      addressEdited.current = true;
+      setForm((current) => ({ ...current, [key]: value }));
+    },
     countryOptions,
     checkoutRequiresPhone: Boolean(settings?.commerceConfig?.checkoutRequiresPhone),
     shippingEnabled,

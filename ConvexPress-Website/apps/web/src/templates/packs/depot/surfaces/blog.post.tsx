@@ -1,3 +1,4 @@
+import { PublicCanonicalBody } from "@/templates/sdk/block-public/PublicCanonicalBody";
 /**
  * Depot · blog.post — a post in the reading measure: small title, a meta row
  * of labels, an inline 16:9 hero, the body (blocks / structured / TipTap, or
@@ -58,6 +59,8 @@ export default function DepotBlogPost({ data }: SurfaceProps<BlogPostSurfaceData
 
         {restricted ? (
           <Surface name="system.restricted" data={restricted} fallback={CoreRestricted} />
+        ) : post.blocksVersion === 2 ? (
+          <PublicCanonicalBody documentId={post._id} />
         ) : post.contentMode === "blocks" && post.blocks && post.blocks.length > 0 ? (
           <BlockListRenderer blocks={post.blocks} />
         ) : structured ? (

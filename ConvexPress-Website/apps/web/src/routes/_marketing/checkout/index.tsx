@@ -1,3 +1,4 @@
+import { needsNewCheckoutSession } from "@/components/commerce/checkoutSessionLifecycle";
 import { useEffect, useState } from "react";
 import { createFileRoute, useRouter } from "@tanstack/react-router";
 
@@ -6,6 +7,8 @@ import { useMutation, useQuery } from "convex/react";
 import { api } from "@convexpress-website/backend/generated/api";
 import { toast } from "sonner";
 
+import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { checkoutContactEmail } from "@/components/commerce/checkoutContactEmail";
 import { useSettings } from "@/contexts/SettingsContext";
 import { useCommerceSessionToken } from "@/hooks/useCommerceSessionToken";
 import CoreCheckoutDetails, { type CheckoutDetailsSurfaceData } from "@/templates/packs/core/surfaces/checkout.details";
@@ -19,6 +22,7 @@ export const Route = createFileRoute("/_marketing/checkout/")({
 function CheckoutIndexPage() {
   const settings = useSettings();
   const router = useRouter();
+  const { user } = useCurrentUser();
   const { sessionToken, isReady } = useCommerceSessionToken();
   const cart = useQuery(
     (api as any).commerce.cart.getMine,
@@ -27,20 +31,14 @@ function CheckoutIndexPage() {
   const session = useQuery(
     (api as any).commerce.checkout.getSession,
     isReady && sessionToken ? { sessionToken } : "skip",
-  ) as { email?: string } | null | undefined;
+  ) as { email?: string; status?: string } | null | undefined;
   const createSession = useMutation((api as any).commerce.checkout.createSession);
-  const updateSession = useMutation((api as any).commerce.checkout.updateSession);
-  const [email, setEmail] = useState("");
+  const [editedEmail, setEmail] = useState<string>();
+  const email = checkoutContactEmail(editedEmail, session?.email, user?.email);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
-    if (session?.email) {
-      setEmail(session.email);
-    }
-  }, [session?.email]);
-
-  useEffect(() => {
-    if (!isReady || !sessionToken || !cart || cart.itemCount <= 0 || session !== null) {
+    if (!isReady || !sessionToken || !cart || cart.itemCount <= 0 || !needsNewCheckoutSession(session)) {
       return;
     }
     void createSession({ sessionToken }).catch(() => undefined);
@@ -55,11 +53,8 @@ function CheckoutIndexPage() {
 
     setIsSubmitting(true);
     try {
-      if (session === null) {
-        await createSession({ sessionToken, email: email.trim() });
-      } else {
-        await updateSession({ sessionToken, email: email.trim() });
-      }
+      // Creation resumes an active session or creates a new one after completion.
+      await createSession({ sessionToken, email: email.trim() });
       router.navigate({ to: "/checkout/shipping" });
     } catch (error) {
       toast.error(

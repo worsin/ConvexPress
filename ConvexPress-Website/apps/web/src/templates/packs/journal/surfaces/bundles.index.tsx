@@ -17,7 +17,7 @@ function typeLabel(bundleType: string) {
 }
 
 export default function JournalBundlesIndex({ data }: SurfaceProps<BundlesIndexSurfaceData>) {
-  const { bundles, currencyCode } = data;
+  const { bundles } = data;
 
   return (
     <Container as="section" data-slot="bundles-index" className="flex flex-col gap-14 py-6 md:gap-20 md:py-10">
@@ -48,7 +48,7 @@ export default function JournalBundlesIndex({ data }: SurfaceProps<BundlesIndexS
       ) : (
         <div className="grid grid-cols-1 gap-x-8 gap-y-12 sm:grid-cols-2 lg:grid-cols-3">
           {bundles.map((bundle) => (
-            <BundleCard key={bundle._id} bundle={bundle} currencyCode={currencyCode} />
+            <BundleCard key={bundle._id} bundle={bundle} currencyCode={bundle.currencyCode} />
           ))}
         </div>
       )}

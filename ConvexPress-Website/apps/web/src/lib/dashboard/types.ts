@@ -1,3 +1,4 @@
+import type { Id } from "@convexpress-website/backend/generated/dataModel";
 /**
  * Dashboard types for the ConvexPress website user dashboard.
  * These types mirror the Convex schema shapes for UI consumption.
@@ -5,7 +6,7 @@
 
 /** User profile data from getCurrentUser query */
 export interface UserProfile {
-  _id: string;
+  _id: Id<"users">;
   /** External auth provider user ID (Clerk user ID) */
   externalAuthId: string;
   email: string;

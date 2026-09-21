@@ -1,3 +1,4 @@
+import type { Id } from "@convexpress-website/backend/generated/dataModel";
 /**
  * Notifications — customer-facing model for the notification center.
  *
@@ -19,7 +20,7 @@ export const NOTIFICATION_VIEWS: NotificationView[] = ["inbox", "unread", "needs
 
 /** Row from notifications.queries.listForCenter */
 export interface CenterNotification {
-  id: string;
+  id: Id<"siteNotifications">;
   title: string;
   message: string;
   type: NotificationType;

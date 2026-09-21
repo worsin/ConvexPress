@@ -51,7 +51,7 @@ export function TicketList({ data, hrefFor, newHref, now = Date.now(), compactHe
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           {!compactHeader && <h1 className="text-2xl font-bold tracking-tight text-foreground">Support tickets</h1>}
-          <p className="text-sm text-muted-foreground">Your conversations with our team. We reply here and by email.</p>
+          <p className="text-sm text-muted-foreground">Your support conversations and replies, together in one place.</p>
           {!loading && all.length > 0 && (
             <p className="mt-1 text-sm tabular-nums text-muted-foreground/80">
               {counts.active} open, {counts.done} done.{counts.yours > 0 && ` ${counts.yours} waiting on you.`}
@@ -110,7 +110,7 @@ export function TicketList({ data, hrefFor, newHref, now = Date.now(), compactHe
                 <LifeBuoy className="size-6" aria-hidden />
               </span>
               <h2 className="text-lg font-bold text-foreground">No tickets yet</h2>
-              <p className="mx-auto mt-1 max-w-md text-sm text-muted-foreground">Stuck on something, or an order not looking right? Open a ticket and a real person on our team will pick it up. Everything stays in one thread here.</p>
+              <p className="mx-auto mt-1 max-w-md text-sm text-muted-foreground">Need help with an order or something else? Open a ticket to keep your question and replies in one thread.</p>
               <Button className="mt-5" nativeButton={false} render={<Link to={newHref as "/"} />}>
                 <Plus className="size-4" aria-hidden />
                 Open a ticket
@@ -151,10 +151,10 @@ export function TicketList({ data, hrefFor, newHref, now = Date.now(), compactHe
           <div className="rounded-2xl border border-border bg-muted/40 p-4 text-sm">
             <div className="flex items-center gap-2.5">
               <AgentAvatar size="sm" />
-              <span className="font-semibold text-foreground">Real people, business hours</span>
+              <span className="font-semibold text-foreground">Support replies</span>
             </div>
             <p className="mt-2 text-xs text-muted-foreground">
-              Most tickets get a first reply {data?.responseWindow ?? "as soon as we can"}. You'll get an email each time we reply.
+              We aim to reply {data?.responseWindow ?? "as soon as we can"}. Check your ticket here for updates.
             </p>
           </div>
         </aside>

@@ -7,7 +7,8 @@
  * surface at a time with nothing breaking.
  */
 
-import type { ReactElement } from "react";
+import { Suspense, useContext, useEffect, useId, type ReactElement } from "react";
+import { TemplateDraftContext, TemplateSurfaceContext } from "./customizeContext";
 
 import type { SurfaceComponent } from "./types";
 import { useTemplate } from "./useTemplate";
@@ -22,6 +23,9 @@ export function Surface<TData>({
   data: TData;
   fallback?: SurfaceComponent<TData>;
 }): ReactElement | null {
+  const { reportSurface } = useContext(TemplateDraftContext);
+  const surfaceInstance = useId();
+  useEffect(() => { reportSurface(surfaceInstance, name); return () => reportSurface(surfaceInstance, null); }, [reportSurface, surfaceInstance, name]);
   const template = useTemplate();
   const draftVariants = useDraftVariants();
   const resolved = template.resolve(name);
@@ -30,8 +34,10 @@ export function Surface<TData>({
   const Render = (Component ?? Fallback) as SurfaceComponent<TData> | undefined;
   if (!Render) return null;
   return (
+    <TemplateSurfaceContext.Provider value={name}>
     <div data-surface={name} data-template={packId} data-variant={variant} className="contents">
-      <Render data={data} variant={variant} packId={packId} />
+      <Suspense fallback={null}><Render data={data} variant={variant} packId={packId} /></Suspense>
     </div>
+    </TemplateSurfaceContext.Provider>
   );
 }

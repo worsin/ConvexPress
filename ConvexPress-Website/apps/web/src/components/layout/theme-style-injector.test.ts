@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 
-import { paletteStyleBlocks } from "./ThemeStyleInjector";
+import { paletteStyleBlocks, legacyPaletteFor } from "./ThemeStyleInjector";
 
 describe("brand palette scoping", () => {
   test("a light palette never overrides dark-mode tokens", () => {
@@ -25,4 +25,10 @@ describe("brand palette scoping", () => {
     const css = paletteStyleBlocks([{ slug: "background", color: "#101010" }]);
     expect(css.startsWith(":root {")).toBe(true);
   });
+});
+
+test("template-aware backends do not emit a second saved palette beneath reset drafts", () => {
+  const palette = [{ slug: "primary", color: "#123456" }];
+  expect(legacyPaletteFor({ colorPalette: palette })).toEqual(palette);
+  expect(legacyPaletteFor({ colorPalette: palette, templateConfig: { active: "core" } })).toBeUndefined();
 });

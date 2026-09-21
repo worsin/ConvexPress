@@ -1,6 +1,6 @@
 import { convexQuery } from "@convex-dev/react-query";
 import { useSuspenseQuery } from "@tanstack/react-query";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, notFound } from "@tanstack/react-router";
 import { api } from "@convexpress-website/backend/generated/api";
 
 import { NotFoundPage } from "@/components/blog/NotFoundPage";
@@ -12,6 +12,7 @@ import { Surface } from "@/templates/sdk/Surface";
 
 export const Route = createFileRoute("/_marketing/recipes/category/$slug")({
   component: RecipeCategoryPage,
+  notFoundComponent: NotFoundPage,
   loader: async ({ context: { queryClient }, params }) => {
     const publicSettings = (await queryClient.ensureQueryData(
       convexQuery(api.settings.queries.getPublic, {}),
@@ -33,6 +34,7 @@ export const Route = createFileRoute("/_marketing/recipes/category/$slug")({
         }),
       ),
     ]);
+    if (!category) throw notFound();
     const siteUrl = normalizeSiteUrl(publicSettings?.siteUrl);
     const categoryName = category?.name ?? params.slug;
     return {
@@ -60,16 +62,16 @@ function RecipeCategoryPageInner() {
   const categoryQuery = convexQuery(
     api.recipes.queries.getCategoryBySlug,
     { slug },
-  ) as any;
-  const { data: category } = useSuspenseQuery(categoryQuery) as { data: any };
+  );
+  const { data: category } = useSuspenseQuery(categoryQuery);
   const listQuery = convexQuery(api.recipes.queries.listPublished, {
       categorySlug: slug,
       page: 1,
       perPage: 24,
-    }) as any;
-  const { data } = useSuspenseQuery(listQuery) as { data: any };
+    });
+  const { data } = useSuspenseQuery(listQuery);
 
-  if (!category) {
+  if (!category || !data) {
     return <NotFoundPage />;
   }
 

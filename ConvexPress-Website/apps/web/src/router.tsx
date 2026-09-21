@@ -5,9 +5,8 @@ import { setupRouterSsrQueryIntegration } from "@tanstack/react-router-ssr-query
 
 import Loader from "./components/loader";
 import { getSiteRuntime } from "./lib/site-runtime";
-import { ErrorTemplate } from "./templates/ErrorTemplate";
-import { NotFoundTemplate } from "./templates/NotFoundTemplate";
-import "./index.css";
+import { ErrorTemplate } from "./templates/packs/core/parts/runtime-error";
+import { NotFoundTemplate } from "./templates/packs/core/parts/not-found";
 import { routeTree } from "./routeTree.gen";
 
 export function getRouter(): any {

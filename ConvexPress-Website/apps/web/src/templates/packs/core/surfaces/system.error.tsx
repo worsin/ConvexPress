@@ -1,5 +1,5 @@
 /** Core · system.error — the runtime error screen (root error boundary). */
-import { ErrorTemplate } from "@/templates/ErrorTemplate";
+import { ErrorTemplate } from "@/templates/packs/core/parts/runtime-error";
 import type { SurfaceProps } from "@/templates/sdk/types";
 
 export interface ErrorSurfaceData {

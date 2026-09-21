@@ -20,6 +20,7 @@ export interface HelpSearchSurfaceData {
   hasQuery: boolean;
   results: KbSearchResult[];
   total: number;
+  hasMore?: boolean;
   actions: {
     /** Navigate to help search for a query (raw value from the input; route trims). */
     search: (query: string) => void;
@@ -67,7 +68,7 @@ export default function CoreHelpSearch({ data }: SurfaceProps<HelpSearchSurfaceD
       {/* Result count */}
       {hasQuery && (
         <p className="mb-6 text-sm text-muted-foreground">
-          {total} {total === 1 ? "result" : "results"} for &ldquo;{q}&rdquo;
+          {total} {total === 1 ? "result" : "results"} on this page for &ldquo;{q}&rdquo;
         </p>
       )}
 
@@ -100,9 +101,9 @@ export default function CoreHelpSearch({ data }: SurfaceProps<HelpSearchSurfaceD
           </Link>
         ))}
 
-        {hasQuery && results.length === 0 && (
+        {hasQuery && results.length === 0 && !data.hasMore && (
           <div className="py-12 text-center text-muted-foreground">
-            <p className="text-base font-medium">No articles found</p>
+            <p className="text-base font-medium">No matching articles on this page</p>
             <p className="mt-1 text-sm">
               Try different keywords or{" "}
               <Link to="/help" className="text-primary hover:underline">

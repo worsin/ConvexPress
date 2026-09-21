@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useRef } from "react";
 import {
   ChevronLeftIcon,
   ChevronRightIcon,
@@ -49,31 +49,26 @@ export function GalleryLightbox({
     allowHash: false,
   });
 
-  useEffect(() => {
-    if (!open) return;
-
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "ArrowLeft") {
-        event.preventDefault();
-        onIndexChange(currentIndex === 0 ? items.length - 1 : currentIndex - 1);
-      } else if (event.key === "ArrowRight") {
-        event.preventDefault();
-        onIndexChange(currentIndex === items.length - 1 ? 0 : currentIndex + 1);
-      }
-    };
-
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [currentIndex, items.length, onIndexChange, open]);
+  const closeRef = useRef<HTMLButtonElement>(null);
 
   if (!item) return null;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-[min(96vw,1100px)] max-w-none rounded-[2rem] bg-neutral-950 p-0 text-white">
+      <DialogContent
+        initialFocus={closeRef}
+        finalFocus
+        onKeyDown={(event) => {
+          if (items.length < 2 || event.altKey || event.ctrlKey || event.metaKey) return;
+          if (event.key === "ArrowLeft" || event.key === "ArrowRight") {
+            event.preventDefault();
+            onIndexChange((currentIndex + (event.key === "ArrowLeft" ? -1 : 1) + items.length) % items.length);
+          }
+        }}
+        className="w-[min(96vw,1100px)] max-w-none rounded-[2rem] bg-neutral-950 p-0 text-white">
         <div className="flex items-center justify-between border-b border-white/10 px-4 py-3">
-          <DialogTitle className="text-sm font-medium">
-            {currentIndex + 1} / {items.length}
+          <DialogTitle aria-live="polite" aria-atomic="true" className="text-sm font-medium">
+            Image {currentIndex + 1} of {items.length}
           </DialogTitle>
           <div className="flex items-center gap-2">
             {downloadEnabled && downloadUrl && (
@@ -88,8 +83,8 @@ export function GalleryLightbox({
                 Download
               </a>
             )}
-            <DialogClose className="inline-flex items-center rounded-full border border-white/20 p-2 text-white transition-colors hover:bg-white/10">
-              <XIcon className="size-4" />
+            <DialogClose ref={closeRef} aria-label="Close gallery" className="inline-flex items-center rounded-full border border-white/20 p-2 text-white transition-colors hover:bg-white/10">
+              <XIcon aria-hidden="true" className="size-4" />
             </DialogClose>
           </div>
         </div>
@@ -97,13 +92,15 @@ export function GalleryLightbox({
         <div className="grid gap-4 p-4 lg:grid-cols-[auto_1fr_auto] lg:items-center">
           <div className="flex justify-start">
             <Button
+              aria-label="Previous image"
+              disabled={items.length < 2}
               variant="outline"
               className="border-white/20 bg-transparent text-white hover:bg-white/10"
               onClick={() =>
                 onIndexChange(currentIndex === 0 ? items.length - 1 : currentIndex - 1)
               }
             >
-              <ChevronLeftIcon className="size-4" />
+              <ChevronLeftIcon aria-hidden="true" className="size-4" />
             </Button>
           </div>
 
@@ -118,29 +115,24 @@ export function GalleryLightbox({
                 sizes="100vw"
               />
             </div>
-            {(item.caption || item.altText) && (
+            {item.caption && (
               <div className="rounded-[1.25rem] border border-white/10 bg-white/5 p-4">
-                {item.caption && (
-                  <p className="text-sm leading-7 text-white/90">{item.caption}</p>
-                )}
-                {item.altText && (
-                  <p className="mt-2 text-xs uppercase tracking-[0.18em] text-white/55">
-                    Alt text: {item.altText}
-                  </p>
-                )}
+                <p className="text-sm leading-7 text-white/90">{item.caption}</p>
               </div>
             )}
           </div>
 
           <div className="flex justify-end">
             <Button
+              aria-label="Next image"
+              disabled={items.length < 2}
               variant="outline"
               className="border-white/20 bg-transparent text-white hover:bg-white/10"
               onClick={() =>
                 onIndexChange(currentIndex === items.length - 1 ? 0 : currentIndex + 1)
               }
             >
-              <ChevronRightIcon className="size-4" />
+              <ChevronRightIcon aria-hidden="true" className="size-4" />
             </Button>
           </div>
         </div>

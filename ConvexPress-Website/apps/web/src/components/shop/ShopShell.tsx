@@ -24,6 +24,7 @@ import { useShopLayout, type ShopLayout } from "@/hooks/useShopLayout";
 import { cn } from "@/lib/utils";
 import { AssistantRail } from "./assistant/AssistantRail";
 import { CartPanel } from "./CartPanel";
+import { useDesktopShop } from "./assistant/prompt-handoff";
 
 export type ShopRouteKind = "search" | "catalog" | "product" | "cart" | "checkout";
 
@@ -89,6 +90,7 @@ export function ShopShell({
   className?: string;
 }) {
   const config = useAssistantConfig();
+  const desktop = useDesktopShop();
   const layout = useShopLayout();
   const routeEnabled = config.enabled && config.routes[kind] !== false;
   const [railOpen, setRailOpen] = useState(false);
@@ -201,7 +203,7 @@ export function ShopShell({
           transition: hydrated ? `opacity 260ms ${EASE} ${showRail ? "80ms" : "0ms"}, transform 360ms ${EASE}` : undefined,
         }}
       >
-        <AssistantRail {...railProps} active={hydrated && showRail} onClose={closeRail} />
+        <AssistantRail {...railProps} active={hydrated && desktop && showRail} onClose={closeRail} />
       </div>
     </aside>
   ) : null;
@@ -262,7 +264,7 @@ export function ShopShell({
               <Sparkles className="size-4" aria-hidden="true" />
               Ask {config.displayName}
             </button>
-            <DialogPrimitive.Root open={sheetOpen} onOpenChange={setSheetOpen}>
+            <DialogPrimitive.Root open={sheetOpen && !desktop} onOpenChange={setSheetOpen}>
               <DialogPrimitive.Portal>
                 <DialogPrimitive.Backdrop className="fixed inset-0 z-50 bg-black/40 backdrop-blur-[2px] transition-opacity duration-200 data-closed:opacity-0 data-open:opacity-100 lg:hidden" />
                 <DialogPrimitive.Popup
@@ -275,7 +277,7 @@ export function ShopShell({
                   <div className="mx-auto mt-2 h-1 w-10 rounded-full bg-border" aria-hidden="true" />
                   <AssistantRail
                     {...railProps}
-                    active={sheetOpen}
+                    active={hydrated && !desktop && sheetOpen}
                     onClose={() => setSheetOpen(false)}
                     onNavigate={() => setSheetOpen(false)}
                     className="min-h-0 flex-1"

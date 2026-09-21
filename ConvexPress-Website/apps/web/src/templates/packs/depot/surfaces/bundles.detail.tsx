@@ -10,23 +10,12 @@ import { Check, Minus, Package, Plus, ShoppingCart } from "lucide-react";
 
 import { formatMoney } from "@/lib/commerce/format";
 import { cn } from "@/lib/utils";
-import type { BundleComponent, BundleDetailSurfaceData } from "@/templates/packs/core/surfaces/bundles.detail";
+import type { BundleDetailSurfaceData } from "@/templates/sdk/bundle-view-model";
 import type { SurfaceProps } from "@/templates/sdk/types";
 
 import { Badge, Breadcrumbs, Button, Card, Container, DataTable, Label, LinkButton, Price, Prose, SectionHeading, Skeleton, StickyPanel } from "../parts";
 import { Notice, inputClasses } from "../parts/extra-commerce";
 
-function unitPriceOf(component: BundleComponent): number {
-  if (component.variant?.price) {
-    const price = component.variant.price;
-    return typeof price === "object" ? price.amount : price;
-  }
-  if (component.product?.basePrice) {
-    const price = component.product.basePrice;
-    return typeof price === "object" ? price.amount : price;
-  }
-  return 0;
-}
 
 export default function DepotBundleDetail({ data }: SurfaceProps<BundleDetailSurfaceData>) {
   const { bundle, currencyCode, isConfigurable, priceData, selections, totalSelectedItems, meetsMinItems, canAddToCart, onToggleComponent, onUpdateQuantity, onSetVariant, onResetDefaults, onAddToCart } = data;
@@ -71,7 +60,8 @@ export default function DepotBundleDetail({ data }: SurfaceProps<BundleDetailSur
             )}
             <div className="grid gap-3 md:grid-cols-2">
               {bundle.components.map((component) => {
-                const unitPrice = unitPriceOf(component);
+                const selectedVariant = component.variants.find(variant => variant._id === selections.get(component._id)?.variantId) ?? component.variant;
+            const unitPrice = selectedVariant?.unitPriceAmount ?? component.unitPriceAmount;
                 const selected = isConfigurable ? selections.has(component._id) : true;
                 const quantity = selections.get(component._id)?.quantity ?? component.quantity;
                 return (
@@ -100,12 +90,11 @@ export default function DepotBundleDetail({ data }: SurfaceProps<BundleDetailSur
                         <div className="flex min-w-0 flex-col gap-0.5">
                           <h3 className="text-sm font-semibold leading-5 text-foreground">{component.product?.title ?? "Product"}</h3>
                           {component.label ? <p className="text-xs text-muted-foreground">{component.label}</p> : null}
-                          {component.variant?.name ? <p className="text-xs text-muted-foreground">Variant: {component.variant.name}</p> : null}
+                          {selectedVariant?.name ? <p className="text-xs text-muted-foreground">Variant: {selectedVariant.name}</p> : null}
                         </div>
                         {unitPrice > 0 ? (
                           <div className="flex shrink-0 flex-col items-end">
                             <span className="text-sm font-semibold tabular-nums text-foreground">{money(unitPrice)}</span>
-                            {component.priceOverride != null ? <span className="text-xs tabular-nums text-muted-foreground line-through">{money(unitPrice)}</span> : null}
                           </div>
                         ) : null}
                       </div>

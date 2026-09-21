@@ -2,7 +2,7 @@ import { Link } from "@tanstack/react-router";
 import { useAuth } from "@/lib/auth/clerk";
 import { useQuery } from "convex/react";
 import { api } from "@convexpress-website/backend/generated/api";
-import { Search, ShoppingCart } from "lucide-react";
+import { LogIn, Search, ShoppingCart, UserPlus } from "lucide-react";
 import { useState } from "react";
 
 import { cn } from "@/lib/utils";
@@ -48,7 +48,7 @@ export function HeaderActions({ className, headerConfig }: HeaderActionsProps) {
   return (
     <div
       data-slot="header-actions"
-      className={cn("flex items-center gap-2", className)}
+      className={cn("flex shrink-0 items-center gap-2", className)}
     >
       {/* Search toggle */}
       {showSearch && (
@@ -68,7 +68,7 @@ export function HeaderActions({ className, headerConfig }: HeaderActionsProps) {
             type="button"
             onClick={() => setCartOpen(true)}
             className="relative flex size-8 items-center justify-center text-muted-foreground transition-colors hover:text-foreground"
-            aria-label={`Cart${cart?.itemCount ? `, ${cart.itemCount} items` : ""}`}
+            aria-label={`Cart${cart?.itemCount ? `, ${cart.itemCount} ${cart.itemCount === 1 ? "item" : "items"}` : ""}`}
           >
             <ShoppingCart className="size-4" aria-hidden="true" />
             {cart?.itemCount ? (
@@ -110,16 +110,18 @@ export function HeaderActions({ className, headerConfig }: HeaderActionsProps) {
               <div className="flex items-center gap-2">
                 <Link
                   to="/login"
-                  className="inline-flex items-center justify-center border border-border bg-background px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-muted"
+                  className="inline-flex size-8 shrink-0 items-center justify-center border border-border bg-background text-xs font-medium text-foreground transition-colors hover:bg-muted sm:h-auto sm:w-auto sm:px-3 sm:py-1.5"
                 >
-                  Sign In
+                  <LogIn className="size-4 sm:hidden" aria-hidden="true" />
+                  <span className="sr-only sm:not-sr-only">Sign In</span>
                 </Link>
                 {guestDisplay === "login-register" && (
                   <Link
                     to="/register"
-                    className="inline-flex items-center justify-center bg-foreground px-3 py-1.5 text-xs font-medium text-background transition-colors hover:bg-foreground/90"
+                    className="inline-flex size-8 shrink-0 items-center justify-center bg-foreground text-xs font-medium text-background transition-colors hover:bg-foreground/90 sm:h-auto sm:w-auto sm:px-3 sm:py-1.5"
                   >
-                    Register
+                    <UserPlus className="size-4 sm:hidden" aria-hidden="true" />
+                    <span className="sr-only sm:not-sr-only">Register</span>
                   </Link>
                 )}
               </div>

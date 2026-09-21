@@ -1,0 +1,14 @@
+.cp-brand-catalog{max-width:var(--content-width,80rem);margin-inline:auto;padding:clamp(3rem,7vw,7rem) clamp(1.25rem,4vw,4rem);color:var(--foreground)}
+.cp-brand-catalog-intro{max-width:44rem;margin:0 auto clamp(3rem,6vw,6rem);text-align:center}
+.cp-brand-catalog-logo{max-width:12rem;max-height:5rem;width:auto;height:auto;margin:1.5rem auto;object-fit:contain}
+.cp-brand-catalog-intro .cp-heading{margin:1rem 0;font-family:var(--font-heading);font-size:clamp(2.75rem,6vw,5rem);line-height:1.04;letter-spacing:-.04em;overflow-wrap:anywhere}
+.cp-brand-catalog-description{font-family:var(--font-body);font-size:1.05rem;line-height:1.8;white-space:pre-line;overflow-wrap:anywhere;margin:1.5rem 0}
+.cp-brand-catalog-intro a{text-underline-offset:.3em;text-decoration:underline;font-size:.9rem}
+.cp-brand-catalog-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:clamp(1.5rem,3vw,3rem)}
+.cp-brand-catalog-empty{padding:3rem 1rem;text-align:center;border-block:1px solid var(--border)}
+.cp-brand-catalog-pagination{display:flex;justify-content:space-between;gap:1rem;margin-top:3rem;border-top:1px solid var(--border);padding-top:1.5rem}
+.cp-brand-catalog-pagination button{font:inherit;background:transparent;color:inherit;border:1px solid var(--border);border-radius:var(--radius,.5rem);padding:.75rem 1rem;cursor:pointer}
+.cp-brand-catalog-pagination button:disabled{opacity:.4;cursor:default}
+.cp-brand-catalog a:focus-visible,.cp-brand-catalog button:focus-visible{outline:2px solid var(--primary);outline-offset:4px}
+@media(max-width:900px){.cp-brand-catalog-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:520px){.cp-brand-catalog-grid{grid-template-columns:1fr}.cp-brand-catalog-pagination button{font-size:.8rem;padding:.7rem}}

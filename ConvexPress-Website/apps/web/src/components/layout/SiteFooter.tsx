@@ -39,7 +39,7 @@ export function SiteFooter({ variant = "full", siteIdentity: siteIdentityProp, f
   // legacy bottom-bar shape since rows are designed for the full footer.
   if (variant === "full" && footerConfig.rows && footerConfig.rows.length > 0) {
     return (
-      <footer data-slot="site-footer" role="contentinfo">
+      <footer data-slot="site-footer" data-customize="footer.layout.background" role="contentinfo">
         <FooterRowsRenderer rows={footerConfig.rows} />
       </footer>
     );
@@ -48,7 +48,7 @@ export function SiteFooter({ variant = "full", siteIdentity: siteIdentityProp, f
   if (variant === "minimal") {
     return (
       <footer
-        data-slot="site-footer"
+        data-slot="site-footer" data-customize="footer.layout.background"
         role="contentinfo"
         className="border-t border-border bg-background"
       >
@@ -81,7 +81,7 @@ export function SiteFooter({ variant = "full", siteIdentity: siteIdentityProp, f
 
   return (
     <footer
-      data-slot="site-footer"
+      data-slot="site-footer" data-customize="footer.layout.background"
       role="contentinfo"
       className={cn(borderClass, backgroundClass)}
     >

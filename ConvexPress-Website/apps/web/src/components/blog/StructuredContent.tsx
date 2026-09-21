@@ -14,6 +14,9 @@
 import { cn } from "@/lib/utils";
 import { MediaImage } from "@/components/media/MediaImage";
 import type { Id } from "@convexpress-website/backend/generated/dataModel";
+import { LinkifiedText } from "./LinkifiedText";
+import { ArticleEmbed } from "./ArticleEmbed";
+import { sanitizeHref, isExternalUrl } from "@/lib/security/url";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -88,35 +91,6 @@ export function hasStructuredContent(props: StructuredContentProps): boolean {
   return false;
 }
 
-/** Render a video embed (YouTube, Vimeo, or generic iframe). */
-function VideoEmbed({ url }: { url: string }) {
-  // Normalize YouTube URLs to embed format
-  let embedUrl = url;
-  const youtubeMatch = url.match(
-    /(?:youtube\.com\/watch\?v=|youtu\.be\/)([\w-]+)/,
-  );
-  if (youtubeMatch) {
-    embedUrl = `https://www.youtube.com/embed/${youtubeMatch[1]}`;
-  }
-  // Normalize Vimeo URLs
-  const vimeoMatch = url.match(/vimeo\.com\/(\d+)/);
-  if (vimeoMatch) {
-    embedUrl = `https://player.vimeo.com/video/${vimeoMatch[1]}`;
-  }
-
-  return (
-    <div className="relative aspect-video w-full overflow-hidden">
-      <iframe
-        src={embedUrl}
-        title="Video embed"
-        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-        allowFullScreen
-        className="absolute inset-0 h-full w-full border-0"
-      />
-    </div>
-  );
-}
-
 /** Render content text with basic paragraph splitting. */
 function ContentText({ text, className }: { text: string; className?: string }) {
   const paragraphs = text.split(/\n\n+/).filter((p) => p.trim().length > 0);
@@ -126,18 +100,11 @@ function ContentText({ text, className }: { text: string; className?: string }) 
         <p
           key={i}
           className="text-sm leading-relaxed text-foreground/90"
-          dangerouslySetInnerHTML={{ __html: linkifyText(paragraph) }}
-        />
+        >
+          <LinkifiedText text={paragraph} />
+        </p>
       ))}
     </div>
-  );
-}
-
-/** Convert URLs in text to clickable links. */
-function linkifyText(text: string): string {
-  return text.replace(
-    /(https?:\/\/[^\s<]+)/g,
-    '<a href="$1" target="_blank" rel="noopener noreferrer" class="text-primary underline hover:text-primary/80">$1</a>',
   );
 }
 
@@ -145,6 +112,7 @@ function linkifyText(text: string): string {
 
 function HeroSection({ hero }: { hero: HeroData }) {
   if (!hasHeroContent(hero)) return null;
+  const ctaHref = sanitizeHref(hero.ctaUrl);
 
   return (
     <section data-slot="structured-hero" className="space-y-4">
@@ -169,7 +137,7 @@ function HeroSection({ hero }: { hero: HeroData }) {
       )}
 
       {/* Video embed */}
-      {hero.videoUrl && <VideoEmbed url={hero.videoUrl} />}
+      {hero.videoUrl && <ArticleEmbed kind="video" url={hero.videoUrl} title="Hero video" />}
 
       {/* Introductory content */}
       {hero.content && <ContentText text={hero.content} />}
@@ -177,14 +145,14 @@ function HeroSection({ hero }: { hero: HeroData }) {
       {/* CTA button */}
       {hero.ctaText && hero.ctaUrl && (
         <div>
-          <a
-            href={hero.ctaUrl}
+          {ctaHref ? <a
+            href={ctaHref}
             className="inline-flex items-center gap-2 bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
-            target={hero.ctaUrl.startsWith("http") ? "_blank" : undefined}
-            rel={hero.ctaUrl.startsWith("http") ? "noopener noreferrer" : undefined}
+            target={isExternalUrl(ctaHref) ? "_blank" : undefined}
+            rel={isExternalUrl(ctaHref) ? "noopener noreferrer" : undefined}
           >
             {hero.ctaText}
-          </a>
+          </a> : <p>{hero.ctaText}</p>}
         </div>
       )}
     </section>
@@ -273,7 +241,7 @@ function TopicSection({ topic, index }: { topic: TopicData; index: number }) {
       )}
 
       {/* Topic video */}
-      {topic.videoUrl && <VideoEmbed url={topic.videoUrl} />}
+      {topic.videoUrl && <ArticleEmbed kind="video" url={topic.videoUrl} title={topic.title || "Topic video"} />}
 
       {/* Topic body */}
       {topic.content && <ContentText text={topic.content} />}
@@ -321,8 +289,9 @@ function SourcesSection({ sources }: { sources: string }) {
           <li
             key={i}
             className="text-xs leading-relaxed text-muted-foreground"
-            dangerouslySetInnerHTML={{ __html: linkifyText(line) }}
-          />
+          >
+            <LinkifiedText text={line} />
+          </li>
         ))}
       </ol>
     </section>

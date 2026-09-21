@@ -4,29 +4,8 @@ import { Package } from "lucide-react";
 
 import type { SurfaceProps } from "@/templates/sdk/types";
 
-export interface BundleListItem {
-  _id: string;
-  name: string;
-  slug: string;
-  shortDescription?: string;
-  description?: string;
-  images: string[];
-  bundleType: string;
-  pricingType: string;
-  regularPrice?: number;
-  bundlePrice?: number;
-  discountPercent?: number;
-  components: Array<{
-    _id: string;
-    quantity: number;
-    product?: {
-      _id: string;
-      title: string;
-      featuredMediaId?: string;
-      basePrice?: number | { amount: number };
-    };
-  }>;
-}
+import type { BundleData } from "./bundles.detail";
+export type BundleListItem = BundleData;
 
 export interface BundlesIndexSurfaceData {
   bundles: BundleListItem[];
@@ -36,10 +15,10 @@ export interface BundlesIndexSurfaceData {
 export default function CoreBundlesIndex({ data }: SurfaceProps<BundlesIndexSurfaceData>) {
   const { bundles, currencyCode } = data;
 
-  function formatPrice(cents: number) {
+  function formatPrice(cents: number, currency = currencyCode) {
     return new Intl.NumberFormat("en-US", {
       style: "currency",
-      currency: currencyCode,
+      currency,
     }).format(cents / 100);
   }
 
@@ -164,19 +143,19 @@ export default function CoreBundlesIndex({ data }: SurfaceProps<BundlesIndexSurf
                       <div className="flex items-baseline gap-2">
                         {typeof bundle.bundlePrice === "number" ? (
                           <span className="text-lg font-semibold text-foreground">
-                            {formatPrice(bundle.bundlePrice)}
+                            {formatPrice(bundle.bundlePrice, bundle.currencyCode)}
                           </span>
                         ) : (
                           <span className="text-lg font-semibold text-foreground">
                             {typeof bundle.regularPrice === "number"
-                              ? formatPrice(bundle.regularPrice)
+                              ? formatPrice(bundle.regularPrice, bundle.currencyCode)
                               : "Price varies"}
                           </span>
                         )}
                         {savings > 0 &&
                           typeof bundle.regularPrice === "number" && (
                             <span className="text-sm text-muted-foreground line-through">
-                              {formatPrice(bundle.regularPrice)}
+                              {formatPrice(bundle.regularPrice, bundle.currencyCode)}
                             </span>
                           )}
                       </div>

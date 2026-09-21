@@ -75,7 +75,7 @@ export default function JournalChromeCartDrawer({ data }: SurfaceProps<CartDrawe
                 <SmallCaps>Empty</SmallCaps>
                 <p className="font-display text-2xl leading-snug text-foreground text-balance">Your cart is empty.</p>
                 <p className="text-sm leading-6 text-muted-foreground">Add products from the catalog and review them here.</p>
-                <Link to="/shop" onClick={close} className={buttonClasses("primary")}>
+                <Link to="/products" onClick={close} className={buttonClasses("primary")}>
                   Shop products
                 </Link>
               </div>

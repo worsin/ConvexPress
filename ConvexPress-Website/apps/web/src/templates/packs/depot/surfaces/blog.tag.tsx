@@ -1,3 +1,4 @@
+import { ArchiveContinuation } from "@/components/blog/ArchiveContinuation";
 /**
  * Depot · blog.tag — a tag archive: breadcrumbs, a title row with the count,
  * then the posts as `PostCard` rows in two columns with numbered pagination.
@@ -14,11 +15,12 @@ export default function DepotBlogTag({ data }: SurfaceProps<BlogTagSurfaceData>)
     <Container padded={false} data-slot="tag-archive" className="flex flex-col gap-4 py-6 md:py-8">
       <Breadcrumbs items={[{ label: "Home", to: "/" }, { label: `Tag: ${tag.name}` }]} />
 
-      <PageHeader label="Tag" title={tag.name} description={tag.description} meta={`${tag.count} ${tag.count === 1 ? "post" : "posts"}`} />
+      <PageHeader label="Tag" title={tag.name} description={tag.description} meta={tag.count === undefined ? undefined : `${tag.count} ${tag.count === 1 ? "post" : "posts"}`} />
 
-      <PostRows posts={posts} empty={<EmptyState title="No posts with this tag yet." />} />
+      <PostRows posts={posts} empty={data.continuation ? <></> : <EmptyState title="No posts with this tag yet." />} />
 
-      {pagination && pagination.totalPages > 1 && (
+      {data.continuation && <ArchiveContinuation data={data.continuation}/> }
+      {!data.continuation && pagination && pagination.totalPages > 1 && (
         <Pagination page={pagination.currentPage} totalPages={pagination.totalPages} linkFor={(page) => (page === 1 ? { to: `/tag/${slug}` } : { to: `/tag/${slug}`, search: { page } })} />
       )}
     </Container>

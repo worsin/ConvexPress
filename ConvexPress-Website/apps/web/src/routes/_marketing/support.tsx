@@ -6,7 +6,7 @@
  */
 
 import { Outlet, createFileRoute } from "@tanstack/react-router";
-import { ErrorTemplate } from "@/templates/ErrorTemplate";
+import { ErrorTemplate } from "@/templates/packs/core/parts/runtime-error";
 import { PublicPluginGate } from "@/components/plugins/PublicPluginGate";
 import { requirePublicPluginEnabled } from "@/lib/plugins/public-route-loader";
 

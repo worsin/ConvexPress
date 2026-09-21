@@ -7,7 +7,7 @@
  * section toggles. "minimal" shows only the rule and copyright (dashboard).
  */
 import { Link } from "@tanstack/react-router";
-import DOMPurify from "isomorphic-dompurify";
+import DOMPurify from "@/lib/html-sanitizer";
 import { useState, type FormEvent } from "react";
 
 import { SocialLinks } from "@/components/layout/SocialLinks";
@@ -28,7 +28,7 @@ export default function JournalChromeFooter({ data }: SurfaceProps<FooterSurface
 
   if (variant === "minimal") {
     return (
-      <footer data-slot="site-footer" role="contentinfo" className="border-t border-border bg-background">
+      <footer data-slot="site-footer" data-customize="footer.layout.background" role="contentinfo" className="border-t border-border bg-background">
         <Container className="py-6">
           <Copyright siteTitle={siteTitle} footerConfig={footerConfig} />
         </Container>
@@ -40,7 +40,7 @@ export default function JournalChromeFooter({ data }: SurfaceProps<FooterSurface
   const padding = footerConfig.layout.padding === "compact" ? "py-10 md:py-14" : footerConfig.layout.padding === "spacious" ? "py-20 md:py-28" : "py-14 md:py-20";
 
   return (
-    <footer data-slot="site-footer" role="contentinfo" className={cn("border-t border-border bg-background", footerConfig.layout.background === "dark" && "bg-muted/30")}>
+    <footer data-slot="site-footer" data-customize="footer.layout.background" role="contentinfo" className={cn("border-t border-border bg-background", footerConfig.layout.background === "dark" && "bg-muted/30")}>
       <Container className={cn("flex flex-col gap-12", padding)}>
         <Masthead siteIdentity={siteIdentity} footerConfig={footerConfig} />
         {rows.length > 0 ? (
@@ -437,7 +437,7 @@ function NewsletterForm({ heading, subtext, buttonText }: { heading?: string; su
 function Copyright({ siteTitle, footerConfig }: { siteTitle: string; footerConfig: FooterConfig }) {
   const year = new Date().getFullYear();
   const text = footerConfig.bottomBar.copyrightText
-    ? footerConfig.bottomBar.copyrightText.replace("{year}", String(year)).replace("{site}", siteTitle)
+    ? footerConfig.bottomBar.copyrightText.replace(/\{year\}/g, () => String(year)).replace(/\{(?:site|siteName)\}/g, () => siteTitle)
     : `© ${year} ${siteTitle}. All rights reserved.`;
   const poweredBy = footerConfig.bottomBar.poweredBy !== false;
   return (

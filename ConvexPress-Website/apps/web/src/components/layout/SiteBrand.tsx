@@ -16,7 +16,7 @@ export function SiteBrand({ siteIdentity, className }: SiteBrandProps) {
   if (!siteIdentity) {
     return (
       <div
-        data-slot="site-brand"
+        data-slot="site-brand" data-customize="header.logo.showTitle"
         className={cn("flex items-center gap-2", className)}
       >
         <div className="h-5 w-24 animate-pulse bg-muted" />
@@ -30,9 +30,9 @@ export function SiteBrand({ siteIdentity, className }: SiteBrandProps) {
   return (
     <Link
       to="/"
-      data-slot="site-brand"
+      data-slot="site-brand" data-customize="header.logo.showTitle"
       className={cn(
-        "flex items-center gap-2 text-foreground no-underline",
+        "flex min-w-0 items-center gap-2 text-foreground no-underline",
         className,
       )}
     >
@@ -40,13 +40,13 @@ export function SiteBrand({ siteIdentity, className }: SiteBrandProps) {
         <img
           src={siteIdentity.logoUrl}
           alt={siteIdentity.logoAlt || siteIdentity.title}
-          className="h-8 w-auto"
+          className="h-8 w-auto min-w-0 max-w-32 object-contain"
           width={32}
           height={32}
         />
       )}
       {showTitle && (
-        <span className="text-sm font-semibold text-foreground">
+        <span className="min-w-0 truncate text-sm font-semibold text-foreground">
           {siteIdentity.title}
         </span>
       )}

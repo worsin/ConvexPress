@@ -1,9 +1,10 @@
 import { convexQuery } from "@convex-dev/react-query";
 import { useSuspenseQuery } from "@tanstack/react-query";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, notFound } from "@tanstack/react-router";
 import { api } from "@convexpress-website/backend/generated/api";
 import { z } from "zod";
 
+import { NotFoundPage } from "@/components/blog/NotFoundPage";
 import { isPublicPluginEnabled } from "@/lib/plugins/public";
 import { buildSeoHead, normalizeSiteUrl, toAbsoluteUrl, siteTitled } from "@/lib/seo/head";
 import CoreRecipesIndex, { type RecipesIndexSurfaceData } from "@/templates/packs/core/surfaces/recipes.index";
@@ -16,6 +17,7 @@ const recipesSearchSchema = z.object({
 export const Route = createFileRoute("/_marketing/recipes/")({
   validateSearch: recipesSearchSchema,
   component: RecipesIndexPage,
+  notFoundComponent: NotFoundPage,
   loaderDeps: ({ search }) => ({
     page: Number(search.page) || 1,
   }),
@@ -28,13 +30,14 @@ export const Route = createFileRoute("/_marketing/recipes/")({
       return { seoHead: {}, recipesDisabled: true as const };
     }
 
-    await queryClient.ensureQueryData(
+    const recipes = await queryClient.ensureQueryData(
       convexQuery(api.recipes.queries.listPublished, {
         page,
         perPage: 12,
       }),
     );
 
+    if (!recipes) throw notFound();
     const siteUrl = normalizeSiteUrl((publicSettings as { siteUrl?: string | null })?.siteUrl);
     return {
       recipesDisabled: false as const,
@@ -53,8 +56,10 @@ function RecipesIndexPage() {
   const query = convexQuery(api.recipes.queries.listPublished, {
       page,
       perPage: 12,
-    }) as any;
-  const { data } = useSuspenseQuery(query) as { data: any };
+    });
+  const { data } = useSuspenseQuery(query);
+
+  if (!data) return <NotFoundPage />;
 
   const surfaceData: RecipesIndexSurfaceData = {
     category: data.category,

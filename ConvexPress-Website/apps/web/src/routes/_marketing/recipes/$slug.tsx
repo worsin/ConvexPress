@@ -1,6 +1,6 @@
 import { convexQuery } from "@convex-dev/react-query";
 import { useSuspenseQuery } from "@tanstack/react-query";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, notFound } from "@tanstack/react-router";
 import { api } from "@convexpress-website/backend/generated/api";
 
 import { NotFoundPage } from "@/components/blog/NotFoundPage";
@@ -12,6 +12,7 @@ import { Surface } from "@/templates/sdk/Surface";
 
 export const Route = createFileRoute("/_marketing/recipes/$slug")({
   component: RecipeDetailPage,
+  notFoundComponent: NotFoundPage,
   loader: async ({ context: { queryClient }, params }) => {
     const publicSettings = (await queryClient.ensureQueryData(
       convexQuery(api.settings.queries.getPublic, {}),
@@ -25,6 +26,7 @@ export const Route = createFileRoute("/_marketing/recipes/$slug")({
       convexQuery(api.recipes.queries.getBySlug, { slug: params.slug }),
     );
 
+    if (!recipe) throw notFound();
     const siteUrl = normalizeSiteUrl(publicSettings?.siteUrl);
 
     return {
@@ -49,8 +51,8 @@ function RecipeDetailPage() {
 
 function RecipeDetailPageInner() {
   const { slug } = Route.useParams();
-  const query = convexQuery(api.recipes.queries.getBySlug, { slug }) as any;
-  const { data: recipe } = useSuspenseQuery(query) as { data: any };
+  const query = convexQuery(api.recipes.queries.getBySlug, { slug });
+  const { data: recipe } = useSuspenseQuery(query);
 
   if (!recipe) {
     return <NotFoundPage />;

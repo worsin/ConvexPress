@@ -1,3 +1,4 @@
+import { PublicCanonicalBody } from "@/templates/sdk/block-public/PublicCanonicalBody";
 /**
  * Depot · page — a page laid out by measure.
  *
@@ -104,7 +105,9 @@ function PageBody({ page, title = true }: { page: PageDetail; title?: boolean })
         </figure>
       )}
       {title && !opensWithHero(page) && <h1 className="font-display text-2xl font-semibold tracking-tight text-foreground md:text-3xl">{page.title}</h1>}
-      {page.contentMode === "blocks" ? (
+      {page.blocksVersion === 2 ? (
+        <PublicCanonicalBody documentId={page._id} />
+      ) : page.contentMode === "blocks" ? (
         <BlockListRenderer blocks={page.blocks && page.blocks.length > 0 ? page.blocks : pageSectionsToBlocks(page.pageSections)} />
       ) : page.content ? (
         <BlockContentRenderer content={page.content} />

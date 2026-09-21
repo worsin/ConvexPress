@@ -1,5 +1,6 @@
 import { ExternalLink, LayoutDashboard, Pencil } from "lucide-react";
 
+import { useTemplateCustomizer } from "@/templates/sdk/useTemplateSettings";
 import { cn } from "@/lib/utils";
 import { useAdminBarVisibility } from "@/hooks/layout/useAdminBarVisibility";
 
@@ -8,6 +9,7 @@ import { useAdminBarVisibility } from "@/hooks/layout/useAdminBarVisibility";
  * Provides quick links to the admin panel and "Edit This Page" for the current content.
  */
 export function WebsiteAdminBar() {
+  const customizer = useTemplateCustomizer();
   const { showAdminBar, dashboardUrl, editUrl } = useAdminBarVisibility();
 
   if (!showAdminBar) return null;
@@ -37,6 +39,7 @@ export function WebsiteAdminBar() {
 
       {/* Right side */}
       <div className="flex items-center gap-4">
+        <button type="button" className="text-xs text-background/80 hover:text-background" onClick={() => customizer.setOpen(true)}>Customize</button>
         {editUrl && (
           <a
             href={editUrl}

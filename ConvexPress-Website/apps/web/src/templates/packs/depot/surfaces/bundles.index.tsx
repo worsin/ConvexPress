@@ -28,7 +28,7 @@ function savingsOf(bundle: BundleListItem) {
 
 export default function DepotBundlesIndex({ data }: SurfaceProps<BundlesIndexSurfaceData>) {
   const { bundles, currencyCode } = data;
-  const money = (amount: number) => formatMoney(amount, currencyCode);
+  const money = (amount: number, currency = currencyCode) => formatMoney(amount, currency);
 
   return (
     <Container padded={false} data-slot="bundles-index" className="flex flex-col gap-6 py-6 md:py-8">
@@ -40,7 +40,7 @@ export default function DepotBundlesIndex({ data }: SurfaceProps<BundlesIndexSur
         <>
           <div className={GRID}>
             {bundles.map((bundle) => (
-              <BundleCard key={bundle._id} bundle={bundle} currencyCode={currencyCode} />
+              <BundleCard key={bundle._id} bundle={bundle} currencyCode={bundle.currencyCode} />
             ))}
           </div>
 
@@ -82,10 +82,10 @@ export default function DepotBundlesIndex({ data }: SurfaceProps<BundlesIndexSur
                         </span>
                       </Td>
                       <Td align="right" className="hidden text-muted-foreground sm:table-cell">
-                        {typeof bundle.regularPrice === "number" ? money(bundle.regularPrice) : "—"}
+                        {typeof bundle.regularPrice === "number" ? money(bundle.regularPrice, bundle.currencyCode) : "—"}
                       </Td>
                       <Td align="right" className="font-semibold text-foreground">
-                        {typeof bundle.bundlePrice === "number" ? money(bundle.bundlePrice) : typeof bundle.regularPrice === "number" ? money(bundle.regularPrice) : "Varies"}
+                        {typeof bundle.bundlePrice === "number" ? money(bundle.bundlePrice, bundle.currencyCode) : typeof bundle.regularPrice === "number" ? money(bundle.regularPrice, bundle.currencyCode) : "Varies"}
                       </Td>
                       <Td align="right">{savings > 0 ? <span className="font-semibold text-primary">{money(savings)} ({percent}%)</span> : <span className="text-muted-foreground">—</span>}</Td>
                     </tr>

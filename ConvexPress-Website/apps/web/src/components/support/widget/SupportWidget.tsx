@@ -6,6 +6,7 @@
  * on widget config (enabled/disabled in settings).
  */
 
+import { lazy, Suspense } from "react";
 import { useQuery } from "convex/react";
 import { api } from "@convexpress-website/backend/generated/api";
 
@@ -14,12 +15,12 @@ import { WidgetPanel } from "./WidgetPanel";
 import { WidgetErrorBoundary } from "./WidgetErrorBoundary";
 import { useWidgetState } from "../hooks/useWidgetState";
 import { useSessionId } from "../hooks/useSessionId";
-import { HomeView } from "../views/HomeView";
-import { SearchResultsView } from "../views/SearchResultsView";
-import { AIAnswerView } from "../views/AIAnswerView";
-import { TicketFormView } from "../views/TicketFormView";
-import { TicketListView } from "../views/TicketListView";
-import { TicketDetailView } from "../views/TicketDetailView";
+const HomeView = lazy(() => import("../views/HomeView").then(module => ({ default: module.HomeView })));
+const SearchResultsView = lazy(() => import("../views/SearchResultsView").then(module => ({ default: module.SearchResultsView })));
+const AIAnswerView = lazy(() => import("../views/AIAnswerView").then(module => ({ default: module.AIAnswerView })));
+const TicketFormView = lazy(() => import("../views/TicketFormView").then(module => ({ default: module.TicketFormView })));
+const TicketListView = lazy(() => import("../views/TicketListView").then(module => ({ default: module.TicketListView })));
+const TicketDetailView = lazy(() => import("../views/TicketDetailView").then(module => ({ default: module.TicketDetailView })));
 
 const VIEW_TITLES: Record<string, string> = {
   home: "Support",
@@ -40,7 +41,7 @@ export function SupportWidget() {
   if (config === undefined) return null;
   if (!config?.enabled) return null;
 
-  const position = config?.position ?? "bottomRight";
+  const position = config.position === "bottomLeft" ? "bottomLeft" : "bottomRight";
   const greeting = config?.widgetTitle ?? "Hi! How can we help?";
   const title = VIEW_TITLES[state.currentView] ?? "Support";
   const showBack = state.currentView !== "home";
@@ -62,6 +63,7 @@ export function SupportWidget() {
         onClose={state.close}
       >
         <WidgetErrorBoundary>
+        <Suspense fallback={<p role="status" className="p-4 text-sm text-muted-foreground">Loading support…</p>}>
         {state.currentView === "home" && (
           <HomeView
             greeting={greeting}
@@ -118,6 +120,7 @@ export function SupportWidget() {
             ticketId={state.selectedTicketId}
           />
         )}
+        </Suspense>
         </WidgetErrorBoundary>
       </WidgetPanel>
     </>

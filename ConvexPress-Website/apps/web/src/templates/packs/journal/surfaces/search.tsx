@@ -6,7 +6,7 @@
  * click tracking.
  */
 import { Link, useNavigate } from "@tanstack/react-router";
-import DOMPurify from "isomorphic-dompurify";
+import DOMPurify from "@/lib/html-sanitizer";
 import { Search } from "lucide-react";
 import { useState, type ChangeEvent, type FormEvent } from "react";
 

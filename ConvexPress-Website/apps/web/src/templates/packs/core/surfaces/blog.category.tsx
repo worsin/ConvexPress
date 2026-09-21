@@ -1,3 +1,4 @@
+import { ArchiveContinuation, type ArchiveContinuationData } from "@/components/blog/ArchiveContinuation";
 /** Core · blog.category — category archive with breadcrumbs, subcategories and the post grid. */
 import { PostGrid } from "@/components/blog/PostGrid";
 import { PostPagination } from "@/components/blog/PostPagination";
@@ -14,16 +15,18 @@ export interface BlogCategorySurfaceData {
     name: string;
     slug: string;
     description?: string;
-    count: number;
+    count?: number;
   };
   /** Category slug from the URL (pagination base). */
   slug: string;
   /** Ancestor chain from the root category down to the immediate parent. */
   ancestors: Array<{ name: string; slug: string }>;
-  subcategories: Array<{ _id: string; name: string; slug: string; count: number }>;
+  subcategories: Array<{ _id: string; name: string; slug: string; count?: number }>;
   /** `undefined` while the category's posts are loading. */
   posts: PostCard[] | undefined;
   pagination: PaginationData | undefined;
+  continuation?: ArchiveContinuationData;
+  subcategoryContinuation?: ArchiveContinuationData;
 }
 
 export default function CoreBlogCategory({ data }: SurfaceProps<BlogCategorySurfaceData>) {
@@ -51,6 +54,8 @@ export default function CoreBlogCategory({ data }: SurfaceProps<BlogCategorySurf
         <SubcategoryList subcategories={subcategories} />
       )}
 
+      {data.subcategoryContinuation && <ArchiveContinuation data={data.subcategoryContinuation}/>}
+
       {/* Posts */}
       {posts === undefined ? (
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
@@ -64,9 +69,10 @@ export default function CoreBlogCategory({ data }: SurfaceProps<BlogCategorySurf
         </div>
       ) : (
         <>
-          <PostGrid posts={posts} layout="grid" />
+          {posts.length || !data.continuation ? <PostGrid posts={posts} layout="grid" /> : null}
 
-          {pagination && pagination.totalPages > 1 && (
+          {data.continuation && <ArchiveContinuation data={data.continuation}/>}
+          {!data.continuation && pagination && pagination.totalPages > 1 && (
             <PostPagination
               pagination={pagination}
               baseUrl={`/category/${slug}`}

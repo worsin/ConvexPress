@@ -7,7 +7,7 @@
  * plan is kept.
  */
 import { Link, useLocation } from "@tanstack/react-router";
-import DOMPurify from "isomorphic-dompurify";
+import DOMPurify from "@/lib/html-sanitizer";
 import { useMemo } from "react";
 
 import { UpgradeCTA } from "@/components/membership/UpgradeCTA";

@@ -1,3 +1,4 @@
+import { shippingQuoteLabel } from "@/components/commerce/shippingQuoteLabel";
 /**
  * Depot · checkout.shipping — step 2, delivery address and shipping method.
  * Left column: the address fields in a dense two-up grid, then the method
@@ -53,7 +54,6 @@ export default function DepotCheckoutShipping({ data }: SurfaceProps<CheckoutShi
     selectedShippingAmount,
     extraCostOverCheapest,
     badgeLabels,
-    liveRateProvider,
     rateResult,
     fallbackMessage,
     ratesAreStaleForAddress,
@@ -128,19 +128,19 @@ export default function DepotCheckoutShipping({ data }: SurfaceProps<CheckoutShi
                       Shipping method
                     </h2>
                     <p className="text-[13px] text-muted-foreground">
-                      ConvexPress compares enabled live providers and shows the lowest available shipping price first. Current provider priority starts with {liveRateProvider}. If no live providers return rates, checkout keeps manual shipping methods available.
+                      Enter your delivery address to see available shipping options and prices.
                     </p>
                   </div>
                   <Button type="button" variant="secondary" onClick={() => void onRefreshRates()} disabled={isLoadingRates || !hasCompleteAddress}>
-                    {isLoadingRates ? "Refreshing..." : `Refresh live rates (${String(liveRateProvider).toUpperCase()} priority)`}
+                    {isLoadingRates ? "Refreshing..." : "Calculate delivery options"}
                   </Button>
                 </div>
 
-                {ratesAreStaleForAddress ? <Notice tone="primary">The address changed after these rates were loaded. Refresh live rates before continuing so the selected price matches the delivery address.</Notice> : null}
+                {ratesAreStaleForAddress ? <Notice tone="primary">The address changed after these rates were loaded. Recalculate delivery options before continuing so the selected price matches the delivery address.</Notice> : null}
 
                 {manualFallback && (
-                  <Notice tone="primary" title="Live rates unavailable">
-                    {rateResult?.fallbackMessage || fallbackMessage || "Live shipping rates are temporarily unavailable. Standard shipping options are shown below."}
+                  <Notice tone="primary" title="Delivery options unavailable">
+                    {rateResult?.fallbackMessage || fallbackMessage || "Delivery options could not be calculated. Please try again or contact the store."}
                   </Notice>
                 )}
 
@@ -157,7 +157,7 @@ export default function DepotCheckoutShipping({ data }: SurfaceProps<CheckoutShi
                         <div className="flex min-w-0 flex-col">
                           <Label className="text-primary">Lowest shipping price</Label>
                           <p className="text-sm font-semibold text-foreground">
-                            {cheapestQuote.carrierName} {cheapestQuote.serviceName}
+                            {shippingQuoteLabel(cheapestQuote)}
                           </p>
                           <p className="text-xs text-muted-foreground">{transit(cheapestQuote)}</p>
                         </div>
@@ -205,7 +205,7 @@ export default function DepotCheckoutShipping({ data }: SurfaceProps<CheckoutShi
                                 <label htmlFor={id} className="flex cursor-pointer flex-col gap-1">
                                   <span className="flex flex-wrap items-center gap-1.5">
                                     <span className="text-sm font-semibold text-foreground">
-                                      {quote.carrierName} {quote.serviceName}
+                                      {shippingQuoteLabel(quote)}
                                     </span>
                                     {quote.isCheapest ? <Badge tone="sale">{badgeLabels.cheapest}</Badge> : null}
                                     {quote.isBestValue ? <Badge tone="new">{badgeLabels.bestOption}</Badge> : null}
@@ -234,14 +234,14 @@ export default function DepotCheckoutShipping({ data }: SurfaceProps<CheckoutShi
                   </>
                 ) : shippingMethods.length > 0 ? (
                   <>
-                    <Notice>Live carrier quotes are not loaded. Manual store shipping options are available below.</Notice>
+                    <Notice>The store also offers these free shipping options.</Notice>
                     <div className="flex flex-col overflow-hidden rounded-md border border-border">
                       {shippingMethods.map((method) => {
                         const selected = shippingMethod === method.code;
                         return (
                           <label key={method.code} className={cn("flex cursor-pointer items-center gap-3 border-t border-border px-3 py-2 text-sm transition-colors first:border-t-0", selected ? "bg-primary/5 font-semibold text-foreground" : "text-foreground hover:bg-muted/40")}>
                             <input type="radio" name="shippingMethod" value={method.code} checked={selected} onChange={(event) => onSelectRate(event.target.value)} className="size-4 accent-primary" />
-                            <span>{method.label}</span>
+                            <span>{method.label} · Free</span>
                             {selected ? <Check className="ml-auto size-4 text-primary" aria-hidden="true" /> : null}
                           </label>
                         );
@@ -283,7 +283,7 @@ export default function DepotCheckoutShipping({ data }: SurfaceProps<CheckoutShi
                           "Method",
                           selectedQuote ? (
                             <span>
-                              {selectedQuote.carrierName} {selectedQuote.serviceName}
+                              {shippingQuoteLabel(selectedQuote)}
                               <span className="block text-xs text-muted-foreground">{transit(selectedQuote)}</span>
                             </span>
                           ) : selectedManual ? (

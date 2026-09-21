@@ -18,11 +18,18 @@
     "dev": "turbo dev",
     "build": "turbo build",
     "check-types": "turbo check-types",
-    "test": "bun test",
+    "test": "bun run test:web && bun run test:orders && bun run test:tooling && bun run test:demo",
+    "test:web": "bun test ./apps/web/src",
+    "test:orders": "bun test ./apps/web/tests/orders",
+    "test:tooling": "bun test ./scripts",
+    "test:demo": "bun test ./apps/web/block-demo",
     "dev:native": "turbo -F native dev",
     "dev:web": "turbo -F web dev",
     "dev:server": "node -e \"console.error('Disabled: ConvexPress-Website is Convex consumer-only. Run Convex from ConvexPress-Admin.'); process.exit(1)\"",
-    "dev:setup": "node -e \"console.error('Disabled: ConvexPress-Website is Convex consumer-only. Configure/deploy Convex in ConvexPress-Admin.'); process.exit(1)\""
+    "dev:setup": "node -e \"console.error('Disabled: ConvexPress-Website is Convex consumer-only. Configure/deploy Convex in ConvexPress-Admin.'); process.exit(1)\"",
+    "create:template": "node scripts/create-template.mjs",
+    "check:templates:ssr": "node scripts/check-template-ssr.mjs",
+    "build:hosting": "node scripts/build-hosting.mjs"
   },
   "dependencies": {
     "@icons-pack/react-simple-icons": "^13.11.2",

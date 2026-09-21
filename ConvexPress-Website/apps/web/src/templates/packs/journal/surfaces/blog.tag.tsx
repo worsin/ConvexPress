@@ -1,3 +1,4 @@
+import { ArchiveContinuation } from "@/components/blog/ArchiveContinuation";
 /**
  * Journal · blog.tag — small-caps breadcrumbs, the tag in display type with
  * its description and count, then posts as feature + rule-separated list.
@@ -19,7 +20,7 @@ export default function JournalBlogTag({ data }: SurfaceProps<BlogTagSurfaceData
           eyebrow="Tag"
           title={tag.name}
           lede={tag.description}
-          action={
+          action={tag.count === undefined ? undefined :
             <SmallCaps className="tabular-nums">
               {tag.count} {tag.count === 1 ? "post" : "posts"}
             </SmallCaps>
@@ -31,7 +32,7 @@ export default function JournalBlogTag({ data }: SurfaceProps<BlogTagSurfaceData
         posts={posts}
         pagination={pagination}
         getLink={(page) => ({ to: "/tag/$slug", params: { slug }, search: page > 1 ? { page } : {} })}
-        empty={
+        empty={data.continuation ? <></> :
           <EmptyState
             eyebrow="Nothing yet"
             title="No posts with this tag yet."
@@ -43,6 +44,7 @@ export default function JournalBlogTag({ data }: SurfaceProps<BlogTagSurfaceData
           />
         }
       />
+      {data.continuation && <ArchiveContinuation data={data.continuation}/> }
     </Container>
   );
 }

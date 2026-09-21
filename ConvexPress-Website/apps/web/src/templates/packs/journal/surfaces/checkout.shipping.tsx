@@ -1,3 +1,4 @@
+import { shippingQuoteLabel } from "@/components/commerce/shippingQuoteLabel";
 /**
  * Journal · checkout.shipping — step two: the delivery address as underline
  * fields, shipping methods as rule-separated choice rows (the lowest live
@@ -54,7 +55,6 @@ export default function JournalCheckoutShipping({ data }: SurfaceProps<CheckoutS
     selectedShippingAmount,
     extraCostOverCheapest,
     badgeLabels,
-    liveRateProvider,
     rateResult,
     fallbackMessage,
     ratesAreStaleForAddress,
@@ -138,19 +138,19 @@ export default function JournalCheckoutShipping({ data }: SurfaceProps<CheckoutS
                       disabled={isLoadingRates || !hasCompleteAddress}
                       className="text-sm font-medium text-foreground underline decoration-border underline-offset-[6px] transition-colors hover:decoration-foreground disabled:cursor-not-allowed disabled:opacity-50"
                     >
-                      {isLoadingRates ? "Refreshing…" : `Refresh live rates (${String(liveRateProvider).toUpperCase()} priority)`}
+                      {isLoadingRates ? "Refreshing…" : "Calculate delivery options"}
                     </button>
                   }
                 />
                 <p className="text-sm leading-6 text-muted-foreground">
-                  We compare the enabled live carriers and show the lowest available price first; provider priority starts with {liveRateProvider}. If no live provider returns rates, the store's manual shipping methods stay available.
+                  Enter your delivery address to see available shipping options and prices.
                 </p>
 
-                {ratesAreStaleForAddress ? <Notice tone="primary">The address changed after these rates were loaded. Refresh live rates before continuing so the selected price matches the delivery address.</Notice> : null}
+                {ratesAreStaleForAddress ? <Notice tone="primary">The address changed after these rates were loaded. Recalculate delivery options before continuing so the selected price matches the delivery address.</Notice> : null}
 
                 {rateResult?.provider === "manual_fallback" ? (
-                  <Notice tone="primary" title="Live rates unavailable">
-                    {rateResult.fallbackMessage || fallbackMessage || "Live shipping rates are temporarily unavailable. Standard shipping options are shown below."}
+                  <Notice tone="primary" title="Delivery options unavailable">
+                    {rateResult.fallbackMessage || fallbackMessage || "Delivery options could not be calculated. Please try again or contact the store."}
                   </Notice>
                 ) : null}
 
@@ -167,7 +167,7 @@ export default function JournalCheckoutShipping({ data }: SurfaceProps<CheckoutS
                         <div className="flex flex-col gap-2">
                           <Eyebrow>Lowest shipping price</Eyebrow>
                           <p className="font-display text-xl leading-snug text-foreground">
-                            {cheapestQuote.carrierName} {cheapestQuote.serviceName}
+                            {shippingQuoteLabel(cheapestQuote)}
                           </p>
                           <SmallCaps>{transit(cheapestQuote)}</SmallCaps>
                         </div>
@@ -201,7 +201,7 @@ export default function JournalCheckoutShipping({ data }: SurfaceProps<CheckoutS
                             value={quote.quoteKey}
                             checked={isSelected}
                             onChange={onSelectRate}
-                            title={`${quote.carrierName} ${quote.serviceName}`}
+                            title={shippingQuoteLabel(quote)}
                             badges={
                               <>
                                 {quote.isCheapest ? <Badge tone="primary">{badgeLabels.cheapest}</Badge> : null}
@@ -232,10 +232,10 @@ export default function JournalCheckoutShipping({ data }: SurfaceProps<CheckoutS
                   </div>
                 ) : shippingMethods.length > 0 ? (
                   <div className="flex flex-col gap-4">
-                    <Notice>Live carrier quotes are not loaded. The store's manual shipping options are available below.</Notice>
+                    <Notice>The store also offers these free shipping options.</Notice>
                     <div className="flex flex-col divide-y divide-border border-y border-border">
                       {shippingMethods.map((method) => (
-                        <ChoiceRow key={method.code} name="shippingMethod" value={method.code} checked={shippingMethod === method.code} onChange={onSelectRate} title={method.label} />
+                        <ChoiceRow key={method.code} name="shippingMethod" value={method.code} checked={shippingMethod === method.code} onChange={onSelectRate} title={`${method.label} · Free`} />
                       ))}
                     </div>
                   </div>
@@ -258,7 +258,7 @@ export default function JournalCheckoutShipping({ data }: SurfaceProps<CheckoutS
                       selectedQuote ? (
                         <span className="flex flex-col items-end">
                           <span>
-                            {selectedQuote.carrierName} {selectedQuote.serviceName}
+                            {shippingQuoteLabel(selectedQuote)}
                           </span>
                           <span className="text-xs text-muted-foreground">{transit(selectedQuote)}</span>
                         </span>

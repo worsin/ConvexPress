@@ -1,3 +1,4 @@
+import type { Id } from "@convexpress-website/backend/generated/dataModel";
 /**
  * The notification center's actions, bound to the Convex mutations and
  * wrapped with toasts. Shared by the center page, the bell, and the widget.
@@ -11,13 +12,13 @@ import { toast } from "sonner";
 import { explainError } from "@/lib/support-tickets";
 
 export interface NotificationActions {
-  markRead: (id: string) => Promise<void>;
-  markUnread: (id: string) => Promise<void>;
-  markActioned: (id: string) => Promise<void>;
-  archive: (id: string) => Promise<void>;
-  restore: (id: string) => Promise<void>;
-  snooze: (id: string, until: number) => Promise<void>;
-  unsnooze: (id: string) => Promise<void>;
+  markRead: (id: Id<"siteNotifications">) => Promise<void>;
+  markUnread: (id: Id<"siteNotifications">) => Promise<void>;
+  markActioned: (id: Id<"siteNotifications">) => Promise<void>;
+  archive: (id: Id<"siteNotifications">) => Promise<void>;
+  restore: (id: Id<"siteNotifications">) => Promise<void>;
+  snooze: (id: Id<"siteNotifications">, until: number) => Promise<void>;
+  unsnooze: (id: Id<"siteNotifications">) => Promise<void>;
   markAllRead: () => Promise<void>;
   archiveRead: () => Promise<void>;
 }
@@ -26,7 +27,7 @@ function whenLabel(until: number): string {
   return new Date(until).toLocaleString("en-US", { weekday: "short", hour: "numeric", minute: "2-digit" });
 }
 
-export function useNotificationActions(options: { onSnoozed?: (id: string) => void; quiet?: boolean } = {}): NotificationActions {
+export function useNotificationActions(options: { onSnoozed?: (id: Id<"siteNotifications">) => void; quiet?: boolean } = {}): NotificationActions {
   const markRead = useMutation(api.notifications.mutations.markRead);
   const markUnread = useMutation(api.notifications.mutations.markUnread);
   const markActioned = useMutation(api.notifications.mutations.markActioned);

@@ -6,7 +6,7 @@
  * the hit for the admin's 404 report.
  */
 import { NotFoundPage } from "@/components/blog/NotFoundPage";
-import { NotFoundTemplate } from "@/templates/NotFoundTemplate";
+import { NotFoundTemplate } from "@/templates/packs/core/parts/not-found";
 import type { SurfaceProps } from "@/templates/sdk/types";
 
 export interface NotFoundSurfaceData {

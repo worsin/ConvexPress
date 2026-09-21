@@ -1,6 +1,6 @@
 import { convexQuery } from "@convex-dev/react-query";
 import { useSuspenseQuery } from "@tanstack/react-query";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, notFound } from "@tanstack/react-router";
 import { api } from "@convexpress-website/backend/generated/api";
 import { z } from "zod";
 
@@ -33,6 +33,8 @@ export const Route = createFileRoute("/_marketing/categories/$slug")({
     const siteUrl = normalizeSiteUrl(
       (publicSettings as { siteUrl?: string | null })?.siteUrl,
     );
+
+    if (!category) throw notFound();
 
     if (category) {
       await queryClient.ensureQueryData(
@@ -68,6 +70,7 @@ export const Route = createFileRoute("/_marketing/categories/$slug")({
   },
   head: ({ loaderData }) => loaderData?.seoHead ?? {},
   component: ProductCategoryArchivePage,
+  notFoundComponent: NotFoundPage,
 });
 
 function ProductCategoryArchivePage() {
@@ -84,6 +87,14 @@ function ProductCategoryArchivePage() {
     return <NotFoundPage />;
   }
 
+  return <CategoryProducts category={category} slug={slug} page={page} currencyCode={currencyCode} />;
+}
+
+/** Keep the products subscription in a child so a revoked category can unmount
+ * it without changing hook order in the live category subscription. */
+function CategoryProducts({category,slug,page,currencyCode}: {
+  category: CategoryArchiveCategory; slug: string; page: number; currencyCode: string;
+}) {
   const { data } = useSuspenseQuery(
     convexQuery(api.commerce.products.listPublished, {
       page,

@@ -1,0 +1,15 @@
+import {test,expect} from "bun:test";
+import {renderToStaticMarkup} from "react-dom/server";
+import leadBlock from "../../../../../../../blocks/core/lead-magnet/render";
+import {prepareBlocks} from "./model";
+import {resolveCanonicalData} from "../block-data/portable/resolve";
+import {createDemoContentPageHost} from "../block-data/demo-channel";
+import {leadMagnetResultSchema,type LeadMagnetResult} from "../block-data/portable/leadMagnetContracts";
+const policy={enabledPlugins:["forms"],capabilities:["form.submission","reference.targetResolution"],disabledBlocks:[]};
+const current={scope:{websiteKey:"guide",instanceKey:"staging"},documentKey:"page",revision:"1",viewerKey:"guest"};
+const tree=[{id:"guide",name:"core/lead-magnet",version:1,attrs:{title:"A <field> guide",file:{id:"download-only"},media:{id:"cover"},list:"list"}}];
+const data:LeadMagnetResult={blockId:"guide",offer:{postId:"page",blockId:"guide",revision:1,digest:"a".repeat(64),file:{name:"guide.pdf",bytes:4096,mimeType:"application/pdf"},audience:{name:"Readers",consentText:"Optional updates",privacyUrl:"/privacy"},security:{honeypotEnabled:true,honeypotFieldName:"website_url",minFillMs:2000,maxFormAgeMs:86400000,captchaEnabled:false,captchaProvider:"none",captchaSiteKey:null}}};
+async function install(result:LeadMagnetResult){const params:Parameters<typeof resolveCanonicalData>=[tree,current.scope,policy,async()=>null];params[42]=async()=>result;const envelope=await resolveCanonicalData(...params),host=createDemoContentPageHost(),grant=host.install({tree,context:current,policy,envelope});return {host,render:()=>renderToStaticMarkup(prepareBlocks(tree,{"core/lead-magnet":leadBlock},policy,{media:{cover:{src:"/cover.jpg",alt:"Field guide cover"},"download-only":{src:"/NEVER-RENDER.pdf",alt:""}}},{grant,current}))};}
+test("Lead Magnet renders a safe preview using display media and a bound offer",async()=>{const {render}=await install(data),html=render();expect(html).toContain("A &lt;field&gt; guide");expect(html).toContain("/cover.jpg");expect(html).not.toContain("NEVER-RENDER");expect(html).toContain("4 KB");expect(html).toContain("Optional");expect(html).toContain("Preview — no email");expect(html).not.toContain("checked=");expect(html).not.toContain("turnstile");});
+test("Lead Magnet source bindings and closed public data reject forged offers",async()=>{await expect(install({...data,blockId:"other"})).rejects.toThrow();await expect(install({...data,offer:{...data.offer!,blockId:"other"}})).rejects.toThrow();expect(()=>leadMagnetResultSchema.parse({...data,offer:{...data.offer!,url:"/secret.pdf"}})).toThrow();expect(()=>leadMagnetResultSchema.parse({...data,offer:{...data.offer!,audience:{...data.offer!.audience,subscribers:["private@example.invalid"]}}})).toThrow();});
+test("withdrawn offers and invalidated grants cannot retain a working form",async()=>{const {host,render}=await install(data);host.invalidate();expect(()=>render()).toThrow();const missing=await install({blockId:"guide",offer:null});expect(missing.render()).toContain("Preview — no email");expect(missing.render()).not.toContain("4 KB");});

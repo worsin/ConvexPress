@@ -32,7 +32,7 @@ function OrdersWidget({ settings, size }: DashboardWidgetProps) {
         title="No orders yet"
         description="Your purchases and their status will show up here."
         action={
-          <Link to="/shop" className="font-medium text-primary hover:underline">
+          <Link to="/products" className="font-medium text-primary hover:underline">
             Browse the shop
           </Link>
         }

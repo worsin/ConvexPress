@@ -13,6 +13,7 @@ import { Surface } from "@/templates/sdk/Surface";
 export const Route = createFileRoute(
   "/_marketing/checkout/confirmation_/$orderId",
 )({
+  loader: () => ({ title: "Order confirmation" }),
   component: CheckoutConfirmationPage,
 });
 

@@ -1,3 +1,4 @@
+import type { Id } from "@convexpress-website/backend/generated/dataModel";
 import { useMemo } from "react";
 import { useQuery } from "convex/react";
 import { api } from "@convexpress-website/backend/generated/api";
@@ -9,7 +10,7 @@ type UserStatus = "pending" | "active" | "deactivated";
 
 /** Backend user profile response shape from profiles.queries.getProfile */
 interface BackendUserProfile {
-  _id: string;
+  _id: Id<"users">;
   clerkUserId?: string;
   email: string;
   firstName?: string | null;

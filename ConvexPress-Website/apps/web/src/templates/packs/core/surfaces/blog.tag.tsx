@@ -1,3 +1,4 @@
+import { ArchiveContinuation, type ArchiveContinuationData } from "@/components/blog/ArchiveContinuation";
 /** Core · blog.tag — tag archive with breadcrumbs and the post grid. */
 import { PostGrid } from "@/components/blog/PostGrid";
 import { PostPagination } from "@/components/blog/PostPagination";
@@ -13,13 +14,14 @@ export interface BlogTagSurfaceData {
     name: string;
     slug: string;
     description?: string;
-    count: number;
+    count?: number;
   };
   /** Tag slug from the URL (pagination base). */
   slug: string;
   /** `undefined` while the tag's posts are loading. */
   posts: PostCard[] | undefined;
   pagination: PaginationData | undefined;
+  continuation?: ArchiveContinuationData;
 }
 
 export default function CoreBlogTag({ data }: SurfaceProps<BlogTagSurfaceData>) {
@@ -54,9 +56,10 @@ export default function CoreBlogTag({ data }: SurfaceProps<BlogTagSurfaceData>) 
         </div>
       ) : (
         <>
-          <PostGrid posts={posts} layout="grid" />
+          {posts.length || !data.continuation ? <PostGrid posts={posts} layout="grid" /> : null}
 
-          {pagination && pagination.totalPages > 1 && (
+          {data.continuation && <ArchiveContinuation data={data.continuation}/> }
+          {!data.continuation && pagination && pagination.totalPages > 1 && (
             <PostPagination
               pagination={pagination}
               baseUrl={`/tag/${slug}`}

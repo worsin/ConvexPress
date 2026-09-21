@@ -17,6 +17,7 @@ import { useShopShell } from "@/components/shop/ShopShell";
 import { useSettings } from "@/contexts/SettingsContext";
 import { useAssistantConfig, type AssistantConfig } from "@/hooks/useAssistantConfig";
 import { useShopLayout, type ShopLayout } from "@/hooks/useShopLayout";
+import { useCommerceSessionToken } from "@/hooks/useCommerceSessionToken";
 import { perPageFor, queryArgs, type SearchResponse, type ShopSearch } from "@/lib/commerce/shopSearch";
 
 export interface ShopFacetChip {
@@ -52,6 +53,7 @@ export interface ShopCatalogData {
 }
 
 export function useShopCatalogData(variant?: string): ShopCatalogData {
+  const { sessionToken } = useCommerceSessionToken();
   const search = useSearch({ from: "/_marketing/products/" }) as ShopSearch;
   const navigate = useNavigate({ from: "/products" });
   const settings = useSettings();
@@ -66,7 +68,7 @@ export function useShopCatalogData(variant?: string): ShopCatalogData {
   const { data } = useTanStackQuery(convexQuery((api as any).commerce.storefront.searchProducts, args) as any) as {
     data: SearchResponse | undefined;
   };
-  const facets = useQuery((api as any).commerce.storefront.facetsForQuery, q && assistant.searchFacets ? { q } : "skip") as
+  const facets = useQuery((api as any).commerce.storefront.facetsForQuery, q && assistant.searchFacets && sessionToken ? { q, sessionToken } : "skip") as
     | { chips: ShopFacetChip[] }
     | null
     | undefined;

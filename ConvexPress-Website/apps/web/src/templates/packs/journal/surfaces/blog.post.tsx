@@ -1,3 +1,4 @@
+import { PublicCanonicalBody } from "@/templates/sdk/block-public/PublicCanonicalBody";
 /**
  * Journal · blog.post — a single post in the reading measure. Display title,
  * small-caps meta, a 3:2 hero image, the body (blocks / structured / TipTap,
@@ -51,6 +52,8 @@ export default function JournalBlogPost({ data }: SurfaceProps<BlogPostSurfaceDa
       <Prose className="text-base leading-8 text-muted-foreground md:text-[17px]">
         {restricted ? (
           <Surface name="system.restricted" data={restricted} fallback={CoreRestricted} />
+        ) : post.blocksVersion === 2 ? (
+          <PublicCanonicalBody documentId={post._id} />
         ) : post.contentMode === "blocks" && post.blocks && post.blocks.length > 0 ? (
           <BlockListRenderer blocks={post.blocks} />
         ) : structured ? (

@@ -11,6 +11,9 @@ import { convexQuery } from "@convex-dev/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { api } from "@convexpress-website/backend/generated/api";
 
+import { resolveShopLayout } from "@/lib/commerce/shop-layout";
+import { getTemplatePack } from "@/templates/sdk/registry";
+import type { TemplateConfig } from "@/templates/sdk/types";
 import { ShopShell } from "@/components/shop/ShopShell";
 import { perPageFor, queryArgs, shopSearchSchema } from "@/lib/commerce/shopSearch";
 import { buildSeoHead, normalizeSiteUrl, toAbsoluteUrl } from "@/lib/seo/head";
@@ -19,14 +22,19 @@ import { Surface } from "@/templates/sdk/Surface";
 
 export const Route = createFileRoute("/_marketing/products/")({
   validateSearch: shopSearchSchema,
-  loaderDeps: ({ search }) => ({ ...queryArgs(search), layout: search.layout }),
+  loaderDeps: ({ search }) => ({ ...queryArgs(search), layout: search.layout, template: search.template }),
   loader: async ({ context: { queryClient }, deps }) => {
     const publicSettings = await queryClient.ensureQueryData(convexQuery(api.settings.queries.getPublic, {}));
     const siteUrl = normalizeSiteUrl((publicSettings as { siteUrl?: string | null })?.siteUrl);
     const siteTitle = (publicSettings as { siteTitle?: string })?.siteTitle ?? "Shop";
-    const layoutConfig = (publicSettings as any)?.layoutConfig ?? {};
-    const { layout, ...args } = deps;
-    const perPage = perPageFor(layout ?? layoutConfig.shopLayout ?? "boutique", layoutConfig.gridDensity ?? "comfortable");
+    const config = (publicSettings as { templateConfig?: Partial<TemplateConfig> })?.templateConfig;
+    const { layout, template: previewPack, ...args } = deps;
+    const packId = previewPack && getTemplatePack(previewPack) ? previewPack : config?.active ?? "core";
+    const pack = getTemplatePack(packId);
+    const savedShop = config?.settings?.[packId]?.shop;
+    const shop = { ...pack?.manifest.defaults?.shop, ...(savedShop && typeof savedShop === "object" ? savedShop as Record<string, unknown> : {}) };
+    const shopLayout = resolveShopLayout(config?.variants ?? {}, shop, { layout });
+    const perPage = perPageFor(shopLayout.shopLayout, shopLayout.gridDensity);
     if ((publicSettings as any)?.plugins?.commerceEnabled === true) {
       await queryClient.ensureQueryData(convexQuery((api as any).commerce.storefront.searchProducts, { ...args, perPage }));
     }

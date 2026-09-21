@@ -4,7 +4,7 @@
  */
 
 import { Link } from "@tanstack/react-router";
-import DOMPurify from "isomorphic-dompurify";
+import DOMPurify from "@/lib/html-sanitizer";
 import { Check, Minus, Plus, Sparkles, Truck } from "lucide-react";
 import { useState } from "react";
 
@@ -218,6 +218,7 @@ export function VariantPicker({ state, className }: Pick<PartProps, "state" | "c
                   key={value.id}
                   type="button"
                   disabled={!enabled}
+                  aria-pressed={selected}
                   onClick={() => state.selectOption(optionType.id, value.id)}
                   className={cn(
                     "rounded-full border px-3 py-1.5 text-sm transition-colors",

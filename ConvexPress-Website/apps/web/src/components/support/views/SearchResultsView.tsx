@@ -26,7 +26,6 @@ interface AIResult {
     excerpt: string;
     categorySlug?: string;
     score: number;
-    source: string;
   }>;
   confidence: string;
   usedAi: boolean;

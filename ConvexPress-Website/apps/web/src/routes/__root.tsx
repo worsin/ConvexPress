@@ -7,11 +7,12 @@ import {
   Outlet,
   Scripts,
   createRootRouteWithContext,
+  useRouterState,
   type ErrorComponentProps,
   type NotFoundRouteProps,
 } from "@tanstack/react-router";
-import { ClerkProvider, useAuth } from "@/lib/auth/clerk";
-import { ConvexProviderWithClerk } from "convex/react-clerk";
+import { ClerkProvider } from "@/lib/auth/clerk";
+import { SessionBoundConvexProvider } from "@/lib/auth/SessionBoundConvexProvider";
 import { AuthConfigProvider } from "@/contexts/AuthConfigContext";
 import { coerceAuthConfig, defaultWebsiteAuthConfig, type WebsiteAuthConfig } from "@/lib/auth/capabilities";
 
@@ -24,10 +25,13 @@ import { SupportWidget } from "@/components/support/widget/SupportWidget";
 import { api } from "@convexpress-website/backend/generated/api";
 import { SettingsProvider } from "@/contexts/SettingsContext";
 import { ThemeStyleInjector } from "@/components/layout/ThemeStyleInjector";
+import { OnSiteCustomizer } from "@/templates/sdk/OnSiteCustomizer";
 import { TemplateSettingsDraftProvider, TemplateSettingsInjector } from "@/templates/sdk/useTemplateSettings";
 import { getSiteRuntime, siteRuntimeBootstrapScript } from "@/lib/site-runtime";
 
-import appCss from "../index.css?url";
+// One route-owned import lets Start include global CSS in its SSR asset manifest
+// and lets Vite update it without a second, independently timestamped head link.
+import "../index.css";
 import { resolveSiteName, rememberSiteName } from "@/lib/seo/head";
 
 export interface RouterAppContext {
@@ -138,10 +142,6 @@ export const Route = createRootRouteWithContext<RouterAppContext>()({
         href: "https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@400;600;700&display=swap",
       },
       {
-        rel: "stylesheet",
-        href: appCss,
-      },
-      {
         rel: "alternate",
         type: "application/rss+xml",
         title: "RSS Feed",
@@ -166,6 +166,7 @@ export const Route = createRootRouteWithContext<RouterAppContext>()({
 });
 
 function RootDocument() {
+  const documentPreview = useRouterState({select: state => state.location.pathname.replace(/\/+$/, "") === "/document-preview"});
   const { convexQueryClient } = Route.useRouteContext();
   const loaderData = Route.useLoaderData() as { authConfig?: WebsiteAuthConfig } | undefined;
   const authConfig = loaderData?.authConfig ?? defaultWebsiteAuthConfig();
@@ -179,7 +180,7 @@ function RootDocument() {
   return (
     <StrictMode>
       <ClerkProvider
-        publishableKey={clerkPublishableKey}
+        publishableKey={documentPreview ? undefined : clerkPublishableKey}
         signInUrl="/login"
         signUpUrl="/register"
         signInFallbackRedirectUrl="/dashboard"
@@ -187,9 +188,8 @@ function RootDocument() {
         afterSignOutUrl="/"
       >
         <AuthConfigProvider value={authConfig}>
-        <ConvexProviderWithClerk
+        <SessionBoundConvexProvider
           client={convexQueryClient.convexClient}
-          useAuth={useAuth}
         >
           <html lang="en" suppressHydrationWarning>
             <head>
@@ -210,17 +210,18 @@ function RootDocument() {
               {/* Site palette, brand type and template settings apply to every route, not just the marketing layout. */}
               <ThemeStyleInjector />
               <TemplateSettingsInjector />
-                <WebsiteNotificationToastProvider>
-                  <Outlet />
-                </WebsiteNotificationToastProvider>
-                <SupportWidget />
+                {documentPreview ? <Outlet /> : <>
+                  <WebsiteNotificationToastProvider><Outlet /></WebsiteNotificationToastProvider>
+                  <SupportWidget />
+                  <OnSiteCustomizer />
+                </>}
               </TemplateSettingsDraftProvider>
               </SettingsProvider>
-              <Toaster richColors />
+              {!documentPreview && <Toaster richColors />}
               <Scripts />
             </body>
           </html>
-        </ConvexProviderWithClerk>
+        </SessionBoundConvexProvider>
         </AuthConfigProvider>
       </ClerkProvider>
     </StrictMode>

@@ -16,6 +16,8 @@ import {
   categoryHint,
   categoryLabel,
   explainError,
+  isTicketCategory,
+  type TicketCategory,
   sortCategories,
   validateTicketDraft,
   type TicketCategoriesResult,
@@ -85,10 +87,10 @@ export function NewTicketForm({ prefill, backHref, ticketHref, compactHeader = f
   const requestUploadUrl = useMutation(api.tickets.attachments.generateUploadUrl);
   const generateAnswer = useAction(api.support.deflection.generateAnswer);
   const logInteraction = useMutation(api.support.deflection.logInteraction);
-  const sessionId = useSessionId();
+  const { sessionId } = useSessionId();
 
   const categories = useMemo(() => sortCategories(categoriesResult?.categories ?? []), [categoriesResult]);
-  const [category, setCategory] = useState<string>(prefill?.category ?? "");
+  const [category, setCategory] = useState<TicketCategory | "">(isTicketCategory(prefill?.category) ? prefill.category : "");
   const [subject, setSubject] = useState(prefill?.subject ?? "");
   const [description, setDescription] = useState(prefill?.context ? `\n\n---\n${prefill.context}` : "");
   const attachments = useAttachmentSelection();

@@ -1,6 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { FileText, GraduationCap, Image, MessageSquare, Newspaper, ShoppingBag } from "lucide-react";
-import DOMPurify from "isomorphic-dompurify";
+import DOMPurify from "@/lib/html-sanitizer";
 
 import { cn } from "@/lib/utils";
 import type { SearchResult } from "@/lib/blog/types";

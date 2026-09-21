@@ -1,3 +1,4 @@
+import { shippingQuoteLabel } from "@/components/commerce/shippingQuoteLabel";
 /** Core · checkout.shipping — step 2: delivery address and shipping method (live rates or manual). */
 import type { FormEvent } from "react";
 
@@ -130,7 +131,6 @@ export default function CoreCheckoutShipping({ data }: SurfaceProps<CheckoutShip
     selectedShippingAmount,
     extraCostOverCheapest,
     badgeLabels,
-    liveRateProvider,
     rateResult,
     fallbackMessage,
     ratesAreStaleForAddress,
@@ -236,26 +236,26 @@ export default function CoreCheckoutShipping({ data }: SurfaceProps<CheckoutShip
                 >
                   {isLoadingRates
                     ? "Refreshing..."
-                    : `Refresh live rates (${String(liveRateProvider).toUpperCase()} priority)`}
+                    : "Calculate delivery options"}
                 </button>
               </div>
               <p className="text-xs text-muted-foreground">
-                ConvexPress compares enabled live providers and shows the lowest available shipping price first. Current provider priority starts with {liveRateProvider}. If no live providers return rates, checkout keeps manual shipping methods available.
+                Enter your delivery address to see available shipping options and prices.
               </p>
 
               {ratesAreStaleForAddress ? (
                 <div className="rounded-xl border border-primary/30 bg-primary/10 px-4 py-3 text-sm text-primary">
-                  The address changed after these rates were loaded. Refresh live rates before continuing so the selected price matches the delivery address.
+                  The address changed after these rates were loaded. Recalculate delivery options before continuing so the selected price matches the delivery address.
                 </div>
               ) : null}
 
               {rateResult?.provider === "manual_fallback" && (
                 <div className="rounded-lg border border-primary/30 bg-primary/10 p-4 text-sm text-primary mb-4">
-                  <p className="font-medium">Live Rates Unavailable</p>
+                  <p className="font-medium">Delivery options unavailable</p>
                   <p className="mt-1 text-primary/80">
                     {rateResult.fallbackMessage ||
                       fallbackMessage ||
-                      "Live shipping rates are temporarily unavailable. Standard shipping options are shown below."}
+                      "Delivery options could not be calculated. Please try again or contact the store."}
                   </p>
                 </div>
               )}
@@ -279,7 +279,7 @@ export default function CoreCheckoutShipping({ data }: SurfaceProps<CheckoutShip
                             Lowest shipping price
                           </p>
                           <p className="mt-1 text-sm text-foreground">
-                            {cheapestQuote.carrierName} {cheapestQuote.serviceName}
+                            {shippingQuoteLabel(cheapestQuote)}
                           </p>
                           <p className="mt-1 text-xs text-muted-foreground">
                             {formatTransit(cheapestQuote)}
@@ -354,7 +354,7 @@ export default function CoreCheckoutShipping({ data }: SurfaceProps<CheckoutShip
                             <div className="min-w-0 flex-1">
                               <div className="flex flex-wrap items-center gap-2">
                                 <span className="text-sm font-semibold text-foreground">
-                                  {quote.carrierName} {quote.serviceName}
+                                  {shippingQuoteLabel(quote)}
                                 </span>
                                 {quote.isCheapest ? (
                                   <span className="rounded-full bg-primary px-2 py-0.5 text-[11px] font-medium text-primary-foreground">
@@ -420,7 +420,7 @@ export default function CoreCheckoutShipping({ data }: SurfaceProps<CheckoutShip
               ) : shippingMethods.length > 0 ? (
                 <div className="space-y-3">
                   <div className="rounded-xl border border-border bg-muted/30 px-4 py-3 text-sm text-muted-foreground">
-                    Live carrier quotes are not loaded. Manual store shipping options are available below.
+                    The store also offers these free shipping options.
                   </div>
                   {shippingMethods.map((method) => (
                     <label
@@ -439,7 +439,7 @@ export default function CoreCheckoutShipping({ data }: SurfaceProps<CheckoutShip
                         onChange={(event) => onSelectRate(event.target.value)}
                       />
                       <span className="text-sm font-medium text-foreground">
-                        {method.label}
+                        {method.label} · Free
                       </span>
                     </label>
                   ))}
@@ -457,8 +457,7 @@ export default function CoreCheckoutShipping({ data }: SurfaceProps<CheckoutShip
               <div className="flex flex-wrap items-center justify-between gap-3 text-sm">
                 <div>
                   <p className="font-medium text-foreground">
-                    Selected shipping: {selectedQuote.carrierName}{" "}
-                    {selectedQuote.serviceName}
+                    Selected shipping: {shippingQuoteLabel(selectedQuote)}
                   </p>
                   <p className="mt-1 text-muted-foreground">
                     {formatTransit(selectedQuote)}

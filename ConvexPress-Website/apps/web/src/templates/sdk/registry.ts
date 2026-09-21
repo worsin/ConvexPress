@@ -7,10 +7,14 @@
  *   per-surface override → active pack → `core` → the route's own fallback.
  */
 
+import { lazy } from "react";
 import type { SurfaceComponent, TemplateConfig, TemplateManifest, TemplatePack } from "./types";
 
 const manifestModules = import.meta.glob("../packs/*/template.json", { eager: true, import: "default" }) as Record<string, TemplateManifest>;
-const surfaceModules = import.meta.glob("../packs/*/surfaces/*.tsx", { eager: true, import: "default" }) as Record<string, SurfaceComponent<any>>;
+// Stable lazy components preserve SSR/Suspense hydration while loading only
+// surfaces that the selected pack actually renders. Metadata discovery stays sync.
+const surfaceModules = import.meta.glob<SurfaceComponent<any>>("../packs/*/surfaces/*.tsx", { import: "default" });
+const surfaceLoaders = new Map<string, () => Promise<SurfaceComponent<any>>>();
 
 function packIdFromPath(path: string): string {
   const match = path.match(/\/packs\/([^/]+)\//);
@@ -29,15 +33,39 @@ function buildRegistry(): Map<string, TemplatePack> {
     if (!id || !manifest || manifest.id !== id) continue;
     packs.set(id, { manifest, surfaces: {} });
   }
-  for (const [path, component] of Object.entries(surfaceModules)) {
+  for (const [path, load] of Object.entries(surfaceModules)) {
     const pack = packs.get(packIdFromPath(path));
     const surfaceId = surfaceIdFromPath(path);
-    if (pack && surfaceId && component) pack.surfaces[surfaceId] = component;
+    if (pack && surfaceId) {
+      surfaceLoaders.set(`${pack.manifest.id}/${surfaceId}`, load);
+      pack.surfaces[surfaceId] = lazy(async () => ({ default: await load() }));
+    }
   }
   return packs;
 }
 
 export const TEMPLATE_PACKS: Map<string, TemplatePack> = buildRegistry();
+
+/**
+ * Run once before hydrateRoot. Only the surfaces in the server document need
+ * synchronous components on the first client render. Otherwise an early live
+ * query/context update can discard a still-dehydrated lazy boundary, removing
+ * the user's pointer target. Other packs/routes remain lazy.
+ * DOM attributes select only build-discovered modules, never import URLs.
+ */
+export async function prepareTemplateHydration(root: ParentNode): Promise<void> {
+  const selected = new Map<string, { packId: string; surfaceId: string }>();
+  for (const element of root.querySelectorAll("[data-surface][data-template]")) {
+    const packId = element.getAttribute("data-template")!;
+    const surfaceId = element.getAttribute("data-surface")!;
+    const key = `${packId}/${surfaceId}`;
+    if (surfaceLoaders.has(key)) selected.set(key, { packId, surfaceId });
+  }
+  await Promise.all([...selected].map(async ([key, { packId, surfaceId }]) => {
+    const component = await surfaceLoaders.get(key)!();
+    TEMPLATE_PACKS.get(packId)!.surfaces[surfaceId] = component;
+  }));
+}
 
 export const DEFAULT_TEMPLATE_CONFIG: TemplateConfig = { active: "core", overrides: {}, variants: {}, settings: {} };
 

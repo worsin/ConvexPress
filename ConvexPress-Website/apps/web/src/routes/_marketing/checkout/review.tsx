@@ -3,7 +3,7 @@ import { createFileRoute, useRouter } from "@tanstack/react-router";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "@convexpress-website/backend/generated/api";
 import { toast } from "sonner";
-import { loadStripe } from "@stripe/stripe-js";
+import { loadStripe } from "@stripe/stripe-js/pure";
 import type { Stripe as StripeType } from "@stripe/stripe-js";
 
 import { useSettings } from "@/contexts/SettingsContext";

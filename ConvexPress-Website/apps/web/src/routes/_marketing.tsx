@@ -1,4 +1,4 @@
-import { createFileRoute, Outlet } from "@tanstack/react-router";
+import { createFileRoute, Outlet, useLocation } from "@tanstack/react-router";
 import { convexQuery } from "@convex-dev/react-query";
 import { useUser } from "@/lib/auth/clerk";
 import { api } from "@convexpress-website/backend/generated/api";
@@ -74,6 +74,8 @@ function MarketingLayout() {
  * replaced with a RestrictedContent gate instead of rendering the page.
  */
 function MarketingLayoutInner({ routeAccess }: { routeAccess: RouteAccessResult }) {
+  const pathname=useLocation({select:location=>location.pathname});
+  const archiveOwnsBreadcrumbs=/^\/(?:category|tag)\/[^/]+\/?$/.test(pathname);
   const siteIdentity = useSiteIdentity();
   const headerConfig = useHeaderConfig();
   const headerMenu = useMenuForLocation(getHeaderMenuLocation(headerConfig.navigation));
@@ -151,9 +153,9 @@ function MarketingLayoutInner({ routeAccess }: { routeAccess: RouteAccessResult 
         )}
         <div className="flex flex-1 flex-col">
           {fullWidth ? (
-            pageContent
+            <main id="main-content" role="main">{pageContent}</main>
           ) : (
-            <ContentWrapper layoutConfig={layoutConfig}>
+            <ContentWrapper layoutConfig={layoutConfig} showBreadcrumbs={!archiveOwnsBreadcrumbs}>
               {pageContent}
             </ContentWrapper>
           )}

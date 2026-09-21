@@ -79,7 +79,7 @@ export default function JournalDashboardLesson({ data }: SurfaceProps<DashboardL
       </aside>
 
       {/* Lesson */}
-      <main className="flex min-w-0 flex-col gap-12">
+      <div className="flex min-w-0 flex-col gap-12">
         {lessonLocked || !lesson ? (
           <EmptyState eyebrow="Lesson locked" title={lockReason} />
         ) : (
@@ -177,7 +177,7 @@ export default function JournalDashboardLesson({ data }: SurfaceProps<DashboardL
             </div>
           </section>
         ) : null}
-      </main>
+      </div>
     </div>
   );
 }

@@ -15,7 +15,7 @@ interface Subcategory {
   _id: string;
   name: string;
   slug: string;
-  count: number;
+  count?: number;
 }
 
 interface SubcategoryListProps {
@@ -46,10 +46,10 @@ export function SubcategoryList({
             <Link
               to="/category/$slug"
               params={{ slug: sub.slug }}
-              className="inline-flex items-center gap-1 border border-border bg-muted px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-primary hover:text-primary-foreground"
+              className="inline-flex min-h-11 items-center gap-1 border border-border bg-muted px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-primary hover:text-primary-foreground"
             >
               {sub.name}
-              <span className="text-[10px] opacity-70">({sub.count})</span>
+              {sub.count!==undefined&&<span className="text-[10px] opacity-70">({sub.count})</span>}
             </Link>
           </li>
         ))}

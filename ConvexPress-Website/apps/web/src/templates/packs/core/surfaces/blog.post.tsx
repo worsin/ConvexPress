@@ -1,3 +1,4 @@
+import { PublicCanonicalBody } from "@/templates/sdk/block-public/PublicCanonicalBody";
 /**
  * Core · blog.post — a single post: header, body (blocks / structured /
  * TipTap, or the membership gate), footer, author box, related posts,
@@ -55,7 +56,9 @@ export default function CoreBlogPost({ data }: SurfaceProps<BlogPostSurfaceData>
           Otherwise blocks, then structured (AI-generated), then TipTap. */}
       {restricted ? (
         <Surface name="system.restricted" data={restricted} fallback={CoreRestricted} />
-      ) : post.contentMode === "blocks" && post.blocks && post.blocks.length > 0 ? (
+      ) : post.blocksVersion === 2 ? (
+          <PublicCanonicalBody documentId={post._id} />
+        ) : post.contentMode === "blocks" && post.blocks && post.blocks.length > 0 ? (
         <BlockListRenderer blocks={post.blocks} />
       ) : structured ? (
         <StructuredContent

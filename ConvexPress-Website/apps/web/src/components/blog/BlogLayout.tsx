@@ -51,9 +51,9 @@ export function BlogLayout({
         </aside>
       )}
 
-      <main data-slot="blog-main" className="min-w-0">
+      <div data-slot="blog-main" className="min-w-0">
         {children}
-      </main>
+      </div>
 
       {sidebarPosition === "right" && (
         <aside

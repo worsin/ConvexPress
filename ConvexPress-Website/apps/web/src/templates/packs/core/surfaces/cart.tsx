@@ -1,3 +1,4 @@
+import type { Id } from "@convexpress-website/backend/generated/dataModel";
 /** Core · cart — the full-page cart: line items, discount code, summary and sharing. */
 import { Link } from "@tanstack/react-router";
 
@@ -12,7 +13,7 @@ import { RelatedProducts } from "@/components/shop/RelatedProducts";
 import type { SurfaceProps } from "@/templates/sdk/types";
 
 export interface CartSurfaceItem {
-  _id: string;
+  _id: Id<"commerce_cart_items">;
   quantity: number;
   lineTotalAmount: number;
   metadata?: {
@@ -66,8 +67,8 @@ export interface CartSurfaceData {
   discountCode: string;
   onDiscountCodeChange: (value: string) => void;
   actions: {
-    updateQuantity: (itemId: string, quantity: number) => Promise<void>;
-    remove: (itemId: string) => Promise<void>;
+    updateQuantity: (itemId: Id<"commerce_cart_items">, quantity: number) => Promise<void>;
+    remove: (itemId: Id<"commerce_cart_items">) => Promise<void>;
     clear: () => Promise<void>;
     applyDiscount: () => Promise<void>;
     removeDiscount: () => Promise<void>;

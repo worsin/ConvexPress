@@ -304,13 +304,8 @@ function isIgnoredConsole(message) {
   const text = message.text();
   return (
     text.includes("Download the React DevTools") ||
-    text.includes("Hydration failed because the server rendered HTML didn't match") ||
     text.includes("Failed to load resource: the server responded with a status of 404")
   );
-}
-
-function isIgnoredPageError(error) {
-  return error.message.includes("Hydration failed because the server rendered HTML didn't match");
 }
 
 async function waitForAppSettled(page) {
@@ -340,9 +335,7 @@ async function main() {
     }
   });
   page.on("pageerror", (error) => {
-    if (!isIgnoredPageError(error)) {
-      failures.push(`${currentPath || "(unknown route)"} page error: ${error.message}`);
-    }
+    failures.push(`${currentPath || "(unknown route)"} page error: ${error.message}`);
   });
   page.on("requestfailed", (request) => {
     if (!isIgnoredRequestFailure(request)) {

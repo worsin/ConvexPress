@@ -72,7 +72,7 @@ export default function DepotCartDrawer({ data }: SurfaceProps<CartDrawerSurface
                 </div>
                 <p className="text-sm font-semibold text-foreground">Your cart is empty.</p>
                 <p className="text-[13px] text-muted-foreground">Add products from the catalog and review them here.</p>
-                <Link to="/shop" onClick={close} className={buttonClasses("primary")}>
+                <Link to="/products" onClick={close} className={buttonClasses("primary")}>
                   Shop products
                 </Link>
               </div>

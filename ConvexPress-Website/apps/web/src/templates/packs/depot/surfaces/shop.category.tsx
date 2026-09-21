@@ -19,7 +19,7 @@ const GRID = "grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols
 
 export default function DepotShopCategory({ data }: SurfaceProps<CategoryArchiveSurfaceData>) {
   const { slug, category, currencyCode, results } = data;
-  const count = category.totalProductCount ?? category.productCount ?? 0;
+  const count = results.total;
   const children = category.children ?? [];
 
   return (

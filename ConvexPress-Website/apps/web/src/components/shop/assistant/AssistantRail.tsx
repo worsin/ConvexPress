@@ -11,6 +11,7 @@ import { useAssistantConfig } from "@/hooks/useAssistantConfig";
 import { cn } from "@/lib/utils";
 import { AssistantBlocks } from "./AssistantBlocks";
 import { useAssistant, type BriefKind } from "./useAssistant";
+import { usePendingAssistantPrompt } from "./prompt-handoff";
 
 export interface AssistantRailProps {
   kind: BriefKind | "catalog" | "checkout" | "search";
@@ -42,12 +43,8 @@ export function AssistantRail({
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
-  useEffect(() => {
-    if (!pendingPrompt || assistant.sending) return;
-    void assistant.send(pendingPrompt);
-    onPromptConsumed?.();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pendingPrompt]);
+  usePendingAssistantPrompt({ active, ready: !!assistant.sessionToken && assistant.ready,
+    sending: assistant.sending, prompt: pendingPrompt, send: assistant.send, consumed: onPromptConsumed });
 
   useEffect(() => {
     const node = scrollRef.current;

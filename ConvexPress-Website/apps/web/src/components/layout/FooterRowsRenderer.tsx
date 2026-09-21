@@ -8,7 +8,7 @@
 
 import { useState, type FormEvent } from "react";
 import { Link } from "@tanstack/react-router";
-import DOMPurify from "isomorphic-dompurify";
+import DOMPurify from "@/lib/html-sanitizer";
 import { useMutation, useQuery } from "convex/react";
 import { Mail, MapPin, Phone } from "lucide-react";
 import { api } from "@convexpress-website/backend/generated/api";

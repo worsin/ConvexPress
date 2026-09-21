@@ -1,4 +1,6 @@
-import { useQuery } from "convex/react";
+import { useTemplateSettings } from "@/templates/sdk/useTemplateSettings";
+import { convexQuery } from "@convex-dev/react-query";
+import { useSuspenseQuery } from "@tanstack/react-query";
 import { api } from "@convexpress-website/backend/generated/api";
 
 import type { ResolvedMenu, ResolvedMenuItem } from "@/lib/layout/types";
@@ -10,7 +12,7 @@ import type { ResolvedMenu, ResolvedMenuItem } from "@/lib/layout/types";
 interface ConvexMenuItemNode {
   _id: string;
   menuId: string;
-  itemType: "page" | "post" | "category" | "tag" | "custom";
+  itemType: "page" | "post" | "category" | "tag" | "custom" | "heading" | "separator" | "dashboard";
   objectId?: string;
   label: string;
   title?: string;
@@ -34,9 +36,13 @@ interface ConvexMenuItemNode {
 export function useMenuForLocation(
   location: string,
 ): ResolvedMenu | undefined {
-  const data = useQuery(api.menus.queries.getMenuForLocation, {
-    locationSlug: location,
-  });
+  const { get } = useTemplateSettings();
+  const mapped = get<string>("menuLayout", location === "header" ? "primary" : location);
+  // The router's request-scoped query client resolves and dehydrates this on
+  // the server; Convex keeps the same query reactive after hydration.
+  const { data } = useSuspenseQuery(convexQuery(api.menus.queries.getMenuForLocation, {
+    locationSlug: typeof mapped === "string" && mapped ? mapped : location,
+  }));
 
   if (!data) {
     return undefined;

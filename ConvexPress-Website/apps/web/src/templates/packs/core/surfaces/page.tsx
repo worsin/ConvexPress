@@ -8,12 +8,12 @@
 import type { ComponentType } from "react";
 
 import type { PageDetail } from "@/lib/blog/types";
-import { BlankTemplate } from "@/templates/BlankTemplate";
-import { DefaultTemplate } from "@/templates/DefaultTemplate";
-import { FullWidthTemplate } from "@/templates/FullWidthTemplate";
-import { LandingTemplate } from "@/templates/LandingTemplate";
-import { NoSidebarPageTemplate } from "@/templates/NoSidebarPageTemplate";
-import { SidebarLeftTemplate } from "@/templates/SidebarLeftTemplate";
+import { BlankTemplate } from "@/templates/packs/core/parts/page-blank";
+import { DefaultTemplate } from "@/templates/packs/core/parts/page-default";
+import { FullWidthTemplate } from "@/templates/packs/core/parts/page-full-width";
+import { LandingTemplate } from "@/templates/packs/core/parts/page-landing";
+import { NoSidebarPageTemplate } from "@/templates/packs/core/parts/page-no-sidebar";
+import { SidebarLeftTemplate } from "@/templates/packs/core/parts/page-sidebar-left";
 import type { SurfaceProps } from "@/templates/sdk/types";
 
 export interface PageSurfaceData {

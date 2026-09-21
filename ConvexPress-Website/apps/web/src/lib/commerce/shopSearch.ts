@@ -5,7 +5,7 @@
 
 import { z } from "zod";
 
-import { PRODUCT_LAYOUT_IDS, SHOP_LAYOUT_IDS } from "@/hooks/useShopLayout";
+import { PRODUCT_LAYOUT_IDS, SHOP_LAYOUT_IDS } from "./shop-layout";
 
 export const SORTS = ["relevance", "price_asc", "price_desc", "newest"] as const;
 export type Sort = (typeof SORTS)[number];
@@ -19,7 +19,7 @@ export const shopSearchSchema = z.object({
   max: z.number().min(0).optional(),
   /** Opens the assistant with this question (used by the assistant band block). */
   ask: z.string().max(200).optional(),
-  /** Admin preview overrides (Settings › Shop layouts). Never persisted. */
+  /** Legacy layout preview overrides. Never persisted. */
   layout: z.enum(SHOP_LAYOUT_IDS).optional(),
   productLayout: z.enum(PRODUCT_LAYOUT_IDS).optional(),
   cartPanel: z.enum(["persistent", "drawer"]).optional(),

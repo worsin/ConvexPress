@@ -1,3 +1,4 @@
+import { ArchiveContinuation } from "@/components/blog/ArchiveContinuation";
 /**
  * Depot · blog.category — a category archive: breadcrumbs through the
  * ancestors, a title row with the count, subcategories as chips, then the
@@ -23,22 +24,24 @@ export default function DepotBlogCategory({ data }: SurfaceProps<BlogCategorySur
         ]}
       />
 
-      <PageHeader label="Category" title={category.name} description={category.description} meta={`${category.count} ${category.count === 1 ? "post" : "posts"}`} />
+      <PageHeader label="Category" title={category.name} description={category.description} meta={category.count===undefined?undefined:`${category.count} ${category.count === 1 ? "post" : "posts"}`} />
 
       {subcategories.length > 0 && (
         <Toolbar label="Subcategories">
           <Label className="mr-1">Subcategories</Label>
           {subcategories.map((sub) => (
             <Link key={sub._id} to="/category/$slug" params={{ slug: sub.slug }} className={buttonClasses("secondary", "sm")}>
-              {sub.name} <span className="tabular-nums text-muted-foreground">{sub.count}</span>
+              {sub.name} {sub.count!==undefined&&<span className="tabular-nums text-muted-foreground">{sub.count}</span>}
             </Link>
           ))}
         </Toolbar>
       )}
 
-      <PostRows posts={posts} empty={<EmptyState title="No posts in this category yet." />} />
+      {data.subcategoryContinuation&&<ArchiveContinuation data={data.subcategoryContinuation}/>}
+      <PostRows posts={posts} empty={data.continuation?null:<EmptyState title="No posts in this category yet." />} />
+      {data.continuation&&<ArchiveContinuation data={data.continuation}/>}
 
-      {pagination && pagination.totalPages > 1 && (
+      {!data.continuation && pagination && pagination.totalPages > 1 && (
         <Pagination page={pagination.currentPage} totalPages={pagination.totalPages} linkFor={(page) => (page === 1 ? { to: `/category/${slug}` } : { to: `/category/${slug}`, search: { page } })} />
       )}
     </Container>

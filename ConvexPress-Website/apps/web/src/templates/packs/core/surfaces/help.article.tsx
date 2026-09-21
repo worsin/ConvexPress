@@ -1,3 +1,4 @@
+import type { Id } from "@convexpress-website/backend/generated/dataModel";
 /** Core · help.article — knowledge base article reader with TipTap rendering, feedback and related articles. */
 import { Link } from "@tanstack/react-router";
 import type React from "react";
@@ -7,7 +8,7 @@ import type { SurfaceProps } from "@/templates/sdk/types";
 // ─── Types ───────────────────────────────────────────────────────────────────
 
 export type KbArticle = {
-  _id: string;
+  _id: Id<"kb_articles">;
   title: string;
   slug: string;
   content?: string;

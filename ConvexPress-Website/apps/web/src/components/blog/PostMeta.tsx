@@ -1,3 +1,5 @@
+import { formatSiteDate } from "@/lib/blog/date";
+import { useSetting } from "@/contexts/SettingsContext";
 import { Link } from "@tanstack/react-router";
 import { Calendar, Clock, User } from "lucide-react";
 
@@ -25,13 +27,7 @@ export function PostMeta({
   className,
   showAvatar = false,
 }: PostMetaProps) {
-  const formattedDate = publishedAt
-    ? new Date(publishedAt).toLocaleDateString("en-US", {
-        year: "numeric",
-        month: "long",
-        day: "numeric",
-      })
-    : null;
+  const formattedDate = formatSiteDate(publishedAt, useSetting("timezone") ?? "UTC", "long");
 
   return (
     <div
@@ -39,7 +35,7 @@ export function PostMeta({
       className={cn("flex flex-wrap items-center gap-3 text-xs text-muted-foreground", className)}
     >
       {/* Author */}
-      <Link
+      {author.slug ? <Link
         to="/author/$slug"
         params={{ slug: author.slug }}
         className="flex items-center gap-1.5 transition-colors hover:text-foreground"
@@ -54,7 +50,7 @@ export function PostMeta({
           <User className="size-3" aria-hidden="true" />
         )}
         <span>{author.displayName}</span>
-      </Link>
+      </Link> : author.displayName ? <span>{author.displayName}</span> : null}
 
       {/* Date */}
       {formattedDate && (

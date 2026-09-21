@@ -1,3 +1,4 @@
+import type { Id } from "@convexpress-website/backend/generated/dataModel";
 import { useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery } from "convex/react";
@@ -35,7 +36,7 @@ function CartPage() {
   const currencyCode = settings?.commerceConfig?.currencyCode || "USD";
   const { sessionToken, isReady } = useCommerceSessionToken();
   const cart = useQuery(
-    (api as any).commerce.cart.getMine,
+    api.commerce.cart.getMine,
     commerceEnabled && isReady && sessionToken ? { sessionToken } : "skip",
   ) as CartSurfaceCart | null | undefined;
   const updateItemQuantity = useMutation(api.commerce.cart.updateItemQuantity);
@@ -43,13 +44,13 @@ function CartPage() {
   const clearCart = useMutation(api.commerce.cart.clear);
   const applyDiscountCode = useMutation(api.commerce.cart.applyDiscountCode);
   const removeDiscountCode = useMutation(api.commerce.cart.removeDiscountCode);
-  const enableSharing = useMutation((api as any).commerce.cart.enableSharing);
-  const disableSharing = useMutation((api as any).commerce.cart.disableSharing);
+  const enableSharing = useMutation(api.commerce.cart.enableSharing);
+  const disableSharing = useMutation(api.commerce.cart.disableSharing);
   const [discountCode, setDiscountCode] = useState("");
   const [sharing, setSharing] = useState(false);
   const [busyAction, setBusyAction] = useState<string | null>(null);
 
-  async function handleQuantity(itemId: string, quantity: number) {
+  async function handleQuantity(itemId: Id<"commerce_cart_items">, quantity: number) {
     if (!sessionToken) return;
     setBusyAction(`quantity:${itemId}`);
     try {
@@ -64,7 +65,7 @@ function CartPage() {
     }
   }
 
-  async function handleRemove(itemId: string) {
+  async function handleRemove(itemId: Id<"commerce_cart_items">) {
     if (!sessionToken) return;
     setBusyAction(`remove:${itemId}`);
     try {

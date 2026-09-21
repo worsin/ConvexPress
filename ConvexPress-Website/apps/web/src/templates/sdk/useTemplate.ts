@@ -5,8 +5,9 @@
  */
 
 import { useSearch } from "@tanstack/react-router";
-import { useMemo } from "react";
+import { useContext, useMemo } from "react";
 
+import { TemplateDraftContext } from "./customizeContext";
 import { useSettings } from "@/contexts/SettingsContext";
 import { DEFAULT_TEMPLATE_CONFIG, getTemplatePack, resolveSurface, resolveVariant } from "./registry";
 import type { TemplateConfig, TemplatePack } from "./types";
@@ -22,6 +23,7 @@ export interface ActiveTemplate {
 
 export function useTemplate(): ActiveTemplate {
   const settings = useSettings();
+  const { draft } = useContext(TemplateDraftContext);
   const search = useSearch({ strict: false }) as Record<string, unknown>;
   const stored = (settings as { templateConfig?: Partial<TemplateConfig> } | null)?.templateConfig;
 
@@ -29,15 +31,16 @@ export function useTemplate(): ActiveTemplate {
     const base: TemplateConfig = {
       active: typeof stored?.active === "string" && SLUG.test(stored.active) && getTemplatePack(stored.active) ? stored.active : DEFAULT_TEMPLATE_CONFIG.active,
       overrides: stored?.overrides ?? {},
-      variants: { ...(stored?.variants ?? {}) },
+      variants: { ...stored?.variants },
       settings: stored?.settings ?? {},
     };
     let previewing = false;
-    const previewPack = search.template;
+    const previewPack = draft.packId ?? search.template;
     if (typeof previewPack === "string" && SLUG.test(previewPack) && getTemplatePack(previewPack) && previewPack !== base.active) {
       base.active = previewPack;
       previewing = true;
     }
+    if (draft.packId === base.active) base.variants = { ...draft.variants };
     for (const [key, value] of Object.entries(search)) {
       if (key.startsWith("variant.") && typeof value === "string" && SLUG.test(value)) {
         base.variants[key.slice("variant.".length)] = value;
@@ -53,5 +56,5 @@ export function useTemplate(): ActiveTemplate {
         return { ...resolved, variant: resolveVariant(surfaceId, base, resolved.packId) };
       },
     };
-  }, [stored, search]);
+  }, [stored, search, draft.packId, draft.variants]);
 }

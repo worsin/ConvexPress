@@ -19,7 +19,7 @@ interface ArchiveHeaderProps {
   /** Optional description. */
   description?: string;
   /** Number of published posts. */
-  postCount: number;
+  postCount?: number;
   /** Optional className override. */
   className?: string;
 }
@@ -49,9 +49,9 @@ export function ArchiveHeader({
       {/* Title + Count */}
       <div className="flex flex-col gap-1">
         <h1 className="text-lg font-bold">{name}</h1>
-        <span className="text-xs text-muted-foreground">
+        {postCount !== undefined && <span className="text-xs text-muted-foreground">
           {postCount} {postCount === 1 ? "post" : "posts"}
-        </span>
+        </span>}
       </div>
 
       {/* Description */}

@@ -1,166 +1,25 @@
-/**
- * Tag Archive Page - /tag/$slug
- *
- * SSR tag archive page with breadcrumbs, archive header,
- * post grid, pagination, and SEO.
- * 404 if slug not found. Rendering belongs to the `blog.tag` surface.
- */
+import {convexQuery} from "@convex-dev/react-query";
+import {createFileRoute,notFound} from "@tanstack/react-router";
+import {api} from "@convexpress-website/backend/generated/api";
+import {getSiteRuntime} from "@/lib/site-runtime";
+import {tagArchiveSearch} from "@/lib/blog/tag-archive";
+import {siteTitled} from "@/lib/seo/head";
+import {TagArchiveView} from "@/components/blog/TagArchiveView";
 
-import { convexQuery } from "@convex-dev/react-query";
-import { createFileRoute } from "@tanstack/react-router";
-import { useQuery } from "convex/react";
-
-import { api } from "@convexpress-website/backend/generated/api";
-import { useSetting } from "@/contexts/SettingsContext";
-import type {
-  PaginationData,
-  PostCard as PostCardType,
-} from "@/lib/blog/types";
-import { estimateReadingTime } from "@/lib/blog/renderContent";
-import { Skeleton } from "@/components/ui/skeleton";
-import { siteTitled } from "@/lib/seo/head";
-import CoreBlogTag from "@/templates/packs/core/surfaces/blog.tag";
-import CoreNotFound from "@/templates/packs/core/surfaces/system.notFound";
-import { Surface } from "@/templates/sdk/Surface";
-
-interface TagSearchParams {
-  page?: number;
-}
-
-export const Route = createFileRoute("/_marketing/tag/$slug")({
-  component: TagArchive,
-  validateSearch: (search: Record<string, unknown>): TagSearchParams => ({
-    page: Number(search.page) || 1,
-  }),
-  loader: async ({ context: { queryClient }, params: { slug } }) => {
-    // Pre-fetch tag data for SSR
-    await queryClient.ensureQueryData(
-      convexQuery(api.taxonomies.queries.getBySlug, {
-        slug,
-        taxonomy: "post_tag" as const,
-      }),
-    );
+export const Route=createFileRoute("/_marketing/tag/$slug")({
+  component:TagArchive,
+  validateSearch:tagArchiveSearch,
+  loaderDeps:({search})=>({cursor:search.cursor}),
+  loader:async({context:{queryClient},params:{slug},deps:{cursor}})=>{
+    const instanceKey=getSiteRuntime().instanceKey;
+    if(!instanceKey)throw Error("The Website environment is not configured");
+    const initial=await queryClient.ensureQueryData(convexQuery(api.taxonomyArchives.tag,{slug,instanceKey,...(cursor?{cursor}:{})}));
+    if(initial===null)throw notFound();
+    return {initial,instanceKey};
   },
-  head: ({ params }) => ({
-    meta: [
-      { title: siteTitled(`Tag: ${params.slug}`) },
-    ],
-    links: [
-      {
-        rel: "alternate",
-        type: "application/rss+xml",
-        title: `${params.slug} Tag RSS Feed`,
-        href: `/api/tag/${params.slug}/feed`,
-      },
-      {
-        rel: "alternate",
-        type: "application/atom+xml",
-        title: `${params.slug} Tag Atom Feed`,
-        href: `/api/tag/${params.slug}/feed/atom`,
-      },
-    ],
-  }),
+  head:({params})=>({meta:[{title:siteTitled(`Tag: ${params.slug}`)}],links:[
+    {rel:"alternate",type:"application/rss+xml",title:`${params.slug} Tag RSS Feed`,href:`/api/tag/${encodeURIComponent(params.slug)}/feed`},
+    {rel:"alternate",type:"application/atom+xml",title:`${params.slug} Tag Atom Feed`,href:`/api/tag/${encodeURIComponent(params.slug)}/feed/atom`},
+  ]}),
 });
-
-function TagArchive() {
-  const { slug } = Route.useParams();
-  const { page } = Route.useSearch();
-  const postsPerPage = useSetting("postsPerPage") ?? 10;
-
-  // Fetch the tag by slug
-  const tag = useQuery(api.taxonomies.queries.getBySlug, {
-    slug,
-    taxonomy: "post_tag" as const,
-  });
-
-  // Fetch posts for this tag (only when tag is loaded)
-  const postsData = useQuery(
-    api.taxonomies.queries.getPostsByTerm,
-    tag?._id
-      ? {
-          termId: tag._id as never,
-          page: page ?? 1,
-          perPage: postsPerPage,
-        }
-      : "skip",
-  );
-
-  // Loading state
-  if (tag === undefined) {
-    return (
-      <div className="flex flex-col gap-6">
-        <Skeleton className="h-3 w-16" />
-        <Skeleton className="h-6 w-48" />
-        <Skeleton className="h-3 w-24" />
-        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {Array.from({ length: 6 }).map((_, i) => (
-            <div key={i} className="flex flex-col gap-3">
-              <Skeleton className="aspect-video w-full" />
-              <Skeleton className="h-3 w-3/4" />
-              <Skeleton className="h-3 w-1/2" />
-            </div>
-          ))}
-        </div>
-      </div>
-    );
-  }
-
-  // Not found
-  if (tag === null) {
-    return <Surface name="system.notFound" data={{ kind: "page" }} fallback={CoreNotFound} />;
-  }
-
-  // Map posts data (getPostsByTerm returns raw post docs without denormalized author)
-  const posts: PostCardType[] | undefined = postsData
-    ? (postsData.posts ?? []).map((post: NonNullable<NonNullable<typeof postsData>['posts']>[number]) => ({
-        _id: post._id,
-        title: post.title,
-        slug: post.slug,
-        excerpt: post.excerpt,
-        featuredImageUrl: post.featuredImageUrl ?? undefined,
-        featuredImageAlt: post.featuredImageAlt ?? undefined,
-        publishedAt: post.publishedAt
-          ? new Date(post.publishedAt).toISOString()
-          : undefined,
-        author: {
-          _id: post.author?._id ?? post.authorId ?? "",
-          displayName: post.author?.displayName ?? "Unknown",
-          slug: post.author?.slug ?? "",
-          avatarUrl: post.author?.avatarUrl,
-        },
-        primaryCategory: undefined,
-        commentCount: post.commentCount ?? 0,
-        isSticky: post.isSticky ?? false,
-        readingTime: estimateReadingTime(post.content),
-      }))
-    : undefined;
-  const pagination: PaginationData | undefined = postsData
-    ? {
-        currentPage: postsData.page,
-        totalPages: postsData.totalPages,
-        totalItems: postsData.total,
-        perPage: postsData.perPage,
-        hasNextPage: postsData.page < postsData.totalPages,
-        hasPreviousPage: postsData.page > 1,
-      }
-    : undefined;
-
-  return (
-    <Surface
-      name="blog.tag"
-      data={{
-        tag: {
-          _id: tag._id,
-          name: tag.name,
-          slug: tag.slug,
-          description: tag.description,
-          count: tag.count,
-        },
-        slug,
-        posts,
-        pagination,
-      }}
-      fallback={CoreBlogTag}
-    />
-  );
-}
+function TagArchive(){const{slug}=Route.useParams();const{cursor}=Route.useSearch();const{initial,instanceKey}=Route.useLoaderData();return <TagArchiveView initial={initial} slug={slug} cursor={cursor} instanceKey={instanceKey}/>;}

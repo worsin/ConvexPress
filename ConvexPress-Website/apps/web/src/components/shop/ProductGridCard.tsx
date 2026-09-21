@@ -10,9 +10,11 @@ import { ShoppingBag } from "lucide-react";
 import { MediaImage } from "@/components/media/MediaImage";
 import { formatMoney, percentOff } from "@/lib/commerce/format";
 import { cn } from "@/lib/utils";
+import { useProductCardPricing } from "./product/useProductCardPricing";
 import { CartStepper, type ProductCardData } from "./ProductMiniCard";
 
-export function ProductGridCard({ product, className }: { product: ProductCardData; className?: string }) {
+export function ProductGridCard({ product: sourceProduct, className }: { product: ProductCardData; className?: string }) {
+  const product = useProductCardPricing(sourceProduct);
   const off = percentOff(product.price.amount, product.compareAtPrice?.amount);
   return (
     <article

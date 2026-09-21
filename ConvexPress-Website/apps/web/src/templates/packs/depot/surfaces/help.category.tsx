@@ -27,7 +27,7 @@ export default function DepotHelpCategory({ data }: SurfaceProps<HelpCategorySur
       <Breadcrumbs items={[{ label: "Help Center", to: "/help" }, { label: category.name }]} />
       <PluginPageHeader eyebrow="Help center" title={category.name} description={category.description} aside={<Label className="tabular-nums">{articles.length} {articles.length === 1 ? "article" : "articles"}</Label>} />
 
-      {articles.length === 0 ? (
+      {articles.length === 0 && !data.hasMore ? (
         <EmptyState title="No articles in this category yet." action={<LinkButton to="/help" variant="secondary" size="sm">Back to Help Center</LinkButton>} />
       ) : (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">

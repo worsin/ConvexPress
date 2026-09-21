@@ -1,4 +1,6 @@
-import DOMPurify from "isomorphic-dompurify";
+import { ArticleEmbed } from "./ArticleEmbed";
+import { sanitizeHref, sanitizeImageSrc, buildSecureRel } from "@/lib/security/url";
+import DOMPurify from "@/lib/html-sanitizer";
 import { useMemo, type ElementType } from "react";
 import type {
   BlockContent,
@@ -165,18 +167,21 @@ function applyMark(
           {child}
         </code>
       );
-    case "link":
+    case "link": {
+      const href = sanitizeHref(mark.attrs?.href);
+      if (!href) return child;
       return (
         <a
           key={`link-${key}`}
-          href={mark.attrs?.href}
+          href={href}
           target={mark.attrs?.target}
-          rel={mark.attrs?.rel ?? "noopener noreferrer"}
+          rel={buildSecureRel(mark.attrs?.rel, mark.attrs?.target)}
           className="text-primary underline underline-offset-2 transition-colors hover:text-primary/80"
         >
           {child}
         </a>
       );
+    }
     case "highlight":
       return (
         <mark
@@ -232,6 +237,8 @@ function RenderImage({ block }: { block: ImageBlock }) {
   const align = block.attrs.align ?? "none";
   const sizeSlug = block.attrs.sizeSlug ?? "large";
   const linkTo = block.attrs.linkTo ?? "none";
+  const source = sanitizeImageSrc(block.attrs.src);
+  const customHref = sanitizeHref(block.attrs.linkUrl);
 
   // Build the image element — MediaImage when we have a mediaId, raw <img>
   // as legacy fallback.
@@ -246,9 +253,9 @@ function RenderImage({ block }: { block: ImageBlock }) {
       width={block.attrs.width}
       height={block.attrs.height}
     />
-  ) : block.attrs.src ? (
+  ) : source ? (
     <img
-      src={block.attrs.src}
+      src={source}
       alt={block.attrs.alt ?? ""}
       title={block.attrs.title}
       width={block.attrs.width}
@@ -260,9 +267,9 @@ function RenderImage({ block }: { block: ImageBlock }) {
 
   // Apply WP-style link wrapping.
   let rendered: React.ReactNode = inner;
-  if (linkTo === "custom" && block.attrs.linkUrl) {
+  if (linkTo === "custom" && customHref) {
     rendered = (
-      <a href={block.attrs.linkUrl} target="_blank" rel="noopener noreferrer">
+      <a href={customHref} target="_blank" rel="noopener noreferrer">
         {inner}
       </a>
     );
@@ -270,9 +277,9 @@ function RenderImage({ block }: { block: ImageBlock }) {
     // "media" = link to the full-size asset. If we only have mediaId we
     // can't resolve a full URL on the server-rendered page; fall back to
     // wrapping with the provided src when present.
-    if (block.attrs.src) {
+    if (source) {
       rendered = (
-        <a href={block.attrs.src} target="_blank" rel="noopener noreferrer">
+        <a href={source} target="_blank" rel="noopener noreferrer">
           {inner}
         </a>
       );
@@ -317,9 +324,9 @@ function RenderGallery({ block }: { block: GalleryBlock }) {
               preferredSize="medium"
               sizes={`${Math.round(100 / Math.min(columns, 4))}vw`}
             />
-          ) : image.attrs.src ? (
+          ) : sanitizeImageSrc(image.attrs.src) ? (
             <img
-              src={image.attrs.src}
+              src={sanitizeImageSrc(image.attrs.src)}
               alt={image.attrs.alt ?? ""}
               className="aspect-square w-full rounded-none object-cover"
               loading="lazy"
@@ -425,58 +432,7 @@ function RenderTable({ block }: { block: TableBlock }) {
 }
 
 function RenderEmbed({ block }: { block: EmbedBlock }) {
-  const { src, provider } = block.attrs;
-
-  // YouTube embed
-  if (provider === "youtube" || src.includes("youtube.com") || src.includes("youtu.be")) {
-    const videoId = extractYouTubeId(src);
-    if (videoId) {
-      return (
-        <div data-slot="block-embed" className="relative aspect-video w-full">
-          <iframe
-            src={`https://www.youtube.com/embed/${videoId}`}
-            className="absolute inset-0 h-full w-full rounded-none"
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-            allowFullScreen
-            title="YouTube video"
-            loading="lazy"
-          />
-        </div>
-      );
-    }
-  }
-
-  // Vimeo embed
-  if (provider === "vimeo" || src.includes("vimeo.com")) {
-    const vimeoId = src.match(/vimeo\.com\/(\d+)/)?.[1];
-    if (vimeoId) {
-      return (
-        <div data-slot="block-embed" className="relative aspect-video w-full">
-          <iframe
-            src={`https://player.vimeo.com/video/${vimeoId}`}
-            className="absolute inset-0 h-full w-full rounded-none"
-            allow="autoplay; fullscreen; picture-in-picture"
-            allowFullScreen
-            title="Vimeo video"
-            loading="lazy"
-          />
-        </div>
-      );
-    }
-  }
-
-  // Generic embed / fallback
-  return (
-    <div data-slot="block-embed" className="relative aspect-video w-full">
-      <iframe
-        src={src}
-        className="absolute inset-0 h-full w-full rounded-none"
-        allowFullScreen
-        title="Embedded content"
-        loading="lazy"
-      />
-    </div>
-  );
+  return <div data-slot="block-embed"><ArticleEmbed url={block.attrs.src} title="Embedded content" /></div>;
 }
 
 function RenderHorizontalRule() {
@@ -575,8 +531,7 @@ const BUTTON_VARIANT_CLASSES: Record<string, string> = {
 function RenderButton({ block }: { block: ButtonBlock }) {
   const text = block.attrs?.text || "Click Here";
   const rawUrl = block.attrs?.url || "#";
-  // Block javascript: protocol to prevent XSS
-  const url = rawUrl.trim().toLowerCase().startsWith("javascript:") ? "#" : rawUrl;
+  const url = sanitizeHref(rawUrl);
   const variant = block.attrs?.variant ?? "primary";
   const alignment = block.attrs?.alignment ?? "left";
 
@@ -589,6 +544,8 @@ function RenderButton({ block }: { block: ButtonBlock }) {
 
   const variantClass =
     BUTTON_VARIANT_CLASSES[variant] ?? BUTTON_VARIANT_CLASSES.primary;
+
+  if (!url) return <div data-slot="block-button" className={cn("flex", alignClass)}><span>{text}</span></div>;
 
   return (
     <div data-slot="block-button" className={cn("flex", alignClass)}>
@@ -715,21 +672,3 @@ function RenderTaskList({ block }: { block: TaskListBlock }) {
     </ul>
   );
 }
-
-// ---------------------------------------------------------------------------
-// Utilities
-// ---------------------------------------------------------------------------
-
-function extractYouTubeId(url: string): string | null {
-  const patterns = [
-    /youtube\.com\/watch\?v=([^&]+)/,
-    /youtube\.com\/embed\/([^?]+)/,
-    /youtu\.be\/([^?]+)/,
-  ];
-  for (const pattern of patterns) {
-    const match = url.match(pattern);
-    if (match?.[1]) return match[1];
-  }
-  return null;
-}
-

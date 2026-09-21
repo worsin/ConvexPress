@@ -14,9 +14,8 @@ import {
   type TicketOverview,
 } from "./support-tickets";
 
-function ticket(overrides: Partial<TicketOverview>): TicketOverview {
+function ticket(overrides: Omit<Partial<TicketOverview>, "_id"> & { _id?: string }): TicketOverview {
   return {
-    _id: "t",
     ticketNumber: "TKT-202609-00001",
     subject: "Help",
     category: "general",
@@ -34,6 +33,7 @@ function ticket(overrides: Partial<TicketOverview>): TicketOverview {
     agentInitials: null,
     responseWindow: "soon",
     ...overrides,
+    _id: (overrides._id ?? "t") as TicketOverview["_id"],
   };
 }
 

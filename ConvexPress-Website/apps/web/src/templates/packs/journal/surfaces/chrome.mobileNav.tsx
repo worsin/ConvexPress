@@ -82,6 +82,7 @@ export default function JournalChromeMobileNav({ data }: SurfaceProps<MobileNavS
   const fromRight = config?.drawerSide === "right";
 
   return (
+    <div className="pointer-events-none fixed inset-0 z-50 overflow-hidden lg:hidden">
     <div
       ref={panelRef}
       data-slot="mobile-nav"
@@ -90,7 +91,8 @@ export default function JournalChromeMobileNav({ data }: SurfaceProps<MobileNavS
       aria-label="Navigation menu"
       {...(open ? {} : { inert: true })}
       className={cn(
-        "fixed inset-0 z-50 flex flex-col bg-background transition-transform duration-300 ease-out lg:hidden",
+        "absolute inset-0 flex flex-col bg-background transition-transform duration-300 ease-out motion-reduce:transition-none",
+        open && "pointer-events-auto",
         open ? "translate-x-0" : fromRight ? "translate-x-full" : "-translate-x-full",
       )}
     >
@@ -173,6 +175,7 @@ export default function JournalChromeMobileNav({ data }: SurfaceProps<MobileNavS
           ) : null}
         </Container>
       </div>
+    </div>
     </div>
   );
 }

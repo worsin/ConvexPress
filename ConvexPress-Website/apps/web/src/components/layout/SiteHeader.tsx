@@ -1,3 +1,4 @@
+import { useStickyHeaderOffset } from "@/hooks/layout/useStickyHeaderOffset";
 import { Mail, Menu, Phone } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -34,6 +35,7 @@ export function SiteHeader({ siteIdentity, menu, layoutConfig, headerConfig: hea
   const stickyHeader = layoutConfig?.stickyHeader !== false;
   const stickyMode = headerConfig.layout.sticky;
   const isSticky = stickyMode === "always" || (stickyMode === "scroll-up" && stickyHeader);
+  const headerRef = useStickyHeaderOffset(isSticky);
   const layoutStyle = headerConfig.layout.style;
   const heightClass = headerConfig.layout.height === "compact"
     ? "h-12 lg:h-12"
@@ -57,7 +59,8 @@ export function SiteHeader({ siteIdentity, menu, layoutConfig, headerConfig: hea
 
   return (
     <header
-      data-slot="site-header"
+      ref={headerRef}
+      data-slot="site-header" data-customize="header.layout.sticky"
       role="banner"
       className={cn(
         "z-40 w-full transition-shadow",
@@ -74,7 +77,7 @@ export function SiteHeader({ siteIdentity, menu, layoutConfig, headerConfig: hea
 
       {/* Main header bar */}
       <div className={cn(
-        "mx-auto flex items-center justify-between px-4 md:px-6 lg:px-8",
+        "mx-auto flex items-center justify-between gap-3 px-4 md:px-6 lg:px-8",
         heightClass,
       )}>
         {layoutStyle === "centered" ? (
@@ -188,11 +191,11 @@ function StandardLayout({ siteIdentity, menu, headerConfig, toggleMobileNav }: L
   return (
     <>
       {/* Left: Hamburger (mobile) + Brand */}
-      <div className="flex items-center gap-3">
+      <div className="flex min-w-0 items-center gap-3">
         <button
           type="button"
           onClick={toggleMobileNav}
-          className="flex size-8 items-center justify-center text-muted-foreground transition-colors hover:text-foreground lg:hidden"
+          className="flex size-8 shrink-0 items-center justify-center text-muted-foreground transition-colors hover:text-foreground lg:hidden"
           aria-label="Open navigation menu"
         >
           <Menu className="size-5" aria-hidden="true" />
@@ -222,11 +225,11 @@ function CenteredLayout({ siteIdentity, menu, headerConfig, toggleMobileNav }: L
   return (
     <div className="flex w-full flex-col items-center gap-2">
       {/* Top row: hamburger left, brand center, actions right */}
-      <div className="flex w-full items-center justify-between">
+      <div className="flex w-full min-w-0 items-center justify-between gap-3">
         <button
           type="button"
           onClick={toggleMobileNav}
-          className="flex size-8 items-center justify-center text-muted-foreground transition-colors hover:text-foreground lg:hidden"
+          className="flex size-8 shrink-0 items-center justify-center text-muted-foreground transition-colors hover:text-foreground lg:hidden"
           aria-label="Open navigation menu"
         >
           <Menu className="size-5" aria-hidden="true" />
@@ -253,11 +256,11 @@ function SplitLayout({ siteIdentity, menu, headerConfig, toggleMobileNav }: Layo
   return (
     <>
       {/* Left: Nav */}
-      <div className="flex items-center gap-3">
+      <div className="flex min-w-0 items-center gap-3">
         <button
           type="button"
           onClick={toggleMobileNav}
-          className="flex size-8 items-center justify-center text-muted-foreground transition-colors hover:text-foreground lg:hidden"
+          className="flex size-8 shrink-0 items-center justify-center text-muted-foreground transition-colors hover:text-foreground lg:hidden"
           aria-label="Open navigation menu"
         >
           <Menu className="size-5" aria-hidden="true" />

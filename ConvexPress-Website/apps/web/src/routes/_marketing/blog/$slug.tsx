@@ -1,8 +1,12 @@
+import { canonicalPaginationSearch } from "@/templates/sdk/block-public/pagination-search";
+import { loadAnonymousCanonical } from "@/templates/sdk/block-public/anonymous-loader";
+import { PublicCanonicalScope } from "@/templates/sdk/block-public/PublicCanonicalBody";
 import { useAuth } from "@/lib/auth/clerk";
 import { convexQuery } from "@convex-dev/react-query";
 import { api } from "@convexpress-website/backend/generated/api";
 import type { Id } from "@convexpress-website/backend/generated/dataModel";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, notFound } from "@tanstack/react-router";
+import { useQuery as useTanStackQuery } from "@tanstack/react-query";
 import { useQuery } from "convex/react";
 import { useEffect, useState } from "react";
 import {
@@ -37,15 +41,24 @@ import CorePasswordGate from "@/templates/packs/core/surfaces/system.passwordGat
 import type { RestrictedSurfaceData } from "@/templates/packs/core/surfaces/system.restricted";
 import { Surface } from "@/templates/sdk/Surface";
 export const Route = createFileRoute("/_marketing/blog/$slug")({
+  validateSearch: canonicalPaginationSearch,
+  loaderDeps: ({ search }) => ({ request: search.blockPages }),
 	// .parse() is intentional here: TanStack Router catches the thrown ZodError
 	// and triggers the not-found/error boundary for malformed slug params.
 	params: { parse: (raw) => slugParamsSchema.parse(raw) },
 	component: SinglePost,
-	loader: async ({ context: { queryClient }, params: { slug } }) => {
+	loader: async ({ context: { queryClient }, params: { slug }, deps }) => {
 		// Pre-fetch the post data on the server for SSR
 		const post = await queryClient.ensureQueryData(
 			convexQuery(api.posts.queries.getPublished, { slug }),
 		);
+		// A rendered not-found surface alone leaves SSR at HTTP200. Signal the
+		// router so missing, draft and private-denied documents return HTTP404.
+		if (post === null) throw notFound();
+		const canonical = await loadAnonymousCanonical(post, deps.request);
+		// Metadata and canonical policy are separate reads. Do not return a
+		// successful page if publication/access was revoked between them.
+		if (post.blocksVersion === 2 && canonical === null) throw notFound();
 
 		// Prefetch the membership access decision so SSR renders the correct
 		// gated view without a client-side flash. Safe to skip when the post is
@@ -59,6 +72,7 @@ export const Route = createFileRoute("/_marketing/blog/$slug")({
 			);
 		}
 		return {
+      canonical,
 			seoHead: buildSeoHead({
 				title:
 					post && typeof post === "object" && "title" in post
@@ -92,6 +106,8 @@ export const Route = createFileRoute("/_marketing/blog/$slug")({
 });
 function SinglePost() {
 	const { slug } = Route.useParams();
+  const {canonical} = Route.useLoaderData();
+  const {blockPages: request} = Route.useSearch();
 	const { isSignedIn, userId } = useAuth();
 	// SSR-safe origin: start empty to avoid hydration mismatch
 	const [siteUrl, setSiteUrl] = useState("");
@@ -106,7 +122,9 @@ function SinglePost() {
 		setSiteUrl(window.location.origin);
 	}, []);
 	// Fetch post by slug (public, no auth required)
-	const rawPost = useQuery(api.posts.queries.getPublished, { slug });
+	const { data: rawPost } = useTanStackQuery(
+    convexQuery(api.posts.queries.getPublished, { slug }),
+  );
 
 	// Propagate per-post layout overrides (hideHeader/hideFooter) to parent layout
 	const { setOverrides } = usePageOverrides();
@@ -243,52 +261,47 @@ function SinglePost() {
 		: null;
 	// Map taxonomies to typed arrays
 	const categories: PostCategory[] = (taxonomies?.categories ?? []).map(
-		(cat: (typeof taxonomies.categories)[number]) => ({
+		(cat: NonNullable<typeof taxonomies>["categories"][number]) => ({
 			_id: cat._id,
 			name: cat.name,
 			slug: cat.slug,
-			description: cat.description,
-			parentId: cat.parentId,
-			count: cat.count,
 			taxonomy: "category" as const,
 		}),
 	);
 	const tags: PostTag[] = (taxonomies?.tags ?? []).map(
-		(tag: (typeof taxonomies.tags)[number]) => ({
+		(tag: NonNullable<typeof taxonomies>["tags"][number]) => ({
 			_id: tag._id,
 			name: tag.name,
 			slug: tag.slug,
-			description: tag.description,
-			count: tag.count,
 			taxonomy: "tag" as const,
 		}),
 	);
 	// Build PostDetail
 	const post: PostDetail = {
-		_id: rawPost._id,
-		title: rawPost.title,
-		slug: rawPost.slug,
-		excerpt: rawPost.excerpt,
+		_id: resolvedPostData._id,
+		title: resolvedPostData.title,
+		slug: resolvedPostData.slug,
+		excerpt: resolvedPostData.excerpt,
 			content: blockContent,
 			contentMode:
-				((rawPost as { contentMode?: PostDetail["contentMode"] }).contentMode ??
+				((resolvedPostData as { contentMode?: PostDetail["contentMode"] }).contentMode ??
 					"article"),
-			blocks: (rawPost as { blocks?: PostDetail["blocks"] }).blocks ?? undefined,
+			blocks: (resolvedPostData as { blocks?: PostDetail["blocks"] }).blocks ?? undefined,
 			blocksVersion:
-				(rawPost as { blocksVersion?: number }).blocksVersion ?? undefined,
+				(resolvedPostData as { blocksVersion?: number }).blocksVersion ?? undefined,
 			blocksRevision:
-				(rawPost as { blocksRevision?: number }).blocksRevision ?? undefined,
-		featuredImageUrl: rawPost.featuredImageUrl ?? undefined,
-		featuredImageAlt: rawPost.featuredImageAlt ?? undefined,
-		publishedAt: rawPost.publishedAt
-			? new Date(rawPost.publishedAt).toISOString()
+				(resolvedPostData as { blocksRevision?: number }).blocksRevision ?? undefined,
+		featuredImageUrl: resolvedPostData.featuredImageUrl ?? undefined,
+		featuredImageAlt: resolvedPostData.featuredImageAlt ?? undefined,
+		publishedAt: resolvedPostData.publishedAt
+			? new Date(resolvedPostData.publishedAt).toISOString()
 			: undefined,
-		readingTime: estimateReadingTime(rawPost.content),
+		readingTime: estimateReadingTime(resolvedPostData.content),
 		author: {
-			_id: rawPost.author?._id ?? "",
-			displayName: rawPost.author?.displayName ?? "Unknown",
-			slug: rawPost.author?.slug ?? "",
-			avatarUrl: rawPost.author?.avatarUrl,
+			_id: resolvedPostData.author?._id ?? "",
+			displayName: resolvedPostData.author?.displayName ?? "Unknown",
+			slug: resolvedPostData.author?.slug ?? "",
+			avatarUrl: resolvedPostData.author?.avatarUrl,
 		},
 		primaryCategory: categories[0]
 			? {
@@ -297,8 +310,8 @@ function SinglePost() {
 					slug: categories[0].slug,
 				}
 			: undefined,
-		commentCount: rawPost.commentCount ?? 0,
-		isSticky: rawPost.isSticky ?? false,
+		commentCount: resolvedPostData.commentCount ?? 0,
+		isSticky: resolvedPostData.isSticky ?? false,
 		categories,
 		tags,
 		previousPost: adjacentPosts?.previous
@@ -376,7 +389,7 @@ function SinglePost() {
 		(rawPost && "membershipAccess" in rawPost
 			? rawPost.membershipAccess
 			: null);
-	const effectiveAccess = access ?? embeddedAccess ?? null;
+	const effectiveAccess = embeddedAccess ?? access ?? null;
 	const isAccessRestricted = Boolean(
 		effectiveAccess &&
 			effectiveAccess.allowed === false &&
@@ -445,6 +458,7 @@ function SinglePost() {
 				siteUrl={siteUrl || `/blog/${slug}`}
 				jsonLdGraph={jsonLdGraph}
 			/>
+			<PublicCanonicalScope request={request} documentId={post._id} initial={canonical} password={submittedPassword ?? undefined}>
 			<Surface
 				name="blog.post"
 				data={{
@@ -463,6 +477,7 @@ function SinglePost() {
 				}}
 				fallback={CoreBlogPost}
 			/>
+      </PublicCanonicalScope>
 		</>
 	);
 }

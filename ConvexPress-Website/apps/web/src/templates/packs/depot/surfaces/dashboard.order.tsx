@@ -5,9 +5,9 @@
  * subscription invoice, …) renders the purchase ledger view. Same data,
  * links and gates as Core.
  */
+import { orderAmountRows, carrierServiceLabel, recordedOrderMoney } from "@/lib/commerce/order-summary";
 import { Link } from "@tanstack/react-router";
 
-import { formatMoney } from "@/lib/commerce/format";
 import type { DashboardOrderSurfaceData } from "@/templates/packs/core/surfaces/dashboard.order";
 import type { SurfaceProps } from "@/templates/sdk/types";
 
@@ -82,7 +82,7 @@ export default function DepotDashboardOrder({ data }: SurfaceProps<DashboardOrde
                         {item.quantity}
                       </Td>
                       <Td align="right" className="whitespace-nowrap font-semibold text-foreground">
-                        {formatMoney(item.lineTotalAmount, order.currencyCode || "USD")}
+                        {recordedOrderMoney(item.lineTotalAmount, order.currencyCode)}
                       </Td>
                     </tr>
                   );
@@ -100,12 +100,12 @@ export default function DepotDashboardOrder({ data }: SurfaceProps<DashboardOrde
                   { key: "payment", cells: ["Payment", <StatusBadge status={order.paymentStatus} />] },
                   { key: "method", cells: ["Payment method", order.selectedPaymentMethodLabel || order.selectedPaymentMethodCode || "—"] },
                   { key: "fulfillment", cells: ["Fulfillment", <StatusBadge status={order.fulfillmentStatus} />] },
-                  { key: "shipping", cells: ["Shipping method", order.selectedShippingMethodLabel || order.selectedShippingMethodCode || "Not required"] },
-                  ...(order.shippingCarrierName || order.shippingServiceName ? [{ key: "carrier", cells: ["Carrier service", [order.shippingCarrierName, order.shippingServiceName].filter(Boolean).join(" • ")] }] : []),
-                  ...(order.discountAmount > 0
-                    ? [{ key: "discount", cells: [`Discount${order.appliedDiscountCode ? ` (${order.appliedDiscountCode})` : ""}`, <span className="tabular-nums">-{formatMoney(order.discountAmount, order.currencyCode || "USD")}</span>] }]
-                    : []),
-                  { key: "total", cells: [<span className="font-semibold text-foreground">Total</span>, <span className="text-lg font-semibold tabular-nums text-foreground">{formatMoney(order.totalAmount, order.currencyCode || "USD")}</span>] },
+                  { key: "shipping", cells: ["Shipping method", order.selectedShippingMethodLabel || order.selectedShippingMethodCode || "Not recorded"] },
+                  ...(carrierServiceLabel(order.shippingCarrierName, order.shippingServiceName) ? [{ key: "carrier", cells: ["Carrier service", carrierServiceLabel(order.shippingCarrierName, order.shippingServiceName)] }] : []),
+                  ...orderAmountRows(order).map(row => ({ key: row.key, cells: [
+                    <span className={row.key === "total" ? "font-semibold text-foreground" : undefined}>{row.label}</span>,
+                    <span className={row.key === "total" ? "text-lg font-semibold tabular-nums text-foreground" : "tabular-nums"}>{row.value}</span>,
+                  ] })),
                 ]}
               />
             </StickyPanel>
@@ -130,8 +130,7 @@ export default function DepotDashboardOrder({ data }: SurfaceProps<DashboardOrde
                     <tr key={shipment._id} className="border-t border-border">
                       <Td className="whitespace-nowrap font-semibold tabular-nums text-foreground">{shipment.shipmentNumber}</Td>
                       <Td className="text-muted-foreground">
-                        {shipment.carrier || "Carrier pending"}
-                        {shipment.serviceName ? <span className="block text-xs">{shipment.serviceName}</span> : null}
+                        {carrierServiceLabel(shipment.carrier, shipment.serviceName) || "Carrier pending"}
                       </Td>
                       <Td className="tabular-nums text-muted-foreground">
                         {shipment.trackingNumber || "—"}
@@ -259,7 +258,7 @@ function PurchaseDetail({ purchase }: { purchase: any }) {
                     {line.quantity}
                   </Td>
                   <Td align="right" className="whitespace-nowrap font-semibold text-foreground">
-                    {formatMoney(line.lineTotalAmount, line.currencyCode)}
+                    {recordedOrderMoney(line.lineTotalAmount, line.currencyCode)}
                   </Td>
                 </tr>
               ))}
@@ -279,7 +278,10 @@ function PurchaseDetail({ purchase }: { purchase: any }) {
               { key: "payment", cells: ["Payment", <StatusBadge status={purchase.paymentStatus} />] },
               { key: "placed", cells: ["Placed", formatDateTime(purchase.placedAt ?? purchase.createdAt)] },
               { key: "paid", cells: ["Paid", formatDateTime(purchase.paidAt)] },
-              { key: "total", cells: [<span className="font-semibold text-foreground">Total</span>, <span className="text-lg font-semibold tabular-nums text-foreground">{formatMoney(purchase.totalAmount ?? 0, purchase.currencyCode)}</span>] },
+              ...orderAmountRows(purchase).map(row => ({ key: row.key, cells: [
+                <span className={row.key === "total" ? "font-semibold text-foreground" : undefined}>{row.label}</span>,
+                <span className={row.key === "total" ? "text-lg font-semibold tabular-nums text-foreground" : "tabular-nums"}>{row.value}</span>,
+              ] })),
             ]}
           />
         </StickyPanel>
@@ -304,7 +306,7 @@ function PurchaseDetail({ purchase }: { purchase: any }) {
                     {payment.failureMessage ? <span className="ml-2 text-xs text-muted-foreground">{payment.failureMessage}</span> : null}
                   </Td>
                   <Td align="right" className="whitespace-nowrap font-semibold text-foreground">
-                    {formatMoney(payment.amount, payment.currencyCode)}
+                    {recordedOrderMoney(payment.amount, payment.currencyCode)}
                   </Td>
                 </tr>
               ))}

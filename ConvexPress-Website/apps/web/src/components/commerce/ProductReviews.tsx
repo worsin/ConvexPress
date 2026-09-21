@@ -5,11 +5,12 @@ import {
   Star,
   ThumbsUp,
   ShieldCheck,
-  MessageSquare,
-  ChevronDown,
 } from "lucide-react";
 import { api } from "@convexpress-website/backend/generated/api";
 
+import { ProductReviewFeed } from "./ProductReviewFeed";
+import { getSiteRuntime } from "@/lib/site-runtime";
+import { useAuth } from "@/lib/auth/clerk";
 import { useSettings } from "@/contexts/SettingsContext";
 import { isPublicPluginEnabled } from "@/lib/plugins/public";
 
@@ -397,7 +398,8 @@ function WriteReviewForm({
 export function ProductReviews({ productId }: { productId: string }) {
   const settings = useSettings();
   const reviewsEnabled = isPublicPluginEnabled("commerceReviews", settings);
-  const [sortBy, setSortBy] = useState<string>("newest");
+  const auth = useAuth();
+  const instanceKey = getSiteRuntime().instanceKey;
   const [showForm, setShowForm] = useState(false);
 
   const canReviewResult = useQuery(
@@ -409,33 +411,6 @@ export function ProductReviews({ productId }: { productId: string }) {
         reason?: string;
         isVerifiedPurchase?: boolean;
         existingReviewId?: string;
-      }
-    | undefined;
-
-  const reviewsData = useQuery(
-    (api as any).commerceReviews.queries.getByProduct,
-    reviewsEnabled
-      ? {
-          productId: productId as any,
-          sortBy,
-          limit: 20,
-        }
-      : "skip",
-  ) as
-    | {
-        reviews: Array<{
-          _id: string;
-          rating: number;
-          title?: string;
-          content?: string;
-          isVerifiedPurchase: boolean;
-          helpfulCount: number;
-          userName: string;
-          userAvatar?: string;
-          createdAt: number;
-        }>;
-        total: number;
-        hasMore: boolean;
       }
     | undefined;
 
@@ -485,53 +460,11 @@ export function ProductReviews({ productId }: { productId: string }) {
         </div>
       )}
 
-      {/* Sort controls */}
-      {reviewsData && reviewsData.total > 0 && (
-        <div className="flex items-center justify-between">
-          <p className="text-sm text-muted-foreground">
-            {reviewsData.total} review{reviewsData.total === 1 ? "" : "s"}
-          </p>
-          <div className="relative">
-            <select
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value)}
-              className="appearance-none rounded-lg border border-border bg-background py-1.5 pl-3 pr-8 text-sm"
-            >
-              <option value="newest">Newest</option>
-              <option value="oldest">Oldest</option>
-              <option value="highest">Highest Rated</option>
-              <option value="lowest">Lowest Rated</option>
-              <option value="helpful">Most Helpful</option>
-            </select>
-            <ChevronDown className="pointer-events-none absolute right-2 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          </div>
-        </div>
-      )}
+      {instanceKey && auth.isLoaded && <ProductReviewFeed
+        key={`${instanceKey}:${productId}:${auth.userId ?? "guest"}:${auth.sessionId ?? "guest"}`}
+        instanceKey={instanceKey} productId={productId} renderReview={review => <ReviewCard review={review} />}
+      />}
 
-      {/* Reviews list */}
-      {reviewsData === undefined ? (
-        <div className="space-y-4">
-          {Array.from({ length: 3 }).map((_, i) => (
-            <div
-              key={i}
-              className="h-28 animate-pulse rounded-xl bg-muted"
-            />
-          ))}
-        </div>
-      ) : reviewsData.reviews.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-border p-10 text-center">
-          <MessageSquare className="mx-auto h-10 w-10 text-muted-foreground/40" />
-          <p className="mt-3 text-sm text-muted-foreground">
-            No reviews yet. Be the first to review this product!
-          </p>
-        </div>
-      ) : (
-        <div className="rounded-2xl border border-border bg-card px-5">
-          {reviewsData.reviews.map((review) => (
-            <ReviewCard key={review._id} review={review} />
-          ))}
-        </div>
-      )}
     </div>
   );
 }

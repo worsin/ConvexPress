@@ -4,6 +4,7 @@
  * non-storefront purchase (form order, subscription invoice, …) renders the
  * purchase ledger view instead.
  */
+import { orderAmountRows, carrierServiceLabel, recordedOrderMoney } from "@/lib/commerce/order-summary";
 import { Link } from "@tanstack/react-router";
 
 import type { SurfaceProps } from "@/templates/sdk/types";
@@ -46,12 +47,6 @@ function formatDateTime(ts: number | undefined) {
   });
 }
 
-function formatMoney(amount: number | undefined, currencyCode?: string) {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: currencyCode || "USD",
-  }).format((amount ?? 0) / 100);
-}
 
 const PURCHASE_SOURCE_LABEL: Record<string, string> = {
   storefront_order: "Storefront order",
@@ -91,7 +86,7 @@ function PurchaseDetail({ purchase }: { purchase: any }) {
                     </p>
                   </div>
                   <p className="font-medium text-foreground">
-                    {formatMoney(line.lineTotalAmount, line.currencyCode)}
+                    {recordedOrderMoney(line.lineTotalAmount, line.currencyCode)}
                   </p>
                 </div>
               ))
@@ -128,12 +123,7 @@ function PurchaseDetail({ purchase }: { purchase: any }) {
                 {formatDateTime(purchase.paidAt)}
               </dd>
             </div>
-            <div className="flex items-center justify-between border-t border-border pt-4">
-              <dt className="text-muted-foreground">Total</dt>
-              <dd className="font-semibold text-foreground">
-                {formatMoney(purchase.totalAmount, purchase.currencyCode)}
-              </dd>
-            </div>
+            <OrderAmounts value={purchase} />
           </dl>
         </aside>
       </div>
@@ -147,7 +137,7 @@ function PurchaseDetail({ purchase }: { purchase: any }) {
                 <div className="flex items-center justify-between gap-3">
                   <p className="font-medium text-foreground">{payment.provider}</p>
                   <span className="text-muted-foreground">
-                    {formatMoney(payment.amount, payment.currencyCode)}
+                    {recordedOrderMoney(payment.amount, payment.currencyCode)}
                   </span>
                 </div>
                 <p className="mt-1 text-muted-foreground">
@@ -240,10 +230,7 @@ export default function CoreDashboardOrder({ data }: SurfaceProps<DashboardOrder
                     ) : null}
                   </div>
                   <p className="font-medium text-foreground">
-                    {new Intl.NumberFormat("en-US", {
-                      style: "currency",
-                      currency: order.currencyCode || "USD",
-                    }).format(item.lineTotalAmount / 100)}
+                    {recordedOrderMoney(item.lineTotalAmount, order.currencyCode)}
                   </p>
                 </div>
               ))}
@@ -280,45 +267,18 @@ export default function CoreDashboardOrder({ data }: SurfaceProps<DashboardOrder
                   <dd className="font-medium text-foreground">
                     {order.selectedShippingMethodLabel ||
                       order.selectedShippingMethodCode ||
-                      "Not required"}
+                      "Not recorded"}
                   </dd>
                 </div>
-                {order.shippingCarrierName || order.shippingServiceName ? (
+                {carrierServiceLabel(order.shippingCarrierName, order.shippingServiceName) ? (
                   <div className="flex items-center justify-between">
                     <dt className="text-muted-foreground">Carrier service</dt>
                     <dd className="font-medium text-foreground">
-                      {[order.shippingCarrierName, order.shippingServiceName]
-                        .filter(Boolean)
-                        .join(" • ")}
+                      {carrierServiceLabel(order.shippingCarrierName, order.shippingServiceName)}
                     </dd>
                   </div>
                 ) : null}
-                {order.discountAmount > 0 ? (
-                  <div className="flex items-center justify-between">
-                    <dt className="text-muted-foreground">
-                      Discount
-                      {order.appliedDiscountCode
-                        ? ` (${order.appliedDiscountCode})`
-                        : ""}
-                    </dt>
-                    <dd className="font-medium text-foreground">
-                      -
-                      {new Intl.NumberFormat("en-US", {
-                        style: "currency",
-                        currency: order.currencyCode || "USD",
-                      }).format(order.discountAmount / 100)}
-                    </dd>
-                  </div>
-                ) : null}
-                <div className="flex items-center justify-between">
-                  <dt className="text-muted-foreground">Total</dt>
-                  <dd className="font-semibold text-foreground">
-                    {new Intl.NumberFormat("en-US", {
-                      style: "currency",
-                      currency: order.currencyCode || "USD",
-                    }).format(order.totalAmount / 100)}
-                  </dd>
-                </div>
+                <OrderAmounts value={order} />
               </dl>
             </aside>
           </div>
@@ -338,16 +298,11 @@ export default function CoreDashboardOrder({ data }: SurfaceProps<DashboardOrder
                           {shipment.shipmentNumber}
                         </p>
                         <p className="text-muted-foreground">
-                          {shipment.carrier || "Carrier pending"}
+                          {carrierServiceLabel(shipment.carrier, shipment.serviceName) || "Carrier pending"}
                           {shipment.trackingNumber
                             ? ` • ${shipment.trackingNumber}`
                             : ""}
                         </p>
-                        {shipment.serviceName ? (
-                          <p className="text-xs text-muted-foreground">
-                            {shipment.serviceName}
-                          </p>
-                        ) : null}
                       </div>
                       <span className="text-muted-foreground">
                         {shipment.status}
@@ -466,4 +421,13 @@ export default function CoreDashboardOrder({ data }: SurfaceProps<DashboardOrder
       )}
     </div>
   );
+}
+
+function OrderAmounts({ value }: { value: Parameters<typeof orderAmountRows>[0] }) {
+  return orderAmountRows(value).map(row => (
+    <div key={row.key} className={`flex items-start justify-between gap-4${row.key === "total" ? " border-t border-border pt-4" : ""}`}>
+      <dt className="text-muted-foreground">{row.label}</dt>
+      <dd className={`${row.key === "total" ? "font-semibold" : "font-medium"} text-right tabular-nums text-foreground`}>{row.value}</dd>
+    </div>
+  ));
 }

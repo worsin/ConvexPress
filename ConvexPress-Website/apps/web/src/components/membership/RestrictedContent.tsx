@@ -12,9 +12,8 @@
  * presentation code.
  */
 import { useMemo } from "react";
-import DOMPurify from "isomorphic-dompurify";
+import DOMPurify from "@/lib/html-sanitizer";
 
-import type { Id } from "@convexpress-website/backend/generated/dataModel";
 import { cn } from "@/lib/utils";
 
 import { LoginCTA } from "./LoginCTA";
@@ -26,7 +25,7 @@ export type RestrictedUserState = "logged_out" | "logged_in_non_member";
 export interface RestrictedRule {
   teaserMode?: RestrictedTeaserMode | null;
   customMessage?: string | null;
-  matchingPlanIds?: Id<"membership_plans">[] | null;
+  matchingPlanIds?: string[] | null;
 }
 
 interface RestrictedContentProps {

@@ -14,38 +14,14 @@ import { useMemo } from "react";
 import { useQuery } from "convex/react";
 import { api } from "@convexpress-website/backend/generated/api";
 
-import { menuToNav, navItemsFromDashboardNav, registryToNav, type MenuTreeNode, type NavItem } from "../nav";
+import { navItemsFromDashboardNav, registryToNav, type NavItem } from "../nav";
 import { listPageModuleIds } from "../registry";
 import type { DashboardRegistryPayload } from "../types";
 import { useSettings } from "@/contexts/SettingsContext";
 import { useCanFn } from "@/hooks/useCan";
 import { buildDashboardNavItems } from "@/lib/layout/dashboardNav";
 
-interface MenuPayload {
-  menu: { _id: string; name: string; slug: string };
-  items: MenuTreeNode[];
-}
-
-export interface DashboardMenuResult {
-  /** undefined while loading; null when no menu is assigned; else the nav. */
-  nav: NavItem[] | null | undefined;
-  isLoading: boolean;
-}
-
-export function useDashboardMenu(location: string, basePath: string, enabled: boolean = true): DashboardMenuResult {
-  const slug = location.trim();
-  const data = useQuery(
-    api.menus.queries.getMenuForLocation,
-    enabled && slug ? { locationSlug: slug } : "skip",
-  ) as MenuPayload | null | undefined;
-  return useMemo(() => {
-    if (!enabled || !slug) return { nav: null, isLoading: false };
-    if (data === undefined) return { nav: undefined, isLoading: true };
-    if (data === null) return { nav: null, isLoading: false };
-    const nav = menuToNav(data.items, basePath);
-    return { nav: nav.length ? nav : null, isLoading: false };
-  }, [basePath, data, enabled, slug]);
-}
+export { useDashboardMenu, type DashboardMenuResult } from "./useDashboardMenu";
 
 export function useDashboardRegistry(): DashboardRegistryPayload | null {
   const data = useQuery(api.extensions.dashboard.queries.registry, {}) as

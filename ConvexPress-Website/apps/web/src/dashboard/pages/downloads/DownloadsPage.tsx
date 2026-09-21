@@ -1,10 +1,11 @@
 /**
  * Downloads loader: digital-products gate, the downloads and license-key
- * queries, and the generateDownloadUrl action (plus clipboard copy), handed
+ * queries, and protected streaming downloads (plus clipboard copy), handed
  * to the `dashboard.downloads` surface.
  */
-import { useAction, useQuery } from "convex/react";
+import { useQuery } from "convex/react";
 import { toast } from "sonner";
+import { useDownloadPurchase } from "@/hooks/useDownloadPurchase";
 import { api } from "@convexpress-website/backend/generated/api";
 
 import { PublicPluginGate } from "@/components/plugins/PublicPluginGate";
@@ -29,33 +30,13 @@ export function DashboardDownloadsPage() {
     digitalEnabled ? {} : "skip",
   ) as DashboardLicenseKeyEntry[] | undefined;
 
-  const generateDownloadUrl = useAction(
-    (api as any).commerceDigital.actions.generateDownloadUrl,
-  );
-
+  const downloadsHost = useDownloadPurchase();
   async function download(token: string) {
     try {
-      const result = await generateDownloadUrl({ token });
-      if (!result.success) {
-        toast.error(result.error ?? "Download failed");
-        return;
-      }
-
-      // Open the download URL in a new tab
-      const link = document.createElement("a");
-      link.href = result.url;
-      link.download = result.fileName || "download";
-      link.target = "_blank";
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-
-      toast.success("Download started");
+      await downloadsHost.download(token);
+      toast.success("Download requested");
     } catch (error) {
-      toast.error(
-        (error as { data?: { message?: string } })?.data?.message ??
-          "Download failed",
-      );
+      toast.error(error instanceof Error ? error.message : "Download failed");
     }
   }
 

@@ -5,7 +5,7 @@
  * in two columns, numbered pagination. Result clicks are tracked as in Core.
  */
 import { Link, useNavigate } from "@tanstack/react-router";
-import DOMPurify from "isomorphic-dompurify";
+import DOMPurify from "@/lib/html-sanitizer";
 import { FileText, GraduationCap, Image, MessageSquare, Newspaper, Search, ShoppingBag } from "lucide-react";
 import { useState, type ChangeEvent, type FormEvent } from "react";
 
