@@ -3,7 +3,7 @@ import { convexTest } from "convex-test";
 import schema from "../../schema";
 import { authoringSnapshot, restoredAuthoring } from "../authoringSnapshot";
 import { encodeComposedDefinition } from "../../canonicalDocuments/foundation/composedDefinitions";
-import { parseAuthoredDefinitionContent } from "../../canonicalDocuments/foundation/authoredDefinitions";
+import { parseAuthoredDefinitionContent, assertAuthoredActions } from "../../canonicalDocuments/foundation/authoredDefinitions";
 import { prepareCanonicalRestore } from "../../canonicalDocuments/foundation/documentState";
 
 const scope = { websiteKey: "snapshot", instanceKey: "staging", deploymentOrigin: "https://snapshot.convex.cloud" };
@@ -60,4 +60,21 @@ test("historical article and serialized-block recovery clear current definition 
     expect(Object.hasOwn(restored, "composedDefinitions")).toBe(true);
     expect(restored.composedDefinitions).toBeUndefined();
   }
+});
+
+ test("custom icon choice rules preserve historical snapshots but reject new authored content", () => {
+  const name = "composed/badge";
+  const encoded = encodeComposedDefinition({
+    spec: { name, title: "Badge", description: "Choice boundary fixture", category: "marketing", role: "content", version: 1,
+      keywords: [], ai: { useFor: "A labeled mark", avoid: "Unverified claims" }, fields: [{ id: "title", type: "text", default: "Sample" }, { id: "icon", type: "icon", options: ["heart", "check"], optionsMode: "authoring" }],
+      supports: { children: false, styles: false, layout: [], anchor: true, visibility: false }, data: null, preview: "{title}", examples: [{}] },
+    composition: { version: 1, root: { el: "Heading", bind: "attrs.title" } },
+  });
+  const definitions = { scope, definitions: [{ name, version: 1, digest: encoded.digest, definitionJson: encoded.json }] };
+  const old = parseAuthoredDefinitionContent({ title: "Page", blocks: [{ id: "badge", name, version: 1, attrs: { icon: "old-provider-mark" } }], composedDefinitions: definitions }, scope);
+  expect(old.blocks[0].attrs.icon).toBe("old-provider-mark");
+  expect(() => assertAuthoredActions(old, scope)).toThrow("Choose a supported icon");
+  const corrected = parseAuthoredDefinitionContent({ ...old, blocks: [{ ...old.blocks[0], attrs: { ...old.blocks[0].attrs, icon: "heart" } }] }, scope);
+  expect(() => assertAuthoredActions(corrected, scope)).not.toThrow();
+  expect(old.blocks[0].attrs.icon).toBe("old-provider-mark");
 });

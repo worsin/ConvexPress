@@ -6,7 +6,7 @@ import { validateCanonicalTree } from "./generated/instances";
 import { canonicalJson, sha256Hex } from "./shared/fingerprints";
 import type { SyncedScope } from "./syncedContent";
 import { validateBlockAuthoringAttrs } from "./generated/schemas";
-import { validateAuthoringActions } from "./generated/spec_runtime.mjs";
+import { validateAuthoringActions, validateAuthoringChoices, authoringChoices } from "./generated/spec_runtime.mjs";
 
 export interface AuthoredDefinitionContent {
   title: string;
@@ -24,7 +24,7 @@ export function assertAuthoredActions(content: Pick<AuthoredDefinitionContent, "
       if (node.name.startsWith("composed/")) {
         const definition = registry?.definition(node.name, node.version);
         if (!definition) throw Error("Composed authoring requires the current site definition");
-        validateAuthoringActions(z, node.attrs, definition.spec.authoringActions);
+        validateAuthoringChoices(z, validateAuthoringActions(z, node.attrs, definition.spec.authoringActions), authoringChoices(definition.spec.fields));
         assertAuthoringResolverArgs(node.name, node.attrs, definition.spec.data);
       } else {
         validateBlockAuthoringAttrs(node.name, node.attrs);

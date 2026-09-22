@@ -17,7 +17,7 @@ export type BlockField = CommonField & (
   | { type: "reference"; of: ReferenceKind; storage?: "id" | "slug"; allowEmpty?: boolean; max?: number }
   | { type: "media"; storage?: "id"; allowEmpty?: boolean; max?: number }
   | { type: "link"; protocols?: ("http" | "https" | "relative" | "anchor" | "mailto" | "tel")[]; storage?: "href"; allowEmpty?: boolean; max?: number }
-  | { type: "icon"; options?: string[] }
+  | { type: "icon"; options?: string[]; optionsMode?: "authoring" }
   | { type: "boolean" | "color-role" | "date" | "menu" | "form" }
   | { type: "repeater"; constraints?: FieldConstraint[]; min?: number; max?: number; fields?: BlockField[]; item?: BlockField }
   | { type: "object"; constraints?: FieldConstraint[]; fields: BlockField[] }
@@ -64,3 +64,7 @@ export interface FieldDependency {
 export function dependencyFields(fields: readonly BlockField[], parent?: string[]): FieldDependency[];
 export function anchorFields(fields: readonly BlockField[], parent?: string[]): { path: string[] }[];
 export function searchableFields(fields: readonly BlockField[], paths: readonly (readonly string[] | { path: readonly string[]; format: "prose" })[]): { path: readonly string[]; type: "text" | "richtext" | "prose" }[];
+
+export interface AuthoringChoice { path: readonly string[]; options: readonly string[] }
+export function authoringChoices(fields: readonly BlockField[], parent?: string[]): AuthoringChoice[];
+export function validateAuthoringChoices<T>(zod: typeof z, attrs: T, choices?: readonly AuthoringChoice[]): T;

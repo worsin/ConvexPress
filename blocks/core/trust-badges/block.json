@@ -19,7 +19,23 @@
       "fields": [
         {
           "id": "icon",
-          "type": "icon"
+          "type": "icon",
+          "options": [
+            "book-open",
+            "arrow-right",
+            "arrow-up-right",
+            "check",
+            "plus",
+            "minus",
+            "star",
+            "heart",
+            "mail",
+            "map-pin",
+            "calendar",
+            "clock",
+            "search"
+          ],
+          "optionsMode": "authoring"
         },
         {
           "id": "media",
@@ -64,15 +80,15 @@
       "items": [
         {
           "icon": "book-open",
-          "label": "Original field notes — sample label"
+          "label": "Original field notes \u2014 sample label"
         },
         {
           "icon": "clock",
-          "label": "Time to notice — sample label"
+          "label": "Time to notice \u2014 sample label"
         },
         {
           "icon": "heart",
-          "label": "Made with care — sample label"
+          "label": "Made with care \u2014 sample label"
         }
       ]
     }

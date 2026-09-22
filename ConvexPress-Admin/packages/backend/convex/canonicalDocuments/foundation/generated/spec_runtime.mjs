@@ -55,7 +55,7 @@ export function createBlockSpecCompiler(z) {
     z.object({ ...common, type: z.literal("reference"), of: z.enum(["product", "productCategory", "productTag", "post", "page", "category", "course", "event", "eventCategory", "tag", "user", "bundle", "membershipPlan", "recipe", "album", "syncedBlock", "mailingList", "poll", "instructor", "kbCategory"]), storage: z.enum(["id", "slug"]).optional(), allowEmpty: z.boolean().optional(), max: size.optional() }).strict(),
     z.object({ ...common, type: z.literal("media"), storage: z.literal("id").optional(), allowEmpty: z.boolean().optional(), max: size.optional() }).strict(),
     z.object({ ...common, type: z.literal("link"), protocols: z.array(z.enum(["http", "https", "relative", "anchor", "mailto", "tel"])).min(1).max(6).optional(), storage: z.literal("href").optional(), allowEmpty: z.boolean().optional(), max: size.optional() }).strict(),
-    z.object({ ...common, type: z.literal("icon"), options: z.array(z.string().max(100).regex(/^[a-z][a-z0-9-]*$/)).min(1).max(100).optional() }).strict(),
+    z.object({ ...common, type: z.literal("icon"), optionsMode: z.literal("authoring").optional(), options: z.array(z.string().max(100).regex(/^[a-z][a-z0-9-]*$/)).min(1).max(100).optional() }).strict(),
     ...["boolean", "color-role", "date", "menu", "form"].map(type => z.object({ ...common, type: z.literal(type) }).strict()),
     z.object({ ...common, type: z.literal("repeater"), constraints, min: z.number().int().min(0).max(1000).optional(), max: z.number().int().min(0).max(1000).optional(), fields: z.lazy(() => z.array(fieldSchema).min(1).max(100)).optional(), item: z.lazy(() => fieldSchema).optional() }).strict(),
     z.object({ ...common, type: z.literal("object"), constraints, fields: z.lazy(() => z.array(fieldSchema).min(1).max(100)) }).strict(),
@@ -105,7 +105,7 @@ export function createBlockSpecCompiler(z) {
       case "boolean": schema = z.boolean(); break;
       case "select": schema = field.options.length === 1 ? z.literal(field.options[0]) : z.union(field.options.map(value => z.literal(value))); break;
       case "color-role": schema = z.enum(["primary", "accent", "muted"]); break;
-      case "icon": schema = field.options ? z.enum(field.options) : z.string().max(100).regex(/^[a-z][a-z0-9-]*$/); break;
+      case "icon": schema = field.options && field.optionsMode !== "authoring" ? z.enum(field.options) : z.string().max(100).regex(/^[a-z][a-z0-9-]*$/); break;
       case "date": schema = dateSchema(z); break;
       case "link": {
         const href = safeLinkSchema(z, field.protocols);
@@ -152,6 +152,7 @@ export function createBlockSpecCompiler(z) {
       if (ids.has(field.id)) throw new Error(`Duplicate field ID ${field.id}`);
       ids.add(field.id);
       if (field.min !== undefined && field.max !== undefined && field.min > field.max) throw new Error(`Inverted bounds for ${field.id}`);
+      if (field.optionsMode === "authoring" && !field.options) throw Error("Authoring icon options must be declared");
       if (field.options && new Set(field.options).size !== field.options.length) throw new Error(`Duplicate options for ${field.id}`);
       if (field.options && new Set(field.options.map(value => typeof value)).size !== 1) throw new Error(`Mixed select types for ${field.id}`);
       if (field.type === "media" && field.storage !== "id" && (field.allowEmpty !== undefined || field.max !== undefined)) throw new Error("ID media options require storage=id");
@@ -164,7 +165,7 @@ export function createBlockSpecCompiler(z) {
       if (field.protocols && new Set(field.protocols).size !== field.protocols.length) throw new Error("Duplicate link protocols");
       if (field.constraints && !field.fields) throw new Error("Object constraints require object fields");
       if (field.fields) { checkFieldTree(field.fields, depth + 1, budget); checkConstraints(field.fields, field.constraints); }
-      if (own(field, "default")) attrsSchema([{ ...field, required: true }]).parse({ [field.id]: field.default });
+      if (own(field, "default")) validateAuthoringChoices(z, attrsSchema([{ ...field, required: true }]).parse({ [field.id]: field.default }), authoringChoices([field]));
     }
   }
   function pathExists(fields, path) {
@@ -203,7 +204,7 @@ export function createBlockSpecCompiler(z) {
     checkConstraints(spec.fields, spec.constraints);
     checkAuthoringActions(spec.fields, spec.authoringActions);
     const schema = attrsSchema(spec.fields, spec.constraints);
-    for (const example of spec.examples) validateAuthoringActions(z, schema.parse(example), spec.authoringActions);
+    for (const example of spec.examples) validateAuthoringChoices(z, validateAuthoringActions(z, schema.parse(example), spec.authoringActions), authoringChoices(spec.fields));
     return spec;
   }
 
@@ -266,6 +267,41 @@ export function validateAuthoringActions(z, attrs, actions = []) {
       const checked = hrefSchema.safeParse(href);
       if (!checked.success) issues.push({ code: "custom", path: [...path, action.href], message: checked.error.issues[0].message });
       if (typeof value[action.label] !== "string" || !value[action.label].trim()) issues.push({ code: "custom", path: [...path, action.label], message: "A destination needs a visible action label" });
+    }
+    visit(attrs, 0, []);
+  }
+  if (issues.length) throw new z.ZodError(issues);
+  return attrs;
+}
+
+/** Compile bounded write-only icon choices while retaining stored read shape. */
+export function authoringChoices(fields, parent = []) {
+  const result = [];
+  function field(item, path) {
+    if (item.type === "icon" && item.optionsMode === "authoring") result.push({ path, options: item.options });
+    if (item.type === "object") result.push(...authoringChoices(item.fields, path));
+    if (item.type === "repeater") {
+      if (item.fields) result.push(...authoringChoices(item.fields, [...path, "*"]));
+      else field(item.item, [...path, "*"]);
+    }
+  }
+  for (const item of fields) field(item, [...parent, item.id]);
+  return result;
+}
+
+/** Apply only to shape-validated attrs and declarations from a parsed spec. */
+export function validateAuthoringChoices(z, attrs, choices = []) {
+  const issues = [];
+  for (const choice of choices) {
+    function visit(value, offset, path) {
+      if (value == null) return;
+      if (offset === choice.path.length) {
+        if (!choice.options.includes(value)) issues.push({ code: "custom", path, message: "Choose a supported icon or remove the icon to use an owned media asset" });
+        return;
+      }
+      const part = choice.path[offset];
+      if (part === "*") value.forEach((row, index) => visit(row, offset + 1, [...path, index]));
+      else visit(value[part], offset + 1, [...path, part]);
     }
     visit(attrs, 0, []);
   }

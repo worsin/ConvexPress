@@ -7448,6 +7448,22 @@
         "fields": [
           {
             "id": "icon",
+            "options": [
+              "book-open",
+              "arrow-right",
+              "arrow-up-right",
+              "check",
+              "plus",
+              "minus",
+              "star",
+              "heart",
+              "mail",
+              "map-pin",
+              "calendar",
+              "clock",
+              "search"
+            ],
+            "optionsMode": "authoring",
             "type": "icon"
           },
           {

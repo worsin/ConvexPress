@@ -1,4 +1,4 @@
-import { dependencyFields, anchorFields, searchableFields } from "./spec-runtime.mjs";
+import { dependencyFields, anchorFields, searchableFields, authoringChoices } from "./spec-runtime.mjs";
 export { dependencyFields, anchorFields } from "./spec-runtime.mjs";
 import { canonicalStorageValidatorSource } from "./storage.mjs";
 import { createHash } from "node:crypto";
@@ -56,9 +56,10 @@ export async function generateArtifacts(discovered) {
     `const schemaFactories = {\n${entries.join(",\n")}\n} as const;\nexport const blockSchemas = {${getters("schemaFactories")}} as const;\n` +
     'export type BlockName = keyof typeof blockSchemas;\n' +
     'export function validateBlockAttrs(name: string, attrs: unknown) {\n  if (!Object.prototype.hasOwnProperty.call(blockSchemas, name)) throw new Error(`Unknown block name ${name}`);\n  return blockSchemas[name as BlockName].parse(attrs);\n}\n';
-  const authoringSchemas = '\nimport { validateAuthoringActions, type AuthoringAction } from "./spec-runtime.mjs";\n' +
+  const authoringSchemas = '\nimport { validateAuthoringActions, validateAuthoringChoices, type AuthoringAction, type AuthoringChoice } from "./spec-runtime.mjs";\n' +
     `const authoringActions: Readonly<Record<string, readonly AuthoringAction[]>> = ${json(Object.fromEntries(blocks.filter(({spec}) => spec.authoringActions?.length).map(({spec}) => [spec.name, spec.authoringActions])))};\n` +
-    'export function validateBlockAuthoringAttrs(name: string, attrs: unknown) { return validateAuthoringActions(z, validateBlockAttrs(name, attrs), authoringActions[name]); }\n';
+    `const iconChoices: Readonly<Record<string, readonly AuthoringChoice[]>> = ${json(Object.fromEntries(blocks.map(({spec}) => [spec.name, authoringChoices(spec.fields)]).filter(([, choices]) => choices.length)))};\n` +
+    'export function validateBlockAuthoringAttrs(name: string, attrs: unknown) { return validateAuthoringChoices(z, validateAuthoringActions(z, validateBlockAttrs(name, attrs), authoringActions[name]), iconChoices[name]); }\n';
   const fieldAccess = `
 type FieldValidator = { unwrap?: () => FieldValidator; shape?: Record<string, FieldValidator>; element?: FieldValidator; parse: (value: unknown) => unknown };
 export function validateBlockField(name: string, path: readonly (string | number)[], value: unknown) {
@@ -143,7 +144,7 @@ export type FieldType = (typeof fieldTypes)[number];
 export interface EditorField {
   id: string; type: FieldType; title?: string; description?: string; required?: boolean; nullable?: boolean; default?: unknown;
   min?: number; max?: number; integer?: boolean; inline?: boolean; multiline?: true; format?: string; domId?: true;
-  options?: readonly (string | number)[]; of?: string; storage?: string; allowEmpty?: boolean; protocols?: readonly string[];
+  options?: readonly (string | number)[]; optionsMode?: "authoring"; of?: string; storage?: string; allowEmpty?: boolean; protocols?: readonly string[];
   fields?: readonly EditorField[]; item?: EditorField; constraints?: readonly unknown[];
 }
 export interface EditorDefinition { version: number; requires: { plugins: readonly string[]; capabilities: readonly string[] }; fields: readonly EditorField[]; constraints: readonly unknown[]; preview: string; category: string; title: string; role: string; supports: { children: boolean; styles: boolean; layout: readonly string[]; anchor: boolean; visibility: boolean } }

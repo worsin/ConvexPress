@@ -559,3 +559,18 @@ for (const specimen of [
 						: [{ label: "Notebooks", values: ["Three"] }];
 			expect(writes[1].attrs.rows).toEqual(remaining);
 		}));
+
+ test("unsupported stored icons stay visible until an explicit supported replacement", async () =>
+  domTest(async (host, render, win) => {
+    const writes: any[] = [];
+    await render({ name: "core/trust-badges", version: 1, value: { items: [{ icon: "old-provider-mark", label: "Historical label" }] }, revision: "r1", scope, onCommit: async (value: any) => { writes.push(value); } });
+    const choice = Array.from(host.querySelectorAll("select")).find(select => Array.from(select.options).some(option => option.textContent === "Unsupported: old-provider-mark"))!;
+    expect(choice.selectedOptions[0].textContent).toBe("Unsupported: old-provider-mark");
+    expect(button(host, "Save content").disabled).toBe(true);
+    const supported = Array.from(choice.options).find(option => option.textContent === "heart")!;
+    await change(win, choice, supported.value);
+    expect(Array.from(choice.options).some(option => option.textContent?.startsWith("Unsupported:"))).toBe(false);
+    expect(button(host, "Save content").disabled).toBe(false);
+    await act(async () => button(host, "Save content").click());
+    expect(writes[0].attrs.items).toEqual([{ icon: "heart", label: "Historical label" }]);
+  }));

@@ -2,13 +2,42 @@ import { expect, test } from "bun:test";
 import { fileURLToPath } from "node:url";
 import { discoverBlocks } from "./discovery.mjs";
 import { z } from "./schema.mjs";
-import { createBlockSpecCompiler, validateAuthoringActions } from "./spec-runtime.mjs";
+import { createBlockSpecCompiler, validateAuthoringActions, validateAuthoringChoices, authoringChoices } from "./spec-runtime.mjs";
 import tabbedSpec from "../../blocks/blocks/tabbed-content/block.json";
-import { blockSchemas } from "../../ConvexPress-Admin/packages/backend/canonical-blocks-foundation/generated/schemas";
+import { blockSchemas, validateBlockAuthoringAttrs } from "../../ConvexPress-Admin/packages/backend/canonical-blocks-foundation/generated/schemas";
 import type { BlockName } from "../../ConvexPress-Admin/packages/backend/canonical-blocks-foundation/generated/types";
 
 const root = fileURLToPath(new URL("../../", import.meta.url));
 const runtime = createBlockSpecCompiler(z);
+
+test("trust icons remain readable for repair but unsupported authoring is refused", async () => {
+  const spec = runtime.parseBlockSpec((await discoverBlocks(root)).blocks.find(b => b.spec.name === "core/trust-badges")!.spec);
+  const old = { items: [{ icon: "old-provider-mark", label: "Historical badge" }] };
+  expect(runtime.attrsSchema(spec.fields).parse(old)).toEqual(old);
+  expect(() => validateBlockAuthoringAttrs(spec.name, old)).toThrow();
+  for (const icon of [undefined, "heart", "check", "book-open"])
+    expect(validateBlockAuthoringAttrs(spec.name, { items: [{ ...(icon ? { icon } : {}), label: "Sample badge" }] })).toEqual({ items: [{ ...(icon ? { icon } : {}), label: "Sample badge" }] });
+});
+
+test("write-only icon choices cover nested and scalar rows without rewriting legacy values", async () => {
+  const original = (await discoverBlocks(root)).blocks.find(b => b.spec.name === "core/trust-badges")!.spec;
+  const icon = { id: "icon", type: "icon", options: ["heart", "check"], optionsMode: "authoring", nullable: true };
+  const fields = [{ id: "panel", type: "object", fields: [{ id: "rows", type: "repeater", fields: [icon] }, { id: "symbols", type: "repeater", item: { ...icon, required: true } }] }];
+  const spec = runtime.parseBlockSpec({ ...original, fields, examples: [{}] });
+  const schema = runtime.attrsSchema(spec.fields), choices = authoringChoices(spec.fields);
+  expect(validateAuthoringChoices(z, schema.parse({}), choices)).toEqual({});
+  const valid = schema.parse({ panel: { rows: [{}, { icon: null }, { icon: "check" }], symbols: ["heart"] } });
+  expect(validateAuthoringChoices(z, valid, choices)).toBe(valid);
+  const old = schema.parse({ panel: { rows: [{ icon: "old-icon" }], symbols: ["old-mark"] } });
+  const before = JSON.stringify(old);
+  try { validateAuthoringChoices(z, old, choices); throw Error("Expected rejection"); } catch (error: any) {
+    expect(error.issues.map((issue: any) => issue.path)).toEqual([["panel", "rows", 0, "icon"], ["panel", "symbols", 0]]);
+  }
+  expect(JSON.stringify(old)).toBe(before);
+  for (const bad of [{ ...icon, options: undefined }, { ...icon, default: "old-icon" }])
+    expect(() => runtime.parseBlockSpec({ ...original, fields: [bad], examples: [{}] })).toThrow();
+  expect(() => runtime.parseBlockSpec({ ...original, fields: [icon], examples: [{ icon: "old-icon" }] })).toThrow();
+});
 
 test("social-proof additions retain absent historical fields and validate new content", async () => {
   const { blocks } = await discoverBlocks(root);

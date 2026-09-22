@@ -3,7 +3,7 @@ import { composedAttrsSchema, type ComposedDefinition } from "@backend/canonical
 import type { ComposedRegistry } from "@backend/canonical-blocks-foundation/composedRegistry";
 import type { BlockEditorContract, Draft, Path } from "./model";
 import { z } from "zod";
-import { validateAuthoringActions } from "@backend/canonical-blocks-foundation/generated/spec-runtime.mjs";
+import { validateAuthoringActions, validateAuthoringChoices, authoringChoices } from "@backend/canonical-blocks-foundation/generated/spec-runtime.mjs";
 
 interface FieldValidator {
   unwrap?: () => FieldValidator;
@@ -26,7 +26,7 @@ export function definitionEditorContract(definition: ComposedDefinition): BlockE
     name,
     definition: { ...spec, requires: spec.requires ?? { plugins: [], capabilities: [] }, constraints: spec.constraints ?? [] },
     validateAttrs: value => {
-      const attrs = validateAuthoringActions(z, schema.parse(value), spec.authoringActions) as Draft;
+      const attrs = validateAuthoringChoices(z, validateAuthoringActions(z, schema.parse(value), spec.authoringActions), authoringChoices(spec.fields)) as Draft;
       assertAuthoringResolverArgs(name, attrs, spec.data);
       return attrs;
     },

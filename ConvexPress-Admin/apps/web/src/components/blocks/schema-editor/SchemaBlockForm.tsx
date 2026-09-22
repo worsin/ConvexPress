@@ -456,6 +456,7 @@ function Field(props: FieldProps) {
 			(field.type === "icon" && field.options)
 		) {
 			const options = field.options ?? ["primary", "accent", "muted"];
+			const unsupported = value !== undefined && value !== null && !options.some(option => option === value);
 			return (
 				<select
 					{...common}
@@ -465,7 +466,9 @@ function Field(props: FieldProps) {
 						if (options[index] !== undefined) set(options[index]);
 					}}
 				>
-					<option value={-1}>Choose a value</option>
+					<option value={-1} disabled={unsupported}>
+						{unsupported ? `Unsupported: ${String(value)}` : "Choose a value"}
+					</option>
 					{options.map((option, index) => (
 						<option key={index} value={index}>
 							{option}

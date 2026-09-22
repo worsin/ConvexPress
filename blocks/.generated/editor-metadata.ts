@@ -5,7 +5,7 @@ export type FieldType = (typeof fieldTypes)[number];
 export interface EditorField {
   id: string; type: FieldType; title?: string; description?: string; required?: boolean; nullable?: boolean; default?: unknown;
   min?: number; max?: number; integer?: boolean; inline?: boolean; multiline?: true; format?: string; domId?: true;
-  options?: readonly (string | number)[]; of?: string; storage?: string; allowEmpty?: boolean; protocols?: readonly string[];
+  options?: readonly (string | number)[]; optionsMode?: "authoring"; of?: string; storage?: string; allowEmpty?: boolean; protocols?: readonly string[];
   fields?: readonly EditorField[]; item?: EditorField; constraints?: readonly unknown[];
 }
 export interface EditorDefinition { version: number; requires: { plugins: readonly string[]; capabilities: readonly string[] }; fields: readonly EditorField[]; constraints: readonly unknown[]; preview: string; category: string; title: string; role: string; supports: { children: boolean; styles: boolean; layout: readonly string[]; anchor: boolean; visibility: boolean } }
@@ -7459,6 +7459,22 @@ export const editorDefinitions: Record<BlockName, EditorDefinition> = {
         "fields": [
           {
             "id": "icon",
+            "options": [
+              "book-open",
+              "arrow-right",
+              "arrow-up-right",
+              "check",
+              "plus",
+              "minus",
+              "star",
+              "heart",
+              "mail",
+              "map-pin",
+              "calendar",
+              "clock",
+              "search"
+            ],
+            "optionsMode": "authoring",
             "type": "icon"
           },
           {

@@ -424,6 +424,10 @@
               "minItems": 1,
               "type": "array"
             },
+            "optionsMode": {
+              "const": "authoring",
+              "type": "string"
+            },
             "required": {
               "type": "boolean"
             },
