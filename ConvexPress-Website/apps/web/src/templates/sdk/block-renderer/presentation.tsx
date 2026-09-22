@@ -116,6 +116,15 @@ export function CardCollection({ children }: { children: ReactNode }) {
 	return <div className="cp-library-card-collection">{children}</div>;
 }
 
+/** Fill short rows; four cards make two balanced rows instead of three plus one. */
+export function cardColumns(count: number, maximum: 2 | 3 = 3): P.PrimitiveData<"Grid">["columns"] {
+	return {
+		base: 1,
+		md: count < 2 ? 1 : 2,
+		lg: count < 2 ? 1 : count === 2 || count === 4 || maximum === 2 ? 2 : 3,
+	};
+}
+
 /** Keep plan actions on a shared baseline without fixing the height of the copy. */
 export function PlanContent({ children, ctaLabel, ctaUrl }: {
 	children: ReactNode;

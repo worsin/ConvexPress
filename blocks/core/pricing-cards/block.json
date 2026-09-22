@@ -27,7 +27,8 @@
       "id": "body",
       "default": "",
       "type": "text",
-      "max": 400
+      "max": 400,
+      "multiline": true
     },
     {
       "id": "plans",
@@ -179,5 +180,15 @@
       "features",
       "*"
     ]
+  ],
+  "authoringActions": [
+    {
+      "path": [
+        "plans",
+        "*"
+      ],
+      "href": "ctaUrl",
+      "label": "ctaLabel"
+    }
   ]
 }

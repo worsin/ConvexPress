@@ -103,3 +103,22 @@ test("Media + Text refuses unlabeled actions before writes without invalidating 
   const valid = schema.parse({ ctaUrl: "/visit", ctaLabel: "Plan a visit" });
   expect(validateAuthoringActions(z, valid, spec.authoringActions)).toEqual(valid);
 });
+
+test("card families validate action labels before writes while preserving historical repair", async () => {
+  const { blocks } = await discoverBlocks(root);
+  for (const name of ["core/pricing-cards", "core/bento-grid", "core/feature-list-alternating"]) {
+    const spec = runtime.parseBlockSpec(blocks.find(block => block.spec.name === name)!.spec);
+    const schema = runtime.attrsSchema(spec.fields, spec.constraints);
+    const collection = name === "core/pricing-cards" ? "plans" : "items";
+    for (const ctaLabel of ["", "   "]) {
+      const saved = schema.parse({ [collection]: [{ ctaUrl: "/page/studies", ctaLabel }] });
+      const before = JSON.stringify(saved);
+      expect(() => validateAuthoringActions(z, saved, spec.authoringActions), name).toThrow();
+      expect(JSON.stringify(saved)).toBe(before);
+    }
+    for (const ctaUrl of ["", "/page/studies", "#studies", "mailto:studio@example.test", "tel:+18005550100"]) {
+      const attrs = schema.parse({ [collection]: [{ ctaUrl, ctaLabel: "Explore the studies" }] });
+      expect(validateAuthoringActions(z, attrs, spec.authoringActions)).toBe(attrs);
+    }
+  }
+});

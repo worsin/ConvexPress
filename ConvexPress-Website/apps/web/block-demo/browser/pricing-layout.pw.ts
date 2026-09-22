@@ -27,10 +27,11 @@ for (const width of [1440, 900, 390]) {
 				.click();
 			const check = async (count: number) => {
 				await expect(grid.locator(":scope > *")).toHaveCount(count);
+				const availableWidth = await grid.evaluate(node => node.clientWidth);
 				const columns =
-					width < 768
+					availableWidth < 768
 						? 1
-						: width < 1152
+						: availableWidth < 1152
 							? Math.min(count, 2)
 							: count === 4
 								? 2
@@ -76,7 +77,7 @@ for (const width of [1440, 900, 390]) {
 					});
 			};
 			await check(2);
-			if (width >= 768) {
+			if (await grid.evaluate(node => node.clientWidth >= 768)) {
 				const actions = await canvas
 					.getByRole("link")
 					.evaluateAll((links) =>

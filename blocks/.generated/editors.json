@@ -2870,6 +2870,7 @@
         "default": "",
         "id": "body",
         "max": 300,
+        "multiline": true,
         "type": "text"
       },
       {
@@ -2885,6 +2886,7 @@
             "default": "",
             "id": "body",
             "max": 400,
+            "multiline": true,
             "type": "text"
           },
           {
@@ -3909,6 +3911,7 @@
         "default": "",
         "id": "body",
         "max": 400,
+        "multiline": true,
         "type": "text"
       },
       {
@@ -3924,6 +3927,7 @@
             "default": "",
             "id": "description",
             "max": 300,
+            "multiline": true,
             "type": "text"
           }
         ],
@@ -3973,6 +3977,7 @@
         "default": "",
         "id": "body",
         "max": 400,
+        "multiline": true,
         "type": "text"
       },
       {
@@ -3988,6 +3993,7 @@
             "default": "",
             "id": "body",
             "max": 400,
+            "multiline": true,
             "type": "text"
           },
           {
@@ -5741,6 +5747,7 @@
         "default": "",
         "id": "body",
         "max": 400,
+        "multiline": true,
         "type": "text"
       },
       {

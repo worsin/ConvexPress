@@ -1,13 +1,13 @@
 {
   "files": {
-    "ai-catalog.ts": "f7336fc261a5a8148516295732c4eccc1aa73912e2e94dc861a1abab1a8b633e",
+    "ai-catalog.ts": "ef735523a6f359cf19a1203cdda36c37e444bab400dafc4b80d396fd85e85891",
     "block-spec.schema.json": "c754960f6bb0e1c275bcc96f34f67643b740d65fa314875993c0b2fcc7d1d4b7",
-    "catalog.json": "1628d6f618b2816571259d801977a833d95d15294224e894dfde087e43c40bcd",
+    "catalog.json": "e7d1aa66b0a32c9685c8a1ad4e727aa9938ac100167e54816a105068f8ef52ea",
     "convex.ts": "c7e7340dec90a71f9c13f37325e4ec26942d0c9041f21a7ed851916b629d8ec0",
     "coverage.json": "3eab6311e41c17cf3d180392c5930aefe73229fe7525fea50a06e1b9985258c0",
     "dependencies.json": "14abfada88ce7ccbe60f51ad42667773f00d7b8f1a0d53787c867b51e9586820",
-    "editor-metadata.ts": "1f1c06e0af2e6be4a656b767c13d63f91de7236fa12a76bc4561b1d56abb9bd9",
-    "editors.json": "be533cd03deaa7cbdf78bdd54d73cbb90307383e49c0eecf5c57d56c247ceb01",
+    "editor-metadata.ts": "96d1702e6f65a6ee7ce83c84e9a438e83bde8da047a5c761cfca1eed8661d96e",
+    "editors.json": "d9900e49a3e090d1640c161a6e365e9c52a8fe1d062d117c3e12c59a68e3a7d6",
     "field-runtime.d.mts": "9e1d25230a1ff8ec61f818b6004c8927cef3c95502a2d0edb1c28604da3388ce",
     "field-runtime.mjs": "ce6b761fbbcd719779ca9c117948bbef5d50e45eff553904738c4998ed0b2e37",
     "instance-runtime.d.mts": "56a0e4c7115873efc02701e6ded4ff34c2f4e1e28e98a29ec3c45dd963405a14",
@@ -19,7 +19,7 @@
     "patterns.ts": "2ec3505c0b75e44834a38aaf79a8ec7d6ce9f9c2273bb76b267eb7896449906e",
     "promotions.ts": "7545ede36ecd059123045889f0aa32d6c0c9f4b157fc29ace43d597a942633eb",
     "renderer-coverage.ts": "646fe78683882b53ec9994526f20dd09ce29371fac6e525b686b0e98de18fb06",
-    "schemas.ts": "435e13c47e210b76f1bbeb37ae0ed6ae0456339e664c3252a58b271371a87cc7",
+    "schemas.ts": "fa16b4b5fd502b7f6757d6ed23486b0b210c4bb1552dd14b06c6a9353559ec87",
     "search-text.ts": "ec776042d472925e245a0a1a21277960271ff8a8fd0bd34d6b990cd4ded9cd30",
     "spec-runtime.d.mts": "c17e9d4c7b5ccaad80e38c5df050a1abc8a49c8b15332d9fef53195a524e0bf1",
     "spec-runtime.mjs": "e6d86c01e7592aa7ad5ec3003b915b42febae5e5151838c1a7e2b818426a3b5b",
@@ -185,7 +185,7 @@
       "source": "blocks/core/before-after/block.json"
     },
     {
-      "sha256": "b8344afab0e080f8d5fd2b97cd1be7a0c971ffc979fb60ee29d82e25978924d0",
+      "sha256": "43827f8ad79b23ffd3df594d83040ef54a1f0a8242c61689a660026c3c464eb2",
       "source": "blocks/core/bento-grid/block.json"
     },
     {
@@ -261,11 +261,11 @@
       "source": "blocks/core/faq/block.json"
     },
     {
-      "sha256": "562dad12e1015ff07f6d7c93a23f11f0c895d76ecee664f58f9234843a0a09c7",
+      "sha256": "8ee8dc6909d2d0a357e0c77085ecc2385b72dbda9f8fb59fec4d44dd7726383c",
       "source": "blocks/core/feature-grid/block.json"
     },
     {
-      "sha256": "a63c121d61b5db00c61e165472ce2c3adb05c6ca62971d35ee0f309e3624cea5",
+      "sha256": "2c06b27f7708d8720452f039d8598bd15d586ad778c769aa6304c0f3f00a0964",
       "source": "blocks/core/feature-list-alternating/block.json"
     },
     {
@@ -389,7 +389,7 @@
       "source": "blocks/core/post-grid/block.json"
     },
     {
-      "sha256": "c9ce3ad8d5013eb8863ae9b918446661398c3045c6a6e1eb2cd1bcd2487936e6",
+      "sha256": "86dd6e49e5488e1ed5c78d182683f51846ae594cabc55c4e79dac2b63e84c22c",
       "source": "blocks/core/pricing-cards/block.json"
     },
     {

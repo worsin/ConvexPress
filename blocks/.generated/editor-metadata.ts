@@ -2881,6 +2881,7 @@ export const editorDefinitions: Record<BlockName, EditorDefinition> = {
         "default": "",
         "id": "body",
         "max": 300,
+        "multiline": true,
         "type": "text"
       },
       {
@@ -2896,6 +2897,7 @@ export const editorDefinitions: Record<BlockName, EditorDefinition> = {
             "default": "",
             "id": "body",
             "max": 400,
+            "multiline": true,
             "type": "text"
           },
           {
@@ -3920,6 +3922,7 @@ export const editorDefinitions: Record<BlockName, EditorDefinition> = {
         "default": "",
         "id": "body",
         "max": 400,
+        "multiline": true,
         "type": "text"
       },
       {
@@ -3935,6 +3938,7 @@ export const editorDefinitions: Record<BlockName, EditorDefinition> = {
             "default": "",
             "id": "description",
             "max": 300,
+            "multiline": true,
             "type": "text"
           }
         ],
@@ -3984,6 +3988,7 @@ export const editorDefinitions: Record<BlockName, EditorDefinition> = {
         "default": "",
         "id": "body",
         "max": 400,
+        "multiline": true,
         "type": "text"
       },
       {
@@ -3999,6 +4004,7 @@ export const editorDefinitions: Record<BlockName, EditorDefinition> = {
             "default": "",
             "id": "body",
             "max": 400,
+            "multiline": true,
             "type": "text"
           },
           {
@@ -5752,6 +5758,7 @@ export const editorDefinitions: Record<BlockName, EditorDefinition> = {
         "default": "",
         "id": "body",
         "max": 400,
+        "multiline": true,
         "type": "text"
       },
       {

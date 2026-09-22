@@ -2,6 +2,7 @@
 import { defineBlock } from "../../../ConvexPress-Website/apps/web/src/templates/sdk/block-renderer/model";
 import * as P from "../../../ConvexPress-Website/apps/web/src/templates/sdk/primitives";
 import {
+	cardColumns,
 	Intro,
 	PlanContent,
 } from "../../../ConvexPress-Website/apps/web/src/templates/sdk/block-renderer/presentation";
@@ -9,16 +10,7 @@ export default defineBlock("core/pricing-cards", ({ attrs }) => (
 	<P.Stack gap="lg">
 		<Intro {...attrs} />
 		<P.Grid
-			columns={{
-				base: 1,
-				md: attrs.plans.length < 2 ? 1 : 2,
-				lg:
-					attrs.plans.length < 2
-						? 1
-						: attrs.plans.length === 2 || attrs.plans.length === 4
-							? 2
-							: 3,
-			}}
+			columns={cardColumns(attrs.plans.length)}
 			gap="lg"
 		>
 			{attrs.plans.map((plan, index) => (

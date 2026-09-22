@@ -1,6 +1,7 @@
 import { defineBlock } from "../../../../sdk/block-renderer/model";
 import * as P from "../../../../sdk/primitives";
 import {
+	cardColumns,
 	Intro,
 	PlanContent,
 } from "../../../../sdk/block-renderer/presentation";
@@ -9,16 +10,7 @@ export default defineBlock("core/pricing-cards", ({ attrs }) => (
 	<P.Stack gap="md">
 		<Intro {...attrs} />
 		<P.Grid
-			columns={{
-				base: 1,
-				md: attrs.plans.length < 2 ? 1 : 2,
-				lg:
-					attrs.plans.length < 2
-						? 1
-						: attrs.plans.length === 2 || attrs.plans.length === 4
-							? 2
-							: 3,
-			}}
+			columns={cardColumns(attrs.plans.length)}
 			gap="md"
 		>
 			{attrs.plans.map((plan, index) => (

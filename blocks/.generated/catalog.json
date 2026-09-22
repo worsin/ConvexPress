@@ -4759,6 +4759,16 @@
       "avoid": "",
       "useFor": "Apple-style visual showcases"
     },
+    "authoringActions": [
+      {
+        "href": "ctaUrl",
+        "label": "ctaLabel",
+        "path": [
+          "items",
+          "*"
+        ]
+      }
+    ],
     "category": "marketing",
     "constraints": [],
     "data": null,
@@ -4830,6 +4840,7 @@
         "default": "",
         "id": "body",
         "max": 300,
+        "multiline": true,
         "type": "text"
       },
       {
@@ -4845,6 +4856,7 @@
             "default": "",
             "id": "body",
             "max": 400,
+            "multiline": true,
             "type": "text"
           },
           {
@@ -6568,6 +6580,7 @@
         "default": "",
         "id": "body",
         "max": 400,
+        "multiline": true,
         "type": "text"
       },
       {
@@ -6583,6 +6596,7 @@
             "default": "",
             "id": "description",
             "max": 300,
+            "multiline": true,
             "type": "text"
           }
         ],
@@ -6623,6 +6637,16 @@
       "avoid": "",
       "useFor": "deeper feature storytelling sections"
     },
+    "authoringActions": [
+      {
+        "href": "ctaUrl",
+        "label": "ctaLabel",
+        "path": [
+          "items",
+          "*"
+        ]
+      }
+    ],
     "category": "marketing",
     "constraints": [],
     "data": null,
@@ -6690,6 +6714,7 @@
         "default": "",
         "id": "body",
         "max": 400,
+        "multiline": true,
         "type": "text"
       },
       {
@@ -6705,6 +6730,7 @@
             "default": "",
             "id": "body",
             "max": 400,
+            "multiline": true,
             "type": "text"
           },
           {
@@ -9839,6 +9865,16 @@
       "avoid": "",
       "useFor": "pricing pages, plan comparison sections"
     },
+    "authoringActions": [
+      {
+        "href": "ctaUrl",
+        "label": "ctaLabel",
+        "path": [
+          "plans",
+          "*"
+        ]
+      }
+    ],
     "category": "commerce",
     "constraints": [],
     "data": null,
@@ -9900,6 +9936,7 @@
         "default": "",
         "id": "body",
         "max": 400,
+        "multiline": true,
         "type": "text"
       },
       {

@@ -406,11 +406,41 @@ const authoringActions: Readonly<Record<string, readonly AuthoringAction[]>> = {
       ]
     }
   ],
+  "core/bento-grid": [
+    {
+      "href": "ctaUrl",
+      "label": "ctaLabel",
+      "path": [
+        "items",
+        "*"
+      ]
+    }
+  ],
+  "core/feature-list-alternating": [
+    {
+      "href": "ctaUrl",
+      "label": "ctaLabel",
+      "path": [
+        "items",
+        "*"
+      ]
+    }
+  ],
   "core/media-text": [
     {
       "href": "ctaUrl",
       "label": "ctaLabel",
       "path": []
+    }
+  ],
+  "core/pricing-cards": [
+    {
+      "href": "ctaUrl",
+      "label": "ctaLabel",
+      "path": [
+        "plans",
+        "*"
+      ]
     }
   ],
   "local/sample-alert": [

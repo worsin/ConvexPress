@@ -2,6 +2,7 @@ import { defineBlock } from "../../../../sdk/block-renderer/model";
 import * as P from "../../../../sdk/primitives";
 import {
 	CardCopy,
+	cardColumns,
 	Intro,
 	Prose,
 } from "../../../../sdk/block-renderer/presentation";
@@ -10,7 +11,7 @@ export default defineBlock("core/feature-grid", ({ attrs }) => (
 	<P.Stack gap="md">
 		<Intro {...attrs} />
 		<div className="depot-features">
-			<P.Grid columns={{ base: 1, md: 2, lg: 3 }} gap="md">
+			<P.Grid columns={cardColumns(attrs.items.length)} gap="md">
 				{attrs.items.map((item, index) => (
 					<article key={index} className="depot-feature">
 						<CardCopy>

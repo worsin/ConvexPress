@@ -243,8 +243,9 @@
       "core/bento-grid": {
         "src": "/block-thumbnails/aster-house/core--bento-grid.jpg",
         "example": 1,
-        "sha256": "ca37c26ba78b44d093ed254cfb7853a1b3396c9a732371f3f24883fdc909e8dc",
-        "bytes": 10367
+        "sha256": "4ab527622667b586442beeb05c6ebb85cf0792caaeab372296e2cec7e3335a17",
+        "bytes": 10973,
+        "capturedAt": "2026-09-22T01:08:26.480Z"
       },
       "core/booking-cta": {
         "src": "/block-thumbnails/aster-house/core--booking-cta.jpg",
@@ -361,14 +362,16 @@
       "core/feature-grid": {
         "src": "/block-thumbnails/aster-house/core--feature-grid.jpg",
         "example": 1,
-        "sha256": "95878e65d31bd8d1652f7a28b37cab84996dfa03c154647630d5da3646d715f3",
-        "bytes": 20098
+        "sha256": "58a578091b6cd37afedb9ec2ed9b6d9578038cb521b1c13766d4b72ff0ef09b9",
+        "bytes": 19153,
+        "capturedAt": "2026-09-22T01:08:26.581Z"
       },
       "core/feature-list-alternating": {
         "src": "/block-thumbnails/aster-house/core--feature-list-alternating.jpg",
         "example": 1,
-        "sha256": "35c4b64cd43d1883aa69e695cbf1d7b9893533afdfc8eb9638e74c29b494b1bb",
-        "bytes": 11874
+        "sha256": "f08907418ad8905e695c278fd9ab6b916eea2f978d079b3153f7285548aa721e",
+        "bytes": 12588,
+        "capturedAt": "2026-09-22T01:08:26.680Z"
       },
       "core/feature-tabs": {
         "src": "/block-thumbnails/aster-house/core--feature-tabs.jpg",
@@ -557,9 +560,9 @@
       "core/pricing-cards": {
         "src": "/block-thumbnails/aster-house/core--pricing-cards.jpg",
         "example": 1,
-        "sha256": "3fcff1fc21817056b20753620a6ecca1065024af2e137d291a7ccb4d1f2b47b7",
-        "bytes": 19210,
-        "capturedAt": "2026-09-20T23:02:55.462Z"
+        "sha256": "d3c2a1b435bd79ba2f60d0d5a13403bc783d8bb5a62c690cb5ebdf75dc65276d",
+        "bytes": 14395,
+        "capturedAt": "2026-09-22T01:08:26.779Z"
       },
       "core/pricing-table": {
         "src": "/block-thumbnails/aster-house/core--pricing-table.jpg",
@@ -1083,8 +1086,9 @@
       "core/bento-grid": {
         "src": "/block-thumbnails/core/core--bento-grid.jpg",
         "example": 1,
-        "sha256": "822d4260a0dfb6be5749b25fbb6320e7d1719a58af994d30e22c0b8f9a98c62f",
-        "bytes": 11623
+        "sha256": "b767925196e5c37515db60d2adc4ec8a607cc2a797492e48f564d8ba034a6434",
+        "bytes": 12874,
+        "capturedAt": "2026-09-22T01:08:24.597Z"
       },
       "core/booking-cta": {
         "src": "/block-thumbnails/core/core--booking-cta.jpg",
@@ -1201,14 +1205,16 @@
       "core/feature-grid": {
         "src": "/block-thumbnails/core/core--feature-grid.jpg",
         "example": 1,
-        "sha256": "affd43f89ef03ecc91fa251bbcca0cd8ba8456bd99754494c9ac631d62dcb4f1",
-        "bytes": 23207
+        "sha256": "7efd1d1948cdeec7b8ddcf7ed76d529a6a0847d1b8455ade8e85a0a3354a2c25",
+        "bytes": 22104,
+        "capturedAt": "2026-09-22T01:08:24.687Z"
       },
       "core/feature-list-alternating": {
         "src": "/block-thumbnails/core/core--feature-list-alternating.jpg",
         "example": 1,
-        "sha256": "46a3a4931bfc524fdb23160ad674cebdac45be01cf94ae03a1ca62e7801f75fa",
-        "bytes": 14410
+        "sha256": "301c4a7a6fc7ea94b4aa1366ee09c5ec719081e88327750786455e2a3f5540f4",
+        "bytes": 14834,
+        "capturedAt": "2026-09-22T01:08:24.782Z"
       },
       "core/feature-tabs": {
         "src": "/block-thumbnails/core/core--feature-tabs.jpg",
@@ -1397,9 +1403,9 @@
       "core/pricing-cards": {
         "src": "/block-thumbnails/core/core--pricing-cards.jpg",
         "example": 1,
-        "sha256": "b252974420d83b176356adc5e56626e71520e281ef356df0edb970c84759e726",
-        "bytes": 21895,
-        "capturedAt": "2026-09-20T23:02:55.718Z"
+        "sha256": "24d7904b9162ae172150b8501daa9111b737cf99674531b8a029d2ada9476b7f",
+        "bytes": 16512,
+        "capturedAt": "2026-09-22T01:08:24.873Z"
       },
       "core/pricing-table": {
         "src": "/block-thumbnails/core/core--pricing-table.jpg",
@@ -1962,7 +1968,7 @@
         "example": 1,
         "sha256": "90bcfff2e2d7ae0bf2495aea1e7273559ffa52cba71f92641a53522dffdb3339",
         "bytes": 8057,
-        "capturedAt": "2026-09-21T11:57:16.953Z"
+        "capturedAt": "2026-09-22T01:08:25.679Z"
       },
       "core/booking-cta": {
         "src": "/block-thumbnails/depot/core--booking-cta.jpg",
@@ -2093,16 +2099,16 @@
       "core/feature-grid": {
         "src": "/block-thumbnails/depot/core--feature-grid.jpg",
         "example": 1,
-        "sha256": "a9571169430328f09fe676182f917b09c30d75139f874f1a96327ab3538fcaaa",
-        "bytes": 21472,
-        "capturedAt": "2026-09-21T11:57:18.737Z"
+        "sha256": "747142a408310de90e177ece9d474f413c89d844d976808be53c7998b529c899",
+        "bytes": 20479,
+        "capturedAt": "2026-09-22T01:08:25.772Z"
       },
       "core/feature-list-alternating": {
         "src": "/block-thumbnails/depot/core--feature-list-alternating.jpg",
         "example": 1,
         "sha256": "6b178c2780d709935d84f504d65373f53059036f740c7769548b25a9867e1503",
         "bytes": 9358,
-        "capturedAt": "2026-09-21T11:57:18.836Z"
+        "capturedAt": "2026-09-22T01:08:25.871Z"
       },
       "core/feature-tabs": {
         "src": "/block-thumbnails/depot/core--feature-tabs.jpg",
@@ -2317,9 +2323,9 @@
       "core/pricing-cards": {
         "src": "/block-thumbnails/depot/core--pricing-cards.jpg",
         "example": 1,
-        "sha256": "f8d8ebc5fd05db80fd414705196e0d08427d16fbcd4557576f979778a523f221",
-        "bytes": 21906,
-        "capturedAt": "2026-09-21T11:57:21.756Z"
+        "sha256": "0489a97d2e56d54404b90db0dd21a96e4bc09503077887695057b71e79d9f751",
+        "bytes": 14079,
+        "capturedAt": "2026-09-22T01:08:25.955Z"
       },
       "core/pricing-table": {
         "src": "/block-thumbnails/depot/core--pricing-table.jpg",
@@ -2884,8 +2890,9 @@
       "core/bento-grid": {
         "src": "/block-thumbnails/journal/core--bento-grid.jpg",
         "example": 1,
-        "sha256": "b4916ffa62425abe3ed96e923597a41e132d8591da19d5502c1b054269c02d96",
-        "bytes": 11608
+        "sha256": "cf5a459e90487b513d40d5dabe7eaaa2d918cd93c0d870d313b1d58ea89fdcab",
+        "bytes": 12422,
+        "capturedAt": "2026-09-22T01:08:25.125Z"
       },
       "core/booking-cta": {
         "src": "/block-thumbnails/journal/core--booking-cta.jpg",
@@ -3002,14 +3009,16 @@
       "core/feature-grid": {
         "src": "/block-thumbnails/journal/core--feature-grid.jpg",
         "example": 1,
-        "sha256": "3df195fcac1ccd540661adcbd1c2475b91ad1784d987030a7c43b1e898ad57dd",
-        "bytes": 21131
+        "sha256": "2d9918c799128b64288680410d167f7eef534c70effd239b5c9d7ff276a512f1",
+        "bytes": 19657,
+        "capturedAt": "2026-09-22T01:08:25.233Z"
       },
       "core/feature-list-alternating": {
         "src": "/block-thumbnails/journal/core--feature-list-alternating.jpg",
         "example": 1,
-        "sha256": "e6557abfefcaca85d3ddf97ea9f3bef0cdc09a7826bdebf26729533399ee3849",
-        "bytes": 14434
+        "sha256": "e874d5666906f7347022fb008b770e08c2f7b7a0929d0632f6f1907a320a2c9c",
+        "bytes": 15267,
+        "capturedAt": "2026-09-22T01:08:25.321Z"
       },
       "core/feature-tabs": {
         "src": "/block-thumbnails/journal/core--feature-tabs.jpg",
@@ -3199,9 +3208,9 @@
       "core/pricing-cards": {
         "src": "/block-thumbnails/journal/core--pricing-cards.jpg",
         "example": 1,
-        "sha256": "734d7576f13e7c9fae8d34d498f815ae9c6d890e5a975646bbb73eb3bf1e7c23",
-        "bytes": 20231,
-        "capturedAt": "2026-09-20T23:02:56.217Z"
+        "sha256": "1c35d67da4a828501313ba2a7c88bbbffcfb40634127f88ce1433dbe91db6424",
+        "bytes": 15863,
+        "capturedAt": "2026-09-22T01:08:25.404Z"
       },
       "core/pricing-table": {
         "src": "/block-thumbnails/journal/core--pricing-table.jpg",

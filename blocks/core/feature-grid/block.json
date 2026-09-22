@@ -7,7 +7,7 @@
   "version": 2,
   "keywords": [],
   "ai": {
-    "useFor": "3–6 features or benefits with short descriptions",
+    "useFor": "3\u20136 features or benefits with short descriptions",
     "avoid": "more than 8 items (consider splitting)"
   },
   "fields": [
@@ -27,7 +27,8 @@
       "id": "body",
       "default": "",
       "type": "text",
-      "max": 400
+      "max": 400,
+      "multiline": true
     },
     {
       "id": "items",
@@ -45,7 +46,8 @@
           "id": "description",
           "default": "",
           "type": "text",
-          "max": 300
+          "max": 300,
+          "multiline": true
         }
       ]
     }

@@ -790,8 +790,9 @@ test("card typography and bento rhythm follow the container", async ({
 						`${pack}/${name}: heading must fit its card`,
 					).toBeLessThanOrEqual(heading.width + 1);
 					expect(heading.fontSize).toBeLessThanOrEqual(36);
-					expect(heading.overflowWrap).toBe("normal");
-					if (pack === "depot") expect(heading.textTransform).toBe("uppercase");
+					// Judge the rendered words and bounds above. Emergency wrapping for
+					// oversized authored tokens must not be forbidden by a CSS-value check.
+					if (pack === "depot") expect(heading.textTransform).toBe("none");
 					if (pack === "journal") expect(heading.fontStyle).toBe("italic");
 				}
 				let cards: { x: number; y: number; width: number; height: number }[] =

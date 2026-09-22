@@ -5,13 +5,14 @@ import {
 	CardCopy,
 	CardCollection,
 	Prose,
+	cardColumns,
 	Intro,
 } from "../../../ConvexPress-Website/apps/web/src/templates/sdk/block-renderer/presentation";
 export default defineBlock("core/feature-grid", ({ attrs }) => (
 	<P.Stack gap="lg">
 		<Intro {...attrs} />
 		<CardCollection>
-			<P.Grid columns={{ base: 1, md: 2, lg: 3 }} gap="lg">
+			<P.Grid columns={cardColumns(attrs.items.length)} gap="lg">
 				{attrs.items.map((item, index) => (
 					<P.Card key={index}>
 						<CardCopy>

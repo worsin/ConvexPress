@@ -27,7 +27,8 @@
       "id": "body",
       "default": "",
       "type": "text",
-      "max": 400
+      "max": 400,
+      "multiline": true
     },
     {
       "id": "items",
@@ -45,7 +46,8 @@
           "id": "body",
           "default": "",
           "type": "text",
-          "max": 400
+          "max": 400,
+          "multiline": true
         },
         {
           "id": "mediaId",
@@ -165,6 +167,16 @@
         "body"
       ],
       "format": "prose"
+    }
+  ],
+  "authoringActions": [
+    {
+      "path": [
+        "items",
+        "*"
+      ],
+      "href": "ctaUrl",
+      "label": "ctaLabel"
     }
   ]
 }
