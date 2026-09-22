@@ -222,3 +222,22 @@ test("card families validate action labels before writes while preserving histor
     }
   }
 });
+
+test("process media is optional on historical steps and retains authored alt and focal values", () => {
+  const old = { eyebrow: "Process", heading: "Make something", body: "", steps: [{ title: "Begin", body: "First line\n\nSecond line" }] };
+  expect(blockSchemas["core/process-steps"].parse(old)).toEqual(old);
+  const media = { id: "site-owned-image", alt: "A notebook", focalPoint: { x: .25, y: .75 } };
+  const next = { ...old, steps: [{ ...old.steps[0], media }] };
+  expect(validateBlockAuthoringAttrs("core/process-steps", next)).toEqual(next);
+  expect(() => validateBlockAuthoringAttrs("core/process-steps", { ...old, steps: [{ ...old.steps[0], media: { ...media, focalPoint: { x: 2, y: .5 } } }] })).toThrow();
+});
+
+test("required media-step headings preserve history but reject invisible new authoring", () => {
+  for (const title of [" ", "\u200b", "\u2066\u2069"]) {
+    const old = { steps: [{ title }] };
+    expect(blockSchemas["core/steps-with-media"].parse(old)).toEqual(old);
+    expect(() => validateBlockAuthoringAttrs("core/steps-with-media", old)).toThrow();
+  }
+  const value = { steps: [{ title: "  手作り  " }] };
+  expect(validateBlockAuthoringAttrs("core/steps-with-media", value)).toEqual(value);
+});

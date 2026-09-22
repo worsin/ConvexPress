@@ -6041,6 +6041,7 @@
         "default": "",
         "id": "body",
         "max": 300,
+        "multiline": true,
         "type": "text"
       },
       {
@@ -6056,7 +6057,13 @@
             "default": "",
             "id": "body",
             "max": 400,
+            "multiline": true,
             "type": "text"
+          },
+          {
+            "description": "Optional image for this step, with alternative text and focal position.",
+            "id": "media",
+            "type": "media"
           }
         ],
         "id": "steps",
@@ -6066,7 +6073,9 @@
     ],
     "preview": "{heading}",
     "requires": {
-      "capabilities": [],
+      "capabilities": [
+        "reference.targetResolution"
+      ],
       "plugins": []
     },
     "role": "content",
@@ -6345,6 +6354,7 @@
         "default": "",
         "id": "body",
         "max": 300,
+        "multiline": true,
         "type": "text"
       },
       {
@@ -6366,6 +6376,7 @@
             "default": "",
             "id": "body",
             "max": 400,
+            "multiline": true,
             "type": "text"
           },
           {
@@ -6867,6 +6878,7 @@
         "default": [],
         "fields": [
           {
+            "authoringNonblank": true,
             "id": "title",
             "max": 160,
             "min": 1,

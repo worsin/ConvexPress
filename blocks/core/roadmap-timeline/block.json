@@ -27,7 +27,8 @@
       "id": "body",
       "default": "",
       "type": "text",
-      "max": 300
+      "max": 300,
+      "multiline": true
     },
     {
       "id": "items",
@@ -51,7 +52,8 @@
           "id": "body",
           "default": "",
           "type": "text",
-          "max": 400
+          "max": 400,
+          "multiline": true
         },
         {
           "id": "status",

@@ -306,8 +306,9 @@
       "core/countdown": {
         "src": "/block-thumbnails/aster-house/core--countdown.jpg",
         "example": 1,
-        "sha256": "e8dec8c2fc2118c35b2ca442cf5be42dd71a2f23386f1fbf2f5630831212db4e",
-        "bytes": 21372
+        "sha256": "3ac7eb0648320cb0d88a53b9f5703982c7fdd41dd2ce40a7620c8e48f152ec6c",
+        "bytes": 22037,
+        "capturedAt": "2026-09-22T02:47:44.230Z"
       },
       "core/cta-band": {
         "src": "/block-thumbnails/aster-house/core--cta-band.jpg",
@@ -574,8 +575,9 @@
       "core/process-steps": {
         "src": "/block-thumbnails/aster-house/core--process-steps.jpg",
         "example": 1,
-        "sha256": "eb378cc056c62e9fd3d11b81583a094b311657415563f2f3d067448bf5e95f4e",
-        "bytes": 17451
+        "sha256": "44eac67e88cf126d9297efffa3fed6832518653a6a2ce6580fc7696af9eb5330",
+        "bytes": 27099,
+        "capturedAt": "2026-09-22T02:47:44.332Z"
       },
       "core/pullquote": {
         "src": "/block-thumbnails/aster-house/core--pullquote.jpg",
@@ -612,8 +614,9 @@
       "core/roadmap-timeline": {
         "src": "/block-thumbnails/aster-house/core--roadmap-timeline.jpg",
         "example": 1,
-        "sha256": "9757495717228030d329cbc6d304d88717dd5f7d6c4c04294ec46532b77f64a0",
-        "bytes": 16570
+        "sha256": "a269251075f75b4f0ed6d5bb9887a34713604ef154fd8ff8a77f1b481572ceda",
+        "bytes": 17137,
+        "capturedAt": "2026-09-22T02:47:44.432Z"
       },
       "core/script-embed": {
         "src": "/block-thumbnails/aster-house/core--script-embed.jpg",
@@ -680,8 +683,9 @@
       "core/steps-with-media": {
         "src": "/block-thumbnails/aster-house/core--steps-with-media.jpg",
         "example": 1,
-        "sha256": "8e18b78b0d61ffe36547855d3602d16642090e5d85653884dff4cd40160f2cce",
-        "bytes": 29061
+        "sha256": "3f1c4fc200660a00975b6bf72655846cb912123f2c634329e32bc4627a4512af",
+        "bytes": 29530,
+        "capturedAt": "2026-09-22T02:47:44.532Z"
       },
       "core/sticky-aside": {
         "src": "/block-thumbnails/aster-house/core--sticky-aside.jpg",
@@ -1154,8 +1158,9 @@
       "core/countdown": {
         "src": "/block-thumbnails/core/core--countdown.jpg",
         "example": 1,
-        "sha256": "54a1a8d7663eeed7064fd1638577cae18d035ac36c3ae35027f143c86fc5f44c",
-        "bytes": 26308
+        "sha256": "3b2c738e4fe34935a349d8a930b2587799d3a26241b3b64bd1050c330c666661",
+        "bytes": 27343,
+        "capturedAt": "2026-09-22T02:47:42.285Z"
       },
       "core/cta-band": {
         "src": "/block-thumbnails/core/core--cta-band.jpg",
@@ -1422,8 +1427,9 @@
       "core/process-steps": {
         "src": "/block-thumbnails/core/core--process-steps.jpg",
         "example": 1,
-        "sha256": "612e57de288d40832a54b1f9144c9929f4d015cd74e7790796ba91bfb07b6c3c",
-        "bytes": 20684
+        "sha256": "995f121ad1af7a689db1492466f739318667e876ce192584fb8e79f872fab7b4",
+        "bytes": 29590,
+        "capturedAt": "2026-09-22T02:47:42.383Z"
       },
       "core/pullquote": {
         "src": "/block-thumbnails/core/core--pullquote.jpg",
@@ -1460,8 +1466,9 @@
       "core/roadmap-timeline": {
         "src": "/block-thumbnails/core/core--roadmap-timeline.jpg",
         "example": 1,
-        "sha256": "93566b8238ce4ff97544411147f95ad3ad199ff19d360470949ecb43f8b5ec4a",
-        "bytes": 19466
+        "sha256": "8d13290b0b584a287836f086e85b8bc0ba15c5ae99722d96dc4a7be1995079d7",
+        "bytes": 20067,
+        "capturedAt": "2026-09-22T02:47:42.481Z"
       },
       "core/script-embed": {
         "src": "/block-thumbnails/core/core--script-embed.jpg",
@@ -1528,8 +1535,9 @@
       "core/steps-with-media": {
         "src": "/block-thumbnails/core/core--steps-with-media.jpg",
         "example": 1,
-        "sha256": "3cd523bb47bd96126c1ba6ed88a3616481f848d3fd946ce671bbf0a65d4c1f5e",
-        "bytes": 30246
+        "sha256": "937d682d7c71a5e90c5ca03a32337719978315b979e803a67cb33acc549d0927",
+        "bytes": 32020,
+        "capturedAt": "2026-09-22T02:47:42.601Z"
       },
       "core/sticky-aside": {
         "src": "/block-thumbnails/core/core--sticky-aside.jpg",
@@ -2046,9 +2054,9 @@
       "core/countdown": {
         "src": "/block-thumbnails/depot/core--countdown.jpg",
         "example": 1,
-        "sha256": "d9ee59d55ab5773250a1e5684e8614c1b14adff95969f61b847e3f0ab268db71",
-        "bytes": 18827,
-        "capturedAt": "2026-09-21T11:57:17.887Z"
+        "sha256": "4d7ff1d879438f9a5a24ddd1aecd136404d32a01f5aafdb395c498e3e563d954",
+        "bytes": 18732,
+        "capturedAt": "2026-09-22T02:47:43.383Z"
       },
       "core/cta-band": {
         "src": "/block-thumbnails/depot/core--cta-band.jpg",
@@ -2347,9 +2355,9 @@
       "core/process-steps": {
         "src": "/block-thumbnails/depot/core--process-steps.jpg",
         "example": 1,
-        "sha256": "59983abf85c57b0ccee354ba30438e41b7f00dc360a9bf6490e52198776c22aa",
-        "bytes": 15998,
-        "capturedAt": "2026-09-21T11:57:21.962Z"
+        "sha256": "668b81d5cbd6c61d0f2207dd9acd2d5b4822e1e3d84dc0106d9bfd2406561732",
+        "bytes": 30111,
+        "capturedAt": "2026-09-22T02:47:43.481Z"
       },
       "core/pullquote": {
         "src": "/block-thumbnails/depot/core--pullquote.jpg",
@@ -2389,9 +2397,9 @@
       "core/roadmap-timeline": {
         "src": "/block-thumbnails/depot/core--roadmap-timeline.jpg",
         "example": 1,
-        "sha256": "c145a6598318cc04ac4899ba120026df96268cb4cc3590e7d865cdbe82807871",
-        "bytes": 12155,
-        "capturedAt": "2026-09-21T11:57:22.494Z"
+        "sha256": "95048a50e5056e4f1dc98ce11e574c40492d8cae885fe8a198a8e6fd12f870fd",
+        "bytes": 12387,
+        "capturedAt": "2026-09-22T02:47:43.573Z"
       },
       "core/script-embed": {
         "src": "/block-thumbnails/depot/core--script-embed.jpg",
@@ -2466,9 +2474,9 @@
       "core/steps-with-media": {
         "src": "/block-thumbnails/depot/core--steps-with-media.jpg",
         "example": 1,
-        "sha256": "4c75acefa12023903e87911dab83f5882a62b2a95fa3859f0ef27a518c3b8a57",
-        "bytes": 32769,
-        "capturedAt": "2026-09-21T11:57:23.529Z"
+        "sha256": "28fd9052aaa3479a7539d86109c165a4f9db74bf1abed07d5bb7d5c617731cc2",
+        "bytes": 37045,
+        "capturedAt": "2026-09-22T02:47:43.660Z"
       },
       "core/sticky-aside": {
         "src": "/block-thumbnails/depot/core--sticky-aside.jpg",
@@ -2963,8 +2971,9 @@
       "core/countdown": {
         "src": "/block-thumbnails/journal/core--countdown.jpg",
         "example": 1,
-        "sha256": "baff14eda6323e6576bb414369729cc19d6f55cc053cd0b8c028107d676785b6",
-        "bytes": 24372
+        "sha256": "8797237bf671b122b30f51249143a7196f68c86117d9aa9918eaf97f6db6b820",
+        "bytes": 25133,
+        "capturedAt": "2026-09-22T02:47:42.858Z"
       },
       "core/cta-band": {
         "src": "/block-thumbnails/journal/core--cta-band.jpg",
@@ -3232,8 +3241,9 @@
       "core/process-steps": {
         "src": "/block-thumbnails/journal/core--process-steps.jpg",
         "example": 1,
-        "sha256": "fff986be3f53c4224991065eeefca7f51e78b7e974913959516a53511d49021a",
-        "bytes": 18687
+        "sha256": "bcd67af7e2c2928fa3037b905d013fc59aff30d08c4642a88d996c9ebeafea81",
+        "bytes": 28891,
+        "capturedAt": "2026-09-22T02:47:42.941Z"
       },
       "core/pullquote": {
         "src": "/block-thumbnails/journal/core--pullquote.jpg",
@@ -3270,8 +3280,9 @@
       "core/roadmap-timeline": {
         "src": "/block-thumbnails/journal/core--roadmap-timeline.jpg",
         "example": 1,
-        "sha256": "2bb437dcc253708a2dc63b012c68ff60a541362ac64d7eb285332bec6efccbee",
-        "bytes": 19419
+        "sha256": "e1df308ed8d419e2f25010e5b28abc6baf6c88f612c6f4937702cdab6956b07b",
+        "bytes": 20341,
+        "capturedAt": "2026-09-22T02:47:43.022Z"
       },
       "core/script-embed": {
         "src": "/block-thumbnails/journal/core--script-embed.jpg",
@@ -3339,8 +3350,9 @@
       "core/steps-with-media": {
         "src": "/block-thumbnails/journal/core--steps-with-media.jpg",
         "example": 1,
-        "sha256": "7a82b473133b320a91d60e2b989a63c6c5b0c1c4f2f80c0523e9de14bc01d355",
-        "bytes": 29566
+        "sha256": "0295aebb2c3a93745557808e963977baa64a184a0e2b311c9bc26fc62c4ba07f",
+        "bytes": 30853,
+        "capturedAt": "2026-09-22T02:47:43.123Z"
       },
       "core/sticky-aside": {
         "src": "/block-thumbnails/journal/core--sticky-aside.jpg",

@@ -1,5 +1,8 @@
 # ConvexPress production-readiness implementation ledger
 
+September21 process family: **52/137 blocks verified;85 pending.** Process Steps gains optional media and semantic responsive cards; Roadmap and Countdown follow authored width. Native four-block save/reopen/reorder/exact recovery/publication and actual desktop/mobile Website checks pass;12 invalid deployed writes/previews refused. Sticky Steps with Media is implemented but remains unverified: initial hardware sample had304.5ms frame; four repeats stayed below9ms, cause unresolved.302 renderer/13 contract/six browser cases, types/build/freshness pass; original content/media/plugin preserved and owned resources cleaned. Original audit8accepted/16open. [Evidence](process-family-20260921.md).
+
+
 September21 authored feature/Bento controls: **44/137 blocks verified;93 pending.** Closed the missing Feature Grid icons/links and Bento tile-size requirements. Optional fields preserve old content; generated icon choices reject unsupported symbols, safe labeled links support new tabs, and standard/wide/automatic tiles retain reading order. Native save/reopen/item moves/exact recovery/publication, actual public keyboard link/mobile/media checks and eight deployed invalid-write refusals pass.300 renderer cases, six contracts,13 generated-form cases, two four-pack browser cases, three kit cases, types/build/freshness/lint pass. Original42 pages/appearance/plugin preserved; fixtures cleaned. Original audit eight accepted/sixteen open. [Evidence](card-controls-20260921.md).
 
 September 21 card-family review: **42/137 blocks verified; 95 pending.** Pricing Cards and Feature list (alternating) pass native/save/reopen/reorder/exact-recovery/publication and four-pack browser acceptance. Fixed short-card row filling, narrow alternating placement, multiline authoring and blank action-label writes. Feature Grid remains open for missing per-item icons/links; Bento Grid remains open for authored tile sizing required by the roadmap. Seven final browser cases, 298 renderer cases, five contract cases, types/build/freshness/kit/lint and548-thumbnail validation pass. Original42 pages/appearance and installed plugin preserved; owned fixtures cleaned. Original audit eight accepted/sixteen open. [Evidence](card-family-20260921.md).
@@ -90,7 +93,16 @@ Desktop-mediated editing renewal September21: scoped native connection, fresh co
 - Website SSR: replaced seven eager connection-status hook uses with hydration-safe subscription; failing regression then green, consumer tests, Website types/lint and complete hosting/workerd gate passed.
 - Remaining release gates include end-to-end kit workflow acceptance, flagship styling, complete block acceptance, original audit/handoff acceptance, provider account/domain flow, packaging/fleet/recovery acceptance and safe main integration. Neither test volume nor renderer counts close those gates.
 
-## Audit status
+## Current original-audit acceptance
+
+| State | Original requirements |
+|---|---|
+| Accepted (8) | A01 public DTOs; A02 customer preview authority; A03 alternate publishing protection; A05 previous-holder revocation; A06 permission overflow; A08 owner protection; B07 complete authoring recovery; B08 session-write queue recovery |
+| Open (16) | A04 parent disable; A07 packaged sender; B01–B06 and B09 commerce/publication acceptance; C01–C05 hosting/provisioning/recovery/backups/fleet; D01–D02 contracts and complete release CI acceptance |
+
+Current evidence is indexed in current-acceptance.md. Implementation and narrow checks do not advance these original acceptance requirements.
+
+## Historical audit implementation snapshot
 
 | IDs | Work | Owner | Status |
 |---|---|---|---|

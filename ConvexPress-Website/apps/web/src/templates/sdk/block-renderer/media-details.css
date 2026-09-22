@@ -22,7 +22,7 @@
 .cp-library-rich-marquee[data-playing=true] .cp-library-rich-marquee-track {animation-play-state:running;}
 .cp-library-rich-marquee-window:hover .cp-library-rich-marquee-track,.cp-library-rich-marquee-window:focus-within .cp-library-rich-marquee-track {animation-play-state:paused;}
 @keyframes cp-library-rich-marquee {to {transform:translateX(-50%);}}
-@media(min-width:760px){.cp-library-countdown {grid-template-columns:repeat(4,minmax(0,1fr));}}
+@container cp-countdown (min-width:36rem){.cp-library-countdown {grid-template-columns:repeat(4,minmax(0,1fr));}}
 @media(prefers-reduced-motion:reduce){.cp-library-rich-marquee-track {animation:none;transform:none;}.cp-library-rich-marquee-track > ul[aria-hidden=true] {display:none;}}
 
 .cp-library-video-hero .cp-video {object-position:inherit;}
@@ -36,3 +36,6 @@
  .cp-library-grade-images {grid-template-columns:repeat(2,minmax(0,1fr));}
  .cp-library-grade-images > :last-child:nth-child(odd) {grid-column:1 / -1;}
 }
+
+.cp-library-countdown-shell {container:cp-countdown / inline-size;inline-size:100%;min-inline-size:0;}
+.cp-library-countdown dd {font-size:clamp(2rem,8cqi,5rem);}

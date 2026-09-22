@@ -27,7 +27,8 @@
       "id": "body",
       "default": "",
       "type": "text",
-      "max": 300
+      "max": 300,
+      "multiline": true
     },
     {
       "id": "steps",
@@ -45,7 +46,13 @@
           "id": "body",
           "default": "",
           "type": "text",
-          "max": 400
+          "max": 400,
+          "multiline": true
+        },
+        {
+          "id": "media",
+          "type": "media",
+          "description": "Optional image for this step, with alternative text and focal position."
         }
       ]
     }
@@ -78,7 +85,11 @@
       "steps": [
         {
           "title": "Type a prompt",
-          "body": "Describe the page."
+          "body": "Describe the page.",
+          "media": {
+            "id": "demo-image-field-notebook",
+            "alt": "A notebook and pencil"
+          }
         },
         {
           "title": "Polish",
@@ -122,5 +133,11 @@
       ],
       "format": "prose"
     }
-  ]
+  ],
+  "requires": {
+    "plugins": [],
+    "capabilities": [
+      "reference.targetResolution"
+    ]
+  }
 }

@@ -3521,13 +3521,27 @@ export const dependencyDescriptors = {
   },
   "core/process-steps": {
     "data": null,
-    "fields": [],
+    "fields": [
+      {
+        "path": [
+          "steps",
+          "*",
+          "media"
+        ],
+        "type": "media",
+        "valuePath": [
+          "id"
+        ]
+      }
+    ],
     "libraryRenderer": "blocks/core/process-steps/render.tsx",
     "provenance": {
       "kind": "core"
     },
     "requires": {
-      "capabilities": [],
+      "capabilities": [
+        "reference.targetResolution"
+      ],
       "plugins": []
     },
     "source": "blocks/core/process-steps/block.json",

@@ -6253,6 +6253,10 @@
           "steps": [
             {
               "body": "Describe the page.",
+              "media": {
+                "alt": "A notebook and pencil",
+                "id": "demo-image-field-notebook"
+              },
               "title": "Type a prompt"
             },
             {
@@ -6272,7 +6276,9 @@
         "kind": "core"
       },
       "requires": {
-        "capabilities": [],
+        "capabilities": [
+          "reference.targetResolution"
+        ],
         "plugins": []
       },
       "role": "content",

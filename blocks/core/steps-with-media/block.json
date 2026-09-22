@@ -22,7 +22,8 @@
           "type": "text",
           "max": 160,
           "required": true,
-          "min": 1
+          "min": 1,
+          "authoringNonblank": true
         },
         {
           "id": "body",
@@ -145,7 +146,7 @@
                 "content": [
                   {
                     "type": "text",
-                    "text": "Leave room for another person’s point of view."
+                    "text": "Leave room for another person\u2019s point of view."
                   }
                 ]
               }

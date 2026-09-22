@@ -33,7 +33,7 @@ export function Countdown({ attrs }: BlockProps<"core/countdown">) {
 	const left =
 		target !== null && now !== null ? remainingTime(target, now) : null;
 	return (
-		<P.Stack gap="lg">
+		<div className="cp-library-countdown-shell"><P.Stack gap="lg">
 			{attrs.title && <P.Heading>{attrs.title}</P.Heading>}
 			{target !== null ? (
 				<>
@@ -73,6 +73,6 @@ export function Countdown({ attrs }: BlockProps<"core/countdown">) {
 				</P.Text>
 			)}
 			{attrs.cta && <P.Link {...attrs.cta} />}
-		</P.Stack>
+		</P.Stack></div>
 	);
 }

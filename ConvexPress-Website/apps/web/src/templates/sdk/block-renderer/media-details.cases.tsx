@@ -147,6 +147,8 @@ test("media steps retain order, rich marks, alt and focal points", () => {
 	});
 	expect(html).toContain("<ol");
 	expect(html).toContain("<em>Look</em>");
+	expect(html).toContain('data-enhanced="false"');
+	expect(html).toContain('class="cp-library-scroll-stage" aria-hidden="true"');
 	expect(html.indexOf("Notice") < html.indexOf("Return")).toBe(true);
 	expect(html).toContain("A notebook");
 	expect(html).toContain("10% 90%");

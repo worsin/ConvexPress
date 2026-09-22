@@ -6052,6 +6052,7 @@ export const editorDefinitions: Record<BlockName, EditorDefinition> = {
         "default": "",
         "id": "body",
         "max": 300,
+        "multiline": true,
         "type": "text"
       },
       {
@@ -6067,7 +6068,13 @@ export const editorDefinitions: Record<BlockName, EditorDefinition> = {
             "default": "",
             "id": "body",
             "max": 400,
+            "multiline": true,
             "type": "text"
+          },
+          {
+            "description": "Optional image for this step, with alternative text and focal position.",
+            "id": "media",
+            "type": "media"
           }
         ],
         "id": "steps",
@@ -6077,7 +6084,9 @@ export const editorDefinitions: Record<BlockName, EditorDefinition> = {
     ],
     "preview": "{heading}",
     "requires": {
-      "capabilities": [],
+      "capabilities": [
+        "reference.targetResolution"
+      ],
       "plugins": []
     },
     "role": "content",
@@ -6356,6 +6365,7 @@ export const editorDefinitions: Record<BlockName, EditorDefinition> = {
         "default": "",
         "id": "body",
         "max": 300,
+        "multiline": true,
         "type": "text"
       },
       {
@@ -6377,6 +6387,7 @@ export const editorDefinitions: Record<BlockName, EditorDefinition> = {
             "default": "",
             "id": "body",
             "max": 400,
+            "multiline": true,
             "type": "text"
           },
           {
@@ -6878,6 +6889,7 @@ export const editorDefinitions: Record<BlockName, EditorDefinition> = {
         "default": [],
         "fields": [
           {
+            "authoringNonblank": true,
             "id": "title",
             "max": 160,
             "min": 1,

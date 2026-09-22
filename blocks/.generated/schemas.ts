@@ -96,7 +96,7 @@ const schemaFactories = {
 "core/post-grid":once(()=>z.object({"query":z.object({"category":z.string().min(1).max(256).optional(),"tag":z.string().min(1).max(256).optional(),"author":z.string().min(1).max(256).optional()}).strict().optional(),"limit":z.number().int().min(1).max(48).prefault(6),"showExcerpt":z.boolean().prefault(true)}).strict()),
 "core/pricing-cards":once(()=>z.object({"eyebrow":z.string().max(80).prefault(""),"heading":z.string().max(120).prefault(""),"body":z.string().max(400).prefault(""),"plans":z.array(z.object({"name":z.string().max(40).prefault(""),"price":z.string().max(40).prefault(""),"description":z.string().max(200).prefault(""),"features":z.array(z.string().max(120)).max(20).prefault([]),"ctaLabel":z.string().max(40).prefault(""),"ctaUrl":safeLinkSchema(z,undefined).or(z.literal("")).prefault(""),"featured":z.boolean().prefault(false)}).strict()).max(6).prefault([])}).strict()),
 "core/pricing-table":once(()=>constrainObject(z.object({"plans":z.array(z.object({"name":z.string().max(160).min(1),"description":z.string().max(1000).prefault(""),"priceLabel":z.string().max(160).prefault(""),"alternatePriceLabel":z.string().max(160).optional(),"features":z.array(z.string().max(500)).max(30).prefault([]),"cta":z.object({label:z.string().max(160),href:safeLinkSchema(z,undefined),newTab:z.boolean().optional()}).strict().optional()}).strict()).max(8).prefault([]),"rows":z.array(z.object({"label":z.string().max(160).min(1),"values":z.array(z.string().max(500)).max(8).prefault([])}).strict()).max(50).prefault([]),"pricePeriods":z.object({"primaryLabel":z.string().max(80).min(1),"alternateLabel":z.string().max(80).min(1)}).strict().optional()}).strict(),[{"headers":"plans","kind":"matrix","rowField":"values","rows":"rows"}])),
-"core/process-steps":once(()=>z.object({"eyebrow":z.string().max(80).prefault(""),"heading":z.string().max(120).prefault(""),"body":z.string().max(300).prefault(""),"steps":z.array(z.object({"title":z.string().max(80).prefault(""),"body":z.string().max(400).prefault("")}).strict()).max(12).prefault([])}).strict()),
+"core/process-steps":once(()=>z.object({"eyebrow":z.string().max(80).prefault(""),"heading":z.string().max(120).prefault(""),"body":z.string().max(300).prefault(""),"steps":z.array(z.object({"title":z.string().max(80).prefault(""),"body":z.string().max(400).prefault(""),"media":z.object({id:z.string().min(1).max(256),alt:z.string().max(1000).optional(),focalPoint:z.object({x:z.number().min(0).max(1),y:z.number().min(0).max(1)}).strict().optional()}).strict().optional()}).strict()).max(12).prefault([])}).strict()),
 "core/pullquote":once(()=>z.object({"text":z.string().max(3000).prefault(""),"cite":z.string().max(240).prefault("")}).strict()),
 "core/quote":once(()=>z.object({"text":z.string().max(800).min(1).nullable().prefault(null),"cite":z.string().max(120).prefault(""),"source":safeLinkSchema(z,undefined).or(z.literal("")).prefault("")}).strict()),
 "core/related-content":once(()=>z.object({"limit":z.number().int().min(1).max(48).prefault(3),"type":z.union([z.literal("post"),z.literal("page")]).prefault("post")}).strict()),
@@ -476,6 +476,16 @@ const authoringActions: Readonly<Record<string, readonly AuthoringAction[]>> = {
 }
 ;
 const fieldRules: Readonly<Record<string, readonly AuthoringFieldRule[]>> = {
+  "core/steps-with-media": [
+    {
+      "kind": "nonblank",
+      "path": [
+        "steps",
+        "*",
+        "title"
+      ]
+    }
+  ],
   "core/trust-badges": [
     {
       "kind": "icon",
