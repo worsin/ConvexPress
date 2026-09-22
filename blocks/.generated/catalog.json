@@ -7823,6 +7823,18 @@
       "avoid": "blog posts (use core/heading + core/paragraph)",
       "useFor": "the first block on landing pages, product pages, marketing pages"
     },
+    "authoringActions": [
+      {
+        "href": "primaryCtaUrl",
+        "label": "primaryCtaLabel",
+        "path": []
+      },
+      {
+        "href": "secondaryCtaUrl",
+        "label": "secondaryCtaLabel",
+        "path": []
+      }
+    ],
     "category": "marketing",
     "constraints": [],
     "data": null,
@@ -7867,6 +7879,7 @@
         "type": "text"
       },
       {
+        "authoringNonblank": true,
         "default": null,
         "id": "title",
         "max": 120,
@@ -7878,6 +7891,7 @@
         "default": "",
         "id": "body",
         "max": 600,
+        "multiline": true,
         "type": "text"
       },
       {
@@ -7946,6 +7960,18 @@
       "avoid": "",
       "useFor": "SaaS landing pages with a product screenshot"
     },
+    "authoringActions": [
+      {
+        "href": "primaryCtaUrl",
+        "label": "primaryCtaLabel",
+        "path": []
+      },
+      {
+        "href": "secondaryCtaUrl",
+        "label": "secondaryCtaLabel",
+        "path": []
+      }
+    ],
     "category": "marketing",
     "constraints": [],
     "data": null,
@@ -7993,6 +8019,7 @@
         "type": "text"
       },
       {
+        "authoringNonblank": true,
         "default": null,
         "id": "title",
         "max": 120,
@@ -8004,6 +8031,7 @@
         "default": "",
         "id": "body",
         "max": 600,
+        "multiline": true,
         "type": "text"
       },
       {
@@ -8044,6 +8072,16 @@
         "id": "mediaAlt",
         "max": 200,
         "type": "text"
+      },
+      {
+        "description": "Start or end of the reading direction on wide layouts. Copy stays first when the columns stack.",
+        "id": "mediaSide",
+        "options": [
+          "start",
+          "end"
+        ],
+        "title": "Media position",
+        "type": "select"
       }
     ],
     "keywords": [],
@@ -8078,6 +8116,18 @@
       "avoid": "when the page benefits from product imagery (use core/hero or core/hero-split)",
       "useFor": "minimalist landing-page openers"
     },
+    "authoringActions": [
+      {
+        "href": "primaryCtaUrl",
+        "label": "primaryCtaLabel",
+        "path": []
+      },
+      {
+        "href": "secondaryCtaUrl",
+        "label": "secondaryCtaLabel",
+        "path": []
+      }
+    ],
     "category": "marketing",
     "constraints": [],
     "data": null,
@@ -8110,6 +8160,7 @@
         "type": "text"
       },
       {
+        "authoringNonblank": true,
         "default": null,
         "id": "title",
         "max": 120,
@@ -8121,6 +8172,7 @@
         "default": "",
         "id": "body",
         "max": 600,
+        "multiline": true,
         "type": "text"
       },
       {

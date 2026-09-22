@@ -10,6 +10,36 @@ import type { BlockName } from "../../ConvexPress-Admin/packages/backend/canonic
 const root = fileURLToPath(new URL("../../", import.meta.url));
 const runtime = createBlockSpecCompiler(z);
 
+test("hero actions require visible labels and preserve existing content", () => {
+  for (const name of ["core/hero", "core/hero-split", "core/hero-text-only"] as const) {
+    for (const prefix of ["primary", "secondary"] as const) {
+      const old = { [`${prefix}CtaUrl`]: "/contact", [`${prefix}CtaLabel`]: "\u200b" };
+      expect(blockSchemas[name].parse(old)[`${prefix}CtaLabel`]).toBe("\u200b");
+      expect(() => validateBlockAuthoringAttrs(name, old)).toThrow();
+      expect(validateBlockAuthoringAttrs(name, { [`${prefix}CtaUrl`]: "#details", [`${prefix}CtaLabel`]: "Read the details" })[`${prefix}CtaLabel`]).toBe("Read the details");
+    }
+  }
+});
+
+test("optional hero titles may be absent but supplied titles must be visible", () => {
+  for (const name of ["core/hero", "core/hero-split", "core/hero-text-only"] as const) {
+    expect(validateBlockAuthoringAttrs(name, {}).title).toBeNull();
+    expect(validateBlockAuthoringAttrs(name, { title: null }).title).toBeNull();
+    for (const title of [" ", "\u200b", "\u2066\u2069"]) {
+      expect(blockSchemas[name].parse({title}).title).toBe(title);
+      expect(() => validateBlockAuthoringAttrs(name, {title})).toThrow();
+    }
+  }
+});
+
+test("split hero media position is optional on old content and has closed logical choices", () => {
+  const old = blockSchemas["core/hero-split"].parse({ title: "An existing page" });
+  expect(old).not.toHaveProperty("mediaSide");
+  for (const mediaSide of ["start", "end"])
+    expect(blockSchemas["core/hero-split"].parse({ mediaSide }).mediaSide).toBe(mediaSide);
+  expect(() => blockSchemas["core/hero-split"].parse({ mediaSide: "arbitrary" })).toThrow();
+});
+
 test("CTA actions reject unnamed new links while historical attrs remain readable", () => {
   for (const prefix of ["primary", "secondary"] as const) {
     for (const label of ["", " ", "\u200b", "\u2066\u2069"]) {

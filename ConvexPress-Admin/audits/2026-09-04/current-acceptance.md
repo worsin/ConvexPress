@@ -1,5 +1,8 @@
 # Current production acceptance index — September 21
 
+September21 Hero family: **56/137 blocks verified;81 pending.** Split Hero gains authored start/end media placement, RTL support and copy-first mobile stacking; Text-only Hero and Split Hero pass native authoring/reopen/exact recovery/publication/original-editor recovery and four-pack/public Website checks. All three Heroes gain visible title/action validation and multiline body controls.26 invalid deployed saves/previews refused;19 contract/303 renderer/three browser cases, types/build/freshness/kit/thumbnails/lint pass. Main Hero stays open for editorial/poster treatments. A deployment-transition field refresh timeout remains a disclosed follow-up; persisted content was exact and three stable repeats passed. Original42 pages/appearance/plugin/media preserved; owned resources cleaned. Original audit8accepted/16open. [Evidence](hero-family-20260921.md).
+
+
 September21 CTA family: **54/137 blocks verified;83 pending.** CTA Band and CTA with inline form pass native authoring/reopen/exact recovery/publication, four-pack checks and actual Website navigation/signup. Fixed missing label rules, shared invisible-label acceptance, multiline bodies and narrow form padding.14 deployed invalid writes/previews refused; repeated signup produced one row/no email, then cleaned.16 contract/303 renderer/15 form cases, four browser cases, types/build/freshness/kit/lint pass.42 original pages/appearance/plugin/media preserved. Original audit8accepted/16open. [Evidence](cta-authoring-20260921.md).
 
 

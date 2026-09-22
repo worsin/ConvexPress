@@ -1,5 +1,8 @@
 # ConvexPress production-readiness implementation ledger
 
+September21 Hero family: **56/137 blocks verified;81 pending.** Split Hero gains authored start/end media placement, RTL support and copy-first mobile stacking; Text-only Hero and Split Hero pass native authoring/reopen/exact recovery/publication/original-editor recovery and four-pack/public Website checks. All three Heroes gain visible title/action validation and multiline body controls.26 invalid deployed saves/previews refused;19 contract/303 renderer/three browser cases, types/build/freshness/kit/thumbnails/lint pass. Main Hero stays open for editorial/poster treatments. A deployment-transition field refresh timeout remains a disclosed follow-up; persisted content was exact and three stable repeats passed. Original42 pages/appearance/plugin/media preserved; owned resources cleaned. Original audit8accepted/16open. [Evidence](hero-family-20260921.md).
+
+
 September21 process family: **52/137 blocks verified;85 pending.** Process Steps gains optional media and semantic responsive cards; Roadmap and Countdown follow authored width. Native four-block save/reopen/reorder/exact recovery/publication and actual desktop/mobile Website checks pass;12 invalid deployed writes/previews refused. Sticky Steps with Media is implemented but remains unverified: initial hardware sample had304.5ms frame; four repeats stayed below9ms, cause unresolved.302 renderer/13 contract/six browser cases, types/build/freshness pass; original content/media/plugin preserved and owned resources cleaned. Original audit8accepted/16open. [Evidence](process-family-20260921.md).
 
 

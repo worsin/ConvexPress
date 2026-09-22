@@ -4615,6 +4615,7 @@ export const editorDefinitions: Record<BlockName, EditorDefinition> = {
         "type": "text"
       },
       {
+        "authoringNonblank": true,
         "default": null,
         "id": "title",
         "max": 120,
@@ -4626,6 +4627,7 @@ export const editorDefinitions: Record<BlockName, EditorDefinition> = {
         "default": "",
         "id": "body",
         "max": 600,
+        "multiline": true,
         "type": "text"
       },
       {
@@ -4694,6 +4696,7 @@ export const editorDefinitions: Record<BlockName, EditorDefinition> = {
         "type": "text"
       },
       {
+        "authoringNonblank": true,
         "default": null,
         "id": "title",
         "max": 120,
@@ -4705,6 +4708,7 @@ export const editorDefinitions: Record<BlockName, EditorDefinition> = {
         "default": "",
         "id": "body",
         "max": 600,
+        "multiline": true,
         "type": "text"
       },
       {
@@ -4745,6 +4749,16 @@ export const editorDefinitions: Record<BlockName, EditorDefinition> = {
         "id": "mediaAlt",
         "max": 200,
         "type": "text"
+      },
+      {
+        "description": "Start or end of the reading direction on wide layouts. Copy stays first when the columns stack.",
+        "id": "mediaSide",
+        "options": [
+          "start",
+          "end"
+        ],
+        "title": "Media position",
+        "type": "select"
       }
     ],
     "preview": "{title}",
@@ -4779,6 +4793,7 @@ export const editorDefinitions: Record<BlockName, EditorDefinition> = {
         "type": "text"
       },
       {
+        "authoringNonblank": true,
         "default": null,
         "id": "title",
         "max": 120,
@@ -4790,6 +4805,7 @@ export const editorDefinitions: Record<BlockName, EditorDefinition> = {
         "default": "",
         "id": "body",
         "max": 600,
+        "multiline": true,
         "type": "text"
       },
       {

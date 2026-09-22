@@ -33,7 +33,7 @@ export default defineBlock("core/hero-split", ({ attrs, resources }) => {
 	return (
 		<div className="depot-hero" data-has-image={!!attrs.mediaId}>
 			{attrs.mediaId ? (
-				<P.Split ratio="equal" gap="md" align="center">
+				<P.Split ratio="equal" reverse={attrs.mediaSide === "start"} gap="md" align="center">
 					{copy}
 					<div className="depot-hero-image">
 						<ResolvedImage

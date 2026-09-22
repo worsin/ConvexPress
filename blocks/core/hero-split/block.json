@@ -23,13 +23,15 @@
       "type": "text",
       "min": 1,
       "max": 120,
-      "nullable": true
+      "nullable": true,
+      "authoringNonblank": true
     },
     {
       "id": "body",
       "default": "",
       "type": "text",
-      "max": 600
+      "max": 600,
+      "multiline": true
     },
     {
       "id": "primaryCtaLabel",
@@ -69,6 +71,16 @@
       "default": "",
       "type": "text",
       "max": 200
+    },
+    {
+      "id": "mediaSide",
+      "type": "select",
+      "options": [
+        "start",
+        "end"
+      ],
+      "title": "Media position",
+      "description": "Start or end of the reading direction on wide layouts. Copy stays first when the columns stack."
     }
   ],
   "supports": {
@@ -150,6 +162,18 @@
         "body"
       ],
       "format": "prose"
+    }
+  ],
+  "authoringActions": [
+    {
+      "path": [],
+      "href": "primaryCtaUrl",
+      "label": "primaryCtaLabel"
+    },
+    {
+      "path": [],
+      "href": "secondaryCtaUrl",
+      "label": "secondaryCtaLabel"
     }
   ]
 }

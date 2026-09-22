@@ -1,4 +1,3 @@
-/** Staged Library treatment; legacy content activation requires separate acceptance. */
 import { defineBlock } from "../../../ConvexPress-Website/apps/web/src/templates/sdk/block-renderer/model";
 import * as P from "../../../ConvexPress-Website/apps/web/src/templates/sdk/primitives";
 import {
@@ -23,7 +22,7 @@ export default defineBlock("core/hero-split", ({ attrs, resources }) => {
 		</P.Stack>
 	);
 	return attrs.mediaId ? (
-		<P.Split gap="lg">
+		<P.Split gap="lg" reverse={attrs.mediaSide === "start"}>
 			{copy}
 			<ResolvedImage
 				id={attrs.mediaId}

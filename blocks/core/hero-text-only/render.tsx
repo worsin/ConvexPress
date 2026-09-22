@@ -1,4 +1,3 @@
-/** Staged Library treatment; legacy content activation requires separate acceptance. */
 import { defineBlock } from "../../../ConvexPress-Website/apps/web/src/templates/sdk/block-renderer/model";
 import * as P from "../../../ConvexPress-Website/apps/web/src/templates/sdk/primitives";
 import { Prose, Action } from "../../../ConvexPress-Website/apps/web/src/templates/sdk/block-renderer/presentation";

@@ -4604,6 +4604,7 @@
         "type": "text"
       },
       {
+        "authoringNonblank": true,
         "default": null,
         "id": "title",
         "max": 120,
@@ -4615,6 +4616,7 @@
         "default": "",
         "id": "body",
         "max": 600,
+        "multiline": true,
         "type": "text"
       },
       {
@@ -4683,6 +4685,7 @@
         "type": "text"
       },
       {
+        "authoringNonblank": true,
         "default": null,
         "id": "title",
         "max": 120,
@@ -4694,6 +4697,7 @@
         "default": "",
         "id": "body",
         "max": 600,
+        "multiline": true,
         "type": "text"
       },
       {
@@ -4734,6 +4738,16 @@
         "id": "mediaAlt",
         "max": 200,
         "type": "text"
+      },
+      {
+        "description": "Start or end of the reading direction on wide layouts. Copy stays first when the columns stack.",
+        "id": "mediaSide",
+        "options": [
+          "start",
+          "end"
+        ],
+        "title": "Media position",
+        "type": "select"
       }
     ],
     "preview": "{title}",
@@ -4768,6 +4782,7 @@
         "type": "text"
       },
       {
+        "authoringNonblank": true,
         "default": null,
         "id": "title",
         "max": 120,
@@ -4779,6 +4794,7 @@
         "default": "",
         "id": "body",
         "max": 600,
+        "multiline": true,
         "type": "text"
       },
       {

@@ -75,7 +75,7 @@ const schemaFactories = {
 "core/group":once(()=>z.object({}).strict()),
 "core/heading":once(()=>z.object({"level":z.union([z.literal(1),z.literal(2),z.literal(3),z.literal(4),z.literal(5),z.literal(6)]).prefault(2),"text":createRichTextSchema(z,200,true).nullable().prefault({"content":[{"content":[{"text":"Heading","type":"text"}],"type":"paragraph"}],"type":"doc"}),"anchor":z.string().max(80).prefault("")}).strict()),
 "core/hero":once(()=>z.object({"eyebrow":z.string().max(80).prefault(""),"title":z.string().max(120).min(1).nullable().prefault(null),"body":z.string().max(600).prefault(""),"primaryCtaLabel":z.string().max(40).prefault(""),"primaryCtaUrl":safeLinkSchema(z,undefined).or(z.literal("")).prefault(""),"secondaryCtaLabel":z.string().max(40).prefault(""),"secondaryCtaUrl":safeLinkSchema(z,undefined).or(z.literal("")).prefault(""),"mediaId":z.string().prefault("")}).strict()),
-"core/hero-split":once(()=>z.object({"eyebrow":z.string().max(80).prefault(""),"title":z.string().max(120).min(1).nullable().prefault(null),"body":z.string().max(600).prefault(""),"primaryCtaLabel":z.string().max(40).prefault(""),"primaryCtaUrl":safeLinkSchema(z,undefined).or(z.literal("")).prefault(""),"secondaryCtaLabel":z.string().max(40).prefault(""),"secondaryCtaUrl":safeLinkSchema(z,undefined).or(z.literal("")).prefault(""),"mediaId":z.string().prefault(""),"mediaAlt":z.string().max(200).prefault("")}).strict()),
+"core/hero-split":once(()=>z.object({"eyebrow":z.string().max(80).prefault(""),"title":z.string().max(120).min(1).nullable().prefault(null),"body":z.string().max(600).prefault(""),"primaryCtaLabel":z.string().max(40).prefault(""),"primaryCtaUrl":safeLinkSchema(z,undefined).or(z.literal("")).prefault(""),"secondaryCtaLabel":z.string().max(40).prefault(""),"secondaryCtaUrl":safeLinkSchema(z,undefined).or(z.literal("")).prefault(""),"mediaId":z.string().prefault(""),"mediaAlt":z.string().max(200).prefault(""),"mediaSide":z.union([z.literal("start"),z.literal("end")]).optional()}).strict()),
 "core/hero-text-only":once(()=>z.object({"eyebrow":z.string().max(80).prefault(""),"title":z.string().max(120).min(1).nullable().prefault(null),"body":z.string().max(600).prefault(""),"primaryCtaLabel":z.string().max(40).prefault(""),"primaryCtaUrl":safeLinkSchema(z,undefined).or(z.literal("")).prefault(""),"secondaryCtaLabel":z.string().max(40).prefault(""),"secondaryCtaUrl":safeLinkSchema(z,undefined).or(z.literal("")).prefault("")}).strict()),
 "core/hero-video":once(()=>z.object({"video":z.object({id:z.string().min(1).max(256),alt:z.string().max(1000).optional(),focalPoint:z.object({x:z.number().min(0).max(1),y:z.number().min(0).max(1)}).strict().optional()}).strict().optional(),"poster":z.object({id:z.string().min(1).max(256),alt:z.string().max(1000).optional(),focalPoint:z.object({x:z.number().min(0).max(1),y:z.number().min(0).max(1)}).strict().optional()}).strict().optional(),"title":z.string().max(160).prefault(""),"subtitle":z.string().max(1000).prefault(""),"cta":z.object({label:z.string().max(160),href:safeLinkSchema(z,undefined),newTab:z.boolean().optional()}).strict().optional()}).strict()),
 "core/iframe":once(()=>z.object({"url":z.object({label:z.string().max(160),href:safeLinkSchema(z,["https"]),newTab:z.boolean().optional()}).strict().optional(),"title":z.string().max(160).prefault("")}).strict()),
@@ -449,6 +449,42 @@ const authoringActions: Readonly<Record<string, readonly AuthoringAction[]>> = {
       ]
     }
   ],
+  "core/hero": [
+    {
+      "href": "primaryCtaUrl",
+      "label": "primaryCtaLabel",
+      "path": []
+    },
+    {
+      "href": "secondaryCtaUrl",
+      "label": "secondaryCtaLabel",
+      "path": []
+    }
+  ],
+  "core/hero-split": [
+    {
+      "href": "primaryCtaUrl",
+      "label": "primaryCtaLabel",
+      "path": []
+    },
+    {
+      "href": "secondaryCtaUrl",
+      "label": "secondaryCtaLabel",
+      "path": []
+    }
+  ],
+  "core/hero-text-only": [
+    {
+      "href": "primaryCtaUrl",
+      "label": "primaryCtaLabel",
+      "path": []
+    },
+    {
+      "href": "secondaryCtaUrl",
+      "label": "secondaryCtaLabel",
+      "path": []
+    }
+  ],
   "core/media-text": [
     {
       "href": "ctaUrl",
@@ -493,6 +529,30 @@ const fieldRules: Readonly<Record<string, readonly AuthoringFieldRule[]>> = {
       "kind": "nonblank",
       "path": [
         "submitLabel"
+      ]
+    }
+  ],
+  "core/hero": [
+    {
+      "kind": "nonblank",
+      "path": [
+        "title"
+      ]
+    }
+  ],
+  "core/hero-split": [
+    {
+      "kind": "nonblank",
+      "path": [
+        "title"
+      ]
+    }
+  ],
+  "core/hero-text-only": [
+    {
+      "kind": "nonblank",
+      "path": [
+        "title"
       ]
     }
   ],
