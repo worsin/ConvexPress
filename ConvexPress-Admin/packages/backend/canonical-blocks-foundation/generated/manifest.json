@@ -1,13 +1,13 @@
 {
   "files": {
-    "ai-catalog.ts": "500fce8990634eca8252f677cb2158610c3c396715d880d6d1f5b094cef7d4a7",
+    "ai-catalog.ts": "f7336fc261a5a8148516295732c4eccc1aa73912e2e94dc861a1abab1a8b633e",
     "block-spec.schema.json": "c754960f6bb0e1c275bcc96f34f67643b740d65fa314875993c0b2fcc7d1d4b7",
-    "catalog.json": "f124cbb636449a69b7064962b3f020f2d08212cdb36356f4dc5b4a5fdd884dba",
-    "convex.ts": "260e25b952044e4279f557cb4f8136c24bf09e0e6a224902ee608276ce59d366",
-    "coverage.json": "04e46c0c6cb2b9a8298771697b3bbd86a442e4a3ef1952677e5c3b3e2bcf9c0d",
+    "catalog.json": "1628d6f618b2816571259d801977a833d95d15294224e894dfde087e43c40bcd",
+    "convex.ts": "c7e7340dec90a71f9c13f37325e4ec26942d0c9041f21a7ed851916b629d8ec0",
+    "coverage.json": "3eab6311e41c17cf3d180392c5930aefe73229fe7525fea50a06e1b9985258c0",
     "dependencies.json": "14abfada88ce7ccbe60f51ad42667773f00d7b8f1a0d53787c867b51e9586820",
-    "editor-metadata.ts": "08fad4706b854bd6db844ceb7d4b0f6e194a72d6cc8f43e5580ced0dec37a674",
-    "editors.json": "4515747e638efb43b6ba08fd6f310fda7ea03d9a033146776152c8416a836c32",
+    "editor-metadata.ts": "1f1c06e0af2e6be4a656b767c13d63f91de7236fa12a76bc4561b1d56abb9bd9",
+    "editors.json": "be533cd03deaa7cbdf78bdd54d73cbb90307383e49c0eecf5c57d56c247ceb01",
     "field-runtime.d.mts": "9e1d25230a1ff8ec61f818b6004c8927cef3c95502a2d0edb1c28604da3388ce",
     "field-runtime.mjs": "ce6b761fbbcd719779ca9c117948bbef5d50e45eff553904738c4998ed0b2e37",
     "instance-runtime.d.mts": "56a0e4c7115873efc02701e6ded4ff34c2f4e1e28e98a29ec3c45dd963405a14",
@@ -19,7 +19,7 @@
     "patterns.ts": "2ec3505c0b75e44834a38aaf79a8ec7d6ce9f9c2273bb76b267eb7896449906e",
     "promotions.ts": "7545ede36ecd059123045889f0aa32d6c0c9f4b157fc29ace43d597a942633eb",
     "renderer-coverage.ts": "646fe78683882b53ec9994526f20dd09ce29371fac6e525b686b0e98de18fb06",
-    "schemas.ts": "8d8528e3e719f20865a0713fad4168ae4c39401642597db9aa945b7937a42f66",
+    "schemas.ts": "435e13c47e210b76f1bbeb37ae0ed6ae0456339e664c3252a58b271371a87cc7",
     "search-text.ts": "ec776042d472925e245a0a1a21277960271ff8a8fd0bd34d6b990cd4ded9cd30",
     "spec-runtime.d.mts": "c17e9d4c7b5ccaad80e38c5df050a1abc8a49c8b15332d9fef53195a524e0bf1",
     "spec-runtime.mjs": "e6d86c01e7592aa7ad5ec3003b915b42febae5e5151838c1a7e2b818426a3b5b",
@@ -393,7 +393,7 @@
       "source": "blocks/core/pricing-cards/block.json"
     },
     {
-      "sha256": "264ce57b5f4d7fd21c6e25a17e36a7f519d3218dc2c5f0f92ad4db5bd3e17291",
+      "sha256": "bd7caceef1337fd420981a7e8457e85280d9df5ff881dc5faa232014830e52a7",
       "source": "blocks/core/pricing-table/block.json"
     },
     {

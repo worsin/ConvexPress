@@ -51,6 +51,20 @@ export function contentHtml(
 		),
 	);
 }
+test("pricing periods render authored labels and base prices on the server without changing static tables", () => {
+	const plans = [{ name: "Notebook", priceLabel: "$12 / month", alternatePriceLabel: "$120 / year", cta: { label: "Plan details", href: "/plans/notebook" } }];
+	const html = contentHtml(pricing, { plans, pricePeriods: { primaryLabel: "Monthly", alternateLabel: "Yearly" } });
+	expect(html).toContain('role="radiogroup"');
+	expect(html).toContain('aria-label="Price period"');
+	expect(html).toContain("Monthly");
+	expect(html).toContain("Yearly");
+	expect(html).toContain("$12 / month");
+	expect(html).not.toContain("$120 / year");
+	expect(html).toContain('href="/plans/notebook"');
+	const legacy = contentHtml(pricing, { plans: [{ name: "Notebook", priceLabel: "Free" }] });
+	expect(legacy).not.toContain('role="radiogroup"');
+	expect(legacy).toContain("Free");
+});
 test("roadmap keeps authored order, status labels and escaped content without inferring dates", () => {
 	const html = contentHtml(roadmap, {
 		heading: "Our workshop",

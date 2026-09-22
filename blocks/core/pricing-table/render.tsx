@@ -1,4 +1,5 @@
-/** Editorial comparison only. No billing toggles or checkout authority are inferred. */
+/** Authored price periods change display copy; checkout authority stays with commerce. */
+import { useId, useState } from "react";
 import { defineBlock } from "../../../ConvexPress-Website/apps/web/src/templates/sdk/block-renderer/model";
 import * as P from "../../../ConvexPress-Website/apps/web/src/templates/sdk/primitives";
 import "./pricing.css";
@@ -6,10 +7,31 @@ const unspecified = (
 	<span className="cp-library-price-unspecified">Not specified</span>
 );
 export default defineBlock("core/pricing-table", ({ attrs }) => {
+	const periodId = useId();
+	const [alternate, setAlternate] = useState(false);
+	const showingAlternate = Boolean(attrs.pricePeriods && alternate);
+	const periodLabel = attrs.pricePeriods
+		? showingAlternate
+			? attrs.pricePeriods.alternateLabel.trim() || "Alternate"
+			: attrs.pricePeriods.primaryLabel.trim() || "Standard"
+		: undefined;
 	if (!attrs.plans.length)
 		return <P.Text tone="muted">Add plans to compare.</P.Text>;
 	return (
 		<P.Card>
+			{attrs.pricePeriods && (
+				<div className="cp-library-price-periods" role="radiogroup" aria-label="Price period">
+					{[
+						{ value: false, label: attrs.pricePeriods.primaryLabel.trim() || "Standard" },
+						{ value: true, label: attrs.pricePeriods.alternateLabel.trim() || "Alternate" },
+					].map((period) => (
+						<label key={String(period.value)}>
+							<input type="radio" name={periodId} checked={showingAlternate === period.value} onChange={() => setAlternate(period.value)} />
+							<span>{period.label}</span>
+						</label>
+					))}
+				</div>
+			)}
 			<section
 				className="cp-library-pricing-scroll"
 				aria-label="Plan comparison"
@@ -37,12 +59,12 @@ export default defineBlock("core/pricing-table", ({ attrs }) => {
 								))}
 							</tr>
 						)}
-						{attrs.plans.some((plan) => plan.priceLabel) && (
+						{(attrs.pricePeriods || attrs.plans.some((plan) => plan.priceLabel)) && (
 							<tr>
-								<th scope="row">Price</th>
+								<th scope="row">{periodLabel ? `${periodLabel} price` : "Price"}</th>
 								{attrs.plans.map((plan, index) => (
 									<td key={index}>
-										<P.Text size="lg">{plan.priceLabel || unspecified}</P.Text>
+										<P.Text size="lg">{(showingAlternate ? plan.alternatePriceLabel : plan.priceLabel) || unspecified}</P.Text>
 									</td>
 								))}
 							</tr>

@@ -6125,6 +6125,7 @@
         {
           "plans": [
             {
+              "alternatePriceLabel": "Free",
               "description": "A simple place to begin.",
               "features": [
                 "Read the field guide",
@@ -6134,6 +6135,10 @@
               "priceLabel": "Free"
             }
           ],
+          "pricePeriods": {
+            "alternateLabel": "Yearly",
+            "primaryLabel": "Monthly"
+          },
           "rows": []
         },
         {

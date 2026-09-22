@@ -5866,6 +5866,13 @@ export const editorDefinitions: Record<BlockName, EditorDefinition> = {
             "type": "text"
           },
           {
+            "description": "Full displayed price for the alternate period, including its currency and interval. Omit if it is not offered.",
+            "id": "alternatePriceLabel",
+            "max": 160,
+            "title": "Alternate price",
+            "type": "text"
+          },
+          {
             "default": [],
             "id": "features",
             "item": {
@@ -5912,6 +5919,30 @@ export const editorDefinitions: Record<BlockName, EditorDefinition> = {
         "id": "rows",
         "max": 50,
         "type": "repeater"
+      },
+      {
+        "description": "Enable two authored price views. Base prices and alternate prices stay with their plans when plans are reordered.",
+        "fields": [
+          {
+            "id": "primaryLabel",
+            "max": 80,
+            "min": 1,
+            "required": true,
+            "title": "Primary period",
+            "type": "text"
+          },
+          {
+            "id": "alternateLabel",
+            "max": 80,
+            "min": 1,
+            "required": true,
+            "title": "Alternate period",
+            "type": "text"
+          }
+        ],
+        "id": "pricePeriods",
+        "title": "Price periods",
+        "type": "object"
       }
     ],
     "preview": "Pricing table",

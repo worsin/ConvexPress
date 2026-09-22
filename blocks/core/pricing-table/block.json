@@ -10,7 +10,7 @@
   ],
   "ai": {
     "useFor": "Dense plan comparison table with toggles.",
-    "avoid": "Price labels are editorial copy, never checkout authority. Billing controls and real plans require a verified commerce resolver."
+    "avoid": "Price labels are authored display copy. Price-period selection does not create a subscription, calculate a discount, or change checkout authority. Use verified commerce blocks for transactions."
   },
   "fields": [
     {
@@ -35,6 +35,13 @@
           "type": "text",
           "max": 160,
           "default": ""
+        },
+        {
+          "id": "alternatePriceLabel",
+          "title": "Alternate price",
+          "type": "text",
+          "max": 160,
+          "description": "Full displayed price for the alternate period, including its currency and interval. Omit if it is not offered."
         },
         {
           "id": "features",
@@ -82,6 +89,30 @@
       ],
       "max": 50,
       "default": []
+    },
+    {
+      "id": "pricePeriods",
+      "title": "Price periods",
+      "type": "object",
+      "description": "Enable two authored price views. Base prices and alternate prices stay with their plans when plans are reordered.",
+      "fields": [
+        {
+          "id": "primaryLabel",
+          "title": "Primary period",
+          "type": "text",
+          "required": true,
+          "min": 1,
+          "max": 80
+        },
+        {
+          "id": "alternateLabel",
+          "title": "Alternate period",
+          "type": "text",
+          "required": true,
+          "min": 1,
+          "max": 80
+        }
+      ]
     }
   ],
   "supports": {
@@ -108,10 +139,15 @@
           "features": [
             "Read the field guide",
             "Try a short observation exercise"
-          ]
+          ],
+          "alternatePriceLabel": "Free"
         }
       ],
-      "rows": []
+      "rows": [],
+      "pricePeriods": {
+        "primaryLabel": "Monthly",
+        "alternateLabel": "Yearly"
+      }
     },
     {
       "plans": [

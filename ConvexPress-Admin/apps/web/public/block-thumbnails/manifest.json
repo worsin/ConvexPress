@@ -292,8 +292,9 @@
       "core/comparison-table": {
         "src": "/block-thumbnails/aster-house/core--comparison-table.jpg",
         "example": 1,
-        "sha256": "de030e52c529fd3baa42f917f644391dbbcd2ac4bc59bb918918826396b1d473",
-        "bytes": 10683
+        "sha256": "6b2f303afdc4318bba6d3dece5e47ae5160280ab4a0f3c9ca2c05c7265d6e4e5",
+        "bytes": 11947,
+        "capturedAt": "2026-09-22T00:42:18.817Z"
       },
       "core/contact-form": {
         "src": "/block-thumbnails/aster-house/core--contact-form.jpg",
@@ -397,8 +398,9 @@
       "core/footnotes": {
         "src": "/block-thumbnails/aster-house/core--footnotes.jpg",
         "example": 1,
-        "sha256": "e9b0af0943561991ea7896dd93ca92838bf4e2f455847cf06930de77865da940",
-        "bytes": 20681
+        "sha256": "3c854f7e3673790dcfafca0cd125155d2e015e6b1da27485b2377b50d1d976f4",
+        "bytes": 20961,
+        "capturedAt": "2026-09-22T00:42:18.908Z"
       },
       "core/form": {
         "src": "/block-thumbnails/aster-house/core--form.jpg",
@@ -562,8 +564,9 @@
       "core/pricing-table": {
         "src": "/block-thumbnails/aster-house/core--pricing-table.jpg",
         "example": 1,
-        "sha256": "9a014518a0bbc12df094bec33dee6442fdd5d0077b2d852456b82a1b0dbb1a70",
-        "bytes": 24548
+        "sha256": "588161cd8579c05c35748b435e2910ae83c0d02009b64361d42c37312b15e1a7",
+        "bytes": 25120,
+        "capturedAt": "2026-09-22T00:42:18.982Z"
       },
       "core/process-steps": {
         "src": "/block-thumbnails/aster-house/core--process-steps.jpg",
@@ -1129,8 +1132,9 @@
       "core/comparison-table": {
         "src": "/block-thumbnails/core/core--comparison-table.jpg",
         "example": 1,
-        "sha256": "4ab98fe3452efbf877b38a09f22f6d91f0c502e79cf7a548331eaa4b4457b5bf",
-        "bytes": 12122
+        "sha256": "b786278f85fe8116b609124978701d749af630f81a3e953d8e824ffa0923f923",
+        "bytes": 13463,
+        "capturedAt": "2026-09-22T00:42:17.335Z"
       },
       "core/contact-form": {
         "src": "/block-thumbnails/core/core--contact-form.jpg",
@@ -1234,8 +1238,9 @@
       "core/footnotes": {
         "src": "/block-thumbnails/core/core--footnotes.jpg",
         "example": 1,
-        "sha256": "f70a74104a257b3db6de6d5a5ed35af4895445aab4ccaf5fe7dc65863820b626",
-        "bytes": 21861
+        "sha256": "4782fdebdec14db5fa81317956f4496af9a15bfd1cded1f34014cea22142f5eb",
+        "bytes": 22186,
+        "capturedAt": "2026-09-22T00:42:17.434Z"
       },
       "core/form": {
         "src": "/block-thumbnails/core/core--form.jpg",
@@ -1399,8 +1404,9 @@
       "core/pricing-table": {
         "src": "/block-thumbnails/core/core--pricing-table.jpg",
         "example": 1,
-        "sha256": "4efda7b2b9152c46a98418274697aefd7c0abc181bff11c839007728bad2f66d",
-        "bytes": 26117
+        "sha256": "009b173c13e7a1bfd236741d3349f371c42a76a562aff9e915c65855e7605f13",
+        "bytes": 26792,
+        "capturedAt": "2026-09-22T00:42:17.533Z"
       },
       "core/process-steps": {
         "src": "/block-thumbnails/core/core--process-steps.jpg",
@@ -2010,9 +2016,9 @@
       "core/comparison-table": {
         "src": "/block-thumbnails/depot/core--comparison-table.jpg",
         "example": 1,
-        "sha256": "d6f12776831aa89572170d85604e424343bfa350d91bde3eca40727daaf90d4f",
-        "bytes": 10066,
-        "capturedAt": "2026-09-21T11:57:17.703Z"
+        "sha256": "be470643a7a79bdf8e19037f319a43051f2a8316e5626049d4bf2558f8b959a6",
+        "bytes": 10650,
+        "capturedAt": "2026-09-22T00:42:18.108Z"
       },
       "core/contact-form": {
         "src": "/block-thumbnails/depot/core--contact-form.jpg",
@@ -2131,7 +2137,7 @@
         "example": 1,
         "sha256": "7c5e21ac5db2681a79cbb16c052a3cf5c51f650a7dcac7614976843eadc93ce2",
         "bytes": 21420,
-        "capturedAt": "2026-09-21T11:57:19.254Z"
+        "capturedAt": "2026-09-22T00:42:18.201Z"
       },
       "core/form": {
         "src": "/block-thumbnails/depot/core--form.jpg",
@@ -2318,9 +2324,9 @@
       "core/pricing-table": {
         "src": "/block-thumbnails/depot/core--pricing-table.jpg",
         "example": 1,
-        "sha256": "d49714fbfbb08de11013de35d4d744e0f7cbccfaf901899e5e7f8eda91c5fab5",
-        "bytes": 27907,
-        "capturedAt": "2026-09-21T11:57:21.859Z"
+        "sha256": "7608538825d309afe231be200d0f10781afe601db4b1b1fd79344bfe3740c256",
+        "bytes": 27894,
+        "capturedAt": "2026-09-22T00:42:18.292Z"
       },
       "core/process-steps": {
         "src": "/block-thumbnails/depot/core--process-steps.jpg",
@@ -2927,8 +2933,9 @@
       "core/comparison-table": {
         "src": "/block-thumbnails/journal/core--comparison-table.jpg",
         "example": 1,
-        "sha256": "f9ef83ad065a3491feb4f70a455b4dcce29ce18c7c2f14cd317a6a8fb0a400aa",
-        "bytes": 12125
+        "sha256": "8ceef94e7d539f476535f7ed6b011696ffe84c91d432b88ab2f3cc08ad2f0367",
+        "bytes": 13405,
+        "capturedAt": "2026-09-22T00:42:17.767Z"
       },
       "core/contact-form": {
         "src": "/block-thumbnails/journal/core--contact-form.jpg",
@@ -3032,8 +3039,9 @@
       "core/footnotes": {
         "src": "/block-thumbnails/journal/core--footnotes.jpg",
         "example": 1,
-        "sha256": "01434b548215c3b2038282d53ce4bff65dfffa9b44c5b613237bb37adf0ab890",
-        "bytes": 21238
+        "sha256": "5f45bcad1f2caa8e58d4d2526f9488df1b78b128782b5fa1aa1f320073cbd60b",
+        "bytes": 21537,
+        "capturedAt": "2026-09-22T00:42:17.841Z"
       },
       "core/form": {
         "src": "/block-thumbnails/journal/core--form.jpg",
@@ -3198,8 +3206,9 @@
       "core/pricing-table": {
         "src": "/block-thumbnails/journal/core--pricing-table.jpg",
         "example": 1,
-        "sha256": "b606f76790f0842487f6f380c62fed8f68eecaa9380600789b2c7546411cf773",
-        "bytes": 26281
+        "sha256": "c165e275d2912e755b7e1b28b22c74806b89351ef6366a1da73b398134421ce2",
+        "bytes": 26719,
+        "capturedAt": "2026-09-22T00:42:17.916Z"
       },
       "core/process-steps": {
         "src": "/block-thumbnails/journal/core--process-steps.jpg",

@@ -95,3 +95,14 @@ test('matrix metadata names a real array field and keeps offsets closed',async()
   const pricing=JSON.parse(await readFile(new URL('blocks/core/pricing-table/block.json',root),'utf8'));
   for(const patch of [{rowField:'missing'},{rowField:'label'},{headerOffset:2},{headerOffset:-1},{headers:'rows',rows:'plans',rowField:'name'}]) expect(()=>parseBlockSpec({...pricing,constraints:[{...pricing.constraints[0],...patch}]})).toThrow();
 });
+
+test('pricing periods are opt-in and preserve existing plans and their column associations', async () => {
+  const original = { plans: [{ name: 'Notebook', description: '', priceLabel: '$12 / month', features: [] }], rows: [] };
+  expect(await validate('core/pricing-table', original)).toEqual(original);
+  const periods = { primaryLabel: 'Monthly', alternateLabel: 'Yearly' };
+  const attrs = { ...original, pricePeriods: periods, plans: [{ ...original.plans[0], alternatePriceLabel: '$120 / year' }] };
+  expect(await validate('core/pricing-table', attrs)).toEqual(attrs);
+  for (const pricePeriods of [{ primaryLabel: '', alternateLabel: 'Yearly' }, { primaryLabel: 'Monthly' }, { ...periods, discount: 20 }])
+    await expect(validate('core/pricing-table', { ...attrs, pricePeriods })).rejects.toThrow();
+  await expect(validate('core/pricing-table', { ...attrs, plans: [{ ...attrs.plans[0], alternatePriceLabel: 'x'.repeat(161) }] })).rejects.toThrow();
+});
