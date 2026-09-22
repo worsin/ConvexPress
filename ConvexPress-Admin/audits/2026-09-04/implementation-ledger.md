@@ -3245,3 +3245,6 @@ Legacy Spacer size and Divider variant conversion now preserve all seven origina
 ## September21 CTA/editorial family checkpoint
 
 Four more canonical blocks accepted: Page Banner, Promo Band, Media Mentions and Story Timeline. Total19/137 verified,118 pending; original audit8accepted/16open. Nine-block action rules, Banner multiline control and shared maximum-text wrapping repaired; native/public/recovery and deployed refusal/positive-preview evidence retained. Installed reference plugin preserved by both strict pushes. Continue remaining variant/dynamic/host gates; do not infer full commerce acceptance from CTA checks. See [cta-family-20260921.md](cta-family-20260921.md).
+
+
+September21 Steps with Media image delivery: repaired blank loading/error frames and stale decode completion after source edits.303 renderer/seven browser cases, current built Website delayed/error/mobile checks, types/build/freshness/kit/lint pass.42 original pages/appearance preserved; owned resources cleaned and removed URL returns404. Historical304.5ms motion outlier remains unexplained; **52/137 blocks verified and original audit8 accepted/16 open unchanged.** [Evidence](steps-motion-20260921.md).

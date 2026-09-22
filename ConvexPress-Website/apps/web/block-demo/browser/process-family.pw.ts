@@ -105,3 +105,40 @@ test('countdown expires at the authored instant, announces once and recovers aft
   await study.getByRole('textbox', { name: 'Target', exact: true }).fill('not a date');
   await expect(study.getByRole('textbox', { name: 'Target', exact: true })).toHaveAttribute('aria-invalid', 'true');
 });
+
+test('sticky steps show the current copy while images load or fail, then reveal decoded media', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await page.emulateMedia({ reducedMotion: 'no-preference' });
+  let release!: () => void;
+  const pending = new Promise<void>(resolve => { release = resolve; });
+  await page.route('**/aster-house-camp-mug.png', async route => { await pending; await route.continue(); });
+  await page.route('**/aster-house-retreat.png', route => route.abort());
+  try {
+    await page.goto('/?block=core%2Fsteps-with-media&example=1', { waitUntil: 'domcontentloaded' });
+    const canvas = page.locator('.canonical-canvas');
+    await expect(canvas.locator('.cp-library-scroll-copy>li')).toHaveCount(3);
+    await canvas.evaluate(node => {
+      node.style.width = '1200px'; node.style.maxWidth = 'none';
+      node.querySelector('.cp-section[data-nested="false"]>.cp-container')?.setAttribute('data-width','full');
+    });
+    const root = canvas.locator('.cp-library-scroll-steps');
+    await expect(root).toHaveAttribute('data-enhanced','true');
+    await root.locator('.cp-library-scroll-copy>li').nth(1).evaluate(node => scrollTo({top:scrollY+node.getBoundingClientRect().top-innerHeight*.3,behavior:'instant'}));
+    await expect(root).toHaveAttribute('data-active-step','1');
+    const stage = root.locator('.cp-library-scroll-pin>[data-step="1"]');
+    await expect(stage.locator('[data-media-state="loading"]')).toBeVisible();
+    await expect(stage).toContainText('Give it a little time.');
+    const before = await stage.boundingBox();
+    release();
+    await expect(stage.locator('[data-media-state="ready"]')).toBeVisible();
+    await expect(stage.locator('.cp-library-scroll-image')).toHaveCSS('opacity','1');
+    expect(await stage.locator('img').evaluate((image:HTMLImageElement)=>image.complete && image.naturalWidth>0)).toBe(true);
+    const after = await stage.boundingBox();
+    expect(after!.height).toBe(before!.height);
+    await root.locator('.cp-library-scroll-copy>li').nth(2).evaluate(node => scrollTo({top:scrollY+node.getBoundingClientRect().top-innerHeight*.3,behavior:'instant'}));
+    await expect(root).toHaveAttribute('data-active-step','2');
+    const failed = root.locator('.cp-library-scroll-pin>[data-step="2"]');
+    await expect(failed.locator('[data-media-state="error"]')).toBeVisible();
+    await expect(failed).toContainText('Share what you found.');
+  } finally { release(); }
+});

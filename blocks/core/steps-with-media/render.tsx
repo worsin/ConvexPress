@@ -3,6 +3,7 @@ import { defineBlock, type BlockProps } from "../../../ConvexPress-Website/apps/
 import * as P from "../../../ConvexPress-Website/apps/web/src/templates/sdk/primitives";
 import { ResolvedImage, CardCopy } from "../../../ConvexPress-Website/apps/web/src/templates/sdk/block-renderer/presentation";
 import "./steps.css";
+import { StageMedia } from "./stage-media";
 
 function StepsWithMedia({ attrs, resources }: BlockProps<"core/steps-with-media">) {
   const rootRef = useRef<HTMLDivElement>(null);
@@ -72,7 +73,7 @@ function StepsWithMedia({ attrs, resources }: BlockProps<"core/steps-with-media"
         <div className="cp-library-scroll-pin">
           {attrs.steps.map((step, index) => (
             <div key={index} data-step={index} data-current={index === current}>
-              {step.media ? <ResolvedImage {...step.media} resources={resources} /> : <div className="cp-library-scroll-pause"><P.Eyebrow>{String(index + 1).padStart(2, "0")}</P.Eyebrow><P.Text>{step.title}</P.Text></div>}
+              <StageMedia step={step} index={index} resources={resources} />
             </div>
           ))}
         </div>

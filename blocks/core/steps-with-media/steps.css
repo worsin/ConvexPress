@@ -16,3 +16,12 @@
 .cp-library-scroll-pin .cp-image,.cp-library-scroll-pin .cp-image img {margin:0;inline-size:100%;block-size:100%;}
 .cp-library-scroll-pause {box-sizing:border-box;block-size:100%;display:grid;align-content:center;gap:1rem;padding:2rem;overflow-wrap:anywhere;}
 @media(prefers-reduced-motion:reduce) {.cp-library-scroll-pin > [data-step] {transition:none;}}
+
+.cp-library-scroll-visual {position:relative;block-size:100%;}
+.cp-library-scroll-image {position:absolute;inset:0;opacity:0;}
+.cp-library-scroll-visual[data-media-state=ready]>.cp-library-scroll-image {opacity:1;}
+.cp-library-scroll-visual[data-media-state=ready]>.cp-library-scroll-pause {opacity:0;}
+@media(prefers-reduced-motion:no-preference) {
+ .cp-library-scroll-pin>[data-current=true] .cp-library-scroll-image,
+ .cp-library-scroll-pin>[data-current=true] .cp-library-scroll-pause {transition:opacity .35s ease;}
+}

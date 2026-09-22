@@ -1,5 +1,8 @@
 # Current production acceptance index — September 21
 
+September21 Steps with Media image delivery: repaired blank loading/error frames and stale decode completion after source edits.303 renderer/seven browser cases, current built Website delayed/error/mobile checks, types/build/freshness/kit/lint pass.42 original pages/appearance preserved; owned resources cleaned and removed URL returns404. Historical304.5ms motion outlier remains unexplained; **52/137 blocks verified and original audit8 accepted/16 open unchanged.** [Evidence](steps-motion-20260921.md).
+
+
 September21 process family: **52/137 blocks verified;85 pending.** Process Steps gains optional media and semantic responsive cards; Roadmap and Countdown follow authored width. Native four-block save/reopen/reorder/exact recovery/publication and actual desktop/mobile Website checks pass;12 invalid deployed writes/previews refused. Sticky Steps with Media is implemented but remains unverified: initial hardware sample had304.5ms frame; four repeats stayed below9ms, cause unresolved.302 renderer/13 contract/six browser cases, types/build/freshness pass; original content/media/plugin preserved and owned resources cleaned. Original audit8accepted/16open. [Evidence](process-family-20260921.md).
 
 

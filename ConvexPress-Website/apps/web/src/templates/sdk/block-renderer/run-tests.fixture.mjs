@@ -152,6 +152,7 @@ const source = [
 		`import ${JSON.stringify(fileURLToPath(new URL("./editorial-dom.cases.jsx", import.meta.url)))};`,
 		`import ${JSON.stringify(fileURLToPath(new URL("./media.cases.tsx", import.meta.url)))};`,
 		`import ${JSON.stringify(fileURLToPath(new URL("./media-dom.cases.jsx", import.meta.url)))};`,
+`import ${JSON.stringify(fileURLToPath(new URL("./stage-media.cases.jsx", import.meta.url)))};`,
 		`import ${JSON.stringify(fileURLToPath(new URL("./featured-page.cases.tsx", import.meta.url)))};`,
 		`import ${JSON.stringify(fileURLToPath(new URL("./featured-page-dom.cases.jsx", import.meta.url)))};`,
 		`import {createDemoContentPageHost} from ${JSON.stringify(fileURLToPath(new URL("../block-data/demo-channel.ts", import.meta.url)))};`,
