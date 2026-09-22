@@ -21,7 +21,17 @@ test("trust badge icon choices render in every pack and remain removable", async
     await study.getByRole("button", { name: "Reset Icon", exact: true }).first().click();
     await expect(canvas.locator(".cp-library-trust-badges > li").first().locator("svg")).toHaveCount(0);
     const label = study.getByRole("textbox", { name: "Label", exact: true }).first();
+    await label.fill("   ");
+    await expect(label).toHaveAttribute("aria-invalid", "true");
+    await label.fill("\u200b");
+    await expect(label).toHaveAttribute("aria-invalid", "true");
     await label.fill("A".repeat(160));
+    await expect(label).not.toHaveAttribute("aria-invalid", "true");
+    const media = canvas.getByRole("img", { name: "Fictional Aster House studio mark", exact: true });
+    await expect(media).toBeVisible();
+    await expect.poll(() => media.evaluate(n => n instanceof HTMLImageElement && n.complete && n.naturalWidth > 0)).toBe(true);
+    await expect(media).toHaveCSS("object-fit", "contain");
+    await expect(media.locator("..")).toHaveAttribute("data-fit", "contain");
     for (const width of [1440, 390]) {
       await page.setViewportSize({ width, height: 900 });
       expect(await canvas.evaluate(n => n.scrollWidth <= n.clientWidth + 1)).toBe(true);

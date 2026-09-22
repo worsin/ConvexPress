@@ -2,13 +2,24 @@ import { expect, test } from "bun:test";
 import { fileURLToPath } from "node:url";
 import { discoverBlocks } from "./discovery.mjs";
 import { z } from "./schema.mjs";
-import { createBlockSpecCompiler, validateAuthoringActions, validateAuthoringChoices, authoringChoices } from "./spec-runtime.mjs";
+import { createBlockSpecCompiler, validateAuthoringActions, validateAuthoringFields, authoringFieldRules } from "./spec-runtime.mjs";
 import tabbedSpec from "../../blocks/blocks/tabbed-content/block.json";
 import { blockSchemas, validateBlockAuthoringAttrs } from "../../ConvexPress-Admin/packages/backend/canonical-blocks-foundation/generated/schemas";
 import type { BlockName } from "../../ConvexPress-Admin/packages/backend/canonical-blocks-foundation/generated/types";
 
 const root = fileURLToPath(new URL("../../", import.meta.url));
 const runtime = createBlockSpecCompiler(z);
+
+test("badge labels preserve historical blanks but require visible text for new authoring", () => {
+  for (const label of [" ", "\t\n", "\u00a0", "\u200b", "\u2066\u2069"]) {
+    const old = { items: [{ icon: "heart", label }] };
+    expect(blockSchemas["core/trust-badges"].parse(old)).toEqual(old);
+    expect(() => validateBlockAuthoringAttrs("core/trust-badges", old)).toThrow();
+    expect(old.items[0].label).toBe(label);
+  }
+  for (const label of ["Made with care", "  Original work  ", "صنع بعناية", "手作り", "♥"])
+    expect(validateBlockAuthoringAttrs("core/trust-badges", { items: [{ label }] })).toEqual({ items: [{ label }] });
+});
 
 test("trust icons remain readable for repair but unsupported authoring is refused", async () => {
   const spec = runtime.parseBlockSpec((await discoverBlocks(root)).blocks.find(b => b.spec.name === "core/trust-badges")!.spec);
@@ -24,19 +35,33 @@ test("write-only icon choices cover nested and scalar rows without rewriting leg
   const icon = { id: "icon", type: "icon", options: ["heart", "check"], optionsMode: "authoring", nullable: true };
   const fields = [{ id: "panel", type: "object", fields: [{ id: "rows", type: "repeater", fields: [icon] }, { id: "symbols", type: "repeater", item: { ...icon, required: true } }] }];
   const spec = runtime.parseBlockSpec({ ...original, fields, examples: [{}] });
-  const schema = runtime.attrsSchema(spec.fields), choices = authoringChoices(spec.fields);
-  expect(validateAuthoringChoices(z, schema.parse({}), choices)).toEqual({});
+  const schema = runtime.attrsSchema(spec.fields), choices = authoringFieldRules(spec.fields);
+  expect(validateAuthoringFields(z, schema.parse({}), choices)).toEqual({});
   const valid = schema.parse({ panel: { rows: [{}, { icon: null }, { icon: "check" }], symbols: ["heart"] } });
-  expect(validateAuthoringChoices(z, valid, choices)).toBe(valid);
+  expect(validateAuthoringFields(z, valid, choices)).toBe(valid);
   const old = schema.parse({ panel: { rows: [{ icon: "old-icon" }], symbols: ["old-mark"] } });
   const before = JSON.stringify(old);
-  try { validateAuthoringChoices(z, old, choices); throw Error("Expected rejection"); } catch (error: any) {
+  try { validateAuthoringFields(z, old, choices); throw Error("Expected rejection"); } catch (error: any) {
     expect(error.issues.map((issue: any) => issue.path)).toEqual([["panel", "rows", 0, "icon"], ["panel", "symbols", 0]]);
   }
   expect(JSON.stringify(old)).toBe(before);
   for (const bad of [{ ...icon, options: undefined }, { ...icon, default: "old-icon" }])
     expect(() => runtime.parseBlockSpec({ ...original, fields: [bad], examples: [{}] })).toThrow();
   expect(() => runtime.parseBlockSpec({ ...original, fields: [icon], examples: [{ icon: "old-icon" }] })).toThrow();
+});
+
+test("nonblank rules validate nested defaults and examples while preserving optional and nullable values", async () => {
+  const original = (await discoverBlocks(root)).blocks.find(b => b.spec.name === "core/trust-badges")!.spec;
+  const label = { id: "label", type: "text", authoringNonblank: true, nullable: true };
+  const fields = [{ id: "panel", type: "object", fields: [{ id: "labels", type: "repeater", item: { ...label, required: true } }] }];
+  const spec = runtime.parseBlockSpec({ ...original, fields, examples: [{}] });
+  const schema = runtime.attrsSchema(spec.fields), rules = authoringFieldRules(spec.fields);
+  const valid = schema.parse({ panel: { labels: [null, "  Visible  "] } });
+  expect(validateAuthoringFields(z, valid, rules)).toBe(valid);
+  expect(validateAuthoringFields(z, schema.parse({}), rules)).toEqual({});
+  expect(() => validateAuthoringFields(z, schema.parse({ panel: { labels: ["\u200b"] } }), rules)).toThrow("Enter visible text");
+  expect(() => runtime.parseBlockSpec({ ...original, fields: [{ ...label, default: " " }], examples: [{}] })).toThrow();
+  expect(() => runtime.parseBlockSpec({ ...original, fields: [label], examples: [{ label: " " }] })).toThrow();
 });
 
 test("social-proof additions retain absent historical fields and validate new content", async () => {

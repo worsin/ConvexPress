@@ -22,7 +22,7 @@ export default defineBlock("core/trust-badges", ({ attrs, resources }) => (
 					{icon?.success && <P.Icon name={icon.data} size="lg" />}
 					{item.media && (
 						<div className="cp-library-trust-media">
-							<ResolvedImage {...item.media} resources={resources} />
+							<ResolvedImage {...item.media} resources={resources} fit="contain" />
 						</div>
 					)}
 					<P.Text>{item.label}</P.Text>

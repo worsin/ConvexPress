@@ -67,12 +67,14 @@ export function ResolvedImage({
 	caption,
 	resources,
 	focalPoint,
+	fit,
 }: {
 	id: string;
 	alt?: string;
 	caption?: string;
 	resources: RenderResources;
 	focalPoint?: { x: number; y: number };
+	fit?: "cover" | "contain";
 }) {
 	if (!id) return null;
 	if (!Object.hasOwn(resources.media, id))
@@ -92,6 +94,7 @@ export function ResolvedImage({
 		);
 	return (
 		<P.Image
+			fit={fit}
 			media={{
 				src: resources.media[id].src,
 				alt: resources.media[id].alt,

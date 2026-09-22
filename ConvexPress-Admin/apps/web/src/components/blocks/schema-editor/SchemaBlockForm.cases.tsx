@@ -574,3 +574,18 @@ for (const specimen of [
     await act(async () => button(host, "Save content").click());
     expect(writes[0].attrs.items).toEqual([{ icon: "heart", label: "Historical label" }]);
   }));
+
+test("historical blank labels are repairable and invisible-only replacements cannot save", async () =>
+  domTest(async (host, render, win) => {
+    const writes: any[] = [];
+    await render({ name: "core/trust-badges", version: 1, value: { items: [{ icon: "heart", label: "   " }] }, revision: "r1", scope, onCommit: async (value: any) => { writes.push(value); } });
+    const input = host.querySelector('input[type="text"]')! as HTMLInputElement;
+    expect(input.value).toBe("   ");
+    expect(button(host, "Save content").disabled).toBe(true);
+    await change(win, input, "\u200b");
+    expect(button(host, "Save content").disabled).toBe(true);
+    await change(win, input, "  Made with care  ");
+    expect(button(host, "Save content").disabled).toBe(false);
+    await act(async () => button(host, "Save content").click());
+    expect(writes[0].attrs.items[0].label).toBe("  Made with care  ");
+  }));

@@ -15,6 +15,6 @@ test("generated block form DOM handlers pass in an isolated React event environm
 		{ timeout: 30000, maxBuffer: 1024 * 1024 },
 	);
 	const output = result.stdout + result.stderr;
-	expect(output).toContain("14 pass");
+	expect(output).toContain("15 pass");
 	expect(output).toContain("0 fail");
 });

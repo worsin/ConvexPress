@@ -20,6 +20,7 @@ import bentoGrid from "../../../../../../../blocks/core/bento-grid/render";
 import statsBand from "../../../../../../../blocks/core/stats-band/render";
 import testimonials from "../../../../../../../blocks/core/testimonials/render";
 import teamGrid from "../../../../../../../blocks/core/team-grid/render";
+import trustBadges from "../../../../../../../blocks/core/trust-badges/render";
 import catalog from "../../../../../../../blocks/.generated/catalog.json";
 import { publicCanonicalTree } from "../block-data/portable/publicTree";
 import { validateCanonicalTree } from "../block-data/portable/generated/instances";
@@ -33,6 +34,14 @@ const policy: RenderPolicy = {
 	capabilities: ["tree.children"],
 	disabledBlocks: [],
 };
+test("badge marks declare contained image fit independently of stylesheet order", () => {
+  const registry = discoverRenderers({ "/blocks/core/trust-badges/render.tsx": trustBadges });
+  const html = renderToStaticMarkup(prepareBlocks([{ id: "badge", name: "core/trust-badges", version: 1, attrs: { items: [{ label: "Fictional studio mark", media: { id: "mark", alt: "Authored mark", focalPoint: { x: 0.25, y: 0.75 } } }] } }], registry, { ...policy, capabilities: [...policy.capabilities, "reference.targetResolution"] }, { media: { mark: { src: "https://example.test/mark.png", alt: "Original mark", width: 640, height: 320 } } }));
+  expect(html).toContain('data-fit="contain"');
+  expect(html).toContain('alt="Authored mark"');
+  expect(html).toContain('object-position:25% 75%');
+});
+
 test("social-proof notes, portraits and member links use the authored values", () => {
   const renderers = discoverRenderers({ "/blocks/core/stats-band/render.tsx": statsBand, "/blocks/core/testimonials/render.tsx": testimonials, "/blocks/core/team-grid/render.tsx": teamGrid });
   const render = (name: string, attrs: unknown) => renderToStaticMarkup(prepareBlocks([{ id: "social", name, version: 2, attrs }], renderers, policy, { media: { portrait: { src: "https://example.test/portrait.png", alt: "Original portrait" } } }));

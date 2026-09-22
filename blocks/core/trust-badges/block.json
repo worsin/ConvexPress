@@ -46,7 +46,8 @@
           "type": "text",
           "max": 160,
           "required": true,
-          "min": 1
+          "min": 1,
+          "authoringNonblank": true
         }
       ],
       "max": 20,
@@ -89,6 +90,18 @@
         {
           "icon": "heart",
           "label": "Made with care \u2014 sample label"
+        },
+        {
+          "icon": "check",
+          "label": "Fictional studio mark \u2014 example only",
+          "media": {
+            "id": "demo-image-aster-mark",
+            "alt": "Fictional Aster House studio mark",
+            "focalPoint": {
+              "x": 0.5,
+              "y": 0.5
+            }
+          }
         }
       ]
     }

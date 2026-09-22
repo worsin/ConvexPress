@@ -5,6 +5,10 @@
         {
           "additionalProperties": false,
           "properties": {
+            "authoringNonblank": {
+              "const": true,
+              "type": "boolean"
+            },
             "default": {
               "$ref": "#/$defs/__schema1"
             },

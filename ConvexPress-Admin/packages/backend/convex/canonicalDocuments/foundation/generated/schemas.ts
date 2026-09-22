@@ -285,7 +285,7 @@ export function validateBlockAttrs(name: string, attrs: unknown) {
   return blockSchemas[name as BlockName].parse(attrs);
 }
 
-import { validateAuthoringActions, validateAuthoringChoices, type AuthoringAction, type AuthoringChoice } from "./spec_runtime.mjs";
+import { validateAuthoringActions, validateAuthoringFields, type AuthoringAction, type AuthoringFieldRule } from "./spec_runtime.mjs";
 const authoringActions: Readonly<Record<string, readonly AuthoringAction[]>> = {
   "blocks/media-mentions": [
     {
@@ -475,9 +475,10 @@ const authoringActions: Readonly<Record<string, readonly AuthoringAction[]>> = {
   ]
 }
 ;
-const iconChoices: Readonly<Record<string, readonly AuthoringChoice[]>> = {
+const fieldRules: Readonly<Record<string, readonly AuthoringFieldRule[]>> = {
   "core/trust-badges": [
     {
+      "kind": "icon",
       "options": [
         "book-open",
         "arrow-right",
@@ -498,11 +499,19 @@ const iconChoices: Readonly<Record<string, readonly AuthoringChoice[]>> = {
         "*",
         "icon"
       ]
+    },
+    {
+      "kind": "nonblank",
+      "path": [
+        "items",
+        "*",
+        "label"
+      ]
     }
   ]
 }
 ;
-export function validateBlockAuthoringAttrs(name: string, attrs: unknown) { return validateAuthoringChoices(z, validateAuthoringActions(z, validateBlockAttrs(name, attrs), authoringActions[name]), iconChoices[name]); }
+export function validateBlockAuthoringAttrs(name: string, attrs: unknown) { return validateAuthoringFields(z, validateAuthoringActions(z, validateBlockAttrs(name, attrs), authoringActions[name]), fieldRules[name]); }
 const treatmentFactories = {"blocks/contact-stack":once(()=>z.never()),
 "blocks/customer-showcase":once(()=>z.never()),
 "blocks/grade-gallery":once(()=>z.never()),

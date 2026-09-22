@@ -124,7 +124,6 @@
 .cp-library-trust-media img {
 	inline-size: 100%;
 	aspect-ratio: 1;
-	object-fit: contain;
 }
 .cp-library-author {
 	inline-size: 100%;

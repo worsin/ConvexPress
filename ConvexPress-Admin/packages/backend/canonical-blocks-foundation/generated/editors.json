@@ -7471,6 +7471,7 @@
             "type": "media"
           },
           {
+            "authoringNonblank": true,
             "id": "label",
             "max": 160,
             "min": 1,

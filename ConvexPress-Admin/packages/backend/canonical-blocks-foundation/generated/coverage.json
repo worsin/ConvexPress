@@ -7919,6 +7919,18 @@
             {
               "icon": "heart",
               "label": "Made with care — sample label"
+            },
+            {
+              "icon": "check",
+              "label": "Fictional studio mark — example only",
+              "media": {
+                "alt": "Fictional Aster House studio mark",
+                "focalPoint": {
+                  "x": 0.5,
+                  "y": 0.5
+                },
+                "id": "demo-image-aster-mark"
+              }
             }
           ]
         }

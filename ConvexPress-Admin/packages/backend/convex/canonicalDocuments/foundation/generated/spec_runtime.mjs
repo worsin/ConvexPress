@@ -48,7 +48,7 @@ export function createBlockSpecCompiler(z) {
   ]);
   const constraints = z.array(constraintSchema).max(20).optional();
   const variants = [
-    z.object({ ...common, type: z.literal("text"), min: size.optional(), max: size.optional(), multiline: z.literal(true).optional(), format: z.enum(["timezone", "anchor", "resource-id"]).optional(), domId: z.literal(true).optional() }).strict(),
+    z.object({ ...common, type: z.literal("text"), min: size.optional(), max: size.optional(), multiline: z.literal(true).optional(), authoringNonblank: z.literal(true).optional(), format: z.enum(["timezone", "anchor", "resource-id"]).optional(), domId: z.literal(true).optional() }).strict(),
     z.object({ ...common, type: z.literal("richtext"), max: size.optional(), inline: z.boolean().optional() }).strict(),
     z.object({ ...common, type: z.literal("number"), integer: z.boolean().optional(), min: z.number().optional(), max: z.number().optional() }).strict(),
     z.object({ ...common, type: z.literal("select"), options: z.array(z.union([z.string().min(1).max(100), z.number()])).min(1).max(100) }).strict(),
@@ -165,7 +165,7 @@ export function createBlockSpecCompiler(z) {
       if (field.protocols && new Set(field.protocols).size !== field.protocols.length) throw new Error("Duplicate link protocols");
       if (field.constraints && !field.fields) throw new Error("Object constraints require object fields");
       if (field.fields) { checkFieldTree(field.fields, depth + 1, budget); checkConstraints(field.fields, field.constraints); }
-      if (own(field, "default")) validateAuthoringChoices(z, attrsSchema([{ ...field, required: true }]).parse({ [field.id]: field.default }), authoringChoices([field]));
+      if (own(field, "default")) validateAuthoringFields(z, attrsSchema([{ ...field, required: true }]).parse({ [field.id]: field.default }), authoringFieldRules([field]));
     }
   }
   function pathExists(fields, path) {
@@ -204,7 +204,7 @@ export function createBlockSpecCompiler(z) {
     checkConstraints(spec.fields, spec.constraints);
     checkAuthoringActions(spec.fields, spec.authoringActions);
     const schema = attrsSchema(spec.fields, spec.constraints);
-    for (const example of spec.examples) validateAuthoringChoices(z, validateAuthoringActions(z, schema.parse(example), spec.authoringActions), authoringChoices(spec.fields));
+    for (const example of spec.examples) validateAuthoringFields(z, validateAuthoringActions(z, schema.parse(example), spec.authoringActions), authoringFieldRules(spec.fields));
     return spec;
   }
 
@@ -274,14 +274,15 @@ export function validateAuthoringActions(z, attrs, actions = []) {
   return attrs;
 }
 
-/** Compile bounded write-only icon choices while retaining stored read shape. */
-export function authoringChoices(fields, parent = []) {
+/** Compile bounded write-time field rules while retaining stored read shape. */
+export function authoringFieldRules(fields, parent = []) {
   const result = [];
   function field(item, path) {
-    if (item.type === "icon" && item.optionsMode === "authoring") result.push({ path, options: item.options });
-    if (item.type === "object") result.push(...authoringChoices(item.fields, path));
+    if (item.type === "icon" && item.optionsMode === "authoring") result.push({ path, kind: "icon", options: item.options });
+    if (item.type === "text" && item.authoringNonblank) result.push({ path, kind: "nonblank" });
+    if (item.type === "object") result.push(...authoringFieldRules(item.fields, path));
     if (item.type === "repeater") {
-      if (item.fields) result.push(...authoringChoices(item.fields, [...path, "*"]));
+      if (item.fields) result.push(...authoringFieldRules(item.fields, [...path, "*"]));
       else field(item.item, [...path, "*"]);
     }
   }
@@ -290,13 +291,14 @@ export function authoringChoices(fields, parent = []) {
 }
 
 /** Apply only to shape-validated attrs and declarations from a parsed spec. */
-export function validateAuthoringChoices(z, attrs, choices = []) {
+export function validateAuthoringFields(z, attrs, choices = []) {
   const issues = [];
   for (const choice of choices) {
     function visit(value, offset, path) {
       if (value == null) return;
       if (offset === choice.path.length) {
-        if (!choice.options.includes(value)) issues.push({ code: "custom", path, message: "Choose a supported icon or remove the icon to use an owned media asset" });
+        if (choice.kind === "nonblank" && !value.replace(/[\s\p{Default_Ignorable_Code_Point}]/gu, "")) issues.push({ code: "custom", path, message: "Enter visible text; a label cannot contain only spaces or invisible characters" });
+        if (choice.kind === "icon" && !choice.options.includes(value)) issues.push({ code: "custom", path, message: "Choose a supported icon or remove the icon to use an owned media asset" });
         return;
       }
       const part = choice.path[offset];

@@ -744,8 +744,9 @@
       "core/trust-badges": {
         "src": "/block-thumbnails/aster-house/core--trust-badges.jpg",
         "example": 1,
-        "sha256": "6929cb2903c96e85e0ecb718b4676d15ab856ddc5940d2143b10d79923ac31e8",
-        "bytes": 12526
+        "sha256": "cfcae8548ffebcfad5d37ce940b8bedc76d4feff195a43172cd2ec284c4a01ec",
+        "bytes": 17310,
+        "capturedAt": "2026-09-22T02:25:47.435Z"
       },
       "core/ugc-grid": {
         "src": "/block-thumbnails/aster-house/core--ugc-grid.jpg",
@@ -1591,8 +1592,9 @@
       "core/trust-badges": {
         "src": "/block-thumbnails/core/core--trust-badges.jpg",
         "example": 1,
-        "sha256": "a5caedcce40b0994ebac8f0d61738277e9d3afbecc40f0c71cc7854a9d0b639d",
-        "bytes": 13217
+        "sha256": "7e0b06d356386f74141bcdda15609fc1a29d8dfbb93b69a2cdecd0af8f0aa6a3",
+        "bytes": 18329,
+        "capturedAt": "2026-09-22T02:25:46.486Z"
       },
       "core/ugc-grid": {
         "src": "/block-thumbnails/core/core--ugc-grid.jpg",
@@ -2534,9 +2536,9 @@
       "core/trust-badges": {
         "src": "/block-thumbnails/depot/core--trust-badges.jpg",
         "example": 1,
-        "sha256": "7c3f301bdc2646dd0a80de1c13ee31509ef205a22cce9d203c9fa499e7afec4c",
-        "bytes": 12667,
-        "capturedAt": "2026-09-21T11:57:24.469Z"
+        "sha256": "c12c5145e6fc864030d18cfe65637dabf2c624f3601e785828a04251ef25d154",
+        "bytes": 17079,
+        "capturedAt": "2026-09-22T02:25:46.917Z"
       },
       "core/ugc-grid": {
         "src": "/block-thumbnails/depot/core--ugc-grid.jpg",
@@ -3401,8 +3403,9 @@
       "core/trust-badges": {
         "src": "/block-thumbnails/journal/core--trust-badges.jpg",
         "example": 1,
-        "sha256": "02cd96551672a44c83c3e110bf8dd0a4bfb9daa3751fb58a59a35615867c8bcf",
-        "bytes": 12834
+        "sha256": "6cfc1aa3586b7a422bac6caf440db290e9283cd2ba12f54d04d0eb84a939beca",
+        "bytes": 17786,
+        "capturedAt": "2026-09-22T02:25:46.728Z"
       },
       "core/ugc-grid": {
         "src": "/block-thumbnails/journal/core--ugc-grid.jpg",

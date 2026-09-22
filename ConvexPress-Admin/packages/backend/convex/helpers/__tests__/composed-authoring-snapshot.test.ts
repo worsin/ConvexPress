@@ -66,7 +66,7 @@ test("historical article and serialized-block recovery clear current definition 
   const name = "composed/badge";
   const encoded = encodeComposedDefinition({
     spec: { name, title: "Badge", description: "Choice boundary fixture", category: "marketing", role: "content", version: 1,
-      keywords: [], ai: { useFor: "A labeled mark", avoid: "Unverified claims" }, fields: [{ id: "title", type: "text", default: "Sample" }, { id: "icon", type: "icon", options: ["heart", "check"], optionsMode: "authoring" }],
+      keywords: [], ai: { useFor: "A labeled mark", avoid: "Unverified claims" }, fields: [{ id: "title", type: "text", default: "Sample", authoringNonblank: true }, { id: "icon", type: "icon", options: ["heart", "check"], optionsMode: "authoring" }],
       supports: { children: false, styles: false, layout: [], anchor: true, visibility: false }, data: null, preview: "{title}", examples: [{}] },
     composition: { version: 1, root: { el: "Heading", bind: "attrs.title" } },
   });
@@ -76,5 +76,8 @@ test("historical article and serialized-block recovery clear current definition 
   expect(() => assertAuthoredActions(old, scope)).toThrow("Choose a supported icon");
   const corrected = parseAuthoredDefinitionContent({ ...old, blocks: [{ ...old.blocks[0], attrs: { ...old.blocks[0].attrs, icon: "heart" } }] }, scope);
   expect(() => assertAuthoredActions(corrected, scope)).not.toThrow();
+  const blank = parseAuthoredDefinitionContent({ ...corrected, blocks: [{ ...corrected.blocks[0], attrs: { title: " ", icon: "heart" } }] }, scope);
+  expect(blank.blocks[0].attrs.title).toBe(" ");
+  expect(() => assertAuthoredActions(blank, scope)).toThrow("Enter visible text");
   expect(old.blocks[0].attrs.icon).toBe("old-provider-mark");
 });
