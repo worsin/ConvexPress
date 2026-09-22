@@ -10,7 +10,7 @@ for (const block of ["columns", "grid", "split", "sticky-aside"]) {
     for (const pack of ["core", "journal", "depot", "aster-house"]) {
       await selectPackReady(page, pack);
       await page.locator("#canonical-block").selectOption(`core/${block}`);
-      for (const width of [420, 900, 1280]) {
+      for (const width of [420, 900, 1104, 1280]) {
         await canvas.evaluate((node, width) => { node.style.width = `${width}px`; node.style.maxWidth = "none"; node.querySelector('.cp-section[data-nested="false"] > .cp-container')?.setAttribute("data-width", "full"); }, width);
         const layout = canvas.locator(block === "split" ? ".cp-split" : block === "sticky-aside" ? ".cp-sticky-layout" : ".cp-grid").first();
         const columns = await layout.evaluate(node => getComputedStyle(node).gridTemplateColumns.split(" ").length);
@@ -18,7 +18,7 @@ for (const block of ["columns", "grid", "split", "sticky-aside"]) {
         expect(columns, `${pack}/${block}/${width}`).toBe(expected);
         expect(await canvas.evaluate(node => node.scrollWidth <= node.clientWidth + 1)).toBe(true);
         if (block === "sticky-aside") {
-          await expect(canvas.locator(".cp-sticky-complement")).toHaveCSS("position", width === 1280 ? "sticky" : "static");
+          await expect(canvas.locator(".cp-sticky-complement")).toHaveCSS("position", width >= 1104 ? "sticky" : "static");
         }
         await canvas.screenshot({ path: info.outputPath(`${pack}-${block}-${width}.png`) });
       }
