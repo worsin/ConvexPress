@@ -6,7 +6,8 @@
 	gap: 2rem;
 }
 .cp-library-signup[data-kind="cta"] {
-	padding: clamp(1.5rem, 4vw, 3.5rem);
+	container-type: inline-size;
+	padding: clamp(1rem, 4%, 3.5rem);
 	border: 1px solid var(--border);
 	border-radius: var(--radius);
 	background: var(--card, var(--background));
@@ -19,6 +20,9 @@
 	text-wrap: balance;
 	word-break: normal;
 	overflow-wrap: normal;
+}
+.cp-library-signup[data-kind="cta"] .cp-library-intro .cp-heading {
+	font-size: clamp(1.8rem, 6cqi, 3.5rem);
 }
 .cp-library-newsletter {
 	min-inline-size: 0;

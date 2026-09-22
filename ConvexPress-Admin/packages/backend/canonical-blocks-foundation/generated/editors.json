@@ -3538,6 +3538,7 @@
         "default": "",
         "id": "body",
         "max": 400,
+        "multiline": true,
         "type": "text"
       },
       {
@@ -3610,6 +3611,7 @@
         "default": "",
         "id": "body",
         "max": 400,
+        "multiline": true,
         "type": "text"
       },
       {
@@ -3619,6 +3621,7 @@
         "type": "text"
       },
       {
+        "authoringNonblank": true,
         "default": "Get started",
         "id": "submitLabel",
         "max": 40,

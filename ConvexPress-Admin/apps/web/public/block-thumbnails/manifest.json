@@ -319,8 +319,9 @@
       "core/cta-with-form": {
         "src": "/block-thumbnails/aster-house/core--cta-with-form.jpg",
         "example": 1,
-        "sha256": "df96a77a0c661a403a7b00441419961cd7e376ce8870550f5679636fe5e04108",
-        "bytes": 20398
+        "sha256": "b6a1f7af2f16141234f27acaac4849e781efd82137bf8ad190592d70e6c68958",
+        "bytes": 21548,
+        "capturedAt": "2026-09-22T03:39:41.760Z"
       },
       "core/custom-html": {
         "src": "/block-thumbnails/aster-house/core--custom-html.jpg",
@@ -1171,8 +1172,9 @@
       "core/cta-with-form": {
         "src": "/block-thumbnails/core/core--cta-with-form.jpg",
         "example": 1,
-        "sha256": "fbf1004f903a3e93ac44643e7af9a0234463c9dadd0586e4830bc6041b193e14",
-        "bytes": 22750
+        "sha256": "827a55fba2f8b371449527cdfff79a524d8f01078eba67cf0d4e0d6253df168e",
+        "bytes": 23978,
+        "capturedAt": "2026-09-22T03:39:40.842Z"
       },
       "core/custom-html": {
         "src": "/block-thumbnails/core/core--custom-html.jpg",
@@ -2068,9 +2070,9 @@
       "core/cta-with-form": {
         "src": "/block-thumbnails/depot/core--cta-with-form.jpg",
         "example": 1,
-        "sha256": "fb43361eb461052833bf20459866a0be79eabb98ae3b6579722cbb3fa3e0010f",
-        "bytes": 23211,
-        "capturedAt": "2026-09-21T11:57:18.054Z"
+        "sha256": "54d1202d6e99183b471d810f86d18e8bd053719ae26fe23d5ce0f9621638415c",
+        "bytes": 23978,
+        "capturedAt": "2026-09-22T03:39:41.265Z"
       },
       "core/custom-html": {
         "src": "/block-thumbnails/depot/core--custom-html.jpg",
@@ -2984,8 +2986,9 @@
       "core/cta-with-form": {
         "src": "/block-thumbnails/journal/core--cta-with-form.jpg",
         "example": 1,
-        "sha256": "583ae0912cb97ded958ebca9465bf8caf696b4e82b04406f7a83564a22d44623",
-        "bytes": 22364
+        "sha256": "a40a4cd69d65ac4be7de29806e67c66f9ca01688a364d7d822334b0c9084efad",
+        "bytes": 23607,
+        "capturedAt": "2026-09-22T03:39:41.078Z"
       },
       "core/custom-html": {
         "src": "/block-thumbnails/journal/core--custom-html.jpg",

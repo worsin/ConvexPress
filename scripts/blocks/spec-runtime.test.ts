@@ -10,6 +10,44 @@ import type { BlockName } from "../../ConvexPress-Admin/packages/backend/canonic
 const root = fileURLToPath(new URL("../../", import.meta.url));
 const runtime = createBlockSpecCompiler(z);
 
+test("CTA actions reject unnamed new links while historical attrs remain readable", () => {
+  for (const prefix of ["primary", "secondary"] as const) {
+    for (const label of ["", " ", "\u200b", "\u2066\u2069"]) {
+      const old = { [`${prefix}CtaLabel`]: label, [`${prefix}CtaUrl`]: "/contact" };
+      const stored = blockSchemas["core/cta-band"].parse(old);
+      expect(stored[`${prefix}CtaLabel`]).toBe(label);
+      expect(() => validateBlockAuthoringAttrs("core/cta-band", old)).toThrow();
+      expect(old[`${prefix}CtaLabel`]).toBe(label);
+    }
+    for (const href of ["/contact", "#enquire", "https://example.com", "mailto:hello@example.com", "tel:+18005550100"])
+      expect(validateBlockAuthoringAttrs("core/cta-band", { [`${prefix}CtaLabel`]: "Get in touch", [`${prefix}CtaUrl`]: href })[`${prefix}CtaUrl`]).toBe(href);
+  }
+  expect(validateBlockAuthoringAttrs("core/cta-band", { primaryCtaLabel: "Coming soon", primaryCtaUrl: "" }).primaryCtaLabel).toBe("Coming soon");
+});
+
+test("nested action labels reject invisible-only text without losing multilingual content", () => {
+  const spec = runtime.parseBlockSpec(tabbedSpec);
+  const schema = runtime.attrsSchema(spec.fields, spec.constraints);
+  for (const label of ["\u200b", "\u2066\u2069", " \u200d "]) {
+    const old = schema.parse({ tabs: [{ ctaUrl: "/contact", ctaLabel: label }] });
+    try { validateAuthoringActions(z, old, spec.authoringActions); throw Error("Expected rejection"); } catch (error: any) {
+      expect(error.issues[0].path).toEqual(["tabs", 0, "ctaLabel"]);
+    }
+    expect(old.tabs[0].ctaLabel).toBe(label);
+  }
+  for (const label of ["Contact", "تواصل معنا", "お問い合わせ", "👩‍💻", " Open "])
+    expect(validateAuthoringActions(z, schema.parse({ tabs: [{ ctaUrl: "/contact", ctaLabel: label }] }), spec.authoringActions).tabs[0].ctaLabel).toBe(label);
+});
+
+test("inline signup labels require visible authored text without invalidating stored content", () => {
+  for (const submitLabel of ["", " ", "\u200b", "\u2066\u2069"]) {
+    expect(blockSchemas["core/cta-with-form"].parse({ submitLabel }).submitLabel).toBe(submitLabel);
+    expect(() => validateBlockAuthoringAttrs("core/cta-with-form", { submitLabel })).toThrow();
+  }
+  expect(validateBlockAuthoringAttrs("core/cta-with-form", {}).submitLabel).toBe("Get started");
+  expect(validateBlockAuthoringAttrs("core/cta-with-form", { submitLabel: "Subscribe" }).submitLabel).toBe("Subscribe");
+});
+
 test("badge labels preserve historical blanks but require visible text for new authoring", () => {
   for (const label of [" ", "\t\n", "\u00a0", "\u200b", "\u2066\u2069"]) {
     const old = { items: [{ icon: "heart", label }] };

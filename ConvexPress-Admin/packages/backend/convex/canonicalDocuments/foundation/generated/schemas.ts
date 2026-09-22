@@ -416,6 +416,18 @@ const authoringActions: Readonly<Record<string, readonly AuthoringAction[]>> = {
       ]
     }
   ],
+  "core/cta-band": [
+    {
+      "href": "primaryCtaUrl",
+      "label": "primaryCtaLabel",
+      "path": []
+    },
+    {
+      "href": "secondaryCtaUrl",
+      "label": "secondaryCtaLabel",
+      "path": []
+    }
+  ],
   "core/feature-grid": [
     {
       "href": "href",
@@ -476,6 +488,14 @@ const authoringActions: Readonly<Record<string, readonly AuthoringAction[]>> = {
 }
 ;
 const fieldRules: Readonly<Record<string, readonly AuthoringFieldRule[]>> = {
+  "core/cta-with-form": [
+    {
+      "kind": "nonblank",
+      "path": [
+        "submitLabel"
+      ]
+    }
+  ],
   "core/steps-with-media": [
     {
       "kind": "nonblank",

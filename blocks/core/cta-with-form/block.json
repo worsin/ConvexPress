@@ -29,7 +29,8 @@
       "id": "body",
       "default": "",
       "type": "text",
-      "max": 400
+      "max": 400,
+      "multiline": true
     },
     {
       "id": "placeholder",
@@ -41,7 +42,8 @@
       "id": "submitLabel",
       "default": "Get started",
       "type": "text",
-      "max": 40
+      "max": 40,
+      "authoringNonblank": true
     },
     {
       "id": "fineprint",

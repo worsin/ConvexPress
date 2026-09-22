@@ -265,7 +265,7 @@ export function validateAuthoringActions(z, attrs, actions = []) {
       if (href == null || href === "") return;
       const checked = hrefSchema.safeParse(href);
       if (!checked.success) issues.push({ code: "custom", path: [...path, action.href], message: checked.error.issues[0].message });
-      if (typeof value[action.label] !== "string" || !value[action.label].trim()) issues.push({ code: "custom", path: [...path, action.label], message: "A destination needs a visible action label" });
+      if (typeof value[action.label] !== "string" || !value[action.label].replace(/[\s\p{Default_Ignorable_Code_Point}]/gu, "")) issues.push({ code: "custom", path: [...path, action.label], message: "A destination needs a visible action label" });
     }
     visit(attrs, 0, []);
   }

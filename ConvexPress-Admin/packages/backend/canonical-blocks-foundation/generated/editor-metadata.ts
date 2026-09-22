@@ -3549,6 +3549,7 @@ export const editorDefinitions: Record<BlockName, EditorDefinition> = {
         "default": "",
         "id": "body",
         "max": 400,
+        "multiline": true,
         "type": "text"
       },
       {
@@ -3621,6 +3622,7 @@ export const editorDefinitions: Record<BlockName, EditorDefinition> = {
         "default": "",
         "id": "body",
         "max": 400,
+        "multiline": true,
         "type": "text"
       },
       {
@@ -3630,6 +3632,7 @@ export const editorDefinitions: Record<BlockName, EditorDefinition> = {
         "type": "text"
       },
       {
+        "authoringNonblank": true,
         "default": "Get started",
         "id": "submitLabel",
         "max": 40,

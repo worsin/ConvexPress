@@ -1,5 +1,8 @@
 # Current production acceptance index — September 21
 
+September21 CTA family: **54/137 blocks verified;83 pending.** CTA Band and CTA with inline form pass native authoring/reopen/exact recovery/publication, four-pack checks and actual Website navigation/signup. Fixed missing label rules, shared invisible-label acceptance, multiline bodies and narrow form padding.14 deployed invalid writes/previews refused; repeated signup produced one row/no email, then cleaned.16 contract/303 renderer/15 form cases, four browser cases, types/build/freshness/kit/lint pass.42 original pages/appearance/plugin/media preserved. Original audit8accepted/16open. [Evidence](cta-authoring-20260921.md).
+
+
 September21 Steps with Media image delivery: repaired blank loading/error frames and stale decode completion after source edits.303 renderer/seven browser cases, current built Website delayed/error/mobile checks, types/build/freshness/kit/lint pass.42 original pages/appearance preserved; owned resources cleaned and removed URL returns404. Historical304.5ms motion outlier remains unexplained; **52/137 blocks verified and original audit8 accepted/16 open unchanged.** [Evidence](steps-motion-20260921.md).
 
 

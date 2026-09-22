@@ -29,7 +29,8 @@
       "id": "body",
       "default": "",
       "type": "text",
-      "max": 400
+      "max": 400,
+      "multiline": true
     },
     {
       "id": "primaryCtaLabel",
@@ -116,6 +117,18 @@
         "body"
       ],
       "format": "prose"
+    }
+  ],
+  "authoringActions": [
+    {
+      "path": [],
+      "href": "primaryCtaUrl",
+      "label": "primaryCtaLabel"
+    },
+    {
+      "path": [],
+      "href": "secondaryCtaUrl",
+      "label": "secondaryCtaLabel"
     }
   ]
 }
