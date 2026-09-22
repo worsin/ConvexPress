@@ -27,7 +27,8 @@
       "id": "body",
       "default": "",
       "type": "text",
-      "max": 400
+      "max": 400,
+      "multiline": true
     },
     {
       "id": "members",
@@ -51,7 +52,8 @@
           "id": "bio",
           "default": "",
           "type": "text",
-          "max": 400
+          "max": 400,
+          "multiline": true
         },
         {
           "id": "mediaId",
@@ -66,6 +68,34 @@
           "type": "link",
           "storage": "href",
           "allowEmpty": true
+        },
+        {
+          "id": "links",
+          "type": "repeater",
+          "title": "Member links",
+          "max": 8,
+          "fields": [
+            {
+              "id": "label",
+              "type": "text",
+              "title": "Link label",
+              "required": true,
+              "min": 1,
+              "max": 160
+            },
+            {
+              "id": "href",
+              "type": "link",
+              "title": "Destination",
+              "storage": "href",
+              "required": true
+            },
+            {
+              "id": "newTab",
+              "type": "boolean",
+              "title": "Open in a new tab"
+            }
+          ]
         }
       ]
     }
@@ -92,16 +122,27 @@
       "members": []
     },
     {
-      "eyebrow": "",
-      "heading": "The team",
-      "body": "",
+      "eyebrow": "Fictional collaborators",
+      "heading": "Meet the imagined studio",
+      "body": "Demonstration identities and an AI-generated portrait.",
       "members": [
         {
-          "name": "Jane Doe",
-          "role": "Founder",
-          "bio": "Background in design.",
-          "mediaId": "",
-          "href": ""
+          "name": "Rowan Vale",
+          "role": "Fictional studio lead",
+          "bio": "Works with simple materials and thoughtful questions.",
+          "mediaId": "demo-image-studio-portrait",
+          "href": "",
+          "links": [
+            {
+              "label": "Read the studies",
+              "href": "#studies"
+            },
+            {
+              "label": "Studio notes",
+              "href": "#notes",
+              "newTab": true
+            }
+          ]
         }
       ]
     },
@@ -160,6 +201,18 @@
         "bio"
       ],
       "format": "prose"
+    }
+  ],
+  "authoringActions": [
+    {
+      "path": [
+        "members",
+        "*",
+        "links",
+        "*"
+      ],
+      "href": "href",
+      "label": "label"
     }
   ]
 }

@@ -17,6 +17,9 @@ import codeBlock from "../../../../../../../blocks/core/code/render";
 import image from "../../../../../../../blocks/core/image/render";
 import featureGrid from "../../../../../../../blocks/core/feature-grid/render";
 import bentoGrid from "../../../../../../../blocks/core/bento-grid/render";
+import statsBand from "../../../../../../../blocks/core/stats-band/render";
+import testimonials from "../../../../../../../blocks/core/testimonials/render";
+import teamGrid from "../../../../../../../blocks/core/team-grid/render";
 import catalog from "../../../../../../../blocks/.generated/catalog.json";
 import { publicCanonicalTree } from "../block-data/portable/publicTree";
 import { validateCanonicalTree } from "../block-data/portable/generated/instances";
@@ -30,6 +33,19 @@ const policy: RenderPolicy = {
 	capabilities: ["tree.children"],
 	disabledBlocks: [],
 };
+test("social-proof notes, portraits and member links use the authored values", () => {
+  const renderers = discoverRenderers({ "/blocks/core/stats-band/render.tsx": statsBand, "/blocks/core/testimonials/render.tsx": testimonials, "/blocks/core/team-grid/render.tsx": teamGrid });
+  const render = (name: string, attrs: unknown) => renderToStaticMarkup(prepareBlocks([{ id: "social", name, version: 2, attrs }], renderers, policy, { media: { portrait: { src: "https://example.test/portrait.png", alt: "Original portrait" } } }));
+  expect(render("core/stats-band", { stats: [{ value: "12", label: "Workshops", note: "Illustrative count" }] })).toContain('class="cp-stat-detail">Illustrative count');
+  const portrait = render("core/testimonials", { items: [{ quote: "A fictional observation", name: "Rowan", portrait: { id: "portrait", alt: "A fictional collaborator" } }] });
+  expect(portrait).toContain('alt="A fictional collaborator"');
+  expect(portrait).toContain("cp-testimonial-portrait");
+  expect(render("core/testimonials", { items: [{ quote: "An existing observation" }] })).not.toContain("cp-testimonial-portrait");
+  const links = render("core/team-grid", { members: [{ name: "Rowan", links: [{ label: "Email", href: "mailto:example@example.test" }, { label: "Portfolio", href: "/work", newTab: true }] }] });
+  expect(links).toContain('href="mailto:example@example.test"');
+  expect(links).toContain('href="/work"');
+  expect(links).toContain("opens in a new tab");
+});
 test("feature symbols and labeled links render without changing old cards", () => {
   const renderers = discoverRenderers({ "/blocks/core/feature-grid/render.tsx": featureGrid });
   const render = (items: unknown[]) => renderToStaticMarkup(prepareBlocks([{ id: "features", name: "core/feature-grid", version: 2, attrs: { items } }], renderers, policy));

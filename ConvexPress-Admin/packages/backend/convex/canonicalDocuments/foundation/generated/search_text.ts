@@ -1133,6 +1133,14 @@ export const searchTextDescriptors = {
         "label"
       ],
       "type": "text"
+    },
+    {
+      "path": [
+        "stats",
+        "*",
+        "note"
+      ],
+      "type": "text"
     }
   ],
   "core/steps-with-media": [

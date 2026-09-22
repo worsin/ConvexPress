@@ -34,3 +34,6 @@
 /* Keep attribution readable as two deliberate lines without changing authored text. */
 .cp-editorial-testimonial-wall .cp-quote figcaption {display:grid;gap:.35rem;font-family:var(--font-sans);font-weight:600;line-height:1.5;color:var(--foreground);}
 .cp-editorial-testimonial-wall .cp-quote cite {display:block;margin:0;font-size:.8rem;font-weight:400;font-style:normal;color:var(--muted-foreground);}
+/* Columns retain source reading order and adapt to the actual authored width. */
+.cp-editorial-testimonial-wall {display:block;columns:20rem 3;column-gap:2.5rem;}
+.cp-editorial-testimonial-wall > article {break-inside:avoid;inline-size:100%;margin-block-end:2.5rem;}

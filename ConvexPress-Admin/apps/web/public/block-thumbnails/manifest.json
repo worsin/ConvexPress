@@ -673,8 +673,9 @@
       "core/stats-band": {
         "src": "/block-thumbnails/aster-house/core--stats-band.jpg",
         "example": 1,
-        "sha256": "b7ec77256a0661569c5ba477a8e12a35c0fc9b372e40b95bb9eac8687fb96f4c",
-        "bytes": 10178
+        "sha256": "78964a3931f83c6367074c09d3fb91ef8e0d5285aafcd5923d57b751a03db150",
+        "bytes": 18532,
+        "capturedAt": "2026-09-22T01:54:41.754Z"
       },
       "core/steps-with-media": {
         "src": "/block-thumbnails/aster-house/core--steps-with-media.jpg",
@@ -722,20 +723,23 @@
       "core/team-grid": {
         "src": "/block-thumbnails/aster-house/core--team-grid.jpg",
         "example": 1,
-        "sha256": "53f0a9cf79995c7400bf756e26c588d591fb612c1feb02f793a1888e0d71886d",
-        "bytes": 7511
+        "sha256": "7f235588d0af0801aa5c4d6c456a6ca6245e6ab4a338324d69cebbeec3c98a98",
+        "bytes": 42124,
+        "capturedAt": "2026-09-22T01:54:41.852Z"
       },
       "core/testimonial-wall": {
         "src": "/block-thumbnails/aster-house/core--testimonial-wall.jpg",
         "example": 1,
-        "sha256": "d4d1766dfbe0f51dff9a44fd7e3889e4befd7b9be24ba4a52b31e941944107d1",
-        "bytes": 29011
+        "sha256": "dbfb93cf318f13d1f3ae8c9c980c1c3415f0dfccae74471ad4314e1cbd9e4d61",
+        "bytes": 30919,
+        "capturedAt": "2026-09-22T01:54:41.953Z"
       },
       "core/testimonials": {
         "src": "/block-thumbnails/aster-house/core--testimonials.jpg",
         "example": 1,
-        "sha256": "9d963f5acb7fd53e34b9202f2ba693810fe3dbd541fafc399a88eb19bfa59b46",
-        "bytes": 18705
+        "sha256": "0a6985cea65a082b5c76092daf9820d0f771c185ac77d80374a4c54c5ad32057",
+        "bytes": 26935,
+        "capturedAt": "2026-09-22T01:54:42.052Z"
       },
       "core/trust-badges": {
         "src": "/block-thumbnails/aster-house/core--trust-badges.jpg",
@@ -1516,8 +1520,9 @@
       "core/stats-band": {
         "src": "/block-thumbnails/core/core--stats-band.jpg",
         "example": 1,
-        "sha256": "c370f4d09761f5a370e5003f2448526494929568e0816a5184ed26253f79e08d",
-        "bytes": 12759
+        "sha256": "84b5ac120bd35e1c031d072591b5f6419c1a12a86e9fe1cafc3a33664211a77b",
+        "bytes": 21621,
+        "capturedAt": "2026-09-22T01:54:39.872Z"
       },
       "core/steps-with-media": {
         "src": "/block-thumbnails/core/core--steps-with-media.jpg",
@@ -1565,20 +1570,23 @@
       "core/team-grid": {
         "src": "/block-thumbnails/core/core--team-grid.jpg",
         "example": 1,
-        "sha256": "358e31fb319cb545ee2f646b51f7cfd14bbe4aa6e83aacfe1c6e2469da9308a5",
-        "bytes": 8743
+        "sha256": "1ba44caccb49c39fdf15767345c696b3f4ad5b11f3171441b09203b62e10f2d9",
+        "bytes": 44567,
+        "capturedAt": "2026-09-22T01:54:39.973Z"
       },
       "core/testimonial-wall": {
         "src": "/block-thumbnails/core/core--testimonial-wall.jpg",
         "example": 1,
-        "sha256": "be3380d04161c2dcb1ad9ba513f64af41c6bd3b4fcba4d46df4090c6090ac26d",
-        "bytes": 32728
+        "sha256": "4aeb470241536274f8f765191de7f6cd95108c58ca247f2f749b867951548eac",
+        "bytes": 37828,
+        "capturedAt": "2026-09-22T01:54:40.072Z"
       },
       "core/testimonials": {
         "src": "/block-thumbnails/core/core--testimonials.jpg",
         "example": 1,
-        "sha256": "2451d4ee47e8206f05cef8b8efd8ef01a7f139554be82a15fa0fa0df43f185a1",
-        "bytes": 22803
+        "sha256": "65781db6f58531f88e8fe37526c37c3a80bb8637ec4b201cd26a048ef41f1892",
+        "bytes": 31621,
+        "capturedAt": "2026-09-22T01:54:40.160Z"
       },
       "core/trust-badges": {
         "src": "/block-thumbnails/core/core--trust-badges.jpg",
@@ -2449,9 +2457,9 @@
       "core/stats-band": {
         "src": "/block-thumbnails/depot/core--stats-band.jpg",
         "example": 1,
-        "sha256": "b10da93754aa21df3566c3b983e2db86c203b94691971b66147b2d3684a1f466",
-        "bytes": 11426,
-        "capturedAt": "2026-09-21T11:57:23.428Z"
+        "sha256": "72840f34d7e52876bbf2e1fae9db573888e46f8f78a14e1225b6cf95ec83904a",
+        "bytes": 20504,
+        "capturedAt": "2026-09-22T01:54:40.827Z"
       },
       "core/steps-with-media": {
         "src": "/block-thumbnails/depot/core--steps-with-media.jpg",
@@ -2505,23 +2513,23 @@
       "core/team-grid": {
         "src": "/block-thumbnails/depot/core--team-grid.jpg",
         "example": 1,
-        "sha256": "211d46a10bf5ea5ff80a4e72ac737f0c5aeae691df2ce4e6ff67e810f3d6c4d6",
-        "bytes": 6874,
-        "capturedAt": "2026-09-21T11:57:24.218Z"
+        "sha256": "5fa8607ae6c45dc88377033e0ba82b060d36a82cd0bfe70de78ed0664af386ca",
+        "bytes": 47752,
+        "capturedAt": "2026-09-22T01:54:40.931Z"
       },
       "core/testimonial-wall": {
         "src": "/block-thumbnails/depot/core--testimonial-wall.jpg",
         "example": 1,
-        "sha256": "e706e0cf176bd0741251003e26faa5367b4678fb2e05cdaabcab7ed37ce479f3",
-        "bytes": 35341,
-        "capturedAt": "2026-09-21T11:57:24.304Z"
+        "sha256": "8ea4f7198403b64058eeca6054d3ba5d64f492ddf8a743c2533854f01cfd78cb",
+        "bytes": 39734,
+        "capturedAt": "2026-09-22T01:54:41.038Z"
       },
       "core/testimonials": {
         "src": "/block-thumbnails/depot/core--testimonials.jpg",
         "example": 1,
-        "sha256": "2c128f0c9506d9286bd787cbd9f83561c9aa745911f01da9f793910f6f94dda9",
-        "bytes": 15234,
-        "capturedAt": "2026-09-21T11:57:24.388Z"
+        "sha256": "ced312301ad7daf4b9c687c4a8c5bfeb528c460310e90f645c93dccc0beeeffd",
+        "bytes": 31741,
+        "capturedAt": "2026-09-22T01:54:41.142Z"
       },
       "core/trust-badges": {
         "src": "/block-thumbnails/depot/core--trust-badges.jpg",
@@ -3322,8 +3330,9 @@
       "core/stats-band": {
         "src": "/block-thumbnails/journal/core--stats-band.jpg",
         "example": 1,
-        "sha256": "de4c76a1001fb6e7e01e610fb4d6a51c70c2e3c194ce4e2990692b85263c3696",
-        "bytes": 12712
+        "sha256": "71c1b3165bba48d0bbc379d39c1791f4f84f6bc0eccdd2f96c6b26899b691598",
+        "bytes": 21073,
+        "capturedAt": "2026-09-22T01:54:40.362Z"
       },
       "core/steps-with-media": {
         "src": "/block-thumbnails/journal/core--steps-with-media.jpg",
@@ -3371,20 +3380,23 @@
       "core/team-grid": {
         "src": "/block-thumbnails/journal/core--team-grid.jpg",
         "example": 1,
-        "sha256": "db776af090bec85b345d37086d9caad1137a88a5e163b2809c7899d7f52fa225",
-        "bytes": 8818
+        "sha256": "3a9b843a22738fa1a35deb72ea300717da3cdc7931bf463e32593efa9c1da81d",
+        "bytes": 43878,
+        "capturedAt": "2026-09-22T01:54:40.444Z"
       },
       "core/testimonial-wall": {
         "src": "/block-thumbnails/journal/core--testimonial-wall.jpg",
         "example": 1,
-        "sha256": "8ab30b09c55909d4a4d34d4238d42468848401b0a2ef681438340037f555ee46",
-        "bytes": 31776
+        "sha256": "d9f6018f446d81b57f86c031b3c7b033e13cd818b6668901e5a8b946ea908c75",
+        "bytes": 36591,
+        "capturedAt": "2026-09-22T01:54:40.526Z"
       },
       "core/testimonials": {
         "src": "/block-thumbnails/journal/core--testimonials.jpg",
         "example": 1,
-        "sha256": "77fe1fd30943589a6b1af4594b264df88850c84145e730b94a20ad3c8a7c872e",
-        "bytes": 24095
+        "sha256": "b3024603e96ab6ba8f8d79d64cb9e6596e500688591fc7cf82be7aef61892eba",
+        "bytes": 32221,
+        "capturedAt": "2026-09-22T01:54:40.613Z"
       },
       "core/trust-badges": {
         "src": "/block-thumbnails/journal/core--trust-badges.jpg",

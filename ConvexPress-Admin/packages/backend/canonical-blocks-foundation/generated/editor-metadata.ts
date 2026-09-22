@@ -6819,6 +6819,7 @@ export const editorDefinitions: Record<BlockName, EditorDefinition> = {
         "default": "",
         "id": "body",
         "max": 300,
+        "multiline": true,
         "type": "text"
       },
       {
@@ -6834,6 +6835,12 @@ export const editorDefinitions: Record<BlockName, EditorDefinition> = {
             "default": "",
             "id": "label",
             "max": 80,
+            "type": "text"
+          },
+          {
+            "id": "note",
+            "max": 300,
+            "title": "Statistic note",
             "type": "text"
           }
         ],
@@ -7213,6 +7220,7 @@ export const editorDefinitions: Record<BlockName, EditorDefinition> = {
         "default": "",
         "id": "body",
         "max": 400,
+        "multiline": true,
         "type": "text"
       },
       {
@@ -7234,6 +7242,7 @@ export const editorDefinitions: Record<BlockName, EditorDefinition> = {
             "default": "",
             "id": "bio",
             "max": 400,
+            "multiline": true,
             "type": "text"
           },
           {
@@ -7249,6 +7258,34 @@ export const editorDefinitions: Record<BlockName, EditorDefinition> = {
             "id": "href",
             "storage": "href",
             "type": "link"
+          },
+          {
+            "fields": [
+              {
+                "id": "label",
+                "max": 160,
+                "min": 1,
+                "required": true,
+                "title": "Link label",
+                "type": "text"
+              },
+              {
+                "id": "href",
+                "required": true,
+                "storage": "href",
+                "title": "Destination",
+                "type": "link"
+              },
+              {
+                "id": "newTab",
+                "title": "Open in a new tab",
+                "type": "boolean"
+              }
+            ],
+            "id": "links",
+            "max": 8,
+            "title": "Member links",
+            "type": "repeater"
           }
         ],
         "id": "members",
@@ -7357,6 +7394,7 @@ export const editorDefinitions: Record<BlockName, EditorDefinition> = {
         "default": "",
         "id": "body",
         "max": 400,
+        "multiline": true,
         "type": "text"
       },
       {
@@ -7379,6 +7417,11 @@ export const editorDefinitions: Record<BlockName, EditorDefinition> = {
             "id": "role",
             "max": 80,
             "type": "text"
+          },
+          {
+            "description": "Optional portrait with alt text and focal point.",
+            "id": "portrait",
+            "type": "media"
           }
         ],
         "id": "items",

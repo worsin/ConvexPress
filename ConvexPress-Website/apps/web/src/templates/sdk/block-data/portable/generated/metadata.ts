@@ -4391,7 +4391,19 @@ export const dependencyDescriptors = {
   },
   "core/testimonials": {
     "data": null,
-    "fields": [],
+    "fields": [
+      {
+        "path": [
+          "items",
+          "*",
+          "portrait"
+        ],
+        "type": "media",
+        "valuePath": [
+          "id"
+        ]
+      }
+    ],
     "libraryRenderer": "blocks/core/testimonials/render.tsx",
     "provenance": {
       "kind": "core"

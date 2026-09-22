@@ -19,6 +19,7 @@ export function bindFixtureMedia(value, path) {
 			"demo-image-camp-mug",
 			"demo-image-field-notebook",
 			"demo-image-retreat",
+			"demo-image-studio-portrait",
 		].includes(original)
 			? original
 			: original.startsWith("demo-video-")

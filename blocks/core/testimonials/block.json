@@ -27,7 +27,8 @@
       "id": "body",
       "default": "",
       "type": "text",
-      "max": 400
+      "max": 400,
+      "multiline": true
     },
     {
       "id": "items",
@@ -52,6 +53,11 @@
           "default": "",
           "type": "text",
           "max": 80
+        },
+        {
+          "id": "portrait",
+          "type": "media",
+          "description": "Optional portrait with alt text and focal point."
         }
       ]
     }
@@ -78,19 +84,27 @@
       "items": []
     },
     {
-      "eyebrow": "Customers",
-      "heading": "What people are saying",
-      "body": "",
+      "eyebrow": "Fictional workshop voices",
+      "heading": "Room to see things differently",
+      "body": "Sample quotations and identities for the block demonstration.",
       "items": [
         {
-          "quote": "Saved us a week.",
-          "name": "Jane Doe",
-          "role": "Marketing Lead, Acme"
+          "quote": "A little space can change the way we see an ordinary day.",
+          "name": "Rowan Vale",
+          "role": "Fictional workshop guest",
+          "portrait": {
+            "id": "demo-image-studio-portrait",
+            "alt": "AI-generated fictional studio collaborator",
+            "focalPoint": {
+              "x": 0.5,
+              "y": 0.35
+            }
+          }
         },
         {
-          "quote": "Replaced our copywriter.",
-          "name": "John Smith",
-          "role": "Founder, Beta Inc"
+          "quote": "There is always another detail worth noticing.",
+          "name": "Ellis Reed",
+          "role": "Fictional notebook editor"
         }
       ]
     }

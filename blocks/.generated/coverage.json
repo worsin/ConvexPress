@@ -7148,17 +7148,19 @@
           "stats": []
         },
         {
-          "body": "",
+          "body": "Illustrative figures for the fictional studio demo.",
           "eyebrow": "",
-          "heading": "By the numbers",
+          "heading": "A season of making",
           "stats": [
             {
-              "label": "active users",
-              "value": "10k+"
+              "label": "Workshops",
+              "note": "Sample figure for one season.",
+              "value": "12"
             },
             {
-              "label": "uptime",
-              "value": "99.9%"
+              "label": "Field notes",
+              "note": "Illustrative count, not a production metric.",
+              "value": "48"
             }
           ]
         }
@@ -7676,16 +7678,27 @@
           "members": []
         },
         {
-          "body": "",
-          "eyebrow": "",
-          "heading": "The team",
+          "body": "Demonstration identities and an AI-generated portrait.",
+          "eyebrow": "Fictional collaborators",
+          "heading": "Meet the imagined studio",
           "members": [
             {
-              "bio": "Background in design.",
+              "bio": "Works with simple materials and thoughtful questions.",
               "href": "",
-              "mediaId": "",
-              "name": "Jane Doe",
-              "role": "Founder"
+              "links": [
+                {
+                  "href": "#studies",
+                  "label": "Read the studies"
+                },
+                {
+                  "href": "#notes",
+                  "label": "Studio notes",
+                  "newTab": true
+                }
+              ],
+              "mediaId": "demo-image-studio-portrait",
+              "name": "Rowan Vale",
+              "role": "Fictional studio lead"
             }
           ]
         },
@@ -7821,19 +7834,27 @@
           "items": []
         },
         {
-          "body": "",
-          "eyebrow": "Customers",
-          "heading": "What people are saying",
+          "body": "Sample quotations and identities for the block demonstration.",
+          "eyebrow": "Fictional workshop voices",
+          "heading": "Room to see things differently",
           "items": [
             {
-              "name": "Jane Doe",
-              "quote": "Saved us a week.",
-              "role": "Marketing Lead, Acme"
+              "name": "Rowan Vale",
+              "portrait": {
+                "alt": "AI-generated fictional studio collaborator",
+                "focalPoint": {
+                  "x": 0.5,
+                  "y": 0.35
+                },
+                "id": "demo-image-studio-portrait"
+              },
+              "quote": "A little space can change the way we see an ordinary day.",
+              "role": "Fictional workshop guest"
             },
             {
-              "name": "John Smith",
-              "quote": "Replaced our copywriter.",
-              "role": "Founder, Beta Inc"
+              "name": "Ellis Reed",
+              "quote": "There is always another detail worth noticing.",
+              "role": "Fictional notebook editor"
             }
           ]
         }

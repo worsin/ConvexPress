@@ -56,6 +56,7 @@ import {
 import workshop from "./assets/ceramic-workshop-editorial.png";
 import workshopAfter from "./assets/ceramic-workshop-terracotta-after.png";
 import campMug from "./assets/aster-house-camp-mug.png";
+import studioPortrait from "./assets/fictional-studio-portrait.png";
 import fieldNotebook from "./assets/aster-house-field-notebook.png";
 import retreat from "./assets/aster-house-retreat.png";
 import asterMark from "./assets/aster-objects-compact.png";
@@ -247,6 +248,11 @@ function StaticRenderExample({ instance, packId }: { instance: BlockInstance; pa
 							"demo-image-camp-mug": {
 								src: campMug,
 								alt: "A dark green ceramic mug on a stone windowsill beside folded linen",
+								mimeType: "image/png",
+							},
+							"demo-image-studio-portrait": {
+								src: studioPortrait,
+								alt: "AI-generated portrait of a fictional studio collaborator",
 								mimeType: "image/png",
 							},
 							"demo-image-field-notebook": {

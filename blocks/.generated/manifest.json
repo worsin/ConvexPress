@@ -1,27 +1,27 @@
 {
   "files": {
-    "ai-catalog.ts": "c1e16880ba88f7445e2ceeef8798985db1dfa79f899f2a7b33dc1fde84837caa",
+    "ai-catalog.ts": "f285c6093d7dcf84c11a1682607104cd2d2b23a25abb200fa6825ea683a70782",
     "block-spec.schema.json": "4ca27bcafc929c0b7aa3a46485969a3351665c225267f6f6f0b5623756bdd81f",
-    "catalog.json": "0d6fbdd79ca497ff56bb9849f830e292389f9df5f2e05b1e16c375397c7bffd8",
-    "convex.ts": "9438db89f62ae510e06ee6860dbe8e282e7eb50134cff4036ba32382bff0d2a6",
-    "coverage.json": "501e01ff48ab75df628b57857f572e3cbb45e5711cadb3d60ca7d76461c8ce73",
-    "dependencies.json": "14abfada88ce7ccbe60f51ad42667773f00d7b8f1a0d53787c867b51e9586820",
-    "editor-metadata.ts": "02815865f9e29d00fa7c4fed91ca8c901590b70289ee9010bc87a43eaa356f8c",
-    "editors.json": "c46c705da87c566c06bad0854d62f77c3aaada287c05c4f09e927d7451c49acf",
+    "catalog.json": "e52dcd6fbf1674daaa06a33ff4611611f8806fe21ca4072c57e7fa3a0b4b6476",
+    "convex.ts": "274d1ff7619592bc726ea4026e94e7dcf4637178ffd5bb7ad2fb86a1bada4b36",
+    "coverage.json": "bfbc0c8b7440df789de8793a769d34ec34f0d0f666c093f4e579a42e60fe2545",
+    "dependencies.json": "9af5204e75c6848e673a4e2831ec71a0cd65dfd6988326ecb8326d4e54e8fe71",
+    "editor-metadata.ts": "6f165f948807b8af72997176263676d0f024fc1e181ee9fe00a3b2d0a759d45b",
+    "editors.json": "758d61a8174c76904480208311f63946b55d4f8bedcc0551f0a7b646078b1825",
     "field-runtime.d.mts": "9e1d25230a1ff8ec61f818b6004c8927cef3c95502a2d0edb1c28604da3388ce",
     "field-runtime.mjs": "ce6b761fbbcd719779ca9c117948bbef5d50e45eff553904738c4998ed0b2e37",
     "instance-runtime.d.mts": "56a0e4c7115873efc02701e6ded4ff34c2f4e1e28e98a29ec3c45dd963405a14",
     "instance-runtime.mjs": "89d1f85cb8a57d6c7e594284ef9e413a4b27cea32186d8fd457d597dfb66e2da",
     "instances.ts": "b221da7be40282981b196a29fb625f14ba8a2759fe43dc52bea09b4a61a3c684",
-    "metadata.ts": "724ea4d7a239730ebabaa89cf4605de05df17fe9af86c912556125c28e96b317",
+    "metadata.ts": "d0b1da9f5eb43b371630ba2c848db7e9f71a67adf22ef459147b089487b08ae6",
     "migrations.json": "c5e06b9dba15e0d14a863eaadc5d50c219639718393bd5f0402ed6f7fede47a6",
     "pack-designs.ts": "2512e1873e283b7b094e5498e3deff514d13fb42fd8963eedd163fdb08430645",
     "patterns.ts": "2ec3505c0b75e44834a38aaf79a8ec7d6ce9f9c2273bb76b267eb7896449906e",
     "promotions.ts": "7545ede36ecd059123045889f0aa32d6c0c9f4b157fc29ace43d597a942633eb",
     "renderer-coverage.ts": "646fe78683882b53ec9994526f20dd09ce29371fac6e525b686b0e98de18fb06",
-    "schemas.ts": "0522c2e8bef650573ccfda29f1a282173d8d1cb25e77fb57a87476597c6584e5",
-    "search-text.ts": "ec776042d472925e245a0a1a21277960271ff8a8fd0bd34d6b990cd4ded9cd30",
-    "spec-runtime.d.mts": "c17e9d4c7b5ccaad80e38c5df050a1abc8a49c8b15332d9fef53195a524e0bf1",
+    "schemas.ts": "9711af27618603c884765cdb4276272595af304136f2f398c1bc1609d7bd59f7",
+    "search-text.ts": "d4965fedcd5de6ce611fb89ccb87b7949003ffcf94565a857f066b979a64cc69",
+    "spec-runtime.d.mts": "882afc0050478c47ac721863c56e10fd6d952778018a76b67779d5e93af46ac8",
     "spec-runtime.mjs": "a779b28995b0c7e1025586cbf63e23a7536c05e79963043e85e0e44fbea5c7fb",
     "storage.ts": "b2f5ebbfe01a0797325cf5f71700a05f508a3a46ccf9ddd4eb89b6bcda5df1db",
     "types.ts": "d7dc7f8b23163e082db94f17a47e83f797d278716c614c2b6d9ea2022f48ea32"
@@ -461,7 +461,7 @@
       "source": "blocks/core/split/block.json"
     },
     {
-      "sha256": "c078a987331e5f9457dcd107e10e7f384c0fba4e1f40936af11c7e4fed0ef17c",
+      "sha256": "a6b0fb855f7d3d8c67e17c21d04e5fc8d7600653ff1f56a0d97c960cab06ac9c",
       "source": "blocks/core/stats-band/block.json"
     },
     {
@@ -493,7 +493,7 @@
       "source": "blocks/core/tag-cloud/block.json"
     },
     {
-      "sha256": "e93aa85701577c416075db90dec289a0de4c7910bdf4ac21f2c34018267ff27e",
+      "sha256": "661b1fa4df9f7272a6c6af84c42a1634d5d3ad19ad89634717608de97d6e8a42",
       "source": "blocks/core/team-grid/block.json"
     },
     {
@@ -501,7 +501,7 @@
       "source": "blocks/core/testimonial-wall/block.json"
     },
     {
-      "sha256": "f9db8cf159338e6588659b6d5c22b8cfdbff0a55d3708e4933fa7d509e63ca59",
+      "sha256": "ee2743d85e539e2a0acbc6d464368316f969dc5bdd8056d7645572045105a73f",
       "source": "blocks/core/testimonials/block.json"
     },
     {

@@ -111,6 +111,16 @@ export function CardCopy({ children }: { children: ReactNode }) {
 	return <div className="cp-library-card-copy">{children}</div>;
 }
 
+export function Testimonial({ portrait, resources, ...quote }: P.PrimitiveData<"Quote"> & {
+	portrait?: { id: string; alt?: string; focalPoint?: { x: number; y: number } };
+	resources: RenderResources;
+}) {
+	return <P.Stack gap="md">
+		{portrait && <div className="cp-testimonial-portrait"><ResolvedImage {...portrait} resources={resources} /></div>}
+		<P.Quote {...quote} />
+	</P.Stack>;
+}
+
 /** Give contained card copy a definite grid width inside an aligned Stack. */
 export function CardCollection({ children }: { children: ReactNode }) {
 	return <div className="cp-library-card-collection">{children}</div>;

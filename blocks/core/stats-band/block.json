@@ -27,7 +27,8 @@
       "id": "body",
       "default": "",
       "type": "text",
-      "max": 300
+      "max": 300,
+      "multiline": true
     },
     {
       "id": "stats",
@@ -46,6 +47,12 @@
           "default": "",
           "type": "text",
           "max": 80
+        },
+        {
+          "id": "note",
+          "type": "text",
+          "title": "Statistic note",
+          "max": 300
         }
       ]
     }
@@ -73,16 +80,18 @@
     },
     {
       "eyebrow": "",
-      "heading": "By the numbers",
-      "body": "",
+      "heading": "A season of making",
+      "body": "Illustrative figures for the fictional studio demo.",
       "stats": [
         {
-          "value": "10k+",
-          "label": "active users"
+          "value": "12",
+          "label": "Workshops",
+          "note": "Sample figure for one season."
         },
         {
-          "value": "99.9%",
-          "label": "uptime"
+          "value": "48",
+          "label": "Field notes",
+          "note": "Illustrative count, not a production metric."
         }
       ]
     }
@@ -114,6 +123,11 @@
       "stats",
       "*",
       "label"
+    ],
+    [
+      "stats",
+      "*",
+      "note"
     ]
   ]
 }

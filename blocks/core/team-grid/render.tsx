@@ -4,6 +4,7 @@ import * as P from "../../../ConvexPress-Website/apps/web/src/templates/sdk/prim
 import {
 	CardCopy,
 	CardCollection,
+	cardColumns,
 	Intro,
 	Prose,
 	ResolvedImage,
@@ -12,7 +13,7 @@ export default defineBlock("core/team-grid", ({ attrs, resources }) => (
 	<P.Stack gap="lg">
 		<Intro {...attrs} />
 		<CardCollection>
-			<P.Grid columns={{ base: 1, md: 2, lg: 3 }} gap="lg">
+			<P.Grid columns={cardColumns(attrs.members.length)} gap="lg">
 				{attrs.members.map((member, index) => (
 					<article key={index}>
 						<CardCopy>
@@ -36,6 +37,11 @@ export default defineBlock("core/team-grid", ({ attrs, resources }) => (
 											member.name ? `Read about ${member.name}` : "Read profile"
 										}
 									/>
+								)}
+								{Boolean(member.links?.length) && (
+									<ul className="cp-team-links">
+										{member.links?.map((link, linkIndex) => <li key={linkIndex}><P.Link {...link} /></li>)}
+									</ul>
 								)}
 							</P.Stack>
 						</CardCopy>

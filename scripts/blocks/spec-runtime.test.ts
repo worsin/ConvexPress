@@ -10,6 +10,25 @@ import type { BlockName } from "../../ConvexPress-Admin/packages/backend/canonic
 const root = fileURLToPath(new URL("../../", import.meta.url));
 const runtime = createBlockSpecCompiler(z);
 
+test("social-proof additions retain absent historical fields and validate new content", async () => {
+  const { blocks } = await discoverBlocks(root);
+  const schemaFor = (name: string) => {
+    const spec = runtime.parseBlockSpec(blocks.find(block => block.spec.name === name)!.spec);
+    return { spec, schema: runtime.attrsSchema(spec.fields, spec.constraints) };
+  };
+  const stats = schemaFor("core/stats-band").schema;
+  expect(stats.parse({ stats: [{ value: "12", label: "Workshops" }] }).stats[0]).not.toHaveProperty("note");
+  expect(stats.parse({ stats: [{ note: "Illustrative figure" }] }).stats[0].note).toBe("Illustrative figure");
+  const quotes = schemaFor("core/testimonials").schema;
+  expect(quotes.parse({ items: [{ quote: "Existing words" }] }).items[0]).not.toHaveProperty("portrait");
+  expect(quotes.parse({ items: [{ portrait: { id: "owned-media", alt: "Author portrait", focalPoint: { x: .4, y: .3 } } }] }).items[0].portrait.id).toBe("owned-media");
+  const team = schemaFor("core/team-grid");
+  expect(team.schema.parse({ members: [{ name: "Existing member" }] }).members[0]).not.toHaveProperty("links");
+  const value = team.schema.parse({ members: [{ links: [{ label: "Contact", href: "mailto:example@example.test" }, { label: "Portfolio", href: "/work", newTab: true }] }] });
+  expect(validateAuthoringActions(z, value, team.spec.authoringActions)).toEqual(value);
+  expect(() => validateAuthoringActions(z, team.schema.parse({ members: [{ links: [{ label: "   ", href: "/work" }] }] }), team.spec.authoringActions)).toThrow();
+});
+
 test("feature icons and links and authored Bento sizes preserve old content and reject unsupported choices", async () => {
   const { blocks } = await discoverBlocks(root);
   for (const name of ["core/feature-grid", "core/bento-grid"]) {

@@ -3,6 +3,11 @@
 .cp-library-plan-content > .cp-stack {inline-size:100%;min-inline-size:0;}
 .cp-library-plan-action {margin-block-start:auto;max-inline-size:100%;}
 .cp-library-card-copy {container-type:inline-size;inline-size:100%;min-inline-size:0;}
+.cp-testimonial-portrait {inline-size:4.5rem;flex:none;}
+.cp-testimonial-portrait .cp-image {margin:0;}
+.cp-testimonial-portrait img {inline-size:100%;aspect-ratio:1;object-fit:cover;border-radius:50%;}
+.cp-team-links {display:flex;flex-wrap:wrap;gap:.75rem 1.25rem;margin:0;padding:0;list-style:none;}
+.cp-team-links > li {min-inline-size:0;max-inline-size:100%;}
 .cp-library-card-copy .cp-heading[data-size="md"] {
   font-size:clamp(1.25rem,calc(1rem + 2cqi),2.25rem);
   overflow-wrap:anywhere;word-break:normal;hyphens:none;text-wrap:balance;

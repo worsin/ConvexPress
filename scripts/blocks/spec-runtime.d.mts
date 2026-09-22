@@ -16,7 +16,8 @@ export type BlockField = CommonField & (
   | { type: "reference"; of: ReferenceKind; storage?: "id" | "slug"; allowEmpty?: boolean; max?: number }
   | { type: "media"; storage?: "id"; allowEmpty?: boolean; max?: number }
   | { type: "link"; protocols?: ("http" | "https" | "relative" | "anchor" | "mailto" | "tel")[]; storage?: "href"; allowEmpty?: boolean; max?: number }
-  | { type: "boolean" | "icon" | "color-role" | "date" | "menu" | "form" }
+  | { type: "icon"; options?: string[] }
+  | { type: "boolean" | "color-role" | "date" | "menu" | "form" }
   | { type: "repeater"; constraints?: FieldConstraint[]; min?: number; max?: number; fields?: BlockField[]; item?: BlockField }
   | { type: "object"; constraints?: FieldConstraint[]; fields: BlockField[] }
 );

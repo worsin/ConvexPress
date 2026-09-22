@@ -112,7 +112,7 @@ const schemaFactories = {
 "core/social-links":once(()=>z.object({"heading":z.string().max(80).prefault(""),"links":z.array(z.object({"platform":z.string().max(40).prefault(""),"label":z.string().max(40).prefault(""),"href":safeLinkSchema(z,undefined).or(z.literal("")).prefault("")}).strict()).max(12).prefault([])}).strict()),
 "core/spacer":once(()=>z.object({}).strict()),
 "core/split":once(()=>z.object({}).strict()),
-"core/stats-band":once(()=>z.object({"eyebrow":z.string().max(80).prefault(""),"heading":z.string().max(120).prefault(""),"body":z.string().max(300).prefault(""),"stats":z.array(z.object({"value":z.string().max(40).prefault(""),"label":z.string().max(80).prefault("")}).strict()).max(6).prefault([])}).strict()),
+"core/stats-band":once(()=>z.object({"eyebrow":z.string().max(80).prefault(""),"heading":z.string().max(120).prefault(""),"body":z.string().max(300).prefault(""),"stats":z.array(z.object({"value":z.string().max(40).prefault(""),"label":z.string().max(80).prefault(""),"note":z.string().max(300).optional()}).strict()).max(6).prefault([])}).strict()),
 "core/steps-with-media":once(()=>z.object({"steps":z.array(z.object({"title":z.string().max(160).min(1),"body":createRichTextSchema(z,12000,false).optional(),"media":z.object({id:z.string().min(1).max(256),alt:z.string().max(1000).optional(),focalPoint:z.object({x:z.number().min(0).max(1),y:z.number().min(0).max(1)}).strict().optional()}).strict().optional()}).strict()).max(20).prefault([])}).strict()),
 "core/sticky-aside":once(()=>z.object({}).strict()),
 "core/synced":once(()=>z.object({"syncedBlock":z.string().min(1).max(256).optional(),"revisionPolicy":z.union([z.literal("pinned"),z.literal("latest")]).prefault("pinned"),"revision":z.number().int().min(1).max(1000000).optional()}).strict()),
@@ -120,9 +120,9 @@ const schemaFactories = {
 "core/table-of-contents":once(()=>z.object({"title":z.string().max(160).prefault("On this page"),"depth":z.number().int().min(1).max(6).prefault(3)}).strict()),
 "core/tabs":once(()=>z.object({"heading":z.string().max(120).prefault(""),"tabs":z.array(z.object({"label":z.string().max(40).prefault(""),"body":z.string().max(2000).prefault("")}).strict()).max(8).prefault([])}).strict()),
 "core/tag-cloud":once(()=>z.object({"heading":z.string().max(80).prefault(""),"max":z.number().int().min(1).max(100).prefault(30)}).strict()),
-"core/team-grid":once(()=>z.object({"eyebrow":z.string().max(80).prefault(""),"heading":z.string().max(120).prefault(""),"body":z.string().max(400).prefault(""),"members":z.array(z.object({"name":z.string().max(80).prefault(""),"role":z.string().max(80).prefault(""),"bio":z.string().max(400).prefault(""),"mediaId":z.string().prefault(""),"href":safeLinkSchema(z,undefined).or(z.literal("")).prefault("")}).strict()).max(20).prefault([])}).strict()),
+"core/team-grid":once(()=>z.object({"eyebrow":z.string().max(80).prefault(""),"heading":z.string().max(120).prefault(""),"body":z.string().max(400).prefault(""),"members":z.array(z.object({"name":z.string().max(80).prefault(""),"role":z.string().max(80).prefault(""),"bio":z.string().max(400).prefault(""),"mediaId":z.string().prefault(""),"href":safeLinkSchema(z,undefined).or(z.literal("")).prefault(""),"links":z.array(z.object({"label":z.string().max(160).min(1),"href":safeLinkSchema(z,undefined),"newTab":z.boolean().optional()}).strict()).max(8).optional()}).strict()).max(20).prefault([])}).strict()),
 "core/testimonial-wall":once(()=>z.object({"items":z.array(z.object({"quote":z.string().max(3000).min(1),"name":z.string().max(160).min(1),"context":z.string().max(240).prefault(""),"portrait":z.object({id:z.string().min(1).max(256),alt:z.string().max(1000).optional(),focalPoint:z.object({x:z.number().min(0).max(1),y:z.number().min(0).max(1)}).strict().optional()}).strict().optional()}).strict()).max(50).prefault([])}).strict()),
-"core/testimonials":once(()=>z.object({"eyebrow":z.string().max(80).prefault(""),"heading":z.string().max(120).prefault(""),"body":z.string().max(400).prefault(""),"items":z.array(z.object({"quote":z.string().max(500).prefault(""),"name":z.string().max(80).prefault(""),"role":z.string().max(80).prefault("")}).strict()).max(20).prefault([])}).strict()),
+"core/testimonials":once(()=>z.object({"eyebrow":z.string().max(80).prefault(""),"heading":z.string().max(120).prefault(""),"body":z.string().max(400).prefault(""),"items":z.array(z.object({"quote":z.string().max(500).prefault(""),"name":z.string().max(80).prefault(""),"role":z.string().max(80).prefault(""),"portrait":z.object({id:z.string().min(1).max(256),alt:z.string().max(1000).optional(),focalPoint:z.object({x:z.number().min(0).max(1),y:z.number().min(0).max(1)}).strict().optional()}).strict().optional()}).strict()).max(20).prefault([])}).strict()),
 "core/trust-badges":once(()=>z.object({"items":z.array(z.object({"icon":z.string().max(100).regex(/^[a-z][a-z0-9-]*$/).optional(),"media":z.object({id:z.string().min(1).max(256),alt:z.string().max(1000).optional(),focalPoint:z.object({x:z.number().min(0).max(1),y:z.number().min(0).max(1)}).strict().optional()}).strict().optional(),"label":z.string().max(160).min(1)}).strict()).max(20).prefault([])}).strict()),
 "core/ugc-grid":once(()=>z.object({"tag":z.string().min(1).max(256).optional(),"limit":z.number().int().min(1).max(48).prefault(6)}).strict()),
 "core/video":once(()=>constrainObject(z.object({"media":z.object({id:z.string().min(1).max(256),alt:z.string().max(1000).optional(),focalPoint:z.object({x:z.number().min(0).max(1),y:z.number().min(0).max(1)}).strict().optional()}).strict().optional(),"url":z.object({label:z.string().max(160),href:safeLinkSchema(z,["https"]),newTab:z.boolean().optional()}).strict().optional(),"poster":z.object({id:z.string().min(1).max(256),alt:z.string().max(1000).optional(),focalPoint:z.object({x:z.number().min(0).max(1),y:z.number().min(0).max(1)}).strict().optional()}).strict().optional(),"title":z.string().max(160).prefault(""),"transcript":z.object({label:z.string().max(160),href:safeLinkSchema(z,undefined),newTab:z.boolean().optional()}).strict().optional()}).strict(),[{"fields":["media","url"],"kind":"at-most-one"}])),
@@ -450,6 +450,18 @@ const authoringActions: Readonly<Record<string, readonly AuthoringAction[]>> = {
       "label": "ctaLabel",
       "path": [
         "plans",
+        "*"
+      ]
+    }
+  ],
+  "core/team-grid": [
+    {
+      "href": "href",
+      "label": "label",
+      "path": [
+        "members",
+        "*",
+        "links",
         "*"
       ]
     }
