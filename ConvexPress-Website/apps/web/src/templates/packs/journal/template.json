@@ -248,6 +248,11 @@
       "core/cta-band": [
         "default",
         "inset"
+      ],
+      "core/hero": [
+        "default",
+        "editorial",
+        "poster"
       ]
     }
   }

@@ -99,6 +99,28 @@ test("an installed treatment never bypasses disabled-block or invalid-attribute 
 
 import journalCta from "../../packs/journal/blocks/core/cta-band";
 import depotCta from "../../packs/depot/blocks/core/cta-band";
+import coreHero from "../../packs/core/blocks/core/hero";
+import journalHero from "../../packs/journal/blocks/core/hero";
+import depotHero from "../../packs/depot/blocks/core/hero";
+import asterHero from "../../packs/aster-house/blocks/core/hero";
+test("Hero named treatments preserve authored copy and safe actions in every pack", () => {
+  const owned = { core: coreHero, journal: journalHero, depot: depotHero, "aster-house": asterHero };
+  const attrs = { eyebrow: "Field notes", title: "A quieter day", body: "Leave room for an idea.", primaryCtaLabel: "Explore", primaryCtaUrl: "#details", secondaryCtaLabel: "Contact", secondaryCtaUrl: "mailto:hello@example.test" };
+  const before = JSON.stringify(attrs);
+  for (const [pack, renderer] of Object.entries(owned)) {
+    for (const style of ["editorial", "poster"]) {
+      const html = renderToStaticMarkup(<PrimitiveProvider packId={pack}>{prepareBlocks([{id:"hero",name:"core/hero",version:2,attrs,style}],{"core/hero":renderer},{enabledPlugins:[],capabilities:[],disabledBlocks:[]},{media:{}},undefined,pack)}</PrimitiveProvider>);
+      expect(html).toContain(`data-hero-style="${style}"`);
+      for (const text of Object.values(attrs)) expect(html).toContain(text);
+      expect((html.match(/<h1\b/g) ?? []).length).toBe(1);
+      expect(html).not.toContain("<img");
+    }
+    const fallback = renderToStaticMarkup(<PrimitiveProvider packId={pack}>{prepareBlocks([{id:"hero",name:"core/hero",version:2,attrs,style:"unavailable"}],{"core/hero":renderer},{enabledPlugins:[],capabilities:[],disabledBlocks:[]},{media:{}},undefined,pack)}</PrimitiveProvider>);
+    expect(fallback).not.toContain("data-hero-style=");
+    expect(fallback).toContain(attrs.title);
+  }
+  expect(JSON.stringify(attrs)).toBe(before);
+});
 test("named styles reach owned renderers and template switches fall back without changing authored content", () => {
   const base = defineBlock("core/cta-band", ({ style }) => <p data-library-style={style}>Library CTA</p>);
   const registry = installPackRenderers({ "core/cta-band": base }, ["journal", "depot"].map(id => ({ id, blocks: { renderers: { "core/cta-band": "./blocks/core/cta-band.tsx" } } })), {

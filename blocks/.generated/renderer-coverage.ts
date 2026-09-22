@@ -426,7 +426,7 @@ export const rendererCoverage: readonly RendererCoverage[] = [
       {
         "hidden": false,
         "name": "core/hero",
-        "renderer": "library",
+        "renderer": "owned",
         "title": "Hero"
       },
       {
@@ -1254,7 +1254,7 @@ export const rendererCoverage: readonly RendererCoverage[] = [
       {
         "hidden": false,
         "name": "core/hero",
-        "renderer": "library",
+        "renderer": "owned",
         "title": "Hero"
       },
       {

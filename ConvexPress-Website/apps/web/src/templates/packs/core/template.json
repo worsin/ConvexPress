@@ -203,7 +203,17 @@
         "original"
       ]
     },
-    "patterns": "./patterns/*.json"
+    "patterns": "./patterns/*.json",
+    "renderers": {
+      "core/hero": "./blocks/core/hero.tsx"
+    },
+    "styles": {
+      "core/hero": [
+        "default",
+        "editorial",
+        "poster"
+      ]
+    }
   },
   "defaults": {
     "layout": {

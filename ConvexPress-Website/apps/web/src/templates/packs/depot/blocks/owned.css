@@ -54,3 +54,5 @@
 @container (max-width: 30rem) { .cp-owned-depot .depot-categories .cp-category-grid { grid-template-columns: minmax(0,1fr); } }
 
 .cp-owned-depot .depot-cta[data-block-style="outline"] { background: transparent; border: 2px solid var(--primary); padding: clamp(1.25rem, 4vw, 3rem); }
+
+.depot-hero-treatment { --hero-title-scale: 5cqi; --hero-title-max: 4rem; --hero-poster-scale: 7cqi; --hero-poster-max: 6rem; --hero-treatment-gap: var(--stack-gap-md, 1rem); --hero-editorial-ratio: 1; }

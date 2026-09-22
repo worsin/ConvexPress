@@ -6,11 +6,11 @@ The catalog supports categories, search, keyboard navigation and direct URLs wit
 
 ## Templates and example pages
 
-Core, Journal, Depot and Aster House supply their real tokens and palette choices. Journal and Depot each supply 15 owned block renderers plus an explicit primitive override module. Core and Aster House use the shared primitive/Library baseline with their own tokens. Overrides do not borrow another pack's implementation.
+Core, Journal, Depot and Aster House supply their real tokens and palette choices. Journal and Depot each supply 15 owned block renderers plus an explicit primitive override module. Core and Aster House own their Hero treatments and use the shared primitive/Library baseline elsewhere. Overrides do not borrow another pack's implementation.
 
 The Fieldwork example website contains Studio, Journal and Collection pages plus story/product detail previews. The same authored trees render through the selected pack. `demoPage` and `demoItem` retain page identity through navigation, Back and reload; `view=website` opens the full-page study. The source inspector exposes the authored blocks. These example layouts supplement the catalog; they do not demonstrate every block or certify a finished customer site.
 
-Named template styles, runtime compositions and composed definitions have dedicated studies. All data and editorial content are fictional. Orders, provider operations and live submissions remain outside this demo's acceptance scope.
+The catalog exposes a Block style selector when the selected template declares named styles. Hero offers Default, Editorial and Poster in all four packs. The chosen style is retained when switching packs; an unavailable saved style renders the destination template's default. Style selection is a local specimen change and resets the optional field-editing draft. Runtime compositions and composed definitions have dedicated studies. All data and editorial content are fictional. Orders, provider operations and live submissions remain outside this demo's acceptance scope.
 
 The separate `/wishlist-surfaces.html` study renders the actual account/shared wishlist surfaces under all four packs with synthetic actions. Both HTML entries and their local styles are included in the production demo build; neither requires a second development server.
 

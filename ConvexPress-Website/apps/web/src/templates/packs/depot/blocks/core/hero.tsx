@@ -1,3 +1,4 @@
+import { HeroComposition } from "../../../../sdk/block-renderer/hero-composition";
 import { defineBlock } from "../../../../sdk/block-renderer/model";
 import * as P from "../../../../sdk/primitives";
 import {
@@ -6,7 +7,8 @@ import {
 	ResolvedImage,
 } from "../../../../sdk/block-renderer/presentation";
 import "../owned.css";
-export default defineBlock("core/hero", ({ attrs, resources }) => {
+export default defineBlock("core/hero", ({ attrs, resources, style }) => {
+	if (style === "editorial" || style === "poster") return <div className="cp-hero-treatment depot-hero-treatment"><HeroComposition attrs={attrs} resources={resources} variant={style} /></div>;
 	const copy = (
 		<P.Stack gap="md">
 			{attrs.eyebrow && <P.Eyebrow>{attrs.eyebrow}</P.Eyebrow>}

@@ -1,5 +1,8 @@
 # Current production acceptance index — September 21
 
+September21 Hero styles: **57/137 blocks verified;80 pending.** Main Hero now supports default/editorial/poster through four explicit pack-owned treatments. Added a finite BlockDemo style selector and shared typed SDK composition, preserving historical/default content. Native style save/reopen/exact recovery and both actual published Website styles pass desktop/mobile/media/keyboard checks.304 renderer/six presentation/four browser cases, all types/build/freshness/kit/thumbnails/lint pass. Original42 pages/appearance/plugin/media preserved; owned resources cleaned. Original audit8accepted/16open. [Evidence](hero-styles-20260921.md).
+
+
 September21 Hero family: **56/137 blocks verified;81 pending.** Split Hero gains authored start/end media placement, RTL support and copy-first mobile stacking; Text-only Hero and Split Hero pass native authoring/reopen/exact recovery/publication/original-editor recovery and four-pack/public Website checks. All three Heroes gain visible title/action validation and multiline body controls.26 invalid deployed saves/previews refused;19 contract/303 renderer/three browser cases, types/build/freshness/kit/thumbnails/lint pass. Main Hero stays open for editorial/poster treatments. A deployment-transition field refresh timeout remains a disclosed follow-up; persisted content was exact and three stable repeats passed. Original42 pages/appearance/plugin/media preserved; owned resources cleaned. Original audit8accepted/16open. [Evidence](hero-family-20260921.md).
 
 

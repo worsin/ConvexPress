@@ -5493,11 +5493,23 @@ export const packTreatmentSupport = {
 export const packBlockPresentation = {
   "aster-house": {
     "hidden": [],
-    "styles": {}
+    "styles": {
+      "core/hero": [
+        "default",
+        "editorial",
+        "poster"
+      ]
+    }
   },
   "core": {
     "hidden": [],
-    "styles": {}
+    "styles": {
+      "core/hero": [
+        "default",
+        "editorial",
+        "poster"
+      ]
+    }
   },
   "depot": {
     "hidden": [],
@@ -5505,6 +5517,11 @@ export const packBlockPresentation = {
       "core/cta-band": [
         "default",
         "outline"
+      ],
+      "core/hero": [
+        "default",
+        "editorial",
+        "poster"
       ]
     }
   },
@@ -5514,6 +5531,11 @@ export const packBlockPresentation = {
       "core/cta-band": [
         "default",
         "inset"
+      ],
+      "core/hero": [
+        "default",
+        "editorial",
+        "poster"
       ]
     }
   }

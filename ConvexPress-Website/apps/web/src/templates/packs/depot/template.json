@@ -249,6 +249,11 @@
       "core/cta-band": [
         "default",
         "outline"
+      ],
+      "core/hero": [
+        "default",
+        "editorial",
+        "poster"
       ]
     }
   }

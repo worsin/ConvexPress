@@ -42,7 +42,7 @@ import {navigationNames} from "./navigation-adapter";
 import { FeaturedPageDemo } from "./featured-page-preview";
 import { NewsletterDemo } from "./newsletter-preview";
 import catalog from "../../../../blocks/.generated/catalog.json";
-import { dependencyDescriptors } from "../../../../blocks/.generated/metadata";
+import { dependencyDescriptors, stylesForBlock } from "../../../../blocks/.generated/metadata";
 import { stagedRenderers } from "../src/templates/sdk/block-renderer/discovery";
 import {
 	prepareBlocks,
@@ -323,10 +323,14 @@ export function CanonicalBlocks({
   if(focus)requestAnimationFrame(()=>{studyHeading.current?.focus({preventScroll:true});studyHeading.current?.scrollIntoView({block:"start",behavior:matchMedia("(prefers-reduced-motion: reduce)").matches?"instant":"smooth"});});
  };
 	const [authoring, setAuthoring] = useState(false);
+	const [styleChoice, setStyleChoice] = useState({ name: "", style: "default" });
+	const selectedStyle = styleChoice.name === name ? styleChoice.style : "default";
+	const styleOptions = stylesForBlock(packId, name);
 	const instance = exampleFor(
 		name,
 		Math.min(example, spec.examples.length - 1),
 	);
+	if (selectedStyle !== "default") instance.style = selectedStyle;
 	const implemented = Object.keys(stagedRenderers).length;
 	return (
 		<section className="canonical-gallery" id="canonical-blocks">
@@ -379,6 +383,13 @@ export function CanonicalBlocks({
 							))}
 						</select>
 					</label>
+					{(styleOptions.length > 1 || selectedStyle !== "default") && <label htmlFor="canonical-style">
+						Block style
+						<select id="canonical-style" value={selectedStyle} onChange={event => setStyleChoice({ name, style: event.target.value })}>
+							{!styleOptions.includes(selectedStyle) && <option value={selectedStyle}>{selectedStyle} (uses this template's default)</option>}
+							{styleOptions.map(style => <option key={style} value={style}>{style}</option>)}
+						</select>
+					</label>}
 				</div>
 			</div>
 			<div className="canonical-caption">
