@@ -459,8 +459,9 @@
       "core/hero-video": {
         "src": "/block-thumbnails/aster-house/core--hero-video.jpg",
         "example": 1,
-        "sha256": "5b129c2e2e552ca7071d163cf495053755c27449522def61f52dd1a3a4f95e57",
-        "bytes": 32934
+        "sha256": "66724aaddfab98d772535c828f1afcbfe698c4a0012cf7bc737c2b7715ea3120",
+        "bytes": 32519,
+        "capturedAt": "2026-09-22T04:34:15.511Z"
       },
       "core/iframe": {
         "src": "/block-thumbnails/aster-house/core--iframe.jpg",
@@ -1312,8 +1313,9 @@
       "core/hero-video": {
         "src": "/block-thumbnails/core/core--hero-video.jpg",
         "example": 1,
-        "sha256": "a071da49df11ea96d22398b124d2ba1d81dea5dbd4f3cc9717000effc27e538d",
-        "bytes": 36080
+        "sha256": "c73287a771e0ca667342963fd2171d34fc06a7978689fff8cc96fb9d77e7c12d",
+        "bytes": 34518,
+        "capturedAt": "2026-09-22T04:34:14.478Z"
       },
       "core/iframe": {
         "src": "/block-thumbnails/core/core--iframe.jpg",
@@ -2224,9 +2226,9 @@
       "core/hero-video": {
         "src": "/block-thumbnails/depot/core--hero-video.jpg",
         "example": 1,
-        "sha256": "58ba5a4677afe9c8bb0ffc78ff0357b0acee82ed054cdd006fdaef3ec5933f1f",
-        "bytes": 36400,
-        "capturedAt": "2026-09-21T11:57:20.129Z"
+        "sha256": "fe4800cbe8164b87ab71e63ef051712ff5564d5accb6506ee8a180b2d2ff7622",
+        "bytes": 34286,
+        "capturedAt": "2026-09-22T04:34:14.899Z"
       },
       "core/iframe": {
         "src": "/block-thumbnails/depot/core--iframe.jpg",
@@ -3126,8 +3128,9 @@
       "core/hero-video": {
         "src": "/block-thumbnails/journal/core--hero-video.jpg",
         "example": 1,
-        "sha256": "d7c2e868674b8201b9e4c8e38ce3201760b4879a9eb698e5b4c737f4bd3f21a6",
-        "bytes": 35097
+        "sha256": "2782c898d685051b6b7826f8fb0447a68657637ed83cbcf4a832c8b71f3d9f7d",
+        "bytes": 33893,
+        "capturedAt": "2026-09-22T04:34:14.714Z"
       },
       "core/iframe": {
         "src": "/block-thumbnails/journal/core--iframe.jpg",

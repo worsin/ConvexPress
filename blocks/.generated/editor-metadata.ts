@@ -4878,6 +4878,7 @@ export const editorDefinitions: Record<BlockName, EditorDefinition> = {
         "default": "",
         "id": "subtitle",
         "max": 1000,
+        "multiline": true,
         "type": "text"
       },
       {

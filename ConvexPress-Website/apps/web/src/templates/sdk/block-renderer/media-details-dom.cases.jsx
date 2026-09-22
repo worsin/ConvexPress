@@ -5,6 +5,33 @@ import { JSDOM } from "jsdom";
 import { prepareBlocks } from "./model";
 import countdown from "../../../../../../../blocks/core/countdown/render";
 import marquee from "../../../../../../../blocks/core/marquee/render";
+import { VideoCover } from "./video-cover";
+
+test("cover playback promises cannot revive a paused or replaced resource", async () => {
+	const dom = new JSDOM('<!doctype html><html><body><div id="cover-root"></div></body></html>', { url: "https://example.test", pretendToBeVisual: true });
+	const previous = { window: globalThis.window, document: globalThis.document, HTMLElement: globalThis.HTMLElement, IntersectionObserver: globalThis.IntersectionObserver, IS_REACT_ACT_ENVIRONMENT: globalThis.IS_REACT_ACT_ENVIRONMENT };
+	const listeners = new Set(); const observers = []; const pending = []; const paused = new WeakMap();
+	const preference = { matches: false, addEventListener: (_type, fn) => listeners.add(fn), removeEventListener: (_type, fn) => listeners.delete(fn) };
+	dom.window.matchMedia = () => preference;
+	Object.defineProperty(dom.window.HTMLMediaElement.prototype, "paused", { get() { return paused.get(this) ?? true; } });
+	dom.window.HTMLMediaElement.prototype.pause = function () { const wasPlaying = !this.paused; paused.set(this, true); if (wasPlaying) this.dispatchEvent(new dom.window.Event("pause")); };
+	dom.window.HTMLMediaElement.prototype.play = function () { const video = this; return new Promise(resolve => pending.push({ video, resolve: () => { paused.set(video, false); video.dispatchEvent(new dom.window.Event("play")); resolve(); } })); };
+	class Observer { constructor(callback) { this.callback = callback; this.active = true; observers.push(this); } observe() {} disconnect() { this.active = false; } }
+	Object.assign(globalThis, { window: dom.window, document: dom.window.document, HTMLElement: dom.window.HTMLElement, IntersectionObserver: Observer, IS_REACT_ACT_ENVIRONMENT: true });
+	const { createRoot } = await import("react-dom/client"); const root = createRoot(document.getElementById("cover-root"));
+	const show = src => act(async () => root.render(<VideoCover media={{src,alt:"Workshop",mimeType:"video/webm"}} title="Workshop cover" poster="/poster.png" />));
+	try {
+		await show("/first.webm"); await act(async () => observers.at(-1).callback([{ isIntersecting: true }])); expect(pending).toHaveLength(1);
+		await act(async () => { preference.matches = true; for (const fn of listeners) fn(); });
+		await act(async () => pending[0].resolve()); expect(pending[0].video.paused).toBe(true); expect(document.querySelector("button").textContent).toBe("Play video");
+		await act(async () => document.querySelector("button").click()); expect(pending).toHaveLength(2);
+		await show("/second.webm"); expect(observers[0].active).toBe(false); expect(listeners.size).toBe(1);
+		await act(async () => pending[1].resolve()); expect(pending[1].video.paused).toBe(true); expect(document.querySelector("video").getAttribute("src")).toBe("/second.webm");
+		await act(async () => observers.at(-1).callback([{ isIntersecting: true }])); expect(pending).toHaveLength(2);
+		await act(async () => document.querySelector("button").click()); await act(async () => pending[2].resolve()); expect(document.querySelector("video").paused).toBe(false);
+		await act(async () => root.unmount()); expect(listeners.size).toBe(0); expect(observers.every(observer => !observer.active)).toBe(true); expect(pending[2].video.paused).toBe(true);
+	} finally { await act(async () => root.unmount()); dom.window.close(); Object.assign(globalThis, previous); }
+});
 const policy = {
 	enabledPlugins: [],
 	capabilities: ["reference.targetResolution"],

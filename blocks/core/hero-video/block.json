@@ -10,7 +10,7 @@
   ],
   "ai": {
     "useFor": "Full-bleed looping video with overlay copy.",
-    "avoid": "Do not invent records, permissions, prices, endorsements or resource identifiers. Presentation comes from the selected template."
+    "avoid": "Use silent atmospheric footage. Use the Video block for speech, sound or instructional clips. Do not invent media identifiers."
   },
   "fields": [
     {
@@ -31,7 +31,8 @@
       "id": "subtitle",
       "type": "text",
       "max": 1000,
-      "default": ""
+      "default": "",
+      "multiline": true
     },
     {
       "id": "cta",
@@ -59,7 +60,7 @@
     },
     {
       "title": "A moment from the workshop.",
-      "subtitle": "A silent synthetic video fixture, presented with native controls.",
+      "subtitle": "A moment of making, with room for the next idea.",
       "video": {
         "id": "demo-video-field-notes",
         "alt": "Silent workshop video fixture"

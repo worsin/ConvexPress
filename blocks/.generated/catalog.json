@@ -8231,7 +8231,7 @@
   },
   {
     "ai": {
-      "avoid": "Do not invent records, permissions, prices, endorsements or resource identifiers. Presentation comes from the selected template.",
+      "avoid": "Use silent atmospheric footage. Use the Video block for speech, sound or instructional clips. Do not invent media identifiers.",
       "useFor": "Full-bleed looping video with overlay copy."
     },
     "category": "openers",
@@ -8256,7 +8256,7 @@
           },
           "id": "demo-image-camp-mug"
         },
-        "subtitle": "A silent synthetic video fixture, presented with native controls.",
+        "subtitle": "A moment of making, with room for the next idea.",
         "title": "A moment from the workshop.",
         "video": {
           "alt": "Silent workshop video fixture",
@@ -8283,6 +8283,7 @@
         "default": "",
         "id": "subtitle",
         "max": 1000,
+        "multiline": true,
         "type": "text"
       },
       {

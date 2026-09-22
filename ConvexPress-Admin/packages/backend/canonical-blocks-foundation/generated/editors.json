@@ -4867,6 +4867,7 @@
         "default": "",
         "id": "subtitle",
         "max": 1000,
+        "multiline": true,
         "type": "text"
       },
       {

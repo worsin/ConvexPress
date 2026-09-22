@@ -42,7 +42,7 @@ test("grade gallery preserves ordered grades, descriptions, notes and every decl
 		contentHtml(grade, { sections: [{ images: [{ mediaId: "missing" }] }] }),
 	).toThrow();
 });
-test("hero video resolves separate native video and poster identities without autoplay or provider embeds", () => {
+test("hero video renders a paused SSR cover with distinct media, poster, captions and explicit playback control", () => {
 	const html = contentHtml(
 		hero,
 		{
@@ -66,12 +66,19 @@ test("hero video resolves separate native video and poster identities without au
 	expect(html).toContain('src="/workshop.webm"');
 	expect(html).toContain('poster="/poster.png"');
 	expect(html).toContain("20% 80%");
-	expect(html).toContain("controls=");
+	expect(html).not.toContain("controls=");
+	expect(html).toContain("Play video");
+	expect(html).toContain('loop=""');
+	expect(html).toContain('muted=""');
+	expect(html).toContain('class="cp-video-hero-copy"');
 	expect(html).not.toContain("autoPlay");
 	expect(html).not.toContain("autoplay");
 	expect(html).toContain('src="/captions.vtt"');
 	expect(html).toContain('href="/notes"');
 	expect(() => contentHtml(hero, { video: { id: "paper" } })).toThrow();
+	const empty = contentHtml(hero, { title: "\u200b ", subtitle: "\n " });
+	expect(empty).not.toContain("<h1");
+	expect(empty).not.toContain('class="cp-video-hero-copy"');
 });
 test("lightbox-grid uses the same real modal behavior and preserves optional caption-only items", () => {
 	const html = contentHtml(lightbox, {

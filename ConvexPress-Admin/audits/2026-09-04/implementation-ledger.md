@@ -1,5 +1,8 @@
 # ConvexPress production-readiness implementation ledger
 
+September21 Video Hero: **58/137 blocks verified;79 pending.** Replaced the player-below-heading mismatch with a muted looping cover and token-colored overlay copy. Added explicit Play/Pause, visibility/reduced-motion handling, poster/error fallback, Retry and stale-play protection; ordinary Video behavior stays intact. Native uploaded/selected/authored/reopened/recovered/published exact content; actual Website playback crossed a loop boundary and passed final mobile/keyboard checks.305 renderer/four browser cases, all types/build/freshness/kit/lint and refreshed thumbnails pass. Original42 pages/11 media/appearance/plugin preserved; owned resources cleaned. Original audit8accepted/16open. [Evidence](hero-video-20260921.md).
+
+
 September21 Hero styles: **57/137 blocks verified;80 pending.** Main Hero now supports default/editorial/poster through four explicit pack-owned treatments. Added a finite BlockDemo style selector and shared typed SDK composition, preserving historical/default content. Native style save/reopen/exact recovery and both actual published Website styles pass desktop/mobile/media/keyboard checks.304 renderer/six presentation/four browser cases, all types/build/freshness/kit/thumbnails/lint pass. Original42 pages/appearance/plugin/media preserved; owned resources cleaned. Original audit8accepted/16open. [Evidence](hero-styles-20260921.md).
 
 

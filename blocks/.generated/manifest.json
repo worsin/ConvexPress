@@ -1,13 +1,13 @@
 {
   "files": {
-    "ai-catalog.ts": "bba63744b0d77de1037fb8bcba0ab4308d21ec11d95d00817ae6a4e002e5c898",
+    "ai-catalog.ts": "de98c0a817bf94bb8e2bd4cd1c83163e3ccda68a56699b4b348c60ac2d9f7041",
     "block-spec.schema.json": "22b6b067964068979baf35b4c88f1f8d1cf0d495f8e9a1a73d83637835060eb0",
-    "catalog.json": "9258eccc385271a7c1fef591085086ea2d31f476983d8b63772509700e740203",
+    "catalog.json": "2bb8e50a5da040580e2eb041f9e48a1a5ae0330c65b982bad932fdb363c2345d",
     "convex.ts": "4e4f69159963cdb2ab5ed321a2b50fdec9593f7de94e2913b2f9123423827e85",
-    "coverage.json": "b9133011bd63e51fbb79effd989f4c590b731587301138170128903b541e8f46",
+    "coverage.json": "37aa579d99c686026a812fbec52f4fd20057df212e7d23b3bf51c5aea098eb97",
     "dependencies.json": "2d825a9a89528594d7609c2dcb0787f4f5d28c116d8c195e7d667d51824a0348",
-    "editor-metadata.ts": "13aba49042cc9aa2dbf7ffa634ce946e843944b833874f3e818680618344c0b8",
-    "editors.json": "803b226bdae9033ee349fb7d848c53c2e571ecabae6cba50785c3f5cb042eb1d",
+    "editor-metadata.ts": "4aa03b4637821ff45ab54e7a05502c4c24188f471675075d2e52dcea6a8d9af4",
+    "editors.json": "ba79166c201fb90bafd44d8e05659247fa23bd2ad98a813831d048f4d9e5c1d7",
     "field-runtime.d.mts": "9e1d25230a1ff8ec61f818b6004c8927cef3c95502a2d0edb1c28604da3388ce",
     "field-runtime.mjs": "ce6b761fbbcd719779ca9c117948bbef5d50e45eff553904738c4998ed0b2e37",
     "instance-runtime.d.mts": "56a0e4c7115873efc02701e6ded4ff34c2f4e1e28e98a29ec3c45dd963405a14",
@@ -321,7 +321,7 @@
       "source": "blocks/core/hero-text-only/block.json"
     },
     {
-      "sha256": "ae8a0185413e9f6e0e96244d60da15893de897fe228ade281c6a3baeca720c88",
+      "sha256": "37b76a3deccb21c4ea1884437a342d42296507c27769d63dbcae3dc8f00ea7c2",
       "source": "blocks/core/hero-video/block.json"
     },
     {

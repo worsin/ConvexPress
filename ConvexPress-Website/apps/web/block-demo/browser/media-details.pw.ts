@@ -58,9 +58,10 @@ for (const viewport of [
 					width: node.getBoundingClientRect().width,
 				};
 			});
-			expect(media.controls).toBe(true);
+			expect(media.controls).toBe(false);
 			expect(media.autoplay).toBe(false);
 			expect(media.paused).toBe(true);
+			await expect(canvas.getByRole("button", { name: "Play video", exact: true })).toBeVisible();
 			expect(media.width).toBeGreaterThan(0);
 			expect(media.src).toContain("workshop-fixture");
 			expect(media.poster).toBeTruthy();
