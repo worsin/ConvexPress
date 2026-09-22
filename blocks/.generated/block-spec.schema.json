@@ -414,6 +414,16 @@
             "nullable": {
               "type": "boolean"
             },
+            "options": {
+              "items": {
+                "maxLength": 100,
+                "pattern": "^[a-z][a-z0-9-]*$",
+                "type": "string"
+              },
+              "maxItems": 100,
+              "minItems": 1,
+              "type": "array"
+            },
             "required": {
               "type": "boolean"
             },
@@ -422,7 +432,7 @@
               "type": "string"
             },
             "type": {
-              "const": "boolean",
+              "const": "icon",
               "type": "string"
             }
           },
@@ -458,7 +468,7 @@
               "type": "string"
             },
             "type": {
-              "const": "icon",
+              "const": "boolean",
               "type": "string"
             }
           },

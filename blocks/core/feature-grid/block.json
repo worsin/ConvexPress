@@ -7,7 +7,7 @@
   "version": 2,
   "keywords": [],
   "ai": {
-    "useFor": "3\u20136 features or benefits with short descriptions",
+    "useFor": "3–6 features or benefits with short descriptions",
     "avoid": "more than 8 items (consider splitting)"
   },
   "fields": [
@@ -37,6 +37,26 @@
       "max": 12,
       "fields": [
         {
+          "id": "icon",
+          "type": "icon",
+          "options": [
+            "book-open",
+            "arrow-right",
+            "arrow-up-right",
+            "check",
+            "plus",
+            "minus",
+            "star",
+            "heart",
+            "mail",
+            "map-pin",
+            "calendar",
+            "clock",
+            "search"
+          ],
+          "description": "Optional decorative symbol. Not supplied leaves the card without an icon."
+        },
+        {
           "id": "title",
           "default": "",
           "type": "text",
@@ -48,6 +68,34 @@
           "type": "text",
           "max": 300,
           "multiline": true
+        },
+        {
+          "id": "link",
+          "type": "object",
+          "title": "Feature link",
+          "description": "Optional labeled destination below the feature.",
+          "fields": [
+            {
+              "id": "label",
+              "type": "text",
+              "title": "Link label",
+              "required": true,
+              "min": 1,
+              "max": 160
+            },
+            {
+              "id": "href",
+              "type": "link",
+              "title": "Destination",
+              "storage": "href",
+              "required": true
+            },
+            {
+              "id": "newTab",
+              "title": "Open in a new tab",
+              "type": "boolean"
+            }
+          ]
         }
       ]
     }
@@ -80,15 +128,22 @@
       "items": [
         {
           "title": "AI-first",
-          "description": "Type a prompt, get a page."
+          "description": "Type a prompt, get a page.",
+          "icon": "star",
+          "link": {
+            "label": "Explore the studies",
+            "href": "#studies"
+          }
         },
         {
           "title": "Skill-driven",
-          "description": "Themes own the look."
+          "description": "Themes own the look.",
+          "icon": "book-open"
         },
         {
           "title": "Real-time",
-          "description": "Powered by Convex."
+          "description": "Powered by Convex.",
+          "icon": "clock"
         }
       ]
     }
@@ -123,6 +178,17 @@
         "description"
       ],
       "format": "prose"
+    }
+  ],
+  "authoringActions": [
+    {
+      "path": [
+        "items",
+        "*",
+        "link"
+      ],
+      "href": "href",
+      "label": "label"
     }
   ]
 }

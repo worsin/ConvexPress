@@ -1,7 +1,7 @@
 {
   "name": "core/bento-grid",
   "title": "Bento grid",
-  "description": "Modern asymmetric feature layout \u2014 large + small cells.",
+  "description": "Modern asymmetric feature layout — large + small cells.",
   "category": "marketing",
   "role": "content",
   "version": 2,
@@ -36,6 +36,17 @@
       "type": "repeater",
       "max": 12,
       "fields": [
+        {
+          "id": "size",
+          "title": "Tile size",
+          "type": "select",
+          "options": [
+            "auto",
+            "standard",
+            "wide"
+          ],
+          "description": "Auto retains the original first/last tile arrangement. Standard spans one column; wide spans both. All tiles stack in narrow containers."
+        },
         {
           "id": "title",
           "default": "",

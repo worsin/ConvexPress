@@ -245,7 +245,7 @@
         "example": 1,
         "sha256": "4ab527622667b586442beeb05c6ebb85cf0792caaeab372296e2cec7e3335a17",
         "bytes": 10973,
-        "capturedAt": "2026-09-22T01:08:26.480Z"
+        "capturedAt": "2026-09-22T01:28:05.237Z"
       },
       "core/booking-cta": {
         "src": "/block-thumbnails/aster-house/core--booking-cta.jpg",
@@ -362,9 +362,9 @@
       "core/feature-grid": {
         "src": "/block-thumbnails/aster-house/core--feature-grid.jpg",
         "example": 1,
-        "sha256": "58a578091b6cd37afedb9ec2ed9b6d9578038cb521b1c13766d4b72ff0ef09b9",
-        "bytes": 19153,
-        "capturedAt": "2026-09-22T01:08:26.581Z"
+        "sha256": "bc4858b99e59daa4c333414888a703c06fe4f22e96fba5c0c48a3c637f855401",
+        "bytes": 18945,
+        "capturedAt": "2026-09-22T01:28:05.338Z"
       },
       "core/feature-list-alternating": {
         "src": "/block-thumbnails/aster-house/core--feature-list-alternating.jpg",
@@ -1088,7 +1088,7 @@
         "example": 1,
         "sha256": "b767925196e5c37515db60d2adc4ec8a607cc2a797492e48f564d8ba034a6434",
         "bytes": 12874,
-        "capturedAt": "2026-09-22T01:08:24.597Z"
+        "capturedAt": "2026-09-22T01:28:03.920Z"
       },
       "core/booking-cta": {
         "src": "/block-thumbnails/core/core--booking-cta.jpg",
@@ -1205,9 +1205,9 @@
       "core/feature-grid": {
         "src": "/block-thumbnails/core/core--feature-grid.jpg",
         "example": 1,
-        "sha256": "7efd1d1948cdeec7b8ddcf7ed76d529a6a0847d1b8455ade8e85a0a3354a2c25",
-        "bytes": 22104,
-        "capturedAt": "2026-09-22T01:08:24.687Z"
+        "sha256": "dab7a54f41d87089d9ffc3b2e585fd5b445c3f6ed975fd840cec54a9aaec19ae",
+        "bytes": 21468,
+        "capturedAt": "2026-09-22T01:28:04.019Z"
       },
       "core/feature-list-alternating": {
         "src": "/block-thumbnails/core/core--feature-list-alternating.jpg",
@@ -1968,7 +1968,7 @@
         "example": 1,
         "sha256": "90bcfff2e2d7ae0bf2495aea1e7273559ffa52cba71f92641a53522dffdb3339",
         "bytes": 8057,
-        "capturedAt": "2026-09-22T01:08:25.679Z"
+        "capturedAt": "2026-09-22T01:28:04.542Z"
       },
       "core/booking-cta": {
         "src": "/block-thumbnails/depot/core--booking-cta.jpg",
@@ -2099,9 +2099,9 @@
       "core/feature-grid": {
         "src": "/block-thumbnails/depot/core--feature-grid.jpg",
         "example": 1,
-        "sha256": "747142a408310de90e177ece9d474f413c89d844d976808be53c7998b529c899",
-        "bytes": 20479,
-        "capturedAt": "2026-09-22T01:08:25.772Z"
+        "sha256": "550e15c72bc95144761a28be63fd2df8f826115266aaf8dbd12531300e981012",
+        "bytes": 19357,
+        "capturedAt": "2026-09-22T01:28:04.629Z"
       },
       "core/feature-list-alternating": {
         "src": "/block-thumbnails/depot/core--feature-list-alternating.jpg",
@@ -2892,7 +2892,7 @@
         "example": 1,
         "sha256": "cf5a459e90487b513d40d5dabe7eaaa2d918cd93c0d870d313b1d58ea89fdcab",
         "bytes": 12422,
-        "capturedAt": "2026-09-22T01:08:25.125Z"
+        "capturedAt": "2026-09-22T01:28:04.260Z"
       },
       "core/booking-cta": {
         "src": "/block-thumbnails/journal/core--booking-cta.jpg",
@@ -3009,9 +3009,9 @@
       "core/feature-grid": {
         "src": "/block-thumbnails/journal/core--feature-grid.jpg",
         "example": 1,
-        "sha256": "2d9918c799128b64288680410d167f7eef534c70effd239b5c9d7ff276a512f1",
-        "bytes": 19657,
-        "capturedAt": "2026-09-22T01:08:25.233Z"
+        "sha256": "6664271c9213a25acb0996dd5bdfeb091404c76bf385a2de6560f4bc89b359fe",
+        "bytes": 19742,
+        "capturedAt": "2026-09-22T01:28:04.344Z"
       },
       "core/feature-list-alternating": {
         "src": "/block-thumbnails/journal/core--feature-list-alternating.jpg",

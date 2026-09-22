@@ -19,12 +19,14 @@ export default defineBlock("core/feature-grid", ({ attrs }) => (
 								<span className="depot-ordinal" aria-hidden="true">
 									{String(index + 1).padStart(2, "0")}
 								</span>
+								{item.icon && <P.Icon name={item.icon} size="lg" />}
 								{item.title && (
 									<P.Heading level={3} size="md">
 										{item.title}
 									</P.Heading>
 								)}
 								{item.description && <Prose text={item.description} />}
+								{item.link && <P.Link {...item.link} />}
 							</P.Stack>
 						</CardCopy>
 					</article>

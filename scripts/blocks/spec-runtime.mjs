@@ -54,7 +54,8 @@ export function createBlockSpecCompiler(z) {
     z.object({ ...common, type: z.literal("reference"), of: z.enum(["product", "productCategory", "productTag", "post", "page", "category", "course", "event", "eventCategory", "tag", "user", "bundle", "membershipPlan", "recipe", "album", "syncedBlock", "mailingList", "poll", "instructor", "kbCategory"]), storage: z.enum(["id", "slug"]).optional(), allowEmpty: z.boolean().optional(), max: size.optional() }).strict(),
     z.object({ ...common, type: z.literal("media"), storage: z.literal("id").optional(), allowEmpty: z.boolean().optional(), max: size.optional() }).strict(),
     z.object({ ...common, type: z.literal("link"), protocols: z.array(z.enum(["http", "https", "relative", "anchor", "mailto", "tel"])).min(1).max(6).optional(), storage: z.literal("href").optional(), allowEmpty: z.boolean().optional(), max: size.optional() }).strict(),
-    ...["boolean", "icon", "color-role", "date", "menu", "form"].map(type => z.object({ ...common, type: z.literal(type) }).strict()),
+    z.object({ ...common, type: z.literal("icon"), options: z.array(z.string().max(100).regex(/^[a-z][a-z0-9-]*$/)).min(1).max(100).optional() }).strict(),
+    ...["boolean", "color-role", "date", "menu", "form"].map(type => z.object({ ...common, type: z.literal(type) }).strict()),
     z.object({ ...common, type: z.literal("repeater"), constraints, min: z.number().int().min(0).max(1000).optional(), max: z.number().int().min(0).max(1000).optional(), fields: z.lazy(() => z.array(fieldSchema).min(1).max(100)).optional(), item: z.lazy(() => fieldSchema).optional() }).strict(),
     z.object({ ...common, type: z.literal("object"), constraints, fields: z.lazy(() => z.array(fieldSchema).min(1).max(100)) }).strict(),
   ];
@@ -103,7 +104,7 @@ export function createBlockSpecCompiler(z) {
       case "boolean": schema = z.boolean(); break;
       case "select": schema = field.options.length === 1 ? z.literal(field.options[0]) : z.union(field.options.map(value => z.literal(value))); break;
       case "color-role": schema = z.enum(["primary", "accent", "muted"]); break;
-      case "icon": schema = z.string().max(100).regex(/^[a-z][a-z0-9-]*$/); break;
+      case "icon": schema = field.options ? z.enum(field.options) : z.string().max(100).regex(/^[a-z][a-z0-9-]*$/); break;
       case "date": schema = dateSchema(z); break;
       case "link": {
         const href = safeLinkSchema(z, field.protocols);

@@ -400,7 +400,8 @@ function Field(props: FieldProps) {
 	);
 	const scalar = () => {
 		if (
-			["text", "icon", "date"].includes(field.type) ||
+			["text", "date"].includes(field.type) ||
+			(field.type === "icon" && !field.options) ||
 			(field.type === "link" && field.storage === "href")
 		)
 			return field.type === "text" &&
@@ -449,7 +450,11 @@ function Field(props: FieldProps) {
 					onChange={(event) => set(event.target.checked)}
 				/>
 			);
-		if (field.type === "select" || field.type === "color-role") {
+		if (
+			field.type === "select" ||
+			field.type === "color-role" ||
+			(field.type === "icon" && field.options)
+		) {
 			const options = field.options ?? ["primary", "accent", "muted"];
 			return (
 				<select

@@ -10,6 +10,33 @@ import type { BlockName } from "../../ConvexPress-Admin/packages/backend/canonic
 const root = fileURLToPath(new URL("../../", import.meta.url));
 const runtime = createBlockSpecCompiler(z);
 
+test("feature icons and links and authored Bento sizes preserve old content and reject unsupported choices", async () => {
+  const { blocks } = await discoverBlocks(root);
+  for (const name of ["core/feature-grid", "core/bento-grid"]) {
+    const spec = runtime.parseBlockSpec(blocks.find(block => block.spec.name === name)!.spec);
+    const schema = runtime.attrsSchema(spec.fields, spec.constraints);
+    const old = schema.parse({ items: [{ title: "An existing card" }] });
+    const item = old.items[0];
+    expect(Object.hasOwn(item, "icon")).toBe(false);
+    expect(Object.hasOwn(item, "link")).toBe(false);
+    expect(Object.hasOwn(item, "size")).toBe(false);
+    if (name === "core/feature-grid") {
+      for (const icon of ["book-open", "heart", "check"])
+        expect(schema.parse({ items: [{ icon }] }).items[0].icon).toBe(icon);
+      expect(() => schema.parse({ items: [{ icon: "not-in-this-kit" }] })).toThrow();
+      const linked = schema.parse({ items: [{ link: { label: "Explore", href: "/studies", newTab: true } }] });
+      expect(validateAuthoringActions(z, linked, spec.authoringActions)).toEqual(linked);
+      for (const label of ["", "   "])
+        expect(() => validateAuthoringActions(z, schema.parse({ items: [{ link: { label, href: "/studies" } }] }), spec.authoringActions)).toThrow();
+      expect(() => schema.parse({ items: [{ link: { label: "Open", href: "javascript:alert(1)" } }] })).toThrow();
+    } else {
+      for (const size of ["auto", "standard", "wide"])
+        expect(schema.parse({ items: [{ size }] }).items[0].size).toBe(size);
+      expect(() => schema.parse({ items: [{ size: "arbitrary-css" }] })).toThrow();
+    }
+  }
+});
+
 test("authoring action declarations bind real sibling fields and preserve read compatibility", () => {
   const spec = runtime.parseBlockSpec(tabbedSpec);
   const schema = runtime.attrsSchema(spec.fields, spec.constraints);

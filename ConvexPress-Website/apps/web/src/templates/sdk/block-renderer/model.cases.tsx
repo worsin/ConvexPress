@@ -15,6 +15,8 @@ import quote from "../../../../../../../blocks/core/quote/render";
 import pullquote from "../../../../../../../blocks/core/pullquote/render";
 import codeBlock from "../../../../../../../blocks/core/code/render";
 import image from "../../../../../../../blocks/core/image/render";
+import featureGrid from "../../../../../../../blocks/core/feature-grid/render";
+import bentoGrid from "../../../../../../../blocks/core/bento-grid/render";
 import catalog from "../../../../../../../blocks/.generated/catalog.json";
 import { publicCanonicalTree } from "../block-data/portable/publicTree";
 import { validateCanonicalTree } from "../block-data/portable/generated/instances";
@@ -28,6 +30,30 @@ const policy: RenderPolicy = {
 	capabilities: ["tree.children"],
 	disabledBlocks: [],
 };
+test("feature symbols and labeled links render without changing old cards", () => {
+  const renderers = discoverRenderers({ "/blocks/core/feature-grid/render.tsx": featureGrid });
+  const render = (items: unknown[]) => renderToStaticMarkup(prepareBlocks([{ id: "features", name: "core/feature-grid", version: 2, attrs: { items } }], renderers, policy));
+  const old = render([{ title: "Existing feature", description: "Existing description" }]);
+  expect(old).not.toContain("cp-icon");
+  expect(old).not.toContain("<a ");
+  const icons = ["book-open", "arrow-right", "arrow-up-right", "check", "plus", "minus", "star", "heart", "mail", "map-pin", "calendar", "clock", "search"];
+  for (const icon of icons) {
+    const html = render([{ title: "A supported feature", icon, link: { label: "Explore", href: "/studies", newTab: true } }]);
+    expect(html).toContain("cp-icon");
+    expect(html).toContain('aria-hidden="true"');
+    expect(html).toContain('href="/studies"');
+    expect(html).toContain('rel="noopener noreferrer"');
+    expect(html).toContain("opens in a new tab");
+  }
+});
+test("authored Bento sizes override only their own tile and retain legacy arrangement", () => {
+  const renderers = discoverRenderers({ "/blocks/core/bento-grid/render.tsx": bentoGrid });
+  const widths = (items: unknown[]) => [...renderToStaticMarkup(prepareBlocks([{ id: "bento", name: "core/bento-grid", version: 2, attrs: { items } }], renderers, policy)).matchAll(/data-wide="(true|false)"/g)].map(match => match[1]);
+  expect(widths([{}, {}, {}])).toEqual(["true", "false", "false"]);
+  expect(widths([{}, {}, {}, {}])).toEqual(["true", "false", "false", "true"]);
+  expect(widths([{ size: "standard" }, { size: "wide" }, { size: "auto" }])).toEqual(["false", "true", "false"]);
+  expect(widths([{ size: "standard" }, { size: "wide" }, {}, { size: "standard" }])).toEqual(["false", "true", "false", "false"]);
+});
 const editorialRegistry = discoverRenderers({
   "/blocks/core/quote/render.tsx": quote,
   "/blocks/core/pullquote/render.tsx": pullquote,

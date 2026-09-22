@@ -43,7 +43,7 @@ const schemaFactories = {
 "core/audio":once(()=>z.object({"media":z.object({id:z.string().min(1).max(256),alt:z.string().max(1000).optional(),focalPoint:z.object({x:z.number().min(0).max(1),y:z.number().min(0).max(1)}).strict().optional()}).strict().optional(),"title":z.string().max(160).prefault(""),"transcript":z.object({label:z.string().max(160),href:safeLinkSchema(z,["https","http","relative"]),newTab:z.boolean().optional()}).strict().optional()}).strict()),
 "core/author-bio":once(()=>z.object({"userId":z.string().prefault(""),"name":z.string().max(80).prefault(""),"role":z.string().max(80).prefault(""),"bio":z.string().max(500).prefault(""),"mediaId":z.string().prefault(""),"links":z.array(z.object({"label":z.string().max(40).prefault(""),"href":safeLinkSchema(z,undefined).or(z.literal("")).prefault("")}).strict()).max(6).prefault([])}).strict()),
 "core/before-after":once(()=>z.object({"before":z.object({id:z.string().min(1).max(256),alt:z.string().max(1000).optional(),focalPoint:z.object({x:z.number().min(0).max(1),y:z.number().min(0).max(1)}).strict().optional()}).strict().optional(),"after":z.object({id:z.string().min(1).max(256),alt:z.string().max(1000).optional(),focalPoint:z.object({x:z.number().min(0).max(1),y:z.number().min(0).max(1)}).strict().optional()}).strict().optional(),"beforeLabel":z.string().max(80).prefault("Before"),"afterLabel":z.string().max(80).prefault("After")}).strict()),
-"core/bento-grid":once(()=>z.object({"eyebrow":z.string().max(80).prefault(""),"heading":z.string().max(120).prefault(""),"body":z.string().max(300).prefault(""),"items":z.array(z.object({"title":z.string().max(80).prefault(""),"body":z.string().max(400).prefault(""),"mediaId":z.string().prefault(""),"ctaLabel":z.string().max(40).prefault(""),"ctaUrl":safeLinkSchema(z,undefined).or(z.literal("")).prefault("")}).strict()).max(12).prefault([])}).strict()),
+"core/bento-grid":once(()=>z.object({"eyebrow":z.string().max(80).prefault(""),"heading":z.string().max(120).prefault(""),"body":z.string().max(300).prefault(""),"items":z.array(z.object({"size":z.union([z.literal("auto"),z.literal("standard"),z.literal("wide")]).optional(),"title":z.string().max(80).prefault(""),"body":z.string().max(400).prefault(""),"mediaId":z.string().prefault(""),"ctaLabel":z.string().max(40).prefault(""),"ctaUrl":safeLinkSchema(z,undefined).or(z.literal("")).prefault("")}).strict()).max(12).prefault([])}).strict()),
 "core/booking-cta":once(()=>z.object({"eyebrow":z.string().max(80).prefault(""),"heading":z.string().max(120).min(1).nullable().prefault(null),"body":z.string().max(400).prefault(""),"ctaLabel":z.string().max(40).prefault("Book a time"),"ctaUrl":safeLinkSchema(z,undefined).or(z.literal("")).prefault(""),"embedUrl":safeLinkSchema(z,undefined).or(z.literal("")).prefault("")}).strict()),
 "core/breadcrumbs":once(()=>z.object({"source":z.union([z.literal("auto"),z.literal("manual")]).prefault("auto"),"items":z.array(z.object({"label":z.string().max(160).min(1),"link":z.object({label:z.string().max(160),href:safeLinkSchema(z,undefined),newTab:z.boolean().optional()}).strict().optional()}).strict()).max(12).prefault([])}).strict()),
 "core/callout":once(()=>z.object({"kind":z.union([z.literal("note"),z.literal("tip"),z.literal("important"),z.literal("warning")]).prefault("note"),"title":z.string().max(160).prefault(""),"body":createRichTextSchema(z,12000,false).optional()}).strict()),
@@ -62,7 +62,7 @@ const schemaFactories = {
 "core/embed":once(()=>z.object({"url":safeLinkSchema(z,undefined).or(z.literal("")).prefault(""),"caption":z.string().max(300).prefault("")}).strict()),
 "core/event-rsvp":once(()=>z.object({"event":z.string().min(1).max(256).optional()}).strict()),
 "core/faq":once(()=>z.object({"eyebrow":z.string().max(80).prefault(""),"heading":z.string().max(120).prefault(""),"body":z.string().max(400).prefault(""),"items":z.array(z.object({"question":z.string().max(200).prefault(""),"answer":z.string().max(1000).prefault("")}).strict()).max(40).prefault([])}).strict()),
-"core/feature-grid":once(()=>z.object({"eyebrow":z.string().max(80).prefault(""),"heading":z.string().max(120).prefault(""),"body":z.string().max(400).prefault(""),"items":z.array(z.object({"title":z.string().max(80).prefault(""),"description":z.string().max(300).prefault("")}).strict()).max(12).prefault([])}).strict()),
+"core/feature-grid":once(()=>z.object({"eyebrow":z.string().max(80).prefault(""),"heading":z.string().max(120).prefault(""),"body":z.string().max(400).prefault(""),"items":z.array(z.object({"icon":z.enum(["book-open","arrow-right","arrow-up-right","check","plus","minus","star","heart","mail","map-pin","calendar","clock","search"]).optional(),"title":z.string().max(80).prefault(""),"description":z.string().max(300).prefault(""),"link":z.object({"label":z.string().max(160).min(1),"href":safeLinkSchema(z,undefined),"newTab":z.boolean().optional()}).strict().optional()}).strict()).max(12).prefault([])}).strict()),
 "core/feature-list-alternating":once(()=>z.object({"eyebrow":z.string().max(80).prefault(""),"heading":z.string().max(120).prefault(""),"body":z.string().max(400).prefault(""),"items":z.array(z.object({"title":z.string().max(80).prefault(""),"body":z.string().max(400).prefault(""),"mediaId":z.string().prefault(""),"mediaAlt":z.string().max(200).prefault(""),"ctaLabel":z.string().max(40).prefault(""),"ctaUrl":safeLinkSchema(z,undefined).or(z.literal("")).prefault("")}).strict()).max(10).prefault([])}).strict()),
 "core/feature-tabs":once(()=>z.object({"tabs":z.array(z.object({"label":z.string().max(80).min(1),"title":z.string().max(160).prefault(""),"body":createRichTextSchema(z,12000,false).optional(),"media":z.object({id:z.string().min(1).max(256),alt:z.string().max(1000).optional(),focalPoint:z.object({x:z.number().min(0).max(1),y:z.number().min(0).max(1)}).strict().optional()}).strict().optional()}).strict()).max(12).prefault([])}).strict()),
 "core/featured-page":once(()=>z.object({"page":z.string().min(1).max(256).optional(),"ctaLabel":z.string().max(160).prefault("Read more")}).strict()),
@@ -413,6 +413,17 @@ const authoringActions: Readonly<Record<string, readonly AuthoringAction[]>> = {
       "path": [
         "items",
         "*"
+      ]
+    }
+  ],
+  "core/feature-grid": [
+    {
+      "href": "href",
+      "label": "label",
+      "path": [
+        "items",
+        "*",
+        "link"
       ]
     }
   ],

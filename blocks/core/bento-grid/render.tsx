@@ -15,7 +15,16 @@ export default defineBlock("core/bento-grid", ({ attrs, resources }) => (
 		<div className="cp-library-bento-shell">
 			<div className="cp-library-bento">
 				{attrs.items.map((item, index) => (
-					<article key={index} data-has-media={Boolean(item.mediaId)}>
+					<article
+						key={index}
+						data-has-media={Boolean(item.mediaId)}
+						data-wide={
+							item.size === "wide" ||
+							((!item.size || item.size === "auto") &&
+								(index === 0 ||
+									(index === attrs.items.length - 1 && attrs.items.length % 2 === 0)))
+						}
+					>
 						<P.Card>
 							<div className="cp-library-bento-card-layout">
 								{item.mediaId && (

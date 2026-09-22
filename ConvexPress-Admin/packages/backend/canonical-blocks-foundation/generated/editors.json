@@ -2877,6 +2877,17 @@
         "default": [],
         "fields": [
           {
+            "description": "Auto retains the original first/last tile arrangement. Standard spans one column; wide spans both. All tiles stack in narrow containers.",
+            "id": "size",
+            "options": [
+              "auto",
+              "standard",
+              "wide"
+            ],
+            "title": "Tile size",
+            "type": "select"
+          },
+          {
             "default": "",
             "id": "title",
             "max": 80,
@@ -3918,6 +3929,26 @@
         "default": [],
         "fields": [
           {
+            "description": "Optional decorative symbol. Not supplied leaves the card without an icon.",
+            "id": "icon",
+            "options": [
+              "book-open",
+              "arrow-right",
+              "arrow-up-right",
+              "check",
+              "plus",
+              "minus",
+              "star",
+              "heart",
+              "mail",
+              "map-pin",
+              "calendar",
+              "clock",
+              "search"
+            ],
+            "type": "icon"
+          },
+          {
             "default": "",
             "id": "title",
             "max": 80,
@@ -3929,6 +3960,34 @@
             "max": 300,
             "multiline": true,
             "type": "text"
+          },
+          {
+            "description": "Optional labeled destination below the feature.",
+            "fields": [
+              {
+                "id": "label",
+                "max": 160,
+                "min": 1,
+                "required": true,
+                "title": "Link label",
+                "type": "text"
+              },
+              {
+                "id": "href",
+                "required": true,
+                "storage": "href",
+                "title": "Destination",
+                "type": "link"
+              },
+              {
+                "id": "newTab",
+                "title": "Open in a new tab",
+                "type": "boolean"
+              }
+            ],
+            "id": "link",
+            "title": "Feature link",
+            "type": "object"
           }
         ],
         "id": "items",

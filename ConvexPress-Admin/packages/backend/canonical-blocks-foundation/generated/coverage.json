@@ -3788,14 +3788,21 @@
           "items": [
             {
               "description": "Type a prompt, get a page.",
+              "icon": "star",
+              "link": {
+                "href": "#studies",
+                "label": "Explore the studies"
+              },
               "title": "AI-first"
             },
             {
               "description": "Themes own the look.",
+              "icon": "book-open",
               "title": "Skill-driven"
             },
             {
               "description": "Powered by Convex.",
+              "icon": "clock",
               "title": "Real-time"
             }
           ]

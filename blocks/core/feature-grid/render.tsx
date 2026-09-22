@@ -17,12 +17,14 @@ export default defineBlock("core/feature-grid", ({ attrs }) => (
 					<P.Card key={index}>
 						<CardCopy>
 							<P.Stack gap="md">
+								{item.icon && <P.Icon name={item.icon} size="lg" />}
 								{item.title && (
 									<P.Heading level={3} size="md">
 										{item.title}
 									</P.Heading>
 								)}
 								{item.description && <Prose text={item.description} />}
+								{item.link && <P.Link {...item.link} />}
 							</P.Stack>
 						</CardCopy>
 					</P.Card>
