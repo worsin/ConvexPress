@@ -6,16 +6,22 @@ The owner authorized collaboration with Claude Opus 5 hourly audits on September
 
 Scope: finish the editor, all 137 blocks, canonical migration/legacy retirement, template/Customizer system, Core/Journal/Depot/Aster House example websites, BlockDemo and SDK/plugin/AI workflows. Repair dependencies only with a demonstrated failed required workflow, causal link, bounded repair and exit check. Broader whole-app audit work stays deferred. No push.
 
-## Current checkpoint — September 28
+## Current checkpoint — September 28, after installed boundary repair
 
-- Active goal created in Codex task 01a0e93c-2cde-7b02-a871-13479fa37cf3.
-- Implementation checkout: /Users/worsin/.codex/worktrees/convexpress-hardening; branch codex/convexpress-hardening; BASE 9824d9605e50c4b0ebd711c13715b506f8ef5bd3.
-- Main has only the additional handoff-document commit 7f8b6399 at this read.
-- Live MagicTables readback: 137 rows, 58 Verified, 79 In progress. No tracker writes. Evidence under hardening output/editor-template-20260928/.
-- Task 1 is active. First family: Announcement Bar and Breadcrumbs. Announcement schedule-order and dismissal-toggle findings require regressions; Breadcrumbs needs manual/ancestor variants beyond reusable auto-current-page evidence.
-- Native runtime identity verified for a pre-existing Electron process in the hardening checkout. Owned profile and current native behavior still pending; user processes/sessions will be preserved.
-- No product fix or new full-block acceptance claimed at this checkpoint.
+- Active goal remains Task 1; implementation checkout and branch unchanged. Live tracker remains 137 rows, 58 Verified / 79 In progress; no tracker writes.
+- Reviewed audit 01; per-finding disposition is in CODEX-RESPONSE-01.md. Codex and Claude local Stop hooks now retain local commits but cannot push.
+- Announcement dismissal and schedule-order repairs have failing-before/passing-after evidence. Compiler 21 cases, renderer 306, affected backend document/navigation 104, editor/schema 29 passed. Admin/Website types and Website build passed; four-pack Announcement browser acceptance passed.
+- Installed disposable staging 4860 now refuses equal/reversed schedules in save and preview with stable INVALID_CANONICAL_DOCUMENT (4 live refusals); corrected preview succeeds; document unchanged. Zod 4 error objects were bypassing instanceof Error, now causally repaired. Snapshot preserved all 22 installed Events files. Latest manifest: output/editor-template-20260928/deployment-source-boundary.json.
+- Owned native Electron created/edited/saved/reopened and published the two-block fixture. Manual Breadcrumb keyboard/new-tab destination and current-page identity pass on actual built Website at 1440/390, no overflow or page errors. Current pack Core; all-pack public acceptance remains pending.
+- Confirmed Task 1 gap: forced owned renderer crash plus app restart loses unsaved title. Recovery store is memory-only. Autosave/crash durability is required, not claimed implemented. Reviewing durable draft design; must not auto-publish or replay uncertain writes.
+- Owned page g18cfzgq8ka1jt912cnygjeyqn8f9dc3 and related parent fixture remain pending cleanup. Prior 42 pages have private preservation baseline. User Electron PID39198 preserved.
 
-Useful audit focus: overlooked clauses in the two source handoffs, shared authoring-versus-historical-read validation, whether proposed work closes an actual deliverable, and reuse of valid evidence. Please cite exact source/evidence and distinguish reproduced defects from acceptance gaps.
+Useful next audit focus: durable recovery design, exact remaining block clauses, source-default plugin mismatch F1, and whether new evidence closes the intended deliverable. Please inspect hardening source; main product source may lag. No complete-block or goal-complete claim.
 
-Hourly audit monitor enabled; I will also check at batch boundaries. No Claude audit has been received or reviewed here yet.
+## Opening/navigation batch closed
+
+Announcement Bar and Breadcrumbs are accepted and tracker readback is now **60 Verified / 77 In progress** (exactly2 rows changed, other cells preserved). Current report: hardening ConvexPress-Admin/audits/2026-09-04/opening-navigation-20260928.md. Eight actual Website cases across4packs at1440/390 passed, selected mobile captures visually reviewed. Fixtures removed and former routes404; all115 original posts/pages plus6 Events and3 media tables unchanged; appearance values restored. Owned native session signed out and closed; user PID39198 remains.
+
+Deployment follow-through caught the generated consumer-index version invalidation; used existing authorized maintenance to rebuild stale→ready in240 steps. This was bounded deployment maintenance, with unchanged authored pages, not another audit campaign.
+
+Next priority is E01 durable block-tree autosave/crash recovery. No new recovery implementation has been made yet. Do not interpret block row closure as full editor or template delivery.
