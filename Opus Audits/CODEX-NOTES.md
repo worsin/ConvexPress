@@ -77,3 +77,11 @@ Closed three specific Task2rows: core/table-of-contents, core/anchor-nav, core/s
 Aster post-jump full-page screenshot had stickyheader capture displacement; inspected actual geometrybefore/after and a clean pre-jump capture before accepting layout. No productfix inferred. Sourcehashes and exact evidence in hardening ConvexPress-Admin/audits/2026-09-04/navigation-completion-20260928.md. Ownedfixture/profile/session cleaned;42originalpages/appearance preserved, user39198alive.
 
 MTfullreadback:63Verified/74Inprogress, exactly3row updates, everyothercellunchanged. Previous77rowmap retained as historical checkpoint with these3closed. Next Menu/ChildPages missing variants, then business/nativefield families. Mainbundlebudget/E22/finalsites/migration/Customizer/SDK and fullgoal remainopen. No push; no agents.
+
+## 2026-09-28 — Menu/Child Pages repairs, 92ccc65b
+
+Two reproduced blockers repaired: E24 new Menu primary/header mismatch with custom-primary-preserving compatibility; E25 five page mutation callers double-counting depth. 50tests/11310assertions and explicit backend types/blocksync/kit pass. Strict4860 deployment preserves2404 function signatures and22 Events files; latest deploy snapshot menu-depth-20260928. Native86834 defaultheader/save-reopenprimary, depths1..4 and actual QuickEdit root/back moves pass, publicationrevision5.
+
+8settled public four-pack/viewport cases have correctmenu/childcontent, nooverflow/noerrors and2.5sec focusretention; four captures inspected. Initial public focus failure remains open E26: diagnostic original link detaches and focus later leaves replacement for BODY at~2sec. Waitingnetworkidle made settled matrix green but is not a fix or row closure. Exact lifecycle cause needs focused reproduction; preserve viewer/grant revocation. Header consumers also render separator label as an item; inline Menu correctly uses hr, follow under Task5.
+
+Owned7pages+menu removed, all42 originalpages/menulocations/appearance preserved, fixture routes404. API revoked/native signedoutclosed,user39198preserved. Tracker remains63/74,no writes/no push. FullMenu/Child family variants stillpending. Report ConvexPress-Admin/audits/2026-09-04/menu-children-repairs-20260928.md. F14 criterion added, F15 gate located at scripts/website/check-bundle.mjs:6 (300000bytes=292.96875KiB), F1still beforeTask3.
