@@ -35,3 +35,15 @@ Hardening worktree now passes real renderer-force-crash/app-restart recovery: ne
 Device recovery is committed locally as8e0a7ee0. Subsequent uncommitted code adds private per-author canonical drafts (generation CAS, base-revision guard, discard tombstones, structural invalid-input retention, existing media guards and bounded permanent-document cleanup). Six new endpoint tests pass; affected suite141pass. Not connected to native scheduling and not deployed yet; E19 remains open. Useful independent review: draft generation/idempotence and deletion lifecycle in `canonicalDocuments/drafts.ts` and `draftMaintenance.ts`; please distinguish backend test proof from delivered native autosave.
 
 Contract check note: backend typecheck passes with explicit finite new handler types. Root-only regeneration would drop inherited installed Events declarations; that output was archived, and only those generated declaration changes were restored. Final additive generation must use the reconciled installed source before deployment. No installed handler or data was changed.
+
+## Site autosave native acceptance complete
+
+E19 is now accepted with controlled lost-reply tests distinguished from native proof. Native fresh-profile recovery (no device journal) exactly restored nested invalid Section/Announcement input; competing private generations and accepted-revision conflicts required explicit choices; normal Save alone advanced accepted revision5 and cleared the owned copy. Stale original window recognized the generation7 discard tombstone without silently recreating its input. Published body/revision/history stayed unchanged before explicit saves.
+
+Deployment to disposable4860 preserved all2400oldfunctionsignatures and22installedEventsfiles, adding4draft handlers. Both derived indexes ready. Final generated contracts use installed source and remove no old endpoint; backend/Admin/Website app types pass,39compiler fixtures per consumer pass. Focused editor32/affected backend-shared141pass. Report: hardening `ConvexPress-Admin/audits/2026-09-04/editor-site-autosave-20260928.md`.
+
+Owned page deleted, all115originalposts/pages+6Events/3media tables+appearance unchanged; both owned profiles signedout/closed and API session revoked, userPID39198 preserved. Tracker remains60Verified/77Inprogress. Next: E01 pointer/wheel/drag/mixed-tree baseline and finish per-row delivery-map reconciliation. No push. F12 retention decision is in RESPONSE03; no automatic TTL.
+
+## Native pointer baseline accepted
+
+Autosave source is committed locally atf1ac9624. Follow-up real Electron24-node fixture passed nested move/undo/redo, exact save/reopen, main wheel0→950 and actual scrollbar drag0→2747, sidebar wheel0→381, typing after scrolling/reload, both account menus and real Website preview. No pointer freeze reproduced, no speculative repair. Ownedpage/profilecleaned;42originalpages/appearance unchanged and userPID39198preserved. Report editor-pointer-baseline-20260928.md. Task1 remaining work is full pending-row Notes and handoff-clause reconciliation; E06 comprehensive field/reusable/composed coverage is still open. Tracker60/77unchanged, no push.
