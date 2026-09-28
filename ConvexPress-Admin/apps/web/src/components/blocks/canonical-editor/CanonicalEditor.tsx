@@ -602,14 +602,15 @@ function EditorBody<N, V>({
 				{privateDraft.offered && (
 					<section role="alert" className="space-y-3 rounded border border-border bg-muted/40 p-4 text-sm">
 						<p className="font-medium">{privateDraft.offered.draft === null ? "The private Website draft was discarded" : "A private draft is saved on this Website"}</p>
-						<p>Choose which content to keep editing. This choice does not change the published Website.</p>
+						<p>{state.conflict ? "Resolve the saved revision below before choosing which private draft to keep." : "Choose which content to keep editing. This choice does not change the published Website."}</p>
 						<div className="flex flex-wrap gap-2">
-							<button type="button" disabled={externallyLocked || needsRecoveryChoice} onClick={() => privateDraft.choose("restore")} className="min-h-11 rounded border px-3 focus-visible:ring-2 focus-visible:ring-ring">{privateDraft.offered.draft === null ? "Use saved document" : "Restore Website draft"}</button>
-							<button type="button" disabled={externallyLocked || needsRecoveryChoice} onClick={() => privateDraft.choose("current")} className="min-h-11 rounded border px-3 focus-visible:ring-2 focus-visible:ring-ring">{state.dirty ? "Keep current editor draft" : "Discard Website draft"}</button>
+							<button type="button" disabled={externallyLocked || needsRecoveryChoice || !!state.pending || !!state.conflict} onClick={() => privateDraft.choose("restore")} className="min-h-11 rounded border px-3 focus-visible:ring-2 focus-visible:ring-ring">{privateDraft.offered.draft === null ? "Use saved document" : "Restore Website draft"}</button>
+							<button type="button" disabled={externallyLocked || needsRecoveryChoice || !!state.pending || !!state.conflict} onClick={() => privateDraft.choose("current")} className="min-h-11 rounded border px-3 focus-visible:ring-2 focus-visible:ring-ring">{state.dirty ? "Keep current editor draft" : "Discard Website draft"}</button>
 						</div>
 					</section>
 				)}
 				{privateDraft.status === "loading" && <p role="status" className="text-sm text-muted-foreground">Checking your private Website draft…</p>}
+				{privateDraft.status === "revision-conflict" && <p role="status" className="text-sm text-muted-foreground">Site autosave is paused while the saved revision is resolved. Your edits remain in this window.</p>}
 				{privateDraft.status === "error" && (
 					<div role="alert" className="space-y-2 rounded border p-3 text-sm">
 						<p>Site autosave is unavailable. Your edits remain in this window. Retry autosave or save changes.</p>

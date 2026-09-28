@@ -165,3 +165,7 @@ Focused generator, role, public lifecycle, four real page-layout DOM/SSR fixture
 ## E20/E21 live follow-through
 
 Selective canonical loading now passes real native incremental insertion/save/reload,16 built four-pack public cases and nested/reusable/custom SSR. E21 hero-first/ordinary-first title behavior is accepted in that live batch. See `ConvexPress-Admin/audits/2026-09-04/canonical-lazy-renderers-20260928.md`. Preserve the existing main-bundle budget failure and E22 evidence mapping as open gates. Opus04 F13 autosave-conflict routing is the next bounded reproduction; tracker remains60/77.
+
+## Opus04 F13 follow-through
+
+E23 records the reproduced private-autosave conflict routing repair. Controlled lost-reply/accepted-revision/local-Save overlap cases and actual two-native-window automatic/simultaneous conflict choices pass. See `ConvexPress-Admin/audits/2026-09-04/editor-autosave-conflicts-20260928.md` for the exact boundary and cleanup. E19 remains accepted. Resume remaining Task2 family acceptance; tracker unchanged60/77.

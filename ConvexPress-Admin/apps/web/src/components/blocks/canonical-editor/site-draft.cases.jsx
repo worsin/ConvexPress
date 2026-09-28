@@ -1,6 +1,7 @@
 import { expect, test } from "bun:test";
 import { createRequire } from "node:module";
 import { act, useState } from "react";
+import { ConvexError } from "convex/values";
 import { loadStaged } from "../schema-editor/test-harness";
 const require = createRequire(import.meta.url);
 const { JSDOM } = createRequire(require.resolve("isomorphic-dompurify"))("jsdom");
@@ -11,29 +12,31 @@ test("site drafts require review, serialize later typing and reconcile uncertain
   const old = names.map(name => [name, Object.getOwnPropertyDescriptor(globalThis, name)]);
   for (const name of names) Object.defineProperty(globalThis, name, { configurable: true, writable: true, value: name === "IS_REACT_ACT_ENVIRONMENT" ? true : dom.window[name] });
   const loaded = await loadStaged("../canonical-editor/site-draft.fixture.ts");
-  const { useSiteDraft, openDocument, editDocument, decodeSiteDraft, CanonicalEditor } = loaded.module;
+  const { useSiteDraft, openDocument, editDocument, decodeSiteDraft, CanonicalEditor, receiveDocument, keepDraftAgainstCurrent, beginSave, acceptSave } = loaded.module;
   const { createRoot } = await import("react-dom/client");
   const host = document.getElementById("app"); let root = createRoot(host);
   const key = { websiteKey: "site", instanceKey: "staging", documentId: "page", generation: "one" };
   const snapshot = { key, revision: 2, value: { title: "Saved", blocks: [] } };
   const value = title => ({ title, blocks: [{ id: "parent", children: [{ id: "nested", attrs: { unfinished: "" } }] }] });
   let record = { postId: "page", scope: { websiteKey: "site", instanceKey: "staging" }, generation: 1, baseRevision: 2, draft: value("Private"), updatedAt: 1 };
+  let acceptedRevision = 2, reads = 0;
   let writes = [], clears = [], pending = null, failAfterWrite = false, retired = false, current;
   const client = {
-    load: async () => structuredClone(record),
+    load: async () => { reads++; return structuredClone(record); },
     save: async args => {
       writes.push(structuredClone(args));
-      if (args.expectedGeneration !== record.generation) throw Error("DRAFT_CONFLICT");
+      if (args.expectedGeneration !== record.generation) throw new ConvexError({code:"DRAFT_CONFLICT"});
       if (pending) await pending.promise;
+      if (args.baseRevision !== acceptedRevision) throw new ConvexError({code:"CONFLICT"});
       record = { ...record, generation: record.generation + 1, baseRevision: args.baseRevision, draft: structuredClone(args.draft), updatedAt: record.updatedAt + 1 };
-      if (failAfterWrite) { failAfterWrite = false; throw Error("reply lost"); }
+      if (failAfterWrite) { failAfterWrite = false; throw Error("reply lost: CONFLICT diagnostic text is not a structured rejection"); }
       return structuredClone(record);
     },
-    discard: async args => { clears.push(args); if (args.expectedGeneration !== record.generation) throw Error("DRAFT_CONFLICT"); record = { ...record, draft: null, generation: record.generation + 1 }; return structuredClone(record); },
+    discard: async args => { clears.push(args); if (args.expectedGeneration !== record.generation) throw new ConvexError({code:"DRAFT_CONFLICT"}); record = { ...record, draft: null, generation: record.generation + 1 }; return structuredClone(record); },
   };
   function Harness() {
     const [session, setSession] = useState(() => openDocument(snapshot));
-    const persistence = useSiteDraft({ client, session, paused: !!session.conflict, delayMs: 5, restore: (draft, revision) => setSession(previous => ({ ...editDocument(openDocument(previous.base), draft), conflict: revision === previous.base.revision ? null : previous.base })) });
+    const persistence = useSiteDraft({ client, session, paused: !!session.conflict || !!session.pending, delayMs: 5, restore: (draft, revision) => setSession(previous => ({ ...editDocument(openDocument(previous.base), draft), conflict: revision === previous.base.revision ? null : previous.base })) });
     current = { session, persistence, setSession };
     return <><input value={session.draft.title} onChange={e => setSession(editDocument(session, value(e.target.value)))} /><p>{persistence.status}</p></>;
   }
@@ -53,24 +56,69 @@ test("site drafts require review, serialize later typing and reconcile uncertain
     await act(async () => { release(); pending = null; }); await pause();
     expect(writes).toHaveLength(2); expect(record.draft).toEqual(value("Typed during autosave"));
     failAfterWrite = true; await change("Uncertain save"); await pause(); expect(current.persistence.status).toBe("error");
-    const count = writes.length;
+    const count = writes.length, uncertainReads = reads;
+    await pause(); expect(reads).toBe(uncertainReads); expect(writes).toHaveLength(count);
     await act(async () => current.persistence.retry()); await pause();
     expect(writes).toHaveLength(count); expect(current.persistence.status).toBe("saved");
     record = { ...record, generation: record.generation + 1, draft: value("Other window") };
     await change("My retained work"); await pause();
-    await act(async () => current.persistence.retry()); await pause();
     expect(current.persistence.offered.draft.title).toBe("Other window"); expect(current.session.draft.title).toBe("My retained work");
     const conflictedWrites = writes.length; await pause(); expect(writes).toHaveLength(conflictedWrites);
     await act(async () => current.persistence.choose("current")); await pause(); expect(record.draft.title).toBe("My retained work");
+    acceptedRevision = 3;
     await act(async () => current.setSession(openDocument({ ...snapshot, revision: 3, value: value("My retained work") })));
     await pause(); expect(record.draft).toBeNull(); expect(clears).toHaveLength(1);
     record = { ...record, generation: record.generation + 1, draft: null };
     await change("Late draft after another discard"); await pause();
-    await act(async () => current.persistence.retry()); await pause();
     expect(current.persistence.offered).not.toBeNull(); expect(current.persistence.offered.draft).toBeNull();
     const afterDiscardConflict = writes.length; await pause(); expect(writes).toHaveLength(afterDiscardConflict);
     await act(async () => current.persistence.choose("restore")); await pause();
     expect(current.session.draft.title).toBe("My retained work"); expect(record.draft).toBeNull();
+    // Accepted revision arrives after the structured rejection. Re-reading the
+    // unchanged private generation must not authorize repeated stale writes.
+    acceptedRevision = 4;
+    await change("Retained against older saved revision"); await pause();
+    expect(current.persistence.status).toBe("revision-conflict");
+    expect(current.persistence.locked).toBe(true);
+    const staleWrites = writes.length, staleReads = reads;
+    await pause(); await pause();
+    expect(writes).toHaveLength(staleWrites); expect(reads).toBe(staleReads);
+    const newer = {...snapshot,revision:4,value:value("Saved by other window")};
+    await act(async () => current.setSession(previous => receiveDocument(previous,newer)));
+    expect(current.session.conflict.revision).toBe(4);
+    expect(current.persistence.locked).toBe(false); // The editor's explicit conflict choices stay usable.
+    await act(async () => current.setSession(previous => keepDraftAgainstCurrent(previous)));
+    await pause(); await pause();
+    expect(record.baseRevision).toBe(4); expect(record.draft.title).toBe("Retained against older saved revision");
+    expect(current.persistence.status).toBe("saved");
+
+    // An already in-flight private save can lose to this window's ordinary
+    // Save. Its late CONFLICT must settle after that exact Save receipt.
+    pending = {promise:new Promise(resolve => {release=resolve;})};
+    await change("Locally accepted edit"); await pause();
+    await act(async () => current.setSession(previous => beginSave(previous)));
+    const acceptedRequest = current.session.pending;
+    acceptedRevision = 5;
+    await act(async () => {release();pending=null;}); await pause();
+    expect(current.persistence.status).toBe("revision-conflict");
+    await act(async () => current.setSession(previous => acceptSave(previous,acceptedRequest,{...snapshot,revision:5,value:acceptedRequest.value})));
+    await pause(); await pause();
+    expect(current.session.dirty).toBe(false); expect(record.draft).toBeNull();
+    expect(current.persistence.status).toBe("ready");
+
+    // Both records can change together. Resolve the accepted document first,
+    // then review the private draft without either choice locking the other.
+    acceptedRevision = 6;
+    record = {...record,generation:record.generation+1,baseRevision:6,draft:value("Other private version")};
+    await change("Keep both-conflict input"); await pause();
+    expect(current.persistence.offered.draft.title).toBe("Other private version");
+    await act(async () => current.setSession(previous => receiveDocument(previous,{...snapshot,revision:6,value:value("New accepted document")})));
+    expect(current.persistence.locked).toBe(false);
+    await act(async () => current.setSession(previous => keepDraftAgainstCurrent(previous)));
+    expect(current.persistence.locked).toBe(true);
+    await act(async () => current.persistence.choose("current")); await pause();
+    expect(record.baseRevision).toBe(6); expect(record.draft.title).toBe("Keep both-conflict input");
+
     const decode = input => { if (!input || typeof input.title !== "string") throw Error("bad"); return input; };
     expect(() => decodeSiteDraft({ ...record, scope: { ...record.scope, instanceKey: "live" } }, key, decode)).toThrow();
     expect(() => decodeSiteDraft({ ...record, generation: 1.5 }, key, decode)).toThrow();
@@ -78,11 +126,12 @@ test("site drafts require review, serialize later typing and reconcile uncertain
     await act(async () => root.unmount()); retired = true; const lastWrites = writes.length;
     await pause(); expect(writes).toHaveLength(lastWrites);
 
+    acceptedRevision = 2;
     record = { ...record, generation: 20, baseRevision: 1, draft: { title: "Stale private draft", blocks: [] } };
     const adapter = { id: n => n.id, children: n => n.children ?? [], withChildren: (n, children) => ({ ...n, children }), nodes: v => v.blocks, withNodes: (v, blocks) => ({ ...v, blocks }), describe: n => n, attrs: n => n.attrs, withAttrs: (n, attrs) => ({ ...n, attrs }), title: v => v.title, withTitle: (v, title) => ({ ...v, title }) };
     let acceptedSaves = 0;
     root = createRoot(host); retired = false;
-    await act(async () => root.render(<CanonicalEditor authorityReady snapshot={snapshot} adapter={adapter} siteDraft={client} save={async request => { acceptedSaves++; return { ...snapshot, revision: 3, value: request.value }; }} pickResource={async () => null} publicationActions={({ disabled }) => <button data-testid="publish" disabled={disabled}>Publish</button>} />));
+    await act(async () => root.render(<CanonicalEditor authorityReady snapshot={snapshot} adapter={adapter} siteDraft={client} save={async request => { acceptedSaves++; acceptedRevision = 3; return { ...snapshot, revision: 3, value: request.value }; }} pickResource={async () => null} publicationActions={({ disabled }) => <button data-testid="publish" disabled={disabled}>Publish</button>} />));
     const button = name => [...host.querySelectorAll('button')].find(item => item.textContent === name);
     expect(host.querySelector('[data-testid="publish"]').disabled).toBe(true);
     expect(host.querySelector('input').value).toBe('Saved');

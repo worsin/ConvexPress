@@ -26,7 +26,7 @@ export function decodeSiteDraft<V>(input: unknown, key: DocumentKey, decode: (va
   return { ...row, draft: row.draft === null ? null : decode(row.draft) };
 }
 
-type Status = "disabled" | "loading" | "ready" | "saving" | "saved" | "error";
+type Status = "disabled" | "loading" | "ready" | "saving" | "saved" | "error" | "revision-conflict";
 type View<V> = { status: Status; record: SiteDraftRecord<V> | null; offered: SiteDraftRecord<V> | null };
 type Attempt<V> = { generation: number; baseRevision: number; draft: V | null };
 
@@ -40,9 +40,12 @@ export function useSiteDraft<V>({ client, session, paused, restore, delayMs = 15
   const current = useRef({ session, paused, restore }); current.current = { session, paused, restore };
   const state = useRef(view), epoch = useRef(0), active = useRef(false), busy = useRef(false);
   const uncertain = useRef<Attempt<V> | null>(null);
+  const rejectedRevision = useRef<number | null>(null);
   const publish = (patch: Partial<View<V>>) => { state.current = { ...state.current, ...patch }; setView(state.current); };
   const load = async (initial = false) => {
     if (!client || !active.current || busy.current) return;
+    if (rejectedRevision.current !== null &&
+      (current.current.paused || current.current.session.base.revision <= rejectedRevision.current)) return;
     const lease = epoch.current; busy.current = true;
     publish({ status: "loading" });
     try {
@@ -57,6 +60,7 @@ export function useSiteDraft<V>({ client, session, paused, restore, delayMs = 15
       // needs review; merely loading it never grants overwrite permission.
       const approved = !!confirmed || unchanged || matchesInput || (row.draft === null && (initial || (!known && !attempt)));
       uncertain.current = null;
+      rejectedRevision.current = null;
       busy.current = false;
       publish({ record: row, offered: approved ? null : row, status: matchesInput ? "saved" : "ready" });
     } catch {
@@ -71,6 +75,12 @@ export function useSiteDraft<V>({ client, session, paused, restore, delayMs = 15
 
   useEffect(() => {
     if (!client || paused || busy.current || view.offered || !view.record || view.status === "error" || view.status === "loading") return;
+    if (view.status === "revision-conflict") {
+      // Only an accepted local Save receipt or an explicit resolution of the
+      // subscribed saved revision advances this base. A private read cannot.
+      if (rejectedRevision.current !== null && session.base.revision > rejectedRevision.current) void load();
+      return;
+    }
     const row = view.record;
     const needsSave = session.dirty && (!sameDraft(session.draft, row.draft) || session.base.revision !== row.baseRevision);
     const needsClear = !session.dirty && row.draft !== null;
@@ -92,8 +102,21 @@ export function useSiteDraft<V>({ client, session, paused, restore, delayMs = 15
         uncertain.current = null;
         busy.current = false;
         publish({ record: receipt, status: receipt.draft === null ? "ready" : "saved" });
-      }).catch(() => {
-        if (active.current && lease === epoch.current) { busy.current = false; publish({ status: "error" }); }
+      }).catch((error: unknown) => {
+        if (!active.current || lease !== epoch.current) return;
+        busy.current = false;
+        const code = error && typeof error === "object" && "data" in error && error.data &&
+          typeof error.data === "object" && "code" in error.data ? error.data.code : null;
+        // A structured rejection is safe to reconcile by reading. Transport
+        // failures remain uncertain and require the existing explicit retry.
+        if (code === "DRAFT_CONFLICT") return load();
+        if (code === "CONFLICT") {
+          uncertain.current = null;
+          rejectedRevision.current = attempt.baseRevision;
+          publish({ status: "revision-conflict" });
+          return;
+        }
+        publish({ status: "error" });
       }).finally(() => { if (lease === epoch.current) busy.current = false; });
     }, delayMs);
     return () => clearTimeout(timer);
@@ -111,5 +134,7 @@ export function useSiteDraft<V>({ client, session, paused, restore, delayMs = 15
   const waiting = session.dirty && view.record && !view.offered && ["ready", "saved"].includes(view.status) &&
     (!sameDraft(session.draft, view.record.draft) || session.base.revision !== view.record.baseRevision);
   return { status: waiting ? "waiting" as const : view.status, offered: view.offered,
-    locked: view.status === "loading" || !!view.offered, choose, retry: () => load() };
+    // A simultaneous accepted-document conflict must remain resolvable before
+    // reviewing the private draft; its own conflict guard still prevents Save.
+    locked: !session.conflict && (view.status === "loading" || view.status === "revision-conflict" || !!view.offered), choose, retry: () => load() };
 }

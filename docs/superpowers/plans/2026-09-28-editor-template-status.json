@@ -7,7 +7,7 @@
     "In progress": 77
   },
   "goal": "Complete block editor and template delivery plus all demonstrated blockers; defer unrelated whole-app audit campaigns.",
-  "currentTask": "Task 2 \u2014 autosave conflict routing (Opus04 F13), then remaining navigation/field acceptance; E20/E21 focused live acceptance complete",
+  "currentTask": "Task 2 \u2014 remaining navigation/field acceptance; E20/E21 and Opus04 F13 follow-through verified",
   "tasks": [
     {
       "id": 1,
@@ -152,6 +152,11 @@
       "id": "E22",
       "classification": "reproduced defect",
       "status": "Current flat tracker gate passes137spec freshness/54compatibility/22transport shapes then fails missing prescribed Aster Paragraph PNG path. Reconcile actual accepted capture identity/source/pack into required evidence mapping in Task6/8; do not replace with thumbnails or infer all Verified rows failed."
+    },
+    {
+      "id": "E23",
+      "classification": "accepted/reusable evidence",
+      "status": "Opus04 F13 structured autosave conflict routing reproduced and repaired. Competing generation automatically reads/reviews; accepted-revision rejection pauses until explicit subscribed revision resolution or successful local Save. Unknown acknowledgements retain manual reconciliation. Controlled overlap regression and actual two-native-window automatic/simultaneous conflict resolution pass; exact revision3/private tombstone5, owned fixture/sessions cleaned with42original pages/appearance preserved. See editor-autosave-conflicts-20260928.md. Existing E19 acceptance retained."
     }
   ],
   "blocks": [
@@ -3417,7 +3422,11 @@
     "ConvexPress-Admin/audits/2026-09-04/canonical-lazy-renderers-20260928.md",
     "output/editor-lazy-renderers-20260928/four-pack-public.json",
     "output/editor-lazy-renderers-20260928/four-pack-ordinary.json",
-    "output/editor-lazy-renderers-20260928/cleanup.json"
+    "output/editor-lazy-renderers-20260928/cleanup.json",
+    "ConvexPress-Admin/audits/2026-09-04/editor-autosave-conflicts-20260928.md",
+    "output/editor-autosave-conflicts-20260928/native-automatic-review.json",
+    "output/editor-autosave-conflicts-20260928/native-simultaneous-conflicts.json",
+    "output/editor-autosave-conflicts-20260928/cleanup.json"
   ],
   "trackerRefresh": {
     "source": "output/editor-pointer-20260928/mt-readback.json",
