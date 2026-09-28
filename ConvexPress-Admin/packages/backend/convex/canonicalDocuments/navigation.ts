@@ -1,10 +1,10 @@
 /** Trusted current-document navigation adapters. Not registered endpoints. */
-import {readPublicMenu} from '../menus/queries';
+import {createPublicMenuReader} from '../menus/queries';
 import {getCurrentUser} from '../helpers/permissions';
 import type {PublicMenuItem} from '../menus/publicContract';
 import type {Doc} from '../_generated/dataModel';
 import type {QueryCtx} from '../_generated/server';
-import {canDiscoverContent} from '../helpers/publicContent';
+import {canDiscoverContent,createContentDiscoveryEvaluator} from '../helpers/publicContent';
 import {RequestReadLedger} from '../helpers/requestReadLedger';
 import {getDefaults} from '../settings/defaults';
 import {SourceByteLedger} from './sourceBudget';
@@ -24,6 +24,7 @@ function text(value: unknown): string | null {return typeof value === 'string' &
  * public get or write validation, including prepared title/tree for an unsaved write. */
 export function createNavigationReader(ctx: QueryCtx, source: NavigationSource, budget = new RequestReadLedger(), sources = new SourceByteLedger(), composed?: ComposedDataContext) {
   const currentPath = href(source.document);
+  const readMenu = createPublicMenuReader(ctx, budget, sources);
   // Build navigation only when requested. Site identity/menu/viewer reads do not
   // need an anchor index and must not reject an otherwise valid custom page.
   const libraryIndex = composed ? undefined : navigationTreeIndex(source.tree);
@@ -37,7 +38,7 @@ export function createNavigationReader(ctx: QueryCtx, source: NavigationSource, 
         : {state:'signed-out', href:'/login?returnTo=%2Fdashboard'};
     }
     if (resolver === 'site.menu' && 'source' in args && 'location' in args) {
-      const menu = args.source === 'menu' && !args.menu ? null : await readPublicMenu(ctx, args.source === 'menu' ? {menuId:args.menu!} : {locationSlug:args.location}, budget, sources);
+      const menu = args.source === 'menu' && !args.menu ? null : await readMenu(args.source === 'menu' ? {menuId:args.menu!} : {locationSlug:args.location});
       const items: NavigationResult<'site.menu'>['items'] = [];
       const visit = (nodes: PublicMenuItem[]) => { for (const item of nodes) {
         items.push({id:item._id,parentId:item.parentItemId ?? null,depth:item.depth,
@@ -49,28 +50,36 @@ export function createNavigationReader(ctx: QueryCtx, source: NavigationSource, 
       return navigationResultSchemas['site.menu'].parse({menu:menu?{id:menu.menu._id,name:menu.menu.name}:null,items});
     }
     if (resolver === 'content.childPages' && 'depth' in args) {
+      const discover = createContentDiscoveryEvaluator(ctx, budget);
       const items: NavigationResult<'content.childPages'>['items'] = [];
       const seen = new Set<string>([source.document._id]);
       let scanned = 0;
       const visit = async (parent: CurrentDocument, depth: number): Promise<void> => {
         const iterator = ctx.db.query('posts').withIndex('by_parent', q => q.eq('parentId', parent._id))[Symbol.asyncIterator]();
-        try { while (true) {
-          sources.beforeRead(); budget.beforeRead();
-          // One full source at a time: a page body may approach the source byte
-          // limit. Never materialize an entire sibling set before accounting.
-          const next = await iterator.next();
-          if (next.done) break;
-          const raw = next.value;
-          {
-            const child = budget.record(raw); sources.record('post', child);
-            if (++scanned > 80) throw new CanonicalDataError('CHILD_PAGE_BUDGET', 'childPages', 'The child-page directory exceeds its 80-source limit.');
-            if (seen.has(child._id)) throw new CanonicalDataError('CHILD_PAGE_CYCLE', 'childPages', 'Page hierarchy contains a cycle.');
-            seen.add(child._id);
-            if (child.type !== 'page' || !(await canDiscoverContent(ctx, child, budget))) continue;
-            items.push({id: child._id, parentId: depth === 1 ? null : parent._id, label: child.title, href: href(child), depth});
-            if (depth < args.depth) await visit(child, depth + 1);
+        try {
+          let finished = false;
+          while (!finished) {
+            const batch: Doc<'posts'>[] = [];
+            // Account each full source before reading another. Only policy
+            // lookups are batched; hidden parents never load descendants.
+            while (batch.length < 16) {
+              sources.beforeRead(); budget.beforeRead();
+              const next = await iterator.next();
+              if (next.done) { finished = true; break; }
+              const child = budget.record(next.value); sources.record('post', child);
+              if (++scanned > 80) throw new CanonicalDataError('CHILD_PAGE_BUDGET', 'childPages', 'The child-page directory exceeds its 80-source limit.');
+              if (seen.has(child._id)) throw new CanonicalDataError('CHILD_PAGE_CYCLE', 'childPages', 'Page hierarchy contains a cycle.');
+              seen.add(child._id);
+              batch.push(child);
+            }
+            await discover.preload(batch);
+            for (const child of batch) {
+              if (child.type !== 'page' || !(await discover(child))) continue;
+              items.push({id: child._id, parentId: depth === 1 ? null : parent._id, label: child.title, href: href(child), depth});
+              if (depth < args.depth) await visit(child, depth + 1);
+            }
           }
-        } } finally { await iterator.return?.(); }
+        } finally { await iterator.return?.(); }
       };
       if (source.document.type === 'page') await visit(source.document, 1);
       return navigationResultSchemas[resolver].parse({parentLabel: source.document.title, items});

@@ -19,7 +19,7 @@ import { ConvexError } from "convex/values";
 import { query } from "../_generated/server";
 import type { QueryCtx } from "../_generated/server";
 import { RequestReadLedger } from "../helpers/requestReadLedger";
-import { canDiscoverContent } from "../helpers/publicContent";
+import { createContentDiscoveryEvaluator } from "../helpers/publicContent";
 import { getValidMembershipGrants } from "../membership/access";
 import { membershipAuthorityReader } from "../helpers/membershipAuthority";
 import { sanitizeUrl } from "../helpers/sanitize";
@@ -32,8 +32,8 @@ import {
   DEFAULT_MENU_LOCATIONS,
   MAX_DEPTH,
 } from "./validators";
-import { publicMenuResultValidator, type PublicMenuItem } from "./publicContract";
-import type { Doc } from "../_generated/dataModel";
+import { publicMenuResultValidator, type PublicMenuItem, type PublicMenuResult } from "./publicContract";
+import type { Doc, Id } from "../_generated/dataModel";
 import { buildMenuItemTree, resolveMenuItemUrl } from "./internals";
 import { DASHBOARD_PAGES, getDashboardPage, pluginIsEnabled } from "../extensions/dashboard/registry";
 import { menuItemVisibleFor, type MenuViewer } from "../extensions/dashboard/visibility";
@@ -262,6 +262,19 @@ export async function readPublicMenu(
   budget = new RequestReadLedger({queries:4096,documents:8192,bytes:8*1024*1024,documentBytes:512*1024}),
   sourcePosts?: {beforeRead(): void; record(kind: "post", post: Doc<"posts">): void},
 ) {
+  return createPublicMenuReader(ctx, budget, sourcePosts)(selector);
+}
+
+/** Fresh read-only snapshot reader: different selectors may resolve to the same
+ * menu. Share its measured projection without retaining it across requests or
+ * reusing it after a mutation writes menu, content, viewer, or policy state. */
+export function createPublicMenuReader(
+  ctx: QueryCtx,
+  budget: RequestReadLedger,
+  sourcePosts?: {beforeRead(): void; record(kind: "post", post: Doc<"posts">): void},
+) {
+  const menus = new Map<string, Promise<PublicMenuResult | null>>();
+  return async (selector: {locationSlug: string} | {menuId: string}): Promise<PublicMenuResult | null> => {
     let menuId = 'menuId' in selector ? ctx.db.normalizeId('menus', selector.menuId) : null;
     if ('locationSlug' in selector) {
       let locationSlug = selector.locationSlug;
@@ -283,6 +296,14 @@ export async function readPublicMenu(
       }
     }
     if (!menuId) return null;
+    let projected = menus.get(menuId);
+    if (!projected) {
+      projected = projectMenu(menuId);
+      menus.set(menuId, projected);
+    }
+    return projected;
+  };
+  async function projectMenu(menuId: Id<"menus">): Promise<PublicMenuResult | null> {
     budget.beforeRead();
     const menu = budget.record(await ctx.db.get("menus", menuId));
     if (!menu) return null;
@@ -300,6 +321,7 @@ export async function readPublicMenu(
     const resolved = new Map<string, { visible: boolean; url?: string; depth: number }>();
     const visiting = new Set<string>();
     const targets = new Map<string, string | undefined>();
+    const discover = createContentDiscoveryEvaluator(ctx, budget);
     const targetUrl = async (item: Doc<"menuItems">): Promise<string | undefined> => {
       if (item.itemType === "custom") return publicHref(item.url);
       if (!item.objectId) return undefined;
@@ -315,7 +337,7 @@ export async function readPublicMenu(
           if (
             post &&
             post.type === item.itemType &&
-            (await canDiscoverContent(ctx, post, budget))
+            (await discover(post))
           ) {
             const path = post.path ?? `/${post.slug}`;
             url =
@@ -422,6 +444,7 @@ export async function readPublicMenu(
       else roots.push(node);
     }
     return { menu: { _id: menu._id, name: menu.name, slug: menu.slug }, items: roots };
+  }
 }
 export const getMenuForLocation = query({
   args: getMenuForLocationArgs,

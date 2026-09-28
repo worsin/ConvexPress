@@ -2596,3 +2596,52 @@ test("audience visibility prunes public ancestors and resources while authorized
   expect(withoutMedia.resources.media).toEqual({});
   expect(saved.revision).toBe(2);
 });
+
+for(const membershipEnabled of [false,true])test(`registered reads retain an 80-page directory alongside selected and assigned nested menus (membership ${membershipEnabled})`, async () => {
+  const f=await fixture();await initialize(f);
+  const navigation = await f.t.run(async ctx=>{
+    const plugins=await ctx.db.query('settings').withIndex('by_section',q=>q.eq('section','plugins')).unique();if(!plugins)throw Error();await ctx.db.patch('settings',plugins._id,{values:{membershipEnabled}});
+    const pages=[];
+    for(let i=0;i<80;i++)pages.push(await ctx.db.insert('posts',{type:'page',title:`Directory page ${i}`,slug:`entry-${i}`,path:`/draft/entry-${i}`,parentId:f.ids.post,menuOrder:i,status:'publish',visibility:'public',authorId:f.ids.user,commentStatus:'closed',createdAt:1,updatedAt:1}));
+    const menu=await ctx.db.insert('menus',{name:'Directory links',slug:'directory-links',createdBy:f.ids.user,createdAt:1,updatedAt:1});
+    const location = await ctx.db.insert('menuLocations',{slug:'sidebar',name:'Sidebar',menuId:menu,createdAt:1,updatedAt:1});
+    for(let i=0;i<4;i++)await ctx.db.insert('menuItems',{menuId:menu,itemType:'custom',label:`Menu link ${i}`,url:'/draft',position:i,createdAt:1,updatedAt:1});
+    let parentItemId;
+    for(let i=0;i<6;i++)parentItemId=await ctx.db.insert('menuItems',{menuId:menu,itemType:'page',objectId:pages[i],label:`Nested ${i}`,parentItemId,position:i+4,createdAt:1,updatedAt:1});
+    await ctx.db.patch('posts',f.ids.post,{status:'publish',publishedAt:1,blocks:[
+      {id:'selected',name:'core/menu',version:1,attrs:{source:'menu',menu}},
+      {id:'assigned',name:'core/menu',version:1,attrs:{source:'location',location:'sidebar'}},
+      {id:'directory',name:'core/child-pages',version:1,attrs:{depth:4}},
+    ]});
+    return { pages, location };
+  });
+  const sessionId = await f.t.run(async ctx => {
+    const user = (await ctx.db.get('users', f.ids.user))!, role = (await ctx.db.get('roles', user.roleId!))!, now = Date.now();
+    await ctx.db.patch('roles', role._id, {capabilities:[...role.capabilities,'page.publish']});
+    const managed = await ctx.db.insert('users', {email:'broker@example.invalid',emailVerified:true,status:'active',authSource:'management',roleId:role._id,createdAt:now,updatedAt:now});
+    const authorityId = await ctx.db.insert('convexpress_managementAuthorities', {controllerId:'fixture',keyId:'key',publicKeyPem:'fixture',fingerprintSha256:'fixture',websiteKey:'fixture',instanceKey:'fixture-stage',capabilities:[],capabilityRevision:1,status:'active',notBefore:now-1000,enrolledAt:now,updatedAt:now});
+    const bindingId = await ctx.db.insert('convexpress_managementBindings', {authorityId,controllerId:'fixture',syntheticOperatorId:'broker',userId:managed,capabilityRevision:1,status:'active',createdAt:now,updatedAt:now});
+    return ctx.db.insert('convexpress_managementSessions', {authorityId,bindingId,userId:managed,tokenHash:'fixture',websiteKey:'fixture',instanceKey:'fixture-stage',capabilities:[],siteRoleSlug:'editor',siteCapabilities:[...role.capabilities,'page.publish'],capabilityRevision:1,expiresAt:now+60000,status:'active',createdAt:now});
+  });
+  const broker = f.t.withIdentity({subject:sessionId,issuer:'https://convexpress-management.local'});
+  for(const client of [f.client,f.t,broker]){
+    const result=await client.query(reference(client===f.t?'getForRender':'get'),{postId:f.ids.post});
+    expect(result.data.dataByBlock.directory.data.items).toHaveLength(80);
+    expect(result.data.dataByBlock.selected.data.items).toHaveLength(10);
+    expect(result.data.dataByBlock.assigned.data).toEqual(result.data.dataByBlock.selected.data);
+  }
+  await f.t.run(ctx => ctx.db.patch('posts', f.ids.post, {status:'draft'}));
+  const beforePublication = await broker.query(reference('get'), {postId:f.ids.post});
+  const published = await broker.mutation(reference('setPublication','mutation'), {postId:f.ids.post,expectedRevision:beforePublication.document.revision,status:'publish'});
+  expect(published.changed).toBe(true);
+  // A new request must recheck both menu assignment and the current source's
+  // visibility, even when the previous request shared its menu projection.
+  await f.t.run(async ctx => {
+    await ctx.db.patch('posts', navigation.pages[0], {visibility:'private'});
+    await ctx.db.patch('menuLocations', navigation.location, {menuId:undefined});
+  });
+  const changed = await broker.query(reference('get'), {postId:f.ids.post});
+  expect(changed.data.dataByBlock.directory.data.items).toHaveLength(79);
+  expect(changed.data.dataByBlock.selected.data.items).toHaveLength(4);
+  expect(changed.data.dataByBlock.assigned.data).toEqual({menu:null,items:[]});
+});

@@ -1,5 +1,8 @@
 # Current production acceptance index — September 21
 
+September 28 Menu/Child Pages completion: **65/137 blocks verified; 72 pending.** E27 read/publication budget repair passes brokered native save/reopen/restore/publication, actual Website preview and eight public pack/width cases. Original content/settings preserved; owned fixtures and sessions cleaned, reusable-consumer index ready. [Evidence](menu-directory-completion-20260928.md). Header separator E28 remains Task 5; delivery goal remains open.
+
+
 **September 28 owner scope correction:** The active delivery is the complete block editor, 137-block library, template/Customizer system, four default template websites, BlockDemo and SDK workflows, including all demonstrated dependencies. The former whole-application production audit below remains an accurate historical/deferred register; it is not the active execution queue unless a finding blocks that delivery. Follow [the focused execution guide](../../../docs/superpowers/plans/2026-09-28-editor-template-delivery.md) and its 137-block status file. No additional block or production acceptance is claimed by this planning change.
 
 

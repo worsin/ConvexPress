@@ -718,13 +718,14 @@ export async function setDocumentPublication(ctx: MutationCtx, args: Publication
   const authored = await readAuthoredDocument(ctx, post, budget);
   const context = authored.composedDefinitions ? { scope: authored.composedDefinitions.scope, definitions: authored.composedDefinitions } : undefined;
   const prepared = context ? prepareCanonicalPublication(post, args, Date.now(), context) : prepareCanonicalPublication(post, args, Date.now());
-  // Resource/schema/policy refusal precedes scheduler writes as well as owner writes.
-  await project(ctx, post, budget, prepared, {}, args.status === "draft" ? "authoring" : "published");
+  // Commit validates current resources/schema/policy before its writes. Resolve
+  // once, then change scheduling in the same atomic mutation; any later refusal
+  // rolls back both owner and scheduler writes.
+  const receipt = await commit(ctx, post, user, prepared, budget, undefined, prepared.publication);
   if (prepared.changed) {
     if (prepared.publication.status === "future") await replacePublicationSchedule(ctx, post._id, prepared.publication.scheduledAt!, budget);
     else await clearPublicationSchedule(ctx, post._id, budget);
   }
-  const receipt = await commit(ctx, post, user, prepared, budget, undefined, prepared.publication);
   if (prepared.changed && args.status === "publish" && post.status !== "publish") await publishedEvent(ctx, post, prepared.publication.publishedAt!, false, budget);
   return receipt;
 }

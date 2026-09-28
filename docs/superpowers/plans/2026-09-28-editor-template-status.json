@@ -7,7 +7,7 @@
     "In progress": 74
   },
   "goal": "Complete block editor and template delivery plus all demonstrated blockers; defer unrelated whole-app audit campaigns.",
-  "currentTask": "Task 2 \u2014 E26 initial public focus loss repaired and accepted across four packs; resume remaining Menu/Child Pages family acceptance",
+  "currentTask": "Task 2 \u2014 content-discovery family: reconcile exact pending block contracts and reuse evidence before implementation; Menu and Child Pages accepted (65 Verified / 72 In progress).",
   "tasks": [
     {
       "id": 1,
@@ -46,97 +46,135 @@
     {
       "id": "E01",
       "status": "Current native baseline accepted:24 authored nodes with nested Heading/Paragraph/Divider, exact move/undo/redo and save/reopen, real wheel and scrollbar-thumb drag, sidebar scrolling, keyboard selection, typing after reload, both account menus and actual Website preview. Earlier pointer instability was not reproduced; no repair inferred. Owned fixture/profile removed,42 original pages/appearance preserved. See editor-pointer-baseline-20260928.md. Full E06 field/reusable/composed matrix remains open.",
-      "classification": "accepted/reusable evidence"
+      "classification": "accepted/reusable evidence",
+      "initialFinding": "Native pointer/account-menu instability remains an open follow-up. The recent Codex conversation lag is a separate application issue.",
+      "closureBoundary": "Reproduce editor typing, selection, wheel/drag scrolling and menu actions in the actual Electron window. Identify overlays, pointer capture, main-thread load or stale session only from evidence. Repair the actual cause; do not assume the older repaired EPIPE freeze is the same failure."
     },
     {
       "id": "E02",
       "status": "Closed for this block: current native, installed backend, public/four-pack and exact revision recovery evidence passed; owned fixtures removed, original data preserved. See ConvexPress-Admin/audits/2026-09-04/opening-navigation-20260928.md. Shared editor crash-recovery/autosave is accepted separately under E19; E01 pointer/scroll acceptance remains open.",
-      "classification": "reusable evidence"
+      "classification": "reusable evidence",
+      "initialFinding": "Announcement Bar allows inverted dates until rendering; dismissed content can stay hidden after dismissal is disabled. These are source-review findings awaiting focused reproduction.",
+      "closureBoundary": "Add meaningful failures for date order and live dismissible changes; apply shared write-time validation preserving historical draft recovery; verify schedule boundaries, visibility and keyboard restore."
     },
     {
       "id": "E03",
       "status": "Closed for this block: current native, installed backend, public/four-pack and exact revision recovery evidence passed; owned fixtures removed, original data preserved. See ConvexPress-Admin/audits/2026-09-04/opening-navigation-20260928.md. Shared editor crash-recovery/autosave is accepted separately under E19; E01 pointer/scroll acceptance remains open.",
-      "classification": "reusable evidence"
+      "classification": "reusable evidence",
+      "initialFinding": "Breadcrumbs has auto-trail evidence but incomplete manual/ancestor variants.",
+      "closureBoundary": "Verify authored manual links/text/current state, public ancestors, hidden-ancestor omission, new-tab behavior and narrow layout. Repair only demonstrated gaps."
     },
     {
       "id": "E04",
       "status": "requires current classification or closure; see guide",
-      "classification": "missing evidence"
+      "classification": "missing evidence",
+      "initialFinding": "79 block rows have incomplete full acceptance; many are already functional.",
+      "closureBoundary": "Reconcile field requirements and prior proof first, then finish missing behavior and checks in families. Do not repeat complete infrastructure acceptance for each row."
     },
     {
       "id": "E05",
       "status": "requires current classification or closure; see guide",
-      "classification": "missing evidence"
+      "classification": "missing evidence",
+      "initialFinding": "Preview has historically failed at protocol, origin, session renewal, hydration and readiness boundaries. Several fixes are accepted, but remaining cross-pack/cloud paths are open.",
+      "closureBoundary": "Verify installed matching contracts, unsaved DOM continuity, reconnect/expiry, site switching and readable failure. Preserve draft and selected target; no stale frames or unintended saves."
     },
     {
       "id": "E06",
       "status": "requires current classification or closure; see guide",
-      "classification": "missing evidence"
+      "classification": "missing evidence",
+      "initialFinding": "All native field types, picker states, keyboard operations and mixed nested/reusable/composed content are not fully covered.",
+      "closureBoundary": "Exercise them on batched authored pages, compare saved/reopened trees and revision restores exactly; test field-specific limits and omitted/null/empty semantics where meaningful."
     },
     {
       "id": "E07",
       "status": "requires current classification or closure; see guide",
-      "classification": "missing evidence"
+      "classification": "missing evidence",
+      "initialFinding": "One-content-model migration and legacy retirement remain incomplete.",
+      "closureBoundary": "Complete lossless conversion/recovery for actual retained content, source snapshots and installed-site receipts; then remove active legacy editor/renderer/schema dispatch as specified. Keep historical recovery data and a deliberate import converter. Do not delete old fields before proving preservation or claim migration complete while silently relying on legacy rendering."
     },
     {
       "id": "E08",
       "status": "requires current classification or closure; see guide",
-      "classification": "missing evidence"
+      "classification": "missing evidence",
+      "initialFinding": "Palette and commerce-layout migration plus old Themes/Shop-layout/builder screens remain partly retired.",
+      "closureBoundary": "Read actual installed values, migrate without overwriting current settings, verify appearance and rollback; route all authoring to template settings before removing obsolete screens/tables/imports."
     },
     {
       "id": "E09",
       "status": "requires current classification or closure; see guide",
-      "classification": "missing evidence"
+      "classification": "missing evidence",
+      "initialFinding": "Customizer contextual fields, all packs/surfaces, header/footer/menu integration and operator authority are not fully accepted.",
+      "closureBoundary": "Verify the field group controls the actual surface, click-to-edit focus, draft/publish/reset/history/conflicts, pack switches, session continuity, customer denial and revocation."
     },
     {
       "id": "E10",
       "status": "requires current classification or closure; see guide",
-      "classification": "missing evidence"
+      "classification": "missing evidence",
+      "initialFinding": "Full default websites, remaining flagship treatments and the complete BlockDemo visual review are unfinished.",
+      "closureBoundary": "Deliver four complete simple sites and all-block demo coverage. Check realistic copy, optional assets, narrow placements, links, image crops, visible focus and template consistency."
     },
     {
       "id": "E11",
       "status": "requires current classification or closure; see guide",
-      "classification": "missing evidence"
+      "classification": "missing evidence",
+      "initialFinding": "Steps with Media has a historical 304.5ms frame outlier; later samples were smooth and image-decode defects were fixed.",
+      "closureBoundary": "Retain the historical observation. Profile the real visible component under controlled warm/cold transitions and declared hardware conditions, inspect long tasks and frames. Establish reproducible current behavior and report limits; do not repeatedly sample an unexplained old event indefinitely or claim universal hardware smoothness."
     },
     {
       "id": "E12",
       "status": "Vimeo actual playback remains missing provider evidence; not assumed to need code changes or to block every video implementation.",
-      "classification": "missing evidence"
+      "classification": "missing evidence",
+      "initialFinding": "Vimeo playback remains unverified; YouTube proof does not cover it.",
+      "closureBoundary": "Verify supported provider consent/load/play/failure behavior using legitimate fixtures, or explicitly identify an external prerequisite. Keep intended supported providers; do not quietly remove capability to pass."
     },
     {
       "id": "E13",
       "status": "Historical provider/configuration limitation recorded in the guide; recheck current availability before the affected AI/cloud acceptance. Does not block static block authoring.",
-      "classification": "external prerequisite"
+      "classification": "external prerequisite",
+      "initialFinding": "Some isolated AI exercises returned missing_api_key; earlier provider success does not establish current end-to-end editor generation.",
+      "closureBoundary": "Inspect authorized configured connections without exposing secrets; use the existing provider if available. Prove one live structured generation, resource selection, review, insert/save and Website output, plus composition/style/promotion. Do not substitute mocked success."
     },
     {
       "id": "E14",
       "status": "Historical provider/configuration limitation recorded in the guide; recheck current availability before the affected AI/cloud acceptance. Does not block static block authoring.",
-      "classification": "external prerequisite"
+      "classification": "external prerequisite",
+      "initialFinding": "Aster cloud deployments previously reported free-plan restrictions. Current status is not established.",
+      "closureBoundary": "Verify once using configured CLI/API/auth. Continue equivalent local isolated acceptance while unavailable; retain the specific cloud-only missing proof. Do not change billing or invent successful cloud deployment."
     },
     {
       "id": "E15",
       "status": "Opus F1 independently reproduced: four plugin defaults disagree under absent settings. Repair before relevant Task 3 plugin acceptance; no scope expansion beyond gating parity.",
-      "classification": "reproduced defect"
+      "classification": "reproduced defect",
+      "initialFinding": "Dynamic commerce/forms/plugin blocks retain incomplete data/action states.",
+      "closureBoundary": "Verify actual selected records and relevant actions, empty/denied/disabled/loading/error states, auth changes and cross-site refusal. Repair source authority, pagination or session issues only as required by their contracts. Provider settlement/accounting unrelated to a block's action remains deferred."
     },
     {
       "id": "E16",
       "status": "requires current classification or closure; see guide",
-      "classification": "missing evidence"
+      "classification": "missing evidence",
+      "initialFinding": "Installed extension code can be lost by deploying a generic backend snapshot; this happened and was repaired.",
+      "closureBoundary": "Preserve the installed plugin directories/generated indexes. Build next snapshot from verified installed checkpoint and overlay reviewed source changes; verify plugin parity before deployment. Complete install/disable/re-enable and reference Events/Dashboard manifest workflows."
     },
     {
       "id": "E17",
       "status": "Opus F6 confirms missing template-build/template-add-surface/template-audit skills; add to Task 7 alongside design-skill retarget and existing workflow acceptance.",
-      "classification": "missing implementation"
+      "classification": "missing implementation",
+      "initialFinding": "SDK existence is proven more broadly than each workflow's end-to-end operation.",
+      "closureBoundary": "Exercise all eight block-kit operations plus template and extension scaffolds in disposable outputs. Verify generated source, authoring and rendered result; remove owned scaffolds afterward."
     },
     {
       "id": "E18",
       "status": "requires current classification or closure; see guide",
-      "classification": "missing evidence"
+      "classification": "missing evidence",
+      "initialFinding": "Current source/main/deployed artifacts and historical screenshots can diverge.",
+      "closureBoundary": "Record exact source and deployment identity; reuse only relevant current evidence. Run a final integrated gate on the deliverable, not a collection of unrelated historical green logs."
     },
     {
       "id": "E19",
       "classification": "accepted/reusable evidence",
-      "status": "Device force-crash recovery and private Website autosave accepted. Real fresh-profile recovery preserves exact nested invalid input; competing generations and saved-revision conflicts require explicit choices; ordinary Save alone updates accepted/public content. Private tombstones prevent stale resurrection; owned fixtures/sessions cleaned with original data preserved. Lost-reply reconciliation is covered by controlled tests, not a native dropped-ack claim. See editor-device-recovery-20260928.md and editor-site-autosave-20260928.md."
+      "status": "Device force-crash recovery and private Website autosave accepted. Real fresh-profile recovery preserves exact nested invalid input; competing generations and saved-revision conflicts require explicit choices; ordinary Save alone updates accepted/public content. Private tombstones prevent stale resurrection; owned fixtures/sessions cleaned with original data preserved. Lost-reply reconciliation is covered by controlled tests, not a native dropped-ack claim. See editor-device-recovery-20260928.md and editor-site-autosave-20260928.md.",
+      "initialFinding": "Native unsaved block tree is lost on renderer crash/app restart; block-tree autosave is a named missing implementation.",
+      "closureBoundary": "Persist isolated recovery drafts with base revision; preserve offline/invalid input, fresh authority and conflicts. Prove exact nested tree/title recovery after a forced renderer crash, unchanged accepted document revision/publication, and no uncertain-write replay."
     },
     {
       "id": "E20",
@@ -172,6 +210,22 @@
       "id": "E26",
       "classification": "accepted/reusable evidence",
       "status": "Three reproduced boundaries repaired: session provider anonymous readiness, lead-magnet provider anonymous readiness, and initial display-grant revocation before replacement commit. Failing-before regressions plus actual early SSR keyboard focus, identical DOM node through hydration, and Enter navigation pass for all four packs at1440/390. No console/page errors or overflow. Identity changes, grant cleanup/replay and stale operation rejection still pass. All42 original pages and appearance preserved, owned API session revoked. See public-focus-hydration-20260928.md. Menu/Child Pages full rows remain pending; tracker63/74 unchanged."
+    },
+    {
+      "id": "E27",
+      "classification": "accepted repair",
+      "deliveryTask": 2,
+      "initialFinding": "Native canonical document with 80 public children at depth 4 and two nested Menu blocks exhausted the 256-query budget, making the editor unreadable and later blocking publication.",
+      "status": "Closed by native brokered get/preview/save/reopen/exact history restore/publication and 8 public four-pack/width cases. Query-local homepage/policy/menu projection reuse plus single publication validation preserve existing bounds and fresh authority. 209 focused backend tests / 1817 assertions, types and writer gate pass. Latest installed snapshot menu-final-deploy5-20260928 preserves all 2405 signatures and 22 Events files; the batch adds only measuredContentRules. All 81 owned pages/3 menus/2 locations removed; 42 original pages, menu projections and appearance preserved, owned sessions revoked/closed, user Electron preserved, consumer index ready. Evidence: ConvexPress-Admin/audits/2026-09-04/menu-directory-completion-20260928.md",
+      "closureBoundary": "Prove same80-row/membership-enabled/native document can reopen, preview, save/restore and publish; four-pack keyboard/render checks; preserve original42pages/settings and remove81ownedpages/3menus/2locations. Keep256query limit, source/policy byte and row bounds, hidden-branch filtering and fresh per-request authority."
+    },
+    {
+      "id": "E28",
+      "classification": "reproduced defect",
+      "deliveryTask": 5,
+      "initialFinding": "Template header consumers render a menu separator label as a navigation item, while canonical inline Menu correctly renders hr.",
+      "status": "Observed in menu-children-20260928 live batch; remains open under full header/footer/menu Customizer integration. Inline Menu acceptance does not close this separate header-consumer defect.",
+      "closureBoundary": "Reproduce heading/separator semantics in all affected header consumers, repair the shared cause, and verify keyboard/semantics and four-pack responsive header output with existing menu assignments preserved."
     }
   ],
   "blocks": [
@@ -2183,18 +2237,22 @@
       "name": "core/child-pages",
       "title": "Child pages",
       "category": "Discovery",
-      "checkpointStatus": "In progress",
-      "nextClassification": "Reviewed against live Notes and current canonical specification; Reuse native child/grandchild/private filtering; depth1\u20134, empty/context/cycle-bound refusals and native hierarchy changes where relevant.",
-      "classification": "missing evidence",
+      "checkpointStatus": "Verified",
+      "nextClassification": "Current scoped block acceptance complete; retain source-hashed evidence and rerun affected shared dependencies only.",
+      "classification": "reusable evidence",
       "source": "blocks/core/child-pages/block.json",
       "requirements": "depth (number)",
       "evidenceReferences": [
         "child-pages-renderer-outcome.md",
         "navigation-native-20260921.md",
         "output/block-demo/browser-results-child-pages88.",
-        "output/block-library-review-20260915/coverage-review.json."
+        "output/block-library-review-20260915/coverage-review.json.",
+        "ConvexPress-Admin/audits/2026-09-04/menu-directory-completion-20260928.md",
+        "output/menu-final-20260928/public-matrix.json",
+        "output/menu-final-20260928/source-sha256.json",
+        "output/menu-final-20260928/cleanup.json"
       ],
-      "remainingReview": "Reuse native child/grandchild/private filtering; depth1\u20134, empty/context/cycle-bound refusals and native hierarchy changes where relevant.",
+      "remainingReview": "No open block-specific requirement; full template/header integration, remaining family rows and final integrated delivery gates remain open.",
       "deliveryTask": 2,
       "acceptanceBatch": "navigation",
       "reviewedAtCommit": "d8a0ea2c",
@@ -2878,9 +2936,9 @@
       "name": "core/menu",
       "title": "Menu",
       "category": "Site",
-      "checkpointStatus": "In progress",
-      "nextClassification": "Reviewed against live Notes and current canonical specification; Reuse native exact scoped menu/private target filtering; location assignment versus explicit menu, nested variants/current state and all-pack keyboard navigation.",
-      "classification": "missing evidence",
+      "checkpointStatus": "Verified",
+      "nextClassification": "Current scoped block acceptance complete; retain source-hashed evidence and rerun affected shared dependencies only.",
+      "classification": "reusable evidence",
       "source": "blocks/core/menu/block.json",
       "requirements": "source (select), location (text), menu (menu)",
       "evidenceReferences": [
@@ -2888,9 +2946,13 @@
         "output/playwright/menu-media-rollout.",
         "output/playwright/menu-media-rollout/native-preview-connected.png.",
         "output/production-checkpoints/editor-origin-20260905",
-        "output/production-checkpoints/menu-media-20260905"
+        "output/production-checkpoints/menu-media-20260905",
+        "ConvexPress-Admin/audits/2026-09-04/menu-directory-completion-20260928.md",
+        "output/menu-final-20260928/public-matrix.json",
+        "output/menu-final-20260928/source-sha256.json",
+        "output/menu-final-20260928/cleanup.json"
       ],
-      "remainingReview": "Reuse native exact scoped menu/private target filtering; location assignment versus explicit menu, nested variants/current state and all-pack keyboard navigation.",
+      "remainingReview": "No open block-specific requirement; full template/header integration, remaining family rows and final integrated delivery gates remain open.",
       "deliveryTask": 2,
       "acceptanceBatch": "navigation",
       "reviewedAtCommit": "d8a0ea2c",
@@ -3456,29 +3518,32 @@
     "output/navigation-completion-20260928/cleanup.json",
     "ConvexPress-Admin/audits/2026-09-04/public-focus-hydration-20260928.md",
     "output/public-focus-20260928/live-matrix.json",
-    "output/public-focus-20260928/source-sha256.json"
+    "output/public-focus-20260928/source-sha256.json",
+    "ConvexPress-Admin/audits/2026-09-04/menu-directory-completion-20260928.md",
+    "output/menu-final-20260928/mt-accept-verified.json",
+    "output/menu-final-20260928/cleanup.json",
+    "output/menu-final-20260928/consumer-index.json"
   ],
   "trackerRefresh": {
-    "source": "output/navigation-completion-20260928/mt-accept-after.json",
-    "schema": "output/editor-pointer-20260928/mt-schema.json",
+    "source": "output/menu-final-20260928/mt-accept-after.json",
+    "schema": "output/menu-final-20260928/mt-schema.json",
     "rows": 137,
     "counts": {
-      "Verified": 63,
-      "In progress": 74
+      "Verified": 65,
+      "In progress": 72
     },
     "otherCellsUnchangedFromPreviousRead": true,
     "pendingNotesReconciled": 77,
     "classificationScope": "Block-specific missing gates; historical whole-app audit conditions retained in Notes but not automatic prerequisites.",
     "lastAcceptedNames": [
-      "core/table-of-contents",
-      "core/anchor-nav",
-      "core/site-info"
+      "core/menu",
+      "core/child-pages"
     ]
   },
   "coordination": {
     "folder": "/Users/worsin/Development/ConvexPress/Opus Audits/",
     "authority": "Codex leads; Claude audits are advisory and independently verified",
-    "lastAudit": "2026-09-28T1620-audit-05-f13-e20-closure.md"
+    "lastAudit": "2026-09-28T1720-audit-06-menu-depth-focus-repairs.md"
   },
   "sessionBaseCommit": "9824d9605e50c4b0ebd711c13715b506f8ef5bd3"
 }

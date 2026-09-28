@@ -1,6 +1,6 @@
 import type { RequestReadLedger } from "./requestReadLedger";
 import { publicAuthorProfile } from "./publicAuthor";
-import { contentMembershipPaths } from "./contentMembershipPaths";
+import { contentMembershipPaths, createContentMembershipPathResolver } from "./contentMembershipPaths";
 import type { Doc } from "../_generated/dataModel";
 import type { QueryCtx } from "../_generated/server";
 import {
@@ -191,11 +191,19 @@ export const PUBLIC_POST_META_KEYS = new Set([
  * snapshot; never retain this closure across requests or after mutations. */
 export function createContentDiscoveryEvaluator(ctx: QueryCtx, budget?: RequestReadLedger) {
   const evaluate = createMembershipAccessEvaluator(ctx, budget);
-  return async (post: Content): Promise<boolean> => {
+  const membershipPaths = createContentMembershipPathResolver(ctx, budget);
+  const discover = async (post: Content): Promise<boolean> => {
     if (post.status !== "publish" || post.visibility !== "public") return false;
     if (!(await evaluate({resourceType:post.type,resourceIdOrKey:String(post._id)})).allowed) return false;
-    for (const resourceIdOrKey of await contentMembershipPaths(ctx, post, undefined, budget))
+    for (const resourceIdOrKey of await membershipPaths(post))
       if (!(await evaluate({resourceType:"route",resourceIdOrKey})).allowed) return false;
     return true;
   };
+  const preload = async (posts: readonly Content[]) => {
+    for (const type of ["page", "post"] as const) {
+      const keys = posts.filter(post => post.type === type && post.status === "publish" && post.visibility === "public").map(post => String(post._id));
+      await evaluate.preloadContent(type, keys);
+    }
+  };
+  return Object.assign(discover, { preload });
 }
