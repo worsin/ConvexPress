@@ -11,6 +11,9 @@ if(fingerprintMirror!=='/* Generated from the site backend by generate-site-cont
 const overrideIndex=process.argv.indexOf('--contract');
 const override=overrideIndex>=0?readFileSync(resolve(process.argv[overrideIndex+1]),'utf8'):undefined;
 const cases=[
+ {name:'private document drafts require scope and generation and retain nullable recovery content',valid:true,source:'const args: FunctionArgs<typeof api.canonicalDocuments.drafts.save> = { postId: "page" as GenericId<"posts">, expectedScope: { websiteKey: "site", instanceKey: "stage" }, expectedGeneration: 2, baseRevision: 3, draft: { title: "Unfinished", blocks: [] } }; const generation: number = ({} as FunctionReturnType<typeof api.canonicalDocuments.drafts.get>).generation; const empty: FunctionReturnType<typeof api.canonicalDocuments.drafts.get>["draft"] = null;'},
+ {name:'private draft ownership cannot be supplied by the client',source:'const args: FunctionArgs<typeof api.canonicalDocuments.drafts.get> = { postId: "page" as GenericId<"posts">, expectedScope: { websiteKey: "site", instanceKey: "stage" }, userId: "another-author" };'},
+ {name:'private draft cleanup is internal',source:'const forbidden = api.canonicalDocuments.draftMaintenance.cleanup;'},
  {name:'operator handoff accepts only a digest and returns a scoped launch',valid:true,source:'const args: FunctionArgs<typeof api.auth.operatorHandoffs.create> = { codeHash: "hash" }; const instance: string = ({} as FunctionReturnType<typeof api.auth.operatorHandoffs.create>).instanceKey;'},
  {name:'operator authority cannot be supplied by the client',source:'const args: FunctionArgs<typeof api.auth.operatorHandoffs.create> = { codeHash: "hash", userId: "operator", role: "administrator" };'},
  {name:'operator handoff redemption is not public',source:'const forbidden = api.auth.operatorHandoffs.consume;'},

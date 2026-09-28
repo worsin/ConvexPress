@@ -44,6 +44,7 @@ import { CustomBlockPicker } from "./CustomBlockPicker";
 import type { CustomBlockClient } from "./composed-picker";
 import { CanonicalAiComposer } from "./CanonicalAiComposer";
 import type { AiProposalClient, AiProposalRequest } from "./ai-proposal";
+import type { SiteDraftClient } from "./site-draft";
 
 export interface CanonicalDocumentClient
 	extends Partial<MigrationClient>,
@@ -51,6 +52,7 @@ export interface CanonicalDocumentClient
 		Partial<CustomBlockClient>,
 		Partial<AiProposalClient> {
 	get(request?: Record<string, string>): Promise<unknown>;
+	privateDraft?: SiteDraftClient<CanonicalDraft>;
 	previewDraft?(args: {
 		expectedRevision: number;
 		title: string;
@@ -300,6 +302,7 @@ function WorkspaceBody({
 	return (
 		<div className="space-y-5">
 			<CanonicalEditor
+				siteDraft={client.privateDraft}
 				livePreview={
 					siteOrigin && client.previewDraft
 						? ({

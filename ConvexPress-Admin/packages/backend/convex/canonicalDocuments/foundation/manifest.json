@@ -88,6 +88,7 @@
     "syncedPromotion.ts": "a0b26c13aa07c267394bf172a7c54b2032757159c6958cc344c1a19b64b55a32",
     "eventIntervalIndex.ts": "555e9b03f202ceb9076dde9df727f234c95e9a7b95a4f2321311a6f188688806",
     "documentState.ts": "c022480e869e7f3278273269a97e066eebc64f523d13ed3ab0698e2e5480a034",
+    "draftRecovery.ts": "383e4046ec952a6850dd39f700315d0c592d6aa57fd3583793eb1c854855faaa",
     "legacyDocumentMigration.ts": "f46dd88ab516fd207b1ac05b7507322ee02d6ff036b0cd5d218fd74cf0fe2172",
     "legacyStructuredMigration.ts": "29789cddeedcfb8f023123124d013f7cca4515f5a668bbbe1a757ecbac99189d",
     "shared/legacyHref.ts": "9d9f64890a8b81cdb9032be441dbbf401e395979de195e33526b6e1934838bd6",

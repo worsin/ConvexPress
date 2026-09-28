@@ -224,6 +224,9 @@ export const opaqueMediaReferences = {
     "definitionJson",
     "digest"
   ],
+  "canonicalDocumentDrafts": [
+    "draft"
+  ],
   "commerce_product_categories": [
     "description",
     "icon",

@@ -134,6 +134,8 @@ import type * as canonicalDocuments_dateArchive from "../canonicalDocuments/date
 import type * as canonicalDocuments_definitionStorage from "../canonicalDocuments/definitionStorage.js";
 import type * as canonicalDocuments_definitions from "../canonicalDocuments/definitions.js";
 import type * as canonicalDocuments_displayContext from "../canonicalDocuments/displayContext.js";
+import type * as canonicalDocuments_draftMaintenance from "../canonicalDocuments/draftMaintenance.js";
+import type * as canonicalDocuments_drafts from "../canonicalDocuments/drafts.js";
 import type * as canonicalDocuments_eventRsvp from "../canonicalDocuments/eventRsvp.js";
 import type * as canonicalDocuments_featuredProducts from "../canonicalDocuments/featuredProducts.js";
 import type * as canonicalDocuments_form from "../canonicalDocuments/form.js";
@@ -163,6 +165,7 @@ import type * as canonicalDocuments_foundation_courseContracts from "../canonica
 import type * as canonicalDocuments_foundation_curriculumContracts from "../canonicalDocuments/foundation/curriculumContracts.js";
 import type * as canonicalDocuments_foundation_documentContracts from "../canonicalDocuments/foundation/documentContracts.js";
 import type * as canonicalDocuments_foundation_documentState from "../canonicalDocuments/foundation/documentState.js";
+import type * as canonicalDocuments_foundation_draftRecovery from "../canonicalDocuments/foundation/draftRecovery.js";
 import type * as canonicalDocuments_foundation_eventContracts from "../canonicalDocuments/foundation/eventContracts.js";
 import type * as canonicalDocuments_foundation_eventIntervalIndex from "../canonicalDocuments/foundation/eventIntervalIndex.js";
 import type * as canonicalDocuments_foundation_formContracts from "../canonicalDocuments/foundation/formContracts.js";
@@ -818,6 +821,7 @@ import type * as schema_auth from "../schema/auth.js";
 import type * as schema_authTracking from "../schema/authTracking.js";
 import type * as schema_authorCounts from "../schema/authorCounts.js";
 import type * as schema_blockDefinitions from "../schema/blockDefinitions.js";
+import type * as schema_canonicalDrafts from "../schema/canonicalDrafts.js";
 import type * as schema_capabilities from "../schema/capabilities.js";
 import type * as schema_comments from "../schema/comments.js";
 import type * as schema_commerce from "../schema/commerce.js";
@@ -1220,6 +1224,8 @@ declare const fullApi: ApiFromModules<{
   "canonicalDocuments/definitionStorage": typeof canonicalDocuments_definitionStorage;
   "canonicalDocuments/definitions": typeof canonicalDocuments_definitions;
   "canonicalDocuments/displayContext": typeof canonicalDocuments_displayContext;
+  "canonicalDocuments/draftMaintenance": typeof canonicalDocuments_draftMaintenance;
+  "canonicalDocuments/drafts": typeof canonicalDocuments_drafts;
   "canonicalDocuments/eventRsvp": typeof canonicalDocuments_eventRsvp;
   "canonicalDocuments/featuredProducts": typeof canonicalDocuments_featuredProducts;
   "canonicalDocuments/form": typeof canonicalDocuments_form;
@@ -1249,6 +1255,7 @@ declare const fullApi: ApiFromModules<{
   "canonicalDocuments/foundation/curriculumContracts": typeof canonicalDocuments_foundation_curriculumContracts;
   "canonicalDocuments/foundation/documentContracts": typeof canonicalDocuments_foundation_documentContracts;
   "canonicalDocuments/foundation/documentState": typeof canonicalDocuments_foundation_documentState;
+  "canonicalDocuments/foundation/draftRecovery": typeof canonicalDocuments_foundation_draftRecovery;
   "canonicalDocuments/foundation/eventContracts": typeof canonicalDocuments_foundation_eventContracts;
   "canonicalDocuments/foundation/eventIntervalIndex": typeof canonicalDocuments_foundation_eventIntervalIndex;
   "canonicalDocuments/foundation/formContracts": typeof canonicalDocuments_foundation_formContracts;
@@ -1904,6 +1911,7 @@ declare const fullApi: ApiFromModules<{
   "schema/authTracking": typeof schema_authTracking;
   "schema/authorCounts": typeof schema_authorCounts;
   "schema/blockDefinitions": typeof schema_blockDefinitions;
+  "schema/canonicalDrafts": typeof schema_canonicalDrafts;
   "schema/capabilities": typeof schema_capabilities;
   "schema/comments": typeof schema_comments;
   "schema/commerce": typeof schema_commerce;

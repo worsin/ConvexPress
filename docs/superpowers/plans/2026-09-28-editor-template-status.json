@@ -50,12 +50,12 @@
     },
     {
       "id": "E02",
-      "status": "Closed for this block: current native, installed backend, public/four-pack and exact revision recovery evidence passed; owned fixtures removed, original data preserved. See ConvexPress-Admin/audits/2026-09-04/opening-navigation-20260928.md. Shared editor crash-recovery/autosave is separately open under E01.",
+      "status": "Closed for this block: current native, installed backend, public/four-pack and exact revision recovery evidence passed; owned fixtures removed, original data preserved. See ConvexPress-Admin/audits/2026-09-04/opening-navigation-20260928.md. Shared editor crash-recovery/autosave is accepted separately under E19; E01 pointer/scroll acceptance remains open.",
       "classification": "reusable evidence"
     },
     {
       "id": "E03",
-      "status": "Closed for this block: current native, installed backend, public/four-pack and exact revision recovery evidence passed; owned fixtures removed, original data preserved. See ConvexPress-Admin/audits/2026-09-04/opening-navigation-20260928.md. Shared editor crash-recovery/autosave is separately open under E01.",
+      "status": "Closed for this block: current native, installed backend, public/four-pack and exact revision recovery evidence passed; owned fixtures removed, original data preserved. See ConvexPress-Admin/audits/2026-09-04/opening-navigation-20260928.md. Shared editor crash-recovery/autosave is accepted separately under E19; E01 pointer/scroll acceptance remains open.",
       "classification": "reusable evidence"
     },
     {
@@ -135,8 +135,8 @@
     },
     {
       "id": "E19",
-      "classification": "missing implementation",
-      "status": "Device draft journaling and explicit Restore/Discard are implemented and passed real Electron renderer-crash/restart with exact nested invalid draft recovery and unchanged server revision/history/publication. Explicit Save and Discard clear the owned copy. Site-side block-tree draft autosave remains required; do not use ordinary Save as an autosave timer. See editor-device-recovery-20260928.md."
+      "classification": "accepted/reusable evidence",
+      "status": "Device force-crash recovery and private Website autosave accepted. Real fresh-profile recovery preserves exact nested invalid input; competing generations and saved-revision conflicts require explicit choices; ordinary Save alone updates accepted/public content. Private tombstones prevent stale resurrection; owned fixtures/sessions cleaned with original data preserved. Lost-reply reconciliation is covered by controlled tests, not a native dropped-ack claim. See editor-device-recovery-20260928.md and editor-site-autosave-20260928.md."
     }
   ],
   "blocks": [
@@ -2553,7 +2553,10 @@
     "output/editor-template-20260928/plugin-defaults.jsonl",
     "ConvexPress-Admin/audits/2026-09-04/editor-device-recovery-20260928.md",
     "output/editor-recovery-20260928/editor-suite.log",
-    "output/editor-recovery-20260928/cleanup.json"
+    "output/editor-recovery-20260928/cleanup.json",
+    "ConvexPress-Admin/audits/2026-09-04/editor-site-autosave-20260928.md",
+    "output/editor-autosave-20260928/installed-contracts-check.log",
+    "output/editor-autosave-20260928/cleaned-preservation.json"
   ],
   "trackerRefresh": {
     "date": "2026-09-28",

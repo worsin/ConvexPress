@@ -9,6 +9,7 @@ import {
 	acceptSave,
 	rejectSave,
 	reloadDocument,
+	keepDraftAgainstCurrent,
 } from "./session";
 const key = {
 	websiteKey: "site",
@@ -75,6 +76,17 @@ test("remote revision never silently overwrites local edits; reload is explicit"
 	expect(s.draft.title).toBe("Local");
 	expect(beginSave(s).pending).toBe(null);
 	expect(reloadDocument(s).draft.title).toBe("Remote");
+});
+test("explicitly keeping a conflicting draft advances only its local base and preserves the next CAS guard", () => {
+  const conflict = receiveDocument(editDocument(openDocument(first), { title: "Local" }), { key, revision: 3, value: { title: "Remote" } });
+  const kept = keepDraftAgainstCurrent(conflict);
+  expect(kept.draft.title).toBe("Local"); expect(kept.base.revision).toBe(3); expect(kept.conflict).toBeNull();
+  expect(kept.pending).toBeNull(); expect(kept.operation).toBeGreaterThan(conflict.operation);
+  expect(beginSave(kept).pending?.revision).toBe(3);
+  const newer = receiveDocument(kept, { key, revision: 4, value: { title: "Changed again" } });
+  expect(beginSave(newer).pending).toBeNull(); expect(newer.draft.title).toBe("Local");
+  const wrongScope = { ...conflict, conflict: { ...conflict.conflict!, key: { ...key, instanceKey: "live" } } };
+  expect(keepDraftAgainstCurrent(wrongScope)).toBe(wrongScope);
 });
 test("old save and error callbacks cannot enter another document or operator generation", () => {
 	const saving = beginSave(

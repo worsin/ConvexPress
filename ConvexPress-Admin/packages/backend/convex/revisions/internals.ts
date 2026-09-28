@@ -14,6 +14,7 @@
  */
 
 import { deleteWithMediaReferences, insertWithMediaReferences, patchWithMediaReferences } from "../media/attachmentGuard";
+import { removeDraftsForPost } from "../canonicalDocuments/draftMaintenance";
 import { internalMutation, type MutationCtx } from "../_generated/server";
 import type { Id } from "../_generated/dataModel";
 import { v } from "convex/values";
@@ -247,6 +248,7 @@ export const deleteByParent = internalMutation({
   args: deleteByParentArgs,
   // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
+    await removeDraftsForPost(ctx, args.parentId);
     const revisions = await ctx.db
       .query("revisions")
       .withIndex("by_parent", (q: ConvexQueryBuilder) => q.eq("parentId", args.parentId))

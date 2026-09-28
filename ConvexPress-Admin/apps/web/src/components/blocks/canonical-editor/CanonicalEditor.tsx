@@ -21,6 +21,7 @@ import {
 import { CanonicalOutline, type BlockLabel } from "./CanonicalOutline";
 import { changeNode, removeNodes, moveNode, outline, type TreeAdapter } from "./tree";
 import { useEditorRecovery } from "./EditorRecoveryProvider";
+import { useSiteDraft, type SiteDraftClient } from "./site-draft";
 import {
 	openDocument,
 	editDocument,
@@ -33,6 +34,7 @@ import {
 	acceptSave,
 	rejectSave,
 	reloadDocument,
+	keepDraftAgainstCurrent,
 	type Snapshot,
 	type SaveRequest,
 	type EditorSession,
@@ -109,6 +111,7 @@ export interface CanonicalEditorProps<N, V> {
 	 * recovery slot. Only explicit acceptance invokes the supplied save action. */
 	proposal?: { initialDraft: V; onPreview: (draft: V) => void };
 	contentLocked?: boolean;
+	siteDraft?: SiteDraftClient<V>;
 	onDirtyChange?: (dirty: boolean) => void;
 	creationActions?: (state: {
 		disabled: boolean;
@@ -139,6 +142,7 @@ function EditorBody<N, V>({
 	publicationActions,
 	creationActions,
 	contentLocked: externallyLocked = false,
+	siteDraft,
 	onDirtyChange,
 }: CanonicalEditorProps<N, V> & { snapshot: Snapshot<V> }) {
 	const styleControlId = useId();
@@ -191,7 +195,6 @@ function EditorBody<N, V>({
 	);
 	const [needsRecoveryChoice, setNeedsRecoveryChoice] = useState(!!recovered?.fromDevice);
 	const recoveryChoicePending = useRef(needsRecoveryChoice);
-	const contentLocked = externallyLocked || needsRecoveryChoice;
 	const [storedState, setState] = useState(() =>
 		proposal
 			? editDocument(openDocument(snapshot), proposal.initialDraft)
@@ -204,8 +207,6 @@ function EditorBody<N, V>({
 	const current = useRef(state);
 	if (!current.current.history) current.current = state;
 	const mounted = useRef(true);
-	const lockedNow = useRef(contentLocked);
-	lockedNow.current = contentLocked;
 	const adapter = adapterForDraft?.(state.draft) ?? savedAdapter;
 	const update = (next: EditorSession<V>) => {
 		current.current = next;
@@ -218,6 +219,20 @@ function EditorBody<N, V>({
 		setNeedsRecoveryChoice(false);
 		update(restore ? resumeDocument(recovered.state, current.current.base) : openDocument(current.current.base));
 	};
+	const privateDraft = useSiteDraft({
+		client: proposal ? undefined : siteDraft,
+		session: state,
+		paused: externallyLocked || needsRecoveryChoice || !!state.pending || !!state.conflict,
+		restore: (draft, revision) => {
+			const base = current.current.base;
+			update({ ...editDocument(openDocument(base), draft),
+				conflict: revision === base.revision ? null : base,
+				recoveryNotice: "Your private Website draft is in the editor. Review it before saving changes." });
+		},
+	});
+	const contentLocked = externallyLocked || needsRecoveryChoice || privateDraft.locked;
+	const lockedNow = useRef(contentLocked);
+	lockedNow.current = contentLocked;
 	useEffect(() => {
 		mounted.current = true;
 		recovered?.activate();
@@ -228,7 +243,7 @@ function EditorBody<N, V>({
 	useEffect(() => {
 		update(receiveDocument(current.current, snapshot));
 	}, [snapshot]);
-	const hasUnsavedWork = state.dirty || !!state.pending || needsRecoveryChoice;
+	const hasUnsavedWork = state.dirty || !!state.pending || needsRecoveryChoice || !!privateDraft.offered;
 	useEffect(() => {
 		onDirtyChange?.(hasUnsavedWork);
 	}, [onDirtyChange, hasUnsavedWork]);
@@ -471,6 +486,7 @@ function EditorBody<N, V>({
 	};
 
 	const commit = async () => {
+		if (lockedNow.current) return;
 		if (
 			outline(adapter.nodes(current.current.draft), adapter).some(
 				(row) =>
@@ -583,6 +599,23 @@ function EditorBody<N, V>({
 						</div>
 					</section>
 				)}
+				{privateDraft.offered && (
+					<section role="alert" className="space-y-3 rounded border border-border bg-muted/40 p-4 text-sm">
+						<p className="font-medium">{privateDraft.offered.draft === null ? "The private Website draft was discarded" : "A private draft is saved on this Website"}</p>
+						<p>Choose which content to keep editing. This choice does not change the published Website.</p>
+						<div className="flex flex-wrap gap-2">
+							<button type="button" disabled={externallyLocked || needsRecoveryChoice} onClick={() => privateDraft.choose("restore")} className="min-h-11 rounded border px-3 focus-visible:ring-2 focus-visible:ring-ring">{privateDraft.offered.draft === null ? "Use saved document" : "Restore Website draft"}</button>
+							<button type="button" disabled={externallyLocked || needsRecoveryChoice} onClick={() => privateDraft.choose("current")} className="min-h-11 rounded border px-3 focus-visible:ring-2 focus-visible:ring-ring">{state.dirty ? "Keep current editor draft" : "Discard Website draft"}</button>
+						</div>
+					</section>
+				)}
+				{privateDraft.status === "loading" && <p role="status" className="text-sm text-muted-foreground">Checking your private Website draft…</p>}
+				{privateDraft.status === "error" && (
+					<div role="alert" className="space-y-2 rounded border p-3 text-sm">
+						<p>Site autosave is unavailable. Your edits remain in this window. Retry autosave or save changes.</p>
+						<button type="button" disabled={externallyLocked || needsRecoveryChoice} onClick={() => void privateDraft.retry()} className="min-h-11 rounded border px-3">Retry site autosave</button>
+					</div>
+				)}
 				<fieldset disabled={contentLocked} className="contents">
 					<header className="flex flex-wrap items-center justify-between gap-3 border-b border-border pb-4">
 						<div>
@@ -603,6 +636,9 @@ function EditorBody<N, V>({
 							{hasUnsavedWork && recovered?.persistenceStatus() === "saved" && (
 								<p role="status" className="text-xs text-muted-foreground">Draft saved on this device. Save changes to update the Website.</p>
 							)}
+							{privateDraft.status === "waiting" && <p role="status" className="text-xs text-muted-foreground">Waiting to autosave your private Website draft…</p>}
+							{privateDraft.status === "saving" && <p role="status" className="text-xs text-muted-foreground">Autosaving your private Website draft…</p>}
+							{privateDraft.status === "saved" && !privateDraft.offered && <p role="status" className="text-xs text-muted-foreground">Private Website draft autosaved. Save changes to update the Website.</p>}
 							{recovered?.persistenceStatus() === "failed" && (
 								<p role="alert" className="text-xs text-destructive">Device recovery is unavailable. Save or copy your changes before closing this window.</p>
 							)}
@@ -827,6 +863,12 @@ function EditorBody<N, V>({
 								}}
 							>
 								Discard my changes and load the saved revision
+							</button>
+							<button type="button" className="mt-2 ml-4 min-h-11 underline underline-offset-4" onClick={() => {
+								if (lockedNow.current || current.current.pending) return;
+								update(keepDraftAgainstCurrent(current.current));
+							}}>
+								Keep my changes against the saved revision
 							</button>
 						</div>
 					)}
@@ -1171,6 +1213,7 @@ function EditorBody<N, V>({
 				</fieldset>
 				{publicationActions?.({
 					disabled:
+						needsRecoveryChoice || privateDraft.locked ||
 						state.dirty ||
 						!!state.pending ||
 						invalid ||

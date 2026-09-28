@@ -23,7 +23,7 @@ test("authorized reconnect restores local input; another operator cannot see it"
   };
   let saves = 0;
   const render = (scope, shown, current = snapshot) => act(async () => root.render(
-    <StrictMode><EditorRecoveryProvider scope={scope}>{shown ? <CanonicalEditor snapshot={current} adapter={adapter} authorityReady save={async () => { saves++; }} pickResource={async () => null} /> : <p>Reconnecting</p>}</EditorRecoveryProvider></StrictMode>,
+    <StrictMode><EditorRecoveryProvider scope={scope}>{shown ? <CanonicalEditor snapshot={current} adapter={adapter} authorityReady save={async () => { saves++; }} pickResource={async () => null} publicationActions={({ disabled }) => <button data-testid="publish" disabled={disabled}>Publish</button>} /> : <p>Reconnecting</p>}</EditorRecoveryProvider></StrictMode>,
   ));
   const change = title => act(async () => {
     const input = host.querySelector("input");
@@ -41,6 +41,7 @@ test("authorized reconnect restores local input; another operator cannot see it"
     await render("operator-b/site", true); expect(host.querySelector("input").value).toBe("Saved");
     await render("operator-a/site", true); expect(host.querySelector("input").value).toBe("Saved");
     expect(host.textContent).toContain("A recovery draft is available on this device");
+    expect(host.querySelector('[data-testid="publish"]').disabled).toBe(true);
     const restore = () => act(async () => [...host.querySelectorAll("button")].find(button => button.textContent === "Restore device draft").click());
     await restore(); expect(host.querySelector("input").value).toBe("Unsaved private draft");
     await act(async () => root.unmount()); root = createRoot(host);

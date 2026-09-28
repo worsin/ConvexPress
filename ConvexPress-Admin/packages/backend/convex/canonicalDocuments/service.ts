@@ -104,7 +104,7 @@ export async function canonicalBoundary<T>(run: () => Promise<T>): Promise<T> {
 		throw error;
 	}
 }
-async function authorized(
+export async function authorized(
 	ctx: QueryCtx,
 	postId: Id<"posts">,
 	budget: RequestReadLedger,

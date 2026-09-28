@@ -17,6 +17,7 @@ import {
 	useConvexConnectionState,
 } from "convex/react";
 import { api } from "@backend/convex/_generated/api";
+import { makeFunctionReference } from "convex/server";
 import type { Id } from "@backend/convex/_generated/dataModel";
 import {
 	useVerifiedSiteRuntime,
@@ -31,7 +32,9 @@ import {
 	type CanonicalPickerRequest,
 	type ResourcePickerClient,
 } from "./CanonicalResourcePicker";
-import { readForEditor } from "./document-adapter";
+import { readForEditor, type CanonicalDraft } from "./document-adapter";
+import { recoverCanonicalDraft } from "./recovery-draft";
+import { decodeSiteDraft } from "./site-draft";
 import type { PickerResult } from "../schema-editor/model";
 import type { DocumentKey } from "./session";
 import {
@@ -43,6 +46,11 @@ import { freshCanonicalRead } from "./fresh-read";
 import { recoverableCanonicalRead } from "./read-recovery";
 import { useCanonicalDocumentQuery } from "./document-query";
 import type { CanonicalDocumentDto } from "@backend/canonical-blocks-foundation/documentContracts";
+
+type PrivateDraftIdentity = { postId: Id<"posts">; expectedScope: { websiteKey: string; instanceKey: string } };
+const privateDraftRead = makeFunctionReference<"query", PrivateDraftIdentity, unknown>("canonicalDocuments/drafts:get");
+const privateDraftSave = makeFunctionReference<"mutation", PrivateDraftIdentity & { expectedGeneration: number; baseRevision: number; draft: CanonicalDraft }, unknown>("canonicalDocuments/drafts:save");
+const privateDraftDiscard = makeFunctionReference<"mutation", PrivateDraftIdentity & { expectedGeneration: number }, unknown>("canonicalDocuments/drafts:discard");
 
 export function CanonicalEditorEntry({
 	postId,
@@ -212,6 +220,23 @@ function ConnectedEditor({
 	};
 	const client = useMemo<CanonicalDocumentClient>(
 		() => ({
+			privateDraft: {
+				load: async () => {
+					guard();
+					const result = await convex.query(privateDraftRead, { postId, expectedScope: { websiteKey: key.websiteKey, instanceKey: key.instanceKey } });
+					guard(); return decodeSiteDraft(result, key, recoverCanonicalDraft);
+				},
+				save: async args => {
+					guard();
+					const result = await convex.mutation(privateDraftSave, { postId, expectedScope: { websiteKey: key.websiteKey, instanceKey: key.instanceKey }, ...args });
+					guard(); return decodeSiteDraft(result, key, recoverCanonicalDraft);
+				},
+				discard: async args => {
+					guard();
+					const result = await convex.mutation(privateDraftDiscard, { postId, expectedScope: { websiteKey: key.websiteKey, instanceKey: key.instanceKey }, ...args });
+					guard(); return decodeSiteDraft(result, key, recoverCanonicalDraft);
+				},
+			},
 			previewDraft: async (args) => {
 				guard();
 				const value = await freshCanonicalRead(postId, (fresh) =>
