@@ -1,5 +1,8 @@
 # Current production acceptance index — September 21
 
+**September 28 owner scope correction:** The active delivery is the complete block editor, 137-block library, template/Customizer system, four default template websites, BlockDemo and SDK workflows, including all demonstrated dependencies. The former whole-application production audit below remains an accurate historical/deferred register; it is not the active execution queue unless a finding blocks that delivery. Follow [the focused execution guide](../../../docs/superpowers/plans/2026-09-28-editor-template-delivery.md) and its 137-block status file. No additional block or production acceptance is claimed by this planning change.
+
+
 September21 Video Hero: **58/137 blocks verified;79 pending.** Replaced the player-below-heading mismatch with a muted looping cover and token-colored overlay copy. Added explicit Play/Pause, visibility/reduced-motion handling, poster/error fallback, Retry and stale-play protection; ordinary Video behavior stays intact. Native uploaded/selected/authored/reopened/recovered/published exact content; actual Website playback crossed a loop boundary and passed final mobile/keyboard checks.305 renderer/four browser cases, all types/build/freshness/kit/lint and refreshed thumbnails pass. Original42 pages/11 media/appearance/plugin preserved; owned resources cleaned. Original audit8accepted/16open. [Evidence](hero-video-20260921.md).
 
 

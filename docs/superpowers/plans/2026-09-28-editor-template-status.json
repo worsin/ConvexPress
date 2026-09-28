@@ -1,0 +1,1081 @@
+{
+  "plan": "2026-09-28-editor-template-delivery.md",
+  "baselineCommit": "d0fee8acceb408fd306a15f3c054322cb73ac8bc",
+  "checkpointSource": "output/hero-video-20260921/mt-after.json",
+  "checkpointCounts": {
+    "Verified": 58,
+    "In progress": 79
+  },
+  "goal": "Complete block editor and template delivery plus all demonstrated blockers; defer unrelated whole-app audit campaigns.",
+  "currentTask": "Task 1 \u2014 reconcile remaining delivery map and verify native baseline",
+  "tasks": [
+    {
+      "id": 1,
+      "status": "pending"
+    },
+    {
+      "id": 2,
+      "status": "pending"
+    },
+    {
+      "id": 3,
+      "status": "pending"
+    },
+    {
+      "id": 4,
+      "status": "pending"
+    },
+    {
+      "id": 5,
+      "status": "pending"
+    },
+    {
+      "id": 6,
+      "status": "pending"
+    },
+    {
+      "id": 7,
+      "status": "pending"
+    },
+    {
+      "id": 8,
+      "status": "pending"
+    }
+  ],
+  "blockers": [
+    {
+      "id": "E01",
+      "status": "requires current classification or closure; see guide"
+    },
+    {
+      "id": "E02",
+      "status": "requires current classification or closure; see guide"
+    },
+    {
+      "id": "E03",
+      "status": "requires current classification or closure; see guide"
+    },
+    {
+      "id": "E04",
+      "status": "requires current classification or closure; see guide"
+    },
+    {
+      "id": "E05",
+      "status": "requires current classification or closure; see guide"
+    },
+    {
+      "id": "E06",
+      "status": "requires current classification or closure; see guide"
+    },
+    {
+      "id": "E07",
+      "status": "requires current classification or closure; see guide"
+    },
+    {
+      "id": "E08",
+      "status": "requires current classification or closure; see guide"
+    },
+    {
+      "id": "E09",
+      "status": "requires current classification or closure; see guide"
+    },
+    {
+      "id": "E10",
+      "status": "requires current classification or closure; see guide"
+    },
+    {
+      "id": "E11",
+      "status": "requires current classification or closure; see guide"
+    },
+    {
+      "id": "E12",
+      "status": "requires current classification or closure; see guide"
+    },
+    {
+      "id": "E13",
+      "status": "requires current classification or closure; see guide"
+    },
+    {
+      "id": "E14",
+      "status": "requires current classification or closure; see guide"
+    },
+    {
+      "id": "E15",
+      "status": "requires current classification or closure; see guide"
+    },
+    {
+      "id": "E16",
+      "status": "requires current classification or closure; see guide"
+    },
+    {
+      "id": "E17",
+      "status": "requires current classification or closure; see guide"
+    },
+    {
+      "id": "E18",
+      "status": "requires current classification or closure; see guide"
+    }
+  ],
+  "blocks": [
+    {
+      "name": "core/paragraph",
+      "title": "Paragraph",
+      "category": "Text",
+      "checkpointStatus": "Verified",
+      "nextClassification": "reuse valid evidence"
+    },
+    {
+      "name": "core/heading",
+      "title": "Heading",
+      "category": "Text",
+      "checkpointStatus": "Verified",
+      "nextClassification": "reuse valid evidence"
+    },
+    {
+      "name": "core/list",
+      "title": "List",
+      "category": "Text",
+      "checkpointStatus": "Verified",
+      "nextClassification": "reuse valid evidence"
+    },
+    {
+      "name": "core/quote",
+      "title": "Quote",
+      "category": "Text",
+      "checkpointStatus": "Verified",
+      "nextClassification": "reuse valid evidence"
+    },
+    {
+      "name": "core/pullquote",
+      "title": "Pullquote",
+      "category": "Text",
+      "checkpointStatus": "Verified",
+      "nextClassification": "reuse valid evidence"
+    },
+    {
+      "name": "core/code",
+      "title": "Code",
+      "category": "Text",
+      "checkpointStatus": "Verified",
+      "nextClassification": "reuse valid evidence"
+    },
+    {
+      "name": "core/table",
+      "title": "Table",
+      "category": "Text",
+      "checkpointStatus": "Verified",
+      "nextClassification": "reuse valid evidence"
+    },
+    {
+      "name": "core/callout",
+      "title": "Callout",
+      "category": "Text",
+      "checkpointStatus": "Verified",
+      "nextClassification": "reuse valid evidence"
+    },
+    {
+      "name": "core/rich-text",
+      "title": "Rich text",
+      "category": "Text",
+      "checkpointStatus": "In progress",
+      "nextClassification": "reconcile exact remaining requirement before work"
+    },
+    {
+      "name": "core/table-of-contents",
+      "title": "Table of contents",
+      "category": "Text",
+      "checkpointStatus": "In progress",
+      "nextClassification": "reconcile exact remaining requirement before work"
+    },
+    {
+      "name": "core/footnotes",
+      "title": "Footnotes",
+      "category": "Text",
+      "checkpointStatus": "Verified",
+      "nextClassification": "reuse valid evidence"
+    },
+    {
+      "name": "core/section",
+      "title": "Section",
+      "category": "Layout",
+      "checkpointStatus": "Verified",
+      "nextClassification": "reuse valid evidence"
+    },
+    {
+      "name": "core/columns",
+      "title": "Columns",
+      "category": "Layout",
+      "checkpointStatus": "Verified",
+      "nextClassification": "reuse valid evidence"
+    },
+    {
+      "name": "core/group",
+      "title": "Group",
+      "category": "Layout",
+      "checkpointStatus": "Verified",
+      "nextClassification": "reuse valid evidence"
+    },
+    {
+      "name": "core/grid",
+      "title": "Grid",
+      "category": "Layout",
+      "checkpointStatus": "Verified",
+      "nextClassification": "reuse valid evidence"
+    },
+    {
+      "name": "core/split",
+      "title": "Split",
+      "category": "Layout",
+      "checkpointStatus": "Verified",
+      "nextClassification": "reuse valid evidence"
+    },
+    {
+      "name": "core/spacer",
+      "title": "Spacer",
+      "category": "Layout",
+      "checkpointStatus": "Verified",
+      "nextClassification": "reuse valid evidence"
+    },
+    {
+      "name": "core/divider",
+      "title": "Divider",
+      "category": "Layout",
+      "checkpointStatus": "Verified",
+      "nextClassification": "reuse valid evidence"
+    },
+    {
+      "name": "core/sticky-aside",
+      "title": "Sticky aside",
+      "category": "Layout",
+      "checkpointStatus": "Verified",
+      "nextClassification": "reuse valid evidence"
+    },
+    {
+      "name": "core/accordion",
+      "title": "Accordion",
+      "category": "Layout",
+      "checkpointStatus": "Verified",
+      "nextClassification": "reuse valid evidence"
+    },
+    {
+      "name": "core/tabs",
+      "title": "Tabs",
+      "category": "Layout",
+      "checkpointStatus": "Verified",
+      "nextClassification": "reuse valid evidence"
+    },
+    {
+      "name": "core/image",
+      "title": "Image",
+      "category": "Media",
+      "checkpointStatus": "Verified",
+      "nextClassification": "reuse valid evidence"
+    },
+    {
+      "name": "core/gallery",
+      "title": "Gallery",
+      "category": "Media",
+      "checkpointStatus": "Verified",
+      "nextClassification": "reuse valid evidence"
+    },
+    {
+      "name": "core/carousel",
+      "title": "Carousel",
+      "category": "Media",
+      "checkpointStatus": "In progress",
+      "nextClassification": "reconcile exact remaining requirement before work"
+    },
+    {
+      "name": "core/video",
+      "title": "Video",
+      "category": "Media",
+      "checkpointStatus": "Verified",
+      "nextClassification": "reuse valid evidence"
+    },
+    {
+      "name": "core/audio",
+      "title": "Audio",
+      "category": "Media",
+      "checkpointStatus": "Verified",
+      "nextClassification": "reuse valid evidence"
+    },
+    {
+      "name": "core/embed",
+      "title": "Embed",
+      "category": "Media",
+      "checkpointStatus": "In progress",
+      "nextClassification": "reconcile exact remaining requirement before work"
+    },
+    {
+      "name": "core/before-after",
+      "title": "Before / after",
+      "category": "Media",
+      "checkpointStatus": "Verified",
+      "nextClassification": "reuse valid evidence"
+    },
+    {
+      "name": "core/lightbox-grid",
+      "title": "Lightbox grid",
+      "category": "Media",
+      "checkpointStatus": "Verified",
+      "nextClassification": "reuse valid evidence"
+    },
+    {
+      "name": "core/logo-cloud",
+      "title": "Logo cloud",
+      "category": "Media",
+      "checkpointStatus": "Verified",
+      "nextClassification": "reuse valid evidence"
+    },
+    {
+      "name": "core/map",
+      "title": "Map",
+      "category": "Media",
+      "checkpointStatus": "In progress",
+      "nextClassification": "reconcile exact remaining requirement before work"
+    },
+    {
+      "name": "core/file-download",
+      "title": "File download",
+      "category": "Media",
+      "checkpointStatus": "In progress",
+      "nextClassification": "reconcile exact remaining requirement before work"
+    },
+    {
+      "name": "core/hero",
+      "title": "Hero",
+      "category": "Openers",
+      "checkpointStatus": "Verified",
+      "nextClassification": "reuse valid evidence"
+    },
+    {
+      "name": "core/hero-split",
+      "title": "Hero split",
+      "category": "Openers",
+      "checkpointStatus": "Verified",
+      "nextClassification": "reuse valid evidence"
+    },
+    {
+      "name": "core/hero-text-only",
+      "title": "Hero text only",
+      "category": "Openers",
+      "checkpointStatus": "Verified",
+      "nextClassification": "reuse valid evidence"
+    },
+    {
+      "name": "core/hero-video",
+      "title": "Hero video",
+      "category": "Openers",
+      "checkpointStatus": "Verified",
+      "nextClassification": "reuse valid evidence"
+    },
+    {
+      "name": "blocks/page-banner",
+      "title": "Page banner",
+      "category": "Openers",
+      "checkpointStatus": "Verified",
+      "nextClassification": "reuse valid evidence"
+    },
+    {
+      "name": "core/announcement-bar",
+      "title": "Announcement bar",
+      "category": "Openers",
+      "checkpointStatus": "In progress",
+      "nextClassification": "reconcile exact remaining requirement before work"
+    },
+    {
+      "name": "core/breadcrumbs",
+      "title": "Breadcrumbs",
+      "category": "Openers",
+      "checkpointStatus": "In progress",
+      "nextClassification": "reconcile exact remaining requirement before work"
+    },
+    {
+      "name": "core/feature-grid",
+      "title": "Feature grid",
+      "category": "Marketing",
+      "checkpointStatus": "Verified",
+      "nextClassification": "reuse valid evidence"
+    },
+    {
+      "name": "core/feature-list-alternating",
+      "title": "Feature list alternating",
+      "category": "Marketing",
+      "checkpointStatus": "Verified",
+      "nextClassification": "reuse valid evidence"
+    },
+    {
+      "name": "core/bento-grid",
+      "title": "Bento grid",
+      "category": "Marketing",
+      "checkpointStatus": "Verified",
+      "nextClassification": "reuse valid evidence"
+    },
+    {
+      "name": "core/stats-band",
+      "title": "Stats band",
+      "category": "Marketing",
+      "checkpointStatus": "Verified",
+      "nextClassification": "reuse valid evidence"
+    },
+    {
+      "name": "core/cta-band",
+      "title": "CTA band",
+      "category": "Marketing",
+      "checkpointStatus": "Verified",
+      "nextClassification": "reuse valid evidence"
+    },
+    {
+      "name": "core/cta-with-form",
+      "title": "CTA with form",
+      "category": "Marketing",
+      "checkpointStatus": "Verified",
+      "nextClassification": "reuse valid evidence"
+    },
+    {
+      "name": "core/media-text",
+      "title": "Media + text",
+      "category": "Marketing",
+      "checkpointStatus": "Verified",
+      "nextClassification": "reuse valid evidence"
+    },
+    {
+      "name": "core/process-steps",
+      "title": "Process steps",
+      "category": "Marketing",
+      "checkpointStatus": "Verified",
+      "nextClassification": "reuse valid evidence"
+    },
+    {
+      "name": "core/roadmap-timeline",
+      "title": "Roadmap timeline",
+      "category": "Marketing",
+      "checkpointStatus": "Verified",
+      "nextClassification": "reuse valid evidence"
+    },
+    {
+      "name": "blocks/story-timeline",
+      "title": "Story timeline",
+      "category": "Marketing",
+      "checkpointStatus": "Verified",
+      "nextClassification": "reuse valid evidence"
+    },
+    {
+      "name": "core/comparison-table",
+      "title": "Comparison table",
+      "category": "Marketing",
+      "checkpointStatus": "Verified",
+      "nextClassification": "reuse valid evidence"
+    },
+    {
+      "name": "core/pricing-cards",
+      "title": "Pricing cards",
+      "category": "Marketing",
+      "checkpointStatus": "Verified",
+      "nextClassification": "reuse valid evidence"
+    },
+    {
+      "name": "core/pricing-table",
+      "title": "Pricing table",
+      "category": "Marketing",
+      "checkpointStatus": "Verified",
+      "nextClassification": "reuse valid evidence"
+    },
+    {
+      "name": "core/faq",
+      "title": "FAQ",
+      "category": "Marketing",
+      "checkpointStatus": "Verified",
+      "nextClassification": "reuse valid evidence"
+    },
+    {
+      "name": "core/testimonials",
+      "title": "Testimonials",
+      "category": "Marketing",
+      "checkpointStatus": "Verified",
+      "nextClassification": "reuse valid evidence"
+    },
+    {
+      "name": "core/testimonial-wall",
+      "title": "Testimonial wall",
+      "category": "Marketing",
+      "checkpointStatus": "Verified",
+      "nextClassification": "reuse valid evidence"
+    },
+    {
+      "name": "core/trust-badges",
+      "title": "Trust badges",
+      "category": "Marketing",
+      "checkpointStatus": "Verified",
+      "nextClassification": "reuse valid evidence"
+    },
+    {
+      "name": "blocks/media-mentions",
+      "title": "Media mentions",
+      "category": "Marketing",
+      "checkpointStatus": "Verified",
+      "nextClassification": "reuse valid evidence"
+    },
+    {
+      "name": "core/team-grid",
+      "title": "Team grid",
+      "category": "Marketing",
+      "checkpointStatus": "Verified",
+      "nextClassification": "reuse valid evidence"
+    },
+    {
+      "name": "blocks/promo-band",
+      "title": "Promo band",
+      "category": "Marketing",
+      "checkpointStatus": "Verified",
+      "nextClassification": "reuse valid evidence"
+    },
+    {
+      "name": "core/countdown",
+      "title": "Countdown",
+      "category": "Marketing",
+      "checkpointStatus": "Verified",
+      "nextClassification": "reuse valid evidence"
+    },
+    {
+      "name": "blocks/tabbed-content",
+      "title": "Tabbed content",
+      "category": "Marketing",
+      "checkpointStatus": "Verified",
+      "nextClassification": "reuse valid evidence"
+    },
+    {
+      "name": "core/steps-with-media",
+      "title": "Steps with media",
+      "category": "Marketing",
+      "checkpointStatus": "In progress",
+      "nextClassification": "reconcile exact remaining requirement before work"
+    },
+    {
+      "name": "core/feature-tabs",
+      "title": "Feature tabs",
+      "category": "Marketing",
+      "checkpointStatus": "Verified",
+      "nextClassification": "reuse valid evidence"
+    },
+    {
+      "name": "core/marquee",
+      "title": "Marquee",
+      "category": "Marketing",
+      "checkpointStatus": "In progress",
+      "nextClassification": "reconcile exact remaining requirement before work"
+    },
+    {
+      "name": "blocks/customer-showcase",
+      "title": "Customer showcase",
+      "category": "Social",
+      "checkpointStatus": "In progress",
+      "nextClassification": "reconcile exact remaining requirement before work"
+    },
+    {
+      "name": "blocks/social-share",
+      "title": "Social share",
+      "category": "Social",
+      "checkpointStatus": "In progress",
+      "nextClassification": "reconcile exact remaining requirement before work"
+    },
+    {
+      "name": "core/social-links",
+      "title": "Social links",
+      "category": "Social",
+      "checkpointStatus": "In progress",
+      "nextClassification": "reconcile exact remaining requirement before work"
+    },
+    {
+      "name": "core/reviews",
+      "title": "Reviews",
+      "category": "Social",
+      "checkpointStatus": "In progress",
+      "nextClassification": "reconcile exact remaining requirement before work"
+    },
+    {
+      "name": "core/social-feed",
+      "title": "Social feed",
+      "category": "Social",
+      "checkpointStatus": "In progress",
+      "nextClassification": "reconcile exact remaining requirement before work"
+    },
+    {
+      "name": "core/ugc-grid",
+      "title": "UGC grid",
+      "category": "Social",
+      "checkpointStatus": "In progress",
+      "nextClassification": "reconcile exact remaining requirement before work"
+    },
+    {
+      "name": "commerce/product-showcase",
+      "title": "Product showcase",
+      "category": "Commerce",
+      "checkpointStatus": "Verified",
+      "nextClassification": "reuse valid evidence"
+    },
+    {
+      "name": "blocks/product-collection",
+      "title": "Product collection",
+      "category": "Commerce",
+      "checkpointStatus": "Verified",
+      "nextClassification": "reuse valid evidence"
+    },
+    {
+      "name": "commerce/category-tiles",
+      "title": "Category tiles",
+      "category": "Commerce",
+      "checkpointStatus": "Verified",
+      "nextClassification": "reuse valid evidence"
+    },
+    {
+      "name": "core/featured-products",
+      "title": "Featured products",
+      "category": "Commerce",
+      "checkpointStatus": "In progress",
+      "nextClassification": "reconcile exact remaining requirement before work"
+    },
+    {
+      "name": "commerce/assistant-band",
+      "title": "Assistant band",
+      "category": "Commerce",
+      "checkpointStatus": "In progress",
+      "nextClassification": "reconcile exact remaining requirement before work"
+    },
+    {
+      "name": "commerce/product-compare",
+      "title": "Product compare",
+      "category": "Commerce",
+      "checkpointStatus": "In progress",
+      "nextClassification": "reconcile exact remaining requirement before work"
+    },
+    {
+      "name": "commerce/bundle-offer",
+      "title": "Bundle offer",
+      "category": "Commerce",
+      "checkpointStatus": "In progress",
+      "nextClassification": "reconcile exact remaining requirement before work"
+    },
+    {
+      "name": "commerce/sale-countdown",
+      "title": "Sale countdown",
+      "category": "Commerce",
+      "checkpointStatus": "In progress",
+      "nextClassification": "reconcile exact remaining requirement before work"
+    },
+    {
+      "name": "commerce/recently-viewed",
+      "title": "Recently viewed",
+      "category": "Commerce",
+      "checkpointStatus": "In progress",
+      "nextClassification": "reconcile exact remaining requirement before work"
+    },
+    {
+      "name": "commerce/cart-cta",
+      "title": "Cart CTA",
+      "category": "Commerce",
+      "checkpointStatus": "In progress",
+      "nextClassification": "reconcile exact remaining requirement before work"
+    },
+    {
+      "name": "commerce/search-band",
+      "title": "Search band",
+      "category": "Commerce",
+      "checkpointStatus": "In progress",
+      "nextClassification": "reconcile exact remaining requirement before work"
+    },
+    {
+      "name": "commerce/brand-list",
+      "title": "Brand list",
+      "category": "Commerce",
+      "checkpointStatus": "In progress",
+      "nextClassification": "reconcile exact remaining requirement before work"
+    },
+    {
+      "name": "commerce/product-hero",
+      "title": "Product hero",
+      "category": "Commerce",
+      "checkpointStatus": "In progress",
+      "nextClassification": "reconcile exact remaining requirement before work"
+    },
+    {
+      "name": "commerce/variant-picker-teaser",
+      "title": "Variant picker teaser",
+      "category": "Commerce",
+      "checkpointStatus": "In progress",
+      "nextClassification": "reconcile exact remaining requirement before work"
+    },
+    {
+      "name": "commerce/shipping-promise",
+      "title": "Shipping promise",
+      "category": "Commerce",
+      "checkpointStatus": "In progress",
+      "nextClassification": "reconcile exact remaining requirement before work"
+    },
+    {
+      "name": "core/latest-posts",
+      "title": "Latest posts",
+      "category": "Discovery",
+      "checkpointStatus": "In progress",
+      "nextClassification": "reconcile exact remaining requirement before work"
+    },
+    {
+      "name": "core/post-grid",
+      "title": "Post grid",
+      "category": "Discovery",
+      "checkpointStatus": "In progress",
+      "nextClassification": "reconcile exact remaining requirement before work"
+    },
+    {
+      "name": "core/author-bio",
+      "title": "Author bio",
+      "category": "Discovery",
+      "checkpointStatus": "In progress",
+      "nextClassification": "reconcile exact remaining requirement before work"
+    },
+    {
+      "name": "core/tag-cloud",
+      "title": "Tag cloud",
+      "category": "Discovery",
+      "checkpointStatus": "In progress",
+      "nextClassification": "reconcile exact remaining requirement before work"
+    },
+    {
+      "name": "core/related-content",
+      "title": "Related content",
+      "category": "Discovery",
+      "checkpointStatus": "In progress",
+      "nextClassification": "reconcile exact remaining requirement before work"
+    },
+    {
+      "name": "core/archive-list",
+      "title": "Archive list",
+      "category": "Discovery",
+      "checkpointStatus": "In progress",
+      "nextClassification": "reconcile exact remaining requirement before work"
+    },
+    {
+      "name": "core/search-box",
+      "title": "Search box",
+      "category": "Discovery",
+      "checkpointStatus": "In progress",
+      "nextClassification": "reconcile exact remaining requirement before work"
+    },
+    {
+      "name": "core/featured-page",
+      "title": "Featured page",
+      "category": "Discovery",
+      "checkpointStatus": "In progress",
+      "nextClassification": "reconcile exact remaining requirement before work"
+    },
+    {
+      "name": "core/child-pages",
+      "title": "Child pages",
+      "category": "Discovery",
+      "checkpointStatus": "In progress",
+      "nextClassification": "reconcile exact remaining requirement before work"
+    },
+    {
+      "name": "core/contact-form",
+      "title": "Contact form",
+      "category": "Forms",
+      "checkpointStatus": "In progress",
+      "nextClassification": "reconcile exact remaining requirement before work"
+    },
+    {
+      "name": "core/newsletter-signup",
+      "title": "Newsletter signup",
+      "category": "Forms",
+      "checkpointStatus": "In progress",
+      "nextClassification": "reconcile exact remaining requirement before work"
+    },
+    {
+      "name": "core/booking-cta",
+      "title": "Booking CTA",
+      "category": "Forms",
+      "checkpointStatus": "In progress",
+      "nextClassification": "reconcile exact remaining requirement before work"
+    },
+    {
+      "name": "blocks/contact-stack",
+      "title": "Contact stack",
+      "category": "Forms",
+      "checkpointStatus": "In progress",
+      "nextClassification": "reconcile exact remaining requirement before work"
+    },
+    {
+      "name": "core/form",
+      "title": "Form embed",
+      "category": "Forms",
+      "checkpointStatus": "In progress",
+      "nextClassification": "reconcile exact remaining requirement before work"
+    },
+    {
+      "name": "core/lead-magnet",
+      "title": "Lead magnet",
+      "category": "Forms",
+      "checkpointStatus": "In progress",
+      "nextClassification": "reconcile exact remaining requirement before work"
+    },
+    {
+      "name": "core/poll",
+      "title": "Poll",
+      "category": "Forms",
+      "checkpointStatus": "In progress",
+      "nextClassification": "reconcile exact remaining requirement before work"
+    },
+    {
+      "name": "core/event-rsvp",
+      "title": "Event RSVP",
+      "category": "Forms",
+      "checkpointStatus": "In progress",
+      "nextClassification": "reconcile exact remaining requirement before work"
+    },
+    {
+      "name": "lms/course-grid",
+      "title": "Course grid",
+      "category": "Plugin",
+      "checkpointStatus": "In progress",
+      "nextClassification": "reconcile exact remaining requirement before work"
+    },
+    {
+      "name": "lms/curriculum",
+      "title": "Curriculum",
+      "category": "Plugin",
+      "checkpointStatus": "In progress",
+      "nextClassification": "reconcile exact remaining requirement before work"
+    },
+    {
+      "name": "lms/instructor",
+      "title": "Instructor",
+      "category": "Plugin",
+      "checkpointStatus": "In progress",
+      "nextClassification": "reconcile exact remaining requirement before work"
+    },
+    {
+      "name": "lms/progress",
+      "title": "Learner progress",
+      "category": "Plugin",
+      "checkpointStatus": "In progress",
+      "nextClassification": "reconcile exact remaining requirement before work"
+    },
+    {
+      "name": "events/calendar",
+      "title": "Event calendar",
+      "category": "Plugin",
+      "checkpointStatus": "In progress",
+      "nextClassification": "reconcile exact remaining requirement before work"
+    },
+    {
+      "name": "events/upcoming",
+      "title": "Upcoming Events",
+      "category": "Site",
+      "checkpointStatus": "In progress",
+      "nextClassification": "reconcile exact remaining requirement before work"
+    },
+    {
+      "name": "events/next-event",
+      "title": "Next event",
+      "category": "Plugin",
+      "checkpointStatus": "In progress",
+      "nextClassification": "reconcile exact remaining requirement before work"
+    },
+    {
+      "name": "membership/plans",
+      "title": "Membership plans",
+      "category": "Plugin",
+      "checkpointStatus": "In progress",
+      "nextClassification": "reconcile exact remaining requirement before work"
+    },
+    {
+      "name": "membership/gated-teaser",
+      "title": "Gated teaser",
+      "category": "Plugin",
+      "checkpointStatus": "In progress",
+      "nextClassification": "reconcile exact remaining requirement before work"
+    },
+    {
+      "name": "gallery/recipe-card",
+      "title": "Recipe card",
+      "category": "Plugin",
+      "checkpointStatus": "In progress",
+      "nextClassification": "reconcile exact remaining requirement before work"
+    },
+    {
+      "name": "gallery/album",
+      "title": "Gallery album",
+      "category": "Plugin",
+      "checkpointStatus": "In progress",
+      "nextClassification": "reconcile exact remaining requirement before work"
+    },
+    {
+      "name": "support/kb-search",
+      "title": "Knowledge base search",
+      "category": "Plugin",
+      "checkpointStatus": "In progress",
+      "nextClassification": "reconcile exact remaining requirement before work"
+    },
+    {
+      "name": "support/ticket-cta",
+      "title": "Ticket CTA",
+      "category": "Plugin",
+      "checkpointStatus": "In progress",
+      "nextClassification": "reconcile exact remaining requirement before work"
+    },
+    {
+      "name": "certificates/verify",
+      "title": "Certificate verify",
+      "category": "Plugin",
+      "checkpointStatus": "In progress",
+      "nextClassification": "reconcile exact remaining requirement before work"
+    },
+    {
+      "name": "core/site-info",
+      "title": "Site info",
+      "category": "Site",
+      "checkpointStatus": "In progress",
+      "nextClassification": "reconcile exact remaining requirement before work"
+    },
+    {
+      "name": "core/menu",
+      "title": "Menu",
+      "category": "Site",
+      "checkpointStatus": "In progress",
+      "nextClassification": "reconcile exact remaining requirement before work"
+    },
+    {
+      "name": "core/account-teaser",
+      "title": "Account teaser",
+      "category": "Site",
+      "checkpointStatus": "In progress",
+      "nextClassification": "reconcile exact remaining requirement before work"
+    },
+    {
+      "name": "core/custom-html",
+      "title": "Custom HTML",
+      "category": "Site",
+      "checkpointStatus": "In progress",
+      "nextClassification": "reconcile exact remaining requirement before work"
+    },
+    {
+      "name": "core/iframe",
+      "title": "Iframe",
+      "category": "Site",
+      "checkpointStatus": "In progress",
+      "nextClassification": "reconcile exact remaining requirement before work"
+    },
+    {
+      "name": "core/script-embed",
+      "title": "Script embed",
+      "category": "Site",
+      "checkpointStatus": "In progress",
+      "nextClassification": "reconcile exact remaining requirement before work"
+    },
+    {
+      "name": "core/anchor-nav",
+      "title": "Anchor nav",
+      "category": "Site",
+      "checkpointStatus": "In progress",
+      "nextClassification": "reconcile exact remaining requirement before work"
+    },
+    {
+      "name": "core/language-switcher",
+      "title": "Language switcher",
+      "category": "Site",
+      "checkpointStatus": "In progress",
+      "nextClassification": "reconcile exact remaining requirement before work"
+    },
+    {
+      "name": "blocks/grade-gallery",
+      "title": "Grade gallery",
+      "category": "Media",
+      "checkpointStatus": "In progress",
+      "nextClassification": "reconcile exact remaining requirement before work"
+    },
+    {
+      "name": "core/synced",
+      "title": "Synced content",
+      "category": "Layout",
+      "checkpointStatus": "In progress",
+      "nextClassification": "reconcile exact remaining requirement before work"
+    },
+    {
+      "name": "core/definition-list",
+      "title": "Definition list",
+      "category": "Text",
+      "checkpointStatus": "Verified",
+      "nextClassification": "reuse valid evidence"
+    },
+    {
+      "name": "business/opening-hours",
+      "title": "Opening hours",
+      "category": "Site",
+      "checkpointStatus": "In progress",
+      "nextClassification": "reconcile exact remaining requirement before work"
+    },
+    {
+      "name": "business/locations",
+      "title": "Business locations",
+      "category": "Site",
+      "checkpointStatus": "In progress",
+      "nextClassification": "reconcile exact remaining requirement before work"
+    },
+    {
+      "name": "business/service-list",
+      "title": "Services and rates",
+      "category": "Marketing",
+      "checkpointStatus": "In progress",
+      "nextClassification": "reconcile exact remaining requirement before work"
+    },
+    {
+      "name": "business/menu",
+      "title": "Food and drink menu",
+      "category": "Site",
+      "checkpointStatus": "In progress",
+      "nextClassification": "reconcile exact remaining requirement before work"
+    },
+    {
+      "name": "commerce/wishlist",
+      "title": "Saved products",
+      "category": "Commerce",
+      "checkpointStatus": "In progress",
+      "nextClassification": "reconcile exact remaining requirement before work"
+    },
+    {
+      "name": "commerce/download-library",
+      "title": "Purchased downloads",
+      "category": "Commerce",
+      "checkpointStatus": "In progress",
+      "nextClassification": "reconcile exact remaining requirement before work"
+    },
+    {
+      "name": "core/search-results",
+      "title": "Search results",
+      "category": "Discovery",
+      "checkpointStatus": "In progress",
+      "nextClassification": "reconcile exact remaining requirement before work"
+    },
+    {
+      "name": "reference/field-guide",
+      "title": "Field Guide",
+      "category": "Site",
+      "checkpointStatus": "In progress",
+      "nextClassification": "reconcile exact remaining requirement before work"
+    },
+    {
+      "name": "local/sample-alert",
+      "title": "Local sample alert",
+      "category": "Site",
+      "checkpointStatus": "In progress",
+      "nextClassification": "reconcile exact remaining requirement before work"
+    },
+    {
+      "name": "blocks/studio-services",
+      "title": "Studio services",
+      "category": "Marketing",
+      "checkpointStatus": "In progress",
+      "nextClassification": "reconcile exact remaining requirement before work"
+    }
+  ],
+  "latestEvidence": []
+}
