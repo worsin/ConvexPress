@@ -10,6 +10,32 @@ import type { BlockName } from "../../ConvexPress-Admin/packages/backend/canonic
 const root = fileURLToPath(new URL("../../", import.meta.url));
 const runtime = createBlockSpecCompiler(z);
 
+test("announcement authoring rejects equal and reversed dates without invalidating historical drafts", () => {
+  for (const endsAt of ["2040-06-01T09:00:00Z", "2040-06-01T08:59:59Z"]) {
+    const old = { text: "Historical notice", schedule: { startsAt: "2040-06-01T09:00:00Z", endsAt } };
+    expect(blockSchemas["core/announcement-bar"].parse(old).schedule).toEqual(old.schedule);
+    expect(() => validateBlockAuthoringAttrs("core/announcement-bar", old)).toThrow();
+  }
+  for (const schedule of [undefined, {}, { startsAt: "2040-06-01T09:00:00Z" }, { endsAt: "2040-06-01T10:00:00Z" }, { startsAt: "2040-06-01T09:00:00Z", endsAt: "2040-06-01T10:00:00Z" }]) {
+    expect(validateBlockAuthoringAttrs("core/announcement-bar", { text: "Notice", ...(schedule ? { schedule } : {}) }).schedule).toEqual(schedule);
+  }
+});
+
+test("shared authoring constraints validate nested dates and preserve read shape and error paths", () => {
+  const fields = [{ id: "rows", type: "repeater", fields: [{ id: "schedule", type: "object", nullable: true, fields: [{ id: "startsAt", type: "date" }, { id: "endsAt", type: "date" }], authoringConstraints: [{ kind: "ordered", lower: "startsAt", upper: "endsAt" }] }] }];
+  const spec = runtime.parseBlockSpec({ ...tabbedSpec, fields, authoringActions: [], examples: [{ rows: [{ schedule: null }] }], preview: "", searchText: [] });
+  const schema = runtime.attrsSchema(spec.fields), rules = authoringFieldRules(spec.fields);
+  const old = { rows: [{ schedule: { startsAt: "2040-06-01T09:00:00Z", endsAt: "2040-06-01T08:00:00Z" } }] };
+  expect(schema.parse(old)).toEqual(old);
+  try { validateAuthoringFields(z, old, rules); throw Error("Expected date order rejection"); } catch (error: any) {
+    expect(error.issues[0].path).toEqual(["rows", 0, "schedule", "endsAt"]);
+  }
+  for (const value of [{}, { rows: [{}, { schedule: null }, { schedule: {} }] }]) expect(validateAuthoringFields(z, schema.parse(value), rules)).toEqual(value);
+  expect(() => runtime.parseBlockSpec({ ...spec, examples: [old] })).toThrow();
+  expect(() => runtime.parseBlockSpec({ ...spec, fields: [{ ...fields[0], default: old.rows }] })).toThrow();
+  expect(() => runtime.parseBlockSpec({ ...spec, fields: [{ id: "value", type: "object", fields: [{ id: "title", type: "text" }], authoringConstraints: [{ kind: "ordered", lower: "title", upper: "missing" }] }] })).toThrow();
+});
+
 test("hero actions require visible labels and preserve existing content", () => {
   for (const name of ["core/hero", "core/hero-split", "core/hero-text-only"] as const) {
     for (const prefix of ["primary", "secondary"] as const) {

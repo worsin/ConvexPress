@@ -1,17 +1,17 @@
 {
   "plan": "2026-09-28-editor-template-delivery.md",
   "baselineCommit": "d0fee8acceb408fd306a15f3c054322cb73ac8bc",
-  "checkpointSource": "output/hero-video-20260921/mt-after.json",
+  "checkpointSource": "output/editor-template-20260928/mt-accept-after.json",
   "checkpointCounts": {
-    "Verified": 58,
-    "In progress": 79
+    "Verified": 60,
+    "In progress": 77
   },
   "goal": "Complete block editor and template delivery plus all demonstrated blockers; defer unrelated whole-app audit campaigns.",
   "currentTask": "Task 1 \u2014 reconcile remaining delivery map and verify native baseline",
   "tasks": [
     {
       "id": 1,
-      "status": "pending"
+      "status": "in_progress"
     },
     {
       "id": 2,
@@ -45,75 +45,93 @@
   "blockers": [
     {
       "id": "E01",
-      "status": "requires current classification or closure; see guide"
+      "status": "Native insertion, typing, save/reopen, both account menus and actual unsaved Website preview pass. Renderer crash plus app restart loses unsaved title: recovery is memory-only and block-tree autosave is absent. Full nesting/scroll baseline and durable recovery repair remain.",
+      "classification": "missing implementation"
     },
     {
       "id": "E02",
-      "status": "requires current classification or closure; see guide"
+      "status": "Closed for this block: current native, installed backend, public/four-pack and exact revision recovery evidence passed; owned fixtures removed, original data preserved. See ConvexPress-Admin/audits/2026-09-04/opening-navigation-20260928.md. Shared editor crash-recovery/autosave is separately open under E01.",
+      "classification": "reusable evidence"
     },
     {
       "id": "E03",
-      "status": "requires current classification or closure; see guide"
+      "status": "Closed for this block: current native, installed backend, public/four-pack and exact revision recovery evidence passed; owned fixtures removed, original data preserved. See ConvexPress-Admin/audits/2026-09-04/opening-navigation-20260928.md. Shared editor crash-recovery/autosave is separately open under E01.",
+      "classification": "reusable evidence"
     },
     {
       "id": "E04",
-      "status": "requires current classification or closure; see guide"
+      "status": "requires current classification or closure; see guide",
+      "classification": "missing evidence"
     },
     {
       "id": "E05",
-      "status": "requires current classification or closure; see guide"
+      "status": "requires current classification or closure; see guide",
+      "classification": "missing evidence"
     },
     {
       "id": "E06",
-      "status": "requires current classification or closure; see guide"
+      "status": "requires current classification or closure; see guide",
+      "classification": "missing evidence"
     },
     {
       "id": "E07",
-      "status": "requires current classification or closure; see guide"
+      "status": "requires current classification or closure; see guide",
+      "classification": "missing evidence"
     },
     {
       "id": "E08",
-      "status": "requires current classification or closure; see guide"
+      "status": "requires current classification or closure; see guide",
+      "classification": "missing evidence"
     },
     {
       "id": "E09",
-      "status": "requires current classification or closure; see guide"
+      "status": "requires current classification or closure; see guide",
+      "classification": "missing evidence"
     },
     {
       "id": "E10",
-      "status": "requires current classification or closure; see guide"
+      "status": "requires current classification or closure; see guide",
+      "classification": "missing evidence"
     },
     {
       "id": "E11",
-      "status": "requires current classification or closure; see guide"
+      "status": "requires current classification or closure; see guide",
+      "classification": "missing evidence"
     },
     {
       "id": "E12",
-      "status": "requires current classification or closure; see guide"
+      "status": "requires current classification or closure; see guide",
+      "classification": "missing evidence"
     },
     {
       "id": "E13",
-      "status": "requires current classification or closure; see guide"
+      "status": "requires current classification or closure; see guide",
+      "classification": "missing evidence"
     },
     {
       "id": "E14",
-      "status": "requires current classification or closure; see guide"
+      "status": "requires current classification or closure; see guide",
+      "classification": "missing evidence"
     },
     {
       "id": "E15",
-      "status": "requires current classification or closure; see guide"
+      "status": "Opus F1 independently reproduced: four plugin defaults disagree under absent settings. Repair before relevant Task 3 plugin acceptance; no scope expansion beyond gating parity.",
+      "classification": "reproduced defect"
     },
     {
       "id": "E16",
-      "status": "requires current classification or closure; see guide"
+      "status": "requires current classification or closure; see guide",
+      "classification": "missing evidence"
     },
     {
       "id": "E17",
-      "status": "requires current classification or closure; see guide"
+      "status": "Opus F6 confirms missing template-build/template-add-surface/template-audit skills; add to Task 7 alongside design-skill retarget and existing workflow acceptance.",
+      "classification": "missing implementation"
     },
     {
       "id": "E18",
-      "status": "requires current classification or closure; see guide"
+      "status": "requires current classification or closure; see guide",
+      "classification": "missing evidence"
     }
   ],
   "blocks": [
@@ -122,960 +140,2409 @@
       "title": "Paragraph",
       "category": "Text",
       "checkpointStatus": "Verified",
-      "nextClassification": "reuse valid evidence"
+      "nextClassification": "reuse valid evidence",
+      "classification": "accepted/reusable evidence",
+      "source": "blocks/core/paragraph/block.json",
+      "requirements": "body",
+      "evidenceReferences": [
+        "output/core-family-20260921/.",
+        "output/core-text-layout-20260921.",
+        "output/paragraph-migration-20260921.",
+        "paragraph-migration-20260921.md",
+        "utility-migration-20260921.md"
+      ],
+      "remainingReview": "Retain scoped historical acceptance; verify only affected shared dependencies."
     },
     {
       "name": "core/heading",
       "title": "Heading",
       "category": "Text",
       "checkpointStatus": "Verified",
-      "nextClassification": "reuse valid evidence"
+      "nextClassification": "reuse valid evidence",
+      "classification": "accepted/reusable evidence",
+      "source": "blocks/core/heading/block.json",
+      "requirements": "level, text, anchor",
+      "evidenceReferences": [
+        "output/block-visibility-20260921/.",
+        "output/core-family-20260921/.",
+        "output/core-text-layout-20260921.",
+        "paragraph-migration-20260921.md",
+        "utility-migration-20260921.md"
+      ],
+      "remainingReview": "Retain scoped historical acceptance; verify only affected shared dependencies."
     },
     {
       "name": "core/list",
       "title": "List",
       "category": "Text",
       "checkpointStatus": "Verified",
-      "nextClassification": "reuse valid evidence"
+      "nextClassification": "reuse valid evidence",
+      "classification": "accepted/reusable evidence",
+      "source": "blocks/core/list/block.json",
+      "requirements": "style, items",
+      "evidenceReferences": [
+        "output/block-demo/browser-results-content50-verified.",
+        "output/block-demo/browser-results-media42-verified.",
+        "output/block-demo/browser-results-responsive34-verified.",
+        "output/block-library-review-20260915/coverage-review.json.",
+        "output/content-family-20260921/."
+      ],
+      "remainingReview": "Retain scoped historical acceptance; verify only affected shared dependencies."
     },
     {
       "name": "core/quote",
       "title": "Quote",
       "category": "Text",
       "checkpointStatus": "Verified",
-      "nextClassification": "reuse valid evidence"
+      "nextClassification": "reuse valid evidence",
+      "classification": "accepted/reusable evidence",
+      "source": "blocks/core/quote/block.json",
+      "requirements": "text, cite, source",
+      "evidenceReferences": [
+        "output/block-demo/browser-results-content50-verified.",
+        "output/block-demo/browser-results-media42-verified.",
+        "output/block-demo/browser-results-responsive34-verified.",
+        "output/block-library-review-20260915/coverage-review.json.",
+        "output/content-family-20260921/."
+      ],
+      "remainingReview": "Retain scoped historical acceptance; verify only affected shared dependencies."
     },
     {
       "name": "core/pullquote",
       "title": "Pullquote",
       "category": "Text",
       "checkpointStatus": "Verified",
-      "nextClassification": "reuse valid evidence"
+      "nextClassification": "reuse valid evidence",
+      "classification": "accepted/reusable evidence",
+      "source": "blocks/core/pullquote/block.json",
+      "requirements": "text, cite",
+      "evidenceReferences": [
+        "output/block-demo/browser-results-content50-verified.",
+        "output/block-demo/browser-results-media42-verified.",
+        "output/block-demo/browser-results-responsive34-verified.",
+        "output/block-library-review-20260915/coverage-review.json.",
+        "output/content-family-20260921/."
+      ],
+      "remainingReview": "Retain scoped historical acceptance; verify only affected shared dependencies."
     },
     {
       "name": "core/code",
       "title": "Code",
       "category": "Text",
       "checkpointStatus": "Verified",
-      "nextClassification": "reuse valid evidence"
+      "nextClassification": "reuse valid evidence",
+      "classification": "accepted/reusable evidence",
+      "source": "blocks/core/code/block.json",
+      "requirements": "language, code, filename",
+      "evidenceReferences": [
+        "content-family-20260921.md",
+        "output/block-demo/browser-results-content50-verified.",
+        "output/block-demo/browser-results-media42-verified.",
+        "output/block-library-review-20260915/coverage-review.json.",
+        "output/content-family-20260921/."
+      ],
+      "remainingReview": "Retain scoped historical acceptance; verify only affected shared dependencies."
     },
     {
       "name": "core/table",
       "title": "Table",
       "category": "Text",
       "checkpointStatus": "Verified",
-      "nextClassification": "reuse valid evidence"
+      "nextClassification": "reuse valid evidence",
+      "classification": "accepted/reusable evidence",
+      "source": "blocks/core/table/block.json",
+      "requirements": "columns (repeater), rows (repeater), caption (text)",
+      "evidenceReferences": [
+        "output/block-demo/browser-results-media42-verified.",
+        "output/block-demo/browser-results-responsive34-verified.",
+        "output/block-library-review-20260915/coverage-review.json.",
+        "output/table-family-20260921.",
+        "table-family-20260921.md"
+      ],
+      "remainingReview": "Retain scoped historical acceptance; verify only affected shared dependencies."
     },
     {
       "name": "core/callout",
       "title": "Callout",
       "category": "Text",
       "checkpointStatus": "Verified",
-      "nextClassification": "reuse valid evidence"
+      "nextClassification": "reuse valid evidence",
+      "classification": "accepted/reusable evidence",
+      "source": "blocks/core/callout/block.json",
+      "requirements": "kind, title, body",
+      "evidenceReferences": [
+        "output/block-demo/browser-results-content50-verified.",
+        "output/block-demo/browser-results-media42-verified.",
+        "output/block-demo/browser-results-responsive34-verified.",
+        "output/block-library-review-20260915/coverage-review.json.",
+        "output/content-family-20260921/."
+      ],
+      "remainingReview": "Retain scoped historical acceptance; verify only affected shared dependencies."
     },
     {
       "name": "core/rich-text",
       "title": "Rich text",
       "category": "Text",
       "checkpointStatus": "In progress",
-      "nextClassification": "reconcile exact remaining requirement before work"
+      "nextClassification": "reconcile exact remaining requirement before work",
+      "classification": "missing evidence",
+      "source": "blocks/core/rich-text/block.json",
+      "requirements": "doc (richtext)",
+      "evidenceReferences": [
+        "output/block-demo/browser-results-content50-verified.",
+        "output/block-demo/browser-results-media42-verified.",
+        "output/block-demo/browser-results-responsive34-verified.",
+        "output/block-library-review-20260915/coverage-review.json.",
+        "output/block-review-refresh-20260920/acceptance-review.md."
+      ],
+      "remainingReview": "Full-block closure remains absent. Reconcile exact historical Notes and native/public/action requirements before repairs; missing evidence does not mean missing implementation."
     },
     {
       "name": "core/table-of-contents",
       "title": "Table of contents",
       "category": "Text",
       "checkpointStatus": "In progress",
-      "nextClassification": "reconcile exact remaining requirement before work"
+      "nextClassification": "reconcile exact remaining requirement before work",
+      "classification": "missing evidence",
+      "source": "blocks/core/table-of-contents/block.json",
+      "requirements": "title (text), depth (number)",
+      "evidenceReferences": [
+        "canonical-navigation-data-outcome.md",
+        "canonical-navigation87-renderer-outcome.md",
+        "navigation-native-20260921.md",
+        "output/block-demo/browser-results-navigation87",
+        "output/block-library-review-20260915/coverage-review.json."
+      ],
+      "remainingReview": "Full-block closure remains absent. Reconcile exact historical Notes and native/public/action requirements before repairs; missing evidence does not mean missing implementation."
     },
     {
       "name": "core/footnotes",
       "title": "Footnotes",
       "category": "Text",
       "checkpointStatus": "Verified",
-      "nextClassification": "reuse valid evidence"
+      "nextClassification": "reuse valid evidence",
+      "classification": "accepted/reusable evidence",
+      "source": "blocks/core/footnotes/block.json",
+      "requirements": "notes (repeater)",
+      "evidenceReferences": [
+        "output/block-demo/browser-results-content50-verified.",
+        "output/block-library-review-20260915/coverage-review.json.",
+        "output/table-family-20260921.",
+        "table-family-20260921.md"
+      ],
+      "remainingReview": "Retain scoped historical acceptance; verify only affected shared dependencies."
     },
     {
       "name": "core/section",
       "title": "Section",
       "category": "Layout",
       "checkpointStatus": "Verified",
-      "nextClassification": "reuse valid evidence"
+      "nextClassification": "reuse valid evidence",
+      "classification": "accepted/reusable evidence",
+      "source": "blocks/core/section/block.json",
+      "requirements": "children only",
+      "evidenceReferences": [
+        "output/pack-owned-treatments-20260915.",
+        "output/structural-layout-20260921/.",
+        "output/structural-native-20260921/.",
+        "structural-layout-20260921.md",
+        "structural-native-20260921.md"
+      ],
+      "remainingReview": "Retain scoped historical acceptance; verify only affected shared dependencies."
     },
     {
       "name": "core/columns",
       "title": "Columns",
       "category": "Layout",
       "checkpointStatus": "Verified",
-      "nextClassification": "reuse valid evidence"
+      "nextClassification": "reuse valid evidence",
+      "classification": "accepted/reusable evidence",
+      "source": "blocks/core/columns/block.json",
+      "requirements": "children only",
+      "evidenceReferences": [
+        "output/pack-owned-treatments-20260915.",
+        "output/structural-layout-20260921/.",
+        "output/structural-native-20260921/.",
+        "structural-layout-20260921.md",
+        "structural-native-20260921.md"
+      ],
+      "remainingReview": "Retain scoped historical acceptance; verify only affected shared dependencies."
     },
     {
       "name": "core/group",
       "title": "Group",
       "category": "Layout",
       "checkpointStatus": "Verified",
-      "nextClassification": "reuse valid evidence"
+      "nextClassification": "reuse valid evidence",
+      "classification": "accepted/reusable evidence",
+      "source": "blocks/core/group/block.json",
+      "requirements": "children only",
+      "evidenceReferences": [
+        "output/structural-layout-20260921/.",
+        "output/structural-native-20260921/.",
+        "output/synced-multipage-20260915.",
+        "structural-layout-20260921.md",
+        "structural-native-20260921.md"
+      ],
+      "remainingReview": "Retain scoped historical acceptance; verify only affected shared dependencies."
     },
     {
       "name": "core/grid",
       "title": "Grid",
       "category": "Layout",
       "checkpointStatus": "Verified",
-      "nextClassification": "reuse valid evidence"
+      "nextClassification": "reuse valid evidence",
+      "classification": "accepted/reusable evidence",
+      "source": "blocks/core/grid/block.json",
+      "requirements": "children only",
+      "evidenceReferences": [
+        "output/block-library-review-20260915/coverage-review.json.",
+        "output/structural-layout-20260921/.",
+        "output/structural-native-20260921/.",
+        "structural-layout-20260921.md",
+        "structural-native-20260921.md"
+      ],
+      "remainingReview": "Retain scoped historical acceptance; verify only affected shared dependencies."
     },
     {
       "name": "core/split",
       "title": "Split",
       "category": "Layout",
       "checkpointStatus": "Verified",
-      "nextClassification": "reuse valid evidence"
+      "nextClassification": "reuse valid evidence",
+      "classification": "accepted/reusable evidence",
+      "source": "blocks/core/split/block.json",
+      "requirements": "children only",
+      "evidenceReferences": [
+        "output/block-library-review-20260915/coverage-review.json.",
+        "output/structural-layout-20260921/.",
+        "output/structural-native-20260921/.",
+        "structural-layout-20260921.md",
+        "structural-native-20260921.md"
+      ],
+      "remainingReview": "Retain scoped historical acceptance; verify only affected shared dependencies."
     },
     {
       "name": "core/spacer",
       "title": "Spacer",
       "category": "Layout",
       "checkpointStatus": "Verified",
-      "nextClassification": "reuse valid evidence"
+      "nextClassification": "reuse valid evidence",
+      "classification": "accepted/reusable evidence",
+      "source": "blocks/core/spacer/block.json",
+      "requirements": "No content fields; template layout and original treatment choices",
+      "evidenceReferences": [
+        "output/core-family-20260921/.",
+        "output/core-text-layout-20260921.",
+        "output/utility-migration-20260921/.",
+        "paragraph-migration-20260921.md",
+        "utility-migration-20260921.md"
+      ],
+      "remainingReview": "Retain scoped historical acceptance; verify only affected shared dependencies."
     },
     {
       "name": "core/divider",
       "title": "Divider",
       "category": "Layout",
       "checkpointStatus": "Verified",
-      "nextClassification": "reuse valid evidence"
+      "nextClassification": "reuse valid evidence",
+      "classification": "accepted/reusable evidence",
+      "source": "blocks/core/divider/block.json",
+      "requirements": "No content fields; template layout and original treatment choices",
+      "evidenceReferences": [
+        "output/core-family-20260921/.",
+        "output/core-text-layout-20260921.",
+        "output/utility-migration-20260921/.",
+        "paragraph-migration-20260921.md",
+        "utility-migration-20260921.md"
+      ],
+      "remainingReview": "Retain scoped historical acceptance; verify only affected shared dependencies."
     },
     {
       "name": "core/sticky-aside",
       "title": "Sticky aside",
       "category": "Layout",
       "checkpointStatus": "Verified",
-      "nextClassification": "reuse valid evidence"
+      "nextClassification": "reuse valid evidence",
+      "classification": "accepted/reusable evidence",
+      "source": "blocks/core/sticky-aside/block.json",
+      "requirements": "children only",
+      "evidenceReferences": [
+        "output/block-library-review-20260915/coverage-review.json.",
+        "output/structural-layout-20260921/.",
+        "output/structural-native-20260921/.",
+        "structural-layout-20260921.md",
+        "structural-native-20260921.md"
+      ],
+      "remainingReview": "Retain scoped historical acceptance; verify only affected shared dependencies."
     },
     {
       "name": "core/accordion",
       "title": "Accordion",
       "category": "Layout",
       "checkpointStatus": "Verified",
-      "nextClassification": "reuse valid evidence"
+      "nextClassification": "reuse valid evidence",
+      "classification": "accepted/reusable evidence",
+      "source": "blocks/core/accordion/block.json",
+      "requirements": "heading, body, items, defaultOpen",
+      "evidenceReferences": [
+        "output/block-demo/browser-results-content50-verified.",
+        "output/block-demo/browser-results-media42-verified.",
+        "output/block-demo/browser-results-responsive34-verified.",
+        "output/block-library-review-20260915/coverage-review.json.",
+        "output/disclosure-family-20260921/."
+      ],
+      "remainingReview": "Retain scoped historical acceptance; verify only affected shared dependencies."
     },
     {
       "name": "core/tabs",
       "title": "Tabs",
       "category": "Layout",
       "checkpointStatus": "Verified",
-      "nextClassification": "reuse valid evidence"
+      "nextClassification": "reuse valid evidence",
+      "classification": "accepted/reusable evidence",
+      "source": "blocks/core/tabs/block.json",
+      "requirements": "heading, tabs",
+      "evidenceReferences": [
+        "output/block-demo/browser-results-media42-verified.",
+        "output/block-demo/browser-results-responsive34-verified.",
+        "output/block-library-review-20260915/coverage-review.json.",
+        "output/block-review-refresh-20260920/acceptance-review.md.",
+        "output/disclosure-family-20260921/."
+      ],
+      "remainingReview": "Retain scoped historical acceptance; verify only affected shared dependencies."
     },
     {
       "name": "core/image",
       "title": "Image",
       "category": "Media",
       "checkpointStatus": "Verified",
-      "nextClassification": "reuse valid evidence"
+      "nextClassification": "reuse valid evidence",
+      "classification": "accepted/reusable evidence",
+      "source": "blocks/core/image/block.json",
+      "requirements": "media, caption, link",
+      "evidenceReferences": [
+        "output/block-demo/browser-results-media42-verified.",
+        "output/block-demo/browser-results-responsive34-verified.",
+        "output/block-library-review-20260915/coverage-review.json.",
+        "output/block-review-refresh-20260920/acceptance-review.md.",
+        "output/media-family-20260921/."
+      ],
+      "remainingReview": "Retain scoped historical acceptance; verify only affected shared dependencies."
     },
     {
       "name": "core/gallery",
       "title": "Gallery",
       "category": "Media",
       "checkpointStatus": "Verified",
-      "nextClassification": "reuse valid evidence"
+      "nextClassification": "reuse valid evidence",
+      "classification": "accepted/reusable evidence",
+      "source": "blocks/core/gallery/block.json",
+      "requirements": "items (repeater), lightbox (boolean)",
+      "evidenceReferences": [
+        "output/block-demo/browser-results-content50-verified.",
+        "output/block-demo/browser-results-media42-verified.",
+        "output/block-library-review-20260915/coverage-review.json.",
+        "output/gallery-review-20260920/acceptance-review.md.",
+        "output/media-family-20260921/."
+      ],
+      "remainingReview": "Retain scoped historical acceptance; verify only affected shared dependencies."
     },
     {
       "name": "core/carousel",
       "title": "Carousel",
       "category": "Media",
       "checkpointStatus": "In progress",
-      "nextClassification": "reconcile exact remaining requirement before work"
+      "nextClassification": "reconcile exact remaining requirement before work",
+      "classification": "missing evidence",
+      "source": "blocks/core/carousel/block.json",
+      "requirements": "accessibleLabel (text)",
+      "evidenceReferences": [
+        "canonical-utility74-renderer-outcome.md",
+        "output/block-demo/browser-results-utility74-verified",
+        "output/block-library-review-20260915/coverage-review.json."
+      ],
+      "remainingReview": "Full-block closure remains absent. Reconcile exact historical Notes and native/public/action requirements before repairs; missing evidence does not mean missing implementation."
     },
     {
       "name": "core/video",
       "title": "Video",
       "category": "Media",
       "checkpointStatus": "Verified",
-      "nextClassification": "reuse valid evidence"
+      "nextClassification": "reuse valid evidence",
+      "classification": "accepted/reusable evidence",
+      "source": "blocks/core/video/block.json",
+      "requirements": "media (media), url (link), poster (media), title (text), transcript (link)",
+      "evidenceReferences": [
+        "media-interactive-20260921.md",
+        "output/block-demo/browser-results-content50-verified.",
+        "output/block-demo/browser-results-media42-verified.",
+        "output/block-library-review-20260915/coverage-review.json.",
+        "output/media-interactive-20260921/."
+      ],
+      "remainingReview": "Retain scoped historical acceptance; verify only affected shared dependencies."
     },
     {
       "name": "core/audio",
       "title": "Audio",
       "category": "Media",
       "checkpointStatus": "Verified",
-      "nextClassification": "reuse valid evidence"
+      "nextClassification": "reuse valid evidence",
+      "classification": "accepted/reusable evidence",
+      "source": "blocks/core/audio/block.json",
+      "requirements": "media (media), title (text), transcript (link)",
+      "evidenceReferences": [
+        "media-interactive-20260921.md",
+        "output/block-demo/browser-results-content50-verified.",
+        "output/block-demo/browser-results-media42-verified.",
+        "output/block-library-review-20260915/coverage-review.json.",
+        "output/media-interactive-20260921/."
+      ],
+      "remainingReview": "Retain scoped historical acceptance; verify only affected shared dependencies."
     },
     {
       "name": "core/embed",
       "title": "Embed",
       "category": "Media",
       "checkpointStatus": "In progress",
-      "nextClassification": "reconcile exact remaining requirement before work"
+      "nextClassification": "reconcile exact remaining requirement before work",
+      "classification": "missing evidence",
+      "source": "blocks/core/embed/block.json",
+      "requirements": "url, caption, provider",
+      "evidenceReferences": [
+        "canonical-contact79-renderer-outcome.md",
+        "media-interactive-20260921.md",
+        "output/block-demo/browser-results-contact79-fixed",
+        "output/block-library-review-20260915/coverage-review.json.",
+        "output/media-interactive-20260921/."
+      ],
+      "remainingReview": "Full-block closure remains absent. Reconcile exact historical Notes and native/public/action requirements before repairs; missing evidence does not mean missing implementation."
     },
     {
       "name": "core/before-after",
       "title": "Before / after",
       "category": "Media",
       "checkpointStatus": "Verified",
-      "nextClassification": "reuse valid evidence"
+      "nextClassification": "reuse valid evidence",
+      "classification": "accepted/reusable evidence",
+      "source": "blocks/core/before-after/block.json",
+      "requirements": "before (media), after (media), beforeLabel (text), afterLabel (text)",
+      "evidenceReferences": [
+        "media-interactive-20260921.md",
+        "output/block-demo/browser-results-content50-verified.",
+        "output/block-demo/browser-results-media42-verified.",
+        "output/block-library-review-20260915/coverage-review.json.",
+        "output/media-interactive-20260921/."
+      ],
+      "remainingReview": "Retain scoped historical acceptance; verify only affected shared dependencies."
     },
     {
       "name": "core/lightbox-grid",
       "title": "Lightbox grid",
       "category": "Media",
       "checkpointStatus": "Verified",
-      "nextClassification": "reuse valid evidence"
+      "nextClassification": "reuse valid evidence",
+      "classification": "accepted/reusable evidence",
+      "source": "blocks/core/lightbox-grid/block.json",
+      "requirements": "items (repeater)",
+      "evidenceReferences": [
+        "media-interactive-20260921.md",
+        "output/block-demo/browser-results-media66",
+        "output/block-library-review-20260915/coverage-review.json.",
+        "output/gallery-review-20260920/acceptance-review.md.",
+        "output/media-interactive-20260921/."
+      ],
+      "remainingReview": "Retain scoped historical acceptance; verify only affected shared dependencies."
     },
     {
       "name": "core/logo-cloud",
       "title": "Logo cloud",
       "category": "Media",
       "checkpointStatus": "Verified",
-      "nextClassification": "reuse valid evidence"
+      "nextClassification": "reuse valid evidence",
+      "classification": "accepted/reusable evidence",
+      "source": "blocks/core/logo-cloud/block.json",
+      "requirements": "title, logos[{media, name, url}]",
+      "evidenceReferences": [
+        "output/block-demo/browser-results-content50-verified.",
+        "output/block-demo/browser-results-media42-verified.",
+        "output/block-library-review-20260915/coverage-review.json.",
+        "output/block-review-refresh-20260920/acceptance-review.md.",
+        "output/media-family-20260921/."
+      ],
+      "remainingReview": "Retain scoped historical acceptance; verify only affected shared dependencies."
     },
     {
       "name": "core/map",
       "title": "Map",
       "category": "Media",
       "checkpointStatus": "In progress",
-      "nextClassification": "reconcile exact remaining requirement before work"
+      "nextClassification": "reconcile exact remaining requirement before work",
+      "classification": "missing evidence",
+      "source": "blocks/core/map/block.json",
+      "requirements": "address (text), latitude (number), longitude (number), provider (select), directions (link)",
+      "evidenceReferences": [
+        "canonical-conversion83-renderer-outcome.md",
+        "output/aster-house/conversion83/newsletter-acceptance.json",
+        "output/block-demo/browser-results-conversion83",
+        "output/block-library-review-20260915/coverage-review.json."
+      ],
+      "remainingReview": "Full-block closure remains absent. Reconcile exact historical Notes and native/public/action requirements before repairs; missing evidence does not mean missing implementation."
     },
     {
       "name": "core/file-download",
       "title": "File download",
       "category": "Media",
       "checkpointStatus": "In progress",
-      "nextClassification": "reconcile exact remaining requirement before work"
+      "nextClassification": "reconcile exact remaining requirement before work",
+      "classification": "missing evidence",
+      "source": "blocks/core/file-download/block.json",
+      "requirements": "media (media), title (text), description (text)",
+      "evidenceReferences": [
+        "output/block-demo/browser-results-content50-verified.",
+        "output/block-demo/browser-results-media42-verified.",
+        "output/block-library-review-20260915/coverage-review.json."
+      ],
+      "remainingReview": "Full-block closure remains absent. Reconcile exact historical Notes and native/public/action requirements before repairs; missing evidence does not mean missing implementation."
     },
     {
       "name": "core/hero",
       "title": "Hero",
       "category": "Openers",
       "checkpointStatus": "Verified",
-      "nextClassification": "reuse valid evidence"
+      "nextClassification": "reuse valid evidence",
+      "classification": "accepted/reusable evidence",
+      "source": "blocks/core/hero/block.json",
+      "requirements": "eyebrow, title, subtitle, primaryCta, secondaryCta, media",
+      "evidenceReferences": [
+        "output/block-library-review-20260915/coverage-review.json.",
+        "output/default-pack-review-20260920/acceptance-review.md.",
+        "output/hero-family-20260921.",
+        "output/hero-styles-20260921.",
+        "output/pack-owned-treatments-20260915."
+      ],
+      "remainingReview": "Retain scoped historical acceptance; verify only affected shared dependencies."
     },
     {
       "name": "core/hero-split",
       "title": "Hero split",
       "category": "Openers",
       "checkpointStatus": "Verified",
-      "nextClassification": "reuse valid evidence"
+      "nextClassification": "reuse valid evidence",
+      "classification": "accepted/reusable evidence",
+      "source": "blocks/core/hero-split/block.json",
+      "requirements": "eyebrow, title, subtitle, cta, media, mediaSide",
+      "evidenceReferences": [
+        "output/block-library-review-20260915/coverage-review.json.",
+        "output/block-review-refresh-20260920/acceptance-review.md.",
+        "output/default-pack-review-20260920/acceptance-review.md.",
+        "output/hero-family-20260921.",
+        "output/pack-owned-treatments-20260915."
+      ],
+      "remainingReview": "Retain scoped historical acceptance; verify only affected shared dependencies."
     },
     {
       "name": "core/hero-text-only",
       "title": "Hero text only",
       "category": "Openers",
       "checkpointStatus": "Verified",
-      "nextClassification": "reuse valid evidence"
+      "nextClassification": "reuse valid evidence",
+      "classification": "accepted/reusable evidence",
+      "source": "blocks/core/hero-text-only/block.json",
+      "requirements": "eyebrow, title, subtitle, cta",
+      "evidenceReferences": [
+        "output/block-demo/browser-results-media42-verified.",
+        "output/block-demo/browser-results-responsive34-verified.",
+        "output/block-library-review-20260915/coverage-review.json.",
+        "output/default-pack-review-20260920/acceptance-review.md.",
+        "output/hero-family-20260921."
+      ],
+      "remainingReview": "Retain scoped historical acceptance; verify only affected shared dependencies."
     },
     {
       "name": "core/hero-video",
       "title": "Hero video",
       "category": "Openers",
       "checkpointStatus": "Verified",
-      "nextClassification": "reuse valid evidence"
+      "nextClassification": "reuse valid evidence",
+      "classification": "accepted/reusable evidence",
+      "source": "blocks/core/hero-video/block.json",
+      "requirements": "video (media), poster (media), title (text), subtitle (text), cta (link)",
+      "evidenceReferences": [
+        "canonical-media66-renderer-outcome.md",
+        "hero-video-20260921.md",
+        "output/block-demo/browser-results-media66",
+        "output/block-library-review-20260915/coverage-review.json.",
+        "output/hero-video-20260921."
+      ],
+      "remainingReview": "Retain scoped historical acceptance; verify only affected shared dependencies."
     },
     {
       "name": "blocks/page-banner",
       "title": "Page banner",
       "category": "Openers",
       "checkpointStatus": "Verified",
-      "nextClassification": "reuse valid evidence"
+      "nextClassification": "reuse valid evidence",
+      "classification": "accepted/reusable evidence",
+      "source": "blocks/blocks/page-banner/block.json",
+      "requirements": "eyebrow, title, subtitle, media, breadcrumbLabel, cta",
+      "evidenceReferences": [
+        "cta-family-20260921.md",
+        "output/block-demo/browser-results-editorial58.",
+        "output/block-library-review-20260915/coverage-review.json.",
+        "output/cta-family-20260921.",
+        "output/pack-owned-treatments-20260915."
+      ],
+      "remainingReview": "Retain scoped historical acceptance; verify only affected shared dependencies."
     },
     {
       "name": "core/announcement-bar",
       "title": "Announcement bar",
       "category": "Openers",
-      "checkpointStatus": "In progress",
-      "nextClassification": "reconcile exact remaining requirement before work"
+      "checkpointStatus": "Verified",
+      "nextClassification": "Current scoped block acceptance complete; retain source-hashed evidence and rerun affected shared dependencies only.",
+      "classification": "reusable evidence",
+      "source": "blocks/core/announcement-bar/block.json",
+      "requirements": "text (text), link (link), dismissible (boolean), schedule (object)",
+      "evidenceReferences": [
+        "canonical-utility74-renderer-outcome.md",
+        "output/block-demo/browser-results-utility74-verified",
+        "output/block-library-review-20260915/coverage-review.json.",
+        "output/editor-template-20260928/",
+        "ConvexPress-Admin/audits/2026-09-04/opening-navigation-20260928.md"
+      ],
+      "remainingReview": "No open block-specific requirement; shared editor durability and final integrated delivery gates remain open."
     },
     {
       "name": "core/breadcrumbs",
       "title": "Breadcrumbs",
       "category": "Openers",
-      "checkpointStatus": "In progress",
-      "nextClassification": "reconcile exact remaining requirement before work"
+      "checkpointStatus": "Verified",
+      "nextClassification": "Current scoped block acceptance complete; retain source-hashed evidence and rerun affected shared dependencies only.",
+      "classification": "reusable evidence",
+      "source": "blocks/core/breadcrumbs/block.json",
+      "requirements": "source (select), items (repeater)",
+      "evidenceReferences": [
+        "canonical-navigation-data-outcome.md",
+        "canonical-navigation87-renderer-outcome.md",
+        "navigation-native-20260921.md",
+        "output/block-demo/browser-results-navigation87",
+        "output/block-library-review-20260915/coverage-review.json.",
+        "output/editor-template-20260928/",
+        "ConvexPress-Admin/audits/2026-09-04/opening-navigation-20260928.md"
+      ],
+      "remainingReview": "No open block-specific requirement; shared editor durability and final integrated delivery gates remain open."
     },
     {
       "name": "core/feature-grid",
       "title": "Feature grid",
       "category": "Marketing",
       "checkpointStatus": "Verified",
-      "nextClassification": "reuse valid evidence"
+      "nextClassification": "reuse valid evidence",
+      "classification": "accepted/reusable evidence",
+      "source": "blocks/core/feature-grid/block.json",
+      "requirements": "eyebrow, title, body, items[{icon, title, body, link}]",
+      "evidenceReferences": [
+        "output/block-demo/browser-results-responsive34-verified.",
+        "output/block-library-review-20260915/coverage-review.json.",
+        "output/card-controls-20260921.",
+        "output/card-family-20260921.",
+        "output/pack-owned-treatments-20260915."
+      ],
+      "remainingReview": "Retain scoped historical acceptance; verify only affected shared dependencies."
     },
     {
       "name": "core/feature-list-alternating",
       "title": "Feature list alternating",
       "category": "Marketing",
       "checkpointStatus": "Verified",
-      "nextClassification": "reuse valid evidence"
+      "nextClassification": "reuse valid evidence",
+      "classification": "accepted/reusable evidence",
+      "source": "blocks/core/feature-list-alternating/block.json",
+      "requirements": "items[{title, body, media, cta}]",
+      "evidenceReferences": [
+        "block-existing-spec-migration-outcome.md",
+        "card-family-20260921.md",
+        "output/block-demo/browser-results-content50-verified.",
+        "output/block-library-review-20260915/coverage-review.json.",
+        "output/card-family-20260921."
+      ],
+      "remainingReview": "Retain scoped historical acceptance; verify only affected shared dependencies."
     },
     {
       "name": "core/bento-grid",
       "title": "Bento grid",
       "category": "Marketing",
       "checkpointStatus": "Verified",
-      "nextClassification": "reuse valid evidence"
+      "nextClassification": "reuse valid evidence",
+      "classification": "accepted/reusable evidence",
+      "source": "blocks/core/bento-grid/block.json",
+      "requirements": "tiles[{size, title, body, media}]",
+      "evidenceReferences": [
+        "card-family-20260921.md",
+        "output/block-demo/browser-results-content50-verified.",
+        "output/block-library-review-20260915/coverage-review.json.",
+        "output/card-controls-20260921.",
+        "output/card-family-20260921."
+      ],
+      "remainingReview": "Retain scoped historical acceptance; verify only affected shared dependencies."
     },
     {
       "name": "core/stats-band",
       "title": "Stats band",
       "category": "Marketing",
       "checkpointStatus": "Verified",
-      "nextClassification": "reuse valid evidence"
+      "nextClassification": "reuse valid evidence",
+      "classification": "accepted/reusable evidence",
+      "source": "blocks/core/stats-band/block.json",
+      "requirements": "items[{value, label, note}]",
+      "evidenceReferences": [
+        "output/block-demo/browser-results-media42-verified.",
+        "output/block-demo/browser-results-responsive34-verified.",
+        "output/block-library-review-20260915/coverage-review.json.",
+        "output/social-family-20260921.",
+        "social-family-20260921.md"
+      ],
+      "remainingReview": "Retain scoped historical acceptance; verify only affected shared dependencies."
     },
     {
       "name": "core/cta-band",
       "title": "CTA band",
       "category": "Marketing",
       "checkpointStatus": "Verified",
-      "nextClassification": "reuse valid evidence"
+      "nextClassification": "reuse valid evidence",
+      "classification": "accepted/reusable evidence",
+      "source": "blocks/core/cta-band/block.json",
+      "requirements": "title, body, primaryCta, secondaryCta",
+      "evidenceReferences": [
+        "output/block-demo/browser-results-media42-verified.",
+        "output/block-demo/browser-results-responsive34-verified.",
+        "output/block-library-review-20260915/coverage-review.json.",
+        "output/default-pack-review-20260920/acceptance-review.md.",
+        "output/pack-owned-treatments-20260915."
+      ],
+      "remainingReview": "Retain scoped historical acceptance; verify only affected shared dependencies."
     },
     {
       "name": "core/cta-with-form",
       "title": "CTA with form",
       "category": "Marketing",
       "checkpointStatus": "Verified",
-      "nextClassification": "reuse valid evidence"
+      "nextClassification": "reuse valid evidence",
+      "classification": "accepted/reusable evidence",
+      "source": "blocks/core/cta-with-form/block.json",
+      "requirements": "title, body, form, submitLabel",
+      "evidenceReferences": [
+        "cta-authoring-20260921.md",
+        "output/aster-house/conversion83/newsletter-acceptance.json",
+        "output/block-demo/browser-results-conversion83",
+        "output/block-library-review-20260915/coverage-review.json.",
+        "output/newsletter-host-20260906/runtime-receipt.json."
+      ],
+      "remainingReview": "Retain scoped historical acceptance; verify only affected shared dependencies."
     },
     {
       "name": "core/media-text",
       "title": "Media + text",
       "category": "Marketing",
       "checkpointStatus": "Verified",
-      "nextClassification": "reuse valid evidence"
+      "nextClassification": "reuse valid evidence",
+      "classification": "accepted/reusable evidence",
+      "source": "blocks/core/media-text/block.json",
+      "requirements": "media, mediaSide, title, body, cta",
+      "evidenceReferences": [
+        "output/block-demo/browser-results-responsive34-verified.",
+        "output/block-library-review-20260915/coverage-review.json.",
+        "output/block-review-refresh-20260920/acceptance-review.md.",
+        "output/media-family-20260921/.",
+        "output/pack-owned-treatments-20260915."
+      ],
+      "remainingReview": "Retain scoped historical acceptance; verify only affected shared dependencies."
     },
     {
       "name": "core/process-steps",
       "title": "Process steps",
       "category": "Marketing",
       "checkpointStatus": "Verified",
-      "nextClassification": "reuse valid evidence"
+      "nextClassification": "reuse valid evidence",
+      "classification": "accepted/reusable evidence",
+      "source": "blocks/core/process-steps/block.json",
+      "requirements": "items[{title, body, media}]",
+      "evidenceReferences": [
+        "output/block-demo/browser-results-media42-verified.",
+        "output/block-demo/browser-results-responsive34-verified.",
+        "output/block-library-review-20260915/coverage-review.json.",
+        "output/process-family-20260921.",
+        "process-family-20260921.md"
+      ],
+      "remainingReview": "Retain scoped historical acceptance; verify only affected shared dependencies."
     },
     {
       "name": "core/roadmap-timeline",
       "title": "Roadmap timeline",
       "category": "Marketing",
       "checkpointStatus": "Verified",
-      "nextClassification": "reuse valid evidence"
+      "nextClassification": "reuse valid evidence",
+      "classification": "accepted/reusable evidence",
+      "source": "blocks/core/roadmap-timeline/block.json",
+      "requirements": "items[{date, title, body, status}]",
+      "evidenceReferences": [
+        "block-existing-spec-migration-outcome.md",
+        "output/block-demo/browser-results-content50-verified.",
+        "output/block-library-review-20260915/coverage-review.json.",
+        "output/process-family-20260921.",
+        "process-family-20260921.md"
+      ],
+      "remainingReview": "Retain scoped historical acceptance; verify only affected shared dependencies."
     },
     {
       "name": "blocks/story-timeline",
       "title": "Story timeline",
       "category": "Marketing",
       "checkpointStatus": "Verified",
-      "nextClassification": "reuse valid evidence"
+      "nextClassification": "reuse valid evidence",
+      "classification": "accepted/reusable evidence",
+      "source": "blocks/blocks/story-timeline/block.json",
+      "requirements": "items[{year, title, body, media}]",
+      "evidenceReferences": [
+        "block-existing-spec-migration-outcome.md",
+        "cta-family-20260921.md",
+        "output/block-demo/browser-results-editorial58.",
+        "output/block-library-review-20260915/coverage-review.json.",
+        "output/cta-family-20260921."
+      ],
+      "remainingReview": "Retain scoped historical acceptance; verify only affected shared dependencies."
     },
     {
       "name": "core/comparison-table",
       "title": "Comparison table",
       "category": "Marketing",
       "checkpointStatus": "Verified",
-      "nextClassification": "reuse valid evidence"
+      "nextClassification": "reuse valid evidence",
+      "classification": "accepted/reusable evidence",
+      "source": "blocks/core/comparison-table/block.json",
+      "requirements": "columns[], rows[{label, values[]}]",
+      "evidenceReferences": [
+        "interactive-blocks-native-20260921.md",
+        "output/block-demo/browser-results-content50-verified.",
+        "output/block-library-review-20260915/coverage-review.json.",
+        "output/table-family-20260921.",
+        "table-family-20260921.md"
+      ],
+      "remainingReview": "Retain scoped historical acceptance; verify only affected shared dependencies."
     },
     {
       "name": "core/pricing-cards",
       "title": "Pricing cards",
       "category": "Marketing",
       "checkpointStatus": "Verified",
-      "nextClassification": "reuse valid evidence"
+      "nextClassification": "reuse valid evidence",
+      "classification": "accepted/reusable evidence",
+      "source": "blocks/core/pricing-cards/block.json",
+      "requirements": "eyebrow, heading, body, plans[{name, price, description, features[], ctaLabel, ctaUrl, featured}]",
+      "evidenceReferences": [
+        "output/block-library-current-20260920/acceptance-review.md.",
+        "output/block-library-review-20260915/coverage-review.json.",
+        "output/card-family-20260921.",
+        "output/pack-owned-treatments-20260915.",
+        "output/pricing-native-20260920/acceptance-review.md."
+      ],
+      "remainingReview": "Retain scoped historical acceptance; verify only affected shared dependencies."
     },
     {
       "name": "core/pricing-table",
       "title": "Pricing table",
       "category": "Marketing",
       "checkpointStatus": "Verified",
-      "nextClassification": "reuse valid evidence"
+      "nextClassification": "reuse valid evidence",
+      "classification": "accepted/reusable evidence",
+      "source": "blocks/core/pricing-table/block.json",
+      "requirements": "plans (repeater with optional alternatePriceLabel), rows (repeater), pricePeriods (optional primaryLabel/alternateLabel)",
+      "evidenceReferences": [
+        "interactive-blocks-native-20260921.md",
+        "output/block-demo/browser-results-content50-verified.",
+        "output/block-library-review-20260915/coverage-review.json.",
+        "output/table-family-20260921.",
+        "table-family-20260921.md"
+      ],
+      "remainingReview": "Retain scoped historical acceptance; verify only affected shared dependencies."
     },
     {
       "name": "core/faq",
       "title": "FAQ",
       "category": "Marketing",
       "checkpointStatus": "Verified",
-      "nextClassification": "reuse valid evidence"
+      "nextClassification": "reuse valid evidence",
+      "classification": "accepted/reusable evidence",
+      "source": "blocks/core/faq/block.json",
+      "requirements": "eyebrow, heading, body, items",
+      "evidenceReferences": [
+        "output/block-demo/browser-results-media42-verified.",
+        "output/block-demo/browser-results-responsive34-verified.",
+        "output/block-library-review-20260915/coverage-review.json.",
+        "output/disclosure-family-20260921/.",
+        "output/pack-owned-treatments-20260915."
+      ],
+      "remainingReview": "Retain scoped historical acceptance; verify only affected shared dependencies."
     },
     {
       "name": "core/testimonials",
       "title": "Testimonials",
       "category": "Marketing",
       "checkpointStatus": "Verified",
-      "nextClassification": "reuse valid evidence"
+      "nextClassification": "reuse valid evidence",
+      "classification": "accepted/reusable evidence",
+      "source": "blocks/core/testimonials/block.json",
+      "requirements": "items[{quote, name, role, media}]",
+      "evidenceReferences": [
+        "output/block-demo/browser-results-responsive34-verified.",
+        "output/block-library-review-20260915/coverage-review.json.",
+        "output/pack-owned-treatments-20260915.",
+        "output/social-family-20260921.",
+        "social-family-20260921.md"
+      ],
+      "remainingReview": "Retain scoped historical acceptance; verify only affected shared dependencies."
     },
     {
       "name": "core/testimonial-wall",
       "title": "Testimonial wall",
       "category": "Marketing",
       "checkpointStatus": "Verified",
-      "nextClassification": "reuse valid evidence"
+      "nextClassification": "reuse valid evidence",
+      "classification": "accepted/reusable evidence",
+      "source": "blocks/core/testimonial-wall/block.json",
+      "requirements": "items (repeater)",
+      "evidenceReferences": [
+        "output/block-demo/browser-results-editorial58.",
+        "output/block-demo/browser-results-testimonial58-polish.",
+        "output/block-library-review-20260915/coverage-review.json.",
+        "output/social-family-20260921.",
+        "social-family-20260921.md"
+      ],
+      "remainingReview": "Retain scoped historical acceptance; verify only affected shared dependencies."
     },
     {
       "name": "core/trust-badges",
       "title": "Trust badges",
       "category": "Marketing",
       "checkpointStatus": "Verified",
-      "nextClassification": "reuse valid evidence"
+      "nextClassification": "reuse valid evidence",
+      "classification": "accepted/reusable evidence",
+      "source": "blocks/core/trust-badges/block.json",
+      "requirements": "items (repeater)",
+      "evidenceReferences": [
+        "output/badge-labels-20260921.",
+        "output/block-demo/browser-results-utility74-verified",
+        "output/block-library-review-20260915/coverage-review.json.",
+        "output/trust-badges-20260921.",
+        "trust-badges-20260921.md"
+      ],
+      "remainingReview": "Retain scoped historical acceptance; verify only affected shared dependencies."
     },
     {
       "name": "blocks/media-mentions",
       "title": "Media mentions",
       "category": "Marketing",
       "checkpointStatus": "Verified",
-      "nextClassification": "reuse valid evidence"
+      "nextClassification": "reuse valid evidence",
+      "classification": "accepted/reusable evidence",
+      "source": "blocks/blocks/media-mentions/block.json",
+      "requirements": "items[{outlet, quote, url, media}]",
+      "evidenceReferences": [
+        "block-existing-spec-migration-outcome.md",
+        "cta-family-20260921.md",
+        "output/block-demo/browser-results-editorial58.",
+        "output/block-library-review-20260915/coverage-review.json.",
+        "output/cta-family-20260921."
+      ],
+      "remainingReview": "Retain scoped historical acceptance; verify only affected shared dependencies."
     },
     {
       "name": "core/team-grid",
       "title": "Team grid",
       "category": "Marketing",
       "checkpointStatus": "Verified",
-      "nextClassification": "reuse valid evidence"
+      "nextClassification": "reuse valid evidence",
+      "classification": "accepted/reusable evidence",
+      "source": "blocks/core/team-grid/block.json",
+      "requirements": "members[{name, role, bio, media, links}]",
+      "evidenceReferences": [
+        "block-existing-spec-migration-outcome.md",
+        "output/block-demo/browser-results-content50-verified.",
+        "output/block-library-review-20260915/coverage-review.json.",
+        "output/social-family-20260921.",
+        "social-family-20260921.md"
+      ],
+      "remainingReview": "Retain scoped historical acceptance; verify only affected shared dependencies."
     },
     {
       "name": "blocks/promo-band",
       "title": "Promo band",
       "category": "Marketing",
       "checkpointStatus": "Verified",
-      "nextClassification": "reuse valid evidence"
+      "nextClassification": "reuse valid evidence",
+      "classification": "accepted/reusable evidence",
+      "source": "blocks/blocks/promo-band/block.json",
+      "requirements": "title, body, code, cta, expires",
+      "evidenceReferences": [
+        "block-existing-spec-migration-outcome.md",
+        "cta-family-20260921.md",
+        "output/block-demo/browser-results-editorial58.",
+        "output/block-library-review-20260915/coverage-review.json.",
+        "output/cta-family-20260921."
+      ],
+      "remainingReview": "Retain scoped historical acceptance; verify only affected shared dependencies."
     },
     {
       "name": "core/countdown",
       "title": "Countdown",
       "category": "Marketing",
       "checkpointStatus": "Verified",
-      "nextClassification": "reuse valid evidence"
+      "nextClassification": "reuse valid evidence",
+      "classification": "accepted/reusable evidence",
+      "source": "blocks/core/countdown/block.json",
+      "requirements": "target (date), title (text), expiredText (text), cta (link)",
+      "evidenceReferences": [
+        "canonical-media66-renderer-outcome.md",
+        "output/block-demo/browser-results-media66",
+        "output/block-library-review-20260915/coverage-review.json.",
+        "output/process-family-20260921.",
+        "process-family-20260921.md"
+      ],
+      "remainingReview": "Retain scoped historical acceptance; verify only affected shared dependencies."
     },
     {
       "name": "blocks/tabbed-content",
       "title": "Tabbed content",
       "category": "Marketing",
       "checkpointStatus": "Verified",
-      "nextClassification": "reuse valid evidence"
+      "nextClassification": "reuse valid evidence",
+      "classification": "accepted/reusable evidence",
+      "source": "blocks/blocks/tabbed-content/block.json",
+      "requirements": "tabs[{label, body, media}]",
+      "evidenceReferences": [
+        "output/block-demo/browser-results-editorial58.",
+        "output/block-library-review-20260915/coverage-review.json.",
+        "output/disclosure-family-20260921/.",
+        "output/tabbed-actions-20260921/.",
+        "tabbed-actions-20260921.md"
+      ],
+      "remainingReview": "Retain scoped historical acceptance; verify only affected shared dependencies."
     },
     {
       "name": "core/steps-with-media",
       "title": "Steps with media",
       "category": "Marketing",
       "checkpointStatus": "In progress",
-      "nextClassification": "reconcile exact remaining requirement before work"
+      "nextClassification": "reconcile exact remaining requirement before work",
+      "classification": "missing evidence",
+      "source": "blocks/core/steps-with-media/block.json",
+      "requirements": "steps (repeater)",
+      "evidenceReferences": [
+        "output/block-library-review-20260915/coverage-review.json.",
+        "output/process-family-20260921.",
+        "output/steps-motion-20260921.",
+        "process-family-20260921.md",
+        "steps-motion-20260921.md"
+      ],
+      "remainingReview": "Full-block closure remains absent. Reconcile exact historical Notes and native/public/action requirements before repairs; missing evidence does not mean missing implementation."
     },
     {
       "name": "core/feature-tabs",
       "title": "Feature tabs",
       "category": "Marketing",
       "checkpointStatus": "Verified",
-      "nextClassification": "reuse valid evidence"
+      "nextClassification": "reuse valid evidence",
+      "classification": "accepted/reusable evidence",
+      "source": "blocks/core/feature-tabs/block.json",
+      "requirements": "tabs",
+      "evidenceReferences": [
+        "disclosure-family-20260921.md",
+        "output/block-demo/browser-results-editorial58.",
+        "output/block-library-review-20260915/coverage-review.json.",
+        "output/disclosure-family-20260921/."
+      ],
+      "remainingReview": "Retain scoped historical acceptance; verify only affected shared dependencies."
     },
     {
       "name": "core/marquee",
       "title": "Marquee",
       "category": "Marketing",
       "checkpointStatus": "In progress",
-      "nextClassification": "reconcile exact remaining requirement before work"
+      "nextClassification": "reconcile exact remaining requirement before work",
+      "classification": "missing evidence",
+      "source": "blocks/core/marquee/block.json",
+      "requirements": "items (repeater)",
+      "evidenceReferences": [
+        "block-review-20260921.md",
+        "canonical-media66-renderer-outcome.md",
+        "motion-review-20260921.md",
+        "output/block-demo/browser-results-media66",
+        "output/block-library-review-20260915/coverage-review.json."
+      ],
+      "remainingReview": "Full-block closure remains absent. Reconcile exact historical Notes and native/public/action requirements before repairs; missing evidence does not mean missing implementation."
     },
     {
       "name": "blocks/customer-showcase",
       "title": "Customer showcase",
       "category": "Social",
       "checkpointStatus": "In progress",
-      "nextClassification": "reconcile exact remaining requirement before work"
+      "nextClassification": "reconcile exact remaining requirement before work",
+      "classification": "missing evidence",
+      "source": "blocks/blocks/customer-showcase/block.json",
+      "requirements": "items[{name, media, url, quote}]",
+      "evidenceReferences": [
+        "block-existing-spec-migration-outcome.md",
+        "output/block-demo/browser-results-editorial58.",
+        "output/block-library-review-20260915/coverage-review.json."
+      ],
+      "remainingReview": "Full-block closure remains absent. Reconcile exact historical Notes and native/public/action requirements before repairs; missing evidence does not mean missing implementation."
     },
     {
       "name": "blocks/social-share",
       "title": "Social share",
       "category": "Social",
       "checkpointStatus": "In progress",
-      "nextClassification": "reconcile exact remaining requirement before work"
+      "nextClassification": "reconcile exact remaining requirement before work",
+      "classification": "missing evidence",
+      "source": "blocks/blocks/social-share/block.json",
+      "requirements": "networks[], label",
+      "evidenceReferences": [
+        "block-existing-spec-migration-outcome.md",
+        "canonical-utility74-renderer-outcome.md",
+        "output/block-demo/browser-results-utility74-verified",
+        "output/block-library-review-20260915/coverage-review.json."
+      ],
+      "remainingReview": "Full-block closure remains absent. Reconcile exact historical Notes and native/public/action requirements before repairs; missing evidence does not mean missing implementation."
     },
     {
       "name": "core/social-links",
       "title": "Social links",
       "category": "Social",
       "checkpointStatus": "In progress",
-      "nextClassification": "reconcile exact remaining requirement before work"
+      "nextClassification": "reconcile exact remaining requirement before work",
+      "classification": "missing evidence",
+      "source": "blocks/core/social-links/block.json",
+      "requirements": "items[{network, url}]",
+      "evidenceReferences": [
+        "block-existing-spec-migration-outcome.md",
+        "output/block-demo/browser-results-content50-verified.",
+        "output/block-demo/browser-results-media42-verified.",
+        "output/block-library-review-20260915/coverage-review.json."
+      ],
+      "remainingReview": "Full-block closure remains absent. Reconcile exact historical Notes and native/public/action requirements before repairs; missing evidence does not mean missing implementation."
     },
     {
       "name": "core/reviews",
       "title": "Reviews",
       "category": "Social",
       "checkpointStatus": "In progress",
-      "nextClassification": "reconcile exact remaining requirement before work"
+      "nextClassification": "reconcile exact remaining requirement before work",
+      "classification": "missing evidence",
+      "source": "blocks/core/reviews/block.json",
+      "requirements": "source (select), product (reference), limit (number), minRating (number)",
+      "evidenceReferences": [
+        "output/block-library-review-20260915/coverage-review.json.",
+        "output/reviews-public-feed-20260915/checks.json."
+      ],
+      "remainingReview": "Full-block closure remains absent. Reconcile exact historical Notes and native/public/action requirements before repairs; missing evidence does not mean missing implementation."
     },
     {
       "name": "core/social-feed",
       "title": "Social feed",
       "category": "Social",
       "checkpointStatus": "In progress",
-      "nextClassification": "reconcile exact remaining requirement before work"
+      "nextClassification": "reconcile exact remaining requirement before work",
+      "classification": "missing evidence",
+      "source": "blocks/core/social-feed/block.json",
+      "requirements": "provider (select), handle (text), limit (number)",
+      "evidenceReferences": [
+        "block-review-20260921.md",
+        "motion-review-20260921.md",
+        "output/block-library-review-20260915/coverage-review.json.",
+        "output/social-feed-block-20260915.",
+        "output/social-feed-controls-20260915."
+      ],
+      "remainingReview": "Full-block closure remains absent. Reconcile exact historical Notes and native/public/action requirements before repairs; missing evidence does not mean missing implementation."
     },
     {
       "name": "core/ugc-grid",
       "title": "UGC grid",
       "category": "Social",
       "checkpointStatus": "In progress",
-      "nextClassification": "reconcile exact remaining requirement before work"
+      "nextClassification": "reconcile exact remaining requirement before work",
+      "classification": "missing evidence",
+      "source": "blocks/core/ugc-grid/block.json",
+      "requirements": "tag (reference), limit (number)",
+      "evidenceReferences": [
+        "block-review-20260921.md",
+        "motion-review-20260921.md",
+        "output/block-library-review-20260915/coverage-review.json.",
+        "output/ugc-grid-block-20260915."
+      ],
+      "remainingReview": "Full-block closure remains absent. Reconcile exact historical Notes and native/public/action requirements before repairs; missing evidence does not mean missing implementation."
     },
     {
       "name": "commerce/product-showcase",
       "title": "Product showcase",
       "category": "Commerce",
       "checkpointStatus": "Verified",
-      "nextClassification": "reuse valid evidence"
+      "nextClassification": "reuse valid evidence",
+      "classification": "accepted/reusable evidence",
+      "source": "blocks/commerce/product-showcase/block.json",
+      "requirements": "eyebrow, heading, intro, source (newest|category|sale|slugs), categorySlug, productSlugs[], count (1-24), showAddToCart, ctaLabel, ctaUrl",
+      "evidenceReferences": [
+        "output/native-preview-lifecycle-20260911.",
+        "output/pack-owned-treatments-20260915.",
+        "output/product-family-20260921/.",
+        "output/product-showcase-20260911.",
+        "product-family-20260921.md"
+      ],
+      "remainingReview": "Retain scoped historical acceptance; verify only affected shared dependencies."
     },
     {
       "name": "blocks/product-collection",
       "title": "Product collection",
       "category": "Commerce",
       "checkpointStatus": "Verified",
-      "nextClassification": "reuse valid evidence"
+      "nextClassification": "reuse valid evidence",
+      "classification": "accepted/reusable evidence",
+      "source": "blocks/blocks/product-collection/block.json",
+      "requirements": "title, items[{product (reference), blurb}]",
+      "evidenceReferences": [
+        "output/production-checkpoints/collection-publication-20260910.",
+        "output/production-checkpoints/document-settings-20260910-verified.",
+        "output/production-checkpoints/product-media-20260906.",
+        "output/storefront-pricing-20260906.",
+        "product-family-20260921.md"
+      ],
+      "remainingReview": "Retain scoped historical acceptance; verify only affected shared dependencies."
     },
     {
       "name": "commerce/category-tiles",
       "title": "Category tiles",
       "category": "Commerce",
       "checkpointStatus": "Verified",
-      "nextClassification": "reuse valid evidence"
+      "nextClassification": "reuse valid evidence",
+      "classification": "accepted/reusable evidence",
+      "source": "blocks/commerce/category-tiles/block.json",
+      "requirements": "slugs[], limit, columns",
+      "evidenceReferences": [
+        "output/category-family-20260921.",
+        "output/category-tiles-20260910.",
+        "output/cta-family-20260921.",
+        "output/pack-owned-treatments-20260915.",
+        "output/product-publication-20260910."
+      ],
+      "remainingReview": "Retain scoped historical acceptance; verify only affected shared dependencies."
     },
     {
       "name": "core/featured-products",
       "title": "Featured products",
       "category": "Commerce",
       "checkpointStatus": "In progress",
-      "nextClassification": "reconcile exact remaining requirement before work"
+      "nextClassification": "reconcile exact remaining requirement before work",
+      "classification": "missing evidence",
+      "source": "blocks/core/featured-products/block.json",
+      "requirements": "limit, columns",
+      "evidenceReferences": [
+        "output/product-native-20260906.",
+        "output/production-checkpoints/product-media-20260906.",
+        "output/shipping-origin-20260906/next-work.md.",
+        "output/stock-policy-20260906/next-work.md.",
+        "output/storefront-pricing-20260906."
+      ],
+      "remainingReview": "Full-block closure remains absent. Reconcile exact historical Notes and native/public/action requirements before repairs; missing evidence does not mean missing implementation."
     },
     {
       "name": "commerce/assistant-band",
       "title": "Assistant band",
       "category": "Commerce",
       "checkpointStatus": "In progress",
-      "nextClassification": "reconcile exact remaining requirement before work"
+      "nextClassification": "reconcile exact remaining requirement before work",
+      "classification": "missing evidence",
+      "source": "blocks/commerce/assistant-band/block.json",
+      "requirements": "title, prompts[] (defaults from commerce.assistant settings)",
+      "evidenceReferences": [
+        "output/assistant-scope-20260910.",
+        "output/block-library-review-20260915/coverage-review.json.",
+        "output/cart-recovery-20260921.",
+        "output/commerce-session-20260921.",
+        "output/cta-family-20260921."
+      ],
+      "remainingReview": "Full-block closure remains absent. Reconcile exact historical Notes and native/public/action requirements before repairs; missing evidence does not mean missing implementation."
     },
     {
       "name": "commerce/product-compare",
       "title": "Product compare",
       "category": "Commerce",
       "checkpointStatus": "In progress",
-      "nextClassification": "reconcile exact remaining requirement before work"
+      "nextClassification": "reconcile exact remaining requirement before work",
+      "classification": "missing evidence",
+      "source": "blocks/commerce/product-compare/block.json",
+      "requirements": "products (repeater), attributes (repeater)",
+      "evidenceReferences": [
+        "output/block-library-review-20260915/coverage-review.json.",
+        "output/product-compare-20260915.",
+        "output/variant-admin-access-20260915."
+      ],
+      "remainingReview": "Full-block closure remains absent. Reconcile exact historical Notes and native/public/action requirements before repairs; missing evidence does not mean missing implementation."
     },
     {
       "name": "commerce/bundle-offer",
       "title": "Bundle offer",
       "category": "Commerce",
       "checkpointStatus": "In progress",
-      "nextClassification": "reconcile exact remaining requirement before work"
+      "nextClassification": "reconcile exact remaining requirement before work",
+      "classification": "missing evidence",
+      "source": "blocks/commerce/bundle-offer/block.json",
+      "requirements": "bundle (reference), title (text), body (text)",
+      "evidenceReferences": [
+        "output/bundle-block-20260915.",
+        "output/bundle-cart-20260915.",
+        "output/bundle-offer-20260915.",
+        "output/bundle-public-20260915.",
+        "output/commerce-state-acceptance-20260915."
+      ],
+      "remainingReview": "Full-block closure remains absent. Reconcile exact historical Notes and native/public/action requirements before repairs; missing evidence does not mean missing implementation."
     },
     {
       "name": "commerce/sale-countdown",
       "title": "Sale countdown",
       "category": "Commerce",
       "checkpointStatus": "In progress",
-      "nextClassification": "reconcile exact remaining requirement before work"
+      "nextClassification": "reconcile exact remaining requirement before work",
+      "classification": "missing evidence",
+      "source": "blocks/commerce/sale-countdown/block.json",
+      "requirements": "target (date), title (text), limit (number)",
+      "evidenceReferences": [
+        "output/block-library-review-20260915/coverage-review.json.",
+        "output/product-sale-schedule-20260910.",
+        "output/sale-countdown-20260910."
+      ],
+      "remainingReview": "Full-block closure remains absent. Reconcile exact historical Notes and native/public/action requirements before repairs; missing evidence does not mean missing implementation."
     },
     {
       "name": "commerce/recently-viewed",
       "title": "Recently viewed",
       "category": "Commerce",
       "checkpointStatus": "In progress",
-      "nextClassification": "reconcile exact remaining requirement before work"
+      "nextClassification": "reconcile exact remaining requirement before work",
+      "classification": "missing evidence",
+      "source": "blocks/commerce/recently-viewed/block.json",
+      "requirements": "limit (number), title (text)",
+      "evidenceReferences": [
+        "output/block-library-review-20260915/coverage-review.json.",
+        "output/recently-viewed-20260910."
+      ],
+      "remainingReview": "Full-block closure remains absent. Reconcile exact historical Notes and native/public/action requirements before repairs; missing evidence does not mean missing implementation."
     },
     {
       "name": "commerce/cart-cta",
       "title": "Cart CTA",
       "category": "Commerce",
       "checkpointStatus": "In progress",
-      "nextClassification": "reconcile exact remaining requirement before work"
+      "nextClassification": "reconcile exact remaining requirement before work",
+      "classification": "missing evidence",
+      "source": "blocks/commerce/cart-cta/block.json",
+      "requirements": "title (text), emptyText (text)",
+      "evidenceReferences": [
+        "output/block-library-review-20260915/coverage-review.json.",
+        "output/cart-cta-20260910",
+        "output/cart-family-20260921.",
+        "output/cart-recovery-20260921.",
+        "output/commerce-session-20260921."
+      ],
+      "remainingReview": "Full-block closure remains absent. Reconcile exact historical Notes and native/public/action requirements before repairs; missing evidence does not mean missing implementation."
     },
     {
       "name": "commerce/search-band",
       "title": "Search band",
       "category": "Commerce",
       "checkpointStatus": "In progress",
-      "nextClassification": "reconcile exact remaining requirement before work"
+      "nextClassification": "reconcile exact remaining requirement before work",
+      "classification": "missing evidence",
+      "source": "blocks/commerce/search-band/block.json",
+      "requirements": "placeholder (text), suggestions (repeater)",
+      "evidenceReferences": [
+        "canonical-utility74-renderer-outcome.md",
+        "output/block-demo/browser-results-utility74-verified",
+        "output/block-library-review-20260915/coverage-review.json."
+      ],
+      "remainingReview": "Full-block closure remains absent. Reconcile exact historical Notes and native/public/action requirements before repairs; missing evidence does not mean missing implementation."
     },
     {
       "name": "commerce/brand-list",
       "title": "Brand list",
       "category": "Commerce",
       "checkpointStatus": "In progress",
-      "nextClassification": "reconcile exact remaining requirement before work"
+      "nextClassification": "reconcile exact remaining requirement before work",
+      "classification": "missing evidence",
+      "source": "blocks/commerce/brand-list/block.json",
+      "requirements": "limit (number)",
+      "evidenceReferences": [
+        "output/block-library-review-20260915/coverage-review.json.",
+        "output/brand-list-20260911",
+        "output/brand-list-20260911/public-live-state.json",
+        "output/production-checkpoints/brand-domain-20260911."
+      ],
+      "remainingReview": "Full-block closure remains absent. Reconcile exact historical Notes and native/public/action requirements before repairs; missing evidence does not mean missing implementation."
     },
     {
       "name": "commerce/product-hero",
       "title": "Product hero",
       "category": "Commerce",
       "checkpointStatus": "In progress",
-      "nextClassification": "reconcile exact remaining requirement before work"
+      "nextClassification": "reconcile exact remaining requirement before work",
+      "classification": "missing evidence",
+      "source": "blocks/commerce/product-hero/block.json",
+      "requirements": "product (reference), title (text), media (media)",
+      "evidenceReferences": [
+        "output/block-library-review-20260915/coverage-review.json.",
+        "output/product-hero-20260911."
+      ],
+      "remainingReview": "Full-block closure remains absent. Reconcile exact historical Notes and native/public/action requirements before repairs; missing evidence does not mean missing implementation."
     },
     {
       "name": "commerce/variant-picker-teaser",
       "title": "Variant picker teaser",
       "category": "Commerce",
       "checkpointStatus": "In progress",
-      "nextClassification": "reconcile exact remaining requirement before work"
+      "nextClassification": "reconcile exact remaining requirement before work",
+      "classification": "missing evidence",
+      "source": "blocks/commerce/variant-picker-teaser/block.json",
+      "requirements": "product (database-local reference); attribute (option identity or name, blank for all)",
+      "evidenceReferences": [
+        "output/block-library-review-20260915/coverage-review.json.",
+        "output/variant-teaser-20260914."
+      ],
+      "remainingReview": "Full-block closure remains absent. Reconcile exact historical Notes and native/public/action requirements before repairs; missing evidence does not mean missing implementation."
     },
     {
       "name": "commerce/shipping-promise",
       "title": "Shipping promise",
       "category": "Commerce",
       "checkpointStatus": "In progress",
-      "nextClassification": "reconcile exact remaining requirement before work"
+      "nextClassification": "reconcile exact remaining requirement before work",
+      "classification": "missing evidence",
+      "source": "blocks/commerce/shipping-promise/block.json",
+      "requirements": "No per-block content fields. Uses commerce.general.storefrontPromises: icon, title, body, optional href (up to eight policies).",
+      "evidenceReferences": [
+        "output/block-library-review-20260915/coverage-review.json.",
+        "output/shipping-promise-20260911."
+      ],
+      "remainingReview": "Full-block closure remains absent. Reconcile exact historical Notes and native/public/action requirements before repairs; missing evidence does not mean missing implementation."
     },
     {
       "name": "core/latest-posts",
       "title": "Latest posts",
       "category": "Discovery",
       "checkpointStatus": "In progress",
-      "nextClassification": "reconcile exact remaining requirement before work"
+      "nextClassification": "reconcile exact remaining requirement before work",
+      "classification": "missing evidence",
+      "source": "blocks/core/latest-posts/block.json",
+      "requirements": "eyebrow, heading, body, count, categorySlug, tagSlug, showExcerpts, showAuthors",
+      "evidenceReferences": [
+        "output/block-library-review-20260915/coverage-review.json.",
+        "output/latest-posts90-20260906.",
+        "output/pack-owned-treatments-20260915.",
+        "output/public-author-20260906.",
+        "public-author-outcome.md"
+      ],
+      "remainingReview": "Full-block closure remains absent. Reconcile exact historical Notes and native/public/action requirements before repairs; missing evidence does not mean missing implementation."
     },
     {
       "name": "core/post-grid",
       "title": "Post grid",
       "category": "Discovery",
       "checkpointStatus": "In progress",
-      "nextClassification": "reconcile exact remaining requirement before work"
+      "nextClassification": "reconcile exact remaining requirement before work",
+      "classification": "missing evidence",
+      "source": "blocks/core/post-grid/block.json",
+      "requirements": "query (object), limit (number), showExcerpt (boolean)",
+      "evidenceReferences": [
+        "derived-restore-outcome.md",
+        "output/block-library-review-20260915/coverage-review.json.",
+        "output/derived-restore-20260906.",
+        "output/post-grid-ui-20260906",
+        "post-grid-ui-outcome.md"
+      ],
+      "remainingReview": "Full-block closure remains absent. Reconcile exact historical Notes and native/public/action requirements before repairs; missing evidence does not mean missing implementation."
     },
     {
       "name": "core/author-bio",
       "title": "Author bio",
       "category": "Discovery",
       "checkpointStatus": "In progress",
-      "nextClassification": "reconcile exact remaining requirement before work"
+      "nextClassification": "reconcile exact remaining requirement before work",
+      "classification": "missing evidence",
+      "source": "blocks/core/author-bio/block.json",
+      "requirements": "author (reference) | current",
+      "evidenceReferences": [
+        "canonical-utility74-renderer-outcome.md",
+        "derived-restore-outcome.md",
+        "output/block-demo/browser-results-utility74-verified",
+        "output/block-library-review-20260915/coverage-review.json.",
+        "output/derived-restore-20260906."
+      ],
+      "remainingReview": "Full-block closure remains absent. Reconcile exact historical Notes and native/public/action requirements before repairs; missing evidence does not mean missing implementation."
     },
     {
       "name": "core/tag-cloud",
       "title": "Tag cloud",
       "category": "Discovery",
       "checkpointStatus": "In progress",
-      "nextClassification": "reconcile exact remaining requirement before work"
+      "nextClassification": "reconcile exact remaining requirement before work",
+      "classification": "missing evidence",
+      "source": "blocks/core/tag-cloud/block.json",
+      "requirements": "heading, max (integer 1\u2013100)",
+      "evidenceReferences": [
+        "output/post-terms-access-20260906.",
+        "output/tag-archive-20260906",
+        "output/tag-cloud-20260906.",
+        "post-terms-access-outcome.md",
+        "tag-cloud-outcome.md"
+      ],
+      "remainingReview": "Full-block closure remains absent. Reconcile exact historical Notes and native/public/action requirements before repairs; missing evidence does not mean missing implementation."
     },
     {
       "name": "core/related-content",
       "title": "Related content",
       "category": "Discovery",
       "checkpointStatus": "In progress",
-      "nextClassification": "reconcile exact remaining requirement before work"
+      "nextClassification": "reconcile exact remaining requirement before work",
+      "classification": "missing evidence",
+      "source": "blocks/core/related-content/block.json",
+      "requirements": "limit (number), type (select)",
+      "evidenceReferences": [
+        "output/block-library-review-20260915/coverage-review.json.",
+        "output/related-content-20260914."
+      ],
+      "remainingReview": "Full-block closure remains absent. Reconcile exact historical Notes and native/public/action requirements before repairs; missing evidence does not mean missing implementation."
     },
     {
       "name": "core/archive-list",
       "title": "Archive list",
       "category": "Discovery",
       "checkpointStatus": "In progress",
-      "nextClassification": "reconcile exact remaining requirement before work"
+      "nextClassification": "reconcile exact remaining requirement before work",
+      "classification": "missing evidence",
+      "source": "blocks/core/archive-list/block.json",
+      "requirements": "groupBy (select), limit (number)",
+      "evidenceReferences": [
+        "output/archive-list-20260914.",
+        "output/block-library-review-20260915/coverage-review.json."
+      ],
+      "remainingReview": "Full-block closure remains absent. Reconcile exact historical Notes and native/public/action requirements before repairs; missing evidence does not mean missing implementation."
     },
     {
       "name": "core/search-box",
       "title": "Search box",
       "category": "Discovery",
       "checkpointStatus": "In progress",
-      "nextClassification": "reconcile exact remaining requirement before work"
+      "nextClassification": "reconcile exact remaining requirement before work",
+      "classification": "missing evidence",
+      "source": "blocks/core/search-box/block.json",
+      "requirements": "placeholder (text), scope (select)",
+      "evidenceReferences": [
+        "canonical-utility74-renderer-outcome.md",
+        "output/block-demo/browser-results-utility74-verified",
+        "output/block-library-review-20260915/coverage-review.json."
+      ],
+      "remainingReview": "Full-block closure remains absent. Reconcile exact historical Notes and native/public/action requirements before repairs; missing evidence does not mean missing implementation."
     },
     {
       "name": "core/featured-page",
       "title": "Featured page",
       "category": "Discovery",
       "checkpointStatus": "In progress",
-      "nextClassification": "reconcile exact remaining requirement before work"
+      "nextClassification": "reconcile exact remaining requirement before work",
+      "classification": "missing evidence",
+      "source": "blocks/core/featured-page/block.json",
+      "requirements": "page (reference), ctaLabel (text)",
+      "evidenceReferences": [
+        "canonical-featured75-consumer-outcome.md",
+        "output/aster-house/canonical-native/acceptance.json",
+        "output/aster-house/canonical-publication.",
+        "output/block-demo/browser-results-featured75",
+        "output/block-library-review-20260915/coverage-review.json."
+      ],
+      "remainingReview": "Full-block closure remains absent. Reconcile exact historical Notes and native/public/action requirements before repairs; missing evidence does not mean missing implementation."
     },
     {
       "name": "core/child-pages",
       "title": "Child pages",
       "category": "Discovery",
       "checkpointStatus": "In progress",
-      "nextClassification": "reconcile exact remaining requirement before work"
+      "nextClassification": "reconcile exact remaining requirement before work",
+      "classification": "missing evidence",
+      "source": "blocks/core/child-pages/block.json",
+      "requirements": "depth (number)",
+      "evidenceReferences": [
+        "child-pages-renderer-outcome.md",
+        "navigation-native-20260921.md",
+        "output/block-demo/browser-results-child-pages88.",
+        "output/block-library-review-20260915/coverage-review.json."
+      ],
+      "remainingReview": "Full-block closure remains absent. Reconcile exact historical Notes and native/public/action requirements before repairs; missing evidence does not mean missing implementation."
     },
     {
       "name": "core/contact-form",
       "title": "Contact form",
       "category": "Forms",
       "checkpointStatus": "In progress",
-      "nextClassification": "reconcile exact remaining requirement before work"
+      "nextClassification": "reconcile exact remaining requirement before work",
+      "classification": "missing evidence",
+      "source": "blocks/core/contact-form/block.json",
+      "requirements": "title, fields[], submitLabel, successText",
+      "evidenceReferences": [
+        "output/block-demo/contact-live-20260906-r2.",
+        "output/block-library-review-20260915/coverage-review.json.",
+        "output/contact-form-20260906/runtime-receipt.json.",
+        "output/synced-forms-live-20260915.",
+        "output/synced-forms-recovery-20260915."
+      ],
+      "remainingReview": "Full-block closure remains absent. Reconcile exact historical Notes and native/public/action requirements before repairs; missing evidence does not mean missing implementation."
     },
     {
       "name": "core/newsletter-signup",
       "title": "Newsletter signup",
       "category": "Forms",
       "checkpointStatus": "In progress",
-      "nextClassification": "reconcile exact remaining requirement before work"
+      "nextClassification": "reconcile exact remaining requirement before work",
+      "classification": "missing evidence",
+      "source": "blocks/core/newsletter-signup/block.json",
+      "requirements": "title, body, submitLabel, list",
+      "evidenceReferences": [
+        "canonical-conversion83-renderer-outcome.md",
+        "output/aster-house/conversion83/newsletter-acceptance.json",
+        "output/block-demo/browser-results-conversion83",
+        "output/block-library-review-20260915/coverage-review.json.",
+        "output/newsletter-host-20260906/runtime-receipt.json."
+      ],
+      "remainingReview": "Full-block closure remains absent. Reconcile exact historical Notes and native/public/action requirements before repairs; missing evidence does not mean missing implementation."
     },
     {
       "name": "core/booking-cta",
       "title": "Booking CTA",
       "category": "Forms",
       "checkpointStatus": "In progress",
-      "nextClassification": "reconcile exact remaining requirement before work"
+      "nextClassification": "reconcile exact remaining requirement before work",
+      "classification": "missing evidence",
+      "source": "blocks/core/booking-cta/block.json",
+      "requirements": "title, body, url, provider",
+      "evidenceReferences": [
+        "block-existing-spec-migration-outcome.md",
+        "canonical-contact79-renderer-outcome.md",
+        "output/block-demo/browser-results-contact79-fixed",
+        "output/block-library-review-20260915/coverage-review.json."
+      ],
+      "remainingReview": "Full-block closure remains absent. Reconcile exact historical Notes and native/public/action requirements before repairs; missing evidence does not mean missing implementation."
     },
     {
       "name": "blocks/contact-stack",
       "title": "Contact stack",
       "category": "Forms",
       "checkpointStatus": "In progress",
-      "nextClassification": "reconcile exact remaining requirement before work"
+      "nextClassification": "reconcile exact remaining requirement before work",
+      "classification": "missing evidence",
+      "source": "blocks/blocks/contact-stack/block.json",
+      "requirements": "address, hours[], phone, email, map, form",
+      "evidenceReferences": [
+        "canonical-contact79-renderer-outcome.md",
+        "output/block-demo/browser-results-contact79-fixed",
+        "output/block-library-review-20260915/coverage-review.json.",
+        "output/block-review-refresh-20260920/acceptance-review.md.",
+        "output/block-visual-acceptance-20260915"
+      ],
+      "remainingReview": "Full-block closure remains absent. Reconcile exact historical Notes and native/public/action requirements before repairs; missing evidence does not mean missing implementation."
     },
     {
       "name": "core/form",
       "title": "Form embed",
       "category": "Forms",
       "checkpointStatus": "In progress",
-      "nextClassification": "reconcile exact remaining requirement before work"
+      "nextClassification": "reconcile exact remaining requirement before work",
+      "classification": "missing evidence",
+      "source": "blocks/core/form/block.json",
+      "requirements": "form (form), title (text)",
+      "evidenceReferences": [
+        "form-embed-outcome.md",
+        "output/block-library-review-20260915/coverage-review.json.",
+        "output/form-counts-20260906/runtime-receipt.json.",
+        "output/form-embed-20260906/runtime-receipt.json",
+        "output/pack-owned-treatments-20260915."
+      ],
+      "remainingReview": "Full-block closure remains absent. Reconcile exact historical Notes and native/public/action requirements before repairs; missing evidence does not mean missing implementation."
     },
     {
       "name": "core/lead-magnet",
       "title": "Lead magnet",
       "category": "Forms",
       "checkpointStatus": "In progress",
-      "nextClassification": "reconcile exact remaining requirement before work"
+      "nextClassification": "reconcile exact remaining requirement before work",
+      "classification": "missing evidence",
+      "source": "blocks/core/lead-magnet/block.json",
+      "requirements": "title (text), body (richtext), media (media), file (media), list (reference)",
+      "evidenceReferences": [
+        "lead-magnet-lifecycle-20260921.md",
+        "output/block-library-review-20260915/coverage-review.json.",
+        "output/lead-magnet-block-20260915.",
+        "output/lead-magnet-block-20260915/picker-*.",
+        "output/lead-magnet-lifecycle-20260921/"
+      ],
+      "remainingReview": "Full-block closure remains absent. Reconcile exact historical Notes and native/public/action requirements before repairs; missing evidence does not mean missing implementation."
     },
     {
       "name": "core/poll",
       "title": "Poll",
       "category": "Forms",
       "checkpointStatus": "In progress",
-      "nextClassification": "reconcile exact remaining requirement before work"
+      "nextClassification": "reconcile exact remaining requirement before work",
+      "classification": "missing evidence",
+      "source": "blocks/core/poll/block.json",
+      "requirements": "question (text), options (repeater with stable key and label), showResults (boolean), responsePolicy (visitor or signedIn)",
+      "evidenceReferences": [
+        "output/forms-limit-clear-20260906/checks.json",
+        "output/poll-live-20260906/checks.json.",
+        "output/poll-motion-20260906/checks.json",
+        "output/poll-provider-20260906/checks.json",
+        "output/poll-security-20260906"
+      ],
+      "remainingReview": "Full-block closure remains absent. Reconcile exact historical Notes and native/public/action requirements before repairs; missing evidence does not mean missing implementation."
     },
     {
       "name": "core/event-rsvp",
       "title": "Event RSVP",
       "category": "Forms",
       "checkpointStatus": "In progress",
-      "nextClassification": "reconcile exact remaining requirement before work"
+      "nextClassification": "reconcile exact remaining requirement before work",
+      "classification": "missing evidence",
+      "source": "blocks/core/event-rsvp/block.json",
+      "requirements": "event (reference)",
+      "evidenceReferences": [
+        "output/block-library-review-20260915/coverage-review.json.",
+        "output/event-rsvp-20260914.",
+        "output/event-rsvp-20260914/live-restore-checks.json",
+        "output/extension-rsvp-20260920/acceptance-review.md."
+      ],
+      "remainingReview": "Full-block closure remains absent. Reconcile exact historical Notes and native/public/action requirements before repairs; missing evidence does not mean missing implementation."
     },
     {
       "name": "lms/course-grid",
       "title": "Course grid",
       "category": "Plugin",
       "checkpointStatus": "In progress",
-      "nextClassification": "reconcile exact remaining requirement before work"
+      "nextClassification": "reconcile exact remaining requirement before work",
+      "classification": "missing evidence",
+      "source": "blocks/lms/course-grid/block.json",
+      "requirements": "query.category (LMS normalized category label text), limit (1-48)",
+      "evidenceReferences": [
+        "output/block-library-review-20260915/coverage-review.json.",
+        "output/course-blocks-20260911/catalog-checks.json.",
+        "output/course-blocks-20260911/course-grid-checks.json.",
+        "output/course-blocks-20260911/learner-counts-checks.json",
+        "output/course-blocks-20260911/preview-origin-repair-journal.json"
+      ],
+      "remainingReview": "Full-block closure remains absent. Reconcile exact historical Notes and native/public/action requirements before repairs; missing evidence does not mean missing implementation."
     },
     {
       "name": "lms/curriculum",
       "title": "Curriculum",
       "category": "Plugin",
       "checkpointStatus": "In progress",
-      "nextClassification": "reconcile exact remaining requirement before work"
+      "nextClassification": "reconcile exact remaining requirement before work",
+      "classification": "missing evidence",
+      "source": "blocks/lms/curriculum/block.json",
+      "requirements": "course (reference), expanded (boolean)",
+      "evidenceReferences": [
+        "output/course-blocks-20260911/curriculum-counts-live-journal.json",
+        "output/curriculum-block-20260911/checks.json.118/136renderers18missing",
+        "output/hydration-interaction-20260911/checks.json",
+        "output/website-bundle-20260911.",
+        "output/website-payload-20260911/checks.json."
+      ],
+      "remainingReview": "Full-block closure remains absent. Reconcile exact historical Notes and native/public/action requirements before repairs; missing evidence does not mean missing implementation."
     },
     {
       "name": "lms/instructor",
       "title": "Instructor",
       "category": "Plugin",
       "checkpointStatus": "In progress",
-      "nextClassification": "reconcile exact remaining requirement before work"
+      "nextClassification": "reconcile exact remaining requirement before work",
+      "classification": "missing evidence",
+      "source": "blocks/lms/instructor/block.json",
+      "requirements": "instructor (reference)",
+      "evidenceReferences": [
+        "output/block-library-review-20260915/coverage-review.json.",
+        "output/instructor-block-20260911."
+      ],
+      "remainingReview": "Full-block closure remains absent. Reconcile exact historical Notes and native/public/action requirements before repairs; missing evidence does not mean missing implementation."
     },
     {
       "name": "lms/progress",
       "title": "Learner progress",
       "category": "Plugin",
       "checkpointStatus": "In progress",
-      "nextClassification": "reconcile exact remaining requirement before work"
+      "nextClassification": "reconcile exact remaining requirement before work",
+      "classification": "missing evidence",
+      "source": "blocks/lms/progress/block.json",
+      "requirements": "scope (select), course (reference)",
+      "evidenceReferences": [
+        "output/acceptance-reconciliation-20260920/acceptance-review.md.",
+        "output/block-library-review-20260915/coverage-review.json.",
+        "output/course-blocks-20260911/progress-integrity-checks.json.",
+        "output/progress-block-20260911.117/136"
+      ],
+      "remainingReview": "Full-block closure remains absent. Reconcile exact historical Notes and native/public/action requirements before repairs; missing evidence does not mean missing implementation."
     },
     {
       "name": "events/calendar",
       "title": "Event calendar",
       "category": "Plugin",
       "checkpointStatus": "In progress",
-      "nextClassification": "reconcile exact remaining requirement before work"
+      "nextClassification": "reconcile exact remaining requirement before work",
+      "classification": "missing evidence",
+      "source": "blocks/events/calendar/block.json",
+      "requirements": "view (select), category (reference), limit (number)",
+      "evidenceReferences": [
+        "output/block-library-review-20260915/coverage-review.json.",
+        "output/calendar-20260906.",
+        "output/calendar-foundation-20260906.",
+        "output/derived-restore-20260906.",
+        "output/events-categories-20260906"
+      ],
+      "remainingReview": "Full-block closure remains absent. Reconcile exact historical Notes and native/public/action requirements before repairs; missing evidence does not mean missing implementation."
     },
     {
       "name": "events/upcoming",
       "title": "Upcoming Events",
       "category": "Site",
       "checkpointStatus": "In progress",
-      "nextClassification": "reconcile exact remaining requirement before work"
+      "nextClassification": "reconcile exact remaining requirement before work",
+      "classification": "missing evidence",
+      "source": "blocks/events/upcoming/block.json",
+      "requirements": "heading (text max160), intro (text max1000), count (integer1..12), showDescription (boolean), emptyText (text max240)",
+      "evidenceReferences": [
+        "block-existing-spec-migration-outcome.md",
+        "events-upcoming-outcome.md",
+        "output/block-library-review-20260915/coverage-review.json.",
+        "output/events-upcoming-20260906",
+        "output/playwright/events-upcoming-20260906."
+      ],
+      "remainingReview": "Full-block closure remains absent. Reconcile exact historical Notes and native/public/action requirements before repairs; missing evidence does not mean missing implementation."
     },
     {
       "name": "events/next-event",
       "title": "Next event",
       "category": "Plugin",
       "checkpointStatus": "In progress",
-      "nextClassification": "reconcile exact remaining requirement before work"
+      "nextClassification": "reconcile exact remaining requirement before work",
+      "classification": "missing evidence",
+      "source": "blocks/events/next-event/block.json",
+      "requirements": "category (reference)",
+      "evidenceReferences": [
+        "next-event-outcome.md",
+        "output/block-library-review-20260915/coverage-review.json.",
+        "output/events-categories-20260906",
+        "output/next-event-20260906",
+        "output/playwright/next-event-20260906."
+      ],
+      "remainingReview": "Full-block closure remains absent. Reconcile exact historical Notes and native/public/action requirements before repairs; missing evidence does not mean missing implementation."
     },
     {
       "name": "membership/plans",
       "title": "Membership plans",
       "category": "Plugin",
       "checkpointStatus": "In progress",
-      "nextClassification": "reconcile exact remaining requirement before work"
+      "nextClassification": "reconcile exact remaining requirement before work",
+      "classification": "missing evidence",
+      "source": "blocks/membership/plans/block.json",
+      "requirements": "selection (all/selected), plans (membershipPlan ids, up to12), limit (1-12), heading, introduction, actionLabel, actionLink (safe href)",
+      "evidenceReferences": [
+        "output/block-library-review-20260915/coverage-review.json."
+      ],
+      "remainingReview": "Full-block closure remains absent. Reconcile exact historical Notes and native/public/action requirements before repairs; missing evidence does not mean missing implementation."
     },
     {
       "name": "membership/gated-teaser",
       "title": "Gated teaser",
       "category": "Plugin",
       "checkpointStatus": "In progress",
-      "nextClassification": "reconcile exact remaining requirement before work"
+      "nextClassification": "reconcile exact remaining requirement before work",
+      "classification": "missing evidence",
+      "source": "blocks/membership/gated-teaser/block.json",
+      "requirements": "teaserText (text), requiredPlan (membershipPlan reference by id), upgradeLink (optional safe href)",
+      "evidenceReferences": [
+        "output/block-library-review-20260915/coverage-review.json."
+      ],
+      "remainingReview": "Full-block closure remains absent. Reconcile exact historical Notes and native/public/action requirements before repairs; missing evidence does not mean missing implementation."
     },
     {
       "name": "gallery/recipe-card",
       "title": "Recipe card",
       "category": "Plugin",
       "checkpointStatus": "In progress",
-      "nextClassification": "reconcile exact remaining requirement before work"
+      "nextClassification": "reconcile exact remaining requirement before work",
+      "classification": "missing evidence",
+      "source": "blocks/gallery/recipe-card/block.json",
+      "requirements": "recipe (exact recipe ID reference, native published-recipe picker)",
+      "evidenceReferences": [
+        "output/block-library-review-20260915/coverage-review.json.",
+        "output/playwright/native-reconnect-20260911.",
+        "output/recipe-card-20260911.",
+        "output/recipe-images-20260911.",
+        "output/recipe-public-access-20260911."
+      ],
+      "remainingReview": "Full-block closure remains absent. Reconcile exact historical Notes and native/public/action requirements before repairs; missing evidence does not mean missing implementation."
     },
     {
       "name": "gallery/album",
       "title": "Gallery album",
       "category": "Plugin",
       "checkpointStatus": "In progress",
-      "nextClassification": "reconcile exact remaining requirement before work"
+      "nextClassification": "reconcile exact remaining requirement before work",
+      "classification": "missing evidence",
+      "source": "blocks/gallery/album/block.json",
+      "requirements": "album (reference)",
+      "evidenceReferences": [
+        "output/album-block-20260914/live-album.json",
+        "output/block-library-review-20260915/coverage-review.json."
+      ],
+      "remainingReview": "Full-block closure remains absent. Reconcile exact historical Notes and native/public/action requirements before repairs; missing evidence does not mean missing implementation."
     },
     {
       "name": "support/kb-search",
       "title": "Knowledge base search",
       "category": "Plugin",
       "checkpointStatus": "In progress",
-      "nextClassification": "reconcile exact remaining requirement before work"
+      "nextClassification": "reconcile exact remaining requirement before work",
+      "classification": "missing evidence",
+      "source": "blocks/support/kb-search/block.json",
+      "requirements": "placeholder (text), category (reference)",
+      "evidenceReferences": [
+        "output/kb-promotion-20260911.",
+        "output/kb-search-block-20260911.",
+        "output/kb-search-jobs-20260911.",
+        "output/kb-search-security-20260911.",
+        "output/management-expiry-20260911."
+      ],
+      "remainingReview": "Full-block closure remains absent. Reconcile exact historical Notes and native/public/action requirements before repairs; missing evidence does not mean missing implementation."
     },
     {
       "name": "support/ticket-cta",
       "title": "Ticket CTA",
       "category": "Plugin",
       "checkpointStatus": "In progress",
-      "nextClassification": "reconcile exact remaining requirement before work"
+      "nextClassification": "reconcile exact remaining requirement before work",
+      "classification": "missing evidence",
+      "source": "blocks/support/ticket-cta/block.json",
+      "requirements": "title (text), body (text)",
+      "evidenceReferences": [
+        "output/block-library-review-20260915/coverage-review.json.",
+        "output/support-blocks-20260911"
+      ],
+      "remainingReview": "Full-block closure remains absent. Reconcile exact historical Notes and native/public/action requirements before repairs; missing evidence does not mean missing implementation."
     },
     {
       "name": "certificates/verify",
       "title": "Certificate verify",
       "category": "Plugin",
       "checkpointStatus": "In progress",
-      "nextClassification": "reconcile exact remaining requirement before work"
+      "nextClassification": "reconcile exact remaining requirement before work",
+      "classification": "missing evidence",
+      "source": "blocks/certificates/verify/block.json",
+      "requirements": "title (text)",
+      "evidenceReferences": [
+        "output/acceptance-reconciliation-20260920/acceptance-review.md.",
+        "output/block-library-review-20260915/coverage-review.json.",
+        "output/certificate-block-20260911/checks.json.",
+        "output/course-blocks-20260911/certificate-authority-checks.json."
+      ],
+      "remainingReview": "Full-block closure remains absent. Reconcile exact historical Notes and native/public/action requirements before repairs; missing evidence does not mean missing implementation."
     },
     {
       "name": "core/site-info",
       "title": "Site info",
       "category": "Site",
       "checkpointStatus": "In progress",
-      "nextClassification": "reconcile exact remaining requirement before work"
+      "nextClassification": "reconcile exact remaining requirement before work",
+      "classification": "missing evidence",
+      "source": "blocks/core/site-info/block.json",
+      "requirements": "show (repeater)",
+      "evidenceReferences": [
+        "canonical-navigation-data-outcome.md",
+        "canonical-navigation87-renderer-outcome.md",
+        "output/block-demo/browser-results-navigation87",
+        "output/block-library-review-20260915/coverage-review.json."
+      ],
+      "remainingReview": "Full-block closure remains absent. Reconcile exact historical Notes and native/public/action requirements before repairs; missing evidence does not mean missing implementation."
     },
     {
       "name": "core/menu",
       "title": "Menu",
       "category": "Site",
       "checkpointStatus": "In progress",
-      "nextClassification": "reconcile exact remaining requirement before work"
+      "nextClassification": "reconcile exact remaining requirement before work",
+      "classification": "missing evidence",
+      "source": "blocks/core/menu/block.json",
+      "requirements": "source (select), location (text), menu (menu)",
+      "evidenceReferences": [
+        "output/block-library-review-20260915/coverage-review.json.",
+        "output/playwright/menu-media-rollout.",
+        "output/playwright/menu-media-rollout/native-preview-connected.png.",
+        "output/production-checkpoints/editor-origin-20260905",
+        "output/production-checkpoints/menu-media-20260905"
+      ],
+      "remainingReview": "Full-block closure remains absent. Reconcile exact historical Notes and native/public/action requirements before repairs; missing evidence does not mean missing implementation."
     },
     {
       "name": "core/account-teaser",
       "title": "Account teaser",
       "category": "Site",
       "checkpointStatus": "In progress",
-      "nextClassification": "reconcile exact remaining requirement before work"
+      "nextClassification": "reconcile exact remaining requirement before work",
+      "classification": "missing evidence",
+      "source": "blocks/core/account-teaser/block.json",
+      "requirements": "signedOutText (text), signedInText (text)",
+      "evidenceReferences": [
+        "output/block-library-review-20260915/coverage-review.json.",
+        "output/canonical-promotion-20260911/account-*."
+      ],
+      "remainingReview": "Full-block closure remains absent. Reconcile exact historical Notes and native/public/action requirements before repairs; missing evidence does not mean missing implementation."
     },
     {
       "name": "core/custom-html",
       "title": "Custom HTML",
       "category": "Site",
       "checkpointStatus": "In progress",
-      "nextClassification": "reconcile exact remaining requirement before work"
+      "nextClassification": "reconcile exact remaining requirement before work",
+      "classification": "missing evidence",
+      "source": "blocks/core/custom-html/block.json",
+      "requirements": "html (text)",
+      "evidenceReferences": [
+        "canonical-utility74-renderer-outcome.md",
+        "output/block-demo/browser-results-utility74-verified",
+        "output/block-library-review-20260915/coverage-review.json."
+      ],
+      "remainingReview": "Full-block closure remains absent. Reconcile exact historical Notes and native/public/action requirements before repairs; missing evidence does not mean missing implementation."
     },
     {
       "name": "core/iframe",
       "title": "Iframe",
       "category": "Site",
       "checkpointStatus": "In progress",
-      "nextClassification": "reconcile exact remaining requirement before work"
+      "nextClassification": "reconcile exact remaining requirement before work",
+      "classification": "missing evidence",
+      "source": "blocks/core/iframe/block.json",
+      "requirements": "url (link), title (text)",
+      "evidenceReferences": [
+        "canonical-contact79-renderer-outcome.md",
+        "output/block-demo/browser-results-contact79-fixed",
+        "output/block-library-review-20260915/coverage-review.json."
+      ],
+      "remainingReview": "Full-block closure remains absent. Reconcile exact historical Notes and native/public/action requirements before repairs; missing evidence does not mean missing implementation."
     },
     {
       "name": "core/script-embed",
       "title": "Script embed",
       "category": "Site",
       "checkpointStatus": "In progress",
-      "nextClassification": "reconcile exact remaining requirement before work"
+      "nextClassification": "reconcile exact remaining requirement before work",
+      "classification": "missing evidence",
+      "source": "blocks/core/script-embed/block.json",
+      "requirements": "provider (select), resourceId (text)",
+      "evidenceReferences": [
+        "canonical-conversion83-renderer-outcome.md",
+        "output/aster-house/conversion83/newsletter-acceptance.json",
+        "output/block-demo/browser-results-conversion83",
+        "output/block-library-review-20260915/coverage-review.json."
+      ],
+      "remainingReview": "Full-block closure remains absent. Reconcile exact historical Notes and native/public/action requirements before repairs; missing evidence does not mean missing implementation."
     },
     {
       "name": "core/anchor-nav",
       "title": "Anchor nav",
       "category": "Site",
       "checkpointStatus": "In progress",
-      "nextClassification": "reconcile exact remaining requirement before work"
+      "nextClassification": "reconcile exact remaining requirement before work",
+      "classification": "missing evidence",
+      "source": "blocks/core/anchor-nav/block.json",
+      "requirements": "source (select), items (repeater)",
+      "evidenceReferences": [
+        "canonical-navigation-data-outcome.md",
+        "canonical-navigation87-renderer-outcome.md",
+        "navigation-native-20260921.md",
+        "output/block-demo/browser-results-navigation87",
+        "output/block-library-review-20260915/coverage-review.json."
+      ],
+      "remainingReview": "Full-block closure remains absent. Reconcile exact historical Notes and native/public/action requirements before repairs; missing evidence does not mean missing implementation."
     },
     {
       "name": "core/language-switcher",
       "title": "Language switcher",
       "category": "Site",
       "checkpointStatus": "In progress",
-      "nextClassification": "reconcile exact remaining requirement before work"
+      "nextClassification": "reconcile exact remaining requirement before work",
+      "classification": "missing evidence",
+      "source": "blocks/core/language-switcher/block.json",
+      "requirements": "context only",
+      "evidenceReferences": [
+        "output/block-library-review-20260915/coverage-review.json.",
+        "output/language-switcher-20260914/checks.json."
+      ],
+      "remainingReview": "Full-block closure remains absent. Reconcile exact historical Notes and native/public/action requirements before repairs; missing evidence does not mean missing implementation."
     },
     {
       "name": "blocks/grade-gallery",
       "title": "Grade gallery",
       "category": "Media",
       "checkpointStatus": "In progress",
-      "nextClassification": "reconcile exact remaining requirement before work"
+      "nextClassification": "reconcile exact remaining requirement before work",
+      "classification": "missing evidence",
+      "source": "blocks/blocks/grade-gallery/block.json",
+      "requirements": "groups[{label, items[media]}]",
+      "evidenceReferences": [
+        "block-existing-spec-migration-outcome.md",
+        "canonical-media66-renderer-outcome.md",
+        "output/block-demo/browser-results-grade66-polish.",
+        "output/block-demo/browser-results-media66",
+        "output/block-library-review-20260915/coverage-review.json."
+      ],
+      "remainingReview": "Full-block closure remains absent. Reconcile exact historical Notes and native/public/action requirements before repairs; missing evidence does not mean missing implementation."
     },
     {
       "name": "core/synced",
       "title": "Synced content",
       "category": "Layout",
       "checkpointStatus": "In progress",
-      "nextClassification": "reconcile exact remaining requirement before work"
+      "nextClassification": "reconcile exact remaining requirement before work",
+      "classification": "missing evidence",
+      "source": "blocks/core/synced/block.json",
+      "requirements": "syncedBlock (reference), revisionPolicy (select), revision (number)",
+      "evidenceReferences": [
+        "output/synced-refresh-20260915.",
+        "output/synced-refresh-authority-20260915.",
+        "output/synced-renderer-20260915.",
+        "output/synced-snapshot-20260915.",
+        "output/synced-visibility-20260915."
+      ],
+      "remainingReview": "Full-block closure remains absent. Reconcile exact historical Notes and native/public/action requirements before repairs; missing evidence does not mean missing implementation."
     },
     {
       "name": "core/definition-list",
       "title": "Definition list",
       "category": "Text",
       "checkpointStatus": "Verified",
-      "nextClassification": "reuse valid evidence"
+      "nextClassification": "reuse valid evidence",
+      "classification": "accepted/reusable evidence",
+      "source": "blocks/core/definition-list/block.json",
+      "requirements": "items",
+      "evidenceReferences": [
+        "output/block-demo/browser-results-content50-verified.",
+        "output/block-demo/browser-results-media42-verified.",
+        "output/block-demo/browser-results-responsive34-verified.",
+        "output/block-library-review-20260915/coverage-review.json.",
+        "output/content-family-20260921/."
+      ],
+      "remainingReview": "Retain scoped historical acceptance; verify only affected shared dependencies."
     },
     {
       "name": "business/opening-hours",
       "title": "Opening hours",
       "category": "Site",
       "checkpointStatus": "In progress",
-      "nextClassification": "reconcile exact remaining requirement before work"
+      "nextClassification": "reconcile exact remaining requirement before work",
+      "classification": "missing evidence",
+      "source": "blocks/business/opening-hours/block.json",
+      "requirements": "timezone (text), week (repeater), exceptions (repeater), contactLink (link)",
+      "evidenceReferences": [
+        "output/block-demo/browser-results-content50-verified.",
+        "output/block-demo/browser-results-media42-verified.",
+        "output/block-demo/browser-results-responsive34-verified.",
+        "output/block-library-review-20260915/coverage-review.json."
+      ],
+      "remainingReview": "Full-block closure remains absent. Reconcile exact historical Notes and native/public/action requirements before repairs; missing evidence does not mean missing implementation."
     },
     {
       "name": "business/locations",
       "title": "Business locations",
       "category": "Site",
       "checkpointStatus": "In progress",
-      "nextClassification": "reconcile exact remaining requirement before work"
+      "nextClassification": "reconcile exact remaining requirement before work",
+      "classification": "missing evidence",
+      "source": "blocks/business/locations/block.json",
+      "requirements": "locations (repeater)",
+      "evidenceReferences": [
+        "output/block-demo/browser-results-content50-verified.",
+        "output/block-demo/browser-results-media42-verified.",
+        "output/block-demo/browser-results-responsive34-verified.",
+        "output/block-library-review-20260915/coverage-review.json."
+      ],
+      "remainingReview": "Full-block closure remains absent. Reconcile exact historical Notes and native/public/action requirements before repairs; missing evidence does not mean missing implementation."
     },
     {
       "name": "business/service-list",
       "title": "Services and rates",
       "category": "Marketing",
       "checkpointStatus": "In progress",
-      "nextClassification": "reconcile exact remaining requirement before work"
+      "nextClassification": "reconcile exact remaining requirement before work",
+      "classification": "missing evidence",
+      "source": "blocks/business/service-list/block.json",
+      "requirements": "services (repeater)",
+      "evidenceReferences": [
+        "output/block-demo/browser-results-content50-verified.",
+        "output/block-demo/browser-results-media42-verified.",
+        "output/block-demo/browser-results-responsive34-verified.",
+        "output/block-library-review-20260915/coverage-review.json."
+      ],
+      "remainingReview": "Full-block closure remains absent. Reconcile exact historical Notes and native/public/action requirements before repairs; missing evidence does not mean missing implementation."
     },
     {
       "name": "business/menu",
       "title": "Food and drink menu",
       "category": "Site",
       "checkpointStatus": "In progress",
-      "nextClassification": "reconcile exact remaining requirement before work"
+      "nextClassification": "reconcile exact remaining requirement before work",
+      "classification": "missing evidence",
+      "source": "blocks/business/menu/block.json",
+      "requirements": "sections (repeater)",
+      "evidenceReferences": [
+        "output/block-demo/browser-results-content50-verified.",
+        "output/block-demo/browser-results-media42-verified.",
+        "output/block-demo/browser-results-responsive34-verified.",
+        "output/block-library-review-20260915/coverage-review.json."
+      ],
+      "remainingReview": "Full-block closure remains absent. Reconcile exact historical Notes and native/public/action requirements before repairs; missing evidence does not mean missing implementation."
     },
     {
       "name": "commerce/wishlist",
       "title": "Saved products",
       "category": "Commerce",
       "checkpointStatus": "In progress",
-      "nextClassification": "reconcile exact remaining requirement before work"
+      "nextClassification": "reconcile exact remaining requirement before work",
+      "classification": "missing evidence",
+      "source": "blocks/commerce/wishlist/block.json",
+      "requirements": "heading (text), emptyMessage (text), browseLink (link)",
+      "evidenceReferences": [
+        "output/wishlist-deploy-repair-20260914.",
+        "output/wishlist-hardening-20260915",
+        "output/wishlist-lookup-20260915/checks.json",
+        "output/wishlist-owner-totals-20260915.",
+        "output/wishlist-surfaces-20260914"
+      ],
+      "remainingReview": "Full-block closure remains absent. Reconcile exact historical Notes and native/public/action requirements before repairs; missing evidence does not mean missing implementation."
     },
     {
       "name": "commerce/download-library",
       "title": "Purchased downloads",
       "category": "Commerce",
       "checkpointStatus": "In progress",
-      "nextClassification": "reconcile exact remaining requirement before work"
+      "nextClassification": "reconcile exact remaining requirement before work",
+      "classification": "missing evidence",
+      "source": "blocks/commerce/download-library/block.json",
+      "requirements": "heading (text), emptyMessage (text), helpLink (link)",
+      "evidenceReferences": [
+        "output/download-entitlements-20260915.",
+        "output/download-library-20260915.",
+        "output/download-library-block-20260915.",
+        "output/download-transport-20260915.",
+        "output/stylesheet-hydration-20260915."
+      ],
+      "remainingReview": "Full-block closure remains absent. Reconcile exact historical Notes and native/public/action requirements before repairs; missing evidence does not mean missing implementation."
     },
     {
       "name": "core/search-results",
       "title": "Search results",
       "category": "Discovery",
       "checkpointStatus": "In progress",
-      "nextClassification": "reconcile exact remaining requirement before work"
+      "nextClassification": "reconcile exact remaining requirement before work",
+      "classification": "missing evidence",
+      "source": "blocks/core/search-results/block.json",
+      "requirements": "queryBinding (select), kinds (repeater), pageSize (number), emptyMessage (text)",
+      "evidenceReferences": [
+        "output/search-results-block-20260915.",
+        "output/search-source-projection-20260915.",
+        "search-body-20260921.md",
+        "search-scale-20260921.md",
+        "search-source-match-20260921.md"
+      ],
+      "remainingReview": "Full-block closure remains absent. Reconcile exact historical Notes and native/public/action requirements before repairs; missing evidence does not mean missing implementation."
     },
     {
       "name": "reference/field-guide",
       "title": "Field Guide",
       "category": "Site",
       "checkpointStatus": "In progress",
-      "nextClassification": "reconcile exact remaining requirement before work"
+      "nextClassification": "reconcile exact remaining requirement before work",
+      "classification": "missing evidence",
+      "source": "blocks/reference/field-guide/block.json",
+      "requirements": "Current schema fields preserved through explicit migration",
+      "evidenceReferences": [
+        "block-existing-spec-migration-outcome.md",
+        "canonical-media66-renderer-outcome.md",
+        "output/block-demo/browser-results-media66",
+        "output/block-library-review-20260915/coverage-review.json."
+      ],
+      "remainingReview": "Full-block closure remains absent. Reconcile exact historical Notes and native/public/action requirements before repairs; missing evidence does not mean missing implementation."
     },
     {
       "name": "local/sample-alert",
       "title": "Local sample alert",
       "category": "Site",
       "checkpointStatus": "In progress",
-      "nextClassification": "reconcile exact remaining requirement before work"
+      "nextClassification": "reconcile exact remaining requirement before work",
+      "classification": "missing evidence",
+      "source": "blocks/local/sample-alert/block.json",
+      "requirements": "message and current schema fields",
+      "evidenceReferences": [
+        "canonical-media66-renderer-outcome.md",
+        "cta-family-20260921.md",
+        "output/block-demo/browser-results-media66",
+        "output/block-library-review-20260915/coverage-review.json.",
+        "output/cta-family-20260921."
+      ],
+      "remainingReview": "Full-block closure remains absent. Reconcile exact historical Notes and native/public/action requirements before repairs; missing evidence does not mean missing implementation."
     },
     {
       "name": "blocks/studio-services",
       "title": "Studio services",
       "category": "Marketing",
       "checkpointStatus": "In progress",
-      "nextClassification": "reconcile exact remaining requirement before work"
+      "nextClassification": "reconcile exact remaining requirement before work",
+      "classification": "missing evidence",
+      "source": "blocks/blocks/studio-services/block.json",
+      "requirements": "eyebrow, headline, introduction, services",
+      "evidenceReferences": [
+        "output/block-review-refresh-20260920/acceptance-review.md.",
+        "output/definition-promotion-editor-20260916."
+      ],
+      "remainingReview": "Full-block closure remains absent. Reconcile exact historical Notes and native/public/action requirements before repairs; missing evidence does not mean missing implementation."
     }
   ],
-  "latestEvidence": []
+  "latestEvidence": [
+    "output/editor-template-20260928/delivery-map.json",
+    "output/editor-template-20260928/renderer-red.log",
+    "output/editor-template-20260928/renderer-green.log",
+    "output/editor-template-20260928/schedule-red.log",
+    "output/editor-template-20260928/schedule-green.log",
+    "output/editor-template-20260928/backend-tests.log",
+    "output/editor-template-20260928/editor-tests.log",
+    "output/editor-template-20260928/native-invalid-schedule.png",
+    "output/editor-template-20260928/plugin-defaults.jsonl"
+  ],
+  "trackerRefresh": {
+    "date": "2026-09-28",
+    "count": 137,
+    "Verified": 58,
+    "In progress": 79,
+    "evidence": "output/editor-template-20260928/mt-readback.json",
+    "writes": false
+  },
+  "coordination": {
+    "folder": "/Users/worsin/Development/ConvexPress/Opus Audits/",
+    "authority": "Codex leads; Claude audits are advisory and independently verified",
+    "lastAudit": "2026-09-28T1230-audit-01-baseline.md"
+  },
+  "sessionBaseCommit": "9824d9605e50c4b0ebd711c13715b506f8ef5bd3"
 }

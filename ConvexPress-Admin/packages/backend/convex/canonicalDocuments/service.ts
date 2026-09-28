@@ -91,7 +91,12 @@ export async function canonicalBoundary<T>(run: () => Promise<T>): Promise<T> {
 				error.code,
 				"The canonical document failed validation. Reload or correct the indicated document before saving.",
 			);
-		if (error instanceof Error && error.name === "ZodError")
+		// Zod 4 validation errors need not inherit from the native Error class.
+		if (
+			error && typeof error === "object" &&
+			"name" in error && error.name === "ZodError" &&
+			"issues" in error && Array.isArray(error.issues)
+		)
 			refuse(
 				"INVALID_CANONICAL_DOCUMENT",
 				"The document does not satisfy the canonical contract.",

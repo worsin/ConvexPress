@@ -4358,6 +4358,13 @@
         "type": "boolean"
       },
       {
+        "authoringConstraints": [
+          {
+            "kind": "ordered",
+            "lower": "startsAt",
+            "upper": "endsAt"
+          }
+        ],
         "fields": [
           {
             "id": "startsAt",

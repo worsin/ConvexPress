@@ -6,7 +6,7 @@ export interface EditorField {
   id: string; type: FieldType; title?: string; description?: string; required?: boolean; nullable?: boolean; default?: unknown;
   min?: number; max?: number; integer?: boolean; inline?: boolean; multiline?: true; authoringNonblank?: true; format?: string; domId?: true;
   options?: readonly (string | number)[]; optionsMode?: "authoring"; of?: string; storage?: string; allowEmpty?: boolean; protocols?: readonly string[];
-  fields?: readonly EditorField[]; item?: EditorField; constraints?: readonly unknown[];
+  fields?: readonly EditorField[]; item?: EditorField; constraints?: readonly unknown[]; authoringConstraints?: readonly unknown[];
 }
 export interface EditorDefinition { version: number; requires: { plugins: readonly string[]; capabilities: readonly string[] }; fields: readonly EditorField[]; constraints: readonly unknown[]; preview: string; category: string; title: string; role: string; supports: { children: boolean; styles: boolean; layout: readonly string[]; anchor: boolean; visibility: boolean } }
 export const editorDefinitions: Record<BlockName, EditorDefinition> = {
@@ -2608,6 +2608,13 @@ export const editorDefinitions: Record<BlockName, EditorDefinition> = {
         "type": "boolean"
       },
       {
+        "authoringConstraints": [
+          {
+            "kind": "ordered",
+            "lower": "startsAt",
+            "upper": "endsAt"
+          }
+        ],
         "fields": [
           {
             "id": "startsAt",

@@ -524,6 +524,21 @@ const authoringActions: Readonly<Record<string, readonly AuthoringAction[]>> = {
 }
 ;
 const fieldRules: Readonly<Record<string, readonly AuthoringFieldRule[]>> = {
+  "core/announcement-bar": [
+    {
+      "constraints": [
+        {
+          "kind": "ordered",
+          "lower": "startsAt",
+          "upper": "endsAt"
+        }
+      ],
+      "kind": "constraints",
+      "path": [
+        "schedule"
+      ]
+    }
+  ],
   "core/cta-with-form": [
     {
       "kind": "nonblank",

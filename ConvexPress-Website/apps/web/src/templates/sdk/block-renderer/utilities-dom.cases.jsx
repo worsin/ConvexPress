@@ -155,6 +155,23 @@ test("announcement dismissal preserves a focused restore control and new authore
 		);
 		expect(document.body.textContent).toContain("New announcement");
 	}));
+test("a dismissed announcement becomes visible when dismissal is disabled", async () =>
+	inDom(async (root) => {
+		const attrs = {
+			text: "Required announcement",
+			link: { label: "Read the notice", href: "/notice" },
+			dismissible: true,
+		};
+		await act(async () => root.render(utilityTree(announcement, attrs)));
+		await act(async () => document.querySelector("button").click());
+		expect(document.body.textContent).not.toContain(attrs.text);
+		await act(async () =>
+			root.render(utilityTree(announcement, { ...attrs, dismissible: false })),
+		);
+		expect(document.body.textContent).toContain(attrs.text);
+		expect(document.querySelector("a")?.getAttribute("href")).toBe("/notice");
+		expect(document.querySelector("button")).toBeNull();
+	}));
 test("carousel instances keep independent controls/IDs, hidden slide focus safety and no automatic advance", async () =>
 	inDom(async (root) => {
 		const children = [

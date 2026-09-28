@@ -51,7 +51,7 @@ export function Announcement({ attrs }: BlockProps<"core/announcement-bar">) {
 	)
 		return null;
 	if (!attrs.text && !attrs.link) return null;
-	const open = dismissed !== identity;
+	const open = !attrs.dismissible || dismissed !== identity;
 	return (
 		<aside className="cp-library-announcement">
 			<div>

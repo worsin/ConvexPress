@@ -18,8 +18,8 @@ export type BlockField = CommonField & (
   | { type: "link"; protocols?: ("http" | "https" | "relative" | "anchor" | "mailto" | "tel")[]; storage?: "href"; allowEmpty?: boolean; max?: number }
   | { type: "icon"; options?: string[]; optionsMode?: "authoring" }
   | { type: "boolean" | "color-role" | "date" | "menu" | "form" }
-  | { type: "repeater"; constraints?: FieldConstraint[]; min?: number; max?: number; fields?: BlockField[]; item?: BlockField }
-  | { type: "object"; constraints?: FieldConstraint[]; fields: BlockField[] }
+  | { type: "repeater"; constraints?: FieldConstraint[]; authoringConstraints?: FieldConstraint[]; min?: number; max?: number; fields?: BlockField[]; item?: BlockField }
+  | { type: "object"; constraints?: FieldConstraint[]; authoringConstraints?: FieldConstraint[]; fields: BlockField[] }
 );
 export type TreatmentAxis = { id: string; title: string } & (
   | { type: "select"; options: string[]; default: string }
@@ -64,6 +64,6 @@ export function dependencyFields(fields: readonly BlockField[], parent?: string[
 export function anchorFields(fields: readonly BlockField[], parent?: string[]): { path: string[] }[];
 export function searchableFields(fields: readonly BlockField[], paths: readonly (readonly string[] | { path: readonly string[]; format: "prose" })[]): { path: readonly string[]; type: "text" | "richtext" | "prose" }[];
 
-export type AuthoringFieldRule = { path: readonly string[] } & ({ kind: "icon"; options: readonly string[] } | { kind: "nonblank" });
+export type AuthoringFieldRule = { path: readonly string[] } & ({ kind: "icon"; options: readonly string[] } | { kind: "nonblank" } | { kind: "constraints"; constraints: readonly FieldConstraint[] });
 export function authoringFieldRules(fields: readonly BlockField[], parent?: string[]): AuthoringFieldRule[];
 export function validateAuthoringFields<T>(zod: typeof z, attrs: T, choices?: readonly AuthoringFieldRule[]): T;

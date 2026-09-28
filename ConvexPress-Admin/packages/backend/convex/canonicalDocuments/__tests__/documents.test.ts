@@ -12,19 +12,51 @@ test("commerce resolver-invalid edits are refused before saving or previewing wi
   const opened = await f.client.query(reference("get"), { postId: f.ids.post });
   const snapshot = () => f.t.run(async ctx => ({ post: await ctx.db.get("posts", f.ids.post), history: await ctx.db.query("revisions").collect() }));
   const before = await snapshot();
-  for (const [name, attrs, diagnostic] of [
-    ["blocks/product-collection", { count: 1.5 }, /int/],
-    ["commerce/product-showcase", { count: 1.5 }, /int/],
-    ["blocks/product-collection", { mode: "category" }, /Choose a product category/],
-    ["blocks/product-collection", { mode: "tag" }, /Choose a product tag/],
-    ["commerce/product-showcase", { source: "category" }, /Choose a product category/],
+  for (const [name, attrs] of [
+    ["blocks/product-collection", { count: 1.5 }],
+    ["commerce/product-showcase", { count: 1.5 }],
+    ["blocks/product-collection", { mode: "category" }],
+    ["blocks/product-collection", { mode: "tag" }],
+    ["commerce/product-showcase", { source: "category" }],
   ] as const) {
     const args = { postId: f.ids.post, expectedRevision: opened.document.revision, title: opened.document.title, blocks: [{ id: "products", name, version: 2, attrs }] };
     for (const operation of [() => f.client.mutation(reference("save", "mutation"), args), () => f.client.query(reference("previewDraft"), args)]) {
-      await expect(operation()).rejects.toThrow(diagnostic);
+      await expect(operation()).rejects.toMatchObject({ data: { code: "INVALID_CANONICAL_DOCUMENT" } });
       expect(await snapshot()).toEqual(before);
     }
   }
+});
+
+test("announcement schedules refuse new saves, previews and publication while historical drafts remain recoverable", async () => {
+  const f = await fixture();
+  await initialize(f);
+  await f.t.run(async ctx => {
+    const user = (await ctx.db.get("users", f.ids.user))!;
+    await ctx.db.patch("roles", user.roleId!, { capabilities: ["page.update", "page.publish", "revision.restore"] });
+    await ctx.db.patch("posts", f.ids.post, { blocks: [{ id: "notice", name: "core/announcement-bar", version: 1, attrs: { text: "Retained historical notice", schedule: { startsAt: "2040-06-01T09:00:00Z", endsAt: "2040-06-01T08:00:00Z" } } }] });
+  });
+  const opened = await f.client.query(reference("get"), { postId: f.ids.post });
+  const snapshot = () => f.t.run(async ctx => ({ post: await ctx.db.get("posts", f.ids.post), history: await ctx.db.query("revisions").collect() }));
+  const before = await snapshot();
+  const args = { postId: f.ids.post, expectedRevision: opened.document.revision, title: opened.document.title, blocks: opened.document.blocks };
+  for (const endsAt of ["2040-06-01T08:00:00Z", "2040-06-01T09:00:00Z"]) {
+    const blocks = structuredClone(args.blocks);
+    blocks[0].attrs.schedule.endsAt = endsAt;
+    for (const operation of [() => f.client.mutation(reference("save", "mutation"), { ...args, blocks }), () => f.client.query(reference("previewDraft"), { ...args, blocks })]) {
+      await expect(operation()).rejects.toMatchObject({ data: { code: "INVALID_CANONICAL_DOCUMENT" } });
+      expect(await snapshot()).toEqual(before);
+    }
+  }
+  await expect(f.client.mutation(reference("setPublication", "mutation"), { postId: f.ids.post, expectedRevision: args.expectedRevision, status: "publish" })).rejects.toMatchObject({ data: { code: "INVALID_CANONICAL_DOCUMENT" } });
+  expect(await snapshot()).toEqual(before);
+  const repaired = structuredClone(args.blocks);
+  repaired[0].attrs.schedule.endsAt = "2040-06-01T10:00:00Z";
+  const saved = await f.client.mutation(reference("save", "mutation"), { ...args, blocks: repaired });
+  const history = await f.client.query(reference("pageRevisions"), { postId: f.ids.post, paginationOpts: { cursor: null, numItems: 20 } });
+  const old = history.page.find((row: any) => row.blocksVersion === 2);
+  expect(old).toBeDefined();
+  await f.client.mutation(reference("restore", "mutation"), { postId: f.ids.post, expectedRevision: saved.revision, revisionId: old.id });
+  expect((await f.client.query(reference("get"), { postId: f.ids.post })).document.blocks).toEqual(args.blocks);
 });
 
 test("CTA family writes reject unusable actions without changing content or history", async () => {
@@ -49,8 +81,8 @@ test("CTA family writes reject unusable actions without changing content or hist
   for (const [name, version, attrs] of cases) {
     const args = { postId: f.ids.post, expectedRevision: opened.document.revision, title: opened.document.title, blocks: [{ id: "action", name, version, attrs }] };
     for (const operation of [() => f.client.mutation(reference("save", "mutation"), args), () => f.client.query(reference("previewDraft"), args)]) {
-      // Check the action diagnostic, not an unrelated version or plugin failure.
-      await expect(operation()).rejects.toThrow(/visible action label|Use an HTTP/);
+      // Field diagnostics stay in the compiler; the public endpoint returns its stable contract error.
+      await expect(operation()).rejects.toMatchObject({ data: { code: "INVALID_CANONICAL_DOCUMENT" } });
       expect(await f.t.run(async ctx => ({ post: await ctx.db.get("posts", f.ids.post), history: await ctx.db.query("revisions").collect() }))).toEqual(before);
     }
   }
