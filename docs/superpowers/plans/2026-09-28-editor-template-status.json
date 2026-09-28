@@ -7,15 +7,15 @@
     "In progress": 77
   },
   "goal": "Complete block editor and template delivery plus all demonstrated blockers; defer unrelated whole-app audit campaigns.",
-  "currentTask": "Task 1 \u2014 complete remaining block Notes and handoff-clause reconciliation; native baseline accepted",
+  "currentTask": "Task 2 \u2014 remaining navigation family and canonical loading/role contracts; Task1 reconciliation complete",
   "tasks": [
     {
       "id": 1,
-      "status": "in_progress"
+      "status": "complete"
     },
     {
       "id": 2,
-      "status": "pending"
+      "status": "in_progress"
     },
     {
       "id": 3,
@@ -137,6 +137,21 @@
       "id": "E19",
       "classification": "accepted/reusable evidence",
       "status": "Device force-crash recovery and private Website autosave accepted. Real fresh-profile recovery preserves exact nested invalid input; competing generations and saved-revision conflicts require explicit choices; ordinary Save alone updates accepted/public content. Private tombstones prevent stale resurrection; owned fixtures/sessions cleaned with original data preserved. Lost-reply reconciliation is covered by controlled tests, not a native dropped-ack claim. See editor-device-recovery-20260928.md and editor-site-autosave-20260928.md."
+    },
+    {
+      "id": "E20",
+      "classification": "missing implementation",
+      "status": "Canonical discovery eagerly imports all Library and owned-pack renderers, contrary to per-block lazy chunk handoff. Task2 must preserve SSR, contract/data preparation and preview continuity while loading only needed modules; final bundle gate Task8."
+    },
+    {
+      "id": "E21",
+      "classification": "missing implementation",
+      "status": "PageContent and Journal/Depot/Aster page surfaces retain handwritten HERO_BLOCKS lists alongside canonical dispatch. Trace and replace active lists with generated roles; preserve legacy output until Task4 migration/retirement. Legacy1396-line registry remains."
+    },
+    {
+      "id": "E22",
+      "classification": "reproduced defect",
+      "status": "Current flat tracker gate passes137spec freshness/54compatibility/22transport shapes then fails missing prescribed Aster Paragraph PNG path. Reconcile actual accepted capture identity/source/pack into required evidence mapping in Task6/8; do not replace with thumbnails or infer all Verified rows failed."
     }
   ],
   "blocks": [
@@ -289,7 +304,7 @@
       "title": "Rich text",
       "category": "Text",
       "checkpointStatus": "In progress",
-      "nextClassification": "reconcile exact remaining requirement before work",
+      "nextClassification": "Reviewed against live Notes and current canonical specification; Native inline marks, breaks and links; exact saved/recovered document; reconcile supported legacy structures with Task4.",
       "classification": "missing evidence",
       "source": "blocks/core/rich-text/block.json",
       "requirements": "doc (richtext)",
@@ -300,14 +315,25 @@
         "output/block-library-review-20260915/coverage-review.json.",
         "output/block-review-refresh-20260920/acceptance-review.md."
       ],
-      "remainingReview": "Full-block closure remains absent. Reconcile exact historical Notes and native/public/action requirements before repairs; missing evidence does not mean missing implementation."
+      "remainingReview": "Native inline marks, breaks and links; exact saved/recovered document; reconcile supported legacy structures with Task4.",
+      "deliveryTask": 2,
+      "acceptanceBatch": "text-migration",
+      "reviewedAtCommit": "d8a0ea2c",
+      "notesSha256": "98b09b8e4b9858c073c5dda0ed13b0cae0b09852941129c5867b3b58f5bf6a45",
+      "specSha256": "f667147153487b4b44036e472457afe6b6ee25bce0178dc3db20a175ac5b7ea4",
+      "rendererSha256": "7b7daaaecb2739e4431dc45391e40c8ca9dfd09ea37af2e7cbecd373c4696637",
+      "canonicalFields": [
+        "eyebrow",
+        "heading",
+        "body"
+      ]
     },
     {
       "name": "core/table-of-contents",
       "title": "Table of contents",
       "category": "Text",
       "checkpointStatus": "In progress",
-      "nextClassification": "reconcile exact remaining requirement before work",
+      "nextClassification": "Reviewed against live Notes and current canonical specification; Reuse native depth2/3 and target-focus proof; inspect optional title, heading limits/empty states and source parity before closure.",
       "classification": "missing evidence",
       "source": "blocks/core/table-of-contents/block.json",
       "requirements": "title (text), depth (number)",
@@ -318,7 +344,17 @@
         "output/block-demo/browser-results-navigation87",
         "output/block-library-review-20260915/coverage-review.json."
       ],
-      "remainingReview": "Full-block closure remains absent. Reconcile exact historical Notes and native/public/action requirements before repairs; missing evidence does not mean missing implementation."
+      "remainingReview": "Reuse native depth2/3 and target-focus proof; inspect optional title, heading limits/empty states and source parity before closure.",
+      "deliveryTask": 2,
+      "acceptanceBatch": "navigation",
+      "reviewedAtCommit": "d8a0ea2c",
+      "notesSha256": "dae92ca0a18416a43bb9a5f061c5ae0669ee8c0117f3f48d991537ccada99a82",
+      "specSha256": "1468beacade392e52c1c62655ec1e65a1315984b00fbc4f8754f5382ef108307",
+      "rendererSha256": "582be11df674cdd9f4b3b36787218bb63406430fdb3c562c5574b6dfda72f299",
+      "canonicalFields": [
+        "title",
+        "depth"
+      ]
     },
     {
       "name": "core/footnotes",
@@ -558,7 +594,7 @@
       "title": "Carousel",
       "category": "Media",
       "checkpointStatus": "In progress",
-      "nextClassification": "reconcile exact remaining requirement before work",
+      "nextClassification": "Reviewed against live Notes and current canonical specification; Native nested children/reorder and exact recovery; keyboard boundaries, empty/single/multiple slides and narrow/reduced-motion behavior.",
       "classification": "missing evidence",
       "source": "blocks/core/carousel/block.json",
       "requirements": "accessibleLabel (text)",
@@ -567,7 +603,16 @@
         "output/block-demo/browser-results-utility74-verified",
         "output/block-library-review-20260915/coverage-review.json."
       ],
-      "remainingReview": "Full-block closure remains absent. Reconcile exact historical Notes and native/public/action requirements before repairs; missing evidence does not mean missing implementation."
+      "remainingReview": "Native nested children/reorder and exact recovery; keyboard boundaries, empty/single/multiple slides and narrow/reduced-motion behavior.",
+      "deliveryTask": 2,
+      "acceptanceBatch": "media-interaction",
+      "reviewedAtCommit": "d8a0ea2c",
+      "notesSha256": "2f0550d271e7d593f17a6df0a524031f47b93c8564b73fe7982a0e101710f021",
+      "specSha256": "a33c241a097cb724e7366459da9ed7488a5c612ef68cb89bae2b01e73e1fbbec",
+      "rendererSha256": "d9338fa42651a3afceacb676bb81465ea1baf3656b300810f577dea871c44226",
+      "canonicalFields": [
+        "accessibleLabel"
+      ]
     },
     {
       "name": "core/video",
@@ -610,7 +655,7 @@
       "title": "Embed",
       "category": "Media",
       "checkpointStatus": "In progress",
-      "nextClassification": "reconcile exact remaining requirement before work",
+      "nextClassification": "Reviewed against live Notes and current canonical specification; Retain accepted YouTube consent/playback; establish a legitimate working Vimeo fixture and diagnose provider versus integration failure.",
       "classification": "missing evidence",
       "source": "blocks/core/embed/block.json",
       "requirements": "url, caption, provider",
@@ -621,7 +666,17 @@
         "output/block-library-review-20260915/coverage-review.json.",
         "output/media-interactive-20260921/."
       ],
-      "remainingReview": "Full-block closure remains absent. Reconcile exact historical Notes and native/public/action requirements before repairs; missing evidence does not mean missing implementation."
+      "remainingReview": "Retain accepted YouTube consent/playback; establish a legitimate working Vimeo fixture and diagnose provider versus integration failure.",
+      "deliveryTask": 3,
+      "acceptanceBatch": "external-embeds",
+      "reviewedAtCommit": "d8a0ea2c",
+      "notesSha256": "b2fe26ee72acef917d20785add3bbbd17329467cdd8656776505e119638b3dcd",
+      "specSha256": "fe64b8edd9529de1c1debf26f3b1644e6f89d75feb7a59f491ec2d10eb788786",
+      "rendererSha256": "49be3aa3136c867fa3827655a78a89baa7f25f389e98eca3677eafcc49ca565f",
+      "canonicalFields": [
+        "url",
+        "caption"
+      ]
     },
     {
       "name": "core/before-after",
@@ -682,7 +737,7 @@
       "title": "Map",
       "category": "Media",
       "checkpointStatus": "In progress",
-      "nextClassification": "reconcile exact remaining requirement before work",
+      "nextClassification": "Reviewed against live Notes and current canonical specification; Native address/coordinates/provider/directions fields; actual supported map load after consent, reset/error and destination behavior.",
       "classification": "missing evidence",
       "source": "blocks/core/map/block.json",
       "requirements": "address (text), latitude (number), longitude (number), provider (select), directions (link)",
@@ -692,14 +747,27 @@
         "output/block-demo/browser-results-conversion83",
         "output/block-library-review-20260915/coverage-review.json."
       ],
-      "remainingReview": "Full-block closure remains absent. Reconcile exact historical Notes and native/public/action requirements before repairs; missing evidence does not mean missing implementation."
+      "remainingReview": "Native address/coordinates/provider/directions fields; actual supported map load after consent, reset/error and destination behavior.",
+      "deliveryTask": 3,
+      "acceptanceBatch": "external-embeds",
+      "reviewedAtCommit": "d8a0ea2c",
+      "notesSha256": "d34095b2ccd71fc66250f125ff800ccd62e39baa55f5c4292126a7801a84650f",
+      "specSha256": "d099e38d2e0e2241e85edaf06acf7c5cd70372192243b528a7309b810e854946",
+      "rendererSha256": "141b3e6023911e3553e7b5b85f36f7ad77ac916beb0d2c727b37e804b57682c3",
+      "canonicalFields": [
+        "address",
+        "latitude",
+        "longitude",
+        "provider",
+        "directions"
+      ]
     },
     {
       "name": "core/file-download",
       "title": "File download",
       "category": "Media",
       "checkpointStatus": "In progress",
-      "nextClassification": "reconcile exact remaining requirement before work",
+      "nextClassification": "Reviewed against live Notes and current canonical specification; Native owned-media selection, title/description, save/recovery; actual authorized file contents, download target and unavailable-media states.",
       "classification": "missing evidence",
       "source": "blocks/core/file-download/block.json",
       "requirements": "media (media), title (text), description (text)",
@@ -708,7 +776,18 @@
         "output/block-demo/browser-results-media42-verified.",
         "output/block-library-review-20260915/coverage-review.json."
       ],
-      "remainingReview": "Full-block closure remains absent. Reconcile exact historical Notes and native/public/action requirements before repairs; missing evidence does not mean missing implementation."
+      "remainingReview": "Native owned-media selection, title/description, save/recovery; actual authorized file contents, download target and unavailable-media states.",
+      "deliveryTask": 2,
+      "acceptanceBatch": "media-interaction",
+      "reviewedAtCommit": "d8a0ea2c",
+      "notesSha256": "0409377d47737d20af8e9afb3bd62935513e8c0c020fb232cb0fcd19e05eee68",
+      "specSha256": "4cc4868c7cb28f251e05d6feff285b250edfb168a6ba3f9171fedabd06cc0480",
+      "rendererSha256": "1065251f726c0b1702c0dd052e0d7063418bdec4081e941af96c8171cf795496",
+      "canonicalFields": [
+        "media",
+        "title",
+        "description"
+      ]
     },
     {
       "name": "core/hero",
@@ -1239,7 +1318,7 @@
       "title": "Steps with media",
       "category": "Marketing",
       "checkpointStatus": "In progress",
-      "nextClassification": "reconcile exact remaining requirement before work",
+      "nextClassification": "Reviewed against live Notes and current canonical specification; Reuse native/media/error repair; one controlled cold/warm transition investigation with hardware/frame/paint evidence and explicit limits for the historical304.5ms outlier.",
       "classification": "missing evidence",
       "source": "blocks/core/steps-with-media/block.json",
       "requirements": "steps (repeater)",
@@ -1250,7 +1329,16 @@
         "process-family-20260921.md",
         "steps-motion-20260921.md"
       ],
-      "remainingReview": "Full-block closure remains absent. Reconcile exact historical Notes and native/public/action requirements before repairs; missing evidence does not mean missing implementation."
+      "remainingReview": "Reuse native/media/error repair; one controlled cold/warm transition investigation with hardware/frame/paint evidence and explicit limits for the historical304.5ms outlier.",
+      "deliveryTask": 2,
+      "acceptanceBatch": "motion",
+      "reviewedAtCommit": "d8a0ea2c",
+      "notesSha256": "e582dbe3aafd9e724ea432573a89b579db62fb0296b2584360fe0152d8b4e0f1",
+      "specSha256": "941c05efa435f5a394ac77b0dc99dd8c6a0bf6fdd903f0b17371fbcedefd1bfc",
+      "rendererSha256": "1da7edbe000c33b30e67430f1317ba7e101e06ec0fba1eefc2bada8d2e9cfc41",
+      "canonicalFields": [
+        "steps"
+      ]
     },
     {
       "name": "core/feature-tabs",
@@ -1274,7 +1362,7 @@
       "title": "Marquee",
       "category": "Marketing",
       "checkpointStatus": "In progress",
-      "nextClassification": "reconcile exact remaining requirement before work",
+      "nextClassification": "Reviewed against live Notes and current canonical specification; Reuse32-case hardware motion proof; native media repeater/reorder/recovery and distinct empty/single/pause states across final packs.",
       "classification": "missing evidence",
       "source": "blocks/core/marquee/block.json",
       "requirements": "items (repeater)",
@@ -1285,14 +1373,23 @@
         "output/block-demo/browser-results-media66",
         "output/block-library-review-20260915/coverage-review.json."
       ],
-      "remainingReview": "Full-block closure remains absent. Reconcile exact historical Notes and native/public/action requirements before repairs; missing evidence does not mean missing implementation."
+      "remainingReview": "Reuse32-case hardware motion proof; native media repeater/reorder/recovery and distinct empty/single/pause states across final packs.",
+      "deliveryTask": 2,
+      "acceptanceBatch": "media-interaction",
+      "reviewedAtCommit": "d8a0ea2c",
+      "notesSha256": "f53ab81a2ed19ef309bf2cabc19d9b2abc8eb29e312e7c7e03331864b5a6ca38",
+      "specSha256": "c693246aa861e478222e252063f94457ed9f34d0f4b5dc54e47daaa53df2c3a0",
+      "rendererSha256": "d26d52adc31f2e9b9e8985b56e2a0c6a3842e6d22993c01402773709de631a26",
+      "canonicalFields": [
+        "items"
+      ]
     },
     {
       "name": "blocks/customer-showcase",
       "title": "Customer showcase",
       "category": "Social",
       "checkpointStatus": "In progress",
-      "nextClassification": "reconcile exact remaining requirement before work",
+      "nextClassification": "Reviewed against live Notes and current canonical specification; Native name/media/url/quote repeater variants; real destinations, absent media, long attribution and pack treatment review.",
       "classification": "missing evidence",
       "source": "blocks/blocks/customer-showcase/block.json",
       "requirements": "items[{name, media, url, quote}]",
@@ -1301,14 +1398,25 @@
         "output/block-demo/browser-results-editorial58.",
         "output/block-library-review-20260915/coverage-review.json."
       ],
-      "remainingReview": "Full-block closure remains absent. Reconcile exact historical Notes and native/public/action requirements before repairs; missing evidence does not mean missing implementation."
+      "remainingReview": "Native name/media/url/quote repeater variants; real destinations, absent media, long attribution and pack treatment review.",
+      "deliveryTask": 2,
+      "acceptanceBatch": "media-interaction",
+      "reviewedAtCommit": "d8a0ea2c",
+      "notesSha256": "826633f92dc615104abb8eec32596ed3bb0bf5773c99ab758f38924c36ef9cf1",
+      "specSha256": "2dc8e7af8a83de218d5d3e7370b12ee7bc9315f09cd21c251d633b57decd254e",
+      "rendererSha256": "c257273c9d8f72663572695813af1414d0b77705630442c26021e5386a6e065c",
+      "canonicalFields": [
+        "heading",
+        "intro",
+        "items"
+      ]
     },
     {
       "name": "blocks/social-share",
       "title": "Social share",
       "category": "Social",
       "checkpointStatus": "In progress",
-      "nextClassification": "reconcile exact remaining requirement before work",
+      "nextClassification": "Reviewed against live Notes and current canonical specification; Native network selection/label; exact encoded current URL and actual keyboard share/copy/fallback destinations without posting.",
       "classification": "missing evidence",
       "source": "blocks/blocks/social-share/block.json",
       "requirements": "networks[], label",
@@ -1318,14 +1426,27 @@
         "output/block-demo/browser-results-utility74-verified",
         "output/block-library-review-20260915/coverage-review.json."
       ],
-      "remainingReview": "Full-block closure remains absent. Reconcile exact historical Notes and native/public/action requirements before repairs; missing evidence does not mean missing implementation."
+      "remainingReview": "Native network selection/label; exact encoded current URL and actual keyboard share/copy/fallback destinations without posting.",
+      "deliveryTask": 2,
+      "acceptanceBatch": "social-utilities",
+      "reviewedAtCommit": "d8a0ea2c",
+      "notesSha256": "acf98d19cc2109f23b3b59877ffb620d8870da782082951800f55db4c8a44c3d",
+      "specSha256": "0575f4c0fdcc3a8b9483ebbef52257c5f1adfa1fa27bd0ba9b4428bc1cf1dad5",
+      "rendererSha256": "0517103b8eb095ee71efd896c9f850383f88afd7404fd977eedb1bace42f6f52",
+      "canonicalFields": [
+        "heading",
+        "body",
+        "networks",
+        "shareUrlMode",
+        "customUrl"
+      ]
     },
     {
       "name": "core/social-links",
       "title": "Social links",
       "category": "Social",
       "checkpointStatus": "In progress",
-      "nextClassification": "reconcile exact remaining requirement before work",
+      "nextClassification": "Reviewed against live Notes and current canonical specification; Native network/url repeater, ordering and absent values; actual links/accessibility under all packs.",
       "classification": "missing evidence",
       "source": "blocks/core/social-links/block.json",
       "requirements": "items[{network, url}]",
@@ -1335,14 +1456,24 @@
         "output/block-demo/browser-results-media42-verified.",
         "output/block-library-review-20260915/coverage-review.json."
       ],
-      "remainingReview": "Full-block closure remains absent. Reconcile exact historical Notes and native/public/action requirements before repairs; missing evidence does not mean missing implementation."
+      "remainingReview": "Native network/url repeater, ordering and absent values; actual links/accessibility under all packs.",
+      "deliveryTask": 2,
+      "acceptanceBatch": "social-utilities",
+      "reviewedAtCommit": "d8a0ea2c",
+      "notesSha256": "3e435bfef38c74fa75309cdeac28c50215950e231018f3e6688a89a6faf00431",
+      "specSha256": "1dceba57bde56ff2dd807070a68d6dab4445667951a956ef972bcf7728b37115",
+      "rendererSha256": "b863b54a36b56b0428ac72465a19fb19dc7b9145d647d0a30e06d0e7efa258b8",
+      "canonicalFields": [
+        "heading",
+        "links"
+      ]
     },
     {
       "name": "core/reviews",
       "title": "Reviews",
       "category": "Social",
       "checkpointStatus": "In progress",
-      "nextClassification": "reconcile exact remaining requirement before work",
+      "nextClassification": "Reviewed against live Notes and current canonical specification; Reuse current review authorization evidence; real customer session/expiry, source/product/rating/limit fields and paginated empty/denied/error states. Broader analytics cleanup is not a block prerequisite unless reached.",
       "classification": "missing evidence",
       "source": "blocks/core/reviews/block.json",
       "requirements": "source (select), product (reference), limit (number), minRating (number)",
@@ -1350,14 +1481,26 @@
         "output/block-library-review-20260915/coverage-review.json.",
         "output/reviews-public-feed-20260915/checks.json."
       ],
-      "remainingReview": "Full-block closure remains absent. Reconcile exact historical Notes and native/public/action requirements before repairs; missing evidence does not mean missing implementation."
+      "remainingReview": "Reuse current review authorization evidence; real customer session/expiry, source/product/rating/limit fields and paginated empty/denied/error states. Broader analytics cleanup is not a block prerequisite unless reached.",
+      "deliveryTask": 3,
+      "acceptanceBatch": "customer-commerce",
+      "reviewedAtCommit": "d8a0ea2c",
+      "notesSha256": "066b436efff527935667fb52d0d01e7dec9a1a2e24230a4cb520a24ab7a0b5d4",
+      "specSha256": "7923b73580476ae738eab36a9160dfd3d4ce0a45a0f1c994fe37b7ad31a5ab1f",
+      "rendererSha256": "dcd036e1c21948e327579b4028f4b8955b434cabc22acd9c0740c63e914d964c",
+      "canonicalFields": [
+        "source",
+        "product",
+        "limit",
+        "minRating"
+      ]
     },
     {
       "name": "core/social-feed",
       "title": "Social feed",
       "category": "Social",
       "checkpointStatus": "In progress",
-      "nextClassification": "reconcile exact remaining requirement before work",
+      "nextClassification": "Reviewed against live Notes and current canonical specification; Reuse per-card entrance repair; actual configured provider/handle/limit, SSR, authorization and loading/empty/error/continuation states.",
       "classification": "missing evidence",
       "source": "blocks/core/social-feed/block.json",
       "requirements": "provider (select), handle (text), limit (number)",
@@ -1368,14 +1511,25 @@
         "output/social-feed-block-20260915.",
         "output/social-feed-controls-20260915."
       ],
-      "remainingReview": "Full-block closure remains absent. Reconcile exact historical Notes and native/public/action requirements before repairs; missing evidence does not mean missing implementation."
+      "remainingReview": "Reuse per-card entrance repair; actual configured provider/handle/limit, SSR, authorization and loading/empty/error/continuation states.",
+      "deliveryTask": 3,
+      "acceptanceBatch": "social-data",
+      "reviewedAtCommit": "d8a0ea2c",
+      "notesSha256": "8cf087f321a2ceec9ea218911a7ab82e559bdfa33f90ddbd194aee27209a5046",
+      "specSha256": "5e434498300ebf1f6c707b58aeed6f1476fd9e2e6b886386b7797baedad426bd",
+      "rendererSha256": "4375936f23e364e5810670d5205430f5d5f12fc789d1dc6d1ec369a813073b09",
+      "canonicalFields": [
+        "provider",
+        "handle",
+        "limit"
+      ]
     },
     {
       "name": "core/ugc-grid",
       "title": "UGC grid",
       "category": "Social",
       "checkpointStatus": "In progress",
-      "nextClassification": "reconcile exact remaining requirement before work",
+      "nextClassification": "Reviewed against live Notes and current canonical specification; Native tag/limit picker and actual scoped media; empty/denied/withdrawn records, paging and observed entrance behavior.",
       "classification": "missing evidence",
       "source": "blocks/core/ugc-grid/block.json",
       "requirements": "tag (reference), limit (number)",
@@ -1385,7 +1539,17 @@
         "output/block-library-review-20260915/coverage-review.json.",
         "output/ugc-grid-block-20260915."
       ],
-      "remainingReview": "Full-block closure remains absent. Reconcile exact historical Notes and native/public/action requirements before repairs; missing evidence does not mean missing implementation."
+      "remainingReview": "Native tag/limit picker and actual scoped media; empty/denied/withdrawn records, paging and observed entrance behavior.",
+      "deliveryTask": 3,
+      "acceptanceBatch": "social-data",
+      "reviewedAtCommit": "d8a0ea2c",
+      "notesSha256": "27c8e56177e451699929f65bc05b665eceab8f7bff693c3853672533afdbcdd2",
+      "specSha256": "2f3c694fa19ed2cf54eec55672658117399c68923be99c62d77db7c76f66d247",
+      "rendererSha256": "65e8bd669f5fdae63fcad1e1d7709831601634e26f0f132610800671ee82aa05",
+      "canonicalFields": [
+        "tag",
+        "limit"
+      ]
     },
     {
       "name": "commerce/product-showcase",
@@ -1446,7 +1610,7 @@
       "title": "Featured products",
       "category": "Commerce",
       "checkpointStatus": "In progress",
-      "nextClassification": "reconcile exact remaining requirement before work",
+      "nextClassification": "Reviewed against live Notes and current canonical specification; Actual selected catalog/limit/columns, price/availability changes and authorized cart action; reuse existing stock guards without reopening carrier operations.",
       "classification": "missing evidence",
       "source": "blocks/core/featured-products/block.json",
       "requirements": "limit, columns",
@@ -1457,14 +1621,28 @@
         "output/stock-policy-20260906/next-work.md.",
         "output/storefront-pricing-20260906."
       ],
-      "remainingReview": "Full-block closure remains absent. Reconcile exact historical Notes and native/public/action requirements before repairs; missing evidence does not mean missing implementation."
+      "remainingReview": "Actual selected catalog/limit/columns, price/availability changes and authorized cart action; reuse existing stock guards without reopening carrier operations.",
+      "deliveryTask": 3,
+      "acceptanceBatch": "catalog",
+      "reviewedAtCommit": "d8a0ea2c",
+      "notesSha256": "6db4f93d3f40da0c9b16e57dd73d0762ddcd95648179b72ed1649a377992b5d7",
+      "specSha256": "cba38d2af31d1505330844c7fd201bed8c347d934a1f958e61deb002f5b5dad9",
+      "rendererSha256": "94977af4e669fe1a5bb5bdd578fb2db2b0f5aa59be157a7cad2426ac30e0e082",
+      "canonicalFields": [
+        "eyebrow",
+        "heading",
+        "body",
+        "productIds",
+        "count",
+        "showPrice"
+      ]
     },
     {
       "name": "commerce/assistant-band",
       "title": "Assistant band",
       "category": "Commerce",
       "checkpointStatus": "In progress",
-      "nextClassification": "reconcile exact remaining requirement before work",
+      "nextClassification": "Reviewed against live Notes and current canonical specification; Native prompts/title, real assistant response/history scope, cart actions, signed-out/session changes and all-pack host states.",
       "classification": "missing evidence",
       "source": "blocks/commerce/assistant-band/block.json",
       "requirements": "title, prompts[] (defaults from commerce.assistant settings)",
@@ -1475,14 +1653,28 @@
         "output/commerce-session-20260921.",
         "output/cta-family-20260921."
       ],
-      "remainingReview": "Full-block closure remains absent. Reconcile exact historical Notes and native/public/action requirements before repairs; missing evidence does not mean missing implementation."
+      "remainingReview": "Native prompts/title, real assistant response/history scope, cart actions, signed-out/session changes and all-pack host states.",
+      "deliveryTask": 3,
+      "acceptanceBatch": "customer-commerce",
+      "reviewedAtCommit": "d8a0ea2c",
+      "notesSha256": "934f3d9b76c5502f41c5f13025021b3b1abe1e7b82d31848c9718722ee90b71b",
+      "specSha256": "6869b41172987e19f00eac6aaf861e03d045dc91323ce2fee371d93dc426a702",
+      "rendererSha256": "aa111a1ebd026457e728f54c1ec262cdd6b501a737e77964ab939962fd9f4ecd",
+      "canonicalFields": [
+        "eyebrow",
+        "heading",
+        "body",
+        "prompts",
+        "ctaLabel",
+        "ctaUrl"
+      ]
     },
     {
       "name": "commerce/product-compare",
       "title": "Product compare",
       "category": "Commerce",
       "checkpointStatus": "In progress",
-      "nextClassification": "reconcile exact remaining requirement before work",
+      "nextClassification": "Reviewed against live Notes and current canonical specification; Native product/attribute selection and order; actual prices, maximum6-product budget, denied/withdrawn/empty and responsive comparison destinations.",
       "classification": "missing evidence",
       "source": "blocks/commerce/product-compare/block.json",
       "requirements": "products (repeater), attributes (repeater)",
@@ -1491,14 +1683,24 @@
         "output/product-compare-20260915.",
         "output/variant-admin-access-20260915."
       ],
-      "remainingReview": "Full-block closure remains absent. Reconcile exact historical Notes and native/public/action requirements before repairs; missing evidence does not mean missing implementation."
+      "remainingReview": "Native product/attribute selection and order; actual prices, maximum6-product budget, denied/withdrawn/empty and responsive comparison destinations.",
+      "deliveryTask": 3,
+      "acceptanceBatch": "catalog",
+      "reviewedAtCommit": "d8a0ea2c",
+      "notesSha256": "c187d2120d9d84ef93788ca01b1305e73812ab77af49def5240fef8fe3bdcc9c",
+      "specSha256": "916b801475cae46e4b4eb25fdf62bb907b119ce6fe48c2bdc03c73d15275457c",
+      "rendererSha256": "791fea05630dbd64c9fd89105efc2ee241c7d12f23b8cb9536f3ebe28d795a1e",
+      "canonicalFields": [
+        "products",
+        "attributes"
+      ]
     },
     {
       "name": "commerce/bundle-offer",
       "title": "Bundle offer",
       "category": "Commerce",
       "checkpointStatus": "In progress",
-      "nextClassification": "reconcile exact remaining requirement before work",
+      "nextClassification": "Reviewed against live Notes and current canonical specification; Reuse all-pack variant/inclusion/quantity fixtures; actual scoped bundle add with exact cart lines, unavailable/stock/price change and no duplicate action.",
       "classification": "missing evidence",
       "source": "blocks/commerce/bundle-offer/block.json",
       "requirements": "bundle (reference), title (text), body (text)",
@@ -1509,14 +1711,25 @@
         "output/bundle-public-20260915.",
         "output/commerce-state-acceptance-20260915."
       ],
-      "remainingReview": "Full-block closure remains absent. Reconcile exact historical Notes and native/public/action requirements before repairs; missing evidence does not mean missing implementation."
+      "remainingReview": "Reuse all-pack variant/inclusion/quantity fixtures; actual scoped bundle add with exact cart lines, unavailable/stock/price change and no duplicate action.",
+      "deliveryTask": 3,
+      "acceptanceBatch": "catalog",
+      "reviewedAtCommit": "d8a0ea2c",
+      "notesSha256": "a495ba91a4708da2d1cd6bcf4dca73003e60ff09234762d72e30864047c19135",
+      "specSha256": "da31433f9ddc1fa457349c2b430d597fc149b8d46fd1bd4b5118becaf80d89ce",
+      "rendererSha256": "47d6c63c6e5651ee041fbbc6d0c0c54cd71fda88bb1b0f9ec77da3a0d564e281",
+      "canonicalFields": [
+        "bundle",
+        "title",
+        "body"
+      ]
     },
     {
       "name": "commerce/sale-countdown",
       "title": "Sale countdown",
       "category": "Commerce",
       "checkpointStatus": "In progress",
-      "nextClassification": "reconcile exact remaining requirement before work",
+      "nextClassification": "Reviewed against live Notes and current canonical specification; Reuse product start/end scheduling proof; verify authored campaign deadline expiry, selected card limit, clock/access states and final pack output.",
       "classification": "missing evidence",
       "source": "blocks/commerce/sale-countdown/block.json",
       "requirements": "target (date), title (text), limit (number)",
@@ -1525,14 +1738,25 @@
         "output/product-sale-schedule-20260910.",
         "output/sale-countdown-20260910."
       ],
-      "remainingReview": "Full-block closure remains absent. Reconcile exact historical Notes and native/public/action requirements before repairs; missing evidence does not mean missing implementation."
+      "remainingReview": "Reuse product start/end scheduling proof; verify authored campaign deadline expiry, selected card limit, clock/access states and final pack output.",
+      "deliveryTask": 3,
+      "acceptanceBatch": "catalog",
+      "reviewedAtCommit": "d8a0ea2c",
+      "notesSha256": "c97dfe2a0da176ca2684c086531c78d01c8f932979a99ac302fb292bddcdc8c5",
+      "specSha256": "43d8d0658e3804c36a055355f67326afc0980b978307fb8655308e2ab4e6fa8c",
+      "rendererSha256": "ad617d0eaaa4dbb6c6ffe7d1c35d48523e6adbbc30bad9d76a77ecfe32d6553a",
+      "canonicalFields": [
+        "target",
+        "title",
+        "limit"
+      ]
     },
     {
       "name": "commerce/recently-viewed",
       "title": "Recently viewed",
       "category": "Commerce",
       "checkpointStatus": "In progress",
-      "nextClassification": "reconcile exact remaining requirement before work",
+      "nextClassification": "Reviewed against live Notes and current canonical specification; Reuse real anonymous visit ordering; signed-in/account/site switching, deleted/private product removal, limit and empty state.",
       "classification": "missing evidence",
       "source": "blocks/commerce/recently-viewed/block.json",
       "requirements": "limit (number), title (text)",
@@ -1540,14 +1764,24 @@
         "output/block-library-review-20260915/coverage-review.json.",
         "output/recently-viewed-20260910."
       ],
-      "remainingReview": "Full-block closure remains absent. Reconcile exact historical Notes and native/public/action requirements before repairs; missing evidence does not mean missing implementation."
+      "remainingReview": "Reuse real anonymous visit ordering; signed-in/account/site switching, deleted/private product removal, limit and empty state.",
+      "deliveryTask": 3,
+      "acceptanceBatch": "customer-commerce",
+      "reviewedAtCommit": "d8a0ea2c",
+      "notesSha256": "72c31c7383c35d2ae342244a8708240f6ad13d9bb8fa7060c69e06fee88d7a5f",
+      "specSha256": "815c564ee809e236e7c0229aa9b883c25120969b6b06bf08fea15b3b14099393",
+      "rendererSha256": "893d7da1f7399c601947c7406db5b2cae6c82c21252a3197b9dc58b4546e01bc",
+      "canonicalFields": [
+        "limit",
+        "title"
+      ]
     },
     {
       "name": "commerce/cart-cta",
       "title": "Cart CTA",
       "category": "Commerce",
       "checkpointStatus": "In progress",
-      "nextClassification": "reconcile exact remaining requirement before work",
+      "nextClassification": "Reviewed against live Notes and current canonical specification; Reuse customer restore/guest merge proof; title/empty copy, closed-cart cross-tab changes, currency and all-pack live host states. Payment lifecycle is separate unless reached.",
       "classification": "missing evidence",
       "source": "blocks/commerce/cart-cta/block.json",
       "requirements": "title (text), emptyText (text)",
@@ -1558,14 +1792,24 @@
         "output/cart-recovery-20260921.",
         "output/commerce-session-20260921."
       ],
-      "remainingReview": "Full-block closure remains absent. Reconcile exact historical Notes and native/public/action requirements before repairs; missing evidence does not mean missing implementation."
+      "remainingReview": "Reuse customer restore/guest merge proof; title/empty copy, closed-cart cross-tab changes, currency and all-pack live host states. Payment lifecycle is separate unless reached.",
+      "deliveryTask": 3,
+      "acceptanceBatch": "customer-commerce",
+      "reviewedAtCommit": "d8a0ea2c",
+      "notesSha256": "7eae3b62dfeda27f6654c3abb2394c3ac5a702c138f480bed653dc799eff7582",
+      "specSha256": "9cf3a25e5b0ff3a0ad9206e1a02df891d54a29ca494a982c7119fc810220d2a8",
+      "rendererSha256": "ce7e7d2e5282c422cda09d07aba1473cf64e9031448980f6f503b2eb3564d4ba",
+      "canonicalFields": [
+        "title",
+        "emptyText"
+      ]
     },
     {
       "name": "commerce/search-band",
       "title": "Search band",
       "category": "Commerce",
       "checkpointStatus": "In progress",
-      "nextClassification": "reconcile exact remaining requirement before work",
+      "nextClassification": "Reviewed against live Notes and current canonical specification; Native placeholder/suggestions; real search navigation, encoded queries, keyboard and empty/long suggestion layouts.",
       "classification": "missing evidence",
       "source": "blocks/commerce/search-band/block.json",
       "requirements": "placeholder (text), suggestions (repeater)",
@@ -1574,14 +1818,24 @@
         "output/block-demo/browser-results-utility74-verified",
         "output/block-library-review-20260915/coverage-review.json."
       ],
-      "remainingReview": "Full-block closure remains absent. Reconcile exact historical Notes and native/public/action requirements before repairs; missing evidence does not mean missing implementation."
+      "remainingReview": "Native placeholder/suggestions; real search navigation, encoded queries, keyboard and empty/long suggestion layouts.",
+      "deliveryTask": 3,
+      "acceptanceBatch": "content-discovery",
+      "reviewedAtCommit": "d8a0ea2c",
+      "notesSha256": "503a713b990dccf07a39ed6b822ae9746c31ba4abee584b394506bcd1ee01a95",
+      "specSha256": "b6b52a703deebb591e4e3e5a13e01139b7afc59e1061ea5f23bcfeacc40d616a",
+      "rendererSha256": "ed6f57f326c322caa683cddb1497f8c3430c037af572713958783d5d304fa8c9",
+      "canonicalFields": [
+        "placeholder",
+        "suggestions"
+      ]
     },
     {
       "name": "commerce/brand-list",
       "title": "Brand list",
       "category": "Commerce",
       "checkpointStatus": "In progress",
-      "nextClassification": "reconcile exact remaining requirement before work",
+      "nextClassification": "Reviewed against live Notes and current canonical specification; Reuse brand publication/withdrawal and navigation; reconcile repaired canonical promotion boundary, limit/pagination and final four-pack live rendering.",
       "classification": "missing evidence",
       "source": "blocks/commerce/brand-list/block.json",
       "requirements": "limit (number)",
@@ -1591,14 +1845,23 @@
         "output/brand-list-20260911/public-live-state.json",
         "output/production-checkpoints/brand-domain-20260911."
       ],
-      "remainingReview": "Full-block closure remains absent. Reconcile exact historical Notes and native/public/action requirements before repairs; missing evidence does not mean missing implementation."
+      "remainingReview": "Reuse brand publication/withdrawal and navigation; reconcile repaired canonical promotion boundary, limit/pagination and final four-pack live rendering.",
+      "deliveryTask": 3,
+      "acceptanceBatch": "catalog",
+      "reviewedAtCommit": "d8a0ea2c",
+      "notesSha256": "1b1bf7178623b5b9f44ee1a9c47cf5ebc8e6209d27b83f43bc5884bab13b5d21",
+      "specSha256": "83a5b8b86a87f0535f47a01a1c162cc2436d53287b099a312898ebec1e75ca33",
+      "rendererSha256": "21364f8e2bce72580219d56dbb1ce637a1bf1c8d70a0457127443ce89e4b0309",
+      "canonicalFields": [
+        "limit"
+      ]
     },
     {
       "name": "commerce/product-hero",
       "title": "Product hero",
       "category": "Commerce",
       "checkpointStatus": "In progress",
-      "nextClassification": "reconcile exact remaining requirement before work",
+      "nextClassification": "Reviewed against live Notes and current canonical specification; Reuse exact product/cart proof and shared preview repair; native optional title/media, long/absent values and selected variant/availability across packs.",
       "classification": "missing evidence",
       "source": "blocks/commerce/product-hero/block.json",
       "requirements": "product (reference), title (text), media (media)",
@@ -1606,14 +1869,25 @@
         "output/block-library-review-20260915/coverage-review.json.",
         "output/product-hero-20260911."
       ],
-      "remainingReview": "Full-block closure remains absent. Reconcile exact historical Notes and native/public/action requirements before repairs; missing evidence does not mean missing implementation."
+      "remainingReview": "Reuse exact product/cart proof and shared preview repair; native optional title/media, long/absent values and selected variant/availability across packs.",
+      "deliveryTask": 3,
+      "acceptanceBatch": "catalog",
+      "reviewedAtCommit": "d8a0ea2c",
+      "notesSha256": "a97c42bd2976a6554f1ec683173d6beaaaf9b1c523bccf0afaef0cb5fda937b1",
+      "specSha256": "e54e95749b3c99035dd35b5a39641570e4dec62e752f817e85aadf96e9e8f15f",
+      "rendererSha256": "fca71426c8d399dd101b154c6d2cc6901b13cf6caf2ea4146957a8499799cad6",
+      "canonicalFields": [
+        "product",
+        "title",
+        "media"
+      ]
     },
     {
       "name": "commerce/variant-picker-teaser",
       "title": "Variant picker teaser",
       "category": "Commerce",
       "checkpointStatus": "In progress",
-      "nextClassification": "reconcile exact remaining requirement before work",
+      "nextClassification": "Reviewed against live Notes and current canonical specification; Reuse sparse-option transition repair; actual product/attribute picker, invalid hints, live withdrawn combinations, selected URL and all-pack limits.",
       "classification": "missing evidence",
       "source": "blocks/commerce/variant-picker-teaser/block.json",
       "requirements": "product (database-local reference); attribute (option identity or name, blank for all)",
@@ -1621,14 +1895,24 @@
         "output/block-library-review-20260915/coverage-review.json.",
         "output/variant-teaser-20260914."
       ],
-      "remainingReview": "Full-block closure remains absent. Reconcile exact historical Notes and native/public/action requirements before repairs; missing evidence does not mean missing implementation."
+      "remainingReview": "Reuse sparse-option transition repair; actual product/attribute picker, invalid hints, live withdrawn combinations, selected URL and all-pack limits.",
+      "deliveryTask": 3,
+      "acceptanceBatch": "catalog",
+      "reviewedAtCommit": "d8a0ea2c",
+      "notesSha256": "39890a05dc774a9cdfe71e45641e6695b719ac88ab4e77dd3df1f10ff766121a",
+      "specSha256": "5fa9e8dbe18195ff0b9cd898d75ebef650a117d2ba2e4753bbf3f0a9ccd99411",
+      "rendererSha256": "18d15d3c8ce6348abae7cce81bfee031b65573ce2449f73d3f800e10acd664e6",
+      "canonicalFields": [
+        "product",
+        "attribute"
+      ]
     },
     {
       "name": "commerce/shipping-promise",
       "title": "Shipping promise",
       "category": "Commerce",
       "checkpointStatus": "In progress",
-      "nextClassification": "reconcile exact remaining requirement before work",
+      "nextClassification": "Reviewed against live Notes and current canonical specification; Reuse configured policy live withdrawal; optional links/icons and0\u20138 promises, final pack layouts; no carrier purchase needed for display acceptance.",
       "classification": "missing evidence",
       "source": "blocks/commerce/shipping-promise/block.json",
       "requirements": "No per-block content fields. Uses commerce.general.storefrontPromises: icon, title, body, optional href (up to eight policies).",
@@ -1636,14 +1920,21 @@
         "output/block-library-review-20260915/coverage-review.json.",
         "output/shipping-promise-20260911."
       ],
-      "remainingReview": "Full-block closure remains absent. Reconcile exact historical Notes and native/public/action requirements before repairs; missing evidence does not mean missing implementation."
+      "remainingReview": "Reuse configured policy live withdrawal; optional links/icons and0\u20138 promises, final pack layouts; no carrier purchase needed for display acceptance.",
+      "deliveryTask": 3,
+      "acceptanceBatch": "catalog",
+      "reviewedAtCommit": "d8a0ea2c",
+      "notesSha256": "bd3ae8b10e2b1c945153b01e3e1190dfc67e0a3f9355487d2102cff268b6220d",
+      "specSha256": "e5a91fb182015f1a8f33d0d46e74b8e6a26b2fe92686aac983d5c7581f71325f",
+      "rendererSha256": "d4c48d741fb403e102f859b7d97020d9d655cdaba29c59bf3ec63565ffe6c129",
+      "canonicalFields": []
     },
     {
       "name": "core/latest-posts",
       "title": "Latest posts",
       "category": "Discovery",
       "checkpointStatus": "In progress",
-      "nextClassification": "reconcile exact remaining requirement before work",
+      "nextClassification": "Reviewed against live Notes and current canonical specification; Reuse Journal/Depot native treatments; category/tag picker, excerpts/authors/count and full public/access/empty states including Core/Aster.",
       "classification": "missing evidence",
       "source": "blocks/core/latest-posts/block.json",
       "requirements": "eyebrow, heading, body, count, categorySlug, tagSlug, showExcerpts, showAuthors",
@@ -1654,14 +1945,30 @@
         "output/public-author-20260906.",
         "public-author-outcome.md"
       ],
-      "remainingReview": "Full-block closure remains absent. Reconcile exact historical Notes and native/public/action requirements before repairs; missing evidence does not mean missing implementation."
+      "remainingReview": "Reuse Journal/Depot native treatments; category/tag picker, excerpts/authors/count and full public/access/empty states including Core/Aster.",
+      "deliveryTask": 3,
+      "acceptanceBatch": "content-discovery",
+      "reviewedAtCommit": "d8a0ea2c",
+      "notesSha256": "393083ba453f81af93114ffe79567de6c0465e8b1886ed5e19ac2acfd9afe465",
+      "specSha256": "79ed7ee18ca01e98dc65a47073694b15360a06420e12d860a128224ccdef9556",
+      "rendererSha256": "14ec31f62dbc15cd10e371635fe106cb413adb74818a25b326ca18fbb456a32c",
+      "canonicalFields": [
+        "eyebrow",
+        "heading",
+        "body",
+        "count",
+        "categorySlug",
+        "tagSlug",
+        "showExcerpts",
+        "showAuthors"
+      ]
     },
     {
       "name": "core/post-grid",
       "title": "Post grid",
       "category": "Discovery",
       "checkpointStatus": "In progress",
-      "nextClassification": "reconcile exact remaining requirement before work",
+      "nextClassification": "Reviewed against live Notes and current canonical specification; Native query filters/limit/excerpt; real scoped records and category/taxonomy, pagination, unavailable/empty and pack layouts.",
       "classification": "missing evidence",
       "source": "blocks/core/post-grid/block.json",
       "requirements": "query (object), limit (number), showExcerpt (boolean)",
@@ -1672,14 +1979,25 @@
         "output/post-grid-ui-20260906",
         "post-grid-ui-outcome.md"
       ],
-      "remainingReview": "Full-block closure remains absent. Reconcile exact historical Notes and native/public/action requirements before repairs; missing evidence does not mean missing implementation."
+      "remainingReview": "Native query filters/limit/excerpt; real scoped records and category/taxonomy, pagination, unavailable/empty and pack layouts.",
+      "deliveryTask": 3,
+      "acceptanceBatch": "content-discovery",
+      "reviewedAtCommit": "d8a0ea2c",
+      "notesSha256": "5b7cd659dc824e62831832ae941f0478f3622e818a4ac96e38a761948db5b3b8",
+      "specSha256": "8a4358209eb6b86717c0b8c4f5ced19f8d3f23fa292df3cb5c5a18071080c941",
+      "rendererSha256": "9ce8517fe6e542d2ddf0e3041242232cbe64a37b16042828b5d5bcdf886f4c05",
+      "canonicalFields": [
+        "query",
+        "limit",
+        "showExcerpt"
+      ]
     },
     {
       "name": "core/author-bio",
       "title": "Author bio",
       "category": "Discovery",
       "checkpointStatus": "In progress",
-      "nextClassification": "reconcile exact remaining requirement before work",
+      "nextClassification": "Reviewed against live Notes and current canonical specification; Native current/explicit author choice; exact public projection, missing profile/media, target withdrawal and correct author destinations.",
       "classification": "missing evidence",
       "source": "blocks/core/author-bio/block.json",
       "requirements": "author (reference) | current",
@@ -1690,14 +2008,28 @@
         "output/block-library-review-20260915/coverage-review.json.",
         "output/derived-restore-20260906."
       ],
-      "remainingReview": "Full-block closure remains absent. Reconcile exact historical Notes and native/public/action requirements before repairs; missing evidence does not mean missing implementation."
+      "remainingReview": "Native current/explicit author choice; exact public projection, missing profile/media, target withdrawal and correct author destinations.",
+      "deliveryTask": 3,
+      "acceptanceBatch": "content-discovery",
+      "reviewedAtCommit": "d8a0ea2c",
+      "notesSha256": "e121326c8d0f38e59e3d58cdc2eccb44953915176a827416831b444313238d37",
+      "specSha256": "af9166fbd13f6a5c7503c8c144b70d0fd51ea77687c373e87269e6543da8d7e5",
+      "rendererSha256": "8152f728cd3709742ef00d298b7aa97dcf81d53689995b2ba1939247208bf304",
+      "canonicalFields": [
+        "userId",
+        "name",
+        "role",
+        "bio",
+        "mediaId",
+        "links"
+      ]
     },
     {
       "name": "core/tag-cloud",
       "title": "Tag cloud",
       "category": "Discovery",
       "checkpointStatus": "In progress",
-      "nextClassification": "reconcile exact remaining requirement before work",
+      "nextClassification": "Reviewed against live Notes and current canonical specification; Reuse private-label repair; heading/max, actual taxonomy access and continuation/count boundaries without reviving unrelated legacy endpoint audits.",
       "classification": "missing evidence",
       "source": "blocks/core/tag-cloud/block.json",
       "requirements": "heading, max (integer 1\u2013100)",
@@ -1708,14 +2040,24 @@
         "post-terms-access-outcome.md",
         "tag-cloud-outcome.md"
       ],
-      "remainingReview": "Full-block closure remains absent. Reconcile exact historical Notes and native/public/action requirements before repairs; missing evidence does not mean missing implementation."
+      "remainingReview": "Reuse private-label repair; heading/max, actual taxonomy access and continuation/count boundaries without reviving unrelated legacy endpoint audits.",
+      "deliveryTask": 3,
+      "acceptanceBatch": "content-discovery",
+      "reviewedAtCommit": "d8a0ea2c",
+      "notesSha256": "c67e401e51f5ae84b9494cc908cfde13d169e70da3c65865baac73c4e0df506b",
+      "specSha256": "a229778ea5aeea0562405cf5c9edba60b08f142303dd8000d5dbd034f9e8d907",
+      "rendererSha256": "4b124083767fc597494a7f24cba12e6ba8446425f111f9f53b5413d6aee9a0ea",
+      "canonicalFields": [
+        "heading",
+        "max"
+      ]
     },
     {
       "name": "core/related-content",
       "title": "Related content",
       "category": "Discovery",
       "checkpointStatus": "In progress",
-      "nextClassification": "reconcile exact remaining requirement before work",
+      "nextClassification": "Reviewed against live Notes and current canonical specification; Reuse native siblings and scoped cursors; post/page/type/limit alternatives, actual links, missing current context and access filtering.",
       "classification": "missing evidence",
       "source": "blocks/core/related-content/block.json",
       "requirements": "limit (number), type (select)",
@@ -1723,14 +2065,24 @@
         "output/block-library-review-20260915/coverage-review.json.",
         "output/related-content-20260914."
       ],
-      "remainingReview": "Full-block closure remains absent. Reconcile exact historical Notes and native/public/action requirements before repairs; missing evidence does not mean missing implementation."
+      "remainingReview": "Reuse native siblings and scoped cursors; post/page/type/limit alternatives, actual links, missing current context and access filtering.",
+      "deliveryTask": 3,
+      "acceptanceBatch": "content-discovery",
+      "reviewedAtCommit": "d8a0ea2c",
+      "notesSha256": "8e4e45f2b999f223aa0834fa9ff357156c2c6ab5ec16e81b38c99feb4723aaed",
+      "specSha256": "85ae12db1e5882e4554d201fd6f1c0533195a7895651993a1cf442d2c50c0bb7",
+      "rendererSha256": "c20c509a997fc90d01d516374149665f427dbd2d5493fcf12183d20a60120824",
+      "canonicalFields": [
+        "limit",
+        "type"
+      ]
     },
     {
       "name": "core/archive-list",
       "title": "Archive list",
       "category": "Discovery",
       "checkpointStatus": "In progress",
-      "nextClassification": "reconcile exact remaining requirement before work",
+      "nextClassification": "Reviewed against live Notes and current canonical specification; Reuse real month archive navigation; year/time-zone/limit variants, exact counts, continuation and denied/empty states.",
       "classification": "missing evidence",
       "source": "blocks/core/archive-list/block.json",
       "requirements": "groupBy (select), limit (number)",
@@ -1738,14 +2090,24 @@
         "output/archive-list-20260914.",
         "output/block-library-review-20260915/coverage-review.json."
       ],
-      "remainingReview": "Full-block closure remains absent. Reconcile exact historical Notes and native/public/action requirements before repairs; missing evidence does not mean missing implementation."
+      "remainingReview": "Reuse real month archive navigation; year/time-zone/limit variants, exact counts, continuation and denied/empty states.",
+      "deliveryTask": 3,
+      "acceptanceBatch": "content-discovery",
+      "reviewedAtCommit": "d8a0ea2c",
+      "notesSha256": "0544e784f8dbab8ac6551ea9bfc9699525b8090294c8b62f1975a2e54a6e4504",
+      "specSha256": "632b03bb5eb55fffcb6fff875ca4cbb65ba83c22c8f8c366d4c9942db452972c",
+      "rendererSha256": "069f4e437256ce653ca9da66eee20790129f2e6b993e2c138b9f2e3d6b57a0bd",
+      "canonicalFields": [
+        "groupBy",
+        "limit"
+      ]
     },
     {
       "name": "core/search-box",
       "title": "Search box",
       "category": "Discovery",
       "checkpointStatus": "In progress",
-      "nextClassification": "reconcile exact remaining requirement before work",
+      "nextClassification": "Reviewed against live Notes and current canonical specification; Native placeholder/scope, correct encoded route arguments, actual destination results and keyboard/empty query behavior.",
       "classification": "missing evidence",
       "source": "blocks/core/search-box/block.json",
       "requirements": "placeholder (text), scope (select)",
@@ -1754,14 +2116,24 @@
         "output/block-demo/browser-results-utility74-verified",
         "output/block-library-review-20260915/coverage-review.json."
       ],
-      "remainingReview": "Full-block closure remains absent. Reconcile exact historical Notes and native/public/action requirements before repairs; missing evidence does not mean missing implementation."
+      "remainingReview": "Native placeholder/scope, correct encoded route arguments, actual destination results and keyboard/empty query behavior.",
+      "deliveryTask": 3,
+      "acceptanceBatch": "content-discovery",
+      "reviewedAtCommit": "d8a0ea2c",
+      "notesSha256": "772af930c4f9efb0cd3473f2368eb616860542f58ae130128c1ea787029c9718",
+      "specSha256": "75b5e394ee48222c5460e6ff00d6dcf28da3d0601a6269cdc1c50ba52e66aa12",
+      "rendererSha256": "1032e184819d3d74ae660ce02fbb1552b0b70b8fbe25576f10a623697e500ccb",
+      "canonicalFields": [
+        "placeholder",
+        "scope"
+      ]
     },
     {
       "name": "core/featured-page",
       "title": "Featured page",
       "category": "Discovery",
       "checkpointStatus": "In progress",
-      "nextClassification": "reconcile exact remaining requirement before work",
+      "nextClassification": "Reviewed against live Notes and current canonical specification; Native page/CTA picker with actual target; private/deleted/empty/media variants and final pack navigation/recovery.",
       "classification": "missing evidence",
       "source": "blocks/core/featured-page/block.json",
       "requirements": "page (reference), ctaLabel (text)",
@@ -1772,14 +2144,24 @@
         "output/block-demo/browser-results-featured75",
         "output/block-library-review-20260915/coverage-review.json."
       ],
-      "remainingReview": "Full-block closure remains absent. Reconcile exact historical Notes and native/public/action requirements before repairs; missing evidence does not mean missing implementation."
+      "remainingReview": "Native page/CTA picker with actual target; private/deleted/empty/media variants and final pack navigation/recovery.",
+      "deliveryTask": 3,
+      "acceptanceBatch": "content-discovery",
+      "reviewedAtCommit": "d8a0ea2c",
+      "notesSha256": "a56e0fe38e6da10695ebe232ecde4b773f485d5270b1221827eefae778370e20",
+      "specSha256": "4064250854fcf452facb933658cabb6c320258b611ba4fd41adcd30f20bb8d7b",
+      "rendererSha256": "3bd30c6941123cdeeed5ca4e4cb3a8ab665c54af5f45a85ffb4dea2037eb59c0",
+      "canonicalFields": [
+        "page",
+        "ctaLabel"
+      ]
     },
     {
       "name": "core/child-pages",
       "title": "Child pages",
       "category": "Discovery",
       "checkpointStatus": "In progress",
-      "nextClassification": "reconcile exact remaining requirement before work",
+      "nextClassification": "Reviewed against live Notes and current canonical specification; Reuse native child/grandchild/private filtering; depth1\u20134, empty/context/cycle-bound refusals and native hierarchy changes where relevant.",
       "classification": "missing evidence",
       "source": "blocks/core/child-pages/block.json",
       "requirements": "depth (number)",
@@ -1789,14 +2171,23 @@
         "output/block-demo/browser-results-child-pages88.",
         "output/block-library-review-20260915/coverage-review.json."
       ],
-      "remainingReview": "Full-block closure remains absent. Reconcile exact historical Notes and native/public/action requirements before repairs; missing evidence does not mean missing implementation."
+      "remainingReview": "Reuse native child/grandchild/private filtering; depth1\u20134, empty/context/cycle-bound refusals and native hierarchy changes where relevant.",
+      "deliveryTask": 2,
+      "acceptanceBatch": "navigation",
+      "reviewedAtCommit": "d8a0ea2c",
+      "notesSha256": "5f8fa42d08b11389c0e58a25d84af7c28012d2646f95d3d25d88851d94084181",
+      "specSha256": "d83c6e197e1efde4d78c0710feac0a7e023fcb74c1c0f9f64623a0a727d03b1a",
+      "rendererSha256": "fad5ca53efe29493ebb52c6b6ff93144c00c83c84d97fb0684d2f3ca664b4c1e",
+      "canonicalFields": [
+        "depth"
+      ]
     },
     {
       "name": "core/contact-form",
       "title": "Contact form",
       "category": "Forms",
       "checkpointStatus": "In progress",
-      "nextClassification": "reconcile exact remaining requirement before work",
+      "nextClassification": "Reviewed against live Notes and current canonical specification; Actual field/question authoring and source identity, submit/validation/deduplication, revoked/expired authority and nested reusable graph recovery; no outbound email.",
       "classification": "missing evidence",
       "source": "blocks/core/contact-form/block.json",
       "requirements": "title, fields[], submitLabel, successText",
@@ -1807,14 +2198,29 @@
         "output/synced-forms-live-20260915.",
         "output/synced-forms-recovery-20260915."
       ],
-      "remainingReview": "Full-block closure remains absent. Reconcile exact historical Notes and native/public/action requirements before repairs; missing evidence does not mean missing implementation."
+      "remainingReview": "Actual field/question authoring and source identity, submit/validation/deduplication, revoked/expired authority and nested reusable graph recovery; no outbound email.",
+      "deliveryTask": 3,
+      "acceptanceBatch": "forms",
+      "reviewedAtCommit": "d8a0ea2c",
+      "notesSha256": "1c4e900d04d9143c25bf4778071d7f1fa327070146f46a76afa3225882000894",
+      "specSha256": "3e2d3c80622a269e8d55116489ca3c46a26992ba396128f996789226a50483c6",
+      "rendererSha256": "f7318b17e9e37f50f7fc8cb041799b178910ab11e77dcd79754b667f54f5b1e9",
+      "canonicalFields": [
+        "eyebrow",
+        "heading",
+        "body",
+        "fields",
+        "submitLabel",
+        "recipientEmail",
+        "successMessage"
+      ]
     },
     {
       "name": "core/newsletter-signup",
       "title": "Newsletter signup",
       "category": "Forms",
       "checkpointStatus": "In progress",
-      "nextClassification": "reconcile exact remaining requirement before work",
+      "nextClassification": "Reviewed against live Notes and current canonical specification; Reuse SSR-readiness/deduplicated signup; native list/title/body/button variants and actual all-pack success/error/retry with synthetic addresses and no email.",
       "classification": "missing evidence",
       "source": "blocks/core/newsletter-signup/block.json",
       "requirements": "title, body, submitLabel, list",
@@ -1825,14 +2231,28 @@
         "output/block-library-review-20260915/coverage-review.json.",
         "output/newsletter-host-20260906/runtime-receipt.json."
       ],
-      "remainingReview": "Full-block closure remains absent. Reconcile exact historical Notes and native/public/action requirements before repairs; missing evidence does not mean missing implementation."
+      "remainingReview": "Reuse SSR-readiness/deduplicated signup; native list/title/body/button variants and actual all-pack success/error/retry with synthetic addresses and no email.",
+      "deliveryTask": 3,
+      "acceptanceBatch": "forms",
+      "reviewedAtCommit": "d8a0ea2c",
+      "notesSha256": "40bc9df1563cd2e784d7639c7ab74ed55b3d656c3da3fed56d8624491017363e",
+      "specSha256": "dab3a43cc154a45ef25691b7d719afbe367ef8218609ab9beba9bef218402199",
+      "rendererSha256": "51f1263e2a997a57156adf09c7a9b6292bf4b398bd773c693b670f4cbed70ba2",
+      "canonicalFields": [
+        "eyebrow",
+        "heading",
+        "body",
+        "placeholder",
+        "submitLabel",
+        "successMessage"
+      ]
     },
     {
       "name": "core/booking-cta",
       "title": "Booking CTA",
       "category": "Forms",
       "checkpointStatus": "In progress",
-      "nextClassification": "reconcile exact remaining requirement before work",
+      "nextClassification": "Reviewed against live Notes and current canonical specification; Native title/body/url/provider, approved provider consent/load/reset/failure or actual external destination; booking submission requires explicit scope.",
       "classification": "missing evidence",
       "source": "blocks/core/booking-cta/block.json",
       "requirements": "title, body, url, provider",
@@ -1842,14 +2262,28 @@
         "output/block-demo/browser-results-contact79-fixed",
         "output/block-library-review-20260915/coverage-review.json."
       ],
-      "remainingReview": "Full-block closure remains absent. Reconcile exact historical Notes and native/public/action requirements before repairs; missing evidence does not mean missing implementation."
+      "remainingReview": "Native title/body/url/provider, approved provider consent/load/reset/failure or actual external destination; booking submission requires explicit scope.",
+      "deliveryTask": 3,
+      "acceptanceBatch": "external-embeds",
+      "reviewedAtCommit": "d8a0ea2c",
+      "notesSha256": "7f29f9f80384cd7e02996e8b45ae1b3d9798d0e199839fa35857b841b4f14bd6",
+      "specSha256": "fbb7cc786fd2ef691eb5bf6ed92ec0a9a66cef3f75cc9fadec529ea38f28d77a",
+      "rendererSha256": "9ccb5a0770d322db51ccadfde8c1cc294d7281c45a8a944032f7a05e117792ac",
+      "canonicalFields": [
+        "eyebrow",
+        "heading",
+        "body",
+        "ctaLabel",
+        "ctaUrl",
+        "embedUrl"
+      ]
     },
     {
       "name": "blocks/contact-stack",
       "title": "Contact stack",
       "category": "Forms",
       "checkpointStatus": "In progress",
-      "nextClassification": "reconcile exact remaining requirement before work",
+      "nextClassification": "Reviewed against live Notes and current canonical specification; Reuse container-width/consent repairs; native address/hours/phone/email/map/form, actual scoped form/map load and correct contact destinations.",
       "classification": "missing evidence",
       "source": "blocks/blocks/contact-stack/block.json",
       "requirements": "address, hours[], phone, email, map, form",
@@ -1860,14 +2294,30 @@
         "output/block-review-refresh-20260920/acceptance-review.md.",
         "output/block-visual-acceptance-20260915"
       ],
-      "remainingReview": "Full-block closure remains absent. Reconcile exact historical Notes and native/public/action requirements before repairs; missing evidence does not mean missing implementation."
+      "remainingReview": "Reuse container-width/consent repairs; native address/hours/phone/email/map/form, actual scoped form/map load and correct contact destinations.",
+      "deliveryTask": 3,
+      "acceptanceBatch": "external-embeds",
+      "reviewedAtCommit": "d8a0ea2c",
+      "notesSha256": "bd0a3defe392ca1d334d7d9d39172ee556a764d7273aee3162b541b6ff2b4bda",
+      "specSha256": "8f58f271a1481c1919dae35e08d5672571a81d422b733b9434b94f76bb39235f",
+      "rendererSha256": "57df434dd10a6be2cd0dc30cc7801015f2b17b8e073eb2af714e448f33f164c5",
+      "canonicalFields": [
+        "heading",
+        "intro",
+        "phone",
+        "email",
+        "address",
+        "hours",
+        "mapEmbedUrl",
+        "items"
+      ]
     },
     {
       "name": "core/form",
       "title": "Form embed",
       "category": "Forms",
       "checkpointStatus": "In progress",
-      "nextClassification": "reconcile exact remaining requirement before work",
+      "nextClassification": "Reviewed against live Notes and current canonical specification; Reuse Journal/Depot owned treatments; native selected form/title and real multi-step submit/validation, denied/revoked/unavailable response and narrow live layout.",
       "classification": "missing evidence",
       "source": "blocks/core/form/block.json",
       "requirements": "form (form), title (text)",
@@ -1878,14 +2328,24 @@
         "output/form-embed-20260906/runtime-receipt.json",
         "output/pack-owned-treatments-20260915."
       ],
-      "remainingReview": "Full-block closure remains absent. Reconcile exact historical Notes and native/public/action requirements before repairs; missing evidence does not mean missing implementation."
+      "remainingReview": "Reuse Journal/Depot owned treatments; native selected form/title and real multi-step submit/validation, denied/revoked/unavailable response and narrow live layout.",
+      "deliveryTask": 3,
+      "acceptanceBatch": "forms",
+      "reviewedAtCommit": "d8a0ea2c",
+      "notesSha256": "51c04d08ca4f7da855e093ed27cd80466a9f39b03b43cd9a53e1dd1904f99b85",
+      "specSha256": "beced23702c8937c391317fda9e86c0eaf45e0a97f5a68ef953732beef3bbebb",
+      "rendererSha256": "895dcd9fa8f8949430de8b0d111074fcda8e3e570498c3acea4d1827af4bd8e1",
+      "canonicalFields": [
+        "form",
+        "title"
+      ]
     },
     {
       "name": "core/lead-magnet",
       "title": "Lead magnet",
       "category": "Forms",
       "checkpointStatus": "In progress",
-      "nextClassification": "reconcile exact remaining requirement before work",
+      "nextClassification": "Reviewed against live Notes and current canonical specification; Reuse stale-callback and fixture-file proof; native media/file/list selection, real scoped signup/download/opt-out/retry and account/environment isolation without email.",
       "classification": "missing evidence",
       "source": "blocks/core/lead-magnet/block.json",
       "requirements": "title (text), body (richtext), media (media), file (media), list (reference)",
@@ -1896,14 +2356,27 @@
         "output/lead-magnet-block-20260915/picker-*.",
         "output/lead-magnet-lifecycle-20260921/"
       ],
-      "remainingReview": "Full-block closure remains absent. Reconcile exact historical Notes and native/public/action requirements before repairs; missing evidence does not mean missing implementation."
+      "remainingReview": "Reuse stale-callback and fixture-file proof; native media/file/list selection, real scoped signup/download/opt-out/retry and account/environment isolation without email.",
+      "deliveryTask": 3,
+      "acceptanceBatch": "forms",
+      "reviewedAtCommit": "d8a0ea2c",
+      "notesSha256": "d1eb7b0489c3b0723cae37b3fc95d836630cafaaab64d74498a5922b10a16aff",
+      "specSha256": "7f447a58291280461e7723a6f0e9afadf4c907cb26e267c1bfaedb34591861c8",
+      "rendererSha256": "a9277c089ed44eef238cf5be7ffadd3d1c6af69db3970a2a49a818dfe551a891",
+      "canonicalFields": [
+        "title",
+        "body",
+        "media",
+        "file",
+        "list"
+      ]
     },
     {
       "name": "core/poll",
       "title": "Poll",
       "category": "Forms",
       "checkpointStatus": "In progress",
-      "nextClassification": "reconcile exact remaining requirement before work",
+      "nextClassification": "Reviewed against live Notes and current canonical specification; Native stable option keys/question/results/policy, actual visitor and signed-in vote rules, repeat vote/results/revision behavior and all-pack keyboard states.",
       "classification": "missing evidence",
       "source": "blocks/core/poll/block.json",
       "requirements": "question (text), options (repeater with stable key and label), showResults (boolean), responsePolicy (visitor or signedIn)",
@@ -1914,14 +2387,26 @@
         "output/poll-provider-20260906/checks.json",
         "output/poll-security-20260906"
       ],
-      "remainingReview": "Full-block closure remains absent. Reconcile exact historical Notes and native/public/action requirements before repairs; missing evidence does not mean missing implementation."
+      "remainingReview": "Native stable option keys/question/results/policy, actual visitor and signed-in vote rules, repeat vote/results/revision behavior and all-pack keyboard states.",
+      "deliveryTask": 3,
+      "acceptanceBatch": "forms",
+      "reviewedAtCommit": "d8a0ea2c",
+      "notesSha256": "6559733787b5c46603941b0381983c4fd9853b9fd7ad6f9b287d7d5fefec8bea",
+      "specSha256": "c3b8924b00703c19b36ac77713faceaee3aa15793f9b84ebbadf916470ac1f80",
+      "rendererSha256": "b7afdf40bc243c089bdace36ce8b9a3b2a88fbe37c39afbb0ea16f1a725b3574",
+      "canonicalFields": [
+        "question",
+        "options",
+        "showResults",
+        "responsePolicy"
+      ]
     },
     {
       "name": "core/event-rsvp",
       "title": "Event RSVP",
       "category": "Forms",
       "checkpointStatus": "In progress",
-      "nextClassification": "reconcile exact remaining requirement before work",
+      "nextClassification": "Reviewed against live Notes and current canonical specification; Reuse independent generated-plugin RSVP proof; final all-pack state review and legitimate verified-provider/CAPTCHA path, access withdrawal and original/generated event selection.",
       "classification": "missing evidence",
       "source": "blocks/core/event-rsvp/block.json",
       "requirements": "event (reference)",
@@ -1931,14 +2416,23 @@
         "output/event-rsvp-20260914/live-restore-checks.json",
         "output/extension-rsvp-20260920/acceptance-review.md."
       ],
-      "remainingReview": "Full-block closure remains absent. Reconcile exact historical Notes and native/public/action requirements before repairs; missing evidence does not mean missing implementation."
+      "remainingReview": "Reuse independent generated-plugin RSVP proof; final all-pack state review and legitimate verified-provider/CAPTCHA path, access withdrawal and original/generated event selection.",
+      "deliveryTask": 3,
+      "acceptanceBatch": "forms",
+      "reviewedAtCommit": "d8a0ea2c",
+      "notesSha256": "4b9f628cd281d5b29e1193441f849fa944349461e6f5e6115900ea4997a4dbc9",
+      "specSha256": "215322743a71d14590efe4fb55b6b76e65e5eb1933c20c7f627903bd5403ca40",
+      "rendererSha256": "a24e3ee41427980bb2b012aa640c043b3febe9469e15c64161cf2df59a85958c",
+      "canonicalFields": [
+        "event"
+      ]
     },
     {
       "name": "lms/course-grid",
       "title": "Course grid",
       "category": "Plugin",
       "checkpointStatus": "In progress",
-      "nextClassification": "reconcile exact remaining requirement before work",
+      "nextClassification": "Reviewed against live Notes and current canonical specification; Native category/limit and actual course cards; real customer progress/access/privacy, continuation/empty states; avoid unrelated player maintenance absent a causal failure.",
       "classification": "missing evidence",
       "source": "blocks/lms/course-grid/block.json",
       "requirements": "query.category (LMS normalized category label text), limit (1-48)",
@@ -1949,14 +2443,24 @@
         "output/course-blocks-20260911/learner-counts-checks.json",
         "output/course-blocks-20260911/preview-origin-repair-journal.json"
       ],
-      "remainingReview": "Full-block closure remains absent. Reconcile exact historical Notes and native/public/action requirements before repairs; missing evidence does not mean missing implementation."
+      "remainingReview": "Native category/limit and actual course cards; real customer progress/access/privacy, continuation/empty states; avoid unrelated player maintenance absent a causal failure.",
+      "deliveryTask": 3,
+      "acceptanceBatch": "learning",
+      "reviewedAtCommit": "d8a0ea2c",
+      "notesSha256": "0c1d6a96284a88773a06f6f7ab653f4af2cd632a2bc44458f25caaa281727130",
+      "specSha256": "01aa3511fa800c8b8bec9ebda822f05b30b108872173f0b05aa00f7f97b18fe4",
+      "rendererSha256": "738c58318cd070569c43ac4c6d62027d81350304c645b3a01d4e4abd3ae1651b",
+      "canonicalFields": [
+        "query",
+        "limit"
+      ]
     },
     {
       "name": "lms/curriculum",
       "title": "Curriculum",
       "category": "Plugin",
       "checkpointStatus": "In progress",
-      "nextClassification": "reconcile exact remaining requirement before work",
+      "nextClassification": "Reviewed against live Notes and current canonical specification; Reuse all-pack navigation/accordion proof; native course/expanded and real enrollment authorization, locked/available modules and continuation.",
       "classification": "missing evidence",
       "source": "blocks/lms/curriculum/block.json",
       "requirements": "course (reference), expanded (boolean)",
@@ -1967,14 +2471,24 @@
         "output/website-bundle-20260911.",
         "output/website-payload-20260911/checks.json."
       ],
-      "remainingReview": "Full-block closure remains absent. Reconcile exact historical Notes and native/public/action requirements before repairs; missing evidence does not mean missing implementation."
+      "remainingReview": "Reuse all-pack navigation/accordion proof; native course/expanded and real enrollment authorization, locked/available modules and continuation.",
+      "deliveryTask": 3,
+      "acceptanceBatch": "learning",
+      "reviewedAtCommit": "d8a0ea2c",
+      "notesSha256": "034c8cd69f7c191350fd96374b455af806f4b99ed47d0d80b938a864ef8b0d78",
+      "specSha256": "d8af30742889b58d6dd8583b710e8b205deca32c324396f5e1b00cbebbe9eb60",
+      "rendererSha256": "41704ba00240db9e2bda60ba0a5a96387759e84f696dd966a59b8b5f555009a0",
+      "canonicalFields": [
+        "course",
+        "expanded"
+      ]
     },
     {
       "name": "lms/instructor",
       "title": "Instructor",
       "category": "Plugin",
       "checkpointStatus": "In progress",
-      "nextClassification": "reconcile exact remaining requirement before work",
+      "nextClassification": "Reviewed against live Notes and current canonical specification; Reuse picker/cross-database/public course proof; exact remaining optional profile/media/pagination variants and native revision recovery before closure.",
       "classification": "missing evidence",
       "source": "blocks/lms/instructor/block.json",
       "requirements": "instructor (reference)",
@@ -1982,14 +2496,23 @@
         "output/block-library-review-20260915/coverage-review.json.",
         "output/instructor-block-20260911."
       ],
-      "remainingReview": "Full-block closure remains absent. Reconcile exact historical Notes and native/public/action requirements before repairs; missing evidence does not mean missing implementation."
+      "remainingReview": "Reuse picker/cross-database/public course proof; exact remaining optional profile/media/pagination variants and native revision recovery before closure.",
+      "deliveryTask": 3,
+      "acceptanceBatch": "learning",
+      "reviewedAtCommit": "d8a0ea2c",
+      "notesSha256": "cf9148593c2a8a6d4b5666d7e94052ca32189f4857c1fc1cb5d2f9aa5262fc25",
+      "specSha256": "f5752510e090ab918b5c2d9365ebe36baa3f1a006e8330ef18150ca8c800977e",
+      "rendererSha256": "4ccc0234d1a9b92a5de79dc7fd208f0f324f2d7eb1ff4753897b80ffef19bb84",
+      "canonicalFields": [
+        "instructor"
+      ]
     },
     {
       "name": "lms/progress",
       "title": "Learner progress",
       "category": "Plugin",
       "checkpointStatus": "In progress",
-      "nextClassification": "reconcile exact remaining requirement before work",
+      "nextClassification": "Reviewed against live Notes and current canonical specification; Reuse all-pack42/100 display proof; real learner/course scope, signed-out/empty/unavailable, revoked enrollment and no other customer's progress.",
       "classification": "missing evidence",
       "source": "blocks/lms/progress/block.json",
       "requirements": "scope (select), course (reference)",
@@ -1999,14 +2522,24 @@
         "output/course-blocks-20260911/progress-integrity-checks.json.",
         "output/progress-block-20260911.117/136"
       ],
-      "remainingReview": "Full-block closure remains absent. Reconcile exact historical Notes and native/public/action requirements before repairs; missing evidence does not mean missing implementation."
+      "remainingReview": "Reuse all-pack42/100 display proof; real learner/course scope, signed-out/empty/unavailable, revoked enrollment and no other customer's progress.",
+      "deliveryTask": 3,
+      "acceptanceBatch": "learning",
+      "reviewedAtCommit": "d8a0ea2c",
+      "notesSha256": "2e634f37731bc959bb4fbe3c0e99f8ddb1240d3cf01cc63a50bfb6b9203f09a3",
+      "specSha256": "1247a260477bd805efcee5a960d01cb4316206aaa67e076a227a40c9d2db674f",
+      "rendererSha256": "1c4b9844a344067546ce588241bfdf03c2bfdcdd5558d3c85e43a777f16d2c39",
+      "canonicalFields": [
+        "scope",
+        "course"
+      ]
     },
     {
       "name": "events/calendar",
       "title": "Event calendar",
       "category": "Plugin",
       "checkpointStatus": "In progress",
-      "nextClassification": "reconcile exact remaining requirement before work",
+      "nextClassification": "Reviewed against live Notes and current canonical specification; Native view/category/limit; actual month/range/time-zone boundaries, cancelled/private/empty events and keyboard navigation.",
       "classification": "missing evidence",
       "source": "blocks/events/calendar/block.json",
       "requirements": "view (select), category (reference), limit (number)",
@@ -2017,14 +2550,26 @@
         "output/derived-restore-20260906.",
         "output/events-categories-20260906"
       ],
-      "remainingReview": "Full-block closure remains absent. Reconcile exact historical Notes and native/public/action requirements before repairs; missing evidence does not mean missing implementation."
+      "remainingReview": "Native view/category/limit; actual month/range/time-zone boundaries, cancelled/private/empty events and keyboard navigation.",
+      "deliveryTask": 3,
+      "acceptanceBatch": "events",
+      "reviewedAtCommit": "d8a0ea2c",
+      "notesSha256": "ce230f7d38145e5cebe9788860703fbfffb736463283cd051f74a26d8e1750c9",
+      "specSha256": "40642786c705b5b7cbbd60efefb38118cd6b3db5623ffb021a0de48c4c3b7959",
+      "rendererSha256": "831d8afb91c9f746080b87763282f6071e15fc0caf3075ef196167828d43ad46",
+      "canonicalFields": [
+        "view",
+        "category",
+        "limit",
+        "timeZone"
+      ]
     },
     {
       "name": "events/upcoming",
       "title": "Upcoming Events",
       "category": "Site",
       "checkpointStatus": "In progress",
-      "nextClassification": "reconcile exact remaining requirement before work",
+      "nextClassification": "Reviewed against live Notes and current canonical specification; Reuse actual publish/cancel/reappear flow; count/heading/intro/show-description/empty copy and final pack/time-boundary review.",
       "classification": "missing evidence",
       "source": "blocks/events/upcoming/block.json",
       "requirements": "heading (text max160), intro (text max1000), count (integer1..12), showDescription (boolean), emptyText (text max240)",
@@ -2035,14 +2580,27 @@
         "output/events-upcoming-20260906",
         "output/playwright/events-upcoming-20260906."
       ],
-      "remainingReview": "Full-block closure remains absent. Reconcile exact historical Notes and native/public/action requirements before repairs; missing evidence does not mean missing implementation."
+      "remainingReview": "Reuse actual publish/cancel/reappear flow; count/heading/intro/show-description/empty copy and final pack/time-boundary review.",
+      "deliveryTask": 3,
+      "acceptanceBatch": "events",
+      "reviewedAtCommit": "d8a0ea2c",
+      "notesSha256": "865db11c04c781135dc7facd9fac3cd23f33057d3f7ba2cda8db512e6b132a10",
+      "specSha256": "792960a8fc081d4dd3f9a23e2f6e6a3cd3e89f06bcdd1939d12636dd5ac6eb48",
+      "rendererSha256": "c748f2b62c15550d827e228471b32986ed4bb13985a169019a22dc30ec52016a",
+      "canonicalFields": [
+        "heading",
+        "intro",
+        "count",
+        "showDescription",
+        "emptyText"
+      ]
     },
     {
       "name": "events/next-event",
       "title": "Next event",
       "category": "Plugin",
       "checkpointStatus": "In progress",
-      "nextClassification": "reconcile exact remaining requirement before work",
+      "nextClassification": "Reviewed against live Notes and current canonical specification; Reuse actual category rename/filter/empty proof; current source bounds, missing/withdrawn category and final all-pack exact target/date.",
       "classification": "missing evidence",
       "source": "blocks/events/next-event/block.json",
       "requirements": "category (reference)",
@@ -2053,42 +2611,77 @@
         "output/next-event-20260906",
         "output/playwright/next-event-20260906."
       ],
-      "remainingReview": "Full-block closure remains absent. Reconcile exact historical Notes and native/public/action requirements before repairs; missing evidence does not mean missing implementation."
+      "remainingReview": "Reuse actual category rename/filter/empty proof; current source bounds, missing/withdrawn category and final all-pack exact target/date.",
+      "deliveryTask": 3,
+      "acceptanceBatch": "events",
+      "reviewedAtCommit": "d8a0ea2c",
+      "notesSha256": "6345a67d2b171980e46f5268717571343c9dcdc08d16855e4093d44374f8807e",
+      "specSha256": "6e967aa72fe87e1b5fbce071575418982a59e12f86fb3853ab8e9e0a6f36e9b8",
+      "rendererSha256": "35edc2a1263b0b2328f8b816b891d994134c362cb788b0329c7896b5aece2aa5",
+      "canonicalFields": [
+        "category"
+      ]
     },
     {
       "name": "membership/plans",
       "title": "Membership plans",
       "category": "Plugin",
       "checkpointStatus": "In progress",
-      "nextClassification": "reconcile exact remaining requirement before work",
+      "nextClassification": "Reviewed against live Notes and current canonical specification; Reuse real selected/all order and9-plan paging; actual customer/session/availability, limit/copy/action link and final pack states.",
       "classification": "missing evidence",
       "source": "blocks/membership/plans/block.json",
       "requirements": "selection (all/selected), plans (membershipPlan ids, up to12), limit (1-12), heading, introduction, actionLabel, actionLink (safe href)",
       "evidenceReferences": [
         "output/block-library-review-20260915/coverage-review.json."
       ],
-      "remainingReview": "Full-block closure remains absent. Reconcile exact historical Notes and native/public/action requirements before repairs; missing evidence does not mean missing implementation."
+      "remainingReview": "Reuse real selected/all order and9-plan paging; actual customer/session/availability, limit/copy/action link and final pack states.",
+      "deliveryTask": 3,
+      "acceptanceBatch": "membership",
+      "reviewedAtCommit": "d8a0ea2c",
+      "notesSha256": "a18c6365489c9169da1f664a0853cfa333a89448b3a96e97c83d6f88354ccf34",
+      "specSha256": "9fe44fbeba5be1fd0c3d7d8afed6cc42ad83dd012046b17cd6cff3261806eca0",
+      "rendererSha256": "1af104d05a8ec542e3726e7f259d257d2567df967c556b9e2916f6262f54f9f8",
+      "canonicalFields": [
+        "selection",
+        "plans",
+        "limit",
+        "heading",
+        "introduction",
+        "actionLabel",
+        "actionLink"
+      ]
     },
     {
       "name": "membership/gated-teaser",
       "title": "Gated teaser",
       "category": "Plugin",
       "checkpointStatus": "In progress",
-      "nextClassification": "reconcile exact remaining requirement before work",
+      "nextClassification": "Reviewed against live Notes and current canonical specification; Reuse native plan/grant/revocation API proof; actual browser member login/upgrade destination, signed-out/denied/withdrawn plan and all-pack presentation.",
       "classification": "missing evidence",
       "source": "blocks/membership/gated-teaser/block.json",
       "requirements": "teaserText (text), requiredPlan (membershipPlan reference by id), upgradeLink (optional safe href)",
       "evidenceReferences": [
         "output/block-library-review-20260915/coverage-review.json."
       ],
-      "remainingReview": "Full-block closure remains absent. Reconcile exact historical Notes and native/public/action requirements before repairs; missing evidence does not mean missing implementation."
+      "remainingReview": "Reuse native plan/grant/revocation API proof; actual browser member login/upgrade destination, signed-out/denied/withdrawn plan and all-pack presentation.",
+      "deliveryTask": 3,
+      "acceptanceBatch": "membership",
+      "reviewedAtCommit": "d8a0ea2c",
+      "notesSha256": "18a1892b46433eb17f2e4ecdcde780296b26f2b51bc547fd0bef4a1af3bd7e6c",
+      "specSha256": "d046817385b6bd8f9499aeace5ec615f8fe2a551c0705f2783b45c7a2813213c",
+      "rendererSha256": "c9e3d198e9210c38ee782f60657936f66ca676035722aa9898da078cf8f94d66",
+      "canonicalFields": [
+        "teaserText",
+        "requiredPlan",
+        "upgradeLink"
+      ]
     },
     {
       "name": "gallery/recipe-card",
       "title": "Recipe card",
       "category": "Plugin",
       "checkpointStatus": "In progress",
-      "nextClassification": "Verified shared backend/Website default-enabled disagreement (audit F1); choose compatibility-conscious authority before Task 3 provider acceptance.",
+      "nextClassification": "Reviewed against live Notes and current canonical specification; Resolve F1 default authority; reuse native image/checklist proof; exact recipe selection/withdrawal, public detail and final required field variants.",
       "classification": "reproduced defect",
       "source": "blocks/gallery/recipe-card/block.json",
       "requirements": "recipe (exact recipe ID reference, native published-recipe picker)",
@@ -2099,10 +2692,19 @@
         "output/recipe-images-20260911.",
         "output/recipe-public-access-20260911."
       ],
-      "remainingReview": "Resolve shared plugin-default gate; then reconcile exact block-specific live source/action, native/public and recovery evidence.",
+      "remainingReview": "Resolve F1 default authority; reuse native image/checklist proof; exact recipe selection/withdrawal, public detail and final required field variants.",
       "sharedDependencies": [
         "F1 plugin default authority",
         "E19 durable editor drafts (editor-wide, not a per-block reimplementation)"
+      ],
+      "deliveryTask": 3,
+      "acceptanceBatch": "plugin-content",
+      "reviewedAtCommit": "d8a0ea2c",
+      "notesSha256": "2073cd3ba3b28d1b713957a044f68d413305fe53be39c2ad86872690411d9961",
+      "specSha256": "6fc9884e123c236acfdd9799abc430b7f384bffd5b3cba1256a35815aecf3eb5",
+      "rendererSha256": "7a51b13f08cc00a2dace532acdc95a7df8ae7c804333101baf23413191e45174",
+      "canonicalFields": [
+        "recipe"
       ]
     },
     {
@@ -2110,7 +2712,7 @@
       "title": "Gallery album",
       "category": "Plugin",
       "checkpointStatus": "In progress",
-      "nextClassification": "Verified shared backend/Website default-enabled disagreement (audit F1); choose compatibility-conscious authority before Task 3 provider acceptance.",
+      "nextClassification": "Reviewed against live Notes and current canonical specification; Resolve F1 default authority; reuse native two-image lightbox/paging; actual published page and missing/private album/media lifecycle.",
       "classification": "reproduced defect",
       "source": "blocks/gallery/album/block.json",
       "requirements": "album (reference)",
@@ -2118,10 +2720,19 @@
         "output/album-block-20260914/live-album.json",
         "output/block-library-review-20260915/coverage-review.json."
       ],
-      "remainingReview": "Resolve shared plugin-default gate; then reconcile exact block-specific live source/action, native/public and recovery evidence.",
+      "remainingReview": "Resolve F1 default authority; reuse native two-image lightbox/paging; actual published page and missing/private album/media lifecycle.",
       "sharedDependencies": [
         "F1 plugin default authority",
         "E19 durable editor drafts (editor-wide, not a per-block reimplementation)"
+      ],
+      "deliveryTask": 3,
+      "acceptanceBatch": "plugin-content",
+      "reviewedAtCommit": "d8a0ea2c",
+      "notesSha256": "4c63d19e0a9a157e7190b5d263e78486d515b8a5c355f7c832e7e4ec502ec44e",
+      "specSha256": "93ba858c13c07047756f2910f9f7915f54fa232d18247b9ad06ef1a6df3e6964",
+      "rendererSha256": "5f03465b64e31d3fb134a6953fd10e777d0973b4d1270e2fceb9ee338f5f6c2b",
+      "canonicalFields": [
+        "album"
       ]
     },
     {
@@ -2129,7 +2740,7 @@
       "title": "Knowledge base search",
       "category": "Plugin",
       "checkpointStatus": "In progress",
-      "nextClassification": "Verified shared backend/Website default-enabled disagreement (audit F1); choose compatibility-conscious authority before Task 3 provider acceptance.",
+      "nextClassification": "Reviewed against live Notes and current canonical specification; Resolve F1 default authority; actual configured search provider and accessible category/results/pagination. Provider indexing repair only to the extent required by this block; RAG campaign is separate.",
       "classification": "reproduced defect",
       "source": "blocks/support/kb-search/block.json",
       "requirements": "placeholder (text), category (reference)",
@@ -2140,10 +2751,20 @@
         "output/kb-search-security-20260911.",
         "output/management-expiry-20260911."
       ],
-      "remainingReview": "Resolve shared plugin-default gate; then reconcile exact block-specific live source/action, native/public and recovery evidence.",
+      "remainingReview": "Resolve F1 default authority; actual configured search provider and accessible category/results/pagination. Provider indexing repair only to the extent required by this block; RAG campaign is separate.",
       "sharedDependencies": [
         "F1 plugin default authority",
         "E19 durable editor drafts (editor-wide, not a per-block reimplementation)"
+      ],
+      "deliveryTask": 3,
+      "acceptanceBatch": "support",
+      "reviewedAtCommit": "d8a0ea2c",
+      "notesSha256": "ce351c54fd93470dd42041d4ed96429a192a9af19e3dad39b0d4b7086d51ace4",
+      "specSha256": "10a72fb40018ab2f9bddab67e3e9a3b9f61647470fa861b266fb164ffe0a83d3",
+      "rendererSha256": "999ac4a6b73aa74666b7a1816ac23fd2942150d093dd9f24184d619410814c6d",
+      "canonicalFields": [
+        "placeholder",
+        "category"
       ]
     },
     {
@@ -2151,7 +2772,7 @@
       "title": "Ticket CTA",
       "category": "Plugin",
       "checkpointStatus": "In progress",
-      "nextClassification": "Verified shared backend/Website default-enabled disagreement (audit F1); choose compatibility-conscious authority before Task 3 provider acceptance.",
+      "nextClassification": "Reviewed against live Notes and current canonical specification; Resolve F1 default authority; real customer sign-in and owned ticket destination/submission, denied/signed-out behavior and final pack rendering.",
       "classification": "reproduced defect",
       "source": "blocks/support/ticket-cta/block.json",
       "requirements": "title (text), body (text)",
@@ -2159,10 +2780,20 @@
         "output/block-library-review-20260915/coverage-review.json.",
         "output/support-blocks-20260911"
       ],
-      "remainingReview": "Resolve shared plugin-default gate; then reconcile exact block-specific live source/action, native/public and recovery evidence.",
+      "remainingReview": "Resolve F1 default authority; real customer sign-in and owned ticket destination/submission, denied/signed-out behavior and final pack rendering.",
       "sharedDependencies": [
         "F1 plugin default authority",
         "E19 durable editor drafts (editor-wide, not a per-block reimplementation)"
+      ],
+      "deliveryTask": 3,
+      "acceptanceBatch": "support",
+      "reviewedAtCommit": "d8a0ea2c",
+      "notesSha256": "3a2c3351347e51e0e50cdf0ebe5c9cc0c5debbea15009c91fa2571a92293a6f9",
+      "specSha256": "ab2d9b4dbdddc3e1c67235b3c10aa37a2ed4a12cea79183435a8e1283da3d839",
+      "rendererSha256": "870fddd7b1bddf4d40090909b6123a71e98b8991daa4ebd5559d259b2bbb6bd5",
+      "canonicalFields": [
+        "title",
+        "body"
       ]
     },
     {
@@ -2170,7 +2801,7 @@
       "title": "Certificate verify",
       "category": "Plugin",
       "checkpointStatus": "In progress",
-      "nextClassification": "reconcile exact remaining requirement before work",
+      "nextClassification": "Reviewed against live Notes and current canonical specification; Reuse all-pack invalid/valid/revoked fixture and stale-response repair; real certificate provider verification, privacy, retry and native title/recovery.",
       "classification": "missing evidence",
       "source": "blocks/certificates/verify/block.json",
       "requirements": "title (text)",
@@ -2180,14 +2811,23 @@
         "output/certificate-block-20260911/checks.json.",
         "output/course-blocks-20260911/certificate-authority-checks.json."
       ],
-      "remainingReview": "Full-block closure remains absent. Reconcile exact historical Notes and native/public/action requirements before repairs; missing evidence does not mean missing implementation."
+      "remainingReview": "Reuse all-pack invalid/valid/revoked fixture and stale-response repair; real certificate provider verification, privacy, retry and native title/recovery.",
+      "deliveryTask": 3,
+      "acceptanceBatch": "learning",
+      "reviewedAtCommit": "d8a0ea2c",
+      "notesSha256": "b63b0d9fba69b5726378aa7cbf79f2dc0db4da3cbb4ee841cb1fc8f993a2475e",
+      "specSha256": "50c0b6a4825664035d8cc2bf06decee0d348191bf60938425a04d3366ea45f3e",
+      "rendererSha256": "183508e5da3434351d7f97c9b2c1d18a57fe52e1430ea6a0d8da3b5c9ebb54e2",
+      "canonicalFields": [
+        "title"
+      ]
     },
     {
       "name": "core/site-info",
       "title": "Site info",
       "category": "Site",
       "checkpointStatus": "In progress",
-      "nextClassification": "reconcile exact remaining requirement before work",
+      "nextClassification": "Reviewed against live Notes and current canonical specification; Native show-field selection and exact public site identity/contact destinations; omitted fields and all-pack review without private setting leakage.",
       "classification": "missing evidence",
       "source": "blocks/core/site-info/block.json",
       "requirements": "show (repeater)",
@@ -2197,14 +2837,23 @@
         "output/block-demo/browser-results-navigation87",
         "output/block-library-review-20260915/coverage-review.json."
       ],
-      "remainingReview": "Full-block closure remains absent. Reconcile exact historical Notes and native/public/action requirements before repairs; missing evidence does not mean missing implementation."
+      "remainingReview": "Native show-field selection and exact public site identity/contact destinations; omitted fields and all-pack review without private setting leakage.",
+      "deliveryTask": 2,
+      "acceptanceBatch": "navigation",
+      "reviewedAtCommit": "d8a0ea2c",
+      "notesSha256": "32dc7f4400a31323014094b077573aec35cf6f54a35ef0d5c153067daca0921d",
+      "specSha256": "0065451e41820b19606d9f097d1ec41edc20685429e2b9ec17f141b9702800ae",
+      "rendererSha256": "4f88965bfba64d7c0b7f013726e3fe59119831412c6422eeae066454f03fcb62",
+      "canonicalFields": [
+        "show"
+      ]
     },
     {
       "name": "core/menu",
       "title": "Menu",
       "category": "Site",
       "checkpointStatus": "In progress",
-      "nextClassification": "reconcile exact remaining requirement before work",
+      "nextClassification": "Reviewed against live Notes and current canonical specification; Reuse native exact scoped menu/private target filtering; location assignment versus explicit menu, nested variants/current state and all-pack keyboard navigation.",
       "classification": "missing evidence",
       "source": "blocks/core/menu/block.json",
       "requirements": "source (select), location (text), menu (menu)",
@@ -2215,14 +2864,25 @@
         "output/production-checkpoints/editor-origin-20260905",
         "output/production-checkpoints/menu-media-20260905"
       ],
-      "remainingReview": "Full-block closure remains absent. Reconcile exact historical Notes and native/public/action requirements before repairs; missing evidence does not mean missing implementation."
+      "remainingReview": "Reuse native exact scoped menu/private target filtering; location assignment versus explicit menu, nested variants/current state and all-pack keyboard navigation.",
+      "deliveryTask": 2,
+      "acceptanceBatch": "navigation",
+      "reviewedAtCommit": "d8a0ea2c",
+      "notesSha256": "a2a605c24778a21400804753b78d09aed5a62d8abf9eb6392b0a62f361b1d4e0",
+      "specSha256": "447b0b723abf83d4aa9eee6e1b3c6798084a6323e4a27577e559589633b95b27",
+      "rendererSha256": "3b5141f2efb2e4a0bad1cd2f1a79200206a5836961f02d549ec8c36896e7b81d",
+      "canonicalFields": [
+        "source",
+        "location",
+        "menu"
+      ]
     },
     {
       "name": "core/account-teaser",
       "title": "Account teaser",
       "category": "Site",
       "checkpointStatus": "In progress",
-      "nextClassification": "reconcile exact remaining requirement before work",
+      "nextClassification": "Reviewed against live Notes and current canonical specification; Reuse native independent-site API proof; actual browser sign-in/out/session change, correct current customer action and configured text under all packs.",
       "classification": "missing evidence",
       "source": "blocks/core/account-teaser/block.json",
       "requirements": "signedOutText (text), signedInText (text)",
@@ -2230,14 +2890,24 @@
         "output/block-library-review-20260915/coverage-review.json.",
         "output/canonical-promotion-20260911/account-*."
       ],
-      "remainingReview": "Full-block closure remains absent. Reconcile exact historical Notes and native/public/action requirements before repairs; missing evidence does not mean missing implementation."
+      "remainingReview": "Reuse native independent-site API proof; actual browser sign-in/out/session change, correct current customer action and configured text under all packs.",
+      "deliveryTask": 3,
+      "acceptanceBatch": "membership",
+      "reviewedAtCommit": "d8a0ea2c",
+      "notesSha256": "1a3739065e2b2933375f34dc2f17944db00982175851f71fad879a63553739d1",
+      "specSha256": "8dd12e6dbaaba1511846d12c791577d0a62e6caec245996f18dcab667b333d8e",
+      "rendererSha256": "e799b21b4fb70fbbb756a0f26953aff7c3b103a197503681c3809e0a8f82f9e0",
+      "canonicalFields": [
+        "signedOutText",
+        "signedInText"
+      ]
     },
     {
       "name": "core/custom-html",
       "title": "Custom HTML",
       "category": "Site",
       "checkpointStatus": "In progress",
-      "nextClassification": "reconcile exact remaining requirement before work",
+      "nextClassification": "Reviewed against live Notes and current canonical specification; Native sanitized markup/save/recovery, script/event/style refusal and retained safe structure, links, keyboard and template containment.",
       "classification": "missing evidence",
       "source": "blocks/core/custom-html/block.json",
       "requirements": "html (text)",
@@ -2246,14 +2916,23 @@
         "output/block-demo/browser-results-utility74-verified",
         "output/block-library-review-20260915/coverage-review.json."
       ],
-      "remainingReview": "Full-block closure remains absent. Reconcile exact historical Notes and native/public/action requirements before repairs; missing evidence does not mean missing implementation."
+      "remainingReview": "Native sanitized markup/save/recovery, script/event/style refusal and retained safe structure, links, keyboard and template containment.",
+      "deliveryTask": 2,
+      "acceptanceBatch": "safe-utilities",
+      "reviewedAtCommit": "d8a0ea2c",
+      "notesSha256": "702b9e05e8947cdef945a67845389f971ee42aabcd3a133edf1b4307771ac0b9",
+      "specSha256": "eb6ad89fa702daff3f5f1fded5014fe8ee00d8c8fffb4c06c3cecbc1ca0546cf",
+      "rendererSha256": "19c7a67ce392c99e937bf7c3bfe9ff735b1066df26e683c0027546112fd681ba",
+      "canonicalFields": [
+        "html"
+      ]
     },
     {
       "name": "core/iframe",
       "title": "Iframe",
       "category": "Site",
       "checkpointStatus": "In progress",
-      "nextClassification": "reconcile exact remaining requirement before work",
+      "nextClassification": "Reviewed against live Notes and current canonical specification; Native safe URL/title, approved real frame load after consent, reset/failure/title/keyboard and sandbox boundaries.",
       "classification": "missing evidence",
       "source": "blocks/core/iframe/block.json",
       "requirements": "url (link), title (text)",
@@ -2262,14 +2941,24 @@
         "output/block-demo/browser-results-contact79-fixed",
         "output/block-library-review-20260915/coverage-review.json."
       ],
-      "remainingReview": "Full-block closure remains absent. Reconcile exact historical Notes and native/public/action requirements before repairs; missing evidence does not mean missing implementation."
+      "remainingReview": "Native safe URL/title, approved real frame load after consent, reset/failure/title/keyboard and sandbox boundaries.",
+      "deliveryTask": 3,
+      "acceptanceBatch": "external-embeds",
+      "reviewedAtCommit": "d8a0ea2c",
+      "notesSha256": "0d50dd098ba7c77c2d62ca3cfeda1a63c3615612dd06d6fb57024990e8bc1496",
+      "specSha256": "fe3df22099131a8f9c87fa39f411464504206900b04cb4f3db1668e39b03d2b7",
+      "rendererSha256": "d30a83781c4e8dbd0795f8dd89ae9a2893baaaab3e1f97bb9ad98afb029cd23a",
+      "canonicalFields": [
+        "url",
+        "title"
+      ]
     },
     {
       "name": "core/script-embed",
       "title": "Script embed",
       "category": "Site",
       "checkpointStatus": "In progress",
-      "nextClassification": "reconcile exact remaining requirement before work",
+      "nextClassification": "Reviewed against live Notes and current canonical specification; Native allow-listed provider/resourceId, legitimate provider consent/load/unload/failure and no arbitrary code path.",
       "classification": "missing evidence",
       "source": "blocks/core/script-embed/block.json",
       "requirements": "provider (select), resourceId (text)",
@@ -2279,14 +2968,24 @@
         "output/block-demo/browser-results-conversion83",
         "output/block-library-review-20260915/coverage-review.json."
       ],
-      "remainingReview": "Full-block closure remains absent. Reconcile exact historical Notes and native/public/action requirements before repairs; missing evidence does not mean missing implementation."
+      "remainingReview": "Native allow-listed provider/resourceId, legitimate provider consent/load/unload/failure and no arbitrary code path.",
+      "deliveryTask": 3,
+      "acceptanceBatch": "external-embeds",
+      "reviewedAtCommit": "d8a0ea2c",
+      "notesSha256": "9d0b27378298fe4dd1b8f105631085a412cc6125a32772bc71937a677bd707a6",
+      "specSha256": "86923b8657bddc87c1fb8ca98e7a9174462363c2189de0603e212b4820ffde99",
+      "rendererSha256": "56f6fe31cbb0c1d69072d6fdf816a50dcf12ba539d66d3290f8baa4e83a582a6",
+      "canonicalFields": [
+        "provider",
+        "resourceId"
+      ]
     },
     {
       "name": "core/anchor-nav",
       "title": "Anchor nav",
       "category": "Site",
       "checkpointStatus": "In progress",
-      "nextClassification": "reconcile exact remaining requirement before work",
+      "nextClassification": "Reviewed against live Notes and current canonical specification; Reuse native auto/manual missing-target preflight and public focus; reconcile full authored variants, headings changing/removal and final source parity.",
       "classification": "missing evidence",
       "source": "blocks/core/anchor-nav/block.json",
       "requirements": "source (select), items (repeater)",
@@ -2297,14 +2996,24 @@
         "output/block-demo/browser-results-navigation87",
         "output/block-library-review-20260915/coverage-review.json."
       ],
-      "remainingReview": "Full-block closure remains absent. Reconcile exact historical Notes and native/public/action requirements before repairs; missing evidence does not mean missing implementation."
+      "remainingReview": "Reuse native auto/manual missing-target preflight and public focus; reconcile full authored variants, headings changing/removal and final source parity.",
+      "deliveryTask": 2,
+      "acceptanceBatch": "navigation",
+      "reviewedAtCommit": "d8a0ea2c",
+      "notesSha256": "b0a5ba37750d72970f29b13e35b9bb038fdf2c99fb6bc98ffa60df71348ddfc2",
+      "specSha256": "990c6e43715991751e4cbc943f04d0b79241dfb6d750c529ff8bf7e23cfdd3b4",
+      "rendererSha256": "4e7044cf4b9f9fbd406c656c641bd07f9a1400b60dd7a849e2e8381ae27d16ff",
+      "canonicalFields": [
+        "source",
+        "items"
+      ]
     },
     {
       "name": "core/language-switcher",
       "title": "Language switcher",
       "category": "Site",
       "checkpointStatus": "In progress",
-      "nextClassification": "reconcile exact remaining requirement before work",
+      "nextClassification": "Reviewed against live Notes and current canonical specification; Actual configured locale links/current state, unavailable/private translations, native context/recovery and required promotion preservation; no invented full translation engine.",
       "classification": "missing evidence",
       "source": "blocks/core/language-switcher/block.json",
       "requirements": "context only",
@@ -2312,14 +3021,21 @@
         "output/block-library-review-20260915/coverage-review.json.",
         "output/language-switcher-20260914/checks.json."
       ],
-      "remainingReview": "Full-block closure remains absent. Reconcile exact historical Notes and native/public/action requirements before repairs; missing evidence does not mean missing implementation."
+      "remainingReview": "Actual configured locale links/current state, unavailable/private translations, native context/recovery and required promotion preservation; no invented full translation engine.",
+      "deliveryTask": 3,
+      "acceptanceBatch": "content-discovery",
+      "reviewedAtCommit": "d8a0ea2c",
+      "notesSha256": "288fab6dd4ec3fcb889e7daea0a598e6a25f888d031cf8d9c37e4ec6beb589a0",
+      "specSha256": "e6eae77979acbc72c9bed099f279ff5f656869ce65caa8e505f77274f7194f07",
+      "rendererSha256": "01b24e924bc8293c9fb59928bbd8f50aadd8901f62b2f0f8767cbe0e1abdee8a",
+      "canonicalFields": []
     },
     {
       "name": "blocks/grade-gallery",
       "title": "Grade gallery",
       "category": "Media",
       "checkpointStatus": "In progress",
-      "nextClassification": "reconcile exact remaining requirement before work",
+      "nextClassification": "Reviewed against live Notes and current canonical specification; Reuse pack layout polish; native nested groups/media order, real selected images/alt/focal values and no-image/single/multiple narrow states.",
       "classification": "missing evidence",
       "source": "blocks/blocks/grade-gallery/block.json",
       "requirements": "groups[{label, items[media]}]",
@@ -2330,14 +3046,25 @@
         "output/block-demo/browser-results-media66",
         "output/block-library-review-20260915/coverage-review.json."
       ],
-      "remainingReview": "Full-block closure remains absent. Reconcile exact historical Notes and native/public/action requirements before repairs; missing evidence does not mean missing implementation."
+      "remainingReview": "Reuse pack layout polish; native nested groups/media order, real selected images/alt/focal values and no-image/single/multiple narrow states.",
+      "deliveryTask": 2,
+      "acceptanceBatch": "media-interaction",
+      "reviewedAtCommit": "d8a0ea2c",
+      "notesSha256": "dc58f3e3275273cc9d5a0ff582ad2ea7842c0a080d7ec79d5171e7224d2a6908",
+      "specSha256": "ea23889a968d83590f759271fad35ca46e6a32d2e9856edf67509177e1e62612",
+      "rendererSha256": "ca7360a6d4e44ef7970c663a11ca4f1084d9e055b0c5732b484362b61bfd51c1",
+      "canonicalFields": [
+        "heading",
+        "intro",
+        "sections"
+      ]
     },
     {
       "name": "core/synced",
       "title": "Synced content",
       "category": "Layout",
       "checkpointStatus": "In progress",
-      "nextClassification": "reconcile exact remaining requirement before work",
+      "nextClassification": "Reviewed against live Notes and current canonical specification; Reuse source/pinned/latest/Forms history; reconcile full nested source graph, permissions/revocation, migration of reusableBlocks and exact recovery/promotion across packs.",
       "classification": "missing evidence",
       "source": "blocks/core/synced/block.json",
       "requirements": "syncedBlock (reference), revisionPolicy (select), revision (number)",
@@ -2348,7 +3075,18 @@
         "output/synced-snapshot-20260915.",
         "output/synced-visibility-20260915."
       ],
-      "remainingReview": "Full-block closure remains absent. Reconcile exact historical Notes and native/public/action requirements before repairs; missing evidence does not mean missing implementation."
+      "remainingReview": "Reuse source/pinned/latest/Forms history; reconcile full nested source graph, permissions/revocation, migration of reusableBlocks and exact recovery/promotion across packs.",
+      "deliveryTask": 4,
+      "acceptanceBatch": "reusable-migration",
+      "reviewedAtCommit": "d8a0ea2c",
+      "notesSha256": "e39c907bbb669061aab836454414d20116c2872eb6ef2001d4b49f3876ceae27",
+      "specSha256": "d9b2e0ee6a65db92a50447b387d5cc13e0fce20ad325cc1f503c1eb2ba24d401",
+      "rendererSha256": "4338287504b81eb9d94a8936082cf7e4c7b52c423ba4f2604ef7318954a0cac3",
+      "canonicalFields": [
+        "syncedBlock",
+        "revisionPolicy",
+        "revision"
+      ]
     },
     {
       "name": "core/definition-list",
@@ -2373,7 +3111,7 @@
       "title": "Opening hours",
       "category": "Site",
       "checkpointStatus": "In progress",
-      "nextClassification": "reconcile exact remaining requirement before work",
+      "nextClassification": "Reviewed against live Notes and current canonical specification; Native timezone/week/exceptions/contact link, valid/invalid boundary values, closed/overnight/date exceptions and all-pack readable output.",
       "classification": "missing evidence",
       "source": "blocks/business/opening-hours/block.json",
       "requirements": "timezone (text), week (repeater), exceptions (repeater), contactLink (link)",
@@ -2383,14 +3121,26 @@
         "output/block-demo/browser-results-responsive34-verified.",
         "output/block-library-review-20260915/coverage-review.json."
       ],
-      "remainingReview": "Full-block closure remains absent. Reconcile exact historical Notes and native/public/action requirements before repairs; missing evidence does not mean missing implementation."
+      "remainingReview": "Native timezone/week/exceptions/contact link, valid/invalid boundary values, closed/overnight/date exceptions and all-pack readable output.",
+      "deliveryTask": 2,
+      "acceptanceBatch": "business",
+      "reviewedAtCommit": "d8a0ea2c",
+      "notesSha256": "a3cf308a81c66d74c1a1f7bb93e04e47d76dd6a3d9ef46e39549f777168d9d6b",
+      "specSha256": "a8a34f4c0d6e8585e8fdd2b7f134433e982656556ca2c0ea69323a4e054f6372",
+      "rendererSha256": "705c6436ebdfc510ba5d397a11d73b909f73805ca675da72452b30d1f0d33cfa",
+      "canonicalFields": [
+        "timezone",
+        "week",
+        "exceptions",
+        "contactLink"
+      ]
     },
     {
       "name": "business/locations",
       "title": "Business locations",
       "category": "Site",
       "checkpointStatus": "In progress",
-      "nextClassification": "reconcile exact remaining requirement before work",
+      "nextClassification": "Reviewed against live Notes and current canonical specification; Native repeater order, media/links/address variations, real destination actions and empty/long/narrow states.",
       "classification": "missing evidence",
       "source": "blocks/business/locations/block.json",
       "requirements": "locations (repeater)",
@@ -2400,14 +3150,23 @@
         "output/block-demo/browser-results-responsive34-verified.",
         "output/block-library-review-20260915/coverage-review.json."
       ],
-      "remainingReview": "Full-block closure remains absent. Reconcile exact historical Notes and native/public/action requirements before repairs; missing evidence does not mean missing implementation."
+      "remainingReview": "Native repeater order, media/links/address variations, real destination actions and empty/long/narrow states.",
+      "deliveryTask": 2,
+      "acceptanceBatch": "business",
+      "reviewedAtCommit": "d8a0ea2c",
+      "notesSha256": "e5e32c0e734fc77a3e55f3535f1b1fbe866ab0b446db29c02e733ee46bb47b27",
+      "specSha256": "8e72363f42e7fea10952897393eafbcf1f3b72279a02953a01ab0d7dd368189f",
+      "rendererSha256": "f9182d297bb7a37e51a3184e257b91488f205ff369a15611841582643afb4250",
+      "canonicalFields": [
+        "locations"
+      ]
     },
     {
       "name": "business/service-list",
       "title": "Services and rates",
       "category": "Marketing",
       "checkpointStatus": "In progress",
-      "nextClassification": "reconcile exact remaining requirement before work",
+      "nextClassification": "Reviewed against live Notes and current canonical specification; Native services and order, omitted/long descriptions/price/actions, safe destinations and final pack treatments.",
       "classification": "missing evidence",
       "source": "blocks/business/service-list/block.json",
       "requirements": "services (repeater)",
@@ -2417,14 +3176,23 @@
         "output/block-demo/browser-results-responsive34-verified.",
         "output/block-library-review-20260915/coverage-review.json."
       ],
-      "remainingReview": "Full-block closure remains absent. Reconcile exact historical Notes and native/public/action requirements before repairs; missing evidence does not mean missing implementation."
+      "remainingReview": "Native services and order, omitted/long descriptions/price/actions, safe destinations and final pack treatments.",
+      "deliveryTask": 2,
+      "acceptanceBatch": "business",
+      "reviewedAtCommit": "d8a0ea2c",
+      "notesSha256": "e5f3b5059e95a4ab6b0dccdf62a31d375d7814afb2c82afb877efccb471dcf23",
+      "specSha256": "bf05551a6a0262d2f6e6162120a372250996f26dbdcb2163bfb7df6516f727f7",
+      "rendererSha256": "e53d14a2354cb7d39791eca5601301358c2403c501c6594db007e52661d611e2",
+      "canonicalFields": [
+        "services"
+      ]
     },
     {
       "name": "business/menu",
       "title": "Food and drink menu",
       "category": "Site",
       "checkpointStatus": "In progress",
-      "nextClassification": "reconcile exact remaining requirement before work",
+      "nextClassification": "Reviewed against live Notes and current canonical specification; Native nested sections/items and prices, reorder/recovery, dietary/optional/long variants and final pack readability.",
       "classification": "missing evidence",
       "source": "blocks/business/menu/block.json",
       "requirements": "sections (repeater)",
@@ -2434,14 +3202,23 @@
         "output/block-demo/browser-results-responsive34-verified.",
         "output/block-library-review-20260915/coverage-review.json."
       ],
-      "remainingReview": "Full-block closure remains absent. Reconcile exact historical Notes and native/public/action requirements before repairs; missing evidence does not mean missing implementation."
+      "remainingReview": "Native nested sections/items and prices, reorder/recovery, dietary/optional/long variants and final pack readability.",
+      "deliveryTask": 2,
+      "acceptanceBatch": "business",
+      "reviewedAtCommit": "d8a0ea2c",
+      "notesSha256": "7115bcb66053c47a174621884c841a1cd3bf8ffc15d5cffa42fa10c07129de2a",
+      "specSha256": "20073dd51d172989097f2b2ae1099f89baf1c94092d7b98ed49c8ebcd86d7a4d",
+      "rendererSha256": "862fa26732d483894a9337eac7dd50e0e03aa0915d80a90ba954e50df721b6fa",
+      "canonicalFields": [
+        "sections"
+      ]
     },
     {
       "name": "commerce/wishlist",
       "title": "Saved products",
       "category": "Commerce",
       "checkpointStatus": "In progress",
-      "nextClassification": "reconcile exact remaining requirement before work",
+      "nextClassification": "Reviewed against live Notes and current canonical specification; Reuse fixture/readiness/paging proof; real customer-owned list/item actions and session isolation, native copy/browse link and all-pack host behavior.",
       "classification": "missing evidence",
       "source": "blocks/commerce/wishlist/block.json",
       "requirements": "heading (text), emptyMessage (text), browseLink (link)",
@@ -2452,14 +3229,25 @@
         "output/wishlist-owner-totals-20260915.",
         "output/wishlist-surfaces-20260914"
       ],
-      "remainingReview": "Full-block closure remains absent. Reconcile exact historical Notes and native/public/action requirements before repairs; missing evidence does not mean missing implementation."
+      "remainingReview": "Reuse fixture/readiness/paging proof; real customer-owned list/item actions and session isolation, native copy/browse link and all-pack host behavior.",
+      "deliveryTask": 3,
+      "acceptanceBatch": "customer-commerce",
+      "reviewedAtCommit": "d8a0ea2c",
+      "notesSha256": "bee93069dcdde96f56316b20eb42e518fbff123eb98a01245158b50a133aa7b8",
+      "specSha256": "3bafd2bc2293596fedd796a999a3ad1ace60ee8ad6ba0f2cc576b399530531f6",
+      "rendererSha256": "f098a6c41fe80507d8b400a4a7b86d95a435283313b51c8d7bfff8657299b742",
+      "canonicalFields": [
+        "heading",
+        "emptyMessage",
+        "browseLink"
+      ]
     },
     {
       "name": "commerce/download-library",
       "title": "Purchased downloads",
       "category": "Commerce",
       "checkpointStatus": "In progress",
-      "nextClassification": "reconcile exact remaining requirement before work",
+      "nextClassification": "Reviewed against live Notes and current canonical specification; Reuse callback/entrance fixes; actual permitted entitlement/file bytes, denial/revocation/session changes, paging and native text/help action without real charge.",
       "classification": "missing evidence",
       "source": "blocks/commerce/download-library/block.json",
       "requirements": "heading (text), emptyMessage (text), helpLink (link)",
@@ -2470,14 +3258,25 @@
         "output/download-transport-20260915.",
         "output/stylesheet-hydration-20260915."
       ],
-      "remainingReview": "Full-block closure remains absent. Reconcile exact historical Notes and native/public/action requirements before repairs; missing evidence does not mean missing implementation."
+      "remainingReview": "Reuse callback/entrance fixes; actual permitted entitlement/file bytes, denial/revocation/session changes, paging and native text/help action without real charge.",
+      "deliveryTask": 3,
+      "acceptanceBatch": "customer-commerce",
+      "reviewedAtCommit": "d8a0ea2c",
+      "notesSha256": "a0bd2f15d464ee19a411461901666c250bfb0b09c83d200d7e06e50f4eada9dc",
+      "specSha256": "0d86e9672603f8eb21375d7f204b413ed503ad6b305886721bc8eddc5d57ba48",
+      "rendererSha256": "a91969c370bc77701c04499b06f42618817fd9e7d75d363e4363610913f578e8",
+      "canonicalFields": [
+        "heading",
+        "emptyMessage",
+        "helpLink"
+      ]
     },
     {
       "name": "core/search-results",
       "title": "Search results",
       "category": "Discovery",
       "checkpointStatus": "In progress",
-      "nextClassification": "reconcile exact remaining requirement before work",
+      "nextClassification": "Reviewed against live Notes and current canonical specification; Reuse real10-page8+2 capacity fix; remaining canonical library/composed/reusable prose sources, filtering/backfill and access budget with actual rendered results.",
       "classification": "missing evidence",
       "source": "blocks/core/search-results/block.json",
       "requirements": "queryBinding (select), kinds (repeater), pageSize (number), emptyMessage (text)",
@@ -2488,14 +3287,26 @@
         "search-scale-20260921.md",
         "search-source-match-20260921.md"
       ],
-      "remainingReview": "Full-block closure remains absent. Reconcile exact historical Notes and native/public/action requirements before repairs; missing evidence does not mean missing implementation."
+      "remainingReview": "Reuse real10-page8+2 capacity fix; remaining canonical library/composed/reusable prose sources, filtering/backfill and access budget with actual rendered results.",
+      "deliveryTask": 3,
+      "acceptanceBatch": "content-discovery",
+      "reviewedAtCommit": "d8a0ea2c",
+      "notesSha256": "8046aa8cc6de946eefdb4d2606e4d8159d6a10f89abf58ef89c963e6c433403f",
+      "specSha256": "2b37f8af0a7ca11a5838fb8b7943d070572ed3c4cf1c52b4777ab4087c5b7b1f",
+      "rendererSha256": "30f68a3e3e372e3cffda1f38f46b32c84dabb3893824b089c36e2f8353808807",
+      "canonicalFields": [
+        "queryBinding",
+        "kinds",
+        "pageSize",
+        "emptyMessage"
+      ]
     },
     {
       "name": "reference/field-guide",
       "title": "Field Guide",
       "category": "Site",
       "checkpointStatus": "In progress",
-      "nextClassification": "reconcile exact remaining requirement before work",
+      "nextClassification": "Reviewed against live Notes and current canonical specification; Native all authored fields and closed editorial treatment axes, explicit lossless legacy conversion/restore, images/links and final four-pack treatment parity.",
       "classification": "missing evidence",
       "source": "blocks/reference/field-guide/block.json",
       "requirements": "Current schema fields preserved through explicit migration",
@@ -2505,14 +3316,31 @@
         "output/block-demo/browser-results-media66",
         "output/block-library-review-20260915/coverage-review.json."
       ],
-      "remainingReview": "Full-block closure remains absent. Reconcile exact historical Notes and native/public/action requirements before repairs; missing evidence does not mean missing implementation."
+      "remainingReview": "Native all authored fields and closed editorial treatment axes, explicit lossless legacy conversion/restore, images/links and final four-pack treatment parity.",
+      "deliveryTask": 4,
+      "acceptanceBatch": "text-migration",
+      "reviewedAtCommit": "d8a0ea2c",
+      "notesSha256": "79cc39bbebcc2fd971e6659b65cb62cad3b65034583fee4ad33c13a2d32c9ca7",
+      "specSha256": "d1c4e78bf1e73dc459286e0ac77bbdc6a6e76e204d74f3c8be83fcdfc9e5d05d",
+      "rendererSha256": "fa7cf5a4ba14e51c9b17994fd3e47eb9d160fdca52c5421287b3fd2b763112d0",
+      "canonicalFields": [
+        "heading",
+        "body",
+        "count",
+        "showDetails",
+        "mediaId",
+        "mediaAlt",
+        "note",
+        "link",
+        "items"
+      ]
     },
     {
       "name": "local/sample-alert",
       "title": "Local sample alert",
       "category": "Site",
       "checkpointStatus": "In progress",
-      "nextClassification": "reconcile exact remaining requirement before work",
+      "nextClassification": "Reviewed against live Notes and current canonical specification; Reuse deployed action validation; native notice variants, empty/long message and actual destination, every pack's final visual signoff.",
       "classification": "missing evidence",
       "source": "blocks/local/sample-alert/block.json",
       "requirements": "message and current schema fields",
@@ -2523,14 +3351,27 @@
         "output/block-library-review-20260915/coverage-review.json.",
         "output/cta-family-20260921."
       ],
-      "remainingReview": "Full-block closure remains absent. Reconcile exact historical Notes and native/public/action requirements before repairs; missing evidence does not mean missing implementation."
+      "remainingReview": "Reuse deployed action validation; native notice variants, empty/long message and actual destination, every pack's final visual signoff.",
+      "deliveryTask": 2,
+      "acceptanceBatch": "social-utilities",
+      "reviewedAtCommit": "d8a0ea2c",
+      "notesSha256": "36e9052fd4962426425289b7a3762a0f6e170ec038db4ba4779f161e3db07ab2",
+      "specSha256": "af7c009cd422d843e86824b5b1ef21743eced5929925f49f7b36ae55fee17daa",
+      "rendererSha256": "dd387c7ecc8ccae21d4dcb7e95325c1abdcbc614a461eb2aaeafc4077947e966",
+      "canonicalFields": [
+        "heading",
+        "body",
+        "variant",
+        "ctaLabel",
+        "ctaUrl"
+      ]
     },
     {
       "name": "blocks/studio-services",
       "title": "Studio services",
       "category": "Marketing",
       "checkpointStatus": "In progress",
-      "nextClassification": "reconcile exact remaining requirement before work",
+      "nextClassification": "Reviewed against live Notes and current canonical specification; Reuse native exact promoted package/immutable history and pack refresh; final full field/variant review and one-line compose/style/promote workflow acceptance.",
       "classification": "missing evidence",
       "source": "blocks/blocks/studio-services/block.json",
       "requirements": "eyebrow, headline, introduction, services",
@@ -2538,7 +3379,19 @@
         "output/block-review-refresh-20260920/acceptance-review.md.",
         "output/definition-promotion-editor-20260916."
       ],
-      "remainingReview": "Full-block closure remains absent. Reconcile exact historical Notes and native/public/action requirements before repairs; missing evidence does not mean missing implementation."
+      "remainingReview": "Reuse native exact promoted package/immutable history and pack refresh; final full field/variant review and one-line compose/style/promote workflow acceptance.",
+      "deliveryTask": 7,
+      "acceptanceBatch": "sdk-promotion",
+      "reviewedAtCommit": "d8a0ea2c",
+      "notesSha256": "de73668ae2158e5eeed397589894505cfcb754f791444e7f188d5147fb2168c7",
+      "specSha256": "52223414749658987b97c609c89dc78061fbd9bcc0659f59ceef48e14c14f7c9",
+      "rendererSha256": "905ea0625505e258ac1c9d42384daeab260e6e651c4789a1834bd33110172879",
+      "canonicalFields": [
+        "eyebrow",
+        "headline",
+        "introduction",
+        "services"
+      ]
     }
   ],
   "latestEvidence": [
@@ -2559,15 +3412,20 @@
     "output/editor-autosave-20260928/cleaned-preservation.json",
     "ConvexPress-Admin/audits/2026-09-04/editor-pointer-baseline-20260928.md",
     "output/editor-pointer-20260928/scroll-proof.json",
-    "output/editor-pointer-20260928/reopen-proof.json"
+    "output/editor-pointer-20260928/reopen-proof.json",
+    "docs/superpowers/plans/2026-09-28-delivery-reconciliation.md"
   ],
   "trackerRefresh": {
-    "date": "2026-09-28",
-    "count": 137,
-    "Verified": 58,
-    "In progress": 79,
-    "evidence": "output/editor-template-20260928/mt-readback.json",
-    "writes": false
+    "source": "output/editor-pointer-20260928/mt-readback.json",
+    "schema": "output/editor-pointer-20260928/mt-schema.json",
+    "rows": 137,
+    "counts": {
+      "Verified": 60,
+      "In progress": 77
+    },
+    "otherCellsUnchangedFromPreviousRead": true,
+    "pendingNotesReconciled": 77,
+    "classificationScope": "Block-specific missing gates; historical whole-app audit conditions retained in Notes but not automatic prerequisites."
   },
   "coordination": {
     "folder": "/Users/worsin/Development/ConvexPress/Opus Audits/",
