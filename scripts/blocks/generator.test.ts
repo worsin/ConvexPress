@@ -44,6 +44,18 @@ describe("schema-first generation", () => {
     found.packs[0].renderers[s.name] = "./blocks/events/upcoming.tsx";
     expect(await read("owned")).toMatchObject({ renderer: "owned", hidden: true });
   });
+  test("presentation roles come from every discovered spec without importing renderers or validators", async () => {
+    const root = await fixture(), s = await spec();
+    await put(root, "blocks/events/upcoming", {...s, role: "hero"});
+    await put(root, "blocks/core/upcoming", {...s, name: "core/upcoming", role: "content"});
+    const generated = await syncBlocks({root});
+    expect(generated.changed).toContain("roles.ts");
+    const file = path.join(root, "blocks/.generated/roles.ts");
+    const source = await readFile(file, "utf8");
+    expect(source).not.toMatch(/import\s/);
+    const {blockRoles} = await import(pathToFileURL(file).href);
+    expect(blockRoles).toEqual({"events/upcoming": "hero", "core/upcoming": "content"});
+  });
   test("generated validators initialize only on first use and retain defaults, field access and schema identity", async () => {
     const root=await fixture(),s=await spec();await put(root,"blocks/events/upcoming",s);await put(root,"blocks/core/upcoming",{...s,name:"core/upcoming"});await syncBlocks({root});
     const file=path.join(root,"blocks/.generated/schemas.ts"),source=await readFile(file,"utf8");
@@ -76,7 +88,7 @@ describe("schema-first generation", () => {
     const root = await fixture(), s = await spec();
     await put(root, "blocks/events/upcoming", s);
     const generated = await syncBlocks({ root });
-    expect(generated.changed.length).toBe(26);
+    expect(generated.changed.length).toBe(27);
     expect(generated.changed).toContain("spec-runtime.mjs");
     expect(generated.changed).toContain("spec-runtime.d.mts");
     expect(generated.changed).toContain("patterns.ts");

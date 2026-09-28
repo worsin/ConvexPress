@@ -19,6 +19,7 @@
     "patterns.ts": "2ec3505c0b75e44834a38aaf79a8ec7d6ce9f9c2273bb76b267eb7896449906e",
     "promotions.ts": "7545ede36ecd059123045889f0aa32d6c0c9f4b157fc29ace43d597a942633eb",
     "renderer-coverage.ts": "83f31347862364f7943ff6db161ae67d8a6d90e5f9a410bbcc86da30a16f76bf",
+    "roles.ts": "ba744ac0a275c3ab8a661b58b55b12738138cbd5b0266ac868c79c7c8b3c62f3",
     "schemas.ts": "0d72ea2cf975d8a6086e54e22aff07db7956c2bb4a93a5f401de8cd4f71ac958",
     "search-text.ts": "d4965fedcd5de6ce611fb89ccb87b7949003ffcf94565a857f066b979a64cc69",
     "spec-runtime.d.mts": "058444113df685e9bdf140e237ea817e457a3a588f8941b577ac1f81fddced55",

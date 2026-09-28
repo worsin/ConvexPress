@@ -7,7 +7,7 @@
     "In progress": 77
   },
   "goal": "Complete block editor and template delivery plus all demonstrated blockers; defer unrelated whole-app audit campaigns.",
-  "currentTask": "Task 2 \u2014 remaining navigation family and canonical loading/role contracts; Task1 reconciliation complete",
+  "currentTask": "Task 2 \u2014 canonical per-block lazy loading and remaining navigation/field acceptance; Task1 reconciliation complete",
   "tasks": [
     {
       "id": 1,
@@ -145,8 +145,8 @@
     },
     {
       "id": "E21",
-      "classification": "missing implementation",
-      "status": "PageContent and Journal/Depot/Aster page surfaces retain handwritten HERO_BLOCKS lists alongside canonical dispatch. Trace and replace active lists with generated roles; preserve legacy output until Task4 migration/retirement. Legacy1396-line registry remains."
+      "classification": "implemented; live acceptance pending",
+      "status": "Root cause confirmed: v2 page DTO intentionally omits raw blocks, so every old hero list misses canonical openings. Generated141-line roles map plus PublicCanonicalBody renderLayout now derives the title from the current validated public response; four page consumers use it, legacy banner alias retained. Generator, actual four-page layout/SSR lifecycle fixtures, access-loss and privacy boundary pass; final built Website/native batch acceptance remains pending. No tracker row changed."
     },
     {
       "id": "E22",

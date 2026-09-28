@@ -1,3 +1,4 @@
+import {dependencyDescriptors} from "../block-data/portable/generated/metadata";
 import {productHistoryDigest} from "../block-data/portable/productCollectionContracts";
 import {resolveCanonicalData} from "../block-data/portable/resolve";
 import {validateCanonicalTree} from "../block-data/portable/generated/instances";
@@ -42,10 +43,16 @@ let transport = {
 	},
 };
 mock.module("@/lib/auth/clerk", () => ({ useAuth: () => auth }));
-mock.module("@tanstack/react-router",()=>({useLocation:({select})=>select({href:"/page/page"})}));
+const actualRouter = await import("@tanstack/react-router");
+mock.module("@tanstack/react-router",()=>({...actualRouter,useLocation:({select})=>select({href:"/page/page"})}));
+const actualConvexReact = await import("convex/react");
 mock.module("convex/react", () => ({
+  ...actualConvexReact,
 	useConvex: () => transport,
 	useConvexAuth: () => convexAuth,
+  useQuery: () => { throw Error("Unexpected direct page query"); },
+  useMutation: () => { throw Error("Unexpected page mutation hook"); },
+  useAction: () => { throw Error("Unexpected page action hook"); },
 }));
 mock.module("@/lib/site-runtime", () => ({
 	getSiteRuntime: () => ({ instanceKey: siteInstance }),
@@ -254,13 +261,13 @@ test("anonymous SSR handoff preserves the disclosure DOM and an in-flight pointe
 });
 
 
-async function withSeededBody(initial,check){
+async function withSeededBody(initial,check,bodyProps={},pageView){
  auth={isLoaded:true,isSignedIn:false,userId:null,sessionId:null};convexAuth={isLoading:false,isAuthenticated:false};siteInstance='stage';history={ids:[],ready:true};
  const dom=new JSDOM('<div id="app"></div>',{url:'https://site.example.invalid'}),previous={};
  for(const name of ['window','document','navigator','HTMLElement','Event','IS_REACT_ACT_ENVIRONMENT']){previous[name]=Object.getOwnPropertyDescriptor(globalThis,name);Object.defineProperty(globalThis,name,{configurable:true,writable:true,value:name==='IS_REACT_ACT_ENVIRONMENT'?true:dom.window[name]});}
  const {createRoot}=await import('react-dom/client'),root=createRoot(document.getElementById('app'));
  const props={documentId:'page',initial};
- const render=()=>act(async()=>root.render(<PublicCanonicalScope {...props}><PublicCanonicalBody documentId={props.documentId}/></PublicCanonicalScope>));
+ const render=()=>act(async()=>root.render(<PublicCanonicalScope {...props}>{pageView ? pageView() : <PublicCanonicalBody documentId={props.documentId} {...bodyProps}/>}</PublicCanonicalScope>));
  try{await render();await check({props,render});}finally{await act(async()=>root.unmount());dom.window.close();siteInstance='stage';history={ids:[],ready:true};for(const [name,value] of Object.entries(previous)){if(value)Object.defineProperty(globalThis,name,value);else delete globalThis[name];}}
 }
 test('public reusable source-only updates reach the display and revoke the previous installation without a page revision change',async()=>{
@@ -325,4 +332,59 @@ test('the real public document lifecycle binds custom definitions and clears the
   expect(document.querySelector('article')).toBeNull();
   expect(()=>readInstalledPageData(installed.data,installed.tree,installed.policy,installed.composed)).toThrow('invalidated');
  });
+});
+
+
+test('template layout uses the current validated public opening role and restores the title on access loss', async()=>{
+ const layout=(body,opensWithHero)=><>{!opensWithHero&&<h1>Page heading</h1>}<div data-slot="body-wrapper">{body}</div></>;
+ await withSeededBody(ready(null),async()=>{
+  expect(document.querySelector('h1')?.textContent).toBe('Page heading');
+  const w=watches.at(-1), count=watches.length;
+  const deliver=async value=>{w.value=value;await act(async()=>w.listener());};
+  for(const name of ['core/hero-text-only','core/hero-video']){
+   const value=ready(null);
+   value.policy.capabilities=['reference.targetResolution'];
+   value.document.blocks=validateCanonicalTree([{id:'opening',name,version:dependencyDescriptors[name].version,attrs:{title:'Hero heading'}}]);
+   value.document.digest=canonicalContentDigest(value.document.title,value.document.blocks);
+   value.data=await resolveCanonicalData(value.document.blocks,scope,value.policy,async()=>null);
+   await deliver(value);
+   expect(document.querySelector('h1')).toBeNull();
+   expect(document.querySelector('[data-slot="body-wrapper"]')?.textContent).toContain('Authorized body');
+  }
+  await deliver(ready(null));
+  expect(document.querySelector('h1')?.textContent).toBe('Page heading');
+  await deliver(new Error('access revoked'));
+  expect(document.querySelector('h1')?.textContent).toBe('Page heading');
+  expect(document.body.textContent).not.toContain('Authorized body');
+  expect(watches.length).toBe(count);
+ },{renderLayout:layout});
+});
+
+
+test('all four actual page surfaces suppress their title only for the current canonical hero',async()=>{
+ const {PageContent}=await import('../../../components/blog/PageContent');
+ const {default:Journal}=await import('../../packs/journal/surfaces/page');
+ const {default:Depot}=await import('../../packs/depot/surfaces/page');
+ const {default:Aster}=await import('../../packs/aster-house/surfaces/page');
+ const page={_id:'page',title:'Template page title',slug:'page',path:'/page',content:null,blocksVersion:2,contentMode:'blocks',children:[],breadcrumbs:[]};
+ const views=[()=> <PageContent page={page}/>, ...[Journal,Depot,Aster].map(Surface=>()=> <Surface data={{page}} variant="no-sidebar"/>)];
+ for(const view of views){
+  await withSeededBody(ready(null),async()=>{
+   expect(document.querySelector('h1')?.textContent).toBe(page.title);
+   const value=ready(null), name='core/hero-video';
+   value.policy.capabilities=['reference.targetResolution'];
+   value.document.blocks=validateCanonicalTree([{id:'opening',name,version:dependencyDescriptors[name].version,attrs:{title:'Hero heading'}}]);
+   value.document.digest=canonicalContentDigest(value.document.title,value.document.blocks);
+   value.data=await resolveCanonicalData(value.document.blocks,scope,value.policy,async()=>null);
+   const {renderToStaticMarkup}=await import('react-dom/server');
+   const ssr=renderToStaticMarkup(<PublicCanonicalScope documentId="page" initial={value}>{view()}</PublicCanonicalScope>);
+   expect(ssr).not.toContain('<h1');
+   expect(ssr).toContain('Authorized body');
+   const w=watches.at(-1);w.value=value;await act(async()=>w.listener());
+   expect(document.querySelector('h1')).toBeNull();
+   expect(document.body.textContent).toContain('Authorized body');
+   w.value=ready(null);await act(async()=>w.listener());
+   expect(document.querySelectorAll('h1')).toHaveLength(1);
+  },{},view);
+ }
 });

@@ -155,3 +155,9 @@ Historical broad statements such as “all original24audit gates” or “packag
 | `reference/field-guide` | 4 / text-migration | Native all authored fields and closed editorial treatment axes, explicit lossless legacy conversion/restore, images/links and final four-pack treatment parity. |
 | `local/sample-alert` | 2 / social-utilities | Reuse deployed action validation; native notice variants, empty/long message and actual destination, every pack's final visual signoff. |
 | `blocks/studio-services` | 7 / sdk-promotion | Reuse native exact promoted package/immutable history and pack refresh; final full field/variant review and one-line compose/style/promote workflow acceptance. |
+
+## Follow-through: canonical page headings
+
+E21 is implemented locally after this inventory checkpoint. Public page projection deliberately omits v2 bodies; the old name checks consequently missed every canonical hero, not just `core/hero-video`. The new 141-line generated role map comes from each spec. `PublicCanonicalBody.renderLayout` shares its current validated response with the template's title decision, with no second subscription or raw-body projection. Core's PageContent and Journal/Depot/Aster page surfaces now consume it. The historical `blocks/page-banner` alias remains one explicit compatibility case until Task4.
+
+Focused generator, role, public lifecycle, four real page-layout DOM/SSR fixture and privacy-boundary checks pass. These fixtures isolate block painting; they do not replace live Website/native acceptance. See `ConvexPress-Admin/audits/2026-09-04/canonical-page-headings-20260928.md`. E20 per-block loading and E22 evidence-path reconciliation remain open. Tracker remains60Verified/77In progress.

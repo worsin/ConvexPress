@@ -1,3 +1,4 @@
+import { legacyPageOpensWithHero } from "@/lib/blog/page-opening";
 import { PublicCanonicalBody } from "@/templates/sdk/block-public/PublicCanonicalBody";
 /**
  * Depot · page — a page laid out by measure.
@@ -22,14 +23,6 @@ import { Card, Container, Label, Prose } from "../parts";
 
 const VARIANTS = ["default", "sidebar-right", "sidebar-left", "full-width", "no-sidebar", "landing", "blank"] as const;
 type PageVariant = (typeof VARIANTS)[number];
-
-const HERO_BLOCKS = new Set(["core/hero", "core/hero-split", "core/hero-text-only", "blocks/page-banner"]);
-
-function opensWithHero(page: PageDetail): boolean {
-  if (page.contentMode !== "blocks") return false;
-  const first = page.blocks?.[0];
-  return !!first && HERO_BLOCKS.has(first.name);
-}
 
 export default function DepotPage({ data, variant }: SurfaceProps<PageSurfaceData>) {
   const { page, className } = data;
@@ -104,9 +97,12 @@ function PageBody({ page, title = true }: { page: PageDetail; title?: boolean })
           <img src={page.featuredImageUrl} alt={page.featuredImageAlt ?? page.title} className="aspect-video w-full object-cover" loading="eager" />
         </figure>
       )}
-      {title && !opensWithHero(page) && <h1 className="font-display text-2xl font-semibold tracking-tight text-foreground md:text-3xl">{page.title}</h1>}
+      {title && page.blocksVersion !== 2 && !legacyPageOpensWithHero(page) && <h1 className="font-display text-2xl font-semibold tracking-tight text-foreground md:text-3xl">{page.title}</h1>}
       {page.blocksVersion === 2 ? (
-        <PublicCanonicalBody documentId={page._id} />
+        <PublicCanonicalBody documentId={page._id} renderLayout={(body, hasHero) => <>
+          {title && !hasHero && <h1 className="font-display text-2xl font-semibold tracking-tight text-foreground md:text-3xl">{page.title}</h1>}
+          {body}
+        </>} />
       ) : page.contentMode === "blocks" ? (
         <BlockListRenderer blocks={page.blocks && page.blocks.length > 0 ? page.blocks : pageSectionsToBlocks(page.pageSections)} />
       ) : page.content ? (
