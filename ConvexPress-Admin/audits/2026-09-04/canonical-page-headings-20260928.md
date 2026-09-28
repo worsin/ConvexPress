@@ -1,6 +1,6 @@
 # Canonical page headings — September 28
 
-Status: implemented and locally verified; live Website/native acceptance remains pending in Task2. No tracker row or backend data changed. This closes the source defect behind E21, not the full editor/template goal.
+Status: implemented and verified, including the later actual built Website/native follow-through documented below. No tracker row or backend data changed. This closes the source defect behind E21, not the full editor/template goal.
 
 ## Failed workflow and causal boundary
 
@@ -28,3 +28,7 @@ Evidence directory: `output/delivery-reconciliation-20260928/`.
 - Website TypeScript, root check:blocks and check:block-kit pass. Template SSR smoke passes four home loading/registry cases, Aster cover, selective hydration and legacy streamed markup. The new page-layout SSR fixture supplements that existing limited smoke; it does not claim every template surface was audited.
 
 No backend deployment was needed. User Electron PID39198 remains running. The pending follow-through is the next actual built Website/native batch; E20 lazy renderer chunks and E22 prescribed screenshot evidence mapping are still open. Tracker remains60Verified/77In progress.
+
+## Live follow-through
+
+See `canonical-lazy-renderers-20260928.md`: actual native authoring/save/reload plus16 built public cases across4packs at1440/390. Hero-first suppresses the template title; ordinary-first restores exactly one. All cases have no page/hydration errors or horizontal overflow. The owned fixture and sessions were cleaned with42 original pages/appearance preserved. E20 selective loading is accepted; the separate whole-bundle budget and E22 remain open.

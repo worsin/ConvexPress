@@ -89,7 +89,7 @@ This list includes all concrete blockers and material acceptance gaps found in t
 
 Other original audit findings remain in `current-acceptance.md`. Payment/refund renewal matrices, multi-provider account/domain onboarding, signed Windows/macOS distribution, maximum backup capacity and full fleet scheduling are **deferred independent deliverables**. Bring one into this plan only when its concrete failure blocks an editor/template requirement, and only through the blocker procedure above. Existing site/organization isolation, safe publication and customer/operator boundaries must remain intact throughout.
 
-September28 reconciliation: Task1 is complete. See `2026-09-28-delivery-reconciliation.md` for all77 pending row checks, the complete handoff-clause map, and newly confirmed E20 eager block imports, E21 handwritten hero roles and E22 prescribed screenshot-path failure. These remain delivery work, not accepted completion.
+September28 reconciliation: Task1 is complete. See `2026-09-28-delivery-reconciliation.md` for all77 pending row checks, the complete handoff-clause map, and newly confirmed E20 eager block imports, E21 handwritten hero roles and E22 prescribed screenshot-path failure. E20/E21 subsequently passed focused live acceptance (see canonical-lazy-renderers-20260928.md); E22 and the whole-bundle budget remain open.
 
 ## 5. File ownership and interfaces
 

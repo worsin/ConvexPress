@@ -80,3 +80,32 @@ for (const expected of ['data-slot="block-list-renderer"', 'Legacy compatibility
 }
 if (legacyHtml.includes('Switched to client rendering')) throw Error('Deferred legacy SSR fell back to client rendering');
 console.log('Deferred legacy SSR passed: escaped text, disabled existing content and native disclosure preserved');
+
+// Real lazy canonical discovery must stream complete nested, reusable and custom
+// trees. These are explicit offline fixtures, never public-data fallbacks.
+const { CanonicalDocumentView } = await import('../src/templates/sdk/block-preview/CanonicalDocumentView');
+const { sharedPlacements, syncedExample } = await import('../block-demo/synced-adapter');
+const { encodeComposedDefinition } = await import('../src/templates/sdk/block-data/portable/composedDefinitions');
+const blockScope = {websiteKey:'ssr-fixture',instanceKey:'ssr-fixture'};
+const blockPolicy = {enabledPlugins:[],capabilities:['tree.children','reference.targetResolution'],disabledBlocks:[]};
+const rich = (text: string) => ({type:'doc',content:[{type:'paragraph',content:[{type:'text',text}]}]});
+const nestedTree = [{id:'parent',name:'core/section',version:1,attrs:{},children:[{id:'title',name:'core/heading',version:2,attrs:{level:2,text:rich('Lazy nested heading')}},{id:'copy',name:'core/paragraph',version:2,attrs:{body:rich('Lazy nested paragraph')}}]}];
+const shared = syncedExample(sharedPlacements,blockScope);
+const customScope={...blockScope,deploymentOrigin:'https://ssr-fixture.invalid'};
+const customSpec={name:'composed/lazy-introduction',title:'Lazy introduction',description:'SSR fixture',category:'text',role:'content',version:1,keywords:[],ai:{useFor:'SSR fixture',avoid:'Production content'},fields:[{id:'title',type:'text',default:'Lazy custom introduction',max:80}],supports:{children:true,styles:false,layout:['tone'],anchor:true,visibility:false},data:null,preview:'{title}',examples:[{}]};
+const encoded=encodeComposedDefinition({spec:customSpec,composition:{version:1,root:{el:'Stack',children:[{el:'Heading',bind:'attrs.title'},{el:'Slot',props:{name:'children'}}]}}});
+const custom={scope:customScope,definitions:{scope:customScope,definitions:[{name:customSpec.name,version:1,digest:encoded.digest,definitionJson:encoded.json}]}};
+for(const packId of ['core','journal','depot','aster-house']){
+ for(const scenario of [
+  {name:'nested',tree:nestedTree,expected:['Lazy nested heading','Lazy nested paragraph']},
+  {name:'reusable',tree:shared.blocks,synced:shared.synced,scope:blockScope,expected:['One idea. Everywhere.','A small studio with a shared point of view.']},
+  {name:'custom',tree:[{id:'custom',name:customSpec.name,version:1,attrs:{},children:[nestedTree[0]]}],composed:custom,expected:['Lazy custom introduction','Lazy nested heading']},
+ ]){
+  const stream=await renderToReadableStream(createElement(Suspense,{fallback:createElement('p',null,'Waiting for blocks')},createElement(CanonicalDocumentView,{...scenario,packId,policy:blockPolicy,resources:{media:{}}})));
+  await stream.allReady;const html=await new Response(stream).text();
+  for(const expected of scenario.expected)if(!html.includes(expected))throw Error(`${packId}/${scenario.name}: omitted ${expected}`);
+  if(html.includes('Waiting for blocks')||html.includes('Switched to client rendering'))throw Error(`${packId}/${scenario.name}: incomplete canonical SSR`);
+  if(!html.includes('data-canonical-pack="'+packId+'"'))throw Error('Missing canonical hydration marker');
+  console.log('Lazy canonical SSR passed: '+packId+'/'+scenario.name);
+ }
+}

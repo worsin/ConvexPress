@@ -7,7 +7,7 @@
     "In progress": 77
   },
   "goal": "Complete block editor and template delivery plus all demonstrated blockers; defer unrelated whole-app audit campaigns.",
-  "currentTask": "Task 2 \u2014 canonical per-block lazy loading and remaining navigation/field acceptance; Task1 reconciliation complete",
+  "currentTask": "Task 2 \u2014 autosave conflict routing (Opus04 F13), then remaining navigation/field acceptance; E20/E21 focused live acceptance complete",
   "tasks": [
     {
       "id": 1,
@@ -140,13 +140,13 @@
     },
     {
       "id": "E20",
-      "classification": "missing implementation",
-      "status": "Canonical discovery eagerly imports all Library and owned-pack renderers, contrary to per-block lazy chunk handoff. Task2 must preserve SSR, contract/data preparation and preview continuity while loading only needed modules; final bundle gate Task8."
+      "classification": "accepted/reusable evidence",
+      "status": "Selective canonical loading accepted:137 Library/32owned dynamic entries, no static entry block imports; real native incremental insertion/save/reload and16 four-pack public viewport cases pass. Nested/reusable/custom SSR and BlockDemo pass. Suspense moved above grant installation plus selected SSR preloads resolve observed hydration failure without weakening revocation. Full main-bundle budget remains failing under Task8. See canonical-lazy-renderers-20260928.md."
     },
     {
       "id": "E21",
-      "classification": "implemented; live acceptance pending",
-      "status": "Root cause confirmed: v2 page DTO intentionally omits raw blocks, so every old hero list misses canonical openings. Generated141-line roles map plus PublicCanonicalBody renderLayout now derives the title from the current validated public response; four page consumers use it, legacy banner alias retained. Generator, actual four-page layout/SSR lifecycle fixtures, access-loss and privacy boundary pass; final built Website/native batch acceptance remains pending. No tracker row changed."
+      "classification": "accepted/reusable evidence",
+      "status": "Generated spec roles and validated public body layout decision accepted in actual built Website:8 hero-first cases suppress template title and8 ordinary-first cases restore exactly one title across4packs/2viewports. Native authoring/save/reload passes. No raw-body DTO projection or tracker change. See canonical-page-headings-20260928.md and canonical-lazy-renderers-20260928.md."
     },
     {
       "id": "E22",
@@ -3413,7 +3413,11 @@
     "ConvexPress-Admin/audits/2026-09-04/editor-pointer-baseline-20260928.md",
     "output/editor-pointer-20260928/scroll-proof.json",
     "output/editor-pointer-20260928/reopen-proof.json",
-    "docs/superpowers/plans/2026-09-28-delivery-reconciliation.md"
+    "docs/superpowers/plans/2026-09-28-delivery-reconciliation.md",
+    "ConvexPress-Admin/audits/2026-09-04/canonical-lazy-renderers-20260928.md",
+    "output/editor-lazy-renderers-20260928/four-pack-public.json",
+    "output/editor-lazy-renderers-20260928/four-pack-ordinary.json",
+    "output/editor-lazy-renderers-20260928/cleanup.json"
   ],
   "trackerRefresh": {
     "source": "output/editor-pointer-20260928/mt-readback.json",
@@ -3430,7 +3434,7 @@
   "coordination": {
     "folder": "/Users/worsin/Development/ConvexPress/Opus Audits/",
     "authority": "Codex leads; Claude audits are advisory and independently verified",
-    "lastAudit": "2026-09-28T1320-audit-02-opening-navigation-closure.md"
+    "lastAudit": "2026-09-28T1520-audit-04-task1-closure-autosave-conflict.md"
   },
   "sessionBaseCommit": "9824d9605e50c4b0ebd711c13715b506f8ef5bd3"
 }

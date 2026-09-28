@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { opensWithHero } from "@/lib/blog/page-opening";
 import {ProductionLeadMagnetProvider} from "../block-renderer/lead-magnet-production";
 import { ProductionDownloadLibraryProvider } from "../block-renderer/download-library-production";
@@ -213,12 +214,14 @@ function PublicResult({
 			</section>
 		);
 	return (
+    <Suspense fallback={<Loading />}>
 		<InstalledPublicDocument
 			key={`${generation}:${canonicalDisplayDigest(value)}`}
 			value={value}
 			generation={generation}
       password={password}
 		/>
+    </Suspense>
 	);
 }
 function InstalledPublicDocument({
