@@ -7,7 +7,7 @@
     "In progress": 74
   },
   "goal": "Complete block editor and template delivery plus all demonstrated blockers; defer unrelated whole-app audit campaigns.",
-  "currentTask": "Task 2 \u2014 Menu default and Child Pages depth blockers repaired; complete remaining family acceptance and investigate initial public focus loss before row closure",
+  "currentTask": "Task 2 \u2014 E26 initial public focus loss repaired and accepted across four packs; resume remaining Menu/Child Pages family acceptance",
   "tasks": [
     {
       "id": 1,
@@ -170,8 +170,8 @@
     },
     {
       "id": "E26",
-      "classification": "reproduced defect",
-      "status": "Public navigation acceptance observed focus leaving Seasons link for BODY during initial render/live handoff despite no page errors. Diagnostic shows original DOM node detached and later focus loss around2seconds; exact causal remount/source not yet established. Preserve initial-render failure as open; settled captures are not keyboard signoff. Investigate the public display lifecycle with a focused regression, preserving grant revocation and viewer boundaries. Menu/Child Pages rows remain pending."
+      "classification": "accepted/reusable evidence",
+      "status": "Three reproduced boundaries repaired: session provider anonymous readiness, lead-magnet provider anonymous readiness, and initial display-grant revocation before replacement commit. Failing-before regressions plus actual early SSR keyboard focus, identical DOM node through hydration, and Enter navigation pass for all four packs at1440/390. No console/page errors or overflow. Identity changes, grant cleanup/replay and stale operation rejection still pass. All42 original pages and appearance preserved, owned API session revoked. See public-focus-hydration-20260928.md. Menu/Child Pages full rows remain pending; tracker63/74 unchanged."
     }
   ],
   "blocks": [
@@ -3453,7 +3453,10 @@
     "output/editor-autosave-conflicts-20260928/cleanup.json",
     "ConvexPress-Admin/audits/2026-09-04/navigation-completion-20260928.md",
     "output/navigation-completion-20260928/mt-accept-verified.json",
-    "output/navigation-completion-20260928/cleanup.json"
+    "output/navigation-completion-20260928/cleanup.json",
+    "ConvexPress-Admin/audits/2026-09-04/public-focus-hydration-20260928.md",
+    "output/public-focus-20260928/live-matrix.json",
+    "output/public-focus-20260928/source-sha256.json"
   ],
   "trackerRefresh": {
     "source": "output/navigation-completion-20260928/mt-accept-after.json",
@@ -3475,7 +3478,7 @@
   "coordination": {
     "folder": "/Users/worsin/Development/ConvexPress/Opus Audits/",
     "authority": "Codex leads; Claude audits are advisory and independently verified",
-    "lastAudit": "2026-09-28T1520-audit-04-task1-closure-autosave-conflict.md"
+    "lastAudit": "2026-09-28T1620-audit-05-f13-e20-closure.md"
   },
   "sessionBaseCommit": "9824d9605e50c4b0ebd711c13715b506f8ef5bd3"
 }

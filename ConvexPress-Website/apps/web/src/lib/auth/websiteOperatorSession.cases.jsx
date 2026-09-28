@@ -42,6 +42,41 @@ async function environment(run) {
   finally { await act(async () => root.unmount()); showEditor = false; editorOwner = "one:staging:alice"; globalThis.fetch = oldFetch; dom.window.close(); for (const [key, desc] of Object.entries(prior)) { if (desc) Object.defineProperty(globalThis, key, desc); else delete globalThis[key]; } }
 }
 
+test("anonymous auth readiness preserves focused content; authority changes still replace it", async () => environment(async ({ root }) => {
+  window.history.replaceState(null, "", "/");
+  const original = { ...customer }, client = {};
+  const render = () => act(async () => root.render(<StrictMode><SessionBoundConvexProvider client={client}>
+    <a href="#details">Read the guide</a><details><summary>Details</summary>Content</details>
+  </SessionBoundConvexProvider></StrictMode>));
+  try {
+    Object.assign(customer, { isLoaded: false, isSignedIn: undefined, userId: undefined, sessionId: undefined, orgId: undefined });
+    await render();
+    const link = document.querySelector("a"), disclosure = document.querySelector("details");
+    link.focus(); disclosure.open = true;
+    Object.assign(customer, { isLoaded: true, isSignedIn: false, userId: null, sessionId: null, orgId: null });
+    await render();
+    expect(document.querySelector("a") === link).toBe(true);
+    expect(document.activeElement === link).toBe(true);
+    expect(disclosure.open).toBe(true);
+    let previous = link;
+    for (const changed of [
+      { isSignedIn: true, userId: "first", sessionId: "first-session" },
+      { sessionId: "second-session" },
+      { orgId: "other-organization" },
+      { userId: "second", sessionId: "third-session" },
+      // Unresolved authority cannot retain a previously authenticated subtree,
+      // even if the provider temporarily keeps its old identity fields.
+      { isLoaded: false },
+      { isLoaded: true },
+      { isSignedIn: false, userId: null, sessionId: null, orgId: null },
+    ]) {
+      Object.assign(customer, changed); await render();
+      expect(previous.isConnected).toBe(false);
+      previous = document.querySelector("a");
+    }
+  } finally { Object.assign(customer, original); }
+}));
+
 test("StrictMode redeems once, removes the secret, separates customer authority and remounts on explicit end", async () => environment(async ({ render }) => {
   let resolve, calls = 0;
   globalThis.fetch = () => { calls++; expect(window.location.hash).toBe(""); return new Promise(done => { resolve = done; }); };

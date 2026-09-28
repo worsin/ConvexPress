@@ -17,6 +17,11 @@ export function ProductionLeadMagnetProvider({children,password}:{children:React
  const hydrated=useSyncExternalStore(subscribeHydration,hydratedSnapshot,serverHydrationSnapshot);
  const submitAction=useAction(request),unsubscribe=useMutation(optOut),convex=useConvex(),auth=useConvexAuth(),connection=useLiveConnection(),user=useAuth();
  const scope=JSON.stringify([convex.url,getSiteRuntime().instanceKey,user.userId??null,user.sessionId??null,user.isSignedIn,auth.isLoading,auth.isAuthenticated,password??null]);
+ // Public children survive anonymous auth initialization. Operation ownership
+ // still uses the full readiness scope above, so stale callbacks cannot revive.
+ // Preserve authenticated loading resets as well as real identity changes.
+ const identified=!!(user.userId||user.sessionId||user.isSignedIn||auth.isAuthenticated);
+ const viewScope=JSON.stringify([convex.url,getSiteRuntime().instanceKey,user.userId??null,user.sessionId??null,!!user.isSignedIn,identified?auth.isLoading:false,auth.isAuthenticated,password??null]);
  const available=hydrated&&!auth.isLoading&&connection.isWebSocketConnected&&(!user.isSignedIn||auth.isAuthenticated);
  const availability=useRef(available);availability.current=available;
  const current=useRef({scope}),lifetime=useRef({active:false,generation:0}),attempts=useRef(new Map<string,Attempt>()),receipts=useRef(new Map<string,Attempt>());
@@ -54,5 +59,5 @@ export function ProductionLeadMagnetProvider({children,password}:{children:React
    const link=document.createElement("a");link.href=path;link.download=receipt.fileName;document.body.appendChild(link);link.click();link.remove();
   },unsubscribe:async(receipt)=>{const guard=authorize();const attempt=receipts.current.get(receipt.id);if(!attempt)throw Error("This request is no longer available in this tab.");await unsubscribe({leaseId:receipt.id,secret:attempt.secret});guard();}};
  },[hydrated,scope,auth.isLoading,auth.isAuthenticated,connection.isWebSocketConnected,user.isSignedIn,password,submitAction,unsubscribe]);
- return <LeadMagnetProvider key={scope} value={value}>{children}</LeadMagnetProvider>;
+ return <LeadMagnetProvider key={viewScope} value={value}>{children}</LeadMagnetProvider>;
 }

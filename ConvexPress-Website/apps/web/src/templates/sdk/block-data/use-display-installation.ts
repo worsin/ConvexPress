@@ -35,11 +35,15 @@ function install(source: DisplaySource, viewerKey: string) {
  * previous viewer's installation while waiting for an effect.
  */
 export function useDisplayInstallation(source: DisplaySource, viewerKey: string) {
-  const seed = useMemo(() => install(source, viewerKey), [source, viewerKey]);
+  const seed = useMemo(() => ({ ...install(source, viewerKey), committed: false }), [source, viewerKey]);
   const [active, setActive] = useState<({ seed: typeof seed } & ReturnType<typeof install>) | null>(null);
   useEffect(() => {
-    const next = install(source, viewerKey);
-    seed.store.invalidate();
+    // Adopt the SSR/hydration grant for its first committed lifetime. Revoking
+    // it here makes external-store subscribers clear their DOM synchronously,
+    // before the parent can commit the replacement state (and loses focus).
+    // Cleanup still revokes it; StrictMode replay receives a fresh grant.
+    const next = seed.committed ? install(source, viewerKey) : seed;
+    seed.committed = true;
     setActive({ seed, ...next });
     return () => next.store.invalidate();
   }, [seed]);
