@@ -278,3 +278,5 @@ No arbitrary implementation/token cap is imposed by this guide; a cap must not f
 - [ ] The owner receives working instructions and concrete artifacts. Broader deferred production findings remain accurately documented.
 
 A planning document is not progress toward these checkboxes by itself. Execution must change the deliverable or obtain evidence that closes a real outstanding requirement.
+
+September28 navigation completion:63Verified/74In progress after Table of Contents, Anchor Nav and Site Info passed their remaining native/public/field gates. See `ConvexPress-Admin/audits/2026-09-04/navigation-completion-20260928.md`. Task2 continues with Menu/Child Pages and remaining families; full delivery remains open.

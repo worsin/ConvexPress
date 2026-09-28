@@ -169,3 +169,7 @@ Selective canonical loading now passes real native incremental insertion/save/re
 ## Opus04 F13 follow-through
 
 E23 records the reproduced private-autosave conflict routing repair. Controlled lost-reply/accepted-revision/local-Save overlap cases and actual two-native-window automatic/simultaneous conflict choices pass. See `ConvexPress-Admin/audits/2026-09-04/editor-autosave-conflicts-20260928.md` for the exact boundary and cleanup. E19 remains accepted. Resume remaining Task2 family acceptance; tracker unchanged60/77.
+
+## Three navigation rows accepted
+
+Table of Contents, Anchor Nav and Site Info now close their block-specific gaps using native authoring/save/reopen/exact restoration, actual public4pack/2viewport behavior and focused boundary checks. `navigation-completion-20260928.md` records the preserved evidence and limits. Site Info has logo/name/tagline; the earlier contact-destinations phrase was not part of its actual contract. Full tracker readback is63Verified/74In progress; other cells unchanged. Menu/Child Pages are the next navigation batch. The77-row inventory above remains the historical reconciliation checkpoint, with these3rows now accepted.

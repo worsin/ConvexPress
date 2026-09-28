@@ -111,3 +111,19 @@ test('hidden source rows also count toward the directory traversal bound',async(
  });
  await expect(t.run(async ctx=>{const document=await ctx.db.get('posts',ids.parent);if(!document)throw Error();return createNavigationReader(ctx,{document,tree:[]})('content.childPages',{depth:1});})).rejects.toThrow('80-source limit');
 });
+
+test('heading projection preserves all levels and maximum text, excludes cleared labels and follows edits without changing derived targets', async()=>{
+ const {t,ids}=await fixture();
+ const rich=(text:string)=>({type:'doc',content:[{type:'paragraph',content:[{type:'text',text}]}]});
+ const tree=Array.from({length:79},(_,i)=>({id:`heading-${i}`,name:'core/heading',version:2,attrs:{level:i%6+1,text:rich(i===0?'A'.repeat(200):`Section ${i}`)}}));
+ const read=(nodes:unknown)=>t.run(async ctx=>{const document=await ctx.db.get('posts',ids.child);if(!document)throw Error();return createNavigationReader(ctx,{document,tree:nodes})('content.headings',{});});
+ const first=await read(tree);if(!('items' in first))throw Error();
+ expect(first.items).toHaveLength(79);expect(first.items[0]).toMatchObject({label:'A'.repeat(200),level:1});
+ expect(new Set(first.items.map(item=>'anchor' in item?item.anchor:null)).size).toBe(79);
+ expect(first.items.slice(0,6).map(item=>'level' in item?item.level:null)).toEqual([1,2,3,4,5,6]);
+ const changed=structuredClone(tree);changed[0].attrs.text=rich('Renamed section');changed[1].attrs.text=rich('');changed.splice(2,1);
+ const next=await read(changed);if(!('items' in next))throw Error();
+ expect(next.items).toHaveLength(77);expect(next.items[0]).toEqual({...first.items[0],label:'Renamed section'});
+ expect(next.items.some(item=>'anchor' in item&&'anchor' in first.items[1]&&item.anchor===first.items[1].anchor)).toBe(false);
+ expect(await read([])).toEqual({items:[]});
+});

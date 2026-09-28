@@ -1,13 +1,13 @@
 {
   "plan": "2026-09-28-editor-template-delivery.md",
   "baselineCommit": "d0fee8acceb408fd306a15f3c054322cb73ac8bc",
-  "checkpointSource": "output/editor-template-20260928/mt-accept-after.json",
+  "checkpointSource": "output/navigation-completion-20260928/mt-accept-after.json",
   "checkpointCounts": {
-    "Verified": 60,
-    "In progress": 77
+    "Verified": 63,
+    "In progress": 74
   },
   "goal": "Complete block editor and template delivery plus all demonstrated blockers; defer unrelated whole-app audit campaigns.",
-  "currentTask": "Task 2 \u2014 remaining navigation/field acceptance; E20/E21 and Opus04 F13 follow-through verified",
+  "currentTask": "Task 2 \u2014 remaining Menu/Child Pages variants, then business and native field families; three navigation rows accepted",
   "tasks": [
     {
       "id": 1,
@@ -337,9 +337,9 @@
       "name": "core/table-of-contents",
       "title": "Table of contents",
       "category": "Text",
-      "checkpointStatus": "In progress",
-      "nextClassification": "Reviewed against live Notes and current canonical specification; Reuse native depth2/3 and target-focus proof; inspect optional title, heading limits/empty states and source parity before closure.",
-      "classification": "missing evidence",
+      "checkpointStatus": "Verified",
+      "nextClassification": "Retain verified block evidence; recheck only changed dependencies.",
+      "classification": "accepted/reusable evidence",
       "source": "blocks/core/table-of-contents/block.json",
       "requirements": "title (text), depth (number)",
       "evidenceReferences": [
@@ -347,13 +347,16 @@
         "canonical-navigation87-renderer-outcome.md",
         "navigation-native-20260921.md",
         "output/block-demo/browser-results-navigation87",
-        "output/block-library-review-20260915/coverage-review.json."
+        "output/block-library-review-20260915/coverage-review.json.",
+        "ConvexPress-Admin/audits/2026-09-04/navigation-completion-20260928.md",
+        "output/navigation-completion-20260928/four-pack-public.json",
+        "output/navigation-completion-20260928/exact-restore.json"
       ],
-      "remainingReview": "Reuse native depth2/3 and target-focus proof; inspect optional title, heading limits/empty states and source parity before closure.",
+      "remainingReview": "Block-specific acceptance complete. Retain shared final-delivery gates and E22 evidence-path reconciliation without reopening unrelated block behavior.",
       "deliveryTask": 2,
       "acceptanceBatch": "navigation",
-      "reviewedAtCommit": "d8a0ea2c",
-      "notesSha256": "dae92ca0a18416a43bb9a5f061c5ae0669ee8c0117f3f48d991537ccada99a82",
+      "reviewedAtCommit": "29632560",
+      "notesSha256": "9cba7368badf57e695b7fca48020b5a75b1f3deebca0fb6edba2818c88600113",
       "specSha256": "1468beacade392e52c1c62655ec1e65a1315984b00fbc4f8754f5382ef108307",
       "rendererSha256": "582be11df674cdd9f4b3b36787218bb63406430fdb3c562c5574b6dfda72f299",
       "canonicalFields": [
@@ -2831,22 +2834,25 @@
       "name": "core/site-info",
       "title": "Site info",
       "category": "Site",
-      "checkpointStatus": "In progress",
-      "nextClassification": "Reviewed against live Notes and current canonical specification; Native show-field selection and exact public site identity/contact destinations; omitted fields and all-pack review without private setting leakage.",
-      "classification": "missing evidence",
+      "checkpointStatus": "Verified",
+      "nextClassification": "Retain verified block evidence; recheck only changed dependencies.",
+      "classification": "accepted/reusable evidence",
       "source": "blocks/core/site-info/block.json",
       "requirements": "show (repeater)",
       "evidenceReferences": [
         "canonical-navigation-data-outcome.md",
         "canonical-navigation87-renderer-outcome.md",
         "output/block-demo/browser-results-navigation87",
-        "output/block-library-review-20260915/coverage-review.json."
+        "output/block-library-review-20260915/coverage-review.json.",
+        "ConvexPress-Admin/audits/2026-09-04/navigation-completion-20260928.md",
+        "output/navigation-completion-20260928/four-pack-public.json",
+        "output/navigation-completion-20260928/exact-restore.json"
       ],
-      "remainingReview": "Native show-field selection and exact public site identity/contact destinations; omitted fields and all-pack review without private setting leakage.",
+      "remainingReview": "Block-specific acceptance complete. Retain shared final-delivery gates and E22 evidence-path reconciliation without reopening unrelated block behavior.",
       "deliveryTask": 2,
       "acceptanceBatch": "navigation",
-      "reviewedAtCommit": "d8a0ea2c",
-      "notesSha256": "32dc7f4400a31323014094b077573aec35cf6f54a35ef0d5c153067daca0921d",
+      "reviewedAtCommit": "29632560",
+      "notesSha256": "6dbd06e5c0e22aee716e5d6dfb8c2c6f19dc2b973b540d31e9be1d0fbfdfaf67",
       "specSha256": "0065451e41820b19606d9f097d1ec41edc20685429e2b9ec17f141b9702800ae",
       "rendererSha256": "4f88965bfba64d7c0b7f013726e3fe59119831412c6422eeae066454f03fcb62",
       "canonicalFields": [
@@ -2989,9 +2995,9 @@
       "name": "core/anchor-nav",
       "title": "Anchor nav",
       "category": "Site",
-      "checkpointStatus": "In progress",
-      "nextClassification": "Reviewed against live Notes and current canonical specification; Reuse native auto/manual missing-target preflight and public focus; reconcile full authored variants, headings changing/removal and final source parity.",
-      "classification": "missing evidence",
+      "checkpointStatus": "Verified",
+      "nextClassification": "Retain verified block evidence; recheck only changed dependencies.",
+      "classification": "accepted/reusable evidence",
       "source": "blocks/core/anchor-nav/block.json",
       "requirements": "source (select), items (repeater)",
       "evidenceReferences": [
@@ -2999,13 +3005,16 @@
         "canonical-navigation87-renderer-outcome.md",
         "navigation-native-20260921.md",
         "output/block-demo/browser-results-navigation87",
-        "output/block-library-review-20260915/coverage-review.json."
+        "output/block-library-review-20260915/coverage-review.json.",
+        "ConvexPress-Admin/audits/2026-09-04/navigation-completion-20260928.md",
+        "output/navigation-completion-20260928/four-pack-public.json",
+        "output/navigation-completion-20260928/exact-restore.json"
       ],
-      "remainingReview": "Reuse native auto/manual missing-target preflight and public focus; reconcile full authored variants, headings changing/removal and final source parity.",
+      "remainingReview": "Block-specific acceptance complete. Retain shared final-delivery gates and E22 evidence-path reconciliation without reopening unrelated block behavior.",
       "deliveryTask": 2,
       "acceptanceBatch": "navigation",
-      "reviewedAtCommit": "d8a0ea2c",
-      "notesSha256": "b0a5ba37750d72970f29b13e35b9bb038fdf2c99fb6bc98ffa60df71348ddfc2",
+      "reviewedAtCommit": "29632560",
+      "notesSha256": "13f0613de2739b197ed4c2953c74fa57411fed14073a9a517e2dae5b476b5635",
       "specSha256": "990c6e43715991751e4cbc943f04d0b79241dfb6d750c529ff8bf7e23cfdd3b4",
       "rendererSha256": "4e7044cf4b9f9fbd406c656c641bd07f9a1400b60dd7a849e2e8381ae27d16ff",
       "canonicalFields": [
@@ -3426,19 +3435,27 @@
     "ConvexPress-Admin/audits/2026-09-04/editor-autosave-conflicts-20260928.md",
     "output/editor-autosave-conflicts-20260928/native-automatic-review.json",
     "output/editor-autosave-conflicts-20260928/native-simultaneous-conflicts.json",
-    "output/editor-autosave-conflicts-20260928/cleanup.json"
+    "output/editor-autosave-conflicts-20260928/cleanup.json",
+    "ConvexPress-Admin/audits/2026-09-04/navigation-completion-20260928.md",
+    "output/navigation-completion-20260928/mt-accept-verified.json",
+    "output/navigation-completion-20260928/cleanup.json"
   ],
   "trackerRefresh": {
-    "source": "output/editor-pointer-20260928/mt-readback.json",
+    "source": "output/navigation-completion-20260928/mt-accept-after.json",
     "schema": "output/editor-pointer-20260928/mt-schema.json",
     "rows": 137,
     "counts": {
-      "Verified": 60,
-      "In progress": 77
+      "Verified": 63,
+      "In progress": 74
     },
     "otherCellsUnchangedFromPreviousRead": true,
     "pendingNotesReconciled": 77,
-    "classificationScope": "Block-specific missing gates; historical whole-app audit conditions retained in Notes but not automatic prerequisites."
+    "classificationScope": "Block-specific missing gates; historical whole-app audit conditions retained in Notes but not automatic prerequisites.",
+    "lastAcceptedNames": [
+      "core/table-of-contents",
+      "core/anchor-nav",
+      "core/site-info"
+    ]
   },
   "coordination": {
     "folder": "/Users/worsin/Development/ConvexPress/Opus Audits/",

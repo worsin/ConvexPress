@@ -34,9 +34,9 @@ const current = {
 	revision: "1",
 	viewerKey: "public-fixture",
 };
-async function setup(name, attrs = {}) {
+async function setup(name, attrs = {}, logoSrc) {
 	const tree = navigationSpecimenTree({ id: "nav", name, version: 1, attrs });
-	const envelope = await resolveNavigationDemo(tree, current.scope, policy);
+	const envelope = await resolveNavigationDemo(tree, current.scope, policy, logoSrc);
 	const host = createDemoContentPageHost();
 	const grant = host.install({ tree, context: current, policy, envelope });
 	return {
@@ -288,4 +288,33 @@ test("menu renderer preserves hierarchy, link purpose and new-window safety in a
  expect(external.rel).toBe('noopener noreferrer');
  expect(external.textContent).toContain('opens in a new tab');
  expect(()=>fixture.render({...current,viewerKey:'another-user'})).toThrow('does not match');
+});
+
+test('TOC empty and maximum title/depth plus all site-info field subsets retain useful output', async()=>{
+ const empty=await setup('core/table-of-contents',{title:'',depth:1});
+ const doc=new JSDOM(renderToStaticMarkup(empty.render())).window.document;
+ expect(doc.querySelector('nav h2').textContent).toBe('On this page');
+ expect(doc.querySelector('nav').textContent).toContain('No sections to navigate.');
+ expect(doc.querySelectorAll('nav a')).toHaveLength(0);
+ const long=await setup('core/table-of-contents',{title:'Navigation '.repeat(16).slice(0,160),depth:6});
+ const longDoc=new JSDOM(renderToStaticMarkup(long.render())).window.document;
+ expect(longDoc.querySelector('nav h2').textContent).toBe('Navigation '.repeat(16).slice(0,160));
+ expect(longDoc.querySelectorAll('nav a')).toHaveLength(3);
+ for(const show of [[],['name'],['tagline'],['logo'],['name','tagline'],['logo','name'],['logo','tagline'],['logo','name','tagline']]){
+  const f=await setup('core/site-info',{show},'https://example.test/logo.png');const d=new JSDOM(renderToStaticMarkup(f.render())).window.document;
+  expect(d.querySelectorAll('.cp-site-info h2')).toHaveLength(show.includes('name')?1:0);
+  expect(d.querySelectorAll('.cp-site-info img')).toHaveLength(show.includes('logo')?1:0);
+  expect(d.body.textContent.includes('fictional mountain retreat')).toBe(show.includes('tagline'));
+  if(!show.length)expect(d.body.textContent).toContain('No site details selected or available.');
+ }
+ await expect(setup('core/table-of-contents',{title:'x'.repeat(161)})).rejects.toThrow();
+ await expect(setup('core/table-of-contents',{depth:7})).rejects.toThrow();
+ const items=Array.from({length:30},(_,i)=>({label:(`Section ${i} `+'detail '.repeat(25)).slice(0,160),anchor:`study-section-${i%3+1}`}));
+ const manual=await setup('core/anchor-nav',{source:'manual',items});
+ const manualDoc=new JSDOM(renderToStaticMarkup(manual.render())).window.document;
+ expect(manualDoc.querySelectorAll('nav a')).toHaveLength(30);
+ expect([...manualDoc.querySelectorAll('nav a span:last-child')].map(n=>n.textContent)).toEqual(items.map(i=>i.label));
+ await expect(setup('core/anchor-nav',{source:'manual',items:[...items,items[0]]})).rejects.toThrow();
+ const absentLogo=await setup('core/site-info',{show:['logo']});
+ expect(renderToStaticMarkup(absentLogo.render())).toContain('No site details selected or available.');
 });
