@@ -45,8 +45,8 @@
   "blockers": [
     {
       "id": "E01",
-      "status": "Native insertion, typing, save/reopen, both account menus and actual unsaved Website preview pass. Renderer crash plus app restart loses unsaved title: recovery is memory-only and block-tree autosave is absent. Full nesting/scroll baseline and durable recovery repair remain.",
-      "classification": "missing implementation"
+      "status": "Native insertion, typing, selection, save/reopen, both account menus and actual unsaved Website preview pass. Wheel/drag scrolling and mixed nesting baseline still need acceptance; retain original pointer/menu scope. Durable autosave/crash recovery tracked separately in E19.",
+      "classification": "missing evidence"
     },
     {
       "id": "E02",
@@ -100,18 +100,18 @@
     },
     {
       "id": "E12",
-      "status": "requires current classification or closure; see guide",
+      "status": "Vimeo actual playback remains missing provider evidence; not assumed to need code changes or to block every video implementation.",
       "classification": "missing evidence"
     },
     {
       "id": "E13",
-      "status": "requires current classification or closure; see guide",
-      "classification": "missing evidence"
+      "status": "Historical provider/configuration limitation recorded in the guide; recheck current availability before the affected AI/cloud acceptance. Does not block static block authoring.",
+      "classification": "external prerequisite"
     },
     {
       "id": "E14",
-      "status": "requires current classification or closure; see guide",
-      "classification": "missing evidence"
+      "status": "Historical provider/configuration limitation recorded in the guide; recheck current availability before the affected AI/cloud acceptance. Does not block static block authoring.",
+      "classification": "external prerequisite"
     },
     {
       "id": "E15",
@@ -132,6 +132,11 @@
       "id": "E18",
       "status": "requires current classification or closure; see guide",
       "classification": "missing evidence"
+    },
+    {
+      "id": "E19",
+      "classification": "missing implementation",
+      "status": "Device draft journaling and explicit Restore/Discard are implemented and passed real Electron renderer-crash/restart with exact nested invalid draft recovery and unchanged server revision/history/publication. Explicit Save and Discard clear the owned copy. Site-side block-tree draft autosave remains required; do not use ordinary Save as an autosave timer. See editor-device-recovery-20260928.md."
     }
   ],
   "blocks": [
@@ -2083,8 +2088,8 @@
       "title": "Recipe card",
       "category": "Plugin",
       "checkpointStatus": "In progress",
-      "nextClassification": "reconcile exact remaining requirement before work",
-      "classification": "missing evidence",
+      "nextClassification": "Verified shared backend/Website default-enabled disagreement (audit F1); choose compatibility-conscious authority before Task 3 provider acceptance.",
+      "classification": "reproduced defect",
       "source": "blocks/gallery/recipe-card/block.json",
       "requirements": "recipe (exact recipe ID reference, native published-recipe picker)",
       "evidenceReferences": [
@@ -2094,30 +2099,38 @@
         "output/recipe-images-20260911.",
         "output/recipe-public-access-20260911."
       ],
-      "remainingReview": "Full-block closure remains absent. Reconcile exact historical Notes and native/public/action requirements before repairs; missing evidence does not mean missing implementation."
+      "remainingReview": "Resolve shared plugin-default gate; then reconcile exact block-specific live source/action, native/public and recovery evidence.",
+      "sharedDependencies": [
+        "F1 plugin default authority",
+        "E19 durable editor drafts (editor-wide, not a per-block reimplementation)"
+      ]
     },
     {
       "name": "gallery/album",
       "title": "Gallery album",
       "category": "Plugin",
       "checkpointStatus": "In progress",
-      "nextClassification": "reconcile exact remaining requirement before work",
-      "classification": "missing evidence",
+      "nextClassification": "Verified shared backend/Website default-enabled disagreement (audit F1); choose compatibility-conscious authority before Task 3 provider acceptance.",
+      "classification": "reproduced defect",
       "source": "blocks/gallery/album/block.json",
       "requirements": "album (reference)",
       "evidenceReferences": [
         "output/album-block-20260914/live-album.json",
         "output/block-library-review-20260915/coverage-review.json."
       ],
-      "remainingReview": "Full-block closure remains absent. Reconcile exact historical Notes and native/public/action requirements before repairs; missing evidence does not mean missing implementation."
+      "remainingReview": "Resolve shared plugin-default gate; then reconcile exact block-specific live source/action, native/public and recovery evidence.",
+      "sharedDependencies": [
+        "F1 plugin default authority",
+        "E19 durable editor drafts (editor-wide, not a per-block reimplementation)"
+      ]
     },
     {
       "name": "support/kb-search",
       "title": "Knowledge base search",
       "category": "Plugin",
       "checkpointStatus": "In progress",
-      "nextClassification": "reconcile exact remaining requirement before work",
-      "classification": "missing evidence",
+      "nextClassification": "Verified shared backend/Website default-enabled disagreement (audit F1); choose compatibility-conscious authority before Task 3 provider acceptance.",
+      "classification": "reproduced defect",
       "source": "blocks/support/kb-search/block.json",
       "requirements": "placeholder (text), category (reference)",
       "evidenceReferences": [
@@ -2127,22 +2140,30 @@
         "output/kb-search-security-20260911.",
         "output/management-expiry-20260911."
       ],
-      "remainingReview": "Full-block closure remains absent. Reconcile exact historical Notes and native/public/action requirements before repairs; missing evidence does not mean missing implementation."
+      "remainingReview": "Resolve shared plugin-default gate; then reconcile exact block-specific live source/action, native/public and recovery evidence.",
+      "sharedDependencies": [
+        "F1 plugin default authority",
+        "E19 durable editor drafts (editor-wide, not a per-block reimplementation)"
+      ]
     },
     {
       "name": "support/ticket-cta",
       "title": "Ticket CTA",
       "category": "Plugin",
       "checkpointStatus": "In progress",
-      "nextClassification": "reconcile exact remaining requirement before work",
-      "classification": "missing evidence",
+      "nextClassification": "Verified shared backend/Website default-enabled disagreement (audit F1); choose compatibility-conscious authority before Task 3 provider acceptance.",
+      "classification": "reproduced defect",
       "source": "blocks/support/ticket-cta/block.json",
       "requirements": "title (text), body (text)",
       "evidenceReferences": [
         "output/block-library-review-20260915/coverage-review.json.",
         "output/support-blocks-20260911"
       ],
-      "remainingReview": "Full-block closure remains absent. Reconcile exact historical Notes and native/public/action requirements before repairs; missing evidence does not mean missing implementation."
+      "remainingReview": "Resolve shared plugin-default gate; then reconcile exact block-specific live source/action, native/public and recovery evidence.",
+      "sharedDependencies": [
+        "F1 plugin default authority",
+        "E19 durable editor drafts (editor-wide, not a per-block reimplementation)"
+      ]
     },
     {
       "name": "certificates/verify",
@@ -2529,7 +2550,10 @@
     "output/editor-template-20260928/backend-tests.log",
     "output/editor-template-20260928/editor-tests.log",
     "output/editor-template-20260928/native-invalid-schedule.png",
-    "output/editor-template-20260928/plugin-defaults.jsonl"
+    "output/editor-template-20260928/plugin-defaults.jsonl",
+    "ConvexPress-Admin/audits/2026-09-04/editor-device-recovery-20260928.md",
+    "output/editor-recovery-20260928/editor-suite.log",
+    "output/editor-recovery-20260928/cleanup.json"
   ],
   "trackerRefresh": {
     "date": "2026-09-28",
@@ -2542,7 +2566,7 @@
   "coordination": {
     "folder": "/Users/worsin/Development/ConvexPress/Opus Audits/",
     "authority": "Codex leads; Claude audits are advisory and independently verified",
-    "lastAudit": "2026-09-28T1230-audit-01-baseline.md"
+    "lastAudit": "2026-09-28T1320-audit-02-opening-navigation-closure.md"
   },
   "sessionBaseCommit": "9824d9605e50c4b0ebd711c13715b506f8ef5bd3"
 }

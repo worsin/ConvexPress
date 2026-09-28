@@ -85,6 +85,7 @@ This list includes all concrete blockers and material acceptance gaps found in t
 | E16 | Installed extension code can be lost by deploying a generic backend snapshot; this happened and was repaired. | Preserve the installed plugin directories/generated indexes. Build next snapshot from verified installed checkpoint and overlay reviewed source changes; verify plugin parity before deployment. Complete install/disable/re-enable and reference Events/Dashboard manifest workflows. |
 | E17 | SDK existence is proven more broadly than each workflow's end-to-end operation. | Exercise all eight block-kit operations plus template and extension scaffolds in disposable outputs. Verify generated source, authoring and rendered result; remove owned scaffolds afterward. |
 | E18 | Current source/main/deployed artifacts and historical screenshots can diverge. | Record exact source and deployment identity; reuse only relevant current evidence. Run a final integrated gate on the deliverable, not a collection of unrelated historical green logs. |
+| E19 | Native unsaved block tree is lost on renderer crash/app restart; block-tree autosave is a named missing implementation. | Persist isolated recovery drafts with base revision; preserve offline/invalid input, fresh authority and conflicts. Prove exact nested tree/title recovery after a forced renderer crash, unchanged accepted document revision/publication, and no uncertain-write replay. |
 
 Other original audit findings remain in `current-acceptance.md`. Payment/refund renewal matrices, multi-provider account/domain onboarding, signed Windows/macOS distribution, maximum backup capacity and full fleet scheduling are **deferred independent deliverables**. Bring one into this plan only when its concrete failure blocks an editor/template requirement, and only through the blocker procedure above. Existing site/organization isolation, safe publication and customer/operator boundaries must remain intact throughout.
 
@@ -198,6 +199,7 @@ Generated files are output, not edit surfaces. Keep data in the site backend; pa
 - [ ] Exercise the all-field reference block and live Events block through authoring, pack switching and public data updates.
 - [ ] Prove actual structured AI generation with enabled core/portable/pack/plugin/composed vocabulary, permitted nesting and real selected resources; inspect/review before approval and one save. Reject invalid/disabled/hidden-by-pack/cross-site references. No provider call is a reason to expose credentials or invent data.
 - [ ] Prove runtime composition, per-pack styling and reviewed promotion into canonical source with field preservation and no arbitrary executable code.
+- [ ] Add and exercise `template-build`, `template-add-surface`, and `template-audit` skills, and retarget the required design skill to the delivered template SDK.
 - [ ] Refresh kit docs/skills from the working interfaces; remove owned scaffolds/fixtures and document the minimal user workflow.
 
 ### Task 8 — Final integrated acceptance and delivery

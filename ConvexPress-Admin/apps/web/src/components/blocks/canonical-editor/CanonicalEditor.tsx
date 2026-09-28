@@ -28,6 +28,7 @@ import {
 	redoDocument,
 	sameDraft,
 	receiveDocument,
+	resumeDocument,
 	beginSave,
 	acceptSave,
 	rejectSave,
@@ -65,6 +66,8 @@ export interface CanonicalEditorAdapter<N, V> extends TreeAdapter<N> {
 	title?(value: V): string;
 	withTitle?(value: V, title: string): V;
 	validate?(value: V): string | null;
+	/** Structural decoder for device drafts; invalid field input remains editable. */
+	recover?(value: unknown): V;
 	prepareSave?(value: V): V;
 	availableBlocks?: readonly InserterBlock[];
 	createBlock?(name: string): N;
@@ -135,7 +138,7 @@ function EditorBody<N, V>({
 	proposal,
 	publicationActions,
 	creationActions,
-	contentLocked = false,
+	contentLocked: externallyLocked = false,
 	onDirtyChange,
 }: CanonicalEditorProps<N, V> & { snapshot: Snapshot<V> }) {
 	const styleControlId = useId();
@@ -184,12 +187,15 @@ function EditorBody<N, V>({
 	}, [formGeneration]);
 	const recovery = useEditorRecovery();
 	const [recovered] = useState(() =>
-		proposal ? undefined : recovery?.open(snapshot),
+		proposal ? undefined : recovery?.open(snapshot, savedAdapter.recover),
 	);
+	const [needsRecoveryChoice, setNeedsRecoveryChoice] = useState(!!recovered?.fromDevice);
+	const recoveryChoicePending = useRef(needsRecoveryChoice);
+	const contentLocked = externallyLocked || needsRecoveryChoice;
 	const [storedState, setState] = useState(() =>
 		proposal
 			? editDocument(openDocument(snapshot), proposal.initialDraft)
-			: (recovered?.state ?? openDocument(snapshot)),
+			: (needsRecoveryChoice ? openDocument(snapshot) : recovered?.state ?? openDocument(snapshot)),
 	);
 	// Preserve an already-open development session across adding history support.
 	const state = storedState.history
@@ -203,8 +209,14 @@ function EditorBody<N, V>({
 	const adapter = adapterForDraft?.(state.draft) ?? savedAdapter;
 	const update = (next: EditorSession<V>) => {
 		current.current = next;
-		recovered?.retain(next);
+		if (!recoveryChoicePending.current) recovered?.retain(next);
 		setState(next);
+	};
+	const chooseRecovery = (restore: boolean) => {
+		if (externallyLocked || !recovered || !recoveryChoicePending.current) return;
+		recoveryChoicePending.current = false;
+		setNeedsRecoveryChoice(false);
+		update(restore ? resumeDocument(recovered.state, current.current.base) : openDocument(current.current.base));
 	};
 	useEffect(() => {
 		mounted.current = true;
@@ -216,7 +228,7 @@ function EditorBody<N, V>({
 	useEffect(() => {
 		update(receiveDocument(current.current, snapshot));
 	}, [snapshot]);
-	const hasUnsavedWork = state.dirty || !!state.pending;
+	const hasUnsavedWork = state.dirty || !!state.pending || needsRecoveryChoice;
 	useEffect(() => {
 		onDirtyChange?.(hasUnsavedWork);
 	}, [onDirtyChange, hasUnsavedWork]);
@@ -561,6 +573,16 @@ function EditorBody<N, V>({
 			}
 		>
 			<div className="min-w-0 space-y-4">
+				{needsRecoveryChoice && (
+					<section role="alert" className="space-y-3 rounded border border-border bg-muted/40 p-4 text-sm">
+						<p className="font-medium">A recovery draft is available on this device</p>
+						<p>It has not changed the saved Website. Restore it to continue editing, or discard this device copy.</p>
+						<div className="flex flex-wrap gap-2">
+							<button type="button" disabled={externallyLocked} onClick={() => chooseRecovery(true)} className="min-h-11 rounded border px-3 focus-visible:ring-2 focus-visible:ring-ring">Restore device draft</button>
+							<button type="button" disabled={externallyLocked} onClick={() => chooseRecovery(false)} className="min-h-11 rounded border px-3 focus-visible:ring-2 focus-visible:ring-ring">Discard device draft</button>
+						</div>
+					</section>
+				)}
 				<fieldset disabled={contentLocked} className="contents">
 					<header className="flex flex-wrap items-center justify-between gap-3 border-b border-border pb-4">
 						<div>
@@ -578,6 +600,15 @@ function EditorBody<N, V>({
 												? "Proposal matches the saved document"
 												: "All changes saved"}
 							</p>
+							{hasUnsavedWork && recovered?.persistenceStatus() === "saved" && (
+								<p role="status" className="text-xs text-muted-foreground">Draft saved on this device. Save changes to update the Website.</p>
+							)}
+							{recovered?.persistenceStatus() === "failed" && (
+								<p role="alert" className="text-xs text-destructive">Device recovery is unavailable. Save or copy your changes before closing this window.</p>
+							)}
+							{recovered?.persistenceStatus() === "conflict" && (
+								<p role="alert" className="text-xs text-destructive">Another window changed the recovery draft. Your edits remain in this window; save or copy them before closing.</p>
+							)}
 						</div>
 						<div className="flex flex-wrap gap-2">
 							<button

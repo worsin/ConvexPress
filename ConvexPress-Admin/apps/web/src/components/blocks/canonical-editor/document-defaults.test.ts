@@ -70,3 +70,10 @@ test("visual choices use the selected pack without bypassing disabled blocks or 
  expect(canonicalEditorAdapter({...policy,disabledBlocks:['core/paragraph']},'core').availableBlocks.some((block: { name: string; thumbnail?: string })=>block.name==='core/paragraph')).toBe(false);
  expect(canonicalEditorAdapter(policy,'external-pack').availableBlocks.find((block: { name: string; thumbnail?: string })=>block.name==='core/paragraph').thumbnail).toBeUndefined();
 });
+
+test("recovery decodes the whole draft without enforcing authoring validity and rejects malformed structure", () => {
+ const editor=canonicalEditorAdapter({disabledBlocks:[],enabledPlugins:[],capabilities:[]});
+ const invalid={title:'Recovered unfinished draft',blocks:[{id:'section',name:'core/section',version:1,attrs:{},children:[{id:'notice',name:'core/announcement-bar',version:1,anchor:'unfinished anchor ',attrs:{text:'Still typing',schedule:{startsAt:'2040-06-01T09:00:00Z',endsAt:'2040-06-01T08:00:00Z'},link:{href:'',label:''}}}]}]};
+ expect(editor.recover(JSON.parse(JSON.stringify(invalid)))).toEqual(invalid);
+ for(const malformed of [null,{...invalid,blocks:'wrong'},{...invalid,blocks:[null]},{...invalid,blocks:[...invalid.blocks,...invalid.blocks]},{...invalid,extra:'not part of the draft'}]) expect(()=>editor.recover(malformed)).toThrow();
+});
