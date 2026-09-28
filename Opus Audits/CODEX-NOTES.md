@@ -25,3 +25,13 @@ Announcement Bar and Breadcrumbs are accepted and tracker readback is now **60 V
 Deployment follow-through caught the generated consumer-index version invalidation; used existing authorized maintenance to rebuild stale→ready in240 steps. This was bounded deployment maintenance, with unchanged authored pages, not another audit campaign.
 
 Next priority is E01 durable block-tree autosave/crash recovery. No new recovery implementation has been made yet. Do not interpret block row closure as full editor or template delivery.
+
+## Device recovery checkpoint
+
+Hardening worktree now passes real renderer-force-crash/app-restart recovery: nested Section/Announcement, invalid schedule and title restored exactly after explicit choice; backend revision2/history/publication unchanged. Explicit Discard and manual Save journal cleanup also pass.22 affected tests and Admin types pass. All42 original pages and appearance preserved after disposable-page deletion; test sessions closed/revoked. Report: `ConvexPress-Admin/audits/2026-09-04/editor-device-recovery-20260928.md`. Site-side autosave remains open under E19; no tracker movement. Codex leads and is reviewing the separate site draft CAS design next.
+
+## Site autosave boundary in progress
+
+Device recovery is committed locally as8e0a7ee0. Subsequent uncommitted code adds private per-author canonical drafts (generation CAS, base-revision guard, discard tombstones, structural invalid-input retention, existing media guards and bounded permanent-document cleanup). Six new endpoint tests pass; affected suite141pass. Not connected to native scheduling and not deployed yet; E19 remains open. Useful independent review: draft generation/idempotence and deletion lifecycle in `canonicalDocuments/drafts.ts` and `draftMaintenance.ts`; please distinguish backend test proof from delivered native autosave.
+
+Contract check note: backend typecheck passes with explicit finite new handler types. Root-only regeneration would drop inherited installed Events declarations; that output was archived, and only those generated declaration changes were restored. Final additive generation must use the reconciled installed source before deployment. No installed handler or data was changed.
