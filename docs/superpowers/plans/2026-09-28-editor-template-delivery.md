@@ -137,6 +137,7 @@ Generated files are output, not edit surfaces. Keep data in the site backend; pa
 - [ ] Write failures for reproduced gaps, repair the shared cause, preserve stored versions and historical values. A version change requires a wired converter and recovery test.
 - [ ] Add several related blocks to one real native-authored page, save/reopen once, edit/reorder relevant nodes, restore the exact prior tree and publish once. Readback must prove every included block's values survived.
 - [ ] Exercise each block's distinct public interaction and review every pack's presentation. Batch screenshots and the shared deployment/cleanup; do not skip per-block behavior.
+- [ ] For every Task 2/3 accepted row, capture page errors and console errors, including hydration warnings, in native preview and public interaction checks. Visually correct output with an unresolved product error is not passing evidence; classify unrelated harness/environment diagnostics explicitly.
 - [ ] Update only rows whose missing requirements are closed. Others retain precise remaining notes.
 
 ### Task 3 — Finish live-data and action block families

@@ -26,7 +26,7 @@
       "id": "location",
       "type": "text",
       "max": 80,
-      "default": "primary"
+      "default": "header"
     },
     {
       "id": "menu",
@@ -57,7 +57,7 @@
   "examples": [
     {
       "source": "location",
-      "location": "primary"
+      "location": "header"
     },
     {
       "source": "menu",

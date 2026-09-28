@@ -5554,7 +5554,7 @@ export const editorDefinitions: Record<BlockName, EditorDefinition> = {
         "type": "select"
       },
       {
-        "default": "primary",
+        "default": "header",
         "id": "location",
         "max": 80,
         "type": "text"

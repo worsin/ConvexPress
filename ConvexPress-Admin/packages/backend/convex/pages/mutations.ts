@@ -124,7 +124,7 @@ export const create = mutation({
     if (parentId) {
       await validateParent(ctx, parentId);
 
-      depth = await computePageDepth(ctx, parentId) + 1;
+      depth = await computePageDepth(ctx, parentId);
 
       if (depth > MAX_PAGE_DEPTH) {
         throw new ConvexError({
@@ -466,7 +466,7 @@ export const update = mutation({
           });
         }
 
-        const newDepth = await computePageDepth(ctx, newParentId) + 1;
+        const newDepth = await computePageDepth(ctx, newParentId);
         const subtreeDepth = await getMaxSubtreeDepth(ctx, args.pageId);
         if (newDepth + subtreeDepth > MAX_PAGE_DEPTH) {
           throw new ConvexError({
@@ -856,7 +856,7 @@ export const permanentDelete = mutation({
 
     for (const child of children) {
       const newDepth = pageParentId
-        ? await computePageDepth(ctx, pageParentId) + 1
+        ? await computePageDepth(ctx, pageParentId)
         : 0;
       const newPath = await computePagePath(ctx, child.slug, pageParentId);
 
@@ -942,7 +942,7 @@ export const reorder = mutation({
           }
 
           // Check depth limit
-          const newDepth = await computePageDepth(ctx, item.parentId) + 1;
+          const newDepth = await computePageDepth(ctx, item.parentId);
           const subtreeDepth = await getMaxSubtreeDepth(ctx, item.pageId);
           if (newDepth + subtreeDepth > MAX_PAGE_DEPTH) {
             continue; // Skip: would exceed depth limit
@@ -1044,7 +1044,7 @@ export const setParent = mutation({
     if (newParentId) {
       await validateParent(ctx, newParentId);
 
-      newDepth = await computePageDepth(ctx, newParentId) + 1;
+      newDepth = await computePageDepth(ctx, newParentId);
 
       // Check depth limit including subtree
       const subtreeDepth = await getMaxSubtreeDepth(ctx, args.pageId);

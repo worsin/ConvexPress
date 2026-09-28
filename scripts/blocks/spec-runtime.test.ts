@@ -6,9 +6,17 @@ import { createBlockSpecCompiler, validateAuthoringActions, validateAuthoringFie
 import tabbedSpec from "../../blocks/blocks/tabbed-content/block.json";
 import { blockSchemas, validateBlockAuthoringAttrs } from "../../ConvexPress-Admin/packages/backend/canonical-blocks-foundation/generated/schemas";
 import type { BlockName } from "../../ConvexPress-Admin/packages/backend/canonical-blocks-foundation/generated/types";
+import { DEFAULT_MENU_LOCATIONS } from "../../ConvexPress-Admin/packages/backend/convex/menus/validators";
 
 const root = fileURLToPath(new URL("../../", import.meta.url));
 const runtime = createBlockSpecCompiler(z);
+
+test("a newly authored Menu resolves a registered location while old location values remain valid", () => {
+  const attrs = validateBlockAuthoringAttrs("core/menu", {});
+  expect(DEFAULT_MENU_LOCATIONS.map(location => location.slug)).toContain(attrs.location);
+  expect(attrs.location).toBe("header");
+  expect(validateBlockAuthoringAttrs("core/menu", { location: "primary" }).location).toBe("primary");
+});
 
 test("announcement authoring rejects equal and reversed dates without invalidating historical drafts", () => {
   for (const endsAt of ["2040-06-01T09:00:00Z", "2040-06-01T08:59:59Z"]) {

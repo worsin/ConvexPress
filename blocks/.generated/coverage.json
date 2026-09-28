@@ -5700,11 +5700,11 @@
       "category": "site",
       "examples": [
         {
-          "location": "primary",
+          "location": "header",
           "source": "location"
         },
         {
-          "location": "primary",
+          "location": "header",
           "menu": "demo-menu",
           "source": "menu"
         }

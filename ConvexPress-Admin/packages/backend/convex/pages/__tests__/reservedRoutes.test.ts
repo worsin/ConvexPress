@@ -12,12 +12,59 @@ const modules = {
 async function fixture() {
   const t = convexTest({schema,modules});
   const authorId = await t.run(async ctx => {
-    const roleId = await ctx.db.insert('roles', {name:'Editor',slug:'editor',description:'Fixture',level:80,type:'internal',status:'active',isDefault:false,isProtected:true,capabilities:['page.create','page.update','page.publish','page.set_parent','page.reorder'],pageAccess:[],createdAt:1,updatedAt:1});
+    const roleId = await ctx.db.insert('roles', {name:'Editor',slug:'editor',description:'Fixture',level:80,type:'internal',status:'active',isDefault:false,isProtected:true,capabilities:['page.create','page.update','page.publish','page.set_parent','page.reorder','page.delete'],pageAccess:[],createdAt:1,updatedAt:1});
     return ctx.db.insert('users',{email:'editor@example.test',emailVerified:true,status:'active',authSource:'local',internalRole:'administrator',roleId,createdAt:1,updatedAt:1});
   });
   const editor = t.withIdentity({subject:authorId,issuer:'https://convexpress-admin.local'});
   return {t,editor,authorId};
 }
+test('page creation permits four descendant levels with exact depths and rejects a fifth', async () => {
+  const {t,editor}=await fixture();
+  let parentId;
+  for(let depth=0;depth<=4;depth++) {
+    const pageId=await editor.mutation(api.pages.mutations.create,{title:`Level ${depth}`,slug:`level-${depth}`,parentId});
+    expect((await t.run(ctx=>ctx.db.get('posts',pageId)))?.depth).toBe(depth);
+    parentId=pageId;
+  }
+  await expect(editor.mutation(api.pages.mutations.create,{title:'Too deep',slug:'too-deep',parentId})).rejects.toThrow('Maximum page nesting depth');
+  expect((await t.run(ctx=>ctx.db.query('posts').collect())).length).toBe(5);
+});
+
+test('page parent changes keep depths consistent with recomputation and retain the subtree limit', async () => {
+  const {t,editor}=await fixture();
+  const root=await editor.mutation(api.pages.mutations.create,{title:'Root',slug:'root'});
+  const child=await editor.mutation(api.pages.mutations.create,{title:'Child',slug:'child'});
+  const leaf=await editor.mutation(api.pages.mutations.create,{title:'Leaf',slug:'leaf',parentId:child});
+  await editor.mutation(api.pages.mutations.setParent,{pageId:child,parentId:root});
+  expect((await t.run(ctx=>ctx.db.get('posts',child)))?.depth).toBe(1);
+  expect((await t.run(ctx=>ctx.db.get('posts',leaf)))?.depth).toBe(2);
+  await editor.mutation(api.pages.mutations.setParent,{pageId:child});
+  expect((await t.run(ctx=>ctx.db.get('posts',leaf)))?.depth).toBe(1);
+  await editor.mutation(api.pages.mutations.update,{pageId:child,parentId:root});
+  expect((await t.run(ctx=>ctx.db.get('posts',child)))?.depth).toBe(1);
+  expect((await t.run(ctx=>ctx.db.get('posts',leaf)))?.path).toBe('/root/child/leaf');
+  let deepParent=root;
+  for(let depth=1;depth<=3;depth++) deepParent=await editor.mutation(api.pages.mutations.create,{title:`Branch ${depth}`,slug:`branch-${depth}`,parentId:deepParent});
+  await expect(editor.mutation(api.pages.mutations.setParent,{pageId:child,parentId:deepParent})).rejects.toThrow('Maximum page nesting depth');
+  expect((await t.run(ctx=>ctx.db.get('posts',leaf)))?.path).toBe('/root/child/leaf');
+});
+
+test('drag reorder and deletion reparenting store the actual child depth', async () => {
+  const {t,editor}=await fixture();
+  const root=await editor.mutation(api.pages.mutations.create,{title:'Root',slug:'root'});
+  const child=await editor.mutation(api.pages.mutations.create,{title:'Child',slug:'child'});
+  const leaf=await editor.mutation(api.pages.mutations.create,{title:'Leaf',slug:'leaf',parentId:child});
+  await editor.mutation(api.pages.mutations.reorder,{items:[{pageId:child,parentId:root,menuOrder:0}]});
+  expect((await t.run(ctx=>ctx.db.get('posts',child)))?.depth).toBe(1);
+  expect((await t.run(ctx=>ctx.db.get('posts',leaf)))?.depth).toBe(2);
+  // A trashed intermediary can still have children when removed permanently.
+  await t.run(ctx=>ctx.db.patch('posts',child,{status:'trash'}));
+  await editor.mutation(api.pages.mutations.permanentDelete,{pageId:child});
+  const remaining=await t.run(ctx=>ctx.db.get('posts',leaf));
+  expect(remaining?.parentId).toBe(root);
+  expect(remaining?.depth).toBe(1);
+  expect(remaining?.path).toBe('/root/leaf');
+});
 test('route policy distinguishes exact URLs, dynamic segments, splats and configured dashboard paths', () => {
   expect(reservedPageRoute('/products')).toBe('/products');
   expect(reservedPageRoute('/document-preview')).toBe('/document-preview');

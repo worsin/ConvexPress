@@ -7,7 +7,7 @@
     "In progress": 74
   },
   "goal": "Complete block editor and template delivery plus all demonstrated blockers; defer unrelated whole-app audit campaigns.",
-  "currentTask": "Task 2 \u2014 remaining Menu/Child Pages variants, then business and native field families; three navigation rows accepted",
+  "currentTask": "Task 2 \u2014 Menu default and Child Pages depth blockers repaired; complete remaining family acceptance and investigate initial public focus loss before row closure",
   "tasks": [
     {
       "id": 1,
@@ -157,6 +157,21 @@
       "id": "E23",
       "classification": "accepted/reusable evidence",
       "status": "Opus04 F13 structured autosave conflict routing reproduced and repaired. Competing generation automatically reads/reviews; accepted-revision rejection pauses until explicit subscribed revision resolution or successful local Save. Unknown acknowledgements retain manual reconciliation. Controlled overlap regression and actual two-native-window automatic/simultaneous conflict resolution pass; exact revision3/private tombstone5, owned fixture/sessions cleaned with42original pages/appearance preserved. See editor-autosave-conflicts-20260928.md. Existing E19 acceptance retained."
+    },
+    {
+      "id": "E24",
+      "classification": "accepted/reusable evidence",
+      "status": "New Menu default primary mismatched registered header. Two red regressions, default/example header, bounded absent-primary alias, custom empty/assigned primary preservation, generated contracts, strict disposable deployment and native save/reopen of historical primary now pass. All2404 installed signatures/22Events files preserved. See menu-children-repairs-20260928.md. Full Menu row remains pending."
+    },
+    {
+      "id": "E25",
+      "classification": "accepted/reusable evidence",
+      "status": "Live fourth-descendant creation rejected because five page mutations added1 to helper already counting parent chain. Corrected create/update/reorder/setParent/permanentDelete; exact0..4 depths, fifth rejection, subtree limit and paths tested. Actual native Quick Edit moves produced0..3 then1..4; native Child Pages depth1..4 and private-branch omission passed. Original pages unchanged; no bulk repair of historical cached depths. See menu-children-repairs-20260928.md."
+    },
+    {
+      "id": "E26",
+      "classification": "reproduced defect",
+      "status": "Public navigation acceptance observed focus leaving Seasons link for BODY during initial render/live handoff despite no page errors. Diagnostic shows original DOM node detached and later focus loss around2seconds; exact causal remount/source not yet established. Preserve initial-render failure as open; settled captures are not keyboard signoff. Investigate the public display lifecycle with a focused regression, preserving grant revocation and viewer boundaries. Menu/Child Pages rows remain pending."
     }
   ],
   "blocks": [

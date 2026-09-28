@@ -9509,11 +9509,11 @@
     "description": "Renders a menu location inline.",
     "examples": [
       {
-        "location": "primary",
+        "location": "header",
         "source": "location"
       },
       {
-        "location": "primary",
+        "location": "header",
         "menu": "demo-menu",
         "source": "menu"
       }
@@ -9529,7 +9529,7 @@
         "type": "select"
       },
       {
-        "default": "primary",
+        "default": "header",
         "id": "location",
         "max": 80,
         "type": "text"

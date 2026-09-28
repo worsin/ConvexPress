@@ -1,13 +1,13 @@
 {
   "files": {
-    "ai-catalog.ts": "2a5cac1b1df339e2112c120d25a061f45e107aeb561d881634429b8a19f75124",
+    "ai-catalog.ts": "556c25c2c2521f401e8aa2185bcf4b405846d2572469752d4401bbe25eea5b42",
     "block-spec.schema.json": "8ff686a77dae8b4a7118890c0b6d5e0fbc825bc25b5c5d789a04902a04fbb6e9",
-    "catalog.json": "e0c1d0dd1eac903325e917c37a358ca9becadbdd9a098473845cc1212dee6cbd",
+    "catalog.json": "052f311a51391cca470167584ea76652a91758a664add27ca5ddb232c4f95099",
     "convex.ts": "4e4f69159963cdb2ab5ed321a2b50fdec9593f7de94e2913b2f9123423827e85",
-    "coverage.json": "37aa579d99c686026a812fbec52f4fd20057df212e7d23b3bf51c5aea098eb97",
+    "coverage.json": "d46a927f3edf0353466e2d82b555473b8fdb57bc371751dbe7ca12ef729f7b21",
     "dependencies.json": "2d825a9a89528594d7609c2dcb0787f4f5d28c116d8c195e7d667d51824a0348",
-    "editor-metadata.ts": "f7d368d2b16295e508493d55dd4fcf11f5d24d13a113cdd0a38522ecffc7991c",
-    "editors.json": "1b9d2ae685f622dc09dfc6cfc0ddcab3ce75715d144e9904f29d25c92edcceb2",
+    "editor-metadata.ts": "9edafb1280e8a4e59b7802f7bc1e52dbb22f2c362c9e0d418fd822938c35d949",
+    "editors.json": "caa50f8477ac570e98171fb87f989121046eb19db0de16c3729747551ef03548",
     "field-runtime.d.mts": "9e1d25230a1ff8ec61f818b6004c8927cef3c95502a2d0edb1c28604da3388ce",
     "field-runtime.mjs": "ce6b761fbbcd719779ca9c117948bbef5d50e45eff553904738c4998ed0b2e37",
     "instance-runtime.d.mts": "56a0e4c7115873efc02701e6ded4ff34c2f4e1e28e98a29ec3c45dd963405a14",
@@ -20,7 +20,7 @@
     "promotions.ts": "7545ede36ecd059123045889f0aa32d6c0c9f4b157fc29ace43d597a942633eb",
     "renderer-coverage.ts": "83f31347862364f7943ff6db161ae67d8a6d90e5f9a410bbcc86da30a16f76bf",
     "roles.ts": "ba744ac0a275c3ab8a661b58b55b12738138cbd5b0266ac868c79c7c8b3c62f3",
-    "schemas.ts": "0d72ea2cf975d8a6086e54e22aff07db7956c2bb4a93a5f401de8cd4f71ac958",
+    "schemas.ts": "80f72d80764a3d9ccf3a58d5583535337f1fa8e7dd1407edf3b878e80276f2ca",
     "search-text.ts": "d4965fedcd5de6ce611fb89ccb87b7949003ffcf94565a857f066b979a64cc69",
     "spec-runtime.d.mts": "058444113df685e9bdf140e237ea817e457a3a588f8941b577ac1f81fddced55",
     "spec-runtime.mjs": "f992c8fbdd073443eb58e121ba1b9c03082e8ed5d28e6135d6b47606189eb87d",
@@ -370,7 +370,7 @@
       "source": "blocks/core/media-text/block.json"
     },
     {
-      "sha256": "96b2cb4dcbe5928068d7e626a59db897a5c2f0fc9d1f3612e00d5a70e71a079a",
+      "sha256": "2cace52d4b196c097981897e4c98609e2b9f9086d6ad084b6ad2860eb7a8e80e",
       "source": "blocks/core/menu/block.json"
     },
     {

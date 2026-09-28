@@ -264,10 +264,19 @@ export async function readPublicMenu(
 ) {
     let menuId = 'menuId' in selector ? ctx.db.normalizeId('menus', selector.menuId) : null;
     if ('locationSlug' in selector) {
+      let locationSlug = selector.locationSlug;
       budget.beforeRead();
-      const location = budget.record(await ctx.db.query('menuLocations').withIndex('by_slug',q=>q.eq('slug',selector.locationSlug)).unique());
+      let location = budget.record(await ctx.db.query('menuLocations').withIndex('by_slug',q=>q.eq('slug',locationSlug)).unique());
+      // Early Menu blocks defaulted to "primary" before the registered location
+      // was aligned with "header". Preserve actual custom locations, including
+      // unassigned ones, instead of rewriting saved content or their authority.
+      if (!location && locationSlug === 'primary') {
+        locationSlug = 'header';
+        budget.beforeRead();
+        location = budget.record(await ctx.db.query('menuLocations').withIndex('by_slug',q=>q.eq('slug',locationSlug)).unique());
+      }
       menuId = location?.menuId ?? null;
-      if (!menuId && selector.locationSlug === 'header') {
+      if (!menuId && locationSlug === 'header') {
         const menus = await boundedRows(ctx.db.query('menus'),50,budget);
         const preferred = menus.find(m=>m.slug==='main-navigation') ?? menus.find(m=>m.name.toLowerCase()==='main navigation') ?? menus[0];
         menuId = preferred?._id ?? null;

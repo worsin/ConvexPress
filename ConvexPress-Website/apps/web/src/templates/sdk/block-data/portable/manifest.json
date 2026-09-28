@@ -71,7 +71,7 @@
     "resolve.ts": "4304913c3b6c17dd860f9c38f29ce839439fd8f9f134be71915e6a15a236f6f6",
     "generated/metadata.ts": "afa6bc704872800991389ba099d7405df15bf3e596e068aeb3b4aec1ffafbe93",
     "generated/promotions.ts": "7545ede36ecd059123045889f0aa32d6c0c9f4b157fc29ace43d597a942633eb",
-    "generated/schemas.ts": "0d72ea2cf975d8a6086e54e22aff07db7956c2bb4a93a5f401de8cd4f71ac958",
+    "generated/schemas.ts": "80f72d80764a3d9ccf3a58d5583535337f1fa8e7dd1407edf3b878e80276f2ca",
     "generated/types.ts": "d7dc7f8b23163e082db94f17a47e83f797d278716c614c2b6d9ea2022f48ea32",
     "generated/instances.ts": "b221da7be40282981b196a29fb625f14ba8a2759fe43dc52bea09b4a61a3c684",
     "generated/instance-runtime.mjs": "89d1f85cb8a57d6c7e594284ef9e413a4b27cea32186d8fd457d597dfb66e2da",

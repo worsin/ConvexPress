@@ -173,3 +173,9 @@ E23 records the reproduced private-autosave conflict routing repair. Controlled 
 ## Three navigation rows accepted
 
 Table of Contents, Anchor Nav and Site Info now close their block-specific gaps using native authoring/save/reopen/exact restoration, actual public4pack/2viewport behavior and focused boundary checks. `navigation-completion-20260928.md` records the preserved evidence and limits. Site Info has logo/name/tagline; the earlier contact-destinations phrase was not part of its actual contract. Full tracker readback is63Verified/74In progress; other cells unchanged. Menu/Child Pages are the next navigation batch. The77-row inventory above remains the historical reconciliation checkpoint, with these3rows now accepted.
+
+## Menu / Child Pages causal repairs
+
+E24 fixes the default Menu location while preserving explicit historical/custom primary values. E25 fixes the extra page-depth increment across five mutation callers, with registered-mutation and actual native hierarchy/depth1..4 proof. Strict disposable deployment preserves all2404 function signatures and22Events files. See `menu-children-repairs-20260928.md`. Full rows remain In progress: explicit selected-menu/location assignment variants and remaining interaction/restore acceptance are still open. E26 records observed early public focus loss; settled visual captures cannot close that keyboard gate. Tracker remains63/74 with no writes.
+
+Opus05 F14 adopted as explicit Task2/3 console/page-error and hydration acceptance criteria. F15 located: `scripts/website/check-bundle.mjs:6` defaults to300000bytes =292.96875KiB. Its formatter labels binary units kB; the threshold is unchanged and the budget remains an open Task8 gate.
