@@ -7,7 +7,7 @@
     "In progress": 77
   },
   "goal": "Complete block editor and template delivery plus all demonstrated blockers; defer unrelated whole-app audit campaigns.",
-  "currentTask": "Task 1 \u2014 reconcile remaining delivery map and verify native baseline",
+  "currentTask": "Task 1 \u2014 complete remaining block Notes and handoff-clause reconciliation; native baseline accepted",
   "tasks": [
     {
       "id": 1,
@@ -45,8 +45,8 @@
   "blockers": [
     {
       "id": "E01",
-      "status": "Native insertion, typing, selection, save/reopen, both account menus and actual unsaved Website preview pass. Wheel/drag scrolling and mixed nesting baseline still need acceptance; retain original pointer/menu scope. Durable autosave/crash recovery tracked separately in E19.",
-      "classification": "missing evidence"
+      "status": "Current native baseline accepted:24 authored nodes with nested Heading/Paragraph/Divider, exact move/undo/redo and save/reopen, real wheel and scrollbar-thumb drag, sidebar scrolling, keyboard selection, typing after reload, both account menus and actual Website preview. Earlier pointer instability was not reproduced; no repair inferred. Owned fixture/profile removed,42 original pages/appearance preserved. See editor-pointer-baseline-20260928.md. Full E06 field/reusable/composed matrix remains open.",
+      "classification": "accepted/reusable evidence"
     },
     {
       "id": "E02",
@@ -2556,7 +2556,10 @@
     "output/editor-recovery-20260928/cleanup.json",
     "ConvexPress-Admin/audits/2026-09-04/editor-site-autosave-20260928.md",
     "output/editor-autosave-20260928/installed-contracts-check.log",
-    "output/editor-autosave-20260928/cleaned-preservation.json"
+    "output/editor-autosave-20260928/cleaned-preservation.json",
+    "ConvexPress-Admin/audits/2026-09-04/editor-pointer-baseline-20260928.md",
+    "output/editor-pointer-20260928/scroll-proof.json",
+    "output/editor-pointer-20260928/reopen-proof.json"
   ],
   "trackerRefresh": {
     "date": "2026-09-28",

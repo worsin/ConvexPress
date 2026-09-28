@@ -118,10 +118,10 @@ Generated files are output, not edit surfaces. Keep data in the site backend; pa
 **Consumes:** current tracker, saved evidence, current process/deployment identities. **Produces:** an exact remaining-work map and a trustworthy native authoring session for subsequent batches.
 
 - [ ] Refresh the 137-row tracker read-only and map each pending row to requirements, source files, reusable evidence and actual missing checks. No full-history reread. Reconcile every clause of both handoffs, not only the previously summarized ledger: include schema/field drift detection, disabled-block mutation checks, generated registries, per-block lazy loading, roles, pack manifests, patterns and tracker reconciliation. Record any unmet clause under its owning task.
-- [ ] Confirm checkout, native executable, renderer port, selected site/environment and backend identity. Use an owned profile; preserve user app windows.
-- [ ] Exercise typing, scrolling, selection, insertion, nesting, save/reopen and undo/recovery on an owned page. Reproduce E01 only if still present.
-- [ ] For a reproduced failure, write a focused regression at its actual boundary, implement the causal repair, rerun it and the affected editor suite. Record exactly what changed. Verify the handoff's block-tree autosave behavior, crash/reopen draft recovery and revision/conflict guards; autosave must not publish or create duplicate accepted writes.
-- [ ] Complete the two opening-block reproductions E02/E03 as part of the first family batch, not a separate infrastructure campaign.
+- [x] Confirm checkout, native executable, renderer port, selected site/environment and backend identity. Use an owned profile; preserve user app windows.
+- [x] Exercise typing, scrolling, selection, insertion, nesting, save/reopen and undo/recovery on an owned page. Reproduce E01 only if still present.
+- [x] For a reproduced failure, write a focused regression at its actual boundary, implement the causal repair, rerun it and the affected editor suite. Record exactly what changed. Verify the handoff's block-tree autosave behavior, crash/reopen draft recovery and revision/conflict guards; autosave must not publish or create duplicate accepted writes.
+- [x] Complete the two opening-block reproductions E02/E03 as part of the first family batch, not a separate infrastructure campaign.
 - [ ] Publish the first delivery checkpoint: actual gaps, reused proof, remaining batch estimates and any external prerequisites. Do not invent an overall finish date from the old 58/137 ratio.
 
 ### Task 2 — Finish block contracts, fields and common interaction families
