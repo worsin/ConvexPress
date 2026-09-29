@@ -7,7 +7,7 @@
     "In progress": 58
   },
   "goal": "Complete block editor and template delivery plus all demonstrated blockers; defer unrelated whole-app audit campaigns.",
-  "currentTask": "Task2 social utilities accepted;79 Verified /58 In progress. Next Task3 plugin-content/support gating: reproduce and repair E15/F1 defaults parity before installed/native block acceptance. Full goal active.",
+  "currentTask": "Task3 plugin content/support: F1 four Website defaults aligned with existing backend/Admin/public settings authority; stored false preserved. Next Recipe Card/Album source reconciliation and remaining native/public data/action acceptance.79 Verified /58 In progress; full goal active.",
   "tasks": [
     {
       "id": 1,
@@ -143,10 +143,17 @@
     },
     {
       "id": "E15",
-      "status": "Opus F1 independently reproduced: backend defaults for knowledgeBase/tickets/customFields/recipes/gallery are true while manifests are false. Repair before relevant Task 3 plugin acceptance; no scope expansion beyond gating parity.",
-      "classification": "reproduced defect",
+      "status": "F1 parity repair verified: four Website manifests now match existing backend/Admin/public defaults; no stored settings changed. Custom Fields has no Website manifest and remains Admin-only. New all16-plugin parity check is part of check:blocks. Full live-data/action block acceptance remains open; see plugin-defaults-20260929.md.",
+      "classification": "missing evidence; F1 repaired",
       "initialFinding": "Dynamic commerce/forms/plugin blocks retain incomplete data/action states.",
-      "closureBoundary": "Verify actual selected records and relevant actions, empty/denied/disabled/loading/error states, auth changes and cross-site refusal. Repair source authority, pagination or session issues only as required by their contracts. Provider settlement/accounting unrelated to a block's action remains deferred."
+      "closureBoundary": "Verify actual selected records and relevant actions, empty/denied/disabled/loading/error states, auth changes and cross-site refusal. Repair source authority, pagination or session issues only as required by their contracts. Provider settlement/accounting unrelated to a block's action remains deferred.",
+      "currentEvidence": [
+        "output/plugin-defaults-20260929/parity-red.log",
+        "output/plugin-defaults-20260929/focused-final.log",
+        "output/plugin-defaults-20260929/live-policy.json",
+        "output/plugin-defaults-20260929/public-routes.json",
+        "ConvexPress-Admin/audits/2026-09-04/plugin-defaults-20260929.md"
+      ]
     },
     {
       "id": "E16",
@@ -2969,9 +2976,10 @@
         "output/playwright/native-reconnect-20260911.",
         "output/recipe-card-20260911.",
         "output/recipe-images-20260911.",
-        "output/recipe-public-access-20260911."
+        "output/recipe-public-access-20260911.",
+        "ConvexPress-Admin/audits/2026-09-04/plugin-defaults-20260929.md"
       ],
-      "remainingReview": "Resolve F1 default authority; reuse native image/checklist proof; exact recipe selection/withdrawal, public detail and final required field variants.",
+      "remainingReview": "F1 defaults parity accepted; reuse native image/checklist proof; exact recipe selection/withdrawal, public detail and final required field variants.",
       "sharedDependencies": [
         "F1 plugin default authority",
         "E19 durable editor drafts (editor-wide, not a per-block reimplementation)"
@@ -2997,9 +3005,10 @@
       "requirements": "album (reference)",
       "evidenceReferences": [
         "output/album-block-20260914/live-album.json",
-        "output/block-library-review-20260915/coverage-review.json."
+        "output/block-library-review-20260915/coverage-review.json.",
+        "ConvexPress-Admin/audits/2026-09-04/plugin-defaults-20260929.md"
       ],
-      "remainingReview": "Resolve F1 default authority; reuse native two-image lightbox/paging; actual published page and missing/private album/media lifecycle.",
+      "remainingReview": "F1 defaults parity accepted; reuse native two-image lightbox/paging; actual published page and missing/private album/media lifecycle.",
       "sharedDependencies": [
         "F1 plugin default authority",
         "E19 durable editor drafts (editor-wide, not a per-block reimplementation)"
@@ -3028,9 +3037,10 @@
         "output/kb-search-block-20260911.",
         "output/kb-search-jobs-20260911.",
         "output/kb-search-security-20260911.",
-        "output/management-expiry-20260911."
+        "output/management-expiry-20260911.",
+        "ConvexPress-Admin/audits/2026-09-04/plugin-defaults-20260929.md"
       ],
-      "remainingReview": "Resolve F1 default authority; actual configured search provider and accessible category/results/pagination. Provider indexing repair only to the extent required by this block; RAG campaign is separate.",
+      "remainingReview": "F1 defaults parity accepted; actual configured search provider and accessible category/results/pagination. Provider indexing repair only to the extent required by this block; RAG campaign is separate.",
       "sharedDependencies": [
         "F1 plugin default authority",
         "E19 durable editor drafts (editor-wide, not a per-block reimplementation)"
@@ -3058,9 +3068,10 @@
       "evidenceReferences": [
         "output/block-library-review-20260915/coverage-review.json.",
         "output/support-blocks-20260911",
-        "ConvexPress-Admin/audits/2026-09-04/search-library-prose-20260928.md"
+        "ConvexPress-Admin/audits/2026-09-04/search-library-prose-20260928.md",
+        "ConvexPress-Admin/audits/2026-09-04/plugin-defaults-20260929.md"
       ],
-      "remainingReview": "Resolve F1 default authority; real customer sign-in and owned ticket destination/submission, denied/signed-out behavior and final pack rendering.",
+      "remainingReview": "F1 defaults parity accepted; real customer sign-in and owned ticket destination/submission, denied/signed-out behavior and final pack rendering.",
       "sharedDependencies": [
         "F1 plugin default authority",
         "E19 durable editor drafts (editor-wide, not a per-block reimplementation)"
@@ -3812,7 +3823,8 @@
     "output/social-utilities-20260929/visual.json",
     "output/social-utilities-20260929/source-provenance.json",
     "output/social-utilities-20260929/cleanup.json",
-    "output/social-utilities-20260929/lifecycle.json"
+    "output/social-utilities-20260929/lifecycle.json",
+    "ConvexPress-Admin/audits/2026-09-04/plugin-defaults-20260929.md"
   ],
   "trackerRefresh": {
     "source": "output/social-utilities-20260929/mt-accept-after.json",
@@ -3842,7 +3854,8 @@
       "audit12": "Bounded E39 slice completed and Search Results accepted on accumulated evidence; move to Language Switcher/F19 and other delivery work. No speculative search expansion or broad sweep.",
       "F21": "Accepted delivery review criterion: any migration/backfill/export claiming completeness must prove full intended coverage or return an explicit incomplete/blocked result. Carry into Task4/E07 migration and legacy retirement; no broad bare-catch sweep or inferred whole-codebase defect.",
       "F22": "Closed: F21 criterion recorded here and in Task4 execution guide before migration begins.",
-      "audit13": "E41 reviewed locale routing/groups/remapping/conflicts/recovery complete. Language Switcher accepted on accumulated evidence. Target older editor autosave/settings gap remains explicit E18 integration work; no general promotion rewrite."
+      "audit13": "E41 reviewed locale routing/groups/remapping/conflicts/recovery complete. Language Switcher accepted on accumulated evidence. Target older editor autosave/settings gap remains explicit E18 integration work; no general promotion rewrite.",
+      "F1": "Closed for current default-policy contract: original audit had four mismatches plus Admin-only Custom Fields, not five mismatches. Preserve existing backend/Admin/public enabled defaults; align four Website fallbacks rather than change installed behavior.16-manifest contract gate, registered public no-write/override tests, live read-only parity and built routes pass. Plugin blocks remain pending."
     }
   },
   "sessionBaseCommit": "9824d9605e50c4b0ebd711c13715b506f8ef5bd3"

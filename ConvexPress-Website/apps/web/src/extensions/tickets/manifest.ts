@@ -3,7 +3,7 @@ export default defineExtension({
   "id": "tickets",
   "title": "Support",
   "settingsKey": "ticketsEnabled",
-  "defaultEnabled": false,
+  "defaultEnabled": true,
   "routePrefixes": [
     "/support"
   ],
