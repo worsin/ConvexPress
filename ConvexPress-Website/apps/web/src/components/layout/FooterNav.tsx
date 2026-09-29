@@ -1,4 +1,4 @@
-import { Link } from "@tanstack/react-router";
+import { MenuItemTarget } from "@/components/menus/MenuItemTarget";
 
 import { useMenuForLocation } from "@/hooks/layout/useMenuForLocation";
 
@@ -23,29 +23,17 @@ export function FooterNav() {
             ...(item.target ? { target: item.target } : {}),
             ...(item.rel ? { rel: item.rel } : {}),
           };
-          const isExternal =
-            item.url.startsWith("http://") || item.url.startsWith("https://");
 
           return (
             <li key={item.id} className="flex items-center gap-4">
-              {isExternal ? (
-                <a
-                  href={item.url}
+              <MenuItemTarget
+                  item={item} separatorOrientation="vertical"
                   className="text-xs text-muted-foreground transition-colors hover:text-foreground"
                   {...linkProps}
                 >
                   {item.label}
-                </a>
-              ) : (
-                <Link
-                  to={item.url}
-                  className="text-xs text-muted-foreground transition-colors hover:text-foreground"
-                  {...linkProps}
-                >
-                  {item.label}
-                </Link>
-              )}
-              {index < visibleItems.length - 1 && (
+                </MenuItemTarget>
+              {index < visibleItems.length - 1 && item.type !== "separator" && visibleItems[index + 1].type !== "separator" && (
                 <span className="text-border" aria-hidden="true">
                   |
                 </span>

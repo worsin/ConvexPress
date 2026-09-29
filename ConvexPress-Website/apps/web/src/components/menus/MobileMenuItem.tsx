@@ -1,4 +1,4 @@
-import { Link } from "@tanstack/react-router";
+import { MenuItemTarget } from "./MenuItemTarget";
 import { ChevronDown } from "lucide-react";
 import * as React from "react";
 
@@ -41,8 +41,8 @@ export function MobileMenuItem({
   return (
     <li data-slot="mobile-menu-item">
       <div className="flex items-center">
-        <Link
-          to={item.url}
+        <MenuItemTarget
+          item={item}
           className={cn(
             "flex-1 px-4 py-3 text-xs text-foreground transition-colors hover:bg-muted",
             item.cssClasses,
@@ -55,8 +55,8 @@ export function MobileMenuItem({
           {...linkProps}
         >
           {item.label}
-        </Link>
-        {hasChildren && (
+        </MenuItemTarget>
+        {hasChildren && item.type !== "separator" && (
           <button
             type="button"
             onClick={() => setIsExpanded((prev) => !prev)}
@@ -73,7 +73,7 @@ export function MobileMenuItem({
           </button>
         )}
       </div>
-      {hasChildren && isExpanded && (
+      {hasChildren && (isExpanded || item.type === "separator") && (
         <ul role="list">
           {item.children
             .filter((child) => !child.isOrphaned)

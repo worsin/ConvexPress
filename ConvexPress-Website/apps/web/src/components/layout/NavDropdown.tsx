@@ -1,4 +1,4 @@
-import { Link } from "@tanstack/react-router";
+import { MenuItemTarget } from "@/components/menus/MenuItemTarget";
 import { ChevronRight } from "lucide-react";
 import * as React from "react";
 
@@ -107,8 +107,6 @@ function NavDropdownItem({ item, depth }: NavDropdownItemProps) {
     ...(item.target ? { target: item.target } : {}),
     ...(item.rel ? { rel: item.rel } : {}),
   };
-  const isExternal =
-    item.url.startsWith("http://") || item.url.startsWith("https://");
   const linkClassName = cn(
     "flex items-center justify-between gap-2 px-3 py-2 text-xs text-popover-foreground transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
     item.cssClasses,
@@ -127,28 +125,20 @@ function NavDropdownItem({ item, depth }: NavDropdownItemProps) {
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
     >
-      {isExternal ? (
-        <a
-          href={item.url}
+      <MenuItemTarget
+          item={item}
+          onToggle={hasChildren ? () => setIsOpen(value => !value) : undefined}
+          aria-expanded={hasChildren ? isOpen : undefined}
           className={linkClassName}
           onKeyDown={handleKeyDown}
           {...linkProps}
         >
           {content}
-        </a>
-      ) : (
-        <Link
-          to={item.url}
-          className={linkClassName}
-          onKeyDown={handleKeyDown}
-          {...linkProps}
-        >
-          {content}
-        </Link>
-      )}
-      {hasChildren && isOpen && (
+        </MenuItemTarget>
+      {hasChildren && (isOpen || item.type === "separator") && (
         <NavDropdown
           items={item.children}
+          className={item.type === "separator" ? "static shadow-none ring-0" : undefined}
           depth={depth + 1}
         />
       )}

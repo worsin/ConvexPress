@@ -1,3 +1,4 @@
+import { MenuItemTarget } from "@/components/menus/MenuItemTarget";
 /**
  * Aster · chrome.mobileNav — a full-height sheet with the menu set in large
  * display type. Same behaviour as Core: closes on route change and Escape,
@@ -184,7 +185,6 @@ function SheetItem({ item, depth, onNavigate }: { item: ResolvedMenuItem; depth:
   const [expanded, setExpanded] = useState(false);
   if (item.isOrphaned) return null;
   const hasChildren = item.children.length > 0;
-  const isExternal = item.url.startsWith("http://") || item.url.startsWith("https://");
   const linkProps = { ...(item.target ? { target: item.target } : {}), ...(item.rel ? { rel: item.rel } : {}) };
   const linkClass = cn(
     "block flex-1 py-4 tracking-tight text-foreground transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
@@ -195,16 +195,10 @@ function SheetItem({ item, depth, onNavigate }: { item: ResolvedMenuItem; depth:
   return (
     <li data-slot="mobile-nav-item" style={depth > 0 ? { paddingLeft: `${depth * 1.25}rem` } : undefined}>
       <div className="flex items-center gap-3">
-        {isExternal ? (
-          <a href={item.url} className={linkClass} onClick={onNavigate} {...linkProps}>
+        <MenuItemTarget item={item} className={linkClass} activeProps={{ className: "text-primary", "aria-current": "page" as const }} onClick={onNavigate} {...linkProps}>
             {item.label}
-          </a>
-        ) : (
-          <Link to={item.url as any} className={linkClass} activeProps={{ className: "text-primary", "aria-current": "page" as const }} onClick={onNavigate} {...linkProps}>
-            {item.label}
-          </Link>
-        )}
-        {hasChildren ? (
+          </MenuItemTarget>
+        {hasChildren && item.type !== "separator" ? (
           <button
             type="button"
             onClick={() => setExpanded((value) => !value)}
@@ -216,7 +210,7 @@ function SheetItem({ item, depth, onNavigate }: { item: ResolvedMenuItem; depth:
           </button>
         ) : null}
       </div>
-      {hasChildren && expanded ? (
+      {hasChildren && (expanded || item.type === "separator") ? (
         <ul role="list" className="mb-2 flex flex-col border-t border-border">
           {item.children
             .filter((child) => !child.isOrphaned)

@@ -1,3 +1,4 @@
+import { MenuItemTarget } from "@/components/menus/MenuItemTarget";
 import { useStickyHeaderOffset } from "@/hooks/layout/useStickyHeaderOffset";
 /**
  * Depot · chrome.header — two sticky rows.
@@ -244,41 +245,12 @@ function HeaderCluster({ headerConfig, className }: { headerConfig: HeaderConfig
   );
 }
 
-function isExternal(url: string) {
-  return url.startsWith("http://") || url.startsWith("https://");
-}
-
 function DepartmentLink({ item }: { item: ResolvedMenuItem }) {
-  const className = cn("inline-flex h-8 items-center gap-1 rounded-md px-2.5 text-[13px] font-medium text-foreground transition-colors hover:bg-muted", item.cssClasses);
-  const linkProps = { ...(item.target ? { target: item.target } : {}), ...(item.rel ? { rel: item.rel } : {}) };
-  if (isExternal(item.url)) {
-    return (
-      <a href={item.url} className={className} {...linkProps}>
-        {item.label}
-      </a>
-    );
-  }
-  return (
-    <Link to={item.url} className={className} activeProps={{ className: "bg-muted text-primary", "aria-current": "page" as const }} {...linkProps}>
-      {item.label}
-    </Link>
-  );
+  return <MenuItemTarget item={item} separatorOrientation="vertical" className={cn("inline-flex h-8 items-center gap-1 rounded-md px-2.5 text-[13px] font-medium text-foreground transition-colors hover:bg-muted", item.cssClasses)} activeProps={{ className: "bg-muted text-primary", "aria-current": "page" }} />;
 }
 
 function MenuLink({ item, className }: { item: ResolvedMenuItem; className?: string }) {
-  const linkProps = { ...(item.target ? { target: item.target } : {}), ...(item.rel ? { rel: item.rel } : {}) };
-  if (isExternal(item.url)) {
-    return (
-      <a href={item.url} className={className} {...linkProps}>
-        {item.label}
-      </a>
-    );
-  }
-  return (
-    <Link to={item.url} className={className} {...linkProps}>
-      {item.label}
-    </Link>
-  );
+  return <MenuItemTarget item={item} className={className} />;
 }
 
 /** "All" mega dropdown: every department with its children, in columns. */

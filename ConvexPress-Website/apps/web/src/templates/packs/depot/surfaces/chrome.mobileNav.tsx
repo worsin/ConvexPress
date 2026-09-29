@@ -1,3 +1,4 @@
+import { MenuItemTarget } from "@/components/menus/MenuItemTarget";
 /**
  * Depot · chrome.mobileNav — the menu behind the hamburger as a drawer with
  * grouped links. Departments with children become a labelled group; the rest
@@ -78,15 +79,15 @@ export default function DepotMobileNav({ data }: SurfaceProps<MobileNavSurfaceDa
                 {singles.length > 0 && (
                   <Group label="Browse">
                     {singles.map((item) => (
-                      <NavLink key={item.id} label={item.label} url={item.url} target={item.target} rel={item.rel} cssClasses={item.cssClasses} onNavigate={onClose} />
+                      <NavLink key={item.id} item={item} label={item.label} url={item.url} target={item.target} rel={item.rel} cssClasses={item.cssClasses} onNavigate={onClose} />
                     ))}
                   </Group>
                 )}
                 {groups.map((group) => (
-                  <Group key={group.id} label={group.label}>
-                    <NavLink label={`All ${group.label}`} url={group.url} target={group.target} rel={group.rel} cssClasses={group.cssClasses} onNavigate={onClose} strong />
+                  <Group key={group.id} label={group.type === "separator" ? undefined : group.label}>
+                    {group.type !== "heading" && <NavLink item={group} label={`All ${group.label}`} url={group.url} target={group.target} rel={group.rel} cssClasses={group.cssClasses} onNavigate={onClose} strong />}
                     {flatten(group.children).map(({ item, depth }) => (
-                      <NavLink key={item.id} label={item.label} url={item.url} target={item.target} rel={item.rel} cssClasses={item.cssClasses} depth={depth} onNavigate={onClose} />
+                      <NavLink key={item.id} item={item} label={item.label} url={item.url} target={item.target} rel={item.rel} cssClasses={item.cssClasses} depth={depth} onNavigate={onClose} />
                     ))}
                   </Group>
                 ))}
@@ -123,12 +124,12 @@ function Brand({ siteIdentity, onNavigate }: { siteIdentity: SiteIdentity | unde
   );
 }
 
-function Group({ label, children }: { label: string; children: ReactNode }) {
+function Group({ label, children }: { label?: string; children: ReactNode }) {
   return (
     <div className="flex flex-col gap-1">
-      <Label as="p" className="px-2">
+      {label && <Label as="p" className="px-2">
         {label}
-      </Label>
+      </Label>}
       <ul role="list" className="flex flex-col rounded-md border border-border bg-card">
         {children}
       </ul>
@@ -137,6 +138,7 @@ function Group({ label, children }: { label: string; children: ReactNode }) {
 }
 
 function NavLink({
+  item,
   label,
   url,
   target,
@@ -146,6 +148,7 @@ function NavLink({
   strong = false,
   onNavigate,
 }: {
+  item?: ResolvedMenuItem;
   label: string;
   url: string;
   target?: string;
@@ -163,6 +166,7 @@ function NavLink({
   const style = depth > 0 ? { paddingLeft: `${12 + depth * 14}px` } : undefined;
   const linkProps = { ...(target ? { target } : {}), ...(rel ? { rel } : {}) };
   const external = url.startsWith("http://") || url.startsWith("https://");
+  if (item) return <li><MenuItemTarget item={item} className={className} style={style} activeProps={{ className: "bg-muted font-semibold", "aria-current": "page" }} onClick={onNavigate}>{label}</MenuItemTarget></li>;
   return (
     <li>
       {external ? (

@@ -1,4 +1,4 @@
-import { Link } from "@tanstack/react-router";
+import { MenuItemTarget } from "@/components/menus/MenuItemTarget";
 import { ChevronDown } from "lucide-react";
 import * as React from "react";
 
@@ -26,8 +26,6 @@ export function MobileNavItem({ item, depth, onNavigate }: MobileNavItemProps) {
     ...(item.target ? { target: item.target } : {}),
     ...(item.rel ? { rel: item.rel } : {}),
   };
-  const isExternal =
-    item.url.startsWith("http://") || item.url.startsWith("https://");
   const linkClassName = cn(
     "flex-1 px-4 py-3 text-xs text-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
     item.cssClasses,
@@ -36,19 +34,8 @@ export function MobileNavItem({ item, depth, onNavigate }: MobileNavItemProps) {
   return (
     <li data-slot="mobile-nav-item">
       <div className="flex items-center">
-        {isExternal ? (
-          <a
-            href={item.url}
-            className={linkClassName}
-            style={{ paddingLeft: `${paddingLeft + 16}px` }}
-            onClick={onNavigate}
-            {...linkProps}
-          >
-            {item.label}
-          </a>
-        ) : (
-          <Link
-            to={item.url}
+        <MenuItemTarget
+            item={item}
             className={linkClassName}
             style={{ paddingLeft: `${paddingLeft + 16}px` }}
             activeProps={{
@@ -59,9 +46,8 @@ export function MobileNavItem({ item, depth, onNavigate }: MobileNavItemProps) {
             {...linkProps}
           >
             {item.label}
-          </Link>
-        )}
-        {hasChildren && (
+          </MenuItemTarget>
+        {hasChildren && item.type !== "separator" && (
           <button
             type="button"
             onClick={() => setIsExpanded((prev) => !prev)}
@@ -78,7 +64,7 @@ export function MobileNavItem({ item, depth, onNavigate }: MobileNavItemProps) {
           </button>
         )}
       </div>
-      {hasChildren && isExpanded && (
+      {hasChildren && (isExpanded || item.type === "separator") && (
         <ul role="list">
           {item.children
             .filter((child) => !child.isOrphaned)

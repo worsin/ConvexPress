@@ -1,3 +1,4 @@
+import { MenuItemTarget } from "@/components/menus/MenuItemTarget";
 /**
  * FooterRowsRenderer — renders the v2 block-style footer.
  *
@@ -246,8 +247,8 @@ function NavCellRenderer({ cell }: { cell: FooterNavCell }) {
 function NavItemLink({ item }: { item: ResolvedMenuItem }) {
   return (
     <li>
-      <a
-        href={item.url}
+      <MenuItemTarget
+        item={item}
         target={item.target}
         rel={item.rel}
         className={cn(
@@ -256,7 +257,7 @@ function NavItemLink({ item }: { item: ResolvedMenuItem }) {
         )}
       >
         {item.label}
-      </a>
+      </MenuItemTarget>
     </li>
   );
 }

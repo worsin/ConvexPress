@@ -290,7 +290,7 @@
       "classification": "reproduced defect",
       "deliveryTask": 5,
       "initialFinding": "Template header consumers render a menu separator label as a navigation item, while canonical inline Menu correctly renders hr.",
-      "status": "Observed in menu-children-20260928 live batch; remains open under full header/footer/menu Customizer integration. Inline Menu acceptance does not close this separate header-consumer defect.",
+      "status": "Shared rendering cause repaired locally through MenuItemTarget across four-pack headers/mobile menus and resolved-menu footer consumers. Failing-before link-count and nested expanded-state regressions now pass31 controlled SSR/DOM checks; Website TypeScript/scoped lint pass. Four-pack live responsive, open-popup/focus and assignment preservation acceptance remains open; see menu-semantics-20260929.md. Full Customizer integration remains Task5.",
       "closureBoundary": "Reproduce heading/separator semantics in all affected header consumers, repair the shared cause, and verify keyboard/semantics and four-pack responsive header output with existing menu assignments preserved."
     },
     {

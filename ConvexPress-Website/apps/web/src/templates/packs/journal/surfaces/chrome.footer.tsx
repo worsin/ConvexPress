@@ -1,3 +1,4 @@
+import { MenuItemTarget } from "@/components/menus/MenuItemTarget";
 /**
  * Journal · chrome.footer — a masthead: the wordmark set large across the top,
  * the configured footer rows as narrow columns of small links, then a rule and
@@ -221,19 +222,10 @@ function MenuLinks({ items }: { items: ResolvedMenuItem[] }) {
   return (
     <ul className="flex flex-col gap-1.5">
       {visible.map((item) => {
-        const isExternal = item.url.startsWith("http://") || item.url.startsWith("https://");
         const props = { ...(item.target ? { target: item.target } : {}), ...(item.rel ? { rel: item.rel } : {}) };
         return (
           <li key={item.id}>
-            {isExternal ? (
-              <a href={item.url} className={cn(linkClass, item.cssClasses)} {...props}>
-                {item.label}
-              </a>
-            ) : (
-              <Link to={item.url as any} className={cn(linkClass, item.cssClasses)} {...props}>
-                {item.label}
-              </Link>
-            )}
+            <MenuItemTarget item={item} className={cn(linkClass, item.cssClasses)} {...props} />
           </li>
         );
       })}
@@ -365,19 +357,12 @@ function FooterLocationLinks({ location, inline = false }: { location: string; i
     <nav data-slot="footer-nav" aria-label="Footer navigation">
       <ul className="flex flex-wrap items-center gap-x-6 gap-y-2">
         {visible.map((item) => {
-          const isExternal = item.url.startsWith("http://") || item.url.startsWith("https://");
           const props = { ...(item.target ? { target: item.target } : {}), ...(item.rel ? { rel: item.rel } : {}) };
           return (
             <li key={item.id}>
-              {isExternal ? (
-                <a href={item.url} className={linkClass} {...props}>
+              <MenuItemTarget item={item} separatorOrientation="vertical" className={linkClass} {...props}>
                   {item.label}
-                </a>
-              ) : (
-                <Link to={item.url as any} className={linkClass} {...props}>
-                  {item.label}
-                </Link>
-              )}
+                </MenuItemTarget>
             </li>
           );
         })}

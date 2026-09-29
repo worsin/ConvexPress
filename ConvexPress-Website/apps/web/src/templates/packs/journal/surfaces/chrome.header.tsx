@@ -1,3 +1,4 @@
+import { MenuItemTarget } from "@/components/menus/MenuItemTarget";
 import { useStickyHeaderOffset } from "@/hooks/layout/useStickyHeaderOffset";
 /**
  * Journal · chrome.header — one calm row: wordmark left, primary menu centred
@@ -229,7 +230,6 @@ function NavItem({ item }: { item: ResolvedMenuItem }) {
     [],
   );
 
-  const isExternal = item.url.startsWith("http://") || item.url.startsWith("https://");
   const linkProps = { ...(item.target ? { target: item.target } : {}), ...(item.rel ? { rel: item.rel } : {}) };
   const linkClass = cn(
     "flex items-center gap-1 px-3 py-2 text-sm tracking-wide text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
@@ -244,13 +244,10 @@ function NavItem({ item }: { item: ResolvedMenuItem }) {
 
   return (
     <li data-slot="desktop-nav-item" className="relative" onMouseEnter={onEnter} onMouseLeave={onLeave}>
-      {isExternal ? (
-        <a href={item.url} className={linkClass} onKeyDown={onKeyDown} aria-expanded={hasChildren ? open : undefined} aria-haspopup={hasChildren ? "true" : undefined} {...linkProps}>
-          {content}
-        </a>
-      ) : (
-        <Link
-          to={item.url as any}
+      <MenuItemTarget
+          item={item}
+          separatorOrientation="vertical"
+          onToggle={hasChildren ? () => setOpen(value => !value) : undefined}
           className={linkClass}
           activeProps={{ className: "text-foreground", "aria-current": "page" as const }}
           onKeyDown={onKeyDown}
@@ -259,9 +256,8 @@ function NavItem({ item }: { item: ResolvedMenuItem }) {
           {...linkProps}
         >
           {content}
-        </Link>
-      )}
-      {hasChildren && open ? <NavDropdown items={item.children} depth={0} className="rounded-xl" /> : null}
+        </MenuItemTarget>
+      {hasChildren && (open || item.type === "separator") ? <NavDropdown items={item.children} depth={0} className={item.type === "separator" ? "static shadow-none ring-0" : "rounded-xl"} /> : null}
     </li>
   );
 }

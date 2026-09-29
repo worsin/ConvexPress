@@ -1,3 +1,4 @@
+import { MenuItemTarget } from "@/components/menus/MenuItemTarget";
 /**
  * Depot · chrome.footer — a "back to top" bar, four link columns on a muted
  * band, then a compact bottom row with the copyright and the footer links.
@@ -141,19 +142,10 @@ function MenuColumn({ heading, location }: { heading: string; location: MenuLoca
       <ul role="list" className="flex flex-col gap-1">
         {items.map((item) => {
           const linkProps = { ...(item.target ? { target: item.target } : {}), ...(item.rel ? { rel: item.rel } : {}) };
-          const external = item.url.startsWith("http://") || item.url.startsWith("https://");
           const className = "text-[13px] text-muted-foreground transition-colors hover:text-foreground";
           return (
             <li key={item.id}>
-              {external ? (
-                <a href={item.url} className={className} {...linkProps}>
-                  {item.label}
-                </a>
-              ) : (
-                <Link to={item.url} className={className} {...linkProps}>
-                  {item.label}
-                </Link>
-              )}
+              <MenuItemTarget item={item} className={className} {...linkProps} />
             </li>
           );
         })}
@@ -263,19 +255,10 @@ function LegalLinks() {
       <ul role="list" className="flex flex-wrap items-center gap-x-3 gap-y-1">
         {items.map((item) => {
           const linkProps = { ...(item.target ? { target: item.target } : {}), ...(item.rel ? { rel: item.rel } : {}) };
-          const external = item.url.startsWith("http://") || item.url.startsWith("https://");
           const className = "transition-colors hover:text-foreground";
           return (
             <li key={item.id}>
-              {external ? (
-                <a href={item.url} className={className} {...linkProps}>
-                  {item.label}
-                </a>
-              ) : (
-                <Link to={item.url} className={className} {...linkProps}>
-                  {item.label}
-                </Link>
-              )}
+              <MenuItemTarget item={item} separatorOrientation="vertical" className={className} {...linkProps} />
             </li>
           );
         })}
