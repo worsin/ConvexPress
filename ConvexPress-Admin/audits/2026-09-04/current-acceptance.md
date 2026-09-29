@@ -389,3 +389,8 @@ Added36 explicit authored-text declarations without changing saved fields/versio
 ## September28 conditional prose and timed search
 
 See [conditional prose acceptance](search-conditional-prose-20260928.md). Thirteen conditional declarations and E40 scheduled refresh accepted:549 backend tests,12 client tests,310 renderer tests, native detail save/reload/Website iframe, eight four-pack/width cases and four no-reload time transitions. All3 owned pages/session/profile cleaned; original42 pages/2 posts/1 term and appearance exact. Source4860 deployed, target4870 retained. E39 and overall delivery remain open;74 Verified/63 In progress unchanged.
+
+
+## September28 promoted and sanitized HTML search
+
+See [presentation prose acceptance](search-presentation-prose-20260928.md). Installed Studio Services and Custom HTML search accepted:556 backend/16 generator/310 renderer/4 sanitizer tests; native promoted headline save/reload and real Website iframe; eight four-pack/width cases and56 backend decisions. Both owned pages/session/profile cleaned; original42 pages/2 posts/1 term and appearance exact. Source4860 has1,619 exact source hashes and unchanged2,410 function signatures; target4870 retained. E39 and the overall goal remain open;74 Verified/63 In progress unchanged.

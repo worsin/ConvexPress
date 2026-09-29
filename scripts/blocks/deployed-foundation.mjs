@@ -16,6 +16,7 @@ export async function syncDeployedFoundation({root,check=false}) {
     if(name.startsWith("generated/") && body !== await readFile(path.join(root,"blocks/.generated",name.slice(10)),"utf8")) throw Error(`Root/staged canonical contract mismatch: ${name}`);
     for(const match of body.matchAll(/(?:from\s+|import\s*)["']([^"']+)["']/g)) {
       const target=match[1]; if(target === "zod" || (name === "generated/storage.ts" && target === "convex/values")) continue;
+      if(name === "html.ts" && target === "sanitize-html")continue;
       if(!target.startsWith(".")) throw Error(`Nonportable canonical dependency: ${name} -> ${target}`);
       const resolved=path.posix.normalize(path.posix.join(path.posix.dirname(name),target));
       if(!deployedFoundationFiles.some(file=>file===resolved||file===`${resolved}.ts`)) throw Error(`Undeclared canonical dependency: ${name} -> ${target}`);

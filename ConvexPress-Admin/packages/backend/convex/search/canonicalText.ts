@@ -1,3 +1,4 @@
+import { installedPromotionDefinition } from "../canonicalDocuments/foundation/installedPromotion";
 import { currentLibrarySearchText, librarySearchNeedsData, librarySearchRecheckAt } from "../canonicalDocuments/foundation/librarySearch";
 import type { CanonicalBlockInstance } from "../canonicalDocuments/foundation/generated/types";
 import { planCanonicalData } from "../canonicalDocuments/foundation/planner";
@@ -25,7 +26,7 @@ import { validateCanonicalTree } from "../canonicalDocuments/foundation/generate
 async function textFromTree(tree: RuntimeCanonicalTree, options: {
   authorAvailable?: (id: string, current: boolean) => Promise<boolean>;
   registry?: ComposedRegistry;
-  renderLibrary?: (node: RuntimeCanonicalTree[number]) => Promise<string>;
+  renderLibrary?: (node: RuntimeCanonicalTree[number], children: () => Promise<string>) => Promise<string>;
   renderComposed?: (node: RuntimeCanonicalTree[number], children: () => Promise<string>) => Promise<string>;
 } = {}): Promise<string> {
   const parts: string[] = [];
@@ -41,7 +42,7 @@ async function textFromTree(tree: RuntimeCanonicalTree, options: {
         : [authoredComposedSearchText(definition, node.attrs), await children()].filter(Boolean).join(" ");
     } else {
       if (node.name === "core/author-bio" && (node.attrs.userId || node.attrs.useCurrentAuthor) && options.authorAvailable && !await options.authorAvailable(node.attrs.userId || "", node.attrs.useCurrentAuthor === true)) continue;
-      text = [options.renderLibrary ? await options.renderLibrary(node) : authoredBlockSearchText(node.name, node.attrs), await children()].filter(Boolean).join(" ");
+      text = options.renderLibrary ? await options.renderLibrary(node, children) : [authoredBlockSearchText(node.name, node.attrs), await children()].filter(Boolean).join(" ");
     }
     text = text.slice(0, remaining);
     if (text) { parts.push(text); remaining -= text.length + 1; }
@@ -96,12 +97,22 @@ export function createCanonicalSearchTextReader(ctx: QueryCtx, budget: RequestRe
       return await textFromTree(projected.resolverTree, {
         authorAvailable: (id, current) => authorAvailable(id, current, post._id),
         registry: approved?.registry,
-        renderLibrary: async node => {
+        renderLibrary: async (node, children) => {
+          const promoted = installedPromotionDefinition(node.name);
           budget.noteAuthorizationBoundary(librarySearchRecheckAt(node as CanonicalBlockInstance, now), now);
           const { children: _children, ...self } = node;
-          const data = librarySearchNeedsData(node.name) ? await resolveCanonicalPageData(ctx, [self], display.scope, display.policy, budget,
+          const data = librarySearchNeedsData(node.name) || (promoted?.spec.data && promoted.spec.data.resolver!=="content.search") ? await resolveCanonicalPageData(ctx, [self], display.scope, display.policy, budget,
             { document: post, tree: projected.resolverTree, authoringTree: projected.authoringTree, composed: projected.composed }) : undefined;
-          return currentLibrarySearchText(node as CanonicalBlockInstance, { now, resources, data: data?.dataByBlock[node.id] });
+          if (promoted) {
+            const binding = planCanonicalData([self], display.scope, display.policy).bindings.find(item=>item.blockId===node.id);
+            assertComposedReferenceBindings(promoted,node.attrs,binding?.args,Boolean(data?.dataByBlock[node.id]));
+            const presentation = resolveComposedPresentation(promoted,node.attrs,{packId:display.presentation.packId,data:data?.dataByBlock[node.id]?.data,childCount:node.children?.length??0,
+              readMedia:id=>Object.prototype.hasOwnProperty.call(resources.media,id)?resources.media[id]:undefined,omitDataDependentNodes:promoted.spec.data?.resolver==='content.search'});
+            nodes+=presentation.nodes;bytes+=presentation.bytes;
+            if(nodes>COMPOSED_PRESENTATION_LIMITS.pageNodes||bytes>COMPOSED_PRESENTATION_LIMITS.pageBytes)throw Error('Promoted search presentation exceeds page budget');
+            return resolvedCompositionSearchText(presentation.root,await children());
+          }
+          return [currentLibrarySearchText(node as CanonicalBlockInstance, { now, resources, data: data?.dataByBlock[node.id] }),await children()].filter(Boolean).join(' ');
         },
         renderComposed: approved ? async (node, children) => {
           const definition = approved.registry.definition(node.name, node.version)!;

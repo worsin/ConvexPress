@@ -7,7 +7,7 @@
     "In progress": 63
   },
   "goal": "Complete block editor and template delivery plus all demonstrated blockers; defer unrelated whole-app audit campaigns.",
-  "currentTask": "Task 2 \u2014 finish remaining promoted-block, HTML and demonstrated conditional search prose (E39), then Language Switcher/promotion. Conditional13 and timed ordinary/canonical refresh accepted; Search Results remains In progress (74 Verified /63 In progress).",
+  "currentTask": "Task 2 \u2014 finish remaining demonstrated host/settings, approved embed, poll/current-definition and media presentation search paths (E39), then Language Switcher/promotion. Installed Studio Services and sanitized HTML accepted; Search Results remains In progress (74 Verified /63 In progress).",
   "tasks": [
     {
       "id": 1,
@@ -303,7 +303,7 @@
     },
     {
       "id": "E39",
-      "status": "Open after second accepted pass:36 unconditional and13 conditional declarations; native details save/reload and four-pack results accepted. Scheduled appearance/disappearance now refresh without reload on both search surfaces (E40). Promoted canonical composition, HTML and remaining conditional paths still need coverage. See search-conditional-prose-20260928.md.",
+      "status": "Open after third accepted pass:36 unconditional and13 conditional declarations, timed refresh, installed Studio Services promoted prose and sanitized HTML accepted with native/public evidence. Remaining host/settings, approved embed, poll/current-definition and media presentation review. See search-presentation-prose-20260928.md.",
       "classification": "missing implementation",
       "initialFinding": "Canonical source candidate descriptors omit visible utility, media, form and catalog introduction copy. Current search also returns hero text when selected media is unavailable and public rendering refuses the document.",
       "closureBoundary": "Complete deliberate authored-text coverage across the Library, preserving private/config/action/status exclusions; apply current conditional/presentation/access/media rules; prove registered and actual native/public search, then reconcile Search Results acceptance without weakening scope."
@@ -3166,7 +3166,8 @@
       "evidenceReferences": [
         "canonical-utility74-renderer-outcome.md",
         "output/block-demo/browser-results-utility74-verified",
-        "output/block-library-review-20260915/coverage-review.json."
+        "output/block-library-review-20260915/coverage-review.json.",
+        "ConvexPress-Admin/audits/2026-09-04/search-presentation-prose-20260928.md"
       ],
       "remainingReview": "Native sanitized markup/save/recovery, script/event/style refusal and retained safe structure, links, keyboard and template containment.",
       "deliveryTask": 2,
@@ -3547,9 +3548,10 @@
         "search-source-match-20260921.md",
         "search-discovery-completion-20260928.md",
         "output/search-discovery-20260928/lifecycle.json",
-        "ConvexPress-Admin/audits/2026-09-04/search-conditional-prose-20260928.md"
+        "ConvexPress-Admin/audits/2026-09-04/search-conditional-prose-20260928.md",
+        "ConvexPress-Admin/audits/2026-09-04/search-presentation-prose-20260928.md"
       ],
-      "remainingReview": "Remaining deliberate Library prose, promoted canonical compositions and HTML/current presentation coverage (E39); conditional13 and timed refresh accepted. Full delivery acceptance remains open.",
+      "remainingReview": "Remaining demonstrated Library host/settings, approved embed, poll/current-definition and media presentation coverage (E39). Installed Studio Services and sanitized HTML accepted; complete SDK/promotion and full delivery gates remain open.",
       "deliveryTask": 3,
       "acceptanceBatch": "content-discovery",
       "reviewedAtCommit": "d8a0ea2c",
@@ -3641,7 +3643,8 @@
       "requirements": "eyebrow, headline, introduction, services",
       "evidenceReferences": [
         "output/block-review-refresh-20260920/acceptance-review.md.",
-        "output/definition-promotion-editor-20260916."
+        "output/definition-promotion-editor-20260916.",
+        "ConvexPress-Admin/audits/2026-09-04/search-presentation-prose-20260928.md"
       ],
       "remainingReview": "Reuse native exact promoted package/immutable history and pack refresh; final full field/variant review and one-line compose/style/promote workflow acceptance.",
       "deliveryTask": 7,
@@ -3731,7 +3734,13 @@
     "output/search-conditional-20260928/public-matrix.json",
     "output/search-conditional-20260928/clock-acceptance.json",
     "output/search-conditional-20260928/cleanup.json",
-    "output/search-conditional-expiry-20260928/installed-source-proof.json"
+    "output/search-conditional-expiry-20260928/installed-source-proof.json",
+    "ConvexPress-Admin/audits/2026-09-04/search-presentation-prose-20260928.md",
+    "output/search-presentation-20260928/native-proof-final.json",
+    "output/search-presentation-20260928/public-matrix.json",
+    "output/search-presentation-20260928/cleanup.json",
+    "output/search-presentation-final-20260928/installed-source-proof.json",
+    "output/search-presentation-final-20260928/dependency-source-proof.json"
   ],
   "trackerRefresh": {
     "source": "output/search-discovery-20260928/mt-accept-after.json",

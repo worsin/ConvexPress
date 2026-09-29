@@ -307,3 +307,20 @@ test('timed matches and hidden future alternatives carry bounded refresh leases 
  }
  await expect(t.query(ref<'query'>('search/queries:search'),{q:'Timedleaseneedle',refreshKey:'../bad'})).rejects.toThrow();
 });
+
+test('promoted Library composition keeps its visible authored prose searchable', async () => {
+  const {t,ids}=await fixture();
+  await t.run(ctx=>ctx.db.patch('posts',ids.post,{blocks:[{id:'studio',name:'blocks/studio-services',version:1,attrs:{headline:'Promotedheadingneedle',services:[{title:'Promotedserviceneedle',description:'Promoteddescriptionneedle'}]}}]}));
+  await t.mutation(upsert,{contentType:'page',contentId:ids.post,action:'upsert'});
+  for(const query of ['Promotedheadingneedle','Promotedserviceneedle','Promoteddescriptionneedle']){
+    expect((await t.query(ref<'query'>('search/queries:search'),{q:query})).results.map(r=>r.contentId)).toEqual([ids.post]);
+    expect((await t.run(ctx=>readSearch(ctx,{query},scope,'host'))).items.map(r=>r.id)).toEqual([ids.post]);
+  }
+});
+test('custom HTML searches sanitized visible text with decoded entities and excludes removed content',async()=>{
+  const {t,ids}=await fixture();
+  const html='<h2>Htmlheadingneedle</h2><p>Visible<strong>joinedneedle</strong> &amp; &#x45;ntityneedle <a href="https://example.invalid/Hiddenhrefneedle" title="Hiddenattributeneedle">Htmllabelneedle</a></p><script>Hiddenscriptneedle</script><style>Hiddenstylename</style><textarea>Hiddentextareaneedle</textarea><p hidden>Unhiddenneedle</p>';
+  await t.run(ctx=>ctx.db.patch('posts',ids.post,{blocks:[{id:'html',name:'core/custom-html',version:1,attrs:{html}}]}));await t.mutation(upsert,{contentType:'page',contentId:ids.post,action:'upsert'});
+  for(const query of ['Htmlheadingneedle','Visiblejoinedneedle','Entityneedle','Htmllabelneedle','Unhiddenneedle'])expect((await t.query(ref<'query'>('search/queries:search'),{q:query})).results.map(r=>r.contentId)).toEqual([ids.post]);
+  for(const query of ['Hiddenhrefneedle','Hiddenattributeneedle','Hiddenscriptneedle','Hiddenstylename','Hiddentextareaneedle'])expect((await t.query(ref<'query'>('search/queries:search'),{q:query})).results).toEqual([]);
+});

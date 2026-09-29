@@ -117,7 +117,7 @@ describe("schema-first generation", () => {
   test("generated dependency paths and coverage feed promotion and BlockDemo without guessed fields", async () => {
     const s = await spec();
     s.fields = [{ id: "items", type: "repeater", fields: [{ id: "card", type: "object", fields: [{ id: "image", type: "media" }, { id: "post", type: "reference", of: "post" }, { id: "menu", type: "menu" }, { id: "form", type: "form" }] }] }];
-    s.examples = [{}]; s.preview = "{items.length}"; s.data = null;
+    s.examples = [{}]; s.preview = "{items.length}"; s.data = null; s.searchText = [];
     const parsed = parseBlockSpec(s), fields = dependencyFields(parsed.fields);
     expect(fields).toEqual([
       { path: ["items", "*", "card", "image"], type: "media", valuePath: ["id"] },
@@ -142,7 +142,7 @@ describe("schema-first generation", () => {
       { id: "ref", type: "reference", of: "event" }, { id: "menu", type: "menu" }, { id: "form", type: "form" },
       { id: "choice", type: "select", options: ["a"] }, { id: "note", type: "text", nullable: true, default: null },
       { id: "rows", type: "repeater", fields: [{ id: "nested", type: "object", fields: [{ id: "enabled", type: "boolean" }, { id: "count", type: "number", integer: true, min: 1 }] }] },
-    ]; s.preview = "{note}"; s.data = null; s.examples = [{}];
+    ]; s.preview = "{note}"; s.data = null; s.examples = [{}]; s.searchText = [];
     const input = { rich: { type: "doc", content: [{ type: "paragraph", content: [{ type: "text", text: "Aster", marks: [{ type: "bold" }, { type: "link", attrs: { href: "/events" } }] }] }] }, link: { label: "Read", href: "/read", newTab: false }, media: { id: "media-id", focalPoint: { x: 0.3, y: 0.6 } }, icon: "calendar", tone: "muted", date: "2026-09-05", ref: "event-id", menu: "menu-id", form: "form-id", choice: "a", rows: [{ nested: { enabled: true, count: 1 } }] };
     s.examples.push(input);
     await put(root, "blocks/events/upcoming", s); await syncBlocks({ root });
