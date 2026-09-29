@@ -24,7 +24,7 @@ export default function DepotFormResume({ data }: SurfaceProps<FormResumeSurface
 
   return (
     <Prose data-slot="form-resume" data-pack="depot" className={cn("py-6 md:py-8", frameReset)}>
-      <FormWizard form={form} resumeToken={token} initialValues={draft.values} initialStep={draft.currentStep} />
+      <FormWizard form={form} resumeToken={token} initialValues={draft.values} initialStep={draft.currentStep} onSubmittingChange={data.onSubmittingChange} onSubmitted={data.onSubmitted} />
     </Prose>
   );
 }

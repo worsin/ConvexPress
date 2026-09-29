@@ -75,7 +75,9 @@ function MarketingLayout() {
  */
 function MarketingLayoutInner({ routeAccess }: { routeAccess: RouteAccessResult }) {
   const pathname=useLocation({select:location=>location.pathname});
-  const archiveOwnsBreadcrumbs=/^\/(?:category|tag)\/[^/]+\/?$/.test(pathname);
+  const routeOwnsBreadcrumbs=/^\/(?:category|tag)\/[^/]+\/?$/.test(pathname)
+    // A resume URL contains a bearer credential, not a navigation label.
+    || /^\/forms\/[^/]+\/resume\/[^/]+\/?$/.test(pathname);
   const siteIdentity = useSiteIdentity();
   const headerConfig = useHeaderConfig();
   const headerMenu = useMenuForLocation(getHeaderMenuLocation(headerConfig.navigation));
@@ -155,7 +157,7 @@ function MarketingLayoutInner({ routeAccess }: { routeAccess: RouteAccessResult 
           {fullWidth ? (
             <main id="main-content" role="main">{pageContent}</main>
           ) : (
-            <ContentWrapper layoutConfig={layoutConfig} showBreadcrumbs={!archiveOwnsBreadcrumbs}>
+            <ContentWrapper layoutConfig={layoutConfig} showBreadcrumbs={!routeOwnsBreadcrumbs}>
               {pageContent}
             </ContentWrapper>
           )}

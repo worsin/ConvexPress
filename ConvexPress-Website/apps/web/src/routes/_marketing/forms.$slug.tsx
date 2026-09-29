@@ -1,6 +1,6 @@
 import { convexQuery } from "@convex-dev/react-query";
 import { useSuspenseQuery } from "@tanstack/react-query";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Outlet, useChildMatches } from "@tanstack/react-router";
 import { api } from "@convexpress-website/backend/generated/api";
 
 import { NotFoundPage } from "@/components/blog/NotFoundPage";
@@ -96,7 +96,8 @@ export const Route = createFileRoute("/_marketing/forms/$slug")({
 });
 
 function FormPage() {
-  return <FormPageInner />;
+  const hasChild = useChildMatches({ select: matches => matches.length > 0 });
+  return hasChild ? <Outlet /> : <FormPageInner />;
 }
 
 function FormPageInner() {

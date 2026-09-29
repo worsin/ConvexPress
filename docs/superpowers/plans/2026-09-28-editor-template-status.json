@@ -7,7 +7,7 @@
     "In progress": 23
   },
   "goal": "Complete block editor and template delivery plus all demonstrated blockers; defer unrelated whole-app audit campaigns.",
-  "currentTask": "114 Verified/23 In progress. Continue Contact/Form revoked-expired caller authority, Lead account/environment lifecycle and RSVP legitimate provider/original-generated selection. Poll now accepted with two actual customers, ballot semantics, source withdrawal and16current pack cases plus prior native/maximum evidence.20 Task3 rows,2 Task4 migration rows,1 Task7 SDK row remain. Tasks4\u20138/E18/E22/E28 and model/Vimeo/target-Clerk gates remain open.",
+  "currentTask": "114 Verified/23 In progress unchanged. E58 draft authority and E59 actual resume routing/confirmation repaired and source-deployed. Continue actual customer Contact/Form revoked-expired source/reference authority, Lead account/environment lifecycle and RSVP legitimate provider/original-generated selection. Reuse forms-authority-20260929 registered/runtime evidence. Tasks4\u20138/E18/E22/E28 and model/Vimeo/target-Clerk gates remain open.",
   "tasks": [
     {
       "id": 1,
@@ -569,6 +569,30 @@
         "output/forms-acceptance-20260929/contact-overflow-minimal-probe.json",
         "output/forms-acceptance-20260929/forms-mobile-final-causal-probe.json",
         "output/forms-acceptance-20260929/matrix.json"
+      ]
+    },
+    {
+      "id": "E58",
+      "classification": "accepted repair",
+      "initialFinding": "Expired draft writes bypassed30-day TTL; resume reads skipped current form-route/login access; inactive account stale identity could write login-required drafts.",
+      "closureBoundary": "Shared Forms resume and submit authority, including Contact public/CAPTCHA-final paths.",
+      "status": "Closed scoped repair: five red registered-handler cases,596backend tests, current deployed route/login revocation and stale-mount refusal.30-day expiry uses deterministic test time, not live timestamp edits. Remaining actual customer acceptance stays open.",
+      "evidence": [
+        "ConvexPress-Admin/audits/2026-09-04/forms-authority-20260929.md",
+        "output/forms-authority-20260929/matrix.json",
+        "output/forms-authority-20260929/cleanup.json"
+      ]
+    },
+    {
+      "id": "E59",
+      "classification": "accepted repair",
+      "initialFinding": "Saved draft URL rendered blank ordinary form because parent lacked Outlet; repaired route then showed404 after successful submission consumed its token. Bearer token also appeared as breadcrumb text.",
+      "closureBoundary": "Actual resume route across four packs, preserve saved values and same-entry completion; release failed/revoked drafts; no token breadcrumb.",
+      "status": "Closed: actual before/after Website proof and eight final pack/width restore/submit/confirmation/reload cases. Component test proves completion race, failed operation release and idle revocation. No final page errors; fixture cleaned.",
+      "evidence": [
+        "ConvexPress-Admin/audits/2026-09-04/forms-authority-20260929.md",
+        "output/forms-authority-20260929/matrix.json",
+        "output/forms-authority-20260929/cleanup.json"
       ]
     }
   ],
@@ -4216,7 +4240,11 @@
     "output/poll-policy-20260929/withdrawn-refusal.json",
     "output/poll-policy-20260929/alerts-cancelled.json",
     "output/poll-policy-20260929/cleanup.json",
-    "output/poll-policy-20260929/mt-accept-verified.json"
+    "output/poll-policy-20260929/mt-accept-verified.json",
+    "ConvexPress-Admin/audits/2026-09-04/forms-authority-20260929.md",
+    "output/forms-authority-20260929/installed-proof.json",
+    "output/forms-authority-20260929/matrix.json",
+    "output/forms-authority-20260929/cleanup.json"
   ],
   "trackerRefresh": {
     "source": "output/poll-policy-20260929/mt-accept-after.json",

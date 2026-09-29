@@ -11,6 +11,7 @@ import {readForm} from "../form";
 import {publishedFixture} from "../../syncedBlocks/__tests__/publishedFixture.test-support";
 import {resolvePublishedOccurrences} from "../../syncedBlocks/occurrences";
 import {RequestReadLedger} from "../../helpers/requestReadLedger";
+import {DEFAULT_RESUME_TTL_MS} from "../../extensions/forms/tokens";
 const modules={
  "./convex/_generated/api.js":()=>import("../../_generated/api.js"),"./convex/_generated/server.js":()=>import("../../_generated/server.js"),
  "./convex/membership/policyReads.ts":()=>import("../../membership/policyReads"),
@@ -59,6 +60,18 @@ test("source password is required on reads and writes, and wrong or oversized pa
  const f=await fixture();await f.t.run(ctx=>ctx.db.patch("posts",f.ids.post,{visibility:"password",password:"fixture-only"}));
  for(const password of [undefined,"wrong","x".repeat(1025)]){expect(await f.read(password)).toBeNull();await expect(f.submit({contactPassword:password})).rejects.toThrow();}
  expect((await f.read("fixture-only")).fields).toHaveLength(1);expect((await f.submit({contactPassword:"fixture-only"})).isComplete).toBe(true);
+});
+test("a Contact draft cannot bypass expiry through either public or CAPTCHA-final submission",async()=>{
+ const f=await fixture(), draft=await f.t.mutation(ref("mutations:submit"),{...f.args,isComplete:false});
+ const before=await f.t.run(async ctx=>({sub:await ctx.db.get("form_submissions",draft.submissionId),answers:await ctx.db.query("fieldValues").collect()}));
+ try {
+  setSystemTime(before.sub!.submittedAt!+DEFAULT_RESUME_TTL_MS+1);
+  expect(await f.t.query(ref("queries:resume"),{token:draft.resumeToken})).toEqual({status:"expired"});
+  for(const endpoint of ["mutations:submit","mutations:submitInternal"]){
+   await expect(f.t.mutation(ref(endpoint),{...f.args,resumeToken:draft.resumeToken,isComplete:true,startedAt:Date.now()-10000})).rejects.toThrow("Submission rejected");
+  }
+  expect(await f.t.run(async ctx=>({sub:await ctx.db.get("form_submissions",draft.submissionId),answers:await ctx.db.query("fieldValues").collect()}))).toEqual(before);
+ } finally {setSystemTime();}
 });
 test("contact block and ancestor membership revoke direct forms, draft resume and final submission",async()=>{
  const f=await fixture();

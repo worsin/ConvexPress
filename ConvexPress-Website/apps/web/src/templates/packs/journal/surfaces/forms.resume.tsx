@@ -26,7 +26,7 @@ export default function JournalFormResume({ data }: SurfaceProps<FormResumeSurfa
   return (
     <Container data-slot="form-resume" className="py-6 md:py-10">
       <div className="mx-auto w-full max-w-2xl">
-        <FormWizard form={form} resumeToken={token} initialValues={draft.values} initialStep={draft.currentStep} />
+        <FormWizard form={form} resumeToken={token} initialValues={draft.values} initialStep={draft.currentStep} onSubmittingChange={data.onSubmittingChange} onSubmitted={data.onSubmitted} />
       </div>
     </Container>
   );

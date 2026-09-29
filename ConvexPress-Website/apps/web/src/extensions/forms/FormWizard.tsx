@@ -109,6 +109,8 @@ interface FormWizardProps {
   initialStep?: number;
   /** Handed the final submit result for the Confirmation System handoff. */
   onSubmitted?: (res: { submissionId: string; isComplete: boolean }) => void;
+  /** Keep a resume route mounted while its successful mutation consumes the draft. */
+  onSubmittingChange?: (submitting: boolean) => void;
   options?: FormWizardOptions;
 }
 
@@ -328,6 +330,7 @@ export function FormWizard({
   initialValues,
   initialStep,
   onSubmitted,
+  onSubmittingChange,
   options,
 }: FormWizardProps) {
   const { isLoaded, isSignedIn } = useAuth();
@@ -630,6 +633,7 @@ export function FormWizard({
       return;
     }
     setIsSubmitting(true);
+    onSubmittingChange?.(true);
     try {
       const submitComplete = captchaIsRequired(form.security)
         ? submitWithCaptcha
@@ -746,6 +750,7 @@ export function FormWizard({
       }
     } finally {
       setIsSubmitting(false);
+      onSubmittingChange?.(false);
     }
   }, [
     submit,
@@ -760,6 +765,7 @@ export function FormWizard({
     orderFormSettings.enabled,
     orderPricing,
     onSubmitted,
+    onSubmittingChange,
     activeSteps,
     honeypotValue,
     captchaToken,

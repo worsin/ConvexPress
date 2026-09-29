@@ -1,6 +1,7 @@
 import { convexQuery } from "@convex-dev/react-query";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
+import { useState } from "react";
 import { api } from "@convexpress-website/backend/generated/api";
 
 import { NotFoundPage } from "@/components/blog/NotFoundPage";
@@ -83,7 +84,8 @@ export const Route = createFileRoute("/_marketing/forms/$slug/resume/$token")({
 });
 
 function ResumeFormPage() {
-  return <ResumeFormInner />;
+  const { token } = Route.useParams();
+  return <ResumeFormInner key={token} />;
 }
 
 function ResumeFormInner() {
@@ -95,19 +97,34 @@ function ResumeFormInner() {
     data: PublicForm | null;
   };
   const { data: draft } = useSuspenseQuery(resumeQuery) as { data: ResumeDraft };
+  const [submission, setSubmission] = useState<{
+    draft: ResumeDraft;
+    complete: boolean;
+  } | null>(null);
+  // The mutation invalidates its own resume token before the wizard resolves
+  // confirmation. Retain this mount's authorized draft only for that operation;
+  // a failed operation releases it, and a new token/remount starts empty.
+  const visibleDraft = draft ?? submission?.draft;
 
   // Form missing/unpublished, or no draft at all → 404.
-  if (!form || draft == null) {
+  if (!form || visibleDraft == null) {
     return <NotFoundPage />;
   }
 
   // A partial draft that belongs to a different form → 404.
   // (An expired marker carries no formSlug, so it was never subject to this check.)
-  if (draft.status !== "expired" && draft.formSlug !== slug) {
+  if (visibleDraft.status !== "expired" && visibleDraft.formSlug !== slug) {
     return <NotFoundPage />;
   }
 
-  const data: FormResumeSurfaceData = { form, slug, token, draft };
+  const data: FormResumeSurfaceData = {
+    form, slug, token, draft: visibleDraft,
+    onSubmittingChange: submitting => {
+      if (submitting) setSubmission({ draft, complete: false });
+      else setSubmission(previous => previous?.complete ? previous : null);
+    },
+    onSubmitted: () => setSubmission(previous => previous ? { ...previous, complete: true } : null),
+  };
 
   return <Surface name="forms.resume" data={data} fallback={CoreFormResume} />;
 }
