@@ -280,3 +280,24 @@ test("share uses the actual click-time page URL and reports clipboard failure wi
 			"https://example.test/changed?q=clay#notes",
 		);
 	}));
+
+
+test("delayed clipboard feedback cannot replace a newer request or destination", async () => inDom(async (root) => {
+  const pending=[];
+  Object.defineProperty(navigator,"clipboard",{configurable:true,value:{writeText:url=>new Promise((resolve,reject)=>pending.push({url,resolve,reject}))}});
+  const render=url=>root.render(utilityTree(share,{shareUrlMode:"custom",customUrl:url,networks:["copy"]}));
+  await act(async()=>render("https://example.test/old"));
+  await act(async()=>document.querySelector("button").click());
+  await act(async()=>render("https://example.test/new"));
+  await act(async()=>pending[0].reject(Error("denied")));
+  expect(document.querySelector("input")).toBeNull();
+  expect(document.querySelector("[role=status]").textContent).toBe("");
+  await act(async()=>document.querySelector("button").click());
+  await act(async()=>document.querySelector("button").click());
+  await act(async()=>pending[2].resolve());
+  await act(async()=>pending[1].reject(Error("old request denied")));
+  expect(document.querySelector("[role=status]").textContent).toBe("Link copied.");
+  expect(document.querySelector("input")).toBeNull();
+  await act(async()=>render("https://example.test/final"));
+  expect(document.querySelector("[role=status]").textContent).toBe("");
+}));

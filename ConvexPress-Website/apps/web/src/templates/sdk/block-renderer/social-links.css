@@ -1,0 +1,16 @@
+.cp-social-profile {
+	display: inline-flex;
+	align-items: flex-start;
+	gap: 0.5rem;
+	min-inline-size: 0;
+	max-inline-size: 100%;
+}
+.cp-social-profile > svg {
+	flex: 0 0 auto;
+	inline-size: 1rem;
+	block-size: 1rem;
+	margin-block-start: 0.25em;
+}
+.cp-social-profile > .cp-link {
+	min-inline-size: 0;
+}

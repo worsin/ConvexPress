@@ -1,13 +1,13 @@
 {
   "plan": "2026-09-28-editor-template-delivery.md",
   "baselineCommit": "d0fee8acceb408fd306a15f3c054322cb73ac8bc",
-  "checkpointSource": "output/locale-promotion-20260929/mt-accept-after.json",
+  "checkpointSource": "output/social-utilities-20260929/mt-accept-after.json",
   "checkpointCounts": {
-    "Verified": 76,
-    "In progress": 61
+    "Verified": 79,
+    "In progress": 58
   },
   "goal": "Complete block editor and template delivery plus all demonstrated blockers; defer unrelated whole-app audit campaigns.",
-  "currentTask": "Language Switcher and E41 accepted;76 Verified /61 In progress. Continue Task2 social utilities and remaining family batches; E18 final installed artifact/editor parity and Tasks4\u20138 remain open.",
+  "currentTask": "Task2 social utilities accepted;79 Verified /58 In progress. Next Task3 plugin-content/support gating: reproduce and repair E15/F1 defaults parity before installed/native block acceptance. Full goal active.",
   "tasks": [
     {
       "id": 1,
@@ -328,6 +328,26 @@
         "output/locale-promotion-20260929/applied-proof.json",
         "output/locale-promotion-20260929/recovery-proof.json",
         "output/locale-promotion-20260929/cleanup.json"
+      ]
+    },
+    {
+      "id": "E42",
+      "status": "Closed: shared write-only URL rule, current-request clipboard feedback, long-token Link wrapping and existing decorative platform icons. Installed refusal, native exact save/reopen/recovery,16 final public normal/maximum cases and8 pack-identified captures pass. All42 original pages/appearance preserved; owned fixture and sessions cleaned. Tracker79/58; see social-utilities-20260929.md.",
+      "classification": "accepted/reusable evidence",
+      "initialFinding": "Social Share customUrl accepts new unsupported destinations at save validation but its renderer throws INVALID_SHARE_URL. A delayed clipboard rejection can expose the previous destination after attrs change. Both reproduced by failing regressions. Live maximum-label Social Links rendering also extends text to x413.875 in a390px viewport: its286px link box has362px unwrapped text. Shared Link lacks the wrapping rule already present on text/heading primitives. Final requirement reconciliation also found text-only Social Links despite its canonical icon-row description.",
+      "closureBoundary": "Shared write-only absolute web URL validation preserving historical reads/recovery; current-request/destination clipboard feedback. Verify normal installed save/preview/publication refusal and native corrected save/reopen/recovery, actual Website share/copy/manual fallback in four packs. No outbound sharing or general URL rewrite. Add overflow wrapping to the shared Link primitive and verify maximum/empty values in all four packs at1440/390.",
+      "evidence": [
+        "output/social-utilities-20260929/authoring-red.log",
+        "output/social-utilities-20260929/renderer-red.log",
+        "output/social-utilities-20260929/contracts-green.log",
+        "output/social-utilities-20260929/backend-tests.log",
+        "output/social-utilities-20260929/renderer-green.log",
+        "output/social-utilities-20260929/variants-overflow.json",
+        "output/social-utilities-20260929/renderer-final.log",
+        "output/social-utilities-20260929/public-matrix.json",
+        "output/social-utilities-20260929/public-variants.json",
+        "output/social-utilities-20260929/cleanup.json",
+        "ConvexPress-Admin/audits/2026-09-04/social-utilities-20260929.md"
       ]
     }
   ],
@@ -1618,9 +1638,9 @@
       "name": "blocks/social-share",
       "title": "Social share",
       "category": "Social",
-      "checkpointStatus": "In progress",
-      "nextClassification": "Reviewed against live Notes and current canonical specification; Native network selection/label; exact encoded current URL and actual keyboard share/copy/fallback destinations without posting.",
-      "classification": "missing evidence",
+      "checkpointStatus": "Verified",
+      "nextClassification": "Accepted on accumulated current block-specific evidence; see social-utilities-20260929.md.",
+      "classification": "accepted/reusable evidence",
       "source": "blocks/blocks/social-share/block.json",
       "requirements": "networks[], label",
       "evidenceReferences": [
@@ -1628,14 +1648,15 @@
         "canonical-utility74-renderer-outcome.md",
         "output/block-demo/browser-results-utility74-verified",
         "output/block-library-review-20260915/coverage-review.json.",
-        "ConvexPress-Admin/audits/2026-09-04/search-library-prose-20260928.md"
+        "ConvexPress-Admin/audits/2026-09-04/search-library-prose-20260928.md",
+        "ConvexPress-Admin/audits/2026-09-04/social-utilities-20260929.md"
       ],
-      "remainingReview": "Native network selection/label; exact encoded current URL and actual keyboard share/copy/fallback destinations without posting.",
+      "remainingReview": "Block-specific native field/save/reopen/exact recovery and final four-pack normal/maximum/empty acceptance complete. Full migration and integrated delivery remain separate Tasks4/8.",
       "deliveryTask": 2,
       "acceptanceBatch": "social-utilities",
       "reviewedAtCommit": "d8a0ea2c",
       "notesSha256": "acf98d19cc2109f23b3b59877ffb620d8870da782082951800f55db4c8a44c3d",
-      "specSha256": "4303336e4942b0821ac8ec6ec13367b27bcb9044ccf04a49ec964cbf82c74731",
+      "specSha256": "094701566da99acba07586feaff79b53919ad3e7c3687d11e648bf4dbd268afa",
       "rendererSha256": "0517103b8eb095ee71efd896c9f850383f88afd7404fd977eedb1bace42f6f52",
       "canonicalFields": [
         "heading",
@@ -1649,9 +1670,9 @@
       "name": "core/social-links",
       "title": "Social links",
       "category": "Social",
-      "checkpointStatus": "In progress",
-      "nextClassification": "Reviewed against live Notes and current canonical specification; Native network/url repeater, ordering and absent values; actual links/accessibility under all packs.",
-      "classification": "missing evidence",
+      "checkpointStatus": "Verified",
+      "nextClassification": "Accepted on accumulated current block-specific evidence; see social-utilities-20260929.md.",
+      "classification": "accepted/reusable evidence",
       "source": "blocks/core/social-links/block.json",
       "requirements": "items[{network, url}]",
       "evidenceReferences": [
@@ -1659,15 +1680,16 @@
         "output/block-demo/browser-results-content50-verified.",
         "output/block-demo/browser-results-media42-verified.",
         "output/block-library-review-20260915/coverage-review.json.",
-        "ConvexPress-Admin/audits/2026-09-04/search-library-prose-20260928.md"
+        "ConvexPress-Admin/audits/2026-09-04/search-library-prose-20260928.md",
+        "ConvexPress-Admin/audits/2026-09-04/social-utilities-20260929.md"
       ],
-      "remainingReview": "Native network/url repeater, ordering and absent values; actual links/accessibility under all packs.",
+      "remainingReview": "Block-specific native field/save/reopen/exact recovery and final four-pack normal/maximum/empty acceptance complete. Full migration and integrated delivery remain separate Tasks4/8.",
       "deliveryTask": 2,
       "acceptanceBatch": "social-utilities",
       "reviewedAtCommit": "d8a0ea2c",
       "notesSha256": "3e435bfef38c74fa75309cdeac28c50215950e231018f3e6688a89a6faf00431",
       "specSha256": "a20e27c2294097ac4b9139beecc0d9829ec7cca2947bf758e492270ff5178a88",
-      "rendererSha256": "b863b54a36b56b0428ac72465a19fb19dc7b9145d647d0a30e06d0e7efa258b8",
+      "rendererSha256": "23d16f323c9f6e8c537b0763a160a2d6f8cd9bd1a12313d7e77293415879f8d5",
       "canonicalFields": [
         "heading",
         "links"
@@ -3625,9 +3647,9 @@
       "name": "local/sample-alert",
       "title": "Local sample alert",
       "category": "Site",
-      "checkpointStatus": "In progress",
-      "nextClassification": "Reviewed against live Notes and current canonical specification; Reuse deployed action validation; native notice variants, empty/long message and actual destination, every pack's final visual signoff.",
-      "classification": "missing evidence",
+      "checkpointStatus": "Verified",
+      "nextClassification": "Accepted on accumulated current block-specific evidence; see social-utilities-20260929.md.",
+      "classification": "accepted/reusable evidence",
       "source": "blocks/local/sample-alert/block.json",
       "requirements": "message and current schema fields",
       "evidenceReferences": [
@@ -3636,9 +3658,10 @@
         "output/block-demo/browser-results-media66",
         "output/block-library-review-20260915/coverage-review.json.",
         "output/cta-family-20260921.",
-        "ConvexPress-Admin/audits/2026-09-04/search-library-prose-20260928.md"
+        "ConvexPress-Admin/audits/2026-09-04/search-library-prose-20260928.md",
+        "ConvexPress-Admin/audits/2026-09-04/social-utilities-20260929.md"
       ],
-      "remainingReview": "Reuse deployed action validation; native notice variants, empty/long message and actual destination, every pack's final visual signoff.",
+      "remainingReview": "Block-specific native field/save/reopen/exact recovery and final four-pack normal/maximum/empty acceptance complete. Full migration and integrated delivery remain separate Tasks4/8.",
       "deliveryTask": 2,
       "acceptanceBatch": "social-utilities",
       "reviewedAtCommit": "d8a0ea2c",
@@ -3779,21 +3802,33 @@
     "output/locale-promotion-20260929/recovery-proof.json",
     "output/locale-promotion-20260929/backup-locale-proof.json",
     "output/locale-promotion-20260929/cleanup.json",
-    "output/locale-promotion-20260929/lifecycle.json"
+    "output/locale-promotion-20260929/lifecycle.json",
+    "ConvexPress-Admin/audits/2026-09-04/social-utilities-20260929.md",
+    "output/social-utilities-20260929/mt-accept-verified.json",
+    "output/social-utilities-20260929/installed-source-proof.json",
+    "output/social-utilities-20260929/native-exact-recovery.json",
+    "output/social-utilities-20260929/public-matrix.json",
+    "output/social-utilities-20260929/public-variants.json",
+    "output/social-utilities-20260929/visual.json",
+    "output/social-utilities-20260929/source-provenance.json",
+    "output/social-utilities-20260929/cleanup.json",
+    "output/social-utilities-20260929/lifecycle.json"
   ],
   "trackerRefresh": {
-    "source": "output/locale-promotion-20260929/mt-accept-after.json",
-    "schema": "output/locale-promotion-20260929/mt-schema.json",
+    "source": "output/social-utilities-20260929/mt-accept-after.json",
+    "schema": "output/social-utilities-20260929/mt-schema.json",
     "rows": 137,
     "counts": {
-      "Verified": 76,
-      "In progress": 61
+      "Verified": 79,
+      "In progress": 58
     },
     "otherCellsUnchangedFromPreviousRead": true,
     "pendingNotesReconciled": 77,
     "classificationScope": "Block-specific missing gates; historical whole-app audit conditions retained in Notes but not automatic prerequisites.",
     "lastAcceptedNames": [
-      "core/language-switcher"
+      "blocks/social-share",
+      "core/social-links",
+      "local/sample-alert"
     ],
     "allNotesExact": true
   },

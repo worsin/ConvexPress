@@ -136,7 +136,7 @@ test("write-only icon choices cover nested and scalar rows without rewriting leg
   const original = (await discoverBlocks(root)).blocks.find(b => b.spec.name === "core/trust-badges")!.spec;
   const icon = { id: "icon", type: "icon", options: ["heart", "check"], optionsMode: "authoring", nullable: true };
   const fields = [{ id: "panel", type: "object", fields: [{ id: "rows", type: "repeater", fields: [icon] }, { id: "symbols", type: "repeater", item: { ...icon, required: true } }] }];
-  const spec = runtime.parseBlockSpec({ ...original, fields, examples: [{}] });
+  const spec = runtime.parseBlockSpec({ ...original, fields, searchText: [], examples: [{}] });
   const schema = runtime.attrsSchema(spec.fields), choices = authoringFieldRules(spec.fields);
   expect(validateAuthoringFields(z, schema.parse({}), choices)).toEqual({});
   const valid = schema.parse({ panel: { rows: [{}, { icon: null }, { icon: "check" }], symbols: ["heart"] } });
@@ -156,14 +156,14 @@ test("nonblank rules validate nested defaults and examples while preserving opti
   const original = (await discoverBlocks(root)).blocks.find(b => b.spec.name === "core/trust-badges")!.spec;
   const label = { id: "label", type: "text", authoringNonblank: true, nullable: true };
   const fields = [{ id: "panel", type: "object", fields: [{ id: "labels", type: "repeater", item: { ...label, required: true } }] }];
-  const spec = runtime.parseBlockSpec({ ...original, fields, examples: [{}] });
+  const spec = runtime.parseBlockSpec({ ...original, fields, searchText: [], examples: [{}] });
   const schema = runtime.attrsSchema(spec.fields), rules = authoringFieldRules(spec.fields);
   const valid = schema.parse({ panel: { labels: [null, "  Visible  "] } });
   expect(validateAuthoringFields(z, valid, rules)).toBe(valid);
   expect(validateAuthoringFields(z, schema.parse({}), rules)).toEqual({});
   expect(() => validateAuthoringFields(z, schema.parse({ panel: { labels: ["\u200b"] } }), rules)).toThrow("Enter visible text");
-  expect(() => runtime.parseBlockSpec({ ...original, fields: [{ ...label, default: " " }], examples: [{}] })).toThrow();
-  expect(() => runtime.parseBlockSpec({ ...original, fields: [label], examples: [{ label: " " }] })).toThrow();
+  expect(() => runtime.parseBlockSpec({ ...original, fields: [{ ...label, default: " " }], searchText: [], examples: [{}] })).toThrow();
+  expect(() => runtime.parseBlockSpec({ ...original, fields: [label], searchText: [], examples: [{ label: " " }] })).toThrow();
 });
 
 test("social-proof additions retain absent historical fields and validate new content", async () => {
@@ -293,7 +293,7 @@ test("runtime compilation matches shipped generated validators for every example
 		}
 		expect(JSON.stringify(spec)).toBe(before);
 	}
-	expect(examples).toBe(285);
+	expect(examples).toBe(287);
 });
 
 test("Media + Text refuses unlabeled actions before writes without invalidating saved content", async () => {
@@ -342,4 +342,30 @@ test("required media-step headings preserve history but reject invisible new aut
   }
   const value = { steps: [{ title: "  手作り  " }] };
   expect(validateBlockAuthoringAttrs("core/steps-with-media", value)).toEqual(value);
+});
+
+
+test("social share refuses unsupported custom URLs at authoring while historical strings remain readable", () => {
+  for (const customUrl of ["javascript:alert(1)", "mailto:person@example.test", "/relative", "https://name:secret@example.test/path", "not a URL"]) {
+    const attrs = {shareUrlMode:"custom",customUrl};
+    expect(blockSchemas["blocks/social-share"].parse(attrs).customUrl).toBe(customUrl);
+    expect(() => validateBlockAuthoringAttrs("blocks/social-share",attrs)).toThrow();
+  }
+  for (const customUrl of ["", "https://example.test/story?q=clay&lang=es#notes", "http://example.test/story"]) {
+    expect(validateBlockAuthoringAttrs("blocks/social-share",{shareUrlMode:"custom",customUrl}).customUrl).toBe(customUrl);
+  }
+});
+
+
+test("write-only web URL validation retains full nested paths and checks defaults and examples", async () => {
+  const original=(await discoverBlocks(root)).blocks.find(b=>b.spec.name==="blocks/social-share")!.spec;
+  const field={id:"url",type:"text",authoringWebUrl:true,nullable:true};
+  const fields=[{id:"items",type:"repeater",fields:[field]}];
+  const spec=runtime.parseBlockSpec({...original,fields,searchText:[],preview:"URL example",examples:[{}]});
+  const schema=runtime.attrsSchema(spec.fields),rules=authoringFieldRules(spec.fields);
+  const old=schema.parse({items:[{url:null},{url:"/historical"}]});
+  try {validateAuthoringFields(z,old,rules);throw Error("Expected rejection");}catch(error:any){expect(error.issues[0].path).toEqual(["items",1,"url"]);}
+  expect(validateAuthoringFields(z,schema.parse({items:[{url:null},{url:""},{url:"https://example.test/guide"}]}),rules).items).toHaveLength(3);
+  expect(()=>runtime.parseBlockSpec({...original,fields:[{...field,default:"bad"}],searchText:[],preview:"URL example",examples:[{}]})).toThrow("complete HTTP");
+  expect(()=>runtime.parseBlockSpec({...original,fields:[field],searchText:[],preview:"URL example",examples:[{url:"/bad"}]})).toThrow("complete HTTP");
 });

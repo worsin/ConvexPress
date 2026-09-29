@@ -2700,3 +2700,30 @@ test('current author follows the authorized host document and never silently cha
  await f.t.run(ctx=>ctx.db.patch('posts',f.ids.post,{authorId:f.ids.user}));result=await f.t.query(reference('getForRender'),{postId:f.ids.post});expect(result.data.dataByBlock.current.data.author.id).toBe(f.ids.user);
  await f.t.run(ctx=>ctx.db.patch('users',f.ids.user,{authSource:'management'}));expect((await f.t.query(reference('getForRender'),{postId:f.ids.post})).data.dataByBlock.current.data.author).toBeNull();
 });
+
+
+test("social-share URL write rules preserve historical recovery but reject invalid save, preview and publication", async () => {
+  const f=await fixture(); await initialize(f);
+  await f.t.run(async ctx=>{
+    const user=(await ctx.db.get("users",f.ids.user))!;
+    await ctx.db.patch("roles",user.roleId!,{capabilities:["page.update","page.publish","revision.restore"]});
+    await ctx.db.patch("posts",f.ids.post,{blocks:[{id:"share",name:"blocks/social-share",version:1,attrs:{shareUrlMode:"custom",customUrl:"/old-relative"}}]});
+  });
+  const opened=await f.client.query(reference("get"),{postId:f.ids.post});
+  const snapshot=()=>f.t.run(async ctx=>({post:await ctx.db.get("posts",f.ids.post),history:await ctx.db.query("revisions").collect()}));
+  const before=await snapshot(),args={postId:f.ids.post,expectedRevision:opened.document.revision,title:opened.document.title,blocks:opened.document.blocks};
+  for(const customUrl of ["/old-relative","javascript:alert(1)","https://user:secret@example.test","mailto:person@example.test"]){
+    const blocks=structuredClone(args.blocks);blocks[0].attrs.customUrl=customUrl;
+    for(const operation of [()=>f.client.mutation(reference("save","mutation"),{...args,blocks}),()=>f.client.query(reference("previewDraft"),{...args,blocks})]){
+      await expect(operation()).rejects.toMatchObject({data:{code:"INVALID_CANONICAL_DOCUMENT"}});expect(await snapshot()).toEqual(before);
+    }
+  }
+  await expect(f.client.mutation(reference("setPublication","mutation"),{postId:f.ids.post,expectedRevision:args.expectedRevision,status:"publish"})).rejects.toMatchObject({data:{code:"INVALID_CANONICAL_DOCUMENT"}});
+  expect(await snapshot()).toEqual(before);
+  const blocks=structuredClone(args.blocks);blocks[0].attrs.customUrl="https://example.test/story?q=a&b=c#notes";
+  const saved=await f.client.mutation(reference("save","mutation"),{...args,blocks});
+  const history=await f.client.query(reference("pageRevisions"),{postId:f.ids.post,paginationOpts:{cursor:null,numItems:20}});
+  const old=history.page.find((row:any)=>row.blocksVersion===2);expect(old).toBeDefined();
+  await f.client.mutation(reference("restore","mutation"),{postId:f.ids.post,expectedRevision:saved.revision,revisionId:old.id});
+  expect((await f.client.query(reference("get"),{postId:f.ids.post})).document.blocks).toEqual(args.blocks);
+});

@@ -67,7 +67,9 @@
       "id": "customUrl",
       "default": "",
       "type": "text",
-      "max": 500
+      "max": 500,
+      "authoringWebUrl": true,
+      "description": "Complete HTTP or HTTPS address without embedded credentials. Leave empty to configure later."
     }
   ],
   "supports": {

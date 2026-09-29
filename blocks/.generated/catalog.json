@@ -1486,7 +1486,9 @@
         "type": "select"
       },
       {
+        "authoringWebUrl": true,
         "default": "",
+        "description": "Complete HTTP or HTTPS address without embedded credentials. Leave empty to configure later.",
         "id": "customUrl",
         "max": 500,
         "type": "text"

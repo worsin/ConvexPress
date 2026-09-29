@@ -524,6 +524,14 @@ const authoringActions: Readonly<Record<string, readonly AuthoringAction[]>> = {
 }
 ;
 const fieldRules: Readonly<Record<string, readonly AuthoringFieldRule[]>> = {
+  "blocks/social-share": [
+    {
+      "kind": "web-url",
+      "path": [
+        "customUrl"
+      ]
+    }
+  ],
   "core/announcement-bar": [
     {
       "constraints": [

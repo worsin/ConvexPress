@@ -659,8 +659,9 @@
       "core/social-links": {
         "src": "/block-thumbnails/aster-house/core--social-links.jpg",
         "example": 1,
-        "sha256": "1e565b5ef935eaa394e9d99857681de7f42495dda07e0b29bfbe2d708c57ebf6",
-        "bytes": 4298
+        "sha256": "6ecbc369679bf7e12f4d66df663f60124a995d4ecc312a0b8d1dacb6c9eec181",
+        "bytes": 5784,
+        "capturedAt": "2026-09-29T07:04:53.768Z"
       },
       "core/spacer": {
         "src": "/block-thumbnails/aster-house/core--spacer.jpg",
@@ -1513,8 +1514,9 @@
       "core/social-links": {
         "src": "/block-thumbnails/core/core--social-links.jpg",
         "example": 1,
-        "sha256": "f93cfa44df4804274d9207c3759cb1882fad72d55b4ae3e3c957d76ae3401477",
-        "bytes": 4931
+        "sha256": "5dac6fc729dadd5c453af25aa84514516e109d5fc08420d63daa2b8d9e562900",
+        "bytes": 6562,
+        "capturedAt": "2026-09-29T07:04:51.243Z"
       },
       "core/spacer": {
         "src": "/block-thumbnails/core/core--spacer.jpg",
@@ -2450,9 +2452,9 @@
       "core/social-links": {
         "src": "/block-thumbnails/depot/core--social-links.jpg",
         "example": 1,
-        "sha256": "16441f9e849c92f813ebca9687f48595c5f99f8f28647ca3d22a34ce3fd869b4",
-        "bytes": 3730,
-        "capturedAt": "2026-09-21T11:57:23.179Z"
+        "sha256": "9581041fb6fefceafb6a06e3ef1a3661f87a24cc7f4721b28c56e178bb121125",
+        "bytes": 4543,
+        "capturedAt": "2026-09-29T07:04:53.149Z"
       },
       "core/spacer": {
         "src": "/block-thumbnails/depot/core--spacer.jpg",
@@ -3330,8 +3332,9 @@
       "core/social-links": {
         "src": "/block-thumbnails/journal/core--social-links.jpg",
         "example": 1,
-        "sha256": "11b87e480d730d31b5548e9e7501148cffa70b662c66f8d3119b1b71ec947e6e",
-        "bytes": 5006
+        "sha256": "d9e3945c59e94f36dcddc95157882e48d048ce756c7611570fdf97322e46d135",
+        "bytes": 6521,
+        "capturedAt": "2026-09-29T07:04:52.206Z"
       },
       "core/spacer": {
         "src": "/block-thumbnails/journal/core--spacer.jpg",

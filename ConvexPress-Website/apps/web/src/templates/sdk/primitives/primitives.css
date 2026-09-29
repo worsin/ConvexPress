@@ -331,6 +331,7 @@
 }
 .cp-link {
 	line-height: 1.5;
+	overflow-wrap: anywhere;
 }
 .cp-badge {
 	display: inline-flex;

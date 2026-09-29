@@ -9,6 +9,10 @@
               "const": true,
               "type": "boolean"
             },
+            "authoringWebUrl": {
+              "const": true,
+              "type": "boolean"
+            },
             "default": {
               "$ref": "#/$defs/__schema1"
             },
