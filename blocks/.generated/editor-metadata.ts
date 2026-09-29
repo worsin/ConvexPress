@@ -72,6 +72,7 @@ export const editorDefinitions: Record<BlockName, EditorDefinition> = {
             "type": "text"
           },
           {
+            "authoringSafeLink": true,
             "default": "",
             "id": "href",
             "max": 500,

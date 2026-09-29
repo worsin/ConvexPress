@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { assertAuthoringResolverArgs } from "./resolverBindings";
+import { assertAuthoringEmbeds } from "./embedAuthoring";
 import { createComposedRegistry, composedRegistrySnapshotSchema, type ComposedRegistrySnapshot, type RuntimeCanonicalTree } from "./composedRegistry";
 import { canonicalContentDigest, DOCUMENT_LIMITS } from "./documentContracts";
 import { validateCanonicalTree } from "./generated/instances";
@@ -28,6 +29,7 @@ export function assertAuthoredActions(content: Pick<AuthoredDefinitionContent, "
         assertAuthoringResolverArgs(node.name, node.attrs, definition.spec.data);
       } else {
         validateBlockAuthoringAttrs(node.name, node.attrs);
+        assertAuthoringEmbeds(node.name, node.attrs);
         assertAuthoringResolverArgs(node.name, node.attrs);
       }
       if (node.children) visit(node.children);

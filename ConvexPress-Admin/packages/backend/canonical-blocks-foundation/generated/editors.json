@@ -61,6 +61,7 @@
             "type": "text"
           },
           {
+            "authoringSafeLink": true,
             "default": "",
             "id": "href",
             "max": 500,

@@ -1,13 +1,13 @@
 {
   "plan": "2026-09-28-editor-template-delivery.md",
   "baselineCommit": "d0fee8acceb408fd306a15f3c054322cb73ac8bc",
-  "checkpointSource": "output/catalog-acceptance-20260929/mt-accept-after.json",
+  "checkpointSource": "output/external-embeds-20260929/mt-accept-after.json",
   "checkpointCounts": {
-    "Verified": 103,
-    "In progress": 34
+    "Verified": 108,
+    "In progress": 29
   },
   "goal": "Complete block editor and template delivery plus all demonstrated blockers; defer unrelated whole-app audit campaigns.",
-  "currentTask": "Catalog family accepted; 103 Verified / 34 In progress. Tasks1/2 complete at assigned scope. Next Task3 external-embeds: six blocks with legitimate provider/destination and native consent/reset/failure evidence. Remaining31 Task3 rows,2 Task4 migration rows,1 Task7 SDK row. Tasks4\u20138 and E18/E22/E28 remain open; nine placeholder blockers now explicitly triaged under F25.",
+  "currentTask": "Five external-embed rows accepted; 108 Verified / 29 In progress. Script Embed remains pending actual Vimeo playback after provider connection-security refusal. Next Task3 customer-commerce (six rows). Remaining26 Task3 rows,2 Task4 migration rows,1 Task7 SDK row. Tasks4\u20138 and E18/E22/E28 remain open.",
   "tasks": [
     {
       "id": 1,
@@ -156,10 +156,14 @@
     },
     {
       "id": "E12",
-      "status": "Vimeo actual playback remains missing provider evidence; not assumed to need code changes or to block every video implementation.",
-      "classification": "missing evidence",
+      "status": "Embed Vimeo playback verified in actual Website/installed Chrome using official sample19231868. Subsequent provider connection-security refusal leaves Script Embed Vimeo playback unproved; no bypass or sandbox change. Iframe approved real-map gate passes; no Iframe Vimeo playback claim.",
+      "classification": "external prerequisite",
       "initialFinding": "Vimeo playback remains unverified; YouTube proof does not cover it.",
-      "closureBoundary": "Verify supported provider consent/load/play/failure behavior using legitimate fixtures, or explicitly identify an external prerequisite. Keep intended supported providers; do not quietly remove capability to pass."
+      "closureBoundary": "Verify supported provider consent/load/play/failure behavior using legitimate fixtures, or explicitly identify an external prerequisite. Keep intended supported providers; do not quietly remove capability to pass.",
+      "currentEvidence": [
+        "ConvexPress-Admin/audits/2026-09-04/external-embeds-20260929.md",
+        "output/external-embeds-20260929/vimeo-acceptance.json"
+      ]
     },
     {
       "id": "E13",
@@ -191,7 +195,7 @@
     },
     {
       "id": "E16",
-      "status": "Deployment preservation discipline is accepted and actively enforced: installed moving-media checkpoint preserves22 Events files/2410 function signatures and reviewed source overlays. No backend deployment in catalog batch. Remaining extension install/disable/re-enable and Events/Dashboard manifest workflows stay open under Task7.",
+      "status": "Deployment preservation accepted and enforced: external-embeds-reviewed checkpoint has1624exact source hashes,22Events files and2410unchanged function signatures. Extension lifecycle and Events/Dashboard workflows remain Task7.",
       "classification": "accepted/reusable evidence",
       "initialFinding": "Installed extension code can be lost by deploying a generic backend snapshot; this happened and was repaired.",
       "closureBoundary": "Preserve the installed plugin directories/generated indexes. Build next snapshot from verified installed checkpoint and overlay reviewed source changes; verify plugin parity before deployment. Complete install/disable/re-enable and reference Events/Dashboard manifest workflows.",
@@ -503,6 +507,39 @@
         "output/catalog-acceptance-20260929/bundle-overflow-cause.json",
         "output/catalog-acceptance-20260929/maximum-matrix.json",
         "output/catalog-acceptance-20260929/cleanup.json"
+      ]
+    },
+    {
+      "id": "E53",
+      "classification": "accepted repair",
+      "initialFinding": "Unsupported provider URLs, malformed resource IDs and nameless/unsafe authored actions were accepted by new-write contracts.",
+      "status": "Closed: existing closed provider adapter shared by native and backend writes; historical recovery remains permissive. Eleven installed refusals leave exact document unchanged, native field error/save refusal and positive provider writes pass.",
+      "closureBoundary": "authored embed validation; exact native/public/recovery and preservation evidence.",
+      "evidence": [
+        "ConvexPress-Admin/audits/2026-09-04/external-embeds-20260929.md",
+        "output/external-embeds-20260929/cleanup.json"
+      ]
+    },
+    {
+      "id": "E54",
+      "classification": "accepted repair",
+      "initialFinding": "Valid300-character contact value exceeded240-character Link primitive limit and crashed rendered page.",
+      "status": "Closed: Link alone accepts bounded300 characters; actual failing-before renderer regression and all four-pack maximum cases pass.",
+      "closureBoundary": "Contact Link length; exact native/public/recovery and preservation evidence.",
+      "evidence": [
+        "ConvexPress-Admin/audits/2026-09-04/external-embeds-20260929.md",
+        "output/external-embeds-20260929/cleanup.json"
+      ]
+    },
+    {
+      "id": "E55",
+      "classification": "accepted repair",
+      "initialFinding": "Consent headings, map addresses and contact labels widen390px page to9116px at valid maximum lengths.",
+      "status": "Closed: isolated three-rule wrapping intervention proves cause; full content retained, eight maximum/eight normal cases pass.",
+      "closureBoundary": "embed maximum wrapping; exact native/public/recovery and preservation evidence.",
+      "evidence": [
+        "ConvexPress-Admin/audits/2026-09-04/external-embeds-20260929.md",
+        "output/external-embeds-20260929/cleanup.json"
       ]
     }
   ],
@@ -1017,30 +1054,33 @@
       "name": "core/embed",
       "title": "Embed",
       "category": "Media",
-      "checkpointStatus": "In progress",
-      "nextClassification": "Reviewed against live Notes and current canonical specification; Retain accepted YouTube consent/playback; establish a legitimate working Vimeo fixture and diagnose provider versus integration failure.",
-      "classification": "missing evidence",
+      "checkpointStatus": "Verified",
+      "nextClassification": "Accepted on native exact authoring/recovery, published four-pack/width, actual provider, maximum/empty and cleanup evidence; see ConvexPress-Admin/audits/2026-09-04/external-embeds-20260929.md",
+      "classification": "accepted/reusable evidence",
       "source": "blocks/core/embed/block.json",
-      "requirements": "url, caption, provider",
+      "requirements": "url, caption",
       "evidenceReferences": [
         "canonical-contact79-renderer-outcome.md",
         "media-interactive-20260921.md",
         "output/block-demo/browser-results-contact79-fixed",
         "output/block-library-review-20260915/coverage-review.json.",
         "output/media-interactive-20260921/.",
-        "ConvexPress-Admin/audits/2026-09-04/search-library-prose-20260928.md"
+        "ConvexPress-Admin/audits/2026-09-04/search-library-prose-20260928.md",
+        "ConvexPress-Admin/audits/2026-09-04/external-embeds-20260929.md",
+        "output/external-embeds-20260929/source-provenance.json"
       ],
-      "remainingReview": "Retain accepted YouTube consent/playback; establish a legitimate working Vimeo fixture and diagnose provider versus integration failure.",
+      "remainingReview": "No remaining block-specific gate in this batch; broader Tasks4\u20138 remain open.",
       "deliveryTask": 3,
       "acceptanceBatch": "external-embeds",
-      "reviewedAtCommit": "d8a0ea2c",
+      "reviewedAtCommit": "99a0c8f8 + external embed contracts/layout repairs",
       "notesSha256": "b2fe26ee72acef917d20785add3bbbd17329467cdd8656776505e119638b3dcd",
       "specSha256": "66c0589860a7cd8c71bc5280614699bc899630fb5f210d63b44b20f9d81f6e82",
       "rendererSha256": "49be3aa3136c867fa3827655a78a89baa7f25f389e98eca3677eafcc49ca565f",
       "canonicalFields": [
         "url",
         "caption"
-      ]
+      ],
+      "acceptedEvidence": "ConvexPress-Admin/audits/2026-09-04/external-embeds-20260929.md"
     },
     {
       "name": "core/before-after",
@@ -1106,21 +1146,23 @@
       "name": "core/map",
       "title": "Map",
       "category": "Media",
-      "checkpointStatus": "In progress",
-      "nextClassification": "Reviewed against live Notes and current canonical specification; Native address/coordinates/provider/directions fields; actual supported map load after consent, reset/error and destination behavior.",
-      "classification": "missing evidence",
+      "checkpointStatus": "Verified",
+      "nextClassification": "Accepted on native exact authoring/recovery, published four-pack/width, actual provider, maximum/empty and cleanup evidence; see ConvexPress-Admin/audits/2026-09-04/external-embeds-20260929.md",
+      "classification": "accepted/reusable evidence",
       "source": "blocks/core/map/block.json",
-      "requirements": "address (text), latitude (number), longitude (number), provider (select), directions (link)",
+      "requirements": "address, latitude, longitude, provider, directions",
       "evidenceReferences": [
         "canonical-conversion83-renderer-outcome.md",
         "output/aster-house/conversion83/newsletter-acceptance.json",
         "output/block-demo/browser-results-conversion83",
-        "output/block-library-review-20260915/coverage-review.json."
+        "output/block-library-review-20260915/coverage-review.json.",
+        "ConvexPress-Admin/audits/2026-09-04/external-embeds-20260929.md",
+        "output/external-embeds-20260929/source-provenance.json"
       ],
-      "remainingReview": "Native address/coordinates/provider/directions fields; actual supported map load after consent, reset/error and destination behavior.",
+      "remainingReview": "No remaining block-specific gate in this batch; broader Tasks4\u20138 remain open.",
       "deliveryTask": 3,
       "acceptanceBatch": "external-embeds",
-      "reviewedAtCommit": "d8a0ea2c",
+      "reviewedAtCommit": "99a0c8f8 + external embed contracts/layout repairs",
       "notesSha256": "d34095b2ccd71fc66250f125ff800ccd62e39baa55f5c4292126a7801a84650f",
       "specSha256": "21b901b2be615e41012059feb33a86288116cafeea11497333f5bd6a9c6eebdb",
       "rendererSha256": "141b3e6023911e3553e7b5b85f36f7ad77ac916beb0d2c727b37e804b57682c3",
@@ -1130,7 +1172,8 @@
         "longitude",
         "provider",
         "directions"
-      ]
+      ],
+      "acceptedEvidence": "ConvexPress-Admin/audits/2026-09-04/external-embeds-20260929.md"
     },
     {
       "name": "core/file-download",
@@ -2719,24 +2762,26 @@
       "name": "core/booking-cta",
       "title": "Booking CTA",
       "category": "Forms",
-      "checkpointStatus": "In progress",
-      "nextClassification": "Reviewed against live Notes and current canonical specification; Native title/body/url/provider, approved provider consent/load/reset/failure or actual external destination; booking submission requires explicit scope.",
-      "classification": "missing evidence",
+      "checkpointStatus": "Verified",
+      "nextClassification": "Accepted on native exact authoring/recovery, published four-pack/width, actual provider, maximum/empty and cleanup evidence; see ConvexPress-Admin/audits/2026-09-04/external-embeds-20260929.md",
+      "classification": "accepted/reusable evidence",
       "source": "blocks/core/booking-cta/block.json",
-      "requirements": "title, body, url, provider",
+      "requirements": "eyebrow, heading, body, ctaLabel, ctaUrl, embedUrl",
       "evidenceReferences": [
         "block-existing-spec-migration-outcome.md",
         "canonical-contact79-renderer-outcome.md",
         "output/block-demo/browser-results-contact79-fixed",
         "output/block-library-review-20260915/coverage-review.json.",
-        "ConvexPress-Admin/audits/2026-09-04/search-library-prose-20260928.md"
+        "ConvexPress-Admin/audits/2026-09-04/search-library-prose-20260928.md",
+        "ConvexPress-Admin/audits/2026-09-04/external-embeds-20260929.md",
+        "output/external-embeds-20260929/source-provenance.json"
       ],
-      "remainingReview": "Native title/body/url/provider, approved provider consent/load/reset/failure or actual external destination; booking submission requires explicit scope.",
+      "remainingReview": "No remaining block-specific gate in this batch; broader Tasks4\u20138 remain open.",
       "deliveryTask": 3,
       "acceptanceBatch": "external-embeds",
-      "reviewedAtCommit": "d8a0ea2c",
+      "reviewedAtCommit": "99a0c8f8 + external embed contracts/layout repairs",
       "notesSha256": "7f29f9f80384cd7e02996e8b45ae1b3d9798d0e199839fa35857b841b4f14bd6",
-      "specSha256": "db61af6e6d68543563c6d422f3c2a63a69cecd0bb02a7e0e97652a37b2e142f3",
+      "specSha256": "2775683a4715196ccf0176898729bf0c5e02deacc5f25af1d2b87e75fd7ccd81",
       "rendererSha256": "9ccb5a0770d322db51ccadfde8c1cc294d7281c45a8a944032f7a05e117792ac",
       "canonicalFields": [
         "eyebrow",
@@ -2745,31 +2790,34 @@
         "ctaLabel",
         "ctaUrl",
         "embedUrl"
-      ]
+      ],
+      "acceptedEvidence": "ConvexPress-Admin/audits/2026-09-04/external-embeds-20260929.md"
     },
     {
       "name": "blocks/contact-stack",
       "title": "Contact stack",
       "category": "Forms",
-      "checkpointStatus": "In progress",
-      "nextClassification": "Reviewed against live Notes and current canonical specification; Reuse container-width/consent repairs; native address/hours/phone/email/map/form, actual scoped form/map load and correct contact destinations.",
-      "classification": "missing evidence",
+      "checkpointStatus": "Verified",
+      "nextClassification": "Accepted on native exact authoring/recovery, published four-pack/width, actual provider, maximum/empty and cleanup evidence; see ConvexPress-Admin/audits/2026-09-04/external-embeds-20260929.md",
+      "classification": "accepted/reusable evidence",
       "source": "blocks/blocks/contact-stack/block.json",
-      "requirements": "address, hours[], phone, email, map, form",
+      "requirements": "heading, intro, phone, email, address, hours, mapEmbedUrl, items",
       "evidenceReferences": [
         "canonical-contact79-renderer-outcome.md",
         "output/block-demo/browser-results-contact79-fixed",
         "output/block-library-review-20260915/coverage-review.json.",
         "output/block-review-refresh-20260920/acceptance-review.md.",
         "output/block-visual-acceptance-20260915",
-        "ConvexPress-Admin/audits/2026-09-04/search-library-prose-20260928.md"
+        "ConvexPress-Admin/audits/2026-09-04/search-library-prose-20260928.md",
+        "ConvexPress-Admin/audits/2026-09-04/external-embeds-20260929.md",
+        "output/external-embeds-20260929/source-provenance.json"
       ],
-      "remainingReview": "Reuse container-width/consent repairs; native address/hours/phone/email/map/form, actual scoped form/map load and correct contact destinations.",
+      "remainingReview": "No remaining block-specific gate in this batch; broader Tasks4\u20138 remain open.",
       "deliveryTask": 3,
       "acceptanceBatch": "external-embeds",
-      "reviewedAtCommit": "d8a0ea2c",
+      "reviewedAtCommit": "99a0c8f8 + external embed contracts/layout repairs",
       "notesSha256": "bd0a3defe392ca1d334d7d9d39172ee556a764d7273aee3162b541b6ff2b4bda",
-      "specSha256": "a685c23ea217a8137e91ee169df3ebcdbc97fc839643e4f15cc5f3eed3a8a4c2",
+      "specSha256": "441a35196752e6dffdcaf361dba62b988e5b1037592bd8d42338b5f33c2ee845",
       "rendererSha256": "57df434dd10a6be2cd0dc30cc7801015f2b17b8e073eb2af714e448f33f164c5",
       "canonicalFields": [
         "heading",
@@ -2780,7 +2828,8 @@
         "hours",
         "mapEmbedUrl",
         "items"
-      ]
+      ],
+      "acceptedEvidence": "ConvexPress-Admin/audits/2026-09-04/external-embeds-20260929.md"
     },
     {
       "name": "core/form",
@@ -3426,47 +3475,52 @@
       "name": "core/iframe",
       "title": "Iframe",
       "category": "Site",
-      "checkpointStatus": "In progress",
-      "nextClassification": "Reviewed against live Notes and current canonical specification; Native safe URL/title, approved real frame load after consent, reset/failure/title/keyboard and sandbox boundaries.",
-      "classification": "missing evidence",
+      "checkpointStatus": "Verified",
+      "nextClassification": "Accepted on native exact authoring/recovery, published four-pack/width, actual provider, maximum/empty and cleanup evidence; see ConvexPress-Admin/audits/2026-09-04/external-embeds-20260929.md",
+      "classification": "accepted/reusable evidence",
       "source": "blocks/core/iframe/block.json",
-      "requirements": "url (link), title (text)",
+      "requirements": "url, title",
       "evidenceReferences": [
         "canonical-contact79-renderer-outcome.md",
         "output/block-demo/browser-results-contact79-fixed",
-        "output/block-library-review-20260915/coverage-review.json."
+        "output/block-library-review-20260915/coverage-review.json.",
+        "ConvexPress-Admin/audits/2026-09-04/external-embeds-20260929.md",
+        "output/external-embeds-20260929/source-provenance.json"
       ],
-      "remainingReview": "Native safe URL/title, approved real frame load after consent, reset/failure/title/keyboard and sandbox boundaries.",
+      "remainingReview": "No remaining block-specific gate in this batch. Iframe Vimeo availability is explicitly unproved; approved actual map-frame gate passed. Broader Tasks4\u20138 remain open.",
       "deliveryTask": 3,
       "acceptanceBatch": "external-embeds",
-      "reviewedAtCommit": "d8a0ea2c",
+      "reviewedAtCommit": "99a0c8f8 + external embed contracts/layout repairs",
       "notesSha256": "0d50dd098ba7c77c2d62ca3cfeda1a63c3615612dd06d6fb57024990e8bc1496",
       "specSha256": "1cafd6cc473c8629d596eb5700f72f3d6351858f01b0516038646462cb308a42",
       "rendererSha256": "d30a83781c4e8dbd0795f8dd89ae9a2893baaaab3e1f97bb9ad98afb029cd23a",
       "canonicalFields": [
         "url",
         "title"
-      ]
+      ],
+      "acceptedEvidence": "ConvexPress-Admin/audits/2026-09-04/external-embeds-20260929.md"
     },
     {
       "name": "core/script-embed",
       "title": "Script embed",
       "category": "Site",
       "checkpointStatus": "In progress",
-      "nextClassification": "Reviewed against live Notes and current canonical specification; Native allow-listed provider/resourceId, legitimate provider consent/load/unload/failure and no arbitrary code path.",
-      "classification": "missing evidence",
+      "nextClassification": "Native YouTube/Vimeo fields and exact restore, actual YouTube playback, four-pack maximum/empty, failure/reset and cleanup pass. Actual Vimeo playback in Script Embed remains missing.",
+      "classification": "external prerequisite",
       "source": "blocks/core/script-embed/block.json",
-      "requirements": "provider (select), resourceId (text)",
+      "requirements": "provider, resourceId",
       "evidenceReferences": [
         "canonical-conversion83-renderer-outcome.md",
         "output/aster-house/conversion83/newsletter-acceptance.json",
         "output/block-demo/browser-results-conversion83",
-        "output/block-library-review-20260915/coverage-review.json."
+        "output/block-library-review-20260915/coverage-review.json.",
+        "ConvexPress-Admin/audits/2026-09-04/external-embeds-20260929.md",
+        "output/external-embeds-20260929/source-provenance.json"
       ],
-      "remainingReview": "Native allow-listed provider/resourceId, legitimate provider consent/load/unload/failure and no arbitrary code path.",
+      "remainingReview": "Verify actual Vimeo playback in Script Embed using a legitimate public fixture when provider access permits. Repeated connection-security refusal on adjacent Vimeo frame attempts is recorded; no bypass or mocked substitute. Keep both supported providers.",
       "deliveryTask": 3,
       "acceptanceBatch": "external-embeds",
-      "reviewedAtCommit": "d8a0ea2c",
+      "reviewedAtCommit": "99a0c8f8 + external embed contracts/layout repairs",
       "notesSha256": "9d0b27378298fe4dd1b8f105631085a412cc6125a32772bc71937a677bd707a6",
       "specSha256": "86923b8657bddc87c1fb8ca98e7a9174462363c2189de0603e212b4820ffde99",
       "rendererSha256": "56f6fe31cbb0c1d69072d6fdf816a50dcf12ba539d66d3290f8baa4e83a582a6",
@@ -4066,35 +4120,41 @@
     "output/catalog-acceptance-20260929/mt-accept-verified.json",
     "output/catalog-acceptance-20260929/public-matrix.json",
     "output/catalog-acceptance-20260929/maximum-matrix.json",
-    "output/catalog-acceptance-20260929/cleanup.json"
+    "output/catalog-acceptance-20260929/cleanup.json",
+    "ConvexPress-Admin/audits/2026-09-04/external-embeds-20260929.md",
+    "output/external-embeds-20260929/native-exact-recovery.json",
+    "output/external-embeds-20260929/public-matrix.json",
+    "output/external-embeds-20260929/maximum-matrix.json",
+    "output/external-embeds-20260929/live-providers.json",
+    "output/external-embeds-20260929/vimeo-acceptance.json",
+    "output/external-embeds-20260929/cleanup.json",
+    "output/external-embeds-20260929/installed-proof.json",
+    "output/external-embeds-20260929/mt-accept-verified.json"
   ],
   "trackerRefresh": {
-    "source": "output/catalog-acceptance-20260929/mt-accept-after.json",
+    "source": "output/external-embeds-20260929/mt-accept-after.json",
     "schema": "output/catalog-acceptance-20260929/mt-schema.json",
     "rows": 137,
     "counts": {
-      "Verified": 103,
-      "In progress": 34
+      "Verified": 108,
+      "In progress": 29
     },
     "otherCellsUnchangedFromPreviousRead": true,
     "pendingNotesReconciled": 77,
     "classificationScope": "Block-specific missing gates; historical whole-app audit conditions retained in Notes but not automatic prerequisites.",
     "lastAcceptedNames": [
-      "core/featured-products",
-      "commerce/product-compare",
-      "commerce/bundle-offer",
-      "commerce/sale-countdown",
-      "commerce/brand-list",
-      "commerce/product-hero",
-      "commerce/variant-picker-teaser",
-      "commerce/shipping-promise"
+      "core/embed",
+      "core/map",
+      "core/booking-cta",
+      "blocks/contact-stack",
+      "core/iframe"
     ],
     "allNotesExact": true
   },
   "coordination": {
     "folder": "/Users/worsin/Development/ConvexPress/Opus Audits/",
     "authority": "Codex leads; Claude audits are advisory and independently verified",
-    "lastAudit": "2026-09-29T0320-audit-16-e45-proxy-and-stale-rows.md",
+    "lastAudit": "2026-09-29T0520-audit-18-catalog-batch-and-blocker-triage.md",
     "pendingAdvisory": {
       "F19": "Accepted shared public document href contract. Historical encoded-slug fixture reproduced discrepancy; ordinary authoring slugifies safely. Legacy menu root/prefix behavior and membership aliases preserved. See locale-destinations-20260928.md.",
       "F20": "Source-verified enterprise commerce backfill truncation recorded in current-acceptance.md deferred register. No live reproduction or repair; promote only if catalog/customer-commerce delivery demonstrates a dependency.",
@@ -4109,7 +4169,9 @@
       "audit16": "Read/responded: E45 bounded streaming route accepted; F24 eleven stale block statuses repaired and check:delivery-status now asserts exact per-row/header/readback parity. Current trackerRefresh/latestEvidence metadata refreshed to the Steps checkpoint.",
       "gradeRunner": "Owned Website admin origin was accidentally localhost:4105 after Steps rebuild. Native preview correctly refused. Restored exact127.0.0.1:4105 from accepted runtime, reconnect rendered; no product policy weakened. NewownedWebsite56081. Preserve all runtime fields on future restarts.",
       "audit17": "Read/responded. F25 nine placeholder blockers explicitly triaged with reused evidence, remaining boundary, assigned task and concrete nextCheck. E04 aggregate superseded by per-row queue; E16 preservation accepted but lifecycle remains Task7. Tasks4\u20138 and E18/E22/E28 remain open. Block counts are not delivery percentage; no subagents.",
-      "catalogRuntime": "Owned Website58929/PTY85331 now serves4322 after one CSS repair. Full captured runtime exact, including127.0.0.1:4105 admin origin. Owned native57234 signed out/closed/profile removed. Cart cleared; two archived logo-free brands remain because no normal delete API. Settings values restored, normal audit metadata materialized; derived Uncategorized count corrected by normal product mutations3\u21922 matching2published originals."
+      "catalogRuntime": "Owned Website58929/PTY85331 now serves4322 after one CSS repair. Full captured runtime exact, including127.0.0.1:4105 admin origin. Owned native57234 signed out/closed/profile removed. Cart cleared; two archived logo-free brands remain because no normal delete API. Settings values restored, normal audit metadata materialized; derived Uncategorized count corrected by normal product mutations3\u21922 matching2published originals.",
+      "audit18": "Read/responded: no new finding; max-content cases already gate overflow. F25 closed for triage only. E06 all-field/mixed composition, F21 Task4 corpus completeness and E18/E22/E28 retained. No overall completion percentage inferred.",
+      "externalEmbedsRuntime": "Owned Website64979/PTY37890 serves4322 with exact captured runtime. Native60861/64594 signed out/closed; profile and API session cleaned. Two owned pages deleted;42pages/11media/appearance values exact. Snapshot external-embeds-reviewed preserves22Events/2410signatures."
     }
   },
   "sessionBaseCommit": "9824d9605e50c4b0ebd711c13715b506f8ef5bd3"

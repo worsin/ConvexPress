@@ -65,6 +65,7 @@
     "visibility": true
   },
   "data": null,
+  "authoringActions": [{ "path": [], "href": "ctaUrl", "label": "ctaLabel" }],
   "preview": "{heading}",
   "examples": [
     {

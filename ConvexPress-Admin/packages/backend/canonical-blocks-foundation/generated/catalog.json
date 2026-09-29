@@ -105,6 +105,7 @@
             "type": "text"
           },
           {
+            "authoringSafeLink": true,
             "default": "",
             "id": "href",
             "max": 500,
@@ -4971,6 +4972,13 @@
       "avoid": "",
       "useFor": "demo or consultation booking"
     },
+    "authoringActions": [
+      {
+        "href": "ctaUrl",
+        "label": "ctaLabel",
+        "path": []
+      }
+    ],
     "category": "forms",
     "constraints": [],
     "data": null,

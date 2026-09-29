@@ -80,6 +80,7 @@
         },
         {
           "id": "href",
+          "authoringSafeLink": true,
           "default": "",
           "type": "text",
           "max": 500

@@ -15,7 +15,7 @@ test("every shipped example retains valid resolver authoring arguments", () => {
       examples++;
     }
   }
-  expect(examples).toBe(285);
+  expect(examples).toBe(287);
 });
 
 test("old fractional counts stay readable and recoverable but new writes and publication require repair", () => {

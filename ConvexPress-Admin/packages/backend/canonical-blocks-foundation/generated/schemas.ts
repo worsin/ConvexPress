@@ -416,6 +416,13 @@ const authoringActions: Readonly<Record<string, readonly AuthoringAction[]>> = {
       ]
     }
   ],
+  "core/booking-cta": [
+    {
+      "href": "ctaUrl",
+      "label": "ctaLabel",
+      "path": []
+    }
+  ],
   "core/cta-band": [
     {
       "href": "primaryCtaUrl",
@@ -524,6 +531,16 @@ const authoringActions: Readonly<Record<string, readonly AuthoringAction[]>> = {
 }
 ;
 const fieldRules: Readonly<Record<string, readonly AuthoringFieldRule[]>> = {
+  "blocks/contact-stack": [
+    {
+      "kind": "safe-link",
+      "path": [
+        "items",
+        "*",
+        "href"
+      ]
+    }
+  ],
   "blocks/customer-showcase": [
     {
       "kind": "safe-link",

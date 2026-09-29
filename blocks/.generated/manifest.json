@@ -1,13 +1,13 @@
 {
   "files": {
-    "ai-catalog.ts": "8938329872cfa1cb4908a6f658bf68ed8daf09ecfc9c9b0c2257a72e94f94e9b",
+    "ai-catalog.ts": "530f9051e03222c8071a7cebc08eb8965b1709261abae056a7e934e97e4aa62c",
     "block-spec.schema.json": "8d9493e9cfddb1b68eb7b275259b3585bb67f52ed382f7e0ca3b53ca6ea7cb8e",
-    "catalog.json": "8471013003c42fa3700416d62de0d1390e0a9873ab7304a36b097864c307cae3",
+    "catalog.json": "d25a3d8d5e30783ae1a3ebd08b938b5e35acbd03c7086ad107c0e726ced4f138",
     "convex.ts": "a4abad47462f2970833041a03c0b992948487a541670df7e344eedec765e5a42",
     "coverage.json": "c45450354aa5a6be89991fea577997f2c3ab66299669c014a49604957a133c50",
     "dependencies.json": "630cfab651580cedae74f16bb713240bab9fc8508eb4bf895fb58d64173b0749",
-    "editor-metadata.ts": "f1f7bc28e4603186dee3e3152296df73788c37647aef9e0578c3b098403c6972",
-    "editors.json": "ea14281879ff5c7e6d15f804eab6ca12bf6f5593246da152d8be633e6b0d82a5",
+    "editor-metadata.ts": "8bd061756635cdba69987d7c4a201a5e101f65a8c189109fc401abee0d381137",
+    "editors.json": "d7a2a813d76d789c1a76c27bc1008b2dee65e5fa54353d22fb413819a9341899",
     "field-runtime.d.mts": "9e1d25230a1ff8ec61f818b6004c8927cef3c95502a2d0edb1c28604da3388ce",
     "field-runtime.mjs": "ce6b761fbbcd719779ca9c117948bbef5d50e45eff553904738c4998ed0b2e37",
     "instance-runtime.d.mts": "56a0e4c7115873efc02701e6ded4ff34c2f4e1e28e98a29ec3c45dd963405a14",
@@ -20,7 +20,7 @@
     "promotions.ts": "4548b1fdea34bc5f243b6a7b7473d0ee5e206ad6cf78add4abb9c308f42d00c3",
     "renderer-coverage.ts": "83f31347862364f7943ff6db161ae67d8a6d90e5f9a410bbcc86da30a16f76bf",
     "roles.ts": "ba744ac0a275c3ab8a661b58b55b12738138cbd5b0266ac868c79c7c8b3c62f3",
-    "schemas.ts": "be018e430c0834f6dbc6066fd6d22a27b2b551b43300d0cf3d76825fed6c5055",
+    "schemas.ts": "35602eace30bbbee85054b838790eb6444d441f4701754472ac2c1ae809d345a",
     "search-text.ts": "2533eacd5a731f5900dc788fb93b2d1c795c6e7adc29669177490d9a2730e188",
     "spec-runtime.d.mts": "b5b77504d0fab42615079e9f49ac192ccb37be72d42c341e42f3cc8a66aae1f2",
     "spec-runtime.mjs": "0d1052b9140a5c6f0361cd8a26d7e0d933c02858db73bf3022f665ebcc3fd5fa",
@@ -30,7 +30,7 @@
   "format": 1,
   "sources": [
     {
-      "sha256": "77cffd25b5c7216cabe0636f7708576b78c60756134aea77310f89ed605ddc75",
+      "sha256": "6441c1e9166c6da1429c6cf6c0ba6e8c36827f011c0e25f6d52df5310e02aedc",
       "source": "blocks/blocks/contact-stack/block.json"
     },
     {
@@ -190,7 +190,7 @@
       "source": "blocks/core/bento-grid/block.json"
     },
     {
-      "sha256": "d0972e794b7df4871fe5a9aeebef0137a48da448b4ff11b6638a765f598c3974",
+      "sha256": "05e79cba807f2429a98a8da34505cead712c51f373bb2e709a4dbe17b2187dde",
       "source": "blocks/core/booking-cta/block.json"
     },
     {

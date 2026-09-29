@@ -412,3 +412,8 @@ Recipe Card and Album complete their block-specific native, published Website, f
 ## September29 business content acceptance
 
 Opening Hours, Locations, Services and Menu accepted: tracker85 Verified/52 In progress. E44 valid long exception-note overflow fixed in shared List grid/wrapping. Native field/repeater edits, exact revision3→5 recovery, nine installed refusal checks, eight normal/eight maximum four-pack cases, types/build/312renderer tests pass. Studio Services also passes fresh field/render/minimum/maximum checks but its row retains the compose/style/promote workflow gate. Owned page/session/profile cleaned;42original pages/media/appearance exact. [Evidence and limits](business-content-20260929.md). Full goal remains open.
+
+
+## September29 external embeds acceptance
+
+Five rows accepted, tracker108 Verified/29 In progress; Script Embed Vimeo playback remains pending provider access. E53 write-time embed/action validation, E54 valid300-character Contact Link crash and E55 maximum text wrapping repaired. Native all-field edits/exact revision4→14 recovery, eight normal/eight maximum pack/width cases, twelve live provider cases, one actual Embed Vimeo playback and six controlled failure cases pass. Two pages/session/profile removed; original42pages/11media/appearance values exact. Strict source snapshot1624files preserves22Events/2410signatures. [Evidence and provider limits](external-embeds-20260929.md). Tasks4–8 and E18/E22/E28 remain open; next customer-commerce.

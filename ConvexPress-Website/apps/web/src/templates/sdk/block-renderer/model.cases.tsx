@@ -21,6 +21,7 @@ import statsBand from "../../../../../../../blocks/core/stats-band/render";
 import testimonials from "../../../../../../../blocks/core/testimonials/render";
 import teamGrid from "../../../../../../../blocks/core/team-grid/render";
 import trustBadges from "../../../../../../../blocks/core/trust-badges/render";
+import contactStack from "../../../../../../../blocks/blocks/contact-stack/render";
 import catalog from "../../../../../../../blocks/.generated/catalog.json";
 import { publicCanonicalTree } from "../block-data/portable/publicTree";
 import { validateCanonicalTree } from "../block-data/portable/generated/instances";
@@ -34,6 +35,13 @@ const policy: RenderPolicy = {
 	capabilities: ["tree.children"],
 	disabledBlocks: [],
 };
+test("contact links render the full declared 300-character row value", () => {
+  const registry = discoverRenderers({ "/blocks/blocks/contact-stack/render.tsx": contactStack });
+  const value = "A".repeat(300);
+  const html = renderToStaticMarkup(prepareBlocks([{ id: "contact", name: "blocks/contact-stack", version: 1, attrs: { items: [{ label: "Details", value, href: "/details" }] } }], registry, { ...policy, capabilities: ["embed.sandbox"] }));
+  expect(html).toContain(value);
+  expect(html).toContain('href="/details"');
+});
 test("badge marks declare contained image fit independently of stylesheet order", () => {
   const registry = discoverRenderers({ "/blocks/core/trust-badges/render.tsx": trustBadges });
   const html = renderToStaticMarkup(prepareBlocks([{ id: "badge", name: "core/trust-badges", version: 1, attrs: { items: [{ label: "Fictional studio mark", media: { id: "mark", alt: "Authored mark", focalPoint: { x: 0.25, y: 0.75 } } }] } }], registry, { ...policy, capabilities: [...policy.capabilities, "reference.targetResolution"] }, { media: { mark: { src: "https://example.test/mark.png", alt: "Original mark", width: 640, height: 320 } } }));
