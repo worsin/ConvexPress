@@ -384,3 +384,8 @@ Claude Opus audit10 identified and Codex source-verified `commerce/migrations.ts
 ## September 28 Library prose search — first accepted pass
 
 Added36 explicit authored-text declarations without changing saved fields/versions, applied current public resource availability to canonical body search, and removed the ordinary Core search-card0 artifact.539 backend tests/310 renderer tests, explicit-project types/build and generated checks pass. Native caption save/reopen/actual Website draft,88 current matches and eight four-pack desktop/mobile cases pass. Two disposable pages removed; original42pages/2posts/1term, menus/locations/appearance/reindex state exact; owned sessions cleaned up. Source4860 snapshot search-library-20260928 has1611exact hashes and2410unchanged signatures; target4870 untouched. [Evidence and remaining E39 scope](search-library-prose-20260928.md). Search Results remains In progress, tracker74/63 unchanged; conditional/promotion/HTML coverage, Language Switcher and the broader goal remain open.
+
+
+## September28 conditional prose and timed search
+
+See [conditional prose acceptance](search-conditional-prose-20260928.md). Thirteen conditional declarations and E40 scheduled refresh accepted:549 backend tests,12 client tests,310 renderer tests, native detail save/reload/Website iframe, eight four-pack/width cases and four no-reload time transitions. All3 owned pages/session/profile cleaned; original42 pages/2 posts/1 term and appearance exact. Source4860 deployed, target4870 retained. E39 and overall delivery remain open;74 Verified/63 In progress unchanged.

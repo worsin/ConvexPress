@@ -7,7 +7,7 @@
     "In progress": 63
   },
   "goal": "Complete block editor and template delivery plus all demonstrated blockers; defer unrelated whole-app audit campaigns.",
-  "currentTask": "Task 2 \u2014 complete conditional, promoted-block and HTML search prose/current presentation (E39), then Language Switcher/promotion. First36 authored-text declarations and empty-category0 repair accepted; E37 complete reindex accepted. Search Results remains In progress (74 Verified / 63 In progress).",
+  "currentTask": "Task 2 \u2014 finish remaining promoted-block, HTML and demonstrated conditional search prose (E39), then Language Switcher/promotion. Conditional13 and timed ordinary/canonical refresh accepted; Search Results remains In progress (74 Verified /63 In progress).",
   "tasks": [
     {
       "id": 1,
@@ -303,10 +303,17 @@
     },
     {
       "id": "E39",
-      "status": "Open after first accepted pass:36 explicit authored-text declarations and unavailable-media refusal installed;22 sampled block bodies searchable/rendered in all four packs, native caption save/reopen/current search accepted. Conditional, promoted-block and HTML coverage remains. See search-library-prose-20260928.md.",
+      "status": "Open after second accepted pass:36 unconditional and13 conditional declarations; native details save/reload and four-pack results accepted. Scheduled appearance/disappearance now refresh without reload on both search surfaces (E40). Promoted canonical composition, HTML and remaining conditional paths still need coverage. See search-conditional-prose-20260928.md.",
       "classification": "missing implementation",
       "initialFinding": "Canonical source candidate descriptors omit visible utility, media, form and catalog introduction copy. Current search also returns hero text when selected media is unavailable and public rendering refuses the document.",
       "closureBoundary": "Complete deliberate authored-text coverage across the Library, preserving private/config/action/status exclusions; apply current conditional/presentation/access/media rules; prove registered and actual native/public search, then reconcile Search Results acceptance without weakening scope."
+    },
+    {
+      "id": "E40",
+      "classification": "accepted/reusable evidence",
+      "status": "Closed within documented boundary: four live scheduled appearance/disappearance cases passed on ordinary and canonical search without reload; scoped tests, types, build and cleanup pass. See search-conditional-prose-20260928.md.",
+      "initialFinding": "Fresh HTTP removed expired announcement prose while an open ordinary search page retained its match until reload.",
+      "closureBoundary": "Carry current presentation deadlines through both search surfaces; bound subscriptions and isolate old results across expiry, viewer and route changes. Verify actual appearance and disappearance without reload."
     }
   ],
   "blocks": [
@@ -501,14 +508,15 @@
         "output/block-library-review-20260915/coverage-review.json.",
         "ConvexPress-Admin/audits/2026-09-04/navigation-completion-20260928.md",
         "output/navigation-completion-20260928/four-pack-public.json",
-        "output/navigation-completion-20260928/exact-restore.json"
+        "output/navigation-completion-20260928/exact-restore.json",
+        "ConvexPress-Admin/audits/2026-09-04/search-conditional-prose-20260928.md"
       ],
       "remainingReview": "Block-specific acceptance complete. Retain shared final-delivery gates and E22 evidence-path reconciliation without reopening unrelated block behavior.",
       "deliveryTask": 2,
       "acceptanceBatch": "navigation",
       "reviewedAtCommit": "29632560",
       "notesSha256": "9cba7368badf57e695b7fca48020b5a75b1f3deebca0fb6edba2818c88600113",
-      "specSha256": "1468beacade392e52c1c62655ec1e65a1315984b00fbc4f8754f5382ef108307",
+      "specSha256": "756e3086be1ce71ff9985315d259db4a6a33f8a32a689deafcab34aac8098496",
       "rendererSha256": "582be11df674cdd9f4b3b36787218bb63406430fdb3c562c5574b6dfda72f299",
       "canonicalFields": [
         "title",
@@ -807,9 +815,11 @@
         "output/block-demo/browser-results-content50-verified.",
         "output/block-demo/browser-results-media42-verified.",
         "output/block-library-review-20260915/coverage-review.json.",
-        "output/media-interactive-20260921/."
+        "output/media-interactive-20260921/.",
+        "ConvexPress-Admin/audits/2026-09-04/search-conditional-prose-20260928.md"
       ],
-      "remainingReview": "Retain scoped historical acceptance; verify only affected shared dependencies."
+      "remainingReview": "Retain scoped historical acceptance; verify only affected shared dependencies.",
+      "specSha256": "889aedfb9ed82abb78843c2e756f850a65ca1a2857810a42ba446c37b26ec7d6"
     },
     {
       "name": "core/embed",
@@ -854,9 +864,11 @@
         "output/block-demo/browser-results-content50-verified.",
         "output/block-demo/browser-results-media42-verified.",
         "output/block-library-review-20260915/coverage-review.json.",
-        "output/media-interactive-20260921/."
+        "output/media-interactive-20260921/.",
+        "ConvexPress-Admin/audits/2026-09-04/search-conditional-prose-20260928.md"
       ],
-      "remainingReview": "Retain scoped historical acceptance; verify only affected shared dependencies."
+      "remainingReview": "Retain scoped historical acceptance; verify only affected shared dependencies.",
+      "specSha256": "0db4dad607717fab8b65e728f92e3eebbdbf6025f3e476d80ed63a5c1098afd6"
     },
     {
       "name": "core/lightbox-grid",
@@ -892,9 +904,11 @@
         "output/block-library-review-20260915/coverage-review.json.",
         "output/block-review-refresh-20260920/acceptance-review.md.",
         "output/media-family-20260921/.",
-        "ConvexPress-Admin/audits/2026-09-04/search-library-prose-20260928.md"
+        "ConvexPress-Admin/audits/2026-09-04/search-library-prose-20260928.md",
+        "ConvexPress-Admin/audits/2026-09-04/search-conditional-prose-20260928.md"
       ],
-      "remainingReview": "Retain scoped historical acceptance; verify only affected shared dependencies."
+      "remainingReview": "Retain scoped historical acceptance; verify only affected shared dependencies.",
+      "specSha256": "786e4253dc11fcaf4b4daa4a87b3516d04221a43a71566e32cc470f0aa589d98"
     },
     {
       "name": "core/map",
@@ -938,14 +952,15 @@
       "evidenceReferences": [
         "output/block-demo/browser-results-content50-verified.",
         "output/block-demo/browser-results-media42-verified.",
-        "output/block-library-review-20260915/coverage-review.json."
+        "output/block-library-review-20260915/coverage-review.json.",
+        "ConvexPress-Admin/audits/2026-09-04/search-conditional-prose-20260928.md"
       ],
       "remainingReview": "Native owned-media selection, title/description, save/recovery; actual authorized file contents, download target and unavailable-media states.",
       "deliveryTask": 2,
       "acceptanceBatch": "media-interaction",
       "reviewedAtCommit": "d8a0ea2c",
       "notesSha256": "0409377d47737d20af8e9afb3bd62935513e8c0c020fb232cb0fcd19e05eee68",
-      "specSha256": "4cc4868c7cb28f251e05d6feff285b250edfb168a6ba3f9171fedabd06cc0480",
+      "specSha256": "9169bc03cb368c38a06914fe15fbce142e7c0a54d9ddfdde5ea72e8865a72d1a",
       "rendererSha256": "1065251f726c0b1702c0dd052e0d7063418bdec4081e941af96c8171cf795496",
       "canonicalFields": [
         "media",
@@ -1058,9 +1073,11 @@
         "output/block-demo/browser-results-utility74-verified",
         "output/block-library-review-20260915/coverage-review.json.",
         "output/editor-template-20260928/",
-        "ConvexPress-Admin/audits/2026-09-04/opening-navigation-20260928.md"
+        "ConvexPress-Admin/audits/2026-09-04/opening-navigation-20260928.md",
+        "ConvexPress-Admin/audits/2026-09-04/search-conditional-prose-20260928.md"
       ],
-      "remainingReview": "No open block-specific requirement; shared editor durability and final integrated delivery gates remain open."
+      "remainingReview": "No open block-specific requirement; shared editor durability and final integrated delivery gates remain open.",
+      "specSha256": "dce9b6de9ca0a0bd17272cc00afcc1228da9f4b4cbcdef7ac2821fb15c2fc7ee"
     },
     {
       "name": "core/breadcrumbs",
@@ -1459,9 +1476,11 @@
         "output/block-library-review-20260915/coverage-review.json.",
         "output/process-family-20260921.",
         "process-family-20260921.md",
-        "ConvexPress-Admin/audits/2026-09-04/search-library-prose-20260928.md"
+        "ConvexPress-Admin/audits/2026-09-04/search-library-prose-20260928.md",
+        "ConvexPress-Admin/audits/2026-09-04/search-conditional-prose-20260928.md"
       ],
-      "remainingReview": "Retain scoped historical acceptance; verify only affected shared dependencies."
+      "remainingReview": "Retain scoped historical acceptance; verify only affected shared dependencies.",
+      "specSha256": "fc85c182067d216b1dc0a0a12337c54324e9267752d43f3ef4e474dc6df29bb4"
     },
     {
       "name": "blocks/tabbed-content",
@@ -1755,9 +1774,12 @@
         "output/production-checkpoints/document-settings-20260910-verified.",
         "output/production-checkpoints/product-media-20260906.",
         "output/storefront-pricing-20260906.",
-        "product-family-20260921.md"
+        "product-family-20260921.md",
+        "ConvexPress-Admin/audits/2026-09-04/search-conditional-prose-20260928.md"
       ],
-      "remainingReview": "Retain scoped historical acceptance; verify only affected shared dependencies."
+      "remainingReview": "Retain scoped historical acceptance; verify only affected shared dependencies.",
+      "specSha256": "623fc1f737b17f802d3c1fb38a8251a1013c8f62a43f4bc6eb25dcf25dcf4cdc",
+      "rendererSha256": "35aeaef85bc14fdbf2c69ec3c9f6c924fe806d23b1b4c40cd71cc4f4bdb845b6"
     },
     {
       "name": "commerce/category-tiles",
@@ -1883,14 +1905,15 @@
         "output/bundle-cart-20260915.",
         "output/bundle-offer-20260915.",
         "output/bundle-public-20260915.",
-        "output/commerce-state-acceptance-20260915."
+        "output/commerce-state-acceptance-20260915.",
+        "ConvexPress-Admin/audits/2026-09-04/search-conditional-prose-20260928.md"
       ],
       "remainingReview": "Reuse all-pack variant/inclusion/quantity fixtures; actual scoped bundle add with exact cart lines, unavailable/stock/price change and no duplicate action.",
       "deliveryTask": 3,
       "acceptanceBatch": "catalog",
       "reviewedAtCommit": "d8a0ea2c",
       "notesSha256": "a495ba91a4708da2d1cd6bcf4dca73003e60ff09234762d72e30864047c19135",
-      "specSha256": "da31433f9ddc1fa457349c2b430d597fc149b8d46fd1bd4b5118becaf80d89ce",
+      "specSha256": "4116e1111fea5eca2fc1820b0049d870b0750ae1f9b3aa5db837fd424540f126",
       "rendererSha256": "47d6c63c6e5651ee041fbbc6d0c0c54cd71fda88bb1b0f9ec77da3a0d564e281",
       "canonicalFields": [
         "bundle",
@@ -2046,14 +2069,15 @@
       "requirements": "product (reference), title (text), media (media)",
       "evidenceReferences": [
         "output/block-library-review-20260915/coverage-review.json.",
-        "output/product-hero-20260911."
+        "output/product-hero-20260911.",
+        "ConvexPress-Admin/audits/2026-09-04/search-conditional-prose-20260928.md"
       ],
       "remainingReview": "Reuse exact product/cart proof and shared preview repair; native optional title/media, long/absent values and selected variant/availability across packs.",
       "deliveryTask": 3,
       "acceptanceBatch": "catalog",
       "reviewedAtCommit": "d8a0ea2c",
       "notesSha256": "a97c42bd2976a6554f1ec683173d6beaaaf9b1c523bccf0afaef0cb5fda937b1",
-      "specSha256": "e54e95749b3c99035dd35b5a39641570e4dec62e752f817e85aadf96e9e8f15f",
+      "specSha256": "ccea78fdfc44df0aada18f2a7279d4c5ef3d049c024795bcc8fed4eba0b4c9e7",
       "rendererSha256": "fca71426c8d399dd101b154c6d2cc6901b13cf6caf2ea4146957a8499799cad6",
       "canonicalFields": [
         "product",
@@ -2539,14 +2563,15 @@
         "output/block-library-review-20260915/coverage-review.json.",
         "output/form-counts-20260906/runtime-receipt.json.",
         "output/form-embed-20260906/runtime-receipt.json",
-        "output/pack-owned-treatments-20260915."
+        "output/pack-owned-treatments-20260915.",
+        "ConvexPress-Admin/audits/2026-09-04/search-conditional-prose-20260928.md"
       ],
       "remainingReview": "Reuse Journal/Depot owned treatments; native selected form/title and real multi-step submit/validation, denied/revoked/unavailable response and narrow live layout.",
       "deliveryTask": 3,
       "acceptanceBatch": "forms",
       "reviewedAtCommit": "d8a0ea2c",
       "notesSha256": "51c04d08ca4f7da855e093ed27cd80466a9f39b03b43cd9a53e1dd1904f99b85",
-      "specSha256": "beced23702c8937c391317fda9e86c0eaf45e0a97f5a68ef953732beef3bbebb",
+      "specSha256": "ec3635a60ab7a341c4df9591e0fe80593dac9e6fe284f6ced5cfd5db13eb529a",
       "rendererSha256": "895dcd9fa8f8949430de8b0d111074fcda8e3e570498c3acea4d1827af4bd8e1",
       "canonicalFields": [
         "form",
@@ -3114,14 +3139,15 @@
       "requirements": "signedOutText (text), signedInText (text)",
       "evidenceReferences": [
         "output/block-library-review-20260915/coverage-review.json.",
-        "output/canonical-promotion-20260911/account-*."
+        "output/canonical-promotion-20260911/account-*.",
+        "ConvexPress-Admin/audits/2026-09-04/search-conditional-prose-20260928.md"
       ],
       "remainingReview": "Reuse native independent-site API proof; actual browser sign-in/out/session change, correct current customer action and configured text under all packs.",
       "deliveryTask": 3,
       "acceptanceBatch": "membership",
       "reviewedAtCommit": "d8a0ea2c",
       "notesSha256": "1a3739065e2b2933375f34dc2f17944db00982175851f71fad879a63553739d1",
-      "specSha256": "8dd12e6dbaaba1511846d12c791577d0a62e6caec245996f18dcab667b333d8e",
+      "specSha256": "a29013bc36cd74f1b13b852d26756369ea4e26ddf217da9419f83ac14c692bb4",
       "rendererSha256": "e799b21b4fb70fbbb756a0f26953aff7c3b103a197503681c3809e0a8f82f9e0",
       "canonicalFields": [
         "signedOutText",
@@ -3520,9 +3546,10 @@
         "search-scale-20260921.md",
         "search-source-match-20260921.md",
         "search-discovery-completion-20260928.md",
-        "output/search-discovery-20260928/lifecycle.json"
+        "output/search-discovery-20260928/lifecycle.json",
+        "ConvexPress-Admin/audits/2026-09-04/search-conditional-prose-20260928.md"
       ],
-      "remainingReview": "Approved custom-composition projection, remaining canonical authored prose and full backfill/access-budget coverage. E32 current result destinations and E33 reusable-source consumer refresh accepted in search-discovery-20260928.",
+      "remainingReview": "Remaining deliberate Library prose, promoted canonical compositions and HTML/current presentation coverage (E39); conditional13 and timed refresh accepted. Full delivery acceptance remains open.",
       "deliveryTask": 3,
       "acceptanceBatch": "content-discovery",
       "reviewedAtCommit": "d8a0ea2c",
@@ -3549,14 +3576,15 @@
         "block-existing-spec-migration-outcome.md",
         "canonical-media66-renderer-outcome.md",
         "output/block-demo/browser-results-media66",
-        "output/block-library-review-20260915/coverage-review.json."
+        "output/block-library-review-20260915/coverage-review.json.",
+        "ConvexPress-Admin/audits/2026-09-04/search-conditional-prose-20260928.md"
       ],
       "remainingReview": "Native all authored fields and closed editorial treatment axes, explicit lossless legacy conversion/restore, images/links and final four-pack treatment parity.",
       "deliveryTask": 4,
       "acceptanceBatch": "text-migration",
       "reviewedAtCommit": "d8a0ea2c",
       "notesSha256": "79cc39bbebcc2fd971e6659b65cb62cad3b65034583fee4ad33c13a2d32c9ca7",
-      "specSha256": "d1c4e78bf1e73dc459286e0ac77bbdc6a6e76e204d74f3c8be83fcdfc9e5d05d",
+      "specSha256": "6a07d425d7390ea5c067372e2a8fd6a0548a98bb035ce51dd812ce684b34895f",
       "rendererSha256": "fa7cf5a4ba14e51c9b17994fd3e47eb9d160fdca52c5421287b3fd2b763112d0",
       "canonicalFields": [
         "heading",
@@ -3698,7 +3726,12 @@
     "ConvexPress-Admin/audits/2026-09-04/search-library-prose-20260928.md",
     "output/search-library-20260928/public-matrix.json",
     "output/search-library-20260928/native-proof.json",
-    "output/search-library-20260928/cleanup.json"
+    "output/search-library-20260928/cleanup.json",
+    "ConvexPress-Admin/audits/2026-09-04/search-conditional-prose-20260928.md",
+    "output/search-conditional-20260928/public-matrix.json",
+    "output/search-conditional-20260928/clock-acceptance.json",
+    "output/search-conditional-20260928/cleanup.json",
+    "output/search-conditional-expiry-20260928/installed-source-proof.json"
   ],
   "trackerRefresh": {
     "source": "output/search-discovery-20260928/mt-accept-after.json",

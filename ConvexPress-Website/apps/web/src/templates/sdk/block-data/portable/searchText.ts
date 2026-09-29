@@ -25,7 +25,7 @@ function richText(value: unknown): string {
 
 /** Match the SDK Prose adapter's deliberately small inline grammar exactly.
  * Unsupported Markdown is rendered literally, so it must stay literal here. */
-function proseText(value: string): string {
+export function proseText(value: string): string {
   return value.split(/\n\s*\n/u).map(paragraph => paragraph.replace(/(\*\*[^*]+\*\*|\*[^*]+\*|\[[^\]]+\]\(https?:\/\/[^\s)]+\))/gu, token => {
     if (token.startsWith("**")) return token.slice(2, -2);
     if (token.startsWith("*")) return token.slice(1, -1);
@@ -36,10 +36,10 @@ function proseText(value: string): string {
 /** Candidate text, NOT a public DTO. Callers must authorize the current document,
  * ancestors, visibility, plugins and immutable definitions before public use.
  * Never follows references or invokes dynamic resolvers (including search itself). */
-export function authoredBlockSearchText(name: string, input: unknown): string {
+export function authoredBlockSearchText(name: string, input: unknown, project?: (attrs: unknown) => unknown): string {
   if (!Object.prototype.hasOwnProperty.call(descriptors, name)) throw Error("Unknown search block");
   const attrs = validateBlockAttrs(name, input);
-  return declaredSearchText(attrs, descriptors[name]);
+  return declaredSearchText(project ? project(attrs) : attrs, descriptors[name]);
 }
 
 function declaredSearchText(attrs: unknown, fields: readonly TextField[]): string {

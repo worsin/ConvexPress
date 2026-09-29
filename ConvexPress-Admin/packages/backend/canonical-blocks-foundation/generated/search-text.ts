@@ -212,7 +212,98 @@ export const searchTextDescriptors = {
       "type": "prose"
     }
   ],
-  "blocks/product-collection": [],
+  "blocks/product-collection": [
+    {
+      "path": [
+        "eyebrow"
+      ],
+      "type": "text"
+    },
+    {
+      "path": [
+        "heading"
+      ],
+      "type": "text"
+    },
+    {
+      "path": [
+        "intro"
+      ],
+      "type": "prose"
+    },
+    {
+      "path": [
+        "products",
+        "*",
+        "title"
+      ],
+      "type": "text"
+    },
+    {
+      "path": [
+        "products",
+        "*",
+        "summary"
+      ],
+      "type": "prose"
+    },
+    {
+      "path": [
+        "products",
+        "*",
+        "price"
+      ],
+      "type": "text"
+    },
+    {
+      "path": [
+        "products",
+        "*",
+        "badge"
+      ],
+      "type": "text"
+    },
+    {
+      "path": [
+        "groups",
+        "*",
+        "products",
+        "*",
+        "title"
+      ],
+      "type": "text"
+    },
+    {
+      "path": [
+        "groups",
+        "*",
+        "products",
+        "*",
+        "summary"
+      ],
+      "type": "prose"
+    },
+    {
+      "path": [
+        "groups",
+        "*",
+        "products",
+        "*",
+        "price"
+      ],
+      "type": "text"
+    },
+    {
+      "path": [
+        "groups",
+        "*",
+        "products",
+        "*",
+        "badge"
+      ],
+      "type": "text"
+    }
+  ],
   "blocks/promo-band": [
     {
       "path": [
@@ -469,7 +560,20 @@ export const searchTextDescriptors = {
   ],
   "commerce/assistant-band": [],
   "commerce/brand-list": [],
-  "commerce/bundle-offer": [],
+  "commerce/bundle-offer": [
+    {
+      "path": [
+        "title"
+      ],
+      "type": "text"
+    },
+    {
+      "path": [
+        "body"
+      ],
+      "type": "text"
+    }
+  ],
   "commerce/cart-cta": [
     {
       "path": [
@@ -507,7 +611,14 @@ export const searchTextDescriptors = {
     }
   ],
   "commerce/product-compare": [],
-  "commerce/product-hero": [],
+  "commerce/product-hero": [
+    {
+      "path": [
+        "title"
+      ],
+      "type": "text"
+    }
+  ],
   "commerce/product-showcase": [
     {
       "path": [
@@ -585,11 +696,38 @@ export const searchTextDescriptors = {
       "type": "text"
     }
   ],
-  "core/account-teaser": [],
+  "core/account-teaser": [
+    {
+      "path": [
+        "signedOutText"
+      ],
+      "type": "text"
+    },
+    {
+      "path": [
+        "signedInText"
+      ],
+      "type": "text"
+    }
+  ],
   "core/anchor-nav": [],
-  "core/announcement-bar": [],
+  "core/announcement-bar": [
+    {
+      "path": [
+        "text"
+      ],
+      "type": "text"
+    }
+  ],
   "core/archive-list": [],
-  "core/audio": [],
+  "core/audio": [
+    {
+      "path": [
+        "title"
+      ],
+      "type": "text"
+    }
+  ],
   "core/author-bio": [
     {
       "path": [
@@ -610,7 +748,20 @@ export const searchTextDescriptors = {
       "type": "prose"
     }
   ],
-  "core/before-after": [],
+  "core/before-after": [
+    {
+      "path": [
+        "beforeLabel"
+      ],
+      "type": "text"
+    },
+    {
+      "path": [
+        "afterLabel"
+      ],
+      "type": "text"
+    }
+  ],
   "core/bento-grid": [
     {
       "path": [
@@ -773,6 +924,12 @@ export const searchTextDescriptors = {
     {
       "path": [
         "title"
+      ],
+      "type": "text"
+    },
+    {
+      "path": [
+        "expiredText"
       ],
       "type": "text"
     }
@@ -1007,7 +1164,20 @@ export const searchTextDescriptors = {
       "type": "prose"
     }
   ],
-  "core/file-download": [],
+  "core/file-download": [
+    {
+      "path": [
+        "title"
+      ],
+      "type": "text"
+    },
+    {
+      "path": [
+        "description"
+      ],
+      "type": "text"
+    }
+  ],
   "core/footnotes": [
     {
       "path": [
@@ -1018,7 +1188,14 @@ export const searchTextDescriptors = {
       "type": "richtext"
     }
   ],
-  "core/form": [],
+  "core/form": [
+    {
+      "path": [
+        "title"
+      ],
+      "type": "text"
+    }
+  ],
   "core/gallery": [
     {
       "path": [
@@ -1187,6 +1364,14 @@ export const searchTextDescriptors = {
     {
       "path": [
         "heading"
+      ],
+      "type": "text"
+    },
+    {
+      "path": [
+        "logos",
+        "*",
+        "name"
       ],
       "type": "text"
     }
@@ -1591,7 +1776,14 @@ export const searchTextDescriptors = {
       "type": "text"
     }
   ],
-  "core/table-of-contents": [],
+  "core/table-of-contents": [
+    {
+      "path": [
+        "title"
+      ],
+      "type": "text"
+    }
+  ],
   "core/tabs": [
     {
       "path": [
@@ -1808,7 +2000,42 @@ export const searchTextDescriptors = {
       "type": "text"
     }
   ],
-  "reference/field-guide": [],
+  "reference/field-guide": [
+    {
+      "path": [
+        "heading"
+      ],
+      "type": "text"
+    },
+    {
+      "path": [
+        "body"
+      ],
+      "type": "text"
+    },
+    {
+      "path": [
+        "note"
+      ],
+      "type": "text"
+    },
+    {
+      "path": [
+        "items",
+        "*",
+        "label"
+      ],
+      "type": "text"
+    },
+    {
+      "path": [
+        "items",
+        "*",
+        "value"
+      ],
+      "type": "text"
+    }
+  ],
   "support/kb-search": [],
   "support/ticket-cta": [
     {

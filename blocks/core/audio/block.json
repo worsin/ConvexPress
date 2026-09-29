@@ -54,7 +54,7 @@
         "id": "demo-audio-morning-notes",
         "alt": "Synthetic BlockDemo audio fixture"
       },
-      "title": "Morning notes \u2014 sample audio",
+      "title": "Morning notes — sample audio",
       "transcript": {
         "href": "/block-demo/transcripts/morning-notes",
         "label": "Read the sample transcript"
@@ -66,5 +66,10 @@
     "capabilities": [
       "reference.targetResolution"
     ]
-  }
+  },
+  "searchText": [
+    [
+      "title"
+    ]
+  ]
 }

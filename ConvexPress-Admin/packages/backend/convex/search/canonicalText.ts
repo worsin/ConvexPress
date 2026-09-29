@@ -1,3 +1,5 @@
+import { currentLibrarySearchText, librarySearchNeedsData, librarySearchRecheckAt } from "../canonicalDocuments/foundation/librarySearch";
+import type { CanonicalBlockInstance } from "../canonicalDocuments/foundation/generated/types";
 import { planCanonicalData } from "../canonicalDocuments/foundation/planner";
 import { readAuthor } from "../canonicalDocuments/author";
 import type { Doc } from "../_generated/dataModel";
@@ -23,6 +25,7 @@ import { validateCanonicalTree } from "../canonicalDocuments/foundation/generate
 async function textFromTree(tree: RuntimeCanonicalTree, options: {
   authorAvailable?: (id: string, current: boolean) => Promise<boolean>;
   registry?: ComposedRegistry;
+  renderLibrary?: (node: RuntimeCanonicalTree[number]) => Promise<string>;
   renderComposed?: (node: RuntimeCanonicalTree[number], children: () => Promise<string>) => Promise<string>;
 } = {}): Promise<string> {
   const parts: string[] = [];
@@ -38,7 +41,7 @@ async function textFromTree(tree: RuntimeCanonicalTree, options: {
         : [authoredComposedSearchText(definition, node.attrs), await children()].filter(Boolean).join(" ");
     } else {
       if (node.name === "core/author-bio" && (node.attrs.userId || node.attrs.useCurrentAuthor) && options.authorAvailable && !await options.authorAvailable(node.attrs.userId || "", node.attrs.useCurrentAuthor === true)) continue;
-      text = [authoredBlockSearchText(node.name, node.attrs), await children()].filter(Boolean).join(" ");
+      text = [options.renderLibrary ? await options.renderLibrary(node) : authoredBlockSearchText(node.name, node.attrs), await children()].filter(Boolean).join(" ");
     }
     text = text.slice(0, remaining);
     if (text) { parts.push(text); remaining -= text.length + 1; }
@@ -62,7 +65,7 @@ export async function canonicalSearchCandidates(ctx: QueryCtx, post: Doc<"posts"
  * Shared per search request. Only selected custom data dependencies are resolved;
  * search-result-dependent branches are excluded to prevent recursive search.
  * Unavailable documents fail closed; budget exhaustion propagates. */
-export function createCanonicalSearchTextReader(ctx: QueryCtx, budget: RequestReadLedger) {
+export function createCanonicalSearchTextReader(ctx: QueryCtx, budget: RequestReadLedger, now = Date.now()) {
   let context: Promise<Awaited<ReturnType<typeof displayContext>>> | undefined;
   const authors = new Map<string, Promise<boolean>>();
   const authorAvailable = (id: string, current: boolean, postId: string) => {
@@ -86,13 +89,20 @@ export function createCanonicalSearchTextReader(ctx: QueryCtx, budget: RequestRe
       assertPackTreatments(projected.resolverTree, display.presentation.packId);
       // Match public rendering: unavailable selected media makes the document
       // unavailable, even when only an unrelated authored phrase matched.
-      await readCanonicalResources(ctx, projected.resolverTree, budget, projected.composed);
+      const resources = await readCanonicalResources(ctx, projected.resolverTree, budget, projected.composed);
       const approved = projected.composed
         ? await loadPublishedComposedRegistry(ctx, projected.resolverTree, projected.composed.definitions, budget) : undefined;
       let nodes = 0, bytes = 0;
       return await textFromTree(projected.resolverTree, {
         authorAvailable: (id, current) => authorAvailable(id, current, post._id),
         registry: approved?.registry,
+        renderLibrary: async node => {
+          budget.noteAuthorizationBoundary(librarySearchRecheckAt(node as CanonicalBlockInstance, now), now);
+          const { children: _children, ...self } = node;
+          const data = librarySearchNeedsData(node.name) ? await resolveCanonicalPageData(ctx, [self], display.scope, display.policy, budget,
+            { document: post, tree: projected.resolverTree, authoringTree: projected.authoringTree, composed: projected.composed }) : undefined;
+          return currentLibrarySearchText(node as CanonicalBlockInstance, { now, resources, data: data?.dataByBlock[node.id] });
+        },
         renderComposed: approved ? async (node, children) => {
           const definition = approved.registry.definition(node.name, node.version)!;
           // Search result bodies depend on the incoming query and cannot become

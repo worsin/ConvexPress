@@ -456,5 +456,73 @@
         "anchor"
       ]
     }
+  ],
+  "searchText": [
+    [
+      "eyebrow"
+    ],
+    [
+      "heading"
+    ],
+    {
+      "path": [
+        "intro"
+      ],
+      "format": "prose"
+    },
+    [
+      "products",
+      "*",
+      "title"
+    ],
+    {
+      "path": [
+        "products",
+        "*",
+        "summary"
+      ],
+      "format": "prose"
+    },
+    [
+      "products",
+      "*",
+      "price"
+    ],
+    [
+      "products",
+      "*",
+      "badge"
+    ],
+    [
+      "groups",
+      "*",
+      "products",
+      "*",
+      "title"
+    ],
+    {
+      "path": [
+        "groups",
+        "*",
+        "products",
+        "*",
+        "summary"
+      ],
+      "format": "prose"
+    },
+    [
+      "groups",
+      "*",
+      "products",
+      "*",
+      "price"
+    ],
+    [
+      "groups",
+      "*",
+      "products",
+      "*",
+      "badge"
+    ]
   ]
 }

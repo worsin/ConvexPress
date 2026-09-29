@@ -227,3 +227,83 @@ test("unavailable selected media cannot leave searchable prose for a document th
   await t.mutation(upsert,{contentType:'page',contentId:ids.post,action:'upsert'});
   expect((await t.run(ctx=>readSearch(ctx,{query:'Unavailablemedianeedle'},scope,'host'))).items).toEqual([]);
 });
+
+test('scheduled announcements and expiry text follow the current clock without a new index write', async () => {
+ const {t,ids}=await fixture();
+ const now=Date.now();
+ await t.run(ctx=>ctx.db.patch('posts',ids.post,{blocks:[
+  {id:'live',name:'core/announcement-bar',version:1,attrs:{text:'Announcementneedle',schedule:{startsAt:new Date(now-60000).toISOString(),endsAt:new Date(now+60000).toISOString()}}},
+  {id:'future',name:'core/announcement-bar',version:1,attrs:{text:'Futureneedle',schedule:{startsAt:new Date(now+60000).toISOString()}}},
+  {id:'past',name:'core/countdown',version:1,attrs:{title:'Clockneedle',target:new Date(now-60000).toISOString(),expiredText:'Expiredneedle'}},
+  {id:'unset',name:'core/countdown',version:1,attrs:{expiredText:'Unsetneedle'}},
+ ]}));
+ await t.mutation(upsert,{contentType:'page',contentId:ids.post,action:'upsert'});
+ const find=(query:string)=>t.run(ctx=>readSearch(ctx,{query},scope,'host'));
+ for(const q of ['Announcementneedle','Expiredneedle'])expect((await find(q)).items.map(x=>x.id)).toEqual([ids.post]);
+ for(const q of ['Futureneedle','Unsetneedle'])expect((await find(q)).items).toEqual([]);
+ await t.run(async ctx=>{const p=await ctx.db.get('posts',ids.post);const blocks=p!.blocks! as any[];blocks[0].attrs.schedule.endsAt=new Date(now-1000).toISOString();await ctx.db.patch('posts',ids.post,{blocks});});
+ expect((await find('Announcementneedle')).items).toEqual([]);
+});
+
+test('account copy resolves the current visitor and hides the opposite authored alternative', async () => {
+ const {t,ids}=await fixture();
+ await t.run(ctx=>ctx.db.patch('posts',ids.post,{blocks:[{id:'account',name:'core/account-teaser',version:1,attrs:{signedOutText:'Guestaccountneedle',signedInText:'Memberaccountneedle'}}]}));
+ await t.mutation(upsert,{contentType:'page',contentId:ids.post,action:'upsert'});
+ const signed=t.withIdentity({subject:ids.user,issuer:'https://convexpress-admin.local'});
+ expect((await t.run(ctx=>readSearch(ctx,{query:'Guestaccountneedle'},scope,'host'))).items.map(x=>x.id)).toEqual([ids.post]);
+ expect((await t.run(ctx=>readSearch(ctx,{query:'Memberaccountneedle'},scope,'host'))).items).toEqual([]);
+ expect((await signed.run(ctx=>readSearch(ctx,{query:'Memberaccountneedle'},scope,'host'))).items.map(x=>x.id)).toEqual([ids.post]);
+ expect((await signed.run(ctx=>readSearch(ctx,{query:'Guestaccountneedle'},scope,'host'))).items).toEqual([]);
+});
+
+test('field guide search follows details, bounded items and the selected prose treatment', async () => {
+ const {t,ids}=await fixture();
+ const attrs={heading:'Guideneedle',body:'Read [Labelneedle](https://example.invalid/Hiddenhrefneedle).',showDetails:true,count:1,note:'Noteneedle',items:[{label:'Firstneedle',value:'Shownneedle'},{label:'Secondneedle',value:'Hiddenneedle'}]};
+ await t.run(ctx=>ctx.db.patch('posts',ids.post,{blocks:[{id:'guide',name:'reference/field-guide',version:2,attrs}]}));
+ await t.mutation(upsert,{contentType:'page',contentId:ids.post,action:'upsert'});
+ const find=(query:string)=>t.run(ctx=>readSearch(ctx,{query},scope,'host'));
+ for(const q of ['Guideneedle','Firstneedle','Shownneedle','Noteneedle'])expect((await find(q)).items.map(x=>x.id)).toEqual([ids.post]);
+ // convex-test tokenizes only whitespace, unlike the real search index; inspect
+ // exact current prose here and verify the Markdown label in installed acceptance.
+ const current=await t.run(ctx=>createPublicSearchSourceReader(ctx)({contentType:'page',contentId:ids.post}));
+ expect(current?.content).toContain('Labelneedle');expect(current?.content).not.toContain('Hiddenhrefneedle');
+ for(const q of ['Secondneedle','Hiddenneedle','Hiddenhrefneedle'])expect((await find(q)).items).toEqual([]);
+ await t.run(ctx=>ctx.db.patch('posts',ids.post,{blocks:[{id:'guide',name:'reference/field-guide',version:2,attrs:{...attrs,showDetails:false}}]}));
+ expect((await find('Noteneedle')).items).toEqual([]);expect((await find('Guideneedle')).items.map(x=>x.id)).toEqual([ids.post]);
+});
+
+test('manual collection bodies follow mode, per-panel count and current price disclosure',async()=>{
+ const {t,ids}=await fixture();await t.run(ctx=>ctx.db.patch('settings',ids.plugins,{values:{commerceEnabled:true,membershipEnabled:false}}));
+ const attrs={heading:'Collectionneedle',count:1,showPrice:false,products:[{title:'Firstcardneedle',price:'Privatepriceneedle'},{title:'Overflowcardneedle'}],groups:[{label:'Group',products:[{title:'Groupcardneedle'},{title:'Groupoverflowneedle'}]}]};
+ const write=(patch:Record<string,unknown>)=>t.run(ctx=>ctx.db.patch('posts',ids.post,{blocks:[{id:'collection',name:'blocks/product-collection',version:2,attrs:{...attrs,...patch}}]}));
+ await write({});await t.mutation(upsert,{contentType:'page',contentId:ids.post,action:'upsert'});
+ const find=(query:string)=>t.run(ctx=>readSearch(ctx,{query},scope,'host'));
+ for(const q of ['Collectionneedle','Firstcardneedle','Groupcardneedle'])expect((await find(q)).items.map(x=>x.id)).toEqual([ids.post]);
+ for(const q of ['Overflowcardneedle','Groupoverflowneedle','Privatepriceneedle'])expect((await find(q)).items).toEqual([]);
+ await write({showPrice:true});expect((await find('Privatepriceneedle')).items.map(x=>x.id)).toEqual([ids.post]);
+ await write({productIds:['missing-product']});expect((await find('Firstcardneedle')).items).toEqual([]);expect((await find('Groupcardneedle')).items.map(x=>x.id)).toEqual([ids.post]);
+ await write({mode:'featured',groups:[]});expect((await find('Firstcardneedle')).items).toEqual([]);expect((await find('Groupcardneedle')).items).toEqual([]);
+});
+
+test('audio body matches require a currently supported selected recording',async()=>{
+ const {t,ids}=await fixture();
+ const media=await t.run(ctx=>ctx.db.insert('media',{fileName:'recording.wav',slug:'recording',mediaType:'audio',mimeType:'audio/wav',fileSize:12,url:'https://example.invalid/recording.wav',title:'Recording',status:'active',uploadedBy:ids.user,createdAt:1,updatedAt:1}));
+ const write=(selected:boolean)=>t.run(ctx=>ctx.db.patch('posts',ids.post,{blocks:[{id:'audio',name:'core/audio',version:1,attrs:{title:'Audioneedle',...(selected?{media:{id:media}}:{})}}]}));
+ await write(true);await t.mutation(upsert,{contentType:'page',contentId:ids.post,action:'upsert'});
+ const find=()=>t.run(ctx=>readSearch(ctx,{query:'Audioneedle'},scope,'host'));
+ expect((await find()).items.map(x=>x.id)).toEqual([ids.post]);
+ await write(false);expect((await find()).items).toEqual([]);await write(true);
+ await t.run(ctx=>ctx.db.patch('media',media,{mimeType:'image/png'}));expect((await find()).items).toEqual([]);
+});
+
+test('timed matches and hidden future alternatives carry bounded refresh leases on both search surfaces',async()=>{
+ const{t,ids}=await fixture(),boundary=Date.now()+15000;
+ await t.run(ctx=>ctx.db.patch('posts',ids.post,{blocks:[{id:'timed',name:'core/announcement-bar',version:1,attrs:{text:'Timedleaseneedle',schedule:{endsAt:new Date(boundary).toISOString()}}},{id:'future',name:'core/countdown',version:1,attrs:{target:new Date(boundary).toISOString(),expiredText:'Futureleaseneedle'}}]}));
+ await t.mutation(upsert,{contentType:'page',contentId:ids.post,action:'upsert'});
+ for(const q of ['Timedleaseneedle','Futureleaseneedle']){
+  const result=await t.query(ref<'query'>('search/queries:search'),{q,refreshKey:'owned-test'});
+  expect(result.displayLease.expiresAt).toBe(boundary);expect(result.displayLease.evaluatedAt).toBeLessThan(boundary);expect(result.results.length).toBe(q==='Timedleaseneedle'?1:0);
+  const budget=new RequestReadLedger();await t.run(ctx=>readSearch(ctx,{query:q},scope,'host',budget));expect(budget.authorizationRecheckAt).toBe(boundary);
+ }
+ await expect(t.query(ref<'query'>('search/queries:search'),{q:'Timedleaseneedle',refreshKey:'../bad'})).rejects.toThrow();
+});

@@ -3,15 +3,8 @@ import { X } from "lucide-react";
 import * as P from "../primitives";
 import { BlockRenderError, type BlockProps } from "./model";
 import "./utilities.css";
-export function announcementWindow(
-	startsAt: number | null,
-	endsAt: number | null,
-	now: number,
-) {
-	return (
-		(startsAt === null || now >= startsAt) && (endsAt === null || now < endsAt)
-	);
-}
+import { announcementWindow } from "../block-data/portable/libraryPresentation";
+export { announcementWindow } from "../block-data/portable/libraryPresentation";
 export function Announcement({ attrs }: BlockProps<"core/announcement-bar">) {
 	const starts = attrs.schedule?.startsAt
 		? Date.parse(attrs.schedule.startsAt)

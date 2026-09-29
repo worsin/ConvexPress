@@ -2,33 +2,11 @@ import * as P from "../primitives";
 import { BlockRenderError, type RenderResources } from "./model";
 import type { RenderMedia } from "./media-resources";
 
-const mediaTypes = {
-	video: new Set(["video/mp4", "video/webm", "video/ogg"]),
-	audio: new Set([
-		"audio/mpeg",
-		"audio/mp4",
-		"audio/ogg",
-		"audio/wav",
-		"audio/x-wav",
-		"audio/webm",
-		"audio/flac",
-	]),
-	file: new Set([
-		"application/pdf",
-		"text/plain",
-		"text/csv",
-		"application/zip",
-		"application/gzip",
-		"application/octet-stream",
-		"application/msword",
-		"application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-		"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-	]),
-};
+import { supportedMediaType, type MediaKind } from "../block-data/portable/libraryPresentation";
 export function resolvedAsset(
 	id: string,
 	resources: RenderResources,
-	kind: "image" | keyof typeof mediaTypes,
+	kind: MediaKind,
 ): RenderMedia {
 	if (!Object.hasOwn(resources.media, id))
 		throw new BlockRenderError(
@@ -38,9 +16,7 @@ export function resolvedAsset(
 		);
 	const asset = resources.media[id];
 	if (
-		kind === "image"
-			? asset.mimeType && !asset.mimeType.startsWith("image/")
-			: !asset.mimeType || !mediaTypes[kind].has(asset.mimeType)
+		!supportedMediaType(kind, asset.mimeType)
 	)
 		throw new BlockRenderError(
 			"UNSUPPORTED_MEDIA_TYPE",

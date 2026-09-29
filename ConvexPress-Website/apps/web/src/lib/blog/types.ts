@@ -433,7 +433,7 @@ export interface SearchResult {
   slug: string;
   excerpt: string;
   highlightedExcerpt?: string;
-  contentType: "post" | "page" | "media" | "comment" | "course" | "product";
+  contentType: "post" | "page" | "media" | "comment" | "course" | "product" | "event";
   publishedAt?: string;
   author?: {
     displayName: string;

@@ -62,8 +62,8 @@
         "id": "demo-image-after",
         "alt": "Synthetic comparison fixture after the change"
       },
-      "beforeLabel": "Before \u2014 sample",
-      "afterLabel": "After \u2014 sample"
+      "beforeLabel": "Before — sample",
+      "afterLabel": "After — sample"
     }
   ],
   "requires": {
@@ -71,5 +71,13 @@
     "capabilities": [
       "reference.targetResolution"
     ]
-  }
+  },
+  "searchText": [
+    [
+      "beforeLabel"
+    ],
+    [
+      "afterLabel"
+    ]
+  ]
 }

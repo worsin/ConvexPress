@@ -33,7 +33,8 @@ function postUrl(post: Doc<"posts">): string {
  * authority come from the same current database snapshot. Never copy cache text,
  * legacy v2 bodies, account emails, or canonical block payloads into a result. */
 export function createPublicSearchSourceReader(ctx: QueryCtx, now = Date.now(), budget?: RequestReadLedger, options: { includePostBody?: boolean } = {}) {
-  const canonicalText = createCanonicalSearchTextReader(ctx, budget ?? new RequestReadLedger());
+  const canonicalBudget = budget ?? new RequestReadLedger();
+  const canonicalText = createCanonicalSearchTextReader(ctx, canonicalBudget, now);
   const read = async <T extends TableNames>(table:T,id:Id<T>):Promise<Doc<T>|null> => {budget?.beforeRead();return budget ? budget.record(await ctx.db.get(table,id)) : ctx.db.get(table,id);};
   const evaluate = createMembershipAccessEvaluator(ctx,budget);
   const readExtension = createExtensionSearchSourceReader(ctx, budget);
@@ -60,7 +61,7 @@ export function createPublicSearchSourceReader(ctx: QueryCtx, now = Date.now(), 
     }
     return names;
   };
-  return async (row: Pick<Doc<"searchIndex">, "contentType" | "contentId">): Promise<PublicSearchSource | null> => {
+  const source = async (row: Pick<Doc<"searchIndex">, "contentType" | "contentId">): Promise<PublicSearchSource | null> => {
     const base = {contentType: row.contentType, contentId: row.contentId};
     if (row.contentType === "post" || row.contentType === "page") {
       const id = ctx.db.normalizeId("posts", row.contentId);
@@ -135,4 +136,5 @@ export function createPublicSearchSourceReader(ctx: QueryCtx, now = Date.now(), 
     }
     return null;
   };
+  return Object.assign(source, { nextRecheckAt: () => canonicalBudget.authorizationRecheckAt });
 }

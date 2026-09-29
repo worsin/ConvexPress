@@ -262,5 +262,26 @@
         }
       ]
     }
+  ],
+  "searchText": [
+    [
+      "heading"
+    ],
+    [
+      "body"
+    ],
+    [
+      "note"
+    ],
+    [
+      "items",
+      "*",
+      "label"
+    ],
+    [
+      "items",
+      "*",
+      "value"
+    ]
   ]
 }

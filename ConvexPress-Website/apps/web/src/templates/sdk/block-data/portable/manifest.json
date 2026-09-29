@@ -1,10 +1,12 @@
 {
   "source": "ConvexPress-Admin/packages/backend/canonical-blocks-foundation",
   "files": {
+    "libraryPresentation.ts": "71310b97f777685920c15fd798dfc1ba1647913a70b52d26ea6412f85c6796d0",
+    "librarySearch.ts": "a1da166c101dac6fdb70a170529989a3300e0877d8d6e92546ecc262b10ce1bf",
     "authorContracts.ts": "febb3e15ea786240ad8ae631b418d913abae8f982a0eba47946c7f01589459e9",
     "resolverBindings.ts": "f00859caff82100ee259b781673449cc1b5533ce50d1eddea81d59fbbf8df1a4",
-    "searchText.ts": "89533eabc411728655a40b6322c063ee3c52f369f74b3ba9d1e157e48b4afcdc",
-    "generated/search-text.ts": "5f0ab80b11dcf8f8bd093e57540f98661008dde18a025df23f0c3ebef8c5e769",
+    "searchText.ts": "c05bb59c65af92b5ed626622c5df34d0be5e7098b3868efd2e73d44403d8e4b5",
+    "generated/search-text.ts": "a13f2d56cdf66114c2b966c083b5a1a1dcf34bddb0d45dcb124eb18e2a59eb12",
     "blockPromotion.ts": "8662705f7664b75b6d13c7792de1fe5d5735524740ecb3d3c663c9825790d8b5",
     "resolverReferences.ts": "09eef4e2d4cdf3d6b4ccbdbbb189a0336dd8704d135bbefd43bbe89ec2d42921",
     "composedPresentation.ts": "a0a8e4e081e6117fccee9d23faae4db05c390902b1676b8e02e083bc432b3608",

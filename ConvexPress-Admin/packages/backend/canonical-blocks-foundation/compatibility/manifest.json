@@ -60,7 +60,7 @@
     "blocks/blocks/grade-gallery/block.json": "ea23889a968d83590f759271fad35ca46e6a32d2e9856edf67509177e1e62612",
     "blocks/blocks/media-mentions/block.json": "c00ba46c623e6e200e51fdf0dd54cedb2d84720f0aa5e44316fef4934a401bb8",
     "blocks/blocks/page-banner/block.json": "02d348d65d9189c65ae533397c47b7a7bbed5893e854d5cfab49574c40f8490d",
-    "blocks/blocks/product-collection/block.json": "44678fa6782622f3d5019bdc65b898b4d0952d37fe14bff9fc38678fa7175d6a",
+    "blocks/blocks/product-collection/block.json": "623fc1f737b17f802d3c1fb38a8251a1013c8f62a43f4bc6eb25dcf25dcf4cdc",
     "blocks/blocks/promo-band/block.json": "3ed8699506f900c557a74d3c5dafe8014ce3f4aebf546e8369baeb956cc94ddd",
     "blocks/blocks/social-share/block.json": "4303336e4942b0821ac8ec6ec13367b27bcb9044ccf04a49ec964cbf82c74731",
     "blocks/blocks/story-timeline/block.json": "9dd81476cbc1365630304f0f174bfb4c6cfc21f8bc0518d07752bd61d4ed7609",
@@ -90,7 +90,7 @@
     "blocks/core/image/block.json": "4dee0153dc050a84cf6579e8cfe320492c34492f7c33e04892e2f419e95023e0",
     "blocks/core/latest-posts/block.json": "1b7b3a2905255a6cb4c92c861e3bd155c213f6d7f2c35370a261a250ab7c3e12",
     "blocks/core/list/block.json": "d2305ba062f35aa05b9e2efc74a9adfee3c508ade2301925bb037e96bbd3e44d",
-    "blocks/core/logo-cloud/block.json": "f8d964e5dd27c5fbd12a16eea931b3b276390eef38e75c2a558da6763d8eba72",
+    "blocks/core/logo-cloud/block.json": "786e4253dc11fcaf4b4daa4a87b3516d04221a43a71566e32cc470f0aa589d98",
     "blocks/core/media-text/block.json": "52282d1c75d5c65ea146ab38032e572cb95c2fb8c861af749db14cb0429efb36",
     "blocks/core/newsletter-signup/block.json": "8b2b12b92a2f5841fab1968f37e7e58cc15cb7f7ab18a3508cb1fbae5cc65582",
     "blocks/core/paragraph/block.json": "6c11d75c9730da40b117e513d299f026a580967a54571ff4acf389006bcc7af3",
@@ -108,7 +108,7 @@
     "blocks/core/testimonials/block.json": "e3a330502d1e8f600f081581090c721f9215189238a4b9acb84c68a32e2b0800",
     "blocks/events/upcoming/block.json": "92ae238b679fd69ed94e9d4afae4493a84f4f089194a145647f6fd8eb0beb15b",
     "blocks/local/sample-alert/block.json": "eb2b447314eaf2522da7af672d97ee66e0e28688d4ed1c4eda3aac73b6503994",
-    "blocks/reference/field-guide/block.json": "d1c4e78bf1e73dc459286e0ac77bbdc6a6e76e204d74f3c8be83fcdfc9e5d05d",
+    "blocks/reference/field-guide/block.json": "6a07d425d7390ea5c067372e2a8fd6a0548a98bb035ce51dd812ce684b34895f",
     "scripts/blocks/legacy-richtext.mjs": "3349516bb2c8b12ff8be5119f64272b278f1216adaf79606a647f3770e9e1c8f"
   },
   "bundledInputs": [
