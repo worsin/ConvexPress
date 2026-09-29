@@ -1,4 +1,4 @@
-import {syncEventSearch} from "./events";
+import { installedSearchSources } from "./extensionSources";
 import { canonicalSearchCandidates } from "./canonicalText";
 /**
  * Search System - Internal Functions
@@ -22,7 +22,8 @@ import { canonicalSearchCandidates } from "./canonicalText";
 import { internalMutation, internalQuery } from "../_generated/server";
 import { syncProductSearch } from "./products";
 import type { MutationCtx } from "../_generated/server";
-import type { Id } from "../_generated/dataModel";
+import type { Id, Doc } from "../_generated/dataModel";
+import { internal } from "../_generated/api";
 import { v } from "convex/values";
 import { currentUserCan, getUserIdentifier } from "../helpers/permissions";
 import {
@@ -85,24 +86,23 @@ export const onContentChanged = internalMutation({
       return;
     }
 
-    // ── Upsert action ───────────────────────────────────────────────────
-    const now = Date.now();
-
-    if (contentType === "post" || contentType === "page") {
-      await upsertPostOrPage(ctx, contentType, contentId, now);
-    } else if (contentType === "media") {
-      await upsertMedia(ctx, contentId, now);
-    } else if (contentType === "comment") {
-      await upsertComment(ctx, contentId, now);
-    } else if (contentType === "event") {
-      const id=ctx.db.normalizeId("extension_events",contentId); if(id)await syncEventSearch(ctx,id);
-    } else if (contentType === "product") {
-      const id=ctx.db.normalizeId("commerce_products",contentId); if(id)await syncProductSearch(ctx,id);
-    } else if (contentType === "course") {
-      await upsertCourse(ctx, contentId, now);
-    }
+    await reindexContent(ctx, contentType, contentId);
   },
 });
+
+export async function reindexContent(ctx: MutationCtx, contentType: Doc<"searchIndex">["contentType"], contentId: string) {
+  const now = Date.now();
+  if (contentType === "post" || contentType === "page") await upsertPostOrPage(ctx, contentType, contentId, now);
+  else if (contentType === "media") await upsertMedia(ctx, contentId, now);
+  else if (contentType === "comment") await upsertComment(ctx, contentId, now);
+  else if (contentType === "course") await upsertCourse(ctx, contentId, now);
+  else if (contentType === "event") {
+    const owners = installedSearchSources().filter(source => source.contentType === contentType && source.matchesId(ctx, contentId));
+    if (owners.length !== 1) throw Error("Event search identity needs exactly one installed owner");
+    await owners[0].maintenance.sync(ctx, contentId);
+  }
+  else if (contentType === "product") { const id = ctx.db.normalizeId("commerce_products", contentId); if (id) await syncProductSearch(ctx, id); }
+}
 
 // ─── Content-Type Specific Upsert Functions ─────────────────────────────────
 
@@ -116,14 +116,8 @@ async function upsertPostOrPage(
   now: number,
 ): Promise<void> {
   // Fetch the post/page
-  let post;
-  try {
-    // contentId is a string reference to a posts table ID
-    post = await ctx.db.get("posts", contentId as Id<"posts">);
-  } catch {
-    // Invalid ID - skip
-    return;
-  }
+  const id = ctx.db.normalizeId("posts", contentId);
+  const post = id ? await ctx.db.get("posts", id) : null;
   if (!post) return;
 
   // Only index the correct type (posts table has a "type" field: "post" | "page")
@@ -160,35 +154,31 @@ async function upsertPostOrPage(
   let tagNames: string[] | undefined;
 
   if (contentType === "post") {
-    try {
-      // Look up taxonomy assignments for this post via termRelationships
-      // Use the post's actual Convex _id for the index query
-      const assignments = await ctx.db
-        .query("termRelationships")
-        .withIndex("by_post", (q) => q.eq("postId", post._id))
-        .take(500); // H-16 FIX: bounded query
+    // Look up taxonomy assignments for this post via termRelationships
+    // Use the post's actual Convex _id for the index query
+    const assignments = await ctx.db
+      .query("termRelationships")
+      .withIndex("by_post", (q) => q.eq("postId", post._id))
+      .take(500); // H-16 FIX: bounded query
 
-      if (assignments.length > 0) {
-        const cats: string[] = [];
-        const tags: string[] = [];
+    if (assignments.length > 0) {
+      const cats: string[] = [];
+      const tags: string[] = [];
 
-        for (const assignment of assignments) {
-          const term = await ctx.db.get("terms", assignment.termId);
-          if (term) {
-            // The `taxonomy` field on the term distinguishes category vs tag
-            if (term.taxonomy === "category") {
-              cats.push(term.name);
-            } else if (term.taxonomy === "post_tag") {
-              tags.push(term.name);
-            }
+      for (const assignment of assignments) {
+        const term = await ctx.db.get("terms", assignment.termId);
+        if (term) {
+          // The `taxonomy` field on the term distinguishes category vs tag
+          if (term.taxonomy === "category") {
+            cats.push(term.name);
+          } else if (term.taxonomy === "post_tag") {
+            tags.push(term.name);
           }
         }
-
-        if (cats.length > 0) categoryNames = cats;
-        if (tags.length > 0) tagNames = tags;
       }
-    } catch {
-      // Taxonomy tables may not exist yet - graceful degradation
+
+      if (cats.length > 0) categoryNames = cats;
+      if (tags.length > 0) tagNames = tags;
     }
   }
 
@@ -247,12 +237,8 @@ async function upsertMedia(
   contentId: string,
   now: number,
 ): Promise<void> {
-  let media;
-  try {
-    media = await ctx.db.get("media", contentId as Id<"media">);
-  } catch {
-    return;
-  }
+  const id = ctx.db.normalizeId("media", contentId);
+  const media = id ? await ctx.db.get("media", id) : null;
   if (!media) return;
 
   const title = truncate(
@@ -321,12 +307,8 @@ async function upsertCourse(
   contentId: string,
   now: number,
 ): Promise<void> {
-  let course;
-  try {
-    course = await ctx.db.get("lms_courses", contentId as Id<"lms_courses">);
-  } catch {
-    return;
-  }
+  const id = ctx.db.normalizeId("lms_courses", contentId);
+  const course = id ? await ctx.db.get("lms_courses", id) : null;
   if (!course) return;
 
   const title = truncate(stripContentForSearch(course.title || ""), MAX_INDEXED_TITLE_LENGTH);
@@ -406,12 +388,8 @@ async function upsertComment(
   contentId: string,
   now: number,
 ): Promise<void> {
-  let comment;
-  try {
-    comment = await ctx.db.get("comments", contentId as Id<"comments">);
-  } catch {
-    return;
-  }
+  const id = ctx.db.normalizeId("comments", contentId);
+  const comment = id ? await ctx.db.get("comments", id) : null;
   if (!comment) return;
 
   // Only index approved comments
@@ -499,133 +477,13 @@ export const logSearchQuery = internalMutation({
 
 // ─── reindexAll ─────────────────────────────────────────────────────────────
 
-/**
- * Full reindex of all content.
- *
- * This is an internalMutation called by the admin reindex action.
- * Processes all content types in sequence, batch by batch.
- *
- * Args:
- *   - contentType: optional filter for specific content type
- */
+/** Retained to make old internal callers fail explicitly instead of silently
+ * reporting a partial scan. The authenticated action owns resumable traversal. */
 export const reindexAll = internalMutation({
-  args: {
-    contentType: v.optional(searchableContentTypeValidator),
-  },
-  handler: async (ctx, args) => {
-    const now = Date.now();
-    const stats = { post: 0, page: 0, media: 0, comment: 0, course: 0, product: 0, event: 0, removed: 0, errors: 0 };
-    const contentTypes: Array<"post" | "page" | "media" | "comment" | "course" | "product" | "event"> = args.contentType
-      ? [args.contentType]
-      : ["post", "page", "media", "comment", "course", "product"];
-
-    for (const ct of contentTypes) {
-      try {
-        if (ct === "post" || ct === "page") {
-          // Fetch all posts/pages of this type
-          const items = await ctx.db
-            .query("posts")
-            .withIndex("by_type_status", (q) => q.eq("type", ct))
-            .take(500); // H-16 FIX: bounded query
-
-          for (const item of items) {
-            try {
-              await upsertPostOrPage(ctx, ct, item._id.toString(), now);
-              stats[ct]++;
-            } catch {
-              stats.errors++;
-            }
-          }
-        } else if (ct === "event") {
-          throw new Error("Event search indexing uses search/eventBackfill:page with its returned continuation cursor.");
-        } else if (ct === "media") {
-          // Fetch all media items
-          const items = await ctx.db.query("media").take(500); // H-16 FIX: bounded query
-
-          for (const item of items) {
-            try {
-              await upsertMedia(ctx, item._id.toString(), now);
-              stats.media++;
-            } catch {
-              stats.errors++;
-            }
-          }
-        } else if (ct === "comment") {
-          // Fetch all approved comments
-          const items = await ctx.db
-            .query("comments")
-            .withIndex("by_status", (q) => q.eq("status", "approved"))
-            .take(500); // H-16 FIX: bounded query
-
-          for (const item of items) {
-            try {
-              await upsertComment(ctx, item._id.toString(), now);
-              stats.comment++;
-            } catch {
-              stats.errors++;
-            }
-          }
-        } else if (ct === "course") {
-          const items = await ctx.db
-            .query("lms_courses")
-            .withIndex("by_status", (q) => q.eq("status", "published"))
-            .take(500);
-
-          for (const item of items) {
-            try {
-              await upsertCourse(ctx, item._id.toString(), now);
-              stats.course++;
-            } catch {
-              stats.errors++;
-            }
-          }
-        } else if (ct === "product") {
-          const items = await ctx.db.query("commerce_products").take(500);
-          for (const item of items) {
-            try {
-              await syncProductSearch(ctx, item._id);
-              stats.product++;
-            } catch {
-              stats.errors++;
-            }
-          }
-        }
-      } catch {
-        stats.errors++;
-      }
-    }
-
-    // ── Cleanup orphaned entries (#53 FIX: handle all content types) ────
-    // Find entries in searchIndex that reference content which no longer exists.
-    // Each content type must be looked up in its own table.
-    const allIndexEntries = await ctx.db.query("searchIndex").take(500); // H-16 FIX: bounded query
-
-    for (const entry of allIndexEntries) {
-      try {
-        let source: unknown = null;
-        if (entry.contentType === "post" || entry.contentType === "page") {
-          source = await ctx.db.get("posts", entry.contentId as Id<"posts">);
-        } else if (entry.contentType === "media") {
-          source = await ctx.db.get("media", entry.contentId as Id<"media">);
-        } else if (entry.contentType === "comment") {
-          source = await ctx.db.get("comments", entry.contentId as Id<"comments">);
-        } else if (entry.contentType === "course") {
-          source = await ctx.db.get("lms_courses", entry.contentId as Id<"lms_courses">);
-        } else if (entry.contentType === "product") {
-          source = await ctx.db.get("commerce_products", entry.contentId as Id<"commerce_products">);
-        }
-        if (!source) {
-          await ctx.db.delete("searchIndex", entry._id);
-          stats.removed++;
-        }
-      } catch {
-        // Invalid ID format - remove orphan
-        await ctx.db.delete("searchIndex", entry._id);
-        stats.removed++;
-      }
-    }
-
-    return stats;
+  args: { contentType: v.optional(searchableContentTypeValidator) },
+  returns: v.null(),
+  handler: async (): Promise<null> => {
+    throw Error("Use search/actions:reindex for the resumable full reindex workflow.");
   },
 });
 
@@ -671,48 +529,39 @@ export const purgeOldAnalytics = internalMutation({
 
 // ─── cleanupOrphanedIndex ───────────────────────────────────────────────────
 
-/**
- * Remove search index entries whose source content no longer exists.
- *
- * Called internally after a full reindex or as a maintenance task.
- * Processes up to 200 entries per invocation.
- */
+/** Check only authoritative identity. Invalid IDs are orphans; transient reads
+ * must abort rather than delete a potentially valid index row. */
+export async function removeOrphanedSearchEntry(ctx: MutationCtx, entry: Doc<"searchIndex">): Promise<boolean> {
+  if (entry.contentType === "post" && entry.contentId === REINDEX_LOCK_SENTINEL) return false;
+  const extensions = installedSearchSources().filter(source => source.contentType === entry.contentType && source.matchesId(ctx, entry.contentId));
+  if (extensions.length > 1) throw Error("Search identity has multiple installed owners");
+  if (extensions.length === 1) {
+    if (await extensions[0].maintenance.exists(ctx, entry.contentId)) return false;
+    await ctx.db.delete("searchIndex", entry._id); return true;
+  }
+  // An uninstalled extension's well-formed identity is not evidence of an
+  // orphan. Only the owning installed source can authorize its removal.
+  if (entry.contentType === "event") return false;
+  const tables = { post: "posts", page: "posts", media: "media", comment: "comments", course: "lms_courses", product: "commerce_products", event: "extension_events" } as const;
+  const table = tables[entry.contentType];
+  const id = ctx.db.normalizeId(table, entry.contentId);
+  const source = id ? await ctx.db.get(table, id) : null;
+  const matchesType = source && (!(entry.contentType === "post" || entry.contentType === "page") || (source as Doc<"posts">).type === entry.contentType);
+  if (matchesType) return false;
+  await ctx.db.delete("searchIndex", entry._id);
+  return true;
+}
+
+/** Continue through the whole index across bounded scheduled transactions. */
 export const cleanupOrphanedIndex = internalMutation({
-  args: {},
-  handler: async (ctx) => {
-    const entries = await ctx.db
-      .query("searchIndex")
-      .take(200);
-
+  args: { cursor: v.optional(v.string()) },
+  returns: v.object({ removed: v.number(), isDone: v.boolean() }),
+  handler: async (ctx, args) => {
+    const page = await ctx.db.query("searchIndex").paginate({ cursor: args.cursor ?? null, numItems: 100, maximumRowsRead: 100, maximumBytesRead: 1024 * 1024 });
     let removed = 0;
-
-    for (const entry of entries) {
-      try {
-        // #53 FIX: Look up content in the correct table based on contentType
-        let source: unknown = null;
-        if (entry.contentType === "post" || entry.contentType === "page") {
-          source = await ctx.db.get("posts", entry.contentId as Id<"posts">);
-        } else if (entry.contentType === "media") {
-          source = await ctx.db.get("media", entry.contentId as Id<"media">);
-        } else if (entry.contentType === "comment") {
-          source = await ctx.db.get("comments", entry.contentId as Id<"comments">);
-        } else if (entry.contentType === "course") {
-          source = await ctx.db.get("lms_courses", entry.contentId as Id<"lms_courses">);
-        } else if (entry.contentType === "product") {
-          source = await ctx.db.get("commerce_products", entry.contentId as Id<"commerce_products">);
-        }
-        if (!source) {
-          await ctx.db.delete("searchIndex", entry._id);
-          removed++;
-        }
-      } catch {
-        // Invalid ID - orphaned entry
-        await ctx.db.delete("searchIndex", entry._id);
-        removed++;
-      }
-    }
-
-    return { removed };
+    for (const entry of page.page) if (await removeOrphanedSearchEntry(ctx, entry)) removed++;
+    if (!page.isDone) await ctx.scheduler.runAfter(0, internal.search.internals.cleanupOrphanedIndex, { cursor: page.continueCursor });
+    return { removed, isDone: page.isDone };
   },
 });
 

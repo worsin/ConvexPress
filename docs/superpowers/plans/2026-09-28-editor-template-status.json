@@ -7,7 +7,7 @@
     "In progress": 63
   },
   "goal": "Complete block editor and template delivery plus all demonstrated blockers; defer unrelated whole-app audit campaigns.",
-  "currentTask": "Task 2 \u2014 complete bounded full search reindex (E37), remaining canonical prose projection and Language Switcher promotion. Approved custom search and native restore CPU dependency accepted (E36/E38); Search Results stays In progress (74 Verified / 63 In progress).",
+  "currentTask": "Task 2 \u2014 finish remaining canonical search prose/current presentation, the empty-category 0 artifact, and Language Switcher promotion. Complete bounded reindex accepted (E37); Search Results remains In progress (74 Verified / 63 In progress).",
   "tasks": [
     {
       "id": 1,
@@ -289,8 +289,8 @@
     },
     {
       "id": "E37",
-      "status": "Open: source-confirmed full reindex stops at 500 items per content type without continuation; individual authenticated reindex is available.",
-      "classification": "missing implementation",
+      "status": "Closed within documented boundary: >500 registered and native full-corpus continuation, installed extension ownership, read-failure/retry boundaries, public results and all551 fixture cleanup passed; see search-reindex-completion-20260928.md.",
+      "classification": "accepted/reusable evidence",
       "initialFinding": "search/internals:reindexAll takes(500) by type/status and returns completion without a cursor. Existing sites beyond that bound cannot backfill canonical or composed authored prose fully.",
       "closureBoundary": "Reproduce with more than 500 source records; add bounded complete continuation through existing authenticated reindex workflow with truthful results, lock/retry and failure accounting. Prove actual corpus completion before Search Results acceptance."
     },
@@ -3646,7 +3646,12 @@
     "output/composed-search-20260928/public-matrix.json",
     "output/composed-search-20260928/lifecycle.json",
     "output/composed-search-20260928/native-history-proof.json",
-    "output/composed-search-20260928/cleanup.json"
+    "output/composed-search-20260928/cleanup.json",
+    "ConvexPress-Admin/audits/2026-09-04/search-reindex-completion-20260928.md",
+    "output/search-reindex-20260928/native-complete.json",
+    "output/search-reindex-20260928/index-after.json",
+    "output/search-reindex-20260928/public-painted.json",
+    "output/search-reindex-20260928/cleanup.json"
   ],
   "trackerRefresh": {
     "source": "output/search-discovery-20260928/mt-accept-after.json",
@@ -3667,9 +3672,10 @@
   "coordination": {
     "folder": "/Users/worsin/Development/ConvexPress/Opus Audits/",
     "authority": "Codex leads; Claude audits are advisory and independently verified",
-    "lastAudit": "2026-09-28T2020-audit-09-page-href-duplication.md",
+    "lastAudit": "2026-09-28T2120-audit-10-silent-truncation-class.md",
     "pendingAdvisory": {
-      "F19": "Shared public document href contract deferred to next destination/localization pass. Verify reachable slug encoding, include membership route identity; do not mix into E36 acceptance."
+      "F19": "Shared public document href contract deferred to next destination/localization pass. Verify reachable slug encoding, include membership route identity; do not mix into E36 acceptance.",
+      "F20": "Source-verified enterprise commerce backfill truncation recorded in current-acceptance.md deferred register. No live reproduction or repair; promote only if catalog/customer-commerce delivery demonstrates a dependency."
     }
   },
   "sessionBaseCommit": "9824d9605e50c4b0ebd711c13715b506f8ef5bd3"

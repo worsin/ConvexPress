@@ -1,5 +1,5 @@
 import { extensionSearchSources } from "../schema/_searchIndex.generated";
-import type { QueryCtx } from "../_generated/server";
+import type { QueryCtx, MutationCtx } from "../_generated/server";
 import type { RequestReadLedger } from "../helpers/requestReadLedger";
 import type { PublicSearchSource } from "./publicSource";
 
@@ -8,6 +8,20 @@ export interface ExtensionSearchSource {
   contentType: PublicSearchSource["contentType"];
   matchesId: (ctx: Pick<QueryCtx, "db">, rawId: string) => boolean;
   createReader: (ctx: QueryCtx, budget?: RequestReadLedger) => (rawId: string) => Promise<PublicSearchSource | null>;
+  /** Installed code owns maintenance as well as public projection. A closed
+   * version binds persisted cursors to this exact scan contract. */
+  maintenance: {
+    version: string;
+    page: (ctx: QueryCtx, cursor: string | null) => Promise<{ ids: string[]; cursor: string; isDone: boolean }>;
+    sync: (ctx: MutationCtx, rawId: string) => Promise<void>;
+    exists: (ctx: QueryCtx, rawId: string) => Promise<boolean>;
+  };
+}
+
+export function installedSearchSources() {
+  const sources = [...extensionSearchSources].sort((a, b) => a.id.localeCompare(b.id));
+  if (new Set(sources.map(source => source.id)).size !== sources.length || sources.some(source => !source.maintenance?.version)) throw Error("Installed search sources need distinct IDs and maintenance contracts");
+  return sources;
 }
 
 /** Installed code owns the candidate's table. Never infer an extension from

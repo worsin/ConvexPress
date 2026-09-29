@@ -44,6 +44,27 @@ export const searchSourceValidator = v.union(
 // ─── Tables ─────────────────────────────────────────────────────────────────
 
 export const searchTables = {
+  /** One resumable maintenance operation per site. Coordination never shares
+   * the searchable corpus or gets mistaken for an orphaned document. */
+  searchReindexState: defineTable({
+    key: v.literal("current"),
+    jobId: v.string(),
+    leaseId: v.string(),
+    leaseUntil: v.number(),
+    contentType: v.union(searchableContentTypeValidator, v.null()),
+    sourceKey: v.optional(v.string()),
+    phase: v.number(),
+    cursor: v.union(v.string(), v.null()),
+    sequence: v.number(),
+    status: v.union(v.literal("running"), v.literal("completed"), v.literal("failed")),
+    indexed: v.object({ post: v.number(), page: v.number(), media: v.number(), comment: v.number(), course: v.number(), product: v.number(), event: v.number() }),
+    processed: v.number(),
+    removed: v.number(),
+    failedAttempts: v.number(),
+    failure: v.optional(v.object({ contentType: searchableContentTypeValidator, contentId: v.string() })),
+    startedAt: v.number(),
+    updatedAt: v.number(),
+  }).index("by_key", ["key"]),
   /**
    * Unified search index - denormalized content from all searchable content types.
    *

@@ -890,6 +890,7 @@ import type * as search_mutations from "../search/mutations.js";
 import type * as search_products from "../search/products.js";
 import type * as search_publicSource from "../search/publicSource.js";
 import type * as search_queries from "../search/queries.js";
+import type * as search_reindex from "../search/reindex.js";
 import type * as search_validators from "../search/validators.js";
 import type * as seed_roles from "../seed/roles.js";
 import type * as seo_internals from "../seo/internals.js";
@@ -1980,6 +1981,7 @@ declare const fullApi: ApiFromModules<{
   "search/products": typeof search_products;
   "search/publicSource": typeof search_publicSource;
   "search/queries": typeof search_queries;
+  "search/reindex": typeof search_reindex;
   "search/validators": typeof search_validators;
   "seed/roles": typeof seed_roles;
   "seo/internals": typeof seo_internals;

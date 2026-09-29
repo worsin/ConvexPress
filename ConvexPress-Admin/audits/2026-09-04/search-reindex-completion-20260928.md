@@ -1,0 +1,36 @@
+# Complete bounded search reindex
+
+September 28, 2026. E37 is closed within the documented boundary: registered regressions, native full-corpus continuation, public search and fixture cleanup passed. The delivery goal remains active and the tracker stays **74 Verified / 63 In progress**. Search Results still needs the remaining canonical prose/current-presentation checks.
+
+## Failure and repair
+
+Registered reproductions established three failures: 551 source pages indexed only500; 551 orphan entries cleaned only500; orphan maintenance deleted the old coordination sentinel. Full reindex also omitted Events by default and the admin reported completion without distinguishing interrupted or failed work.
+
+The authenticated workflow now uses a site-local persisted job with bounded actions and one source item per atomic index/cursor transaction. Job identity, sequence and expiring worker leases prevent overlapping workers or replayed acknowledgements from double-counting. Each step checks current authority. Failed work leaves its cursor unchanged and reports the affected document when available. Native controls pause after the current batch, recover saved progress after reload, resume the same scope, and announce completion only for a terminal successful receipt. All seven content counts are visible. Orphan maintenance also continues in bounded scheduled transactions.
+
+Installed extensions own their bounded scan, synchronization and existence checks. A registered Community Events clone regression demonstrated that inferring a single table from the shared event search type deleted a valid sibling entry. The maintenance contract repairs traversal and cleanup for both owners, preserves unknown/uninstalled extension identities, and binds unfinished cursors to the installed source/version plan. A changed plan requires restart. The SDK generator inherits the contract; its tracked integration test now exercises clone backfill and preservation.
+
+Final fault-injection regressions demonstrated that older source and taxonomy reads swallowed database failures. ID normalization now distinguishes an invalid ID from a failing read; read failures abort the transaction instead of advancing progress or publishing partial text. Public search still applies its existing current-source access and presentation checks.
+
+## Evidence
+
+- Backend: **576 tests /73 files /4,713 assertions passed**, covering search, canonical documents, Events, reusable content and custom definitions. Reindex-specific regressions cover >500 traversal, >500 orphans, sentinel preservation, lease/replay boundaries, malformed documents and recovery, revoked authority, scope conflicts, installed-source changes, dropped acknowledgements, scheduled continuation, source-read failures and taxonomy-read failures.
+- Reindex UI: **4 tests /20 assertions passed**. The generated-extension integration test passed and explicitly verifies execution of the new clone maintenance case. Backend, Admin and Website typechecks passed; the initial Website command mistakenly used its root configuration and is not acceptance evidence. Writer coverage passed before each strict deployment.
+- Created **551 canonical published pages** through normal authoring APIs. Privately backed up and removed only their exact551 derived index rows. Seed547 encountered `IsolateNotClean`; authoritative document inspection and revision checks resolved the pending acknowledgement before continuing. No blind write replay occurred.
+- Real owned Electron14837 used the normal settings workflow. Paused after99 source items, reloaded with exact saved counts, resumed, and completed1,391 durable steps. Final result: **691 indexed** (18 posts,648 pages,11 media,0 comments,9 courses,3 products,2 events), zero failures, zero stale entries removed. Those totals include existing rows of multiple statuses; they are not a count of publicly visible pages. All551 fixture IDs were independently verified unique in the index with their canonical words and published status.
+- Actual Website search found exact records1,500,501,551 with the expected result links. Initial destination assertions were too weak: excerpts and result headings could satisfy them before the route rendered. Those claims were corrected in the evidence. Final keyboard navigation explicitly waited for the destination URL, its **H1**, exact canonical body and painted screenshot for record1; no browser errors occurred. Already-deleted-record checks during cleanup are harness diagnostics. `public-painted.json` and `public-destination-painted.png` are the accepted rendered destination evidence.
+- The full scan ran on the SDK snapshot. The final read-failure-only follow-up preserved its completed receipt exactly and successfully reindexed/searched record551 through the installed authenticated incremental action. Failure behavior is registered fault-injection evidence; no live failure injection is claimed.
+
+## Installed boundary
+
+Source4860 only; target4870 untouched. Final strict snapshot: `search-reindex-readsafe-20260928`,1,611 hashed files, all changed canonical backend files exact, no hash drift. Each deployment had a private backup including storage. All2,405 original registered signatures were preserved except four intentional reindex/cleanup contract changes; five new job handlers were added. The intermediate SDK migration explicitly upgraded only Community Events `search.ts` maintenance hooks, preserving its other21 files. The final follow-up preserved all22 files from that upgraded snapshot. No plugin data or settings were changed.
+
+Original user Electron39198, Admin Vite62672, BlockDemo65092, Website12154 and SOCKS68390 are preserved. Owned Electron14837 signed out and closed. No role/capability grants were made in this batch.
+
+## Cleanup and remaining delivery
+
+All551 owned pages were trashed and permanently deleted through normal APIs. All551 owned index entries are absent. After a private backup and exact job-ID/completed-state checks, the owned job receipt was removed, restoring the original no-job state. Original42 pages,2 posts,1 term, menus, menu locations and appearance match exactly. The consumer index is ready; sampled fixture routes1/500/501/551 return404, owned search matches are zero, and the API session was revoked. Native sign-out/closure and preserved runtime PIDs were verified.
+
+Evidence: `output/search-reindex-20260928/`, including registered red/green logs, `index-missing.json`, `index-after.json`, `native-pause-reload.json`, `native-complete.json`, `public-proof.json` (search/link evidence only), `public-painted.json`, `installed-readsafe-proof.json`, `installed-source-proof.json`, deployment receipts and cleanup receipts.
+
+Search Results remains open for remaining canonical search descriptors/current presentation and the observed empty-category `0` on the public search route. Language Switcher/promotion and F19 shared destinations remain next Task2 work. F1 plugin defaults, E17 reference completeness, E22 image identity, E28 header separator, authored sites, Customizer and remaining SDK/AI work remain open. Audit10's F20 commerce backfill truncation was independently source-verified and recorded in the deferred register; no commerce repair or live reproduction is claimed.

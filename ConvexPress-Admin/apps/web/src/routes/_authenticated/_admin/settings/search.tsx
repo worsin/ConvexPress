@@ -338,8 +338,8 @@ function SearchSettingsPage() {
         <div className="rounded-sm border border-border bg-background p-4">
           <h3 className="mb-1 text-sm font-medium">Content Reindex</h3>
           <p className="mb-4 text-xs text-muted-foreground">
-            Rebuild the search index from scratch. This may take several minutes
-            for large sites. The search will continue to work during reindexing.
+            Refresh searchable content and remove stale index entries. You can
+            pause and resume large sites without losing progress. Search remains available.
           </p>
           <ReindexButton />
         </div>

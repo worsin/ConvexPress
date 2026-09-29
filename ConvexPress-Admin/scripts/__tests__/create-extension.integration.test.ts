@@ -29,7 +29,28 @@ import {listRsvpOptions} from '../../../canonicalDocuments/rsvpSources';
 import {RequestReadLedger} from '../../../helpers/requestReadLedger';
 import {enabledPluginIds} from '../../../helpers/plugins';
 import {makeFunctionReference} from 'convex/server';
-const modules={'./convex/_generated/server.js':()=>import('../../../_generated/server.js'),'./convex/extensions/dashboard/queries.ts':()=>import('../../dashboard/queries')};
+import {syncEventSearch} from '../search';
+const modules={'./convex/_generated/server.js':()=>import('../../../_generated/server.js'),'./convex/extensions/dashboard/queries.ts':()=>import('../../dashboard/queries'),
+ './convex/search/internals.ts':()=>import('../../../search/internals'),
+ './convex/search/actions.ts':()=>import('../../../search/actions'),
+ './convex/search/reindex.ts':()=>import('../../../search/reindex'),
+ './convex/membership/policyReads.ts':()=>import('../../../membership/policyReads')};
+test('generated search maintenance owns its source table through cleanup and full backfill',async()=>{
+ const t=convexTest({schema,modules});
+ const {user,event}=await t.run(async ctx=>{
+  const role=await ctx.db.insert('roles',{name:'Indexer',slug:'indexer',description:'Fixture',level:80,type:'internal',status:'active',isDefault:false,isProtected:false,capabilities:['search.reindex'],pageAccess:[],createdAt:1,updatedAt:1});
+  const user=await ctx.db.insert('users',{email:'maintenance@example.invalid',emailVerified:true,authSource:'local',roleId:role,status:'active',createdAt:1,updatedAt:1});
+  const event=await ctx.db.insert('extension_community_events',{title:'Community workshop',slug:'community-workshop',description:'Authored prose',startsAt:100,endsAt:200,timeZone:'UTC',venue:'',venueAddress:'',status:'published',createdBy:user,createdAt:1,updatedAt:1});
+  await syncEventSearch(ctx,event);return {user,event};
+ });
+ await t.mutation(makeFunctionReference('search/internals:cleanupOrphanedIndex'),{});
+ expect((await t.run(ctx=>ctx.db.query('searchIndex').collect())).map(row=>row.contentId)).toEqual([event]);
+ await t.run(async ctx=>{for(const row of await ctx.db.query('searchIndex').collect())await ctx.db.delete('searchIndex',row._id);});
+ const client=t.withIdentity({subject:user,issuer:'https://convexpress-admin.local'});
+ const result=await client.action(makeFunctionReference('search/actions:reindex'),{});
+ expect(result.status).toBe('completed');expect(result.indexed.event).toBe(1);
+ expect((await t.run(ctx=>ctx.db.query('searchIndex').collect())).map(row=>row.contentId)).toEqual([event]);
+});
 test('same-slug siblings keep table, route and plugin authority isolated',async()=>{
  const t=convexTest({schema,modules});
  const ids=await t.run(async ctx=>{
@@ -62,7 +83,8 @@ test('same-slug siblings keep table, route and plugin authority isolated',async(
     const result = spawnSync(process.execPath, ["test", ...["handlers", "categories", "calendarIndex", "pagination", "search", "rsvp", "sibling-search"].map(name => `${generated}${name}.test.ts`)], { cwd: backend, encoding: "utf8", timeout: 30_000 });
     // Run the complete generated backend reference suite, including RSVP.
     if (result.status !== 0) throw new Error(`Generated handlers failed:\n${result.stdout}\n${result.stderr}`, { cause: result.error });
-    expect(result.stderr).toContain("0 fail");
+    expect(result.stdout + result.stderr).toContain("0 fail");
+    expect(result.stdout + result.stderr).toContain("generated search maintenance owns its source table");
     expect(readFileSync(join(backend, "convex/schema/_searchIndex.generated.ts"), "utf8")).toContain('../extensions/community_events/search');
   } finally { rmSync(root, { recursive: true, force: true }); }
 }, 60_000);
