@@ -1,13 +1,13 @@
 {
   "plan": "2026-09-28-editor-template-delivery.md",
   "baselineCommit": "d0fee8acceb408fd306a15f3c054322cb73ac8bc",
-  "checkpointSource": "output/plugin-content-20260929/mt-accept-after.json",
+  "checkpointSource": "output/business-content-20260929/mt-accept-after.json",
   "checkpointCounts": {
-    "Verified": 81,
-    "In progress": 56
+    "Verified": 85,
+    "In progress": 52
   },
   "goal": "Complete block editor and template delivery plus all demonstrated blockers; defer unrelated whole-app audit campaigns.",
-  "currentTask": "Task3 Recipe Card and Album accepted; E43 public Gallery access/404 repaired.81 Verified /56 In progress. Next bounded review: business content blocks and their existing evidence. Full goal active; Tasks4\u20138 remain pending.",
+  "currentTask": "Task3 four business blocks accepted; E44 shared List wrapping repaired.85 Verified /52 In progress. Studio Services static field/render/recovery proof refreshed but compose/style/promote workflow gate remains open. Next: Rich Text and embedded-content evidence reconciliation. Full goal active.",
   "tasks": [
     {
       "id": 1,
@@ -366,6 +366,17 @@
       "evidence": [
         "output/plugin-content-20260929/album-access-probe.json",
         "output/plugin-content-20260929/public-states.log"
+      ]
+    },
+    {
+      "id": "E44",
+      "status": "Closed: List grid shrinks and wraps complete text. Eight maximum and eight normal four-pack1440/390 cases pass; native exact recovery and nine installed invalid-save refusals pass. See business-content-20260929.md.",
+      "classification": "demonstrated block layout dependency",
+      "initialFinding": "Valid240-character opening-hours exception note makes1440px page3189px wide. Shared List uses unconstrained grid track with normal word wrapping. Badges fit; no badge defect inferred.",
+      "closureBoundary": "Allow shared List grid/items to shrink and wrap text without clipping or truncation. Prove long business notes and all five business/promoted blocks at four packs1440/390, native values/recovery preserved.",
+      "evidence": [
+        "output/business-content-20260929/measure-core-1440.json",
+        "output/business-content-20260929/public-variants-first.log"
       ]
     }
   ],
@@ -3843,22 +3854,33 @@
     "output/plugin-content-20260929/public-matrix.json",
     "output/plugin-content-20260929/public-states.json",
     "output/plugin-content-20260929/public-variants.json",
-    "output/plugin-content-20260929/cleanup.json"
+    "output/plugin-content-20260929/cleanup.json",
+    "ConvexPress-Admin/audits/2026-09-04/business-content-20260929.md",
+    "output/business-content-20260929/mt-accept-verified.json",
+    "output/business-content-20260929/native-exact-recovery.json",
+    "output/business-content-20260929/invalid-contracts.json",
+    "output/business-content-20260929/public-matrix.json",
+    "output/business-content-20260929/public-variants.json",
+    "output/business-content-20260929/public-minimal.json",
+    "output/business-content-20260929/cleanup.json",
+    "output/business-content-20260929/lifecycle.json"
   ],
   "trackerRefresh": {
-    "source": "output/plugin-content-20260929/mt-accept-after.json",
-    "schema": "output/plugin-content-20260929/mt-schema.json",
+    "source": "output/business-content-20260929/mt-accept-after.json",
+    "schema": "output/business-content-20260929/mt-schema.json",
     "rows": 137,
     "counts": {
-      "Verified": 81,
-      "In progress": 56
+      "Verified": 85,
+      "In progress": 52
     },
     "otherCellsUnchangedFromPreviousRead": true,
     "pendingNotesReconciled": 77,
     "classificationScope": "Block-specific missing gates; historical whole-app audit conditions retained in Notes but not automatic prerequisites.",
     "lastAcceptedNames": [
-      "gallery/recipe-card",
-      "gallery/album"
+      "business/opening-hours",
+      "business/locations",
+      "business/service-list",
+      "business/menu"
     ],
     "allNotesExact": true
   },
@@ -3874,7 +3896,8 @@
       "F22": "Closed: F21 criterion recorded here and in Task4 execution guide before migration begins.",
       "audit13": "E41 reviewed locale routing/groups/remapping/conflicts/recovery complete. Language Switcher accepted on accumulated evidence. Target older editor autosave/settings gap remains explicit E18 integration work; no general promotion rewrite.",
       "F1": "Closed for current default-policy contract: original audit had four mismatches plus Admin-only Custom Fields, not five mismatches. Preserve existing backend/Admin/public enabled defaults; align four Website fallbacks rather than change installed behavior.16-manifest contract gate, registered public no-write/override tests, live read-only parity and built routes pass. Plugin blocks remain pending.",
-      "audit14": "Read/responded. F1 committed e67880ef; four built routes pass including current empty Recipe archive. Normal public getPublic already projected enabled defaults on absent rows, so route-exposure expansion is not established by fallback change. E18/E22/E28 remain assigned; next Recipe Card/Album."
+      "audit14": "Read/responded. F1 committed e67880ef; four built routes pass including current empty Recipe archive. Normal public getPublic already projected enabled defaults on absent rows, so route-exposure expansion is not established by fallback change. E18/E22/E28 remain assigned; next Recipe Card/Album.",
+      "businessNotification": "During business acceptance, a normal Settings Updated toast showed literal {settingsGroup}; dismissed using Close toast. Carry concrete wording observation into Task5 Customizer notification review; not repaired or treated as a broad notifications campaign."
     }
   },
   "sessionBaseCommit": "9824d9605e50c4b0ebd711c13715b506f8ef5bd3"

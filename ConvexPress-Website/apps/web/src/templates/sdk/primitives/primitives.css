@@ -379,6 +379,8 @@
 }
 .cp-list {
 	display: grid;
+	grid-template-columns: minmax(0, 1fr);
+	overflow-wrap: anywhere;
 	padding-inline-start: 1.5rem;
 	line-height: 1.7;
 	list-style: disc;

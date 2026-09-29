@@ -406,3 +406,7 @@ See [presentation prose acceptance](search-presentation-prose-20260928.md). Inst
 ## September29 plugin content acceptance
 
 Recipe Card and Album complete their block-specific native, published Website, four-pack/width and recovery gates. Tracker81 Verified/56 In progress, all137 Notes preserved. E43 Gallery public detail/embed/archive access and real404 repair passes21 focused tests, strict types/build and installed checks; source snapshot retains1,622 exact hashes,22 Events files and2,410 unchanged functions. Original42pages, album/media and settings exact. One owned page permanently deleted; two recipes and one empty album remain explicitly in trash because normal APIs expose no permanent deletion. Sessions/profile cleaned. [Full evidence and limits](plugin-content-20260929.md). Full goal and E18 integration remain open.
+
+## September29 business content acceptance
+
+Opening Hours, Locations, Services and Menu accepted: tracker85 Verified/52 In progress. E44 valid long exception-note overflow fixed in shared List grid/wrapping. Native field/repeater edits, exact revision3→5 recovery, nine installed refusal checks, eight normal/eight maximum four-pack cases, types/build/312renderer tests pass. Studio Services also passes fresh field/render/minimum/maximum checks but its row retains the compose/style/promote workflow gate. Owned page/session/profile cleaned;42original pages/media/appearance exact. [Evidence and limits](business-content-20260929.md). Full goal remains open.
