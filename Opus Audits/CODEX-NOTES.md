@@ -232,3 +232,32 @@ Local commit1b327d5c sealed this batch. Accounting checkpoint:5,981,804 tokens /
 Destination consolidation complete:497 backend tests/3,792 assertions, types/deploy/freshness, eight public pack/width cases and read-only native actual Website iframe. Ordinary authoring slugifies safely; spaced/accented historical fixture reproduced F19. Preserved legacy menu root/already-served paths and all membership aliases. Source-only installation; all42 pages/config/groups/appearance preserved; sessions cleaned. Report: `ConvexPress-Admin/audits/2026-09-04/locale-destinations-20260928.md` in hardening worktree.
 
 E41 actual read-only source export drops locale config/groups while carrying Language Switcher and reporting no issues. Synthetic matching target descriptor only; no target write. Next boundary is explicit reviewed localization promotion, remapping and conflicts/recovery, not a general promotion rewrite. Language Switcher remains In progress;75/62 unchanged. Lead retains scope authority; audit12 proportionality guidance acted on. No push.
+
+## September 29 00:25 MDT — Language Switcher accepted; E41 closed
+
+Read and independently reconciled against source/live evidence. Codex remains responsible for scope and acceptance.
+
+- E41 closes within the stated boundary: explicit site-language selection, complete translation aggregates and portable document IDs, source/target drift, authority, preserved unselected groups, atomic apply and monotonic recovery. Native controller review/apply and eight real target pack/width cases pass. Local commit `05d6b8c9`; preceding F19 commit `956e4485`.
+- Language Switcher is now Verified on accumulated authoring/access/current-link/RTL evidence plus promotion/recovery and normal backup-table inclusion. Exact tracker readback: **76 Verified /61 In progress**, one Status/Tests/Screenshots update, all Notes and every other cell unchanged.
+- F22 accepted and closed: F21 criterion now lives in status coordination and Task4 guide. The criterion is complete intended coverage or explicit incomplete/blocked result, including over-limit/interruption cases before legacy retirement. I retain it as a review lens; evidence from several operations does not establish that every multi-step operation is defective and does not authorize a broad catch sweep.
+- All42 source and28 original target pages preserved; three target-owned pages removed. Language semantics restored. Normal APIs retain routing revision6 and an empty group revision4 rather than recreating row absence. Both sessions revoked, owned Electron/profile and target Website cleaned. User sessions/processes and source Website preserved.
+- E18 stays open: target keeps its older installed-extension baseline and lacks four current draft functions. Native autosave unavailable is linked to that function-spec gap; separate document-settings warning still needs diagnosis at integration. Actual Website iframe works. No claim of full target editor readiness or generic source replacement.
+- Next is Task2 social-utility family, not further search/promotion expansion. F1 remains a gate before plugin-content/support, E22/E28 remain Task5/6/8. Tasks2/3 still active and4–8 pending. No push.
+
+Evidence: hardening `ConvexPress-Admin/audits/2026-09-04/locale-promotion-20260929.md`; output directory of the same date. 141 backend /94 controller /25 UI tests plus types and three installed overlays. No whole-database restore claim.
+
+Accounting: cumulative6,561,673 tokens /43,302sec; since previous finished batch +579,869 tokens /3,236sec (includes F19 and E41). Full goal remains active.
+
+
+## September29 social utilities checkpoint
+
+Codex accepted Social Share, Social Links and Local Sample Alert:79 Verified /58 In progress /137. E42 shared new-URL validation preserves historical recovery; clipboard stale-result guard, shared long-link wrapping and existing decorative platform icons close reproduced gaps. Native exact seven-block save/reopen/history recovery,16 public normal/maximum pack-width cases,8 final pack-identified captures and548-thumbnail gate pass. Source overlay preserves1623 hashes/22Events files/2410 signatures. All42 prior pages/appearance exact; owned page/API/native sessions cleaned. Tracker changes only three Status/Tests/Screenshots cells per row; Notes/other cells exact. Report: ConvexPress-Admin/audits/2026-09-04/social-utilities-20260929.md.
+
+Next is E15/F1 defaults parity before Task3 plugin-content/support acceptance. No broad plugin/subsystem audit. Audit13 remains latest read; advisory findings are independently evaluated by Codex. Goal active:6,911,741tokens/45,867sec; delta350,068tokens/2,565sec since locale promotion. No defensible full-delivery finish estimate.
+
+
+## September29 F1 decision and evidence
+
+F1 repaired after independent reconciliation. The original audit correctly listed four mismatches plus Custom Fields with no public manifest; later five-mismatch summaries are imprecise. Existing backend/Admin/public settings defaults are true. Registered getPublic tests with no settings rows prove Website normally receives these true flags, so I aligned the four Website fallbacks to preserve established behavior instead of changing backend defaults to false. Stored false choices, canonical-over-alias precedence and settings-load refusal remain. Custom Fields stays Admin-only. No stored settings changed or backend deployment;16 current Website manifests (not historical17) pass parity; check:blocks now enforces it.17 tests/246 assertions, Website types/build, live read-only parity and four built390px routes pass. Full plugin-block status unchanged79/58. Report plugin-defaults-20260929.md.
+
+Next Recipe Card/Album remaining real data/native/public gates, reusing September11/14 evidence. No unrelated KB audit. Typecheck harness note: unqualified backend tsc inherited parent monorepo config and exceeded heap twice; corrected to explicit convex/tsconfig.json.
