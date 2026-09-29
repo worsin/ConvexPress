@@ -360,7 +360,10 @@ export default function CustomizerPanel({ recoveryOwner }: { recoveryOwner: stri
             type="button"
             aria-pressed={picking}
             className="text-xs underline"
-            onClick={() => setPicking(!picking)}
+            onClick={() => {
+              setSelected(null);
+              setPicking(!picking);
+            }}
           >
             {picking ? "Cancel selecting" : "Select a setting on the page"}
           </button>

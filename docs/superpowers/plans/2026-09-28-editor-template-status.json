@@ -7,7 +7,7 @@
     "In progress": 20
   },
   "goal": "Complete block editor and template delivery plus all demonstrated blockers; defer unrelated whole-app audit campaigns.",
-  "currentTask": "117 Verified / 20 In progress. Task5 Core native header/footer/menu-location draft/save/recovery/reset/Undo/review/publish and normal Website acceptance complete; E65 schema drift, E66 module-ID rejection and E67 footer editor overflow closed at bounded scope. Full Task5 four-pack contexts/authority/promotion reconciliation remain open, alongside E07 migration/recovery/retirement, authored sites, demo and SDK. Task4 inventory/refusals retained; E28 closed. Human RSVP CAPTCHA and separately journaled source fixture remain pending. No row promotion or full-delivery claim.",
+  "currentTask": "Task5: Core native chrome accepted; four-pack on-site primary color/history/reset and home/catalog relevance accepted; Aster phone draft transport and anonymous End/reload denial accepted. E68 repeat-picker focus repaired/component-tested, refreshed runtime acceptance pending without interrupting human RSVP. Next: remaining per-field/Aster native workflow and actual customer/parent-revocation boundaries; reconcile22dashboard surfaces. E07 migration/recovery/retirement, authored sites, demo, SDK and E18/E22 remain.117Verified/20In progress unchanged; full goal active.",
   "tasks": [
     {
       "id": 1,
@@ -715,6 +715,20 @@
         "output/customizer-chrome-20260929/footer-overflow-before.json",
         "output/customizer-chrome-20260929/footer-expanded-proof.json",
         "output/customizer-chrome-20260929/native-footer-row-controls.png"
+      ]
+    },
+    {
+      "id": "E68",
+      "classification": "implemented repeat-pick repair; runtime acceptance pending",
+      "deliveryTask": 5,
+      "initialFinding": "Actual on-site pick mode focuses branding once, then repeated selection of the same field exits picking without restoring field focus.",
+      "closureBoundary": "Every pick must focus and reveal its field, including repeated identical targets; prove actual panel regression and refreshed Website interaction without disturbing pending RSVP human session.",
+      "status": "Source fixed: clear prior selection when entering pick mode; failing-before actual-panel regression now passes. Six internal panel cases/63assertions and Website types pass. Current source4322 still serves preceding production bundle for pending RSVP challenge; refreshed full Website repeat-pick acceptance remains open.",
+      "evidence": [
+        "ConvexPress-Admin/audits/2026-09-04/customizer-contexts-20260929.md",
+        "output/customizer-contexts-20260929/repeat-pick-before.json",
+        "output/customizer-contexts-20260929/pick-red.log",
+        "output/customizer-contexts-20260929/panel-cases.log"
       ]
     }
   ],
@@ -4412,7 +4426,10 @@
     "output/customizer-chrome-20260929/published-proof.json",
     "output/customizer-chrome-20260929/cleanup-proof.json",
     "output/customizer-chrome-20260929/focused-final.log",
-    "output/customizer-chrome-20260929/tracker-gate-final.log"
+    "output/customizer-chrome-20260929/tracker-gate-final.log",
+    "ConvexPress-Admin/audits/2026-09-04/customizer-contexts-20260929.md",
+    "output/customizer-contexts-20260929/products-rendered.json",
+    "output/customizer-contexts-20260929/preservation.json"
   ],
   "trackerRefresh": {
     "source": "output/lead-customer-20260929/mt-accept-after.json",
