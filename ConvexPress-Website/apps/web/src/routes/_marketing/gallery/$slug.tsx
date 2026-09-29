@@ -1,6 +1,6 @@
 import { convexQuery } from "@convex-dev/react-query";
 import { useSuspenseQuery } from "@tanstack/react-query";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, notFound } from "@tanstack/react-router";
 import { api } from "@convexpress-website/backend/generated/api";
 
 import { NotFoundPage } from "@/components/blog/NotFoundPage";
@@ -12,21 +12,23 @@ import { Surface } from "@/templates/sdk/Surface";
 
 export const Route = createFileRoute("/_marketing/gallery/$slug")({
   component: GalleryDetailPage,
+  notFoundComponent: NotFoundPage,
   loader: async ({ context: { queryClient }, params }) => {
     // Gate BEFORE fetching extension data: if the Gallery extension is off,
-    // do not issue the gallery query at all. Returning early lets the
-    // component-level PublicPluginGate render a 404.
+    // do not issue the gallery query at all. Throw for a real HTTP 404.
     const publicSettings = (await queryClient.ensureQueryData(
       convexQuery(api.settings.queries.getPublic, {}),
     )) as { siteUrl?: string | null; plugins?: { galleryEnabled?: boolean } };
 
     if (!isPublicPluginEnabled("gallery", publicSettings)) {
-      return { seoHead: {}, galleryDisabled: true as const };
+      throw notFound();
     }
 
     const album = await queryClient.ensureQueryData(
       convexQuery(api.gallery.queries.getBySlug, { slug: params.slug }),
     );
+
+    if (!album) throw notFound();
 
     const siteUrl = normalizeSiteUrl(publicSettings?.siteUrl);
 

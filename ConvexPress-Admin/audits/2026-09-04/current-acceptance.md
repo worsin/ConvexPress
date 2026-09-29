@@ -402,3 +402,7 @@ See [conditional prose acceptance](search-conditional-prose-20260928.md). Thirte
 ## September28 promoted and sanitized HTML search
 
 See [presentation prose acceptance](search-presentation-prose-20260928.md). Installed Studio Services and Custom HTML search accepted:556 backend/16 generator/310 renderer/4 sanitizer tests; native promoted headline save/reload and real Website iframe; eight four-pack/width cases and56 backend decisions. Both owned pages/session/profile cleaned; original42 pages/2 posts/1 term and appearance exact. Source4860 has1,619 exact source hashes and unchanged2,410 function signatures; target4870 retained. E39 and the overall goal remain open;74 Verified/63 In progress unchanged.
+
+## September29 plugin content acceptance
+
+Recipe Card and Album complete their block-specific native, published Website, four-pack/width and recovery gates. Tracker81 Verified/56 In progress, all137 Notes preserved. E43 Gallery public detail/embed/archive access and real404 repair passes21 focused tests, strict types/build and installed checks; source snapshot retains1,622 exact hashes,22 Events files and2,410 unchanged functions. Original42pages, album/media and settings exact. One owned page permanently deleted; two recipes and one empty album remain explicitly in trash because normal APIs expose no permanent deletion. Sessions/profile cleaned. [Full evidence and limits](plugin-content-20260929.md). Full goal and E18 integration remain open.

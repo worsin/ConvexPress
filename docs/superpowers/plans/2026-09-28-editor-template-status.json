@@ -1,13 +1,13 @@
 {
   "plan": "2026-09-28-editor-template-delivery.md",
   "baselineCommit": "d0fee8acceb408fd306a15f3c054322cb73ac8bc",
-  "checkpointSource": "output/social-utilities-20260929/mt-accept-after.json",
+  "checkpointSource": "output/plugin-content-20260929/mt-accept-after.json",
   "checkpointCounts": {
-    "Verified": 79,
-    "In progress": 58
+    "Verified": 81,
+    "In progress": 56
   },
   "goal": "Complete block editor and template delivery plus all demonstrated blockers; defer unrelated whole-app audit campaigns.",
-  "currentTask": "Task3 plugin content/support: F1 four Website defaults aligned with existing backend/Admin/public settings authority; stored false preserved. Next Recipe Card/Album source reconciliation and remaining native/public data/action acceptance.79 Verified /58 In progress; full goal active.",
+  "currentTask": "Task3 Recipe Card and Album accepted; E43 public Gallery access/404 repaired.81 Verified /56 In progress. Next bounded review: business content blocks and their existing evidence. Full goal active; Tasks4\u20138 remain pending.",
   "tasks": [
     {
       "id": 1,
@@ -355,6 +355,17 @@
         "output/social-utilities-20260929/public-variants.json",
         "output/social-utilities-20260929/cleanup.json",
         "ConvexPress-Admin/audits/2026-09-04/social-utilities-20260929.md"
+      ]
+    },
+    {
+      "id": "E43",
+      "classification": "demonstrated delivery blocker",
+      "initialFinding": "Live Gallery Album canonical block withdraws on a route policy, but anonymous gallery/queries:getBySlug still returns that album and its images. Private album detail produces HTTP200 rather than404. Earlier Recipe restriction mismatch was a fixture slug-regeneration error, corrected and disproven as a product defect.",
+      "status": "Closed: shared public detail/embed/archive policy and future-publication filtering plus real detail404.21 focused tests pass; installed restricted album returnsnull; actual routes404; final block/public/native matrices pass. See plugin-content-20260929.md.",
+      "closureBoundary": "Required workflow: Gallery Album links to its public detail with the same current policy. Evidence: album-access-probe.json and private-route200 failure. Dependency: Gallery public readers and Website detail loader. Repair boundary: shared published/public/time/route checks across public album data readers, preserve existing authoring and archive behavior; actual404 for missing/denied detail. Exit: failing registered tests then live restriction/private recovery and four-pack public acceptance; no broad Gallery migration/archive campaign.",
+      "evidence": [
+        "output/plugin-content-20260929/album-access-probe.json",
+        "output/plugin-content-20260929/public-states.log"
       ]
     }
   ],
@@ -3824,30 +3835,37 @@
     "output/social-utilities-20260929/source-provenance.json",
     "output/social-utilities-20260929/cleanup.json",
     "output/social-utilities-20260929/lifecycle.json",
-    "ConvexPress-Admin/audits/2026-09-04/plugin-defaults-20260929.md"
+    "ConvexPress-Admin/audits/2026-09-04/plugin-defaults-20260929.md",
+    "ConvexPress-Admin/audits/2026-09-04/plugin-content-20260929.md",
+    "output/plugin-content-20260929/mt-accept-verified.json",
+    "output/plugin-content-20260929/deployment-verified.json",
+    "output/plugin-content-20260929/native-exact-recovery.json",
+    "output/plugin-content-20260929/public-matrix.json",
+    "output/plugin-content-20260929/public-states.json",
+    "output/plugin-content-20260929/public-variants.json",
+    "output/plugin-content-20260929/cleanup.json"
   ],
   "trackerRefresh": {
-    "source": "output/social-utilities-20260929/mt-accept-after.json",
-    "schema": "output/social-utilities-20260929/mt-schema.json",
+    "source": "output/plugin-content-20260929/mt-accept-after.json",
+    "schema": "output/plugin-content-20260929/mt-schema.json",
     "rows": 137,
     "counts": {
-      "Verified": 79,
-      "In progress": 58
+      "Verified": 81,
+      "In progress": 56
     },
     "otherCellsUnchangedFromPreviousRead": true,
     "pendingNotesReconciled": 77,
     "classificationScope": "Block-specific missing gates; historical whole-app audit conditions retained in Notes but not automatic prerequisites.",
     "lastAcceptedNames": [
-      "blocks/social-share",
-      "core/social-links",
-      "local/sample-alert"
+      "gallery/recipe-card",
+      "gallery/album"
     ],
     "allNotesExact": true
   },
   "coordination": {
     "folder": "/Users/worsin/Development/ConvexPress/Opus Audits/",
     "authority": "Codex leads; Claude audits are advisory and independently verified",
-    "lastAudit": "2026-09-29T0020-audit-13-f19-closed-plateau-broken.md",
+    "lastAudit": "2026-09-29T0120-audit-14-f1-repair-in-flight.md",
     "pendingAdvisory": {
       "F19": "Accepted shared public document href contract. Historical encoded-slug fixture reproduced discrepancy; ordinary authoring slugifies safely. Legacy menu root/prefix behavior and membership aliases preserved. See locale-destinations-20260928.md.",
       "F20": "Source-verified enterprise commerce backfill truncation recorded in current-acceptance.md deferred register. No live reproduction or repair; promote only if catalog/customer-commerce delivery demonstrates a dependency.",
@@ -3855,7 +3873,8 @@
       "F21": "Accepted delivery review criterion: any migration/backfill/export claiming completeness must prove full intended coverage or return an explicit incomplete/blocked result. Carry into Task4/E07 migration and legacy retirement; no broad bare-catch sweep or inferred whole-codebase defect.",
       "F22": "Closed: F21 criterion recorded here and in Task4 execution guide before migration begins.",
       "audit13": "E41 reviewed locale routing/groups/remapping/conflicts/recovery complete. Language Switcher accepted on accumulated evidence. Target older editor autosave/settings gap remains explicit E18 integration work; no general promotion rewrite.",
-      "F1": "Closed for current default-policy contract: original audit had four mismatches plus Admin-only Custom Fields, not five mismatches. Preserve existing backend/Admin/public enabled defaults; align four Website fallbacks rather than change installed behavior.16-manifest contract gate, registered public no-write/override tests, live read-only parity and built routes pass. Plugin blocks remain pending."
+      "F1": "Closed for current default-policy contract: original audit had four mismatches plus Admin-only Custom Fields, not five mismatches. Preserve existing backend/Admin/public enabled defaults; align four Website fallbacks rather than change installed behavior.16-manifest contract gate, registered public no-write/override tests, live read-only parity and built routes pass. Plugin blocks remain pending.",
+      "audit14": "Read/responded. F1 committed e67880ef; four built routes pass including current empty Recipe archive. Normal public getPublic already projected enabled defaults on absent rows, so route-exposure expansion is not established by fallback change. E18/E22/E28 remain assigned; next Recipe Card/Album."
     }
   },
   "sessionBaseCommit": "9824d9605e50c4b0ebd711c13715b506f8ef5bd3"
