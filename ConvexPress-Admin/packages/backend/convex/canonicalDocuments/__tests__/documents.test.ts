@@ -2645,3 +2645,52 @@ for(const membershipEnabled of [false,true])test(`registered reads retain an 80-
   expect(changed.data.dataByBlock.selected.data.items).toHaveLength(4);
   expect(changed.data.dataByBlock.assigned.data).toEqual({menu:null,items:[]});
 });
+
+test('author bio resolves an exact active site author and withdraws it without disclosing account fields', async () => {
+  const f = await fixture(); await initialize(f);
+  await f.t.run(async ctx => {
+    await ctx.db.patch('users', f.ids.denied, {displayName:'Public author',bio:'A public biography',slug:'public-author'});
+    await ctx.db.patch('posts', f.ids.post, {status:'publish',blocks:[{id:'bio',name:'core/author-bio',version:2,attrs:{userId:f.ids.denied}}]});
+  });
+  const read = () => f.t.query(reference('getForRender'), {postId:f.ids.post});
+  const result = await read();
+  expect(result.data.dataByBlock.bio.data.author).toEqual({id:f.ids.denied,name:'Public author',bio:'A public biography',href:'/author/public-author',image:null});
+  expect(JSON.stringify(result)).not.toContain('denied@example.invalid');
+  await f.t.run(ctx => ctx.db.patch('users', f.ids.denied, {status:'inactive'}));
+  expect((await read()).data.dataByBlock.bio.data.author).toBeNull();
+  await f.t.run(ctx => ctx.db.patch('users', f.ids.denied, {status:'active',authSource:'management'}));
+  expect((await read()).data.dataByBlock.bio.data.author).toBeNull();
+});
+test('author bio selected and manual cards survive actual save, preview, restore and publication',async()=>{
+ const f=await fixture();await initialize(f);
+ await f.t.run(async ctx=>{
+  const user=(await ctx.db.get('users',f.ids.user))!;await ctx.db.patch('roles',user.roleId!,{capabilities:['page.update','page.publish','revision.restore']});
+  await ctx.db.patch('users',f.ids.denied,{displayName:'Public writer',bio:'Current profile',slug:'writer'});
+ });
+ const blocks=[{id:'selected',name:'core/author-bio',version:2,attrs:{userId:f.ids.denied,name:'Authored name',role:'Guest',bio:'Authored biography',links:[{label:'Notes',href:'/notes'}]}},{id:'manual',name:'core/author-bio',version:2,attrs:{name:'Manual writer',bio:'Manual card'}},{id:'current',name:'core/author-bio',version:2,attrs:{useCurrentAuthor:true}}];
+ let opened=await f.client.query(reference('get'),{postId:f.ids.post});
+ expect(opened.policy.disabledBlocks).not.toContain('core/author-bio');
+ const args={postId:f.ids.post,expectedRevision:opened.document.revision,title:opened.document.title,blocks};
+ const preview=await f.client.query(reference('previewDraft'),args);expect(preview.data.dataByBlock.selected.data.author.id).toBe(f.ids.denied);
+ const saved=await f.client.mutation(reference('save','mutation'),args);
+ opened=await f.client.query(reference('get'),{postId:f.ids.post});const first=opened.document.blocks;expect(first[0].attrs).toMatchObject(blocks[0].attrs);
+ const changed=structuredClone(first);changed[0].attrs.name='Changed name';
+ const edited=await f.client.mutation(reference('save','mutation'),{...args,blocks:changed,expectedRevision:saved.revision});
+ const history=await f.client.query(reference('pageRevisions'),{postId:f.ids.post,paginationOpts:{cursor:null,numItems:20}});
+ const prior=history.page.find((row:any)=>row.revisionNumber===edited.revision);expect(prior).toBeDefined();
+ const restored=await f.client.mutation(reference('restore','mutation'),{postId:f.ids.post,expectedRevision:edited.revision,revisionId:prior.id});
+ expect((await f.client.query(reference('get'),{postId:f.ids.post})).document.blocks).toEqual(first);
+ await f.client.mutation(reference('setPublication','mutation'),{postId:f.ids.post,expectedRevision:restored.revision,status:'publish'});
+ const rendered=await f.t.query(reference('getForRender'),{postId:f.ids.post});expect(rendered.data.dataByBlock.selected.data.author.name).toBe('Public writer');expect(rendered.data.dataByBlock.manual.data.author).toBeNull();expect(rendered.data.dataByBlock.current.data.author.id).toBe(f.ids.user);
+});
+test('current author follows the authorized host document and never silently changes existing manual cards',async()=>{
+ const f=await fixture();await initialize(f);
+ await f.t.run(async ctx=>{await ctx.db.patch('users',f.ids.denied,{displayName:'Current post writer',slug:'current-writer'});});
+ let opened=await f.client.query(reference('get'),{postId:f.ids.post});
+ const blocks=[{id:'current',name:'core/author-bio',version:2,attrs:{useCurrentAuthor:true}},{id:'manual',name:'core/author-bio',version:2,attrs:{name:'Preserved manual author'}}];
+ await f.client.mutation(reference('save','mutation'),{postId:f.ids.post,expectedRevision:opened.document.revision,title:opened.document.title,blocks});
+ await f.t.run(ctx=>ctx.db.patch('posts',f.ids.post,{authorId:f.ids.denied,status:'publish'}));
+ let result=await f.t.query(reference('getForRender'),{postId:f.ids.post});expect(result.data.dataByBlock.current.data.author.id).toBe(f.ids.denied);expect(result.data.dataByBlock.manual.data.author).toBeNull();
+ await f.t.run(ctx=>ctx.db.patch('posts',f.ids.post,{authorId:f.ids.user}));result=await f.t.query(reference('getForRender'),{postId:f.ids.post});expect(result.data.dataByBlock.current.data.author.id).toBe(f.ids.user);
+ await f.t.run(ctx=>ctx.db.patch('users',f.ids.user,{authSource:'management'}));expect((await f.t.query(reference('getForRender'),{postId:f.ids.post})).data.dataByBlock.current.data.author).toBeNull();
+});

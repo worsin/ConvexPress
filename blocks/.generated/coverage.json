@@ -2474,6 +2474,7 @@
           "mediaId": "",
           "name": "",
           "role": "",
+          "useCurrentAuthor": false,
           "userId": ""
         },
         {
@@ -2482,6 +2483,7 @@
           "mediaId": "",
           "name": "Jane Doe",
           "role": "Author",
+          "useCurrentAuthor": false,
           "userId": ""
         },
         {
@@ -2495,6 +2497,25 @@
           "mediaId": "",
           "name": "Rowan Vale",
           "role": "Fictional field journal editor",
+          "useCurrentAuthor": false,
+          "userId": ""
+        },
+        {
+          "bio": "",
+          "links": [],
+          "mediaId": "",
+          "name": "",
+          "role": "Fictional contributor",
+          "useCurrentAuthor": false,
+          "userId": "demo-author"
+        },
+        {
+          "bio": "",
+          "links": [],
+          "mediaId": "",
+          "name": "",
+          "role": "Current page contributor",
+          "useCurrentAuthor": true,
           "userId": ""
         }
       ],

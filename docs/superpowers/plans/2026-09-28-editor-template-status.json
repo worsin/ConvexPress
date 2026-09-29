@@ -1,13 +1,13 @@
 {
   "plan": "2026-09-28-editor-template-delivery.md",
   "baselineCommit": "d0fee8acceb408fd306a15f3c054322cb73ac8bc",
-  "checkpointSource": "output/navigation-completion-20260928/mt-accept-after.json",
+  "checkpointSource": "output/author-bio-20260928/mt-accept-after.json",
   "checkpointCounts": {
-    "Verified": 63,
-    "In progress": 74
+    "Verified": 66,
+    "In progress": 71
   },
   "goal": "Complete block editor and template delivery plus all demonstrated blockers; defer unrelated whole-app audit campaigns.",
-  "currentTask": "Task 2 \u2014 content-discovery family: reconcile exact pending block contracts and reuse evidence before implementation; Menu and Child Pages accepted (65 Verified / 72 In progress).",
+  "currentTask": "Task 2 \u2014 continue remaining content-discovery gates, reusing accepted native/data infrastructure; Author Bio accepted (66 Verified / 71 In progress).",
   "tasks": [
     {
       "id": 1,
@@ -143,7 +143,7 @@
     },
     {
       "id": "E15",
-      "status": "Opus F1 independently reproduced: four plugin defaults disagree under absent settings. Repair before relevant Task 3 plugin acceptance; no scope expansion beyond gating parity.",
+      "status": "Opus F1 independently reproduced: backend defaults for knowledgeBase/tickets/customFields/recipes/gallery are true while manifests are false. Repair before relevant Task 3 plugin acceptance; no scope expansion beyond gating parity.",
       "classification": "reproduced defect",
       "initialFinding": "Dynamic commerce/forms/plugin blocks retain incomplete data/action states.",
       "closureBoundary": "Verify actual selected records and relevant actions, empty/denied/disabled/loading/error states, auth changes and cross-site refusal. Repair source authority, pagination or session issues only as required by their contracts. Provider settlement/accounting unrelated to a block's action remains deferred."
@@ -157,7 +157,7 @@
     },
     {
       "id": "E17",
-      "status": "Opus F6 confirms missing template-build/template-add-surface/template-audit skills; add to Task 7 alongside design-skill retarget and existing workflow acceptance.",
+      "status": "Opus F6 confirms missing template-build/template-add-surface/template-audit skills; add to Task 7 alongside design-skill retarget and existing workflow acceptance. Opus F17: add a reference-support completeness gate during Task 7 SDK acceptance, testing references with plugins enabled and explicit structural exceptions; no current additional unsupported reference demonstrated.",
       "classification": "missing implementation",
       "initialFinding": "SDK existence is proven more broadly than each workflow's end-to-end operation.",
       "closureBoundary": "Exercise all eight block-kit operations plus template and extension scaffolds in disposable outputs. Verify generated source, authoring and rendered result; remove owned scaffolds afterward."
@@ -226,6 +226,14 @@
       "initialFinding": "Template header consumers render a menu separator label as a navigation item, while canonical inline Menu correctly renders hr.",
       "status": "Observed in menu-children-20260928 live batch; remains open under full header/footer/menu Customizer integration. Inline Menu acceptance does not close this separate header-consumer defect.",
       "closureBoundary": "Reproduce heading/separator semantics in all affected header consumers, repair the shared cause, and verify keyboard/semantics and four-pack responsive header output with existing menu assignments preserved."
+    },
+    {
+      "id": "E29",
+      "classification": "accepted/reusable evidence",
+      "status": "Closed: current/selected/manual authors pass121 backend tests and310 renderer tests; native exact restore6/publication7/current-mode save8, eight final public and demo pack/width cases, missing/updated/inactive/deleted profile and search withdrawal; owned fixtures/sessions cleaned, original data preserved. See author-bio-completion-20260928.md.",
+      "requiredWorkflow": "Author a manual card or select a site author, save/reopen/restore and publish accurate public output.",
+      "initialFinding": "core/author-bio userId has no resolver, renderer throws and displayContext disables its reference; enabling it also requires current author visibility in search.",
+      "closureBoundary": "Implement a bounded public-profile resolver with exact target binding and authored overrides, withdraw inactive/management/route-denied authors, preserve v2 fields; verify registered save/preview/publication, search withdrawal, demo and four-pack/native output."
     }
   ],
   "blocks": [
@@ -2073,9 +2081,9 @@
       "name": "core/author-bio",
       "title": "Author bio",
       "category": "Discovery",
-      "checkpointStatus": "In progress",
-      "nextClassification": "Reviewed against live Notes and current canonical specification; Native current/explicit author choice; exact public projection, missing profile/media, target withdrawal and correct author destinations.",
-      "classification": "missing evidence",
+      "checkpointStatus": "Verified",
+      "nextClassification": "E29 accepted: current/selected/manual author, native save/reopen/exact restore/publication, public four-pack matrix, profile/media withdrawal and search freshness; see author-bio-completion-20260928.md.",
+      "classification": "accepted/reusable evidence",
       "source": "blocks/core/author-bio/block.json",
       "requirements": "author (reference) | current",
       "evidenceReferences": [
@@ -2083,16 +2091,20 @@
         "derived-restore-outcome.md",
         "output/block-demo/browser-results-utility74-verified",
         "output/block-library-review-20260915/coverage-review.json.",
-        "output/derived-restore-20260906."
+        "output/derived-restore-20260906.",
+        "author-bio-completion-20260928.md",
+        "output/author-bio-20260928/",
+        "output/author-current-20260928/"
       ],
-      "remainingReview": "Native current/explicit author choice; exact public projection, missing profile/media, target withdrawal and correct author destinations.",
+      "remainingReview": "None for this block; shared full-delivery gates remain open.",
       "deliveryTask": 3,
       "acceptanceBatch": "content-discovery",
       "reviewedAtCommit": "d8a0ea2c",
-      "notesSha256": "e121326c8d0f38e59e3d58cdc2eccb44953915176a827416831b444313238d37",
-      "specSha256": "af9166fbd13f6a5c7503c8c144b70d0fd51ea77687c373e87269e6543da8d7e5",
-      "rendererSha256": "8152f728cd3709742ef00d298b7aa97dcf81d53689995b2ba1939247208bf304",
+      "notesSha256": "9f9458ccbae2d2707aea41fe2c30627838eec97b3ad1248e3b35839d0831ea86",
+      "specSha256": "0d4799b327ad613cc2e5e82ff7d4ab0e0239213e952882b0e180f74dc451c324",
+      "rendererSha256": "a0193ffbd1dcdc61dba9cea44db68cfb05d16663bbd238335a87b421ee55d96c",
       "canonicalFields": [
+        "useCurrentAuthor",
         "userId",
         "name",
         "role",
@@ -3522,28 +3534,32 @@
     "ConvexPress-Admin/audits/2026-09-04/menu-directory-completion-20260928.md",
     "output/menu-final-20260928/mt-accept-verified.json",
     "output/menu-final-20260928/cleanup.json",
-    "output/menu-final-20260928/consumer-index.json"
+    "output/menu-final-20260928/consumer-index.json",
+    "ConvexPress-Admin/audits/2026-09-04/author-bio-completion-20260928.md",
+    "output/author-bio-20260928/mt-accept-verified.json",
+    "output/author-bio-20260928/cleanup.json",
+    "output/author-bio-20260928/native-final-errors.json",
+    "output/author-current-20260928/deployment-source-final.json"
   ],
   "trackerRefresh": {
-    "source": "output/menu-final-20260928/mt-accept-after.json",
-    "schema": "output/menu-final-20260928/mt-schema.json",
+    "source": "output/author-bio-20260928/mt-accept-after.json",
+    "schema": "output/author-bio-20260928/mt-schema.json",
     "rows": 137,
     "counts": {
-      "Verified": 65,
-      "In progress": 72
+      "Verified": 66,
+      "In progress": 71
     },
     "otherCellsUnchangedFromPreviousRead": true,
     "pendingNotesReconciled": 77,
     "classificationScope": "Block-specific missing gates; historical whole-app audit conditions retained in Notes but not automatic prerequisites.",
     "lastAcceptedNames": [
-      "core/menu",
-      "core/child-pages"
+      "core/author-bio"
     ]
   },
   "coordination": {
     "folder": "/Users/worsin/Development/ConvexPress/Opus Audits/",
     "authority": "Codex leads; Claude audits are advisory and independently verified",
-    "lastAudit": "2026-09-28T1720-audit-06-menu-depth-focus-repairs.md"
+    "lastAudit": "2026-09-28T1820-audit-07-resolver-coverage-correction.md"
   },
   "sessionBaseCommit": "9824d9605e50c4b0ebd711c13715b506f8ef5bd3"
 }

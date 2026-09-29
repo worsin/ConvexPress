@@ -170,3 +170,19 @@ test("denied ancestors do not preload overflowing child policies and batches cha
   const budget = new RequestReadLedger({ queries: 256, documents: 2048, bytes: 25_000, documentBytes: 512 * 1024 });
   await expect(t.run(ctx => createPublicSearchSourceReader(ctx, Date.now(), budget)({ contentType: "page", contentId: ids.post }))).rejects.toThrow("CANONICAL_READ_BUDGET");
 });
+
+test('referenced author withdrawal removes authored bio matches from stale search candidates', async () => {
+  const {t,ids}=await fixture();
+  await t.run(ctx=>ctx.db.patch('posts',ids.post,{blocks:[{id:'author',name:'core/author-bio',version:2,attrs:{userId:ids.user,name:'Authoredauthorneedle',bio:'Visible authored profile'}}]}));
+  await t.mutation(upsert,{contentType:'page',contentId:ids.post,action:'upsert'});
+  const read=()=>t.run(ctx=>readSearch(ctx,{query:'Authoredauthorneedle'},scope,'host'));
+  expect((await read()).items.map(row=>row.id)).toEqual([ids.post]);
+  await t.run(ctx=>ctx.db.patch('users',ids.user,{status:'inactive'}));
+  expect((await read()).items).toEqual([]);
+});
+
+test('current-author search visibility follows the host author and withdraws stale authored matches',async()=>{
+ const {t,ids}=await fixture();await t.run(ctx=>ctx.db.patch('posts',ids.post,{authorId:ids.user,blocks:[{id:'current',name:'core/author-bio',version:2,attrs:{useCurrentAuthor:true,name:'Currentauthorneedle'}}]}));
+ await t.mutation(upsert,{contentType:'page',contentId:ids.post,action:'upsert'});const read=()=>t.run(ctx=>readSearch(ctx,{query:'Currentauthorneedle'},scope,'host'));
+ expect((await read()).items.map(row=>row.id)).toEqual([ids.post]);await t.run(ctx=>ctx.db.patch('users',ids.user,{status:'inactive'}));expect((await read()).items).toEqual([]);
+});

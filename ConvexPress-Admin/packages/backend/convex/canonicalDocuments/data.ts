@@ -1,3 +1,4 @@
+import { readAuthor } from "./author";
 import {readSocialFeed} from "../socialFeeds/read";
 import {readLeadMagnet} from "./leadMagnet";
 import {readTaggedMedia} from "./taggedMedia";
@@ -208,6 +209,7 @@ export async function resolveCanonicalPageData(
     readSearch: navigation ? args=>readSearch(ctx,args,expectedScope,String(navigation.document._id),budget) : undefined,
     readTaggedMedia: navigation ? args=>readTaggedMedia(ctx,args,expectedScope,String(navigation.document._id),budget) : undefined,
     readLeadMagnet: navigation ? args=>readLeadMagnet(ctx,args,navigation,budget,sourcePassword,composed) : undefined,
+    readAuthor: args => readAuthor(ctx,args,budget,navigation ? String(navigation.document._id) : undefined),
     readSocialFeed: navigation ? args=>readSocialFeed(ctx,args,budget) : undefined,
   }, composed, request);
 }

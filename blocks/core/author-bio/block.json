@@ -12,6 +12,11 @@
   },
   "fields": [
     {
+      "id": "useCurrentAuthor",
+      "type": "boolean",
+      "default": false
+    },
+    {
       "id": "userId",
       "default": "",
       "type": "reference",
@@ -78,7 +83,13 @@
     "anchor": true,
     "visibility": true
   },
-  "data": null,
+  "data": {
+    "resolver": "content.author",
+    "args": {
+      "userId": "attrs.userId",
+      "useCurrentAuthor": "attrs.useCurrentAuthor"
+    }
+  },
   "preview": "Author bio",
   "examples": [
     {
@@ -109,6 +120,23 @@
           "href": "https://example.invalid/journal"
         }
       ]
+    },
+    {
+      "userId": "demo-author",
+      "name": "",
+      "role": "Fictional contributor",
+      "bio": "",
+      "mediaId": "",
+      "links": []
+    },
+    {
+      "useCurrentAuthor": true,
+      "userId": "",
+      "name": "",
+      "role": "Current page contributor",
+      "bio": "",
+      "mediaId": "",
+      "links": []
     }
   ],
   "migration": {

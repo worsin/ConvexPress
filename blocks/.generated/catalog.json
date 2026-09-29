@@ -4565,7 +4565,13 @@
     },
     "category": "site",
     "constraints": [],
-    "data": null,
+    "data": {
+      "args": {
+        "useCurrentAuthor": "attrs.useCurrentAuthor",
+        "userId": "attrs.userId"
+      },
+      "resolver": "content.author"
+    },
     "description": "Author card with photo, role, bio, and links.",
     "examples": [
       {
@@ -4574,6 +4580,7 @@
         "mediaId": "",
         "name": "",
         "role": "",
+        "useCurrentAuthor": false,
         "userId": ""
       },
       {
@@ -4582,6 +4589,7 @@
         "mediaId": "",
         "name": "Jane Doe",
         "role": "Author",
+        "useCurrentAuthor": false,
         "userId": ""
       },
       {
@@ -4595,10 +4603,34 @@
         "mediaId": "",
         "name": "Rowan Vale",
         "role": "Fictional field journal editor",
+        "useCurrentAuthor": false,
+        "userId": ""
+      },
+      {
+        "bio": "",
+        "links": [],
+        "mediaId": "",
+        "name": "",
+        "role": "Fictional contributor",
+        "useCurrentAuthor": false,
+        "userId": "demo-author"
+      },
+      {
+        "bio": "",
+        "links": [],
+        "mediaId": "",
+        "name": "",
+        "role": "Current page contributor",
+        "useCurrentAuthor": true,
         "userId": ""
       }
     ],
     "fields": [
+      {
+        "default": false,
+        "id": "useCurrentAuthor",
+        "type": "boolean"
+      },
       {
         "allowEmpty": true,
         "default": "",

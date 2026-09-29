@@ -2745,6 +2745,11 @@ export const editorDefinitions: Record<BlockName, EditorDefinition> = {
     "constraints": [],
     "fields": [
       {
+        "default": false,
+        "id": "useCurrentAuthor",
+        "type": "boolean"
+      },
+      {
         "allowEmpty": true,
         "default": "",
         "id": "userId",

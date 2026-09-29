@@ -32,7 +32,7 @@ Evidence is under `output/menu-final-20260928/`: native-recovered, native-empty-
 
 ## Remaining delivery boundaries
 
-E28 remains open: template header consumers render separator labels as links; inline Menu's hr is correct. Full header/footer/menu Customizer integration is Task5. Task3 migration, remaining blocks, complete template websites/demo and SDK/plugin/AI delivery remain open. F1 installed Events default mismatch remains open before Task3; E22 PNG identity mapping and bundle budget remain separate open requirements.
+E28 remains open: template header consumers render separator labels as links; inline Menu's hr is correct. Full header/footer/menu Customizer integration is Task5. Task3 migration, remaining blocks, complete template websites/demo and SDK/plugin/AI delivery remain open. F1 backend/manifest defaults mismatch for knowledgeBase/tickets/customFields/recipes/gallery remains open before Task3; E22 PNG identity mapping and bundle budget remain separate open requirements.
 
 ## Preservation and tracker readback
 

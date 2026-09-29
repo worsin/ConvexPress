@@ -1503,7 +1503,13 @@ export const dependencyDescriptors = {
     "version": 1
   },
   "core/author-bio": {
-    "data": null,
+    "data": {
+      "args": {
+        "useCurrentAuthor": "attrs.useCurrentAuthor",
+        "userId": "attrs.userId"
+      },
+      "resolver": "content.author"
+    },
     "fields": [
       {
         "allowEmpty": true,

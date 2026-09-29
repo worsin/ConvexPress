@@ -1,3 +1,4 @@
+import {AuthorDemo} from "./author-preview";
 import { CatalogBrowser } from "./catalog-browser";
 import {SocialFeedDemo} from "./social-feed-preview";
 import {SyncedDemo} from "./synced-preview";
@@ -151,6 +152,7 @@ function RenderExample({ instance, packId }: { instance: BlockInstance; packId: 
 	);
 }
 function StaticRenderExample({ instance, packId }: { instance: BlockInstance; packId: string }) {
+ if(instance.name === "core/author-bio") return <AuthorDemo instance={instance} registry={stagedRenderers} packId={packId} portrait={studioPortrait} resources={{media:{"demo-image-studio-portrait":{src:studioPortrait,alt:"Fictional author portrait",mimeType:"image/png"}}}}/>;
  if(instance.name === "core/synced") return <SyncedDemo registry={stagedRenderers} packId={packId}/>;
  if(instance.name === "core/social-feed") return <SocialFeedDemo instance={instance} registry={stagedRenderers} packId={packId}/>;
  if(instance.name === "core/lead-magnet") return <LeadMagnetDemo instance={instance} registry={stagedRenderers} packId={packId}/>;
