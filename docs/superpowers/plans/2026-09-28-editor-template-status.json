@@ -1,13 +1,13 @@
 {
   "plan": "2026-09-28-editor-template-delivery.md",
   "baselineCommit": "d0fee8acceb408fd306a15f3c054322cb73ac8bc",
-  "checkpointSource": "output/grade-gallery-20260929/mt-accept-after.json",
+  "checkpointSource": "output/catalog-acceptance-20260929/mt-accept-after.json",
   "checkpointCounts": {
-    "Verified": 95,
-    "In progress": 42
+    "Verified": 103,
+    "In progress": 34
   },
   "goal": "Complete block editor and template delivery plus all demonstrated blockers; defer unrelated whole-app audit campaigns.",
-  "currentTask": "Grade Gallery accepted;95 Verified/42 In progress. All20 rows assigned to Task2 are Verified; scoped common-block family task complete. Next Task3 catalog family:8 blocks with real selections/current data/cart boundaries.39 Task3 rows,2 migration rows and1 SDK workflow row remain, alongside Tasks4\u20138 and E18/E22/E28.",
+  "currentTask": "Catalog family accepted; 103 Verified / 34 In progress. Tasks1/2 complete at assigned scope. Next Task3 external-embeds: six blocks with legitimate provider/destination and native consent/reset/failure evidence. Remaining31 Task3 rows,2 Task4 migration rows,1 Task7 SDK row. Tasks4\u20138 and E18/E22/E28 remain open; nine placeholder blockers now explicitly triaged under F25.",
   "tasks": [
     {
       "id": 1,
@@ -67,52 +67,80 @@
     },
     {
       "id": "E04",
-      "status": "requires current classification or closure; see guide",
-      "classification": "missing evidence",
+      "status": "Superseded as a standalone blocker by the full137-row classified work queue and per-row acceptance. Remaining rows continue under their assigned Tasks3/4/7; this is not whole-delivery closure.",
+      "classification": "accepted/reusable evidence",
       "initialFinding": "79 block rows have incomplete full acceptance; many are already functional.",
-      "closureBoundary": "Reconcile field requirements and prior proof first, then finish missing behavior and checks in families. Do not repeat complete infrastructure acceptance for each row."
+      "closureBoundary": "Reconcile field requirements and prior proof first, then finish missing behavior and checks in families. Do not repeat complete infrastructure acceptance for each row.",
+      "nextCheck": "Use current checkpointSource and per-row requirements; never infer global progress from the block count.",
+      "deliveryTask": 3,
+      "triagedAt": "2026-09-29",
+      "triageEvidence": "ConvexPress-Admin/audits/2026-09-04/delivery-blocker-triage-20260929.md"
     },
     {
       "id": "E05",
-      "status": "requires current classification or closure; see guide",
+      "status": "Partially accepted: native actual Website preview throughout accepted families; E19 draft recovery/E26 hydration and September21 natural editing-session renewal/reconnect evidence are reusable. Full public HTTPS/local-network, customer denial/live revocation and final cross-pack integrated continuity remain open.",
       "classification": "missing evidence",
       "initialFinding": "Preview has historically failed at protocol, origin, session renewal, hydration and readiness boundaries. Several fixes are accepted, but remaining cross-pack/cloud paths are open.",
-      "closureBoundary": "Verify installed matching contracts, unsaved DOM continuity, reconnect/expiry, site switching and readable failure. Preserve draft and selected target; no stale frames or unintended saves."
+      "closureBoundary": "Verify installed matching contracts, unsaved DOM continuity, reconnect/expiry, site switching and readable failure. Preserve draft and selected target; no stale frames or unintended saves.",
+      "nextCheck": "Task5: reuse website-editing-continuity-20260921.md and E19/E26, then exercise one authorized HTTPS editing launch with exact artifact identity, authority withdrawal and retained unsaved DOM; finish integrated pack paths in Task8.",
+      "deliveryTask": 5,
+      "triagedAt": "2026-09-29",
+      "triageEvidence": "ConvexPress-Admin/audits/2026-09-04/delivery-blocker-triage-20260929.md"
     },
     {
       "id": "E06",
-      "status": "requires current classification or closure; see guide",
+      "status": "Partially accepted: structural-native-20260921 and current family batches cover native nested controls, movement, keyboard, media/reference fields, exact reopen/history and invalid writes. The all-field reference block and mixed reusable/composed/extension workflow are not yet fully accepted.",
       "classification": "missing evidence",
       "initialFinding": "All native field types, picker states, keyboard operations and mixed nested/reusable/composed content are not fully covered.",
-      "closureBoundary": "Exercise them on batched authored pages, compare saved/reopened trees and revision restores exactly; test field-specific limits and omitted/null/empty semantics where meaningful."
+      "closureBoundary": "Exercise them on batched authored pages, compare saved/reopened trees and revision restores exactly; test field-specific limits and omitted/null/empty semantics where meaningful.",
+      "nextCheck": "Task7: enumerate remaining reference/all-field controls against existing native evidence, author one mixed document, compare exact saved/recovered tree and rendered outputs; Task8 integrated journey.",
+      "deliveryTask": 7,
+      "triagedAt": "2026-09-29",
+      "triageEvidence": "ConvexPress-Admin/audits/2026-09-04/delivery-blocker-triage-20260929.md"
     },
     {
       "id": "E07",
-      "status": "requires current classification or closure; see guide",
+      "status": "Open and explicitly scoped; complete retained-content inventory and lossless migration/legacy retirement acceptance have not been performed. Existing converter/source proofs do not establish a completed installed migration. F21 complete-or-explicitly-incomplete criterion applies.",
       "classification": "missing evidence",
       "initialFinding": "One-content-model migration and legacy retirement remain incomplete.",
-      "closureBoundary": "Complete lossless conversion/recovery for actual retained content, source snapshots and installed-site receipts; then remove active legacy editor/renderer/schema dispatch as specified. Keep historical recovery data and a deliberate import converter. Do not delete old fields before proving preservation or claim migration complete while silently relying on legacy rendering."
+      "closureBoundary": "Complete lossless conversion/recovery for actual retained content, source snapshots and installed-site receipts; then remove active legacy editor/renderer/schema dispatch as specified. Keep historical recovery data and a deliberate import converter. Do not delete old fields before proving preservation or claim migration complete while silently relying on legacy rendering.",
+      "nextCheck": "Task4 first check: inventory active legacy envelopes and references separately from historical snapshots across the intended source/demo corpus; map converter coverage, preserve backups and test owned copies, interrupted/over-limit receipts and exact reconciliation before retiring any live path.",
+      "deliveryTask": 4,
+      "triagedAt": "2026-09-29",
+      "triageEvidence": "ConvexPress-Admin/audits/2026-09-04/delivery-blocker-triage-20260929.md"
     },
     {
       "id": "E08",
-      "status": "requires current classification or closure; see guide",
+      "status": "Open and explicitly scoped; palette/commerce-layout legacy values, precedence, idempotent receipts and duplicate-screen retirement are not accepted. No new defect inferred from placeholder status.",
       "classification": "missing evidence",
       "initialFinding": "Palette and commerce-layout migration plus old Themes/Shop-layout/builder screens remain partly retired.",
-      "closureBoundary": "Read actual installed values, migrate without overwriting current settings, verify appearance and rollback; route all authoring to template settings before removing obsolete screens/tables/imports."
+      "closureBoundary": "Read actual installed values, migrate without overwriting current settings, verify appearance and rollback; route all authoring to template settings before removing obsolete screens/tables/imports.",
+      "nextCheck": "Task5 first check: read current installed appearance/legacy values and trace current consumers/routes; compare candidate migration without writes, preserving explicit new values, then run owned migration/recovery and verify the rendered surfaces before retirement.",
+      "deliveryTask": 5,
+      "triagedAt": "2026-09-29",
+      "triageEvidence": "ConvexPress-Admin/audits/2026-09-04/delivery-blocker-triage-20260929.md"
     },
     {
       "id": "E09",
-      "status": "requires current classification or closure; see guide",
+      "status": "Open with reusable partial evidence: September21 Customizer initialization, real natural renewal/unsaved DOM and Undo/Redo passed. Contextual controls, header/footer/menu, presets/reset/conflicts, appearance promotion, customer denial/live revocation and required dashboard surface coverage remain unaccepted.",
       "classification": "missing evidence",
       "initialFinding": "Customizer contextual fields, all packs/surfaces, header/footer/menu integration and operator authority are not fully accepted.",
-      "closureBoundary": "Verify the field group controls the actual surface, click-to-edit focus, draft/publish/reset/history/conflicts, pack switches, session continuity, customer denial and revocation."
+      "closureBoundary": "Verify the field group controls the actual surface, click-to-edit focus, draft/publish/reset/history/conflicts, pack switches, session continuity, customer denial and revocation.",
+      "nextCheck": "Task5: map each actual pack field/group to its rendered surface, then batch draft/publish/reset/conflict and authority tests. Recheck historical Dashboard Customize-to-General navigation and literal {settingsGroup} toast as concrete observations before repair.",
+      "deliveryTask": 5,
+      "triagedAt": "2026-09-29",
+      "triageEvidence": "ConvexPress-Admin/audits/2026-09-04/delivery-blocker-triage-20260929.md"
     },
     {
       "id": "E10",
-      "status": "requires current classification or closure; see guide",
+      "status": "Open: individual block/pack matrices and Steps motion are accepted within their boundaries; they do not constitute four complete authored example sites or a finished all-block BlockDemo review. Named flagship/pattern/site requirements still need explicit inventory reconciliation.",
       "classification": "missing evidence",
       "initialFinding": "Full default websites, remaining flagship treatments and the complete BlockDemo visual review are unfinished.",
-      "closureBoundary": "Deliver four complete simple sites and all-block demo coverage. Check realistic copy, optional assets, narrow placements, links, image crops, visible focus and template consistency."
+      "closureBoundary": "Deliver four complete simple sites and all-block demo coverage. Check realistic copy, optional assets, narrow placements, links, image crops, visible focus and template consistency.",
+      "nextCheck": "Task6: inventory existing Core/Journal/Depot/Aster pages/navigation/assets plus pack treatments and Journal/Depot pattern counts; map gaps to the handoff, then author missing complete sites and review actual demo routes/interactions.",
+      "deliveryTask": 6,
+      "triagedAt": "2026-09-29",
+      "triageEvidence": "ConvexPress-Admin/audits/2026-09-04/delivery-blocker-triage-20260929.md"
     },
     {
       "id": "E11",
@@ -163,10 +191,14 @@
     },
     {
       "id": "E16",
-      "status": "requires current classification or closure; see guide",
-      "classification": "missing evidence",
+      "status": "Deployment preservation discipline is accepted and actively enforced: installed moving-media checkpoint preserves22 Events files/2410 function signatures and reviewed source overlays. No backend deployment in catalog batch. Remaining extension install/disable/re-enable and Events/Dashboard manifest workflows stay open under Task7.",
+      "classification": "accepted/reusable evidence",
       "initialFinding": "Installed extension code can be lost by deploying a generic backend snapshot; this happened and was repaired.",
-      "closureBoundary": "Preserve the installed plugin directories/generated indexes. Build next snapshot from verified installed checkpoint and overlay reviewed source changes; verify plugin parity before deployment. Complete install/disable/re-enable and reference Events/Dashboard manifest workflows."
+      "closureBoundary": "Preserve the installed plugin directories/generated indexes. Build next snapshot from verified installed checkpoint and overlay reviewed source changes; verify plugin parity before deployment. Complete install/disable/re-enable and reference Events/Dashboard manifest workflows.",
+      "nextCheck": "Task7: exercise extension lifecycle on disposable installed snapshots; verify source/data/manifest parity and public denial on disable. Every intervening deployment must continue verified installed-checkpoint overlay discipline.",
+      "deliveryTask": 7,
+      "triagedAt": "2026-09-29",
+      "triageEvidence": "ConvexPress-Admin/audits/2026-09-04/delivery-blocker-triage-20260929.md"
     },
     {
       "id": "E17",
@@ -177,11 +209,15 @@
     },
     {
       "id": "E18",
-      "status": "requires current classification or closure; see guide",
+      "status": "Open integrated-artifact requirement with concrete recorded target divergence: locale-promotion-20260929 observed four draft functions missing on older target and document-settings warning. Current source/Website family evidence is identity-bound but not final candidate/main/target parity.",
       "classification": "missing evidence",
       "initialFinding": "Current source/main/deployed artifacts and historical screenshots can diverge.",
       "closureBoundary": "Record exact source and deployment identity; reuse only relevant current evidence. Run a final integrated gate on the deliverable, not a collection of unrelated historical green logs.",
-      "currentEvidence": "September29 target remains on its own older extension checkpoint. Four canonical draft functions absent; native editor autosave unavailable and separate document-settings warning observed. Website iframe correct. Final integrated artifact parity remains open; see locale-promotion-20260929.md."
+      "currentEvidence": "September29 target remains on its own older extension checkpoint. Four canonical draft functions absent; native editor autosave unavailable and separate document-settings warning observed. Website iframe correct. Final integrated artifact parity remains open; see locale-promotion-20260929.md.",
+      "nextCheck": "Task8: safely reconcile source/main and each installed backend extension snapshot, freeze matching candidate/backend/Website hashes, then run the integrated native/public gate. Preserve user dirty checkout; no push. Earlier target finding is recorded evidence, not a new read of target this batch.",
+      "deliveryTask": 8,
+      "triagedAt": "2026-09-29",
+      "triageEvidence": "ConvexPress-Admin/audits/2026-09-04/delivery-blocker-triage-20260929.md"
     },
     {
       "id": "E19",
@@ -455,6 +491,18 @@
         "output/grade-gallery-20260929/caption-overflow-red.json",
         "output/grade-gallery-20260929/caption-causal.json",
         "output/grade-gallery-20260929/public-matrix.json"
+      ]
+    },
+    {
+      "id": "E52",
+      "classification": "accepted repair",
+      "initialFinding": "Valid3000-character Bundle Offer description widens1440px page to31622px; description444px box has31406px scroll content.",
+      "closureBoundary": "Wrap complete bundle description without clipping/truncation; verify actual maximum and normal four-pack1440/390 output plus native/cart preservation.",
+      "status": "Closed: isolated overflow-wrap:anywhere intervention proves cause; one CSS property repairs it. Eight maximum and eight normal cases, native exact5\u21927 recovery, real four-line cart journeys, live withdrawal/expiry and cleanup pass. See catalog-acceptance-20260929.md.",
+      "evidence": [
+        "output/catalog-acceptance-20260929/bundle-overflow-cause.json",
+        "output/catalog-acceptance-20260929/maximum-matrix.json",
+        "output/catalog-acceptance-20260929/cleanup.json"
       ]
     }
   ],
@@ -1957,23 +2005,26 @@
       "name": "core/featured-products",
       "title": "Featured products",
       "category": "Commerce",
-      "checkpointStatus": "In progress",
-      "nextClassification": "Reviewed against live Notes and current canonical specification; Actual selected catalog/limit/columns, price/availability changes and authorized cart action; reuse existing stock guards without reopening carrier operations.",
-      "classification": "missing evidence",
+      "checkpointStatus": "Verified",
+      "nextClassification": "Accepted on accumulated current-contract native, public, live action/state, maximum and preservation evidence; see ConvexPress-Admin/audits/2026-09-04/catalog-acceptance-20260929.md",
+      "classification": "accepted/reusable evidence",
       "source": "blocks/core/featured-products/block.json",
-      "requirements": "limit, columns",
+      "requirements": "Canonical v2 selected productIds/count/showPrice and responsive CSS layout; exact product destinations. No columns field or direct cart control.",
       "evidenceReferences": [
         "output/product-native-20260906.",
         "output/production-checkpoints/product-media-20260906.",
         "output/shipping-origin-20260906/next-work.md.",
         "output/stock-policy-20260906/next-work.md.",
         "output/storefront-pricing-20260906.",
-        "ConvexPress-Admin/audits/2026-09-04/search-library-prose-20260928.md"
+        "ConvexPress-Admin/audits/2026-09-04/search-library-prose-20260928.md",
+        "ConvexPress-Admin/audits/2026-09-04/catalog-acceptance-20260929.md",
+        "output/catalog-acceptance-20260929/mt-accept-verified.json",
+        "output/catalog-acceptance-20260929/source-provenance.json"
       ],
-      "remainingReview": "Actual selected catalog/limit/columns, price/availability changes and authorized cart action; reuse existing stock guards without reopening carrier operations.",
+      "remainingReview": "No remaining block-specific gate in this batch; broader migration, Customizer, SDK and frozen-artifact integration remain assigned Tasks4\u20138.",
       "deliveryTask": 3,
       "acceptanceBatch": "catalog",
-      "reviewedAtCommit": "d8a0ea2c",
+      "reviewedAtCommit": "2e16c275 + catalog CSS repair",
       "notesSha256": "6db4f93d3f40da0c9b16e57dd73d0762ddcd95648179b72ed1649a377992b5d7",
       "specSha256": "362eb9e70287fcdaa4bf831d0e336c37ed980937fde1810e7afa852022a7468d",
       "rendererSha256": "94977af4e669fe1a5bb5bdd578fb2db2b0f5aa59be157a7cad2426ac30e0e082",
@@ -1984,7 +2035,8 @@
         "productIds",
         "count",
         "showPrice"
-      ]
+      ],
+      "acceptedEvidence": "ConvexPress-Admin/audits/2026-09-04/catalog-acceptance-20260929.md"
     },
     {
       "name": "commerce/assistant-band",
@@ -2022,35 +2074,39 @@
       "name": "commerce/product-compare",
       "title": "Product compare",
       "category": "Commerce",
-      "checkpointStatus": "In progress",
-      "nextClassification": "Reviewed against live Notes and current canonical specification; Native product/attribute selection and order; actual prices, maximum6-product budget, denied/withdrawn/empty and responsive comparison destinations.",
-      "classification": "missing evidence",
+      "checkpointStatus": "Verified",
+      "nextClassification": "Accepted on accumulated current-contract native, public, live action/state, maximum and preservation evidence; see ConvexPress-Admin/audits/2026-09-04/catalog-acceptance-20260929.md",
+      "classification": "accepted/reusable evidence",
       "source": "blocks/commerce/product-compare/block.json",
       "requirements": "products (repeater), attributes (repeater)",
       "evidenceReferences": [
         "output/block-library-review-20260915/coverage-review.json.",
         "output/product-compare-20260915.",
-        "output/variant-admin-access-20260915."
+        "output/variant-admin-access-20260915.",
+        "ConvexPress-Admin/audits/2026-09-04/catalog-acceptance-20260929.md",
+        "output/catalog-acceptance-20260929/mt-accept-verified.json",
+        "output/catalog-acceptance-20260929/source-provenance.json"
       ],
-      "remainingReview": "Native product/attribute selection and order; actual prices, maximum6-product budget, denied/withdrawn/empty and responsive comparison destinations.",
+      "remainingReview": "No remaining block-specific gate in this batch; broader migration, Customizer, SDK and frozen-artifact integration remain assigned Tasks4\u20138.",
       "deliveryTask": 3,
       "acceptanceBatch": "catalog",
-      "reviewedAtCommit": "d8a0ea2c",
+      "reviewedAtCommit": "2e16c275 + catalog CSS repair",
       "notesSha256": "c187d2120d9d84ef93788ca01b1305e73812ab77af49def5240fef8fe3bdcc9c",
       "specSha256": "916b801475cae46e4b4eb25fdf62bb907b119ce6fe48c2bdc03c73d15275457c",
       "rendererSha256": "791fea05630dbd64c9fd89105efc2ee241c7d12f23b8cb9536f3ebe28d795a1e",
       "canonicalFields": [
         "products",
         "attributes"
-      ]
+      ],
+      "acceptedEvidence": "ConvexPress-Admin/audits/2026-09-04/catalog-acceptance-20260929.md"
     },
     {
       "name": "commerce/bundle-offer",
       "title": "Bundle offer",
       "category": "Commerce",
-      "checkpointStatus": "In progress",
-      "nextClassification": "Reviewed against live Notes and current canonical specification; Reuse all-pack variant/inclusion/quantity fixtures; actual scoped bundle add with exact cart lines, unavailable/stock/price change and no duplicate action.",
-      "classification": "missing evidence",
+      "checkpointStatus": "Verified",
+      "nextClassification": "Accepted on accumulated current-contract native, public, live action/state, maximum and preservation evidence; see ConvexPress-Admin/audits/2026-09-04/catalog-acceptance-20260929.md",
+      "classification": "accepted/reusable evidence",
       "source": "blocks/commerce/bundle-offer/block.json",
       "requirements": "bundle (reference), title (text), body (text)",
       "evidenceReferences": [
@@ -2059,12 +2115,15 @@
         "output/bundle-offer-20260915.",
         "output/bundle-public-20260915.",
         "output/commerce-state-acceptance-20260915.",
-        "ConvexPress-Admin/audits/2026-09-04/search-conditional-prose-20260928.md"
+        "ConvexPress-Admin/audits/2026-09-04/search-conditional-prose-20260928.md",
+        "ConvexPress-Admin/audits/2026-09-04/catalog-acceptance-20260929.md",
+        "output/catalog-acceptance-20260929/mt-accept-verified.json",
+        "output/catalog-acceptance-20260929/source-provenance.json"
       ],
-      "remainingReview": "Reuse all-pack variant/inclusion/quantity fixtures; actual scoped bundle add with exact cart lines, unavailable/stock/price change and no duplicate action.",
+      "remainingReview": "No remaining block-specific gate in this batch; broader migration, Customizer, SDK and frozen-artifact integration remain assigned Tasks4\u20138.",
       "deliveryTask": 3,
       "acceptanceBatch": "catalog",
-      "reviewedAtCommit": "d8a0ea2c",
+      "reviewedAtCommit": "2e16c275 + catalog CSS repair",
       "notesSha256": "a495ba91a4708da2d1cd6bcf4dca73003e60ff09234762d72e30864047c19135",
       "specSha256": "4116e1111fea5eca2fc1820b0049d870b0750ae1f9b3aa5db837fd424540f126",
       "rendererSha256": "47d6c63c6e5651ee041fbbc6d0c0c54cd71fda88bb1b0f9ec77da3a0d564e281",
@@ -2072,27 +2131,31 @@
         "bundle",
         "title",
         "body"
-      ]
+      ],
+      "acceptedEvidence": "ConvexPress-Admin/audits/2026-09-04/catalog-acceptance-20260929.md"
     },
     {
       "name": "commerce/sale-countdown",
       "title": "Sale countdown",
       "category": "Commerce",
-      "checkpointStatus": "In progress",
-      "nextClassification": "Reviewed against live Notes and current canonical specification; Reuse product start/end scheduling proof; verify authored campaign deadline expiry, selected card limit, clock/access states and final pack output.",
-      "classification": "missing evidence",
+      "checkpointStatus": "Verified",
+      "nextClassification": "Accepted on accumulated current-contract native, public, live action/state, maximum and preservation evidence; see ConvexPress-Admin/audits/2026-09-04/catalog-acceptance-20260929.md",
+      "classification": "accepted/reusable evidence",
       "source": "blocks/commerce/sale-countdown/block.json",
       "requirements": "target (date), title (text), limit (number)",
       "evidenceReferences": [
         "output/block-library-review-20260915/coverage-review.json.",
         "output/product-sale-schedule-20260910.",
         "output/sale-countdown-20260910.",
-        "ConvexPress-Admin/audits/2026-09-04/search-library-prose-20260928.md"
+        "ConvexPress-Admin/audits/2026-09-04/search-library-prose-20260928.md",
+        "ConvexPress-Admin/audits/2026-09-04/catalog-acceptance-20260929.md",
+        "output/catalog-acceptance-20260929/mt-accept-verified.json",
+        "output/catalog-acceptance-20260929/source-provenance.json"
       ],
-      "remainingReview": "Reuse product start/end scheduling proof; verify authored campaign deadline expiry, selected card limit, clock/access states and final pack output.",
+      "remainingReview": "No remaining block-specific gate in this batch; broader migration, Customizer, SDK and frozen-artifact integration remain assigned Tasks4\u20138.",
       "deliveryTask": 3,
       "acceptanceBatch": "catalog",
-      "reviewedAtCommit": "d8a0ea2c",
+      "reviewedAtCommit": "2e16c275 + catalog CSS repair",
       "notesSha256": "c97dfe2a0da176ca2684c086531c78d01c8f932979a99ac302fb292bddcdc8c5",
       "specSha256": "c50b67cb113c7d2fb450dca4ad66f42dde9ff6894e20cc2c76e04c6de9e4fc73",
       "rendererSha256": "ad617d0eaaa4dbb6c6ffe7d1c35d48523e6adbbc30bad9d76a77ecfe32d6553a",
@@ -2100,7 +2163,8 @@
         "target",
         "title",
         "limit"
-      ]
+      ],
+      "acceptedEvidence": "ConvexPress-Admin/audits/2026-09-04/catalog-acceptance-20260929.md"
     },
     {
       "name": "commerce/recently-viewed",
@@ -2189,46 +2253,53 @@
       "name": "commerce/brand-list",
       "title": "Brand list",
       "category": "Commerce",
-      "checkpointStatus": "In progress",
-      "nextClassification": "Reviewed against live Notes and current canonical specification; Reuse brand publication/withdrawal and navigation; reconcile repaired canonical promotion boundary, limit/pagination and final four-pack live rendering.",
-      "classification": "missing evidence",
+      "checkpointStatus": "Verified",
+      "nextClassification": "Accepted on accumulated current-contract native, public, live action/state, maximum and preservation evidence; see ConvexPress-Admin/audits/2026-09-04/catalog-acceptance-20260929.md",
+      "classification": "accepted/reusable evidence",
       "source": "blocks/commerce/brand-list/block.json",
       "requirements": "limit (number)",
       "evidenceReferences": [
         "output/block-library-review-20260915/coverage-review.json.",
         "output/brand-list-20260911",
         "output/brand-list-20260911/public-live-state.json",
-        "output/production-checkpoints/brand-domain-20260911."
+        "output/production-checkpoints/brand-domain-20260911.",
+        "ConvexPress-Admin/audits/2026-09-04/catalog-acceptance-20260929.md",
+        "output/catalog-acceptance-20260929/mt-accept-verified.json",
+        "output/catalog-acceptance-20260929/source-provenance.json"
       ],
-      "remainingReview": "Reuse brand publication/withdrawal and navigation; reconcile repaired canonical promotion boundary, limit/pagination and final four-pack live rendering.",
+      "remainingReview": "No remaining block-specific gate in this batch; broader migration, Customizer, SDK and frozen-artifact integration remain assigned Tasks4\u20138.",
       "deliveryTask": 3,
       "acceptanceBatch": "catalog",
-      "reviewedAtCommit": "d8a0ea2c",
+      "reviewedAtCommit": "2e16c275 + catalog CSS repair",
       "notesSha256": "1b1bf7178623b5b9f44ee1a9c47cf5ebc8e6209d27b83f43bc5884bab13b5d21",
       "specSha256": "83a5b8b86a87f0535f47a01a1c162cc2436d53287b099a312898ebec1e75ca33",
       "rendererSha256": "21364f8e2bce72580219d56dbb1ce637a1bf1c8d70a0457127443ce89e4b0309",
       "canonicalFields": [
         "limit"
-      ]
+      ],
+      "acceptedEvidence": "ConvexPress-Admin/audits/2026-09-04/catalog-acceptance-20260929.md"
     },
     {
       "name": "commerce/product-hero",
       "title": "Product hero",
       "category": "Commerce",
-      "checkpointStatus": "In progress",
-      "nextClassification": "Reviewed against live Notes and current canonical specification; Reuse exact product/cart proof and shared preview repair; native optional title/media, long/absent values and selected variant/availability across packs.",
-      "classification": "missing evidence",
+      "checkpointStatus": "Verified",
+      "nextClassification": "Accepted on accumulated current-contract native, public, live action/state, maximum and preservation evidence; see ConvexPress-Admin/audits/2026-09-04/catalog-acceptance-20260929.md",
+      "classification": "accepted/reusable evidence",
       "source": "blocks/commerce/product-hero/block.json",
       "requirements": "product (reference), title (text), media (media)",
       "evidenceReferences": [
         "output/block-library-review-20260915/coverage-review.json.",
         "output/product-hero-20260911.",
-        "ConvexPress-Admin/audits/2026-09-04/search-conditional-prose-20260928.md"
+        "ConvexPress-Admin/audits/2026-09-04/search-conditional-prose-20260928.md",
+        "ConvexPress-Admin/audits/2026-09-04/catalog-acceptance-20260929.md",
+        "output/catalog-acceptance-20260929/mt-accept-verified.json",
+        "output/catalog-acceptance-20260929/source-provenance.json"
       ],
-      "remainingReview": "Reuse exact product/cart proof and shared preview repair; native optional title/media, long/absent values and selected variant/availability across packs.",
+      "remainingReview": "No remaining block-specific gate in this batch; broader migration, Customizer, SDK and frozen-artifact integration remain assigned Tasks4\u20138.",
       "deliveryTask": 3,
       "acceptanceBatch": "catalog",
-      "reviewedAtCommit": "d8a0ea2c",
+      "reviewedAtCommit": "2e16c275 + catalog CSS repair",
       "notesSha256": "a97c42bd2976a6554f1ec683173d6beaaaf9b1c523bccf0afaef0cb5fda937b1",
       "specSha256": "ccea78fdfc44df0aada18f2a7279d4c5ef3d049c024795bcc8fed4eba0b4c9e7",
       "rendererSha256": "fca71426c8d399dd101b154c6d2cc6901b13cf6caf2ea4146957a8499799cad6",
@@ -2236,54 +2307,63 @@
         "product",
         "title",
         "media"
-      ]
+      ],
+      "acceptedEvidence": "ConvexPress-Admin/audits/2026-09-04/catalog-acceptance-20260929.md"
     },
     {
       "name": "commerce/variant-picker-teaser",
       "title": "Variant picker teaser",
       "category": "Commerce",
-      "checkpointStatus": "In progress",
-      "nextClassification": "Reviewed against live Notes and current canonical specification; Reuse sparse-option transition repair; actual product/attribute picker, invalid hints, live withdrawn combinations, selected URL and all-pack limits.",
-      "classification": "missing evidence",
+      "checkpointStatus": "Verified",
+      "nextClassification": "Accepted on accumulated current-contract native, public, live action/state, maximum and preservation evidence; see ConvexPress-Admin/audits/2026-09-04/catalog-acceptance-20260929.md",
+      "classification": "accepted/reusable evidence",
       "source": "blocks/commerce/variant-picker-teaser/block.json",
       "requirements": "product (database-local reference); attribute (option identity or name, blank for all)",
       "evidenceReferences": [
         "output/block-library-review-20260915/coverage-review.json.",
-        "output/variant-teaser-20260914."
+        "output/variant-teaser-20260914.",
+        "ConvexPress-Admin/audits/2026-09-04/catalog-acceptance-20260929.md",
+        "output/catalog-acceptance-20260929/mt-accept-verified.json",
+        "output/catalog-acceptance-20260929/source-provenance.json"
       ],
-      "remainingReview": "Reuse sparse-option transition repair; actual product/attribute picker, invalid hints, live withdrawn combinations, selected URL and all-pack limits.",
+      "remainingReview": "No remaining block-specific gate in this batch; broader migration, Customizer, SDK and frozen-artifact integration remain assigned Tasks4\u20138.",
       "deliveryTask": 3,
       "acceptanceBatch": "catalog",
-      "reviewedAtCommit": "d8a0ea2c",
+      "reviewedAtCommit": "2e16c275 + catalog CSS repair",
       "notesSha256": "39890a05dc774a9cdfe71e45641e6695b719ac88ab4e77dd3df1f10ff766121a",
       "specSha256": "5fa9e8dbe18195ff0b9cd898d75ebef650a117d2ba2e4753bbf3f0a9ccd99411",
       "rendererSha256": "18d15d3c8ce6348abae7cce81bfee031b65573ce2449f73d3f800e10acd664e6",
       "canonicalFields": [
         "product",
         "attribute"
-      ]
+      ],
+      "acceptedEvidence": "ConvexPress-Admin/audits/2026-09-04/catalog-acceptance-20260929.md"
     },
     {
       "name": "commerce/shipping-promise",
       "title": "Shipping promise",
       "category": "Commerce",
-      "checkpointStatus": "In progress",
-      "nextClassification": "Reviewed against live Notes and current canonical specification; Reuse configured policy live withdrawal; optional links/icons and0\u20138 promises, final pack layouts; no carrier purchase needed for display acceptance.",
-      "classification": "missing evidence",
+      "checkpointStatus": "Verified",
+      "nextClassification": "Accepted on accumulated current-contract native, public, live action/state, maximum and preservation evidence; see ConvexPress-Admin/audits/2026-09-04/catalog-acceptance-20260929.md",
+      "classification": "accepted/reusable evidence",
       "source": "blocks/commerce/shipping-promise/block.json",
       "requirements": "No per-block content fields. Uses commerce.general.storefrontPromises: icon, title, body, optional href (up to eight policies).",
       "evidenceReferences": [
         "output/block-library-review-20260915/coverage-review.json.",
-        "output/shipping-promise-20260911."
+        "output/shipping-promise-20260911.",
+        "ConvexPress-Admin/audits/2026-09-04/catalog-acceptance-20260929.md",
+        "output/catalog-acceptance-20260929/mt-accept-verified.json",
+        "output/catalog-acceptance-20260929/source-provenance.json"
       ],
-      "remainingReview": "Reuse configured policy live withdrawal; optional links/icons and0\u20138 promises, final pack layouts; no carrier purchase needed for display acceptance.",
+      "remainingReview": "No remaining block-specific gate in this batch; broader migration, Customizer, SDK and frozen-artifact integration remain assigned Tasks4\u20138.",
       "deliveryTask": 3,
       "acceptanceBatch": "catalog",
-      "reviewedAtCommit": "d8a0ea2c",
+      "reviewedAtCommit": "2e16c275 + catalog CSS repair",
       "notesSha256": "bd3ae8b10e2b1c945153b01e3e1190dfc67e0a3f9355487d2102cff268b6220d",
       "specSha256": "e5a91fb182015f1a8f33d0d46e74b8e6a26b2fe92686aac983d5c7581f71325f",
       "rendererSha256": "d4c48d741fb403e102f859b7d97020d9d655cdaba29c59bf3ec63565ffe6c129",
-      "canonicalFields": []
+      "canonicalFields": [],
+      "acceptedEvidence": "ConvexPress-Admin/audits/2026-09-04/catalog-acceptance-20260929.md"
     },
     {
       "name": "core/latest-posts",
@@ -3980,21 +4060,34 @@
     "output/grade-gallery-20260929/public-matrix.json",
     "output/grade-gallery-20260929/invalid-contracts.json",
     "output/grade-gallery-20260929/cleanup.json",
-    "output/grade-gallery-20260929/mt-accept-verified.json"
+    "output/grade-gallery-20260929/mt-accept-verified.json",
+    "ConvexPress-Admin/audits/2026-09-04/catalog-acceptance-20260929.md",
+    "ConvexPress-Admin/audits/2026-09-04/delivery-blocker-triage-20260929.md",
+    "output/catalog-acceptance-20260929/mt-accept-verified.json",
+    "output/catalog-acceptance-20260929/public-matrix.json",
+    "output/catalog-acceptance-20260929/maximum-matrix.json",
+    "output/catalog-acceptance-20260929/cleanup.json"
   ],
   "trackerRefresh": {
-    "source": "output/grade-gallery-20260929/mt-accept-after.json",
-    "schema": "output/grade-gallery-20260929/mt-schema.json",
+    "source": "output/catalog-acceptance-20260929/mt-accept-after.json",
+    "schema": "output/catalog-acceptance-20260929/mt-schema.json",
     "rows": 137,
     "counts": {
-      "Verified": 95,
-      "In progress": 42
+      "Verified": 103,
+      "In progress": 34
     },
     "otherCellsUnchangedFromPreviousRead": true,
     "pendingNotesReconciled": 77,
     "classificationScope": "Block-specific missing gates; historical whole-app audit conditions retained in Notes but not automatic prerequisites.",
     "lastAcceptedNames": [
-      "blocks/grade-gallery"
+      "core/featured-products",
+      "commerce/product-compare",
+      "commerce/bundle-offer",
+      "commerce/sale-countdown",
+      "commerce/brand-list",
+      "commerce/product-hero",
+      "commerce/variant-picker-teaser",
+      "commerce/shipping-promise"
     ],
     "allNotesExact": true
   },
@@ -4014,7 +4107,9 @@
       "businessNotification": "During business acceptance, a normal Settings Updated toast showed literal {settingsGroup}; dismissed using Close toast. Carry concrete wording observation into Task5 Customizer notification review; not repaired or treated as a broad notifications campaign.",
       "audit15": "Read/responded: F23 remains a narrow public-caller policy lens rather than a filename-based finding or general audit. Support acceptance complete with actual customer isolation.",
       "audit16": "Read/responded: E45 bounded streaming route accepted; F24 eleven stale block statuses repaired and check:delivery-status now asserts exact per-row/header/readback parity. Current trackerRefresh/latestEvidence metadata refreshed to the Steps checkpoint.",
-      "gradeRunner": "Owned Website admin origin was accidentally localhost:4105 after Steps rebuild. Native preview correctly refused. Restored exact127.0.0.1:4105 from accepted runtime, reconnect rendered; no product policy weakened. NewownedWebsite56081. Preserve all runtime fields on future restarts."
+      "gradeRunner": "Owned Website admin origin was accidentally localhost:4105 after Steps rebuild. Native preview correctly refused. Restored exact127.0.0.1:4105 from accepted runtime, reconnect rendered; no product policy weakened. NewownedWebsite56081. Preserve all runtime fields on future restarts.",
+      "audit17": "Read/responded. F25 nine placeholder blockers explicitly triaged with reused evidence, remaining boundary, assigned task and concrete nextCheck. E04 aggregate superseded by per-row queue; E16 preservation accepted but lifecycle remains Task7. Tasks4\u20138 and E18/E22/E28 remain open. Block counts are not delivery percentage; no subagents.",
+      "catalogRuntime": "Owned Website58929/PTY85331 now serves4322 after one CSS repair. Full captured runtime exact, including127.0.0.1:4105 admin origin. Owned native57234 signed out/closed/profile removed. Cart cleared; two archived logo-free brands remain because no normal delete API. Settings values restored, normal audit metadata materialized; derived Uncategorized count corrected by normal product mutations3\u21922 matching2published originals."
     }
   },
   "sessionBaseCommit": "9824d9605e50c4b0ebd711c13715b506f8ef5bd3"
