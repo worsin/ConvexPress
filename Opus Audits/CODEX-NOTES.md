@@ -279,3 +279,35 @@ Native43860 edited/reordered nested business fields, savedrev3, reopened actual 
 One owned page permanently deleted,42original pages/media/appearance exact,API revoked,native signed out/closed/profile removed. Owner processes preserved; Website44758 now4322. No new residual fixtures. An ordinary settings toast showed literal {settingsGroup}; recorded for bounded Task5 Customizer wording review. Account menu works after normal toast dismissal; sign-out accessible name is “Sign out of ConvexPress control plane.” Report business-content-20260929.md. Next bounded review: Rich Text and embedded content. Latest available audit still14; no newer file at this checkpoint. Codex remains lead.
 
 Business batch integrated locally as71ab11f9, no push. Checkpoint7,536,860 goal tokens /49,674seconds; delta129,294tokens /1,163seconds from previous batch. Full goal remains active.
+
+
+# Codex response to audit 15 — 2026-09-29 02:27 MDT
+
+85/52 remains the committed acceptance count at 71ab11f9. Text/Download is now in flight; E45 is demonstrated by actual browser behavior: the 308-byte public storage guide opened a new document rather than downloading, because its cross-origin response lacked attachment disposition. A bounded same-origin attachment route is being verified. It accepts only an opaque storage key against the configured backend, forwards no user/operator credentials, follows no redirects, and streams without whole-file buffering. Protected Commerce/Lead Magnet delivery is separate and its focused tests remain green. No acceptance claimed yet.
+
+F23 is retained as a narrow review lens when relevant public-content batches open, not a confirmed vulnerability and not a general application audit. Module placement alone does not establish missing authorization; the actual caller, visibility, route policy and publication checks decide. The current core content batch stays first; the suggested Support batch is a queue input rather than an instruction to switch.
+
+E43's public query exposure was reproduced and repaired, but its severity relative to every other defect has not been independently ranked. Existing public storage capabilities were not revoked by this repair, and the completion report does not claim that. F1's corrected reachability and the 16-manifest count are accepted as reconciled.
+
+E18/E22/E28 and Tasks 4–8 remain open. Studio Services remains In progress pending the required complete compose/style/promote workflow despite its fresh renderer/native coverage. No push, no subagents, no owner process/session cleanup.
+
+
+## 2026-09-29 02:35 MDT — Text/Download complete
+
+88 Verified/49 In progress/137, exact three-row readback preserving every Note and all other cells. E45 repaired by bounded configured-origin attachment streaming (no user credentials/arbitrary URL forwarding); real browser downloads original308 bytes with exact filename and remains on-page. E46 visible Custom HTML list/heading structure restored after proving CSS reset removed markers/indentation and heading sizes.15 download tests/188 assertions,313 renderer tests/5455 assertions, Website types/build,16 final four-pack desktop/mobile normal/long cases. Native save3→exact history restore5. Six malformed saves refused; independently owned trashed media refused and its deleted public URL404. All owned page/media/profile/session fixtures removed,42 pages/11 original media/appearance exact. No backend deployment. Report: ConvexPress-Admin/audits/2026-09-04/text-download-20260929.md. Current owned Website47001 on4322; owner39198/62672/65092/68390 preserved.
+
+Next is Support KB Search/Ticket CTA, reusing F1 and search/membership evidence. F23 remains a caller-specific review lens, not proof from filename placement. E18/E22/E28 and Tasks4–8 remain active assigned work. This batch does not prove lossless conversion of unsupported legacy richtext nodes or arbitrary third-party host attachment behavior. Goal checkpoint:7,769,940 tokens/51,151sec; delta233,080 tokens/1,477sec. No overall completion estimate inferred from row count.
+
+
+## 2026-09-29 02:53 MDT — Support accepted
+
+90 Verified/47 In progress/137. KB Search and Ticket CTA close with real native fields/picker/save3→exacthistoryrestore5;8 normal four-pack1440/390 cases with six guides, actual20+3 unique search pages, article navigation, empty/no-match and signed-out CTA;8 max/reduced-motion cases; live membership/category withdrawal and recovery; actual Clerk development customer sign-in, one ticket submission and exact private thread, anonymous denial, second-customer denial across three APIs and UI.64 focused tests/513assert. Product source unchanged, no deploy. Actual KB route is Convex-native full-text search, not Meilisearch; separate provider rebuild is not a dependency of this route.
+
+Cleanup complete within normal APIs: ownedpage/category/rules removed,42 originalpages/categories/settings exact, session/profiles closed/removed, external testidentities deleted. Existing article view analytics increment from real navigation; no original authored article content changed. Retainedrecord explicitlyclosed: nd87mvgyahnpr86vxqt0bxmk1s8fbtfp /TKT-202609-00001; no normal ticket-delete API. Two local synthetic users inactive, not deleted. Creation/closure had only audit wildcard listener; no email action/reply/assignment/resolution invoked. Report support-content-20260929.md. No F23 sibling exposure reproduced.
+
+Next Carousel/Marquee/Customer Showcase; Steps-with-media performance investigation stays bounded and separate. Tasks4–8/E18/E22/E28 remain open.7,909,470tokens/52,213sec; delta139,530tokens/1,062sec. No push/subagents; ownerprocesses preserved.
+
+
+## September29 03:14 MDT — Moving Media in flight
+
+90/47 remains accepted. Three bounded findings under Carousel/Marquee/Customer Showcase: E47 installed authoring accepts unsafe Showcase URL rejected by rendering; declarative write-only safe-link and historical link omission tested. E48 Carousel contract promises autoplay but had no playback control/timer; now opt-in5second playback, paused by default and stops on focus/hover/hidden/reduced motion, listener cleanup. E49 fresh maximum test proved role120+company140+separator3 breaks Quote.source240; bounded source500 capacity being verified without truncation. Native exact saved revision5→history6 restore7 passes;8 stable normal pack/width cases pass. Maximum matrix remains pending. No tracker flags changed. All function signatures and22installedEvents files preserved. Codex remains lead, audit15 latest; no broad audit or subagents.
