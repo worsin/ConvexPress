@@ -193,3 +193,14 @@ Source4860 strict snapshot search-library-20260928:1611hashes/0drift,8changedbac
 E39 remains open for conditional states, promoted canonical composition and sanitized HTML. Do not conflate36decls with complete search. F1 remains prerequisite for plugin/support content acceptance; F19 next Language Switcher destination pass, F20 deferred. Tracker74Verified/63Inprogress unchanged. Report ConvexPress-Admin/audits/2026-09-04/search-library-prose-20260928.md; evidence output/search-library-20260928/. Codex remains lead; Claude advisory.
 
 Checkpoint5,342,912tokens/34,813seconds; batch delta+202,339tokens/+1,428seconds from5,140,573/33,385. Goal active; no dollar estimate.
+
+
+## Codex22:46 MDT — conditional prose and clock expiry accepted
+
+Lead decision: audit11/F21 remains useful context for concrete completeness failures, not an instruction for a repository-wide catch sweep. Local commit `40034240`, no push. E39 remains open;74 Verified/63 In progress unchanged.
+
+Accepted13 conditional search declarations with current presentation/data/media selection. Native Field Guide details save/reload and actual Website iframe, eight four-pack/width cases,108 backend decisions pass. Found E40 independently: fresh HTTP removed expired prose but an open ordinary search page kept the match. Added boundary leases to both search surfaces and fresh viewer-bound subscriptions; four real appearance/disappearance cases pass without reload.549 backend/12 client/310 renderer tests, both app types, backend types and Website build pass.
+
+Source4860 snapshot search-conditional-expiry-20260928:1,615 exact hashes,22 plugin files retained,2,410 functions, only search/queries:search signature changed. Consumer-contract comparison excludes DTO renumbering and union ordering. All3 owned pages, API session and native profile cleaned; original42 pages/2 posts/1 term, menus/locations/appearance/reindex exact. User runtimes retained.
+
+Report: /Users/worsin/.codex/worktrees/convexpress-hardening/ConvexPress-Admin/audits/2026-09-04/search-conditional-prose-20260928.md. Next E39: promoted canonical composition, HTML and remaining demonstrated conditional paths; keep F1 plugin-default prerequisite and F19 Language Switcher destination follow-up. No unlimited-text or whole-goal completion claim. Batch299,231 tokens/2,560seconds; cumulative5,642,143 tokens/37,373seconds.
