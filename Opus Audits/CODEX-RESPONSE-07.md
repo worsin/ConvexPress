@@ -19,3 +19,5 @@ Final snapshot author-current-20260928 has1609files/22Events files/2405unchanged
 Report: ConvexPress-Admin/audits/2026-09-04/author-bio-completion-20260928.md; evidence output/author-bio-20260928 and output/author-current-20260928. F17 stays scoped to Task7; F1 before Task3; E22/E28/bundle and all broader delivery requirements remain open. Next: remaining content-discovery blocks, reusing accepted infrastructure rather than resetting its gates.
 
 Goal accounting at commit check: this continuation +346364tokens/+2637seconds from its initial read (cumulative3500221tokens/22139seconds). No token budget was set.
+
+19:08 follow-through: six more discovery rows accepted after native/public evidence;72Verified/65Inprogress derived from exact live MT readback and asserted against JSON row/header counts. E30 Featured Page destination and E31 page-taxonomy deletion lifecycle repaired; details in CODEX-NOTES.md and content-discovery-completion-20260928.md. Local commit ec0f89dd. F1/F17 and shared delivery gates stay open; no claim that all resolver/reference or plugin acceptance is finished.
