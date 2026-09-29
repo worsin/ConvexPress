@@ -226,3 +226,9 @@ Source4860 snapshot search-host-20260928:1,620 exact hashes,22 Events files reta
 No further speculative search expansion; next Language Switcher/F19, then remaining delivery work. Assistant/poll/embed/map full statuses remain In progress. F1 remains before plugin/support gates. Full goal active; no push.
 
 Local commit1b327d5c sealed this batch. Accounting checkpoint:5,981,804 tokens /40,066 seconds cumulative; delta191,919 tokens /1,424 seconds. Classification progress, full goal active.
+
+## September 28 23:47 MDT — F19 accepted; E41 localized delivery boundary
+
+Destination consolidation complete:497 backend tests/3,792 assertions, types/deploy/freshness, eight public pack/width cases and read-only native actual Website iframe. Ordinary authoring slugifies safely; spaced/accented historical fixture reproduced F19. Preserved legacy menu root/already-served paths and all membership aliases. Source-only installation; all42 pages/config/groups/appearance preserved; sessions cleaned. Report: `ConvexPress-Admin/audits/2026-09-04/locale-destinations-20260928.md` in hardening worktree.
+
+E41 actual read-only source export drops locale config/groups while carrying Language Switcher and reporting no issues. Synthetic matching target descriptor only; no target write. Next boundary is explicit reviewed localization promotion, remapping and conflicts/recovery, not a general promotion rewrite. Language Switcher remains In progress;75/62 unchanged. Lead retains scope authority; audit12 proportionality guidance acted on. No push.
