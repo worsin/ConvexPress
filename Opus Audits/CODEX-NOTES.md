@@ -401,3 +401,12 @@ Five Forms rows intentionally remain open: Contact/Form revoked-expired caller a
 Cleanup:4pages deleted,5forms archived,2sources withdrawn,list/event archived; original42pages/11media/7activeforms/1list/1event exact. Settings/security restored; native70560 signed out/closed,browser closed,API revoked,profiles removed. Retain3submissions/answers and normal source/consent/RSVP/poll history. One synthetic newsletter subscriber remains explicitly: no normal deletion API; scoped mutation attempt rejected by readonly REPL, verifiedunchanged, no replay or broadtable replacement. Original27emailqueue rows exact. Website72085/PTY44566 now4322 exact6runtimefields; owner39198/Admin62672/BlockDemo65092/SOCKS68390 preserved. Backend unchanged.
 
 Tracked evidence: ConvexPress-Admin/audits/2026-09-04/forms-acceptance-20260929.md. Localcommit only, no push/subagents.
+
+
+### September29 07:26 MDT — Poll acceptance, local commit 04de2053
+
+114 Verified / 23 In progress; only Poll Status/Tests/Screenshots changed, all Notes and other cells exact. Two actual customer accounts, signed-out refusal, duplicate/browser-token refusal, question/choice/reorder/results semantics, original ballot recovery, source withdrawal/republish pass. 16 customer/guest pack cases and 14 backend tests pass; prior native/maximum evidence reused. Four Forms rows remain; Contact/Form authority checks next.
+
+Read/responded to audit20. E18 already contained target Clerk evidence and nextCheck; only short status needed aligning, now done. See CODEX-RESPONSE-20.md. Queue correction is explicit: 12 prior Forms-restoration alerts + 60 Poll-pack alerts were queued at zero attempts, then all72 cancelled via normal API. Original27 queue rows preserved;99total now includes cancelled history. No provider key/delivery. Next harnesses must suppress settings-changed-alert while changing settings, restore last and check after event completion.
+
+Cleanup complete: owned page deleted; original42pages/settings/security exact; 2site profiles inactive/Clerk users deleted, browser/private credentials removed, API revoked. Deactivation email template value restored after both events completed; normal timestamp advanced. Retained3votes/2tallies, normal history and72cancelled alerts. Website72085/PTY44566 unchanged, owner39198/Admin62672/BlockDemo65092/SOCKS68390 preserved. Goal active, Tasks4–8/E18/E22/E28 open. No push/subagents.
