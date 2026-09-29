@@ -350,7 +350,7 @@ export function FooterRowsBuilder({ value, onChange }: { value?: Record<string, 
           Build a custom footer with rows of mixed content cells — text,
           menus, social, newsletter, and more.
         </p>
-        <div className="mt-5 flex items-center justify-center gap-2">
+        <div className="mt-5 flex flex-wrap items-center justify-center gap-2">
           <Button type="button" onClick={addRow}>
             <Plus className="mr-1 h-4 w-4" />
             Add empty row
@@ -380,15 +380,15 @@ export function FooterRowsBuilder({ value, onChange }: { value?: Record<string, 
 
   // ─── Builder ──────────────────────────────────────────────────────────────
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex items-center justify-between">
-        <div>
+    <div className="@container/footer-builder flex min-w-0 flex-col gap-4">
+      <div className="flex min-w-0 flex-col gap-3 @min-[40rem]/footer-builder:flex-row @min-[40rem]/footer-builder:items-center @min-[40rem]/footer-builder:justify-between">
+        <div className="min-w-0">
           <h2 className="text-lg font-semibold text-foreground">Footer Builder</h2>
           <p className="mt-0.5 text-sm text-muted-foreground">
             Drag to reorder. Click a row or cell to edit. Changes stay in your draft until published.
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <Button type="button" size="sm" variant="ghost" onClick={() => applyPreset("classic")}>
             Classic
           </Button>
@@ -540,7 +540,7 @@ function SortableRow({
         <button
           type="button"
           onClick={onToggleExpanded}
-          className="flex flex-1 items-center gap-2 text-left text-sm font-medium text-foreground"
+          className="flex min-w-0 flex-1 flex-wrap items-center gap-2 text-left text-sm font-medium text-foreground"
         >
           {expanded ? (
             <ChevronUp className="h-3.5 w-3.5 text-muted-foreground" />
@@ -566,7 +566,7 @@ function SortableRow({
       {expanded && (
         <div className="flex flex-col gap-4 p-3">
           {/* Row settings */}
-          <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
+          <div className="grid grid-cols-2 gap-2 @min-[32rem]/footer-builder:grid-cols-4">
             <RowSelect
               label="Background"
               value={row.background}
@@ -698,7 +698,7 @@ function SortableColumn({
         <button
           type="button"
           onClick={onToggleExpanded}
-          className="flex flex-1 items-center gap-2 text-left text-xs"
+          className="flex min-w-0 flex-1 flex-wrap items-center gap-2 text-left text-xs"
         >
           {expanded ? (
             <ChevronUp className="h-3.5 w-3.5 text-muted-foreground" />
@@ -762,12 +762,12 @@ function RowSelect<T extends string>({
   options: ReadonlyArray<{ value: T; label: string }>;
 }) {
   return (
-    <label className="flex flex-col gap-1">
+    <label className="flex min-w-0 flex-col gap-1">
       <span className="text-xs font-medium text-muted-foreground">{label}</span>
       <select
         value={value}
         onChange={(e) => onChange(e.target.value as T)}
-        className="h-8 rounded-none border border-border bg-background px-2 text-xs text-foreground outline-hidden focus:border-primary"
+        className="h-8 min-w-0 max-w-full rounded-none border border-border bg-background px-2 text-xs text-foreground outline-hidden focus:border-primary"
       >
         {options.map((opt) => (
           <option key={opt.value} value={opt.value}>
@@ -798,7 +798,7 @@ function CellTypePicker({
           Cancel
         </button>
       </div>
-      <div className="grid grid-cols-1 gap-1.5 md:grid-cols-2 lg:grid-cols-3">
+      <div className="grid grid-cols-1 gap-1.5 @min-[28rem]/footer-builder:grid-cols-2 @min-[40rem]/footer-builder:grid-cols-3">
         {FOOTER_CELL_CATALOG.map((entry) => (
           <button
             key={entry.type}

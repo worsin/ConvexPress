@@ -1,6 +1,6 @@
 import { expect, test } from "bun:test";
-import { settingsCss, STANDARD_MODULES, modulesFor } from "./settingsModules";
-import { STANDARD_MODULES as ADMIN_MODULES } from "../../../../../../ConvexPress-Admin/apps/web/src/lib/templates/settingsModules";
+import { settingsCss, STANDARD_MODULES, modulesFor, defaultsFor } from "./settingsModules";
+import { STANDARD_MODULES as ADMIN_MODULES, modulesFor as adminModulesFor, defaultsFor as adminDefaultsFor } from "../../../../../../ConvexPress-Admin/apps/web/src/lib/templates/settingsModules";
 
 test("migrated palette keeps custom tokens and separate dark overrides", () => {
   const { css } = settingsCss({ colors: { background: "#ffffff", primary: "#123456", "sidebar-background": "#eeeeee", "dark-primary": "#abcdef" } });
@@ -51,4 +51,16 @@ test("layout controls drive the closed SDK variables and reject arbitrary CSS", 
   expect(rejected).toContain("--content-max-width: 80rem;");
   expect(STANDARD_MODULES.layout.fields.map(field=>field.id)).toEqual(["radius","contentWidth","sectionSpacing","elementSpacing","blockGap"]);
   expect(ADMIN_MODULES.layout).toEqual(STANDARD_MODULES.layout);
+});
+
+import { TEMPLATE_PACKS } from "../../../../../../ConvexPress-Admin/apps/web/src/lib/templates/packs";
+test("native and on-site Customizers expose the same installed module fields and nested defaults", () => {
+  expect(ADMIN_MODULES).toEqual(STANDARD_MODULES);
+  for (const pack of TEMPLATE_PACKS) {
+    const actual = adminModulesFor(pack), expected = modulesFor(pack);
+    expect(actual).toEqual(expected);
+    expect(actual.find(module => module.id === "menuLayout")?.fields.map(field => field.id)).toContain("primary");
+    expect(actual.find(module => module.id === "header")?.fields.map(field => field.id)).toContain("layout.sticky");
+    expect(adminDefaultsFor(actual)).toEqual(defaultsFor(expected));
+  }
 });

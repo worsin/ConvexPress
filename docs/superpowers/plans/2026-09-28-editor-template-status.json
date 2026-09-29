@@ -7,7 +7,7 @@
     "In progress": 20
   },
   "goal": "Complete block editor and template delivery plus all demonstrated blockers; defer unrelated whole-app audit campaigns.",
-  "currentTask": "117Verified/20In progress. RSVP human CAPTCHA still pending with owned source fixture active; continue independent delivery work. E62 planner fixed and full tooling185/0. Task4 now has complete two-database retained-content scans and4explicit conversion refusals; next repository/demo corpus, raw-text/mixed-list representation and owned native migration/recovery. E22 renderer receipt refreshed after planner repair:317/0 and live137-row/117Verified gate pass. Tasks4\u20138/E18/E22/E28/model/Vimeo/target-Clerk remain open.",
+  "currentTask": "117 Verified / 20 In progress. Task5 Core native header/footer/menu-location draft/save/recovery/reset/Undo/review/publish and normal Website acceptance complete; E65 schema drift, E66 module-ID rejection and E67 footer editor overflow closed at bounded scope. Full Task5 four-pack contexts/authority/promotion reconciliation remain open, alongside E07 migration/recovery/retirement, authored sites, demo and SDK. Task4 inventory/refusals retained; E28 closed. Human RSVP CAPTCHA and separately journaled source fixture remain pending. No row promotion or full-delivery claim.",
   "tasks": [
     {
       "id": 1,
@@ -671,6 +671,50 @@
         "ConvexPress-Admin/audits/2026-09-04/menu-semantics-20260929.md",
         "output/menu-semantics-20260929/support-layout-red.json",
         "output/menu-semantics-20260929/support-layout.json"
+      ]
+    },
+    {
+      "id": "E65",
+      "classification": "accepted schema parity repair",
+      "deliveryTask": 5,
+      "initialFinding": "Native Customizer omitted installed menuLayout and nested chrome fields because its manually maintained settings schema drifted from Website.",
+      "closureBoundary": "Generate and check a shared portable settings schema; verify four-pack fields/defaults and actual native menu-location controls.",
+      "status": "Closed locally: byte-identical SDK schema mirror and all-four-pack parity regression pass; real Electron exposes and uses the seven menu-location fields.",
+      "evidence": [
+        "ConvexPress-Admin/audits/2026-09-04/customizer-chrome-20260929.md",
+        "output/customizer-chrome-20260929/schema-red.log",
+        "output/customizer-chrome-20260929/schema-green.log",
+        "output/customizer-chrome-20260929/native-published-proof.json"
+      ]
+    },
+    {
+      "id": "E66",
+      "classification": "accepted draft validation repair",
+      "deliveryTask": 5,
+      "initialFinding": "Native Save draft rejected installed menuLayout with Invalid module settings because module IDs reused lowercase pack-slug validation.",
+      "closureBoundary": "Accept installed camelCase module IDs without weakening pack/field-object checks; save/recover/publish on isolated target with unchanged function signatures.",
+      "status": "Closed locally and disposable target4870: registered-handler regression and native save/review/publish pass; strict one-file target deployment,2371 unchanged signatures, original appearance values restored.",
+      "evidence": [
+        "ConvexPress-Admin/audits/2026-09-04/customizer-chrome-20260929.md",
+        "output/customizer-chrome-20260929/module-id-red.log",
+        "output/customizer-chrome-20260929/module-id-green.log",
+        "output/customizer-chrome-20260929/installed-source-proof.json",
+        "output/customizer-chrome-20260929/published-proof.json",
+        "output/customizer-chrome-20260929/cleanup-proof.json"
+      ]
+    },
+    {
+      "id": "E67",
+      "classification": "accepted responsive editor repair",
+      "deliveryTask": 5,
+      "initialFinding": "Native Footer Builder expanded429px inside narrower Customizer panel; toolbar and viewport-based row columns overflowed.",
+      "closureBoundary": "Use builder-container layout and wrapping; verify expanded native controls fit without changing saved footer shape.",
+      "status": "Closed locally: actual native builder316px/scrollWidth316, no controls escape; expanded controls and published Website screenshots inspected.",
+      "evidence": [
+        "ConvexPress-Admin/audits/2026-09-04/customizer-chrome-20260929.md",
+        "output/customizer-chrome-20260929/footer-overflow-before.json",
+        "output/customizer-chrome-20260929/footer-expanded-proof.json",
+        "output/customizer-chrome-20260929/native-footer-row-controls.png"
       ]
     }
   ],
@@ -4363,7 +4407,12 @@
     "output/menu-semantics-20260929/desktop.json",
     "output/menu-semantics-20260929/mobile.json",
     "output/menu-semantics-20260929/support-layout.json",
-    "output/menu-semantics-20260929/cleanup.json"
+    "output/menu-semantics-20260929/cleanup.json",
+    "ConvexPress-Admin/audits/2026-09-04/customizer-chrome-20260929.md",
+    "output/customizer-chrome-20260929/published-proof.json",
+    "output/customizer-chrome-20260929/cleanup-proof.json",
+    "output/customizer-chrome-20260929/focused-final.log",
+    "output/customizer-chrome-20260929/tracker-gate-final.log"
   ],
   "trackerRefresh": {
     "source": "output/lead-customer-20260929/mt-accept-after.json",

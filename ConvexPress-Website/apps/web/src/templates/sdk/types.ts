@@ -8,25 +8,8 @@
 
 import type { ComponentType } from "react";
 
-export interface TemplateSettingsField {
-  id: string;
-  label: string;
-  type: "color" | "font" | "select" | "toggle" | "text" | "number" | "image" | "menuLocation" | "range";
-  default: unknown;
-  options?: Array<{ value: string; label: string }>;
-  /** Default comes from the brand doc / site identity until overridden. */
-  brandBound?: boolean;
-  /** Surfaces this field affects; used by the Customizer's context filter. */
-  surfaces?: string[];
-  min?: number;
-  max?: number;
-}
-
-export interface TemplateSettingsGroup {
-  id: string;
-  title: string;
-  fields: TemplateSettingsField[];
-}
+import type { TemplateSettingsGroup } from "./settingsSchema";
+export type { TemplateSettingsField, TemplateSettingsGroup } from "./settingsSchema";
 
 export interface TemplateManifest {
   /** Explicit per-block treatment opt-ins; generated backend support uses the same manifest. */

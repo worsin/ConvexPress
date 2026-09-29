@@ -4,6 +4,7 @@
  *   1. packs/core/template.json → `surfaces` = every surfaces/*.tsx file (catalog order).
  *   2. Every pack's `surfaces` list is checked against its files.
  *   3. ConvexPress-Admin/apps/web/src/lib/templates/packs.ts is regenerated from all manifests.
+ *   4. Portable settings schemas, draft/activation models and chrome definitions are mirrored.
  * Run after adding or removing surfaces in any pack; `check:templates` then verifies.
  */
 import { existsSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
@@ -108,3 +109,6 @@ writeFileSync(resolve(root, "../ConvexPress-Admin/apps/web/src/lib/templates/tem
 
 const chromeDefinitions = join(root, "apps/web/src/templates/sdk/chromeDefinitions.ts");
 if (existsSync(chromeDefinitions)) writeFileSync(resolve(root, "../ConvexPress-Admin/apps/web/src/lib/templates/chromeDefinitions.ts"), readFileSync(chromeDefinitions, "utf8"));
+
+// Portable module fields and defaults have one source, including nested chrome.
+writeFileSync(resolve(root, "../ConvexPress-Admin/apps/web/src/lib/templates/settingsSchema.ts"), readFileSync(join(root, "apps/web/src/templates/sdk/settingsSchema.ts"), "utf8"));
