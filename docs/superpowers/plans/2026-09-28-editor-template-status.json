@@ -7,7 +7,7 @@
     "In progress": 20
   },
   "goal": "Complete block editor and template delivery plus all demonstrated blockers; defer unrelated whole-app audit campaigns.",
-  "currentTask": "117 Verified/20 In progress. RSVP current original/generated native selection and six deployed verification refusals pass; real Turnstile human challenge pending in headed Chromium, owned fixture active with explicit cleanup journal. Central renderer evidence maps137blocks/1148pack-example cases and live tracker gate passes117Verified rows. Continue remaining Task3 work while awaiting CAPTCHA; Task4 E62 migration-planner failure now reproduced. Tasks4\u20138/E18/E22/E28/model/Vimeo/target-Clerk remain open; no full tooling-green claim.",
+  "currentTask": "117Verified/20In progress. RSVP human CAPTCHA still pending with owned source fixture active; continue independent delivery work. E62 planner fixed and full tooling185/0. Task4 now has complete two-database retained-content scans and4explicit conversion refusals; next repository/demo corpus, raw-text/mixed-list representation and owned native migration/recovery. E22 renderer receipt refreshed after planner repair:317/0 and live137-row/117Verified gate pass. Tasks4\u20138/E18/E22/E28/model/Vimeo/target-Clerk remain open.",
   "tasks": [
     {
       "id": 1,
@@ -100,14 +100,20 @@
     },
     {
       "id": "E07",
-      "status": "Open and explicitly scoped; complete retained-content inventory and lossless migration/legacy retirement acceptance have not been performed. Existing converter/source proofs do not establish a completed installed migration. F21 complete-or-explicitly-incomplete criterion applies.",
+      "status": "Open: complete paginated source4860/target4870 scans of posts/revisions/legacy reusable/synced tables recorded privately;116/29documents include trash,42/2legacy,7/2active legacy. Pure converters accept38/42source and2/2target;4source refusals explicitly retained (3raw-text documents,1multi-block list item), including2published raw-text posts. Two target registered draft preflights pass. No content migrated; repository/demo corpus, references, render/recovery acceptance and active legacy retirement pending.",
       "classification": "missing evidence",
       "initialFinding": "One-content-model migration and legacy retirement remain incomplete.",
       "closureBoundary": "Complete lossless conversion/recovery for actual retained content, source snapshots and installed-site receipts; then remove active legacy editor/renderer/schema dispatch as specified. Keep historical recovery data and a deliberate import converter. Do not delete old fields before proving preservation or claim migration complete while silently relying on legacy rendering.",
-      "nextCheck": "Task4 first check: inventory active legacy envelopes and references separately from historical snapshots across the intended source/demo corpus; map converter coverage, preserve backups and test owned copies, interrupted/over-limit receipts and exact reconciliation before retiring any live path.",
+      "nextCheck": "Task4: inspect repository/demo corpus and exact visible behavior of raw-text and nested-list sources; implement lossless reviewed adapters, preserve inactive/original fields, then exercise owned native copies and complete references/history/site receipts before retiring any active legacy path.",
       "deliveryTask": 4,
       "triagedAt": "2026-09-29",
-      "triageEvidence": "ConvexPress-Admin/audits/2026-09-04/delivery-blocker-triage-20260929.md"
+      "triageEvidence": "ConvexPress-Admin/audits/2026-09-04/delivery-blocker-triage-20260929.md",
+      "currentEvidence": [
+        "ConvexPress-Admin/audits/2026-09-04/migration-planner-corpus-20260929.md",
+        "output/migration-corpus-20260929/inventory.json",
+        "output/migration-corpus-20260929/conversion-review.json",
+        "output/migration-corpus-20260929/reusable-inventory.json"
+      ]
     },
     {
       "id": "E08",
@@ -626,14 +632,17 @@
     },
     {
       "id": "E62",
-      "classification": "confirmed migration tooling dependency",
+      "classification": "accepted planner repair",
       "initialFinding": "Full tooling suite and check:blocks-migration fail because stagedMigrationPlan replaces current candidate fields with extracted legacy fields while retaining current nested authoringActions. Historical Feature Grid lacks items.*.link; historical Team Grid lacks members.*.links.*.",
       "closureBoundary": "Task4: separate historical extraction from current canonical source metadata, preserve existing definitions/content and explicit unsupported-input reporting. Do not drop current constraints or rewrite installed specs merely to make migration planning green.",
-      "status": "Open: actual CLI fails before complete migration report; full tooling183pass/1fail after correcting promotion provenance test expectation. No migration writes performed.",
+      "status": "Closed for planner failure: historical proposals separated from unchanged installed canonical specs; installed write targets skipped and new files exclusively created. Failing-before preservation regression and unchanged54-definition migration check pass; full tooling185/0. Actual migration check now emits complete54-schema/44-pending-render-acceptance report and intentionally exits1. E07/Task4 acceptance remains open.",
       "evidence": [
         "output/block-evidence-20260929/migration-check-red.log",
         "output/block-evidence-20260929/tooling-tests-final.log",
-        "ConvexPress-Admin/audits/2026-09-04/block-evidence-mapping-20260929.md"
+        "ConvexPress-Admin/audits/2026-09-04/block-evidence-mapping-20260929.md",
+        "ConvexPress-Admin/audits/2026-09-04/migration-planner-corpus-20260929.md",
+        "output/block-evidence-20260929/tooling-tests-migration-green.log",
+        "output/block-evidence-20260929/migration-check-after-separation.log"
       ]
     }
   ],
@@ -4317,7 +4326,11 @@
     "ConvexPress-Admin/audits/2026-09-04/rsvp-provider-20260929.md",
     "output/block-evidence-20260929/renderer-tests.json",
     "output/block-evidence-20260929/tracker-gate-live.log",
-    "output/block-evidence-20260929/tooling-tests-final.log"
+    "output/block-evidence-20260929/tooling-tests-final.log",
+    "ConvexPress-Admin/audits/2026-09-04/migration-planner-corpus-20260929.md",
+    "output/migration-corpus-20260929/inventory.json",
+    "output/migration-corpus-20260929/conversion-review.json",
+    "output/migration-corpus-20260929/reusable-inventory.json"
   ],
   "trackerRefresh": {
     "source": "output/lead-customer-20260929/mt-accept-after.json",
