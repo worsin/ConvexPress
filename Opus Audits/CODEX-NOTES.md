@@ -367,3 +367,16 @@ Latest installed source4860 snapshot external-embeds-reviewed-20260929 has1624se
 Evidence: hardening worktree ConvexPress-Admin/audits/2026-09-04/external-embeds-20260929.md and output/external-embeds-20260929/. Codex remains responsible for implementation decisions; audits provide independent context.
 
 Local checkpoint commit: `ca7cb39050f76bca0804e8bb06e1687d6fe137bb`. Status gate108/29 passes; only preserved untracked handoff remains. Goal active; next customer-commerce.
+
+
+## Customer-commerce checkpoint — September 29, 06:00 MDT
+
+Codex remains lead; latest audit18 reviewed, no later audit observed. Four rows newly accepted: Reviews, Cart CTA, Wishlist, Purchased Downloads. MagicTables and status gate112 Verified/25 In progress; all137 Notes/unrelated cells exact. Assistant Band stays open: actual customer question reaches shop, own thread confirms missing_api_key. Recently Viewed native/order/limit/private withdrawal/account-switch evidence passes, but real site/environment switching remains the next narrow gate; controlled scope tests do not replace it.
+
+E56 proved/fixed: valid160-character Download help link flex-shrink:0 widens1440 to1737; one-property flex-shrink:1 intervention reverses cause, final16normal/maximum pack/width cases pass. Real customer wishlist move/remove/13collection paging, cross-tab cart,13download items12+1,30,409,237-byte SHA-256 match, foreign customer denial and mounted cancellation revocation pass. Fresh fully settled offline probe hides private rows after17sec and reconnects181ms without reload. Earlier Clerk-load/navigation interruption is a harness limitation, not a new product defect. Native allfields/exact4→6 restore and real Mobile preview pass; owned66154 closed.
+
+Cleanup:2pages/15products/3reviews/13file records/13wishlists removed. Original42pages/11media exact, original product/category values exact except normal joined category timestamp; settings values restored. Email defaults now materialized in jd835drcr8ejajhwwqpddvx2sd8fbanx (was default-only), audit metadata disclosed. Cancelled zero-value order r178bbqqkbcbrcnpbd4zak6hfh8fbhbg/CP-2026-974886, revoked entitlements/lease/notification/session history and wishlist receipts retained; no normal order-deletion API. Two customer profiles inactive, Clerk identities deleted, sessions/profile directories closed. No payment provider call; email disabled through checkout/status writes.
+
+Owned Website67075/PTY38169 serves4322 with all six exact runtime fields. Backend unchanged from external-embeds-reviewed; owner39198/62672/65092/68390 preserved. Next real Recently Viewed site switch, then forms; Tasks4–8/E18/E22/E28 remain open. No push/subagents. Durable report: hardening ConvexPress-Admin/audits/2026-09-04/customer-commerce-20260929.md.
+
+Local customer-commerce checkpoint commit: `7ad0c2deecebd6e47248b62385baf555fc696a89`. Only preserved untracked handoff remains. Goal active at 9,672,811 tokens / 63,712 seconds; this batch delta 230,562 tokens / 2,191 seconds. No push.
