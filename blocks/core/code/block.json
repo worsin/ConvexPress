@@ -59,5 +59,16 @@
     "fromVersion": 1,
     "preserveLegacyRender": true,
     "transforms": []
-  }
+  },
+  "searchText": [
+    [
+      "filename"
+    ],
+    [
+      "language"
+    ],
+    [
+      "code"
+    ]
+  ]
 }

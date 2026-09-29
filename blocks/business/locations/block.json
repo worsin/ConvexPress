@@ -78,8 +78,8 @@
     {
       "locations": [
         {
-          "name": "Example studio \u2014 fictional specimen",
-          "address": "Example Town \u00b7 demonstration address only",
+          "name": "Example studio — fictional specimen",
+          "address": "Example Town · demonstration address only",
           "phone": {
             "label": "Sample telephone",
             "href": "tel:+12025550123"
@@ -101,5 +101,17 @@
     "capabilities": [
       "reference.targetResolution"
     ]
-  }
+  },
+  "searchText": [
+    [
+      "locations",
+      "*",
+      "name"
+    ],
+    [
+      "locations",
+      "*",
+      "address"
+    ]
+  ]
 }

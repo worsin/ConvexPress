@@ -152,5 +152,16 @@
       "href": "ctaUrl",
       "label": "ctaLabel"
     }
+  ],
+  "searchText": [
+    [
+      "eyebrow"
+    ],
+    [
+      "heading"
+    ],
+    [
+      "intro"
+    ]
   ]
 }

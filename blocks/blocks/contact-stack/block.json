@@ -128,7 +128,7 @@
       "phone": "+1 (202) 555-0142",
       "email": "hello@example.invalid",
       "address": "Aster House\nIllustrative mountain-retreat address",
-      "hours": "Tuesday\u2013Saturday\n10:00\u201317:00 \u00b7 by arrangement",
+      "hours": "Tuesday–Saturday\n10:00–17:00 · by arrangement",
       "mapEmbedUrl": "https://www.openstreetmap.org/export/embed.html?bbox=-111.8%2C40.5%2C-111.5%2C40.8&layer=mapnik",
       "items": [
         {
@@ -144,5 +144,38 @@
     "capabilities": [
       "embed.sandbox"
     ]
-  }
+  },
+  "searchText": [
+    [
+      "heading"
+    ],
+    {
+      "path": [
+        "intro"
+      ],
+      "format": "prose"
+    },
+    [
+      "phone"
+    ],
+    [
+      "email"
+    ],
+    [
+      "address"
+    ],
+    [
+      "hours"
+    ],
+    [
+      "items",
+      "*",
+      "label"
+    ],
+    [
+      "items",
+      "*",
+      "value"
+    ]
+  ]
 }

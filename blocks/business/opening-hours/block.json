@@ -222,5 +222,12 @@
       "field": "exceptions",
       "key": "date"
     }
+  ],
+  "searchText": [
+    [
+      "exceptions",
+      "*",
+      "note"
+    ]
   ]
 }

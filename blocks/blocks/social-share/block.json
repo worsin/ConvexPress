@@ -123,5 +123,16 @@
       "shareUrlMode": "custom",
       "customUrl": "https://example.invalid/editorial-study"
     }
+  ],
+  "searchText": [
+    [
+      "heading"
+    ],
+    {
+      "path": [
+        "body"
+      ],
+      "format": "prose"
+    }
   ]
 }

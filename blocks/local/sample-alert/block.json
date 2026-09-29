@@ -94,5 +94,16 @@
       "href": "ctaUrl",
       "label": "ctaLabel"
     }
+  ],
+  "searchText": [
+    [
+      "heading"
+    ],
+    {
+      "path": [
+        "body"
+      ],
+      "format": "prose"
+    }
   ]
 }

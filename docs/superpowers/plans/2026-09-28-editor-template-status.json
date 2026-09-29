@@ -7,7 +7,7 @@
     "In progress": 63
   },
   "goal": "Complete block editor and template delivery plus all demonstrated blockers; defer unrelated whole-app audit campaigns.",
-  "currentTask": "Task 2 \u2014 finish remaining canonical search prose/current presentation, the empty-category 0 artifact, and Language Switcher promotion. Complete bounded reindex accepted (E37); Search Results remains In progress (74 Verified / 63 In progress).",
+  "currentTask": "Task 2 \u2014 complete conditional, promoted-block and HTML search prose/current presentation (E39), then Language Switcher/promotion. First36 authored-text declarations and empty-category0 repair accepted; E37 complete reindex accepted. Search Results remains In progress (74 Verified / 63 In progress).",
   "tasks": [
     {
       "id": 1,
@@ -300,6 +300,13 @@
       "classification": "accepted/reusable evidence",
       "initialFinding": "Native restoring snapshot 3 to document revision 3 fails with server maximum 1s timeout; draft preview approaches 800-911ms. Snapshot blocks and definitions exactly match original. Repeated validation/hash work dominates local CPU profile.",
       "closureBoundary": "Bound memoized exact JSON validation results only, keep integrity and byte guards on every call and fresh returned objects, never cache approvals/authority. Verify registered regressions and real native restore plus public behavior; preserve fixture cleanup."
+    },
+    {
+      "id": "E39",
+      "status": "Open after first accepted pass:36 explicit authored-text declarations and unavailable-media refusal installed;22 sampled block bodies searchable/rendered in all four packs, native caption save/reopen/current search accepted. Conditional, promoted-block and HTML coverage remains. See search-library-prose-20260928.md.",
+      "classification": "missing implementation",
+      "initialFinding": "Canonical source candidate descriptors omit visible utility, media, form and catalog introduction copy. Current search also returns hero text when selected media is unavailable and public rendering refuses the document.",
+      "closureBoundary": "Complete deliberate authored-text coverage across the Library, preserving private/config/action/status exclusions; apply current conditional/presentation/access/media rules; prove registered and actual native/public search, then reconcile Search Results acceptance without weakening scope."
     }
   ],
   "blocks": [
@@ -407,7 +414,8 @@
         "output/block-demo/browser-results-content50-verified.",
         "output/block-demo/browser-results-media42-verified.",
         "output/block-library-review-20260915/coverage-review.json.",
-        "output/content-family-20260921/."
+        "output/content-family-20260921/.",
+        "ConvexPress-Admin/audits/2026-09-04/search-library-prose-20260928.md"
       ],
       "remainingReview": "Retain scoped historical acceptance; verify only affected shared dependencies."
     },
@@ -718,7 +726,8 @@
         "output/block-demo/browser-results-responsive34-verified.",
         "output/block-library-review-20260915/coverage-review.json.",
         "output/block-review-refresh-20260920/acceptance-review.md.",
-        "output/media-family-20260921/."
+        "output/media-family-20260921/.",
+        "ConvexPress-Admin/audits/2026-09-04/search-library-prose-20260928.md"
       ],
       "remainingReview": "Retain scoped historical acceptance; verify only affected shared dependencies."
     },
@@ -736,7 +745,8 @@
         "output/block-demo/browser-results-media42-verified.",
         "output/block-library-review-20260915/coverage-review.json.",
         "output/gallery-review-20260920/acceptance-review.md.",
-        "output/media-family-20260921/."
+        "output/media-family-20260921/.",
+        "ConvexPress-Admin/audits/2026-09-04/search-library-prose-20260928.md"
       ],
       "remainingReview": "Retain scoped historical acceptance; verify only affected shared dependencies."
     },
@@ -815,14 +825,15 @@
         "media-interactive-20260921.md",
         "output/block-demo/browser-results-contact79-fixed",
         "output/block-library-review-20260915/coverage-review.json.",
-        "output/media-interactive-20260921/."
+        "output/media-interactive-20260921/.",
+        "ConvexPress-Admin/audits/2026-09-04/search-library-prose-20260928.md"
       ],
       "remainingReview": "Retain accepted YouTube consent/playback; establish a legitimate working Vimeo fixture and diagnose provider versus integration failure.",
       "deliveryTask": 3,
       "acceptanceBatch": "external-embeds",
       "reviewedAtCommit": "d8a0ea2c",
       "notesSha256": "b2fe26ee72acef917d20785add3bbbd17329467cdd8656776505e119638b3dcd",
-      "specSha256": "fe64b8edd9529de1c1debf26f3b1644e6f89d75feb7a59f491ec2d10eb788786",
+      "specSha256": "66c0589860a7cd8c71bc5280614699bc899630fb5f210d63b44b20f9d81f6e82",
       "rendererSha256": "49be3aa3136c867fa3827655a78a89baa7f25f389e98eca3677eafcc49ca565f",
       "canonicalFields": [
         "url",
@@ -861,7 +872,8 @@
         "output/block-demo/browser-results-media66",
         "output/block-library-review-20260915/coverage-review.json.",
         "output/gallery-review-20260920/acceptance-review.md.",
-        "output/media-interactive-20260921/."
+        "output/media-interactive-20260921/.",
+        "ConvexPress-Admin/audits/2026-09-04/search-library-prose-20260928.md"
       ],
       "remainingReview": "Retain scoped historical acceptance; verify only affected shared dependencies."
     },
@@ -879,7 +891,8 @@
         "output/block-demo/browser-results-media42-verified.",
         "output/block-library-review-20260915/coverage-review.json.",
         "output/block-review-refresh-20260920/acceptance-review.md.",
-        "output/media-family-20260921/."
+        "output/media-family-20260921/.",
+        "ConvexPress-Admin/audits/2026-09-04/search-library-prose-20260928.md"
       ],
       "remainingReview": "Retain scoped historical acceptance; verify only affected shared dependencies."
     },
@@ -1008,7 +1021,8 @@
         "hero-video-20260921.md",
         "output/block-demo/browser-results-media66",
         "output/block-library-review-20260915/coverage-review.json.",
-        "output/hero-video-20260921."
+        "output/hero-video-20260921.",
+        "ConvexPress-Admin/audits/2026-09-04/search-library-prose-20260928.md"
       ],
       "remainingReview": "Retain scoped historical acceptance; verify only affected shared dependencies."
     },
@@ -1172,7 +1186,8 @@
         "output/aster-house/conversion83/newsletter-acceptance.json",
         "output/block-demo/browser-results-conversion83",
         "output/block-library-review-20260915/coverage-review.json.",
-        "output/newsletter-host-20260906/runtime-receipt.json."
+        "output/newsletter-host-20260906/runtime-receipt.json.",
+        "ConvexPress-Admin/audits/2026-09-04/search-library-prose-20260928.md"
       ],
       "remainingReview": "Retain scoped historical acceptance; verify only affected shared dependencies."
     },
@@ -1370,7 +1385,8 @@
         "output/block-demo/browser-results-utility74-verified",
         "output/block-library-review-20260915/coverage-review.json.",
         "output/trust-badges-20260921.",
-        "trust-badges-20260921.md"
+        "trust-badges-20260921.md",
+        "ConvexPress-Admin/audits/2026-09-04/search-library-prose-20260928.md"
       ],
       "remainingReview": "Retain scoped historical acceptance; verify only affected shared dependencies."
     },
@@ -1442,7 +1458,8 @@
         "output/block-demo/browser-results-media66",
         "output/block-library-review-20260915/coverage-review.json.",
         "output/process-family-20260921.",
-        "process-family-20260921.md"
+        "process-family-20260921.md",
+        "ConvexPress-Admin/audits/2026-09-04/search-library-prose-20260928.md"
       ],
       "remainingReview": "Retain scoped historical acceptance; verify only affected shared dependencies."
     },
@@ -1522,14 +1539,15 @@
         "canonical-media66-renderer-outcome.md",
         "motion-review-20260921.md",
         "output/block-demo/browser-results-media66",
-        "output/block-library-review-20260915/coverage-review.json."
+        "output/block-library-review-20260915/coverage-review.json.",
+        "ConvexPress-Admin/audits/2026-09-04/search-library-prose-20260928.md"
       ],
       "remainingReview": "Reuse32-case hardware motion proof; native media repeater/reorder/recovery and distinct empty/single/pause states across final packs.",
       "deliveryTask": 2,
       "acceptanceBatch": "media-interaction",
       "reviewedAtCommit": "d8a0ea2c",
       "notesSha256": "f53ab81a2ed19ef309bf2cabc19d9b2abc8eb29e312e7c7e03331864b5a6ca38",
-      "specSha256": "c693246aa861e478222e252063f94457ed9f34d0f4b5dc54e47daaa53df2c3a0",
+      "specSha256": "dbf3a04c6f5839a71af1a2b2c531de6b7ede688b5989563c1d5b74b8c8188ef5",
       "rendererSha256": "d26d52adc31f2e9b9e8985b56e2a0c6a3842e6d22993c01402773709de631a26",
       "canonicalFields": [
         "items"
@@ -1575,14 +1593,15 @@
         "block-existing-spec-migration-outcome.md",
         "canonical-utility74-renderer-outcome.md",
         "output/block-demo/browser-results-utility74-verified",
-        "output/block-library-review-20260915/coverage-review.json."
+        "output/block-library-review-20260915/coverage-review.json.",
+        "ConvexPress-Admin/audits/2026-09-04/search-library-prose-20260928.md"
       ],
       "remainingReview": "Native network selection/label; exact encoded current URL and actual keyboard share/copy/fallback destinations without posting.",
       "deliveryTask": 2,
       "acceptanceBatch": "social-utilities",
       "reviewedAtCommit": "d8a0ea2c",
       "notesSha256": "acf98d19cc2109f23b3b59877ffb620d8870da782082951800f55db4c8a44c3d",
-      "specSha256": "0575f4c0fdcc3a8b9483ebbef52257c5f1adfa1fa27bd0ba9b4428bc1cf1dad5",
+      "specSha256": "4303336e4942b0821ac8ec6ec13367b27bcb9044ccf04a49ec964cbf82c74731",
       "rendererSha256": "0517103b8eb095ee71efd896c9f850383f88afd7404fd977eedb1bace42f6f52",
       "canonicalFields": [
         "heading",
@@ -1605,14 +1624,15 @@
         "block-existing-spec-migration-outcome.md",
         "output/block-demo/browser-results-content50-verified.",
         "output/block-demo/browser-results-media42-verified.",
-        "output/block-library-review-20260915/coverage-review.json."
+        "output/block-library-review-20260915/coverage-review.json.",
+        "ConvexPress-Admin/audits/2026-09-04/search-library-prose-20260928.md"
       ],
       "remainingReview": "Native network/url repeater, ordering and absent values; actual links/accessibility under all packs.",
       "deliveryTask": 2,
       "acceptanceBatch": "social-utilities",
       "reviewedAtCommit": "d8a0ea2c",
       "notesSha256": "3e435bfef38c74fa75309cdeac28c50215950e231018f3e6688a89a6faf00431",
-      "specSha256": "1dceba57bde56ff2dd807070a68d6dab4445667951a956ef972bcf7728b37115",
+      "specSha256": "a20e27c2294097ac4b9139beecc0d9829ec7cca2947bf758e492270ff5178a88",
       "rendererSha256": "b863b54a36b56b0428ac72465a19fb19dc7b9145d647d0a30e06d0e7efa258b8",
       "canonicalFields": [
         "heading",
@@ -1716,7 +1736,8 @@
         "output/pack-owned-treatments-20260915.",
         "output/product-family-20260921/.",
         "output/product-showcase-20260911.",
-        "product-family-20260921.md"
+        "product-family-20260921.md",
+        "ConvexPress-Admin/audits/2026-09-04/search-library-prose-20260928.md"
       ],
       "remainingReview": "Retain scoped historical acceptance; verify only affected shared dependencies."
     },
@@ -1752,7 +1773,8 @@
         "output/category-tiles-20260910.",
         "output/cta-family-20260921.",
         "output/pack-owned-treatments-20260915.",
-        "output/product-publication-20260910."
+        "output/product-publication-20260910.",
+        "ConvexPress-Admin/audits/2026-09-04/search-library-prose-20260928.md"
       ],
       "remainingReview": "Retain scoped historical acceptance; verify only affected shared dependencies."
     },
@@ -1770,14 +1792,15 @@
         "output/production-checkpoints/product-media-20260906.",
         "output/shipping-origin-20260906/next-work.md.",
         "output/stock-policy-20260906/next-work.md.",
-        "output/storefront-pricing-20260906."
+        "output/storefront-pricing-20260906.",
+        "ConvexPress-Admin/audits/2026-09-04/search-library-prose-20260928.md"
       ],
       "remainingReview": "Actual selected catalog/limit/columns, price/availability changes and authorized cart action; reuse existing stock guards without reopening carrier operations.",
       "deliveryTask": 3,
       "acceptanceBatch": "catalog",
       "reviewedAtCommit": "d8a0ea2c",
       "notesSha256": "6db4f93d3f40da0c9b16e57dd73d0762ddcd95648179b72ed1649a377992b5d7",
-      "specSha256": "cba38d2af31d1505330844c7fd201bed8c347d934a1f958e61deb002f5b5dad9",
+      "specSha256": "362eb9e70287fcdaa4bf831d0e336c37ed980937fde1810e7afa852022a7468d",
       "rendererSha256": "94977af4e669fe1a5bb5bdd578fb2db2b0f5aa59be157a7cad2426ac30e0e082",
       "canonicalFields": [
         "eyebrow",
@@ -1887,14 +1910,15 @@
       "evidenceReferences": [
         "output/block-library-review-20260915/coverage-review.json.",
         "output/product-sale-schedule-20260910.",
-        "output/sale-countdown-20260910."
+        "output/sale-countdown-20260910.",
+        "ConvexPress-Admin/audits/2026-09-04/search-library-prose-20260928.md"
       ],
       "remainingReview": "Reuse product start/end scheduling proof; verify authored campaign deadline expiry, selected card limit, clock/access states and final pack output.",
       "deliveryTask": 3,
       "acceptanceBatch": "catalog",
       "reviewedAtCommit": "d8a0ea2c",
       "notesSha256": "c97dfe2a0da176ca2684c086531c78d01c8f932979a99ac302fb292bddcdc8c5",
-      "specSha256": "43d8d0658e3804c36a055355f67326afc0980b978307fb8655308e2ab4e6fa8c",
+      "specSha256": "c50b67cb113c7d2fb450dca4ad66f42dde9ff6894e20cc2c76e04c6de9e4fc73",
       "rendererSha256": "ad617d0eaaa4dbb6c6ffe7d1c35d48523e6adbbc30bad9d76a77ecfe32d6553a",
       "canonicalFields": [
         "target",
@@ -1913,14 +1937,15 @@
       "requirements": "limit (number), title (text)",
       "evidenceReferences": [
         "output/block-library-review-20260915/coverage-review.json.",
-        "output/recently-viewed-20260910."
+        "output/recently-viewed-20260910.",
+        "ConvexPress-Admin/audits/2026-09-04/search-library-prose-20260928.md"
       ],
       "remainingReview": "Reuse real anonymous visit ordering; signed-in/account/site switching, deleted/private product removal, limit and empty state.",
       "deliveryTask": 3,
       "acceptanceBatch": "customer-commerce",
       "reviewedAtCommit": "d8a0ea2c",
       "notesSha256": "72c31c7383c35d2ae342244a8708240f6ad13d9bb8fa7060c69e06fee88d7a5f",
-      "specSha256": "815c564ee809e236e7c0229aa9b883c25120969b6b06bf08fea15b3b14099393",
+      "specSha256": "b5490c4ea27773629ec36ed4a9744576cfdae7f8868878eef2eac6509be7370f",
       "rendererSha256": "893d7da1f7399c601947c7406db5b2cae6c82c21252a3197b9dc58b4546e01bc",
       "canonicalFields": [
         "limit",
@@ -1941,14 +1966,15 @@
         "output/cart-cta-20260910",
         "output/cart-family-20260921.",
         "output/cart-recovery-20260921.",
-        "output/commerce-session-20260921."
+        "output/commerce-session-20260921.",
+        "ConvexPress-Admin/audits/2026-09-04/search-library-prose-20260928.md"
       ],
       "remainingReview": "Reuse customer restore/guest merge proof; title/empty copy, closed-cart cross-tab changes, currency and all-pack live host states. Payment lifecycle is separate unless reached.",
       "deliveryTask": 3,
       "acceptanceBatch": "customer-commerce",
       "reviewedAtCommit": "d8a0ea2c",
       "notesSha256": "7eae3b62dfeda27f6654c3abb2394c3ac5a702c138f480bed653dc799eff7582",
-      "specSha256": "9cf3a25e5b0ff3a0ad9206e1a02df891d54a29ca494a982c7119fc810220d2a8",
+      "specSha256": "8fffe4b40c1a3daa0c64a7e40f5fc4cbfb82965ae70349dced81748f209b4fd1",
       "rendererSha256": "ce7e7d2e5282c422cda09d07aba1473cf64e9031448980f6f503b2eb3564d4ba",
       "canonicalFields": [
         "title",
@@ -2099,14 +2125,15 @@
         "public-author-outcome.md",
         "content-discovery-completion-20260928.md",
         "output/content-discovery-20260928/",
-        "output/content-discovery-final-20260928/"
+        "output/content-discovery-final-20260928/",
+        "ConvexPress-Admin/audits/2026-09-04/search-library-prose-20260928.md"
       ],
       "remainingReview": "None for this block; shared full-delivery gates remain open.",
       "deliveryTask": 3,
       "acceptanceBatch": "content-discovery",
       "reviewedAtCommit": "d8a0ea2c",
       "notesSha256": "9c4c79e41d5500aec953ff9a479322fbe9677cc4cec2b483fe88e737bf2e5d0b",
-      "specSha256": "79ed7ee18ca01e98dc65a47073694b15360a06420e12d860a128224ccdef9556",
+      "specSha256": "1b7b3a2905255a6cb4c92c861e3bd155c213f6d7f2c35370a261a250ab7c3e12",
       "rendererSha256": "14ec31f62dbc15cd10e371635fe106cb413adb74818a25b326ca18fbb456a32c",
       "canonicalFields": [
         "eyebrow",
@@ -2204,14 +2231,15 @@
         "tag-cloud-outcome.md",
         "content-discovery-completion-20260928.md",
         "output/content-discovery-20260928/",
-        "output/content-discovery-final-20260928/"
+        "output/content-discovery-final-20260928/",
+        "ConvexPress-Admin/audits/2026-09-04/search-library-prose-20260928.md"
       ],
       "remainingReview": "None for this block; shared full-delivery gates remain open.",
       "deliveryTask": 3,
       "acceptanceBatch": "content-discovery",
       "reviewedAtCommit": "d8a0ea2c",
       "notesSha256": "92c35b58f3dacd8da0d87b3c21130bb412a881250ad9a5b255fe9b79331678f0",
-      "specSha256": "a229778ea5aeea0562405cf5c9edba60b08f142303dd8000d5dbd034f9e8d907",
+      "specSha256": "b57256558a0ab914d4408e77933ce60d2fc885ab902d91d23a08eb7834ba6ed4",
       "rendererSha256": "4b124083767fc597494a7f24cba12e6ba8446425f111f9f53b5413d6aee9a0ea",
       "canonicalFields": [
         "heading",
@@ -2377,14 +2405,15 @@
         "output/block-library-review-20260915/coverage-review.json.",
         "output/contact-form-20260906/runtime-receipt.json.",
         "output/synced-forms-live-20260915.",
-        "output/synced-forms-recovery-20260915."
+        "output/synced-forms-recovery-20260915.",
+        "ConvexPress-Admin/audits/2026-09-04/search-library-prose-20260928.md"
       ],
       "remainingReview": "Actual field/question authoring and source identity, submit/validation/deduplication, revoked/expired authority and nested reusable graph recovery; no outbound email.",
       "deliveryTask": 3,
       "acceptanceBatch": "forms",
       "reviewedAtCommit": "d8a0ea2c",
       "notesSha256": "1c4e900d04d9143c25bf4778071d7f1fa327070146f46a76afa3225882000894",
-      "specSha256": "3e2d3c80622a269e8d55116489ca3c46a26992ba396128f996789226a50483c6",
+      "specSha256": "7c0ea95f2b76dcec865add2ca653512d4a250e6f55632ae10b2cd0737773d6bd",
       "rendererSha256": "f7318b17e9e37f50f7fc8cb041799b178910ab11e77dcd79754b667f54f5b1e9",
       "canonicalFields": [
         "eyebrow",
@@ -2410,14 +2439,15 @@
         "output/aster-house/conversion83/newsletter-acceptance.json",
         "output/block-demo/browser-results-conversion83",
         "output/block-library-review-20260915/coverage-review.json.",
-        "output/newsletter-host-20260906/runtime-receipt.json."
+        "output/newsletter-host-20260906/runtime-receipt.json.",
+        "ConvexPress-Admin/audits/2026-09-04/search-library-prose-20260928.md"
       ],
       "remainingReview": "Reuse SSR-readiness/deduplicated signup; native list/title/body/button variants and actual all-pack success/error/retry with synthetic addresses and no email.",
       "deliveryTask": 3,
       "acceptanceBatch": "forms",
       "reviewedAtCommit": "d8a0ea2c",
       "notesSha256": "40bc9df1563cd2e784d7639c7ab74ed55b3d656c3da3fed56d8624491017363e",
-      "specSha256": "dab3a43cc154a45ef25691b7d719afbe367ef8218609ab9beba9bef218402199",
+      "specSha256": "8b2b12b92a2f5841fab1968f37e7e58cc15cb7f7ab18a3508cb1fbae5cc65582",
       "rendererSha256": "51f1263e2a997a57156adf09c7a9b6292bf4b398bd773c693b670f4cbed70ba2",
       "canonicalFields": [
         "eyebrow",
@@ -2441,14 +2471,15 @@
         "block-existing-spec-migration-outcome.md",
         "canonical-contact79-renderer-outcome.md",
         "output/block-demo/browser-results-contact79-fixed",
-        "output/block-library-review-20260915/coverage-review.json."
+        "output/block-library-review-20260915/coverage-review.json.",
+        "ConvexPress-Admin/audits/2026-09-04/search-library-prose-20260928.md"
       ],
       "remainingReview": "Native title/body/url/provider, approved provider consent/load/reset/failure or actual external destination; booking submission requires explicit scope.",
       "deliveryTask": 3,
       "acceptanceBatch": "external-embeds",
       "reviewedAtCommit": "d8a0ea2c",
       "notesSha256": "7f29f9f80384cd7e02996e8b45ae1b3d9798d0e199839fa35857b841b4f14bd6",
-      "specSha256": "fbb7cc786fd2ef691eb5bf6ed92ec0a9a66cef3f75cc9fadec529ea38f28d77a",
+      "specSha256": "db61af6e6d68543563c6d422f3c2a63a69cecd0bb02a7e0e97652a37b2e142f3",
       "rendererSha256": "9ccb5a0770d322db51ccadfde8c1cc294d7281c45a8a944032f7a05e117792ac",
       "canonicalFields": [
         "eyebrow",
@@ -2473,14 +2504,15 @@
         "output/block-demo/browser-results-contact79-fixed",
         "output/block-library-review-20260915/coverage-review.json.",
         "output/block-review-refresh-20260920/acceptance-review.md.",
-        "output/block-visual-acceptance-20260915"
+        "output/block-visual-acceptance-20260915",
+        "ConvexPress-Admin/audits/2026-09-04/search-library-prose-20260928.md"
       ],
       "remainingReview": "Reuse container-width/consent repairs; native address/hours/phone/email/map/form, actual scoped form/map load and correct contact destinations.",
       "deliveryTask": 3,
       "acceptanceBatch": "external-embeds",
       "reviewedAtCommit": "d8a0ea2c",
       "notesSha256": "bd0a3defe392ca1d334d7d9d39172ee556a764d7273aee3162b541b6ff2b4bda",
-      "specSha256": "8f58f271a1481c1919dae35e08d5672571a81d422b733b9434b94f76bb39235f",
+      "specSha256": "a685c23ea217a8137e91ee169df3ebcdbc97fc839643e4f15cc5f3eed3a8a4c2",
       "rendererSha256": "57df434dd10a6be2cd0dc30cc7801015f2b17b8e073eb2af714e448f33f164c5",
       "canonicalFields": [
         "heading",
@@ -2535,14 +2567,15 @@
         "output/block-library-review-20260915/coverage-review.json.",
         "output/lead-magnet-block-20260915.",
         "output/lead-magnet-block-20260915/picker-*.",
-        "output/lead-magnet-lifecycle-20260921/"
+        "output/lead-magnet-lifecycle-20260921/",
+        "ConvexPress-Admin/audits/2026-09-04/search-library-prose-20260928.md"
       ],
       "remainingReview": "Reuse stale-callback and fixture-file proof; native media/file/list selection, real scoped signup/download/opt-out/retry and account/environment isolation without email.",
       "deliveryTask": 3,
       "acceptanceBatch": "forms",
       "reviewedAtCommit": "d8a0ea2c",
       "notesSha256": "d1eb7b0489c3b0723cae37b3fc95d836630cafaaab64d74498a5922b10a16aff",
-      "specSha256": "7f447a58291280461e7723a6f0e9afadf4c907cb26e267c1bfaedb34591861c8",
+      "specSha256": "2473ea8b1f05d6b8579f6fc7edd9f442abad411de7039742862c0f67eb40c96a",
       "rendererSha256": "a9277c089ed44eef238cf5be7ffadd3d1c6af69db3970a2a49a818dfe551a891",
       "canonicalFields": [
         "title",
@@ -2759,14 +2792,15 @@
         "events-upcoming-outcome.md",
         "output/block-library-review-20260915/coverage-review.json.",
         "output/events-upcoming-20260906",
-        "output/playwright/events-upcoming-20260906."
+        "output/playwright/events-upcoming-20260906.",
+        "ConvexPress-Admin/audits/2026-09-04/search-library-prose-20260928.md"
       ],
       "remainingReview": "Reuse actual publish/cancel/reappear flow; count/heading/intro/show-description/empty copy and final pack/time-boundary review.",
       "deliveryTask": 3,
       "acceptanceBatch": "events",
       "reviewedAtCommit": "d8a0ea2c",
       "notesSha256": "865db11c04c781135dc7facd9fac3cd23f33057d3f7ba2cda8db512e6b132a10",
-      "specSha256": "792960a8fc081d4dd3f9a23e2f6e6a3cd3e89f06bcdd1939d12636dd5ac6eb48",
+      "specSha256": "92ae238b679fd69ed94e9d4afae4493a84f4f089194a145647f6fd8eb0beb15b",
       "rendererSha256": "c748f2b62c15550d827e228471b32986ed4bb13985a169019a22dc30ec52016a",
       "canonicalFields": [
         "heading",
@@ -2813,14 +2847,15 @@
       "source": "blocks/membership/plans/block.json",
       "requirements": "selection (all/selected), plans (membershipPlan ids, up to12), limit (1-12), heading, introduction, actionLabel, actionLink (safe href)",
       "evidenceReferences": [
-        "output/block-library-review-20260915/coverage-review.json."
+        "output/block-library-review-20260915/coverage-review.json.",
+        "ConvexPress-Admin/audits/2026-09-04/search-library-prose-20260928.md"
       ],
       "remainingReview": "Reuse real selected/all order and9-plan paging; actual customer/session/availability, limit/copy/action link and final pack states.",
       "deliveryTask": 3,
       "acceptanceBatch": "membership",
       "reviewedAtCommit": "d8a0ea2c",
       "notesSha256": "a18c6365489c9169da1f664a0853cfa333a89448b3a96e97c83d6f88354ccf34",
-      "specSha256": "9fe44fbeba5be1fd0c3d7d8afed6cc42ad83dd012046b17cd6cff3261806eca0",
+      "specSha256": "ba3cd04aa720b03b53e27599d9c229f26713dee58bf4b536b9f98de89b7b1037",
       "rendererSha256": "1af104d05a8ec542e3726e7f259d257d2567df967c556b9e2916f6262f54f9f8",
       "canonicalFields": [
         "selection",
@@ -2842,14 +2877,15 @@
       "source": "blocks/membership/gated-teaser/block.json",
       "requirements": "teaserText (text), requiredPlan (membershipPlan reference by id), upgradeLink (optional safe href)",
       "evidenceReferences": [
-        "output/block-library-review-20260915/coverage-review.json."
+        "output/block-library-review-20260915/coverage-review.json.",
+        "ConvexPress-Admin/audits/2026-09-04/search-library-prose-20260928.md"
       ],
       "remainingReview": "Reuse native plan/grant/revocation API proof; actual browser member login/upgrade destination, signed-out/denied/withdrawn plan and all-pack presentation.",
       "deliveryTask": 3,
       "acceptanceBatch": "membership",
       "reviewedAtCommit": "d8a0ea2c",
       "notesSha256": "18a1892b46433eb17f2e4ecdcde780296b26f2b51bc547fd0bef4a1af3bd7e6c",
-      "specSha256": "d046817385b6bd8f9499aeace5ec615f8fe2a551c0705f2783b45c7a2813213c",
+      "specSha256": "f142e98a27c54f6663e9cae10c8549afc5c7f3d70be1847e1ababe6fcc9add72",
       "rendererSha256": "c9e3d198e9210c38ee782f60657936f66ca676035722aa9898da078cf8f94d66",
       "canonicalFields": [
         "teaserText",
@@ -2959,7 +2995,8 @@
       "requirements": "title (text), body (text)",
       "evidenceReferences": [
         "output/block-library-review-20260915/coverage-review.json.",
-        "output/support-blocks-20260911"
+        "output/support-blocks-20260911",
+        "ConvexPress-Admin/audits/2026-09-04/search-library-prose-20260928.md"
       ],
       "remainingReview": "Resolve F1 default authority; real customer sign-in and owned ticket destination/submission, denied/signed-out behavior and final pack rendering.",
       "sharedDependencies": [
@@ -2970,7 +3007,7 @@
       "acceptanceBatch": "support",
       "reviewedAtCommit": "d8a0ea2c",
       "notesSha256": "3a2c3351347e51e0e50cdf0ebe5c9cc0c5debbea15009c91fa2571a92293a6f9",
-      "specSha256": "ab2d9b4dbdddc3e1c67235b3c10aa37a2ed4a12cea79183435a8e1283da3d839",
+      "specSha256": "a68a45cfb929c42682003af4bbcdaefe0913b9635e008d8ce3c7faca99fdb6b5",
       "rendererSha256": "870fddd7b1bddf4d40090909b6123a71e98b8991daa4ebd5559d259b2bbb6bd5",
       "canonicalFields": [
         "title",
@@ -2990,14 +3027,15 @@
         "output/acceptance-reconciliation-20260920/acceptance-review.md.",
         "output/block-library-review-20260915/coverage-review.json.",
         "output/certificate-block-20260911/checks.json.",
-        "output/course-blocks-20260911/certificate-authority-checks.json."
+        "output/course-blocks-20260911/certificate-authority-checks.json.",
+        "ConvexPress-Admin/audits/2026-09-04/search-library-prose-20260928.md"
       ],
       "remainingReview": "Reuse all-pack invalid/valid/revoked fixture and stale-response repair; real certificate provider verification, privacy, retry and native title/recovery.",
       "deliveryTask": 3,
       "acceptanceBatch": "learning",
       "reviewedAtCommit": "d8a0ea2c",
       "notesSha256": "b63b0d9fba69b5726378aa7cbf79f2dc0db4da3cbb4ee841cb1fc8f993a2475e",
-      "specSha256": "50c0b6a4825664035d8cc2bf06decee0d348191bf60938425a04d3366ea45f3e",
+      "specSha256": "2e2e5690ba4bcad0a77488ea5299535674f872fcda2c389bf0c64fc245653f5e",
       "rendererSha256": "183508e5da3434351d7f97c9b2c1d18a57fe52e1430ea6a0d8da3b5c9ebb54e2",
       "canonicalFields": [
         "title"
@@ -3310,14 +3348,15 @@
         "output/block-demo/browser-results-content50-verified.",
         "output/block-demo/browser-results-media42-verified.",
         "output/block-demo/browser-results-responsive34-verified.",
-        "output/block-library-review-20260915/coverage-review.json."
+        "output/block-library-review-20260915/coverage-review.json.",
+        "ConvexPress-Admin/audits/2026-09-04/search-library-prose-20260928.md"
       ],
       "remainingReview": "Native timezone/week/exceptions/contact link, valid/invalid boundary values, closed/overnight/date exceptions and all-pack readable output.",
       "deliveryTask": 2,
       "acceptanceBatch": "business",
       "reviewedAtCommit": "d8a0ea2c",
       "notesSha256": "a3cf308a81c66d74c1a1f7bb93e04e47d76dd6a3d9ef46e39549f777168d9d6b",
-      "specSha256": "a8a34f4c0d6e8585e8fdd2b7f134433e982656556ca2c0ea69323a4e054f6372",
+      "specSha256": "58f2d236672927dd47a743d4144e20cd5855508a8b64a1bcfa92cdf1328e6f1b",
       "rendererSha256": "705c6436ebdfc510ba5d397a11d73b909f73805ca675da72452b30d1f0d33cfa",
       "canonicalFields": [
         "timezone",
@@ -3339,14 +3378,15 @@
         "output/block-demo/browser-results-content50-verified.",
         "output/block-demo/browser-results-media42-verified.",
         "output/block-demo/browser-results-responsive34-verified.",
-        "output/block-library-review-20260915/coverage-review.json."
+        "output/block-library-review-20260915/coverage-review.json.",
+        "ConvexPress-Admin/audits/2026-09-04/search-library-prose-20260928.md"
       ],
       "remainingReview": "Native repeater order, media/links/address variations, real destination actions and empty/long/narrow states.",
       "deliveryTask": 2,
       "acceptanceBatch": "business",
       "reviewedAtCommit": "d8a0ea2c",
       "notesSha256": "e5e32c0e734fc77a3e55f3535f1b1fbe866ab0b446db29c02e733ee46bb47b27",
-      "specSha256": "8e72363f42e7fea10952897393eafbcf1f3b72279a02953a01ab0d7dd368189f",
+      "specSha256": "79c21b2ca1bc5ce538efb8254959859168b4919d6c480f284aadf233cd7117e7",
       "rendererSha256": "f9182d297bb7a37e51a3184e257b91488f205ff369a15611841582643afb4250",
       "canonicalFields": [
         "locations"
@@ -3418,14 +3458,15 @@
         "output/wishlist-hardening-20260915",
         "output/wishlist-lookup-20260915/checks.json",
         "output/wishlist-owner-totals-20260915.",
-        "output/wishlist-surfaces-20260914"
+        "output/wishlist-surfaces-20260914",
+        "ConvexPress-Admin/audits/2026-09-04/search-library-prose-20260928.md"
       ],
       "remainingReview": "Reuse fixture/readiness/paging proof; real customer-owned list/item actions and session isolation, native copy/browse link and all-pack host behavior.",
       "deliveryTask": 3,
       "acceptanceBatch": "customer-commerce",
       "reviewedAtCommit": "d8a0ea2c",
       "notesSha256": "bee93069dcdde96f56316b20eb42e518fbff123eb98a01245158b50a133aa7b8",
-      "specSha256": "3bafd2bc2293596fedd796a999a3ad1ace60ee8ad6ba0f2cc576b399530531f6",
+      "specSha256": "7089608377fdf855c3bec0dcd8eb62b83fb74ea6a7a70fe255848a86fe3758d6",
       "rendererSha256": "f098a6c41fe80507d8b400a4a7b86d95a435283313b51c8d7bfff8657299b742",
       "canonicalFields": [
         "heading",
@@ -3447,14 +3488,15 @@
         "output/download-library-20260915.",
         "output/download-library-block-20260915.",
         "output/download-transport-20260915.",
-        "output/stylesheet-hydration-20260915."
+        "output/stylesheet-hydration-20260915.",
+        "ConvexPress-Admin/audits/2026-09-04/search-library-prose-20260928.md"
       ],
       "remainingReview": "Reuse callback/entrance fixes; actual permitted entitlement/file bytes, denial/revocation/session changes, paging and native text/help action without real charge.",
       "deliveryTask": 3,
       "acceptanceBatch": "customer-commerce",
       "reviewedAtCommit": "d8a0ea2c",
       "notesSha256": "a0bd2f15d464ee19a411461901666c250bfb0b09c83d200d7e06e50f4eada9dc",
-      "specSha256": "0d86e9672603f8eb21375d7f204b413ed503ad6b305886721bc8eddc5d57ba48",
+      "specSha256": "657f3e944075471ff8dee9bfe064347725a046bd71e99eb8b3d0b73062ee28c1",
       "rendererSha256": "a91969c370bc77701c04499b06f42618817fd9e7d75d363e4363610913f578e8",
       "canonicalFields": [
         "heading",
@@ -3542,14 +3584,15 @@
         "cta-family-20260921.md",
         "output/block-demo/browser-results-media66",
         "output/block-library-review-20260915/coverage-review.json.",
-        "output/cta-family-20260921."
+        "output/cta-family-20260921.",
+        "ConvexPress-Admin/audits/2026-09-04/search-library-prose-20260928.md"
       ],
       "remainingReview": "Reuse deployed action validation; native notice variants, empty/long message and actual destination, every pack's final visual signoff.",
       "deliveryTask": 2,
       "acceptanceBatch": "social-utilities",
       "reviewedAtCommit": "d8a0ea2c",
       "notesSha256": "36e9052fd4962426425289b7a3762a0f6e170ec038db4ba4779f161e3db07ab2",
-      "specSha256": "af7c009cd422d843e86824b5b1ef21743eced5929925f49f7b36ae55fee17daa",
+      "specSha256": "eb2b447314eaf2522da7af672d97ee66e0e28688d4ed1c4eda3aac73b6503994",
       "rendererSha256": "dd387c7ecc8ccae21d4dcb7e95325c1abdcbc614a461eb2aaeafc4077947e966",
       "canonicalFields": [
         "heading",
@@ -3651,7 +3694,11 @@
     "output/search-reindex-20260928/native-complete.json",
     "output/search-reindex-20260928/index-after.json",
     "output/search-reindex-20260928/public-painted.json",
-    "output/search-reindex-20260928/cleanup.json"
+    "output/search-reindex-20260928/cleanup.json",
+    "ConvexPress-Admin/audits/2026-09-04/search-library-prose-20260928.md",
+    "output/search-library-20260928/public-matrix.json",
+    "output/search-library-20260928/native-proof.json",
+    "output/search-library-20260928/cleanup.json"
   ],
   "trackerRefresh": {
     "source": "output/search-discovery-20260928/mt-accept-after.json",

@@ -379,3 +379,8 @@ Legacy Spacer size and Divider variant conversion now preserve all seven origina
 ## Deferred finding F20 — enterprise commerce backfill truncation (2026-09-28)
 
 Claude Opus audit10 identified and Codex source-verified `commerce/migrations.ts:backfillEnterpriseCommerceRecords`: carts, checkout sessions, orders and payment transactions each use `take(limit)` (default200, maximum1000) with no continuation. Repeated calls inspect the same leading records; returned patch counts do not prove corpus completion. No live reproduction or repair is claimed. This belongs to deferred commerce migration work. Promote it into the active editor/template delivery only if a catalog/customer-commerce acceptance workflow demonstrates dependency on enterprise records beyond that bound. Search E37 does not require this migration.
+
+
+## September 28 Library prose search — first accepted pass
+
+Added36 explicit authored-text declarations without changing saved fields/versions, applied current public resource availability to canonical body search, and removed the ordinary Core search-card0 artifact.539 backend tests/310 renderer tests, explicit-project types/build and generated checks pass. Native caption save/reopen/actual Website draft,88 current matches and eight four-pack desktop/mobile cases pass. Two disposable pages removed; original42pages/2posts/1term, menus/locations/appearance/reindex state exact; owned sessions cleaned up. Source4860 snapshot search-library-20260928 has1611exact hashes and2410unchanged signatures; target4870 untouched. [Evidence and remaining E39 scope](search-library-prose-20260928.md). Search Results remains In progress, tracker74/63 unchanged; conditional/promotion/HTML coverage, Language Switcher and the broader goal remain open.

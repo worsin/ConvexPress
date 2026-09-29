@@ -69,5 +69,10 @@
       "viewer.authorization",
       "reference.targetResolution"
     ]
-  }
+  },
+  "searchText": [
+    [
+      "teaserText"
+    ]
+  ]
 }

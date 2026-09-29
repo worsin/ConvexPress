@@ -27,7 +27,7 @@ test("nested editorial repeaters are searchable without their destinations", () 
 });
 
 test("undeclared data and private form configuration produce no candidate text", () => {
-  expect(authoredBlockSearchText("core/contact-form", { recipientEmail: "secret@example.invalid" })).toBe("");
+  expect(authoredBlockSearchText("core/contact-form", { eyebrow: "", heading: "", body: "", recipientEmail: "secret@example.invalid" })).toBe("");
   expect(authoredBlockSearchText("core/search-results", { emptyMessage: "No recursive candidates" })).toBe("");
   expect(() => authoredBlockSearchText("unknown/private", { body: "secret" })).toThrow();
   expect(() => authoredBlockSearchText("core/paragraph", { body: { type: "doc", content: [{ type: "script", text: "bad" }] } })).toThrow();

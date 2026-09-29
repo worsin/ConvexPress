@@ -65,5 +65,10 @@
   "requires": {
     "plugins": [],
     "capabilities": []
-  }
+  },
+  "searchText": [
+    [
+      "title"
+    ]
+  ]
 }

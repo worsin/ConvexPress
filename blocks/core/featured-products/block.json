@@ -106,5 +106,19 @@
       "commerce"
     ],
     "capabilities": []
-  }
+  },
+  "searchText": [
+    [
+      "eyebrow"
+    ],
+    [
+      "heading"
+    ],
+    {
+      "path": [
+        "body"
+      ],
+      "format": "prose"
+    }
+  ]
 }

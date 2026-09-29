@@ -54,5 +54,13 @@
       "tickets"
     ],
     "capabilities": []
-  }
+  },
+  "searchText": [
+    [
+      "title"
+    ],
+    [
+      "body"
+    ]
+  ]
 }

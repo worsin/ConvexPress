@@ -84,6 +84,9 @@ export function createCanonicalSearchTextReader(ctx: QueryCtx, budget: RequestRe
         isVisible: node => !denied.has(node.name),
       });
       assertPackTreatments(projected.resolverTree, display.presentation.packId);
+      // Match public rendering: unavailable selected media makes the document
+      // unavailable, even when only an unrelated authored phrase matched.
+      await readCanonicalResources(ctx, projected.resolverTree, budget, projected.composed);
       const approved = projected.composed
         ? await loadPublishedComposedRegistry(ctx, projected.resolverTree, projected.composed.definitions, budget) : undefined;
       let nodes = 0, bytes = 0;

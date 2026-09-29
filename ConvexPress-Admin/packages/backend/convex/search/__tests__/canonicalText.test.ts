@@ -204,3 +204,26 @@ test('current-author search visibility follows the host author and withdraws sta
  await t.mutation(upsert,{contentType:'page',contentId:ids.post,action:'upsert'});const read=()=>t.run(ctx=>readSearch(ctx,{query:'Currentauthorneedle'},scope,'host'));
  expect((await read()).items.map(row=>row.id)).toEqual([ids.post]);await t.run(ctx=>ctx.db.patch('users',ids.user,{status:'inactive'}));expect((await read()).items).toEqual([]);
 });
+
+test("authored utility copy is searchable without private form settings or interactive status alternatives", async () => {
+  const {t,ids}=await fixture();
+  await t.run(ctx=>ctx.db.patch('settings',ids.plugins,{values:{membershipEnabled:false,formsEnabled:true}}));
+  await t.run(ctx=>ctx.db.patch('posts',ids.post,{blocks:[
+    {id:'contact',name:'core/contact-form',version:2,attrs:{eyebrow:'',heading:'Contactneedle',body:'Write about the [garden](https://example.invalid/Privatehrefneedle).',recipientEmail:'Privaterecipientneedle@example.invalid',successMessage:'Privatesuccessneedle'}},
+    {id:'video',name:'core/hero-video',version:1,attrs:{title:'Filmneedle',subtitle:'A **studio** story.'}},
+    {id:'clock',name:'core/countdown',version:1,attrs:{title:'Dateneedle',expiredText:'Notexpiredneedle'}},
+  ]}));
+  await t.mutation(upsert,{contentType:'page',contentId:ids.post,action:'upsert'});
+  for(const query of ['Contactneedle','Filmneedle','Dateneedle'])expect((await t.run(ctx=>readSearch(ctx,{query},scope,'host'))).items.map(item=>item.id)).toEqual([ids.post]);
+  for(const query of ['Privaterecipientneedle','Privatesuccessneedle','Privatehrefneedle','Notexpiredneedle'])expect((await t.run(ctx=>readSearch(ctx,{query},scope,'host'))).items).toEqual([]);
+  await t.run(ctx=>ctx.db.patch('settings',ids.plugins,{values:{membershipEnabled:false,formsEnabled:false}}));
+  expect((await t.run(ctx=>readSearch(ctx,{query:'Contactneedle'},scope,'host'))).items).toEqual([]);
+  expect((await t.run(ctx=>readSearch(ctx,{query:'Filmneedle'},scope,'host'))).items.map(item=>item.id)).toEqual([ids.post]);
+});
+
+test("unavailable selected media cannot leave searchable prose for a document that refuses public rendering", async () => {
+  const {t,ids}=await fixture();
+  await t.run(ctx=>ctx.db.patch('posts',ids.post,{blocks:[{id:'hero',name:'core/hero',version:2,attrs:{title:'Unavailablemedianeedle',mediaId:'missing-media-id'}}]}));
+  await t.mutation(upsert,{contentType:'page',contentId:ids.post,action:'upsert'});
+  expect((await t.run(ctx=>readSearch(ctx,{query:'Unavailablemedianeedle'},scope,'host'))).items).toEqual([]);
+});

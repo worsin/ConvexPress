@@ -109,5 +109,19 @@
     "capabilities": [
       "embed.sandbox"
     ]
-  }
+  },
+  "searchText": [
+    [
+      "eyebrow"
+    ],
+    [
+      "heading"
+    ],
+    {
+      "path": [
+        "body"
+      ],
+      "format": "prose"
+    }
+  ]
 }
