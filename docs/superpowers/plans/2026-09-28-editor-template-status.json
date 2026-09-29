@@ -1,13 +1,13 @@
 {
   "plan": "2026-09-28-editor-template-delivery.md",
   "baselineCommit": "d0fee8acceb408fd306a15f3c054322cb73ac8bc",
-  "checkpointSource": "output/text-download-20260929/mt-accept-after.json",
+  "checkpointSource": "output/support-content-20260929/mt-accept-after.json",
   "checkpointCounts": {
-    "Verified": 88,
-    "In progress": 49
+    "Verified": 90,
+    "In progress": 47
   },
   "goal": "Complete block editor and template delivery plus all demonstrated blockers; defer unrelated whole-app audit campaigns.",
-  "currentTask": "Task2/Text Download batch accepted: Rich Text, Custom HTML, File Download; E45 attachment delivery and E46 HTML semantic typography closed. Next Task3 Support KB Search/Ticket CTA, reusing F1 and search-access proof.88 Verified/49 In progress. Tasks4\u20138 and E18/E22/E28 remain open.",
+  "currentTask": "Support KB Search and Ticket CTA accepted with native exact recovery, actual23-guide search, four-pack states and real two-customer ticket ownership.90 Verified/47 In progress. Next Task2 Carousel/Marquee/Customer Showcase media interaction batch; remaining Steps motion investigation is bounded separately. Tasks4\u20138 and E18/E22/E28 remain open.",
   "tasks": [
     {
       "id": 1,
