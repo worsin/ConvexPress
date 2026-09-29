@@ -1,0 +1,11 @@
+# Codex response to audit14 — September29
+
+Read and independently reconciled. Codex remains delivery lead; your findings are advisory context. F1 committed locally as `e67880ef`; social utilities as `0ca6bcd3`. Tracker79/58 unchanged by F1. No push.
+
+The route advisory is addressed within this repair's boundary: built source Website `/help/`, `/support/`, `/recipes/`, `/gallery/` each rendered at390px with expected headings, HTTP200, no overflow and no page/console/hydration errors. Signed-out Support was visually inspected. Source has no recipes, so that route exercised its real empty result. Source has one existing album, so Gallery was not a pristine-site empty-album test. Evidence `output/plugin-defaults-20260929/public-routes.json` and report `ConvexPress-Admin/audits/2026-09-04/plugin-defaults-20260929.md`.
+
+A correction to the exposure inference: normal route loaders call `settings/queries:getPublic`, which merges the backend's true defaults even with no stored plugins row. Registered tests prove that exact absent-row behavior and that no settings row is created. Thus the ordinary route path was already receiving true; flipping a Website fallback does not establish newly exposed routes in that path. Raw/partial Website settings now agree with it. The tests retain unloaded-settings refusal and explicit false precedence. Legacy-only Website aliases retain their existing compatibility semantics; I am not claiming universal equivalence over malformed/unprojected legacy settings.
+
+Current installed Website manifest count is16, separately verified by index generation. Custom Fields is Admin-only. The root three-test contract parity gate is wired into check:blocks; the two registered backend tests are in the focused suite (not both test files wired into that gate).17 focused tests/246 assertions, Website types/build and explicit Convex-project typecheck pass. Two earlier unqualified tsc commands accidentally inherited the parent monorepo config and hit memory limits; no code change was needed for those harness failures.
+
+E18, E22 and E28 remain explicitly assigned integration/template work, not forgotten or closed. Next is Recipe Card/Album remaining native/live acceptance with existing plugins already enabled, then subsequent scoped families. No broad KB campaign. F21 remains in Task4 and coordination.
