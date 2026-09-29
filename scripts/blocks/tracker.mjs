@@ -1,5 +1,6 @@
 import { readFile, readdir, lstat } from "node:fs/promises";
 import path from "node:path";
+import {validateRendererEvidence} from "./verification-evidence.mjs";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 export const TRACKER = Object.freeze({ baseId: "p5771rm40m4pjw4q4t4x9kdbb18dnm0b", tableId: "q97ft31dnn52vbeha9fdd3zfg98dv4sq" });
@@ -62,7 +63,8 @@ async function localTests(folder) {
   }
   return tests;
 }
-export async function reconcileTracker({ root, discovered, rows }) {
+export async function reconcileTracker({ root, discovered, rows, rendererEvidence }) {
+  if (rendererEvidence !== undefined) await validateRendererEvidence({root, discovered, evidence: rendererEvidence});
   const indexed = new Map(parseTrackerRows(rows).map(row => [row.Name, row]));
   const specs = new Map(discovered.blocks.map(block => [block.spec.name, block]));
   for (const block of discovered.blocks) {
@@ -73,7 +75,7 @@ export async function reconcileTracker({ root, discovered, rows }) {
   for (const row of rows.filter(row => row.Status === "Verified")) {
     const block = specs.get(row.Name);
     if (!block) throw new Error(`Verified tracker block ${row.Name} has no discovered specification`);
-    if (!(await localTests(path.dirname(path.join(root, block.source)))).length) throw new Error(`Verified tracker block ${row.Name} lacks tests in its block folder`);
+    if (rendererEvidence === undefined && !(await localTests(path.dirname(path.join(root, block.source)))).length) throw new Error(`Verified tracker block ${row.Name} lacks tests in its block folder`);
     if (!discovered.packs.length) throw new Error(`Cannot verify screenshot coverage without discovered packs`);
     for (const pack of discovered.packs) {
       const screenshot = path.join(root, "ConvexPress-Admin/output/playwright/blocks", pack.id, `${row.Name}.png`);

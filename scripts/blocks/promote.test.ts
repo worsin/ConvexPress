@@ -41,7 +41,7 @@ test("dry run does not write; installation produces deterministic source and ins
   expect(await readdir(path.join(root, installed.folder))).not.toContain(".promotion-pending.json");
   await syncBlocks({ root });
   const metadata = await import(pathToFileURL(path.join(root, "blocks/.generated/promotions.ts")).href);
-  expect(metadata.installedPromotions["blocks/services"]).toEqual(found.blocks[0].promotion);
+  expect(metadata.installedPromotions["blocks/services"]).toEqual({ ...found.blocks[0].promotion, definitionJson: source.json });
   expect((await syncBlocks({ root, check: true })).changed).toEqual([]);
   await expect(promoteBlock({ root, packageJson: promotion.json, write: true })).rejects.toThrow("already exists");
   expect((await discoverBlocks(root)).blocks[0].promotion).toEqual(found.blocks[0].promotion);

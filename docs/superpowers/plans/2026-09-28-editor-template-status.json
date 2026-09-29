@@ -7,7 +7,7 @@
     "In progress": 20
   },
   "goal": "Complete block editor and template delivery plus all demonstrated blockers; defer unrelated whole-app audit campaigns.",
-  "currentTask": "117 Verified/20 In progress. Lead Magnet actual customer isolation, deactivation, cross-backend delivery refusal, real15-minute expiry and fresh retry accepted; E61 repaired. Continue RSVP legitimate verified provider and current original/generated selection using prior native generated evidence without repeating accepted workflows; then remaining Task3 batches. Tasks4\u20138/E18/E22/E28/model/Vimeo/target-Clerk remain open. E22 fresh screenshot mapping progressed; centralized-test evidence mapping still required.",
+  "currentTask": "117 Verified/20 In progress. RSVP current original/generated native selection and six deployed verification refusals pass; real Turnstile human challenge pending in headed Chromium, owned fixture active with explicit cleanup journal. Central renderer evidence maps137blocks/1148pack-example cases and live tracker gate passes117Verified rows. Continue remaining Task3 work while awaiting CAPTCHA; Task4 E62 migration-planner failure now reproduced. Tasks4\u20138/E18/E22/E28/model/Vimeo/target-Clerk remain open; no full tooling-green claim.",
   "tasks": [
     {
       "id": 1,
@@ -247,7 +247,7 @@
     {
       "id": "E22",
       "classification": "reproduced defect",
-      "status": "Prescribed PNG paths reconciled for117Verified blocks\u00d74packs:468fresh full BlockDemo specimens, exact name/version/pack and source/image hashes. Full gate still fails core/heading block-local test convention;115of117Verified rows use centralized coverage. Keep open for explicit per-block applicable test/evidence mapping; do not add placeholder tests or weaken gate.",
+      "status": "Progress:468source/image-hashed desktop BlockDemo captures for117Verified blocks; executed centralized renderer receipt covers137current versions/1148pack-example cases,317tests/5493assertions. Snapshot and live tracker gates pass with explicit receipt;7negative/parity tests pass38assertions. Still open for final screenshot provenance validation and complete delivery evidence; this is not live/native/mobile/motion acceptance. The former core/heading error was the first failing row under the same block-local convention affecting115Verified rows, not an isolated Heading defect.",
       "currentEvidence": "ConvexPress-Admin/audits/2026-09-04/block-evidence-mapping-20260929.md; output/block-evidence-20260929/installed-manifest.json and tracker-gate.log",
       "nextCheck": "Map centralized test ownership to each accepted block with validated path/source identity, then rerun the full tracker gate; retain separate native/live/mobile acceptance evidence."
     },
@@ -622,6 +622,18 @@
         "output/lead-customer-20260929/expiry-green.json",
         "output/lead-customer-20260929/final-delivery-proof.json",
         "output/lead-customer-20260929/cleanup.json"
+      ]
+    },
+    {
+      "id": "E62",
+      "classification": "confirmed migration tooling dependency",
+      "initialFinding": "Full tooling suite and check:blocks-migration fail because stagedMigrationPlan replaces current candidate fields with extracted legacy fields while retaining current nested authoringActions. Historical Feature Grid lacks items.*.link; historical Team Grid lacks members.*.links.*.",
+      "closureBoundary": "Task4: separate historical extraction from current canonical source metadata, preserve existing definitions/content and explicit unsupported-input reporting. Do not drop current constraints or rewrite installed specs merely to make migration planning green.",
+      "status": "Open: actual CLI fails before complete migration report; full tooling183pass/1fail after correcting promotion provenance test expectation. No migration writes performed.",
+      "evidence": [
+        "output/block-evidence-20260929/migration-check-red.log",
+        "output/block-evidence-20260929/tooling-tests-final.log",
+        "ConvexPress-Admin/audits/2026-09-04/block-evidence-mapping-20260929.md"
       ]
     }
   ],
@@ -3034,7 +3046,7 @@
       "title": "Event RSVP",
       "category": "Forms",
       "checkpointStatus": "In progress",
-      "nextClassification": "Native selected original event and recovery, real guest register/cancel and selected-event withdrawal under unchanged no-CAPTCHA baseline pass. Remaining legitimate verified-provider/CAPTCHA path and exact original/generated selection gate.",
+      "nextClassification": "Current original/generated event selection passes in actual native picker and published page; both providers refuse direct unverified, missing-token and invalid-token writes without capacity use. Legitimate real Turnstile widget requires human challenge; successful provider registration and fixture cleanup pending. Prior native save/reopen and no-CAPTCHA registration/cancellation evidence retained.",
       "classification": "missing evidence",
       "source": "blocks/core/event-rsvp/block.json",
       "requirements": "event (reference)",
@@ -3043,9 +3055,10 @@
         "output/event-rsvp-20260914.",
         "output/event-rsvp-20260914/live-restore-checks.json",
         "output/extension-rsvp-20260920/acceptance-review.md.",
-        "ConvexPress-Admin/audits/2026-09-04/forms-acceptance-20260929.md"
+        "ConvexPress-Admin/audits/2026-09-04/forms-acceptance-20260929.md",
+        "ConvexPress-Admin/audits/2026-09-04/rsvp-provider-20260929.md"
       ],
-      "remainingReview": "Native selected original event and recovery, real guest register/cancel and selected-event withdrawal under unchanged no-CAPTCHA baseline pass. Remaining legitimate verified-provider/CAPTCHA path and exact original/generated selection gate.",
+      "remainingReview": "Current original/generated event selection passes in actual native picker and published page; both providers refuse direct unverified, missing-token and invalid-token writes without capacity use. Legitimate real Turnstile widget requires human challenge; successful provider registration and fixture cleanup pending. Prior native save/reopen and no-CAPTCHA registration/cancellation evidence retained.",
       "deliveryTask": 3,
       "acceptanceBatch": "forms",
       "reviewedAtCommit": "d8a0ea2c",
@@ -4300,7 +4313,11 @@
     "output/lead-customer-20260929/expiry-green.json",
     "output/lead-customer-20260929/final-delivery-proof.json",
     "output/lead-customer-20260929/cleanup.json",
-    "output/lead-customer-20260929/mt-accept-verified.json"
+    "output/lead-customer-20260929/mt-accept-verified.json",
+    "ConvexPress-Admin/audits/2026-09-04/rsvp-provider-20260929.md",
+    "output/block-evidence-20260929/renderer-tests.json",
+    "output/block-evidence-20260929/tracker-gate-live.log",
+    "output/block-evidence-20260929/tooling-tests-final.log"
   ],
   "trackerRefresh": {
     "source": "output/lead-customer-20260929/mt-accept-after.json",
@@ -4346,7 +4363,8 @@
       "pollRuntime": "Website72085/PTY44566 unchanged; backend unchanged. Poll customer browser closed;2owned Clerk identities deleted/site profiles inactive, private credentials/profile/token files removed,API revoked. Ownedpage deleted,42originalpages/appearance/email/security exact. Deactivation template active value restored after exact events completed; normal timestamp advanced.3votes/2tallies and72cancelled alerts retained. Ownerprocesses preserved."
     },
     "audit19": "Read/responded. F26 prerequisite visibility useful; exact owner-only/exhaustive claim not established. No acceptance on missing model/provider proof. Corrected core/reviews/E56. Actual signed-in target Clerk provider/provisioning failure now recorded under E18; Recently Viewed remains open. Forms six next, F21 and Tasks4\u20138 retained.",
-    "audit21": "Read/responded. Snapshot predates64feddce116/21; E60 auth hydration distinct from E59 confirmation. Narrow public-read lens retained. Targeted notification templates suppressed before customer creation; final async queue proof required. F21/Tasks4\u20138/E18/E22/E28 remain open."
+    "audit21": "Read/responded. Snapshot predates64feddce116/21; E60 auth hydration distinct from E59 confirmation. Narrow public-read lens retained. Targeted notification templates suppressed before customer creation; final async queue proof required. F21/Tasks4\u20138/E18/E22/E28 remain open.",
+    "audit22": "Read/responded: F28 clarified first-of115 shared test-location convention, not isolated Heading failure. Central receipt317tests/1148cases and live117Verified/137row gate pass. E22 stays open for screenshot provenance/final evidence; new E62 migration tooling remains Task4. Audit counts are historical snapshots, not guaranteed lower bounds; row ratio is not full delivery percentage. RSVP human CAPTCHA and cleanup pending."
   },
   "sessionBaseCommit": "9824d9605e50c4b0ebd711c13715b506f8ef5bd3"
 }
