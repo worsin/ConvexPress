@@ -24,11 +24,11 @@
     },
     {
       "id": 4,
-      "status": "pending"
+      "status": "in_progress"
     },
     {
       "id": 5,
-      "status": "pending"
+      "status": "in_progress"
     },
     {
       "id": 6,
@@ -287,10 +287,10 @@
     },
     {
       "id": "E28",
-      "classification": "reproduced defect",
+      "classification": "accepted shared-menu repair",
       "deliveryTask": 5,
       "initialFinding": "Template header consumers render a menu separator label as a navigation item, while canonical inline Menu correctly renders hr.",
-      "status": "Shared rendering cause repaired locally through MenuItemTarget across four-pack headers/mobile menus and resolved-menu footer consumers. Failing-before link-count and nested expanded-state regressions now pass31 controlled SSR/DOM checks; Website TypeScript/scoped lint pass. Four-pack live responsive, open-popup/focus and assignment preservation acceptance remains open; see menu-semantics-20260929.md. Full Customizer integration remains Task5.",
+      "status": "Closed at defined menu boundary: 37 controlled checks plus actual four-pack Website desktop/mobile acceptance (8 cases, zero page errors), nested Escape/focus and exact baseline assignment preservation. Shared controller captures opener before blur. Owned11-item menu removed;28 pages, locations, full appearance and email baseline exact. Full native Customizer remains Task5. See menu-semantics-20260929.md.",
       "closureBoundary": "Reproduce heading/separator semantics in all affected header consumers, repair the shared cause, and verify keyboard/semantics and four-pack responsive header output with existing menu assignments preserved."
     },
     {
@@ -643,6 +643,34 @@
         "ConvexPress-Admin/audits/2026-09-04/migration-planner-corpus-20260929.md",
         "output/block-evidence-20260929/tooling-tests-migration-green.log",
         "output/block-evidence-20260929/migration-check-after-separation.log"
+      ]
+    },
+    {
+      "id": "E63",
+      "classification": "accepted preview repair",
+      "deliveryTask": 5,
+      "initialFinding": "Actual ?template=journal/depot/aster-house renders selected header but canonical body stays Loading document because preview pack is compared with saved backend presentation pack.",
+      "closureBoundary": "Separate validated temporary preview selection from saved activation; retain saved presentation mismatch, viewer/site/grant and policy checks. Prove actual four-pack body rendering without appearance writes.",
+      "status": "Closed locally: savedPackId carried from pre-override template config to public-body guard; selected installed preview pack controls paint only. Failing-before lifecycle regression and real four-pack 1440/390 bodies pass; saved appearance snapshot exact. Full Customizer remains Task5.",
+      "evidence": [
+        "ConvexPress-Admin/audits/2026-09-04/menu-semantics-20260929.md",
+        "output/menu-semantics-20260929/preview-red.log",
+        "output/menu-semantics-20260929/preview-green.log",
+        "output/menu-semantics-20260929/desktop.json",
+        "output/menu-semantics-20260929/mobile.json"
+      ]
+    },
+    {
+      "id": "E64",
+      "classification": "accepted responsive repair",
+      "deliveryTask": 6,
+      "initialFinding": "Actual Journal/Aster support ticket CTA at1440px keeps two columns inside a narrow page body and breaks conversation across lines. Journal block590px/copy321px; viewport breakpoint misses container width.",
+      "closureBoundary": "Make the existing support/ticket-cta layout respond to its own width without changing saved fields, resolver or support action. Verify four packs at narrow/wide widths.",
+      "status": "Closed locally: named inline-size container query stacks existing children at <=640px. Failing-before geometry retained;8 live four-pack1440/390 cases pass and screenshots inspected, with wide Core/Depot side actions retained and no overflow. No content migration or tracker promotion.",
+      "evidence": [
+        "ConvexPress-Admin/audits/2026-09-04/menu-semantics-20260929.md",
+        "output/menu-semantics-20260929/support-layout-red.json",
+        "output/menu-semantics-20260929/support-layout.json"
       ]
     }
   ],
@@ -4330,7 +4358,12 @@
     "ConvexPress-Admin/audits/2026-09-04/migration-planner-corpus-20260929.md",
     "output/migration-corpus-20260929/inventory.json",
     "output/migration-corpus-20260929/conversion-review.json",
-    "output/migration-corpus-20260929/reusable-inventory.json"
+    "output/migration-corpus-20260929/reusable-inventory.json",
+    "ConvexPress-Admin/audits/2026-09-04/menu-semantics-20260929.md",
+    "output/menu-semantics-20260929/desktop.json",
+    "output/menu-semantics-20260929/mobile.json",
+    "output/menu-semantics-20260929/support-layout.json",
+    "output/menu-semantics-20260929/cleanup.json"
   ],
   "trackerRefresh": {
     "source": "output/lead-customer-20260929/mt-accept-after.json",

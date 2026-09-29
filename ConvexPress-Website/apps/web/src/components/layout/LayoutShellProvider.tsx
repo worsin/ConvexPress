@@ -76,11 +76,30 @@ export function LayoutShellProvider({ children }: LayoutShellProviderProps) {
   });
 
   const { isScrolled, showBackToTop } = useScrollState();
+  const mobileNavOpener = React.useRef<HTMLElement | null>(null);
+  const wasMobileNavOpen = React.useRef(false);
+
+  // The background becomes inert while the drawer is open. Capture its opener
+  // before the intentional blur below, then restore after inert is removed.
+  React.useEffect(() => {
+    const closing = wasMobileNavOpen.current && !uiState.mobileNavOpen;
+    wasMobileNavOpen.current = uiState.mobileNavOpen;
+    if (!closing) return;
+    const opener = mobileNavOpener.current;
+    mobileNavOpener.current = null;
+    const active = document.activeElement;
+    if (!uiState.searchOpen && opener?.isConnected
+      && (active === document.body || active?.closest('[data-slot="mobile-nav"]'))) opener.focus();
+  }, [uiState.mobileNavOpen, uiState.searchOpen]);
+
 
   const actions: LayoutShellActions = React.useMemo(
     () => ({
       toggleMobileNav: () => {
         if (typeof document !== "undefined") {
+          if (!uiState.mobileNavOpen) {
+            mobileNavOpener.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+          }
           blurActiveElementBeforeOverlay(document);
         }
         dispatch({ type: "TOGGLE_MOBILE_NAV" });
@@ -89,7 +108,7 @@ export function LayoutShellProvider({ children }: LayoutShellProviderProps) {
       toggleSearch: () => dispatch({ type: "TOGGLE_SEARCH" }),
       closeSearch: () => dispatch({ type: "CLOSE_SEARCH" }),
     }),
-    [],
+    [uiState.mobileNavOpen],
   );
 
   const value: LayoutShellContextValue = React.useMemo(

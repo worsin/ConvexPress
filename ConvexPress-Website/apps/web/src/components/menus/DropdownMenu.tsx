@@ -1,4 +1,4 @@
-import { MenuItemTarget } from "./MenuItemTarget";
+import { MenuItemTarget, dismissMenuOnEscape } from "./MenuItemTarget";
 import { ChevronRight } from "lucide-react";
 import * as React from "react";
 
@@ -125,6 +125,10 @@ function DropdownMenuItem({ item, depth }: DropdownMenuItemProps) {
       className="relative"
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
+      onKeyDown={(event) => dismissMenuOnEscape(event, isOpen, () => {
+        if (openTimeoutRef.current) clearTimeout(openTimeoutRef.current);
+        setIsOpen(false);
+      })}
     >
       <MenuItemTarget
         item={item}

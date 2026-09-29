@@ -1,4 +1,4 @@
-import { MenuItemTarget } from "@/components/menus/MenuItemTarget";
+import { MenuItemTarget, dismissMenuOnEscape } from "@/components/menus/MenuItemTarget";
 import { ChevronDown } from "lucide-react";
 import * as React from "react";
 
@@ -157,6 +157,10 @@ function DesktopNavItem({ item, linkStyle, dropdownStyle }: DesktopNavItemProps)
       className="relative"
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
+      onKeyDown={(event) => dismissMenuOnEscape(event, isOpen, () => {
+        if (openTimeoutRef.current) clearTimeout(openTimeoutRef.current);
+        setIsOpen(false);
+      })}
     >
       <MenuItemTarget
           item={item}

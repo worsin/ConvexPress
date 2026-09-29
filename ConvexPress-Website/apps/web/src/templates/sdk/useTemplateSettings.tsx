@@ -131,6 +131,7 @@ export function useTemplateCustomizer() {
 
 export interface TemplateSettings {
   packId: string;
+  savedPackId: string;
   modules: SettingsModule[];
   values: Values;
   /** Convenience accessor: `get("header", "sticky")`. */
@@ -180,6 +181,7 @@ export function useTemplateSettings(): TemplateSettings {
     );
     return {
       packId,
+      savedPackId: template.savedPackId,
       modules,
       values,
       get: <T,>(moduleId: string, fieldId: string) => {
@@ -188,7 +190,7 @@ export function useTemplateSettings(): TemplateSettings {
       },
       drafting,
     };
-  }, [manifest, packId, saved, brand, draft]);
+  }, [manifest, packId, template.savedPackId, saved, brand, draft]);
 }
 
 /** Emits the CSS variables for the merged colour / typography / layout values. */

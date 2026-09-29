@@ -233,9 +233,11 @@ function InstalledPublicDocument({
 	generation: string;
   password?: string;
 }) {
-	const { packId } = useTemplateSettings();
+	const { packId, savedPackId } = useTemplateSettings();
 	const installed = useDisplayInstallation(value, generation);
-	if (packId !== value.presentation.packId) return <Loading />;
+	// Keep the saved activation synchronized with the authorized DTO. A validated
+	// temporary pack preview changes paint only, never the document or its grant.
+	if (savedPackId !== value.presentation.packId) return <Loading />;
 	return (
 		<ProductionNewsletterProvider installationKey={`${value.scope.websiteKey}:${value.scope.instanceKey}:${generation}`}>
 		<ProductionLeadMagnetProvider password={password}><ProductionFormEmbedProvider password={password}>

@@ -1,4 +1,4 @@
-import { MenuItemTarget } from "@/components/menus/MenuItemTarget";
+import { MenuItemTarget, dismissMenuOnEscape } from "@/components/menus/MenuItemTarget";
 import { useStickyHeaderOffset } from "@/hooks/layout/useStickyHeaderOffset";
 /**
  * Aster · chrome.header — one calm row: wordmark left, primary menu centred
@@ -243,7 +243,11 @@ function NavItem({ item }: { item: ResolvedMenuItem }) {
   );
 
   return (
-    <li data-slot="desktop-nav-item" className="relative" onMouseEnter={onEnter} onMouseLeave={onLeave}>
+    <li data-slot="desktop-nav-item" className="relative" onMouseEnter={onEnter} onMouseLeave={onLeave}
+      onKeyDown={(event) => dismissMenuOnEscape(event, open, () => {
+        if (openTimer.current) clearTimeout(openTimer.current);
+        setOpen(false);
+      })}>
       <MenuItemTarget
           item={item}
           separatorOrientation="vertical"

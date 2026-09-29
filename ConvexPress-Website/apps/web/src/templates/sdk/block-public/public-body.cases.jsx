@@ -17,6 +17,7 @@ let auth = {
 		sessionId: "session_a",
 	},
 	convexAuth = { isLoading: false, isAuthenticated: true };
+let templateSettings = { packId: "core", savedPackId: "core" };
 let siteInstance = "stage", history = {ids:[],ready:true};
 const watches = [];
 let lastInstallation;
@@ -58,16 +59,16 @@ mock.module("@/lib/site-runtime", () => ({
 	getSiteRuntime: () => ({ instanceKey: siteInstance }),
 }));
 mock.module("../useTemplateSettings", () => ({
-	useTemplateSettings: () => ({ packId: "core" }),
+	useTemplateSettings: () => templateSettings,
 }));
 // View paint alone is isolated. The exact parser, data installer and component
 // lifecycle remain real; workerd separately renders all four actual packs.
 mock.module("../block-preview/CanonicalDocumentView", () => ({
-	CanonicalDocumentView: ({tree,policy,data,synced,scope,composed}) => {
+	CanonicalDocumentView: ({tree,policy,data,synced,scope,composed,packId}) => {
     const displayTree=synced?resolveSyncedDisplay(synced,validateCanonicalTree(tree),scope).resolverTree:tree;
     const subscription=pageDataSubscription(data.grant);
     useSyncExternalStore(subscription.subscribe,subscription.getSnapshot,subscription.getSnapshot);
-    try { readInstalledPageData(data,displayTree,policy,composed);lastInstallation={data,tree:displayTree,policy,composed};return <article>Authorized body<details><summary>Course module</summary><p>Lesson outline</p></details><a href="?next=1">Continue outline</a></article>; }
+    try { readInstalledPageData(data,displayTree,policy,composed);lastInstallation={data,tree:displayTree,policy,composed};return <article data-pack={packId}>Authorized body<details><summary>Course module</summary><p>Lesson outline</p></details><a href="?next=1">Continue outline</a></article>; }
     catch { return <p>Installed data unavailable</p>; }
   },
 }));
@@ -149,6 +150,23 @@ test("real public body clears on viewer/session/client change, refuses mismatche
 		const first = watches.at(-1);
 		await deliver(ready("reader_a"));
 		expect(document.body.textContent.includes("Authorized body")).toBe(true);
+    // A temporary installed-pack preview uses the authorized saved presentation.
+    // A real saved activation mismatch still hides the body until its DTO catches up.
+    templateSettings = { packId: "journal", savedPackId: "core" };
+    await act(async () => render());
+    expect(document.querySelector("article")?.dataset.pack).toBe("journal");
+    templateSettings = { packId: "journal", savedPackId: "depot" };
+    await act(async () => render());
+    expect(document.body.textContent.includes("Authorized body")).toBe(false);
+    const activated = ready("reader_a");
+    activated.presentation.packId = "depot";
+    await deliver(activated);
+    expect(document.querySelector("article")?.dataset.pack).toBe("journal");
+    await deliver(ready("reader_b"));
+    expect(document.body.textContent.includes("Authorized body")).toBe(false);
+    templateSettings = { packId: "core", savedPackId: "core" };
+    await act(async () => render());
+    await deliver(ready("reader_a"));
     const firstInstallation=lastInstallation;
     const expiring = ready("reader_a");
     expiring.accessLease.expiresAt = expiring.accessLease.evaluatedAt + 200;
@@ -227,6 +245,7 @@ test("real public body clears on viewer/session/client change, refuses mismatche
     expect(()=>readInstalledPageData(finalInstallation.data,finalInstallation.tree,finalInstallation.policy)).toThrow("invalidated");
 		expect(watches.at(-1).stopped).toBe(true);
 	} finally {
+    templateSettings = { packId: "core", savedPackId: "core" };
 		dom.window.close();
 		for (const [name, value] of Object.entries(previous)) {
 			if (value) Object.defineProperty(globalThis, name, value);

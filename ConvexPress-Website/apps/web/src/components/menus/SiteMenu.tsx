@@ -1,4 +1,4 @@
-import { MenuItemTarget } from "./MenuItemTarget";
+import { MenuItemTarget, dismissMenuOnEscape } from "./MenuItemTarget";
 import { ChevronDown } from "lucide-react";
 import * as React from "react";
 
@@ -235,6 +235,10 @@ function HeaderMenuItem({ item, className, maxDepth }: HeaderMenuItemProps) {
       className="relative"
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
+      onKeyDown={(event) => dismissMenuOnEscape(event, isOpen, () => {
+        if (openTimeoutRef.current) clearTimeout(openTimeoutRef.current);
+        setIsOpen(false);
+      })}
     >
       <MenuItemTarget
         item={item}

@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import type { HTMLAttributes } from "react";
+import type { HTMLAttributes, KeyboardEvent } from "react";
 import type { ResolvedMenuItem } from "@/lib/layout/types";
 import { cn } from "@/lib/utils";
 
@@ -32,4 +32,16 @@ export function MenuItemTarget({ item, separatorOrientation = "horizontal", onTo
   return /^https?:\/\//i.test(item.url)
     ? <a href={item.url} {...linkProps}>{content}</a>
     : <Link to={item.url} activeProps={activeProps} {...linkProps}>{content}</Link>;
+}
+
+/** Listen on the owning list item so Escape also works from descendant links.
+ * The innermost open disclosure consumes it before an ancestor can close. */
+export function dismissMenuOnEscape(event: KeyboardEvent<HTMLElement>, open: boolean, close: () => void) {
+  if (event.key !== "Escape" || !open) return;
+  const control = event.currentTarget.querySelector<HTMLElement>(":scope > button, :scope > a");
+  if (!control) return;
+  event.preventDefault();
+  event.stopPropagation();
+  close();
+  control.focus();
 }
