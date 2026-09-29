@@ -7,7 +7,7 @@
     "In progress": 63
   },
   "goal": "Complete block editor and template delivery plus all demonstrated blockers; defer unrelated whole-app audit campaigns.",
-  "currentTask": "Task 2 \u2014 continue approved custom-composition/canonical search projection and Language Switcher promotion. Search Box/Band accepted; Search Results stays In progress (74 Verified / 63 In progress).",
+  "currentTask": "Task 2 \u2014 complete bounded full search reindex (E37), remaining canonical prose projection and Language Switcher promotion. Approved custom search and native restore CPU dependency accepted (E36/E38); Search Results stays In progress (74 Verified / 63 In progress).",
   "tasks": [
     {
       "id": 1,
@@ -279,6 +279,27 @@
       "classification": "accepted/reusable evidence",
       "initialFinding": "A valid 154-character Search Band suggestion with an unbroken word expands its flex item beyond the viewport even after CSS loads. At 1440px the document scroll width is1504px; item width1231.875px with normal wrapping. Earlier unstyled screenshot separately captured before lazy stylesheet readiness.",
       "closureBoundary": "Constrain and wrap only suggested-search list items; verify actual long and empty suggestions at1440/390 under all four packs, plus keyboard/form routes and new built runtime. Keep early-capture diagnostics separate from final style-ready evidence."
+    },
+    {
+      "id": "E36",
+      "status": "Closed within documented boundary: installed regressions, native restore, four-pack public search and cleanup passed; see composed-search-completion-20260928.md. Full-corpus reindex remains E37.",
+      "classification": "accepted/reusable evidence",
+      "initialFinding": "Search skips every composed subtree, including approved authored fields and canonical children. Ordinary/block search cannot find its published prose.",
+      "closureBoundary": "Explicit authored candidates plus exact current approved pack/condition/slot/media/resolver projection, membership/disabled boundaries, bounded reads and nonrecursive search-driven compositions verified. Individual authenticated reindex accepted; full-corpus continuation remains E37."
+    },
+    {
+      "id": "E37",
+      "status": "Open: source-confirmed full reindex stops at 500 items per content type without continuation; individual authenticated reindex is available.",
+      "classification": "missing implementation",
+      "initialFinding": "search/internals:reindexAll takes(500) by type/status and returns completion without a cursor. Existing sites beyond that bound cannot backfill canonical or composed authored prose fully.",
+      "closureBoundary": "Reproduce with more than 500 source records; add bounded complete continuation through existing authenticated reindex workflow with truthful results, lock/retry and failure accounting. Prove actual corpus completion before Search Results acceptance."
+    },
+    {
+      "id": "E38",
+      "status": "Closed within documented boundary: installed regressions, native restore, four-pack public search and cleanup passed; see composed-search-completion-20260928.md. Full-corpus reindex remains E37.",
+      "classification": "accepted/reusable evidence",
+      "initialFinding": "Native restoring snapshot 3 to document revision 3 fails with server maximum 1s timeout; draft preview approaches 800-911ms. Snapshot blocks and definitions exactly match original. Repeated validation/hash work dominates local CPU profile.",
+      "closureBoundary": "Bound memoized exact JSON validation results only, keep integrity and byte guards on every call and fresh returned objects, never cache approvals/authority. Verify registered regressions and real native restore plus public behavior; preserve fixture cleanup."
     }
   ],
   "blocks": [
@@ -3620,7 +3641,12 @@
     "ConvexPress-Admin/audits/2026-09-04/search-discovery-completion-20260928.md",
     "output/search-discovery-20260928/visual-final.json",
     "output/search-discovery-20260928/lifecycle.json",
-    "output/search-discovery-20260928/cleanup.json"
+    "output/search-discovery-20260928/cleanup.json",
+    "ConvexPress-Admin/audits/2026-09-04/composed-search-completion-20260928.md",
+    "output/composed-search-20260928/public-matrix.json",
+    "output/composed-search-20260928/lifecycle.json",
+    "output/composed-search-20260928/native-history-proof.json",
+    "output/composed-search-20260928/cleanup.json"
   ],
   "trackerRefresh": {
     "source": "output/search-discovery-20260928/mt-accept-after.json",
@@ -3641,7 +3667,10 @@
   "coordination": {
     "folder": "/Users/worsin/Development/ConvexPress/Opus Audits/",
     "authority": "Codex leads; Claude audits are advisory and independently verified",
-    "lastAudit": "2026-09-28T1920-audit-08-discovery-family-and-my-correction.md"
+    "lastAudit": "2026-09-28T2020-audit-09-page-href-duplication.md",
+    "pendingAdvisory": {
+      "F19": "Shared public document href contract deferred to next destination/localization pass. Verify reachable slug encoding, include membership route identity; do not mix into E36 acceptance."
+    }
   },
   "sessionBaseCommit": "9824d9605e50c4b0ebd711c13715b506f8ef5bd3"
 }

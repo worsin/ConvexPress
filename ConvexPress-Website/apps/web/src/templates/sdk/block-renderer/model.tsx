@@ -27,7 +27,7 @@ import { layoutSchema, type PrimitiveData } from "../primitives/contracts";
 import { Section } from "../primitives";
 import { createComposedRegistry } from "../block-data/portable/composedRegistry";
 import { planCanonicalData, type ComposedDataContext } from "../block-data/portable/planner";
-import { resolveComposedPresentation, COMPOSED_PRESENTATION_LIMITS } from "../block-data/portable/composedPresentation";
+import { resolveComposedPresentation, assertComposedReferenceBindings, COMPOSED_PRESENTATION_LIMITS } from "../block-data/portable/composedPresentation";
 import type { ComposedDefinition } from "../block-data/portable/composedDefinitions";
 import { bindResolverArguments } from "../block-data/portable/planner";
 import { resolverReferenceValues } from "../block-data/portable/resolverReferences";
@@ -369,20 +369,8 @@ export function prepareBlocks(
       const entry = installedData?.dataByBlock[id];
       if (definition.spec.data && !entry) return fail("UNSUPPORTED_RESOLVER", "Custom dynamic blocks need an installed data grant");
       const binding = composedPlan?.bindings.find(item => item.blockId === id);
-      const boundValues = new Set<string>();
-      const collectValues = (value: unknown) => {
-        if (typeof value === "string") boundValues.add(value);
-        else if (Array.isArray(value)) value.forEach(collectValues);
-        else if (value && typeof value === "object") Object.values(value).forEach(collectValues);
-      };
-      if (binding) collectValues(binding.args);
-      for (const field of composedRegistry.dependencies(name, node.version as number)) {
-        if (field.type === "media") continue;
-        for (const value of valuesAt(node.attrs, field.path).flatMap(item => valuesAt(item, field.valuePath))) {
-          if (value === undefined || value === null || (value === "" && field.allowEmpty)) continue;
-          if (!entry || typeof value !== "string" || !boundValues.has(value)) return fail("UNRESOLVED_REFERENCE", "Custom reference must belong to the installed resolver binding");
-        }
-      }
+      try { assertComposedReferenceBindings(definition, node.attrs, binding?.args, Boolean(entry)); }
+      catch { return fail("UNRESOLVED_REFERENCE", "Custom reference must belong to the installed resolver binding"); }
       const presentation = resolveComposedPresentation(definition, node.attrs, { packId, data: entry?.data, childCount: children.length,
         readMedia: id => Object.hasOwn(resources.media, id) ? resources.media[id] : undefined });
       composedNodes += presentation.nodes; composedBytes += presentation.bytes;

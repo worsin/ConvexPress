@@ -32,3 +32,19 @@ test("invalid namespaces, examples and pack treatments fail before a definition 
   expect(() => parseComposedDefinition({ ...input, packTreatments: { journal: { version: 1, root: { el: "Text", props: { style: "position:fixed" }, bind: "attrs.title" } } } })).toThrow();
   expect(() => parseComposedDefinition({ ...input, packTreatments: Object.fromEntries(Array.from({ length: 17 }, (_, i) => [`pack-${i}`, input.composition])) })).toThrow("16");
 });
+
+test("repeated decoding checks exact input integrity and returns isolated definition objects", () => {
+  const encoded = encodeComposedDefinition(definition());
+  const first = decodeComposedDefinition(encoded.json, encoded.digest);
+  first.definition.spec.title = "Mutated by caller";
+  first.definition.composition.root = { el: "Text", text: "Changed" };
+  first.json = "{}";
+  first.digest = "changed";
+  expect(decodeComposedDefinition(encoded.json, encoded.digest)).toEqual(encoded);
+  expect(() => decodeComposedDefinition(encoded.json, "f".repeat(64))).toThrow("integrity");
+  const changed = JSON.parse(encoded.json);
+  changed.spec.title = "Changed input";
+  expect(() => decodeComposedDefinition(JSON.stringify(changed), encoded.digest)).toThrow("integrity");
+  expect(() => decodeComposedDefinition(" ".repeat(480 * 1024) + encoded.json, encoded.digest)).toThrow("480KiB");
+  expect(() => decodeComposedDefinition('{"invalid":true}', encoded.digest)).toThrow();
+});

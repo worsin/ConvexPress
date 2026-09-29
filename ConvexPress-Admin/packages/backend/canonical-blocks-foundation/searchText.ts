@@ -1,5 +1,8 @@
 import { searchTextDescriptors } from "./generated/search-text";
 import { validateBlockAttrs } from "./generated/schemas";
+import { searchableFields } from "./generated/spec-runtime.mjs";
+import { composedAttrsSchema, type ComposedDefinition } from "./composedDefinitions";
+import type { ResolvedCompositionNode } from "./composition";
 
 interface TextField { readonly path: readonly string[]; readonly type: "text" | "richtext" | "prose" }
 const descriptors: Readonly<Record<string, readonly TextField[]>> = searchTextDescriptors;
@@ -36,9 +39,13 @@ function proseText(value: string): string {
 export function authoredBlockSearchText(name: string, input: unknown): string {
   if (!Object.prototype.hasOwnProperty.call(descriptors, name)) throw Error("Unknown search block");
   const attrs = validateBlockAttrs(name, input);
+  return declaredSearchText(attrs, descriptors[name]);
+}
+
+function declaredSearchText(attrs: unknown, fields: readonly TextField[]): string {
   const pieces: string[] = [];
   let remaining = MAX_TEXT;
-  for (const field of descriptors[name]) {
+  for (const field of fields) {
     for (const value of valuesAt(attrs, field.path)) {
       if (value === null || value === undefined) continue;
       const text = (field.type === "richtext" ? richText(value) : field.type === "prose" ? proseText(String(value)) : String(value)).replace(/\s+/gu, " ").trim();
@@ -50,4 +57,44 @@ export function authoredBlockSearchText(name: string, input: unknown): string {
     }
   }
   return pieces.join(" ");
+}
+
+/** Authored candidate corpus from an exact definition. Conditions and pack
+ * alternatives are intentionally a superset; current presentation is authority. */
+export function authoredComposedSearchText(definition: ComposedDefinition, input: unknown): string {
+  return declaredSearchText(composedAttrsSchema(definition).parse(input), searchableFields(definition.spec.fields, definition.spec.searchText ?? []));
+}
+
+/** A resolved, validated SDK presentation only. Enumerate visible prose, never
+ * stringify props: links, media IDs/URLs, anchors and configuration are not text.
+ * The caller supplies already-authorized child text at the actual child slot. */
+export function resolvedCompositionSearchText(root: ResolvedCompositionNode | null, children: string): string {
+  const parts: string[] = [];
+  let remaining = MAX_TEXT;
+  const append = (value: unknown) => {
+    if (typeof value !== "string" || remaining <= 0) return;
+    const text = value.replace(/\s+/gu, " ").trim().slice(0, remaining);
+    if (text) { parts.push(text); remaining -= text.length + 1; }
+  };
+  const visit = (node: ResolvedCompositionNode) => {
+    if (remaining <= 0) return;
+    const p = node.props;
+    switch (node.el) {
+      case "Heading": case "Eyebrow": case "Text": append(node.text); break;
+      case "RichText": append(richText(p.content)); break;
+      case "Image": append(p.caption); break;
+      case "Video": append(p.title); break;
+      case "Button": case "Link": case "Badge": append(p.label); break;
+      case "Stat": append(p.value); append(p.label); append(p.detail); break;
+      case "Quote": append(p.quote); append(p.attribution); append(p.source); break;
+      case "List": case "Marquee": for (const value of p.items as string[]) append(value); break;
+      case "Accordion": case "Tabs":
+        for (const item of p.items as { title: string; body: string }[]) { append(item.title); append(item.body); }
+        break;
+      case "Slot": append(children); break;
+    }
+    node.children.forEach(visit);
+  };
+  if (root) visit(root);
+  return parts.join(" ");
 }

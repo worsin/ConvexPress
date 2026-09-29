@@ -15,7 +15,7 @@ import type {ComposedDataContext} from './foundation/planner';
 import {navigationArgsSchemas, navigationResultSchemas, type NavigationResolver, type NavigationResult} from './foundation/navigationContracts';
 
 type CurrentDocument = Pick<Doc<'posts'>, '_id'|'type'|'title'|'slug'|'path'|'parentId'>;
-export interface NavigationSource {document: CurrentDocument; tree: unknown; authoringTree?: unknown}
+export interface NavigationSource {document: CurrentDocument; tree: unknown; authoringTree?: unknown; composed?: ComposedDataContext}
 function href(document: CurrentDocument) {
   return document.type === 'page' ? `/page${document.path ?? `/${document.slug}`}` : `/blog/${document.slug}`;
 }

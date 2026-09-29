@@ -254,6 +254,8 @@ test("trusted template styles reach AI validation and a saved styled document su
   await f.t.run(ctx => ctx.db.patch("settings", f.ids.appearance, { values: { active: "core", overrides: {}, variants: {}, settings: {} } }));
   const changed = await f.author.query(get, { ...f.base, expectedRevision: 4 });
   expect(JSON.parse(changed.contextJson).document.blocks[0].style).toBe("inset");
-  expect(JSON.parse(changed.contextJson).catalog.styles).toEqual({});
+  // Core may offer styles for other blocks; Journal's CTA treatment must no
+  // longer be available to a new proposal after switching away from Journal.
+  expect(JSON.parse(changed.contextJson).catalog.styles["core/cta-band"]).toBeUndefined();
   await expect(f.author.query(validate, { ...f.base, expectedRevision: 4, expectedFingerprint: changed.fingerprint, proposalId, resultJson: JSON.stringify(result) })).rejects.toThrow();
 });
