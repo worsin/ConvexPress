@@ -135,5 +135,15 @@
     "capabilities": [
       "poll.submission"
     ]
-  }
+  },
+  "searchText": [
+    [
+      "question"
+    ],
+    [
+      "options",
+      "*",
+      "label"
+    ]
+  ]
 }

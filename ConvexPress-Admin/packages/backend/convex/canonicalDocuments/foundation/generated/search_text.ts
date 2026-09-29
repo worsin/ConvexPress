@@ -558,7 +558,33 @@ export const searchTextDescriptors = {
       "type": "text"
     }
   ],
-  "commerce/assistant-band": [],
+  "commerce/assistant-band": [
+    {
+      "path": [
+        "eyebrow"
+      ],
+      "type": "text"
+    },
+    {
+      "path": [
+        "heading"
+      ],
+      "type": "text"
+    },
+    {
+      "path": [
+        "body"
+      ],
+      "type": "prose"
+    },
+    {
+      "path": [
+        "prompts",
+        "*"
+      ],
+      "type": "text"
+    }
+  ],
   "commerce/brand-list": [],
   "commerce/bundle-offer": [
     {
@@ -1290,7 +1316,14 @@ export const searchTextDescriptors = {
       "type": "prose"
     }
   ],
-  "core/iframe": [],
+  "core/iframe": [
+    {
+      "path": [
+        "title"
+      ],
+      "type": "text"
+    }
+  ],
   "core/image": [
     {
       "path": [
@@ -1376,7 +1409,14 @@ export const searchTextDescriptors = {
       "type": "text"
     }
   ],
-  "core/map": [],
+  "core/map": [
+    {
+      "path": [
+        "address"
+      ],
+      "type": "text"
+    }
+  ],
   "core/marquee": [
     {
       "path": [
@@ -1436,7 +1476,22 @@ export const searchTextDescriptors = {
       "type": "richtext"
     }
   ],
-  "core/poll": [],
+  "core/poll": [
+    {
+      "path": [
+        "question"
+      ],
+      "type": "text"
+    },
+    {
+      "path": [
+        "options",
+        "*",
+        "label"
+      ],
+      "type": "text"
+    }
+  ],
   "core/post-grid": [],
   "core/pricing-cards": [
     {

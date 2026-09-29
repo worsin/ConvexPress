@@ -1,3 +1,4 @@
+import { readMergedSettingsSection } from "../settings/read";
 import { installedPromotionDefinition } from "../canonicalDocuments/foundation/installedPromotion";
 import { currentLibrarySearchText, librarySearchNeedsData, librarySearchRecheckAt } from "../canonicalDocuments/foundation/librarySearch";
 import type { CanonicalBlockInstance } from "../canonicalDocuments/foundation/generated/types";
@@ -68,6 +69,13 @@ export async function canonicalSearchCandidates(ctx: QueryCtx, post: Doc<"posts"
  * Unavailable documents fail closed; budget exhaustion propagates. */
 export function createCanonicalSearchTextReader(ctx: QueryCtx, budget: RequestReadLedger, now = Date.now()) {
   let context: Promise<Awaited<ReturnType<typeof displayContext>>> | undefined;
+  let assistantAvailability: Promise<boolean> | undefined;
+  const assistantAvailable = () => assistantAvailability ??= (async () => {
+    const plugins = await readMergedSettingsSection(ctx,"plugins",budget);
+    const assistant = await readMergedSettingsSection(ctx,"commerce.assistant",budget);
+    const routes = assistant.routes as {catalog?:boolean} | undefined;
+    return plugins.commerceEnabled===true && Boolean(assistant.enabled) && routes?.catalog!==false;
+  })();
   const authors = new Map<string, Promise<boolean>>();
   const authorAvailable = (id: string, current: boolean, postId: string) => {
     const key = current ? `post:${postId}` : `user:${id}`;
@@ -112,7 +120,7 @@ export function createCanonicalSearchTextReader(ctx: QueryCtx, budget: RequestRe
             if(nodes>COMPOSED_PRESENTATION_LIMITS.pageNodes||bytes>COMPOSED_PRESENTATION_LIMITS.pageBytes)throw Error('Promoted search presentation exceeds page budget');
             return resolvedCompositionSearchText(presentation.root,await children());
           }
-          return [currentLibrarySearchText(node as CanonicalBlockInstance, { now, resources, data: data?.dataByBlock[node.id] }),await children()].filter(Boolean).join(' ');
+          return [currentLibrarySearchText(node as CanonicalBlockInstance, { now, resources, data: data?.dataByBlock[node.id], assistantAvailable: node.name==="commerce/assistant-band"?await assistantAvailable():undefined }),await children()].filter(Boolean).join(' ');
         },
         renderComposed: approved ? async (node, children) => {
           const definition = approved.registry.definition(node.name, node.version)!;

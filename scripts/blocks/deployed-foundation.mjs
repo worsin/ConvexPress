@@ -5,7 +5,7 @@ import { fileURLToPath } from "node:url";
 import path from "node:path";
 import { portableDataFiles } from "./portable-data.mjs";
 import { syncFoundationShared } from "./foundation-shared.mjs";
-export const deployedFoundationFiles = [...portableDataFiles, "aiCatalog.ts", "generated/ai-catalog.ts", "generated/patterns.ts", "generated/pack-designs.ts", "promotionTree.ts", "syncedPromotion.ts", "eventIntervalIndex.ts", "documentState.ts", "draftRecovery.ts", "legacyDocumentMigration.ts", "legacyStructuredMigration.ts", "shared/legacyHref.ts", "shared/embedProviders.ts", "legacyBlockMigration.ts", "legacySectionMigration.ts", "compatibility/legacy_schemas.mjs", "compatibility/legacy_schemas.d.mts", "compatibility/rich_text.mjs", "compatibility/rich_text.d.mts", "shared/authoringFields.ts", "generated/storage.ts"];
+export const deployedFoundationFiles = [...portableDataFiles, "aiCatalog.ts", "generated/ai-catalog.ts", "generated/patterns.ts", "generated/pack-designs.ts", "promotionTree.ts", "syncedPromotion.ts", "eventIntervalIndex.ts", "documentState.ts", "draftRecovery.ts", "legacyDocumentMigration.ts", "legacyStructuredMigration.ts", "shared/legacyHref.ts", "legacyBlockMigration.ts", "legacySectionMigration.ts", "compatibility/legacy_schemas.mjs", "compatibility/legacy_schemas.d.mts", "compatibility/rich_text.mjs", "compatibility/rich_text.d.mts", "shared/authoringFields.ts", "generated/storage.ts"];
 export const deployedFoundationOutput = "ConvexPress-Admin/packages/backend/convex/canonicalDocuments/foundation";
 export async function syncDeployedFoundation({root,check=false}) {
   await syncFoundationShared({root,check:true});

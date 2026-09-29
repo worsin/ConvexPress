@@ -324,3 +324,31 @@ test('custom HTML searches sanitized visible text with decoded entities and excl
   for(const query of ['Htmlheadingneedle','Visiblejoinedneedle','Entityneedle','Htmllabelneedle','Unhiddenneedle'])expect((await t.query(ref<'query'>('search/queries:search'),{q:query})).results.map(r=>r.contentId)).toEqual([ids.post]);
   for(const query of ['Hiddenhrefneedle','Hiddenattributeneedle','Hiddenscriptneedle','Hiddenstylename','Hiddentextareaneedle'])expect((await t.query(ref<'query'>('search/queries:search'),{q:query})).results).toEqual([]);
 });
+
+test('assistant authored copy follows current public host settings without indexing private controls',async()=>{
+ const{t,ids}=await fixture();await t.run(async ctx=>{await ctx.db.patch('settings',ids.plugins,{values:{commerceEnabled:true}});await ctx.db.patch('posts',ids.post,{blocks:[{id:'assistant',name:'commerce/assistant-band',version:1,attrs:{eyebrow:'Assistantbrowneedle',heading:'Assistantheadingneedle',body:'A [story](https://example.invalid/Assistanthrefneedle)',prompts:['Assistantquestionneedle'],ctaLabel:'Assistantcontrolneedle',ctaUrl:'/products'}}]});});
+ await t.mutation(upsert,{contentType:'page',contentId:ids.post,action:'upsert'});
+ const query=(q:string)=>t.query(ref<'query'>('search/queries:search'),{q});
+ expect((await query('Assistantheadingneedle')).results.map(x=>x.contentId)).toEqual([ids.post]);expect((await query('Assistantquestionneedle')).results.map(x=>x.contentId)).toEqual([ids.post]);
+ for(const q of ['Assistanthrefneedle','Assistantcontrolneedle'])expect((await query(q)).results).toEqual([]);
+ const setting=await t.run(ctx=>ctx.db.insert('settings',{section:'commerce.assistant',values:{enabled:false},updatedAt:1,updatedBy:ids.user}));expect((await query('Assistantheadingneedle')).results).toEqual([]);
+ await t.run(ctx=>ctx.db.patch('settings',setting,{values:{enabled:true,routes:{catalog:false}}}));expect((await query('Assistantquestionneedle')).results).toEqual([]);
+ await t.run(ctx=>ctx.db.patch('settings',setting,{values:{enabled:true,routes:{catalog:true}}}));expect((await query('Assistantheadingneedle')).results.map(x=>x.contentId)).toEqual([ids.post]);
+});
+test('iframe fallback headings and map addresses are searchable without link destinations',async()=>{
+ const{t,ids}=await fixture();await t.run(ctx=>ctx.db.patch('posts',ids.post,{blocks:[{id:'embed',name:'core/iframe',version:1,attrs:{url:{label:'Framefallbackneedle',href:'https://www.youtube.com/watch?v=dQw4w9WgXcQ'}}},{id:'map',name:'core/map',version:1,attrs:{address:'Mapaddressneedle'}}]}));await t.mutation(upsert,{contentType:'page',contentId:ids.post,action:'upsert'});
+ for(const q of ['Framefallbackneedle','Mapaddressneedle'])expect((await t.query(ref<'query'>('search/queries:search'),{q})).results.map(x=>x.contentId)).toEqual([ids.post]);
+ await t.run(ctx=>ctx.db.patch('posts',ids.post,{blocks:[{id:'embed',name:'core/iframe',version:1,attrs:{title:'Missingframeneedle'}}]}));await t.mutation(upsert,{contentType:'page',contentId:ids.post,action:'upsert'});expect((await t.query(ref<'query'>('search/queries:search'),{q:'Missingframeneedle'})).results).toEqual([]);
+});
+test('unsupported embed and direct video sources cannot leave other body matches from an unrenderable document',async()=>{
+ const{t,ids}=await fixture();for(const [name,attrs]of [['core/embed',{url:'https://unapproved.invalid/player',caption:'Embedcaptionneedle'}],['core/iframe',{url:{href:'https://unapproved.invalid/player',label:'Frameheadingneedle'}}],['core/script-embed',{provider:'youtube',resourceId:'invalid'}],['core/video',{url:{href:'https://example.invalid/player',label:'Videoariaonlyneedle'}}]] as const){
+  await t.run(ctx=>ctx.db.patch('posts',ids.post,{blocks:[paragraph('copy','Visiblebodyneedle'),{id:'invalid',name,version:name==='core/embed'?2:1,attrs}]}));await t.mutation(upsert,{contentType:'page',contentId:ids.post,action:'upsert'});expect((await t.query(ref<'query'>('search/queries:search'),{q:'Visiblebodyneedle'})).results).toEqual([]);
+ }
+});
+test('poll question and options use the current published ballot, not invalid or disabled alternatives',async()=>{
+ const{t,ids}=await fixture();const attrs={question:'Pollquestionneedle',options:[{key:'one',label:'Pollfirstneedle'},{key:'two',label:'Pollsecondneedle'}],showResults:false,responsePolicy:'signedIn'};
+ await t.run(async ctx=>{await ctx.db.patch('settings',ids.plugins,{values:{formsEnabled:true}});await ctx.db.patch('posts',ids.post,{blocks:[{id:'poll',name:'core/poll',version:1,attrs}]});});await t.mutation(upsert,{contentType:'page',contentId:ids.post,action:'upsert'});
+ for(const q of ['Pollquestionneedle','Pollfirstneedle']){expect((await t.query(ref<'query'>('search/queries:search'),{q})).results.map(x=>x.contentId)).toEqual([ids.post]);expect((await t.run(ctx=>readSearch(ctx,{query:q},scope,'host'))).items.map(x=>x.id)).toEqual([ids.post]);}
+ await t.run(ctx=>ctx.db.patch('posts',ids.post,{blocks:[{id:'poll',name:'core/poll',version:1,attrs:{...attrs,question:''}}]}));expect((await t.query(ref<'query'>('search/queries:search'),{q:'Pollfirstneedle'})).results).toEqual([]);
+ await t.run(async ctx=>{await ctx.db.patch('posts',ids.post,{blocks:[{id:'poll',name:'core/poll',version:1,attrs}]});await ctx.db.patch('settings',ids.plugins,{values:{formsEnabled:false}});});expect((await t.query(ref<'query'>('search/queries:search'),{q:'Pollquestionneedle'})).results).toEqual([]);
+});

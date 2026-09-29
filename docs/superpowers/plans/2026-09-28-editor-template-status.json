@@ -1,13 +1,13 @@
 {
   "plan": "2026-09-28-editor-template-delivery.md",
   "baselineCommit": "d0fee8acceb408fd306a15f3c054322cb73ac8bc",
-  "checkpointSource": "output/search-discovery-20260928/mt-accept-after.json",
+  "checkpointSource": "output/search-host-20260928/mt-accept-after.json",
   "checkpointCounts": {
-    "Verified": 74,
-    "In progress": 63
+    "Verified": 75,
+    "In progress": 62
   },
   "goal": "Complete block editor and template delivery plus all demonstrated blockers; defer unrelated whole-app audit campaigns.",
-  "currentTask": "Task 2 \u2014 finish remaining demonstrated host/settings, approved embed, poll/current-definition and media presentation search paths (E39), then Language Switcher/promotion. Installed Studio Services and sanitized HTML accepted; Search Results remains In progress (74 Verified /63 In progress).",
+  "currentTask": "Language Switcher/F19 destination and promotion acceptance, then remaining delivery batches. Search Results and bounded E39 accepted (75 Verified /62 In progress); Task2 and Task3 remain in progress, full goal active.",
   "tasks": [
     {
       "id": 1,
@@ -19,7 +19,7 @@
     },
     {
       "id": 3,
-      "status": "pending"
+      "status": "in_progress"
     },
     {
       "id": 4,
@@ -303,8 +303,8 @@
     },
     {
       "id": "E39",
-      "status": "Open after third accepted pass:36 unconditional and13 conditional declarations, timed refresh, installed Studio Services promoted prose and sanitized HTML accepted with native/public evidence. Remaining host/settings, approved embed, poll/current-definition and media presentation review. See search-presentation-prose-20260928.md.",
-      "classification": "missing implementation",
+      "status": "Closed within authored-copy/current-presentation boundary: all four slices accepted, native save/reload/Website preview, final eight-pack/width checks, live poll visibility transitions and cleanup pass. Search Results Verified after accumulated E32-E40 evidence reconciliation. See search-host-prose-20260928.md; full SDK/provider/integrated gates remain separate.",
+      "classification": "accepted/reusable evidence",
       "initialFinding": "Canonical source candidate descriptors omit visible utility, media, form and catalog introduction copy. Current search also returns hero text when selected media is unavailable and public rendering refuses the document.",
       "closureBoundary": "Complete deliberate authored-text coverage across the Library, preserving private/config/action/status exclusions; apply current conditional/presentation/access/media rules; prove registered and actual native/public search, then reconcile Search Results acceptance without weakening scope."
     },
@@ -930,7 +930,7 @@
       "acceptanceBatch": "external-embeds",
       "reviewedAtCommit": "d8a0ea2c",
       "notesSha256": "d34095b2ccd71fc66250f125ff800ccd62e39baa55f5c4292126a7801a84650f",
-      "specSha256": "d099e38d2e0e2241e85edaf06acf7c5cd70372192243b528a7309b810e854946",
+      "specSha256": "21b901b2be615e41012059feb33a86288116cafeea11497333f5bd6a9c6eebdb",
       "rendererSha256": "141b3e6023911e3553e7b5b85f36f7ad77ac916beb0d2c727b37e804b57682c3",
       "canonicalFields": [
         "address",
@@ -1854,7 +1854,7 @@
       "acceptanceBatch": "customer-commerce",
       "reviewedAtCommit": "d8a0ea2c",
       "notesSha256": "934f3d9b76c5502f41c5f13025021b3b1abe1e7b82d31848c9718722ee90b71b",
-      "specSha256": "6869b41172987e19f00eac6aaf861e03d045dc91323ce2fee371d93dc426a702",
+      "specSha256": "4cb9655343dc8a87ef6cc4a6d0ba7dd927c4e64cd245d9607a26f41376425c20",
       "rendererSha256": "aa111a1ebd026457e728f54c1ec262cdd6b501a737e77964ab939962fd9f4ecd",
       "canonicalFields": [
         "eyebrow",
@@ -2631,7 +2631,7 @@
       "acceptanceBatch": "forms",
       "reviewedAtCommit": "d8a0ea2c",
       "notesSha256": "6559733787b5c46603941b0381983c4fd9853b9fd7ad6f9b287d7d5fefec8bea",
-      "specSha256": "c3b8924b00703c19b36ac77713faceaee3aa15793f9b84ebbadf916470ac1f80",
+      "specSha256": "aeee3b6a72012a24b278b1989fdda192f67b379f5a9d237cd669cb7911a61270",
       "rendererSha256": "b7afdf40bc243c089bdace36ce8b9a3b2a88fbe37c39afbb0ea16f1a725b3574",
       "canonicalFields": [
         "question",
@@ -3199,7 +3199,7 @@
       "acceptanceBatch": "external-embeds",
       "reviewedAtCommit": "d8a0ea2c",
       "notesSha256": "0d50dd098ba7c77c2d62ca3cfeda1a63c3615612dd06d6fb57024990e8bc1496",
-      "specSha256": "fe3df22099131a8f9c87fa39f411464504206900b04cb4f3db1668e39b03d2b7",
+      "specSha256": "1cafd6cc473c8629d596eb5700f72f3d6351858f01b0516038646462cb308a42",
       "rendererSha256": "d30a83781c4e8dbd0795f8dd89ae9a2893baaaab3e1f97bb9ad98afb029cd23a",
       "canonicalFields": [
         "url",
@@ -3535,9 +3535,9 @@
       "name": "core/search-results",
       "title": "Search results",
       "category": "Discovery",
-      "checkpointStatus": "In progress",
-      "nextClassification": "Reviewed against live Notes and current canonical specification; Reuse real10-page8+2 capacity fix; remaining canonical library/composed/reusable prose sources, filtering/backfill and access budget with actual rendered results.",
-      "classification": "missing evidence",
+      "checkpointStatus": "Verified",
+      "nextClassification": "Block-specific native authoring/history, current-authority Library/composed/reusable copy, complete durable reindex, pagination/query/empty/access and four-pack/width evidence reconciled. See search-host-prose-20260928.md.",
+      "classification": "accepted/reusable evidence",
       "source": "blocks/core/search-results/block.json",
       "requirements": "queryBinding (select), kinds (repeater), pageSize (number), emptyMessage (text)",
       "evidenceReferences": [
@@ -3549,9 +3549,13 @@
         "search-discovery-completion-20260928.md",
         "output/search-discovery-20260928/lifecycle.json",
         "ConvexPress-Admin/audits/2026-09-04/search-conditional-prose-20260928.md",
-        "ConvexPress-Admin/audits/2026-09-04/search-presentation-prose-20260928.md"
+        "ConvexPress-Admin/audits/2026-09-04/search-presentation-prose-20260928.md",
+        "ConvexPress-Admin/audits/2026-09-04/composed-search-completion-20260928.md",
+        "ConvexPress-Admin/audits/2026-09-04/search-reindex-completion-20260928.md",
+        "ConvexPress-Admin/audits/2026-09-04/search-library-prose-20260928.md",
+        "ConvexPress-Admin/audits/2026-09-04/search-host-prose-20260928.md"
       ],
-      "remainingReview": "Remaining demonstrated Library host/settings, approved embed, poll/current-definition and media presentation coverage (E39). Installed Studio Services and sanitized HTML accepted; complete SDK/promotion and full delivery gates remain open.",
+      "remainingReview": "No remaining block-specific gate in the accepted boundary. Full SDK combinations, provider/cloud and final integrated/performance gates remain in their delivery tasks.",
       "deliveryTask": 3,
       "acceptanceBatch": "content-discovery",
       "reviewedAtCommit": "d8a0ea2c",
@@ -3740,31 +3744,38 @@
     "output/search-presentation-20260928/public-matrix.json",
     "output/search-presentation-20260928/cleanup.json",
     "output/search-presentation-final-20260928/installed-source-proof.json",
-    "output/search-presentation-final-20260928/dependency-source-proof.json"
+    "output/search-presentation-final-20260928/dependency-source-proof.json",
+    "ConvexPress-Admin/audits/2026-09-04/search-host-prose-20260928.md",
+    "output/search-host-20260928/mt-accept-verified.json",
+    "output/search-host-20260928/public-matrix.json",
+    "output/search-host-20260928/current-poll.json",
+    "output/search-host-20260928/cleanup.json",
+    "output/search-host-20260928/lifecycle.json"
   ],
   "trackerRefresh": {
-    "source": "output/search-discovery-20260928/mt-accept-after.json",
-    "schema": "output/search-discovery-20260928/mt-schema.json",
+    "source": "output/search-host-20260928/mt-accept-after.json",
+    "schema": "output/search-host-20260928/mt-schema.json",
     "rows": 137,
     "counts": {
-      "Verified": 74,
-      "In progress": 63
+      "Verified": 75,
+      "In progress": 62
     },
     "otherCellsUnchangedFromPreviousRead": true,
     "pendingNotesReconciled": 77,
     "classificationScope": "Block-specific missing gates; historical whole-app audit conditions retained in Notes but not automatic prerequisites.",
     "lastAcceptedNames": [
-      "core/search-box",
-      "commerce/search-band"
-    ]
+      "core/search-results"
+    ],
+    "allNotesExact": true
   },
   "coordination": {
     "folder": "/Users/worsin/Development/ConvexPress/Opus Audits/",
     "authority": "Codex leads; Claude audits are advisory and independently verified",
-    "lastAudit": "2026-09-28T2120-audit-10-silent-truncation-class.md",
+    "lastAudit": "2026-09-28T2320-audit-12-e39-scope-proportionality.md",
     "pendingAdvisory": {
       "F19": "Shared public document href contract deferred to next destination/localization pass. Verify reachable slug encoding, include membership route identity; do not mix into E36 acceptance.",
-      "F20": "Source-verified enterprise commerce backfill truncation recorded in current-acceptance.md deferred register. No live reproduction or repair; promote only if catalog/customer-commerce delivery demonstrates a dependency."
+      "F20": "Source-verified enterprise commerce backfill truncation recorded in current-acceptance.md deferred register. No live reproduction or repair; promote only if catalog/customer-commerce delivery demonstrates a dependency.",
+      "audit12": "Bounded E39 slice completed and Search Results accepted on accumulated evidence; move to Language Switcher/F19 and other delivery work. No speculative search expansion or broad sweep."
     }
   },
   "sessionBaseCommit": "9824d9605e50c4b0ebd711c13715b506f8ef5bd3"

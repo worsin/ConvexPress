@@ -40,3 +40,19 @@ test('current source availability controls authored form, product, bundle and co
  expect(text('core/table-of-contents',{title:'Inside',depth:2},{data:data('content.headings',{items:[{label:'Small',anchor:'small',level:3}]})})).toBe('');
  expect(text('core/table-of-contents',{title:'Inside',depth:2},{data:data('content.headings',{items:[{label:'Chapter',anchor:'chapter',level:2}]})})).toBe('Inside');
 });
+test('iframe candidates include fallback headings, but current copy chooses only the displayed heading',()=>{
+ const attrs={title:'Explicit heading',url:{label:'Fallback heading',href:'https://www.youtube.com/watch?v=dQw4w9WgXcQ'}};
+ expect(authoredBlockSearchText('core/iframe',attrs)).toBe('Explicit heading Fallback heading');
+ expect(text('core/iframe',attrs)).toBe('Explicit heading');expect(text('core/iframe',{...attrs,title:''})).toBe('Fallback heading');
+ expect(text('core/iframe',{title:'Unselected heading'})).toBe('');
+ expect(()=>text('core/iframe',{...attrs,url:{label:'Invalid',href:'https://example.invalid/frame'}})).toThrow();
+});
+test('video media kinds and direct sources share renderer refusal without indexing player controls',()=>{
+ const resources={media:{movie:{src:'/movie.mp4',alt:'',mimeType:'video/mp4'},image:{src:'/poster.png',alt:'',mimeType:'image/png'}}};
+ expect(text('core/video',{title:'Player control',url:{href:'https://example.invalid/movie.mp4',label:'Download'}},{resources})).toBe('');
+ expect(()=>text('core/video',{media:{id:'image'}},{resources})).toThrow();
+ expect(()=>text('core/video',{url:{href:'https://example.invalid/player',label:'Invalid'}})).toThrow();
+ expect(text('core/hero-video',{title:'Editorial heading',video:{id:'movie'},poster:{id:'image'}},{resources})).toBe('Editorial heading');
+ expect(()=>text('core/hero-video',{title:'Editorial heading',video:{id:'image'}},{resources})).toThrow();
+ expect(()=>text('core/hero-video',{title:'Editorial heading',poster:{id:'movie'}},{resources})).toThrow();
+});

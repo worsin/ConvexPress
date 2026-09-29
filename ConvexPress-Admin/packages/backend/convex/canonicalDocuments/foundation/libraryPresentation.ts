@@ -22,3 +22,8 @@ export type MediaKind = 'image' | keyof typeof mediaTypes;
 export function supportedMediaType(kind: MediaKind, mimeType?: string) {
  return kind==='image' ? !mimeType || mimeType.startsWith('image/') : Boolean(mimeType && mediaTypes[kind].has(mimeType));
 }
+
+/** Match the direct video adapter without changing its public refusal type. */
+export function supportedVideoUrl(url: URL): boolean {
+ return url.protocol==='https:' && !url.username && !url.password && /\.(mp4|webm|ogv)$/iu.test(url.pathname);
+}

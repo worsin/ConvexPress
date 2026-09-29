@@ -46,6 +46,12 @@ export function authoredBlockSearchText(name: string, input: unknown, project?: 
   if (name === "core/custom-html") return blockHtmlText((attrs as {html:string}).html);
   const promoted = installedPromotionDefinition(name);
   if (promoted) return authoredPresentationSearchText(promoted, attrs);
+  // This embed displays its link label as a heading only when title is absent.
+  // Index both candidates; current projection chooses the actual displayed one.
+  if (!project && name === "core/iframe") {
+    const frame = attrs as { title: string; url?: { label: string } };
+    return declaredSearchText({title:[frame.title,frame.url?.label].filter(Boolean).join(" ")}, descriptors[name]);
+  }
   return declaredSearchText(project ? project(attrs) : attrs, descriptors[name]);
 }
 

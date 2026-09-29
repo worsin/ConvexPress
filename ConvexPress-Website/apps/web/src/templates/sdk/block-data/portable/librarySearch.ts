@@ -1,14 +1,15 @@
+import { reviewedEmbed } from './shared/embedProviders';
 import type { CanonicalBlockInstance } from './generated/types';
 import type { DataEntry } from './contracts';
 import type { RenderResources } from './renderResources';
 import { authoredBlockSearchText, proseText } from './searchText';
-import { announcementWindow, countdownExpired, authoredCollectionCards, supportedMediaType, type MediaKind } from './libraryPresentation';
+import { announcementWindow, countdownExpired, authoredCollectionCards, supportedMediaType, supportedVideoUrl, type MediaKind } from './libraryPresentation';
 
 /** Only these authored alternatives need current data. Never resolve a search
  * block in order to construct its own corpus. The public resolver remains the
  * authority for visitor state and source availability. */
 export function librarySearchNeedsData(name: string) {
- return ['core/account-teaser','core/form','core/table-of-contents','commerce/product-hero','commerce/bundle-offer','blocks/product-collection'].includes(name);
+ return ['core/poll','core/account-teaser','core/form','core/table-of-contents','commerce/product-hero','commerce/bundle-offer','blocks/product-collection'].includes(name);
 }
 /** Re-evaluate even a currently hidden alternative when its first boundary arrives. */
 export function librarySearchRecheckAt(node: CanonicalBlockInstance, now: number): number | undefined {
@@ -18,7 +19,7 @@ export function librarySearchRecheckAt(node: CanonicalBlockInstance, now: number
  const future=times.filter((value):value is string=>Boolean(value)).map(Date.parse).filter(time=>Number.isFinite(time)&&time>now);
  return future.length?Math.min(...future):undefined;
 }
-interface Context { now: number; resources: RenderResources; data?: DataEntry }
+interface Context { now: number; resources: RenderResources; data?: DataEntry; assistantAvailable?: boolean }
 export function currentLibrarySearchText(node: CanonicalBlockInstance, context: Context): string {
  const entry=context.data;
  const asset=(id: string,kind: MediaKind)=>{
@@ -28,6 +29,35 @@ export function currentLibrarySearchText(node: CanonicalBlockInstance, context: 
  return authoredBlockSearchText(node.name,node.attrs,attrs=>{
   const block={...node,attrs} as CanonicalBlockInstance;
   switch(block.name){
+   case 'commerce/assistant-band': {
+    if(context.assistantAvailable===undefined)throw Error('Missing current assistant host');
+    return context.assistantAvailable?block.attrs:{};
+   }
+   case 'core/poll': {
+    if(entry?.resolver!=='forms.poll')throw Error('Missing current poll data');
+    return entry.data.poll?{question:entry.data.poll.question,options:entry.data.poll.options}:{};
+   }
+   case 'core/iframe': {
+    if(!block.attrs.url)return {};
+    reviewedEmbed(block.attrs.url.href);
+    return {title:block.attrs.title||block.attrs.url.label};
+   }
+   case 'core/embed': {
+    if(block.attrs.url)reviewedEmbed(block.attrs.url,'video');return block.attrs;
+   }
+   case 'core/script-embed': {
+    if(block.attrs.resourceId)reviewedEmbed(block.attrs.provider==='youtube'?`https://www.youtube.com/embed/${block.attrs.resourceId}`:`https://player.vimeo.com/video/${block.attrs.resourceId}`,'video');return {};
+   }
+   case 'core/video': {
+    const a=block.attrs;
+    if(a.media)asset(a.media.id,'video');
+    else if(a.url&&!supportedVideoUrl(new URL(a.url.href)))throw Error('Unsupported direct video source');
+    if((a.media||a.url)&&a.poster)asset(a.poster.id,'image');return {};
+   }
+   case 'core/hero-video': {
+    if(block.attrs.video)asset(block.attrs.video.id,'video');
+    if(block.attrs.poster)asset(block.attrs.poster.id,'image');return block.attrs;
+   }
    case 'core/announcement-bar': {
     const a=block.attrs,starts=a.schedule?.startsAt?Date.parse(a.schedule.startsAt):null,ends=a.schedule?.endsAt?Date.parse(a.schedule.endsAt):null;
     if(starts!==null&&ends!==null&&starts>=ends)throw Error('Invalid announcement schedule');

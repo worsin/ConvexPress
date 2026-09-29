@@ -1,6 +1,6 @@
 {
   "files": {
-    "ai-catalog.ts": "2f9ccb60e10d85aa1312c71223a11739558635f3d66905e79eb115d652408bdc",
+    "ai-catalog.ts": "ad22eeb2a6ce5ebf7960b61e29f81d4a2376542bac2c2ac16b329237cac6204d",
     "block-spec.schema.json": "8ff686a77dae8b4a7118890c0b6d5e0fbc825bc25b5c5d789a04902a04fbb6e9",
     "catalog.json": "7232a8b63ec942d6d9c385fc9c7d1d61939324f989825c2291644ad302753c77",
     "convex.ts": "a4abad47462f2970833041a03c0b992948487a541670df7e344eedec765e5a42",
@@ -21,7 +21,7 @@
     "renderer-coverage.ts": "83f31347862364f7943ff6db161ae67d8a6d90e5f9a410bbcc86da30a16f76bf",
     "roles.ts": "ba744ac0a275c3ab8a661b58b55b12738138cbd5b0266ac868c79c7c8b3c62f3",
     "schemas.ts": "5ddb9be049da4ed377f4b9280133f4282b4c3b6d1afdba51238fe49e03117aaf",
-    "search-text.ts": "a13f2d56cdf66114c2b966c083b5a1a1dcf34bddb0d45dcb124eb18e2a59eb12",
+    "search-text.ts": "2533eacd5a731f5900dc788fb93b2d1c795c6e7adc29669177490d9a2730e188",
     "spec-runtime.d.mts": "058444113df685e9bdf140e237ea817e457a3a588f8941b577ac1f81fddced55",
     "spec-runtime.mjs": "f992c8fbdd073443eb58e121ba1b9c03082e8ed5d28e6135d6b47606189eb87d",
     "storage.ts": "b2f5ebbfe01a0797325cf5f71700a05f508a3a46ccf9ddd4eb89b6bcda5df1db",
@@ -94,7 +94,7 @@
       "source": "blocks/certificates/verify/block.json"
     },
     {
-      "sha256": "d43bca9d692d8379d94020c04927d4d3c54becd04c7cc3ebd065c4645d9d1281",
+      "sha256": "c2af57187c5fe4d04dc701d4fb8b9f8aa9ed7d64081a2aae4ec1f6c94d537b43",
       "source": "blocks/commerce/assistant-band/block.json"
     },
     {
@@ -326,7 +326,7 @@
       "source": "blocks/core/hero-video/block.json"
     },
     {
-      "sha256": "9d4830cf557cc9031786d2963bc22696934fc2d8b5503d372a12bbf4afeef88d",
+      "sha256": "fb1848d39068753cc09806d561341b4a6be550ca28ae3264fac34e6fd450e149",
       "source": "blocks/core/iframe/block.json"
     },
     {
@@ -358,7 +358,7 @@
       "source": "blocks/core/logo-cloud/block.json"
     },
     {
-      "sha256": "ea1b67f8cd1253fcb874eb2d584772e6bc7642bc7d3e721f5fccc83cf31710cb",
+      "sha256": "3e333ad43765a0af0eb466af5a6666f5e54a950e60cfa4f7952b7c80707b1806",
       "source": "blocks/core/map/block.json"
     },
     {
@@ -382,7 +382,7 @@
       "source": "blocks/core/paragraph/block.json"
     },
     {
-      "sha256": "7eca305ce428b8cdd621896f85bdc2ee9016de95acdfcd7587f5712fc477292c",
+      "sha256": "547e3a0d3830161edcb196a4c7effa1d991c025823b5b54061b552bb87844570",
       "source": "blocks/core/poll/block.json"
     },
     {

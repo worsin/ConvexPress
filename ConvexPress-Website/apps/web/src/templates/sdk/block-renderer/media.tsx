@@ -2,7 +2,7 @@ import * as P from "../primitives";
 import { BlockRenderError, type RenderResources } from "./model";
 import type { RenderMedia } from "./media-resources";
 
-import { supportedMediaType, type MediaKind } from "../block-data/portable/libraryPresentation";
+import { supportedVideoUrl, supportedMediaType, type MediaKind } from "../block-data/portable/libraryPresentation";
 export function resolvedAsset(
 	id: string,
 	resources: RenderResources,
@@ -28,10 +28,7 @@ export function resolvedAsset(
 export function directVideoSource(href: string): string {
 	const url = new URL(href);
 	if (
-		url.protocol !== "https:" ||
-		url.username ||
-		url.password ||
-		!/\.(mp4|webm|ogv)$/iu.test(url.pathname)
+		!supportedVideoUrl(url)
 	)
 		throw new BlockRenderError(
 			"UNSUPPORTED_VIDEO_URL",
