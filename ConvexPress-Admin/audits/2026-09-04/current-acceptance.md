@@ -417,3 +417,8 @@ Opening Hours, Locations, Services and Menu accepted: tracker85 Verified/52 In p
 ## September29 external embeds acceptance
 
 Five rows accepted, tracker108 Verified/29 In progress; Script Embed Vimeo playback remains pending provider access. E53 write-time embed/action validation, E54 valid300-character Contact Link crash and E55 maximum text wrapping repaired. Native all-field edits/exact revision4→14 recovery, eight normal/eight maximum pack/width cases, twelve live provider cases, one actual Embed Vimeo playback and six controlled failure cases pass. Two pages/session/profile removed; original42pages/11media/appearance values exact. Strict source snapshot1624files preserves22Events/2410signatures. [Evidence and provider limits](external-embeds-20260929.md). Tasks4–8 and E18/E22/E28 remain open; next customer-commerce.
+
+
+## September29 customer commerce acceptance
+
+Reviews, Cart CTA, Wishlist and Purchased Downloads accepted: tracker112/25, Notes preserved. E56 one-property help-link shrink repair passes16normal/maximum four-pack cases. Real customer actions/isolation, native exact4→6 recovery,13download pages12+1,30,409,237-byte verified ZIP and live revocation pass. Original42pages/11media and product/category values preserved; normal audit metadata and materialized email-default record disclosed. Cancelled zero-value purchase/history retained, owned content removed and identities closed. [Evidence and limits](customer-commerce-20260929.md). Recently Viewed still needs real site switching; Assistant Band confirmed missing_api_key. Goal remains open.

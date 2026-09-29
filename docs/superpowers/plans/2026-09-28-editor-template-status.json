@@ -1,13 +1,13 @@
 {
   "plan": "2026-09-28-editor-template-delivery.md",
   "baselineCommit": "d0fee8acceb408fd306a15f3c054322cb73ac8bc",
-  "checkpointSource": "output/external-embeds-20260929/mt-accept-after.json",
+  "checkpointSource": "output/customer-commerce-20260929/mt-accept-after.json",
   "checkpointCounts": {
-    "Verified": 108,
-    "In progress": 29
+    "Verified": 112,
+    "In progress": 25
   },
   "goal": "Complete block editor and template delivery plus all demonstrated blockers; defer unrelated whole-app audit campaigns.",
-  "currentTask": "Five external-embed rows accepted; 108 Verified / 29 In progress. Script Embed remains pending actual Vimeo playback after provider connection-security refusal. Next Task3 customer-commerce (six rows). Remaining26 Task3 rows,2 Task4 migration rows,1 Task7 SDK row. Tasks4\u20138 and E18/E22/E28 remain open.",
+  "currentTask": "Four customer-commerce rows accepted;112 Verified/25 In progress. Next complete Recently Viewed actual site/environment switching, then Task3 forms. Assistant Band blocked on actual configured model response (confirmed missing_api_key); Script Embed Vimeo playback remains pending. Remaining22 Task3 rows,2 Task4 migration rows,1 Task7 SDK row. Tasks4\u20138/E18/E22/E28 remain open.",
   "tasks": [
     {
       "id": 1,
@@ -167,10 +167,14 @@
     },
     {
       "id": "E13",
-      "status": "Historical provider/configuration limitation recorded in the guide; recheck current availability before the affected AI/cloud acceptance. Does not block static block authoring.",
+      "status": "Current customer-commerce Assistant Band prompt returns unavailable; own real customer thread confirms missing_api_key. No actual model response accepted. This does not block other customer blocks. Task7 AI workflow remains open.",
       "classification": "external prerequisite",
       "initialFinding": "Some isolated AI exercises returned missing_api_key; earlier provider success does not establish current end-to-end editor generation.",
-      "closureBoundary": "Inspect authorized configured connections without exposing secrets; use the existing provider if available. Prove one live structured generation, resource selection, review, insert/save and Website output, plus composition/style/promotion. Do not substitute mocked success."
+      "closureBoundary": "Inspect authorized configured connections without exposing secrets; use the existing provider if available. Prove one live structured generation, resource selection, review, insert/save and Website output, plus composition/style/promotion. Do not substitute mocked success.",
+      "currentEvidence": [
+        "ConvexPress-Admin/audits/2026-09-04/customer-commerce-20260929.md",
+        "output/customer-commerce-20260929/assistant-provider-proof.json"
+      ]
     },
     {
       "id": "E14",
@@ -540,6 +544,18 @@
       "evidence": [
         "ConvexPress-Admin/audits/2026-09-04/external-embeds-20260929.md",
         "output/external-embeds-20260929/cleanup.json"
+      ]
+    },
+    {
+      "id": "E56",
+      "classification": "accepted repair",
+      "initialFinding": "Valid160-character Purchased Downloads help label forces flex-shrink:0 anchor to1447.5px and widens1440px page to1737px.",
+      "closureBoundary": "Prove isolated cause and preserve complete label/action at maximum and normal sizes across all four packs.",
+      "status": "Closed: one-property flex-shrink:1 intervention restores1440px width and reverses when removed; rebuilt Website16normal/maximum customer cases pass. Native, actual bytes/customer isolation, live revocation and cleanup accepted.",
+      "evidence": [
+        "ConvexPress-Admin/audits/2026-09-04/customer-commerce-20260929.md",
+        "output/customer-commerce-20260929/overflow-cause.json",
+        "output/customer-commerce-20260929/matrix.json"
       ]
     }
   ],
@@ -1906,19 +1922,21 @@
       "name": "core/reviews",
       "title": "Reviews",
       "category": "Social",
-      "checkpointStatus": "In progress",
-      "nextClassification": "Reviewed against live Notes and current canonical specification; Reuse current review authorization evidence; real customer session/expiry, source/product/rating/limit fields and paginated empty/denied/error states. Broader analytics cleanup is not a block prerequisite unless reached.",
-      "classification": "missing evidence",
+      "checkpointStatus": "Verified",
+      "nextClassification": "Accepted on accumulated native exact recovery, real customer actions/isolation, four-pack/width normal/maximum, source regressions and cleanup evidence; see ConvexPress-Admin/audits/2026-09-04/customer-commerce-20260929.md",
+      "classification": "accepted/reusable evidence",
       "source": "blocks/core/reviews/block.json",
-      "requirements": "source (select), product (reference), limit (number), minRating (number)",
+      "requirements": "source, product, limit, minRating",
       "evidenceReferences": [
         "output/block-library-review-20260915/coverage-review.json.",
-        "output/reviews-public-feed-20260915/checks.json."
+        "output/reviews-public-feed-20260915/checks.json.",
+        "ConvexPress-Admin/audits/2026-09-04/customer-commerce-20260929.md",
+        "output/customer-commerce-20260929/source-provenance.json"
       ],
-      "remainingReview": "Reuse current review authorization evidence; real customer session/expiry, source/product/rating/limit fields and paginated empty/denied/error states. Broader analytics cleanup is not a block prerequisite unless reached.",
+      "remainingReview": "No remaining block-specific gate in this batch; broader migration, Customizer, SDK and frozen-artifact integration remain Tasks4\u20138.",
       "deliveryTask": 3,
       "acceptanceBatch": "customer-commerce",
-      "reviewedAtCommit": "d8a0ea2c",
+      "reviewedAtCommit": "ca7cb390 + Purchased Downloads flex-shrink repair",
       "notesSha256": "066b436efff527935667fb52d0d01e7dec9a1a2e24230a4cb520a24ab7a0b5d4",
       "specSha256": "7923b73580476ae738eab36a9160dfd3d4ce0a45a0f1c994fe37b7ad31a5ab1f",
       "rendererSha256": "dcd036e1c21948e327579b4028f4b8955b434cabc22acd9c0740c63e914d964c",
@@ -1927,7 +1945,8 @@
         "product",
         "limit",
         "minRating"
-      ]
+      ],
+      "acceptedEvidence": "ConvexPress-Admin/audits/2026-09-04/customer-commerce-20260929.md"
     },
     {
       "name": "core/social-feed",
@@ -2086,21 +2105,23 @@
       "title": "Assistant band",
       "category": "Commerce",
       "checkpointStatus": "In progress",
-      "nextClassification": "Reviewed against live Notes and current canonical specification; Native prompts/title, real assistant response/history scope, cart actions, signed-out/session changes and all-pack host states.",
-      "classification": "missing evidence",
+      "nextClassification": "Actual customer prompt routing and unavailable response verified; own thread confirms missing_api_key. Native fields, four-pack maximum/empty layout and foreign-session denial pass.",
+      "classification": "external prerequisite",
       "source": "blocks/commerce/assistant-band/block.json",
-      "requirements": "title, prompts[] (defaults from commerce.assistant settings)",
+      "requirements": "eyebrow, heading, body, prompts, ctaLabel, ctaUrl",
       "evidenceReferences": [
         "output/assistant-scope-20260910.",
         "output/block-library-review-20260915/coverage-review.json.",
         "output/cart-recovery-20260921.",
         "output/commerce-session-20260921.",
-        "output/cta-family-20260921."
+        "output/cta-family-20260921.",
+        "ConvexPress-Admin/audits/2026-09-04/customer-commerce-20260929.md",
+        "output/customer-commerce-20260929/source-provenance.json"
       ],
-      "remainingReview": "Native prompts/title, real assistant response/history scope, cart actions, signed-out/session changes and all-pack host states.",
+      "remainingReview": "Configure/use an authorized available model and prove a real answer, correctly scoped history and assistant cart tools. No billing change or mocked success. Independent block work continues.",
       "deliveryTask": 3,
       "acceptanceBatch": "customer-commerce",
-      "reviewedAtCommit": "d8a0ea2c",
+      "reviewedAtCommit": "ca7cb390 + Purchased Downloads flex-shrink repair",
       "notesSha256": "934f3d9b76c5502f41c5f13025021b3b1abe1e7b82d31848c9718722ee90b71b",
       "specSha256": "4cb9655343dc8a87ef6cc4a6d0ba7dd927c4e64cd245d9607a26f41376425c20",
       "rendererSha256": "aa111a1ebd026457e728f54c1ec262cdd6b501a737e77964ab939962fd9f4ecd",
@@ -2214,19 +2235,21 @@
       "title": "Recently viewed",
       "category": "Commerce",
       "checkpointStatus": "In progress",
-      "nextClassification": "Reviewed against live Notes and current canonical specification; Reuse real anonymous visit ordering; signed-in/account/site switching, deleted/private product removal, limit and empty state.",
+      "nextClassification": "Native fields/exact restore, actual signed-in visits/limit/order, private withdrawal, same-browser sign-out/account switch and four-pack geometry pass. Real site/environment switch remains.",
       "classification": "missing evidence",
       "source": "blocks/commerce/recently-viewed/block.json",
-      "requirements": "limit (number), title (text)",
+      "requirements": "limit, title",
       "evidenceReferences": [
         "output/block-library-review-20260915/coverage-review.json.",
         "output/recently-viewed-20260910.",
-        "ConvexPress-Admin/audits/2026-09-04/search-library-prose-20260928.md"
+        "ConvexPress-Admin/audits/2026-09-04/search-library-prose-20260928.md",
+        "ConvexPress-Admin/audits/2026-09-04/customer-commerce-20260929.md",
+        "output/customer-commerce-20260929/source-provenance.json"
       ],
-      "remainingReview": "Reuse real anonymous visit ordering; signed-in/account/site switching, deleted/private product removal, limit and empty state.",
+      "remainingReview": "Exercise Recently Viewed through an actual site/environment switch with existing history, preserve separate backend/instance/customer scopes and verify rendered records; controlled scope tests alone do not close this gate.",
       "deliveryTask": 3,
       "acceptanceBatch": "customer-commerce",
-      "reviewedAtCommit": "d8a0ea2c",
+      "reviewedAtCommit": "ca7cb390 + Purchased Downloads flex-shrink repair",
       "notesSha256": "72c31c7383c35d2ae342244a8708240f6ad13d9bb8fa7060c69e06fee88d7a5f",
       "specSha256": "b5490c4ea27773629ec36ed4a9744576cfdae7f8868878eef2eac6509be7370f",
       "rendererSha256": "893d7da1f7399c601947c7406db5b2cae6c82c21252a3197b9dc58b4546e01bc",
@@ -2239,30 +2262,33 @@
       "name": "commerce/cart-cta",
       "title": "Cart CTA",
       "category": "Commerce",
-      "checkpointStatus": "In progress",
-      "nextClassification": "Reviewed against live Notes and current canonical specification; Reuse customer restore/guest merge proof; title/empty copy, closed-cart cross-tab changes, currency and all-pack live host states. Payment lifecycle is separate unless reached.",
-      "classification": "missing evidence",
+      "checkpointStatus": "Verified",
+      "nextClassification": "Accepted on accumulated native exact recovery, real customer actions/isolation, four-pack/width normal/maximum, source regressions and cleanup evidence; see ConvexPress-Admin/audits/2026-09-04/customer-commerce-20260929.md",
+      "classification": "accepted/reusable evidence",
       "source": "blocks/commerce/cart-cta/block.json",
-      "requirements": "title (text), emptyText (text)",
+      "requirements": "title, emptyText",
       "evidenceReferences": [
         "output/block-library-review-20260915/coverage-review.json.",
         "output/cart-cta-20260910",
         "output/cart-family-20260921.",
         "output/cart-recovery-20260921.",
         "output/commerce-session-20260921.",
-        "ConvexPress-Admin/audits/2026-09-04/search-library-prose-20260928.md"
+        "ConvexPress-Admin/audits/2026-09-04/search-library-prose-20260928.md",
+        "ConvexPress-Admin/audits/2026-09-04/customer-commerce-20260929.md",
+        "output/customer-commerce-20260929/source-provenance.json"
       ],
-      "remainingReview": "Reuse customer restore/guest merge proof; title/empty copy, closed-cart cross-tab changes, currency and all-pack live host states. Payment lifecycle is separate unless reached.",
+      "remainingReview": "No remaining block-specific gate in this batch; broader migration, Customizer, SDK and frozen-artifact integration remain Tasks4\u20138.",
       "deliveryTask": 3,
       "acceptanceBatch": "customer-commerce",
-      "reviewedAtCommit": "d8a0ea2c",
+      "reviewedAtCommit": "ca7cb390 + Purchased Downloads flex-shrink repair",
       "notesSha256": "7eae3b62dfeda27f6654c3abb2394c3ac5a702c138f480bed653dc799eff7582",
       "specSha256": "8fffe4b40c1a3daa0c64a7e40f5fc4cbfb82965ae70349dced81748f209b4fd1",
       "rendererSha256": "ce7e7d2e5282c422cda09d07aba1473cf64e9031448980f6f503b2eb3564d4ba",
       "canonicalFields": [
         "title",
         "emptyText"
-      ]
+      ],
+      "acceptedEvidence": "ConvexPress-Admin/audits/2026-09-04/customer-commerce-20260929.md"
     },
     {
       "name": "commerce/search-band",
@@ -3781,23 +3807,25 @@
       "name": "commerce/wishlist",
       "title": "Saved products",
       "category": "Commerce",
-      "checkpointStatus": "In progress",
-      "nextClassification": "Reviewed against live Notes and current canonical specification; Reuse fixture/readiness/paging proof; real customer-owned list/item actions and session isolation, native copy/browse link and all-pack host behavior.",
-      "classification": "missing evidence",
+      "checkpointStatus": "Verified",
+      "nextClassification": "Accepted on accumulated native exact recovery, real customer actions/isolation, four-pack/width normal/maximum, source regressions and cleanup evidence; see ConvexPress-Admin/audits/2026-09-04/customer-commerce-20260929.md",
+      "classification": "accepted/reusable evidence",
       "source": "blocks/commerce/wishlist/block.json",
-      "requirements": "heading (text), emptyMessage (text), browseLink (link)",
+      "requirements": "heading, emptyMessage, browseLink",
       "evidenceReferences": [
         "output/wishlist-deploy-repair-20260914.",
         "output/wishlist-hardening-20260915",
         "output/wishlist-lookup-20260915/checks.json",
         "output/wishlist-owner-totals-20260915.",
         "output/wishlist-surfaces-20260914",
-        "ConvexPress-Admin/audits/2026-09-04/search-library-prose-20260928.md"
+        "ConvexPress-Admin/audits/2026-09-04/search-library-prose-20260928.md",
+        "ConvexPress-Admin/audits/2026-09-04/customer-commerce-20260929.md",
+        "output/customer-commerce-20260929/source-provenance.json"
       ],
-      "remainingReview": "Reuse fixture/readiness/paging proof; real customer-owned list/item actions and session isolation, native copy/browse link and all-pack host behavior.",
+      "remainingReview": "No remaining block-specific gate in this batch; broader migration, Customizer, SDK and frozen-artifact integration remain Tasks4\u20138.",
       "deliveryTask": 3,
       "acceptanceBatch": "customer-commerce",
-      "reviewedAtCommit": "d8a0ea2c",
+      "reviewedAtCommit": "ca7cb390 + Purchased Downloads flex-shrink repair",
       "notesSha256": "bee93069dcdde96f56316b20eb42e518fbff123eb98a01245158b50a133aa7b8",
       "specSha256": "7089608377fdf855c3bec0dcd8eb62b83fb74ea6a7a70fe255848a86fe3758d6",
       "rendererSha256": "f098a6c41fe80507d8b400a4a7b86d95a435283313b51c8d7bfff8657299b742",
@@ -3805,29 +3833,32 @@
         "heading",
         "emptyMessage",
         "browseLink"
-      ]
+      ],
+      "acceptedEvidence": "ConvexPress-Admin/audits/2026-09-04/customer-commerce-20260929.md"
     },
     {
       "name": "commerce/download-library",
       "title": "Purchased downloads",
       "category": "Commerce",
-      "checkpointStatus": "In progress",
-      "nextClassification": "Reviewed against live Notes and current canonical specification; Reuse callback/entrance fixes; actual permitted entitlement/file bytes, denial/revocation/session changes, paging and native text/help action without real charge.",
-      "classification": "missing evidence",
+      "checkpointStatus": "Verified",
+      "nextClassification": "Accepted on accumulated native exact recovery, real customer actions/isolation, four-pack/width normal/maximum, source regressions and cleanup evidence; see ConvexPress-Admin/audits/2026-09-04/customer-commerce-20260929.md",
+      "classification": "accepted/reusable evidence",
       "source": "blocks/commerce/download-library/block.json",
-      "requirements": "heading (text), emptyMessage (text), helpLink (link)",
+      "requirements": "heading, emptyMessage, helpLink",
       "evidenceReferences": [
         "output/download-entitlements-20260915.",
         "output/download-library-20260915.",
         "output/download-library-block-20260915.",
         "output/download-transport-20260915.",
         "output/stylesheet-hydration-20260915.",
-        "ConvexPress-Admin/audits/2026-09-04/search-library-prose-20260928.md"
+        "ConvexPress-Admin/audits/2026-09-04/search-library-prose-20260928.md",
+        "ConvexPress-Admin/audits/2026-09-04/customer-commerce-20260929.md",
+        "output/customer-commerce-20260929/source-provenance.json"
       ],
-      "remainingReview": "Reuse callback/entrance fixes; actual permitted entitlement/file bytes, denial/revocation/session changes, paging and native text/help action without real charge.",
+      "remainingReview": "No remaining block-specific gate in this batch; broader migration, Customizer, SDK and frozen-artifact integration remain Tasks4\u20138.",
       "deliveryTask": 3,
       "acceptanceBatch": "customer-commerce",
-      "reviewedAtCommit": "d8a0ea2c",
+      "reviewedAtCommit": "ca7cb390 + Purchased Downloads flex-shrink repair",
       "notesSha256": "a0bd2f15d464ee19a411461901666c250bfb0b09c83d200d7e06e50f4eada9dc",
       "specSha256": "657f3e944075471ff8dee9bfe064347725a046bd71e99eb8b3d0b73062ee28c1",
       "rendererSha256": "a91969c370bc77701c04499b06f42618817fd9e7d75d363e4363610913f578e8",
@@ -3835,7 +3866,8 @@
         "heading",
         "emptyMessage",
         "helpLink"
-      ]
+      ],
+      "acceptedEvidence": "ConvexPress-Admin/audits/2026-09-04/customer-commerce-20260929.md"
     },
     {
       "name": "core/search-results",
@@ -4129,25 +4161,34 @@
     "output/external-embeds-20260929/vimeo-acceptance.json",
     "output/external-embeds-20260929/cleanup.json",
     "output/external-embeds-20260929/installed-proof.json",
-    "output/external-embeds-20260929/mt-accept-verified.json"
+    "output/external-embeds-20260929/mt-accept-verified.json",
+    "ConvexPress-Admin/audits/2026-09-04/customer-commerce-20260929.md",
+    "output/customer-commerce-20260929/matrix.json",
+    "output/customer-commerce-20260929/native-exact-recovery.json",
+    "output/customer-commerce-20260929/download-browser-proof.json",
+    "output/customer-commerce-20260929/download-revocation.json",
+    "output/customer-commerce-20260929/customer-denial.json",
+    "output/customer-commerce-20260929/account-switch.json",
+    "output/customer-commerce-20260929/reconnect-probe.json",
+    "output/customer-commerce-20260929/cleanup.json",
+    "output/customer-commerce-20260929/mt-accept-verified.json"
   ],
   "trackerRefresh": {
-    "source": "output/external-embeds-20260929/mt-accept-after.json",
+    "source": "output/customer-commerce-20260929/mt-accept-after.json",
     "schema": "output/catalog-acceptance-20260929/mt-schema.json",
     "rows": 137,
     "counts": {
-      "Verified": 108,
-      "In progress": 29
+      "Verified": 112,
+      "In progress": 25
     },
     "otherCellsUnchangedFromPreviousRead": true,
     "pendingNotesReconciled": 77,
     "classificationScope": "Block-specific missing gates; historical whole-app audit conditions retained in Notes but not automatic prerequisites.",
     "lastAcceptedNames": [
-      "core/embed",
-      "core/map",
-      "core/booking-cta",
-      "blocks/contact-stack",
-      "core/iframe"
+      "core/reviews",
+      "commerce/cart-cta",
+      "commerce/wishlist",
+      "commerce/download-library"
     ],
     "allNotesExact": true
   },
@@ -4171,7 +4212,8 @@
       "audit17": "Read/responded. F25 nine placeholder blockers explicitly triaged with reused evidence, remaining boundary, assigned task and concrete nextCheck. E04 aggregate superseded by per-row queue; E16 preservation accepted but lifecycle remains Task7. Tasks4\u20138 and E18/E22/E28 remain open. Block counts are not delivery percentage; no subagents.",
       "catalogRuntime": "Owned Website58929/PTY85331 now serves4322 after one CSS repair. Full captured runtime exact, including127.0.0.1:4105 admin origin. Owned native57234 signed out/closed/profile removed. Cart cleared; two archived logo-free brands remain because no normal delete API. Settings values restored, normal audit metadata materialized; derived Uncategorized count corrected by normal product mutations3\u21922 matching2published originals.",
       "audit18": "Read/responded: no new finding; max-content cases already gate overflow. F25 closed for triage only. E06 all-field/mixed composition, F21 Task4 corpus completeness and E18/E22/E28 retained. No overall completion percentage inferred.",
-      "externalEmbedsRuntime": "Owned Website64979/PTY37890 serves4322 with exact captured runtime. Native60861/64594 signed out/closed; profile and API session cleaned. Two owned pages deleted;42pages/11media/appearance values exact. Snapshot external-embeds-reviewed preserves22Events/2410signatures."
+      "externalEmbedsRuntime": "Owned Website64979/PTY37890 serves4322 with exact captured runtime. Native60861/64594 signed out/closed; profile and API session cleaned. Two owned pages deleted;42pages/11media/appearance values exact. Snapshot external-embeds-reviewed preserves22Events/2410signatures.",
+      "customerCommerceRuntime": "Website67075/PTY38169 serves4322 with exact captured runtime after one CSS repair. Owned native66154 and both customer browsers closed. Source backend unchanged. Original42pages/11media exact; product/category values exact except category audit timestamp; email default values restored in newly materialized row. Cancelled zero-value order and normal revoked entitlement/audit/session receipts retained; both owned profiles inactive/Clerk deleted. Four rows accepted, Recent site switch and Assistant live model remain."
     }
   },
   "sessionBaseCommit": "9824d9605e50c4b0ebd711c13715b506f8ef5bd3"
