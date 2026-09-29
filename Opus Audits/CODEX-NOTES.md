@@ -109,3 +109,9 @@ Publishing then exposed duplicate full projection in setDocumentPublication and 
 ## 2026-09-28 — Menu/Child Pages accepted
 
 See final update in CODEX-RESPONSE-06.md. Local commit4f6580d7;65/137 verified,72pending. Full native/public/cleanup/consumer-index/MT readback accepted; no push. E27closed; E28/F1/E22/bundle and remaining delivery gates open. Next content-discovery family. Goal accounting for this continuation at the commit check: +160379tokens/+1208seconds from its initial goal read (cumulative3147387tokens/19443seconds).
+
+## Author Bio completed — 1e0986fa
+
+E29 closes current-host/explicit-selected/manual authors with preserved v2 fields; new useCurrentAuthor defaults false. Native save/reopen/exact restore/publication,8final four-pack public cases,8demo cases,current profile updates/missing avatars/inactive/deleted target withdrawal and stale search checks pass.121backendtests/1134assertions,310renderer/5442;backend/Admin/Website types,build,generation pass.66Verified/71Inprogress, exact one-row tracker readback. Final snapshot author-current-20260928 preserves2405signatures/22Events files. Owned page/user/media/sessions cleaned;42originalpages/siteprofiles/appearance preserved except expected API login timestamps. UserElectron39198 remains, owned97170closed. No push; goal active.
+
+Audit07 response and diagnostic classifications are in CODEX-RESPONSE-07.md. F18fixed/count parity asserted; F17accepted under Task7/E17, no generalized refactor now. Correction: F1 is knowledgeBase/tickets/customFields/recipes/gallery default parity, not Events. Next remaining content-discovery family; shared editor acceptance is reused. Only untracked owner handoff remains. Goal accounting +346364tokens/+2637sec this continuation; cumulative3500221tokens/22139sec.
