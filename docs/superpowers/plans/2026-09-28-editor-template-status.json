@@ -7,7 +7,7 @@
     "In progress": 25
   },
   "goal": "Complete block editor and template delivery plus all demonstrated blockers; defer unrelated whole-app audit campaigns.",
-  "currentTask": "Four customer-commerce rows accepted;112 Verified/25 In progress. Next complete Recently Viewed actual site/environment switching, then Task3 forms. Assistant Band blocked on actual configured model response (confirmed missing_api_key); Script Embed Vimeo playback remains pending. Remaining22 Task3 rows,2 Task4 migration rows,1 Task7 SDK row. Tasks4\u20138/E18/E22/E28 remain open.",
+  "currentTask": "112 Verified/25 In progress. Next Task3 forms. Recently Viewed guest environment switch passes; signed-in target switch waits on E18 real target Clerk provider/provisioning (No auth provider found; clerk_secret_key_missing). Assistant Band model response and Script Embed Vimeo remain open. Remaining22 Task3 rows,2 Task4 migration rows,1 Task7 SDK row. Tasks4\u20138/E18/E22/E28 remain open.",
   "tasks": [
     {
       "id": 1,
@@ -221,8 +221,8 @@
       "classification": "missing evidence",
       "initialFinding": "Current source/main/deployed artifacts and historical screenshots can diverge.",
       "closureBoundary": "Record exact source and deployment identity; reuse only relevant current evidence. Run a final integrated gate on the deliverable, not a collection of unrelated historical green logs.",
-      "currentEvidence": "September29 target remains on its own older extension checkpoint. Four canonical draft functions absent; native editor autosave unavailable and separate document-settings warning observed. Website iframe correct. Final integrated artifact parity remains open; see locale-promotion-20260929.md.",
-      "nextCheck": "Task8: safely reconcile source/main and each installed backend extension snapshot, freeze matching candidate/backend/Website hashes, then run the integrated native/public gate. Preserve user dirty checkout; no push. Earlier target finding is recorded evidence, not a new read of target this batch.",
+      "currentEvidence": "September29 target remains on its own older extension checkpoint. Four canonical draft functions absent; native editor autosave unavailable and separate document-settings warning observed. Website iframe correct. Final integrated artifact parity remains open; see locale-promotion-20260929.md. September29 actual signed-in Website switch also proves target has no matching Clerk auth provider; customer provisioning reports clerk_secret_key_missing. Guest switch and exact source restoration pass, signed-in target document remains loading. See recent-site-switch-20260929.md.",
+      "nextCheck": "Task8: reconcile the exact source/main and installed extension snapshots plus target customer identity configuration, preserving separate databases. Verify matching customer auth provider/provisioning, then repeat the pending signed-in Recently Viewed site switch. Freeze candidate/backend/Website hashes and run the integrated native/public gate. Preserve dirty owner checkout; no push. The target auth failure was observed live in this batch; older draft-function divergence remains recorded historical evidence.",
       "deliveryTask": 8,
       "triagedAt": "2026-09-29",
       "triageEvidence": "ConvexPress-Admin/audits/2026-09-04/delivery-blocker-triage-20260929.md"
@@ -2235,7 +2235,7 @@
       "title": "Recently viewed",
       "category": "Commerce",
       "checkpointStatus": "In progress",
-      "nextClassification": "Native fields/exact restore, actual signed-in visits/limit/order, private withdrawal, same-browser sign-out/account switch and four-pack geometry pass. Real site/environment switch remains.",
+      "nextClassification": "Actual guest source\u2192target\u2192source switch passes in one browser origin with separate databases and preserved history. Signed-in target rejects Clerk token: No auth provider found; provisioning clerk_secret_key_missing. Keep open pending E18 target identity readiness and real signed-in repeat.",
       "classification": "missing evidence",
       "source": "blocks/commerce/recently-viewed/block.json",
       "requirements": "limit, title",
@@ -2244,9 +2244,13 @@
         "output/recently-viewed-20260910.",
         "ConvexPress-Admin/audits/2026-09-04/search-library-prose-20260928.md",
         "ConvexPress-Admin/audits/2026-09-04/customer-commerce-20260929.md",
-        "output/customer-commerce-20260929/source-provenance.json"
+        "output/customer-commerce-20260929/source-provenance.json",
+        "ConvexPress-Admin/audits/2026-09-04/recent-site-switch-20260929.md",
+        "output/recent-site-switch-20260929/source-restored.json",
+        "output/recent-auth-switch-20260929/target-auth-console.json",
+        "output/recent-auth-switch-20260929/target-provisioning.json"
       ],
-      "remainingReview": "Exercise Recently Viewed through an actual site/environment switch with existing history, preserve separate backend/instance/customer scopes and verify rendered records; controlled scope tests alone do not close this gate.",
+      "remainingReview": "Configure and verify the actual target customer identity provider as part of E18 integrated target readiness, then repeat signed-in source\u2192target\u2192source history acceptance; guest environment and prior source account-switch evidence are reusable.",
       "deliveryTask": 3,
       "acceptanceBatch": "customer-commerce",
       "reviewedAtCommit": "ca7cb390 + Purchased Downloads flex-shrink repair",
@@ -4171,7 +4175,13 @@
     "output/customer-commerce-20260929/account-switch.json",
     "output/customer-commerce-20260929/reconnect-probe.json",
     "output/customer-commerce-20260929/cleanup.json",
-    "output/customer-commerce-20260929/mt-accept-verified.json"
+    "output/customer-commerce-20260929/mt-accept-verified.json",
+    "ConvexPress-Admin/audits/2026-09-04/recent-site-switch-20260929.md",
+    "output/recent-site-switch-20260929/source-restored.json",
+    "output/recent-site-switch-20260929/cleanup.json",
+    "output/recent-auth-switch-20260929/target-auth-console.json",
+    "output/recent-auth-switch-20260929/target-provisioning.json",
+    "output/recent-auth-switch-20260929/cleanup.json"
   ],
   "trackerRefresh": {
     "source": "output/customer-commerce-20260929/mt-accept-after.json",
@@ -4214,7 +4224,8 @@
       "audit18": "Read/responded: no new finding; max-content cases already gate overflow. F25 closed for triage only. E06 all-field/mixed composition, F21 Task4 corpus completeness and E18/E22/E28 retained. No overall completion percentage inferred.",
       "externalEmbedsRuntime": "Owned Website64979/PTY37890 serves4322 with exact captured runtime. Native60861/64594 signed out/closed; profile and API session cleaned. Two owned pages deleted;42pages/11media/appearance values exact. Snapshot external-embeds-reviewed preserves22Events/2410signatures.",
       "customerCommerceRuntime": "Website67075/PTY38169 serves4322 with exact captured runtime after one CSS repair. Owned native66154 and both customer browsers closed. Source backend unchanged. Original42pages/11media exact; product/category values exact except category audit timestamp; email default values restored in newly materialized row. Cancelled zero-value order and normal revoked entitlement/audit/session receipts retained; both owned profiles inactive/Clerk deleted. Four rows accepted, Recent site switch and Assistant live model remain."
-    }
+    },
+    "audit19": "Read/responded. F26 prerequisite visibility useful; exact owner-only/exhaustive claim not established. No acceptance on missing model/provider proof. Corrected core/reviews/E56. Actual signed-in target Clerk provider/provisioning failure now recorded under E18; Recently Viewed remains open. Forms six next, F21 and Tasks4\u20138 retained."
   },
   "sessionBaseCommit": "9824d9605e50c4b0ebd711c13715b506f8ef5bd3"
 }
