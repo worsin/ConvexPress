@@ -1,13 +1,13 @@
 {
   "plan": "2026-09-28-editor-template-delivery.md",
   "baselineCommit": "d0fee8acceb408fd306a15f3c054322cb73ac8bc",
-  "checkpointSource": "output/poll-policy-20260929/mt-accept-after.json",
+  "checkpointSource": "output/forms-customer-20260929/mt-accept-after.json",
   "checkpointCounts": {
-    "Verified": 114,
-    "In progress": 23
+    "Verified": 116,
+    "In progress": 21
   },
   "goal": "Complete block editor and template delivery plus all demonstrated blockers; defer unrelated whole-app audit campaigns.",
-  "currentTask": "114 Verified/23 In progress unchanged. E58 draft authority and E59 actual resume routing/confirmation repaired and source-deployed. Continue actual customer Contact/Form revoked-expired source/reference authority, Lead account/environment lifecycle and RSVP legitimate provider/original-generated selection. Reuse forms-authority-20260929 registered/runtime evidence. Tasks4\u20138/E18/E22/E28 and model/Vimeo/target-Clerk gates remain open.",
+  "currentTask": "116 Verified/21 In progress. Contact Form and Form Embed accepted with actual customer grant/revocation/natural expiry/recovery, same-draft completion and E60 protected-route hydration repair. Continue Lead account/environment lifecycle and RSVP legitimate provider/original-generated selection; Tasks4\u20138/E18/E22/E28 and model/Vimeo/target-Clerk gates remain open.",
   "tasks": [
     {
       "id": 1,
@@ -593,6 +593,19 @@
         "ConvexPress-Admin/audits/2026-09-04/forms-authority-20260929.md",
         "output/forms-authority-20260929/matrix.json",
         "output/forms-authority-20260929/cleanup.json"
+      ]
+    },
+    {
+      "id": "E60",
+      "classification": "accepted repair",
+      "initialFinding": "Actual authorized customer opening protected form/resume URLs retained anonymous SSR not-found or parent membership denial despite current allowed backend reads.",
+      "closureBoundary": "Forms-only not-found and parent membership recovery after Clerk/Convex authentication agreement; exact read eviction and bounded router invalidation.",
+      "status": "Closed: both real customer URLs recover, original draft completes once with confirmation;8Website tests/types/build pass. Initial anonymous protected resume HTTP remains404; authenticated hydration recovers. Guest denials and missing/archived404 remain.",
+      "evidence": [
+        "ConvexPress-Admin/audits/2026-09-04/forms-customer-20260929.md",
+        "output/forms-customer-20260929/protected-resume-green.json",
+        "output/forms-customer-20260929/protected-form-green.json",
+        "output/forms-customer-20260929/cleanup.json"
       ]
     }
   ],
@@ -2762,9 +2775,9 @@
       "name": "core/contact-form",
       "title": "Contact form",
       "category": "Forms",
-      "checkpointStatus": "In progress",
-      "nextClassification": "Nested source-to-source update/withdrawal/revision restoration and stable form/field IDs now pass. Remaining current revoked/expired caller-authority and stale submission evidence.",
-      "classification": "missing evidence",
+      "checkpointStatus": "Verified",
+      "nextClassification": "Accepted: prior native all-field/resource editing, exact history recovery and24pack/width/state cases; current real customer grant/revocation/natural expiry/sign-out and stale read/write refusal; restored exact answers and single completion. Contact nested source update/withdrawal/restoration and Form saved-draft resume preserve identity.",
+      "classification": "accepted",
       "source": "blocks/core/contact-form/block.json",
       "requirements": "title, fields[], submitLabel, successText",
       "evidenceReferences": [
@@ -2774,9 +2787,11 @@
         "output/synced-forms-live-20260915.",
         "output/synced-forms-recovery-20260915.",
         "ConvexPress-Admin/audits/2026-09-04/search-library-prose-20260928.md",
-        "ConvexPress-Admin/audits/2026-09-04/forms-acceptance-20260929.md"
+        "ConvexPress-Admin/audits/2026-09-04/forms-acceptance-20260929.md",
+        "ConvexPress-Admin/audits/2026-09-04/forms-authority-20260929.md",
+        "ConvexPress-Admin/audits/2026-09-04/forms-customer-20260929.md"
       ],
-      "remainingReview": "Nested source-to-source update/withdrawal/revision restoration and stable form/field IDs now pass. Remaining current revoked/expired caller-authority and stale submission evidence.",
+      "remainingReview": "None for the current block-specific contract. Target-site Clerk provisioning and RSVP provider acceptance remain separate explicit gates.",
       "deliveryTask": 3,
       "acceptanceBatch": "forms",
       "reviewedAtCommit": "d8a0ea2c",
@@ -2904,9 +2919,9 @@
       "name": "core/form",
       "title": "Form embed",
       "category": "Forms",
-      "checkpointStatus": "In progress",
-      "nextClassification": "Native resource/title and exact recovery, real multi-step answers/back-forward/submit, live unpublication and24pack/width/state cases pass. Remaining current revoked/expired authority and reference/access lifecycle closure.",
-      "classification": "missing evidence",
+      "checkpointStatus": "Verified",
+      "nextClassification": "Accepted: prior native all-field/resource editing, exact history recovery and24pack/width/state cases; current real customer grant/revocation/natural expiry/sign-out and stale read/write refusal; restored exact answers and single completion. Contact nested source update/withdrawal/restoration and Form saved-draft resume preserve identity.",
+      "classification": "accepted",
       "source": "blocks/core/form/block.json",
       "requirements": "form (form), title (text)",
       "evidenceReferences": [
@@ -2916,9 +2931,11 @@
         "output/form-embed-20260906/runtime-receipt.json",
         "output/pack-owned-treatments-20260915.",
         "ConvexPress-Admin/audits/2026-09-04/search-conditional-prose-20260928.md",
-        "ConvexPress-Admin/audits/2026-09-04/forms-acceptance-20260929.md"
+        "ConvexPress-Admin/audits/2026-09-04/forms-acceptance-20260929.md",
+        "ConvexPress-Admin/audits/2026-09-04/forms-authority-20260929.md",
+        "ConvexPress-Admin/audits/2026-09-04/forms-customer-20260929.md"
       ],
-      "remainingReview": "Native resource/title and exact recovery, real multi-step answers/back-forward/submit, live unpublication and24pack/width/state cases pass. Remaining current revoked/expired authority and reference/access lifecycle closure.",
+      "remainingReview": "None for the current block-specific contract. Target-site Clerk provisioning and RSVP provider acceptance remain separate explicit gates.",
       "deliveryTask": 3,
       "acceptanceBatch": "forms",
       "reviewedAtCommit": "d8a0ea2c",
@@ -4244,21 +4261,32 @@
     "ConvexPress-Admin/audits/2026-09-04/forms-authority-20260929.md",
     "output/forms-authority-20260929/installed-proof.json",
     "output/forms-authority-20260929/matrix.json",
-    "output/forms-authority-20260929/cleanup.json"
+    "output/forms-authority-20260929/cleanup.json",
+    "ConvexPress-Admin/audits/2026-09-04/forms-customer-20260929.md",
+    "output/forms-customer-20260929/revocation.json",
+    "output/forms-customer-20260929/expiry.json",
+    "output/forms-customer-20260929/contact-complete.json",
+    "output/forms-customer-20260929/member-complete.json",
+    "output/forms-customer-20260929/protected-resume-green.json",
+    "output/forms-customer-20260929/protected-form-green.json",
+    "output/forms-customer-20260929/signed-out.json",
+    "output/forms-customer-20260929/cleanup.json",
+    "output/forms-customer-20260929/mt-accept-verified.json"
   ],
   "trackerRefresh": {
-    "source": "output/poll-policy-20260929/mt-accept-after.json",
-    "schema": "output/poll-policy-20260929/mt-schema.json",
+    "source": "output/forms-customer-20260929/mt-accept-after.json",
+    "schema": "output/forms-customer-20260929/mt-schema.json",
     "rows": 137,
     "counts": {
-      "Verified": 114,
-      "In progress": 23
+      "Verified": 116,
+      "In progress": 21
     },
     "otherCellsUnchangedFromPreviousRead": true,
     "pendingNotesReconciled": 77,
     "classificationScope": "Block-specific missing gates; historical whole-app audit conditions retained in Notes but not automatic prerequisites.",
     "lastAcceptedNames": [
-      "core/poll"
+      "core/contact-form",
+      "core/form"
     ],
     "allNotesExact": true
   },

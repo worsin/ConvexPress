@@ -5,6 +5,7 @@ import { useState } from "react";
 import { api } from "@convexpress-website/backend/generated/api";
 
 import { NotFoundPage } from "@/components/blog/NotFoundPage";
+import { FormRouteNotFound } from "@/extensions/forms/FormRouteNotFound";
 import { type PublicForm } from "@/components/forms/FormRenderer";
 import { isPublicPluginEnabled } from "@/lib/plugins/public";
 import { throwPublicNotFound } from "@/lib/plugins/public-route-loader";
@@ -41,6 +42,7 @@ type ResumeDraft = ResumeDraftState | null;
 
 export const Route = createFileRoute("/_marketing/forms/$slug/resume/$token")({
   component: ResumeFormPage,
+  notFoundComponent: FormRouteNotFound,
   loader: async ({ context: { queryClient }, params }) => {
     const publicSettings = await queryClient.ensureQueryData(
       convexQuery(api.settings.queries.getPublic, {}),

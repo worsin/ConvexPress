@@ -1,0 +1,17 @@
+import { mock } from 'bun:test';import { JSDOM } from 'jsdom';import assert from 'node:assert/strict';
+const dom=new JSDOM('<!doctype html><div id="root"></div>',{url:'https://example.test/forms/private/resume/proof'});Object.assign(globalThis,{window:dom.window,document:dom.window.document,HTMLElement:dom.window.HTMLElement,IS_REACT_ACT_ENVIRONMENT:true});
+const {act,createElement,StrictMode}=await import('react');
+let auth={isLoaded:false,isSignedIn:false,userId:null,sessionId:null},convexAuth={isLoading:true,isAuthenticated:false};
+let resolve,reject,calls=0;const removed=[];const router={invalidate:()=>{calls++;return new Promise((yes,no)=>{resolve=yes;reject=no;});}},queryClient={removeQueries:opts=>removed.push(opts)};
+mock.module('@/lib/auth/clerk',()=>({useAuth:()=>auth}));mock.module('convex/react',()=>({useConvexAuth:()=>convexAuth}));
+mock.module('@tanstack/react-query',()=>({useQueryClient:()=>queryClient}));mock.module('@convex-dev/react-query',()=>({convexQuery:(_ref,args)=>({queryKey:['convexQuery','ref',args]})}));
+mock.module('@tanstack/react-router',()=>({useRouter:()=>router,useLocation:()=>({pathname:'/forms/private/resume/proof'}),useParams:()=>({})}));mock.module('@/components/blog/NotFoundPage',()=>({NotFoundPage:()=>createElement('p',null,'Unavailable')}));
+const {createRoot}=await import('react-dom/client');const {FormRouteNotFound}=await import('./FormRouteNotFound');const root=createRoot(document.getElementById('root'));
+const render=key=>act(async()=>root.render(createElement(StrictMode,null,createElement(FormRouteNotFound,{key}))));
+await render('initial');assert.equal(calls,0);assert(document.body.textContent.includes('Loading form'));
+auth={isLoaded:true,isSignedIn:true,userId:'customer',sessionId:'one'};await render('initial');assert.equal(calls,0,'Clerk readiness alone cannot authorize a loader retry');
+convexAuth={isLoading:false,isAuthenticated:true};await render('initial');assert.equal(calls,1);assert.equal(removed.length,3);assert(removed.every(x=>x.exact));assert(document.body.textContent.includes('Loading form'));
+await act(async()=>resolve());assert.equal(document.body.textContent,'Unavailable');await render('remounted');assert.equal(calls,1,'A denied retry must not loop when the boundary remounts');assert.equal(document.body.textContent,'Unavailable');
+auth={...auth,sessionId:'two'};await render('remounted');assert.equal(calls,2);await act(async()=>reject(Error('Network')));assert(document.body.textContent.includes('could not be loaded'));
+auth={isLoaded:true,isSignedIn:false,userId:null,sessionId:null};convexAuth={isLoading:false,isAuthenticated:false};await render('guest');assert.equal(calls,2);assert.equal(document.body.textContent,'Unavailable');
+await act(async()=>root.unmount());dom.window.close();console.log(JSON.stringify({authReadyOnly:true,scopedEvictions:3,strictModeBounded:true,remountBounded:true,guestDoesNotRetry:true,networkFailureVisible:true}));

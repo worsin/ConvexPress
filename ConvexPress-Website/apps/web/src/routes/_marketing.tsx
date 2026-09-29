@@ -27,6 +27,7 @@ import CoreMobileNav from "@/templates/packs/core/surfaces/chrome.mobileNav";
 import CoreNotFound from "@/templates/packs/core/surfaces/system.notFound";
 import CoreRestricted from "@/templates/packs/core/surfaces/system.restricted";
 import { Surface } from "@/templates/sdk/Surface";
+import { FormRouteAuthRecovery } from "@/extensions/forms/FormRouteNotFound";
 
 export const Route = createFileRoute("/_marketing")({
   loader: async ({ context: { queryClient }, location }) => {
@@ -127,6 +128,7 @@ function MarketingLayoutInner({ routeAccess }: { routeAccess: RouteAccessResult 
   return (
     <>
       <AnalyticsProvider />
+      {isRouteGated && /^\/forms\/[^/]+(?:\/resume\/[^/]+)?\/?$/.test(pathname) ? <FormRouteAuthRecovery /> : null}
       {/* MobileNav is outside the inert wrapper so focus trap works */}
       {!hideHeader && (
         <Surface

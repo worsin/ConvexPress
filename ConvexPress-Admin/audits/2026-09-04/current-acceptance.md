@@ -1,3 +1,7 @@
+## September29 Contact Form and Form Embed accepted
+
+Tracker116Verified/21In progress, all137Notes/unrelated cells exact. Actual Clerk customer grant/revocation/natural expiry/recovery, stale write refusal, saved-draft preservation, one-entry completion and sign-out pass. E60 repairs Forms-only anonymous SSR denial recovery after authentication; initial protected HTTP404 remains, customer hydration recovers.8Website tests/types/build pass; prior native/nested/24pack and596backend/eight resume cases reused. Owned fixtures/identities cleaned; original42pages/7forms/settings/99queue exact. [Evidence and limits](forms-customer-20260929.md). Tasks4–8/E18/E22/E28 remain open.
+
 # Current production acceptance index — September 21
 
 September29 Forms resume repair: **114/137 Verified;23 In progress unchanged.** E58 fixes draft expiry and current form-route/login authority. E59 fixes blank resume routing, token breadcrumbs and confirmation lost on token consumption.596backend tests,7Website tests,8real four-pack/width resume journeys and exact cleanup pass. Remaining actual customer gates stay open. [Evidence](forms-authority-20260929.md).

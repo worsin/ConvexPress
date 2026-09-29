@@ -6,6 +6,7 @@ import { api } from "@convexpress-website/backend/generated/api";
 import { NotFoundPage } from "@/components/blog/NotFoundPage";
 import { type PublicForm } from "@/components/forms/FormRenderer";
 import { parseOrderFormSettings } from "@/extensions/forms/FormWizard";
+import { FormRouteNotFound } from "@/extensions/forms/FormRouteNotFound";
 import { isPublicPluginEnabled } from "@/lib/plugins/public";
 import { throwPublicNotFound } from "@/lib/plugins/public-route-loader";
 import { parsePrefill } from "@/lib/forms/prefill/parsePrefill";
@@ -42,6 +43,7 @@ const getBySlugFn = (api as any).extensions.forms.queries.getBySlug;
 
 export const Route = createFileRoute("/_marketing/forms/$slug")({
   component: FormPage,
+  notFoundComponent: FormRouteNotFound,
   // Permissive search: arbitrary prefill query params pass through as a string
   // map. parsePrefill decides which are eligible (allowlisted opt-in fields).
   validateSearch: (search: Record<string, unknown>): Record<string, string> => {

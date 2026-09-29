@@ -5,6 +5,7 @@ const dom=new JSDOM('<!doctype html><div id="root"></div>',{url:'https://example
 Object.assign(globalThis,{window:dom.window,document:dom.window.document,HTMLElement:dom.window.HTMLElement,IS_REACT_ACT_ENVIRONMENT:true});
 const {act,createElement,useSyncExternalStore}=await import('react');
 const router=await import('@tanstack/react-router');
+const reactQuery=await import('@tanstack/react-query');
 const form={_id:'form-resume',title:'Saved thought',slug:'resume',settings:'{}',fields:[{key:'note',name:'note',label:'Note',type:'text',required:true,settings:'{}',menuOrder:0}]};
 const initial={submissionId:'draft-one',formSlug:'resume',status:'partial',currentStep:0,expiresAt:Date.now()+100000,values:{note:'Preserve this answer'}};
 let draft=initial,fail=false,release;const listeners=new Set();
@@ -13,10 +14,11 @@ mock.module('@/lib/auth/clerk',()=>({useAuth:()=>({isLoaded:true,isSignedIn:fals
 mock.module('@/lib/html-sanitizer',()=>({default:{sanitize:v=>v}}));
 mock.module('@tanstack/react-router',()=>({...router,createFileRoute:()=>options=>({options,useParams:()=>({slug:'resume',token:'proof'})}),Link:props=>createElement('a',props)}));
 mock.module('@convex-dev/react-query',()=>({convexQuery:(_ref,args)=>({resume:'token' in args})}));
-mock.module('@tanstack/react-query',()=>({useSuspenseQuery:options=>({data:useSyncExternalStore(fn=>{listeners.add(fn);return()=>listeners.delete(fn);},()=>options.resume?draft:form,()=>options.resume?draft:form)})}));
+mock.module('@tanstack/react-query',()=>({...reactQuery,useSuspenseQuery:options=>({data:useSyncExternalStore(fn=>{listeners.add(fn);return()=>listeners.delete(fn);},()=>options.resume?draft:form,()=>options.resume?draft:form)})}));
 mock.module('@/templates/sdk/Surface',()=>({Surface:({data,fallback})=>createElement(fallback,{data})}));
 mock.module('@/components/blog/NotFoundPage',()=>({NotFoundPage:()=>createElement('p',{'data-testid':'unavailable'},'Unavailable')}));
 mock.module('convex/react',()=>({
+ useConvexAuth:()=>({isLoading:false,isAuthenticated:false}),
  useMutation:()=>async args=>{if(!args.isComplete)return {};draft=null;notify();await new Promise(resolve=>{release=resolve;});if(fail)throw Error('Access was revoked');return {submissionId:'draft-one',isComplete:true,confirmationToken:'proof'};},
  useAction:()=>async()=>({}),useConvex:()=>({query:async()=>({type:'message',renderedMessage:'Your saved thought was received.'})}),
 }));
