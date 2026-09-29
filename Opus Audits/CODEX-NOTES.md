@@ -380,3 +380,11 @@ Cleanup:2pages/15products/3reviews/13file records/13wishlists removed. Original4
 Owned Website67075/PTY38169 serves4322 with all six exact runtime fields. Backend unchanged from external-embeds-reviewed; owner39198/62672/65092/68390 preserved. Next real Recently Viewed site switch, then forms; Tasks4–8/E18/E22/E28 remain open. No push/subagents. Durable report: hardening ConvexPress-Admin/audits/2026-09-04/customer-commerce-20260929.md.
 
 Local customer-commerce checkpoint commit: `7ad0c2deecebd6e47248b62385baf555fc696a89`. Only preserved untracked handoff remains. Goal active at 9,672,811 tokens / 63,712 seconds; this batch delta 230,562 tokens / 2,191 seconds. No push.
+
+## September29 06:20–06:25 — actual history environment boundary and audit19
+
+Counts unchanged112/25. Guest source→target→source actual Website switch passes in same browser origin. Signed-in stronger gate exposed target missing Clerk auth provider and provisioning secret; target document Loading, no foreign history/render or anonymous history fallback. Source history restores. Recently Viewed stays open under E18 readiness; no accepted fallback. Evidence/report: hardening ConvexPress-Admin/audits/2026-09-04/recent-site-switch-20260929.md, output/recent-site-switch-20260929/, output/recent-auth-switch-20260929/. Both attempts cleaned, original42/28pages and settings values exact, retained normal audit timestamps/two inactive profiles disclosed, Clerk identity deleted/sessions revoked. New owned Website69382/PTY18114/4322, exact source runtime. No backend deploy/push/subagents.
+
+Audit19 read/responded in CODEX-RESPONSE-19.md. F26 visibility adopted; owner-only/exactly-two prerequisite assertion not accepted as exhaustive. Existing authorized model connections and legitimate provider paths remain eligible checks. Required proof cannot be replaced by an external-prerequisite classification. Corrections core/reviews and E56 supplied. Next all six Task3 forms rows, with no outward email; source-to-source nested Contact recovery still required.
+
+Local history-boundary checkpoint commit: `f2a8b1a00dbc2ca02c190631dd1a0b3d4d912fcc`. Goal active; forms six next. Tokens9,880,188/time64,698sec, delta207,377/986sec since customer-commerce checkpoint. No push.
