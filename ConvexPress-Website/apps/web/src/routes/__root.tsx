@@ -34,6 +34,7 @@ import { getSiteRuntime, siteRuntimeBootstrapScript } from "@/lib/site-runtime";
 // One route-owned import lets Start include global CSS in its SSR asset manifest
 // and lets Vite update it without a second, independently timestamped head link.
 import "../index.css";
+import "../templates/sdk/block-renderer/critical-styles";
 import { resolveSiteName, rememberSiteName } from "@/lib/seo/head";
 
 export interface RouterAppContext {

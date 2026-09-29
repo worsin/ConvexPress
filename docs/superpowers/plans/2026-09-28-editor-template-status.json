@@ -1,13 +1,13 @@
 {
   "plan": "2026-09-28-editor-template-delivery.md",
   "baselineCommit": "d0fee8acceb408fd306a15f3c054322cb73ac8bc",
-  "checkpointSource": "output/moving-media-20260929/mt-accept-after.json",
+  "checkpointSource": "output/steps-review-20260929/mt-accept-after.json",
   "checkpointCounts": {
-    "Verified": 93,
-    "In progress": 44
+    "Verified": 94,
+    "In progress": 43
   },
   "goal": "Complete block editor and template delivery plus all demonstrated blockers; defer unrelated whole-app audit campaigns.",
-  "currentTask": "Carousel, Marquee and Customer Showcase accepted with native exact recovery, opt-in playback, safe historical/new links and normal/maximum four-pack evidence.93 Verified/44 In progress. F24 exact per-row/header/tracker parity repaired and checked. Next bounded Steps with Media cold/warm motion investigation, then Grade Gallery and remaining data-backed families. Tasks4\u20138 and E18/E22/E28 remain open.",
+  "currentTask": "Steps with Media accepted after bounded motion evidence and E50 initial stylesheet delivery repair.94 Verified/43 In progress; historical304.5ms cause remains unknown. Next Grade Gallery native nested media/field/public acceptance, then remaining data-backed families. Tasks4\u20138 and E18/E22/E28 remain open.",
   "tasks": [
     {
       "id": 1,
@@ -115,10 +115,15 @@
     },
     {
       "id": "E11",
-      "status": "requires current classification or closure; see guide",
-      "classification": "missing evidence",
+      "status": "Closed for bounded current motion acceptance:16 headed real-focus/cache cases,64 transitions/7680frames,worst8.8ms/no long tasks. Startup maximum28.3ms separately reported. Historical304.5ms remains unexplained; no universal smoothness claim. Unchanged native/media proof reused. See steps-review-20260929.md.",
+      "classification": "accepted/reusable evidence",
       "initialFinding": "Steps with Media has a historical 304.5ms frame outlier; later samples were smooth and image-decode defects were fixed.",
-      "closureBoundary": "Retain the historical observation. Profile the real visible component under controlled warm/cold transitions and declared hardware conditions, inspect long tasks and frames. Establish reproducible current behavior and report limits; do not repeatedly sample an unexplained old event indefinitely or claim universal hardware smoothness."
+      "closureBoundary": "Retain the historical observation. Profile the real visible component under controlled warm/cold transitions and declared hardware conditions, inspect long tasks and frames. Establish reproducible current behavior and report limits; do not repeatedly sample an unexplained old event indefinitely or claim universal hardware smoothness.",
+      "currentEvidence": [
+        "ConvexPress-Admin/audits/2026-09-04/steps-review-20260929.md",
+        "output/steps-review-20260929/motion-verdict.json",
+        "output/steps-review-20260929/visibility-window.json"
+      ]
     },
     {
       "id": "E12",
@@ -424,6 +429,19 @@
       "status": "Closed: native exact save/reopen/history, installed write rules and final normal/maximum four-pack cases pass. See moving-media-20260929.md.",
       "evidence": [
         "output/moving-media-20260929/attribution-red.log"
+      ]
+    },
+    {
+      "id": "E50",
+      "classification": "accepted repair",
+      "initialFinding": "Server-rendered Steps content arrives without its dynamic stylesheet; duplicate visual stage and unstyled layout visible before JavaScript. JavaScript-disabled actual page reproduces.",
+      "closureBoundary": "Make canonical, SDK and pack-owned block CSS part of the initial route assets while keeping renderer code lazy; verify actual unhydrated four-pack pages, final motion and current static JavaScript closure.",
+      "status": "Closed: CSS-only eager discovery repairs first paint. Eight JavaScript-disabled cases plus16fallbacks and16motion cases pass.137 Library renderer chunks remain outside static entry. CSS tradeoff192.49kB raw/29.66kB gzip added to main stylesheet; final overall bundle budget remains Task8. See steps-review-20260929.md.",
+      "evidence": [
+        "output/steps-review-20260929/initial-style-red.json",
+        "output/steps-review-20260929/initial-style-green.json",
+        "output/steps-review-20260929/static-assets.json",
+        "output/steps-review-20260929/fallbacks.json"
       ]
     }
   ],
@@ -1618,9 +1636,9 @@
       "name": "core/steps-with-media",
       "title": "Steps with media",
       "category": "Marketing",
-      "checkpointStatus": "In progress",
-      "nextClassification": "Reviewed against live Notes and current canonical specification; Reuse native/media/error repair; one controlled cold/warm transition investigation with hardware/frame/paint evidence and explicit limits for the historical304.5ms outlier.",
-      "classification": "missing evidence",
+      "checkpointStatus": "Verified",
+      "nextClassification": "Accepted bounded motion and initial-style evidence; historical304.5ms cause remains unknown.",
+      "classification": "accepted/reusable evidence",
       "source": "blocks/core/steps-with-media/block.json",
       "requirements": "steps (repeater)",
       "evidenceReferences": [
@@ -1628,12 +1646,16 @@
         "output/process-family-20260921.",
         "output/steps-motion-20260921.",
         "process-family-20260921.md",
-        "steps-motion-20260921.md"
+        "steps-motion-20260921.md",
+        "ConvexPress-Admin/audits/2026-09-04/steps-review-20260929.md",
+        "output/steps-review-20260929/motion-verdict.json",
+        "output/steps-review-20260929/fallbacks.json",
+        "output/steps-review-20260929/source-provenance.json"
       ],
-      "remainingReview": "Reuse native/media/error repair; one controlled cold/warm transition investigation with hardware/frame/paint evidence and explicit limits for the historical304.5ms outlier.",
+      "remainingReview": "None for block-specific acceptance; final integrated Task8 remains.",
       "deliveryTask": 2,
       "acceptanceBatch": "motion",
-      "reviewedAtCommit": "d8a0ea2c",
+      "reviewedAtCommit": "d5c13a9c",
       "notesSha256": "e582dbe3aafd9e724ea432573a89b579db62fb0296b2584360fe0152d8b4e0f1",
       "specSha256": "941c05efa435f5a394ac77b0dc99dd8c6a0bf6fdd903f0b17371fbcedefd1bfc",
       "rendererSha256": "1da7edbe000c33b30e67430f1317ba7e101e06ec0fba1eefc2bada8d2e9cfc41",
@@ -3924,31 +3946,38 @@
     "output/business-content-20260929/public-variants.json",
     "output/business-content-20260929/public-minimal.json",
     "output/business-content-20260929/cleanup.json",
-    "output/business-content-20260929/lifecycle.json"
+    "output/business-content-20260929/lifecycle.json",
+    "ConvexPress-Admin/audits/2026-09-04/text-download-20260929.md",
+    "ConvexPress-Admin/audits/2026-09-04/support-content-20260929.md",
+    "ConvexPress-Admin/audits/2026-09-04/moving-media-20260929.md",
+    "ConvexPress-Admin/audits/2026-09-04/steps-review-20260929.md",
+    "output/steps-review-20260929/mt-accept-verified.json",
+    "output/steps-review-20260929/motion-verdict.json",
+    "output/steps-review-20260929/fallbacks.json",
+    "output/steps-review-20260929/initial-style-green.json",
+    "output/steps-review-20260929/source-provenance.json",
+    "output/steps-review-20260929/cleanup.json"
   ],
   "trackerRefresh": {
-    "source": "output/business-content-20260929/mt-accept-after.json",
-    "schema": "output/business-content-20260929/mt-schema.json",
+    "source": "output/steps-review-20260929/mt-accept-after.json",
+    "schema": "output/steps-review-20260929/mt-schema.json",
     "rows": 137,
     "counts": {
-      "Verified": 85,
-      "In progress": 52
+      "Verified": 94,
+      "In progress": 43
     },
     "otherCellsUnchangedFromPreviousRead": true,
     "pendingNotesReconciled": 77,
     "classificationScope": "Block-specific missing gates; historical whole-app audit conditions retained in Notes but not automatic prerequisites.",
     "lastAcceptedNames": [
-      "business/opening-hours",
-      "business/locations",
-      "business/service-list",
-      "business/menu"
+      "core/steps-with-media"
     ],
     "allNotesExact": true
   },
   "coordination": {
     "folder": "/Users/worsin/Development/ConvexPress/Opus Audits/",
     "authority": "Codex leads; Claude audits are advisory and independently verified",
-    "lastAudit": "2026-09-29T0120-audit-14-f1-repair-in-flight.md",
+    "lastAudit": "2026-09-29T0320-audit-16-e45-proxy-and-stale-rows.md",
     "pendingAdvisory": {
       "F19": "Accepted shared public document href contract. Historical encoded-slug fixture reproduced discrepancy; ordinary authoring slugifies safely. Legacy menu root/prefix behavior and membership aliases preserved. See locale-destinations-20260928.md.",
       "F20": "Source-verified enterprise commerce backfill truncation recorded in current-acceptance.md deferred register. No live reproduction or repair; promote only if catalog/customer-commerce delivery demonstrates a dependency.",
@@ -3958,7 +3987,9 @@
       "audit13": "E41 reviewed locale routing/groups/remapping/conflicts/recovery complete. Language Switcher accepted on accumulated evidence. Target older editor autosave/settings gap remains explicit E18 integration work; no general promotion rewrite.",
       "F1": "Closed for current default-policy contract: original audit had four mismatches plus Admin-only Custom Fields, not five mismatches. Preserve existing backend/Admin/public enabled defaults; align four Website fallbacks rather than change installed behavior.16-manifest contract gate, registered public no-write/override tests, live read-only parity and built routes pass. Plugin blocks remain pending.",
       "audit14": "Read/responded. F1 committed e67880ef; four built routes pass including current empty Recipe archive. Normal public getPublic already projected enabled defaults on absent rows, so route-exposure expansion is not established by fallback change. E18/E22/E28 remain assigned; next Recipe Card/Album.",
-      "businessNotification": "During business acceptance, a normal Settings Updated toast showed literal {settingsGroup}; dismissed using Close toast. Carry concrete wording observation into Task5 Customizer notification review; not repaired or treated as a broad notifications campaign."
+      "businessNotification": "During business acceptance, a normal Settings Updated toast showed literal {settingsGroup}; dismissed using Close toast. Carry concrete wording observation into Task5 Customizer notification review; not repaired or treated as a broad notifications campaign.",
+      "audit15": "Read/responded: F23 remains a narrow public-caller policy lens rather than a filename-based finding or general audit. Support acceptance complete with actual customer isolation.",
+      "audit16": "Read/responded: E45 bounded streaming route accepted; F24 eleven stale block statuses repaired and check:delivery-status now asserts exact per-row/header/readback parity. Current trackerRefresh/latestEvidence metadata refreshed to the Steps checkpoint."
     }
   },
   "sessionBaseCommit": "9824d9605e50c4b0ebd711c13715b506f8ef5bd3"
