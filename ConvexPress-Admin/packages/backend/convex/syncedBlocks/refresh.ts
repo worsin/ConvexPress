@@ -100,6 +100,12 @@ export const refreshPage = internalMutation({
         capability => requireCapturedPublicationAuthority(ctx, job.authority, scope, capability, budget));
       await ctx.db.patch("forms", formId, { status: "published" });
     }
+    // Source publication changes the rendered body without changing the page.
+    // Refresh its candidate corpus in this subtransaction so a failed projection
+    // is retryable and cannot leave a successful job with stale search content.
+    await ctx.runMutation(makeFunctionReference<"mutation">("search/internals:onContentChanged"), {
+      contentType: post.type, contentId: post._id, action: "upsert",
+    });
     return null;
   },
 });

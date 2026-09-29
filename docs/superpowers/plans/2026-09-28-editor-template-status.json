@@ -1,13 +1,13 @@
 {
   "plan": "2026-09-28-editor-template-delivery.md",
   "baselineCommit": "d0fee8acceb408fd306a15f3c054322cb73ac8bc",
-  "checkpointSource": "output/content-discovery-20260928/mt-accept-after.json",
+  "checkpointSource": "output/search-discovery-20260928/mt-accept-after.json",
   "checkpointCounts": {
-    "Verified": 72,
-    "In progress": 65
+    "Verified": 74,
+    "In progress": 63
   },
   "goal": "Complete block editor and template delivery plus all demonstrated blockers; defer unrelated whole-app audit campaigns.",
-  "currentTask": "Task 2 \u2014 continue Language Switcher and Search Box/Band/Results discovery gates; six discovery blocks accepted (72 Verified / 65 In progress).",
+  "currentTask": "Task 2 \u2014 continue approved custom-composition/canonical search projection and Language Switcher promotion. Search Box/Band accepted; Search Results stays In progress (74 Verified / 63 In progress).",
   "tasks": [
     {
       "id": 1,
@@ -251,6 +251,34 @@
       "classification": "accepted/reusable evidence",
       "initialFinding": "Related Content permits page topic context. pages.permanentDelete omits the existing taxonomy cascade; deleteCategory assumes every relationship still has a source document.",
       "closureBoundary": "Add real mutation regressions for page relationship deletion and orphan category removal without changing live-source reassignment; reuse bounded taxonomy deletion helper, deploy preserving installed plugin, complete owned cleanup and original-content comparison."
+    },
+    {
+      "id": "E32",
+      "status": "Closed: registered regressions and actual native/Website acceptance pass; see search-discovery-completion-20260928.md. Owned fixtures cleaned and original content/source tables preserved.",
+      "classification": "accepted/reusable evidence",
+      "initialFinding": "Search public source returns bare page paths; Website page route requires /page. Registered source, ordinary search and canonical Search Results reproduce /garden rather than /page/garden.",
+      "closureBoundary": "Correct only shared public search page URL construction; preserve safe path fallback and post URLs; verify flat/nested/fallback regressions and actual result destination."
+    },
+    {
+      "id": "E33",
+      "status": "Closed: registered regressions and actual native/Website acceptance pass; see search-discovery-completion-20260928.md. Owned fixtures cleaned and original content/source tables preserved.",
+      "classification": "accepted/reusable evidence",
+      "initialFinding": "Reusable source refresh completes without refreshing consumer search candidates. A newly published word never appears in Search Results despite a completed job; pinned old copy remains indexed.",
+      "closureBoundary": "Reuse durable authorized per-page refresh transaction for search upsert. Verify latest/pinned/withdrawal, failure rollback and authorized retry; installed source-only publication must change results without editing consumers."
+    },
+    {
+      "id": "E34",
+      "status": "Closed: registered regressions and actual native/Website acceptance pass; see search-discovery-completion-20260928.md. Owned fixtures cleaned and original content/source tables preserved.",
+      "classification": "accepted/reusable evidence",
+      "initialFinding": "On the normal /pages/<id>/edit route, the native View link uses a bare page path and reaches a 404. editorContentUrl test encoded the same incorrect path.",
+      "closureBoundary": "Prefix Website page route after existing selected-origin and path validation. Correct flat/nested/fallback regression and verify native link plus actual Website destination; no renderer or backend expansion."
+    },
+    {
+      "id": "E35",
+      "status": "Closed: registered regressions and actual native/Website acceptance pass; see search-discovery-completion-20260928.md. Owned fixtures cleaned and original content/source tables preserved.",
+      "classification": "accepted/reusable evidence",
+      "initialFinding": "A valid 154-character Search Band suggestion with an unbroken word expands its flex item beyond the viewport even after CSS loads. At 1440px the document scroll width is1504px; item width1231.875px with normal wrapping. Earlier unstyled screenshot separately captured before lazy stylesheet readiness.",
+      "closureBoundary": "Constrain and wrap only suggested-search list items; verify actual long and empty suggestions at1440/390 under all four packs, plus keyboard/form routes and new built runtime. Keep early-capture diagnostics separate from final style-ready evidence."
     }
   ],
   "blocks": [
@@ -1910,21 +1938,23 @@
       "name": "commerce/search-band",
       "title": "Search band",
       "category": "Commerce",
-      "checkpointStatus": "In progress",
-      "nextClassification": "Reviewed against live Notes and current canonical specification; Native placeholder/suggestions; real search navigation, encoded queries, keyboard and empty/long suggestion layouts.",
-      "classification": "missing evidence",
+      "checkpointStatus": "Verified",
+      "nextClassification": "2026-09-28 completion: Native placeholder and suggestion editing, long/empty saved variants, reopen and exact history restoration pass. Real product form and suggestion destinations preserve spaces, plus and ampersand queries via keyboard. E35 valid long-word suggestion overflow reproduced after styles loaded and fixed by bounded wrapping of list items. Eight long plus eight empty public pack/width cases pass with zero browser errors; native/BlockDemo and final public screenshots inspected.",
+      "classification": "accepted/reusable evidence",
       "source": "blocks/commerce/search-band/block.json",
       "requirements": "placeholder (text), suggestions (repeater)",
       "evidenceReferences": [
         "canonical-utility74-renderer-outcome.md",
         "output/block-demo/browser-results-utility74-verified",
-        "output/block-library-review-20260915/coverage-review.json."
+        "output/block-library-review-20260915/coverage-review.json.",
+        "search-discovery-completion-20260928.md",
+        "output/search-discovery-20260928/"
       ],
-      "remainingReview": "Native placeholder/suggestions; real search navigation, encoded queries, keyboard and empty/long suggestion layouts.",
+      "remainingReview": "None for this block; shared full-delivery gates remain open.",
       "deliveryTask": 3,
       "acceptanceBatch": "content-discovery",
       "reviewedAtCommit": "d8a0ea2c",
-      "notesSha256": "503a713b990dccf07a39ed6b822ae9746c31ba4abee584b394506bcd1ee01a95",
+      "notesSha256": "79865d5c99ca32860f7ecde1e358fff937be8cdd6b6196ab8dcec812136df5b6",
       "specSha256": "b6b52a703deebb591e4e3e5a13e01139b7afc59e1061ea5f23bcfeacc40d616a",
       "rendererSha256": "ed6f57f326c322caa683cddb1497f8c3430c037af572713958783d5d304fa8c9",
       "canonicalFields": [
@@ -2227,21 +2257,23 @@
       "name": "core/search-box",
       "title": "Search box",
       "category": "Discovery",
-      "checkpointStatus": "In progress",
-      "nextClassification": "Reviewed against live Notes and current canonical specification; Native placeholder/scope, correct encoded route arguments, actual destination results and keyboard/empty query behavior.",
-      "classification": "missing evidence",
+      "checkpointStatus": "Verified",
+      "nextClassification": "2026-09-28 completion: Native placeholder editing and all four scope choices verified in actual Website preview (all/no type, post, product, page). Save/reopen and exact history restoration pass. Published page-scope search accepts keyboard input, blocks empty submission, retains encoded query/type and displays real results across all four packs at1440/390. E32 search page URLs and E34 native View page URLs repaired with flat/nested/fallback regressions. Final styled screenshots and actual destination navigation pass.",
+      "classification": "accepted/reusable evidence",
       "source": "blocks/core/search-box/block.json",
       "requirements": "placeholder (text), scope (select)",
       "evidenceReferences": [
         "canonical-utility74-renderer-outcome.md",
         "output/block-demo/browser-results-utility74-verified",
-        "output/block-library-review-20260915/coverage-review.json."
+        "output/block-library-review-20260915/coverage-review.json.",
+        "search-discovery-completion-20260928.md",
+        "output/search-discovery-20260928/"
       ],
-      "remainingReview": "Native placeholder/scope, correct encoded route arguments, actual destination results and keyboard/empty query behavior.",
+      "remainingReview": "None for this block; shared full-delivery gates remain open.",
       "deliveryTask": 3,
       "acceptanceBatch": "content-discovery",
       "reviewedAtCommit": "d8a0ea2c",
-      "notesSha256": "772af930c4f9efb0cd3473f2368eb616860542f58ae130128c1ea787029c9718",
+      "notesSha256": "d86220a6cbd619d9f0dbccd14f9fd41e1d5e5431615044f7ae8668940ff4cf35",
       "specSha256": "75b5e394ee48222c5460e6ff00d6dcf28da3d0601a6269cdc1c50ba52e66aa12",
       "rendererSha256": "1032e184819d3d74ae660ce02fbb1552b0b70b8fbe25576f10a623697e500ccb",
       "canonicalFields": [
@@ -3423,9 +3455,11 @@
         "output/search-source-projection-20260915.",
         "search-body-20260921.md",
         "search-scale-20260921.md",
-        "search-source-match-20260921.md"
+        "search-source-match-20260921.md",
+        "search-discovery-completion-20260928.md",
+        "output/search-discovery-20260928/lifecycle.json"
       ],
-      "remainingReview": "Reuse real10-page8+2 capacity fix; remaining canonical library/composed/reusable prose sources, filtering/backfill and access budget with actual rendered results.",
+      "remainingReview": "Approved custom-composition projection, remaining canonical authored prose and full backfill/access-budget coverage. E32 current result destinations and E33 reusable-source consumer refresh accepted in search-discovery-20260928.",
       "deliveryTask": 3,
       "acceptanceBatch": "content-discovery",
       "reviewedAtCommit": "d8a0ea2c",
@@ -3582,32 +3616,32 @@
     "output/content-discovery-20260928/live-cascade.json",
     "output/content-discovery-20260928/live-empty-category-cleanup.json",
     "output/content-discovery-20260928/cleanup.json",
-    "output/content-discovery-final-20260928/deployment-source-final.json"
+    "output/content-discovery-final-20260928/deployment-source-final.json",
+    "ConvexPress-Admin/audits/2026-09-04/search-discovery-completion-20260928.md",
+    "output/search-discovery-20260928/visual-final.json",
+    "output/search-discovery-20260928/lifecycle.json",
+    "output/search-discovery-20260928/cleanup.json"
   ],
   "trackerRefresh": {
-    "source": "output/content-discovery-20260928/mt-accept-after.json",
-    "schema": "output/content-discovery-20260928/mt-schema.json",
+    "source": "output/search-discovery-20260928/mt-accept-after.json",
+    "schema": "output/search-discovery-20260928/mt-schema.json",
     "rows": 137,
     "counts": {
-      "Verified": 72,
-      "In progress": 65
+      "Verified": 74,
+      "In progress": 63
     },
     "otherCellsUnchangedFromPreviousRead": true,
     "pendingNotesReconciled": 77,
     "classificationScope": "Block-specific missing gates; historical whole-app audit conditions retained in Notes but not automatic prerequisites.",
     "lastAcceptedNames": [
-      "core/latest-posts",
-      "core/post-grid",
-      "core/tag-cloud",
-      "core/related-content",
-      "core/archive-list",
-      "core/featured-page"
+      "core/search-box",
+      "commerce/search-band"
     ]
   },
   "coordination": {
     "folder": "/Users/worsin/Development/ConvexPress/Opus Audits/",
     "authority": "Codex leads; Claude audits are advisory and independently verified",
-    "lastAudit": "2026-09-28T1820-audit-07-resolver-coverage-correction.md"
+    "lastAudit": "2026-09-28T1920-audit-08-discovery-family-and-my-correction.md"
   },
   "sessionBaseCommit": "9824d9605e50c4b0ebd711c13715b506f8ef5bd3"
 }

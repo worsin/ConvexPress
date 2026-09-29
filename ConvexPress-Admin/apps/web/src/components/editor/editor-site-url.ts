@@ -48,6 +48,6 @@ export function editorContentUrl(
     : `${content.type === "post" ? "/blog/" : "/"}${encodeURIComponent(content.slug)}`;
   if (!path.startsWith("/") || path.startsWith("//") || /[\\?#\u0000-\u0020]/.test(path))
     return undefined;
-  const url = new URL(path, origin);
+  const url = new URL(content.type === "page" ? `/page${path}` : path, origin);
   return url.origin === origin ? url.href : undefined;
 }

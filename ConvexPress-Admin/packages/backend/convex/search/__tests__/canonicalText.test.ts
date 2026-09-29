@@ -41,6 +41,24 @@ test("canonical body indexing finds current editorial text through public and bl
   await t.run(ctx => ctx.db.patch("posts", ids.post, { blocks: [paragraph("intro", "Different garden")] }));
   expect((await t.run(ctx => readSearch(ctx, { query: "Sunflowerneedle" }, scope, "host"))).items).toEqual([]);
 });
+test("page search results use the Website page route for stored and fallback paths", async () => {
+  const { t, ids } = await fixture();
+  for (const [path, expected] of [
+    ["/garden", "/page/garden"],
+    ["/guides/garden", "/page/guides/garden"],
+    [undefined, "/page/garden"],
+    ["//outside.invalid", "/page/garden"],
+    ["/bad\\path", "/page/garden"],
+  ] as const) {
+    await t.run(ctx => ctx.db.patch("posts", ids.post, { path }));
+    const source = await t.run(ctx => createPublicSearchSourceReader(ctx)({ contentType: "page", contentId: ids.post }));
+    expect(source?.url).toBe(expected);
+    const block = await t.run(ctx => readSearch(ctx, { query: "Sunflowerneedle" }, scope, "host"));
+    expect(block.items[0]?.href).toBe(expected);
+    const ordinary = await t.query(ref<"query">("search/queries:search"), { q: "Sunflowerneedle" });
+    expect(ordinary.results[0]?.url).toBe(expected);
+  }
+});
 test("membership-restricted ancestors prune whole subtrees while entitled readers retain the body", async () => {
   const { t, ids } = await fixture();
   await t.run(ctx => ctx.db.patch("posts", ids.post, { blocks: [

@@ -24,8 +24,9 @@ function bounded<T>(items: T[]): T[] {
 function postUrl(post: Doc<"posts">): string {
   if (post.type === "post") return `/blog/${encodeURIComponent(post.slug)}`;
   // A stored path is still untrusted input to the visitor's navigation.
-  return post.path && /^\/(?!\/)/.test(post.path) && !/[\\\u0000-\u0020]/.test(post.path)
+  const path = post.path && /^\/(?!\/)/.test(post.path) && !/[\\\u0000-\u0020]/.test(post.path)
     ? post.path : `/${encodeURIComponent(post.slug)}`;
+  return `/page${path}`;
 }
 
 /** The index supplies candidate identities and ranking only. Display values and

@@ -50,6 +50,11 @@
 	margin: 0;
 	padding: 0;
 }
+.cp-library-search-suggestions > li {
+	min-inline-size: 0;
+	max-inline-size: 100%;
+	overflow-wrap: anywhere;
+}
 .cp-library-announcement {
 	inline-size: 100%;
 	padding: 1rem 1.25rem;
