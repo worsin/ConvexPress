@@ -1,9 +1,13 @@
 import {test,expect,mock} from 'bun:test';
 import {act,StrictMode} from 'react';
 import {JSDOM} from 'jsdom';
-let allowed=false,open=false,renders=0;
+let allowed=false,open=false,renders=0,authenticated=true,clears=0;
+const setDraft=()=>{clears++;};
+mock.module('convex/react',()=>({useConvexAuth:()=>({isAuthenticated:authenticated,isLoading:false})}));
+mock.module('@/hooks/useCurrentUser',()=>({useCurrentUser:()=>({user:{_id:'alice'}})}));
+mock.module('@/lib/site-runtime',()=>({getSiteRuntime:()=>({convexUrl:'https://test.convex.cloud',instanceKey:'staging'})}));
 mock.module('@/hooks/useCan',()=>({useCan:()=>allowed}));
-mock.module('./useTemplateSettings',()=>({useTemplateCustomizer:()=>({open})}));
+mock.module('./useTemplateSettings',()=>({useTemplateCustomizer:()=>({open,setDraft})}));
 mock.module('./CustomizerPanel',()=>({default:()=>{renders++;return <aside aria-label="Customize template">Editor controls</aside>;}}));
 const {OnSiteCustomizer}=await import('./OnSiteCustomizer');
 test('lazy on-site editor requires both current authority and an explicit open request, and clears on revocation',async()=>{
@@ -15,6 +19,8 @@ test('lazy on-site editor requires both current authority and an explicit open r
   await render();expect(renders).toBe(0);open=true;await render();expect(renders).toBe(0);
   allowed=true;open=false;await render();expect(renders).toBe(0);
   open=true;await render();expect(document.querySelector('aside')!==null).toBe(true);expect(renders>0).toBe(true);
+  const before=clears;authenticated=false;await render();expect(document.querySelector('aside')).toBeNull();expect(clears).toBeGreaterThan(before);
+  authenticated=true;await render();expect(document.querySelector('aside')!==null).toBe(true);
   allowed=false;await render();expect(document.querySelector('aside')).toBeNull();
  }finally{await act(async()=>root.unmount());dom.window.close();for(const [name,value]of Object.entries(previous)){if(value)Object.defineProperty(globalThis,name,value);else delete globalThis[name];}}
 });

@@ -4,9 +4,12 @@ import { JSDOM } from "jsdom";
 
 const customer = { isLoaded: true, isSignedIn: true, userId: "customer", sessionId: "customer-session", orgId: null };
 let lastOperatorAuth, childMounts = 0;
+let capabilityAccess = "allowed";
+const backendAuth = { isLoading: false, isAuthenticated: true };
+mock.module("@/hooks/useCan", () => ({ useCapabilityAccess: () => capabilityAccess }));
 mock.module("./clerk", () => ({ useAuth: () => customer }));
 mock.module("convex/react-clerk", () => ({ ConvexProviderWithClerk: ({ children, useAuth }) => <div data-customer={useAuth().sessionId}>{children}</div> }));
-mock.module("convex/react", () => ({ ConvexProviderWithAuth: ({ children, useAuth }) => { lastOperatorAuth = useAuth(); return <div data-operator="true">{children}</div>; } }));
+mock.module("convex/react", () => ({ useConvexAuth: () => backendAuth, ConvexProviderWithAuth: ({ children, useAuth }) => { lastOperatorAuth = useAuth(); return <div data-operator="true">{children}</div>; } }));
 const { SessionBoundConvexProvider } = await import("./SessionBoundConvexProvider");
 const { WebsiteOperatorNotice, useWebsiteOperator } = await import("./WebsiteOperatorContext");
 let operatorControls;
@@ -39,7 +42,7 @@ async function environment(run) {
   const root = createRoot(document.getElementById("root"));
   const render = () => act(async () => root.render(<StrictMode><SessionBoundConvexProvider client={{}}><Child /></SessionBoundConvexProvider></StrictMode>));
   try { await run({ root, render }); }
-  finally { await act(async () => root.unmount()); showEditor = false; editorOwner = "one:staging:alice"; globalThis.fetch = oldFetch; dom.window.close(); for (const [key, desc] of Object.entries(prior)) { if (desc) Object.defineProperty(globalThis, key, desc); else delete globalThis[key]; } }
+  finally { await act(async () => root.unmount()); showEditor = false; capabilityAccess = "allowed"; backendAuth.isLoading = false; backendAuth.isAuthenticated = true; editorOwner = "one:staging:alice"; globalThis.fetch = oldFetch; dom.window.close(); for (const [key, desc] of Object.entries(prior)) { if (desc) Object.defineProperty(globalThis, key, desc); else delete globalThis[key]; } }
 }
 
 test("anonymous auth readiness preserves focused content; authority changes still replace it", async () => environment(async ({ root }) => {
@@ -257,4 +260,33 @@ test("renewal refuses a different backend principal instead of preserving the ol
   expect(document.body.textContent).not.toContain("#123456");
   expect(document.body.textContent).toContain("editing account changed");
   expect(operatorControls.canReconnect).toBe(false);
+}));
+
+
+test("editing notice distinguishes verified authority, loading and revoked access without losing the session draft", async () => environment(async ({ render }) => {
+  showEditor = true;
+  globalThis.fetch = async () => Response.json({ token: "operator-token", expiresAt: Date.now() + 60000, instanceKey: "one:staging", userId: "alice" });
+  await render();
+  await act(async () => editDraft());
+  expect(document.body.textContent).toContain("Website editing is active for this tab.");
+  capabilityAccess = "pending"; await render();
+  expect(document.body.textContent).not.toContain("Website editing is active for this tab.");
+  expect(document.body.textContent).toContain("Checking website editing access");
+  capabilityAccess = "denied"; await render();
+  expect(document.body.textContent).toContain("Website editing access is no longer authorized");
+  expect(document.body.textContent).not.toContain("Save a private draft");
+  expect(document.body.textContent).not.toContain("Website editing is active for this tab.");
+  expect(document.querySelector('[role="alert"]')).not.toBeNull();
+  expect(document.querySelector("[data-editor]").textContent).toBe("#123456");
+  expect(operatorControls.active).toBe(true);
+  capabilityAccess = "allowed"; backendAuth.isAuthenticated = false; await render();
+  expect(document.body.textContent).toContain("Website editing access is no longer authorized");
+  capabilityAccess = "pending"; await render();
+  expect(document.body.textContent).toContain("Website editing access is no longer authorized");
+  backendAuth.isLoading = true; await render();
+  expect(document.body.textContent).toContain("Checking website editing access");
+  expect(document.querySelector('[role="alert"]')).toBeNull();
+  capabilityAccess = "allowed"; backendAuth.isLoading = false;
+  backendAuth.isAuthenticated = true; await render();
+  expect(document.body.textContent).toContain("Website editing is active for this tab.");
 }));

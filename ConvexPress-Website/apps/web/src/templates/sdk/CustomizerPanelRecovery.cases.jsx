@@ -18,7 +18,7 @@ mock.module("convex/react", () => ({
     discardCalls.push(args); return null;
   },
 }));
-mock.module("@/hooks/useCan", () => ({ useCan: () => allowed }));
+mock.module("@/hooks/useCan", () => ({ useCan: () => allowed, useCapabilityAccess: () => allowed ? "allowed" : "denied" }));
 mock.module("@/hooks/useCurrentUser", () => ({ useCurrentUser: () => ({ user: profile }) }));
 mock.module("@/lib/site-runtime", () => ({ getSiteRuntime: () => ({ convexUrl: "https://test.convex.cloud", instanceKey: "staging" }) }));
 const modules = [{ id: "colors", title: "Colors", fields: [{ id: "primary", label: "Primary", type: "color" }], presets: [{ id: "ink", name: "Ink preset", colors: { primary: "#445566" } }] }];
