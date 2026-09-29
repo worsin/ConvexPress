@@ -388,3 +388,16 @@ Counts unchanged112/25. Guest source→target→source actual Website switch pas
 Audit19 read/responded in CODEX-RESPONSE-19.md. F26 visibility adopted; owner-only/exactly-two prerequisite assertion not accepted as exhaustive. Existing authorized model connections and legitimate provider paths remain eligible checks. Required proof cannot be replaced by an external-prerequisite classification. Corrections core/reviews and E56 supplied. Next all six Task3 forms rows, with no outward email; source-to-source nested Contact recovery still required.
 
 Local history-boundary checkpoint commit: `f2a8b1a00dbc2ca02c190631dd1a0b3d4d912fcc`. Goal active; forms six next. Tokens9,880,188/time64,698sec, delta207,377/986sec since customer-commerce checkpoint. No push.
+
+
+### September29 07:06 MDT — Forms checkpoint, 42b4a8cc
+
+Codex remains lead; latest advisory read is audit19. Newsletter accepted:113Verified/24In progress. Only that row's Status/Tests/Screenshots changed, all137Notes and other cells exact. Native six-block authored fields/resource pickers, exact revision4→6 recovery and actual Mobile Website preview pass.24normal/maximum/minimum ×4pack ×2width cases pass; E57 narrow CSS repair fixes valid long form labels/submit labels and newsletter submit overflow, with isolated causes and no truncation.
+
+True nested Contact graph (page→outer source→inner source) now passes native source edit/publication/withdrawal/restoration, live updates, stable backing form/field IDs, unchanged consumer document, refresh1page/0failures, exactly1restored submission. Actual Contact/Form answers reviewed in native Electron; Newsletter duplicate/retry count remains1/no emailqueue change; actual guide308bytes/hash/opt-out; guest Poll keyboard/reload guard; RSVP register/cancel under unchanged noCAPTCHA baseline; form/list/event withdrawal all pass.
+
+Five Forms rows intentionally remain open: Contact/Form revoked-expired caller authority; Lead account/environment expiry/retry; Poll actual signed-in policy/question revisions; RSVP legitimate provider/CAPTCHA and exact original/generated selection. No adjacent proof substitution. E18 target Clerk remains open, as do model/Vimeo and Tasks4–8/E22/E28.
+
+Cleanup:4pages deleted,5forms archived,2sources withdrawn,list/event archived; original42pages/11media/7activeforms/1list/1event exact. Settings/security restored; native70560 signed out/closed,browser closed,API revoked,profiles removed. Retain3submissions/answers and normal source/consent/RSVP/poll history. One synthetic newsletter subscriber remains explicitly: no normal deletion API; scoped mutation attempt rejected by readonly REPL, verifiedunchanged, no replay or broadtable replacement. Original27emailqueue rows exact. Website72085/PTY44566 now4322 exact6runtimefields; owner39198/Admin62672/BlockDemo65092/SOCKS68390 preserved. Backend unchanged.
+
+Tracked evidence: ConvexPress-Admin/audits/2026-09-04/forms-acceptance-20260929.md. Localcommit only, no push/subagents.
