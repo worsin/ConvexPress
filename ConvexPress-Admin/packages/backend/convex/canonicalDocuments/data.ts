@@ -86,7 +86,7 @@ async function contentPage(
 		page: {
 			id: String(document._id),
 			title: document.title,
-			href: document.path ?? `/${document.slug}`,
+			href: `/page${document.path ?? `/${encodeURIComponent(document.slug)}`}`,
 			excerpt: document.excerpt ?? null,
 			image: null,
 		},

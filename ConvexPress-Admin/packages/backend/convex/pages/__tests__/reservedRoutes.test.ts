@@ -7,12 +7,14 @@ const modules = {
   './convex/_generated/server.js': () => import('../../_generated/server.js'),
   './convex/pages/mutations.ts': () => import('../mutations'),
   './convex/pages/httpInternals.ts': () => import('../httpInternals'),
+  './convex/taxonomies/internals.ts': () => import('../../taxonomies/internals'),
+  './convex/taxonomies/mutations.ts': () => import('../../taxonomies/mutations'),
   './convex/revisions/internals.ts': () => import('../../revisions/internals'),
 };
 async function fixture() {
   const t = convexTest({schema,modules});
   const authorId = await t.run(async ctx => {
-    const roleId = await ctx.db.insert('roles', {name:'Editor',slug:'editor',description:'Fixture',level:80,type:'internal',status:'active',isDefault:false,isProtected:true,capabilities:['page.create','page.update','page.publish','page.set_parent','page.reorder','page.delete'],pageAccess:[],createdAt:1,updatedAt:1});
+    const roleId = await ctx.db.insert('roles', {name:'Editor',slug:'editor',description:'Fixture',level:80,type:'internal',status:'active',isDefault:false,isProtected:true,capabilities:['page.create','page.update','page.publish','page.set_parent','page.reorder','page.delete','taxonomy.delete_category'],pageAccess:[],createdAt:1,updatedAt:1});
     return ctx.db.insert('users',{email:'editor@example.test',emailVerified:true,status:'active',authSource:'local',internalRole:'administrator',roleId,createdAt:1,updatedAt:1});
   });
   const editor = t.withIdentity({subject:authorId,issuer:'https://convexpress-admin.local'});
@@ -128,4 +130,58 @@ test('both explicit reparent and drag reorder reject a new root collision', asyn
  await expect(editor.mutation(api.pages.mutations.setParent,{pageId:childId})).rejects.toThrow('built-in website route');
  await expect(editor.mutation(api.pages.mutations.reorder,{items:[{pageId:childId,parentId:reservedParentId,menuOrder:0}]})).rejects.toThrow('built-in website route');
  expect((await t.run(ctx=>ctx.db.get(childId)))?.path).toBe('/story/products');
+});
+
+
+test('permanent page deletion removes its topic relationships and preserves other pages', async () => {
+ const {t,editor}=await fixture();
+ const pageId=await editor.mutation(api.pages.mutations.create,{title:'Related page',slug:'related-page'});
+ const sibling=await editor.mutation(api.pages.mutations.create,{title:'Other page',slug:'other-page'});
+ const {category,tag,remaining}=await t.run(async ctx=>{
+  const category=await ctx.db.insert('terms',{name:'Studio',slug:'studio',taxonomy:'category',count:0,countReady:true,isDefault:false,createdAt:1,updatedAt:1});
+  const tag=await ctx.db.insert('terms',{name:'Materials',slug:'materials',taxonomy:'post_tag',count:0,countReady:true,isDefault:false,createdAt:1,updatedAt:1});
+  await ctx.db.insert('termRelationships',{postId:pageId,termId:category});
+  await ctx.db.insert('termRelationships',{postId:pageId,termId:tag});
+  const remaining=await ctx.db.insert('termRelationships',{postId:sibling,termId:category});
+  return {category,tag,remaining};
+ });
+ await editor.mutation(api.pages.mutations.trash,{pageId});
+ await editor.mutation(api.pages.mutations.permanentDelete,{pageId});
+ expect(await t.run(ctx=>ctx.db.query('termRelationships').withIndex('by_post',q=>q.eq('postId',pageId)).collect())).toEqual([]);
+ expect(await t.run(ctx=>ctx.db.get(remaining))).not.toBeNull();
+ expect((await t.run(ctx=>ctx.db.get(category)))?.count).toBe(0);
+ expect((await t.run(ctx=>ctx.db.get(tag)))?.count).toBe(0);
+});
+
+test('category deletion discards orphan relationships while reassigning existing documents', async () => {
+ const {t,editor}=await fixture();
+ const missing=await editor.mutation(api.pages.mutations.create,{title:'Missing',slug:'missing'});
+ const surviving=await editor.mutation(api.pages.mutations.create,{title:'Surviving',slug:'surviving'});
+ const category=await t.run(async ctx=>{
+  const id=await ctx.db.insert('terms',{name:'Studio',slug:'studio',taxonomy:'category',count:0,countReady:true,isDefault:false,createdAt:1,updatedAt:1});
+  await ctx.db.insert('termRelationships',{postId:missing,termId:id});
+  await ctx.db.insert('termRelationships',{postId:surviving,termId:id});
+  await ctx.db.delete(missing);
+  return id;
+ });
+ const result=await editor.mutation(api.taxonomies.mutations.deleteCategory,{termId:category});
+ expect(result.reassignedPosts).toBe(1);
+ expect(await t.run(ctx=>ctx.db.get(category))).toBeNull();
+ const relations=await t.run(ctx=>ctx.db.query('termRelationships').collect());
+ expect(relations).toHaveLength(1);expect(relations[0]?.postId).toBe(surviving);
+ expect((await t.run(ctx=>ctx.db.get(relations[0]!.termId)))?.isDefault).toBe(true);
+});
+
+test('deleting an empty or orphan-only category does not create an unrelated default category', async () => {
+ const {t,editor}=await fixture();
+ for(const orphan of [false,true]) {
+  const pageId=await editor.mutation(api.pages.mutations.create,{title:'Gone',slug:'gone'});
+  const category=await t.run(async ctx=>{
+   const id=await ctx.db.insert('terms',{name:'Temporary',slug:'temporary',taxonomy:'category',count:0,countReady:true,isDefault:false,createdAt:1,updatedAt:1});
+   if(orphan)await ctx.db.insert('termRelationships',{postId:pageId,termId:id});
+   await ctx.db.delete(pageId);return id;
+  });
+  expect(await editor.mutation(api.taxonomies.mutations.deleteCategory,{termId:category})).toMatchObject({reassignedPosts:0});
+  expect(await t.run(ctx=>ctx.db.query('terms').collect())).toEqual([]);
+ }
 });

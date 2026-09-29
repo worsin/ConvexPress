@@ -875,6 +875,12 @@ export const permanentDelete = mutation({
     // ── Clear front page references ───────────────────────────────────────
     await clearFrontPageReferences(ctx, args.pageId);
 
+    // Pages can carry topics for related-content discovery. Remove those
+    // relationships before deleting their source, using the bounded cascade.
+    await ctx.runMutation(internal.taxonomies.internals.deleteRelationshipsForPost, {
+      postId: args.pageId,
+    });
+
     // ── Delete all revisions (synchronous to ensure cleanup before page deletion)
     await ctx.runMutation(
       internal.revisions.internals.deleteByParent,

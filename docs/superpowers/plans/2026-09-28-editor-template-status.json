@@ -1,13 +1,13 @@
 {
   "plan": "2026-09-28-editor-template-delivery.md",
   "baselineCommit": "d0fee8acceb408fd306a15f3c054322cb73ac8bc",
-  "checkpointSource": "output/author-bio-20260928/mt-accept-after.json",
+  "checkpointSource": "output/content-discovery-20260928/mt-accept-after.json",
   "checkpointCounts": {
-    "Verified": 66,
-    "In progress": 71
+    "Verified": 72,
+    "In progress": 65
   },
   "goal": "Complete block editor and template delivery plus all demonstrated blockers; defer unrelated whole-app audit campaigns.",
-  "currentTask": "Task 2 \u2014 continue remaining content-discovery gates, reusing accepted native/data infrastructure; Author Bio accepted (66 Verified / 71 In progress).",
+  "currentTask": "Task 2 \u2014 continue Language Switcher and Search Box/Band/Results discovery gates; six discovery blocks accepted (72 Verified / 65 In progress).",
   "tasks": [
     {
       "id": 1,
@@ -234,6 +234,23 @@
       "requiredWorkflow": "Author a manual card or select a site author, save/reopen/restore and publish accurate public output.",
       "initialFinding": "core/author-bio userId has no resolver, renderer throws and displayContext disables its reference; enabling it also requires current author visibility in search.",
       "closureBoundary": "Implement a bounded public-profile resolver with exact target binding and authored overrides, withdraw inactive/management/route-denied authors, preserve v2 fields; verify registered save/preview/publication, search withdrawal, demo and four-pack/native output."
+    },
+    {
+      "id": "E30",
+      "status": "Closed: regression tests and live destination/deletion/cleanup checks pass; see content-discovery-completion-20260928.md. Final source snapshot preserves1609files/22Events files/2405signatures. Owned fixtures removed; original42pages/2posts/1term and appearance compare exactly.",
+      "classification": "accepted/reusable evidence",
+      "initialFinding": "content.page returns document.path directly while Website routes pages under /page; related-content and navigation already include this prefix.",
+      "closureBoundary": "Add failing flat/nested/missing-path reference URL assertions; fix only the content.page reader URL, deploy from verified installed-plugin snapshot, rerun real four-pack destination navigation and remaining six-block acceptance.",
+      "evidence": [
+        "output/content-discovery-20260928/public-matrix-red.log"
+      ]
+    },
+    {
+      "id": "E31",
+      "status": "Closed: regression tests and live destination/deletion/cleanup checks pass; see content-discovery-completion-20260928.md. Final source snapshot preserves1609files/22Events files/2405signatures. Owned fixtures removed; original42pages/2posts/1term and appearance compare exactly.",
+      "classification": "accepted/reusable evidence",
+      "initialFinding": "Related Content permits page topic context. pages.permanentDelete omits the existing taxonomy cascade; deleteCategory assumes every relationship still has a source document.",
+      "closureBoundary": "Add real mutation regressions for page relationship deletion and orphan category removal without changing live-source reassignment; reuse bounded taxonomy deletion helper, deploy preserving installed plugin, complete owned cleanup and original-content comparison."
     }
   ],
   "blocks": [
@@ -2018,9 +2035,9 @@
       "name": "core/latest-posts",
       "title": "Latest posts",
       "category": "Discovery",
-      "checkpointStatus": "In progress",
-      "nextClassification": "Reviewed against live Notes and current canonical specification; Reuse Journal/Depot native treatments; category/tag picker, excerpts/authors/count and full public/access/empty states including Core/Aster.",
-      "classification": "missing evidence",
+      "checkpointStatus": "Verified",
+      "nextClassification": "2026-09-28 completion: Native slug category/tag selection, count/eyebrow/heading/body and excerpt/byline toggles saved/reopened/restored exactly. Current filtered public records and private/empty withdrawal, actual links and all four packs at desktop/mobile accepted. Combined evidence:164 backend tests/1619 assertions;310 renderer tests/5442 assertions;16 final live pack/width cases;48 BlockDemo cases/112 examples. Owned fixtures removed; original42pages/2posts/1term and appearance preserved. Migration/promotion/whole-delivery gates remain separate.",
+      "classification": "accepted/reusable evidence",
       "source": "blocks/core/latest-posts/block.json",
       "requirements": "eyebrow, heading, body, count, categorySlug, tagSlug, showExcerpts, showAuthors",
       "evidenceReferences": [
@@ -2028,13 +2045,16 @@
         "output/latest-posts90-20260906.",
         "output/pack-owned-treatments-20260915.",
         "output/public-author-20260906.",
-        "public-author-outcome.md"
+        "public-author-outcome.md",
+        "content-discovery-completion-20260928.md",
+        "output/content-discovery-20260928/",
+        "output/content-discovery-final-20260928/"
       ],
-      "remainingReview": "Reuse Journal/Depot native treatments; category/tag picker, excerpts/authors/count and full public/access/empty states including Core/Aster.",
+      "remainingReview": "None for this block; shared full-delivery gates remain open.",
       "deliveryTask": 3,
       "acceptanceBatch": "content-discovery",
       "reviewedAtCommit": "d8a0ea2c",
-      "notesSha256": "393083ba453f81af93114ffe79567de6c0465e8b1886ed5e19ac2acfd9afe465",
+      "notesSha256": "9c4c79e41d5500aec953ff9a479322fbe9677cc4cec2b483fe88e737bf2e5d0b",
       "specSha256": "79ed7ee18ca01e98dc65a47073694b15360a06420e12d860a128224ccdef9556",
       "rendererSha256": "14ec31f62dbc15cd10e371635fe106cb413adb74818a25b326ca18fbb456a32c",
       "canonicalFields": [
@@ -2052,9 +2072,9 @@
       "name": "core/post-grid",
       "title": "Post grid",
       "category": "Discovery",
-      "checkpointStatus": "In progress",
-      "nextClassification": "Reviewed against live Notes and current canonical specification; Native query filters/limit/excerpt; real scoped records and category/taxonomy, pagination, unavailable/empty and pack layouts.",
-      "classification": "missing evidence",
+      "checkpointStatus": "Verified",
+      "nextClassification": "2026-09-28 completion: Native category/tag/author ID filters, limit and excerpt toggle saved/reopened/restored exactly. Current scoped records, isolated cursor continuation to the remaining record, private/empty withdrawal, actual destinations and four-pack desktop/mobile accepted. Combined evidence:164 backend tests/1619 assertions;310 renderer tests/5442 assertions;16 final live pack/width cases;48 BlockDemo cases/112 examples. Owned fixtures removed; original42pages/2posts/1term and appearance preserved. Migration/promotion/whole-delivery gates remain separate.",
+      "classification": "accepted/reusable evidence",
       "source": "blocks/core/post-grid/block.json",
       "requirements": "query (object), limit (number), showExcerpt (boolean)",
       "evidenceReferences": [
@@ -2062,13 +2082,16 @@
         "output/block-library-review-20260915/coverage-review.json.",
         "output/derived-restore-20260906.",
         "output/post-grid-ui-20260906",
-        "post-grid-ui-outcome.md"
+        "post-grid-ui-outcome.md",
+        "content-discovery-completion-20260928.md",
+        "output/content-discovery-20260928/",
+        "output/content-discovery-final-20260928/"
       ],
-      "remainingReview": "Native query filters/limit/excerpt; real scoped records and category/taxonomy, pagination, unavailable/empty and pack layouts.",
+      "remainingReview": "None for this block; shared full-delivery gates remain open.",
       "deliveryTask": 3,
       "acceptanceBatch": "content-discovery",
       "reviewedAtCommit": "d8a0ea2c",
-      "notesSha256": "5b7cd659dc824e62831832ae941f0478f3622e818a4ac96e38a761948db5b3b8",
+      "notesSha256": "ca13e1472ebce7eac2cf9ec2cae13831eccace018d470f761ef035c33b864034",
       "specSha256": "8a4358209eb6b86717c0b8c4f5ced19f8d3f23fa292df3cb5c5a18071080c941",
       "rendererSha256": "9ce8517fe6e542d2ddf0e3041242232cbe64a37b16042828b5d5bcdf886f4c05",
       "canonicalFields": [
@@ -2117,9 +2140,9 @@
       "name": "core/tag-cloud",
       "title": "Tag cloud",
       "category": "Discovery",
-      "checkpointStatus": "In progress",
-      "nextClassification": "Reviewed against live Notes and current canonical specification; Reuse private-label repair; heading/max, actual taxonomy access and continuation/count boundaries without reviving unrelated legacy endpoint audits.",
-      "classification": "missing evidence",
+      "checkpointStatus": "Verified",
+      "nextClassification": "2026-09-28 completion: Native heading/max saved/reopened/restored; live max1 continuation through actual topics, private-only/empty-topic exclusion and all-private empty state accepted. Current bounded reader/access/cursor tests and four-pack desktop/mobile pass. No cached counts exposed. Combined evidence:164 backend tests/1619 assertions;310 renderer tests/5442 assertions;16 final live pack/width cases;48 BlockDemo cases/112 examples. Owned fixtures removed; original42pages/2posts/1term and appearance preserved. Migration/promotion/whole-delivery gates remain separate.",
+      "classification": "accepted/reusable evidence",
       "source": "blocks/core/tag-cloud/block.json",
       "requirements": "heading, max (integer 1\u2013100)",
       "evidenceReferences": [
@@ -2127,13 +2150,16 @@
         "output/tag-archive-20260906",
         "output/tag-cloud-20260906.",
         "post-terms-access-outcome.md",
-        "tag-cloud-outcome.md"
+        "tag-cloud-outcome.md",
+        "content-discovery-completion-20260928.md",
+        "output/content-discovery-20260928/",
+        "output/content-discovery-final-20260928/"
       ],
-      "remainingReview": "Reuse private-label repair; heading/max, actual taxonomy access and continuation/count boundaries without reviving unrelated legacy endpoint audits.",
+      "remainingReview": "None for this block; shared full-delivery gates remain open.",
       "deliveryTask": 3,
       "acceptanceBatch": "content-discovery",
       "reviewedAtCommit": "d8a0ea2c",
-      "notesSha256": "c67e401e51f5ae84b9494cc908cfde13d169e70da3c65865baac73c4e0df506b",
+      "notesSha256": "92c35b58f3dacd8da0d87b3c21130bb412a881250ad9a5b255fe9b79331678f0",
       "specSha256": "a229778ea5aeea0562405cf5c9edba60b08f142303dd8000d5dbd034f9e8d907",
       "rendererSha256": "4b124083767fc597494a7f24cba12e6ba8446425f111f9f53b5413d6aee9a0ea",
       "canonicalFields": [
@@ -2145,20 +2171,23 @@
       "name": "core/related-content",
       "title": "Related content",
       "category": "Discovery",
-      "checkpointStatus": "In progress",
-      "nextClassification": "Reviewed against live Notes and current canonical specification; Reuse native siblings and scoped cursors; post/page/type/limit alternatives, actual links, missing current context and access filtering.",
-      "classification": "missing evidence",
+      "checkpointStatus": "Verified",
+      "nextClassification": "2026-09-28 completion: Native post/page/type/limit variants saved/reopened/restored. Live topic-related posts and sibling pages paginate without duplicates; private sources/siblings omitted; actual destinations and empty states accepted in all four packs/widths. E31 page-topic deletion cascade and existing orphan cleanup repaired and proven live. Combined evidence:164 backend tests/1619 assertions;310 renderer tests/5442 assertions;16 final live pack/width cases;48 BlockDemo cases/112 examples. Owned fixtures removed; original42pages/2posts/1term and appearance preserved. Migration/promotion/whole-delivery gates remain separate.",
+      "classification": "accepted/reusable evidence",
       "source": "blocks/core/related-content/block.json",
       "requirements": "limit (number), type (select)",
       "evidenceReferences": [
         "output/block-library-review-20260915/coverage-review.json.",
-        "output/related-content-20260914."
+        "output/related-content-20260914.",
+        "content-discovery-completion-20260928.md",
+        "output/content-discovery-20260928/",
+        "output/content-discovery-final-20260928/"
       ],
-      "remainingReview": "Reuse native siblings and scoped cursors; post/page/type/limit alternatives, actual links, missing current context and access filtering.",
+      "remainingReview": "None for this block; shared full-delivery gates remain open.",
       "deliveryTask": 3,
       "acceptanceBatch": "content-discovery",
       "reviewedAtCommit": "d8a0ea2c",
-      "notesSha256": "8e4e45f2b999f223aa0834fa9ff357156c2c6ab5ec16e81b38c99feb4723aaed",
+      "notesSha256": "b3ce456a188f448e199828736c8ef1cb1add1db628ff30619c86a0c323f103e9",
       "specSha256": "85ae12db1e5882e4554d201fd6f1c0533195a7895651993a1cf442d2c50c0bb7",
       "rendererSha256": "c20c509a997fc90d01d516374149665f427dbd2d5493fcf12183d20a60120824",
       "canonicalFields": [
@@ -2170,20 +2199,23 @@
       "name": "core/archive-list",
       "title": "Archive list",
       "category": "Discovery",
-      "checkpointStatus": "In progress",
-      "nextClassification": "Reviewed against live Notes and current canonical specification; Reuse real month archive navigation; year/time-zone/limit variants, exact counts, continuation and denied/empty states.",
-      "classification": "missing evidence",
+      "checkpointStatus": "Verified",
+      "nextClassification": "2026-09-28 completion: Native month/year/limit variants saved/reopened/restored, real filtered month/year destinations accepted under all four packs at desktop/mobile. Current timezone/DST/access/cursor/budget tests pass. Contract is accessible period links, without cached/invented story counts; earlier count shorthand corrected. Combined evidence:164 backend tests/1619 assertions;310 renderer tests/5442 assertions;16 final live pack/width cases;48 BlockDemo cases/112 examples. Owned fixtures removed; original42pages/2posts/1term and appearance preserved. Migration/promotion/whole-delivery gates remain separate.",
+      "classification": "accepted/reusable evidence",
       "source": "blocks/core/archive-list/block.json",
       "requirements": "groupBy (select), limit (number)",
       "evidenceReferences": [
         "output/archive-list-20260914.",
-        "output/block-library-review-20260915/coverage-review.json."
+        "output/block-library-review-20260915/coverage-review.json.",
+        "content-discovery-completion-20260928.md",
+        "output/content-discovery-20260928/",
+        "output/content-discovery-final-20260928/"
       ],
-      "remainingReview": "Reuse real month archive navigation; year/time-zone/limit variants, exact counts, continuation and denied/empty states.",
+      "remainingReview": "None for this block; shared full-delivery gates remain open.",
       "deliveryTask": 3,
       "acceptanceBatch": "content-discovery",
       "reviewedAtCommit": "d8a0ea2c",
-      "notesSha256": "0544e784f8dbab8ac6551ea9bfc9699525b8090294c8b62f1975a2e54a6e4504",
+      "notesSha256": "24c0672cd1dbc9d40f507ef14ed1e51880f4e1c712a8555a7db9edbbe7b66a3e",
       "specSha256": "632b03bb5eb55fffcb6fff875ca4cbb65ba83c22c8f8c366d4c9942db452972c",
       "rendererSha256": "069f4e437256ce653ca9da66eee20790129f2e6b993e2c138b9f2e3d6b57a0bd",
       "canonicalFields": [
@@ -2221,9 +2253,9 @@
       "name": "core/featured-page",
       "title": "Featured page",
       "category": "Discovery",
-      "checkpointStatus": "In progress",
-      "nextClassification": "Reviewed against live Notes and current canonical specification; Native page/CTA picker with actual target; private/deleted/empty/media variants and final pack navigation/recovery.",
-      "classification": "missing evidence",
+      "checkpointStatus": "Verified",
+      "nextClassification": "2026-09-28 completion: Native page/CTA selection, image/no-image/empty/private/deleted targets, undo and exact revision recovery accepted. E30 bare-path CTA404 repaired in bounded reader; flat/nested/fallback URL regressions pass and keyboard navigation reaches actual pages under all four packs/widths. Combined evidence:164 backend tests/1619 assertions;310 renderer tests/5442 assertions;16 final live pack/width cases;48 BlockDemo cases/112 examples. Owned fixtures removed; original42pages/2posts/1term and appearance preserved. Migration/promotion/whole-delivery gates remain separate.",
+      "classification": "accepted/reusable evidence",
       "source": "blocks/core/featured-page/block.json",
       "requirements": "page (reference), ctaLabel (text)",
       "evidenceReferences": [
@@ -2231,13 +2263,16 @@
         "output/aster-house/canonical-native/acceptance.json",
         "output/aster-house/canonical-publication.",
         "output/block-demo/browser-results-featured75",
-        "output/block-library-review-20260915/coverage-review.json."
+        "output/block-library-review-20260915/coverage-review.json.",
+        "content-discovery-completion-20260928.md",
+        "output/content-discovery-20260928/",
+        "output/content-discovery-final-20260928/"
       ],
-      "remainingReview": "Native page/CTA picker with actual target; private/deleted/empty/media variants and final pack navigation/recovery.",
+      "remainingReview": "None for this block; shared full-delivery gates remain open.",
       "deliveryTask": 3,
       "acceptanceBatch": "content-discovery",
       "reviewedAtCommit": "d8a0ea2c",
-      "notesSha256": "a56e0fe38e6da10695ebe232ecde4b773f485d5270b1221827eefae778370e20",
+      "notesSha256": "24ab07198f48c0408d9541be0aa2ee0c0842e65531d1b2ee3ddf75c23cef1d7d",
       "specSha256": "4064250854fcf452facb933658cabb6c320258b611ba4fd41adcd30f20bb8d7b",
       "rendererSha256": "3bd30c6941123cdeeed5ca4e4cb3a8ab665c54af5f45a85ffb4dea2037eb59c0",
       "canonicalFields": [
@@ -3539,21 +3574,34 @@
     "output/author-bio-20260928/mt-accept-verified.json",
     "output/author-bio-20260928/cleanup.json",
     "output/author-bio-20260928/native-final-errors.json",
-    "output/author-current-20260928/deployment-source-final.json"
+    "output/author-current-20260928/deployment-source-final.json",
+    "ConvexPress-Admin/audits/2026-09-04/content-discovery-completion-20260928.md",
+    "output/content-discovery-20260928/mt-accept-verified.json",
+    "output/content-discovery-20260928/public-matrix.json",
+    "output/content-discovery-20260928/public-variants.json",
+    "output/content-discovery-20260928/live-cascade.json",
+    "output/content-discovery-20260928/live-empty-category-cleanup.json",
+    "output/content-discovery-20260928/cleanup.json",
+    "output/content-discovery-final-20260928/deployment-source-final.json"
   ],
   "trackerRefresh": {
-    "source": "output/author-bio-20260928/mt-accept-after.json",
-    "schema": "output/author-bio-20260928/mt-schema.json",
+    "source": "output/content-discovery-20260928/mt-accept-after.json",
+    "schema": "output/content-discovery-20260928/mt-schema.json",
     "rows": 137,
     "counts": {
-      "Verified": 66,
-      "In progress": 71
+      "Verified": 72,
+      "In progress": 65
     },
     "otherCellsUnchangedFromPreviousRead": true,
     "pendingNotesReconciled": 77,
     "classificationScope": "Block-specific missing gates; historical whole-app audit conditions retained in Notes but not automatic prerequisites.",
     "lastAcceptedNames": [
-      "core/author-bio"
+      "core/latest-posts",
+      "core/post-grid",
+      "core/tag-cloud",
+      "core/related-content",
+      "core/archive-list",
+      "core/featured-page"
     ]
   },
   "coordination": {

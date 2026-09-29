@@ -761,6 +761,12 @@ test("actual canonical references resolve only public pages and react to current
 	});
 	const first = await f.client.query(reference("get"), { postId: f.ids.post });
 	expect(first.data.dataByBlock.featured.data.page.id).toBe(target);
+	expect(first.data.dataByBlock.featured.data.page.href).toBe("/page/source");
+	for (const [path, expected] of [["/collection/source", "/page/collection/source"], [undefined, "/page/source"]] as const) {
+		await f.t.run(async (ctx) => { await ctx.db.patch("posts", target, { path }); });
+		const current = await f.client.query(reference("get"), { postId: f.ids.post });
+		expect(current.data.dataByBlock.featured.data.page.href).toBe(expected);
+	}
 	await f.t.run(async (ctx) => {
 		await ctx.db.patch("posts", target, {
 			visibility: "password",
