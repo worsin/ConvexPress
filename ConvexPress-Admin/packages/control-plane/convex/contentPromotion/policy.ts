@@ -32,6 +32,8 @@ export const selectionSchema = z
 		planIds: z.array(z.string()).max(100).optional(),
 		includePresentation: z.boolean(),
     includeRoutePolicies: z.boolean().optional(),
+    includeLocalization:z.boolean().optional(),
+    localeGroupKeys:z.array(z.string().regex(/^[a-z0-9][a-z0-9-]{0,79}$/)).max(100).optional(),
 	})
 	.strict();
 export const bindingsSchema = z
@@ -204,12 +206,18 @@ export function validateExport(
 		] ?? [])
 			if (keys.get(`${kind}:${id}`) !== kind)
 				throw new Error("Source export omitted selected content");
+  if(result.manifest.selection.includeLocalization && result.manifest.records.filter(record=>record.kind==='localeRouting').length!==1)
+    throw new Error('Source export omitted selected language settings');
+  for(const key of result.manifest.selection.localeGroupKeys??[])if(!result.manifest.records.some(record=>record.kind==='localeGroup'&&record.data.key===key))
+    throw new Error('Source export omitted selected translation group');
 	return result.manifest;
 }
 
 export const SAFE_FAILURE_CODES = new Set([
 	"SITE_REVIEW_FAILED",
   "ROUTE_POLICY_SELECTION_REQUIRED",
+  "LOCALIZATION_SELECTION_REQUIRED",
+  "PROMOTION_LOCALIZATION_LIMIT",
 	"CATALOG_ADAPTER_REQUIRED",
 	"LEARNING_ADAPTER_REQUIRED",
 	"PLAN_BINDING_ADAPTER_REQUIRED",

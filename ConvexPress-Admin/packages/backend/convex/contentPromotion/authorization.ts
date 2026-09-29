@@ -22,6 +22,7 @@ export async function promotionAuthorization(ctx: QueryCtx) {
 	return {
 		operator,
 		async read(kind: PromotionKind, row?: Row) {
+      if (kind === "localeRouting" || kind === "localeGroup") await can("settings.update_general");
       if (kind === "kbCategory") await can("kb.manageCategories");
 			if (kind === "page" || kind === "post") {
 				await can(`${kind}.read`);
@@ -50,6 +51,7 @@ export async function promotionAuthorization(ctx: QueryCtx) {
 		},
 		async write(record: PromotionRecord, current: Row | null) {
 			const kind = record.kind;
+      if (kind === "localeRouting" || kind === "localeGroup") await can("settings.update_general");
       if (kind === "kbCategory") await can("kb.manageCategories");
       if (kind === "course") { await can(current ? "lms.course.edit" : "lms.course.create"); if (record.data.status === "published") await can("lms.course.publish"); if (current && current.authorId !== operator._id && (role?.level ?? 0) < 80) fail("FORBIDDEN", "Editing another author’s course requires Editor access."); }
       if (kind === "courseNode" || kind === "coursePrerequisite") { await can("lms.builder.manage"); if (kind === "courseNode" && record.data.kind === "lesson") await can("lms.lesson.edit"); }

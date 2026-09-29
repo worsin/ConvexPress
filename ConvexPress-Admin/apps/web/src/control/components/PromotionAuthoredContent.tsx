@@ -48,8 +48,10 @@ function ArticleNode({ node }: { node: Node }) {
     default: return null;
   }
 }
-import { promotionSyncedReviewDataSchema } from '../../../../../packages/site-contract/src/content-promotion';
-export function PromotionAuthoredContent({ data, planLabels = {} }: { data: Record<string, unknown>; planLabels?: Record<string, string> }) {
+import { promotionDataSchemas, promotionSyncedReviewDataSchema } from '../../../../../packages/site-contract/src/content-promotion';
+export function PromotionAuthoredContent({ data, kind, planLabels = {}, documentLabels = {} }: { data: Record<string, unknown>; kind?:string; planLabels?: Record<string, string>; documentLabels?:Record<string,string> }) {
+  const routing=kind==='localeRouting'?promotionDataSchemas.localeRouting.safeParse(data):null;
+  const group=kind==='localeGroup'?promotionDataSchemas.localeGroup.safeParse(data):null;
   const synced = promotionSyncedReviewDataSchema.safeParse(data);
   const fields = [
     ["Title", data.title ?? data.name], ["Slug", data.slug], ["Path", data.path], ["Status", data.status],
@@ -59,6 +61,17 @@ export function PromotionAuthoredContent({ data, planLabels = {} }: { data: Reco
   const article = parseReviewArticle(data.content);
   const needsWebsitePreview = data.contentMode === "blocks" || Array.isArray(data.blocks) || (!!data.content && !article) || article?.requiresPreview;
   return <div className="mt-3 space-y-3 text-sm">
+    {routing?.success && <section aria-label="Site languages" className="space-y-2 rounded border border-border p-3">
+      <p className="font-medium">{routing.data.enabled?'Language links are enabled':'Language links are disabled'}</p>
+      <ul className="space-y-2">{routing.data.locales.map(locale=><li key={locale.code}><strong>{locale.label} ({locale.code})</strong> · {locale.direction==='rtl'?'Right to left':'Left to right'}<br/>Landing page: {documentLabels[locale.landingPageId]??'Destination needs review'}</li>)}</ul>
+      {!routing.data.locales.length&&<p>No language landing pages configured.</p>}
+      <p className="text-ink-2">These settings replace the production language configuration. Destinations use the corresponding production pages.</p>
+    </section>}
+    {group?.success && <section aria-label="Translation group" className="space-y-2 rounded border border-border p-3">
+      <p className="font-medium">Translation group: {group.data.key}</p>
+      {group.data.translations.length?<ul>{group.data.translations.map(entry=><li key={entry.code}>{entry.code}: {documentLabels[entry.documentId]??'Destination needs review'}</li>)}</ul>:<p>Remove all translations from this group.</p>}
+      <p className="text-ink-2">This replaces the complete group, including removal of old assignments. Other production groups are preserved.</p>
+    </section>}
     {synced.success && <section aria-label="Reusable content revisions" className="space-y-2 rounded border border-border p-3">
       <p className="font-medium">Reusable content · {synced.data.revisions.length} published {synced.data.revisions.length === 1 ? 'revision' : 'revisions'} included</p>
       <ul className="space-y-1">{synced.data.revisions.map(version => <li key={version.revision}>Revision {version.revision}: {version.title}{version.revision === synced.data.publishedRevision ? ' · Current publication' : ' · Required by a pinned placement'}</li>)}</ul>

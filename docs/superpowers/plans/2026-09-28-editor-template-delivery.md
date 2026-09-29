@@ -135,6 +135,8 @@ Generated files are output, not edit surfaces. Keep data in the site backend; pa
 
 ### Task 4 — Finish content migration and the single authoring model
 
+**Completeness criterion (Opus F21/F22, accepted September29):** Migration/backfill/export completion must account for the entire intended corpus. A bounded or failed partial pass must return explicit incomplete/blocked state and a resumable position or actionable limit; it must not report success. Before legacy retirement, reconcile source/destination counts and representative exact authored values, including interrupted and over-limit cases. This is a delivery acceptance lens, not authorization for an unrelated codebase sweep.
+
 **Files:** `scripts/blocks/{content-migration,staged-migration}.mjs`, actual canonical migration/recovery service and legacy dispatch/schema consumers found through source search; existing migration/recovery suites.
 
 **Consumes:** finished canonical capabilities and actual retained content inventory. **Produces:** one active content model/Website renderer, preserved history and explicit old-content import support.

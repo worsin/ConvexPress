@@ -302,6 +302,21 @@ export async function exportAuthoredManifest(
 		}
 		return value;
 	}
+  let localeConfig:Doc<'locale_routing'>|null|undefined;
+  let localeStarted=false;
+  async function includeLocaleConfiguration(){
+    if(localeConfig===undefined){reserveCanonicalRead();localeConfig=await ctx.db.query('locale_routing').withIndex('by_key',q=>q.eq('key','site')).unique();}
+    if(!args.selection.includeLocalization){if(localeConfig)fail('LOCALIZATION_SELECTION_REQUIRED','Include site languages to review configured destinations and translation mappings.');return;}
+    if(localeStarted)return;localeStarted=true;
+    await add('localeRouting',localeConfig?._id??'site-absent',localeConfig??{_id:'site-absent',key:'site',enabled:false,locales:[]});
+  }
+  async function includeDocumentLocalization(id:string){
+    await includeLocaleConfiguration();
+    if(!args.selection.includeLocalization)return;
+    const documentId=ctx.db.normalizeId('posts',id);if(!documentId)fail('PROMOTION_MAPPING_INVALID','Invalid language document.');
+    reserveCanonicalRead();const membership=await ctx.db.query('locale_translations').withIndex('by_document',q=>q.eq('documentId',documentId)).unique();
+    if(membership)await add('localeGroup',membership.groupId);
+  }
 	async function add(
 		kind: PromotionKind,
 		id: string,
@@ -322,7 +337,22 @@ export async function exportAuthoredManifest(
     const canonicalSource=(kind==="page" || kind==="post") && row.blocksVersion===2;
     if(canonicalSource){delete data.blocks;canonicalDocuments.set(key,row.blocks);}
 		records.set(key, { key, kind, sourceRevision: recordRevision(kind, row), data });
+    if(kind==='localeRouting'){
+      const locales=[];
+      for(const locale of row.locales as Doc<'locale_routing'>['locales'])locales.push({...locale,landingPageId:ref(await add('page',locale.landingPageId))});
+      data.locales=locales;return key;
+    }
+    if(kind==='localeGroup'){
+      const translations=[];
+      for(const entry of row.translations as Array<{code:string;documentId:string}>){
+        reserveCanonicalRead();const post=await read(ctx,'page',entry.documentId);if(!post||(post.type!=='page'&&post.type!=='post'))fail('PROMOTION_LOCALE_DOCUMENT','A source translation document is missing.');
+        translations.push({code:entry.code,documentId:ref(await add(post.type,entry.documentId,post))});
+      }
+      inspectedRows+=translations.length;if(inspectedRows>500)fail('PROMOTION_SCAN_LIMIT','Language dependencies exceed the inspection budget.');
+      data.translations=translations;return key;
+    }
 		if (kind === "page" || kind === "post") {
+			await includeDocumentLocalization(row._id);
 			if (row.type !== kind)
 				fail("PROMOTION_SELECTION_INVALID", `${key} is not a ${kind}.`);
 			if (
@@ -621,6 +651,7 @@ export async function exportAuthoredManifest(
 		data = (await transform(data, key)) as Record<string, unknown>;
     if(canonical)data.canonical=canonical;
 		records.set(key, { key, kind, sourceRevision: recordRevision(kind, row), data });
+
 		return key;
 	}
   async function resolveCanonicalReference(reference:CanonicalReference,key:string):Promise<string>{
@@ -648,6 +679,9 @@ export async function exportAuthoredManifest(
 
   }
 
+	if(args.selection.includeLocalization)await includeLocaleConfiguration();
+  if(args.selection.localeGroupKeys?.length&&!args.selection.includeLocalization)fail('LOCALIZATION_SELECTION_REQUIRED','Include site languages before selecting translation groups.');
+  for(const key of args.selection.localeGroupKeys??[]){reserveCanonicalRead();const group=await ctx.db.query('locale_translation_groups').withIndex('by_key',q=>q.eq('key',key)).unique();if(!group)fail('PROMOTION_DEPENDENCY_MISSING','Selected translation group is missing.');await add('localeGroup',group._id);}
 	for (const id of args.selection.mediaIds) await add("media", id);
 	for (const id of args.selection.pageIds) await add("page", id);
 	for (const id of args.selection.postIds) await add("post", id);

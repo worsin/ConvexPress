@@ -48,3 +48,9 @@ test("unknown response is visibly unconfirmed instead of showing a successful or
   expect(html).not.toContain("Ready for production confirmation");
   expect(html).not.toContain("Applied to production");
 });
+test('language review shows readable destinations and group replacement rather than only generic field counts',()=>{
+ const review=fixture();review.authoredRecords.push({key:'localeRouting:site',kind:'localeRouting',sourceRevision:'r1',dataJson:JSON.stringify({key:'site',enabled:false,locales:[{code:'en',label:'English',direction:'ltr',landingPageId:'@promotion:page:one'}]})},{key:'localeGroup:guide',kind:'localeGroup',sourceRevision:'g1',dataJson:JSON.stringify({key:'guide',translations:[]})});
+ const html=renderToStaticMarkup(<PromotionReviewView review={review} now={100} expanded/>);
+ expect(html).toContain('Site languages');expect(html).toContain('Language links are disabled');expect(html).toContain('English (en)');expect(html).toContain('Left to right');expect(html).toContain('Remove all translations from this group');expect(html.match(/<section aria-label="Site languages"[\s\S]*?<\/section>/)?.[0]).not.toContain('@promotion:page:one');expect(html).not.toContain('<script>');
+ const failure=renderToStaticMarkup(<PromotionReviewView review={{...review,status:'failed',failureCode:'LOCALIZATION_SELECTION_REQUIRED'}} now={100}/>);expect(failure).toContain('Include site languages');
+});

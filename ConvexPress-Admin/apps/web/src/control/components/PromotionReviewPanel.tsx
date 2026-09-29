@@ -625,11 +625,28 @@ function PromotionReviewPanelContent(props: Props) {
                   onChange={event => changeSelection({...selection, includeRoutePolicies: event.target.checked || undefined})} />
                 Include site access rules
               </label>
+              <label className="flex items-center gap-2 text-sm">
+                <input type="checkbox" disabled={locked || !!pendingReceipt}
+                  checked={!!selection.includeLocalization}
+                  onChange={event => changeSelection({...selection, includeLocalization: event.target.checked || undefined, localeGroupKeys: event.target.checked ? selection.localeGroupKeys : undefined})} />
+                Include site languages and selected translation groups
+              </label>
+              {selection.includeLocalization && <div className="space-y-2 text-sm">
+                <p className="text-ink-2">Review all language settings and landing pages, plus complete translation groups for included pages and posts. This can change language links across the website. Other target groups are preserved and checked for conflicts.</p>
+                <label className="block">Additional translation group keys
+                  <input className="mt-1 block w-full rounded border bg-transparent p-2" disabled={locked || !!pendingReceipt}
+                    placeholder="For example: guide, support"
+                    defaultValue={(selection.localeGroupKeys ?? []).join(", ")}
+                    onBlur={event => changeSelection({...selection, localeGroupKeys:event.target.value.split(",").map(value=>value.trim()).filter(Boolean)})} />
+                </label>
+                <p className="text-ink-2">Optional: include named groups that no longer contain pages, so their removed translations can be reviewed too.</p>
+              </div>}
               {selection.includeRoutePolicies && <p className="text-sm text-ink-2">Review all source URL access rules and their membership plans. These rules can affect pages beyond your selection.</p>}
 							<p className="text-sm">
 								{selectionCount(selection)} selected items
 								{selection.includePresentation ? " plus presentation" : ""}
                 {selection.includeRoutePolicies ? " plus site access rules" : ""}
+                {selection.includeLocalization ? " plus site languages" : ""}
 							</p>
 							<div className="flex flex-wrap gap-2">
 								<Button
@@ -637,7 +654,7 @@ function PromotionReviewPanelContent(props: Props) {
 										locked ||
 										!!pendingReceipt ||
 										(selectionCount(selection) === 0 &&
-											!selection.includePresentation && !selection.includeRoutePolicies)
+											!selection.includePresentation && !selection.includeRoutePolicies && !selection.includeLocalization)
 									}
 									onClick={createReview}
 								>

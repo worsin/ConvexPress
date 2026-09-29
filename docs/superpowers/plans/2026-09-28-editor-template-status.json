@@ -1,13 +1,13 @@
 {
   "plan": "2026-09-28-editor-template-delivery.md",
   "baselineCommit": "d0fee8acceb408fd306a15f3c054322cb73ac8bc",
-  "checkpointSource": "output/search-host-20260928/mt-accept-after.json",
+  "checkpointSource": "output/locale-promotion-20260929/mt-accept-after.json",
   "checkpointCounts": {
-    "Verified": 75,
-    "In progress": 62
+    "Verified": 76,
+    "In progress": 61
   },
   "goal": "Complete block editor and template delivery plus all demonstrated blockers; defer unrelated whole-app audit campaigns.",
-  "currentTask": "E41: complete explicit reviewed localization promotion and Language Switcher acceptance, then remaining delivery batches. F19 destination contract accepted;75 Verified /62 In progress; full goal active.",
+  "currentTask": "Language Switcher and E41 accepted;76 Verified /61 In progress. Continue Task2 social utilities and remaining family batches; E18 final installed artifact/editor parity and Tasks4\u20138 remain open.",
   "tasks": [
     {
       "id": 1,
@@ -167,7 +167,8 @@
       "status": "requires current classification or closure; see guide",
       "classification": "missing evidence",
       "initialFinding": "Current source/main/deployed artifacts and historical screenshots can diverge.",
-      "closureBoundary": "Record exact source and deployment identity; reuse only relevant current evidence. Run a final integrated gate on the deliverable, not a collection of unrelated historical green logs."
+      "closureBoundary": "Record exact source and deployment identity; reuse only relevant current evidence. Run a final integrated gate on the deliverable, not a collection of unrelated historical green logs.",
+      "currentEvidence": "September29 target remains on its own older extension checkpoint. Four canonical draft functions absent; native editor autosave unavailable and separate document-settings warning observed. Website iframe correct. Final integrated artifact parity remains open; see locale-promotion-20260929.md."
     },
     {
       "id": "E19",
@@ -317,10 +318,17 @@
     },
     {
       "id": "E41",
-      "status": "Open: live read-only export reproduces missing locale host context without a reported issue. No target import attempted.",
-      "classification": "demonstrated delivery blocker",
+      "status": "Accepted within reviewed localization promotion boundary: portable complete groups, remapping, authority/conflicts, native review/apply and live recovery verified.",
+      "classification": "accepted repair",
       "initialFinding": "Exported canonical Language Switcher pages omit enabled locale routing and translation groups; source export succeeds with zero locale records.",
-      "closureBoundary": "Explicit reviewed locale selection, bounded portable routing/group closure and identity remapping, authority/conflict checks, recovery and real source-to-target configured links. Preserve unrelated target data and environment separation."
+      "closureBoundary": "Explicit reviewed locale selection, bounded portable routing/group closure and identity remapping, authority/conflict checks, recovery and real source-to-target configured links. Preserve unrelated target data and environment separation.",
+      "evidence": [
+        "ConvexPress-Admin/audits/2026-09-04/locale-promotion-20260929.md",
+        "output/locale-promotion-20260929/installed-source-proof.json",
+        "output/locale-promotion-20260929/applied-proof.json",
+        "output/locale-promotion-20260929/recovery-proof.json",
+        "output/locale-promotion-20260929/cleanup.json"
+      ]
     }
   ],
   "blocks": [
@@ -3275,17 +3283,18 @@
       "name": "core/language-switcher",
       "title": "Language switcher",
       "category": "Site",
-      "checkpointStatus": "In progress",
-      "nextClassification": "Reviewed against live Notes and current canonical specification; Actual configured locale links/current state, unavailable/private translations, native context/recovery and required promotion preservation; no invented full translation engine.",
-      "classification": "missing evidence",
+      "checkpointStatus": "Verified",
+      "nextClassification": "reuse valid evidence",
+      "classification": "accepted/reusable evidence",
       "source": "blocks/core/language-switcher/block.json",
       "requirements": "context only",
       "evidenceReferences": [
         "output/block-library-review-20260915/coverage-review.json.",
         "output/language-switcher-20260914/checks.json.",
-        "ConvexPress-Admin/audits/2026-09-04/locale-destinations-20260928.md"
+        "ConvexPress-Admin/audits/2026-09-04/locale-destinations-20260928.md",
+        "ConvexPress-Admin/audits/2026-09-04/locale-promotion-20260929.md"
       ],
-      "remainingReview": "E41 required localization promotion, native configuration/recovery and remaining accumulated full-block reconciliation. Current configured links/current state/RTL, keyboard destinations and native Website context verified in September28 batch.",
+      "remainingReview": "Retain accumulated locale authoring/access/public/promotion/recovery evidence; final installed artifact and packaged/cloud integration remain shared E18/Task8 work.",
       "deliveryTask": 3,
       "acceptanceBatch": "content-discovery",
       "reviewedAtCommit": "d8a0ea2c",
@@ -3762,32 +3771,43 @@
     "ConvexPress-Admin/audits/2026-09-04/locale-destinations-20260928.md",
     "output/locale-destinations-20260928/promotion-gap.json",
     "output/locale-destinations-20260928/cleanup.json",
-    "output/locale-destinations-20260928/lifecycle.json"
+    "output/locale-destinations-20260928/lifecycle.json",
+    "ConvexPress-Admin/audits/2026-09-04/locale-promotion-20260929.md",
+    "output/locale-promotion-20260929/mt-accept-verified.json",
+    "output/locale-promotion-20260929/installed-source-proof.json",
+    "output/locale-promotion-20260929/public-matrix.json",
+    "output/locale-promotion-20260929/recovery-proof.json",
+    "output/locale-promotion-20260929/backup-locale-proof.json",
+    "output/locale-promotion-20260929/cleanup.json",
+    "output/locale-promotion-20260929/lifecycle.json"
   ],
   "trackerRefresh": {
-    "source": "output/search-host-20260928/mt-accept-after.json",
-    "schema": "output/search-host-20260928/mt-schema.json",
+    "source": "output/locale-promotion-20260929/mt-accept-after.json",
+    "schema": "output/locale-promotion-20260929/mt-schema.json",
     "rows": 137,
     "counts": {
-      "Verified": 75,
-      "In progress": 62
+      "Verified": 76,
+      "In progress": 61
     },
     "otherCellsUnchangedFromPreviousRead": true,
     "pendingNotesReconciled": 77,
     "classificationScope": "Block-specific missing gates; historical whole-app audit conditions retained in Notes but not automatic prerequisites.",
     "lastAcceptedNames": [
-      "core/search-results"
+      "core/language-switcher"
     ],
     "allNotesExact": true
   },
   "coordination": {
     "folder": "/Users/worsin/Development/ConvexPress/Opus Audits/",
     "authority": "Codex leads; Claude audits are advisory and independently verified",
-    "lastAudit": "2026-09-28T2320-audit-12-e39-scope-proportionality.md",
+    "lastAudit": "2026-09-29T0020-audit-13-f19-closed-plateau-broken.md",
     "pendingAdvisory": {
       "F19": "Accepted shared public document href contract. Historical encoded-slug fixture reproduced discrepancy; ordinary authoring slugifies safely. Legacy menu root/prefix behavior and membership aliases preserved. See locale-destinations-20260928.md.",
       "F20": "Source-verified enterprise commerce backfill truncation recorded in current-acceptance.md deferred register. No live reproduction or repair; promote only if catalog/customer-commerce delivery demonstrates a dependency.",
-      "audit12": "Bounded E39 slice completed and Search Results accepted on accumulated evidence; move to Language Switcher/F19 and other delivery work. No speculative search expansion or broad sweep."
+      "audit12": "Bounded E39 slice completed and Search Results accepted on accumulated evidence; move to Language Switcher/F19 and other delivery work. No speculative search expansion or broad sweep.",
+      "F21": "Accepted delivery review criterion: any migration/backfill/export claiming completeness must prove full intended coverage or return an explicit incomplete/blocked result. Carry into Task4/E07 migration and legacy retirement; no broad bare-catch sweep or inferred whole-codebase defect.",
+      "F22": "Closed: F21 criterion recorded here and in Task4 execution guide before migration begins.",
+      "audit13": "E41 reviewed locale routing/groups/remapping/conflicts/recovery complete. Language Switcher accepted on accumulated evidence. Target older editor autosave/settings gap remains explicit E18 integration work; no general promotion rewrite."
     }
   },
   "sessionBaseCommit": "9824d9605e50c4b0ebd711c13715b506f8ef5bd3"

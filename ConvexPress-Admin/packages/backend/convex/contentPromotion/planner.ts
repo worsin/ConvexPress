@@ -1,3 +1,4 @@
+import {readLocaleGroup,reviewLocalization} from "./localization";
 import { reviewCanonicalPromotionPolicy } from "../canonicalDocuments/displayContext";
 import { syncedClosureFromManifest } from './syncedClosure';
 import { planSyncedTargets, previewSyncedTargetDocuments, type SyncedTargetPlan } from './syncedTarget';
@@ -95,6 +96,8 @@ export async function lookupTarget(
 			? known.get(referencedKey(value) ?? "")
 			: undefined;
 	switch (record.kind) {
+    case 'localeRouting': return await ctx.db.query('locale_routing').withIndex('by_key',q=>q.eq('key','site')).unique();
+    case 'localeGroup': {const row=await ctx.db.query('locale_translation_groups').withIndex('by_key',q=>q.eq('key',String(d.key))).unique();return row?readLocaleGroup(ctx,row):null;}
     case "course": case "courseNode": case "coursePrerequisite": case "plan": case "planBenefit": return lookupLearningTarget(ctx, record, known);
     case "product":
     case "productCategory":
@@ -557,6 +560,9 @@ export async function planPromotion(
 	}
 	await reviewCatalogCollections(ctx, plan.changes, issue);
   await reviewLearningCollections(ctx, plan.changes, issue);
+  try {await reviewLocalization(ctx,manifest,plan,known);} catch(error) {
+    if(error instanceof ConvexError&&error.data&&typeof error.data==='object'&&'code' in error.data&&'message' in error.data)issue(String(error.data.code),'localization',String(error.data.message));else throw error;
+  }
   // Replacing an adopted menu's collection must be explicitly modelled, never append
 	// source items beside unrelated live navigation or silently delete target records.
 	for (const change of plan.changes.filter(

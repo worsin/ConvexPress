@@ -165,3 +165,16 @@ test("broker transports explicitly selected product tags and refuses an omitted 
     if (!included) expect(result.status).toBe("failed");
   }
 });
+
+test('broker transports selected language settings and empty groups and refuses an omitted language aggregate',async()=>{
+ for(const included of [true,false]){
+  const f=await fixture();const request={...f.request,selection:{...f.request.selection,pageIds:[],includeLocalization:true,localeGroupKeys:['removed-guide']}};
+  const original=f.remote.export;
+  f.remote.export=async(...args)=>{const result=await original(...args);result.manifest.records=included?[
+   {key:'localeRouting:site',kind:'localeRouting',sourceRevision:'r1',data:{key:'site',enabled:false,locales:[]}},
+   {key:'localeGroup:removed',kind:'localeGroup',sourceRevision:'g1',data:{key:'removed-guide',translations:[]}},
+  ]:[];return result;};
+  const result=await runReview(f.context,{...f.args,requestJson:JSON.stringify(request)},f.remote);
+  expect(result.reviewReady).toBe(included);if(included)expect(result.authoredRecords.map(r=>r.kind)).toEqual(['localeRouting','localeGroup']);else expect(result.status).toBe('failed');
+ }
+});

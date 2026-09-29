@@ -1,3 +1,4 @@
+import {isLocaleKind,assertLocalizationState,writeLocalization} from "./localization";
 import {syncEventSearch} from "../search/events";
 import { assertCategoryNotDeleting, validateCategoryParent } from "../kb/helpers/categoryHierarchy";
 import {validatePromotedEvent} from "./eventRsvp";
@@ -103,6 +104,8 @@ const selectionArgs = v.object({
 	productBrandIds: v.optional(v.array(v.string())),
 	includePresentation: v.boolean(),
   includeRoutePolicies: v.optional(v.boolean()),
+  includeLocalization: v.optional(v.boolean()),
+  localeGroupKeys: v.optional(v.array(v.string())),
 });
 const bindingArgs = {
 	mediaBindings: v.array(v.object({ key: v.string(), storageId: v.string() })),
@@ -160,6 +163,7 @@ const manifestResult = v.object({
         v.literal("kbCategory"),
 				v.literal("presentation"),
 				v.literal("postMeta"),
+        v.literal("localeRouting"), v.literal("localeGroup"),
 			),
 			sourceRevision: v.string(),
 			data: v.record(v.string(), v.any()),
@@ -462,7 +466,9 @@ export const apply: RegisteredMutation<
 				fields.updatedBy = operator._id;
 				if (data.section === "appearance.template")
 					fields.legacyAppearanceMigration = { version: 2, migratedAt: now };
-			} else if (
+			} else if(isLocaleKind(record.kind)){
+        fields.updatedBy=operator._id;
+      } else if (
 				record.kind === "postMeta" ||
 				record.kind === "termRelationship" ||
 				record.kind === "coursePrerequisite"
@@ -661,6 +667,7 @@ export const apply: RegisteredMutation<
       }
       for (const record of ordered.filter(canonical)) await applyRecord(record);
     } else for (const record of ordered) await applyRecord(record);
+    if(manifest.records.some(r=>isLocaleKind(r.kind)))await assertLocalizationState(ctx);
 		await updateCatalogCounts(
 			ctx,
 			mappings
@@ -788,6 +795,7 @@ export const rollback: RegisteredMutation<
 			if (!targetId)
 				fail("PROMOTION_MAPPING_INVALID", "Invalid backup target.");
 			const previous = await read(ctx, backup.kind as PromotionKind, backup.targetId);
+      if(isLocaleKind(backup.kind)){await writeLocalization(ctx,backup.kind,backup.targetId,{...fields,updatedBy:operator._id});continue;}
       if (table === "kb_categories") {
         if (previous) assertCategoryNotDeleting(previous);
         await validateCategoryParent(ctx, fields.parentId as Id<"kb_categories"> | undefined, targetId as Id<"kb_categories">);
@@ -828,7 +836,8 @@ export const rollback: RegisteredMutation<
       if (table === "termRelationships") await refreshTermDiscovery(ctx, targetId as Id<"termRelationships">, undefined, previous as import("../_generated/dataModel").Doc<"termRelationships"> | null);
       if (table === "terms") await adjustTermCount(ctx, targetId as Id<"terms">, null);
 		}
-		await ctx.db.patch("contentPromotion_receipts", receipt._id, { status: "rolled-back" });
+		if(manifest.records.some(r=>isLocaleKind(r.kind)))await assertLocalizationState(ctx);
+    await ctx.db.patch("contentPromotion_receipts", receipt._id, { status: "rolled-back" });
 		return { receiptId: receipt._id, status: "rolled-back" };
 	},
 });
