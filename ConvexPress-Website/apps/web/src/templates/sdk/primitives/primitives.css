@@ -362,6 +362,10 @@
 	font-size: 0.875rem;
 	line-height: 1.6;
 }
+.cp-quote {
+	min-inline-size: 0;
+	overflow-wrap: anywhere;
+}
 .cp-quote blockquote {
 	margin: 0;
 	padding-inline-start: 1.5rem;

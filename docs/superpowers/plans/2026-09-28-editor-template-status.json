@@ -1,13 +1,13 @@
 {
   "plan": "2026-09-28-editor-template-delivery.md",
   "baselineCommit": "d0fee8acceb408fd306a15f3c054322cb73ac8bc",
-  "checkpointSource": "output/support-content-20260929/mt-accept-after.json",
+  "checkpointSource": "output/moving-media-20260929/mt-accept-after.json",
   "checkpointCounts": {
-    "Verified": 90,
-    "In progress": 47
+    "Verified": 93,
+    "In progress": 44
   },
   "goal": "Complete block editor and template delivery plus all demonstrated blockers; defer unrelated whole-app audit campaigns.",
-  "currentTask": "Support KB Search and Ticket CTA accepted with native exact recovery, actual23-guide search, four-pack states and real two-customer ticket ownership.90 Verified/47 In progress. Next Task2 Carousel/Marquee/Customer Showcase media interaction batch; remaining Steps motion investigation is bounded separately. Tasks4\u20138 and E18/E22/E28 remain open.",
+  "currentTask": "Carousel, Marquee and Customer Showcase accepted with native exact recovery, opt-in playback, safe historical/new links and normal/maximum four-pack evidence.93 Verified/44 In progress. F24 exact per-row/header/tracker parity repaired and checked. Next bounded Steps with Media cold/warm motion investigation, then Grade Gallery and remaining data-backed families. Tasks4\u20138 and E18/E22/E28 remain open.",
   "tasks": [
     {
       "id": 1,
@@ -395,6 +395,36 @@
       "initialFinding": "Actual Custom HTML unordered lists rendered without markers or indentation, and headings at body-text size, under the global CSS reset. Computed styles confirmed list-style none, padding 0px and h3/body both 16px.",
       "closureBoundary": "Restore scoped semantic typography for allowed Custom HTML markup using existing template tokens; verify lists, headings, nested markup, safe sanitization and long-content containment across all four packs.",
       "status": "Closed: scoped HTML headings/lists/spacing restore semantic typography after CSS reset. Actual list marker disc/24px indentation and h3 24px vs body16px; four-pack desktop/mobile normal and long/nested containment, sanitizer preserved. See text-download-20260929.md."
+    },
+    {
+      "id": "E47",
+      "classification": "accepted repair",
+      "initialFinding": "Installed new Showcase text URL accepted javascript: while Link primitive rejected it at render.",
+      "closureBoundary": "Declare write-only shared safe-link policy; preserve historical read/recovery and render valid story without unsafe link; native/installed refusal and normal destinations.",
+      "status": "Closed: native exact save/reopen/history, installed write rules and final normal/maximum four-pack cases pass. See moving-media-20260929.md.",
+      "evidence": [
+        "output/moving-media-20260929/unsafe-url-before.json"
+      ]
+    },
+    {
+      "id": "E48",
+      "classification": "accepted repair",
+      "initialFinding": "Carousel specification promises autoplay; only manual controls existed.",
+      "closureBoundary": "Opt-in default-paused playback, focus/hover/visibility/reduced-motion stops and cleanup; actual five-second advance and keyboard empty/single/multiple proof.",
+      "status": "Closed: native exact save/reopen/history, installed write rules and final normal/maximum four-pack cases pass. See moving-media-20260929.md.",
+      "evidence": [
+        "output/moving-media-20260929/renderer-red.log"
+      ]
+    },
+    {
+      "id": "E49",
+      "classification": "accepted repair",
+      "initialFinding": "Valid role120+company140+separator3 exceeds Quote.source240 and breaks published rendering; unbroken quote/source text then creates28293px page.",
+      "closureBoundary": "Bound descriptive source at500, wrap complete quote/attribution and use existing two-line attribution treatment; all maximum fields in four packs at1440/390.",
+      "status": "Closed: native exact save/reopen/history, installed write rules and final normal/maximum four-pack cases pass. See moving-media-20260929.md.",
+      "evidence": [
+        "output/moving-media-20260929/attribution-red.log"
+      ]
     }
   ],
   "blocks": [
@@ -547,9 +577,9 @@
       "name": "core/rich-text",
       "title": "Rich text",
       "category": "Text",
-      "checkpointStatus": "In progress",
-      "nextClassification": "Reviewed against live Notes and current canonical specification; Native inline marks, breaks and links; exact saved/recovered document; reconcile supported legacy structures with Task4.",
-      "classification": "missing evidence",
+      "checkpointStatus": "Verified",
+      "nextClassification": "reuse valid evidence",
+      "classification": "accepted/reusable evidence",
       "source": "blocks/core/rich-text/block.json",
       "requirements": "doc (richtext)",
       "evidenceReferences": [
@@ -557,9 +587,10 @@
         "output/block-demo/browser-results-media42-verified.",
         "output/block-demo/browser-results-responsive34-verified.",
         "output/block-library-review-20260915/coverage-review.json.",
-        "output/block-review-refresh-20260920/acceptance-review.md."
+        "output/block-review-refresh-20260920/acceptance-review.md.",
+        "ConvexPress-Admin/audits/2026-09-04/text-download-20260929.md"
       ],
-      "remainingReview": "Native inline marks, breaks and links; exact saved/recovered document; reconcile supported legacy structures with Task4.",
+      "remainingReview": "Block-specific acceptance complete; retain evidence and recheck only affected shared dependencies. Full delivery and integration gates remain separate.",
       "deliveryTask": 2,
       "acceptanceBatch": "text-migration",
       "reviewedAtCommit": "d8a0ea2c",
@@ -843,17 +874,18 @@
       "name": "core/carousel",
       "title": "Carousel",
       "category": "Media",
-      "checkpointStatus": "In progress",
-      "nextClassification": "Reviewed against live Notes and current canonical specification; Native nested children/reorder and exact recovery; keyboard boundaries, empty/single/multiple slides and narrow/reduced-motion behavior.",
-      "classification": "missing evidence",
+      "checkpointStatus": "Verified",
+      "nextClassification": "reuse valid evidence",
+      "classification": "accepted/reusable evidence",
       "source": "blocks/core/carousel/block.json",
       "requirements": "accessibleLabel (text)",
       "evidenceReferences": [
         "canonical-utility74-renderer-outcome.md",
         "output/block-demo/browser-results-utility74-verified",
-        "output/block-library-review-20260915/coverage-review.json."
+        "output/block-library-review-20260915/coverage-review.json.",
+        "ConvexPress-Admin/audits/2026-09-04/moving-media-20260929.md"
       ],
-      "remainingReview": "Native nested children/reorder and exact recovery; keyboard boundaries, empty/single/multiple slides and narrow/reduced-motion behavior.",
+      "remainingReview": "Block-specific acceptance complete; retain scoped evidence and recheck only affected shared dependencies. Full delivery integration remains separate.",
       "deliveryTask": 2,
       "acceptanceBatch": "media-interaction",
       "reviewedAtCommit": "d8a0ea2c",
@@ -1025,18 +1057,19 @@
       "name": "core/file-download",
       "title": "File download",
       "category": "Media",
-      "checkpointStatus": "In progress",
-      "nextClassification": "Reviewed against live Notes and current canonical specification; Native owned-media selection, title/description, save/recovery; actual authorized file contents, download target and unavailable-media states.",
-      "classification": "missing evidence",
+      "checkpointStatus": "Verified",
+      "nextClassification": "reuse valid evidence",
+      "classification": "accepted/reusable evidence",
       "source": "blocks/core/file-download/block.json",
       "requirements": "media (media), title (text), description (text)",
       "evidenceReferences": [
         "output/block-demo/browser-results-content50-verified.",
         "output/block-demo/browser-results-media42-verified.",
         "output/block-library-review-20260915/coverage-review.json.",
-        "ConvexPress-Admin/audits/2026-09-04/search-conditional-prose-20260928.md"
+        "ConvexPress-Admin/audits/2026-09-04/search-conditional-prose-20260928.md",
+        "ConvexPress-Admin/audits/2026-09-04/text-download-20260929.md"
       ],
-      "remainingReview": "Native owned-media selection, title/description, save/recovery; actual authorized file contents, download target and unavailable-media states.",
+      "remainingReview": "Block-specific acceptance complete; retain evidence and recheck only affected shared dependencies. Full delivery and integration gates remain separate.",
       "deliveryTask": 2,
       "acceptanceBatch": "media-interaction",
       "reviewedAtCommit": "d8a0ea2c",
@@ -1629,9 +1662,9 @@
       "name": "core/marquee",
       "title": "Marquee",
       "category": "Marketing",
-      "checkpointStatus": "In progress",
-      "nextClassification": "Reviewed against live Notes and current canonical specification; Reuse32-case hardware motion proof; native media repeater/reorder/recovery and distinct empty/single/pause states across final packs.",
-      "classification": "missing evidence",
+      "checkpointStatus": "Verified",
+      "nextClassification": "reuse valid evidence",
+      "classification": "accepted/reusable evidence",
       "source": "blocks/core/marquee/block.json",
       "requirements": "items (repeater)",
       "evidenceReferences": [
@@ -1640,9 +1673,10 @@
         "motion-review-20260921.md",
         "output/block-demo/browser-results-media66",
         "output/block-library-review-20260915/coverage-review.json.",
-        "ConvexPress-Admin/audits/2026-09-04/search-library-prose-20260928.md"
+        "ConvexPress-Admin/audits/2026-09-04/search-library-prose-20260928.md",
+        "ConvexPress-Admin/audits/2026-09-04/moving-media-20260929.md"
       ],
-      "remainingReview": "Reuse32-case hardware motion proof; native media repeater/reorder/recovery and distinct empty/single/pause states across final packs.",
+      "remainingReview": "Block-specific acceptance complete; retain scoped evidence and recheck only affected shared dependencies. Full delivery integration remains separate.",
       "deliveryTask": 2,
       "acceptanceBatch": "media-interaction",
       "reviewedAtCommit": "d8a0ea2c",
@@ -1657,23 +1691,24 @@
       "name": "blocks/customer-showcase",
       "title": "Customer showcase",
       "category": "Social",
-      "checkpointStatus": "In progress",
-      "nextClassification": "Reviewed against live Notes and current canonical specification; Native name/media/url/quote repeater variants; real destinations, absent media, long attribution and pack treatment review.",
-      "classification": "missing evidence",
+      "checkpointStatus": "Verified",
+      "nextClassification": "reuse valid evidence",
+      "classification": "accepted/reusable evidence",
       "source": "blocks/blocks/customer-showcase/block.json",
       "requirements": "items[{name, media, url, quote}]",
       "evidenceReferences": [
         "block-existing-spec-migration-outcome.md",
         "output/block-demo/browser-results-editorial58.",
-        "output/block-library-review-20260915/coverage-review.json."
+        "output/block-library-review-20260915/coverage-review.json.",
+        "ConvexPress-Admin/audits/2026-09-04/moving-media-20260929.md"
       ],
-      "remainingReview": "Native name/media/url/quote repeater variants; real destinations, absent media, long attribution and pack treatment review.",
+      "remainingReview": "Block-specific acceptance complete; retain scoped evidence and recheck only affected shared dependencies. Full delivery integration remains separate.",
       "deliveryTask": 2,
       "acceptanceBatch": "media-interaction",
       "reviewedAtCommit": "d8a0ea2c",
       "notesSha256": "826633f92dc615104abb8eec32596ed3bb0bf5773c99ab758f38924c36ef9cf1",
-      "specSha256": "2dc8e7af8a83de218d5d3e7370b12ee7bc9315f09cd21c251d633b57decd254e",
-      "rendererSha256": "c257273c9d8f72663572695813af1414d0b77705630442c26021e5386a6e065c",
+      "specSha256": "51eedc51603adb061801d8ed18e714c0cec7768743fd46c33cfe75a0b01efe89",
+      "rendererSha256": "26251c1e511bb789c8e07325c9ac65e055a8b6ea54c22b2f77e1d255f7fc4a55",
       "canonicalFields": [
         "heading",
         "intro",
@@ -3005,9 +3040,9 @@
       "name": "gallery/recipe-card",
       "title": "Recipe card",
       "category": "Plugin",
-      "checkpointStatus": "In progress",
-      "nextClassification": "Reviewed against live Notes and current canonical specification; Resolve F1 default authority; reuse native image/checklist proof; exact recipe selection/withdrawal, public detail and final required field variants.",
-      "classification": "reproduced defect",
+      "checkpointStatus": "Verified",
+      "nextClassification": "reuse valid evidence",
+      "classification": "accepted/reusable evidence",
       "source": "blocks/gallery/recipe-card/block.json",
       "requirements": "recipe (exact recipe ID reference, native published-recipe picker)",
       "evidenceReferences": [
@@ -3016,9 +3051,10 @@
         "output/recipe-card-20260911.",
         "output/recipe-images-20260911.",
         "output/recipe-public-access-20260911.",
-        "ConvexPress-Admin/audits/2026-09-04/plugin-defaults-20260929.md"
+        "ConvexPress-Admin/audits/2026-09-04/plugin-defaults-20260929.md",
+        "ConvexPress-Admin/audits/2026-09-04/plugin-content-20260929.md"
       ],
-      "remainingReview": "F1 defaults parity accepted; reuse native image/checklist proof; exact recipe selection/withdrawal, public detail and final required field variants.",
+      "remainingReview": "Block-specific acceptance complete; retain evidence and recheck only affected shared dependencies. Full delivery and integration gates remain separate.",
       "sharedDependencies": [
         "F1 plugin default authority",
         "E19 durable editor drafts (editor-wide, not a per-block reimplementation)"
@@ -3037,17 +3073,18 @@
       "name": "gallery/album",
       "title": "Gallery album",
       "category": "Plugin",
-      "checkpointStatus": "In progress",
-      "nextClassification": "Reviewed against live Notes and current canonical specification; Resolve F1 default authority; reuse native two-image lightbox/paging; actual published page and missing/private album/media lifecycle.",
-      "classification": "reproduced defect",
+      "checkpointStatus": "Verified",
+      "nextClassification": "reuse valid evidence",
+      "classification": "accepted/reusable evidence",
       "source": "blocks/gallery/album/block.json",
       "requirements": "album (reference)",
       "evidenceReferences": [
         "output/album-block-20260914/live-album.json",
         "output/block-library-review-20260915/coverage-review.json.",
-        "ConvexPress-Admin/audits/2026-09-04/plugin-defaults-20260929.md"
+        "ConvexPress-Admin/audits/2026-09-04/plugin-defaults-20260929.md",
+        "ConvexPress-Admin/audits/2026-09-04/plugin-content-20260929.md"
       ],
-      "remainingReview": "F1 defaults parity accepted; reuse native two-image lightbox/paging; actual published page and missing/private album/media lifecycle.",
+      "remainingReview": "Block-specific acceptance complete; retain evidence and recheck only affected shared dependencies. Full delivery and integration gates remain separate.",
       "sharedDependencies": [
         "F1 plugin default authority",
         "E19 durable editor drafts (editor-wide, not a per-block reimplementation)"
@@ -3066,9 +3103,9 @@
       "name": "support/kb-search",
       "title": "Knowledge base search",
       "category": "Plugin",
-      "checkpointStatus": "In progress",
-      "nextClassification": "Reviewed against live Notes and current canonical specification; Resolve F1 default authority; actual configured search provider and accessible category/results/pagination. Provider indexing repair only to the extent required by this block; RAG campaign is separate.",
-      "classification": "reproduced defect",
+      "checkpointStatus": "Verified",
+      "nextClassification": "reuse valid evidence",
+      "classification": "accepted/reusable evidence",
       "source": "blocks/support/kb-search/block.json",
       "requirements": "placeholder (text), category (reference)",
       "evidenceReferences": [
@@ -3077,9 +3114,10 @@
         "output/kb-search-jobs-20260911.",
         "output/kb-search-security-20260911.",
         "output/management-expiry-20260911.",
-        "ConvexPress-Admin/audits/2026-09-04/plugin-defaults-20260929.md"
+        "ConvexPress-Admin/audits/2026-09-04/plugin-defaults-20260929.md",
+        "ConvexPress-Admin/audits/2026-09-04/support-content-20260929.md"
       ],
-      "remainingReview": "F1 defaults parity accepted; actual configured search provider and accessible category/results/pagination. Provider indexing repair only to the extent required by this block; RAG campaign is separate.",
+      "remainingReview": "Block-specific acceptance complete; retain evidence and recheck only affected shared dependencies. Full delivery and integration gates remain separate.",
       "sharedDependencies": [
         "F1 plugin default authority",
         "E19 durable editor drafts (editor-wide, not a per-block reimplementation)"
@@ -3099,18 +3137,19 @@
       "name": "support/ticket-cta",
       "title": "Ticket CTA",
       "category": "Plugin",
-      "checkpointStatus": "In progress",
-      "nextClassification": "Reviewed against live Notes and current canonical specification; Resolve F1 default authority; real customer sign-in and owned ticket destination/submission, denied/signed-out behavior and final pack rendering.",
-      "classification": "reproduced defect",
+      "checkpointStatus": "Verified",
+      "nextClassification": "reuse valid evidence",
+      "classification": "accepted/reusable evidence",
       "source": "blocks/support/ticket-cta/block.json",
       "requirements": "title (text), body (text)",
       "evidenceReferences": [
         "output/block-library-review-20260915/coverage-review.json.",
         "output/support-blocks-20260911",
         "ConvexPress-Admin/audits/2026-09-04/search-library-prose-20260928.md",
-        "ConvexPress-Admin/audits/2026-09-04/plugin-defaults-20260929.md"
+        "ConvexPress-Admin/audits/2026-09-04/plugin-defaults-20260929.md",
+        "ConvexPress-Admin/audits/2026-09-04/support-content-20260929.md"
       ],
-      "remainingReview": "F1 defaults parity accepted; real customer sign-in and owned ticket destination/submission, denied/signed-out behavior and final pack rendering.",
+      "remainingReview": "Block-specific acceptance complete; retain evidence and recheck only affected shared dependencies. Full delivery and integration gates remain separate.",
       "sharedDependencies": [
         "F1 plugin default authority",
         "E19 durable editor drafts (editor-wide, not a per-block reimplementation)"
@@ -3245,18 +3284,19 @@
       "name": "core/custom-html",
       "title": "Custom HTML",
       "category": "Site",
-      "checkpointStatus": "In progress",
-      "nextClassification": "Reviewed against live Notes and current canonical specification; Native sanitized markup/save/recovery, script/event/style refusal and retained safe structure, links, keyboard and template containment.",
-      "classification": "missing evidence",
+      "checkpointStatus": "Verified",
+      "nextClassification": "reuse valid evidence",
+      "classification": "accepted/reusable evidence",
       "source": "blocks/core/custom-html/block.json",
       "requirements": "html (text)",
       "evidenceReferences": [
         "canonical-utility74-renderer-outcome.md",
         "output/block-demo/browser-results-utility74-verified",
         "output/block-library-review-20260915/coverage-review.json.",
-        "ConvexPress-Admin/audits/2026-09-04/search-presentation-prose-20260928.md"
+        "ConvexPress-Admin/audits/2026-09-04/search-presentation-prose-20260928.md",
+        "ConvexPress-Admin/audits/2026-09-04/text-download-20260929.md"
       ],
-      "remainingReview": "Native sanitized markup/save/recovery, script/event/style refusal and retained safe structure, links, keyboard and template containment.",
+      "remainingReview": "Block-specific acceptance complete; retain evidence and recheck only affected shared dependencies. Full delivery and integration gates remain separate.",
       "deliveryTask": 2,
       "acceptanceBatch": "safe-utilities",
       "reviewedAtCommit": "d8a0ea2c",
@@ -3455,9 +3495,9 @@
       "name": "business/opening-hours",
       "title": "Opening hours",
       "category": "Site",
-      "checkpointStatus": "In progress",
-      "nextClassification": "Reviewed against live Notes and current canonical specification; Native timezone/week/exceptions/contact link, valid/invalid boundary values, closed/overnight/date exceptions and all-pack readable output.",
-      "classification": "missing evidence",
+      "checkpointStatus": "Verified",
+      "nextClassification": "reuse valid evidence",
+      "classification": "accepted/reusable evidence",
       "source": "blocks/business/opening-hours/block.json",
       "requirements": "timezone (text), week (repeater), exceptions (repeater), contactLink (link)",
       "evidenceReferences": [
@@ -3465,9 +3505,10 @@
         "output/block-demo/browser-results-media42-verified.",
         "output/block-demo/browser-results-responsive34-verified.",
         "output/block-library-review-20260915/coverage-review.json.",
-        "ConvexPress-Admin/audits/2026-09-04/search-library-prose-20260928.md"
+        "ConvexPress-Admin/audits/2026-09-04/search-library-prose-20260928.md",
+        "ConvexPress-Admin/audits/2026-09-04/business-content-20260929.md"
       ],
-      "remainingReview": "Native timezone/week/exceptions/contact link, valid/invalid boundary values, closed/overnight/date exceptions and all-pack readable output.",
+      "remainingReview": "Block-specific acceptance complete; retain evidence and recheck only affected shared dependencies. Full delivery and integration gates remain separate.",
       "deliveryTask": 2,
       "acceptanceBatch": "business",
       "reviewedAtCommit": "d8a0ea2c",
@@ -3485,9 +3526,9 @@
       "name": "business/locations",
       "title": "Business locations",
       "category": "Site",
-      "checkpointStatus": "In progress",
-      "nextClassification": "Reviewed against live Notes and current canonical specification; Native repeater order, media/links/address variations, real destination actions and empty/long/narrow states.",
-      "classification": "missing evidence",
+      "checkpointStatus": "Verified",
+      "nextClassification": "reuse valid evidence",
+      "classification": "accepted/reusable evidence",
       "source": "blocks/business/locations/block.json",
       "requirements": "locations (repeater)",
       "evidenceReferences": [
@@ -3495,9 +3536,10 @@
         "output/block-demo/browser-results-media42-verified.",
         "output/block-demo/browser-results-responsive34-verified.",
         "output/block-library-review-20260915/coverage-review.json.",
-        "ConvexPress-Admin/audits/2026-09-04/search-library-prose-20260928.md"
+        "ConvexPress-Admin/audits/2026-09-04/search-library-prose-20260928.md",
+        "ConvexPress-Admin/audits/2026-09-04/business-content-20260929.md"
       ],
-      "remainingReview": "Native repeater order, media/links/address variations, real destination actions and empty/long/narrow states.",
+      "remainingReview": "Block-specific acceptance complete; retain evidence and recheck only affected shared dependencies. Full delivery and integration gates remain separate.",
       "deliveryTask": 2,
       "acceptanceBatch": "business",
       "reviewedAtCommit": "d8a0ea2c",
@@ -3512,18 +3554,19 @@
       "name": "business/service-list",
       "title": "Services and rates",
       "category": "Marketing",
-      "checkpointStatus": "In progress",
-      "nextClassification": "Reviewed against live Notes and current canonical specification; Native services and order, omitted/long descriptions/price/actions, safe destinations and final pack treatments.",
-      "classification": "missing evidence",
+      "checkpointStatus": "Verified",
+      "nextClassification": "reuse valid evidence",
+      "classification": "accepted/reusable evidence",
       "source": "blocks/business/service-list/block.json",
       "requirements": "services (repeater)",
       "evidenceReferences": [
         "output/block-demo/browser-results-content50-verified.",
         "output/block-demo/browser-results-media42-verified.",
         "output/block-demo/browser-results-responsive34-verified.",
-        "output/block-library-review-20260915/coverage-review.json."
+        "output/block-library-review-20260915/coverage-review.json.",
+        "ConvexPress-Admin/audits/2026-09-04/business-content-20260929.md"
       ],
-      "remainingReview": "Native services and order, omitted/long descriptions/price/actions, safe destinations and final pack treatments.",
+      "remainingReview": "Block-specific acceptance complete; retain evidence and recheck only affected shared dependencies. Full delivery and integration gates remain separate.",
       "deliveryTask": 2,
       "acceptanceBatch": "business",
       "reviewedAtCommit": "d8a0ea2c",
@@ -3538,18 +3581,19 @@
       "name": "business/menu",
       "title": "Food and drink menu",
       "category": "Site",
-      "checkpointStatus": "In progress",
-      "nextClassification": "Reviewed against live Notes and current canonical specification; Native nested sections/items and prices, reorder/recovery, dietary/optional/long variants and final pack readability.",
-      "classification": "missing evidence",
+      "checkpointStatus": "Verified",
+      "nextClassification": "reuse valid evidence",
+      "classification": "accepted/reusable evidence",
       "source": "blocks/business/menu/block.json",
       "requirements": "sections (repeater)",
       "evidenceReferences": [
         "output/block-demo/browser-results-content50-verified.",
         "output/block-demo/browser-results-media42-verified.",
         "output/block-demo/browser-results-responsive34-verified.",
-        "output/block-library-review-20260915/coverage-review.json."
+        "output/block-library-review-20260915/coverage-review.json.",
+        "ConvexPress-Admin/audits/2026-09-04/business-content-20260929.md"
       ],
-      "remainingReview": "Native nested sections/items and prices, reorder/recovery, dietary/optional/long variants and final pack readability.",
+      "remainingReview": "Block-specific acceptance complete; retain evidence and recheck only affected shared dependencies. Full delivery and integration gates remain separate.",
       "deliveryTask": 2,
       "acceptanceBatch": "business",
       "reviewedAtCommit": "d8a0ea2c",

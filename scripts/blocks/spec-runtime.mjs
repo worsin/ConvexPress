@@ -47,7 +47,7 @@ export function createBlockSpecCompiler(z) {
   ]);
   const constraints = z.array(constraintSchema).max(20).optional();
   const variants = [
-    z.object({ ...common, type: z.literal("text"), min: size.optional(), max: size.optional(), multiline: z.literal(true).optional(), authoringNonblank: z.literal(true).optional(), authoringWebUrl: z.literal(true).optional(), format: z.enum(["timezone", "anchor", "resource-id"]).optional(), domId: z.literal(true).optional() }).strict(),
+    z.object({ ...common, type: z.literal("text"), min: size.optional(), max: size.optional(), multiline: z.literal(true).optional(), authoringNonblank: z.literal(true).optional(), authoringWebUrl: z.literal(true).optional(), authoringSafeLink: z.literal(true).optional(), format: z.enum(["timezone", "anchor", "resource-id"]).optional(), domId: z.literal(true).optional() }).strict(),
     z.object({ ...common, type: z.literal("richtext"), max: size.optional(), inline: z.boolean().optional() }).strict(),
     z.object({ ...common, type: z.literal("number"), integer: z.boolean().optional(), min: z.number().optional(), max: z.number().optional() }).strict(),
     z.object({ ...common, type: z.literal("select"), options: z.array(z.union([z.string().min(1).max(100), z.number()])).min(1).max(100) }).strict(),
@@ -278,6 +278,7 @@ export function authoringFieldRules(fields, parent = []) {
   const result = [];
   function field(item, path) {
     if (item.type === "icon" && item.optionsMode === "authoring") result.push({ path, kind: "icon", options: item.options });
+    if (item.type === "text" && item.authoringSafeLink) result.push({ path, kind: "safe-link" });
     if (item.type === "text" && item.authoringWebUrl) result.push({ path, kind: "web-url" });
     if (item.type === "text" && item.authoringNonblank) result.push({ path, kind: "nonblank" });
     if (item.authoringConstraints?.length) result.push({ path: item.type === "repeater" ? [...path, "*"] : path, kind: "constraints", constraints: item.authoringConstraints });
@@ -301,6 +302,10 @@ export function validateAuthoringFields(z, attrs, choices = []) {
         if (choice.kind === "constraints") {
           const result = constrainObject(z.unknown(), choice.constraints).safeParse(value);
           if (!result.success) issues.push(...result.error.issues.map(issue => ({ ...issue, path: [...path, ...issue.path] })));
+        }
+        if (choice.kind === "safe-link" && value !== "") {
+          const checked = safeLinkSchema(z).safeParse(value);
+          if (!checked.success) issues.push({ code: "custom", path, message: checked.error.issues[0].message });
         }
         if (choice.kind === "web-url" && value !== "") {
           let valid = false;

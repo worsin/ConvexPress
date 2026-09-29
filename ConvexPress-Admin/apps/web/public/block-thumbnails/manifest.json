@@ -268,8 +268,9 @@
       "core/carousel": {
         "src": "/block-thumbnails/aster-house/core--carousel.jpg",
         "example": 1,
-        "sha256": "1f4f926c2cceb5d73f14cc53b3c23b11c86e4409aa7fa3d14d9529d8869a162b",
-        "bytes": 34942
+        "sha256": "51d26e3461f0094679f107f88c47a42e4ddad0c0e00cba1d4c642e58687e6aae",
+        "bytes": 25897,
+        "capturedAt": "2026-09-29T09:21:42.667Z"
       },
       "core/child-pages": {
         "src": "/block-thumbnails/aster-house/core--child-pages.jpg",
@@ -1123,8 +1124,9 @@
       "core/carousel": {
         "src": "/block-thumbnails/core/core--carousel.jpg",
         "example": 1,
-        "sha256": "b8e494dae17bcfa46d35ccf71e0002ae66ddd36a16a48c0cfd70c3c31bad4ae6",
-        "bytes": 36975
+        "sha256": "4388b80dc95522fd3a8f63fb7e8ac804c8290d36184ff0e64c18360d291a2fa0",
+        "bytes": 27722,
+        "capturedAt": "2026-09-29T09:21:40.928Z"
       },
       "core/child-pages": {
         "src": "/block-thumbnails/core/core--child-pages.jpg",
@@ -2018,9 +2020,9 @@
       "core/carousel": {
         "src": "/block-thumbnails/depot/core--carousel.jpg",
         "example": 1,
-        "sha256": "04af4e0f366962a0b7770df95b6cce6ad40148d2e68aafbc2cefff898cad0635",
-        "bytes": 33814,
-        "capturedAt": "2026-09-21T11:57:17.304Z"
+        "sha256": "0a620494c137a7800b891ec99a073869000946d8bf2b20f38a41de86605c1460",
+        "bytes": 48817,
+        "capturedAt": "2026-09-29T09:21:42.078Z"
       },
       "core/child-pages": {
         "src": "/block-thumbnails/depot/core--child-pages.jpg",
@@ -2939,8 +2941,9 @@
       "core/carousel": {
         "src": "/block-thumbnails/journal/core--carousel.jpg",
         "example": 1,
-        "sha256": "5873b40073942b788b89af964f1d92494aff450bca8638beeaea0ea6cfcac551",
-        "bytes": 29216
+        "sha256": "745065ff06c14fc50ab2b54917f234d97674db9414c6e5d186bc5001231a740a",
+        "bytes": 43626,
+        "capturedAt": "2026-09-29T09:21:41.095Z"
       },
       "core/child-pages": {
         "src": "/block-thumbnails/journal/core--child-pages.jpg",

@@ -524,6 +524,16 @@ const authoringActions: Readonly<Record<string, readonly AuthoringAction[]>> = {
 }
 ;
 const fieldRules: Readonly<Record<string, readonly AuthoringFieldRule[]>> = {
+  "blocks/customer-showcase": [
+    {
+      "kind": "safe-link",
+      "path": [
+        "items",
+        "*",
+        "url"
+      ]
+    }
+  ],
   "blocks/social-share": [
     {
       "kind": "web-url",

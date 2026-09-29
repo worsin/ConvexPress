@@ -142,7 +142,8 @@ export const primitiveSchemas = {
 	Quote: z.strictObject({
 		quote: text,
 		attribution: label.optional(),
-		source: label.optional(),
+		// A source may combine a role and company; it is longer than a short label.
+		source: z.string().min(1).max(500).optional(),
 		href: href.optional(),
 	}),
 	List: z.strictObject({

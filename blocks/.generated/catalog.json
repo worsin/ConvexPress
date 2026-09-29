@@ -259,7 +259,9 @@
             "type": "text"
           },
           {
+            "authoringSafeLink": true,
             "default": "",
+            "description": "An HTTP(S), site-relative, anchor, email or telephone destination; leave empty for no link.",
             "id": "url",
             "max": 500,
             "type": "text"

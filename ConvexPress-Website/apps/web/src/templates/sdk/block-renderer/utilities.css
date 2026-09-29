@@ -93,6 +93,9 @@
 .cp-library-carousel [hidden] {
 	display: none;
 }
+.cp-library-carousel > .cp-library-utility-control {
+	margin-block-end: 1.5rem;
+}
 .cp-library-carousel-controls {
 	display: flex;
 	align-items: center;

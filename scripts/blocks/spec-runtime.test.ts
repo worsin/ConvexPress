@@ -369,3 +369,25 @@ test("write-only web URL validation retains full nested paths and checks default
   expect(()=>runtime.parseBlockSpec({...original,fields:[{...field,default:"bad"}],searchText:[],preview:"URL example",examples:[{}]})).toThrow("complete HTTP");
   expect(()=>runtime.parseBlockSpec({...original,fields:[field],searchText:[],preview:"URL example",examples:[{url:"/bad"}]})).toThrow("complete HTTP");
 });
+
+test("Showcase new links follow the primitive policy while historical text remains readable", () => {
+  for(const url of ['javascript:alert(1)','//untrusted.test','https://example.test/with space','data:text/html,hello','broken']) {
+    const attrs={items:[{url}]};
+    expect(blockSchemas['blocks/customer-showcase'].parse(attrs).items[0].url).toBe(url);
+    expect(()=>validateBlockAuthoringAttrs('blocks/customer-showcase',attrs)).toThrow();
+  }
+  for(const url of ['', '/projects/clay?view=all#notes','#notes','https://example.test/project','mailto:studio@example.test','tel:+18005550100']) {
+    expect(validateBlockAuthoringAttrs('blocks/customer-showcase',{items:[{url}]}).items[0].url).toBe(url);
+  }
+});
+
+test("write-only safe links validate nested paths, defaults and examples without rewriting history", () => {
+  const field={id:'url',type:'text',authoringSafeLink:true,nullable:true};
+  const base={...tabbedSpec,fields:[{id:'items',type:'repeater',fields:[field]}],authoringActions:[],searchText:[],preview:'',examples:[{}]};
+  const spec=runtime.parseBlockSpec(base),schema=runtime.attrsSchema(spec.fields),rules=authoringFieldRules(spec.fields);
+  const historical=schema.parse({items:[{url:null},{url:'javascript:alert(1)'}]});
+  try{validateAuthoringFields(z,historical,rules);throw Error('Expected refusal');}catch(e:any){expect(e.issues[0].path).toEqual(['items',1,'url']);}
+  for(const url of [null,'','#notes','/projects','mailto:studio@example.test','tel:+15555555555'])expect(validateAuthoringFields(z,schema.parse({items:[{url}]}),rules).items[0].url).toBe(url);
+  expect(()=>runtime.parseBlockSpec({...base,fields:[{...field,default:'javascript:alert(1)'}]})).toThrow('HTTP(S)');
+  expect(()=>runtime.parseBlockSpec({...base,examples:[{items:[{url:'broken'}]}]})).toThrow('HTTP(S)');
+});

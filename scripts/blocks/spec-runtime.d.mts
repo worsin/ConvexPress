@@ -9,7 +9,7 @@ export type FieldConstraint =
   | { kind: "at-most-one"; fields: string[] };
 export type ReferenceKind = "product" | "productCategory" | "productTag" | "post" | "page" | "category" | "course" | "event" | "eventCategory" | "tag" | "user" | "bundle" | "membershipPlan" | "recipe" | "album" | "syncedBlock" | "mailingList" | "poll" | "instructor" | "kbCategory";
 export type BlockField = CommonField & (
-  | { type: "text"; min?: number; max?: number; multiline?: true; authoringNonblank?: true; authoringWebUrl?: true; format?: "timezone" | "anchor" | "resource-id"; domId?: true }
+  | { type: "text"; min?: number; max?: number; multiline?: true; authoringNonblank?: true; authoringWebUrl?: true; authoringSafeLink?: true; format?: "timezone" | "anchor" | "resource-id"; domId?: true }
   | { type: "richtext"; max?: number; inline?: boolean }
   | { type: "number"; integer?: boolean; min?: number; max?: number }
   | { type: "select"; options: (string | number)[] }
@@ -64,6 +64,6 @@ export function dependencyFields(fields: readonly BlockField[], parent?: string[
 export function anchorFields(fields: readonly BlockField[], parent?: string[]): { path: string[] }[];
 export function searchableFields(fields: readonly BlockField[], paths: readonly (readonly string[] | { path: readonly string[]; format: "prose" })[]): { path: readonly string[]; type: "text" | "richtext" | "prose" }[];
 
-export type AuthoringFieldRule = { path: readonly string[] } & ({ kind: "icon"; options: readonly string[] } | { kind: "nonblank" | "web-url" } | { kind: "constraints"; constraints: readonly FieldConstraint[] });
+export type AuthoringFieldRule = { path: readonly string[] } & ({ kind: "icon"; options: readonly string[] } | { kind: "nonblank" | "web-url" | "safe-link" } | { kind: "constraints"; constraints: readonly FieldConstraint[] });
 export function authoringFieldRules(fields: readonly BlockField[], parent?: string[]): AuthoringFieldRule[];
 export function validateAuthoringFields<T>(zod: typeof z, attrs: T, choices?: readonly AuthoringFieldRule[]): T;

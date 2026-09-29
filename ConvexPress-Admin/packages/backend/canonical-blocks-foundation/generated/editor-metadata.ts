@@ -4,7 +4,7 @@ export const fieldTypes = ["text","richtext","number","select","reference","medi
 export type FieldType = (typeof fieldTypes)[number];
 export interface EditorField {
   id: string; type: FieldType; title?: string; description?: string; required?: boolean; nullable?: boolean; default?: unknown;
-  min?: number; max?: number; integer?: boolean; inline?: boolean; multiline?: true; authoringNonblank?: true; authoringWebUrl?: true; format?: string; domId?: true;
+  min?: number; max?: number; integer?: boolean; inline?: boolean; multiline?: true; authoringNonblank?: true; authoringWebUrl?: true; authoringSafeLink?: true; format?: string; domId?: true;
   options?: readonly (string | number)[]; optionsMode?: "authoring"; of?: string; storage?: string; allowEmpty?: boolean; protocols?: readonly string[];
   fields?: readonly EditorField[]; item?: EditorField; constraints?: readonly unknown[]; authoringConstraints?: readonly unknown[];
 }
@@ -169,7 +169,9 @@ export const editorDefinitions: Record<BlockName, EditorDefinition> = {
             "type": "text"
           },
           {
+            "authoringSafeLink": true,
             "default": "",
+            "description": "An HTTP(S), site-relative, anchor, email or telephone destination; leave empty for no link.",
             "id": "url",
             "max": 500,
             "type": "text"

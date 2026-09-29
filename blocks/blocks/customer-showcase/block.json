@@ -80,6 +80,8 @@
         },
         {
           "id": "url",
+          "authoringSafeLink": true,
+          "description": "An HTTP(S), site-relative, anchor, email or telephone destination; leave empty for no link.",
           "default": "",
           "type": "text",
           "max": 500

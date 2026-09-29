@@ -9,6 +9,10 @@
               "const": true,
               "type": "boolean"
             },
+            "authoringSafeLink": {
+              "const": true,
+              "type": "boolean"
+            },
             "authoringWebUrl": {
               "const": true,
               "type": "boolean"

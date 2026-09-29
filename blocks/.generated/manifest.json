@@ -1,13 +1,13 @@
 {
   "files": {
-    "ai-catalog.ts": "ccf13d885bc7470a192f58dd2c1a46902ff64d2d2ae04452307489f598dff56e",
-    "block-spec.schema.json": "c6696d2f79b25bb1c73fd4ffff07db102bc861cf2c4986e51505632fbc978bbc",
-    "catalog.json": "bbfd507e9f371493e320783232edef41ab69a936a49349f36771477a1a4b075b",
+    "ai-catalog.ts": "8938329872cfa1cb4908a6f658bf68ed8daf09ecfc9c9b0c2257a72e94f94e9b",
+    "block-spec.schema.json": "8d9493e9cfddb1b68eb7b275259b3585bb67f52ed382f7e0ca3b53ca6ea7cb8e",
+    "catalog.json": "8471013003c42fa3700416d62de0d1390e0a9873ab7304a36b097864c307cae3",
     "convex.ts": "a4abad47462f2970833041a03c0b992948487a541670df7e344eedec765e5a42",
     "coverage.json": "c45450354aa5a6be89991fea577997f2c3ab66299669c014a49604957a133c50",
     "dependencies.json": "630cfab651580cedae74f16bb713240bab9fc8508eb4bf895fb58d64173b0749",
-    "editor-metadata.ts": "72b40b191aa6ea485b4c8003449920fdb234e1111f45a37a2d6079da7c84c1c9",
-    "editors.json": "24960e06d991a5cc94a91f4abe214a171ec4c66268314508d6984bd3a8eae08d",
+    "editor-metadata.ts": "f1f7bc28e4603186dee3e3152296df73788c37647aef9e0578c3b098403c6972",
+    "editors.json": "ea14281879ff5c7e6d15f804eab6ca12bf6f5593246da152d8be633e6b0d82a5",
     "field-runtime.d.mts": "9e1d25230a1ff8ec61f818b6004c8927cef3c95502a2d0edb1c28604da3388ce",
     "field-runtime.mjs": "ce6b761fbbcd719779ca9c117948bbef5d50e45eff553904738c4998ed0b2e37",
     "instance-runtime.d.mts": "56a0e4c7115873efc02701e6ded4ff34c2f4e1e28e98a29ec3c45dd963405a14",
@@ -20,10 +20,10 @@
     "promotions.ts": "4548b1fdea34bc5f243b6a7b7473d0ee5e206ad6cf78add4abb9c308f42d00c3",
     "renderer-coverage.ts": "83f31347862364f7943ff6db161ae67d8a6d90e5f9a410bbcc86da30a16f76bf",
     "roles.ts": "ba744ac0a275c3ab8a661b58b55b12738138cbd5b0266ac868c79c7c8b3c62f3",
-    "schemas.ts": "f0ec8869b120468e377d11ce53be51cc0e2574380bce217910b2d2108c75d5ae",
+    "schemas.ts": "be018e430c0834f6dbc6066fd6d22a27b2b551b43300d0cf3d76825fed6c5055",
     "search-text.ts": "2533eacd5a731f5900dc788fb93b2d1c795c6e7adc29669177490d9a2730e188",
-    "spec-runtime.d.mts": "cdb200402ddb3d33e21b34e5009295ee47fac6f21eaec0b97b6dfb623be4ce17",
-    "spec-runtime.mjs": "240afa46c03d621d4aa04be1f3615f774a385bcce366a6a676f7a0a583b4830e",
+    "spec-runtime.d.mts": "b5b77504d0fab42615079e9f49ac192ccb37be72d42c341e42f3cc8a66aae1f2",
+    "spec-runtime.mjs": "0d1052b9140a5c6f0361cd8a26d7e0d933c02858db73bf3022f665ebcc3fd5fa",
     "storage.ts": "b2f5ebbfe01a0797325cf5f71700a05f508a3a46ccf9ddd4eb89b6bcda5df1db",
     "types.ts": "d7dc7f8b23163e082db94f17a47e83f797d278716c614c2b6d9ea2022f48ea32"
   },
@@ -34,7 +34,7 @@
       "source": "blocks/blocks/contact-stack/block.json"
     },
     {
-      "sha256": "bf624ccdc07543e8624c44c987e4341fcf6d656e2b78e6e305d5a44f63d4de59",
+      "sha256": "465f62bdfe215cabe14f54718b3de9ca07115f1b38e421a21f09ee97abec0272",
       "source": "blocks/blocks/customer-showcase/block.json"
     },
     {
