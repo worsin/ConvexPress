@@ -1,13 +1,13 @@
 {
   "plan": "2026-09-28-editor-template-delivery.md",
   "baselineCommit": "d0fee8acceb408fd306a15f3c054322cb73ac8bc",
-  "checkpointSource": "output/forms-customer-20260929/mt-accept-after.json",
+  "checkpointSource": "output/lead-customer-20260929/mt-accept-after.json",
   "checkpointCounts": {
-    "Verified": 116,
-    "In progress": 21
+    "Verified": 117,
+    "In progress": 20
   },
   "goal": "Complete block editor and template delivery plus all demonstrated blockers; defer unrelated whole-app audit campaigns.",
-  "currentTask": "116 Verified/21 In progress. Contact Form and Form Embed accepted with actual customer grant/revocation/natural expiry/recovery, same-draft completion and E60 protected-route hydration repair. Continue Lead account/environment lifecycle and RSVP legitimate provider/original-generated selection; Tasks4\u20138/E18/E22/E28 and model/Vimeo/target-Clerk gates remain open.",
+  "currentTask": "117 Verified/20 In progress. Lead Magnet actual customer isolation, deactivation, cross-backend delivery refusal, real15-minute expiry and fresh retry accepted; E61 repaired. Continue RSVP legitimate verified provider and current original/generated selection using prior native generated evidence without repeating accepted workflows; then remaining Task3 batches. Tasks4\u20138/E18/E22/E28/model/Vimeo/target-Clerk remain open. E22 fresh screenshot mapping progressed; centralized-test evidence mapping still required.",
   "tasks": [
     {
       "id": 1,
@@ -247,7 +247,7 @@
     {
       "id": "E22",
       "classification": "reproduced defect",
-      "status": "Prescribed PNG paths reconciled for116currentlyVerified blocks\u00d74packs:464fresh full BlockDemo specimens, exact name/version/pack and source/image hashes. Full gate now fails core/heading block-local test convention;114of116Verified rows use centralized coverage. Keep open for explicit per-block applicable test/evidence mapping; do not add placeholder tests or weaken gate.",
+      "status": "Prescribed PNG paths reconciled for117Verified blocks\u00d74packs:468fresh full BlockDemo specimens, exact name/version/pack and source/image hashes. Full gate still fails core/heading block-local test convention;115of117Verified rows use centralized coverage. Keep open for explicit per-block applicable test/evidence mapping; do not add placeholder tests or weaken gate.",
       "currentEvidence": "ConvexPress-Admin/audits/2026-09-04/block-evidence-mapping-20260929.md; output/block-evidence-20260929/installed-manifest.json and tracker-gate.log",
       "nextCheck": "Map centralized test ownership to each accepted block with validated path/source identity, then rerun the full tracker gate; retain separate native/live/mobile acceptance evidence."
     },
@@ -608,6 +608,20 @@
         "output/forms-customer-20260929/protected-resume-green.json",
         "output/forms-customer-20260929/protected-form-green.json",
         "output/forms-customer-20260929/cleanup.json"
+      ]
+    },
+    {
+      "id": "E61",
+      "classification": "accepted repair",
+      "initialFinding": "After known15-minute receipt expiry, Back to the form reused its expired request identity and failed instead of creating a fresh copy. Actual original browser reproduces after natural expiry.",
+      "closureBoundary": "Discard only confirmed expired Lead receipt attempts; retain uncertain request identity for idempotent retry and existing opt-out receipt authority.",
+      "status": "Closed: failing-before regression,11lifecycle cases/33assertions, Website types/build/lint; actual second customer natural expiry then one-click fresh lease and exact308-byte download. Four intended delivery records/no subscribers; full cleanup verified.",
+      "evidence": [
+        "ConvexPress-Admin/audits/2026-09-04/lead-customer-20260929.md",
+        "output/lead-customer-20260929/expiry-red.json",
+        "output/lead-customer-20260929/expiry-green.json",
+        "output/lead-customer-20260929/final-delivery-proof.json",
+        "output/lead-customer-20260929/cleanup.json"
       ]
     }
   ],
@@ -2953,9 +2967,9 @@
       "name": "core/lead-magnet",
       "title": "Lead magnet",
       "category": "Forms",
-      "checkpointStatus": "In progress",
-      "nextClassification": "Native selected media/file/list and recovery, real308-byte exact download/consent/opt-out and selected-list withdrawal pass. Remaining account/environment isolation, expiry and retry lifecycle; target Clerk configuration remains E18.",
-      "classification": "missing evidence",
+      "checkpointStatus": "Verified",
+      "nextClassification": "Accepted: native exact selected media/file/list and revision recovery plus24pack/width/state cases; real optional consent/opt-out/withdrawal; current twoClerk-customer isolation, deactivation refusal, target capability refusal, dropped-ack download retry, natural15-minute expiry and first-attempt fresh receipt after E61.",
+      "classification": "accepted",
       "source": "blocks/core/lead-magnet/block.json",
       "requirements": "title (text), body (richtext), media (media), file (media), list (reference)",
       "evidenceReferences": [
@@ -2965,9 +2979,10 @@
         "output/lead-magnet-block-20260915/picker-*.",
         "output/lead-magnet-lifecycle-20260921/",
         "ConvexPress-Admin/audits/2026-09-04/search-library-prose-20260928.md",
-        "ConvexPress-Admin/audits/2026-09-04/forms-acceptance-20260929.md"
+        "ConvexPress-Admin/audits/2026-09-04/forms-acceptance-20260929.md",
+        "ConvexPress-Admin/audits/2026-09-04/lead-customer-20260929.md"
       ],
-      "remainingReview": "Native selected media/file/list and recovery, real308-byte exact download/consent/opt-out and selected-list withdrawal pass. Remaining account/environment isolation, expiry and retry lifecycle; target Clerk configuration remains E18.",
+      "remainingReview": "None for the current block-specific contract. Target Clerk authenticated provisioning remains E18 and is not inferred from public cross-backend capability refusal.",
       "deliveryTask": 3,
       "acceptanceBatch": "forms",
       "reviewedAtCommit": "d8a0ea2c",
@@ -4275,22 +4290,31 @@
     "output/forms-customer-20260929/cleanup.json",
     "output/forms-customer-20260929/mt-accept-verified.json",
     "ConvexPress-Admin/audits/2026-09-04/block-evidence-mapping-20260929.md",
-    "output/block-evidence-20260929/installed-manifest.json"
+    "output/block-evidence-20260929/installed-manifest.json",
+    "ConvexPress-Admin/audits/2026-09-04/lead-customer-20260929.md",
+    "output/lead-customer-20260929/downloads-exact.json",
+    "output/lead-customer-20260929/account-two-isolation.json",
+    "output/lead-customer-20260929/account-revoked.json",
+    "output/lead-customer-20260929/environment-isolation.json",
+    "output/lead-customer-20260929/expiry-red.json",
+    "output/lead-customer-20260929/expiry-green.json",
+    "output/lead-customer-20260929/final-delivery-proof.json",
+    "output/lead-customer-20260929/cleanup.json",
+    "output/lead-customer-20260929/mt-accept-verified.json"
   ],
   "trackerRefresh": {
-    "source": "output/forms-customer-20260929/mt-accept-after.json",
-    "schema": "output/forms-customer-20260929/mt-schema.json",
+    "source": "output/lead-customer-20260929/mt-accept-after.json",
+    "schema": "output/lead-customer-20260929/mt-schema.json",
     "rows": 137,
     "counts": {
-      "Verified": 116,
-      "In progress": 21
+      "Verified": 117,
+      "In progress": 20
     },
     "otherCellsUnchangedFromPreviousRead": true,
     "pendingNotesReconciled": 77,
     "classificationScope": "Block-specific missing gates; historical whole-app audit conditions retained in Notes but not automatic prerequisites.",
     "lastAcceptedNames": [
-      "core/contact-form",
-      "core/form"
+      "core/lead-magnet"
     ],
     "allNotesExact": true
   },

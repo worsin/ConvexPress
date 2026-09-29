@@ -68,6 +68,18 @@ test("old host callbacks stay invalid after an account round trip", () => fixtur
   expect((await result).ok).toBe(false);
   expect(f.calls).toHaveLength(0);
 }));
+test("a known expired receipt starts a fresh request without losing uncertain retry identity", () => fixture(async f => {
+  const receipt = await f.ready();
+  const originalNow = Date.now;
+  Date.now = () => receipt.expiresAt;
+  try {
+    const pending = f.submit();
+    expect(f.calls[1].args.requestId).not.toBe(f.calls[0].args.requestId);
+    expect(f.calls[1].args.secret).not.toBe(f.calls[0].args.secret);
+    await act(async () => f.calls[1].resolve(lease()));
+    expect((await pending).ok).toBe(true);
+  } finally { Date.now = originalNow; }
+}));
 test("unsubscribe acknowledgement is rejected after authority changes", () => fixture(async f => {
   const receipt = await f.ready(); const result = f.capture(host.unsubscribe(receipt));
   user = { ...user, sessionId: "two" }; await f.render(); user = { ...user, sessionId: "one" }; await f.render();

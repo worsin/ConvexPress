@@ -1,3 +1,7 @@
+## September29 Lead Magnet customer lifecycle accepted
+
+Tracker117Verified/20In progress, all137Notes/unrelated cells exact. Two real Clerk customers, cross-account retry refusal, deactivated-account delivery refusal, same-cookie/explicit-proof target refusal and exact308-byte downloads pass. E61 repairs known-expired request reuse: natural15-minute expiry followed by one-click fresh lease succeeds; uncertain retries retain identity.11lifecycle cases/33assertions, Website types/build/lint pass. Owned fixtures/identities cleaned; original42source/28target pages and99queue exact. [Evidence and limits](lead-customer-20260929.md). E22 screenshot mapping progressed separately; centralized-test mapping/Tasks4–8/E18/E28 remain open.
+
 ## September29 Contact Form and Form Embed accepted
 
 Tracker116Verified/21In progress, all137Notes/unrelated cells exact. Actual Clerk customer grant/revocation/natural expiry/recovery, stale write refusal, saved-draft preservation, one-entry completion and sign-out pass. E60 repairs Forms-only anonymous SSR denial recovery after authentication; initial protected HTTP404 remains, customer hydration recovers.8Website tests/types/build pass; prior native/nested/24pack and596backend/eight resume cases reused. Owned fixtures/identities cleaned; original42pages/7forms/settings/99queue exact. [Evidence and limits](forms-customer-20260929.md). Tasks4–8/E18/E22/E28 remain open.

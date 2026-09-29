@@ -45,6 +45,9 @@ export function ProductionLeadMagnetProvider({children,password}:{children:React
   return {live:true,available,submit:async(offer,input)=>{
    const guard=authorize();const email=input.email.trim().toLowerCase(),key=JSON.stringify([offer.digest,email,input.marketingConsent]);
    let attempt=attempts.current.get(key);
+   // Only a confirmed receipt establishes expiry. An uncertain request must
+   // retain its identity so a retry cannot duplicate an accepted operation.
+   if(attempt?.receipt&&attempt.receipt.expiresAt<=Date.now()){attempts.current.delete(key);attempt=undefined;}
    if(!attempt){if(attempts.current.size>=20)throw Error("Please refresh this page before requesting another download.");attempt={requestId:crypto.randomUUID(),secret:Array.from(crypto.getRandomValues(new Uint8Array(32)),byte=>byte.toString(16).padStart(2,"0")).join("")};attempts.current.set(key,attempt);}
    try{
     const result=await submitAction({...input,email,postId:offer.postId,blockId:offer.blockId,offerDigest:offer.digest,...(password!==undefined?{password}:{}),requestId:attempt.requestId,secret:attempt.secret});guard();
