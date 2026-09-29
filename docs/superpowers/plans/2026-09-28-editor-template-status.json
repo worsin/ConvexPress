@@ -247,7 +247,9 @@
     {
       "id": "E22",
       "classification": "reproduced defect",
-      "status": "Current flat tracker gate passes137spec freshness/54compatibility/22transport shapes then fails missing prescribed Aster Paragraph PNG path. Reconcile actual accepted capture identity/source/pack into required evidence mapping in Task6/8; do not replace with thumbnails or infer all Verified rows failed."
+      "status": "Prescribed PNG paths reconciled for116currentlyVerified blocks\u00d74packs:464fresh full BlockDemo specimens, exact name/version/pack and source/image hashes. Full gate now fails core/heading block-local test convention;114of116Verified rows use centralized coverage. Keep open for explicit per-block applicable test/evidence mapping; do not add placeholder tests or weaken gate.",
+      "currentEvidence": "ConvexPress-Admin/audits/2026-09-04/block-evidence-mapping-20260929.md; output/block-evidence-20260929/installed-manifest.json and tracker-gate.log",
+      "nextCheck": "Map centralized test ownership to each accepted block with validated path/source identity, then rerun the full tracker gate; retain separate native/live/mobile acceptance evidence."
     },
     {
       "id": "E23",
@@ -4271,7 +4273,9 @@
     "output/forms-customer-20260929/protected-form-green.json",
     "output/forms-customer-20260929/signed-out.json",
     "output/forms-customer-20260929/cleanup.json",
-    "output/forms-customer-20260929/mt-accept-verified.json"
+    "output/forms-customer-20260929/mt-accept-verified.json",
+    "ConvexPress-Admin/audits/2026-09-04/block-evidence-mapping-20260929.md",
+    "output/block-evidence-20260929/installed-manifest.json"
   ],
   "trackerRefresh": {
     "source": "output/forms-customer-20260929/mt-accept-after.json",
@@ -4317,7 +4321,8 @@
       "settingsEmailAcceptance": "Correction: restoring email.enabled after Forms created12queued settings alerts; Poll template matrix created60more. All72exact operator/event-bound alerts cancelled through registered API with0attempts; original27rows exact,finalqueue99includingcancelledhistory. No configured provider key or delivery. Suppress settings-changed-alert template before future template settings/email restoration, restore last after event completion; email_templates changes are explicitly ignored by settings alert handler. Never claim post-cleanup queue preservation from a pre-restoration sample.",
       "pollRuntime": "Website72085/PTY44566 unchanged; backend unchanged. Poll customer browser closed;2owned Clerk identities deleted/site profiles inactive, private credentials/profile/token files removed,API revoked. Ownedpage deleted,42originalpages/appearance/email/security exact. Deactivation template active value restored after exact events completed; normal timestamp advanced.3votes/2tallies and72cancelled alerts retained. Ownerprocesses preserved."
     },
-    "audit19": "Read/responded. F26 prerequisite visibility useful; exact owner-only/exhaustive claim not established. No acceptance on missing model/provider proof. Corrected core/reviews/E56. Actual signed-in target Clerk provider/provisioning failure now recorded under E18; Recently Viewed remains open. Forms six next, F21 and Tasks4\u20138 retained."
+    "audit19": "Read/responded. F26 prerequisite visibility useful; exact owner-only/exhaustive claim not established. No acceptance on missing model/provider proof. Corrected core/reviews/E56. Actual signed-in target Clerk provider/provisioning failure now recorded under E18; Recently Viewed remains open. Forms six next, F21 and Tasks4\u20138 retained.",
+    "audit21": "Read/responded. Snapshot predates64feddce116/21; E60 auth hydration distinct from E59 confirmation. Narrow public-read lens retained. Targeted notification templates suppressed before customer creation; final async queue proof required. F21/Tasks4\u20138/E18/E22/E28 remain open."
   },
   "sessionBaseCommit": "9824d9605e50c4b0ebd711c13715b506f8ef5bd3"
 }
