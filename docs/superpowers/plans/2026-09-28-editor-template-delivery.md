@@ -112,13 +112,15 @@ Generated files are output, not edit surfaces. Keep data in the site backend; pa
 
 **Consumes:** Task 1 remaining map and existing canonical APIs. **Produces:** complete non-provider block behavior and batched accepted content.
 
-- [ ] Group the pending Text/Layout/Media/Openers/Marketing/Site utility blocks by shared implementation. Reuse accepted structural, hero, CTA, table and media evidence.
-- [ ] Before edits, compare every required field/style/action with the actual renderer and generated editor. Include optional absent values, maximum meaningful content, nested widths and safe link labels.
-- [ ] Write failures for reproduced gaps, repair the shared cause, preserve stored versions and historical values. A version change requires a wired converter and recovery test.
-- [ ] Add several related blocks to one real native-authored page, save/reopen once, edit/reorder relevant nodes, restore the exact prior tree and publish once. Readback must prove every included block's values survived.
-- [ ] Exercise each block's distinct public interaction and review every pack's presentation. Batch screenshots and the shared deployment/cleanup; do not skip per-block behavior.
-- [ ] For every Task 2/3 accepted row, capture page errors and console errors, including hydration warnings, in native preview and public interaction checks. Visually correct output with an unresolved product error is not passing evidence; classify unrelated harness/environment diagnostics explicitly.
-- [ ] Update only rows whose missing requirements are closed. Others retain precise remaining notes.
+- [x] Group the pending Text/Layout/Media/Openers/Marketing/Site utility blocks by shared implementation. Reuse accepted structural, hero, CTA, table and media evidence.
+- [x] Before edits, compare every required field/style/action with the actual renderer and generated editor. Include optional absent values, maximum meaningful content, nested widths and safe link labels.
+- [x] Write failures for reproduced gaps, repair the shared cause, preserve stored versions and historical values. A version change requires a wired converter and recovery test.
+- [x] Add several related blocks to one real native-authored page, save/reopen once, edit/reorder relevant nodes, restore the exact prior tree and publish once. Readback must prove every included block's values survived.
+- [x] Exercise each block's distinct public interaction and review every pack's presentation. Batch screenshots and the shared deployment/cleanup; do not skip per-block behavior.
+- [x] For every Task 2/3 accepted row, capture page errors and console errors, including hydration warnings, in native preview and public interaction checks. Visually correct output with an unresolved product error is not passing evidence; classify unrelated harness/environment diagnostics explicitly.
+- [x] Update only rows whose missing requirements are closed. Others retain precise remaining notes.
+
+September29 closure: all20 assigned Task2 block rows are Verified on the linked family reports and exact95/42 tracker checkpoint. Separate native all-field reference, migration, Customizer, SDK and final integrated requirements remain in their assigned tasks. Latest family evidence: `grade-gallery-20260929.md`.
 
 ### Task 3 — Finish live-data and action block families
 

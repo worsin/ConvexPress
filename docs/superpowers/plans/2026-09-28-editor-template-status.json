@@ -1,13 +1,13 @@
 {
   "plan": "2026-09-28-editor-template-delivery.md",
   "baselineCommit": "d0fee8acceb408fd306a15f3c054322cb73ac8bc",
-  "checkpointSource": "output/steps-review-20260929/mt-accept-after.json",
+  "checkpointSource": "output/grade-gallery-20260929/mt-accept-after.json",
   "checkpointCounts": {
-    "Verified": 94,
-    "In progress": 43
+    "Verified": 95,
+    "In progress": 42
   },
   "goal": "Complete block editor and template delivery plus all demonstrated blockers; defer unrelated whole-app audit campaigns.",
-  "currentTask": "Steps with Media accepted after bounded motion evidence and E50 initial stylesheet delivery repair.94 Verified/43 In progress; historical304.5ms cause remains unknown. Next Grade Gallery native nested media/field/public acceptance, then remaining data-backed families. Tasks4\u20138 and E18/E22/E28 remain open.",
+  "currentTask": "Grade Gallery accepted;95 Verified/42 In progress. All20 rows assigned to Task2 are Verified; scoped common-block family task complete. Next Task3 catalog family:8 blocks with real selections/current data/cart boundaries.39 Task3 rows,2 migration rows and1 SDK workflow row remain, alongside Tasks4\u20138 and E18/E22/E28.",
   "tasks": [
     {
       "id": 1,
@@ -15,7 +15,8 @@
     },
     {
       "id": 2,
-      "status": "in_progress"
+      "status": "complete",
+      "scope": "All20 assigned common-block rows accepted on accumulated native/public/family evidence. This does not close separate migration, SDK, Customizer or final integrated editor gates."
     },
     {
       "id": 3,
@@ -442,6 +443,18 @@
         "output/steps-review-20260929/initial-style-green.json",
         "output/steps-review-20260929/static-assets.json",
         "output/steps-review-20260929/fallbacks.json"
+      ]
+    },
+    {
+      "id": "E51",
+      "classification": "accepted repair",
+      "initialFinding": "Valid220-character image caption creates2991px page at1440; figure/caption290px wide scrolls2057px.",
+      "closureBoundary": "Wrap complete captions in shared Image primitive without truncation; actual published four-pack desktop/mobile normal and maximum12section/192image documents.",
+      "status": "Closed: isolated CSS intervention proves cause, shared overflow-wrap:anywhere repairs caption.16 final public cases, native exact4\u21926 recovery,316renderer tests/types/build/kit pass. See grade-gallery-20260929.md.",
+      "evidence": [
+        "output/grade-gallery-20260929/caption-overflow-red.json",
+        "output/grade-gallery-20260929/caption-causal.json",
+        "output/grade-gallery-20260929/public-matrix.json"
       ]
     }
   ],
@@ -3441,9 +3454,9 @@
       "name": "blocks/grade-gallery",
       "title": "Grade gallery",
       "category": "Media",
-      "checkpointStatus": "In progress",
-      "nextClassification": "Reviewed against live Notes and current canonical specification; Reuse pack layout polish; native nested groups/media order, real selected images/alt/focal values and no-image/single/multiple narrow states.",
-      "classification": "missing evidence",
+      "checkpointStatus": "Verified",
+      "nextClassification": "Accepted native nested fields/media picker/reorder and exact recovery; final normal/maximum four-pack rendering with E51 complete caption wrapping.",
+      "classification": "accepted/reusable evidence",
       "source": "blocks/blocks/grade-gallery/block.json",
       "requirements": "groups[{label, items[media]}]",
       "evidenceReferences": [
@@ -3451,12 +3464,16 @@
         "canonical-media66-renderer-outcome.md",
         "output/block-demo/browser-results-grade66-polish.",
         "output/block-demo/browser-results-media66",
-        "output/block-library-review-20260915/coverage-review.json."
+        "output/block-library-review-20260915/coverage-review.json.",
+        "ConvexPress-Admin/audits/2026-09-04/grade-gallery-20260929.md",
+        "output/grade-gallery-20260929/native-exact-recovery.json",
+        "output/grade-gallery-20260929/public-matrix.json",
+        "output/grade-gallery-20260929/cleanup.json"
       ],
-      "remainingReview": "Reuse pack layout polish; native nested groups/media order, real selected images/alt/focal values and no-image/single/multiple narrow states.",
+      "remainingReview": "None for block-specific acceptance; final integrated Task8 remains.",
       "deliveryTask": 2,
       "acceptanceBatch": "media-interaction",
-      "reviewedAtCommit": "d8a0ea2c",
+      "reviewedAtCommit": "1ba9ac46",
       "notesSha256": "dc58f3e3275273cc9d5a0ff582ad2ea7842c0a080d7ec79d5171e7224d2a6908",
       "specSha256": "ea23889a968d83590f759271fad35ca46e6a32d2e9856edf67509177e1e62612",
       "rendererSha256": "ca7360a6d4e44ef7970c663a11ca4f1084d9e055b0c5732b484362b61bfd51c1",
@@ -3956,21 +3973,28 @@
     "output/steps-review-20260929/fallbacks.json",
     "output/steps-review-20260929/initial-style-green.json",
     "output/steps-review-20260929/source-provenance.json",
-    "output/steps-review-20260929/cleanup.json"
+    "output/steps-review-20260929/cleanup.json",
+    "ConvexPress-Admin/audits/2026-09-04/grade-gallery-20260929.md",
+    "output/grade-gallery-20260929/native-exact-recovery.json",
+    "output/grade-gallery-20260929/native-final-proof.json",
+    "output/grade-gallery-20260929/public-matrix.json",
+    "output/grade-gallery-20260929/invalid-contracts.json",
+    "output/grade-gallery-20260929/cleanup.json",
+    "output/grade-gallery-20260929/mt-accept-verified.json"
   ],
   "trackerRefresh": {
-    "source": "output/steps-review-20260929/mt-accept-after.json",
-    "schema": "output/steps-review-20260929/mt-schema.json",
+    "source": "output/grade-gallery-20260929/mt-accept-after.json",
+    "schema": "output/grade-gallery-20260929/mt-schema.json",
     "rows": 137,
     "counts": {
-      "Verified": 94,
-      "In progress": 43
+      "Verified": 95,
+      "In progress": 42
     },
     "otherCellsUnchangedFromPreviousRead": true,
     "pendingNotesReconciled": 77,
     "classificationScope": "Block-specific missing gates; historical whole-app audit conditions retained in Notes but not automatic prerequisites.",
     "lastAcceptedNames": [
-      "core/steps-with-media"
+      "blocks/grade-gallery"
     ],
     "allNotesExact": true
   },
@@ -3989,7 +4013,8 @@
       "audit14": "Read/responded. F1 committed e67880ef; four built routes pass including current empty Recipe archive. Normal public getPublic already projected enabled defaults on absent rows, so route-exposure expansion is not established by fallback change. E18/E22/E28 remain assigned; next Recipe Card/Album.",
       "businessNotification": "During business acceptance, a normal Settings Updated toast showed literal {settingsGroup}; dismissed using Close toast. Carry concrete wording observation into Task5 Customizer notification review; not repaired or treated as a broad notifications campaign.",
       "audit15": "Read/responded: F23 remains a narrow public-caller policy lens rather than a filename-based finding or general audit. Support acceptance complete with actual customer isolation.",
-      "audit16": "Read/responded: E45 bounded streaming route accepted; F24 eleven stale block statuses repaired and check:delivery-status now asserts exact per-row/header/readback parity. Current trackerRefresh/latestEvidence metadata refreshed to the Steps checkpoint."
+      "audit16": "Read/responded: E45 bounded streaming route accepted; F24 eleven stale block statuses repaired and check:delivery-status now asserts exact per-row/header/readback parity. Current trackerRefresh/latestEvidence metadata refreshed to the Steps checkpoint.",
+      "gradeRunner": "Owned Website admin origin was accidentally localhost:4105 after Steps rebuild. Native preview correctly refused. Restored exact127.0.0.1:4105 from accepted runtime, reconnect rendered; no product policy weakened. NewownedWebsite56081. Preserve all runtime fields on future restarts."
     }
   },
   "sessionBaseCommit": "9824d9605e50c4b0ebd711c13715b506f8ef5bd3"
