@@ -1,13 +1,13 @@
 {
   "plan": "2026-09-28-editor-template-delivery.md",
   "baselineCommit": "d0fee8acceb408fd306a15f3c054322cb73ac8bc",
-  "checkpointSource": "output/customer-commerce-20260929/mt-accept-after.json",
+  "checkpointSource": "output/forms-acceptance-20260929/mt-accept-after.json",
   "checkpointCounts": {
-    "Verified": 112,
-    "In progress": 25
+    "Verified": 113,
+    "In progress": 24
   },
   "goal": "Complete block editor and template delivery plus all demonstrated blockers; defer unrelated whole-app audit campaigns.",
-  "currentTask": "112 Verified/25 In progress. Next Task3 forms. Recently Viewed guest environment switch passes; signed-in target switch waits on E18 real target Clerk provider/provisioning (No auth provider found; clerk_secret_key_missing). Assistant Band model response and Script Embed Vimeo remain open. Remaining22 Task3 rows,2 Task4 migration rows,1 Task7 SDK row. Tasks4\u20138/E18/E22/E28 remain open.",
+  "currentTask": "113 Verified/24 In progress. Continue five Task3 Forms rows: Contact/Form revoked-expired authority; Lead account/environment lifecycle; Poll actual signed-in policy/revisions; RSVP legitimate verified-provider and exact generated/original selection. Newsletter accepted; native six-block recovery,24-pack/width/state cases and true nested Contact source graph now pass.21 Task3 rows,2 Task4 migration rows,1 Task7 SDK row remain. Tasks4\u20138/E18/E22/E28 and prior model/Vimeo/target-Clerk gates remain open.",
   "tasks": [
     {
       "id": 1,
@@ -556,6 +556,19 @@
         "ConvexPress-Admin/audits/2026-09-04/customer-commerce-20260929.md",
         "output/customer-commerce-20260929/overflow-cause.json",
         "output/customer-commerce-20260929/matrix.json"
+      ]
+    },
+    {
+      "id": "E57",
+      "classification": "accepted repair",
+      "initialFinding": "Valid unbroken Contact labels widen1440px page to1612px; Contact and Newsletter submit labels widen390px page to482px.",
+      "closureBoundary": "Prove minimal wrapping and minimum-size causes, preserve full text/action and check normal/maximum/minimum at all four packs and both widths.",
+      "status": "Closed: isolated CSS interventions prove both causes. Shared label/button wrapping and newsletter minimum-size repair pass24built Website cases plus actual eight-pack/width validation/retry flows.",
+      "evidence": [
+        "ConvexPress-Admin/audits/2026-09-04/forms-acceptance-20260929.md",
+        "output/forms-acceptance-20260929/contact-overflow-minimal-probe.json",
+        "output/forms-acceptance-20260929/forms-mobile-final-causal-probe.json",
+        "output/forms-acceptance-20260929/matrix.json"
       ]
     }
   ],
@@ -2726,7 +2739,7 @@
       "title": "Contact form",
       "category": "Forms",
       "checkpointStatus": "In progress",
-      "nextClassification": "Reviewed against live Notes and current canonical specification; Actual field/question authoring and source identity, submit/validation/deduplication, revoked/expired authority and nested reusable graph recovery; no outbound email.",
+      "nextClassification": "Nested source-to-source update/withdrawal/revision restoration and stable form/field IDs now pass. Remaining current revoked/expired caller-authority and stale submission evidence.",
       "classification": "missing evidence",
       "source": "blocks/core/contact-form/block.json",
       "requirements": "title, fields[], submitLabel, successText",
@@ -2736,9 +2749,10 @@
         "output/contact-form-20260906/runtime-receipt.json.",
         "output/synced-forms-live-20260915.",
         "output/synced-forms-recovery-20260915.",
-        "ConvexPress-Admin/audits/2026-09-04/search-library-prose-20260928.md"
+        "ConvexPress-Admin/audits/2026-09-04/search-library-prose-20260928.md",
+        "ConvexPress-Admin/audits/2026-09-04/forms-acceptance-20260929.md"
       ],
-      "remainingReview": "Actual field/question authoring and source identity, submit/validation/deduplication, revoked/expired authority and nested reusable graph recovery; no outbound email.",
+      "remainingReview": "Nested source-to-source update/withdrawal/revision restoration and stable form/field IDs now pass. Remaining current revoked/expired caller-authority and stale submission evidence.",
       "deliveryTask": 3,
       "acceptanceBatch": "forms",
       "reviewedAtCommit": "d8a0ea2c",
@@ -2759,9 +2773,9 @@
       "name": "core/newsletter-signup",
       "title": "Newsletter signup",
       "category": "Forms",
-      "checkpointStatus": "In progress",
-      "nextClassification": "Reviewed against live Notes and current canonical specification; Reuse SSR-readiness/deduplicated signup; native list/title/body/button variants and actual all-pack success/error/retry with synthetic addresses and no email.",
-      "classification": "missing evidence",
+      "checkpointStatus": "Verified",
+      "nextClassification": "Accepted current six canonical fields, native save/reopen/exact revision4\u21926 recovery/actual Website preview; four-pack normal/maximum/minimum and live validation/retry/deduplicated signup/focused success; unchanged email queue. Historical list/variant shorthand is not a current field.",
+      "classification": "accepted",
       "source": "blocks/core/newsletter-signup/block.json",
       "requirements": "title, body, submitLabel, list",
       "evidenceReferences": [
@@ -2770,9 +2784,10 @@
         "output/block-demo/browser-results-conversion83",
         "output/block-library-review-20260915/coverage-review.json.",
         "output/newsletter-host-20260906/runtime-receipt.json.",
-        "ConvexPress-Admin/audits/2026-09-04/search-library-prose-20260928.md"
+        "ConvexPress-Admin/audits/2026-09-04/search-library-prose-20260928.md",
+        "ConvexPress-Admin/audits/2026-09-04/forms-acceptance-20260929.md"
       ],
-      "remainingReview": "Reuse SSR-readiness/deduplicated signup; native list/title/body/button variants and actual all-pack success/error/retry with synthetic addresses and no email.",
+      "remainingReview": "None for this block-specific gate. One synthetic newsletter subscriber remains explicitly disclosed; broad delivery/SDK/migration gates remain separate.",
       "deliveryTask": 3,
       "acceptanceBatch": "forms",
       "reviewedAtCommit": "d8a0ea2c",
@@ -2866,7 +2881,7 @@
       "title": "Form embed",
       "category": "Forms",
       "checkpointStatus": "In progress",
-      "nextClassification": "Reviewed against live Notes and current canonical specification; Reuse Journal/Depot owned treatments; native selected form/title and real multi-step submit/validation, denied/revoked/unavailable response and narrow live layout.",
+      "nextClassification": "Native resource/title and exact recovery, real multi-step answers/back-forward/submit, live unpublication and24pack/width/state cases pass. Remaining current revoked/expired authority and reference/access lifecycle closure.",
       "classification": "missing evidence",
       "source": "blocks/core/form/block.json",
       "requirements": "form (form), title (text)",
@@ -2876,9 +2891,10 @@
         "output/form-counts-20260906/runtime-receipt.json.",
         "output/form-embed-20260906/runtime-receipt.json",
         "output/pack-owned-treatments-20260915.",
-        "ConvexPress-Admin/audits/2026-09-04/search-conditional-prose-20260928.md"
+        "ConvexPress-Admin/audits/2026-09-04/search-conditional-prose-20260928.md",
+        "ConvexPress-Admin/audits/2026-09-04/forms-acceptance-20260929.md"
       ],
-      "remainingReview": "Reuse Journal/Depot owned treatments; native selected form/title and real multi-step submit/validation, denied/revoked/unavailable response and narrow live layout.",
+      "remainingReview": "Native resource/title and exact recovery, real multi-step answers/back-forward/submit, live unpublication and24pack/width/state cases pass. Remaining current revoked/expired authority and reference/access lifecycle closure.",
       "deliveryTask": 3,
       "acceptanceBatch": "forms",
       "reviewedAtCommit": "d8a0ea2c",
@@ -2895,7 +2911,7 @@
       "title": "Lead magnet",
       "category": "Forms",
       "checkpointStatus": "In progress",
-      "nextClassification": "Reviewed against live Notes and current canonical specification; Reuse stale-callback and fixture-file proof; native media/file/list selection, real scoped signup/download/opt-out/retry and account/environment isolation without email.",
+      "nextClassification": "Native selected media/file/list and recovery, real308-byte exact download/consent/opt-out and selected-list withdrawal pass. Remaining account/environment isolation, expiry and retry lifecycle; target Clerk configuration remains E18.",
       "classification": "missing evidence",
       "source": "blocks/core/lead-magnet/block.json",
       "requirements": "title (text), body (richtext), media (media), file (media), list (reference)",
@@ -2905,9 +2921,10 @@
         "output/lead-magnet-block-20260915.",
         "output/lead-magnet-block-20260915/picker-*.",
         "output/lead-magnet-lifecycle-20260921/",
-        "ConvexPress-Admin/audits/2026-09-04/search-library-prose-20260928.md"
+        "ConvexPress-Admin/audits/2026-09-04/search-library-prose-20260928.md",
+        "ConvexPress-Admin/audits/2026-09-04/forms-acceptance-20260929.md"
       ],
-      "remainingReview": "Reuse stale-callback and fixture-file proof; native media/file/list selection, real scoped signup/download/opt-out/retry and account/environment isolation without email.",
+      "remainingReview": "Native selected media/file/list and recovery, real308-byte exact download/consent/opt-out and selected-list withdrawal pass. Remaining account/environment isolation, expiry and retry lifecycle; target Clerk configuration remains E18.",
       "deliveryTask": 3,
       "acceptanceBatch": "forms",
       "reviewedAtCommit": "d8a0ea2c",
@@ -2927,7 +2944,7 @@
       "title": "Poll",
       "category": "Forms",
       "checkpointStatus": "In progress",
-      "nextClassification": "Reviewed against live Notes and current canonical specification; Native stable option keys/question/results/policy, actual visitor and signed-in vote rules, repeat vote/results/revision behavior and all-pack keyboard states.",
+      "nextClassification": "Native all fields/policy controls, real keyboard guest vote/double-click dedupe/reload repeat guard and pack cases pass. Remaining actual signed-in customer policy and option/question revision behavior.",
       "classification": "missing evidence",
       "source": "blocks/core/poll/block.json",
       "requirements": "question (text), options (repeater with stable key and label), showResults (boolean), responsePolicy (visitor or signedIn)",
@@ -2936,9 +2953,10 @@
         "output/poll-live-20260906/checks.json.",
         "output/poll-motion-20260906/checks.json",
         "output/poll-provider-20260906/checks.json",
-        "output/poll-security-20260906"
+        "output/poll-security-20260906",
+        "ConvexPress-Admin/audits/2026-09-04/forms-acceptance-20260929.md"
       ],
-      "remainingReview": "Native stable option keys/question/results/policy, actual visitor and signed-in vote rules, repeat vote/results/revision behavior and all-pack keyboard states.",
+      "remainingReview": "Native all fields/policy controls, real keyboard guest vote/double-click dedupe/reload repeat guard and pack cases pass. Remaining actual signed-in customer policy and option/question revision behavior.",
       "deliveryTask": 3,
       "acceptanceBatch": "forms",
       "reviewedAtCommit": "d8a0ea2c",
@@ -2957,7 +2975,7 @@
       "title": "Event RSVP",
       "category": "Forms",
       "checkpointStatus": "In progress",
-      "nextClassification": "Reviewed against live Notes and current canonical specification; Reuse independent generated-plugin RSVP proof; final all-pack state review and legitimate verified-provider/CAPTCHA path, access withdrawal and original/generated event selection.",
+      "nextClassification": "Native selected original event and recovery, real guest register/cancel and selected-event withdrawal under unchanged no-CAPTCHA baseline pass. Remaining legitimate verified-provider/CAPTCHA path and exact original/generated selection gate.",
       "classification": "missing evidence",
       "source": "blocks/core/event-rsvp/block.json",
       "requirements": "event (reference)",
@@ -2965,9 +2983,10 @@
         "output/block-library-review-20260915/coverage-review.json.",
         "output/event-rsvp-20260914.",
         "output/event-rsvp-20260914/live-restore-checks.json",
-        "output/extension-rsvp-20260920/acceptance-review.md."
+        "output/extension-rsvp-20260920/acceptance-review.md.",
+        "ConvexPress-Admin/audits/2026-09-04/forms-acceptance-20260929.md"
       ],
-      "remainingReview": "Reuse independent generated-plugin RSVP proof; final all-pack state review and legitimate verified-provider/CAPTCHA path, access withdrawal and original/generated event selection.",
+      "remainingReview": "Native selected original event and recovery, real guest register/cancel and selected-event withdrawal under unchanged no-CAPTCHA baseline pass. Remaining legitimate verified-provider/CAPTCHA path and exact original/generated selection gate.",
       "deliveryTask": 3,
       "acceptanceBatch": "forms",
       "reviewedAtCommit": "d8a0ea2c",
@@ -4181,31 +4200,35 @@
     "output/recent-site-switch-20260929/cleanup.json",
     "output/recent-auth-switch-20260929/target-auth-console.json",
     "output/recent-auth-switch-20260929/target-provisioning.json",
-    "output/recent-auth-switch-20260929/cleanup.json"
+    "output/recent-auth-switch-20260929/cleanup.json",
+    "ConvexPress-Admin/audits/2026-09-04/forms-acceptance-20260929.md",
+    "output/forms-acceptance-20260929/matrix.json",
+    "output/forms-acceptance-20260929/native-exact-recovery.json",
+    "output/forms-acceptance-20260929/nested-restored-proof.json",
+    "output/forms-acceptance-20260929/nested-entry-proof.json",
+    "output/forms-acceptance-20260929/cleanup.json",
+    "output/forms-acceptance-20260929/mt-accept-verified.json"
   ],
   "trackerRefresh": {
-    "source": "output/customer-commerce-20260929/mt-accept-after.json",
-    "schema": "output/catalog-acceptance-20260929/mt-schema.json",
+    "source": "output/forms-acceptance-20260929/mt-accept-after.json",
+    "schema": "output/forms-acceptance-20260929/mt-schema.json",
     "rows": 137,
     "counts": {
-      "Verified": 112,
-      "In progress": 25
+      "Verified": 113,
+      "In progress": 24
     },
     "otherCellsUnchangedFromPreviousRead": true,
     "pendingNotesReconciled": 77,
     "classificationScope": "Block-specific missing gates; historical whole-app audit conditions retained in Notes but not automatic prerequisites.",
     "lastAcceptedNames": [
-      "core/reviews",
-      "commerce/cart-cta",
-      "commerce/wishlist",
-      "commerce/download-library"
+      "core/newsletter-signup"
     ],
     "allNotesExact": true
   },
   "coordination": {
     "folder": "/Users/worsin/Development/ConvexPress/Opus Audits/",
     "authority": "Codex leads; Claude audits are advisory and independently verified",
-    "lastAudit": "2026-09-29T0520-audit-18-catalog-batch-and-blocker-triage.md",
+    "lastAudit": "2026-09-29T0620-audit-19-owner-actionable-prerequisites.md",
     "pendingAdvisory": {
       "F19": "Accepted shared public document href contract. Historical encoded-slug fixture reproduced discrepancy; ordinary authoring slugifies safely. Legacy menu root/prefix behavior and membership aliases preserved. See locale-destinations-20260928.md.",
       "F20": "Source-verified enterprise commerce backfill truncation recorded in current-acceptance.md deferred register. No live reproduction or repair; promote only if catalog/customer-commerce delivery demonstrates a dependency.",
@@ -4223,7 +4246,8 @@
       "catalogRuntime": "Owned Website58929/PTY85331 now serves4322 after one CSS repair. Full captured runtime exact, including127.0.0.1:4105 admin origin. Owned native57234 signed out/closed/profile removed. Cart cleared; two archived logo-free brands remain because no normal delete API. Settings values restored, normal audit metadata materialized; derived Uncategorized count corrected by normal product mutations3\u21922 matching2published originals.",
       "audit18": "Read/responded: no new finding; max-content cases already gate overflow. F25 closed for triage only. E06 all-field/mixed composition, F21 Task4 corpus completeness and E18/E22/E28 retained. No overall completion percentage inferred.",
       "externalEmbedsRuntime": "Owned Website64979/PTY37890 serves4322 with exact captured runtime. Native60861/64594 signed out/closed; profile and API session cleaned. Two owned pages deleted;42pages/11media/appearance values exact. Snapshot external-embeds-reviewed preserves22Events/2410signatures.",
-      "customerCommerceRuntime": "Website67075/PTY38169 serves4322 with exact captured runtime after one CSS repair. Owned native66154 and both customer browsers closed. Source backend unchanged. Original42pages/11media exact; product/category values exact except category audit timestamp; email default values restored in newly materialized row. Cancelled zero-value order and normal revoked entitlement/audit/session receipts retained; both owned profiles inactive/Clerk deleted. Four rows accepted, Recent site switch and Assistant live model remain."
+      "customerCommerceRuntime": "Website67075/PTY38169 serves4322 with exact captured runtime after one CSS repair. Owned native66154 and both customer browsers closed. Source backend unchanged. Original42pages/11media exact; product/category values exact except category audit timestamp; email default values restored in newly materialized row. Cancelled zero-value order and normal revoked entitlement/audit/session receipts retained; both owned profiles inactive/Clerk deleted. Four rows accepted, Recent site switch and Assistant live model remain.",
+      "formsRuntime": "Owned Website72085/PTY44566 serves4322 after E57 CSS repair with exact six-field runtime. Native70560 signed out/closed and browser closed, API session revoked/profiles removed.4pages deleted,5forms archived,2sources withdrawn,list/event archived. Original42pages/11media/7activeforms/1list/1event exact; appearance/plugins/email/security restored. Three answers/submissions and normal source/consent/RSVP/poll history retained; one non-delivering synthetic newsletter subscriber remains because no product delete API, readonly REPL mutation rejected. No broad table replacement."
     },
     "audit19": "Read/responded. F26 prerequisite visibility useful; exact owner-only/exhaustive claim not established. No acceptance on missing model/provider proof. Corrected core/reviews/E56. Actual signed-in target Clerk provider/provisioning failure now recorded under E18; Recently Viewed remains open. Forms six next, F21 and Tasks4\u20138 retained."
   },

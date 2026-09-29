@@ -424,3 +424,8 @@ Five rows accepted, tracker108 Verified/29 In progress; Script Embed Vimeo playb
 ## September29 customer commerce acceptance
 
 Reviews, Cart CTA, Wishlist and Purchased Downloads accepted: tracker112/25, Notes preserved. E56 one-property help-link shrink repair passes16normal/maximum four-pack cases. Real customer actions/isolation, native exact4→6 recovery,13download pages12+1,30,409,237-byte verified ZIP and live revocation pass. Original42pages/11media and product/category values preserved; normal audit metadata and materialized email-default record disclosed. Cancelled zero-value purchase/history retained, owned content removed and identities closed. [Evidence and limits](customer-commerce-20260929.md). Recently Viewed still needs real site switching; Assistant Band confirmed missing_api_key. Goal remains open.
+
+
+## September29 Forms checkpoint — Newsletter accepted
+
+Newsletter Signup accepted:113Verified/24In progress, all Notes preserved. E57 fixes proved shared form-label/submit and newsletter-submit overflow;24final four-pack/width/state cases pass. All six native blocks have exact4→6 recovery; actual submissions, guide bytes/opt-out, poll repeat and RSVP cancel pass. A true two-source Contact graph now updates/withdraws/restores with stable form/field IDs and unchanged consumer document. Five Forms rows retain precise authority/customer/provider gates. Original content/settings restored; scoped history plus one synthetic newsletter subscriber retained explicitly. [Evidence and limits](forms-acceptance-20260929.md). Tasks4–8 and E18/E22/E28 remain open.
