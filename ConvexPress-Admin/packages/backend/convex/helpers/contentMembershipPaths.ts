@@ -1,3 +1,4 @@
+import { publicDocumentHref } from "./publicDocumentHref";
 import type { RequestReadLedger } from "./requestReadLedger";
 import type { Doc } from "../_generated/dataModel";
 import type { QueryCtx } from "../_generated/server";
@@ -30,6 +31,7 @@ export function createContentMembershipPathResolver(
     // also address their stored path. Both aliases must enforce access.
     if (post.type === "page") {
       paths.add(`/page${post.path ?? `/${encodeURIComponent(post.slug)}`}`);
+      paths.add(publicDocumentHref(post));
       reading ??= (async () => {
         budget?.beforeRead();
         const value = await ctx.db.query("settings")
@@ -53,7 +55,7 @@ export function createContentMembershipPathResolver(
             : undefined;
       if (homeId === String(post._id)) paths.add("/");
     }
-    if (post.type === "post") paths.add(`/blog/${encodeURIComponent(post.slug)}`);
+    if (post.type === "post") paths.add(publicDocumentHref(post));
     return [...paths];
   };
 }

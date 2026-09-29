@@ -1,5 +1,7 @@
 # Current production acceptance index — September 21
 
+September28 locale destinations: shared served-document contract verified by497 backend tests, eight public pack/width cases and read-only native Website preview. F19 historical encoding mismatch repaired with legacy menu/access compatibility retained. E41 confirmed: authored export silently omits localization host configuration/groups. **75/137 Verified;62 In progress**, Language Switcher stays open for promotion. [Evidence](locale-destinations-20260928.md).
+
 September28 Search Results completion: **75/137 blocks verified;62 pending.** Bounded E39 host/poll/embed/media copy acceptance completes the accumulated search block gates. Native save/reload/actual Website preview, eight final pack/width cases,52 backend decisions, live poll visibility withdrawal/restoration,562 backend/310 renderer tests and exact cleanup pass. Only Search Results Status/Tests/Screenshots changed in MagicTables; all Notes and other cells preserved. [Evidence](search-host-prose-20260928.md). Language Switcher/F19 is next; overall delivery remains active.
 
 September 28 Search controls completion: **74/137 blocks verified; 63 pending.** Search Box/Band native controls, exact history recovery, actual Website navigation and long/empty four-pack layouts pass. E32–E35 close search/editor page destinations, reusable-source search refresh and suggestion overflow. Search Results and localization promotion remain open. [Evidence](search-discovery-completion-20260928.md).

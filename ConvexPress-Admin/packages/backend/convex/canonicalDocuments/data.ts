@@ -1,3 +1,4 @@
+import { publicDocumentHref } from "../helpers/publicDocumentHref";
 import { readAuthor } from "./author";
 import {readSocialFeed} from "../socialFeeds/read";
 import {readLeadMagnet} from "./leadMagnet";
@@ -86,7 +87,7 @@ async function contentPage(
 		page: {
 			id: String(document._id),
 			title: document.title,
-			href: `/page${document.path ?? `/${encodeURIComponent(document.slug)}`}`,
+			href: publicDocumentHref(document),
 			excerpt: document.excerpt ?? null,
 			image: null,
 		},

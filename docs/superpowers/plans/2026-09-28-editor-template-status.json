@@ -7,7 +7,7 @@
     "In progress": 62
   },
   "goal": "Complete block editor and template delivery plus all demonstrated blockers; defer unrelated whole-app audit campaigns.",
-  "currentTask": "Language Switcher/F19 destination and promotion acceptance, then remaining delivery batches. Search Results and bounded E39 accepted (75 Verified /62 In progress); Task2 and Task3 remain in progress, full goal active.",
+  "currentTask": "E41: complete explicit reviewed localization promotion and Language Switcher acceptance, then remaining delivery batches. F19 destination contract accepted;75 Verified /62 In progress; full goal active.",
   "tasks": [
     {
       "id": 1,
@@ -314,6 +314,13 @@
       "status": "Closed within documented boundary: four live scheduled appearance/disappearance cases passed on ordinary and canonical search without reload; scoped tests, types, build and cleanup pass. See search-conditional-prose-20260928.md.",
       "initialFinding": "Fresh HTTP removed expired announcement prose while an open ordinary search page retained its match until reload.",
       "closureBoundary": "Carry current presentation deadlines through both search surfaces; bound subscriptions and isolate old results across expiry, viewer and route changes. Verify actual appearance and disappearance without reload."
+    },
+    {
+      "id": "E41",
+      "status": "Open: live read-only export reproduces missing locale host context without a reported issue. No target import attempted.",
+      "classification": "demonstrated delivery blocker",
+      "initialFinding": "Exported canonical Language Switcher pages omit enabled locale routing and translation groups; source export succeeds with zero locale records.",
+      "closureBoundary": "Explicit reviewed locale selection, bounded portable routing/group closure and identity remapping, authority/conflict checks, recovery and real source-to-target configured links. Preserve unrelated target data and environment separation."
     }
   ],
   "blocks": [
@@ -3275,9 +3282,10 @@
       "requirements": "context only",
       "evidenceReferences": [
         "output/block-library-review-20260915/coverage-review.json.",
-        "output/language-switcher-20260914/checks.json."
+        "output/language-switcher-20260914/checks.json.",
+        "ConvexPress-Admin/audits/2026-09-04/locale-destinations-20260928.md"
       ],
-      "remainingReview": "Actual configured locale links/current state, unavailable/private translations, native context/recovery and required promotion preservation; no invented full translation engine.",
+      "remainingReview": "E41 required localization promotion, native configuration/recovery and remaining accumulated full-block reconciliation. Current configured links/current state/RTL, keyboard destinations and native Website context verified in September28 batch.",
       "deliveryTask": 3,
       "acceptanceBatch": "content-discovery",
       "reviewedAtCommit": "d8a0ea2c",
@@ -3750,7 +3758,11 @@
     "output/search-host-20260928/public-matrix.json",
     "output/search-host-20260928/current-poll.json",
     "output/search-host-20260928/cleanup.json",
-    "output/search-host-20260928/lifecycle.json"
+    "output/search-host-20260928/lifecycle.json",
+    "ConvexPress-Admin/audits/2026-09-04/locale-destinations-20260928.md",
+    "output/locale-destinations-20260928/promotion-gap.json",
+    "output/locale-destinations-20260928/cleanup.json",
+    "output/locale-destinations-20260928/lifecycle.json"
   ],
   "trackerRefresh": {
     "source": "output/search-host-20260928/mt-accept-after.json",
@@ -3773,7 +3785,7 @@
     "authority": "Codex leads; Claude audits are advisory and independently verified",
     "lastAudit": "2026-09-28T2320-audit-12-e39-scope-proportionality.md",
     "pendingAdvisory": {
-      "F19": "Shared public document href contract deferred to next destination/localization pass. Verify reachable slug encoding, include membership route identity; do not mix into E36 acceptance.",
+      "F19": "Accepted shared public document href contract. Historical encoded-slug fixture reproduced discrepancy; ordinary authoring slugifies safely. Legacy menu root/prefix behavior and membership aliases preserved. See locale-destinations-20260928.md.",
       "F20": "Source-verified enterprise commerce backfill truncation recorded in current-acceptance.md deferred register. No live reproduction or repair; promote only if catalog/customer-commerce delivery demonstrates a dependency.",
       "audit12": "Bounded E39 slice completed and Search Results accepted on accumulated evidence; move to Language Switcher/F19 and other delivery work. No speculative search expansion or broad sweep."
     }

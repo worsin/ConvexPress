@@ -1,3 +1,4 @@
+import { publicDocumentHref as href } from "../helpers/publicDocumentHref";
 /** Trusted current-document navigation adapters. Not registered endpoints. */
 import {createPublicMenuReader} from '../menus/queries';
 import {getCurrentUser} from '../helpers/permissions';
@@ -16,9 +17,6 @@ import {navigationArgsSchemas, navigationResultSchemas, type NavigationResolver,
 
 type CurrentDocument = Pick<Doc<'posts'>, '_id'|'type'|'title'|'slug'|'path'|'parentId'>;
 export interface NavigationSource {document: CurrentDocument; tree: unknown; authoringTree?: unknown; composed?: ComposedDataContext}
-function href(document: CurrentDocument) {
-  return document.type === 'page' ? `/page${document.path ?? `/${document.slug}`}` : `/blog/${document.slug}`;
-}
 function text(value: unknown): string | null {return typeof value === 'string' && value.trim() ? value : null;}
 /** Caller supplies only the exact document already authorized by canonical get/
  * public get or write validation, including prepared title/tree for an unsaved write. */

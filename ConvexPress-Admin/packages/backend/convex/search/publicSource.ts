@@ -1,3 +1,4 @@
+import { publicDocumentHref } from "../helpers/publicDocumentHref";
 import { RequestReadLedger } from "../helpers/requestReadLedger";
 import { createCanonicalSearchTextReader } from "./canonicalText";
 import { createExtensionSearchSourceReader } from "./extensionSources";
@@ -20,13 +21,6 @@ const MAX_TAXONOMY = 64;
 function bounded<T>(items: T[]): T[] {
   if (items.length > MAX_TAXONOMY) throw new ConvexError({code: "SEARCH_SOURCE_BUDGET", message: "Search source taxonomy exceeds its read budget."});
   return items;
-}
-function postUrl(post: Doc<"posts">): string {
-  if (post.type === "post") return `/blog/${encodeURIComponent(post.slug)}`;
-  // A stored path is still untrusted input to the visitor's navigation.
-  const path = post.path && /^\/(?!\/)/.test(post.path) && !/[\\\u0000-\u0020]/.test(post.path)
-    ? post.path : `/${encodeURIComponent(post.slug)}`;
-  return `/page${path}`;
 }
 
 /** The index supplies candidate identities and ranking only. Display values and
@@ -77,7 +71,7 @@ export function createPublicSearchSourceReader(ctx: QueryCtx, now = Date.now(), 
         if (term?.taxonomy === "post_tag") tagNames.push(term.name);
       }
       return {...base, title: post.title, content: options.includePostBody === false ? "" : post.blocksVersion === 2 ? await canonicalText(post) : stripContentForSearch(post.content ?? ""),
-        excerpt: post.excerpt ?? "", url: postUrl(post), authorName: await authorName(post.authorId), publishedAt: post.publishedAt, categoryNames, tagNames};
+        excerpt: post.excerpt ?? "", url: publicDocumentHref(post), authorName: await authorName(post.authorId), publishedAt: post.publishedAt, categoryNames, tagNames};
     }
     if (row.contentType === "product") {
       if (!await enabled("commerce")) return null;
@@ -124,7 +118,7 @@ export function createPublicSearchSourceReader(ctx: QueryCtx, now = Date.now(), 
       const post = await read("posts", comment.postId);
       if (!post || !await publishedPost(post)) return null;
       return {...base, title: `Comment on "${post.title}"`, excerpt: "", content: stripContentForSearch(comment.content),
-        url: `${postUrl(post)}#comment-${encodeURIComponent(comment._id)}`, authorName: comment.authorName || "Anonymous", publishedAt: comment.createdAt};
+        url: `${publicDocumentHref(post)}#comment-${encodeURIComponent(comment._id)}`, authorName: comment.authorName || "Anonymous", publishedAt: comment.createdAt};
     }
     if (row.contentType === "media") {
       const id = ctx.db.normalizeId("media", row.contentId);

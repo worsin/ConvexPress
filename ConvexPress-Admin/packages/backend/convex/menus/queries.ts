@@ -1,3 +1,4 @@
+import { publicMenuDocumentHref } from "../helpers/publicDocumentHref";
 /**
  * Menu System - Queries
  *
@@ -339,15 +340,7 @@ export function createPublicMenuReader(
             post.type === item.itemType &&
             (await discover(post))
           ) {
-            const path = post.path ?? `/${post.slug}`;
-            url =
-              item.itemType === "post"
-                ? `/blog/${post.slug}`
-                : path === "/"
-                  ? "/"
-                  : path.startsWith("/page/")
-                    ? path
-                    : `/page${path.startsWith("/") ? "" : "/"}${path}`;
+            url = publicMenuDocumentHref(post);
           }
         }
       } else if (item.itemType === "category" || item.itemType === "tag") {
