@@ -1,3 +1,4 @@
+import { PublicFileDownloadProvider } from "@/templates/sdk/block-renderer/public-file-download";
 import { convexQuery, type ConvexQueryClient } from "@convex-dev/react-query";
 import type { QueryClient } from "@tanstack/react-query";
 
@@ -209,6 +210,7 @@ function RootDocument() {
               <WebsiteOperatorNotice />
               <SettingsProvider>
               <TemplateSettingsDraftProvider>
+              <PublicFileDownloadProvider backendOrigin={siteRuntime.convexUrl}>
               {/* Site palette, brand type and template settings apply to every route, not just the marketing layout. */}
               <ThemeStyleInjector />
               <TemplateSettingsInjector />
@@ -217,6 +219,7 @@ function RootDocument() {
                   <SupportWidget />
                   <OnSiteCustomizer />
                 </>}
+              </PublicFileDownloadProvider>
               </TemplateSettingsDraftProvider>
               </SettingsProvider>
               {!documentPreview && <Toaster richColors />}

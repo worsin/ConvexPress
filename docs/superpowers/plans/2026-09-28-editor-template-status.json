@@ -1,13 +1,13 @@
 {
   "plan": "2026-09-28-editor-template-delivery.md",
   "baselineCommit": "d0fee8acceb408fd306a15f3c054322cb73ac8bc",
-  "checkpointSource": "output/business-content-20260929/mt-accept-after.json",
+  "checkpointSource": "output/text-download-20260929/mt-accept-after.json",
   "checkpointCounts": {
-    "Verified": 85,
-    "In progress": 52
+    "Verified": 88,
+    "In progress": 49
   },
   "goal": "Complete block editor and template delivery plus all demonstrated blockers; defer unrelated whole-app audit campaigns.",
-  "currentTask": "Task3 four business blocks accepted; E44 shared List wrapping repaired.85 Verified /52 In progress. Studio Services static field/render/recovery proof refreshed but compose/style/promote workflow gate remains open. Next: Rich Text and embedded-content evidence reconciliation. Full goal active.",
+  "currentTask": "Task2/Text Download batch accepted: Rich Text, Custom HTML, File Download; E45 attachment delivery and E46 HTML semantic typography closed. Next Task3 Support KB Search/Ticket CTA, reusing F1 and search-access proof.88 Verified/49 In progress. Tasks4\u20138 and E18/E22/E28 remain open.",
   "tasks": [
     {
       "id": 1,
@@ -378,6 +378,23 @@
         "output/business-content-20260929/measure-core-1440.json",
         "output/business-content-20260929/public-variants-first.log"
       ]
+    },
+    {
+      "id": "E45",
+      "classification": "accepted repair",
+      "status": "Closed: actual original308-byte file downloads with exact filename/bytes and no navigation in all four packs at1440/390. Bounded configured-origin public attachment route; protected downloads unchanged. Owned unavailable selection refused/deleted URL404; source fixtures cleaned. See text-download-20260929.md.",
+      "initialFinding": "Actual published File Download cross-origin storage URL returns text/plain without Content-Disposition; click navigates to storage, no browser download event.308-byte exact original guide confirmed.",
+      "closureBoundary": "Provide an actual attachment download for selected owned storage without arbitrary-URL proxying, privileged credentials, unbounded buffering or new media exposure. Prove exact downloaded bytes/filename, real Website/native state and error/unavailable behavior; preserve external-provider limitations explicitly.",
+      "evidence": [
+        "output/text-download-20260929/download-probe.json"
+      ]
+    },
+    {
+      "id": "E46",
+      "classification": "accepted repair",
+      "initialFinding": "Actual Custom HTML unordered lists rendered without markers or indentation, and headings at body-text size, under the global CSS reset. Computed styles confirmed list-style none, padding 0px and h3/body both 16px.",
+      "closureBoundary": "Restore scoped semantic typography for allowed Custom HTML markup using existing template tokens; verify lists, headings, nested markup, safe sanitization and long-content containment across all four packs.",
+      "status": "Closed: scoped HTML headings/lists/spacing restore semantic typography after CSS reset. Actual list marker disc/24px indentation and h3 24px vs body16px; four-pack desktop/mobile normal and long/nested containment, sanitizer preserved. See text-download-20260929.md."
     }
   ],
   "blocks": [
