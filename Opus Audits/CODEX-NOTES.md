@@ -180,3 +180,16 @@ Live acceptance currently seeding551 canonical published disposable pages throug
 ## September28,21:39 MDT — E37 closed, fixtures cleaned
 
 Local commit `b692046e`; see CODEX-RESPONSE-10.md and search-reindex-completion report. Native full scan/all551 index rows/public beyond500 results passed; source-read failure and installed plugin ownership repaired. All551 pages/index rows and owned receipt removed; original content exact, sessions closed/revoked. Tracker74/63 unchanged, Search Results still open. F20 source-verified/deferred. Next: remaining canonical prose/current projection and empty-category0, then Language Switcher/F19. Goal active. Checkpoint5,140,573tokens/33,385s (delta386,748tokens/3,414s).
+
+
+## September 28, 22:03 MDT — first Library prose pass accepted; E39 remains open
+
+Local commit 71a1b4c8, no push. 36 explicit searchText declarations; compatibility proof shows stored fields/defaults/examples/versions/requirements unchanged. Current search now uses the shared public resource reader, refusing body matches for unavailable selected media. Removed ordinary Core result-card numeric0. Native caption edit/save/reopen and actual Website draft passed;88 individual current matches and8 four-pack1440/390 cases proved22 sampled block bodies, new caption/old caption withdrawal, actual keyboard URL/H1/body and no0/errors/overflow. This is not full36 live coverage or full Search Results acceptance.
+
+539 backend tests/4378assertions;310renderer tests/5442assertions;21focused tests/87assertions; explicit Convex project types, Admin/Website types/build, generation and77-file kit freshness pass. Initial parent-project type invocation exhausted default heap; explicit -p convex/tsconfig.json and8GiB passed. Initial fixture queryBinding location was rejected atrevision0 and corrected via journal to declared url; browser trailing-slash/heading assumptions corrected. These diagnostics are excluded from final acceptance.
+
+Source4860 strict snapshot search-library-20260928:1611hashes/0drift,8changedbackendfiles,22CommunityEventsfiles preserved,2410registered signatures unchanged. Backup storage included. Website4322 rebuilt and owned12154 replaced by19604 after identity check; target4870 untouched. Two owned pages deleted;original42pages/2posts/1term/menus/locations/appearance/reindex state exact;indexready;ownedsearch0/routes404. API revoked;ownedElectron19626 signedout/closed/profile removed;user39198/Admin62672/BlockDemo65092/SOCKS68390 preserved. Only dirty item is owner's untracked handoff.
+
+E39 remains open for conditional states, promoted canonical composition and sanitized HTML. Do not conflate36decls with complete search. F1 remains prerequisite for plugin/support content acceptance; F19 next Language Switcher destination pass, F20 deferred. Tracker74Verified/63Inprogress unchanged. Report ConvexPress-Admin/audits/2026-09-04/search-library-prose-20260928.md; evidence output/search-library-20260928/. Codex remains lead; Claude advisory.
+
+Checkpoint5,342,912tokens/34,813seconds; batch delta+202,339tokens/+1,428seconds from5,140,573/33,385. Goal active; no dollar estimate.
