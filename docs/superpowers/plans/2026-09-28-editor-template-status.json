@@ -1,13 +1,13 @@
 {
   "plan": "2026-09-28-editor-template-delivery.md",
   "baselineCommit": "d0fee8acceb408fd306a15f3c054322cb73ac8bc",
-  "checkpointSource": "output/forms-acceptance-20260929/mt-accept-after.json",
+  "checkpointSource": "output/poll-policy-20260929/mt-accept-after.json",
   "checkpointCounts": {
-    "Verified": 113,
-    "In progress": 24
+    "Verified": 114,
+    "In progress": 23
   },
   "goal": "Complete block editor and template delivery plus all demonstrated blockers; defer unrelated whole-app audit campaigns.",
-  "currentTask": "113 Verified/24 In progress. Continue five Task3 Forms rows: Contact/Form revoked-expired authority; Lead account/environment lifecycle; Poll actual signed-in policy/revisions; RSVP legitimate verified-provider and exact generated/original selection. Newsletter accepted; native six-block recovery,24-pack/width/state cases and true nested Contact source graph now pass.21 Task3 rows,2 Task4 migration rows,1 Task7 SDK row remain. Tasks4\u20138/E18/E22/E28 and prior model/Vimeo/target-Clerk gates remain open.",
+  "currentTask": "114 Verified/23 In progress. Continue Contact/Form revoked-expired caller authority, Lead account/environment lifecycle and RSVP legitimate provider/original-generated selection. Poll now accepted with two actual customers, ballot semantics, source withdrawal and16current pack cases plus prior native/maximum evidence.20 Task3 rows,2 Task4 migration rows,1 Task7 SDK row remain. Tasks4\u20138/E18/E22/E28 and model/Vimeo/target-Clerk gates remain open.",
   "tasks": [
     {
       "id": 1,
@@ -217,7 +217,7 @@
     },
     {
       "id": "E18",
-      "status": "Open integrated-artifact requirement with concrete recorded target divergence: locale-promotion-20260929 observed four draft functions missing on older target and document-settings warning. Current source/Website family evidence is identity-bound but not final candidate/main/target parity.",
+      "status": "Open integrated-artifact requirement: older target lacks four draft functions and showed a document-settings warning; actual signed-in Website switch additionally proved missing matching Clerk auth provider and clerk_secret_key_missing provisioning. Current source/Website family evidence is identity-bound but not final candidate/main/target parity.",
       "classification": "missing evidence",
       "initialFinding": "Current source/main/deployed artifacts and historical screenshots can diverge.",
       "closureBoundary": "Record exact source and deployment identity; reuse only relevant current evidence. Run a final integrated gate on the deliverable, not a collection of unrelated historical green logs.",
@@ -2943,9 +2943,9 @@
       "name": "core/poll",
       "title": "Poll",
       "category": "Forms",
-      "checkpointStatus": "In progress",
-      "nextClassification": "Native all fields/policy controls, real keyboard guest vote/double-click dedupe/reload repeat guard and pack cases pass. Remaining actual signed-in customer policy and option/question revision behavior.",
-      "classification": "missing evidence",
+      "checkpointStatus": "Verified",
+      "nextClassification": "Accepted: actual signed-in customer/guest policy, two-account boundary, duplicate/browser-token refusal, order/results visibility preserve ballot, question/choice changes create new ballot, original content restores votes, stale definition/current withdrawn source refuse writes.16current pack cases plus prior24maximum/native/exact recovery and14registered backend tests.",
+      "classification": "accepted",
       "source": "blocks/core/poll/block.json",
       "requirements": "question (text), options (repeater with stable key and label), showResults (boolean), responsePolicy (visitor or signedIn)",
       "evidenceReferences": [
@@ -2954,9 +2954,10 @@
         "output/poll-motion-20260906/checks.json",
         "output/poll-provider-20260906/checks.json",
         "output/poll-security-20260906",
-        "ConvexPress-Admin/audits/2026-09-04/forms-acceptance-20260929.md"
+        "ConvexPress-Admin/audits/2026-09-04/forms-acceptance-20260929.md",
+        "ConvexPress-Admin/audits/2026-09-04/poll-policy-20260929.md"
       ],
-      "remainingReview": "Native all fields/policy controls, real keyboard guest vote/double-click dedupe/reload repeat guard and pack cases pass. Remaining actual signed-in customer policy and option/question revision behavior.",
+      "remainingReview": "None for the current block-specific contract; live CAPTCHA provider acceptance remains explicitly assigned to Event RSVP and is not inferred from controlled poll verification tests.",
       "deliveryTask": 3,
       "acceptanceBatch": "forms",
       "reviewedAtCommit": "d8a0ea2c",
@@ -4207,28 +4208,36 @@
     "output/forms-acceptance-20260929/nested-restored-proof.json",
     "output/forms-acceptance-20260929/nested-entry-proof.json",
     "output/forms-acceptance-20260929/cleanup.json",
-    "output/forms-acceptance-20260929/mt-accept-verified.json"
+    "output/forms-acceptance-20260929/mt-accept-verified.json",
+    "ConvexPress-Admin/audits/2026-09-04/poll-policy-20260929.md",
+    "output/poll-policy-20260929/matrix.json",
+    "output/poll-policy-20260929/ballots-proof.json",
+    "output/poll-policy-20260929/stale-definition-refusal.json",
+    "output/poll-policy-20260929/withdrawn-refusal.json",
+    "output/poll-policy-20260929/alerts-cancelled.json",
+    "output/poll-policy-20260929/cleanup.json",
+    "output/poll-policy-20260929/mt-accept-verified.json"
   ],
   "trackerRefresh": {
-    "source": "output/forms-acceptance-20260929/mt-accept-after.json",
-    "schema": "output/forms-acceptance-20260929/mt-schema.json",
+    "source": "output/poll-policy-20260929/mt-accept-after.json",
+    "schema": "output/poll-policy-20260929/mt-schema.json",
     "rows": 137,
     "counts": {
-      "Verified": 113,
-      "In progress": 24
+      "Verified": 114,
+      "In progress": 23
     },
     "otherCellsUnchangedFromPreviousRead": true,
     "pendingNotesReconciled": 77,
     "classificationScope": "Block-specific missing gates; historical whole-app audit conditions retained in Notes but not automatic prerequisites.",
     "lastAcceptedNames": [
-      "core/newsletter-signup"
+      "core/poll"
     ],
     "allNotesExact": true
   },
   "coordination": {
     "folder": "/Users/worsin/Development/ConvexPress/Opus Audits/",
     "authority": "Codex leads; Claude audits are advisory and independently verified",
-    "lastAudit": "2026-09-29T0620-audit-19-owner-actionable-prerequisites.md",
+    "lastAudit": "2026-09-29T0720-audit-20-corrections-and-target-auth.md",
     "pendingAdvisory": {
       "F19": "Accepted shared public document href contract. Historical encoded-slug fixture reproduced discrepancy; ordinary authoring slugifies safely. Legacy menu root/prefix behavior and membership aliases preserved. See locale-destinations-20260928.md.",
       "F20": "Source-verified enterprise commerce backfill truncation recorded in current-acceptance.md deferred register. No live reproduction or repair; promote only if catalog/customer-commerce delivery demonstrates a dependency.",
@@ -4247,7 +4256,10 @@
       "audit18": "Read/responded: no new finding; max-content cases already gate overflow. F25 closed for triage only. E06 all-field/mixed composition, F21 Task4 corpus completeness and E18/E22/E28 retained. No overall completion percentage inferred.",
       "externalEmbedsRuntime": "Owned Website64979/PTY37890 serves4322 with exact captured runtime. Native60861/64594 signed out/closed; profile and API session cleaned. Two owned pages deleted;42pages/11media/appearance values exact. Snapshot external-embeds-reviewed preserves22Events/2410signatures.",
       "customerCommerceRuntime": "Website67075/PTY38169 serves4322 with exact captured runtime after one CSS repair. Owned native66154 and both customer browsers closed. Source backend unchanged. Original42pages/11media exact; product/category values exact except category audit timestamp; email default values restored in newly materialized row. Cancelled zero-value order and normal revoked entitlement/audit/session receipts retained; both owned profiles inactive/Clerk deleted. Four rows accepted, Recent site switch and Assistant live model remain.",
-      "formsRuntime": "Owned Website72085/PTY44566 serves4322 after E57 CSS repair with exact six-field runtime. Native70560 signed out/closed and browser closed, API session revoked/profiles removed.4pages deleted,5forms archived,2sources withdrawn,list/event archived. Original42pages/11media/7activeforms/1list/1event exact; appearance/plugins/email/security restored. Three answers/submissions and normal source/consent/RSVP/poll history retained; one non-delivering synthetic newsletter subscriber remains because no product delete API, readonly REPL mutation rejected. No broad table replacement."
+      "formsRuntime": "Owned Website72085/PTY44566 serves4322 after E57 CSS repair with exact six-field runtime. Native70560 signed out/closed and browser closed, API session revoked/profiles removed.4pages deleted,5forms archived,2sources withdrawn,list/event archived. Original42pages/11media/7activeforms/1list/1event exact; appearance/plugins/email/security restored. Three answers/submissions and normal source/consent/RSVP/poll history retained; one non-delivering synthetic newsletter subscriber remains because no product delete API, readonly REPL mutation rejected. No broad table replacement.",
+      "audit20": "Read/responded: F27 whole-entry omission is contradicted by existing E18 currentEvidence/nextCheck; short status line now expanded for consistent handoff. Audit counts/six-Forms-remaining wording stale; Newsletter/Poll accepted,4Forms remain. F21/Tasks4\u20138/E22/E28 retained; no overall completion inference.",
+      "settingsEmailAcceptance": "Correction: restoring email.enabled after Forms created12queued settings alerts; Poll template matrix created60more. All72exact operator/event-bound alerts cancelled through registered API with0attempts; original27rows exact,finalqueue99includingcancelledhistory. No configured provider key or delivery. Suppress settings-changed-alert template before future template settings/email restoration, restore last after event completion; email_templates changes are explicitly ignored by settings alert handler. Never claim post-cleanup queue preservation from a pre-restoration sample.",
+      "pollRuntime": "Website72085/PTY44566 unchanged; backend unchanged. Poll customer browser closed;2owned Clerk identities deleted/site profiles inactive, private credentials/profile/token files removed,API revoked. Ownedpage deleted,42originalpages/appearance/email/security exact. Deactivation template active value restored after exact events completed; normal timestamp advanced.3votes/2tallies and72cancelled alerts retained. Ownerprocesses preserved."
     },
     "audit19": "Read/responded. F26 prerequisite visibility useful; exact owner-only/exhaustive claim not established. No acceptance on missing model/provider proof. Corrected core/reviews/E56. Actual signed-in target Clerk provider/provisioning failure now recorded under E18; Recently Viewed remains open. Forms six next, F21 and Tasks4\u20138 retained."
   },

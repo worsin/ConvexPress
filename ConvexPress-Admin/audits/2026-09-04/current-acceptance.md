@@ -429,3 +429,8 @@ Reviews, Cart CTA, Wishlist and Purchased Downloads accepted: tracker112/25, Not
 ## September29 Forms checkpoint — Newsletter accepted
 
 Newsletter Signup accepted:113Verified/24In progress, all Notes preserved. E57 fixes proved shared form-label/submit and newsletter-submit overflow;24final four-pack/width/state cases pass. All six native blocks have exact4→6 recovery; actual submissions, guide bytes/opt-out, poll repeat and RSVP cancel pass. A true two-source Contact graph now updates/withdraws/restores with stable form/field IDs and unchanged consumer document. Five Forms rows retain precise authority/customer/provider gates. Original content/settings restored; scoped history plus one synthetic newsletter subscriber retained explicitly. [Evidence and limits](forms-acceptance-20260929.md). Tasks4–8 and E18/E22/E28 remain open.
+
+
+## September29 Poll policy completion
+
+Poll accepted:114Verified/23In progress; all Notes/unrelated cells exact. Two real customer accounts, guest refusal, stable reordered/hidden-results ballots, question/choice revision separation, exact original ballot recovery, stale-version refusal, settled404/source refusal and republish pass.16current customer/guest pack cases plus14backend tests; prior native/maximum evidence reused. Cleanup corrects a settings-alert side effect:12Forms-restoration+60Poll-pack jobs queued, all72cancelled at0attempts; original27queue rows exact,99total including cancelled history. No provider key/delivery. [Evidence](poll-policy-20260929.md). Opus20 F27 short summary aligned; E18 already held target-auth evidence and nextCheck. Goal remains open.
