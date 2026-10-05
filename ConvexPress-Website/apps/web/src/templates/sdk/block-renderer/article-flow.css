@@ -1,8 +1,8 @@
-/* Paragraphs are article flow, not independent marketing sections. Explicit
+/* Text blocks share article flow instead of independent section padding. Explicit
    authored spacing keeps the Section treatment and bypasses this default. */
 .cp-article-flow { min-width: 0; }
 .cp-article-flow + .cp-article-flow { margin-block-start: 1em; }
-/* Layout primitives own their children's gap; don't add paragraph margins on top. */
+/* Layout primitives own their children's gap; don't add prose margins on top. */
 .cp-stack > .cp-article-flow + .cp-article-flow,
 .cp-grid > .cp-article-flow + .cp-article-flow,
 .cp-split > .cp-article-flow + .cp-article-flow { margin-block-start: 0; }

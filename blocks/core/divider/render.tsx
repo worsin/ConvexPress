@@ -4,4 +4,5 @@ import "../../../ConvexPress-Website/apps/web/src/templates/sdk/block-renderer/o
 
 export default defineBlock("core/divider", ({ treatment }) =>
 	treatment ? <hr className="cp-original-divider" data-variant={treatment.values.variant} /> : <P.Divider />,
+	{ flow: "prose" },
 );

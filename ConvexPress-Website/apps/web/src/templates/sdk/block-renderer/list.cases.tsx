@@ -5,6 +5,9 @@ import { prepareBlocks } from "./model";
 import list from "../../../../../../../blocks/core/list/render";
 import group from "../../../../../../../blocks/core/group/render";
 import paragraph from "../../../../../../../blocks/core/paragraph/render";
+import heading from "../../../../../../../blocks/core/heading/render";
+import code from "../../../../../../../blocks/core/code/render";
+import divider from "../../../../../../../blocks/core/divider/render";
 import { migrateLegacyDocument } from "../../../../../../../ConvexPress-Admin/packages/backend/canonical-blocks-foundation/legacyDocumentMigration";
 
 const p = (text: string) => ({ type: "paragraph", content: [{ type: "text", text, marks: [{ type: "italic" }] }] });
@@ -31,6 +34,29 @@ test("converted nested list renders semantic list-item hierarchy and marked pros
     expect(outer.querySelectorAll("em").length).toBe(4);
     expect(dom.window.document.querySelectorAll("ul,ol").length).toBe(2);
   } finally { dom.window.close(); }
+});
+
+test("mixed article blocks use prose flow while an explicit spacing choice remains authoritative", () => {
+  const source = { type: "doc", content: [
+    { type: "heading", attrs: { level: 2 }, content: [{ type: "text", text: "A field note" }] },
+    p("Introduction"),
+    { type: "bulletList", content: [item(p("One"))] },
+    { type: "codeBlock", content: [{ type: "text", text: "const saved = true;" }] },
+    { type: "horizontalRule" },
+  ] };
+  const blocks = migrateLegacyDocument({ postId: "article-flow", content: JSON.stringify(source) });
+  const renderers = { ...registry, [heading.blockName]: heading, [code.blockName]: code, [divider.blockName]: divider };
+  const render = (nodes: unknown[]) => new JSDOM(renderToStaticMarkup(prepareBlocks(nodes, renderers, policy)));
+  const dom = render(blocks);
+  try {
+    expect(dom.window.document.querySelectorAll("body > .cp-article-flow").length).toBe(5);
+    expect([...dom.window.document.querySelectorAll("section[data-block-id]")].map(n => n.getAttribute("data-spacing"))).toEqual(Array(5).fill("none"));
+  } finally { dom.window.close(); }
+  const explicit = render(blocks.map(block => ({ ...block, layout: { spacing: "spacious" } })));
+  try {
+    expect(explicit.window.document.querySelectorAll(".cp-article-flow").length).toBe(0);
+    expect([...explicit.window.document.querySelectorAll("section[data-block-id]")].map(n => n.getAttribute("data-spacing"))).toEqual(Array(5).fill("spacious"));
+  } finally { explicit.window.close(); }
 });
 
 test("existing version-2 flat lists keep their items and completion states; empty child slots add no markers", () => {
