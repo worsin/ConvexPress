@@ -2,6 +2,7 @@ import { Link } from "@tanstack/react-router";
 import { ChevronRight } from "lucide-react";
 
 import { cn } from "@/lib/utils";
+import { serializeJsonLd } from "@/lib/seo/jsonld";
 import { useBreadcrumbs } from "@/hooks/layout/useBreadcrumbs";
 import type { BreadcrumbSegment } from "@/lib/layout/types";
 
@@ -74,7 +75,7 @@ export function Breadcrumbs({ segments: overrides, className }: BreadcrumbsProps
       {/* JSON-LD structured data for SEO */}
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        dangerouslySetInnerHTML={{ __html: serializeJsonLd(jsonLd) }}
       />
     </>
   );
