@@ -7,7 +7,7 @@
     "In progress": 20
   },
   "goal": "Complete block editor and template delivery plus all demonstrated blockers; defer unrelated whole-app audit campaigns.",
-  "currentTask": "Task4 E07: source canonical history import/download deployed and native-verified for saved originals and retained unsaved drafts, without downgrade.117backend/21mounted/14preview tests pass. All116source posts/434revisions and29target posts/88revisions unchanged after owned-copy cleanup. Next target history backport/acceptance, historical reference reconciliation and legacy downgrade/dispatch retirement. Full goal active/incomplete;117Verified/20In progress unchanged.",
+  "currentTask": "Task4 E07: source and target canonical historical saved/unsaved import and exact-source download deployed and native-verified. Target106tests/1012assertions; import/reload/download/canonical undo and actual Website previews pass. All116source posts/434revisions and29target posts/88revisions, appearance and mail exact after cleanup. Next historical format/reference reconciliation and old downgrade/dispatch retirement. Full goal active/incomplete;117Verified/20In progress unchanged.",
   "tasks": [
     {
       "id": 1,
@@ -100,11 +100,11 @@
     },
     {
       "id": "E07",
-      "status": "Current source116/116 and target29/29 canonical. Source historical saved/unsaved imports, exact-source download, Website previews, native reopen and canonical undo verified; originals/target/appearance/mail exact after cleanup. Target retains older recovery compatibility until its own backport. Old downgrade API and live legacy editor/renderer dispatch remain open; historical references/formats still require reconciliation.",
+      "status": "Current source116/116 and target29/29 canonical. Both support historical saved/unsaved canonical import, exact-source download, Website preview, native reopen and canonical undo. Original corpus/history/appearance/mail exact after cleanup. Old downgrade API and live legacy editor/renderer dispatch remain open; historical references/formats still require reconciliation.",
       "classification": "missing evidence",
       "initialFinding": "One-content-model migration and legacy retirement remain incomplete.",
       "closureBoundary": "Complete lossless conversion/recovery for actual retained content, source snapshots and installed-site receipts; then remove active legacy editor/renderer/schema dispatch as specified. Keep historical recovery data and a deliberate import converter. Do not delete old fields before proving preservation or claim migration complete while silently relying on legacy rendering.",
-      "nextCheck": "Backport historical import and necessary prerequisites into target preserved snapshot; verify native target recovery before retiring old downgrade mutation/permit and live legacy dispatch. SOURCE base output/history-import-20261005/deployment-source-final.json; TARGET base output/target-autosave-parity-20261005/target-source-installed.json. No whole-source target overlay and no wait on Claude.",
+      "nextCheck": "Reconcile historical formats/references before retiring old downgrade mutation/permit and live legacy dispatch. SOURCE base output/history-import-20261005/deployment-source-final.json; TARGET base output/target-history-import-20261005/target-source-installed.json. Target backport preserves its own137block catalog/fourpacks/86extensionfiles. No whole-source target overlay and no wait on Claude.",
       "deliveryTask": 4,
       "triagedAt": "2026-09-29",
       "triageEvidence": "ConvexPress-Admin/audits/2026-09-04/delivery-blocker-triage-20260929.md",
