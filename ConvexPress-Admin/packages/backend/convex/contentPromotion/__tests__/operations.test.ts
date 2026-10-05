@@ -10,6 +10,8 @@ import { insertTermRelationship } from "../../helpers/postDiscovery";
 import { insertWithMediaReferences, patchWithMediaReferences } from "../../media/attachmentGuard";
 import type { ContentPromotionManifest } from "@convexpress/site-contract/content-promotion";
 const modules = {
+ "./convex/settings/mutations.ts": () => import("../../settings/mutations"),
+ "./convex/settings/templateDrafts.ts": () => import("../../settings/templateDrafts"),
  "./convex/syncedBlocks/refresh.ts": () => import('../../syncedBlocks/refresh'),
  "./convex/syncedBlocks/content.ts": () => import('../../syncedBlocks/content'),
  "./convex/membership/policyReads.ts": () => import("../../membership/policyReads"),
@@ -2341,4 +2343,44 @@ test('locale export includes explicitly selected empty groups and disabled routi
  const exported=await f.authed.query(makeFunctionReference<'query'>('contentPromotion/operations:exportManifest'),{target,selection:{...manifest().selection,pageIds:[],includeLocalization:true,localeGroupKeys:['removed-guide']}});
  expect(exported.manifest.records.map((r:any)=>r.kind)).toEqual(['localeRouting','localeGroup']);expect(exported.manifest.records[0].data).toEqual({key:'site',enabled:false,locales:[]});expect(exported.manifest.records[1].data.translations).toEqual([]);
  expect(await f.t.run(ctx=>ctx.db.query('locale_routing').unique())).toBeNull();
+});
+
+
+test("template presentation writes share nested-shape and size refusal without target changes", async () => {
+ const f = await fixture();
+ await f.t.run(async ctx => {
+  const user = await ctx.db.get(f.userId); const role = await ctx.db.get(user!.roleId!);
+  await ctx.db.patch(role!._id, {capabilities:[...role!.capabilities,"settings.import"]});
+ });
+ const baseline = await f.authed.query(makeFunctionReference<"query">("settings/templateDrafts:snapshot"), {});
+ const malformed = [
+  {Core:{colors:{primary:"#123456"}}},
+  {core:[]},
+  {core:{"menu.layout":{}}},
+  {core:{menuLayout:[]}},
+  {core:{footer:{copyrightText:"x".repeat(250_000)}}},
+ ];
+ for (const settings of malformed) {
+  const values = {...baseline.values,settings};
+  const m = manifest(); m.selection.includePresentation = true;
+  m.records.push({key:"template",kind:"presentation",sourceRevision:"1",data:{section:"appearance.template",values}});
+  await expect(f.authed.mutation(fn("dryRun"), {manifest:m,...bindings})).rejects.toThrow();
+  await expect(f.authed.mutation(makeFunctionReference<"mutation">("settings/mutations:updateSection"), {section:"appearance.template",values:{settings}})).rejects.toThrow();
+  await expect(f.authed.mutation(makeFunctionReference<"mutation">("settings/mutations:importAll"), {data:{settings:{"appearance.template":values}}})).rejects.toThrow();
+  await expect(f.authed.mutation(makeFunctionReference<"mutation">("settings/templateDrafts:publish"), {values,expectedRevision:baseline.revision,confirmLive:true})).rejects.toThrow();
+  expect(await f.authed.query(makeFunctionReference<"query">("settings/templateDrafts:snapshot"), {})).toEqual(baseline);
+ }
+ expect(await f.t.run(ctx=>ctx.db.query("appearance_drafts").collect())).toHaveLength(0);
+ expect(await f.t.run(ctx=>ctx.db.query("posts").collect())).toHaveLength(0);
+});
+
+test("template generic partial updates preserve valid camelCase modules and other packs", async () => {
+ const f=await fixture();
+ const values={active:"core",overrides:{},variants:{},settings:{core:{menuLayout:{primary:"footer-1"}},"aster-house":{colors:{primary:"#123456"}}}};
+ await f.authed.mutation(makeFunctionReference<"mutation">("settings/mutations:updateSection"), {section:"appearance.template",values});
+ await f.authed.mutation(makeFunctionReference<"mutation">("settings/mutations:updateSection"), {section:"appearance.template",values:{active:"aster-house"}});
+ const result=await f.authed.query(makeFunctionReference<"query">("settings/templateDrafts:snapshot"), {});
+ expect(result.values).toEqual({...values,active:"aster-house"});
+ const m=manifest();m.selection.includePresentation=true;m.records.push({key:"template",kind:"presentation",sourceRevision:"1",data:{section:"appearance.template",values:result.values}});
+ const {validateManifest}=await import("../shared");expect(validateManifest(m).records).toHaveLength(2);
 });

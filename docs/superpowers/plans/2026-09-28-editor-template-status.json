@@ -137,7 +137,10 @@
       "nextCheck": "Complete remaining per-field/shop/promotion and22dashboard surface matrix; reuse Aster recorded native workflow and earlier other-pack/authority proofs. Do not repeat accepted flows without affected changes.",
       "deliveryTask": 5,
       "triagedAt": "2026-09-29",
-      "triageEvidence": "ConvexPress-Admin/audits/2026-09-04/delivery-blocker-triage-20260929.md"
+      "triageEvidence": "ConvexPress-Admin/audits/2026-09-04/delivery-blocker-triage-20260929.md",
+      "currentEvidence": [
+        "ConvexPress-Admin/audits/2026-09-04/template-validation-parity-20261005.md"
+      ]
     },
     {
       "id": "E10",
