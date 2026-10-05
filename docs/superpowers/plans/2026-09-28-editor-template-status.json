@@ -7,7 +7,7 @@
     "In progress": 20
   },
   "goal": "Complete block editor and template delivery plus all demonstrated blockers; defer unrelated whole-app audit campaigns.",
-  "currentTask": "Task5: refreshed actual Website E68 repeat-pick and E69 authority banner/recovery acceptance complete on October5. Next remaining per-field/Aster native workflow,22dashboard surfaces and migration/runtime retirement. Core native chrome and four-pack contexts accepted;117Verified/20In progress unchanged (stored tracker checkpoint). E07/E18/E22, authored sites, demo and SDK remain open.",
+  "currentTask": "Task5 Aster native activation/draft/reload/publication/public preview accepted for recorded controls; E70 native labels and E71 breadcrumb JSON-LD repaired with regressions. Full fields/shop/promotion/22dashboard surfaces remain. Continue E07 canonical content adapters and migration evidence; stored117Verified/20In progress unchanged.",
   "tasks": [
     {
       "id": 1,
@@ -128,11 +128,11 @@
     },
     {
       "id": "E09",
-      "status": "Open with reusable partial evidence: Core native chrome/menu publication; Journal/Depot customization, conflicts and promotion; four-pack primary/history/context; actual natural renewal; signed-in Clerk customer UI/API denial; real parent-operator revocation and same-tab recovery accepted. Full per-field/Aster native,22dashboard surfaces, hosted HTTPS permission and migration/runtime retirement remain. E68/E69 refreshed actual Website acceptance completed October5; repeated focus and correct denial notice/same-document recovery pass.",
+      "status": "Open with reusable partial evidence: Core native chrome/menu publication; Journal/Depot customization, conflicts and promotion; four-pack primary/history/context; actual natural renewal; signed-in Clerk customer UI/API denial; real parent-operator revocation and same-tab recovery accepted. Full per-field/Aster native,22dashboard surfaces, hosted HTTPS permission and migration/runtime retirement remain. E68/E69 refreshed actual Website acceptance completed October5; repeated focus and correct denial notice/same-document recovery pass. October5 Aster native activation, palette/type/layout/CTA/footer draft-save-reload-publication and public desktop/phone accepted within recorded field scope; see customizer-aster-20261005.md. Full matrix remains open.",
       "classification": "missing evidence",
       "initialFinding": "Customizer contextual fields, all packs/surfaces, header/footer/menu integration and operator authority are not fully accepted.",
       "closureBoundary": "Verify the field group controls the actual surface, click-to-edit focus, draft/publish/reset/history/conflicts, pack switches, session continuity, customer denial and revocation.",
-      "nextCheck": "Task5: complete remaining actual field/surface and Aster native matrix. Reuse authority/renewal/chrome/promotion and October5 E68/E69 evidence; Dashboard Customize navigation already repaired1124f919. Literal settingsGroup toast remains a concrete observation to reconcile.",
+      "nextCheck": "Complete remaining per-field/shop/promotion and22dashboard surface matrix; reuse Aster recorded native workflow and earlier other-pack/authority proofs. Do not repeat accepted flows without affected changes.",
       "deliveryTask": 5,
       "triagedAt": "2026-09-29",
       "triageEvidence": "ConvexPress-Admin/audits/2026-09-04/delivery-blocker-triage-20260929.md"
@@ -749,6 +749,31 @@
         "output/customizer-runtime-20261005/operator-revoked.json",
         "output/customizer-runtime-20261005/operator-recovered.json",
         "output/customizer-runtime-20261005/preservation.json"
+      ]
+    },
+    {
+      "id": "E70",
+      "classification": "accepted/reusable evidence",
+      "deliveryTask": 5,
+      "initialFinding": "Native Header CTA switch unnamed and visible field labels unassociated with inputs; shared footer controls use same pattern.",
+      "closureBoundary": "Associate text/select labels and name switch controls, preserving settings and callbacks; mounted regressions plus actual native focus/name check.",
+      "status": "Repaired shared header/footer controls; failing-before mounted test now3tests/17assertions green, native label resolution/click focus/switch name verified, Admin types/lint pass.",
+      "evidence": [
+        "ConvexPress-Admin/audits/2026-09-04/customizer-aster-20261005.md",
+        "output/customizer-aster-20261005/control-labels-after.json"
+      ]
+    },
+    {
+      "id": "E71",
+      "classification": "implemented and component verified; full URL exploit not established",
+      "deliveryTask": 5,
+      "initialFinding": "Claude32 D1: raw JSON-LD serialization in actual public breadcrumb component permits script termination from labels/destinations.",
+      "closureBoundary": "Reuse safe serializer and prove actual SSR HTML cannot create extra markup while preserving parsed labels/destinations. Distinguish component proof from unverified URL exploit.",
+      "status": "Two actual SSR cases fail before and pass after existing serializeJsonLd reuse. Adjacent article security6outertests/55assertions and Website types/lint pass. URL replay encountered redirect loop; no deployed-runtime or public-exploit claim.",
+      "evidence": [
+        "ConvexPress-Admin/audits/2026-09-04/customizer-aster-20261005.md",
+        "output/customizer-aster-20261005/breadcrumb-red.log",
+        "output/customizer-aster-20261005/breadcrumb-green.log"
       ]
     }
   ],
