@@ -105,3 +105,15 @@ existing migration API. Unknown fields, unsafe links and the document byte/node
 limits still refuse conversion; no truncation or artificial paragraph splitting
 is permitted. Native conversion/edit/save/publish/withdraw/original recovery on
 isolated4860 is recorded in `ConvexPress-Admin/audits/2026-09-04/paragraph-migration-20260921.md`.
+
+October5 plain-text import is an explicit review path, not ordinary migration.
+`prepareMigration.importedContent: "plain-text"` warns that the original renderer
+may not have displayed the stored text. Review the literal candidate and acknowledge
+import into the draft; `migrate` requires `acknowledgeTextImport: true`. Refresh
+clears the acknowledgement, independently of inactive-settings review. Words and
+line breaks are retained without Markdown/HTML interpretation; CRLF/CR normalize
+to canonical line breaks while the exact original remains recoverable in history.
+HTML and ambiguous malformed JSON still require their own lossless adapter.
+Source4860 native conversion/desktop-phone preview/exact original recovery and
+installed refusal evidence: `ConvexPress-Admin/audits/2026-09-04/plain-text-import-20261005.md`.
+This proves one owned draft copy, not bulk conversion or legacy retirement.

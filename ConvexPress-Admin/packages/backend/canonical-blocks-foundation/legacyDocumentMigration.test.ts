@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { migrateLegacyDocument } from "./legacyDocumentMigration";
+import { migrateLegacyDocument, reviewLegacyDocumentSource } from "./legacyDocumentMigration";
 const text = (value: string) => ({ type: "text", text: value });
 const paragraph = (...content: unknown[]) => ({ type: "paragraph", content });
 const doc = (...content: unknown[]) => ({ type: "doc", content });
@@ -74,4 +74,15 @@ test("nested conversion refuses unknown descendants and expanded canonical budge
   let nested: unknown = list(item(paragraph(text("Leaf"))));
   for (let i = 0; i < 100; i++) nested = list(item(paragraph(text("Parent")), nested));
   expect(() => migrate(doc(nested))).toThrow("budget");
+});
+
+
+test("literal plain-text imports require a distinct review and preserve line breaks without parsing formatting", () => {
+ const content="First **literal** & text\r\n\r\nLast < 3";
+ const result=reviewLegacyDocumentSource({postId:"text-import",content});
+ expect(result.importedContent).toBe("plain-text");
+ expect(result.blocks[0].attrs).toEqual({body:doc(paragraph(text("First **literal** & text"),{type:"hardBreak"},{type:"hardBreak"},text("Last < 3")))});
+ expect(reviewLegacyDocumentSource({postId:"text-import",content})).toEqual(result);
+ expect(reviewLegacyDocumentSource({postId:"json",content:JSON.stringify(doc(paragraph(text("JSON"))))}).importedContent).toBeUndefined();
+ for(const content of ["<p>HTML</p>","Before <strong>HTML</strong>","{broken json", "[broken", "x".repeat(20001)]) expect(()=>reviewLegacyDocumentSource({postId:"refused",content})).toThrow();
 });

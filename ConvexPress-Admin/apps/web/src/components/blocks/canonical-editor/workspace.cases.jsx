@@ -507,7 +507,7 @@ test("native write adapter refuses wrong scope, digest, document and revision re
 	}
 });
 
-test.each([false,true])("existing authored migration binds source review and unused-settings acknowledgement (%s)", async (inactive) => {
+test.each([{inactive:false,textImport:false},{inactive:true,textImport:false},{inactive:false,textImport:true},{inactive:true,textImport:true}])("existing authored migration binds source review and acknowledgement (%j)", async ({inactive,textImport}) => {
 	const loaded = await loadStaged("../canonical-editor/workspace.fixture.ts"),
 		m = loaded.module;
 	const dom = new JSDOM('<div id="app"></div>', { url: "http://localhost" }),
@@ -595,6 +595,7 @@ test.each([false,true])("existing authored migration binds source review and unu
 		},
 		candidate,
 	};
+    if(textImport) review.importedContent="plain-text";
     if(inactive) review.inactiveSettings=[{blockId:"paragraph",name:"core/paragraph",layout:{padding:"spacious"},lock:{edit:true}}];
 	let current = original,
 		writes = [],
@@ -655,16 +656,28 @@ test.each([false,true])("existing authored migration binds source review and unu
           await act(async()=>button("Convert reviewed content").click());
           expect(writes).toHaveLength(0);
           await act(async()=>document.querySelector('input[type="checkbox"]').click());
-          expect(button("Convert reviewed content").disabled).toBe(false);
+          expect(button("Convert reviewed content").disabled).toBe(textImport);
           await act(async()=>button("Refresh migration review").click());
           expect(button("Convert reviewed content").disabled).toBe(true);
           expect(document.querySelector('input[type="checkbox"]').checked).toBe(false);
           await act(async()=>document.querySelector('input[type="checkbox"]').click());
         }
+        if(textImport) {
+          expect(document.body.textContent).toContain("The original renderer may not have displayed this stored text");
+          expect(button("Convert reviewed content").disabled).toBe(true);
+          await act(async()=>document.querySelector('input[name="text-import"]').click());
+          expect(button("Convert reviewed content").disabled).toBe(false);
+          await act(async()=>button("Refresh migration review").click());
+          expect(document.querySelector('input[name="text-import"]').checked).toBe(false);
+          expect(button("Convert reviewed content").disabled).toBe(true);
+          if(inactive) await act(async()=>document.querySelector('input[type="checkbox"]').click());
+          await act(async()=>document.querySelector('input[name="text-import"]').click());
+        }
 		await act(async () => button("Convert reviewed content").click());
 		expect(writes).toEqual([
 			{
 				...(inactive ? {preserveInactiveSettings:true} : {}),
+                ...(textImport ? {acknowledgeTextImport:true} : {}),
 				expectedRevision: 2,
 				expectedAuthoringDigest: "a".repeat(64),
 				expectedCandidateDigest: candidate.document.digest,

@@ -34,6 +34,23 @@ function paragraph(value: unknown, path: Path): JsonObject {
   return { type: "paragraph", content: children(row.content, [...path, "content"]) };
 }
 const inlineDoc = (content: unknown[]) => ({ type: "doc", content: [{ type: "paragraph", content }] });
+/** A separate import review prevents previously undisplayed text from becoming
+ * visible through an ordinary migration. HTML/ambiguous JSON still refuse. */
+export function reviewLegacyDocumentSource(args: { postId: string; content: string }): { blocks: CanonicalTree; importedContent?: "plain-text" } {
+  let isJson = true;
+  try { JSON.parse(args.content); } catch { isJson = false; }
+  if (isJson) return { blocks: migrateLegacyDocument(args) };
+  if (/^\s*[[{]/u.test(args.content) || /<[!/?a-z]/iu.test(args.content)) {
+    fail(["content"], "HTML or malformed structured content requires an explicit lossless adapter");
+  }
+  if (new TextEncoder().encode(args.content).byteLength > CANONICAL_TREE_LIMITS.bytes) fail(["content"], "The source document exceeds the canonical migration byte limit");
+  const content: unknown[] = [];
+  for (const [index, line] of args.content.split(/\r\n|\r|\n/u).entries()) {
+    if (index) content.push({ type: "hardBreak" });
+    if (line) content.push({ type: "text", text: line });
+  }
+  return { importedContent: "plain-text", blocks: migrateLegacyDocument({ ...args, content: JSON.stringify(inlineDoc(content)) }) };
+}
 export function migrateLegacyDocument(args: { postId: string; content: string }): CanonicalTree {
   if (typeof args.postId !== "string" || !args.postId) fail([], "A persisted document identity is required");
   if (typeof args.content !== "string" || new TextEncoder().encode(args.content).byteLength > CANONICAL_TREE_LIMITS.bytes) fail(["content"], "The source document exceeds the canonical migration byte limit");

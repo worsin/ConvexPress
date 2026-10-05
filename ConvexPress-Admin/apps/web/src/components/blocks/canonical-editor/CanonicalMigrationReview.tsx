@@ -22,6 +22,7 @@ export interface MigrationClient {
 		expectedCandidateDigest: string;
 		expectedPresentationRevision: string;
 		preserveInactiveSettings?: boolean;
+		acknowledgeTextImport?: boolean;
 	}): Promise<unknown>;
 }
 /** The server owns conversion. Review is immutable and commit sends only exact
@@ -38,6 +39,7 @@ export function CanonicalMigrationReview({
 	onMigrated: () => Promise<unknown>;
 }) {
 	const [acknowledgedReview, setAcknowledgedReview] = useState<CanonicalMigrationDto | null>(null);
+	const [acknowledgedImport, setAcknowledgedImport] = useState<CanonicalMigrationDto | null>(null);
 	const [review, setReview] = useState<CanonicalMigrationDto | null>(null),
 		[busy, setBusy] = useState(false),
 		[error, setError] = useState<string | null>(null),
@@ -69,6 +71,7 @@ export function CanonicalMigrationReview({
 		setError(null);
 		setReview(null);
 		setAcknowledgedReview(null);
+		setAcknowledgedImport(null);
 		try {
 			const next = parseCanonicalMigration(await client.prepareMigration());
 			readForEditor(next.candidate, documentKey);
@@ -147,6 +150,23 @@ export function CanonicalMigrationReview({
 							</label>
 						</fieldset>
 					)}
+					{current.importedContent && (
+						<fieldset className="space-y-3 rounded border border-border p-4">
+							<legend className="px-1 font-medium">Import stored plain text</legend>
+							<p className="text-sm text-muted-foreground">
+								The original renderer may not have displayed this stored text.
+								Import keeps its words and line breaks as literal text. Review the
+								content below before converting this draft; publication is a separate step.
+								The exact original remains in revision history.
+							</p>
+							<label className="flex min-h-11 items-center gap-3 text-sm">
+								<input type="checkbox" name="text-import" disabled={busy}
+									checked={acknowledgedImport === current}
+									onChange={(event) => setAcknowledgedImport(event.target.checked ? current : null)} />
+								Import this reviewed text into the draft and retain the original revision.
+							</label>
+						</fieldset>
+					)}
 					<div className="grid gap-5 md:grid-cols-[minmax(180px,1fr)_minmax(0,2fr)]">
 						<CanonicalOutline
 							nodes={current.candidate.document.blocks}
@@ -171,11 +191,11 @@ export function CanonicalMigrationReview({
 					</div>
 					<button
 						type="button"
-						disabled={busy || (!!current.inactiveSettings?.length && acknowledgedReview !== current)}
+						disabled={busy || (!!current.inactiveSettings?.length && acknowledgedReview !== current) || (!!current.importedContent && acknowledgedImport !== current)}
 						className="min-h-11 rounded bg-primary px-4 text-sm text-primary-foreground disabled:opacity-50"
 						onClick={() =>
 							void (async () => {
-								if (pending.current || (current.inactiveSettings?.length && acknowledgedReview !== current)) return;
+								if (pending.current || (current.inactiveSettings?.length && acknowledgedReview !== current) || (current.importedContent && acknowledgedImport !== current)) return;
 								pending.current = true;
 								setBusy(true);
 								setError(null);
@@ -183,6 +203,7 @@ export function CanonicalMigrationReview({
 									const receipt = canonicalWriteReceiptSchema.parse(
 										await client.migrate({
 											...(current.inactiveSettings?.length ? {preserveInactiveSettings: true} : {}),
+											...(current.importedContent ? {acknowledgeTextImport: true} : {}),
 											expectedRevision: current.source.revision,
 											expectedAuthoringDigest: current.source.authoringDigest,
 											expectedCandidateDigest:

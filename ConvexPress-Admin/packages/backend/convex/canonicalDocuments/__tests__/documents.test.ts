@@ -2755,3 +2755,22 @@ test("social-share URL write rules preserve historical recovery but reject inval
   await f.client.mutation(reference("restore","mutation"),{postId:f.ids.post,expectedRevision:saved.revision,revisionId:old.id});
   expect((await f.client.query(reference("get"),{postId:f.ids.post})).document.blocks).toEqual(args.blocks);
 });
+
+
+test("plain-text migration requires review acknowledgement and preserves exact original recovery", async () => {
+ const f=await fixture();const content="Previously hidden plain text\r\n\r\nKeep **literal** formatting.";
+ await f.t.run(ctx=>ctx.db.patch("posts",f.ids.post,{contentMode:"article",content}));
+ const before=await f.t.run(ctx=>ctx.db.get("posts",f.ids.post));
+ const review=await f.client.query(reference("prepareMigration"),{postId:f.ids.post});
+ expect(review.importedContent).toBe("plain-text");
+ const args={postId:f.ids.post,expectedRevision:review.source.revision,expectedAuthoringDigest:review.source.authoringDigest,expectedCandidateDigest:review.candidate.document.digest,expectedPresentationRevision:review.candidate.presentation.revision};
+ for(const acknowledgeTextImport of [undefined,false]) await expect(f.client.mutation(reference("migrate","mutation"),{...args,...(acknowledgeTextImport===undefined?{}:{acknowledgeTextImport})})).rejects.toThrow();
+ expect(await f.t.run(ctx=>ctx.db.get("posts",f.ids.post))).toEqual(before);
+ const receipt=await f.client.mutation(reference("migrate","mutation"),{...args,acknowledgeTextImport:true});
+ expect((await f.client.query(reference("get"),{postId:f.ids.post})).document.blocks).toEqual(review.candidate.document.blocks);
+ const history=await f.client.query(reference("pageRevisions"),{postId:f.ids.post,paginationOpts:{cursor:null,numItems:20}});
+ const original=history.page.find((row:any)=>row.action==="recover-legacy");
+ await f.client.mutation(reference("recoverLegacy","mutation"),{postId:f.ids.post,revisionId:original.id,expectedRevision:receipt.revision});
+ expect((await f.t.run(ctx=>ctx.db.get("posts",f.ids.post)))!.content).toBe(content);
+ const again=await f.client.query(reference("prepareMigration"),{postId:f.ids.post});expect(again.importedContent).toBe("plain-text");
+});

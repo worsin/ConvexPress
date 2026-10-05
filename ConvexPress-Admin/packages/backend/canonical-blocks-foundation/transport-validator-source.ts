@@ -112,6 +112,7 @@ export const migrationValidator: Validator<CanonicalMigrationDto, "required", st
   source: v.object({ postId: v.string(), revision: v.number(), authoringDigest: v.string() }),
   candidate: fromZod<CanonicalDocumentDto>(structuralDocument),
   inactiveSettings: v.optional(v.array(fromZod(inactiveLegacySettingsSchema))),
+  importedContent: v.optional(v.literal("plain-text")),
 });
 
 import { publicReadySchema, publicRestrictedSchema, type PublicCanonicalDocument } from "./publicDocumentContracts";
