@@ -7,7 +7,7 @@
     "In progress": 20
   },
   "goal": "Complete block editor and template delivery plus all demonstrated blockers; defer unrelated whole-app audit campaigns.",
-  "currentTask": "Task5 Aster native activation/draft/reload/publication/public preview accepted for recorded controls; E70 native labels and E71 breadcrumb JSON-LD repaired with regressions. Full fields/shop/promotion/22dashboard surfaces remain. Continue E07 canonical content adapters and migration evidence; stored117Verified/20In progress unchanged.",
+  "currentTask": "Task4 E07 nested-list semantic migration/native recovery accepted and cleaned. Continue observed migrated article-flow spacing repair, then remaining raw-text/HTML corpus conversions and legacy retirement. Whole delivery remains incomplete;117Verified/20In progress unchanged.",
   "tasks": [
     {
       "id": 1,
@@ -100,11 +100,11 @@
     },
     {
       "id": "E07",
-      "status": "Open: complete paginated source4860/target4870 scans of posts/revisions/legacy reusable/synced tables recorded privately;116/29documents include trash,42/2legacy,7/2active legacy. Pure converters accept38/42source and2/2target;4source refusals explicitly retained (3raw-text documents,1multi-block list item), including2published raw-text posts. Two target registered draft preflights pass. No content migrated; repository/demo corpus, references, render/recovery acceptance and active legacy retirement pending.",
+      "status": "Partial acceptance: lossless nested-list conversion, registered lifecycle/recovery, actual Electron review/convert/reopen/publish/original recovery/canonical undo and public1440/390 semantic rendering pass on an owned retained-content copy. Source4860 deployment preserves2410 signatures/22Events files; fixture/sessions cleaned. Corpus39/42 source docs and112/119 legacy revisions, target2/2 and21/21. Raw-text/HTML adapters, migrated article flow/spacing, installed corpus receipts and active legacy retirement remain open.",
       "classification": "missing evidence",
       "initialFinding": "One-content-model migration and legacy retirement remain incomplete.",
       "closureBoundary": "Complete lossless conversion/recovery for actual retained content, source snapshots and installed-site receipts; then remove active legacy editor/renderer/schema dispatch as specified. Keep historical recovery data and a deliberate import converter. Do not delete old fields before proving preservation or claim migration complete while silently relying on legacy rendering.",
-      "nextCheck": "Task4: inspect repository/demo corpus and exact visible behavior of raw-text and nested-list sources; implement lossless reviewed adapters, preserve inactive/original fields, then exercise owned native copies and complete references/history/site receipts before retiring any active legacy path.",
+      "nextCheck": "Fix observed standalone Section spacing in converted prose documents, then complete explicit raw-text/HTML preservation/import strategy and remaining installed content/history/reference receipts. Do not retire original recovery paths prematurely.",
       "deliveryTask": 4,
       "triagedAt": "2026-09-29",
       "triageEvidence": "ConvexPress-Admin/audits/2026-09-04/delivery-blocker-triage-20260929.md",
@@ -112,7 +112,8 @@
         "ConvexPress-Admin/audits/2026-09-04/migration-planner-corpus-20260929.md",
         "output/migration-corpus-20260929/inventory.json",
         "output/migration-corpus-20260929/conversion-review.json",
-        "output/migration-corpus-20260929/reusable-inventory.json"
+        "output/migration-corpus-20260929/reusable-inventory.json",
+        "ConvexPress-Admin/audits/2026-09-04/migration-nested-list-20261005.md"
       ]
     },
     {

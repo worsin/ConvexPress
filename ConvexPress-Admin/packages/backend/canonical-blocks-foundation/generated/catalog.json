@@ -8887,7 +8887,7 @@
     "category": "text",
     "constraints": [],
     "data": null,
-    "description": "Bulleted, numbered, or task list.",
+    "description": "Bulleted, numbered, or task list. Each child block is an additional list item after the text items; use a Group for paragraphs and nested lists within one item. Child items in task lists are uncompleted; use text items for editable completion states.",
     "examples": [
       {
         "items": [
@@ -9006,7 +9006,7 @@
     "source": "blocks/core/list/block.json",
     "supports": {
       "anchor": true,
-      "children": false,
+      "children": true,
       "layout": [
         "width",
         "tone",

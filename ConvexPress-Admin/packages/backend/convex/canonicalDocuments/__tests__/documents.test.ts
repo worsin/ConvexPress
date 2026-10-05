@@ -1090,6 +1090,34 @@ test("migration refuses unsafe precedence, unrepresented nodes, distinct autosav
   expect(state.history).toHaveLength(0);
 });
 
+test("nested-list migration uses registered review/commit and restores the exact source before canonical undo", async () => {
+  const f = await fixture();
+  const p = (text: string) => ({ type: "paragraph", content: [{ type: "text", text, marks: [{ type: "italic" }] }] });
+  const content = JSON.stringify({ type: "doc", content: [{ type: "bulletList", content: [
+    { type: "listItem", content: [p("Parent"), { type: "bulletList", content: [{ type: "listItem", content: [p("Nested")] }] }, p("After nested list")] },
+    { type: "listItem", content: [p("Sibling")] },
+  ] }] });
+  await f.t.run(ctx => ctx.db.patch("posts", f.ids.post, { contentMode: "article", content, pagePrompt: "Preserve the hierarchy" }));
+  const review = await f.client.query(reference("prepareMigration"), { postId: f.ids.post });
+  const blocks = review.candidate.document.blocks;
+  expect(blocks[0].children).toHaveLength(2);
+  expect(blocks[0].children[0].children.map((row: { name: string }) => row.name)).toEqual(["core/paragraph", "core/list", "core/paragraph"]);
+  const args = { postId: f.ids.post, expectedRevision: review.source.revision, expectedAuthoringDigest: review.source.authoringDigest, expectedCandidateDigest: review.candidate.document.digest, expectedPresentationRevision: review.candidate.presentation.revision };
+  const receipt = await f.client.mutation(reference("migrate", "mutation"), args);
+  expect((await f.client.query(reference("get"), { postId: f.ids.post })).document.blocks).toEqual(blocks);
+  await expect(f.client.mutation(reference("migrate", "mutation"), args)).rejects.toThrow();
+  const history = await f.client.query(reference("pageRevisions"), { postId: f.ids.post, paginationOpts: { cursor: null, numItems: 20 } });
+  const original = history.page.find((row: any) => row.action === "recover-legacy");
+  expect(original).toBeDefined();
+  const recovered = await f.client.mutation(reference("recoverLegacy", "mutation"), { postId: f.ids.post, revisionId: original.id, expectedRevision: receipt.revision });
+  expect(await f.t.run(ctx => ctx.db.get("posts", f.ids.post))).toMatchObject({ content, contentMode: "article", pagePrompt: "Preserve the hierarchy", blocksVersion: 1 });
+  const after = await f.client.query(reference("pageRevisions"), { postId: f.ids.post, paginationOpts: { cursor: null, numItems: 20 } });
+  const canonical = after.page.find((row: any) => row.action === "restore-canonical");
+  const restored = await f.client.mutation(reference("restore", "mutation"), { postId: f.ids.post, revisionId: canonical.id, expectedRevision: recovered.revision, expectedAuthoringDigest: recovered.authoringDigest });
+  expect(restored.revision).toBe(recovered.revision + 1);
+  expect((await f.client.query(reference("get"), { postId: f.ids.post })).document.blocks).toEqual(blocks);
+});
+
 test("manual page and post saves reconcile only redundant autosaves before immediate canonical entry", async () => {
   for (const kind of ["page", "post"] as const) {
     const f = await fixture();

@@ -3100,7 +3100,7 @@ export const dependencyDescriptors = {
     "source": "blocks/core/list/block.json",
     "supports": {
       "anchor": true,
-      "children": false,
+      "children": true,
       "layout": [
         "width",
         "tone",
@@ -3110,7 +3110,7 @@ export const dependencyDescriptors = {
       "styles": true,
       "visibility": true
     },
-    "supportsChildren": false,
+    "supportsChildren": true,
     "treatments": [],
     "version": 2
   },

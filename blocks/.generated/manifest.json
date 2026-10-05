@@ -1,19 +1,19 @@
 {
   "files": {
-    "ai-catalog.ts": "530f9051e03222c8071a7cebc08eb8965b1709261abae056a7e934e97e4aa62c",
+    "ai-catalog.ts": "711f35e3f8f17b3423cc06ad7e211bc1899b221a5e6769e2b781287a61c3cb69",
     "block-spec.schema.json": "8d9493e9cfddb1b68eb7b275259b3585bb67f52ed382f7e0ca3b53ca6ea7cb8e",
-    "catalog.json": "d25a3d8d5e30783ae1a3ebd08b938b5e35acbd03c7086ad107c0e726ced4f138",
+    "catalog.json": "19f2cb706d033fcebdb153ff8f3317ee1ed944579a3ed40dae3a38f2538d07bf",
     "convex.ts": "a4abad47462f2970833041a03c0b992948487a541670df7e344eedec765e5a42",
     "coverage.json": "c45450354aa5a6be89991fea577997f2c3ab66299669c014a49604957a133c50",
-    "dependencies.json": "630cfab651580cedae74f16bb713240bab9fc8508eb4bf895fb58d64173b0749",
-    "editor-metadata.ts": "8bd061756635cdba69987d7c4a201a5e101f65a8c189109fc401abee0d381137",
-    "editors.json": "d7a2a813d76d789c1a76c27bc1008b2dee65e5fa54353d22fb413819a9341899",
+    "dependencies.json": "231627942131a7993a3d59798d14dc276c877f47c9d7cace24d017d32c2b4738",
+    "editor-metadata.ts": "48ac9d9841bda32c573bf8aaf5e550661797e36e903bfc7d89637c31a9c6663c",
+    "editors.json": "1a4e3eb9ad59fc56bbb1b8d945281f3a5eef13af34c4abee15c4dbad2fdb59aa",
     "field-runtime.d.mts": "9e1d25230a1ff8ec61f818b6004c8927cef3c95502a2d0edb1c28604da3388ce",
     "field-runtime.mjs": "ce6b761fbbcd719779ca9c117948bbef5d50e45eff553904738c4998ed0b2e37",
     "instance-runtime.d.mts": "56a0e4c7115873efc02701e6ded4ff34c2f4e1e28e98a29ec3c45dd963405a14",
     "instance-runtime.mjs": "89d1f85cb8a57d6c7e594284ef9e413a4b27cea32186d8fd457d597dfb66e2da",
     "instances.ts": "b221da7be40282981b196a29fb625f14ba8a2759fe43dc52bea09b4a61a3c684",
-    "metadata.ts": "c4475d5abc76b8034358d8ef43dd3507720aef365067b160bdfc92133c75c30c",
+    "metadata.ts": "9bd4341c3537d7808057153163f1a531985da3e593af467fe5816e98b7c1a25a",
     "migrations.json": "c5e06b9dba15e0d14a863eaadc5d50c219639718393bd5f0402ed6f7fede47a6",
     "pack-designs.ts": "7f297eb9c08f3759e376c184558a5719a913cd6661e37b11431942eed65755db",
     "patterns.ts": "2ec3505c0b75e44834a38aaf79a8ec7d6ce9f9c2273bb76b267eb7896449906e",
@@ -350,7 +350,7 @@
       "source": "blocks/core/lightbox-grid/block.json"
     },
     {
-      "sha256": "389014d00ad8261e60d359bc65a5545bd9e9cba16356b0edd87100f9d578cb34",
+      "sha256": "e72ebe621e75c5fcbabecee360150f89dbd9f66cb3ede049a8395bb01b3a1c13",
       "source": "blocks/core/list/block.json"
     },
     {

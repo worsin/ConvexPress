@@ -42,16 +42,23 @@ export function migrateLegacyDocument(args: { postId: string; content: string })
   const root = object(source, ["type", "content"], ["content"]);
   if (root.type !== "doc") fail(["content"], "Expected a TipTap document root");
   const sourceNodes = children(root.content, ["content"]);
-  const blocks: CanonicalBlockInstance[] = [];
-  function append(name: BlockName, attrs: unknown, path: Path) {
+  let count = 0;
+  function make(name: BlockName, attrs: unknown, path: Path, depth: number, childBlocks?: CanonicalBlockInstance[]): CanonicalBlockInstance {
+    if (++count > CANONICAL_TREE_LIMITS.nodes || depth > CANONICAL_TREE_LIMITS.depth) fail(path, "The converted document exceeds the canonical depth/node budget");
     let validated: unknown;
     try { validated = validateBlockAttrs(name, attrs); }
     catch { fail(path, "The authored value exceeds or differs from the target block contract"); }
-    blocks.push({ id: `migration_${sha256Hex(canonicalJson({ postId: args.postId, path })).slice(0, 32)}`, name, version: dependencyDescriptors[name].version, attrs: validated } as CanonicalBlockInstance);
+    return { id: `migration_${sha256Hex(canonicalJson({ postId: args.postId, path })).slice(0, 32)}`, name, version: dependencyDescriptors[name].version, attrs: validated, ...(childBlocks === undefined ? {} : { children: childBlocks }) } as CanonicalBlockInstance;
   }
-  for (let index = 0; index < sourceNodes.length; index++) {
-    const path: Path = ["content", index];
-    const node = object(sourceNodes[index], ["type", "attrs", "content"], path);
+  function convert(nodes: unknown[], parent: Path, depth: number): CanonicalBlockInstance[] {
+    // Check before descending, rather than relying on the final tree validator
+    // after recursively building an arbitrarily deep source document.
+    if (depth > CANONICAL_TREE_LIMITS.depth) fail(parent, "The converted document exceeds the canonical depth/node budget");
+    const blocks: CanonicalBlockInstance[] = [];
+    const append = (name: BlockName, attrs: unknown, path: Path, childBlocks?: CanonicalBlockInstance[]) => blocks.push(make(name, attrs, path, depth, childBlocks));
+    for (let index = 0; index < nodes.length; index++) {
+    const path: Path = [...parent, index];
+    const node = object(nodes[index], ["type", "attrs", "content"], path);
     switch (node.type) {
       case "paragraph": append("core/paragraph", { body: { type: "doc", content: [paragraph(node, path)] } }, path); break;
       case "heading": {
@@ -63,22 +70,33 @@ export function migrateLegacyDocument(args: { postId: string; content: string })
           const attrs = node.attrs === undefined ? {} : object(node.attrs, ["start"], [...path, "attrs"]);
           if (attrs.start !== undefined && attrs.start !== 1) fail([...path, "attrs", "start"], "A non-default ordered-list start needs a target contract");
         } else emptyAttrs(node.attrs, [...path, "attrs"]);
-        const items = children(node.content, [...path, "content"]).map((value, itemIndex) => {
+        const entries = children(node.content, [...path, "content"]).map((value, itemIndex) => {
           const at = [...path, "content", itemIndex];
           const item = object(value, ["type", "attrs", "content"], at);
           if (item.type !== (node.type === "taskList" ? "taskItem" : "listItem")) fail(at, "List item type is incompatible");
           const body = children(item.content, [...at, "content"]);
-          if (body.length !== 1) fail([...at, "content"], "A multi-block list item needs a target contract");
-          const text = { type: "doc", content: [paragraph(body[0], [...at, "content", 0])] };
+          if (!body.length) fail([...at, "content"], "List items require their authored paragraph");
+          const first = paragraph(body[0], [...at, "content", 0]);
           if (node.type === "taskList") {
+            if (body.length !== 1) fail([...at, "content"], "A multi-block task item needs a completion-state target contract");
             const attrs = object(item.attrs, ["checked"], [...at, "attrs"]);
             if (typeof attrs.checked !== "boolean") fail([...at, "attrs", "checked"], "The task completion value must be explicit");
-            return { text, done: attrs.checked };
+            return { at, body, first, done: attrs.checked };
           }
           emptyAttrs(item.attrs, [...at, "attrs"]);
-          return { text };
+          return { at, body, first };
         });
-        append("core/list", { style: node.type === "orderedList" ? "ordered" : node.type === "taskList" ? "task" : "bullet", items }, path); break;
+        const style = node.type === "orderedList" ? "ordered" : node.type === "taskList" ? "task" : "bullet";
+        if (entries.some(entry => entry.body.length > 1)) {
+          // Each child is one complete list item. Using groups retains multiple
+          // paragraphs and nested lists in place; it never flattens their text.
+          const items = entries.map(entry => make("core/group", {}, entry.at, depth + 1, convert(entry.body, [...entry.at, "content"], depth + 2)));
+          append("core/list", { style, items: [] }, path, items);
+        } else {
+          const items = entries.map(entry => ({ text: { type: "doc", content: [entry.first] }, ...("done" in entry ? { done: entry.done } : {}) }));
+          append("core/list", { style, items }, path);
+        }
+        break;
       }
       case "codeBlock": {
         const attrs = node.attrs === undefined ? {} : object(node.attrs, ["language"], [...path, "attrs"]);
@@ -96,6 +114,8 @@ export function migrateLegacyDocument(args: { postId: string; content: string })
         append("core/divider", {}, path); break;
       default: fail(path, `A lossless ${String(node.type ?? "unknown")} adapter is required`);
     }
+    }
+    return blocks;
   }
-  return validateCanonicalTree(blocks);
+  return validateCanonicalTree(convert(sourceNodes, ["content"], 1));
 }

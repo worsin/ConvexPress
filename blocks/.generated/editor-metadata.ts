@@ -5290,7 +5290,7 @@ export const editorDefinitions: Record<BlockName, EditorDefinition> = {
     "role": "content",
     "supports": {
       "anchor": true,
-      "children": false,
+      "children": true,
       "layout": [
         "width",
         "tone",
