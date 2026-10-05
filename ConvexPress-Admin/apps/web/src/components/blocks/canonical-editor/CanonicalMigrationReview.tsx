@@ -23,6 +23,7 @@ export interface MigrationClient {
 		expectedPresentationRevision: string;
 		preserveInactiveSettings?: boolean;
 		acknowledgeTextImport?: boolean;
+	acknowledgeHtmlImport?: boolean;
 	}): Promise<unknown>;
 }
 /** The server owns conversion. Review is immutable and commit sends only exact
@@ -152,10 +153,10 @@ export function CanonicalMigrationReview({
 					)}
 					{current.importedContent && (
 						<fieldset className="space-y-3 rounded border border-border p-4">
-							<legend className="px-1 font-medium">Import stored plain text</legend>
+							<legend className="px-1 font-medium">{current.importedContent === "html" ? "Import stored HTML" : "Import stored plain text"}</legend>
 							<p className="text-sm text-muted-foreground">
-								The original renderer may not have displayed this stored text.
-								Import keeps its words and line breaks as literal text. Review the
+								The original renderer may not have displayed this stored content.
+								{current.importedContent === "html" ? " Import converts its supported headings, paragraphs, formatting and links into editable blocks." : " Import keeps its words and line breaks as literal text."} Review the
 								content below before converting this draft; publication is a separate step.
 								The exact original remains in revision history.
 							</p>
@@ -163,7 +164,7 @@ export function CanonicalMigrationReview({
 								<input type="checkbox" name="text-import" disabled={busy}
 									checked={acknowledgedImport === current}
 									onChange={(event) => setAcknowledgedImport(event.target.checked ? current : null)} />
-								Import this reviewed text into the draft and retain the original revision.
+								Import this reviewed content into the draft and retain the original revision.
 							</label>
 						</fieldset>
 					)}
@@ -203,7 +204,8 @@ export function CanonicalMigrationReview({
 									const receipt = canonicalWriteReceiptSchema.parse(
 										await client.migrate({
 											...(current.inactiveSettings?.length ? {preserveInactiveSettings: true} : {}),
-											...(current.importedContent ? {acknowledgeTextImport: true} : {}),
+											...(current.importedContent === "plain-text" ? {acknowledgeTextImport: true} : {}),
+											...(current.importedContent === "html" ? {acknowledgeHtmlImport: true} : {}),
 											expectedRevision: current.source.revision,
 											expectedAuthoringDigest: current.source.authoringDigest,
 											expectedCandidateDigest:

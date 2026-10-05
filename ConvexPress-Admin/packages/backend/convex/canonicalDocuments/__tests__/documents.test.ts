@@ -2757,20 +2757,22 @@ test("social-share URL write rules preserve historical recovery but reject inval
 });
 
 
-test("plain-text migration requires review acknowledgement and preserves exact original recovery", async () => {
- const f=await fixture();const content="Previously hidden plain text\r\n\r\nKeep **literal** formatting.";
+for(const kind of ["plain-text","html"] as const) test(`${kind} migration requires review acknowledgement and preserves exact original recovery`, async () => {
+ const ack=kind==="html"?"acknowledgeHtmlImport":"acknowledgeTextImport";
+ const f=await fixture();const content=kind==="html"?'<h2>Original title</h2><p>Keep <strong>every word</strong> &amp; <a href="/studio">the link</a>.</p>':"Previously hidden plain text\r\n\r\nKeep **literal** formatting.";
  await f.t.run(ctx=>ctx.db.patch("posts",f.ids.post,{contentMode:"article",content}));
  const before=await f.t.run(ctx=>ctx.db.get("posts",f.ids.post));
  const review=await f.client.query(reference("prepareMigration"),{postId:f.ids.post});
- expect(review.importedContent).toBe("plain-text");
+ expect(review.importedContent).toBe(kind);
  const args={postId:f.ids.post,expectedRevision:review.source.revision,expectedAuthoringDigest:review.source.authoringDigest,expectedCandidateDigest:review.candidate.document.digest,expectedPresentationRevision:review.candidate.presentation.revision};
- for(const acknowledgeTextImport of [undefined,false]) await expect(f.client.mutation(reference("migrate","mutation"),{...args,...(acknowledgeTextImport===undefined?{}:{acknowledgeTextImport})})).rejects.toThrow();
+ for(const acknowledgeTextImport of [undefined,false]) await expect(f.client.mutation(reference("migrate","mutation"),{...args,...(acknowledgeTextImport===undefined?{}:{[ack]:acknowledgeTextImport})})).rejects.toThrow();
+ await expect(f.client.mutation(reference("migrate","mutation"),{...args,[kind==="html"?"acknowledgeTextImport":"acknowledgeHtmlImport"]:true})).rejects.toThrow();
  expect(await f.t.run(ctx=>ctx.db.get("posts",f.ids.post))).toEqual(before);
- const receipt=await f.client.mutation(reference("migrate","mutation"),{...args,acknowledgeTextImport:true});
+ const receipt=await f.client.mutation(reference("migrate","mutation"),{...args,[ack]:true});
  expect((await f.client.query(reference("get"),{postId:f.ids.post})).document.blocks).toEqual(review.candidate.document.blocks);
  const history=await f.client.query(reference("pageRevisions"),{postId:f.ids.post,paginationOpts:{cursor:null,numItems:20}});
  const original=history.page.find((row:any)=>row.action==="recover-legacy");
  await f.client.mutation(reference("recoverLegacy","mutation"),{postId:f.ids.post,revisionId:original.id,expectedRevision:receipt.revision});
  expect((await f.t.run(ctx=>ctx.db.get("posts",f.ids.post)))!.content).toBe(content);
- const again=await f.client.query(reference("prepareMigration"),{postId:f.ids.post});expect(again.importedContent).toBe("plain-text");
+ const again=await f.client.query(reference("prepareMigration"),{postId:f.ids.post});expect(again.importedContent).toBe(kind);
 });

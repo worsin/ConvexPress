@@ -507,7 +507,8 @@ test("native write adapter refuses wrong scope, digest, document and revision re
 	}
 });
 
-test.each([{inactive:false,textImport:false},{inactive:true,textImport:false},{inactive:false,textImport:true},{inactive:true,textImport:true}])("existing authored migration binds source review and acknowledgement (%j)", async ({inactive,textImport}) => {
+test.each([false,true].flatMap(inactive=>[undefined,"plain-text","html"].map(importedContent=>({inactive,importedContent}))))("existing authored migration binds source review and acknowledgement (%j)", async ({inactive,importedContent}) => {
+ const textImport=!!importedContent;
 	const loaded = await loadStaged("../canonical-editor/workspace.fixture.ts"),
 		m = loaded.module;
 	const dom = new JSDOM('<div id="app"></div>', { url: "http://localhost" }),
@@ -595,7 +596,7 @@ test.each([{inactive:false,textImport:false},{inactive:true,textImport:false},{i
 		},
 		candidate,
 	};
-    if(textImport) review.importedContent="plain-text";
+    if(textImport) review.importedContent=importedContent;
     if(inactive) review.inactiveSettings=[{blockId:"paragraph",name:"core/paragraph",layout:{padding:"spacious"},lock:{edit:true}}];
 	let current = original,
 		writes = [],
@@ -663,7 +664,7 @@ test.each([{inactive:false,textImport:false},{inactive:true,textImport:false},{i
           await act(async()=>document.querySelector('input[type="checkbox"]').click());
         }
         if(textImport) {
-          expect(document.body.textContent).toContain("The original renderer may not have displayed this stored text");
+          expect(document.body.textContent).toContain("The original renderer may not have displayed this stored content");
           expect(button("Convert reviewed content").disabled).toBe(true);
           await act(async()=>document.querySelector('input[name="text-import"]').click());
           expect(button("Convert reviewed content").disabled).toBe(false);
@@ -677,7 +678,8 @@ test.each([{inactive:false,textImport:false},{inactive:true,textImport:false},{i
 		expect(writes).toEqual([
 			{
 				...(inactive ? {preserveInactiveSettings:true} : {}),
-                ...(textImport ? {acknowledgeTextImport:true} : {}),
+                ...(importedContent === "plain-text" ? {acknowledgeTextImport:true} : {}),
+                ...(importedContent === "html" ? {acknowledgeHtmlImport:true} : {}),
 				expectedRevision: 2,
 				expectedAuthoringDigest: "a".repeat(64),
 				expectedCandidateDigest: candidate.document.digest,

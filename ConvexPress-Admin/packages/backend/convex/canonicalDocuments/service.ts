@@ -560,7 +560,7 @@ export async function pageOptions(
 
 /** Select the same visible source as current public page/post surfaces. Hidden
  * source fields remain in the original revision; they are never chosen by guess. */
-function prepareAuthoredMigration(post: Doc<"posts">): PreparedCanonicalWrite & {inactiveSettings?: CanonicalMigrationDto["inactiveSettings"]; importedContent?: "plain-text"} {
+function prepareAuthoredMigration(post: Doc<"posts">): PreparedCanonicalWrite & {inactiveSettings?: CanonicalMigrationDto["inactiveSettings"]; importedContent?: "plain-text" | "html"} {
   if (post.status !== "draft") refuse("CANONICAL_DRAFT_REQUIRED", "Migrate an editable draft before publishing it.");
   if (post.blocksVersion !== undefined && post.blocksVersion !== 1) refuse("UNSUPPORTED_AUTHORING_VERSION", "This is not a supported legacy authoring document.");
   if (post.contentMode !== undefined && post.contentMode !== "article" && post.contentMode !== "blocks") refuse("UNSUPPORTED_AUTHORING_VERSION", "The legacy content mode is unsupported.");
@@ -570,7 +570,7 @@ function prepareAuthoredMigration(post: Doc<"posts">): PreparedCanonicalWrite & 
   // Match the Website's visible-source precedence. In particular, block-mode
   // posts prefer nonempty blocks to structured content, and block-mode pages
   // use sections (including an empty list) rather than hidden article text.
-  let importedContent: "plain-text" | undefined;
+  let importedContent: "plain-text" | "html" | undefined;
   const blockReview = post.contentMode === "blocks" && post.blocks?.length ? reviewLegacyBlocks(post.blocks) : null;
   const blocks = blockReview
     ? blockReview.blocks
@@ -596,7 +596,7 @@ export async function prepareMigrationDocument(ctx: QueryCtx, args: { postId: Id
   const prepared = prepareAuthoredMigration(post);
   return parseCanonicalMigration({ contract: "canonical-migration-v1", source: { postId: post._id, revision: authoringRevision(post), authoringDigest: authoringSourceDigest(post) }, candidate: await project(ctx, post, budget, prepared), ...(prepared.inactiveSettings ? {inactiveSettings:prepared.inactiveSettings} : {}), ...(prepared.importedContent ? {importedContent:prepared.importedContent} : {}) });
 }
-export type MigrateArgs = { postId: Id<"posts">; expectedRevision: number; expectedAuthoringDigest: string; expectedCandidateDigest: string; expectedPresentationRevision: string; preserveInactiveSettings?: boolean; acknowledgeTextImport?: boolean };
+export type MigrateArgs = { postId: Id<"posts">; expectedRevision: number; expectedAuthoringDigest: string; expectedCandidateDigest: string; expectedPresentationRevision: string; preserveInactiveSettings?: boolean; acknowledgeTextImport?: boolean; acknowledgeHtmlImport?: boolean };
 export async function migrateDocument(ctx: MutationCtx, args: MigrateArgs): Promise<CanonicalWriteReceipt> {
   const budget = new RequestReadLedger();
   const { post, user } = await authorized(ctx, args.postId, budget);
@@ -604,7 +604,8 @@ export async function migrateDocument(ctx: MutationCtx, args: MigrateArgs): Prom
   // Check complete source CAS before converting or starting dependent reads.
   if (!Number.isSafeInteger(args.expectedRevision) || authoringRevision(post) !== args.expectedRevision || authoringSourceDigest(post) !== args.expectedAuthoringDigest) refuse("CONFLICT", "The authoring source changed after migration review.");
   const prepared = prepareAuthoredMigration(post);
-  if (prepared.importedContent && args.acknowledgeTextImport !== true) refuse("MIGRATION_INTENT_REVIEW_REQUIRED", "Review and acknowledge importing plain text that the original renderer may not have displayed.");
+  if (prepared.importedContent === "plain-text" && args.acknowledgeTextImport !== true) refuse("MIGRATION_INTENT_REVIEW_REQUIRED", "Review and acknowledge importing plain text that the original renderer may not have displayed.");
+  if (prepared.importedContent === "html" && args.acknowledgeHtmlImport !== true) refuse("MIGRATION_INTENT_REVIEW_REQUIRED", "Review and acknowledge importing HTML that the original renderer may not have displayed.");
   if (prepared.inactiveSettings?.length && args.preserveInactiveSettings !== true) refuse("MIGRATION_INTENT_REVIEW_REQUIRED", "Confirm that unused layout and lock settings remain in the original revision before converting.");
   if (prepared.digest !== args.expectedCandidateDigest) refuse("MIGRATION_REVIEW_MISMATCH", "The reviewed candidate does not match this source conversion.");
   const candidate = await project(ctx, post, budget, prepared);

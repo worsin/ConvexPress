@@ -113,7 +113,23 @@ import into the draft; `migrate` requires `acknowledgeTextImport: true`. Refresh
 clears the acknowledgement, independently of inactive-settings review. Words and
 line breaks are retained without Markdown/HTML interpretation; CRLF/CR normalize
 to canonical line breaks while the exact original remains recoverable in history.
-HTML and ambiguous malformed JSON still require their own lossless adapter.
+Ambiguous malformed JSON still requires its own lossless adapter. The supported
+HTML import subset and its independent acknowledgement are described below.
 Source4860 native conversion/desktop-phone preview/exact original recovery and
 installed refusal evidence: `ConvexPress-Admin/audits/2026-09-04/plain-text-import-20261005.md`.
 This proves one owned draft copy, not bulk conversion or legacy retirement.
+
+HTML review now returns `importedContent: "html"` for supported paragraphs,
+headings, inline marks, line breaks and links. Review the editable candidate and
+explicitly acknowledge `acknowledgeHtmlImport: true`; plain-text acknowledgement
+does not authorize HTML. Refresh resets it. Unknown authored tags/attributes,
+parser repairs, unsafe links and limits refuse the complete operation without
+stripping content. The exact original remains in recovery history.
+
+October5 captured corpus conversion reaches source42/42 legacy documents and
+119/119 legacy revisions; target2/2 and21/21. These are candidates from the
+September29 snapshot, not installed migration receipts or reference acceptance.
+Native owned-copy HTML review/conversion/reload/desktop-phone semantic rendering
+and exact original recovery: `ConvexPress-Admin/audits/2026-09-04/html-import-20261005.md`.
+Refresh the installed inventory and prove dependencies/per-record migration before
+retiring legacy dispatch; never silently activate hidden published bodies.

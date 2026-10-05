@@ -27,6 +27,7 @@
     "convex-helpers": "0.1.120",
     "dotenv": "catalog:",
     "googleapis": "^171.4.0",
+    "htmlparser2": "12.0.0",
     "jose": "^6.2.2",
     "openai": "^6.38.0",
     "sanitize-html": "2.17.7",

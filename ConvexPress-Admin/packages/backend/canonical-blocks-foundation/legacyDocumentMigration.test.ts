@@ -84,5 +84,5 @@ test("literal plain-text imports require a distinct review and preserve line bre
  expect(result.blocks[0].attrs).toEqual({body:doc(paragraph(text("First **literal** & text"),{type:"hardBreak"},{type:"hardBreak"},text("Last < 3")))});
  expect(reviewLegacyDocumentSource({postId:"text-import",content})).toEqual(result);
  expect(reviewLegacyDocumentSource({postId:"json",content:JSON.stringify(doc(paragraph(text("JSON"))))}).importedContent).toBeUndefined();
- for(const content of ["<p>HTML</p>","Before <strong>HTML</strong>","{broken json", "[broken", "x".repeat(20001)]) expect(()=>reviewLegacyDocumentSource({postId:"refused",content})).toThrow();
+ for(const content of ["<p class=\"unknown\">HTML</p>","Before <strong>HTML</strong>","{broken json", "[broken", "x".repeat(20001)]) expect(()=>reviewLegacyDocumentSource({postId:"refused",content})).toThrow();
 });

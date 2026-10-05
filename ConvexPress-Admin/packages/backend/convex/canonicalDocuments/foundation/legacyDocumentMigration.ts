@@ -5,6 +5,7 @@ import { dependencyDescriptors } from "./generated/metadata";
 import { validateBlockAttrs } from "./generated/schemas";
 import type { BlockName, CanonicalBlockInstance, CanonicalTree } from "./generated/types";
 import { sha256Hex, canonicalJson } from "./shared/fingerprints";
+import { legacyHtmlDocument } from "./legacyHtmlMigration";
 
 type Path = (string | number)[];
 type JsonObject = Record<string, unknown>;
@@ -35,15 +36,19 @@ function paragraph(value: unknown, path: Path): JsonObject {
 }
 const inlineDoc = (content: unknown[]) => ({ type: "doc", content: [{ type: "paragraph", content }] });
 /** A separate import review prevents previously undisplayed text from becoming
- * visible through an ordinary migration. HTML/ambiguous JSON still refuse. */
-export function reviewLegacyDocumentSource(args: { postId: string; content: string }): { blocks: CanonicalTree; importedContent?: "plain-text" } {
+ * visible through an ordinary migration. Unsupported HTML/JSON still refuse. */
+export function reviewLegacyDocumentSource(args: { postId: string; content: string }): { blocks: CanonicalTree; importedContent?: "plain-text" | "html" } {
+  if (typeof args.content !== "string" || new TextEncoder().encode(args.content).byteLength > CANONICAL_TREE_LIMITS.bytes) fail(["content"], "The source document exceeds the canonical migration byte limit");
   let isJson = true;
   try { JSON.parse(args.content); } catch { isJson = false; }
   if (isJson) return { blocks: migrateLegacyDocument(args) };
-  if (/^\s*[[{]/u.test(args.content) || /<[!/?a-z]/iu.test(args.content)) {
-    fail(["content"], "HTML or malformed structured content requires an explicit lossless adapter");
+  if (/^\s*[[{]/u.test(args.content)) {
+    fail(["content"], "Malformed structured content requires an explicit lossless adapter");
   }
-  if (new TextEncoder().encode(args.content).byteLength > CANONICAL_TREE_LIMITS.bytes) fail(["content"], "The source document exceeds the canonical migration byte limit");
+  if (/<[!/?a-z]/iu.test(args.content)) {
+    const document = legacyHtmlDocument(args.content, message => fail(["content"], message));
+    return { importedContent: "html", blocks: migrateLegacyDocument({ ...args, content: JSON.stringify(document) }) };
+  }
   const content: unknown[] = [];
   for (const [index, line] of args.content.split(/\r\n|\r|\n/u).entries()) {
     if (index) content.push({ type: "hardBreak" });
