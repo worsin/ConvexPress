@@ -7,7 +7,7 @@
  * Reads/writes the "header" settings section via Convex.
  */
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useId } from "react";
 import { useMutation } from "convex/react";
 import { useQuery } from "convex-helpers/react/cache";
 import { api } from "@backend/convex/_generated/api";
@@ -136,16 +136,19 @@ function VariantGrid({
 }
 
 function SelectField({
+  id,
   field,
   value,
   onChange,
 }: {
+  id: string;
   field: ComposerField;
   value: string;
   onChange: (val: string) => void;
 }) {
   return (
     <select
+      id={id}
       value={value}
       onChange={(e) => onChange(e.target.value)}
       className="w-full h-8 rounded-md border border-border bg-card px-2 text-xs text-foreground outline-hidden focus:border-ring"
@@ -163,13 +166,16 @@ function ToggleSwitch({
   checked,
   onChange,
   id,
+  label,
 }: {
   checked: boolean;
   onChange: (val: boolean) => void;
   id: string;
+  label: string;
 }) {
   return (
     <SwitchPrimitive.Root
+      aria-label={label}
       checked={checked}
       onCheckedChange={onChange}
       id={id}
@@ -205,22 +211,25 @@ function ToggleField({
       <label htmlFor={fieldId} className="text-xs text-foreground cursor-pointer">
         {field.label}
       </label>
-      <ToggleSwitch checked={value} onChange={onChange} id={fieldId} />
+      <ToggleSwitch checked={value} onChange={onChange} id={fieldId} label={field.label} />
     </div>
   );
 }
 
 function TextField({
+  id,
   field,
   value,
   onChange,
 }: {
+  id: string;
   field: ComposerField;
   value: string;
   onChange: (val: string) => void;
 }) {
   return (
     <Input
+      id={id}
       value={value}
       onChange={(e) => onChange(e.target.value)}
       placeholder={field.label}
@@ -243,6 +252,7 @@ function SectionPanel({
   onFieldChange: (sectionId: string, fieldId: string, value: unknown) => void;
 }) {
   const [isOpen, setIsOpen] = useState(false);
+  const fieldPrefix = useId();
   const sectionConfig = config[section.id as keyof HeaderConfig] as Record<
     string,
     unknown
@@ -266,6 +276,7 @@ function SectionPanel({
               checked={isEnabled}
               onChange={(val) => onToggle(section.id, val)}
               id={`section-toggle-${section.id}`}
+              label={section.label}
             />
           )}
           <CollapsibleTrigger className="flex-1 flex items-center justify-between cursor-pointer min-w-0">
@@ -291,11 +302,12 @@ function SectionPanel({
           <div className="px-3 py-3 space-y-3 border-t border-border bg-muted/30">
             {section.fields.map((field) => {
               const fieldValue = sectionConfig?.[field.id];
+              const fieldId = `${fieldPrefix}-${field.id}`;
 
               return (
                 <div key={field.id} className="space-y-1">
                   {field.type !== "toggle" && (
-                    <label className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
+                    <label htmlFor={field.type === "text" || field.type === "select" ? fieldId : undefined} className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
                       {field.label}
                     </label>
                   )}
@@ -312,6 +324,7 @@ function SectionPanel({
 
                   {field.type === "select" && (
                     <SelectField
+                      id={fieldId}
                       field={field}
                       value={(fieldValue as string) ?? ""}
                       onChange={(val) =>
@@ -332,6 +345,7 @@ function SectionPanel({
 
                   {field.type === "text" && (
                     <TextField
+                      id={fieldId}
                       field={field}
                       value={(fieldValue as string) ?? ""}
                       onChange={(val) =>
