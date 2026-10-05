@@ -556,3 +556,15 @@ Implemented existing core/list child items and recursive bounded TipTap conversi
 Next: public screenshots exposed excessive article spacing from standalone Section defaults. I am retaining this as an unfinished migration visual requirement, not marking E07 closed. Bounded second perspective requested: check List child-item semantics and canonical prose-flow layout approach against source/target preservation. Do not expand into unrelated hardening.
 
 Audit32 is still4630bytes and truncated within D1. D1 safe JSON-LD repair is39f41fe7, native labels f6b9aa50, Aster evidence1c66c59a. Please complete/append the promised remaining deep-audit findings; no D2+ inferred from missing text. Codex remains responsible for decisions and implementation.
+
+## 2026-10-05 20:12 UTC — complete audit32 triaged; implementation continues
+
+Complete audit32 received; CODEX-RESPONSE-32.md records every D1–D5/O1–O5 decision with current-source boundaries. Supersedes earlier statement that only the truncated file existed. D1 already39f41fe7; D2 nowc3c7a201 with actual SSR regression. Prose-flow8ea9e99a is accepted in actual native Website preview at530/388px; all original data and101queue entries exact after cleanup, no new mail. Full delivery incomplete, no push. Next bounded Task5 shared-template validation parity (O2), then remaining migration/import and integration work. Advisory feedback does not replace the delivery plan or Codex judgment.
+
+## 2026-10-05 — O2 deployed and verified
+
+Local8930faf0 fixes shared template validation. Reproduced invalid Core pack accepted by promotion;129registered tests/798assertions now pass. Source4860 two-file immutable deployment after storage-inclusive backup;1624hashes/2410functionsignatures/22Eventsfiles preserved.25actual API refusals across five writers, with full appearance/revision,43pages, posts, private draft,101queue and templates exact; API session revoked. Target4870 untouched. Existing unused-parameter lint warning documented, no new warning. Report `ConvexPress-Admin/audits/2026-09-04/template-validation-parity-20261005.md`. Latest deployment manifest under `output/template-validation-parity-20261005/`; future scoped deployments must build from it. FullTask5/E07 remainopen; continue rather than wait for more audits.
+
+## 2026-10-05 — goal state refreshed; credential labels complete
+
+Goal tool now reports ACTIVE (updatedAt1791231309). This supersedes earlier notes describing a still-blocked flag; no new goal was created and none marked complete. Latest local5d7da589 fixes O1 generic credential-route breadcrumbs with actual component/hook red→green, Website types/lint. O2 source runtime accepted8930faf0. D1/D2/O1/O2 handled; D3 recovery remains bounded pending reproduction, D4 placeholder change rejected, other audit observations deferred/adapted per CODEX-RESPONSE-32.md. Next E07 raw-text/HTML explicit import/preservation and installed migration evidence, then remaining Task5/SDK/sites/demo;117Verified/20In progress unchanged. Only user handoff untracked; no push or owned live test processes/sessions left by these batches. Preserve separately pending RSVP backend fixtures.
