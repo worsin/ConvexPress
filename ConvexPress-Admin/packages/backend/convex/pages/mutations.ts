@@ -1,3 +1,4 @@
+import { canonicalTrashRestorePermit } from "../canonicalDocuments/service";
 import { reconcileManualSaveAutosave } from "../helpers/autosaveReconciliation";
 import { assertNoNewDisabledBlocks } from "../blocks/policy";
 import { assertPagePathAvailable, assertPageTreePathAvailable } from "../helpers/pageRouteGuard";
@@ -786,7 +787,8 @@ export const restore = mutation({
       patch.path = await computePagePath(ctx, newSlug, parentId);
     }
 
-    await patchWithMediaReferences<"posts">(ctx, "posts", args.pageId, patch);
+    const restorePermit = await canonicalTrashRestorePermit(ctx, page, patch);
+    await patchWithMediaReferences<"posts">(ctx, "posts", args.pageId, patch, restorePermit);
 
     // Emit restored event
     await emitEvent(ctx, PAGE_EVENTS.RESTORED, SYSTEM.PAGE, {

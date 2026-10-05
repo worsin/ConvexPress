@@ -133,3 +133,19 @@ Native owned-copy HTML review/conversion/reload/desktop-phone semantic rendering
 and exact original recovery: `ConvexPress-Admin/audits/2026-09-04/html-import-20261005.md`.
 Refresh the installed inventory and prove dependencies/per-record migration before
 retiring legacy dispatch; never silently activate hidden published bodies.
+
+### In-place Trash conversion
+
+For retained trash, call `prepareMigration({postId, preserveTrash: true})` and
+require `preservesTrash: true` in the response. The candidate's draft status is a
+preview only. Commit with the same `preserveTrash: true`, source/candidate/template
+bindings and any explicit text/HTML/inactive-settings acknowledgements. The source
+digest additionally binds trash status, previous status and trash timestamp.
+A concurrent restore/retrash invalidates the review. Ordinary editing/public reads
+still refuse trashed content; this mode neither restores nor publishes it.
+
+Read back the actual row and retained original snapshot. Status, previousStatus,
+trashedAt, publication metadata and non-authoring relationships must remain exact.
+A later owner-requested normal restore validates canonical content/resources and
+requires publish authority for a non-draft result before obtaining its guarded
+write permit. Do not bulk-restore old records merely to make migration eligible.

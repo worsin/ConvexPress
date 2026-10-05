@@ -6,7 +6,7 @@ import ts from "typescript";
 
 const root = fileURLToPath(new URL("../convex/", import.meta.url));
 const permitNames = new Set(["permitValidatedCanonicalAuthoringWrite", "permitValidatedLegacyRecoveryWrite"]);
-const allowed = new Set(["snapshot", "commit", "duplicateDocument", "recoverLegacyDocument", "setDocumentSettings", "writePromotedCanonicalDocument"]);
+const allowed = new Set(["snapshot", "commit", "duplicateDocument", "recoverLegacyDocument", "setDocumentSettings", "writePromotedCanonicalDocument", "canonicalTrashRestorePermit"]);
 function files(dir) {
   return fs.readdirSync(dir, { withFileTypes: true }).flatMap(entry => entry.isDirectory()
     ? ["__tests__", "_generated"].includes(entry.name) ? [] : files(path.join(dir, entry.name))

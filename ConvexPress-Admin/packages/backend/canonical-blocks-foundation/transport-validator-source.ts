@@ -111,6 +111,7 @@ export const migrationValidator: Validator<CanonicalMigrationDto, "required", st
   contract: v.literal("canonical-migration-v1"),
   source: v.object({ postId: v.string(), revision: v.number(), authoringDigest: v.string() }),
   candidate: fromZod<CanonicalDocumentDto>(structuralDocument),
+  preservesTrash: v.optional(v.literal(true)),
   inactiveSettings: v.optional(v.array(fromZod(inactiveLegacySettingsSchema))),
   importedContent: v.optional(v.union(v.literal("plain-text"),v.literal("html"))),
 });

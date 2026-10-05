@@ -1,7 +1,7 @@
 import * as catalogRevisionWrites from "../media/attachmentGuard";
 import { deleteTermRelationship } from "../helpers/postDiscovery";
 import { insertTermRelationship } from "../helpers/postDiscovery";
-import { canonicalBoundary, duplicateDocument } from "../canonicalDocuments/service";
+import { canonicalBoundary, duplicateDocument, canonicalTrashRestorePermit } from "../canonicalDocuments/service";
 import { reconcileManualSaveAutosave } from "../helpers/autosaveReconciliation";
 import { assertNoNewDisabledBlocks } from "../blocks/policy";
 import { replacePublicationSchedule } from "../helpers/publicationSchedule";
@@ -1053,13 +1053,15 @@ export const restore = mutation({
       newSlug = await generateUniqueSlug(ctx, post.title, post.type as "post" | "page", args.postId);
     }
 
-    await patchWithMediaReferences<"posts">(ctx, "posts", args.postId, {
+    const restorePatch = {
       status: restoredStatus,
       previousStatus: undefined,
       trashedAt: undefined,
       slug: newSlug,
       updatedAt: now,
-    });
+    };
+    const restorePermit = await canonicalTrashRestorePermit(ctx, post, restorePatch);
+    await patchWithMediaReferences<"posts">(ctx, "posts", args.postId, restorePatch, restorePermit);
 
     await emitEvent(ctx, POST_EVENTS.RESTORED, SYSTEM.POST, {
       postId: args.postId,
@@ -1491,13 +1493,15 @@ export const bulkRestore = mutation({
           newSlug = await generateUniqueSlug(ctx, post.title, post.type as "post" | "page", postId);
         }
 
-        await patchWithMediaReferences<"posts">(ctx, "posts", postId, {
+        const restorePatch = {
           status: restoredStatus,
           previousStatus: undefined,
           trashedAt: undefined,
           slug: newSlug,
           updatedAt: now,
-        });
+        };
+        const restorePermit = await canonicalTrashRestorePermit(ctx, post, restorePatch);
+        await patchWithMediaReferences<"posts">(ctx, "posts", postId, restorePatch, restorePermit);
 
         await emitEvent(ctx, POST_EVENTS.RESTORED, SYSTEM.POST, {
           postId,

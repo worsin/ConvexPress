@@ -107,6 +107,7 @@ export async function authorized(
 	ctx: QueryCtx,
 	postId: Id<"posts">,
 	budget: RequestReadLedger,
+  allowTrashedMigration = false,
 ) {
 	const user = await requireAuth(ctx, budget);
 	budget.beforeRead();
@@ -114,7 +115,7 @@ export async function authorized(
 	if (!post) return { post: null, user };
 	if (!(await canEditContent(ctx, post, budget)))
 		refuse("FORBIDDEN", "You cannot edit this document.");
-	if (post.status === "trash")
+	if (post.status === "trash" && !allowTrashedMigration)
 		refuse(
 			"CANONICAL_DRAFT_REQUIRED",
 			"Restore the document from Trash before editing.",
@@ -315,12 +316,13 @@ async function commit(
 	restore?: Doc<"revisions">,
   publication?: CanonicalPublicationPatch,
   scheduled = false,
+  preserveTrash = false,
 ): Promise<CanonicalWriteReceipt> {
   if ((publication?.status ?? post.status) !== "draft") assertAuthoredActions(prepared, prepared.composedDefinitions?.scope);
   const previous = post.blocksVersion === 2 ? await (scheduled ? readApprovedDocument : readAuthoredDocument)(ctx, post, budget) : undefined;
   await validateNewKnowledgeCategoryReferences(ctx, prepared.blocks, previous?.blocks ?? [], budget);
 	// A no-op still revalidates current policy and exact referenced resources.
-	await project(ctx, post, budget, prepared, {}, (publication?.status ?? post.status) === "draft" ? "authoring" : "published");
+	await project(ctx, preserveTrash ? {...post, status: "draft"} : post, budget, prepared, {}, (publication?.status ?? post.status) === "draft" ? "authoring" : "published");
   await syncDocumentContactForms(ctx, { postId: post._id, title: prepared.title, blocks: prepared.blocks, scheduled,
     ...(prepared.composedDefinitions ? { composed: { scope: prepared.composedDefinitions.scope, definitions: prepared.composedDefinitions } } : {}) }, budget);
 	if (prepared.changed) {
@@ -589,28 +591,64 @@ function prepareAuthoredMigration(post: Doc<"posts">): PreparedCanonicalWrite & 
    return reviewed.blocks;
   }
 }
-export async function prepareMigrationDocument(ctx: QueryCtx, args: { postId: Id<"posts"> }): Promise<CanonicalMigrationDto> {
-  const budget = new RequestReadLedger();
-  const { post } = await authorized(ctx, args.postId, budget);
-  if (!post) refuse("NOT_FOUND", "Document not found.");
-  const prepared = prepareAuthoredMigration(post);
-  return parseCanonicalMigration({ contract: "canonical-migration-v1", source: { postId: post._id, revision: authoringRevision(post), authoringDigest: authoringSourceDigest(post) }, candidate: await project(ctx, post, budget, prepared), ...(prepared.inactiveSettings ? {inactiveSettings:prepared.inactiveSettings} : {}), ...(prepared.importedContent ? {importedContent:prepared.importedContent} : {}) });
+/** Trash conversion is authoring-only: never restore, reschedule or publish.
+ * Bind its lifecycle too, so restoring/retrashing after review invalidates it.
+ * The draft projection is only a preview; commit retains the actual trash row. */
+function migrationSource(post: Doc<"posts">, preserveTrash: boolean) {
+  if (!preserveTrash) return {preview:post,digest:authoringSourceDigest(post)};
+  if (post.status !== "trash") refuse("CONFLICT", "The document is no longer in the reviewed Trash state.");
+  return {preview:{...post,status:"draft" as const},digest:sha256Hex(canonicalJson({
+    authoring:authoringSourceDigest(post),status:post.status,
+    previousStatus:post.previousStatus ?? null,trashedAt:post.trashedAt ?? null,
+  }))};
 }
-export type MigrateArgs = { postId: Id<"posts">; expectedRevision: number; expectedAuthoringDigest: string; expectedCandidateDigest: string; expectedPresentationRevision: string; preserveInactiveSettings?: boolean; acknowledgeTextImport?: boolean; acknowledgeHtmlImport?: boolean };
+/** The ordinary Trash routes keep their ownership/route checks. A canonical
+ * restore additionally validates the exact resulting body and publication
+ * authority before issuing the same single-use write permit as other writers. */
+export async function canonicalTrashRestorePermit(ctx: MutationCtx, post: Doc<"posts">, value: Record<string, unknown>) {
+  if (post.blocksVersion !== 2) return undefined;
+  return canonicalBoundary(async () => {
+    const budget = new RequestReadLedger();
+    const restoreFields = new Set(["status","previousStatus","trashedAt","slug","updatedAt","parentId","depth","path"]);
+    if (Object.keys(value).some(key => !restoreFields.has(key))) refuse("INVALID_RESTORE_PATCH", "Trash restoration cannot replace authored content.");
+    if (post.status !== "trash") refuse("CONFLICT", "The document is no longer in Trash.");
+    if (!(await canEditContent(ctx, post, budget))) refuse("FORBIDDEN", "You cannot restore this document.");
+    if (["pending", "auto-draft"].includes(String(value.status)) ||
+        (value.status === "future" && (!post.scheduledAt || post.scheduledAt <= Date.now()))) value.status = "draft";
+    if (value.status !== "draft") await requireCan(ctx, post.type === "page" ? "page.publish" : "post.publish", budget);
+    const candidate = {...post,...value} as Doc<"posts">;
+    const authored = await (candidate.status === "draft" ? readAuthoredDocument : readApprovedDocument)(ctx, candidate, budget);
+    const context = authored.composedDefinitions ? {scope:authored.composedDefinitions.scope,definitions:authored.composedDefinitions} : undefined;
+    const prepared = context ? prepareCanonicalCurrent(candidate, authoringRevision(post), context) : prepareCanonicalCurrent(candidate, authoringRevision(post));
+    if (candidate.status !== "draft") assertAuthoredActions(prepared, context?.scope);
+    await project(ctx, candidate, budget, prepared, {}, candidate.status === "draft" ? "authoring" : "published");
+    return permitValidatedCanonicalAuthoringWrite({table:"posts",operation:"patch",id:post._id,previous:post,value});
+  });
+}
+export async function prepareMigrationDocument(ctx: QueryCtx, args: { postId: Id<"posts">; preserveTrash?: boolean }): Promise<CanonicalMigrationDto> {
+  const budget = new RequestReadLedger();
+  const { post } = await authorized(ctx, args.postId, budget, args.preserveTrash === true);
+  if (!post) refuse("NOT_FOUND", "Document not found.");
+  const source = migrationSource(post, args.preserveTrash === true);
+  const prepared = prepareAuthoredMigration(source.preview);
+  return parseCanonicalMigration({ contract: "canonical-migration-v1", source: { postId: post._id, revision: authoringRevision(post), authoringDigest: source.digest }, candidate: await project(ctx, source.preview, budget, prepared), ...(args.preserveTrash ? {preservesTrash:true} : {}), ...(prepared.inactiveSettings ? {inactiveSettings:prepared.inactiveSettings} : {}), ...(prepared.importedContent ? {importedContent:prepared.importedContent} : {}) });
+}
+export type MigrateArgs = { postId: Id<"posts">; expectedRevision: number; expectedAuthoringDigest: string; expectedCandidateDigest: string; expectedPresentationRevision: string; preserveInactiveSettings?: boolean; acknowledgeTextImport?: boolean; acknowledgeHtmlImport?: boolean; preserveTrash?: boolean };
 export async function migrateDocument(ctx: MutationCtx, args: MigrateArgs): Promise<CanonicalWriteReceipt> {
   const budget = new RequestReadLedger();
-  const { post, user } = await authorized(ctx, args.postId, budget);
+  const { post, user } = await authorized(ctx, args.postId, budget, args.preserveTrash === true);
   if (!post) refuse("NOT_FOUND", "Document not found.");
+  const source = migrationSource(post, args.preserveTrash === true);
   // Check complete source CAS before converting or starting dependent reads.
-  if (!Number.isSafeInteger(args.expectedRevision) || authoringRevision(post) !== args.expectedRevision || authoringSourceDigest(post) !== args.expectedAuthoringDigest) refuse("CONFLICT", "The authoring source changed after migration review.");
-  const prepared = prepareAuthoredMigration(post);
+  if (!Number.isSafeInteger(args.expectedRevision) || authoringRevision(post) !== args.expectedRevision || source.digest !== args.expectedAuthoringDigest) refuse("CONFLICT", "The authoring source changed after migration review.");
+  const prepared = prepareAuthoredMigration(source.preview);
   if (prepared.importedContent === "plain-text" && args.acknowledgeTextImport !== true) refuse("MIGRATION_INTENT_REVIEW_REQUIRED", "Review and acknowledge importing plain text that the original renderer may not have displayed.");
   if (prepared.importedContent === "html" && args.acknowledgeHtmlImport !== true) refuse("MIGRATION_INTENT_REVIEW_REQUIRED", "Review and acknowledge importing HTML that the original renderer may not have displayed.");
   if (prepared.inactiveSettings?.length && args.preserveInactiveSettings !== true) refuse("MIGRATION_INTENT_REVIEW_REQUIRED", "Confirm that unused layout and lock settings remain in the original revision before converting.");
   if (prepared.digest !== args.expectedCandidateDigest) refuse("MIGRATION_REVIEW_MISMATCH", "The reviewed candidate does not match this source conversion.");
-  const candidate = await project(ctx, post, budget, prepared);
+  const candidate = await project(ctx, source.preview, budget, prepared);
   if (candidate.presentation.revision !== args.expectedPresentationRevision) refuse("MIGRATION_REVIEW_MISMATCH", "The template presentation changed after migration review.");
-  return commit(ctx, post, user, prepared, budget);
+  return commit(ctx, post, user, prepared, budget, undefined, undefined, false, args.preserveTrash === true);
 }
 
 import { blockPageRequestSchema, type BlockPageRequest } from "./foundation/postGridContracts";

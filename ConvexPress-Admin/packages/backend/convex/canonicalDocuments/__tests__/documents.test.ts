@@ -3,6 +3,52 @@ import { convexTest } from "convex-test";
 import { makeFunctionReference } from "convex/server";
 import schema from "../../schema";
 import { parseCanonicalDocumentRead } from "../foundation/documentContracts";
+for (const type of ["post", "page"] as const) test(`reviewed trash migration converts ${type} without restoring or publishing it`, async () => {
+ const f=await fixture();const content=JSON.stringify({type:"doc",content:[{type:"paragraph",content:[{type:"text",text:"Retained trash body"}]}]});
+ await f.t.run(ctx=>ctx.db.patch("posts",f.ids.post,{type,status:"trash",previousStatus:"publish",trashedAt:123,publishedAt:45,contentMode:"article",content}));
+ const before=await f.t.run(ctx=>ctx.db.get("posts",f.ids.post));
+ await expect(f.client.query(reference("prepareMigration"),{postId:f.ids.post})).rejects.toMatchObject({data:{code:"CANONICAL_DRAFT_REQUIRED"}});
+ const plan=await f.client.query(reference("prepareMigration"),{postId:f.ids.post,preserveTrash:true});
+ expect(plan.preservesTrash).toBe(true);expect(plan.candidate.document.status).toBe("draft");
+ const args={postId:f.ids.post,preserveTrash:true,expectedRevision:plan.source.revision,expectedAuthoringDigest:plan.source.authoringDigest,expectedCandidateDigest:plan.candidate.document.digest,expectedPresentationRevision:plan.candidate.presentation.revision};
+ await expect(f.client.mutation(reference("migrate","mutation"),{...args,preserveTrash:false})).rejects.toMatchObject({data:{code:"CANONICAL_DRAFT_REQUIRED"}});
+ await f.client.mutation(reference("migrate","mutation"),args);
+ const state=await f.t.run(async ctx=>({post:await ctx.db.get("posts",f.ids.post),history:await ctx.db.query("revisions").collect(),events:await ctx.db.query("events").collect()}));
+ expect(state.post).toMatchObject({status:"trash",previousStatus:"publish",trashedAt:123,publishedAt:45,blocksVersion:2,blocks:plan.candidate.document.blocks});
+ expect(state.history).toHaveLength(1);expect(state.history[0]).toMatchObject({content,contentMode:"article",title:before!.title,snapshotVersion:2});
+ expect(state.events.some(e=>/published|restored/.test(e.code))).toBe(false);
+ await expect(f.client.query(reference("get"),{postId:f.ids.post})).rejects.toMatchObject({data:{code:"CANONICAL_DRAFT_REQUIRED"}});
+ expect(await f.client.query(reference("getForRender"),{postId:f.ids.post})).toBeNull();
+ await expect(f.client.mutation(reference("migrate","mutation"),args)).rejects.toMatchObject({data:{code:"CONFLICT"}});
+ // The owner's later restore keeps its established publication intent, but now
+ // opens and renders the reviewed canonical body rather than reviving legacy.
+ await f.t.run(async ctx=>{const user=(await ctx.db.get("users",f.ids.user))!;await ctx.db.patch("roles",user.roleId!,{capabilities:["page.update","post.update","post.restore","post.delete","page.publish","post.publish","revision.restore"]});});
+ await f.client.mutation(makeFunctionReference<any,any,any>(`${type === "page" ? "pages" : "posts"}/mutations:restore`),type === "page" ? {pageId:f.ids.post} : {postId:f.ids.post});
+ const restored=await f.client.query(reference("get"),{postId:f.ids.post});
+ expect(restored.document.status).toBe("publish");expect(restored.document.blocks).toEqual(plan.candidate.document.blocks);
+ expect((await f.client.query(reference("getForRender"),{postId:f.ids.post})).document.blocks).toEqual(plan.candidate.document.blocks);
+});
+
+test("trash migration refuses changed lifecycle, source, acknowledgement and authority without writes",async()=>{
+ const f=await fixture();const base={status:"trash" as const,previousStatus:"publish" as const,trashedAt:123,contentMode:"article" as const,content:"Original plain text"};
+ await f.t.run(ctx=>ctx.db.patch("posts",f.ids.post,base));const plan=await f.client.query(reference("prepareMigration"),{postId:f.ids.post,preserveTrash:true});
+ const args={postId:f.ids.post,preserveTrash:true,expectedRevision:plan.source.revision,expectedAuthoringDigest:plan.source.authoringDigest,expectedCandidateDigest:plan.candidate.document.digest,expectedPresentationRevision:plan.candidate.presentation.revision,acknowledgeTextImport:true};
+ const snapshot=()=>f.t.run(async ctx=>({post:await ctx.db.get("posts",f.ids.post),history:await ctx.db.query("revisions").collect()}));
+ for(const patch of [{status:"draft" as const},{previousStatus:"private" as const},{trashedAt:124},{content:"Changed text"}]){
+  await f.t.run(ctx=>ctx.db.patch("posts",f.ids.post,patch));const before=await snapshot();await expect(f.client.mutation(reference("migrate","mutation"),args)).rejects.toThrow();expect(await snapshot()).toEqual(before);await f.t.run(ctx=>ctx.db.patch("posts",f.ids.post,base));
+ }
+ const before=await snapshot();await expect(f.client.mutation(reference("migrate","mutation"),{...args,acknowledgeTextImport:false})).rejects.toMatchObject({data:{code:"MIGRATION_INTENT_REVIEW_REQUIRED"}});await expect(f.as(f.ids.denied).mutation(reference("migrate","mutation"),args)).rejects.toThrow();expect(await snapshot()).toEqual(before);
+ await f.t.run(ctx=>ctx.db.patch("posts",f.ids.post,{status:"draft"}));await expect(f.client.query(reference("prepareMigration"),{postId:f.ids.post,preserveTrash:true})).rejects.toThrow();
+});
+for (const type of ["post","page"] as const) test(`canonical ${type} trash restoration rechecks publishing authority and current body`,async()=>{
+ const f=await fixture();await initialize(f);
+ await f.t.run(async ctx=>{const user=(await ctx.db.get("users",f.ids.user))!;await ctx.db.patch("roles",user.roleId!,{capabilities:["page.update","post.update","post.restore","post.delete"]});await ctx.db.patch("posts",f.ids.post,{type,status:"trash",previousStatus:"publish",trashedAt:123});});
+ const restore=()=>f.client.mutation(makeFunctionReference<any,any,any>(`${type === "page" ? "pages" : "posts"}/mutations:restore`),type === "page" ? {pageId:f.ids.post} : {postId:f.ids.post});
+ const before=await f.t.run(ctx=>ctx.db.get("posts",f.ids.post));
+ await expect(restore()).rejects.toMatchObject({data:{code:"FORBIDDEN"}});expect(await f.t.run(ctx=>ctx.db.get("posts",f.ids.post))).toEqual(before);
+ await f.t.run(async ctx=>{const user=(await ctx.db.get("users",f.ids.user))!;await ctx.db.patch("roles",user.roleId!,{capabilities:["page.update","post.update","post.restore","post.delete","post.publish","page.publish"]});await ctx.db.patch("posts",f.ids.post,{blocks:[{id:"unavailable",name:"unavailable/removed",version:1,attrs:{}}]});});
+ const invalid=await f.t.run(ctx=>ctx.db.get("posts",f.ids.post));await expect(restore()).rejects.toThrow();expect(await f.t.run(ctx=>ctx.db.get("posts",f.ids.post))).toEqual(invalid);
+});
 const reference = (name: string, kind: "query" | "mutation" = "query") =>
 	makeFunctionReference<any, any, any>(`canonicalDocuments:${name}`);
 

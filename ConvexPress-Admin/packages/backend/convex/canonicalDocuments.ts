@@ -124,12 +124,12 @@ export const pageOptions: RegisteredQuery<
 });
 
 import type { CanonicalMigrationDto } from "./canonicalDocuments/foundation/migrationContracts";
-export const prepareMigration: RegisteredQuery<"public", ReadArgs, Promise<CanonicalMigrationDto>> = query({
-  args: { postId: v.id("posts") }, returns: migrationValidator,
+export const prepareMigration: RegisteredQuery<"public", ReadArgs & { preserveTrash?: boolean }, Promise<CanonicalMigrationDto>> = query({
+  args: { postId: v.id("posts"), preserveTrash: v.optional(v.boolean()) }, returns: migrationValidator,
   handler: (ctx, args) => canonicalBoundary(() => prepareMigrationDocument(ctx, args)),
 });
 export const migrate: RegisteredMutation<"public", MigrateArgs, Promise<CanonicalWriteReceipt>> = mutation({
-  args: { postId: v.id("posts"), expectedRevision: v.number(), expectedAuthoringDigest: v.string(), expectedCandidateDigest: v.string(), expectedPresentationRevision: v.string(), preserveInactiveSettings: v.optional(v.boolean()), acknowledgeTextImport: v.optional(v.boolean()), acknowledgeHtmlImport: v.optional(v.boolean()) }, returns: receiptValidator,
+  args: { postId: v.id("posts"), expectedRevision: v.number(), expectedAuthoringDigest: v.string(), expectedCandidateDigest: v.string(), expectedPresentationRevision: v.string(), preserveInactiveSettings: v.optional(v.boolean()), acknowledgeTextImport: v.optional(v.boolean()), acknowledgeHtmlImport: v.optional(v.boolean()), preserveTrash: v.optional(v.boolean()) }, returns: receiptValidator,
   handler: (ctx, args) => canonicalBoundary(() => migrateDocument(ctx, args)),
 });
 
