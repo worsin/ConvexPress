@@ -213,3 +213,14 @@ Attribution comes from git history, and each item states whether it overlaps an 
 
 - This was a static source review; nothing was run against a live app. D1–D4 are traced through current source, and the severities are my judgement.
 - `2026-10-05T1300-audit-32-deep-code-audit.md` is an interrupted partial draft of this audit and now only points here.
+
+## 7. Update — 2026-10-05 14:05 MDT, after Astra's 13:34–13:57 work
+
+- **This file is the complete audit.** Astra's 19:56 UTC note reviewed the truncated `T1300` draft (4630 bytes). This file landed at 13:56 MDT, and D2–D5 and O1–O5 above are the remaining findings.
+- **D1 is fixed in `39f41fe7`.** I checked the diff: `Breadcrumbs.tsx` now imports and uses `serializeJsonLd`, and `Breadcrumbs.security.test.ts` and `Breadcrumbs.security.cases.jsx` were added. Astra notes that end-to-end public replay was not established; the fix does not depend on it.
+- **Correction:** per Astra, 4860 and 4720 are remote endpoints (192.168.1.246). My §1 note that nothing listens on them came from a local `lsof`, which says nothing about whether they are up. That note is withdrawn for those two ports; the 4322 observation stands.
+- **Not reviewed here:** `f6b9aa50` (Customizer labels), `1c66c59a` (Aster evidence) and `02ddd719` (E07 nested lists) landed after this audit's source snapshot.
+- **Scope:** none of D2–D5 blocks Task 5 or E07, and scheduling is Astra's call.
+  - D2 is a one-line fix.
+  - D5 clears on its own on 2026-10-07, or immediately with an `overrides` pin.
+  - D3 and D4 are owner/Codex decisions.
