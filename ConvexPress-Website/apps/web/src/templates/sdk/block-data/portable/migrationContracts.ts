@@ -19,12 +19,20 @@ export type InactiveLegacySettings = z.infer<typeof inactiveLegacySettingsSchema
 export const retainedLegacyAutosaveSchema = z.strictObject({
   titleChanged: z.boolean(), contentChanged: z.boolean(), savedAt: z.number().finite().nullable(),
 });
+export const revisionImportSourceSchema = z.strictObject({
+  revisionId: z.string().min(1).max(256), sourceKind: z.enum(["saved", "autosave"]), sourceDigest: digest,
+});
+export const revisionSourceSchema = z.strictObject({
+  revisionId: z.string().min(1).max(256), sourceDigest: digest, sourceJson: z.string().max(4 * 1024 * 1024),
+});
+export type RevisionSourceDto = z.infer<typeof revisionSourceSchema>;
 type LibraryMigrationCandidate = Omit<CanonicalDocumentDto, "document"> & { document: Omit<CanonicalDocumentDto["document"], "blocks" | "composedDefinitions"> & { blocks: CanonicalTree; composedDefinitions?: never } };
-export type CanonicalMigrationDto = { contract: "canonical-migration-v1"; source: { postId: string; revision: number; authoringDigest: string }; candidate: LibraryMigrationCandidate; preservesTrash?: true; retainedAutosave?: z.infer<typeof retainedLegacyAutosaveSchema>; inactiveSettings?: InactiveLegacySettings[]; importedContent?: "plain-text" | "html" };
+export type CanonicalMigrationDto = { contract: "canonical-migration-v1"; source: { postId: string; revision: number; authoringDigest: string }; candidate: LibraryMigrationCandidate; archive?: z.infer<typeof revisionImportSourceSchema>; preservesTrash?: true; retainedAutosave?: z.infer<typeof retainedLegacyAutosaveSchema>; inactiveSettings?: InactiveLegacySettings[]; importedContent?: "plain-text" | "html" };
 export const canonicalMigrationSchema = z.strictObject({
   contract: z.literal("canonical-migration-v1"),
   source: z.strictObject({ postId: z.string().min(1).max(256), revision: z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER - 2), authoringDigest: digest }),
   candidate: canonicalDocumentSchema,
+  archive: revisionImportSourceSchema.optional(),
   preservesTrash: z.literal(true).optional(),
   retainedAutosave: retainedLegacyAutosaveSchema.optional(),
   inactiveSettings: z.array(inactiveLegacySettingsSchema).max(80).optional(),

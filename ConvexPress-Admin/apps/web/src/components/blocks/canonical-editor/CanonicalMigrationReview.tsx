@@ -6,8 +6,8 @@ import {
 } from "@backend/canonical-blocks-foundation/migrationContracts";
 import {
 	canonicalWriteReceiptSchema,
-	type CanonicalInitializationDto,
 } from "@backend/canonical-blocks-foundation/documentContracts";
+import type { ReactNode } from "react";
 import { CanonicalOutline } from "./CanonicalOutline";
 import { SchemaBlockForm } from "../schema-editor/SchemaBlockForm";
 import { canonicalEditorAdapter, readForEditor } from "./document-adapter";
@@ -17,6 +17,7 @@ import type { DocumentKey } from "./session";
 export interface MigrationClient {
 	prepareMigration(): Promise<unknown>;
 	migrate(args: {
+		expectedArchiveDigest?: string;
 		expectedRevision: number;
 		expectedAuthoringDigest: string;
 		expectedCandidateDigest: string;
@@ -34,9 +35,13 @@ export function CanonicalMigrationReview({
 	source,
 	client,
 	onMigrated,
+	archive,
+	renderPreview,
 }: {
 	documentKey: DocumentKey;
-	source: CanonicalInitializationDto;
+	source: {document: {id: string; revision: number; authoringDigest?: string}};
+	archive?: {revisionId: string; sourceKind: "saved" | "autosave"};
+	renderPreview?: (review: CanonicalMigrationDto) => ReactNode;
 	client: MigrationClient;
 	onMigrated: () => Promise<unknown>;
 }) {
@@ -58,7 +63,8 @@ export function CanonicalMigrationReview({
 	const current =
 		review?.source.postId === source.document.id &&
 		review.source.revision === source.document.revision &&
-		review.source.authoringDigest === source.document.authoringDigest
+		(!source.document.authoringDigest || review.source.authoringDigest === source.document.authoringDigest) &&
+		(archive ? review.archive?.revisionId === archive.revisionId && review.archive?.sourceKind === archive.sourceKind : !review.archive)
 			? review
 			: null;
 	const adapter = useMemo(
@@ -80,7 +86,9 @@ export function CanonicalMigrationReview({
 			const next = parseCanonicalMigration(await client.prepareMigration());
 			readForEditor(next.candidate, documentKey);
 			if (
-				next.source.authoringDigest !== source.document.authoringDigest ||
+				(source.document.authoringDigest !== undefined && next.source.authoringDigest !== source.document.authoringDigest) ||
+				next.source.postId !== source.document.id ||
+				(archive ? next.archive?.revisionId !== archive.revisionId || next.archive?.sourceKind !== archive.sourceKind : !!next.archive) ||
 				next.source.revision !== source.document.revision
 			)
 				throw new Error("Source changed");
@@ -101,7 +109,7 @@ export function CanonicalMigrationReview({
 			className="space-y-4 border-t border-border pt-5"
 		>
 			<h2 className="text-lg font-semibold">
-				Move existing content into blocks
+				{archive ? `Import ${archive.sourceKind === "saved" ? "saved original" : "retained unsaved draft"}` : "Move existing content into blocks"}
 			</h2>
 			<p className="text-sm text-muted-foreground">
 				Review the converted content before saving. The original document is
@@ -160,14 +168,14 @@ export function CanonicalMigrationReview({
 							<p className="text-sm text-muted-foreground">
 								The original renderer may not have displayed this stored content.
 								{current.importedContent === "html" ? " Import converts its supported headings, paragraphs, formatting and links into editable blocks." : " Import keeps its words and line breaks as literal text."} Review the
-								content below before converting this draft; publication is a separate step.
+								content below before importing. Current publication and access settings stay unchanged.
 								The exact original remains in revision history.
 							</p>
 							<label className="flex min-h-11 items-center gap-3 text-sm">
 								<input type="checkbox" name="text-import" disabled={busy}
 									checked={acknowledgedImport === current}
 									onChange={(event) => setAcknowledgedImport(event.target.checked ? current : null)} />
-								Import this reviewed content into the draft and retain the original revision.
+								Import this reviewed content and retain the original revision.
 							</label>
 						</fieldset>
 					)}
@@ -177,7 +185,7 @@ export function CanonicalMigrationReview({
 							<p className="text-sm text-muted-foreground">
 								This document has an unsaved {current.retainedAutosave.titleChanged && current.retainedAutosave.contentChanged ? "title and body" : current.retainedAutosave.titleChanged ? "title" : "body"}.
 								 Conversion uses the accepted content shown below. The unsaved values and their original timestamp
-								 will stay with the original revision and return when you recover that original.
+								 will stay with the original revision for separate review and import.
 								 They will not replace the accepted content or be assigned to your private draft.
 							</p>
 							<label className="flex min-h-11 items-center gap-3 text-sm">
@@ -210,6 +218,7 @@ export function CanonicalMigrationReview({
 							/>
 						)}
 					</div>
+					{renderPreview?.(current)}
 					<button
 						type="button"
 						disabled={busy || (!!current.inactiveSettings?.length && acknowledgedReview !== current) || (!!current.importedContent && acknowledgedImport !== current) || (!!current.retainedAutosave && acknowledgedAutosave !== current)}
@@ -223,6 +232,7 @@ export function CanonicalMigrationReview({
 								try {
 									const receipt = canonicalWriteReceiptSchema.parse(
 										await client.migrate({
+											...(current.archive ? {expectedArchiveDigest: current.archive.sourceDigest} : {}),
 											...(current.inactiveSettings?.length ? {preserveInactiveSettings: true} : {}),
 											...(current.importedContent === "plain-text" ? {acknowledgeTextImport: true} : {}),
 											...(current.importedContent === "html" ? {acknowledgeHtmlImport: true} : {}),
@@ -242,7 +252,8 @@ export function CanonicalMigrationReview({
 										!receipt.changed
 									)
 										throw new Error("Migration receipt mismatch");
-									await onMigrated();
+									const reopened = readForEditor(await onMigrated(), documentKey);
+									if (reopened?.contract !== "canonical-document-v1" || reopened.document.revision !== receipt.revision || reopened.document.digest !== receipt.digest) throw new Error("Imported document reopen mismatch");
 								} catch {
 									if (active.current)
 										setError(
@@ -255,7 +266,7 @@ export function CanonicalMigrationReview({
 							})()
 						}
 					>
-						Convert reviewed content
+						{archive ? "Import reviewed version" : "Convert reviewed content"}
 					</button>
 				</>
 			)}

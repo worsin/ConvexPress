@@ -7,7 +7,7 @@
     "In progress": 20
   },
   "goal": "Complete block editor and template delivery plus all demonstrated blockers; defer unrelated whole-app audit campaigns.",
-  "currentTask": "Task4 E07: installed source116/116 and target29/29 canonical. All12remaining legacy trash records converted without restoring/publication; exact accepted source plus distinct unsaved title/body/timestamp retained in original history, protected from routine pruning. Native review/reset/convert/reopen/Website preview/original recovery accepted. Next history/reference reconciliation and live legacy retirement. Full goal active/incomplete;117Verified/20In progress unchanged.",
+  "currentTask": "Task4 E07: source canonical history import/download deployed and native-verified for saved originals and retained unsaved drafts, without downgrade.117backend/21mounted/14preview tests pass. All116source posts/434revisions and29target posts/88revisions unchanged after owned-copy cleanup. Next target history backport/acceptance, historical reference reconciliation and legacy downgrade/dispatch retirement. Full goal active/incomplete;117Verified/20In progress unchanged.",
   "tasks": [
     {
       "id": 1,
@@ -100,11 +100,11 @@
     },
     {
       "id": "E07",
-      "status": "Installed current corpus converted: source116canonical/0legacy and target29canonical/0legacy.12previously blocked trash records now retain both accepted source and exact distinct autosaves in original snapshots, protected from routine pruning and media deletion.422prior revisions and104unrelated records exact; trash lifecycle/appearance/queue/templates/target exact. Native review/reset/conversion/reload/desktop-phone preview/original recovery accepted. Historical reconciliation and removal of live legacy dispatch/recovery downgrade remain incomplete.",
+      "status": "Current source116/116 and target29/29 canonical. Source historical saved/unsaved imports, exact-source download, Website previews, native reopen and canonical undo verified; originals/target/appearance/mail exact after cleanup. Target retains older recovery compatibility until its own backport. Old downgrade API and live legacy editor/renderer dispatch remain open; historical references/formats still require reconciliation.",
       "classification": "missing evidence",
       "initialFinding": "One-content-model migration and legacy retirement remain incomplete.",
       "closureBoundary": "Complete lossless conversion/recovery for actual retained content, source snapshots and installed-site receipts; then remove active legacy editor/renderer/schema dispatch as specified. Keep historical recovery data and a deliberate import converter. Do not delete old fields before proving preservation or claim migration complete while silently relying on legacy rendering.",
-      "nextCheck": "Reconcile retained histories and reference/restore lifecycle, then replace live legacy editor/renderer dispatch and recovery downgrade with deliberate canonical import while retaining historical bytes. SOURCE latest manifest output/autosave-migration-20261005/deployment-source-final.json; TARGET remains output/target-autosave-parity-20261005/target-source-installed.json. No wait on Claude.",
+      "nextCheck": "Backport historical import and necessary prerequisites into target preserved snapshot; verify native target recovery before retiring old downgrade mutation/permit and live legacy dispatch. SOURCE base output/history-import-20261005/deployment-source-final.json; TARGET base output/target-autosave-parity-20261005/target-source-installed.json. No whole-source target overlay and no wait on Claude.",
       "deliveryTask": 4,
       "triagedAt": "2026-09-29",
       "triageEvidence": "ConvexPress-Admin/audits/2026-09-04/delivery-blocker-triage-20260929.md",
@@ -134,7 +134,8 @@
         "output/trash-migration-20261005/preservation.json",
         "output/trash-migration-20261005/native-copy.json",
         "output/trash-migration-20261005/cleanup.json",
-        "ConvexPress-Admin/audits/2026-09-04/autosave-migration-20261005.md"
+        "ConvexPress-Admin/audits/2026-09-04/autosave-migration-20261005.md",
+        "ConvexPress-Admin/audits/2026-09-04/history-import-20261005.md"
       ]
     },
     {
@@ -527,7 +528,7 @@
       "classification": "accepted repair",
       "initialFinding": "Valid220-character image caption creates2991px page at1440; figure/caption290px wide scrolls2057px.",
       "closureBoundary": "Wrap complete captions in shared Image primitive without truncation; actual published four-pack desktop/mobile normal and maximum12section/192image documents.",
-      "status": "Closed: isolated CSS intervention proves cause, shared overflow-wrap:anywhere repairs caption.16 final public cases, native exact4\u21926 recovery,316renderer tests/types/build/kit pass. See grade-gallery-20260929.md.",
+      "status": "Closed: isolated CSS intervention proves cause, shared overflow-wrap:anywhere repairs caption.16 final public cases, native exact4→6 recovery,316renderer tests/types/build/kit pass. See grade-gallery-20260929.md.",
       "evidence": [
         "output/grade-gallery-20260929/caption-overflow-red.json",
         "output/grade-gallery-20260929/caption-causal.json",
@@ -539,7 +540,7 @@
       "classification": "accepted repair",
       "initialFinding": "Valid3000-character Bundle Offer description widens1440px page to31622px; description444px box has31406px scroll content.",
       "closureBoundary": "Wrap complete bundle description without clipping/truncation; verify actual maximum and normal four-pack1440/390 output plus native/cart preservation.",
-      "status": "Closed: isolated overflow-wrap:anywhere intervention proves cause; one CSS property repairs it. Eight maximum and eight normal cases, native exact5\u21927 recovery, real four-line cart journeys, live withdrawal/expiry and cleanup pass. See catalog-acceptance-20260929.md.",
+      "status": "Closed: isolated overflow-wrap:anywhere intervention proves cause; one CSS property repairs it. Eight maximum and eight normal cases, native exact5→7 recovery, real four-line cart journeys, live withdrawal/expiry and cleanup pass. See catalog-acceptance-20260929.md.",
       "evidence": [
         "output/catalog-acceptance-20260929/bundle-overflow-cause.json",
         "output/catalog-acceptance-20260929/maximum-matrix.json",
@@ -1328,7 +1329,7 @@
         "ConvexPress-Admin/audits/2026-09-04/external-embeds-20260929.md",
         "output/external-embeds-20260929/source-provenance.json"
       ],
-      "remainingReview": "No remaining block-specific gate in this batch; broader Tasks4\u20138 remain open.",
+      "remainingReview": "No remaining block-specific gate in this batch; broader Tasks4–8 remain open.",
       "deliveryTask": 3,
       "acceptanceBatch": "external-embeds",
       "reviewedAtCommit": "99a0c8f8 + external embed contracts/layout repairs",
@@ -1418,7 +1419,7 @@
         "ConvexPress-Admin/audits/2026-09-04/external-embeds-20260929.md",
         "output/external-embeds-20260929/source-provenance.json"
       ],
-      "remainingReview": "No remaining block-specific gate in this batch; broader Tasks4\u20138 remain open.",
+      "remainingReview": "No remaining block-specific gate in this batch; broader Tasks4–8 remain open.",
       "deliveryTask": 3,
       "acceptanceBatch": "external-embeds",
       "reviewedAtCommit": "99a0c8f8 + external embed contracts/layout repairs",
@@ -2176,7 +2177,7 @@
         "ConvexPress-Admin/audits/2026-09-04/customer-commerce-20260929.md",
         "output/customer-commerce-20260929/source-provenance.json"
       ],
-      "remainingReview": "No remaining block-specific gate in this batch; broader migration, Customizer, SDK and frozen-artifact integration remain Tasks4\u20138.",
+      "remainingReview": "No remaining block-specific gate in this batch; broader migration, Customizer, SDK and frozen-artifact integration remain Tasks4–8.",
       "deliveryTask": 3,
       "acceptanceBatch": "customer-commerce",
       "reviewedAtCommit": "ca7cb390 + Purchased Downloads flex-shrink repair",
@@ -2326,7 +2327,7 @@
         "output/catalog-acceptance-20260929/mt-accept-verified.json",
         "output/catalog-acceptance-20260929/source-provenance.json"
       ],
-      "remainingReview": "No remaining block-specific gate in this batch; broader migration, Customizer, SDK and frozen-artifact integration remain assigned Tasks4\u20138.",
+      "remainingReview": "No remaining block-specific gate in this batch; broader migration, Customizer, SDK and frozen-artifact integration remain assigned Tasks4–8.",
       "deliveryTask": 3,
       "acceptanceBatch": "catalog",
       "reviewedAtCommit": "2e16c275 + catalog CSS repair",
@@ -2394,7 +2395,7 @@
         "output/catalog-acceptance-20260929/mt-accept-verified.json",
         "output/catalog-acceptance-20260929/source-provenance.json"
       ],
-      "remainingReview": "No remaining block-specific gate in this batch; broader migration, Customizer, SDK and frozen-artifact integration remain assigned Tasks4\u20138.",
+      "remainingReview": "No remaining block-specific gate in this batch; broader migration, Customizer, SDK and frozen-artifact integration remain assigned Tasks4–8.",
       "deliveryTask": 3,
       "acceptanceBatch": "catalog",
       "reviewedAtCommit": "2e16c275 + catalog CSS repair",
@@ -2427,7 +2428,7 @@
         "output/catalog-acceptance-20260929/mt-accept-verified.json",
         "output/catalog-acceptance-20260929/source-provenance.json"
       ],
-      "remainingReview": "No remaining block-specific gate in this batch; broader migration, Customizer, SDK and frozen-artifact integration remain assigned Tasks4\u20138.",
+      "remainingReview": "No remaining block-specific gate in this batch; broader migration, Customizer, SDK and frozen-artifact integration remain assigned Tasks4–8.",
       "deliveryTask": 3,
       "acceptanceBatch": "catalog",
       "reviewedAtCommit": "2e16c275 + catalog CSS repair",
@@ -2459,7 +2460,7 @@
         "output/catalog-acceptance-20260929/mt-accept-verified.json",
         "output/catalog-acceptance-20260929/source-provenance.json"
       ],
-      "remainingReview": "No remaining block-specific gate in this batch; broader migration, Customizer, SDK and frozen-artifact integration remain assigned Tasks4\u20138.",
+      "remainingReview": "No remaining block-specific gate in this batch; broader migration, Customizer, SDK and frozen-artifact integration remain assigned Tasks4–8.",
       "deliveryTask": 3,
       "acceptanceBatch": "catalog",
       "reviewedAtCommit": "2e16c275 + catalog CSS repair",
@@ -2478,7 +2479,7 @@
       "title": "Recently viewed",
       "category": "Commerce",
       "checkpointStatus": "In progress",
-      "nextClassification": "Actual guest source\u2192target\u2192source switch passes in one browser origin with separate databases and preserved history. Signed-in target rejects Clerk token: No auth provider found; provisioning clerk_secret_key_missing. Keep open pending E18 target identity readiness and real signed-in repeat.",
+      "nextClassification": "Actual guest source→target→source switch passes in one browser origin with separate databases and preserved history. Signed-in target rejects Clerk token: No auth provider found; provisioning clerk_secret_key_missing. Keep open pending E18 target identity readiness and real signed-in repeat.",
       "classification": "missing evidence",
       "source": "blocks/commerce/recently-viewed/block.json",
       "requirements": "limit, title",
@@ -2493,7 +2494,7 @@
         "output/recent-auth-switch-20260929/target-auth-console.json",
         "output/recent-auth-switch-20260929/target-provisioning.json"
       ],
-      "remainingReview": "Configure and verify the actual target customer identity provider as part of E18 integrated target readiness, then repeat signed-in source\u2192target\u2192source history acceptance; guest environment and prior source account-switch evidence are reusable.",
+      "remainingReview": "Configure and verify the actual target customer identity provider as part of E18 integrated target readiness, then repeat signed-in source→target→source history acceptance; guest environment and prior source account-switch evidence are reusable.",
       "deliveryTask": 3,
       "acceptanceBatch": "customer-commerce",
       "reviewedAtCommit": "ca7cb390 + Purchased Downloads flex-shrink repair",
@@ -2524,7 +2525,7 @@
         "ConvexPress-Admin/audits/2026-09-04/customer-commerce-20260929.md",
         "output/customer-commerce-20260929/source-provenance.json"
       ],
-      "remainingReview": "No remaining block-specific gate in this batch; broader migration, Customizer, SDK and frozen-artifact integration remain Tasks4\u20138.",
+      "remainingReview": "No remaining block-specific gate in this batch; broader migration, Customizer, SDK and frozen-artifact integration remain Tasks4–8.",
       "deliveryTask": 3,
       "acceptanceBatch": "customer-commerce",
       "reviewedAtCommit": "ca7cb390 + Purchased Downloads flex-shrink repair",
@@ -2583,7 +2584,7 @@
         "output/catalog-acceptance-20260929/mt-accept-verified.json",
         "output/catalog-acceptance-20260929/source-provenance.json"
       ],
-      "remainingReview": "No remaining block-specific gate in this batch; broader migration, Customizer, SDK and frozen-artifact integration remain assigned Tasks4\u20138.",
+      "remainingReview": "No remaining block-specific gate in this batch; broader migration, Customizer, SDK and frozen-artifact integration remain assigned Tasks4–8.",
       "deliveryTask": 3,
       "acceptanceBatch": "catalog",
       "reviewedAtCommit": "2e16c275 + catalog CSS repair",
@@ -2612,7 +2613,7 @@
         "output/catalog-acceptance-20260929/mt-accept-verified.json",
         "output/catalog-acceptance-20260929/source-provenance.json"
       ],
-      "remainingReview": "No remaining block-specific gate in this batch; broader migration, Customizer, SDK and frozen-artifact integration remain assigned Tasks4\u20138.",
+      "remainingReview": "No remaining block-specific gate in this batch; broader migration, Customizer, SDK and frozen-artifact integration remain assigned Tasks4–8.",
       "deliveryTask": 3,
       "acceptanceBatch": "catalog",
       "reviewedAtCommit": "2e16c275 + catalog CSS repair",
@@ -2642,7 +2643,7 @@
         "output/catalog-acceptance-20260929/mt-accept-verified.json",
         "output/catalog-acceptance-20260929/source-provenance.json"
       ],
-      "remainingReview": "No remaining block-specific gate in this batch; broader migration, Customizer, SDK and frozen-artifact integration remain assigned Tasks4\u20138.",
+      "remainingReview": "No remaining block-specific gate in this batch; broader migration, Customizer, SDK and frozen-artifact integration remain assigned Tasks4–8.",
       "deliveryTask": 3,
       "acceptanceBatch": "catalog",
       "reviewedAtCommit": "2e16c275 + catalog CSS repair",
@@ -2671,7 +2672,7 @@
         "output/catalog-acceptance-20260929/mt-accept-verified.json",
         "output/catalog-acceptance-20260929/source-provenance.json"
       ],
-      "remainingReview": "No remaining block-specific gate in this batch; broader migration, Customizer, SDK and frozen-artifact integration remain assigned Tasks4\u20138.",
+      "remainingReview": "No remaining block-specific gate in this batch; broader migration, Customizer, SDK and frozen-artifact integration remain assigned Tasks4–8.",
       "deliveryTask": 3,
       "acceptanceBatch": "catalog",
       "reviewedAtCommit": "2e16c275 + catalog CSS repair",
@@ -2795,7 +2796,7 @@
       "nextClassification": "2026-09-28 completion: Native heading/max saved/reopened/restored; live max1 continuation through actual topics, private-only/empty-topic exclusion and all-private empty state accepted. Current bounded reader/access/cursor tests and four-pack desktop/mobile pass. No cached counts exposed. Combined evidence:164 backend tests/1619 assertions;310 renderer tests/5442 assertions;16 final live pack/width cases;48 BlockDemo cases/112 examples. Owned fixtures removed; original42pages/2posts/1term and appearance preserved. Migration/promotion/whole-delivery gates remain separate.",
       "classification": "accepted/reusable evidence",
       "source": "blocks/core/tag-cloud/block.json",
-      "requirements": "heading, max (integer 1\u2013100)",
+      "requirements": "heading, max (integer 1–100)",
       "evidenceReferences": [
         "output/post-terms-access-20260906.",
         "output/tag-archive-20260906",
@@ -3006,7 +3007,7 @@
       "title": "Newsletter signup",
       "category": "Forms",
       "checkpointStatus": "Verified",
-      "nextClassification": "Accepted current six canonical fields, native save/reopen/exact revision4\u21926 recovery/actual Website preview; four-pack normal/maximum/minimum and live validation/retry/deduplicated signup/focused success; unchanged email queue. Historical list/variant shorthand is not a current field.",
+      "nextClassification": "Accepted current six canonical fields, native save/reopen/exact revision4→6 recovery/actual Website preview; four-pack normal/maximum/minimum and live validation/retry/deduplicated signup/focused success; unchanged email queue. Historical list/variant shorthand is not a current field.",
       "classification": "accepted",
       "source": "blocks/core/newsletter-signup/block.json",
       "requirements": "title, body, submitLabel, list",
@@ -3053,7 +3054,7 @@
         "ConvexPress-Admin/audits/2026-09-04/external-embeds-20260929.md",
         "output/external-embeds-20260929/source-provenance.json"
       ],
-      "remainingReview": "No remaining block-specific gate in this batch; broader Tasks4\u20138 remain open.",
+      "remainingReview": "No remaining block-specific gate in this batch; broader Tasks4–8 remain open.",
       "deliveryTask": 3,
       "acceptanceBatch": "external-embeds",
       "reviewedAtCommit": "99a0c8f8 + external embed contracts/layout repairs",
@@ -3089,7 +3090,7 @@
         "ConvexPress-Admin/audits/2026-09-04/external-embeds-20260929.md",
         "output/external-embeds-20260929/source-provenance.json"
       ],
-      "remainingReview": "No remaining block-specific gate in this batch; broader Tasks4\u20138 remain open.",
+      "remainingReview": "No remaining block-specific gate in this batch; broader Tasks4–8 remain open.",
       "deliveryTask": 3,
       "acceptanceBatch": "external-embeds",
       "reviewedAtCommit": "99a0c8f8 + external embed contracts/layout repairs",
@@ -3773,7 +3774,7 @@
         "ConvexPress-Admin/audits/2026-09-04/external-embeds-20260929.md",
         "output/external-embeds-20260929/source-provenance.json"
       ],
-      "remainingReview": "No remaining block-specific gate in this batch. Iframe Vimeo availability is explicitly unproved; approved actual map-frame gate passed. Broader Tasks4\u20138 remain open.",
+      "remainingReview": "No remaining block-specific gate in this batch. Iframe Vimeo availability is explicitly unproved; approved actual map-frame gate passed. Broader Tasks4–8 remain open.",
       "deliveryTask": 3,
       "acceptanceBatch": "external-embeds",
       "reviewedAtCommit": "99a0c8f8 + external embed contracts/layout repairs",
@@ -4082,7 +4083,7 @@
         "ConvexPress-Admin/audits/2026-09-04/customer-commerce-20260929.md",
         "output/customer-commerce-20260929/source-provenance.json"
       ],
-      "remainingReview": "No remaining block-specific gate in this batch; broader migration, Customizer, SDK and frozen-artifact integration remain Tasks4\u20138.",
+      "remainingReview": "No remaining block-specific gate in this batch; broader migration, Customizer, SDK and frozen-artifact integration remain Tasks4–8.",
       "deliveryTask": 3,
       "acceptanceBatch": "customer-commerce",
       "reviewedAtCommit": "ca7cb390 + Purchased Downloads flex-shrink repair",
@@ -4115,7 +4116,7 @@
         "ConvexPress-Admin/audits/2026-09-04/customer-commerce-20260929.md",
         "output/customer-commerce-20260929/source-provenance.json"
       ],
-      "remainingReview": "No remaining block-specific gate in this batch; broader migration, Customizer, SDK and frozen-artifact integration remain Tasks4\u20138.",
+      "remainingReview": "No remaining block-specific gate in this batch; broader migration, Customizer, SDK and frozen-artifact integration remain Tasks4–8.",
       "deliveryTask": 3,
       "acceptanceBatch": "customer-commerce",
       "reviewedAtCommit": "ca7cb390 + Purchased Downloads flex-shrink repair",
@@ -4538,18 +4539,18 @@
       "audit15": "Read/responded: F23 remains a narrow public-caller policy lens rather than a filename-based finding or general audit. Support acceptance complete with actual customer isolation.",
       "audit16": "Read/responded: E45 bounded streaming route accepted; F24 eleven stale block statuses repaired and check:delivery-status now asserts exact per-row/header/readback parity. Current trackerRefresh/latestEvidence metadata refreshed to the Steps checkpoint.",
       "gradeRunner": "Owned Website admin origin was accidentally localhost:4105 after Steps rebuild. Native preview correctly refused. Restored exact127.0.0.1:4105 from accepted runtime, reconnect rendered; no product policy weakened. NewownedWebsite56081. Preserve all runtime fields on future restarts.",
-      "audit17": "Read/responded. F25 nine placeholder blockers explicitly triaged with reused evidence, remaining boundary, assigned task and concrete nextCheck. E04 aggregate superseded by per-row queue; E16 preservation accepted but lifecycle remains Task7. Tasks4\u20138 and E18/E22/E28 remain open. Block counts are not delivery percentage; no subagents.",
-      "catalogRuntime": "Owned Website58929/PTY85331 now serves4322 after one CSS repair. Full captured runtime exact, including127.0.0.1:4105 admin origin. Owned native57234 signed out/closed/profile removed. Cart cleared; two archived logo-free brands remain because no normal delete API. Settings values restored, normal audit metadata materialized; derived Uncategorized count corrected by normal product mutations3\u21922 matching2published originals.",
+      "audit17": "Read/responded. F25 nine placeholder blockers explicitly triaged with reused evidence, remaining boundary, assigned task and concrete nextCheck. E04 aggregate superseded by per-row queue; E16 preservation accepted but lifecycle remains Task7. Tasks4–8 and E18/E22/E28 remain open. Block counts are not delivery percentage; no subagents.",
+      "catalogRuntime": "Owned Website58929/PTY85331 now serves4322 after one CSS repair. Full captured runtime exact, including127.0.0.1:4105 admin origin. Owned native57234 signed out/closed/profile removed. Cart cleared; two archived logo-free brands remain because no normal delete API. Settings values restored, normal audit metadata materialized; derived Uncategorized count corrected by normal product mutations3→2 matching2published originals.",
       "audit18": "Read/responded: no new finding; max-content cases already gate overflow. F25 closed for triage only. E06 all-field/mixed composition, F21 Task4 corpus completeness and E18/E22/E28 retained. No overall completion percentage inferred.",
       "externalEmbedsRuntime": "Owned Website64979/PTY37890 serves4322 with exact captured runtime. Native60861/64594 signed out/closed; profile and API session cleaned. Two owned pages deleted;42pages/11media/appearance values exact. Snapshot external-embeds-reviewed preserves22Events/2410signatures.",
       "customerCommerceRuntime": "Website67075/PTY38169 serves4322 with exact captured runtime after one CSS repair. Owned native66154 and both customer browsers closed. Source backend unchanged. Original42pages/11media exact; product/category values exact except category audit timestamp; email default values restored in newly materialized row. Cancelled zero-value order and normal revoked entitlement/audit/session receipts retained; both owned profiles inactive/Clerk deleted. Four rows accepted, Recent site switch and Assistant live model remain.",
       "formsRuntime": "Owned Website72085/PTY44566 serves4322 after E57 CSS repair with exact six-field runtime. Native70560 signed out/closed and browser closed, API session revoked/profiles removed.4pages deleted,5forms archived,2sources withdrawn,list/event archived. Original42pages/11media/7activeforms/1list/1event exact; appearance/plugins/email/security restored. Three answers/submissions and normal source/consent/RSVP/poll history retained; one non-delivering synthetic newsletter subscriber remains because no product delete API, readonly REPL mutation rejected. No broad table replacement.",
-      "audit20": "Read/responded: F27 whole-entry omission is contradicted by existing E18 currentEvidence/nextCheck; short status line now expanded for consistent handoff. Audit counts/six-Forms-remaining wording stale; Newsletter/Poll accepted,4Forms remain. F21/Tasks4\u20138/E22/E28 retained; no overall completion inference.",
+      "audit20": "Read/responded: F27 whole-entry omission is contradicted by existing E18 currentEvidence/nextCheck; short status line now expanded for consistent handoff. Audit counts/six-Forms-remaining wording stale; Newsletter/Poll accepted,4Forms remain. F21/Tasks4–8/E22/E28 retained; no overall completion inference.",
       "settingsEmailAcceptance": "Correction: restoring email.enabled after Forms created12queued settings alerts; Poll template matrix created60more. All72exact operator/event-bound alerts cancelled through registered API with0attempts; original27rows exact,finalqueue99includingcancelledhistory. No configured provider key or delivery. Suppress settings-changed-alert template before future template settings/email restoration, restore last after event completion; email_templates changes are explicitly ignored by settings alert handler. Never claim post-cleanup queue preservation from a pre-restoration sample.",
       "pollRuntime": "Website72085/PTY44566 unchanged; backend unchanged. Poll customer browser closed;2owned Clerk identities deleted/site profiles inactive, private credentials/profile/token files removed,API revoked. Ownedpage deleted,42originalpages/appearance/email/security exact. Deactivation template active value restored after exact events completed; normal timestamp advanced.3votes/2tallies and72cancelled alerts retained. Ownerprocesses preserved."
     },
-    "audit19": "Read/responded. F26 prerequisite visibility useful; exact owner-only/exhaustive claim not established. No acceptance on missing model/provider proof. Corrected core/reviews/E56. Actual signed-in target Clerk provider/provisioning failure now recorded under E18; Recently Viewed remains open. Forms six next, F21 and Tasks4\u20138 retained.",
-    "audit21": "Read/responded. Snapshot predates64feddce116/21; E60 auth hydration distinct from E59 confirmation. Narrow public-read lens retained. Targeted notification templates suppressed before customer creation; final async queue proof required. F21/Tasks4\u20138/E18/E22/E28 remain open.",
+    "audit19": "Read/responded. F26 prerequisite visibility useful; exact owner-only/exhaustive claim not established. No acceptance on missing model/provider proof. Corrected core/reviews/E56. Actual signed-in target Clerk provider/provisioning failure now recorded under E18; Recently Viewed remains open. Forms six next, F21 and Tasks4–8 retained.",
+    "audit21": "Read/responded. Snapshot predates64feddce116/21; E60 auth hydration distinct from E59 confirmation. Narrow public-read lens retained. Targeted notification templates suppressed before customer creation; final async queue proof required. F21/Tasks4–8/E18/E22/E28 remain open.",
     "audit22": "Read/responded: F28 clarified first-of115 shared test-location convention, not isolated Heading failure. Central receipt317tests/1148cases and live117Verified/137row gate pass. E22 stays open for screenshot provenance/final evidence; new E62 migration tooling remains Task4. Audit counts are historical snapshots, not guaranteed lower bounds; row ratio is not full delivery percentage. RSVP human CAPTCHA and cleanup pending.",
     "audit25": "Read/responded: authority workflow advanced without backend changes; customer fully cleaned. Actual parent revocation/recovery now accepted; newly demonstrated E69 banner mismatch source-fixed, refreshed runtime pending alongside E68. No new broad scope; Codex retains decision authority.",
     "audit33": "Accepted E07 status parity and Website-before-backend nested-list rollout requirement. Direct HTML converter probe preserves _blank and refuses unsupported target. D3 adapted/deferred pending bounded reproduction without authoring reload; D5/O3/O5 deferred, D4 remains rejected under E39, O4 informational. Source now79canonical/37legacy, five published pages preserved and republished; continue two raw-text posts without waiting for audit."

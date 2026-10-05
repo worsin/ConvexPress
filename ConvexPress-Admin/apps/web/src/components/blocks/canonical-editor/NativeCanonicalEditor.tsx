@@ -391,6 +391,21 @@ function ConnectedEditor({
 				guard();
 				return value;
 			},
+      prepareRevisionImport: async (args) => {
+        guard();
+        const value = await convex.query(api.canonicalDocuments.prepareRevisionImport,{postId,...args,revisionId:args.revisionId as Id<"revisions">});
+        guard(); return value;
+      },
+      importRevision: async (args) => {
+        guard();
+        const value = await convex.mutation(api.canonicalDocuments.importRevision,{postId,...args,revisionId:args.revisionId as Id<"revisions">});
+        guard(); return value;
+      },
+      getRevisionSource: async (args) => {
+        guard();
+        const value = await convex.query(api.canonicalDocuments.getRevisionSource,{postId,revisionId:args.revisionId as Id<"revisions">});
+        guard(); return value;
+      },
 			setPublication: async (args) => {
 				guard();
 				const value = await convex.mutation(

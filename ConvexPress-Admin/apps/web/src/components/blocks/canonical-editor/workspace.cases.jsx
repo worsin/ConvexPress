@@ -1305,3 +1305,38 @@ test("document settings require saved content, serialize writes and retain edits
 		await loaded.cleanup();
 	}
 });
+
+test("historical import binds saved versus unsaved review, resets acknowledgements and preserves canonical undo", async () => {
+ const loaded=await loadStaged("../canonical-editor/workspace.fixture.ts"),m=loaded.module;
+ const dom=new JSDOM('<div id="app"></div>',{url:"http://localhost"}),previous={};
+ for(const name of ["window","document","navigator","HTMLElement","Event","IS_REACT_ACT_ENVIRONMENT"]){previous[name]=Object.getOwnPropertyDescriptor(globalThis,name);Object.defineProperty(globalThis,name,{configurable:true,writable:true,value:name==="IS_REACT_ACT_ENVIRONMENT"?true:dom.window[name]});}
+ const {createRoot}=await import("react-dom/client"),root=createRoot(document.getElementById("app"));
+ const scope={websiteKey:"site",instanceKey:"stage"},key={...scope,documentId:"story",generation:"operator"};
+ const canonical=(revision,title="Story")=>({contract:"canonical-document-v1",scope,document:{id:"story",type:"page",title,status:"draft",path:"/story",blocksVersion:2,revision,blocks:[],digest:m.canonicalContentDigest(title,[])},presentation:{packId:"core",revision:"b".repeat(64)},policy:{enabledPlugins:[],capabilities:[],disabledBlocks:[]},data:{contract:"canonical-data-v1",scope,dataByBlock:{}},resources:{media:{}}});
+ let current=canonical(5),wrongSource=false,wrongReceipt=true;const writes=[];
+ const review=sourceKind=>({contract:"canonical-migration-v1",source:{postId:"story",revision:current.document.revision,authoringDigest:"a".repeat(64)},archive:{revisionId:"original",sourceKind:wrongSource?"saved":sourceKind,sourceDigest:"c".repeat(64)},candidate:canonical(current.document.revision+1,sourceKind==="autosave"?"Unsaved title":"Saved title"),importedContent:"plain-text"});
+ const row=(id,version)=>({id,action:version===2?"restore-canonical":"import-legacy",blocksVersion:version,hasRetainedAutosave:version===1,revisionNumber:4,title:"Story",createdAt:1000,type:"manual",restorable:true,reason:null});
+ const client={get:async()=>current,initialize:async()=>{throw Error("Not initialize")},save:async()=>{throw Error("Not save")},getRevisionSource:async()=>{throw Error("Download denied")},
+ prepareRevisionImport:async args=>review(args.sourceKind),
+ importRevision:async args=>{writes.push(args);const candidate=review(args.sourceKind).candidate;if(!wrongReceipt)current=candidate;return{postId:wrongReceipt?"other":"story",revision:candidate.document.revision,digest:candidate.document.digest,changed:true}},
+ restore:async args=>{writes.push(args);current=canonical(7);return{postId:"story",revision:7,digest:current.document.digest,changed:true}},
+ pageRevisions:async()=>({page:current.document.revision===5?[row("original",1)]:[row("safety",2)],isDone:true,continueCursor:""})};
+ const button=text=>[...document.querySelectorAll("button")].find(n=>n.textContent===text);
+ const click=async text=>act(async()=>button(text).click());
+ const choose=async value=>act(async()=>{const select=document.querySelector('select[aria-label="Historical content"]');select.value=value;select.dispatchEvent(new Event("change",{bubbles:true}));});
+ const acknowledge=async()=>act(async()=>document.querySelector('input[name="text-import"]').click());
+ try {
+  await act(async()=>root.render(<m.CanonicalDocumentWorkspace documentKey={key} read={current} client={client} pickResource={async()=>null}/>));
+  await click("Browse revisions");await click("Download original source");expect(document.body.textContent).toContain("could not be downloaded");
+  await click("Review historical import");await click("Review conversion");expect(document.body.textContent).toContain("Saved title");expect(button("Import reviewed version").disabled).toBe(true);
+  await acknowledge();expect(button("Import reviewed version").disabled).toBe(false);
+  await choose("autosave");expect(button("Import reviewed version")).toBeUndefined();wrongSource=true;
+  await click("Review conversion");expect(button("Import reviewed version")).toBeUndefined();expect(writes).toHaveLength(0);
+  wrongSource=false;await click("Review conversion");expect(document.body.textContent).toContain("Unsaved title");expect(button("Import reviewed version").disabled).toBe(true);
+  await acknowledge();await click("Refresh migration review");expect(button("Import reviewed version").disabled).toBe(true);
+  await acknowledge();await click("Import reviewed version");expect(document.body.textContent).toContain("could not be confirmed");expect(current.document.revision).toBe(5);
+  expect(writes[0]).toMatchObject({revisionId:"original",sourceKind:"autosave",expectedArchiveDigest:"c".repeat(64),expectedAuthoringDigest:"a".repeat(64),expectedRevision:5,acknowledgeTextImport:true});
+  wrongReceipt=false;await click("Refresh migration review");await acknowledge();await click("Import reviewed version");expect(current.document).toMatchObject({blocksVersion:2,revision:6,title:"Unsaved title"});
+  await click("Review restore");await click("Restore this revision");expect(current.document).toMatchObject({revision:7,title:"Story",blocksVersion:2});expect(writes.at(-1)).toMatchObject({revisionId:"safety",expectedRevision:6});
+ }finally{await act(async()=>root.unmount());dom.window.close();for(const [name,descriptor]of Object.entries(previous)){if(descriptor)Object.defineProperty(globalThis,name,descriptor);else delete globalThis[name];}await loaded.cleanup();}
+});
