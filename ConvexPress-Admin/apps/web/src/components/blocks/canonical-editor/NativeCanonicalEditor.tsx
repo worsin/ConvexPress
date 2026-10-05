@@ -78,10 +78,7 @@ export function CanonicalEditorEntry({
 						Back to existing editor
 					</button>
 				)}
-				<NativeCanonicalEditor
-					postId={postId}
-					onRecovered={() => setSelected(false)}
-				/>
+				<NativeCanonicalEditor postId={postId} />
 			</div>
 		);
 	return (
@@ -109,10 +106,8 @@ export function CanonicalEditorEntry({
 
 export function NativeCanonicalEditor({
 	postId,
-	onRecovered,
 }: {
 	postId: Id<"posts">;
-	onRecovered?: () => void;
 }) {
 	const runtime = useVerifiedSiteRuntime(),
 		auth = useConvexAuth(),
@@ -133,7 +128,6 @@ export function NativeCanonicalEditor({
 			<ConnectedEditor
 				postId={postId}
 				runtime={runtime}
-				onRecovered={onRecovered}
 			/>
 		</CanonicalReadBoundary>
 	);
@@ -141,11 +135,9 @@ export function NativeCanonicalEditor({
 function ConnectedEditor({
 	postId,
 	runtime,
-	onRecovered,
 }: {
 	postId: Id<"posts">;
 	runtime: VerifiedSiteRuntime;
-	onRecovered?: () => void;
 }) {
 	const can = useCan();
 	const convex = useConvex(),
@@ -375,19 +367,6 @@ function ConnectedEditor({
 					...args,
 					revisionId: args.revisionId as Id<"revisions">,
 				});
-				guard();
-				return value;
-			},
-			recoverLegacy: async (args) => {
-				guard();
-				const value = await convex.mutation(
-					api.canonicalDocuments.recoverLegacy,
-					{
-						postId,
-						...args,
-						revisionId: args.revisionId as Id<"revisions">,
-					},
-				);
 				guard();
 				return value;
 			},
@@ -735,11 +714,6 @@ function ConnectedEditor({
 					read={decodedRead}
 					client={client}
 					onPreview={setPreview}
-					onRecovered={() => {
-						guard();
-						setPreview(null);
-						onRecovered?.();
-					}}
 					pickResource={(request) => {
 						guard();
 						if (

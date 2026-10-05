@@ -1,4 +1,3 @@
-import { LegacyHistoryRestore } from "./LegacyHistoryRestore";
 import { CanonicalHistoryImport, type HistoryImportClient } from "./CanonicalHistoryImport";
 import { revisionSourceSchema } from "@backend/canonical-blocks-foundation/migrationContracts";
 import { getErrorMessage } from "../../../lib/utils";
@@ -78,7 +77,6 @@ export interface CanonicalDocumentClient
 		expectedAuthoringDigest?: string;
 		revisionId: string;
 	}): Promise<unknown>;
-	recoverLegacy?(args: {expectedRevision: number; revisionId: string}): Promise<unknown>;
 	pageRevisions(cursor: string | null): Promise<unknown>;
 	setPublication?(args: PublicationRequest): Promise<unknown>;
 }
@@ -97,7 +95,6 @@ export interface CanonicalDocumentWorkspaceProps {
 		document: import("@backend/canonical-blocks-foundation/documentContracts").CanonicalDocumentDto,
 		request: AiProposalRequest,
 	) => void;
-	onRecovered?: () => void;
 	onDirtyChange?: (dirty: boolean) => void;
 	onPreview?: (
 		document: import("@backend/canonical-blocks-foundation/documentContracts").CanonicalDocumentDto,
@@ -120,7 +117,6 @@ function WorkspaceBody({
 	canAi = false,
 	elementCreation,
 	onAiPreview,
-	onRecovered,
 	onDirtyChange,
 }: CanonicalDocumentWorkspaceProps) {
 	const value = useMemo(
@@ -270,7 +266,6 @@ function WorkspaceBody({
 					onRestored={refresh}
 					documentKey={documentKey}
 					siteOrigin={siteOrigin}
-					onRecovered={onRecovered}
 				/>
 			</section>
 		);
@@ -488,7 +483,6 @@ function WorkspaceBody({
 					revision={latest.document.revision}
 					onRestored={refresh}
 					siteOrigin={siteOrigin}
-					onRecovered={onRecovered}
 					documentKey={documentKey}
 				/>
 			)}
@@ -501,7 +495,6 @@ function RevisionHistory({
 	onRestored,
 	documentKey,
 	authoringDigest,
-	onRecovered,
 	siteOrigin,
 }: {
 	client: CanonicalDocumentClient;
@@ -509,7 +502,6 @@ function RevisionHistory({
 	onRestored: () => Promise<CanonicalDocumentRead>;
 	documentKey: DocumentKey;
 	authoringDigest?: string;
-	onRecovered?: () => void;
 	siteOrigin?: string;
 }) {
 	const [page, setPage] = useState<CanonicalRevisionPage | null>(null),
@@ -593,12 +585,12 @@ function RevisionHistory({
 							disabled={
 								(!row.restorable && !row.hasRetainedAutosave) ||
 								busy ||
-								(row.action === "recover-legacy" ? !client.recoverLegacy : row.blocksVersion !== 2 && (!client.prepareRevisionImport || !client.importRevision || !client.getRevisionSource))
+								(row.blocksVersion !== 2 && (!client.prepareRevisionImport || !client.importRevision || !client.getRevisionSource))
 							}
 							onClick={() => setSelected(row.id)}
 							className="min-h-11 rounded border px-3 text-sm disabled:opacity-50"
 						>
-							{row.action === "recover-legacy" ? "Review original editor restore" : row.blocksVersion !== 2
+							{row.blocksVersion !== 2
 								? "Review historical import"
 								: "Review restore"}
 						</button>
@@ -621,8 +613,7 @@ function RevisionHistory({
 					</li>
 				))}
 			</ul>
-			{selected && rows.find(row => row.id === selected)?.action === "recover-legacy" && client.recoverLegacy && <LegacyHistoryRestore revisionId={selected} revision={revision} documentId={documentKey.documentId} recover={args => client.recoverLegacy!(args)} onRestored={onRestored} onRecovered={onRecovered} onCancel={() => setSelected(null)} />}
-			{selected && rows.find(row => row.id === selected)?.action !== "recover-legacy" && rows.find(row => row.id === selected)?.blocksVersion !== 2 && client.prepareRevisionImport && client.importRevision && client.getRevisionSource && (
+			{selected && rows.find(row => row.id === selected)?.blocksVersion !== 2 && client.prepareRevisionImport && client.importRevision && client.getRevisionSource && (
         <CanonicalHistoryImport key={selected} client={{prepareRevisionImport:client.prepareRevisionImport,importRevision:client.importRevision,getRevisionSource:client.getRevisionSource}} documentKey={documentKey} revision={revision} revisionId={selected} hasRetainedAutosave={!!rows.find(row => row.id === selected)?.hasRetainedAutosave} siteOrigin={siteOrigin} onImported={onRestored} />
       )}
 			{selected && rows.find(row => row.id === selected)?.blocksVersion === 2 && (

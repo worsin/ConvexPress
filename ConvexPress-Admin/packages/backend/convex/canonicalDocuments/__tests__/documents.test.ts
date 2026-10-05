@@ -127,10 +127,11 @@ for (const status of ["draft", "trash"] as const) test(`migration retains distin
   if (status === "trash") await f.t.run(ctx => ctx.db.patch("posts",f.ids.post,{status:"draft",previousStatus:undefined,trashedAt:undefined}));
   const history = await f.client.query(reference("pageRevisions"),{postId:f.ids.post,paginationOpts:{cursor:null,numItems:20}});
   expect(history.page[0].action).toBe("import-legacy");
-  await f.client.mutation(reference("recoverLegacy","mutation"),{postId:f.ids.post,revisionId:history.page[0].id,expectedRevision:receipt.revision});
-  expect((await state()).post).toMatchObject({content,title:before.post!.title,contentMode:"article",blocksVersion:1,...autosave});
-  const again = await f.client.query(reference("prepareMigration"),{postId:f.ids.post});
-  expect(again.retainedAutosave).toEqual(review.retainedAutosave);
+  await importOriginal(f, {postId:f.ids.post,revisionId:history.page[0].id,expectedRevision:receipt.revision});
+  expect(await readOriginal(f,history.page[0].id)).toMatchObject({content,title:before.post!.title,contentMode:"article",...autosave});
+  const beforeRefusal=await state();
+  await expect(f.client.query(reference("prepareRevisionImport"),{postId:f.ids.post,revisionId:history.page[0].id,sourceKind:"autosave"})).rejects.toMatchObject({data:{code:"LEGACY_CONVERSION_REQUIRED"}});
+  expect(await state()).toEqual(beforeRefusal);
 });
 
 test("commerce resolver-invalid edits are refused before saving or previewing without changing history", async () => {
@@ -249,8 +250,8 @@ test("CTA authoring rejects save, preview and publication atomically while legac
   const changed = await f.client.mutation(reference("setSettings", "mutation"), { postId: f.ids.post, expectedRevision: restored.revision, expectedSettingsDigest: settings.settingsDigest, slug: settings.slug, pageTemplate: settings.pageTemplate, hideHeader: !settings.hideHeader, hideFooter: settings.hideFooter });
   const original = history.page.find((row: any) => row.action === "import-legacy");
   expect(original).toBeDefined();
-  await f.client.mutation(reference("recoverLegacy", "mutation"), { postId: f.ids.post, expectedRevision: changed.revision, revisionId: original.id });
-  expect((await f.t.run(ctx => ctx.db.get("posts", f.ids.post)))?.blocksVersion).toBe(1);
+  await importOriginal(f, { postId: f.ids.post, expectedRevision: changed.revision, revisionId: original.id });
+  expect((await f.t.run(ctx => ctx.db.get("posts", f.ids.post)))?.blocksVersion).toBe(2);
 });
 
 test("saved block locks reject combined unlock/edit, removal and order changes without creating revisions", async () => {
@@ -296,8 +297,8 @@ test("legacy utility variants migrate together, save and recover their exact ori
   expect((await f.client.query(reference("get"),{postId:f.ids.post})).document.blocks).toEqual(reopened.document.blocks);
   const history=await f.client.query(reference("pageRevisions"),{postId:f.ids.post,paginationOpts:{cursor:null,numItems:20}});
   const original=history.page.find((row:any)=>row.action==="import-legacy");expect(original).toBeDefined();
-  await f.client.mutation(reference("recoverLegacy","mutation"),{postId:f.ids.post,revisionId:original.id,expectedRevision:saved.revision});
-  const restored=await f.t.run(ctx=>ctx.db.get("posts",f.ids.post));expect(restored!.blocks).toEqual(blocks);expect(restored!.blocksVersion).toBe(1);
+  await importOriginal(f, {postId:f.ids.post,revisionId:original.id,expectedRevision:saved.revision});
+  const restored=await readOriginal(f,original.id);expect(restored.blocks).toEqual(blocks);expect(restored.blocksVersion).toBe(1);
 });
 
 test("structured article migration retains visible order, links, anchors and complete original recovery", async () => {
@@ -318,8 +319,8 @@ test("structured article migration retains visible order, links, anchors and com
   const history = await f.client.query(reference("pageRevisions"), { postId: f.ids.post, paginationOpts: { cursor: null, numItems: 20 } });
   const recovery = history.page.find((row: any) => row.action === "import-legacy");
   expect(recovery?.restorable).toBe(true);
-  await f.client.mutation(reference("recoverLegacy", "mutation"), { postId: f.ids.post, revisionId: recovery.id, expectedRevision: result.revision });
-  const restored = await f.t.run(ctx => ctx.db.get("posts", f.ids.post));
+  await importOriginal(f, { postId: f.ids.post, revisionId: recovery.id, expectedRevision: result.revision });
+  const restored = await readOriginal(f,recovery.id);
   for (const field of Object.keys(authored)) expect((restored as any)[field]).toEqual((original as any)[field]);
 });
 
@@ -348,8 +349,8 @@ test("legacy block and section migration commits the visible source and recovers
     const history = await f.client.query(reference("pageRevisions"), { postId: f.ids.post, paginationOpts: { cursor: null, numItems: 20 } });
     const recovery = history.page.find((row: any) => row.action === "import-legacy");
     expect(recovery?.restorable).toBe(true);
-    await f.client.mutation(reference("recoverLegacy", "mutation"), { postId: f.ids.post, revisionId: recovery.id, expectedRevision: receipt.revision });
-    const restored = await f.t.run(ctx => ctx.db.get("posts", f.ids.post));
+    await importOriginal(f, { postId: f.ids.post, revisionId: recovery.id, expectedRevision: receipt.revision });
+    const restored = await readOriginal(f,recovery.id);
     for (const field of ["blocks", "pageSections", "content", "hero", "pagePrompt", "contentMode", "blocksVersion"] as const) expect(restored![field]).toEqual(original![field]);
   }
 });
@@ -1236,11 +1237,11 @@ test("nested-list migration uses registered review/commit and restores the exact
   const history = await f.client.query(reference("pageRevisions"), { postId: f.ids.post, paginationOpts: { cursor: null, numItems: 20 } });
   const original = history.page.find((row: any) => row.action === "import-legacy");
   expect(original).toBeDefined();
-  const recovered = await f.client.mutation(reference("recoverLegacy", "mutation"), { postId: f.ids.post, revisionId: original.id, expectedRevision: receipt.revision });
-  expect(await f.t.run(ctx => ctx.db.get("posts", f.ids.post))).toMatchObject({ content, contentMode: "article", pagePrompt: "Preserve the hierarchy", blocksVersion: 1 });
+  const recovered = await importOriginal(f, { postId: f.ids.post, revisionId: original.id, expectedRevision: receipt.revision });
+  expect(await readOriginal(f,original.id)).toMatchObject({ content, contentMode: "article", pagePrompt: "Preserve the hierarchy" });
   const after = await f.client.query(reference("pageRevisions"), { postId: f.ids.post, paginationOpts: { cursor: null, numItems: 20 } });
   const canonical = after.page.find((row: any) => row.action === "restore-canonical");
-  const restored = await f.client.mutation(reference("restore", "mutation"), { postId: f.ids.post, revisionId: canonical.id, expectedRevision: recovered.revision, expectedAuthoringDigest: recovered.authoringDigest });
+  const restored = await f.client.mutation(reference("restore", "mutation"), { postId: f.ids.post, revisionId: canonical.id, expectedRevision: recovered.revision });
   expect(restored.revision).toBe(recovered.revision + 1);
   expect((await f.client.query(reference("get"), { postId: f.ids.post })).document.blocks).toEqual(blocks);
 });
@@ -1519,7 +1520,7 @@ test("canonical duplication rolls back a copied unavailable custom-field attachm
   expect(await f.t.run(async ctx => ({ posts: await ctx.db.query("posts").collect(), fields: await ctx.db.query("fieldValues").collect(), events: await ctx.db.query("events").collect() }))).toEqual(before);
 });
 
-test("migration recovery restores original authoring and supports exact-source canonical undo without revision ABA", async () => {
+test("historical import preserves original source, current access policy and canonical undo without revision ABA", async () => {
   const f = await fixture();
   const originalContent = JSON.stringify({ type: "doc", content: [{ type: "paragraph", content: [{ type: "text", text: "Original marked recovery", marks: [{ type: "bold" }] }] }] });
   const protectedRule = await f.t.run(ctx => ctx.db.insert("membership_restriction_rules", { resourceType: "page", resourceIdOrKey: String(f.ids.post), ruleMode: "deny_if_missing", planIds: [], requiredCapabilities: ["private.reader"], teaserMode: "hide", loginRequired: true, createdAt: 1, updatedAt: 1 }));
@@ -1537,24 +1538,23 @@ test("migration recovery restores original authoring and supports exact-source c
   expect(original.action).toBe("import-legacy");
   expect(original.restorable).toBe(true);
   await f.t.run(ctx => ctx.db.patch("posts", f.ids.post, { status: "private", password: "Current secret", path: "/current-route" }));
-  const recovered = await f.client.mutation(reference("recoverLegacy", "mutation"), { postId: f.ids.post, revisionId: original.id, expectedRevision: migrated.revision });
-  expect(recovered.blocksVersion).toBe(1);
+  const recovered = await importOriginal(f, { postId: f.ids.post, revisionId: original.id, expectedRevision: migrated.revision });
+  expect((await readOriginal(f,original.id)).content).toBe(originalContent);
   expect(recovered.revision).toBe(migrated.revision + 1);
   const post = await f.t.run(ctx => ctx.db.get("posts", f.ids.post));
-  expect(post).toMatchObject({ content: originalContent, contentMode: "article", pagePrompt: "Original prompt", layoutId: "original-layout", hideFooter: true, excerpt: "Original excerpt", status: "private", password: "Current secret", path: "/current-route", blocksVersion: 1, blocksRevision: recovered.revision });
+  expect(post).toMatchObject({ content: "", contentMode: "blocks", pagePrompt: "Original prompt", layoutId: "original-layout", hideFooter: true, excerpt: "Original excerpt", status: "private", password: "Current secret", path: "/current-route", blocksVersion: 2, blocksRevision: recovered.revision });
   const legacy = await f.client.query(reference("get"), { postId: f.ids.post });
-  expect(legacy.contract).toBe("canonical-initialization-v1");
-  expect(legacy.document.authoringDigest).toBe(recovered.authoringDigest);
-  expect(legacy.initialization.reason).toBe("not-draft");
+  expect(legacy.contract).toBe("canonical-document-v1");
+  expect(legacy.document.blocks).toEqual(review.candidate.document.blocks);
   const after = await f.client.query(reference("pageRevisions"), { postId: f.ids.post, paginationOpts: { cursor: null, numItems: 20 } });
   const canonical = after.page.find((row: any) => row.action === "restore-canonical");
   expect(canonical).toBeDefined();
-  const restore = { postId: f.ids.post, revisionId: canonical.id, expectedRevision: recovered.revision, expectedAuthoringDigest: recovered.authoringDigest };
-  await f.t.run(ctx => ctx.db.patch("posts", f.ids.post, { content: JSON.stringify({ type: "doc", content: [] }) }));
+  const restore = { postId: f.ids.post, revisionId: canonical.id, expectedRevision: recovered.revision };
+  await f.client.mutation(reference("save","mutation"),{postId:f.ids.post,expectedRevision:recovered.revision,title:"Concurrent canonical title",blocks:legacy.document.blocks});
   expect(await code(() => f.client.mutation(reference("restore", "mutation"), restore))).toBe("CONFLICT");
   const fresh = await f.client.query(reference("get"), { postId: f.ids.post });
-  const restored = await f.client.mutation(reference("restore", "mutation"), { ...restore, expectedAuthoringDigest: fresh.document.authoringDigest });
-  expect(restored.revision).toBe(recovered.revision + 1);
+  const restored = await f.client.mutation(reference("restore", "mutation"), { ...restore, expectedRevision:fresh.document.revision });
+  expect(restored.revision).toBe(recovered.revision + 2);
   const reopened = await f.client.query(reference("get"), { postId: f.ids.post });
   expect(reopened.document.blocks).toEqual(review.candidate.document.blocks);
   expect(reopened.document.status).toBe("private");
@@ -1562,21 +1562,22 @@ test("migration recovery restores original authoring and supports exact-source c
   expect(await f.t.run(ctx => ctx.db.get("membership_restriction_rules", protectedRule))).toEqual(originalPolicy);
 });
 
-test("legacy recovery refuses stale source, unrelated or unrepresented history and revoked restore capability without writes", async () => {
+test("unsupported history stays downloadable until restore authority is revoked, without writes", async () => {
   const f = await fixture();
   const first = await initialize(f);
   const revision = await f.t.run(async ctx => ctx.db.insert("revisions", { parentId: f.ids.post, parentType: "page", snapshotVersion: 2, title: "Unsafe legacy", content: "<script>not a supported editor document</script>", contentMode: "article", blocksVersion: 1, authorId: f.ids.user, revisionNumber: 20, type: "manual", changedFields: ["content"], contentLength: 52, createdAt: 1 }));
   const args = { postId: f.ids.post, revisionId: revision, expectedRevision: first.revision };
   const before = await f.t.run(async ctx => ({ post: await ctx.db.get("posts", f.ids.post), revisions: await ctx.db.query("revisions").collect() }));
-  expect(await code(() => f.client.mutation(reference("recoverLegacy", "mutation"), { ...args, expectedRevision: 0 }))).toBe("CONFLICT");
-  await expect(f.client.mutation(reference("recoverLegacy", "mutation"), args)).rejects.toThrow();
+  expect((await readOriginal(f,revision)).content).toBe("<script>not a supported editor document</script>");
+  await expect(importOriginal(f, args)).rejects.toThrow();
   expect(await f.t.run(async ctx => ({ post: await ctx.db.get("posts", f.ids.post), revisions: await ctx.db.query("revisions").collect() }))).toEqual(before);
   await f.t.run(async ctx => {
     const user = await ctx.db.get("users", f.ids.user);
     const role = await ctx.db.get("roles", user!.roleId!);
     await ctx.db.patch("roles", role!._id, { capabilities: role!.capabilities.filter(value => value !== "revision.restore") });
   });
-  await expect(f.client.mutation(reference("recoverLegacy", "mutation"), args)).rejects.toThrow();
+  await expect(importOriginal(f, args)).rejects.toThrow();
+  await expect(readOriginal(f,revision)).rejects.toThrow();
   expect(await f.t.run(async ctx => ({ post: await ctx.db.get("posts", f.ids.post), revisions: await ctx.db.query("revisions").collect() }))).toEqual(before);
 });
 
@@ -2629,7 +2630,7 @@ test("canonical writes and recovery notify content listeners, while no-ops and c
     await f.client.mutation(reference("setSettings", "mutation"), { ...settingsArgs, expectedRevision: current.revision, expectedSettingsDigest: current.settingsDigest });
     expect(await updates()).toHaveLength(4);
     const legacy = history.page.find((row: any) => row.action === "import-legacy")!;
-    await f.client.mutation(reference("recoverLegacy", "mutation"), { postId: f.ids.post, revisionId: legacy.id, expectedRevision: changed.revision });
+    await importOriginal(f, { postId: f.ids.post, revisionId: legacy.id, expectedRevision: changed.revision });
     const events = await updates();
     expect(events).toHaveLength(5);
     for (const event of events) {
@@ -2662,11 +2663,11 @@ test("inactive legacy settings require exact reviewed acknowledgement and remain
   expect(history.page[0].restorable).toBe(true);
   const stored=await f.t.run(ctx=>ctx.db.get("revisions",history.page[0].id));
   expect(stored!.blocks).toEqual(blocks);
-  await f.client.mutation(reference("recoverLegacy","mutation"),{postId:f.ids.post,revisionId:history.page[0].id,expectedRevision:receipt.revision});
-  const restored=await f.t.run(ctx=>ctx.db.get("posts",f.ids.post));
-  expect(restored!.blocks).toEqual(blocks);
-  expect(restored!.content).toBe("Hidden source");
-  expect(restored!.blocksVersion).toBe(1);
+  await importOriginal(f, {postId:f.ids.post,revisionId:history.page[0].id,expectedRevision:receipt.revision});
+  const restored=await readOriginal(f,history.page[0].id);
+  expect(restored.blocks).toEqual(blocks);
+  expect(restored.content).toBe("Hidden source");
+  expect(restored.blocksVersion).toBe(1);
 });
 
 
@@ -2691,14 +2692,14 @@ test("long article paragraphs migrate, save, reopen and recover without splittin
     expect(savedRead.document.blocks).toEqual(reopened.document.blocks);
     const history=await f.client.query(reference("pageRevisions"),{postId:f.ids.post,paginationOpts:{numItems:20,cursor:null}});
     const original=history.page.find((row:{action:string})=>row.action==="import-legacy");expect(original).toBeDefined();
-    await f.client.mutation(reference("recoverLegacy","mutation"),{postId:f.ids.post,revisionId:original.id,expectedRevision:saved.revision});
-    const restored=await f.t.run(ctx=>ctx.db.get("posts",f.ids.post));expect(restored!.content).toBe(originalContent);
+    await importOriginal(f, {postId:f.ids.post,revisionId:original.id,expectedRevision:saved.revision});
+    const restored=await readOriginal(f,original.id);expect(restored.content).toBe(originalContent);
     expect(restored!.hero).toEqual(structured?{content:text+"https://example.org/source"}:undefined);
   }
 });
 
 
-test("revision restore and original-editor recovery honor saved locks before creating history", async () => {
+test("revision restore and historical import honor saved locks before creating history", async () => {
   const f = await fixture();
   await initialize(f);
   const before = await f.client.query(reference("get"), { postId: f.ids.post });
@@ -2711,16 +2712,16 @@ test("revision restore and original-editor recovery honor saved locks before cre
   const legacy = history.page.find((row: any) => row.action === "import-legacy");
   expect(canonical).toBeDefined(); expect(legacy).toBeDefined();
   const stored = await f.t.run(ctx => ctx.db.get("posts", f.ids.post));
-  for (const [name, revision] of [["restore", canonical], ["recoverLegacy", legacy]] as const) {
-    await expect(f.client.mutation(reference(name, "mutation"), { postId: f.ids.post, revisionId: revision.id, expectedRevision: saved.revision })).rejects.toThrow();
+  for (const operation of [() => f.client.mutation(reference("restore", "mutation"), {postId:f.ids.post,revisionId:canonical.id,expectedRevision:saved.revision}), () => importOriginal(f,{postId:f.ids.post,revisionId:legacy.id,expectedRevision:saved.revision})]) {
+    await expect(operation()).rejects.toThrow();
     expect(await f.t.run(ctx => ctx.db.get("posts", f.ids.post))).toEqual(stored);
     expect(await f.client.query(reference("pageRevisions"), { postId: f.ids.post, paginationOpts: { cursor: null, numItems: 20 } })).toEqual(history);
   }
   const unlocked = await f.client.mutation(reference("save", "mutation"), { postId: f.ids.post, expectedRevision: saved.revision, title: before.document.title, blocks: locked.map((block: any) => ({ ...block, lock: {} })) });
   const restored = await f.client.mutation(reference("restore", "mutation"), { postId: f.ids.post, revisionId: canonical.id, expectedRevision: unlocked.revision });
   expect((await f.client.query(reference("get"), { postId: f.ids.post })).document.blocks).toEqual(before.document.blocks);
-  await f.client.mutation(reference("recoverLegacy", "mutation"), { postId: f.ids.post, revisionId: legacy.id, expectedRevision: restored.revision });
-  expect((await f.t.run(ctx => ctx.db.get("posts", f.ids.post)))!.blocksVersion).toBe(1);
+  await importOriginal(f, { postId: f.ids.post, revisionId: legacy.id, expectedRevision: restored.revision });
+  expect((await f.t.run(ctx => ctx.db.get("posts", f.ids.post)))!.blocksVersion).toBe(2);
 });
 
 
@@ -2899,9 +2900,9 @@ for(const kind of ["plain-text","html"] as const) test(`${kind} migration requir
  expect((await f.client.query(reference("get"),{postId:f.ids.post})).document.blocks).toEqual(review.candidate.document.blocks);
  const history=await f.client.query(reference("pageRevisions"),{postId:f.ids.post,paginationOpts:{cursor:null,numItems:20}});
  const original=history.page.find((row:any)=>row.action==="import-legacy");
- await f.client.mutation(reference("recoverLegacy","mutation"),{postId:f.ids.post,revisionId:original.id,expectedRevision:receipt.revision});
- expect((await f.t.run(ctx=>ctx.db.get("posts",f.ids.post)))!.content).toBe(content);
- const again=await f.client.query(reference("prepareMigration"),{postId:f.ids.post});expect(again.importedContent).toBe(kind);
+ await importOriginal(f, {postId:f.ids.post,revisionId:original.id,expectedRevision:receipt.revision});
+ expect((await readOriginal(f,original.id)).content).toBe(content);
+ const again=await f.client.query(reference("prepareRevisionImport"),{postId:f.ids.post,revisionId:original.id,sourceKind:"saved"});expect(again.importedContent).toBe(kind);
 });
 
 test("historical import refuses stale source, wrong parent, revoked authority, locks and unreviewed text without writes",async()=>{
@@ -2940,3 +2941,24 @@ test("unsupported history remains downloadable and an unsupported unsaved body c
  expect(JSON.parse((await f.client.query(reference("getRevisionSource"),source)).sourceJson).blocksVersion).toBe(99);
  expect((await f.client.query(reference("get"),{postId:f.ids.post})).document.blocksVersion).toBe(2);
 });
+
+test("retired downgrade entry point cannot reactivate legacy authoring or change history", async () => {
+ const f=await fixture();const first=await initialize(f);
+ const revision=(await f.t.run(ctx=>ctx.db.query("revisions").collect()))[0];
+ const state=()=>f.t.run(async ctx=>({post:await ctx.db.get("posts",f.ids.post),revisions:await ctx.db.query("revisions").collect()}));
+ const before=await state();
+ await expect(f.client.mutation(reference("recoverLegacy","mutation"),{postId:f.ids.post,revisionId:revision._id,expectedRevision:first.revision})).rejects.toThrow();
+ expect(await state()).toEqual(before);
+});
+
+async function readOriginal(f: Awaited<ReturnType<typeof fixture>>, revisionId: string) {
+ const result=await f.client.query(reference("getRevisionSource"),{postId:f.ids.post,revisionId});
+ const source=JSON.parse(result.sourceJson);return {...source,type:source.parentType};
+}
+async function importOriginal(f: Awaited<ReturnType<typeof fixture>>, args: {postId:unknown;revisionId:string;expectedRevision:number}) {
+ const source={postId:args.postId,revisionId:args.revisionId,sourceKind:"saved"};
+ const review=await f.client.query(reference("prepareRevisionImport"),source);
+ const receipt=await f.client.mutation(reference("importRevision","mutation"),{...source,expectedRevision:args.expectedRevision,expectedAuthoringDigest:review.source.authoringDigest,expectedArchiveDigest:review.archive.sourceDigest,expectedCandidateDigest:review.candidate.document.digest,expectedPresentationRevision:review.candidate.presentation.revision,...(review.importedContent==="html"?{acknowledgeHtmlImport:true}:{}),...(review.importedContent==="plain-text"?{acknowledgeTextImport:true}:{}),...(review.inactiveSettings?.length?{preserveInactiveSettings:true}:{})});
+ expect((await f.client.query(reference("get"),{postId:f.ids.post})).document).toMatchObject({blocksVersion:2,revision:receipt.revision,blocks:review.candidate.document.blocks});
+ return receipt;
+}

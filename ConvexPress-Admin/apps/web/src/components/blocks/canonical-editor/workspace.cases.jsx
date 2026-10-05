@@ -853,204 +853,6 @@ test("publication UI requires explicit confirmation of saved revision and displa
 	}
 });
 
-test("original recovery verifies source digest and keeps canonical safety undo", async () => {
-	const loaded = await loadStaged("../canonical-editor/workspace.fixture.ts"),
-		m = loaded.module;
-	const dom = new JSDOM('<div id="app"></div>', { url: "http://localhost" }),
-		previous = {};
-	for (const name of [
-		"window",
-		"document",
-		"navigator",
-		"HTMLElement",
-		"Event",
-		"IS_REACT_ACT_ENVIRONMENT",
-	]) {
-		previous[name] = Object.getOwnPropertyDescriptor(globalThis, name);
-		Object.defineProperty(globalThis, name, {
-			configurable: true,
-			writable: true,
-			value: name === "IS_REACT_ACT_ENVIRONMENT" ? true : dom.window[name],
-		});
-	}
-	const { createRoot } = await import("react-dom/client"),
-		root = createRoot(document.getElementById("app"));
-	const scope = { websiteKey: "site", instanceKey: "stage" },
-		key = { ...scope, documentId: "story", generation: "operator" };
-	const canonical = (revision) => ({
-		contract: "canonical-document-v1",
-		scope,
-		document: {
-			id: "story",
-			type: "page",
-			title: "Story",
-			status: "draft",
-			path: "/story",
-			blocksVersion: 2,
-			revision,
-			blocks: [],
-			digest: m.canonicalContentDigest("Story", []),
-		},
-		presentation: { packId: "core", revision: "b".repeat(64) },
-		policy: { enabledPlugins: [], capabilities: [], disabledBlocks: [] },
-		data: { contract: "canonical-data-v1", scope, dataByBlock: {} },
-		resources: { media: {} },
-	});
-	let current = canonical(5),
-		recovered = 0,
-		wrong = true;
-	const writes = [];
-	const original = {
-		contract: "canonical-initialization-v1",
-		scope,
-		document: {
-			id: "story",
-			type: "page",
-			title: "Story",
-			revision: 6,
-			authoringDigest: "a".repeat(64),
-		},
-		initialization: { eligible: false, reason: "existing-authored-content" },
-	};
-	const row = (id, action, version) => ({
-		id,
-		action,
-		blocksVersion: version,
-		revisionNumber: 4,
-		title: "Story",
-		createdAt: 1000,
-		type: "manual",
-		restorable: true,
-		reason: null,
-	});
-	const client = {
-		get: async () => current,
-		initialize: async () => {
-			throw Error("Not initialize");
-		},
-		save: async () => {
-			throw Error("Not save");
-		},
-		recoverLegacy: async (args) => {
-			writes.push(args);
-			if (!wrong) current = original;
-			return {
-				postId: wrong ? "another-story" : "story",
-				revision: 6,
-				blocksVersion: 1,
-				authoringDigest: "a".repeat(64),
-			};
-		},
-		restore: async (args) => {
-			writes.push(args);
-			current = canonical(7);
-			return {
-				postId: "story",
-				revision: 7,
-				digest: current.document.digest,
-				changed: true,
-			};
-		},
-		pageRevisions: async () => ({
-			page:
-				current.contract === "canonical-document-v1"
-					? [row("original", "recover-legacy", 1)]
-					: [row("canonical-safety", "restore-canonical", 2)],
-			isDone: true,
-			continueCursor: "",
-		}),
-	};
-	const button = (text) =>
-		[...document.querySelectorAll("button")].find(
-			(node) => node.textContent === text,
-		);
-	try {
-		await act(async () =>
-			root.render(
-				<m.CanonicalDocumentWorkspace
-					documentKey={key}
-					read={current}
-					client={client}
-					pickResource={async () => null}
-					onRecovered={() => recovered++}
-				/>,
-			),
-		);
-		await act(async () => button("Browse revisions").click());
-		await act(async () => button("Review original editor restore").click());
-		expect(
-			document.body.textContent.includes(
-				"Current publication, URL and access settings remain unchanged",
-			),
-		).toBe(true);
-		expect(writes.length).toBe(0);
-		await act(async () => button("Restore this revision").click());
-		expect(recovered).toBe(0);
-		expect(
-			document.querySelector('[aria-label="Document editor"]'),
-		).not.toBeNull();
-		const originalRecovery = client.recoverLegacy;
-		client.recoverLegacy = async () => { throw { data: { code: "BLOCK_LOCKED", message: "Unlock blocks and save before returning to the original editor." } }; };
-		await act(async () => button("Restore this revision").click());
-		expect(document.body.textContent).toContain("Unlock blocks and save before returning to the original editor.");
-		expect(recovered).toBe(0);
-		client.recoverLegacy = originalRecovery;
-		wrong = false;
-		await act(async () => button("Restore this revision").click());
-		expect(writes[1]).toEqual({ expectedRevision: 5, revisionId: "original" });
-		expect(recovered).toBe(1);
-		expect(document.querySelector('[aria-label="Document editor"]')).toBeNull();
-		await act(async () => button("Review restore").click());
-		expect(
-			document.body.textContent.includes("switch to the block editor"),
-		).toBe(true);
-		await act(async () => button("Restore this revision").click());
-		expect(writes[2]).toEqual({
-			expectedRevision: 6,
-			expectedAuthoringDigest: "a".repeat(64),
-			revisionId: "canonical-safety",
-		});
-		expect(
-			document.querySelector('[aria-label="Document editor"]'),
-		).not.toBeNull();
-		let finish;
-		client.recoverLegacy = () =>
-			new Promise((resolve) => {
-				finish = resolve;
-			});
-		await act(async () => button("Review original editor restore").click());
-		await act(async () => button("Restore this revision").click());
-		await act(async () =>
-			root.render(
-				<m.CanonicalDocumentWorkspace
-					documentKey={{ ...key, generation: "replacement" }}
-					read={null}
-					client={client}
-					pickResource={async () => null}
-				/>,
-			),
-		);
-		await act(async () =>
-			finish({
-				postId: "story",
-				revision: 8,
-				blocksVersion: 1,
-				authoringDigest: "a".repeat(64),
-			}),
-		);
-		expect(recovered).toBe(1);
-		expect(button("Restore this revision")).toBeUndefined();
-	} finally {
-		await act(async () => root.unmount());
-		dom.window.close();
-		for (const [name, value] of Object.entries(previous)) {
-			if (value) Object.defineProperty(globalThis, name, value);
-			else delete globalThis[name];
-		}
-		await loaded.cleanup();
-	}
-});
-
 test("native draft validation explains source and output capacity before save", async () => {
 	const loaded = await loadStaged("../canonical-editor/workspace.fixture.ts");
 	try {
@@ -1338,5 +1140,14 @@ test("historical import binds saved versus unsaved review, resets acknowledgemen
   expect(writes[0]).toMatchObject({revisionId:"original",sourceKind:"autosave",expectedArchiveDigest:"c".repeat(64),expectedAuthoringDigest:"a".repeat(64),expectedRevision:5,acknowledgeTextImport:true});
   wrongReceipt=false;await click("Refresh migration review");await acknowledge();await click("Import reviewed version");expect(current.document).toMatchObject({blocksVersion:2,revision:6,title:"Unsaved title"});
   await click("Review restore");await click("Restore this revision");expect(current.document).toMatchObject({revision:7,title:"Story",blocksVersion:2});expect(writes.at(-1)).toMatchObject({revisionId:"safety",expectedRevision:6});
+  // An import acknowledged after a scope/session replacement cannot reopen the old document.
+  client.pageRevisions=async()=>({page:[row("original",1)],isDone:true,continueCursor:""});
+  let finish;client.importRevision=()=>new Promise(resolve=>{finish=resolve;});
+  await click("Close revision history");await click("Browse revisions");await click("Review historical import");await click("Review conversion");await acknowledge();
+  await click("Import reviewed version");expect(finish).toBeDefined();
+  await act(async()=>root.render(<m.CanonicalDocumentWorkspace documentKey={{...key,generation:"replacement"}} read={null} client={client} pickResource={async()=>null}/>));
+  await act(async()=>finish({postId:"story",revision:8,digest:canonical(8,"Saved title").document.digest,changed:true}));
+  expect(button("Import reviewed version")).toBeUndefined();expect(document.querySelector('[aria-label="Document editor"]')).toBeNull();
+
  }finally{await act(async()=>root.unmount());dom.window.close();for(const [name,descriptor]of Object.entries(previous)){if(descriptor)Object.defineProperty(globalThis,name,descriptor);else delete globalThis[name];}await loaded.cleanup();}
 });

@@ -53,9 +53,7 @@ export const canonicalInitializationSchema = z.strictObject({
 }).superRefine((value, ctx) => { if (value.initialization.eligible !== (value.initialization.reason === null)) ctx.addIssue({ code: "custom", message: "Initialization eligibility and reason disagree" }); });
 export const canonicalWriteReceiptSchema = z.strictObject({ postId: id, revision, digest, changed: z.boolean() });
 export type CanonicalWriteReceipt = z.infer<typeof canonicalWriteReceiptSchema>;
-export const canonicalRecoveryReceiptSchema = z.strictObject({ postId: id, revision, blocksVersion: z.literal(1), authoringDigest: digest });
-export type CanonicalRecoveryReceipt = z.infer<typeof canonicalRecoveryReceiptSchema>;
-export function parseCanonicalRecoveryReceipt(value: unknown): CanonicalRecoveryReceipt { return canonicalRecoveryReceiptSchema.parse(value); }
+
 export type CanonicalInitializationDto = z.infer<typeof canonicalInitializationSchema>;
 export type CanonicalDocumentDto = Omit<z.infer<typeof canonicalDocumentSchema>, "data"> & { data: DataEnvelope };
 export type CanonicalDocumentRead = CanonicalDocumentDto | CanonicalInitializationDto | null;
@@ -193,7 +191,7 @@ const pagination = {
 };
 export const canonicalRevisionPageSchema = z.strictObject({ ...pagination, page: z.array(z.strictObject({
   id, revisionNumber: revision, createdAt: z.number().nonnegative(), type: z.enum(["manual", "autosave"]), title: z.string().max(DOCUMENT_LIMITS.title),
-  blocksVersion: z.number().int().nullable(), action: z.enum(["restore-canonical", "recover-legacy", "import-legacy"]).nullable().optional(), hasRetainedAutosave: z.boolean().optional(), restorable: z.boolean(), reason: z.enum(["legacy-format", "unsupported-format"]).nullable(),
+  blocksVersion: z.number().int().nullable(), action: z.enum(["restore-canonical", "import-legacy"]).nullable().optional(), hasRetainedAutosave: z.boolean().optional(), restorable: z.boolean(), reason: z.enum(["legacy-format", "unsupported-format"]).nullable(),
 })).max(20) });
 export const canonicalPageOptionsSchema = z.strictObject({ ...pagination, page: z.array(z.strictObject({ id, title: z.string().max(DOCUMENT_LIMITS.title), path: z.string().max(2048).regex(/^\/(?!\/)[^\s\\]*$/u), status: z.literal("publish") })).max(20) });
 export type CanonicalRevisionPage = z.infer<typeof canonicalRevisionPageSchema>;

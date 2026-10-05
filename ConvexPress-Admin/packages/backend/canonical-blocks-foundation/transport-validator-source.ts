@@ -126,8 +126,6 @@ const publicReadyStructural: z.ZodType = publicReadySchema.extend({
 });
 export const publicDocumentValidator: Validator<PublicCanonicalDocument, "required", string> = v.union(v.null(), fromZod(publicRestrictedSchema), fromZod(publicReadyStructural));
 
-import { canonicalRecoveryReceiptSchema, type CanonicalRecoveryReceipt } from "./documentContracts";
-export const recoveryReceiptValidator: Validator<CanonicalRecoveryReceipt, "required", string> = fromZod(canonicalRecoveryReceiptSchema);
 
 import {canonicalMenuOptionsSchema, type CanonicalMenuOptions} from './documentContracts';
 export const menuOptionsValidator: Validator<CanonicalMenuOptions,'required',string> = fromZod(canonicalMenuOptionsSchema);

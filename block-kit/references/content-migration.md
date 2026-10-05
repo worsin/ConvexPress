@@ -44,7 +44,8 @@ listed in `prepareMigration.inactiveSettings`. Review them in Electron and expli
 acknowledge leaving them inactive before conversion. The write requires
 `preserveInactiveSettings: true` when this list is nonempty; source/candidate/presentation
 bindings still apply. The canonical candidate does not activate those settings; the
-complete original revision retains them and supports exact original-editor recovery.
+complete original revision retains them for exact source download and reviewed
+import into the canonical editor.
 Refreshing a review clears the acknowledgement. This is not permission to drop unknown
 fields or to activate old settings by copying them onto the canonical envelope.
 
@@ -70,9 +71,26 @@ legacy styling or complete structured-article migration. See
    Include `preserveInactiveSettings: true` only after the explicit inactive-settings
    review described above; a pure conversion does not provide that acknowledgement.
 4. Read `canonicalDocuments:get` and `canonicalDocuments:pageRevisions` to verify
-   the committed revision and original recovery source. Test
-   `canonicalDocuments:recoverLegacy` in a disposable target using its selected
-   `revisionId` and current `expectedRevision`; recovery is a new checked write.
+   the committed revision and retained original source. Use the historical import
+   path below to recover content while keeping canonical authoring.
+
+### Historical source recovery without an authoring downgrade
+
+`canonicalDocuments:recoverLegacy` is retired. Canonical documents cannot return
+to version 1, including by clearing canonical metadata or borrowing a write permit.
+The September acceptance reports below record historical behavior before retirement.
+
+Use `getRevisionSource` to download the exact retained original. For an editable
+canonical document, `prepareRevisionImport` accepts `revisionId` and an explicit
+`sourceKind` of `saved` or `autosave`. Review the candidate on the actual Website.
+`importRevision` binds the current revision, source/candidate digests and presentation
+revision to that review, with independent acknowledgements for text, HTML and
+inactive settings when required. Refreshing review clears acknowledgements.
+Existing publication/access settings are preserved; editing a non-draft also
+requires the document's publishing capability.
+Read back the committed canonical document and test canonical history undo.
+Unsupported source remains downloadable without a lossy import. Trashed parents
+remain inaccessible to editing until a separate authorized normal restore.
 
 Do not replay an uncertain mutation blindly. Compare the current revision, digest
 and revision history with the reviewed operation. Never delete retained legacy
@@ -159,8 +177,9 @@ refuses without writes. Refresh clears this independent acknowledgement. The ful
 source digest binds each autosave value, its absence and its original timestamp.
 
 The original revision retains `autosaveTitle`, `autosaveContent` and `autosavedAt`
-verbatim, including empty strings. Original-editor recovery restores them beside
-the saved source. Unsupported unsaved content stays opaque and recoverable; it is
+verbatim, including empty strings. Download preserves them exactly; historical
+import explicitly selects saved or unsaved content for a new canonical revision.
+Unsupported unsaved content stays opaque and recoverable; it is
 not silently imported, activated, published or attributed to the current operator.
 These retained sources survive routine revision pruning. Explicit authorized
 revision/document deletion remains a deliberate discard operation. Media referenced

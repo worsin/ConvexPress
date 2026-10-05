@@ -893,42 +893,6 @@ export async function duplicateDocument(ctx: MutationCtx, args: DuplicateArgs): 
   return { postId, revision: 1, digest: canonicalContentDigest(title, prepared.blocks), changed: true };
 }
 
-import { permitValidatedLegacyRecoveryWrite } from "../helpers/authoringVersionFence";
-import { parseCanonicalRecoveryReceipt, type CanonicalRecoveryReceipt } from "./foundation/documentContracts";
-export type LegacyRecoveryArgs = { postId: Id<"posts">; revisionId: Id<"revisions">; expectedRevision: number };
-function legacyRecoveryValue(post: Doc<"posts">, revision: Doc<"revisions">): Partial<WithoutSystemFields<Doc<"posts">>> {
-  if (revision.parentId !== post._id || revision.parentType !== post.type) refuse("REVISION_PARENT_MISMATCH", "The revision belongs to another document.");
-  if (revision.snapshotVersion !== 2 || (revision.blocksVersion !== undefined && revision.blocksVersion !== 1)) refuse("LEGACY_RECOVERY_UNSUPPORTED", "This revision does not contain a supported complete legacy authoring snapshot.");
-  const authored = restoredAuthoring(revision);
-  const candidate = { ...post, ...authored, blocksVersion: 1 as const, status: "draft" as const, autosaveTitle: undefined, autosaveContent: undefined, autosavedAt: undefined };
-  // Validate the historical visible authoring model without replacing its bytes.
-  // An actually empty block page is a supported empty original editor state.
-  prepareAuthoredMigration({ ...candidate,
-    content: candidate.content || JSON.stringify({ type: "doc", content: [] }),
-  });
-  return { ...authored, blocksVersion: 1, blocksRevision: authoringRevision(post) + 1, autosaveTitle: revision.autosaveTitle, autosaveContent: revision.autosaveContent, autosavedAt: revision.autosavedAt, updatedAt: Date.now() };
-}
-export async function recoverLegacyDocument(ctx: MutationCtx, args: LegacyRecoveryArgs): Promise<CanonicalRecoveryReceipt> {
-  const budget = new RequestReadLedger();
-  const { post, user } = await authorized(ctx, args.postId, budget);
-  if (!post) refuse("NOT_FOUND", "Document not found.");
-  await requireCan(ctx, "revision.restore", budget);
-  if (post.status !== "draft") await requireCan(ctx, post.type === "page" ? "page.publish" : "post.publish", budget);
-  // Validates current canonical format and exact revision before reading history.
-  prepareCanonicalCurrent(post, args.expectedRevision);
-  budget.beforeRead();
-  const revision = budget.record(await ctx.db.get("revisions", args.revisionId));
-  if (!revision) refuse("NOT_FOUND", "Revision not found.");
-  const value = legacyRecoveryValue(post, revision);
-  const candidate = { ...post, ...value };
-  assertStoredSize(candidate, budget);
-  await snapshot(ctx, post, String(user._id), budget);
-  const permit = permitValidatedLegacyRecoveryWrite({ table: "posts", operation: "patch", id: post._id, previous: post, value });
-  await patchWithMediaReferences(ctx, "posts", post._id, value, permit, budget);
-  await authoringUpdatedEvent(ctx, candidate, Object.keys(value), budget, post);
-  return parseCanonicalRecoveryReceipt({ postId: post._id, revision: authoringRevision(candidate), blocksVersion: 1, authoringDigest: authoringSourceDigest(candidate) });
-}
-
 import {canonicalMenuOptionsSchema, type CanonicalMenuOptions} from './foundation/documentContracts';
 /** Menu labels only; eligibility belongs to the current editable document. */
 export async function menuOptions(ctx: QueryCtx, args: CanonicalOptionsArgs): Promise<CanonicalMenuOptions> {

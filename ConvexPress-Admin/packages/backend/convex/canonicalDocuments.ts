@@ -155,15 +155,6 @@ export const duplicate: RegisteredMutation<"public", DuplicateArgs, Promise<Cano
   handler: (ctx, args) => canonicalBoundary(() => duplicateDocument(ctx, args)),
 });
 
-import { recoverLegacyDocument, type LegacyRecoveryArgs } from "./canonicalDocuments/service";
-import { recoveryReceiptValidator } from "./canonicalDocuments/validators";
-import type { CanonicalRecoveryReceipt } from "./canonicalDocuments/foundation/documentContracts";
-export const recoverLegacy: RegisteredMutation<"public", LegacyRecoveryArgs, Promise<CanonicalRecoveryReceipt>> = mutation({
-  args: { postId: v.id("posts"), revisionId: v.id("revisions"), expectedRevision: v.number() },
-  returns: recoveryReceiptValidator,
-  handler: (ctx, args) => canonicalBoundary(() => recoverLegacyDocument(ctx, args)),
-});
-
 import {menuOptions as menuChoices} from './canonicalDocuments/service';
 import {menuOptionsValidator} from './canonicalDocuments/validators';
 import type {CanonicalMenuOptions} from './canonicalDocuments/foundation/documentContracts';
