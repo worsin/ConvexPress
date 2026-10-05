@@ -3,6 +3,12 @@ import { useMatches } from "@tanstack/react-router";
 import { ROUTE_LABEL_MAP } from "@/lib/layout/constants";
 import type { BreadcrumbSegment } from "@/lib/layout/types";
 
+const CREDENTIAL_ROUTE_LABELS: Record<string, string> = {
+  "/_marketing/track/$token": "Track order",
+  "/_marketing/wishlist/$token": "Shared wishlist",
+  "/_marketing/cart/shared/$shareToken": "Shared cart",
+};
+
 /**
  * Auto-generate or override breadcrumb segments for the current route.
  * Always starts with "Home" linking to "/".
@@ -24,6 +30,12 @@ export function useBreadcrumbs(
 
     // Skip root route
     if (routeId === "__root__") continue;
+
+    // Bearer credentials are not page names, including a loader's slug fallback.
+    if (Object.hasOwn(CREDENTIAL_ROUTE_LABELS, routeId)) {
+      segments.push({ label: CREDENTIAL_ROUTE_LABELS[routeId] });
+      continue;
+    }
 
     // Remove internal layout segments (e.g. "_marketing") from breadcrumb generation
     const parts = routeId.split("/").filter(Boolean);

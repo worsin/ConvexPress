@@ -33,3 +33,22 @@ test('authored breadcrumb text and destinations round-trip as data without creat
   expect(data.itemListElement[0].item).toBe(destination);
   expect(doc.querySelector('nav').textContent).toContain(label);
 });
+
+for (const [routeId,param,label] of [
+  ['/_marketing/track/$token','token','Track order'],
+  ['/_marketing/wishlist/$token','token','Shared wishlist'],
+  ['/_marketing/cart/shared/$shareToken','shareToken','Shared cart'],
+]) {
+  test(`credential route uses a generic breadcrumb: ${routeId}`, () => {
+    const token='private-bearer-1234567890';
+    matches=[{routeId:'__root__'}, {routeId,params:{[param]:token},loaderData:{slug:token}}];
+    const html=renderToStaticMarkup(<Breadcrumbs />);
+    const doc=new JSDOM(html).window.document;
+    expect(doc.querySelector('[aria-current="page"]').textContent).toBe(label);
+    expect(html.toLowerCase()).not.toContain(token);
+    expect(doc.querySelectorAll('a')).toHaveLength(1);
+    expect(doc.querySelector('a').getAttribute('href')).toBe('/');
+    const data=JSON.parse(doc.querySelector('script').textContent);
+    expect(data.itemListElement[1]).toEqual({'@type':'ListItem',position:2,name:label});
+  });
+}
