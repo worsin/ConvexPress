@@ -510,12 +510,15 @@ function EditorBody<N, V>({
 		const next = beginSave(current.current),
 			request = next.pending;
 		if (!request || current.current.pending) return;
+		const settlePrivateDraft = privateDraft.acceptedSave(request);
 		update(next);
 		try {
 			const receipt = await save(request);
+			await settlePrivateDraft(receipt);
 			if (mounted.current)
 				update(acceptSave(current.current, request, receipt));
 		} catch {
+			await settlePrivateDraft(null);
 			// Provider/transport errors may contain private diagnostic data. The
 			// endpoint adapter can expose a closed conflict DTO via the subscription.
 			if (mounted.current)

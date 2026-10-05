@@ -142,11 +142,98 @@ test("site drafts require review, serialize later typing and reconcile uncertain
     await act(async () => button('Keep my changes against the saved revision').click());
     expect(acceptedSaves).toBe(0); expect(button('Save changes').disabled).toBe(false);
     await act(async () => button('Save changes').click()); expect(acceptedSaves).toBe(1);
-    await act(async () => { await new Promise(resolve => setTimeout(resolve, 1550)); });
+    // Immediate navigation after the accepted Save must not reoffer its older private draft.
     expect(record.draft).toBeNull();
   } finally {
     if (!retired) await act(async () => root.unmount());
     await loaded.cleanup(); dom.window.close();
     for (const [name, descriptor] of old) { if (descriptor) Object.defineProperty(globalThis, name, descriptor); else delete globalThis[name]; }
+  }
+});
+
+test("accepted Save settles owned private writes, preserves remote generations and retains later typing", async () => {
+  const dom = new JSDOM('<div id="app"></div>', { url: "https://native.test" });
+  const names = ["window", "document", "HTMLElement", "HTMLInputElement", "Element", "Node", "MutationObserver", "IS_REACT_ACT_ENVIRONMENT"];
+  const old = names.map(name => [name, Object.getOwnPropertyDescriptor(globalThis, name)]);
+  for (const name of names) Object.defineProperty(globalThis, name, { configurable: true, writable: true, value: name === "IS_REACT_ACT_ENVIRONMENT" ? true : dom.window[name] });
+  const loaded = await loadStaged("../canonical-editor/site-draft.fixture.ts");
+  const { useSiteDraft, openDocument, editDocument, beginSave, acceptSave } = loaded.module;
+  const { createRoot } = await import("react-dom/client");
+  const key = { websiteKey: "site", instanceKey: "staging", documentId: "page", generation: "one" };
+  const value = title => ({ title, blocks: [] });
+  const snapshot = { key, revision: 2, value: value("Saved") };
+  const pause = async () => act(async () => { await new Promise(resolve => setTimeout(resolve, 15)); });
+  let root;
+  try {
+    for (const mode of ["late-ack", "late-conflict", "remote", "remote-identical", "lost-private-ack", "discard-failure", "rejected-save", "retired"]) {
+      let record = { postId: "page", scope: { websiteKey: "site", instanceKey: "staging" }, generation: 5, baseRevision: 2, draft: value("Private"), updatedAt: 1 };
+      let acceptedRevision = 2, current, release, held = false, failClear = mode === "discard-failure";
+      const writes = [], clears = [], gate = new Promise(resolve => { release = resolve; });
+      const client = {
+        load: async () => structuredClone(record),
+        save: async args => {
+          writes.push(structuredClone(args));
+          const delaying = !held && ["late-ack", "late-conflict", "lost-private-ack", "retired"].includes(mode); held = true;
+          if (delaying && mode === "late-conflict") await gate;
+          if (args.expectedGeneration !== record.generation) throw new ConvexError({code:"DRAFT_CONFLICT"});
+          if (args.baseRevision !== acceptedRevision) throw new ConvexError({code:"CONFLICT"});
+          record = {...record, generation:record.generation+1, baseRevision:args.baseRevision, draft:structuredClone(args.draft), updatedAt:record.updatedAt+1};
+          const receipt = structuredClone(record);
+          if (delaying && mode !== "late-conflict") await gate;
+          if (delaying && mode === "lost-private-ack") throw Error("Lost private receipt");
+          return receipt;
+        },
+        discard: async args => {
+          clears.push(args);
+          if (failClear) { failClear = false; throw Error("Connection failed before discard"); }
+          if (args.expectedGeneration !== record.generation) throw new ConvexError({code:"DRAFT_CONFLICT"});
+          record = {...record, generation:record.generation+1, baseRevision:acceptedRevision, draft:null};
+          return structuredClone(record);
+        },
+      };
+      function Harness() {
+        const [session,setSession] = useState(() => editDocument(openDocument(snapshot),value("Private")));
+        const persistence = useSiteDraft({client,session,paused:!!session.pending,delayMs:5,restore:()=>{}});
+        current = {session,setSession,persistence}; return <p>{persistence.status}</p>;
+      }
+      root = createRoot(document.getElementById("app")); await act(async()=>root.render(<Harness/>)); await pause();
+      expect(current.persistence.offered).toBeNull();
+      await act(async()=>current.setSession(previous=>editDocument(previous,value("Accepted edit"))));
+      if (["late-ack", "late-conflict", "lost-private-ack", "retired"].includes(mode)) { await pause(); expect(writes).toHaveLength(1); }
+      let request,settle;
+      await act(async()=>{const next=beginSave(current.session);request=next.pending;settle=current.persistence.acceptedSave(request);current.setSession(next);});
+      if(mode==="rejected-save") {
+        await act(async()=>settle(null));expect(clears).toHaveLength(0);
+        await act(async()=>current.setSession(editDocument(openDocument(snapshot),value("Retry retained"))));await pause();expect(record.draft.title).toBe("Retry retained");
+      } else {
+        acceptedRevision=3;const receipt={...snapshot,revision:3,value:request.value};
+        if(mode.startsWith("remote"))record={...record,generation:record.generation+1,baseRevision:3,draft:mode==="remote"?value("Other device"):request.value};
+        if(mode==="late-ack")await act(async()=>current.setSession(previous=>editDocument(previous,value("Typed during Save"))));
+        let finishing,finished=false;await act(async()=>{finishing=settle(receipt).then(()=>{finished=true;});});
+        if(["late-ack","late-conflict","lost-private-ack","retired"].includes(mode)) {
+          expect(finished).toBe(false);expect(clears).toHaveLength(0);
+          if(mode==="retired"){await act(async()=>root.unmount());root=null;}
+          await act(async()=>{release();await finishing;});
+        }else await act(async()=>finishing);
+        if(mode==="retired"){expect(clears).toHaveLength(0);expect(record.draft.title).toBe("Accepted edit");continue;}
+        await act(async()=>current.setSession(previous=>acceptSave(previous,request,receipt)));
+        expect(current.session.base.revision).toBe(3);expect(current.session.pending).toBeNull();
+        if(mode.startsWith("remote")) {
+          expect(record.generation).toBe(6);expect(current.persistence.offered?.generation).toBe(6);
+          const remote=structuredClone(record);await pause();expect(record).toEqual(remote);expect(clears).toHaveLength(1);
+        } else if(mode==="discard-failure") {
+          expect(current.session.dirty).toBe(false);expect(current.persistence.status).toBe("error");expect(record.draft.title).toBe("Private");
+          await pause();expect(clears).toHaveLength(1);await act(async()=>current.persistence.retry());await pause();expect(record.draft).toBeNull();
+        } else {
+          expect(record.draft).toBeNull();expect(clears).toHaveLength(1);
+          if(mode==="late-ack") {expect(current.session.dirty).toBe(true);expect(current.session.draft.title).toBe("Typed during Save");await pause();expect(record.draft.title).toBe("Typed during Save");expect(record.baseRevision).toBe(3);}
+          else expect(current.session.dirty).toBe(false);
+        }
+      }
+      await act(async()=>root.unmount());root=null;
+    }
+  } finally {
+    if(root)await act(async()=>root.unmount());await loaded.cleanup();dom.window.close();
+    for(const[name,descriptor]of old){if(descriptor)Object.defineProperty(globalThis,name,descriptor);else delete globalThis[name];}
   }
 });
