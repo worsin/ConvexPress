@@ -385,6 +385,8 @@ const modules = {
 	"./convex/_generated/api.js": () => import("../../_generated/api.js"),
 	"./convex/_generated/server.js": () => import("../../_generated/server.js"),
 	"./convex/canonicalDocuments.ts": () => import("../../canonicalDocuments"),
+ "./convex/dashboard/mutations.ts": () => import("../../dashboard/mutations"),
+ "./convex/dashboard/queries.ts": () => import("../../dashboard/queries"),
 	"./convex/posts/mutations.ts": () => import("../../posts/mutations"),
  "./convex/posts/queries.ts": () => import("../../posts/queries"),
  "./convex/posts/internals.ts": () => import("../../posts/internals"),
@@ -2989,4 +2991,34 @@ test("canonical creation rolls back the new record when installed presentation c
  const f=await fixture();await f.t.run(async ctx=>{const u=(await ctx.db.get("users",f.ids.user))!;await ctx.db.patch("roles",u.roleId!,{capabilities:["page.create","page.update"]});const identity=await ctx.db.query("convexpress_siteIdentity").first();await ctx.db.delete("convexpress_siteIdentity",identity!._id);});
  const snapshot=()=>f.t.run(async ctx=>({posts:await ctx.db.query("posts").collect(),events:await ctx.db.query("events").collect()}));const before=await snapshot();
  await expect(f.client.mutation(reference("create","mutation"),{type:"page",title:"Unavailable site"})).rejects.toThrow();expect(await snapshot()).toEqual(before);
+});
+
+
+// Quick Draft is plain-text authoring, never implicit HTML or Markdown import.
+test("Quick Draft creates editable canonical text with unique slugs and one pair of creation events",async()=>{
+ const f=await fixture();await f.t.run(async ctx=>{const u=(await ctx.db.get("users",f.ids.user))!;await ctx.db.patch("roles",u.roleId!,{capabilities:["post.create","post.update"]});});
+ const quick=makeFunctionReference<"mutation">("dashboard/mutations:quickDraft");
+ const content="<b>literal HTML</b> & **literal Markdown**\nSecond line\n\nLast line";
+ const postId=await f.client.mutation(quick,{title:"  Quick canonical  ",content:"  "+content+"  "});
+ const row=await f.t.run(ctx=>ctx.db.get("posts",postId));expect(row).toMatchObject({title:"Quick canonical",slug:"quick-canonical",blocksVersion:2,blocksRevision:1,contentMode:"blocks",content:"",status:"draft"});
+ const opened=await f.client.query(reference("get"),{postId});
+ expect(opened.document.blocks).toEqual([{id:"quick-draft-body",name:"core/paragraph",version:2,attrs:{body:{type:"doc",content:[{type:"paragraph",content:[{type:"text",text:"<b>literal HTML</b> & **literal Markdown**"},{type:"hardBreak"},{type:"text",text:"Second line"},{type:"hardBreak"},{type:"hardBreak"},{type:"text",text:"Last line"}]}]}}}]);
+ expect(await f.t.run(ctx=>ctx.db.query("revisions").collect())).toHaveLength(0);
+ const listed=await f.client.query(makeFunctionReference<"query">("dashboard/queries:getQuickDrafts"),{});expect(listed!.find((p:any)=>p._id===postId).excerpt).toContain("<b>literal HTML</b>");
+ const saved=await f.client.mutation(reference("save","mutation"),{postId,expectedRevision:1,title:"Edited quick draft",blocks:opened.document.blocks});expect(saved.revision).toBe(2);
+ expect((await f.client.query(reference("get"),{postId})).document.blocks).toEqual(opened.document.blocks);
+ const second=await f.client.mutation(quick,{title:"Quick canonical",content:"  "});expect(await f.t.run(ctx=>ctx.db.get("posts",second))).toMatchObject({slug:"quick-canonical-2",blocksVersion:2,blocks:[]});
+ const events=await f.t.run(ctx=>ctx.db.query("events").collect());
+ for(const id of [postId,second])for(const code of ["post.created","dashboard.quick_drafted"]){const matched=events.filter(e=>e.code===code&&JSON.parse(e.payload).postId===id);expect(matched).toHaveLength(1);expect(matched[0].system).toBe("dashboard");if(code==="post.created")expect(JSON.parse(matched[0].payload).source).toBe("quick_draft");}
+ expect(events.some(e=>/published|scheduled/.test(e.code))).toBe(false);
+});
+test("Quick Draft refuses invalid input, denied creation and unavailable presentation without partial records",async()=>{
+ const f=await fixture();const quick=makeFunctionReference<"mutation">("dashboard/mutations:quickDraft");
+ const snapshot=()=>f.t.run(async ctx=>({posts:await ctx.db.query("posts").collect(),events:await ctx.db.query("events").collect()}));const before=await snapshot();
+ for(const client of [f.t,f.client,f.as(f.ids.denied)])await expect(client.mutation(quick,{title:"Denied",content:"Text"})).rejects.toThrow();
+ await f.t.run(async ctx=>{const u=(await ctx.db.get("users",f.ids.user))!;await ctx.db.patch("roles",u.roleId!,{capabilities:["post.create"]});});
+ for(const title of ["  ","x".repeat(201)])await expect(f.client.mutation(quick,{title,content:"Text"})).rejects.toThrow();
+ await expect(f.client.mutation(quick,{title:"Oversized",content:"x".repeat(1024*1024)})).rejects.toThrow();expect(await snapshot()).toEqual(before);
+ await f.t.run(async ctx=>{const identity=await ctx.db.query("convexpress_siteIdentity").first();await ctx.db.delete("convexpress_siteIdentity",identity!._id);});
+ await expect(f.client.mutation(quick,{title:"Unavailable site",content:"Text"})).rejects.toThrow();expect(await snapshot()).toEqual(before);
 });

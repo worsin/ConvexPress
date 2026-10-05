@@ -831,11 +831,15 @@ import { DOCUMENT_LIMITS } from "./foundation/documentContracts";
 export type DuplicateArgs = { postId: Id<"posts">; expectedRevision: number };
 /** Create the first canonical revision atomically. No legacy body or publication
  * input is accepted; existing source belongs to the deliberate import workflow. */
-export async function createDocument(ctx: MutationCtx, args: { type: "post" | "page"; title: string }): Promise<CanonicalWriteReceipt> {
+export async function createDocument(ctx: MutationCtx, args: { type: "post" | "page"; title: string }, options: { plainText?: string; source?: "quick_draft" } = {}): Promise<CanonicalWriteReceipt & { postId: Id<"posts"> }> {
   const budget = new RequestReadLedger();
   const user = await requireCan(ctx, args.type === "page" ? "page.create" : "post.create", budget);
   const title = args.title.trim() || (args.type === "page" ? "Untitled page" : "Untitled post");
-  const prepared = prepareCanonicalCurrent({title, blocks: [], blocksVersion: 2, blocksRevision: 1, contentMode: "blocks", status: "draft"}, 1);
+  // Internal plain-text entry points supply text nodes directly. HTML and Markdown
+  // syntax stays literal; arbitrary client trees still use the canonical save API.
+  const text = options.plainText?.trim();
+  const blocks = text ? [{id: "quick-draft-body", name: "core/paragraph", version: 2, attrs: {body: {type: "doc", content: [{type: "paragraph", content: text.split(/(\r\n|\n|\r)/u).filter(Boolean).map(part => /^(\r\n|\n|\r)$/u.test(part) ? {type: "hardBreak"} : {type: "text", text: part})}]}}}] : [];
+  const prepared = prepareCanonicalCurrent({title, blocks, blocksVersion: 2, blocksRevision: 1, contentMode: "blocks", status: "draft"}, 1);
   const slug = await generateUniqueSlug(ctx, title, args.type, undefined, budget);
   if (args.type === "page") await assertPagePathAvailable(ctx, `/${slug}`, undefined, budget);
   const now = Date.now();
@@ -853,8 +857,8 @@ export async function createDocument(ctx: MutationCtx, args: { type: "post" | "p
   if (!post) refuse("NOT_FOUND", "Created document not found.");
   await project(ctx, post, budget, prepared, {}, "authoring");
   await clearSyncedConsumerDirty(ctx, postId, budget);
-  await emitEvent(ctx, args.type === "page" ? PAGE_EVENTS.CREATED : POST_EVENTS.CREATED, args.type === "page" ? SYSTEM.PAGE : SYSTEM.POST,
-    {postId, ...(args.type === "page" ? {pageId: postId} : {}), title, authorId: user._id, postType: args.type, status: "draft"}, undefined, budget);
+  await emitEvent(ctx, args.type === "page" ? PAGE_EVENTS.CREATED : POST_EVENTS.CREATED, options.source === "quick_draft" ? "dashboard" : args.type === "page" ? SYSTEM.PAGE : SYSTEM.POST,
+    {postId, ...(args.type === "page" ? {pageId: postId} : {}), title, authorId: user._id, postType: args.type, status: "draft", ...(options.source ? {source: options.source} : {})}, undefined, budget);
   return {postId, revision: 1, digest: prepared.digest, changed: true};
 }
 /** Exact source CAS, fresh destination identity/revision, and unchanged source.

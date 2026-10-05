@@ -16,7 +16,7 @@
  *   - reorderWidgets requires "dashboard.reorder_widgets" capability
  */
 
-import { insertWithMediaReferences } from "../media/attachmentGuard";
+import { canonicalBoundary, createDocument } from "../canonicalDocuments/service";
 import { ConvexError, v } from "convex/values";
 import { mutation } from "../_generated/server";
 import { requireCan } from "../helpers/permissions";
@@ -38,6 +38,7 @@ export const quickDraft = mutation({
     title: v.string(),
     content: v.optional(v.string()),
   },
+  returns: v.id("posts"),
   handler: async (ctx, args) => {
     const user = await requireCan(ctx, "post.create");
 
@@ -56,25 +57,8 @@ export const quickDraft = mutation({
       });
     }
 
-    const now = Date.now();
-    const slug = title
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/^-|-$/g, "")
-      .substring(0, 100);
-
-    const postId: import("../_generated/dataModel").Id<"posts"> = await insertWithMediaReferences<"posts">(ctx, "posts", {
-      type: "post",
-      title,
-      slug: slug || "untitled",
-      content: args.content?.trim() || undefined,
-      status: "draft",
-      visibility: "public",
-      authorId: user._id,
-      commentStatus: "open",
-      createdAt: now,
-      updatedAt: now,
-    });
+    const { postId } = await canonicalBoundary(() => createDocument(ctx,
+      { type: "post", title }, { plainText: args.content, source: "quick_draft" }));
 
     // Emit dashboard-specific quick_drafted event
     await emitEvent(ctx, "dashboard.quick_drafted", "dashboard", {
@@ -82,14 +66,6 @@ export const quickDraft = mutation({
       title,
       authorId: user._id,
       surface: "admin",
-    });
-
-    // Also emit post.created so Post System handlers fire
-    await emitEvent(ctx, "post.created", "dashboard", {
-      postId,
-      title,
-      authorId: user._id,
-      source: "quick_draft",
     });
 
     return postId;

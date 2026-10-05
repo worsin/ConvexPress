@@ -16,6 +16,7 @@
  */
 
 import { v } from "convex/values";
+import { canonicalDraftExcerpt } from "./draftExcerpt";
 import { query } from "../_generated/server";
 import { getCurrentUser, currentUserCan, getCurrentRoleLevel , getUserIdentifier } from "../helpers/permissions";
 import {
@@ -313,14 +314,14 @@ export const getQuickDrafts = query({
       .order("desc")
       .take(3);
 
+    // This is the signed-in author's bounded private draft list, not a public
+    // excerpt. Read current canonical prose without recreating a legacy body.
     return drafts.map((draft) => ({
       _id: draft._id,
       title: draft.title || "(no title)",
-      excerpt: draft.excerpt
-        ? draft.excerpt.substring(0, 100)
-        : draft.content
-          ? draft.content.substring(0, 100)
-          : "",
+      excerpt: (draft.excerpt || (draft.blocksVersion === 2
+        ? canonicalDraftExcerpt(draft.blocks)
+        : draft.content) || "").substring(0, 100),
       createdAt: draft.createdAt,
     }));
   },
