@@ -829,6 +829,34 @@ import { assertPagePathAvailable } from "../helpers/pageRouteGuard";
 import { getUserIdentifier } from "../helpers/permissions";
 import { DOCUMENT_LIMITS } from "./foundation/documentContracts";
 export type DuplicateArgs = { postId: Id<"posts">; expectedRevision: number };
+/** Create the first canonical revision atomically. No legacy body or publication
+ * input is accepted; existing source belongs to the deliberate import workflow. */
+export async function createDocument(ctx: MutationCtx, args: { type: "post" | "page"; title: string }): Promise<CanonicalWriteReceipt> {
+  const budget = new RequestReadLedger();
+  const user = await requireCan(ctx, args.type === "page" ? "page.create" : "post.create", budget);
+  const title = args.title.trim() || (args.type === "page" ? "Untitled page" : "Untitled post");
+  const prepared = prepareCanonicalCurrent({title, blocks: [], blocksVersion: 2, blocksRevision: 1, contentMode: "blocks", status: "draft"}, 1);
+  const slug = await generateUniqueSlug(ctx, title, args.type, undefined, budget);
+  if (args.type === "page") await assertPagePathAvailable(ctx, `/${slug}`, undefined, budget);
+  const now = Date.now();
+  const value: WithoutSystemFields<Doc<"posts">> = {
+    type: args.type, title, slug, status: "draft", visibility: "public", authorId: user._id,
+    content: "", contentMode: "blocks", blocks: prepared.blocks, blocksVersion: 2, blocksRevision: 1,
+    commentStatus: args.type === "page" ? "closed" : "open", commentCount: 0, isSticky: false,
+    ...(args.type === "page" ? {path: `/${slug}`, depth: 0, menuOrder: 0, pageTemplate: "default"} : {}),
+    createdAt: now, updatedAt: now,
+  };
+  assertStoredSize(value, budget);
+  const permit = permitValidatedCanonicalAuthoringWrite({table: "posts", operation: "insert", value});
+  const postId = await insertWithMediaReferences(ctx, "posts", value, permit, budget);
+  const post = budget.record(await ctx.db.get("posts", postId));
+  if (!post) refuse("NOT_FOUND", "Created document not found.");
+  await project(ctx, post, budget, prepared, {}, "authoring");
+  await clearSyncedConsumerDirty(ctx, postId, budget);
+  await emitEvent(ctx, args.type === "page" ? PAGE_EVENTS.CREATED : POST_EVENTS.CREATED, args.type === "page" ? SYSTEM.PAGE : SYSTEM.POST,
+    {postId, ...(args.type === "page" ? {pageId: postId} : {}), title, authorId: user._id, postType: args.type, status: "draft"}, undefined, budget);
+  return {postId, revision: 1, digest: prepared.digest, changed: true};
+}
 /** Exact source CAS, fresh destination identity/revision, and unchanged source.
  * Route restrictions become grouped direct policies on the new draft just as in
  * the established legacy duplication path; no customer grants are copied. */

@@ -23,6 +23,7 @@ import {
 } from "./canonicalDocuments/validators";
 import {
 	canonicalBoundary,
+	createDocument,
 	getDocument,
 	previewDocument,
 	initializeDocument,
@@ -50,6 +51,11 @@ const writeArgs = {
 	title: v.string(),
 	blocks: canonicalStoredTreeValidator,
 };
+export const create: RegisteredMutation<"public", { type: "post" | "page"; title: string }, Promise<CanonicalWriteReceipt>> = mutation({
+  args: { type: v.union(v.literal("post"), v.literal("page")), title: v.string() },
+  returns: receiptValidator,
+  handler: (ctx, args) => canonicalBoundary(() => createDocument(ctx, args)),
+});
 export const get: RegisteredQuery<
 	"public",
 	GetArgs,

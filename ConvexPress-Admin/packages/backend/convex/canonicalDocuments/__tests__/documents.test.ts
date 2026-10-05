@@ -2962,3 +2962,31 @@ async function importOriginal(f: Awaited<ReturnType<typeof fixture>>, args: {pos
  expect((await f.client.query(reference("get"),{postId:f.ids.post})).document).toMatchObject({blocksVersion:2,revision:receipt.revision,blocks:review.candidate.document.blocks});
  return receipt;
 }
+
+for(const type of ["post","page"] as const) test(`new ${type} is immediately canonical and editable without a legacy initialization revision`,async()=>{
+ const f=await fixture();await f.t.run(async ctx=>{const u=(await ctx.db.get("users",f.ids.user))!;await ctx.db.patch("roles",u.roleId!,{capabilities:["post.create","page.create","post.update","page.update"]});});
+ const receipt=await f.client.mutation(reference("create","mutation"),{type,title:"  Fresh canonical draft  "});
+ expect(receipt).toMatchObject({revision:1,changed:true});
+ const row=await f.t.run(ctx=>ctx.db.get("posts",receipt.postId));
+ expect(row).toMatchObject({type,title:"Fresh canonical draft",status:"draft",authorId:f.ids.user,blocksVersion:2,blocksRevision:1,blocks:[],contentMode:"blocks",content:""});
+ expect(row!.publishedAt).toBeUndefined();expect(row!.scheduledAt).toBeUndefined();
+ const read=await f.client.query(reference("get"),{postId:receipt.postId});expect(read.document.blocks).toEqual([]);expect(read.document.revision).toBe(1);
+ expect((await f.client.query(reference("pageRevisions"),{postId:receipt.postId,paginationOpts:{cursor:null,numItems:20}})).page).toEqual([]);
+ const saved=await f.client.mutation(reference("save","mutation"),{postId:receipt.postId,expectedRevision:1,title:"First authored save",blocks:[{id:"body",name:"core/paragraph",version:2,attrs:{}}]});expect(saved.revision).toBe(2);
+ const history=await f.client.query(reference("pageRevisions"),{postId:receipt.postId,paginationOpts:{cursor:null,numItems:20}});expect(history.page).toHaveLength(1);expect(history.page[0].blocksVersion).toBe(2);
+ const again=await f.client.mutation(reference("create","mutation"),{type,title:"Fresh canonical draft"});const second=await f.t.run(ctx=>ctx.db.get("posts",again.postId));expect(second!.slug).toBe("fresh-canonical-draft-2");
+ if(type==="page"){expect(row).toMatchObject({path:"/fresh-canonical-draft",depth:0,pageTemplate:"default"});expect(second!.path).toBe("/fresh-canonical-draft-2");}
+ const events=await f.t.run(ctx=>ctx.db.query("events").collect());expect(events.filter(e=>e.code===`${type}.created`)).toHaveLength(2);expect(events.some(e=>/published|scheduled/.test(e.code))).toBe(false);
+});
+test("canonical creation refuses absent authority, legacy payloads and reserved page routes without partial records",async()=>{
+ const f=await fixture();const before=await f.t.run(ctx=>ctx.db.query("posts").collect());
+ for(const client of [f.t,f.client,f.as(f.ids.denied)])await expect(client.mutation(reference("create","mutation"),{type:"page",title:"Denied"})).rejects.toThrow();
+ await f.t.run(async ctx=>{const u=(await ctx.db.get("users",f.ids.user))!;await ctx.db.patch("roles",u.roleId!,{capabilities:["page.create","page.update"]});});
+ for(const args of [{type:"page",title:"products"},{type:"page",title:"x".repeat(513)},{type:"page",title:" ",content:"Unreviewed legacy source"},{type:"post",title:"Wrong capability"}])await expect(f.client.mutation(reference("create","mutation"),args)).rejects.toThrow();
+ expect(await f.t.run(ctx=>ctx.db.query("posts").collect())).toEqual(before);
+});
+test("canonical creation rolls back the new record when installed presentation cannot be resolved",async()=>{
+ const f=await fixture();await f.t.run(async ctx=>{const u=(await ctx.db.get("users",f.ids.user))!;await ctx.db.patch("roles",u.roleId!,{capabilities:["page.create","page.update"]});const identity=await ctx.db.query("convexpress_siteIdentity").first();await ctx.db.delete("convexpress_siteIdentity",identity!._id);});
+ const snapshot=()=>f.t.run(async ctx=>({posts:await ctx.db.query("posts").collect(),events:await ctx.db.query("events").collect()}));const before=await snapshot();
+ await expect(f.client.mutation(reference("create","mutation"),{type:"page",title:"Unavailable site"})).rejects.toThrow();expect(await snapshot()).toEqual(before);
+});

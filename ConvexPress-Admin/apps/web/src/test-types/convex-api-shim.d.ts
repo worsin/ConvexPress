@@ -3449,6 +3449,7 @@ export type PublicApi = {
   "authorOptions": FunctionReference<"query", "public", { "postId": GenericId<"posts">; "paginationOpts": Dto97; }, Dto1008>;
   "bundleOptions": FunctionReference<"query", "public", { "postId": GenericId<"posts">; "paginationOpts": Dto97; }, Dto1010>;
   "courseOptions": FunctionReference<"query", "public", { "postId": GenericId<"posts">; "paginationOpts": Dto97; }, Dto1012>;
+  "create": FunctionReference<"mutation", "public", { "type": ("post" | "page"); "title": string; }, Dto1014>;
   "drafts": {
   "discard": FunctionReference<"mutation", "public", { "expectedGeneration": number; "postId": GenericId<"posts">; "expectedScope": Dto1069; }, Dto1070>;
   "get": FunctionReference<"query", "public", { "postId": GenericId<"posts">; "expectedScope": Dto1069; }, Dto1070>;
