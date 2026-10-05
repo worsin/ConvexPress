@@ -65,6 +65,11 @@ export const revisionTables = {
     content: v.string(),                      // Snapshot of the content (serialized block editor JSON)
     excerpt: v.optional(v.string()),          // Snapshot of the excerpt
     snapshotVersion: v.optional(v.union(v.literal(1), v.literal(2))),
+    // Retained beside the accepted source, never assigned to the archivist as
+    // a private draft. Old legacy autosaves did not record their author.
+    autosaveTitle: authoring.autosaveTitle,
+    autosaveContent: authoring.autosaveContent,
+    autosavedAt: authoring.autosavedAt,
     contentMode: authoring.contentMode,
     blocks: authoring.blocks,
     blocksVersion: authoring.blocksVersion,

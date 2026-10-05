@@ -39,7 +39,7 @@ test("actual remove refuses incomplete table before any write", async () => {
 });
 
 test("opaque authored references and retained revision refs block force without guessed clearing", async () => {
-  for (const seed of [{ posts: [{ _id: "p", blocks: [{ attrs: { imageId: "m1" } }] }] }, { revisions: [{ _id: "r", featuredImageId: "m1" }] }]) {
+  for (const seed of [{ posts: [{ _id: "p", blocks: [{ attrs: { imageId: "m1" } }] }] }, { revisions: [{ _id: "r", featuredImageId: "m1" }] }, { revisions: [{ _id: "r", autosaveContent: JSON.stringify({type:"doc",content:[{type:"image",attrs:{mediaId:"m1"}}]}) }] }]) {
     const { ctx, writes } = fixture(seed);
     expect(await code(() => (mutations.remove as any)._handler(ctx, { mediaId: "m1", force: true }))).toBe("MEDIA_REFERENCE_UNCLEARABLE");
     expect(writes).toEqual([]);

@@ -16,13 +16,17 @@ export const inactiveLegacySettingsSchema = z.strictObject({
   lock: z.strictObject({move:z.boolean().optional(),remove:z.boolean().optional(),edit:z.boolean().optional()}).optional(),
 });
 export type InactiveLegacySettings = z.infer<typeof inactiveLegacySettingsSchema>;
+export const retainedLegacyAutosaveSchema = z.strictObject({
+  titleChanged: z.boolean(), contentChanged: z.boolean(), savedAt: z.number().finite().nullable(),
+});
 type LibraryMigrationCandidate = Omit<CanonicalDocumentDto, "document"> & { document: Omit<CanonicalDocumentDto["document"], "blocks" | "composedDefinitions"> & { blocks: CanonicalTree; composedDefinitions?: never } };
-export type CanonicalMigrationDto = { contract: "canonical-migration-v1"; source: { postId: string; revision: number; authoringDigest: string }; candidate: LibraryMigrationCandidate; preservesTrash?: true; inactiveSettings?: InactiveLegacySettings[]; importedContent?: "plain-text" | "html" };
+export type CanonicalMigrationDto = { contract: "canonical-migration-v1"; source: { postId: string; revision: number; authoringDigest: string }; candidate: LibraryMigrationCandidate; preservesTrash?: true; retainedAutosave?: z.infer<typeof retainedLegacyAutosaveSchema>; inactiveSettings?: InactiveLegacySettings[]; importedContent?: "plain-text" | "html" };
 export const canonicalMigrationSchema = z.strictObject({
   contract: z.literal("canonical-migration-v1"),
   source: z.strictObject({ postId: z.string().min(1).max(256), revision: z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER - 2), authoringDigest: digest }),
   candidate: canonicalDocumentSchema,
   preservesTrash: z.literal(true).optional(),
+  retainedAutosave: retainedLegacyAutosaveSchema.optional(),
   inactiveSettings: z.array(inactiveLegacySettingsSchema).max(80).optional(),
   importedContent: z.enum(["plain-text", "html"]).optional(),
 });

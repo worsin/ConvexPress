@@ -52,6 +52,57 @@ for (const type of ["post","page"] as const) test(`canonical ${type} trash resto
 const reference = (name: string, kind: "query" | "mutation" = "query") =>
 	makeFunctionReference<any, any, any>(`canonicalDocuments:${name}`);
 
+for (const status of ["draft", "trash"] as const) test(`migration retains distinct autosaves through ${status} conversion and exact original recovery`, async () => {
+  const f = await fixture();
+  const content = JSON.stringify({type:"doc",content:[{type:"paragraph",content:[{type:"text",text:"Accepted body"}]}]});
+  // An unsupported unsaved body is still retained verbatim, never converted or activated.
+  const autosave = {autosaveTitle:"Unaccepted title",autosaveContent:'{"unfinished":true}\r\n',autosavedAt:0};
+  await f.t.run(ctx => ctx.db.patch("posts", f.ids.post, {status,contentMode:"article",content,...autosave,...(status === "trash" ? {previousStatus:"publish",trashedAt:123} : {})}));
+  const state = () => f.t.run(async ctx => ({post:await ctx.db.get("posts",f.ids.post),history:await ctx.db.query("revisions").collect()}));
+  const before = await state();
+  const review = await f.client.query(reference("prepareMigration"),{postId:f.ids.post,...(status === "trash" ? {preserveTrash:true} : {})});
+  expect(review.retainedAutosave).toEqual({titleChanged:true,contentChanged:true,savedAt:0});
+  expect(review.candidate.document.title).toBe(before.post!.title);
+  expect(JSON.stringify(review.candidate.document.blocks)).toContain("Accepted body");
+  expect(JSON.stringify(review.candidate)).not.toContain("unfinished");
+  const args = {postId:f.ids.post,expectedRevision:review.source.revision,expectedAuthoringDigest:review.source.authoringDigest,expectedCandidateDigest:review.candidate.document.digest,expectedPresentationRevision:review.candidate.presentation.revision,...(status === "trash" ? {preserveTrash:true} : {})};
+  for (const preserveLegacyAutosave of [undefined,false]) {
+    await expect(f.client.mutation(reference("migrate","mutation"),{...args,...(preserveLegacyAutosave === undefined ? {} : {preserveLegacyAutosave})})).rejects.toMatchObject({data:{code:"MIGRATION_INTENT_REVIEW_REQUIRED"}});
+    expect(await state()).toEqual(before);
+  }
+  for (const patch of [{autosaveTitle:"Changed"},{autosaveContent:"Changed"},{autosavedAt:1}]) {
+    await f.t.run(ctx => ctx.db.patch("posts",f.ids.post,patch));
+    const changed = await state();
+    await expect(f.client.mutation(reference("migrate","mutation"),{...args,preserveLegacyAutosave:true})).rejects.toMatchObject({data:{code:"CONFLICT"}});
+    expect(await state()).toEqual(changed);
+    await f.t.run(ctx => ctx.db.patch("posts",f.ids.post,autosave));
+  }
+  await expect(f.as(f.ids.denied).mutation(reference("migrate","mutation"),{...args,preserveLegacyAutosave:true})).rejects.toThrow();
+  const receipt = await f.client.mutation(reference("migrate","mutation"),{...args,preserveLegacyAutosave:true});
+  const after = await state();
+  expect(after.post).toMatchObject({status,blocksVersion:2,title:before.post!.title});
+  expect(after.post!.autosaveContent).toBeUndefined();
+  expect(after.history).toHaveLength(1);
+  expect(after.history[0]).toMatchObject({content,title:before.post!.title,...autosave});
+  for (const pruneArgs of [{parentId:f.ids.post,maxRevisions:0},{maxRevisions:0}]) {
+    // Cleanup must still remove ordinary history, not merely stop running.
+    await f.t.run(async ctx => {
+      const {_id,_creationTime,autosaveTitle,autosaveContent,autosavedAt,...ordinary} = (await ctx.db.get("revisions",after.history[0]._id))!;
+      await ctx.db.insert("revisions",{...ordinary,revisionNumber:2});
+    });
+    await f.t.mutation(makeFunctionReference<any,any,any>("revisions/internals:prune"),pruneArgs);
+    expect((await state()).history).toEqual(after.history);
+  }
+  expect(await f.t.query(reference("getForRender"),{postId:f.ids.post})).toBeNull();
+  if (status === "trash") await f.t.run(ctx => ctx.db.patch("posts",f.ids.post,{status:"draft",previousStatus:undefined,trashedAt:undefined}));
+  const history = await f.client.query(reference("pageRevisions"),{postId:f.ids.post,paginationOpts:{cursor:null,numItems:20}});
+  expect(history.page[0].action).toBe("recover-legacy");
+  await f.client.mutation(reference("recoverLegacy","mutation"),{postId:f.ids.post,revisionId:history.page[0].id,expectedRevision:receipt.revision});
+  expect((await state()).post).toMatchObject({content,title:before.post!.title,contentMode:"article",blocksVersion:1,...autosave});
+  const again = await f.client.query(reference("prepareMigration"),{postId:f.ids.post});
+  expect(again.retainedAutosave).toEqual(review.retainedAutosave);
+});
+
 test("commerce resolver-invalid edits are refused before saving or previewing without changing history", async () => {
   const f = await fixture();
   await initialize(f);
@@ -1116,13 +1167,13 @@ test("reviewed authored article migration preserves marks and source history wit
   await expect(f.client.mutation(reference("migrate", "mutation"), args)).rejects.toThrow();
 });
 
-test("migration refuses unsafe precedence, unrepresented nodes, distinct autosaves, stale source and lost authority without writes", async () => {
+test("migration refuses unsafe precedence, unrepresented nodes, stale source and lost authority without writes", async () => {
   const f = await fixture();
   const content = JSON.stringify({ type: "doc", content: [{ type: "paragraph", content: [{ type: "text", text: "Original" }] }] });
   await f.t.run(async ctx => { await ctx.db.patch("posts", f.ids.post, { type: "post", contentMode: "article", content }); });
   const plan = await f.client.query(reference("prepareMigration"), { postId: f.ids.post });
   const args = { postId: f.ids.post, expectedRevision: plan.source.revision, expectedAuthoringDigest: plan.source.authoringDigest, expectedCandidateDigest: plan.candidate.document.digest, expectedPresentationRevision: plan.candidate.presentation.revision };
-  for (const patch of [{ hero: { content: "x".repeat(20001) } }, { autosaveTitle: "Unsaved title" }, { content: JSON.stringify({ type: "doc", content: [{ type: "table", content: [] }] }) }]) {
+  for (const patch of [{ hero: { content: "x".repeat(20001) } }, { content: JSON.stringify({ type: "doc", content: [{ type: "table", content: [] }] }) }]) {
     await f.t.run(async ctx => { await ctx.db.patch("posts", f.ids.post, patch); });
     await expect(f.client.query(reference("prepareMigration"), { postId: f.ids.post })).rejects.toThrow();
     await f.t.run(async ctx => { await ctx.db.patch("posts", f.ids.post, { hero: undefined, autosaveTitle: undefined, content }); });

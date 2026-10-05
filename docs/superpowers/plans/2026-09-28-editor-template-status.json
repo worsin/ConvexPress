@@ -7,7 +7,7 @@
     "In progress": 20
   },
   "goal": "Complete block editor and template delivery plus all demonstrated blockers; defer unrelated whole-app audit campaigns.",
-  "currentTask": "Task4 E07: source104canonical/12legacy-trash, zero active legacy; target29canonical.23trash records migrated in place; actual restore/native/recovery accepted on owned copy. Remaining12have distinct saved/unsaved legacy authoring and are preserved unchanged. Next explicit autosave preservation/recovery, complete history/reference reconciliation, then live legacy retirement. Full goal active/incomplete;117Verified/20In progress unchanged.",
+  "currentTask": "Task4 E07: installed source116/116 and target29/29 canonical. All12remaining legacy trash records converted without restoring/publication; exact accepted source plus distinct unsaved title/body/timestamp retained in original history, protected from routine pruning. Native review/reset/convert/reopen/Website preview/original recovery accepted. Next history/reference reconciliation and live legacy retirement. Full goal active/incomplete;117Verified/20In progress unchanged.",
   "tasks": [
     {
       "id": 1,
@@ -100,11 +100,11 @@
     },
     {
       "id": "E07",
-      "status": "Partial acceptance: prior active source/target migrations plus23retained trash records converted in place with lifecycle and original snapshots preserved. Source104canonical/12legacy-trash; target29canonical. All399prior source revisions/93unrelated or deferred records exact.12distinct legacy autosaves correctly refuse migration and remain unchanged. Canonical trash restore now validates current publish authority/body/resources, with native copy restoration/recovery verified. Full legacy retirement/history/reference and autosave preservation remain open.",
+      "status": "Installed current corpus converted: source116canonical/0legacy and target29canonical/0legacy.12previously blocked trash records now retain both accepted source and exact distinct autosaves in original snapshots, protected from routine pruning and media deletion.422prior revisions and104unrelated records exact; trash lifecycle/appearance/queue/templates/target exact. Native review/reset/conversion/reload/desktop-phone preview/original recovery accepted. Historical reconciliation and removal of live legacy dispatch/recovery downgrade remain incomplete.",
       "classification": "missing evidence",
       "initialFinding": "One-content-model migration and legacy retirement remain incomplete.",
       "closureBoundary": "Complete lossless conversion/recovery for actual retained content, source snapshots and installed-site receipts; then remove active legacy editor/renderer/schema dispatch as specified. Keep historical recovery data and a deliberate import converter. Do not delete old fields before proving preservation or claim migration complete while silently relying on legacy rendering.",
-      "nextCheck": "Implement reviewed preservation of saved body plus distinct autosave title/body/timestamp for12exact records in output/trash-migration-20261005/preservation.json. Never discard or silently merge them. Then reconcile history/references and remove live legacy dispatch/recovery downgrade paths. SOURCE latest manifest output/trash-migration-20261005/deployment-source-final.json; TARGET remains output/target-autosave-parity-20261005/target-source-installed.json.",
+      "nextCheck": "Reconcile retained histories and reference/restore lifecycle, then replace live legacy editor/renderer dispatch and recovery downgrade with deliberate canonical import while retaining historical bytes. SOURCE latest manifest output/autosave-migration-20261005/deployment-source-final.json; TARGET remains output/target-autosave-parity-20261005/target-source-installed.json. No wait on Claude.",
       "deliveryTask": 4,
       "triagedAt": "2026-09-29",
       "triageEvidence": "ConvexPress-Admin/audits/2026-09-04/delivery-blocker-triage-20260929.md",
@@ -133,7 +133,8 @@
         "ConvexPress-Admin/audits/2026-09-04/trash-migration-20261005.md",
         "output/trash-migration-20261005/preservation.json",
         "output/trash-migration-20261005/native-copy.json",
-        "output/trash-migration-20261005/cleanup.json"
+        "output/trash-migration-20261005/cleanup.json",
+        "ConvexPress-Admin/audits/2026-09-04/autosave-migration-20261005.md"
       ]
     },
     {

@@ -36,7 +36,7 @@ legacy block trees, page sections, and bounded structured articles, following th
 Website's visible-source precedence. Structured conversion preserves visible hero,
 manual table-of-contents links, topic anchors, summary, sources, media references
 and consent-gated video. Hidden sources stay in the original revision. It refuses
-unsupported structured fields, duplicate anchors, capacity overflow, distinct unsaved autosaves,
+unsupported structured fields, duplicate anchors, capacity overflow, unacknowledged distinct unsaved autosaves,
 unknown authoring versions and unknown layout/lock fields. Do not bypass those refusals.
 
 Known saved layout and lock settings that the old renderer/editor ignored are now
@@ -149,3 +149,19 @@ trashedAt, publication metadata and non-authoring relationships must remain exac
 A later owner-requested normal restore validates canonical content/resources and
 requires publish authority for a non-draft result before obtaining its guarded
 write permit. Do not bulk-restore old records merely to make migration eligible.
+
+### Retained legacy autosaves
+
+Migration review now identifies a distinct unsaved title/body as
+`retainedAutosave`. Conversion still uses the accepted source. After reviewing
+that separation, acknowledge `preserveLegacyAutosave: true`; otherwise the server
+refuses without writes. Refresh clears this independent acknowledgement. The full
+source digest binds each autosave value, its absence and its original timestamp.
+
+The original revision retains `autosaveTitle`, `autosaveContent` and `autosavedAt`
+verbatim, including empty strings. Original-editor recovery restores them beside
+the saved source. Unsupported unsaved content stays opaque and recoverable; it is
+not silently imported, activated, published or attributed to the current operator.
+These retained sources survive routine revision pruning. Explicit authorized
+revision/document deletion remains a deliberate discard operation. Media referenced
+only by the retained autosave continues to block unsafe deletion.

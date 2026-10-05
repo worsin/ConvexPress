@@ -278,6 +278,7 @@ async function snapshot(
 		);
 	const value: WithoutSystemFields<Doc<"revisions">> = {
 		...authoringSnapshot(post),
+    ...(post.blocksVersion !== 2 ? {autosaveTitle:post.autosaveTitle,autosaveContent:post.autosaveContent,autosavedAt:post.autosavedAt} : {}),
 		content: post.content ?? "",
 		parentId: post._id,
 		parentType: post.type,
@@ -566,7 +567,6 @@ function prepareAuthoredMigration(post: Doc<"posts">): PreparedCanonicalWrite & 
   if (post.status !== "draft") refuse("CANONICAL_DRAFT_REQUIRED", "Migrate an editable draft before publishing it.");
   if (post.blocksVersion !== undefined && post.blocksVersion !== 1) refuse("UNSUPPORTED_AUTHORING_VERSION", "This is not a supported legacy authoring document.");
   if (post.contentMode !== undefined && post.contentMode !== "article" && post.contentMode !== "blocks") refuse("UNSUPPORTED_AUTHORING_VERSION", "The legacy content mode is unsupported.");
-  if ((post.autosaveTitle !== undefined && post.autosaveTitle !== post.title) || (post.autosaveContent !== undefined && post.autosaveContent !== (post.content ?? ""))) refuse("UNSAVED_AUTHORING", "Save or explicitly discard the distinct autosave before reviewing this migration.");
   const revision = authoringRevision(post);
   if (revision >= Number.MAX_SAFE_INTEGER - 1) refuse("AUTHORING_REVISION_EXHAUSTED", "The document revision cannot advance safely.");
   // Match the Website's visible-source precedence. In particular, block-mode
@@ -625,15 +625,22 @@ export async function canonicalTrashRestorePermit(ctx: MutationCtx, post: Doc<"p
     return permitValidatedCanonicalAuthoringWrite({table:"posts",operation:"patch",id:post._id,previous:post,value});
   });
 }
+/** The old shared autosave has no author identity. Keep its exact fields with
+ * the original source revision; do not adopt it into the current user's draft. */
+function retainedAutosave(post: Doc<"posts">): CanonicalMigrationDto["retainedAutosave"] {
+  const titleChanged = post.autosaveTitle !== undefined && post.autosaveTitle !== post.title;
+  const contentChanged = post.autosaveContent !== undefined && post.autosaveContent !== (post.content ?? "");
+  return titleChanged || contentChanged ? {titleChanged,contentChanged,savedAt:post.autosavedAt ?? null} : undefined;
+}
 export async function prepareMigrationDocument(ctx: QueryCtx, args: { postId: Id<"posts">; preserveTrash?: boolean }): Promise<CanonicalMigrationDto> {
   const budget = new RequestReadLedger();
   const { post } = await authorized(ctx, args.postId, budget, args.preserveTrash === true);
   if (!post) refuse("NOT_FOUND", "Document not found.");
   const source = migrationSource(post, args.preserveTrash === true);
   const prepared = prepareAuthoredMigration(source.preview);
-  return parseCanonicalMigration({ contract: "canonical-migration-v1", source: { postId: post._id, revision: authoringRevision(post), authoringDigest: source.digest }, candidate: await project(ctx, source.preview, budget, prepared), ...(args.preserveTrash ? {preservesTrash:true} : {}), ...(prepared.inactiveSettings ? {inactiveSettings:prepared.inactiveSettings} : {}), ...(prepared.importedContent ? {importedContent:prepared.importedContent} : {}) });
+  return parseCanonicalMigration({ contract: "canonical-migration-v1", source: { postId: post._id, revision: authoringRevision(post), authoringDigest: source.digest }, candidate: await project(ctx, source.preview, budget, prepared), ...(args.preserveTrash ? {preservesTrash:true} : {}), ...(retainedAutosave(post) ? {retainedAutosave:retainedAutosave(post)} : {}), ...(prepared.inactiveSettings ? {inactiveSettings:prepared.inactiveSettings} : {}), ...(prepared.importedContent ? {importedContent:prepared.importedContent} : {}) });
 }
-export type MigrateArgs = { postId: Id<"posts">; expectedRevision: number; expectedAuthoringDigest: string; expectedCandidateDigest: string; expectedPresentationRevision: string; preserveInactiveSettings?: boolean; acknowledgeTextImport?: boolean; acknowledgeHtmlImport?: boolean; preserveTrash?: boolean };
+export type MigrateArgs = { postId: Id<"posts">; expectedRevision: number; expectedAuthoringDigest: string; expectedCandidateDigest: string; expectedPresentationRevision: string; preserveInactiveSettings?: boolean; acknowledgeTextImport?: boolean; acknowledgeHtmlImport?: boolean; preserveTrash?: boolean; preserveLegacyAutosave?: boolean };
 export async function migrateDocument(ctx: MutationCtx, args: MigrateArgs): Promise<CanonicalWriteReceipt> {
   const budget = new RequestReadLedger();
   const { post, user } = await authorized(ctx, args.postId, budget, args.preserveTrash === true);
@@ -642,6 +649,7 @@ export async function migrateDocument(ctx: MutationCtx, args: MigrateArgs): Prom
   // Check complete source CAS before converting or starting dependent reads.
   if (!Number.isSafeInteger(args.expectedRevision) || authoringRevision(post) !== args.expectedRevision || source.digest !== args.expectedAuthoringDigest) refuse("CONFLICT", "The authoring source changed after migration review.");
   const prepared = prepareAuthoredMigration(source.preview);
+  if (retainedAutosave(post) && args.preserveLegacyAutosave !== true) refuse("MIGRATION_INTENT_REVIEW_REQUIRED", "Confirm retaining the separate unsaved draft with the original revision before converting accepted content.");
   if (prepared.importedContent === "plain-text" && args.acknowledgeTextImport !== true) refuse("MIGRATION_INTENT_REVIEW_REQUIRED", "Review and acknowledge importing plain text that the original renderer may not have displayed.");
   if (prepared.importedContent === "html" && args.acknowledgeHtmlImport !== true) refuse("MIGRATION_INTENT_REVIEW_REQUIRED", "Review and acknowledge importing HTML that the original renderer may not have displayed.");
   if (prepared.inactiveSettings?.length && args.preserveInactiveSettings !== true) refuse("MIGRATION_INTENT_REVIEW_REQUIRED", "Confirm that unused layout and lock settings remain in the original revision before converting.");
@@ -840,7 +848,7 @@ function legacyRecoveryValue(post: Doc<"posts">, revision: Doc<"revisions">): Pa
   prepareAuthoredMigration({ ...candidate,
     content: candidate.content || JSON.stringify({ type: "doc", content: [] }),
   });
-  return { ...authored, blocksVersion: 1, blocksRevision: authoringRevision(post) + 1, autosaveTitle: undefined, autosaveContent: undefined, autosavedAt: undefined, updatedAt: Date.now() };
+  return { ...authored, blocksVersion: 1, blocksRevision: authoringRevision(post) + 1, autosaveTitle: revision.autosaveTitle, autosaveContent: revision.autosaveContent, autosavedAt: revision.autosavedAt, updatedAt: Date.now() };
 }
 export async function recoverLegacyDocument(ctx: MutationCtx, args: LegacyRecoveryArgs): Promise<CanonicalRecoveryReceipt> {
   const budget = new RequestReadLedger();

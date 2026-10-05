@@ -507,7 +507,7 @@ test("native write adapter refuses wrong scope, digest, document and revision re
 	}
 });
 
-test.each([false,true].flatMap(inactive=>[undefined,"plain-text","html"].map(importedContent=>({inactive,importedContent}))))("existing authored migration binds source review and acknowledgement (%j)", async ({inactive,importedContent}) => {
+test.each([false,true].flatMap(autosave=>[false,true].flatMap(inactive=>[undefined,"plain-text","html"].map(importedContent=>({inactive,importedContent,autosave})))))("existing authored migration binds source review and acknowledgement (%j)", async ({inactive,importedContent,autosave}) => {
  const textImport=!!importedContent;
 	const loaded = await loadStaged("../canonical-editor/workspace.fixture.ts"),
 		m = loaded.module;
@@ -596,6 +596,7 @@ test.each([false,true].flatMap(inactive=>[undefined,"plain-text","html"].map(imp
 		},
 		candidate,
 	};
+    if(autosave) review.retainedAutosave={titleChanged:true,contentChanged:true,savedAt:0};
     if(textImport) review.importedContent=importedContent;
     if(inactive) review.inactiveSettings=[{blockId:"paragraph",name:"core/paragraph",layout:{padding:"spacious"},lock:{edit:true}}];
 	let current = original,
@@ -657,7 +658,7 @@ test.each([false,true].flatMap(inactive=>[undefined,"plain-text","html"].map(imp
           await act(async()=>button("Convert reviewed content").click());
           expect(writes).toHaveLength(0);
           await act(async()=>document.querySelector('input[type="checkbox"]').click());
-          expect(button("Convert reviewed content").disabled).toBe(textImport);
+          expect(button("Convert reviewed content").disabled).toBe(textImport || autosave);
           await act(async()=>button("Refresh migration review").click());
           expect(button("Convert reviewed content").disabled).toBe(true);
           expect(document.querySelector('input[type="checkbox"]').checked).toBe(false);
@@ -667,17 +668,32 @@ test.each([false,true].flatMap(inactive=>[undefined,"plain-text","html"].map(imp
           expect(document.body.textContent).toContain("The original renderer may not have displayed this stored content");
           expect(button("Convert reviewed content").disabled).toBe(true);
           await act(async()=>document.querySelector('input[name="text-import"]').click());
-          expect(button("Convert reviewed content").disabled).toBe(false);
+          expect(button("Convert reviewed content").disabled).toBe(autosave);
           await act(async()=>button("Refresh migration review").click());
           expect(document.querySelector('input[name="text-import"]').checked).toBe(false);
           expect(button("Convert reviewed content").disabled).toBe(true);
           if(inactive) await act(async()=>document.querySelector('input[type="checkbox"]').click());
           await act(async()=>document.querySelector('input[name="text-import"]').click());
         }
+        if(autosave) {
+          expect(document.body.textContent).toContain("Separate unsaved draft");
+          expect(button("Convert reviewed content").disabled).toBe(true);
+          await act(async()=>button("Convert reviewed content").click());
+          expect(writes).toHaveLength(0);
+          await act(async()=>document.querySelector('input[name="retain-autosave"]').click());
+          expect(button("Convert reviewed content").disabled).toBe(false);
+          await act(async()=>button("Refresh migration review").click());
+          expect(document.querySelector('input[name="retain-autosave"]').checked).toBe(false);
+          expect(button("Convert reviewed content").disabled).toBe(true);
+          if(inactive) await act(async()=>document.querySelector('input[type="checkbox"]').click());
+          if(textImport) await act(async()=>document.querySelector('input[name="text-import"]').click());
+          await act(async()=>document.querySelector('input[name="retain-autosave"]').click());
+        }
 		await act(async () => button("Convert reviewed content").click());
 		expect(writes).toEqual([
 			{
 				...(inactive ? {preserveInactiveSettings:true} : {}),
+                ...(autosave ? {preserveLegacyAutosave:true} : {}),
                 ...(importedContent === "plain-text" ? {acknowledgeTextImport:true} : {}),
                 ...(importedContent === "html" ? {acknowledgeHtmlImport:true} : {}),
 				expectedRevision: 2,

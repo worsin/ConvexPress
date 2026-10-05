@@ -106,12 +106,13 @@ export const pageOptionsValidator: Validator<
 	string
 > = fromZod(canonicalPageOptionsSchema);
 
-import { inactiveLegacySettingsSchema, type CanonicalMigrationDto } from "./migrationContracts";
+import { inactiveLegacySettingsSchema, retainedLegacyAutosaveSchema, type CanonicalMigrationDto } from "./migrationContracts";
 export const migrationValidator: Validator<CanonicalMigrationDto, "required", string> = v.object({
   contract: v.literal("canonical-migration-v1"),
   source: v.object({ postId: v.string(), revision: v.number(), authoringDigest: v.string() }),
   candidate: fromZod<CanonicalDocumentDto>(structuralDocument),
   preservesTrash: v.optional(v.literal(true)),
+  retainedAutosave: v.optional(fromZod(retainedLegacyAutosaveSchema)),
   inactiveSettings: v.optional(v.array(fromZod(inactiveLegacySettingsSchema))),
   importedContent: v.optional(v.union(v.literal("plain-text"),v.literal("html"))),
 });

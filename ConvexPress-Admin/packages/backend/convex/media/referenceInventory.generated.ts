@@ -396,6 +396,8 @@ export const opaqueMediaReferences = {
   ],
   "revisions": [
     "authorId",
+    "autosaveContent",
+    "autosaveTitle",
     "blocks",
     "changedFields",
     "composedDefinitions",

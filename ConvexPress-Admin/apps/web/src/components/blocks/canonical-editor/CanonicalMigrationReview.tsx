@@ -23,7 +23,8 @@ export interface MigrationClient {
 		expectedPresentationRevision: string;
 		preserveInactiveSettings?: boolean;
 		acknowledgeTextImport?: boolean;
-	acknowledgeHtmlImport?: boolean;
+		acknowledgeHtmlImport?: boolean;
+		preserveLegacyAutosave?: boolean;
 	}): Promise<unknown>;
 }
 /** The server owns conversion. Review is immutable and commit sends only exact
@@ -41,6 +42,7 @@ export function CanonicalMigrationReview({
 }) {
 	const [acknowledgedReview, setAcknowledgedReview] = useState<CanonicalMigrationDto | null>(null);
 	const [acknowledgedImport, setAcknowledgedImport] = useState<CanonicalMigrationDto | null>(null);
+	const [acknowledgedAutosave, setAcknowledgedAutosave] = useState<CanonicalMigrationDto | null>(null);
 	const [review, setReview] = useState<CanonicalMigrationDto | null>(null),
 		[busy, setBusy] = useState(false),
 		[error, setError] = useState<string | null>(null),
@@ -73,6 +75,7 @@ export function CanonicalMigrationReview({
 		setReview(null);
 		setAcknowledgedReview(null);
 		setAcknowledgedImport(null);
+		setAcknowledgedAutosave(null);
 		try {
 			const next = parseCanonicalMigration(await client.prepareMigration());
 			readForEditor(next.candidate, documentKey);
@@ -168,6 +171,23 @@ export function CanonicalMigrationReview({
 							</label>
 						</fieldset>
 					)}
+					{current.retainedAutosave && (
+						<fieldset className="space-y-3 rounded border border-border p-4">
+							<legend className="px-1 font-medium">Separate unsaved draft</legend>
+							<p className="text-sm text-muted-foreground">
+								This document has an unsaved {current.retainedAutosave.titleChanged && current.retainedAutosave.contentChanged ? "title and body" : current.retainedAutosave.titleChanged ? "title" : "body"}.
+								 Conversion uses the accepted content shown below. The unsaved values and their original timestamp
+								 will stay with the original revision and return when you recover that original.
+								 They will not replace the accepted content or be assigned to your private draft.
+							</p>
+							<label className="flex min-h-11 items-center gap-3 text-sm">
+								<input type="checkbox" name="retain-autosave" disabled={busy}
+									checked={acknowledgedAutosave === current}
+									onChange={(event) => setAcknowledgedAutosave(event.target.checked ? current : null)} />
+								Retain the separate unsaved draft with the original revision.
+							</label>
+						</fieldset>
+					)}
 					<div className="grid gap-5 md:grid-cols-[minmax(180px,1fr)_minmax(0,2fr)]">
 						<CanonicalOutline
 							nodes={current.candidate.document.blocks}
@@ -192,11 +212,11 @@ export function CanonicalMigrationReview({
 					</div>
 					<button
 						type="button"
-						disabled={busy || (!!current.inactiveSettings?.length && acknowledgedReview !== current) || (!!current.importedContent && acknowledgedImport !== current)}
+						disabled={busy || (!!current.inactiveSettings?.length && acknowledgedReview !== current) || (!!current.importedContent && acknowledgedImport !== current) || (!!current.retainedAutosave && acknowledgedAutosave !== current)}
 						className="min-h-11 rounded bg-primary px-4 text-sm text-primary-foreground disabled:opacity-50"
 						onClick={() =>
 							void (async () => {
-								if (pending.current || (current.inactiveSettings?.length && acknowledgedReview !== current) || (current.importedContent && acknowledgedImport !== current)) return;
+								if (pending.current || (current.inactiveSettings?.length && acknowledgedReview !== current) || (current.importedContent && acknowledgedImport !== current) || (current.retainedAutosave && acknowledgedAutosave !== current)) return;
 								pending.current = true;
 								setBusy(true);
 								setError(null);
@@ -206,6 +226,7 @@ export function CanonicalMigrationReview({
 											...(current.inactiveSettings?.length ? {preserveInactiveSettings: true} : {}),
 											...(current.importedContent === "plain-text" ? {acknowledgeTextImport: true} : {}),
 											...(current.importedContent === "html" ? {acknowledgeHtmlImport: true} : {}),
+											...(current.retainedAutosave ? {preserveLegacyAutosave: true} : {}),
 											expectedRevision: current.source.revision,
 											expectedAuthoringDigest: current.source.authoringDigest,
 											expectedCandidateDigest:
