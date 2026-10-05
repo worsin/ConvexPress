@@ -36,6 +36,7 @@ import { getSiteRuntime, siteRuntimeBootstrapScript } from "@/lib/site-runtime";
 import "../index.css";
 import "../templates/sdk/block-renderer/critical-styles";
 import { resolveSiteName, rememberSiteName } from "@/lib/seo/head";
+import { SiteNameBootstrap } from "@/components/layout/SiteNameBootstrap";
 
 export interface RouterAppContext {
   queryClient: QueryClient;
@@ -201,9 +202,7 @@ function RootDocument() {
                 dangerouslySetInnerHTML={{ __html: siteRuntimeBootstrapScript(siteRuntime) }}
               />
               {/* The client evaluates route heads before settings load; give it the name the server used. */}
-              <script
-                dangerouslySetInnerHTML={{ __html: `window.__CONVEXPRESS_SITE_NAME__=${JSON.stringify(resolveSiteName())};` }}
-              />
+              <SiteNameBootstrap />
               <script dangerouslySetInnerHTML={{ __html: `(function(){var t=localStorage.getItem('theme');if(t==='dark'||(!t&&window.matchMedia('(prefers-color-scheme:dark)').matches)){document.documentElement.classList.add('dark')}else{document.documentElement.classList.remove('dark')}})()` }} />
               <HeadContent />
             </head>
