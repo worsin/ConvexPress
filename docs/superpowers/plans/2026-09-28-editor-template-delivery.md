@@ -195,6 +195,7 @@ September29 closure: all20 assigned Task2 block rows are Verified on the linked 
 
 **Consumes:** all preceding deliverables. **Produces:** completed scoped system, locally integrated clean source and reviewable release evidence.
 
+- [ ] Deploy Website support for nested list children before or together with backend acceptance of that content. Older Website validators reject the whole document with `CHILDREN_FORBIDDEN`; verify each installed site uses a compatible consumer before publishing nested lists.
 - [ ] Freeze a candidate commit and matching backend/Website artifacts. Run broad required suites once on that candidate; subsequent reruns follow actual changes.
 - [ ] Run one integrated native author journey: create site content, insert patterns and representative blocks, edit/nest/move, switch templates, customize, save/reopen, recover, publish, inspect public output and recover from a deliberate conflict/session interruption.
 - [ ] Finish the all-block/all-pack screenshot matrix and verify every tracker acceptance has actual tests and reviewed captures. Verify the required tracker reconciliation gate detects missing inventory rows and unsupported Verified claims, and generated drift checks inspect fields rather than names alone. Keep source hashes and affected shared dependencies in the evidence index.

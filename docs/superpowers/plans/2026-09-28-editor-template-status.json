@@ -7,7 +7,7 @@
     "In progress": 20
   },
   "goal": "Complete block editor and template delivery plus all demonstrated blockers; defer unrelated whole-app audit campaigns.",
-  "currentTask": "Task4 E07: actual target4870 drafts migrated with exact originals retained;29/29 target authoring records canonical,86 prior revisions exact. Native desktop/phone rendering, settings repair and private Website autosave/recovery verified. Source4860 remains74canonical/42legacy (7published/35trash); next preserve/migrate source corpus with deliberate hidden-text decisions, then history/reference reconciliation and legacy retirement. Full goal incomplete;117Verified/20In progress unchanged.",
+  "currentTask": "Task4 E07: target29/29canonical; source79canonical/37legacy after five published pages migrated and republished with exact originals/history/URLs/publication metadata. Two active raw-text posts and35trash remain; next deliberate hidden-text review, history/reference/restore reconciliation, then live legacy retirement. Full goal incomplete;117Verified/20In progress unchanged.",
   "tasks": [
     {
       "id": 1,
@@ -100,11 +100,11 @@
     },
     {
       "id": "E07",
-      "status": "Partial acceptance: nested-list conversion/recovery/public rendering, prose-flow spacing and explicit text/HTML import accepted. Complete captured source42/42 documents +119/119 legacy revisions and target2/2 +21/21 now produce candidates. Native HTML review/acknowledgement/reset/conversion/reload/desktop-phone semantics/exact original recovery and installed refusal pass on owned copy, cleaned. Current installed dependency/reference receipts, actual migrations and active legacy retirement remain open.",
+      "status": "Partial acceptance: nested lists, prose flow, explicit text/HTML imports, two actual target drafts and five actual source published pages migrated with exact original snapshots and preservation receipts. Target29/29canonical; source79canonical/37legacy (2active published raw-text/35trash). Native/public desktop-phone semantics accepted; prior target86/source385 revisions preserved during respective batches. History/reference/restore reconciliation and active legacy retirement remain open.",
       "classification": "missing evidence",
       "initialFinding": "One-content-model migration and legacy retirement remain incomplete.",
       "closureBoundary": "Complete lossless conversion/recovery for actual retained content, source snapshots and installed-site receipts; then remove active legacy editor/renderer/schema dispatch as specified. Keep historical recovery data and a deliberate import converter. Do not delete old fields before proving preservation or claim migration complete while silently relying on legacy rendering.",
-      "nextCheck": "Target active-authoring batch complete with originals retained. Continue source seven published/35 trash records; explicitly decide previously hidden raw-text display, preserve history and references, then retire live legacy dispatch after full coverage. Latest target installed manifest: output/target-autosave-parity-20261005/target-source-installed.json; source: output/html-import-20261005/deployment-source-final.json.",
+      "nextCheck": "Review two published raw-text source posts and explicitly decide previously hidden body display. Preserve35trash and history/reference/restore behavior before retiring live legacy dispatch. Latest source deployment: output/html-import-20261005/deployment-source-final.json; target: output/target-autosave-parity-20261005/target-source-installed.json.",
       "deliveryTask": 4,
       "triagedAt": "2026-09-29",
       "triageEvidence": "ConvexPress-Admin/audits/2026-09-04/delivery-blocker-triage-20260929.md",
@@ -121,7 +121,11 @@
         "output/html-import-20261005/history-review.json",
         "ConvexPress-Admin/audits/2026-09-04/migration-installed-inventory-20261005.md",
         "ConvexPress-Admin/audits/2026-09-04/target-draft-migration-20261005.md",
-        "output/target-draft-migration-20261005/installed-proof.json"
+        "output/target-draft-migration-20261005/installed-proof.json",
+        "ConvexPress-Admin/audits/2026-09-04/source-page-migration-20261005.md",
+        "output/source-page-migration-20261005/installed-proof.json",
+        "output/source-page-migration-20261005/render-comparison.json",
+        "output/source-page-migration-20261005/cleanup.json"
       ]
     },
     {
@@ -4511,7 +4515,7 @@
   "coordination": {
     "folder": "/Users/worsin/Development/ConvexPress/Opus Audits/",
     "authority": "Codex leads; Claude audits are advisory and independently verified",
-    "lastAudit": "2026-09-29T1220-audit-25-customizer-denial-and-qualifiers.md",
+    "lastAudit": "2026-10-05T1510-audit-33-on-track-e07-migration.md",
     "pendingAdvisory": {
       "F19": "Accepted shared public document href contract. Historical encoded-slug fixture reproduced discrepancy; ordinary authoring slugifies safely. Legacy menu root/prefix behavior and membership aliases preserved. See locale-destinations-20260928.md.",
       "F20": "Source-verified enterprise commerce backfill truncation recorded in current-acceptance.md deferred register. No live reproduction or repair; promote only if catalog/customer-commerce delivery demonstrates a dependency.",
@@ -4538,7 +4542,8 @@
     "audit19": "Read/responded. F26 prerequisite visibility useful; exact owner-only/exhaustive claim not established. No acceptance on missing model/provider proof. Corrected core/reviews/E56. Actual signed-in target Clerk provider/provisioning failure now recorded under E18; Recently Viewed remains open. Forms six next, F21 and Tasks4\u20138 retained.",
     "audit21": "Read/responded. Snapshot predates64feddce116/21; E60 auth hydration distinct from E59 confirmation. Narrow public-read lens retained. Targeted notification templates suppressed before customer creation; final async queue proof required. F21/Tasks4\u20138/E18/E22/E28 remain open.",
     "audit22": "Read/responded: F28 clarified first-of115 shared test-location convention, not isolated Heading failure. Central receipt317tests/1148cases and live117Verified/137row gate pass. E22 stays open for screenshot provenance/final evidence; new E62 migration tooling remains Task4. Audit counts are historical snapshots, not guaranteed lower bounds; row ratio is not full delivery percentage. RSVP human CAPTCHA and cleanup pending.",
-    "audit25": "Read/responded: authority workflow advanced without backend changes; customer fully cleaned. Actual parent revocation/recovery now accepted; newly demonstrated E69 banner mismatch source-fixed, refreshed runtime pending alongside E68. No new broad scope; Codex retains decision authority."
+    "audit25": "Read/responded: authority workflow advanced without backend changes; customer fully cleaned. Actual parent revocation/recovery now accepted; newly demonstrated E69 banner mismatch source-fixed, refreshed runtime pending alongside E68. No new broad scope; Codex retains decision authority.",
+    "audit33": "Accepted E07 status parity and Website-before-backend nested-list rollout requirement. Direct HTML converter probe preserves _blank and refuses unsupported target. D3 adapted/deferred pending bounded reproduction without authoring reload; D5/O3/O5 deferred, D4 remains rejected under E39, O4 informational. Source now79canonical/37legacy, five published pages preserved and republished; continue two raw-text posts without waiting for audit."
   },
   "sessionBaseCommit": "9824d9605e50c4b0ebd711c13715b506f8ef5bd3"
 }
