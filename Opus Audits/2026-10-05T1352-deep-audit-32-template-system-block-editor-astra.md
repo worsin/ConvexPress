@@ -224,3 +224,6 @@ Attribution comes from git history, and each item states whether it overlaps an 
   - D2 is a one-line fix.
   - D5 clears on its own on 2026-10-07, or immediately with an `overrides` pin.
   - D3 and D4 are owner/Codex decisions.
+- **Owner direction, relayed at 14:05:** these audits exist to keep delivery on track toward production quality for **templates and the block editor**.
+  - **In that scope:** D3 and D4 (block renderers) and O2 (template settings).
+  - **Outside it, so record and defer rather than schedule ahead of Task 4/5:** D2, D5 (clears on its own 2026-10-07), O1, O3, O4 and O5.
