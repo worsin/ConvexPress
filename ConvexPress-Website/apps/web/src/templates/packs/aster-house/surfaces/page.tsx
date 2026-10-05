@@ -1,4 +1,3 @@
-import { legacyPageOpensWithHero } from "@/lib/blog/page-opening";
 import { PublicCanonicalBody } from "@/templates/sdk/block-public/PublicCanonicalBody";
 /**
  * Aster · page — a page from the Pages system. Variants map to measure:
@@ -12,9 +11,6 @@ import { PublicCanonicalBody } from "@/templates/sdk/block-public/PublicCanonica
 import { Link } from "@tanstack/react-router";
 import type { ReactNode } from "react";
 
-import { BlockContentRenderer } from "@/components/blog/BlockContentRenderer";
-import { BlockListRenderer } from "@/components/blocks/BlockListRenderer";
-import { pageSectionsToBlocks } from "@/lib/blocks/page-sections";
 import type { PageDetail } from "@/lib/blog/types";
 import { cn } from "@/lib/utils";
 import type { PageSurfaceData } from "@/templates/packs/core/surfaces/page";
@@ -113,20 +109,13 @@ function Body({ page }: { page: PageDetail }) {
           <img src={page.featuredImageUrl} alt={page.featuredImageAlt ?? page.title} className="aspect-[3/2] w-full object-cover" loading="eager" />
         </figure>
       ) : null}
-      {page.blocksVersion === 2
-        ? <PublicCanonicalBody documentId={page._id} renderLayout={layout} />
-        : layout(<Blocks page={page} />, legacyPageOpensWithHero(page))}
+      <PublicCanonicalBody documentId={page._id} renderLayout={layout} />
     </article>
   );
 }
 
 export function Blocks({ page }: { page: PageDetail }) {
-  if (page.blocksVersion === 2) return <PublicCanonicalBody documentId={page._id} />;
-  if (page.contentMode === "blocks") {
-    return <BlockListRenderer blocks={page.blocks && page.blocks.length > 0 ? page.blocks : pageSectionsToBlocks(page.pageSections)} />;
-  }
-  if (page.content) return <BlockContentRenderer content={page.content} />;
-  return <p className="py-8 text-center text-sm text-muted-foreground">This page has no content yet.</p>;
+  return <PublicCanonicalBody documentId={page._id} />;
 }
 
 function ChildPages({ pages }: { pages: NonNullable<PageDetail["children"]> }) {

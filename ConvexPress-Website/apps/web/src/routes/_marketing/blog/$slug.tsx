@@ -9,10 +9,7 @@ import { createFileRoute, notFound } from "@tanstack/react-router";
 import { useQuery as useTanStackQuery } from "@tanstack/react-query";
 import { useQuery } from "convex/react";
 import { useEffect, useState } from "react";
-import {
-	hasStructuredContent,
-	type StructuredContentProps,
-} from "@/components/blog/StructuredContent";
+
 import type { RestrictedTeaserMode } from "@/components/membership/RestrictedContent";
 import { SeoHead } from "@/components/seo/SeoHead";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -20,13 +17,11 @@ import { usePageOverrides } from "@/contexts/PageOverridesContext";
 import { estimateReadingTime } from "@/lib/blog/renderContent";
 import type {
 	AuthorData,
-	BlockDocument,
 	PostCard as PostCardType,
 	PostCategory,
 	PostDetail,
 	PostTag,
 } from "@/lib/blog/types";
-import { parseTipTapDocument } from "@/lib/schemas/content";
 import { slugParamsSchema } from "@/lib/schemas/routeParams";
 import type { PostSeoData, SeoSettings } from "@/lib/seo/resolve";
 import { buildSeoHead, siteTitled } from "@/lib/seo/head";
@@ -58,7 +53,7 @@ export const Route = createFileRoute("/_marketing/blog/$slug")({
 		const canonical = await loadAnonymousCanonical(post, deps.request);
 		// Metadata and canonical policy are separate reads. Do not return a
 		// successful page if publication/access was revoked between them.
-		if (post.blocksVersion === 2 && canonical === null) throw notFound();
+		if (canonical === null) throw notFound();
 
 		// Prefetch the membership access decision so SSR renders the correct
 		// gated view without a client-side flash. Safe to skip when the post is
@@ -255,10 +250,6 @@ function SinglePost() {
 	// Use verified post content when password-protected, otherwise use rawPost
 	const resolvedPostData = verifiedPost ?? rawPost;
 
-	// Parse block content using Zod validation
-	const blockContent = resolvedPostData.content
-		? (parseTipTapDocument(resolvedPostData.content) as BlockDocument | null)
-		: null;
 	// Map taxonomies to typed arrays
 	const categories: PostCategory[] = (taxonomies?.categories ?? []).map(
 		(cat: NonNullable<typeof taxonomies>["categories"][number]) => ({
@@ -282,7 +273,7 @@ function SinglePost() {
 		title: resolvedPostData.title,
 		slug: resolvedPostData.slug,
 		excerpt: resolvedPostData.excerpt,
-			content: blockContent,
+			content: null,
 			contentMode:
 				((resolvedPostData as { contentMode?: PostDetail["contentMode"] }).contentMode ??
 					"article"),
@@ -441,15 +432,6 @@ function SinglePost() {
 					userState: isSignedIn ? "logged_in_non_member" : "logged_out",
 				}
 			: null;
-	// AI structured content (hero / topics / summary) wins over TipTap when present.
-	const structuredProps: StructuredContentProps = {
-		hero: resolvedPostData.hero,
-		topics: resolvedPostData.topics,
-		summary: resolvedPostData.summary,
-		sources: resolvedPostData.sources,
-		tableOfContents: resolvedPostData.tableOfContents,
-	};
-	const structured = hasStructuredContent(structuredProps) ? structuredProps : null;
 	return (
 		<>
 			{/* SEO Meta Tags + JSON-LD: emitted by the route so every template pack keeps them */}
@@ -466,7 +448,6 @@ function SinglePost() {
 					author: authorData,
 					relatedPosts,
 					shareUrl,
-					structured,
 					restricted,
 					comments: {
 						postId: post._id,

@@ -1,4 +1,3 @@
-import { legacyPageOpensWithHero } from "@/lib/blog/page-opening";
 import { PublicCanonicalBody } from "@/templates/sdk/block-public/PublicCanonicalBody";
 /**
  * Depot · page — a page laid out by measure.
@@ -10,10 +9,7 @@ import { PublicCanonicalBody } from "@/templates/sdk/block-public/PublicCanonica
  */
 import { Link } from "@tanstack/react-router";
 
-import { BlockContentRenderer } from "@/components/blog/BlockContentRenderer";
-import { BlockListRenderer } from "@/components/blocks/BlockListRenderer";
 import { PageBreadcrumbs } from "@/components/pages/PageBreadcrumbs";
-import { pageSectionsToBlocks } from "@/lib/blocks/page-sections";
 import type { PageDetail } from "@/lib/blog/types";
 import { cn } from "@/lib/utils";
 import type { PageSurfaceData } from "@/templates/packs/core/surfaces/page";
@@ -97,19 +93,10 @@ function PageBody({ page, title = true }: { page: PageDetail; title?: boolean })
           <img src={page.featuredImageUrl} alt={page.featuredImageAlt ?? page.title} className="aspect-video w-full object-cover" loading="eager" />
         </figure>
       )}
-      {title && page.blocksVersion !== 2 && !legacyPageOpensWithHero(page) && <h1 className="font-display text-2xl font-semibold tracking-tight text-foreground md:text-3xl">{page.title}</h1>}
-      {page.blocksVersion === 2 ? (
         <PublicCanonicalBody documentId={page._id} renderLayout={(body, hasHero) => <>
           {title && !hasHero && <h1 className="font-display text-2xl font-semibold tracking-tight text-foreground md:text-3xl">{page.title}</h1>}
           {body}
         </>} />
-      ) : page.contentMode === "blocks" ? (
-        <BlockListRenderer blocks={page.blocks && page.blocks.length > 0 ? page.blocks : pageSectionsToBlocks(page.pageSections)} />
-      ) : page.content ? (
-        <BlockContentRenderer content={page.content} />
-      ) : (
-        <p className="py-6 text-center text-[13px] text-muted-foreground">This page has no content yet.</p>
-      )}
     </article>
   );
 }

@@ -7,7 +7,7 @@
     "In progress": 20
   },
   "goal": "Complete block editor and template delivery plus all demonstrated blockers; defer unrelated whole-app audit campaigns.",
-  "currentTask": "Task4 E07: downgrade API/permit/native control retired on both installations. All196 historical sources converted;68 authorized previews and128 expected trash-parent refusals. References exact across145posts/522revisions. Source139,target109,workspace20 tests pass; native imports/download/reload/canonical undo and cleanup verified. Next active legacy editor/renderer dispatch retirement. Full goal active/incomplete;117Verified/20In progress unchanged.",
+  "currentTask": "Task4 E07: normal post/page edit routes now enter canonical authoring or deliberate import; all four packs and Website bootstrap no longer dispatch legacy bodies. 24 surface cases and 8 route cases pass; source post/target page conversion-save-reload and actual Website previews accepted, original snapshots exact. Existing public page/post SSR and hydration accepted on rebuilt Website. Owned fixtures removed; original145posts/522revisions and appearance/mail exact. Remaining: canonical-first creation and other active legacy writers/schema consumers, then final integrated delivery. Full goal active/incomplete;117Verified/20In progress unchanged.",
   "tasks": [
     {
       "id": 1,
@@ -100,7 +100,7 @@
     },
     {
       "id": "E07",
-      "status": "Source116/116 and target29/29 canonical. Historical format/reference reconciliation complete within documented scope. Old downgrade API/permit/native control removed on both sites; exact downloads and saved/unsaved canonical import/undo native-verified. All original rows/appearance/mail exact after cleanup. Live legacy editor/renderer dispatch retirement remains open.",
+      "status": "Source116/116 and target29/29 canonical. Historical format/reference reconciliation complete within documented scope. Old downgrade API/permit/native control removed on both sites; exact downloads and saved/unsaved canonical import/undo native-verified. All original rows/appearance/mail exact after cleanup. Live legacy editor/renderer dispatch retirement remains open. October5 frontend dispatch: canonical-only normal edit routes and four-pack public surfaces accepted; see legacy-dispatch-retirement-20261005.md. Empty-draft creation still initializes v1 before canonical initialize; active legacy writer/schema retirement remains open. Do not close E07 from this frontend batch.",
       "classification": "missing evidence",
       "initialFinding": "One-content-model migration and legacy retirement remain incomplete.",
       "closureBoundary": "Complete lossless conversion/recovery for actual retained content, source snapshots and installed-site receipts; then remove active legacy editor/renderer/schema dispatch as specified. Keep historical recovery data and a deliberate import converter. Do not delete old fields before proving preservation or claim migration complete while silently relying on legacy rendering.",

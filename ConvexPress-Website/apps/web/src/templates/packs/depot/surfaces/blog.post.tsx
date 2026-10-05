@@ -7,10 +7,7 @@ import { PublicCanonicalBody } from "@/templates/sdk/block-public/PublicCanonica
  */
 import { Link } from "@tanstack/react-router";
 
-import { PostContent } from "@/components/blog/PostContent";
 import { PostFooter } from "@/components/blog/PostFooter";
-import { StructuredContent } from "@/components/blog/StructuredContent";
-import { BlockListRenderer } from "@/components/blocks/BlockListRenderer";
 import { CommentSection } from "@/components/comments/CommentSection";
 import type { BlogPostSurfaceData } from "@/templates/packs/core/surfaces/blog.post";
 import CoreRestricted from "@/templates/packs/core/surfaces/system.restricted";
@@ -20,7 +17,7 @@ import type { SurfaceProps } from "@/templates/sdk/types";
 import { Card, Container, Label, PostCard, Prose, SectionHeading, formatDate } from "../parts";
 
 export default function DepotBlogPost({ data }: SurfaceProps<BlogPostSurfaceData>) {
-  const { post, author, relatedPosts, shareUrl, structured, restricted, comments } = data;
+  const { post, author, relatedPosts, shareUrl, restricted, comments } = data;
   const date = formatDate(post.publishedAt);
 
   return (
@@ -59,14 +56,8 @@ export default function DepotBlogPost({ data }: SurfaceProps<BlogPostSurfaceData
 
         {restricted ? (
           <Surface name="system.restricted" data={restricted} fallback={CoreRestricted} />
-        ) : post.blocksVersion === 2 ? (
-          <PublicCanonicalBody documentId={post._id} />
-        ) : post.contentMode === "blocks" && post.blocks && post.blocks.length > 0 ? (
-          <BlockListRenderer blocks={post.blocks} />
-        ) : structured ? (
-          <StructuredContent hero={structured.hero} topics={structured.topics} summary={structured.summary} sources={structured.sources} tableOfContents={structured.tableOfContents} />
         ) : (
-          <PostContent content={post.content} />
+          <PublicCanonicalBody documentId={post._id} />
         )}
 
         <PostFooter tags={post.tags} shareUrl={shareUrl} shareTitle={post.title} previousPost={post.previousPost} nextPost={post.nextPost} />

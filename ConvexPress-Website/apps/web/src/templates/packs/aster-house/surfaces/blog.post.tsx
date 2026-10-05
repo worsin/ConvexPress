@@ -1,16 +1,12 @@
 import { PublicCanonicalBody } from "@/templates/sdk/block-public/PublicCanonicalBody";
 /**
  * Aster · blog.post — a single post in the reading measure. Display title,
- * small-caps meta, a 3:2 hero image, the body (blocks / structured / TipTap,
- * or the membership gate), tags and sharing, the author as a rule-separated
+ * small-caps meta, a 3:2 hero image, the canonical body (or the membership gate), tags and sharing, the author as a rule-separated
  * row, related posts three-up, and comments below a rule.
  */
 import { Link } from "@tanstack/react-router";
 
-import { PostContent } from "@/components/blog/PostContent";
 import { ShareButtons } from "@/components/blog/ShareButtons";
-import { StructuredContent } from "@/components/blog/StructuredContent";
-import { BlockListRenderer } from "@/components/blocks/BlockListRenderer";
 import { CommentSection } from "@/components/comments/CommentSection";
 import type { AuthorData } from "@/lib/blog/types";
 import type { BlogPostSurfaceData } from "@/templates/packs/core/surfaces/blog.post";
@@ -21,7 +17,7 @@ import type { SurfaceProps } from "@/templates/sdk/types";
 import { Container, PostCard, PostMetaLine, Prose, Rule, SmallCaps } from "../parts";
 
 export default function AsterBlogPost({ data }: SurfaceProps<BlogPostSurfaceData>) {
-  const { post, author, relatedPosts, shareUrl, structured, restricted, comments } = data;
+  const { post, author, relatedPosts, shareUrl, restricted, comments } = data;
 
   return (
     <Container as="article" data-slot="single-post" className="flex flex-col gap-14 py-6 md:gap-20 md:py-10">
@@ -52,14 +48,8 @@ export default function AsterBlogPost({ data }: SurfaceProps<BlogPostSurfaceData
       <Prose className="text-base leading-8 text-muted-foreground md:text-[17px]">
         {restricted ? (
           <Surface name="system.restricted" data={restricted} fallback={CoreRestricted} />
-        ) : post.blocksVersion === 2 ? (
-          <PublicCanonicalBody documentId={post._id} />
-        ) : post.contentMode === "blocks" && post.blocks && post.blocks.length > 0 ? (
-          <BlockListRenderer blocks={post.blocks} />
-        ) : structured ? (
-          <StructuredContent hero={structured.hero} topics={structured.topics} summary={structured.summary} sources={structured.sources} tableOfContents={structured.tableOfContents} />
         ) : (
-          <PostContent content={post.content} />
+          <PublicCanonicalBody documentId={post._id} />
         )}
       </Prose>
 

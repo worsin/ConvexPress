@@ -1,11 +1,7 @@
-import { legacyPageOpensWithHero } from "@/lib/blog/page-opening";
 import { PublicCanonicalBody } from "@/templates/sdk/block-public/PublicCanonicalBody";
 import { cn } from "@/lib/utils";
 import type { PageDetail } from "@/lib/blog/types";
-import { BlockListRenderer } from "@/components/blocks/BlockListRenderer";
-import { pageSectionsToBlocks } from "@/lib/blocks/page-sections";
 
-import { BlockContentRenderer } from "./BlockContentRenderer";
 
 interface PageContentProps {
   page: PageDetail;
@@ -33,33 +29,11 @@ export function PageContent({ page, className }: PageContentProps) {
         </figure>
       )}
 
-      {page.blocksVersion !== 2 && !legacyPageOpensWithHero(page) && (
-        <h1 className="text-lg font-bold leading-tight md:text-xl">{page.title}</h1>
-      )}
-
       {/* Content */}
-      {page.blocksVersion === 2 ? (
         <PublicCanonicalBody documentId={page._id} renderLayout={(body, hasHero) => <>
           {!hasHero && <h1 className="text-lg font-bold leading-tight md:text-xl">{page.title}</h1>}
           {body}
         </>} />
-      ) : page.contentMode === "blocks" ? (
-        <BlockListRenderer
-          blocks={
-            page.blocks && page.blocks.length > 0
-              ? page.blocks
-              : pageSectionsToBlocks(page.pageSections)
-          }
-        />
-      ) : page.content ? (
-        <BlockContentRenderer content={page.content} />
-      ) : (
-        <div className="py-8 text-center">
-          <p className="text-xs text-muted-foreground">
-            This page has no content yet.
-          </p>
-        </div>
-      )}
     </article>
   );
 }

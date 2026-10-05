@@ -27,9 +27,9 @@ A full source-test copy initially exposed target-specific behavior differences a
 
 Each site received a storage-inclusive backup and a separately preserved snapshot. Ten production/generation files changed per site, plus reviewed tests. The target's recovery helper lacked the source's content-event hook; its bounded removal was verified against that exact difference instead of overwriting the service.
 
-SOURCE: 1,626 manifest hashes; 108 extension files unchanged. Function inventory 2,413 → 2,412: only `recoverLegacy` removed, only `pageRevisions` signature narrowed, 2,411 signatures unchanged.
+SOURCE: 1,626 manifest hashes; 108 files under `convex/extensions/` unchanged, including tests (71 non-test files). Function inventory 2,413 → 2,412: only `recoverLegacy` removed, only `pageRevisions` signature narrowed, 2,411 signatures unchanged.
 
-TARGET: 1,620 manifest hashes; 86 extension files unchanged. Function inventory 2,378 → 2,377: only `recoverLegacy` removed, only `pageRevisions` signature narrowed, 2,376 signatures unchanged.
+TARGET: 1,620 manifest hashes; 86 files under `convex/extensions/` unchanged, including tests (55 non-test files). Function inventory 2,378 → 2,377: only `recoverLegacy` removed, only `pageRevisions` signature narrowed, 2,376 signatures unchanged.
 
 Both catalogs and pack definitions remain byte-identical to their respective prior installations. Consumer indexes returned to ready after 243 source / 68 target acknowledged operations; media indexes stayed ready without rebuilding. Final checks after fixture deletion show both indexes ready. A call to the removed endpoint on each owned canonical fixture failed, with exact post/history readback proving no writes. The public error is generic; absence is independently established by each installed function inventory.
 

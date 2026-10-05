@@ -52,58 +52,6 @@ const privateDraftRead = makeFunctionReference<"query", PrivateDraftIdentity, un
 const privateDraftSave = makeFunctionReference<"mutation", PrivateDraftIdentity & { expectedGeneration: number; baseRevision: number; draft: CanonicalDraft }, unknown>("canonicalDocuments/drafts:save");
 const privateDraftDiscard = makeFunctionReference<"mutation", PrivateDraftIdentity & { expectedGeneration: number }, unknown>("canonicalDocuments/drafts:discard");
 
-export function CanonicalEditorEntry({
-	postId,
-	canonical,
-	draft,
-	initialOpen = false,
-	children,
-}: {
-	postId: Id<"posts">;
-	canonical: boolean;
-	draft: boolean;
-	initialOpen?: boolean;
-	children: ReactNode;
-}) {
-	const [selected, setSelected] = useState(initialOpen);
-	if (canonical || selected)
-		return (
-			<div className="space-y-4">
-				{!canonical && (
-					<button
-						type="button"
-						className="min-h-11 rounded border px-4 text-sm"
-						onClick={() => setSelected(false)}
-					>
-						Back to existing editor
-					</button>
-				)}
-				<NativeCanonicalEditor postId={postId} />
-			</div>
-		);
-	return (
-		<>
-			{
-				<div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-card p-4">
-					<p className="text-sm text-muted-foreground">
-						{draft
-							? "Create blocks in an empty draft or review a supported conversion of existing content."
-							: "Review saved block versions, including versions preserved before returning to this editor."}
-					</p>
-					<button
-						type="button"
-						onClick={() => setSelected(true)}
-						className="min-h-11 rounded border px-4 text-sm"
-					>
-						{draft ? "Open block editor" : "Block revision history"}
-					</button>
-				</div>
-			}
-			{children}
-		</>
-	);
-}
-
 export function NativeCanonicalEditor({
 	postId,
 }: {
