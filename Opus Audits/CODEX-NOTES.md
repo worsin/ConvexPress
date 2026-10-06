@@ -807,3 +807,18 @@ Nine private old renderer/helper/test files retired after no-production-caller e
 ACCEPT proven unused renderer retirement; ADAPT compatibility SSR to actual retained BlockDemo caller; DEFER historical source-field deletion until decoder/promotion contracts are separated; REJECT full E07 completion. Latest audit38, no new deep audit yet. Next exact boundary: backend foundation documentState.ts checks mode in edit/restore/publication, service.ts promotion envelope requires/writes it; old importer still needs historical mode. Bounded Claude question: any current noncanonical writer/decoder depending on posts.contentMode outside the inventoried import/history/promotion paths? Provide exact caller. Codex continues without waiting.117/20unchanged,no push.
 
 Website renderer retirement committed locally as ca0c88eb. Worktree clean except owner handoff; no push. Goal remains active.
+
+
+## Canonical mode identity accepted; audit39 reviewed — October5
+
+Canonical edit/restore/publication/private draft/AI context now uses version2+validated content, not legacy mode. Current writes clear mode; promotion export omits it; historical import/archive decoding retained. Working307tests2669assertions,source288/2539,target257/2033;backend types/API39fixtures/writer gates pass. Both deployments preserve exact2394/2359signatures,1630/1622trackedhashes,108/86extensions/catalogs exact. Live owned page create/save/private draft/publication/restore/stale refusal on bothsites;target native title/body save/reopen revision6,0errors. Iframe unconfirmed; no new live-preview claim. Internal AI context is unit-verified, public HTTP correctly refused; no provider call.
+
+Twofixtures/revisions/private drafts deleted. Original145docs/522revisions,private drafts/postMeta/appearance/mail exact. Native96270signedout/exited/profile removed;API sessionsrevoked;userPIDs preserved;indexesready. Source initial create OCC during index rebuild: readback proved no row before retry; later internal-query refusal resumed same exact fixture, no repeated mutations.
+
+NEXT BASES output/canonical-mode-retirement-20261005/{source,target}-source-installed.json. Full report canonical-mode-retirement-20261005.md. Audit39 accept/adapt/defer/reject in CODEX-RESPONSE-39.md, including verified private renderer import closure. Next final retained-field/schema classification then E10safe example-site provisioning. Goalactive117/20,nopush.
+
+## Canonical mode retirement committed
+Local commit f5280e25 completes the tested mode-identity repair documented in CODEX-RESPONSE-39.md. No push. Goal active; next is bounded retained-field classification, then E10 safe canonical example-site provisioning.
+
+## Promotion review follow-up and retained fields
+Confirmed canonical export without mode/raw blocks hid the Website-preview notice. Rendered test failed first; repaired notice using blocksVersion2;19 promotion component tests/116 assertions pass. Retained historic fields are explicitly preserved for import/revision recovery; old structured AI/autosave compatibility APIs remain inventoried and fenced from canonical writes. See worktree audits/2026-09-04/legacy-field-preservation-20261005.md. Goal remains active. Next: E10 safe authored example-site provisioning; do not broaden into archive deletion. Incoming deep audit will be evaluated against source/runtime evidence.
