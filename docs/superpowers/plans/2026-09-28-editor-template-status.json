@@ -7,7 +7,7 @@
     "In progress": 20
   },
   "goal": "Complete block editor and template delivery plus all demonstrated blockers; defer unrelated whole-app audit campaigns.",
-  "currentTask": "Task6/E10: E74 mobile account visibility repaired across four packs; 24 behavior cases/102 assertions, types/build, live390px drawers/focus and four1280px homepages accepted. Core footer configured columns/title fallback and repeated authored article headings are next bounded site-polish work. Goal active117/20; no full-site completion claim.",
+  "currentTask": "Task6/E10: four authored example sites now have native representative edit/preview/save and bounded390px/1280px responsive proof. E74 mobile account visibility and E75 Core configured footer/title repaired and runtime verified; six redundant post body titles removed with exact revision preservation. Next remaining Task6 BlockDemo seed/starter-pattern coverage, then Task5/7/8 gates. Active117/20; final delivery remains open.",
   "tasks": [
     {
       "id": 1,
@@ -859,6 +859,17 @@
       "initialFinding": "All four mobile surfaces ignore published header.userMenu configuration and show disabled account links.",
       "closureBoundary": "Pass resolved settings through public/account callers; honor enabled and guestDisplay while preserving independent Depot cart.",
       "status": "24 rendered cases fail before/pass after; live four-pack390px drawers hide disabled links, preserve cart and return focus. Types/build and changed-file lint pass; full lint has two unrelated existing warnings.",
+      "evidence": [
+        "ConvexPress-Admin/audits/2026-09-04/example-responsive-20261005.md"
+      ]
+    },
+    {
+      "id": "E75",
+      "classification": "implemented and runtime verified",
+      "deliveryTask": 6,
+      "initialFinding": "Core footer ignores configured navColumns and loses site title when logo enabled but no logo exists.",
+      "closureBoundary": "Render assigned columns/headings, preserve first-column legacy fallback and link semantics, show title fallback without mutating settings.",
+      "status": "Six rendered regressions2pass/4fail before,6pass/14assertions after. Built Core390px/1280px shows title and four Explore links; footer Work navigation reaches correct project. Types/build/changed-file lint pass.",
       "evidence": [
         "ConvexPress-Admin/audits/2026-09-04/example-responsive-20261005.md"
       ]

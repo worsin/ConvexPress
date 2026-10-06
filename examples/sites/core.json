@@ -745,27 +745,6 @@
           },
           "children": [
             {
-              "id": "note-intro-heading",
-              "name": "core/heading",
-              "version": 2,
-              "attrs": {
-                "text": {
-                  "type": "doc",
-                  "content": [
-                    {
-                      "type": "paragraph",
-                      "content": [
-                        {
-                          "type": "text",
-                          "text": "Write the page before drawing the boxes"
-                        }
-                      ]
-                    }
-                  ]
-                }
-              }
-            },
-            {
               "id": "note-intro-copy-0",
               "name": "core/paragraph",
               "version": 2,

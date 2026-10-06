@@ -173,7 +173,7 @@ function FooterContent({ footerConfig, siteIdentity, siteTitle }: FooterContentP
               />
             </Link>
           )}
-          {!footerConfig.branding.showLogo && (
+          {(!footerConfig.branding.showLogo || !siteIdentity?.logoUrl) && (
             <Link to="/" className="text-sm font-semibold text-foreground no-underline">
               {siteTitle}
             </Link>
@@ -190,9 +190,15 @@ function FooterContent({ footerConfig, siteIdentity, siteTitle }: FooterContentP
       )}
 
       {/* Nav columns */}
-      {showNavColumns && (
-        <FooterNav />
-      )}
+      {showNavColumns && footerConfig.navColumns.columns.map((column, index) => (
+        <FooterNav
+          key={`${column.menuSource}-${index}`}
+          location={column.menuSource === "footer-1" || column.menuSource === "footer-2" || column.menuSource === "footer-3" ? column.menuSource : "footer"}
+          heading={column.heading}
+          column
+          fallback={index === 0}
+        />
+      ))}
 
       {/* Newsletter section */}
       {showNewsletter && (

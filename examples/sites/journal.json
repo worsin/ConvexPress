@@ -537,27 +537,6 @@
           },
           "children": [
             {
-              "id": "bench-intro-heading",
-              "name": "core/heading",
-              "version": 2,
-              "attrs": {
-                "text": {
-                  "type": "doc",
-                  "content": [
-                    {
-                      "type": "paragraph",
-                      "content": [
-                        {
-                          "type": "text",
-                          "text": "The public bench"
-                        }
-                      ]
-                    }
-                  ]
-                }
-              }
-            },
-            {
               "id": "bench-intro-copy-0",
               "name": "core/paragraph",
               "version": 2,
@@ -785,27 +764,6 @@
           },
           "children": [
             {
-              "id": "repair-intro-heading",
-              "name": "core/heading",
-              "version": 2,
-              "attrs": {
-                "text": {
-                  "type": "doc",
-                  "content": [
-                    {
-                      "type": "paragraph",
-                      "content": [
-                        {
-                          "type": "text",
-                          "text": "Repair begins with attention"
-                        }
-                      ]
-                    }
-                  ]
-                }
-              }
-            },
-            {
               "id": "repair-intro-copy-0",
               "name": "core/paragraph",
               "version": 2,
@@ -976,27 +934,6 @@
             "align": "start"
           },
           "children": [
-            {
-              "id": "opening-intro-heading",
-              "name": "core/heading",
-              "version": 2,
-              "attrs": {
-                "text": {
-                  "type": "doc",
-                  "content": [
-                    {
-                      "type": "paragraph",
-                      "content": [
-                        {
-                          "type": "text",
-                          "text": "Notice what remains"
-                        }
-                      ]
-                    }
-                  ]
-                }
-              }
-            },
             {
               "id": "opening-intro-copy-0",
               "name": "core/paragraph",
