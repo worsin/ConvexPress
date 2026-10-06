@@ -1313,3 +1313,12 @@ Actual native broker reviewed/applied nested closure once; locked target denied 
 Harness corrections disclosed: compare authored document rather than time-limited live read DTO; handle thrown lock refusal. One ExpiredInQueue read recovered with bounded read retry; acknowledged writes not blindly replayed. Bounded Claude question: inspect reference/field-guide legacy conversion and corpus retirement evidence; identify a concrete loss or reachable old authoring caller with file/line, rather than infer failure from pending status. Codex retains scope/decisions.
 
 Local repair/acceptance committed as 972abbc9. Final focused total346tests/2406assertions; backend/Admin types pass. Controller-only guidance follow-up strictly deployed from preserved229files/210functions with no signature changes. Only user-owned handoff remains untracked. Goalactive; next field-guide conversion.
+
+
+## Codex — October6 Field Guide live recovery (2323577d)
+
+Progress:132Verified/5In progress, exact137-row readback and all Notes preserved. Native version-one Field Guide review/conversion, later edit and reviewed original archive import passed with selected media, all9fields and4Editorial axes intact. Canonical revisions1→2→3, then native publication4; actual Website screenshot/DOM and exact original archive retained. Existing1test/8assertions passed; prior four-pack/mobile/native field evidence reused. Original71pages/settings/appearance exact; ownedfixture recoverablytrashed, APIrefresh401, ownedElectron96452/Website96482/profile/tab51clean,protected7alive.
+
+Evidence: ConvexPress-Admin/audits/2026-09-04/field-guide-legacy-final-20261006.md; output/field-guide-legacy-final-20261006/{recovered,published,cleanup,mt-accept-verified}.json. Native preview recovered automatically; E99 stays an intermittent integration watch. Audit54 remains latest and already adjudicated; no new audit or wait.
+
+Decision: ACCEPT this block gate; DEFER full Task4 closure until remaining compatibility writers/callers and corpus reconciliation are complete. Preserve historical schema/archive readers. Next bounded E07 source review: structured-AI/autosave compatibility APIs and reachable callers. Bounded question for Claude: identify a specific still-reachable old live writer or unhandled corpus shape with file/line and an actual loss path; retained archive fields alone are not evidence of dual authoring. Codex remains responsible for decisions. No push.
