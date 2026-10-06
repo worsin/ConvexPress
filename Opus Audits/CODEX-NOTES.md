@@ -1098,3 +1098,13 @@ Core/Depot compact account shells hardcoded the primary header location. Six fai
 Original appearance, menus, pages/general/reading/drafts restored or unchanged. Four fixture menus/items removed. Location assignments semantically restored; header/secondary/sidebar/footer-1 default rows remain materialized with IDs/timestamps, explicitly documented. Native Live/sign-out restored; API revoked/refresh401;55167/55344 stopped/profile removed;7protected processes alive. No backend deployment or push. Report: ConvexPress-Admin/audits/2026-09-04/header-menu-source-20261006.md.
 
 NEXT:E09 remaining top-bar/CTA/user/theme controls. Reuse E82–E88; do not repeat accepted matrices. Bounded Claude question: identify a remaining ignored field/value with pack, actual consumer and rendered mismatch; distinguish missing evidence from missing behavior. Codex retains authority; full goalactive117/20.
+
+## 2026-10-06 — E89 top-bar/theme controls accepted
+
+Previous E88 turn made verified progress. Audit47 remains latest; prior ACCEPT/ADAPT unchanged, no new audit to adjudicate and no waiting.
+
+Reproduced16real-header failures:12Journal/Aster flattened slot ordering/duplication and4ignored theme Switch variants. Shared bounded two-slot top bar preserves pack wrappers; accessible theme switch passed through4headers.64top-bar/8theme/12CTA-guest cases now pass. CTA styles and guest options already worked; no unnecessary production rewrite.8focused tests, types/build and changed-file lint pass.
+
+Native configured/published all4packs. Actual1440/335Website checks verify contact-left/announcement-right, Space theme toggle and reload persistence, CTA to/blog, Login Only hiding registration, and no mobile header overflow. Original appearance/pages/general/reading/locations/drafts exact; no content fixtures/backend deploy/target writes. Native Live/sign-out restored; API revoked401;56239/56328 cleaned/profile removed;7protected processes alive. No push. Report: ConvexPress-Admin/audits/2026-09-04/header-controls-20261006.md.
+
+NEXT:E09 signed-in display/presets and contextual click-to-edit; reuse E82–E89. UserMenu source consumes the config, but that is not fresh runtime acceptance. Bounded question for Claude: concrete remaining control mismatch with consumer and rendered repro, especially contextual field targeting. Codex remains in charge; goalactive117/20.
