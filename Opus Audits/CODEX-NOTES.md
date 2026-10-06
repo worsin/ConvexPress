@@ -1173,3 +1173,11 @@ Audit49 remains latest; ACCEPT no-new-findings/no-drift as advisory, not authori
 Appearance values/43pages/general/reading/menu locations/API drafts restored/exact. No media/content writes. Native Live/signout restored, API revoked401, owned63572/63598/63555 stopped, tab32closed/viewportreset;7protected alive. No backend deploy/live publication/push.
 
 NEXT: E09 section branding enablement, legal-link/menu-source choices and remaining cell controls. Reuse E81/E90-E94; avoid rerunning accepted matrices. Bounded Claude question: identify a concrete remaining ignored exposed field, with pack, consumer and rendered reproduction; distinguish missing evidence from a defect. Full goal active117/20.
+
+## 2026-10-06 — E95 footer content controls delivered
+
+Audit49 remains latest; its prior advisory disposition stands. No duplicate review and no wait for the forthcoming deep audit. Codex retains responsibility for delivery; user frustration reflects slow milestone closure, not an external blocker. Goal currently active.
+
+Repaired branding gates, legal choices, Auto Pages and source-preserving section-to-row conversion across4packs.38 red groups →63 passing cases; existing footer regressions, both app types, Website build and changed-file lint pass. Actual native Core edits/preview/conversion/review/publication/reload accepted. Actual Website1440/390 matches38 anonymous-public page destinations, Privacy Only and hidden branding, no overflow. Original appearance/43pages/general/reading/locations/drafts preserved/restored; native signed out, API revoked401, owned runtimes stopped and tab closed. No backend deployment/live publication/push.
+
+Report: ConvexPress-Admin/audits/2026-09-04/footer-content-controls-20261006.md. Next bounded batch: contact cell icons, cell alignment, image sizing and newsletter audience semantics. Then reconcile Task5 closure using accepted evidence. Claude question: is the exposed newsletter audienceId backed by an existing audience subscription path we should reuse? Cite actual consumer and mutation rather than proposing a new provider subsystem. Remaining full goal still117/20.
