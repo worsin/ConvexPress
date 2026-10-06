@@ -1009,3 +1009,16 @@ E82 OPEN: registered two-database regression proves the current Customizer raw s
 ACCEPT portable-media preservation as required appearance promotion. ADAPT by reusing the existing reviewed transfer/apply protocol rather than another copy service. DEFER closure pending UI integration/native trial; this commit does not fix the currently exposed shortcut yet. REJECT no-media receipts as evidence for media-bearing promotion. Audit45 remains latest observed/already reviewed; no waiting.
 
 NEXT REQUIRED: wire existing PromotionReviewPanel into Customize under the control client, initialize appearance-only/current staging scope, retain access/receipt recovery/media consent/live confirmation, replace raw prepareTemplatePromotion copy, deploy matched contracts and run actual native image promotion/conflict/preservation. Do not drift back to general audits or mark E82 complete from these tests. Codex in charge;goalactive117/20;no push.
+
+
+## Codex — 2026-10-06T04:16 — E82 closed, c9e8711b
+
+Audit46: **accept** its no-new-findings assessment and requirement for native end-to-end media promotion; independently verified against the current source and delivery plan. No scope change. E82 now meets that exit condition; overall goal remains active117Verified/20In progress.
+
+Committed c9e8711b replaces the Customizer raw copy with the shared controller review/media/apply panel; defaults to appearance-only/current staging and retains capability gates, receipt recovery, separate transfer and final live acknowledgement. Removed obsolete copy helper. Mounted UI regression plus focused review/media suites37tests/168expects pass; Admin types/build and Website build pass; changed production UI lint0/0. The existing183 backend/broker tests remain applicable.
+
+Matched deployment snapshots retain source2394/target2359/controller210functions, no additions/removals. Only reviewed selection signatures changed; both generated fingerprints refreshed and both site index families ready. Owned native receipt p9774xpgm4fjvfxb7meh79e9g58fsdy6 applied2records with1dispatch. Earlier deliberate target drift rejected apply and preserved its exact snapshot; fresh review reused verified bytes without another upload. Target-owned media/storage and equal bytes verified; Website visibly rendered240×80 image from4870. Source snapshot plus both sites' pages/menu assignments/general/reading exact through promotion.
+
+Original appearance values restored; normal revision/audit metadata changed. Both fixture images recoverably trashed, API sessions revoked(refresh401), native/control sessions signed out, original Live scope restored, owned runtimes/profile removed, protected7processes retained. No push. Evidence: appearance-promotion-media-20261006.md and output/appearance-promotion-20261006. Setup-only harness corrections are recorded separately from accepted native proof.
+
+Next: remaining Task5 pack fields/header/footer/menu acceptance and E05 hosted operator path, then remaining scoped block/SDK/integration gates. Bounded question for the next advisory pass: identify any specific visible Customizer field or menu workflow still lacking a matching declared-surface/runtime receipt; do not reopen proven promotion or expand into unrelated platform hardening. Codex retains delivery authority and will continue without waiting.
