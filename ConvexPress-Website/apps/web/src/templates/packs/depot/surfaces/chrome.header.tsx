@@ -17,10 +17,10 @@ import { useStickyHeaderOffset } from "@/hooks/layout/useStickyHeaderOffset";
  */
 import { Popover as PopoverPrimitive } from "@base-ui/react/popover";
 import { Link } from "@tanstack/react-router";
-import { ChevronDown, Heart, Mail, Menu, Phone, ShoppingCart, User } from "lucide-react";
+import { ChevronDown, Heart, Menu, ShoppingCart, User } from "lucide-react";
 import { useState } from "react";
 
-import { SocialLinks } from "@/components/layout/SocialLinks";
+import { HeaderTopBar } from "@/components/layout/HeaderTopBar";
 import { ThemeToggle } from "@/components/layout/ThemeToggle";
 import { UserMenu } from "@/components/layout/UserMenu";
 import { WebsiteNotificationBell } from "@/components/layout/WebsiteNotificationBell";
@@ -155,7 +155,7 @@ function HeaderCluster({ headerConfig, className }: { headerConfig: HeaderConfig
         </Link>
       )}
 
-      {showDarkMode && <ThemeToggle />}
+      {showDarkMode && <ThemeToggle variant={headerConfig.darkModeToggle.variant} />}
 
       {showUserMenu && isLoaded && (
         <>
@@ -291,38 +291,7 @@ function AllDepartments({ items }: { items: ResolvedMenuItem[] }) {
 function TopBar({ config }: { config: HeaderConfig["topBar"] }) {
   return (
     <div className="border-b border-border bg-muted/50 text-xs text-muted-foreground">
-      <Container className="flex min-w-0 items-center justify-between gap-3 py-1.5">
-        <div className="min-w-0 flex-1">
-          <TopBarContent type={config.leftContent} config={config} />
-        </div>
-        <div className="flex shrink-0 justify-end">
-          <TopBarContent type={config.rightContent} config={config} />
-        </div>
-      </Container>
+      <Container><HeaderTopBar config={config} /></Container>
     </div>
   );
-}
-
-function TopBarContent({ type, config }: { type: HeaderConfig["topBar"]["leftContent"]; config: HeaderConfig["topBar"] }) {
-  if (type === "contact") {
-    return (
-      <div className="flex min-w-0 items-center gap-3 md:gap-4">
-        {config.email && (
-          <a href={`mailto:${config.email}`} className="flex shrink-0 items-center gap-1.5 whitespace-nowrap transition-colors hover:text-foreground">
-            <Mail className="size-3" aria-hidden="true" />
-            <span>{config.email}</span>
-          </a>
-        )}
-        {config.phone && (
-          <a href={`tel:${config.phone}`} className="hidden shrink-0 items-center gap-1.5 whitespace-nowrap transition-colors hover:text-foreground md:flex">
-            <Phone className="size-3" aria-hidden="true" />
-            <span>{config.phone}</span>
-          </a>
-        )}
-      </div>
-    );
-  }
-  if (type === "announcement" && config.announcementText) return <p className="min-w-0 truncate font-medium text-foreground">{config.announcementText}</p>;
-  if (type === "social") return <SocialLinks iconSize="sm" />;
-  return <div />;
 }

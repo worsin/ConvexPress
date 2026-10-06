@@ -19,7 +19,7 @@ import { ChevronDown, Menu, ShoppingBag, UserRound } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { NavDropdown } from "@/components/layout/NavDropdown";
-import { SocialLinks } from "@/components/layout/SocialLinks";
+import { HeaderTopBar } from "@/components/layout/HeaderTopBar";
 import { ThemeToggle } from "@/components/layout/ThemeToggle";
 import { UserMenu } from "@/components/layout/UserMenu";
 import { WebsiteNotificationBell } from "@/components/layout/WebsiteNotificationBell";
@@ -86,7 +86,7 @@ export default function AsterChromeHeader({ data }: SurfaceProps<HeaderSurfaceDa
               {headerConfig.cta.label}
             </Link>
           ) : null}
-          {headerConfig.darkModeToggle.enabled ? <ThemeToggle /> : null}
+          {headerConfig.darkModeToggle.enabled ? <ThemeToggle variant={headerConfig.darkModeToggle.variant} /> : null}
           <AccountCluster userMenu={headerConfig.userMenu} />
           <CartButton />
         </div>);
@@ -157,26 +157,10 @@ function Wordmark({ siteIdentity, logo }: { siteIdentity: SiteIdentity | undefin
 /* ───────────────────────── announcement row ───────────────────────── */
 
 function TopBar({ config }: { config: HeaderConfig["topBar"] }) {
-  const parts = [config.leftContent, config.rightContent];
-  const announcement = parts.includes("announcement") && config.announcementText ? config.announcementText : null;
-  const contact = parts.includes("contact") ? [config.email, config.phone].filter(Boolean) : [];
-  const social = parts.includes("social");
-  if (!announcement && contact.length === 0 && !social) return null;
   return (
     <div className="border-b border-border">
-      <Container className="flex min-h-8 flex-wrap items-center justify-center gap-x-5 gap-y-1 py-1 text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
-        {announcement ? <p className="truncate">{announcement}</p> : null}
-        {config.email && contact.includes(config.email) ? (
-          <a href={`mailto:${config.email}`} className="normal-case tracking-normal transition-colors hover:text-foreground">
-            {config.email}
-          </a>
-        ) : null}
-        {config.phone && contact.includes(config.phone) ? (
-          <a href={`tel:${config.phone}`} className="normal-case tracking-normal transition-colors hover:text-foreground">
-            {config.phone}
-          </a>
-        ) : null}
-        {social ? <SocialLinks iconSize="sm" /> : null}
+      <Container>
+        <HeaderTopBar config={config} icons={false} className="min-h-8 text-[11px] uppercase tracking-[0.18em] text-muted-foreground" />
       </Container>
     </div>
   );

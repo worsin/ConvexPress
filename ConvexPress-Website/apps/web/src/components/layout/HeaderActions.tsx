@@ -83,7 +83,7 @@ export function HeaderActions({ className, headerConfig }: HeaderActionsProps) {
       )}
 
       {/* Theme toggle */}
-      {showDarkMode && <ThemeToggle />}
+      {showDarkMode && <ThemeToggle variant={headerConfig?.darkModeToggle?.variant} />}
 
       {/* User menu or login link */}
       {showUserMenu && isLoaded && (

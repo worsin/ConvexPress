@@ -1,6 +1,6 @@
 import { HeaderSearchInline, HeaderSearchExpansion } from "@/components/layout/HeaderSearch";
 import { useStickyHeaderOffset } from "@/hooks/layout/useStickyHeaderOffset";
-import { Mail, Menu, Phone } from "lucide-react";
+import { Menu } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { useLayoutShell } from "@/hooks/layout/useLayoutShell";
@@ -14,7 +14,7 @@ import { DesktopNav } from "./DesktopNav";
 import { HeaderActions } from "./HeaderActions";
 import { SiteBrand } from "./SiteBrand";
 import { HeaderMainRow } from "./HeaderMainRow";
-import { SocialLinks } from "./SocialLinks";
+import { HeaderTopBar } from "./HeaderTopBar";
 
 interface SiteHeaderProps {
   siteIdentity: SiteIdentity | undefined;
@@ -122,55 +122,7 @@ interface TopBarProps {
 function TopBar({ config }: TopBarProps) {
   return (
     <div className="border-b border-border bg-muted/50 text-xs text-muted-foreground">
-      <div className="mx-auto flex min-w-0 items-center justify-between gap-3 px-4 py-1.5 md:px-6 lg:px-8">
-        <div className="min-w-0 flex-1">
-          <TopBarContent type={config.leftContent} config={config} />
-        </div>
-        <div className="flex shrink-0 justify-end">
-          <TopBarContent type={config.rightContent} config={config} />
-        </div>
-      </div>
+      <HeaderTopBar config={config} className="mx-auto px-4 md:px-6 lg:px-8" />
     </div>
   );
-}
-
-interface TopBarContentProps {
-  type: HeaderConfig["topBar"]["leftContent"];
-  config: HeaderConfig["topBar"];
-}
-
-function TopBarContent({ type, config }: TopBarContentProps) {
-  if (type === "none") return <div />;
-
-  if (type === "contact") {
-    return (
-      <div className="flex min-w-0 items-center justify-end gap-3 md:gap-4">
-        {config.email && (
-          <a href={`mailto:${config.email}`} className="flex shrink-0 items-center gap-1.5 whitespace-nowrap transition-colors hover:text-foreground">
-            <Mail className="size-3" aria-hidden="true" />
-            <span>{config.email}</span>
-          </a>
-        )}
-        {config.phone && (
-          <a href={`tel:${config.phone}`} className="hidden shrink-0 items-center gap-1.5 whitespace-nowrap transition-colors hover:text-foreground md:flex">
-            <Phone className="size-3" aria-hidden="true" />
-            <span>{config.phone}</span>
-          </a>
-        )}
-        {!config.email && !config.phone && <div />}
-      </div>
-    );
-  }
-
-  if (type === "announcement" && config.announcementText) {
-    return (
-      <p className="min-w-0 truncate">{config.announcementText}</p>
-    );
-  }
-
-  if (type === "social") {
-    return <SocialLinks iconSize="sm" />;
-  }
-
-  return <div />;
 }
