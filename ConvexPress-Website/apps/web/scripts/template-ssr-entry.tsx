@@ -67,24 +67,19 @@ for (const [id, pack] of TEMPLATE_PACKS) {
 }
 console.log('Selective hydration preparation passed: two selected surfaces; duplicate/unknown markers ignored; unrelated surfaces unchanged');
 
-// Legacy content must still stream real, escaped markup through its deferred
-// facade. Disabling insertion of a block must not erase existing authored text.
-const { BlockListRenderer } = await import('../src/components/blocks/BlockListRenderer');
-const legacyStream = await renderToReadableStream(createElement(BlockListRenderer, {
-  disabledBlockNames: ['core/paragraph'],
-  blocks: [
-    { id: 'heading', name: 'core/heading', version: 1, attrs: { text: 'Legacy compatibility', level: 2 } },
-    { id: 'paragraph', name: 'core/paragraph', version: 1, attrs: { body: 'Literal <script> content stays text.' } },
-    { id: 'accordion', name: 'core/accordion', version: 1, attrs: { items: [{ title: 'Compatibility details', body: 'An existing disclosure.' }], defaultOpen: 0 } },
-  ],
-}));
-await legacyStream.allReady;
-const legacyHtml = await new Response(legacyStream).text();
-for (const expected of ['data-slot="block-list-renderer"', 'Legacy compatibility', 'Literal &lt;script&gt; content stays text.', 'data-block-disabled="true"', '<details open=""', 'Compatibility details']) {
-  if (!legacyHtml.includes(expected)) throw Error('Deferred legacy SSR lost content: ' + expected);
+// BlockDemo still owns an explicit original/canonical utility comparison.
+// Exercise that real caller, without retaining obsolete document dispatch.
+const { OriginalUtilitiesStudy } = await import('../block-demo/original-utilities');
+for (const packId of ['core', 'journal', 'depot', 'aster-house']) {
+  const stream = await renderToReadableStream(createElement(Suspense, { fallback: null }, createElement(OriginalUtilitiesStudy, { packId })));
+  await stream.allReady;
+  const html = await new Response(stream).text();
+  if (html.includes("Switched to client rendering")) throw Error(packId + ": utility comparison failed server rendering");
+  for (const marker of ['data-utility-case=', 'data-original-view=', 'data-converted-view=']) {
+    if (html.split(marker).length - 1 !== 7) throw Error(`${packId}: incomplete original/canonical utility comparison: ${marker}`);
+  }
+  console.log('BlockDemo utility comparison SSR passed: ' + packId + ' (7 pairs)');
 }
-if (legacyHtml.includes('Switched to client rendering')) throw Error('Deferred legacy SSR fell back to client rendering');
-console.log('Deferred legacy SSR passed: escaped text, disabled existing content and native disclosure preserved');
 
 // Real lazy canonical discovery must stream complete nested, reusable and custom
 // trees. These are explicit offline fixtures, never public-data fallbacks.

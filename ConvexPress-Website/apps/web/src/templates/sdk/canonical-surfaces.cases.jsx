@@ -7,7 +7,6 @@ mock.module('@tanstack/react-router',()=>({...actualRouter,Link:({children})=><a
 mock.module('@/templates/sdk/Surface',()=>({Surface:({name})=><p data-gate={name}>Restricted</p>}));
 for(const name of ['AuthorBox','PostFooter','PostHeader','RelatedPosts','ShareButtons'])mock.module('@/components/blog/'+name,()=>({[name]:()=>null}));
 mock.module('@/components/comments/CommentSection',()=>({CommentSection:()=>null}));
-for(const [file,name] of [['blocks/BlockListRenderer','BlockListRenderer'],['blog/BlockContentRenderer','BlockContentRenderer'],['blog/PostContent','PostContent'],['blog/StructuredContent','StructuredContent']])mock.module('@/components/'+file,()=>({[name]:()=>{throw Error('Legacy body dispatch remains active');}}));
 const page={_id:'page',title:'Page title',slug:'page',path:'/page',template:'default',children:[],breadcrumbs:[],content:{type:'doc',content:[]},blocksVersion:1,contentMode:'blocks',blocks:[{name:'core/paragraph',attrs:{}}]};
 const post={...page,_id:'post',categories:[],tags:[],author:{_id:'author',displayName:'Author',slug:'author'},commentCount:0};
 for(const pack of ['core','journal','depot','aster-house']){

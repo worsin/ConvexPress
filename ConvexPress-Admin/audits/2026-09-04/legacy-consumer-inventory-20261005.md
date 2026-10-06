@@ -38,3 +38,7 @@ Both generic update endpoints and validators plus dead frontend hook methods ret
 ## Website presentation closure
 
 Aster uses PublicCanonicalBody for both opening role and body. Page/Post detail DTOs and route projections no longer carry raw body/mode/sections/version. Regression red/green, Website types/build, full template SSR and read-only live page/post checks pass. No source data changes. Remaining old Website renderers are outside live route dispatch; BlockDemo original-utilities and SSR compatibility fixtures retain explicit registry/rendering dependencies. Next classify their import closure before removal, then decide backend identity/promotion versus retained archive discriminators. See aster-home-canonical-20261005.md. E07 remains open.
+
+## Unreachable Website renderer closure retired
+
+Nine old article/structured/block-list renderer/helper/test files removed after current import-reference review. Old Website article type family and mode alias removed. Actual BlockDemo registry caller retained and7utility pairs verified under each of4packs with streaming SSR.134registry/renderer/demo/portable files exact; shared URL regressions transferred to surviving helpers, canonical literal-text/link boundary exercised. Design single-post reference/skills now use typed canonical pack surface. See website-renderer-retirement-20261005.md. Next: backend documentState current edit/restore/publication contentMode requirement versus historical importer decoding and promotion envelopes. No schema/data changes yet.

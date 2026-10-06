@@ -1,165 +1,82 @@
-/**
- * REFERENCE — Single Post template
- *
- * Read by `design:single-post`. Not part of the production build.
- *
- * What this reference demonstrates (unique to single-post):
- *   1. Zod-validated path params (`slug`)
- *   2. Article-shaped JSON-LD via `lib/seo` helpers
- *   3. PostHeader / PostContent / AuthorBox patterns
- *   4. Related posts row
- *   5. Membership gating via <RestrictedContent>
- *   6. Comments section
- *
- * Treat structure as canonical, visuals as throwaway.
+/** Reference: customize a pack-owned blog.post surface, not the data route.
+ * The existing route owns SSR, SEO, canonical scope and access decisions.
+ * Copy this surface into an installed pack and keep the typed contract below.
+ * Do not read archived body fields or render post.contentHtml.
  */
+import { PublicCanonicalBody } from "@/templates/sdk/block-public/PublicCanonicalBody";
+/**
+ * Core · blog.post — a single post: header, canonical body (or the membership gate), footer, author box, related posts,
+ * comments. SEO head tags are emitted by the route so every pack keeps them.
+ */
+import { AuthorBox } from "@/components/blog/AuthorBox";
+import { PostFooter } from "@/components/blog/PostFooter";
+import { PostHeader } from "@/components/blog/PostHeader";
+import { RelatedPosts } from "@/components/blog/RelatedPosts";
+import { CommentSection } from "@/components/comments/CommentSection";
+import type { AuthorData, PostCard, PostDetail } from "@/lib/blog/types";
+import CoreRestricted, { type RestrictedSurfaceData } from "@/templates/packs/core/surfaces/system.restricted";
+import { Surface } from "@/templates/sdk/Surface";
+import type { SurfaceProps } from "@/templates/sdk/types";
 
-import { convexQuery } from "@convex-dev/react-query";
-import { useQuery as useTanStackQuery } from "@tanstack/react-query";
-import { createFileRoute, notFound } from "@tanstack/react-router";
-import { api } from "@convexpress-website/backend/generated/api";
-import { z } from "zod";
-
-import { Skeleton } from "@/components/ui/skeleton";
-import { cn } from "@/lib/utils";
-
-// ─── Param schema ─────────────────────────────────────────────────────────────
-
-const paramsSchema = z.object({
-	slug: z.string().min(1).max(200),
-});
-
-// ─── Route ────────────────────────────────────────────────────────────────────
-
-export const Route = createFileRoute("/_marketing/blog/$slug")({
-	params: { parse: (raw) => paramsSchema.parse(raw) },
-
-	loader: async ({ context: { queryClient }, params: { slug } }) => {
-		await Promise.all([
-			queryClient.ensureQueryData(convexQuery(api.settings.queries.getBySection, { section: "brand" })),
-			queryClient.ensureQueryData(convexQuery(api.posts.queries.getPublished, { slug })),
-		]);
-	},
-
-	head: ({ params, loaderData }) => {
-		// Loader data isn't directly available here; rely on tanstack-router
-		// SSR query cache. For per-route meta you'd usually compose from
-		// loaderData via a typed return. Pattern: keep title generic in
-		// `head:` and let the component update via <title> if needed.
-		return {
-			meta: [
-				{ title: `${params.slug} — Blog` },
-				{ name: "description", content: "A blog post." },
-				{ property: "og:type", content: "article" },
-			],
-			links: [{ rel: "canonical", href: `/blog/${params.slug}` }],
-		};
-	},
-
-	component: SinglePost,
-});
-
-// ─── Component ────────────────────────────────────────────────────────────────
-
-function SinglePost() {
-	const { slug } = Route.useParams();
-	const { data: brand } = useTanStackQuery(
-		convexQuery(api.settings.queries.getBySection, { section: "brand" }),
-	);
-	const { data: post } = useTanStackQuery(
-		convexQuery(api.posts.queries.getPublished, { slug }),
-	);
-
-	if (post === undefined || brand === undefined) {
-		return <PostSkeleton />;
-	}
-
-	if (post === null) {
-		throw notFound();
-	}
-
-	return (
-		<article className="mx-auto flex w-full max-w-3xl flex-col gap-8 px-4 py-12 md:py-16">
-			<header className="flex flex-col gap-4">
-				{post.categories && post.categories.length > 0 ? (
-					<div className="flex flex-wrap gap-2">
-						{post.categories.map((cat) => (
-							<span
-								key={cat._id}
-								className="rounded-full bg-muted px-2.5 py-1 text-xs font-medium text-muted-foreground"
-							>
-								{cat.name}
-							</span>
-						))}
-					</div>
-				) : null}
-
-				<h1 className="text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
-					{post.title}
-				</h1>
-
-				{post.excerpt ? (
-					<p className="text-lg text-muted-foreground">{post.excerpt}</p>
-				) : null}
-
-				<div className="flex items-center gap-3 text-sm text-muted-foreground">
-					{post.author?.displayName ? (
-						<span>By {post.author.displayName}</span>
-					) : null}
-					{post.publishedAt ? (
-						<time dateTime={new Date(post.publishedAt).toISOString()}>
-							{new Date(post.publishedAt).toLocaleDateString()}
-						</time>
-					) : null}
-				</div>
-			</header>
-
-			{post.featuredImageUrl ? (
-				<img
-					src={post.featuredImageUrl}
-					alt={post.featuredImageAlt ?? ""}
-					width={1200}
-					height={630}
-					className="aspect-[1200/630] w-full rounded-lg object-cover"
-				/>
-			) : null}
-
-			{/* Post body — pulled in via the existing PostContent component which
-			    handles the structured-content rendering. Don't reinvent. */}
-			<div
-				className={cn(
-					"prose prose-neutral max-w-none",
-					"prose-headings:text-foreground prose-headings:tracking-tight",
-					"prose-p:text-foreground prose-a:text-primary",
-					"prose-strong:text-foreground prose-code:text-foreground",
-				)}
-				dangerouslySetInnerHTML={{ __html: post.contentHtml ?? "" }}
-			/>
-
-			{/* Real implementations should compose:
-			    <RestrictedContent resourceType="post" resourceIdOrKey={post._id}>
-			      <PostContent post={post} />
-			      <CommentSection postId={post._id} />
-			    </RestrictedContent>
-			    Plus structured-data via <SeoHead /> from @/lib/seo helpers. */}
-		</article>
-	);
+export interface BlogPostSurfaceData {
+  post: PostDetail;
+  author: AuthorData;
+  relatedPosts: PostCard[];
+  /** Absolute share URL once the origin is known on the client; path-only during SSR. */
+  shareUrl: string;
+  /** Membership gate replacing the body when the visitor lacks access; null when unrestricted. */
+  restricted: RestrictedSurfaceData | null;
+  comments: {
+    postId: string;
+    commentStatus: "open" | "closed";
+    isLoggedIn: boolean;
+    currentUserId?: string;
+  };
 }
 
-// ─── Skeleton ─────────────────────────────────────────────────────────────────
-
-function PostSkeleton() {
-	return (
-		<article className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-4 py-12">
-			<Skeleton className="h-6 w-24" />
-			<Skeleton className="h-10 w-3/4" />
-			<Skeleton className="h-5 w-1/2" />
-			<Skeleton className="aspect-[1200/630] w-full" />
-			<div className="space-y-3">
-				<Skeleton className="h-4 w-full" />
-				<Skeleton className="h-4 w-full" />
-				<Skeleton className="h-4 w-4/5" />
-			</div>
-		</article>
-	);
+export default function CoreBlogPost({ data }: SurfaceProps<BlogPostSurfaceData>) {
+  const { post, author, relatedPosts, shareUrl, restricted, comments } = data;
+  return (
+    <article
+      data-slot="single-post"
+      className="mx-auto flex max-w-3xl flex-col gap-8"
+    >
+      {/* Header */}
+      <PostHeader
+        title={post.title}
+        author={post.author}
+        publishedAt={post.publishedAt}
+        readingTime={post.readingTime}
+        categories={post.categories}
+        featuredImageUrl={post.featuredImageUrl}
+        featuredImageAlt={post.featuredImageAlt}
+      />
+      {/* Content: gated by membership when a restriction rule applies.
+          Otherwise the current authorized canonical document. */}
+      {restricted ? (
+        <Surface name="system.restricted" data={restricted} fallback={CoreRestricted} />
+      ) : (
+          <PublicCanonicalBody documentId={post._id} />
+        )}
+      {/* Footer (tags, share, nav) */}
+      <PostFooter
+        tags={post.tags}
+        shareUrl={shareUrl}
+        shareTitle={post.title}
+        previousPost={post.previousPost}
+        nextPost={post.nextPost}
+      />
+      {/* Author Box */}
+      <AuthorBox author={author} />
+      {/* Related Posts */}
+      <RelatedPosts posts={relatedPosts} />
+      {/* Comment Section */}
+      <CommentSection
+        postId={comments.postId}
+        commentStatus={comments.commentStatus}
+        isLoggedIn={comments.isLoggedIn}
+        currentUserId={comments.currentUserId}
+      />
+    </article>
+  );
 }
