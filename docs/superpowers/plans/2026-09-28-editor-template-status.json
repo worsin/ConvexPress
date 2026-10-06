@@ -7,7 +7,7 @@
     "In progress": 4
   },
   "goal": "Complete block editor and template delivery plus all demonstrated blockers; defer unrelated whole-app audit campaigns.",
-  "currentTask": "133Verified/4In progress. Recently Viewed signed-in site switch now accepted and tracker read back. Remaining rows: Assistant Band actual provider, Social Feed authorized Instagram, Event RSVP human Turnstile, Script Embed actual Vimeo. Continue independent kit/docs cleanup, remaining template/all-block final evidence and candidate integration; live AI connection question is pending without blocking independent work.",
+  "currentTask": "133Verified/4In progress. Task7 all-field/live-Events pack switching and public update accepted; ICU date-range hydration repaired and remaining owned live fixtures retired with original data/settings restored. Kit documentation/cleanup gate closed. Continue Task8 final candidate/source/artifact/evidence reconciliation and native integrated acceptance. Actual AI, Instagram, human Turnstile and Vimeo remain explicit prerequisites; no waiting for Claude.",
   "tasks": [
     {
       "id": 1,
@@ -316,7 +316,7 @@
     },
     {
       "id": "E17",
-      "status": "Bounded manual SDK acceptance complete: eight block operations have authored/rendered evidence; three template skills and token-first fifth-pack trial pass; generated extension live installation, native lifecycle and actual Clerk subscriber Dashboard pass. Reference completeness is enforced against actual displayContext (27 blocks/34 fields). Native mixed composed/resource/reusable authoring, per-pack styling, canonical export/install/confirmation and post-promotion revocation pass. Optional-field extension preserves old content exactly; two pattern copies retain independent edits, IDs and keyboard anchors across all four packs. Disposable generated block/template/extension scaffold trees are archived or snapshotted, stopped and removed; original inventory/content/runtimes preserved. Aster mixed-content draft k9825w4682xavx7nbj8wa36xs98fsgtk, pinned reusable source rh88hrt480zfjhg205cw0c1nsn8fr6g4 and its custom definition remain for the all-field/live-Events public-update and pack-switch gate, then scoped cleanup. Extension build/add-feature/audit skills and their distributed copies now match the complete generator; minimal native authoring guide added and reference scenarios pass. Actual AI generation is still unaccepted (E13), and final integrated installed/source parity remains E18/Task8; no whole-delivery closure.",
+      "status": "Bounded manual SDK acceptance complete: eight block operations have authored/rendered evidence; three template skills and token-first fifth-pack trial pass; generated extension live installation, native lifecycle and actual Clerk subscriber Dashboard pass. Reference completeness is enforced against actual displayContext (27 blocks/34 fields). Native mixed composed/resource/reusable authoring, per-pack styling, canonical export/install/confirmation and post-promotion revocation pass. Optional-field extension preserves old content exactly; two pattern copies retain independent edits, IDs and keyboard anchors across all four packs. Disposable generated block/template/extension scaffold trees are archived or snapshotted, stopped and removed; original inventory/content/runtimes preserved. All-field/live-Events public update and four-pack switch gate accepted by field-events-final-20261006.md. Mixed page is recoverably trashed, owned event archived, reusable source withdrawn and custom definition revoked; immutable history retained. Original pages/events/settings/menus/drafts restored. Three event renderers repaired for demonstrated ICU hydration spacing mismatch. Extension build/add-feature/audit skills and their distributed copies now match the complete generator; minimal native authoring guide added and reference scenarios pass. Actual AI generation is still unaccepted (E13), and final integrated installed/source parity remains E18/Task8; no whole-delivery closure.",
       "classification": "partial acceptance / remaining workflow gates",
       "initialFinding": "SDK existence is proven more broadly than each workflow's end-to-end operation.",
       "closureBoundary": "Exercise all eight block-kit operations plus template and extension scaffolds in disposable outputs. Verify generated source, authoring and rendered result; remove owned scaffolds afterward.",
@@ -3887,7 +3887,8 @@
         "output/derived-restore-20260906.",
         "output/events-categories-20260906",
         "ConvexPress-Admin/audits/2026-09-04/events-display-20261006.md",
-        "ConvexPress-Admin/audits/2026-09-04/events-final-20261006.md"
+        "ConvexPress-Admin/audits/2026-09-04/events-final-20261006.md",
+        "ConvexPress-Admin/audits/2026-09-04/field-events-final-20261006.md"
       ],
       "remainingReview": "None for the current block-specific contract. Reuse events-display-20261006.md and events-final-20261006.md; full integrated editor/template delivery remains separate.",
       "deliveryTask": 3,
@@ -3901,7 +3902,12 @@
         "category",
         "limit",
         "timeZone"
-      ]
+      ],
+      "hydrationFollowup": {
+        "rendererSha256": "3868b783bb277db49b0634a6a99a7a3aa330bbd479df8ce87daa494a66717ab0",
+        "evidence": "output/field-events-final-20261006/renderer-evidence.json",
+        "scope": "ICU date-range whitespace parity regression; actual repaired Next Event production SSR/browser verified; prior layout captures reused."
+      }
     },
     {
       "name": "events/upcoming",
@@ -3920,7 +3926,8 @@
         "output/playwright/events-upcoming-20260906.",
         "ConvexPress-Admin/audits/2026-09-04/search-library-prose-20260928.md",
         "ConvexPress-Admin/audits/2026-09-04/events-display-20261006.md",
-        "ConvexPress-Admin/audits/2026-09-04/events-final-20261006.md"
+        "ConvexPress-Admin/audits/2026-09-04/events-final-20261006.md",
+        "ConvexPress-Admin/audits/2026-09-04/field-events-final-20261006.md"
       ],
       "remainingReview": "None for the current block-specific contract. Reuse events-display-20261006.md and events-final-20261006.md; full integrated editor/template delivery remains separate.",
       "deliveryTask": 3,
@@ -3935,7 +3942,12 @@
         "count",
         "showDescription",
         "emptyText"
-      ]
+      ],
+      "hydrationFollowup": {
+        "rendererSha256": "f23e908af14febbadf1fc21834c0ed320563fc0df605c5e644fc33c5f5522bec",
+        "evidence": "output/field-events-final-20261006/renderer-evidence.json",
+        "scope": "ICU date-range whitespace parity regression; actual repaired Next Event production SSR/browser verified; prior layout captures reused."
+      }
     },
     {
       "name": "events/next-event",
@@ -3953,7 +3965,8 @@
         "output/next-event-20260906",
         "output/playwright/next-event-20260906.",
         "ConvexPress-Admin/audits/2026-09-04/events-display-20261006.md",
-        "ConvexPress-Admin/audits/2026-09-04/events-final-20261006.md"
+        "ConvexPress-Admin/audits/2026-09-04/events-final-20261006.md",
+        "ConvexPress-Admin/audits/2026-09-04/field-events-final-20261006.md"
       ],
       "remainingReview": "None for the current block-specific contract. Reuse events-display-20261006.md and events-final-20261006.md; full integrated editor/template delivery remains separate.",
       "deliveryTask": 3,
@@ -3964,7 +3977,12 @@
       "rendererSha256": "35edc2a1263b0b2328f8b816b891d994134c362cb788b0329c7896b5aece2aa5",
       "canonicalFields": [
         "category"
-      ]
+      ],
+      "hydrationFollowup": {
+        "rendererSha256": "53ea12708bad3095036b0a0e5e8fa4cc32f10a7fefcf84022dabb171b6bb9744",
+        "evidence": "output/field-events-final-20261006/renderer-evidence.json",
+        "scope": "ICU date-range whitespace parity regression; actual repaired Next Event production SSR/browser verified; prior layout captures reused."
+      }
     },
     {
       "name": "membership/plans",
@@ -5136,7 +5154,8 @@
     "output/customizer-palette-shop-20261006/cleanup.json",
     "ConvexPress-Admin/audits/2026-09-04/native-integration-20261006.md",
     "ConvexPress-Admin/audits/2026-09-04/target-customer-auth-20261006.md",
-    "ConvexPress-Admin/audits/2026-09-04/recent-auth-final-20261006.md"
+    "ConvexPress-Admin/audits/2026-09-04/recent-auth-final-20261006.md",
+    "ConvexPress-Admin/audits/2026-09-04/field-events-final-20261006.md"
   ],
   "trackerRefresh": {
     "source": "output/field-guide-legacy-final-20261006/mt-accept-after.json",
