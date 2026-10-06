@@ -39,6 +39,8 @@ import {
   type PreviewDraft,
 } from "./customizeContext";
 
+import { installPreviewPicker } from "./previewPicker";
+
 export const CUSTOMIZE_MESSAGE = "convexpress:customize";
 
 type Values = Record<string, Record<string, unknown>>;
@@ -83,6 +85,7 @@ export function TemplateSettingsDraftProvider({
     const params = new URLSearchParams(window.location.search);
     if (params.get("customize") === "1") setOpen(true);
     const previewing = params.get("customize") === "preview";
+    const disposePicker = installPreviewPicker(window, previewing);
     const onMessage = (event: MessageEvent) => {
       if (
         !acceptsPreviewMessage(
@@ -103,7 +106,7 @@ export function TemplateSettingsDraftProvider({
     window.addEventListener("message", onMessage);
     if (previewing && window.parent !== window)
       window.parent.postMessage({ type: `${CUSTOMIZE_MESSAGE}:ready` }, "*");
-    return () => window.removeEventListener("message", onMessage);
+    return () => { disposePicker(); window.removeEventListener("message", onMessage); };
   }, []);
   const value = useMemo(
     () => ({

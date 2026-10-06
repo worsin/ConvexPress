@@ -1,3 +1,4 @@
+import { focusCustomizeField, selectedPreviewField } from "@/lib/templates/customizeSelection";
 /**
  * Appearance › Customize.
  *
@@ -90,6 +91,11 @@ function CustomizePage() {
   const [confirmLive, setConfirmLive] = useState(false);
   const [promotionOpen, setPromotionOpen] = useState(false);
   const frameRef = useRef<HTMLIFrameElement>(null);
+  const settingsRef = useRef<HTMLElement>(null);
+  const [picking, setPicking] = useState(false);
+  const [selectedField, setSelectedField] = useState<string | null>(null);
+  useEffect(() => { setPicking(false); setSelectedField(null); }, [activeId, page.id, device]);
+  useEffect(() => { if (selectedField) focusCustomizeField(settingsRef.current, selectedField); }, [selectedField, openGroup]);
   const scope = server?.identity?.instanceKey ?? "single-site";
   const scopeRef = useRef(scope);
   scopeRef.current = scope;
@@ -103,7 +109,7 @@ function CustomizePage() {
       seed(server); setOpenGroup(modules[0]?.id ?? null);
     }
   }, [server, base, scope, seed, modules]);
-  useEffect(() => { setPromotionOpen(false); }, [scope]);
+  useEffect(() => { setPromotionOpen(false); setPicking(false); setSelectedField(null); }, [scope]);
   const baseline: DraftSnapshot = { values: stored?.settings[activeId] ?? {}, variants: stored?.variants ?? {} };
   const changes = draftChanges(baseline, history.present);
   const dirty = changes.length > 0;
@@ -144,7 +150,8 @@ function CustomizePage() {
     if (!previewUrl) return;
     const origin = new URL(previewUrl).origin;
     frameRef.current?.contentWindow?.postMessage({ type: CUSTOMIZE_MESSAGE, packId: activeId, values, variants }, origin);
-  }, [activeId, values, variants, previewUrl]);
+    frameRef.current?.contentWindow?.postMessage({ type: `${CUSTOMIZE_MESSAGE}:pick`, enabled: picking }, origin);
+  }, [activeId, values, variants, previewUrl, picking]);
 
   useEffect(() => {
     post();
@@ -152,11 +159,19 @@ function CustomizePage() {
 
   useEffect(() => {
     const onMessage = (event: MessageEvent) => {
-      if (event.source === frameRef.current?.contentWindow && previewUrl && event.origin === new URL(previewUrl).origin && event.data && typeof event.data === "object" && (event.data as { type?: string }).type === `${CUSTOMIZE_MESSAGE}:ready`) post();
+      if (!previewUrl || event.source !== frameRef.current?.contentWindow || event.origin !== new URL(previewUrl).origin) return;
+      if (event.data?.type === `${CUSTOMIZE_MESSAGE}:ready`) post();
+      if (event.data?.type === `${CUSTOMIZE_MESSAGE}:cancelled`) setPicking(false);
+      const field = selectedPreviewField(event, frameRef.current?.contentWindow, new URL(previewUrl).origin, picking, modules.flatMap(module => module.fields.map(field => `${module.id}.${field.id}`)));
+      if (field) {
+        setOpenGroup(field.split(".")[0]);
+        setSelectedField(field);
+        setPicking(false);
+      }
     };
     window.addEventListener("message", onMessage);
     return () => window.removeEventListener("message", onMessage);
-  }, [post, previewUrl]);
+  }, [post, previewUrl, picking, modules]);
 
   const saveDraft = async () => {
     if (!base) return;
@@ -237,7 +252,7 @@ function CustomizePage() {
 
       <div className="grid gap-[18px] xl:grid-cols-[360px_minmax(0,1fr)]">
         {/* Groups */}
-        <aside className="space-y-2 self-start rounded-xl border border-border bg-card p-2" aria-label="Template settings">
+        <aside ref={settingsRef} className="space-y-2 self-start rounded-xl border border-border bg-card p-2" aria-label="Template settings">
           <fieldset disabled={saving} className="space-y-2">
           {modules.length === 0 && (
             <p className="p-3 text-[12.5px] text-muted-foreground">This template exposes no settings.</p>
@@ -263,8 +278,8 @@ function CustomizePage() {
                 {open && (
                   <div className="grid gap-3 border-t border-border px-3 py-3">
                     {module.presets?.length ? <div className="flex flex-wrap gap-2">{module.presets.map((preset) => <Button key={preset.id} size="sm" variant="outline" onClick={() => change(applyColorPreset(history.present, preset.colors))}>{preset.name}</Button>)}</div> : null}
-                    {module.id === "header" ? <HeaderSettingsEditor value={values.header ?? {}} onChange={(next) => setModule("header", next)} /> : module.id === "footer" ? <><FooterSettingsEditor value={values.footer ?? {}} onChange={(next) => setModule("footer", next)} /><FooterRowsBuilder value={values.footer ?? {}} onChange={(next) => setModule("footer", next)} /></> : module.fields.map((field) => (
-                      <FieldControl key={field.id} field={field} value={readDraftField(values[module.id], field.id)} onChange={(value) => setField(module.id, field.id, value)} />
+                    {module.id === "header" ? <HeaderSettingsEditor focusField={selectedField} value={values.header ?? {}} onChange={(next) => setModule("header", next)} /> : module.id === "footer" ? <><FooterSettingsEditor focusField={selectedField} value={values.footer ?? {}} onChange={(next) => setModule("footer", next)} /><FooterRowsBuilder value={values.footer ?? {}} onChange={(next) => setModule("footer", next)} /></> : module.fields.map((field) => (
+                      <div key={field.id} data-customize-field={`${module.id}.${field.id}`}><FieldControl field={field} value={readDraftField(values[module.id], field.id)} onChange={(value) => setField(module.id, field.id, value)} /></div>
                     ))}
                     {touched && (
                       <button type="button" onClick={() => resetModule(module.id)} className="inline-flex items-center gap-1 self-start text-[12px] font-medium text-primary hover:underline">
@@ -302,6 +317,7 @@ function CustomizePage() {
                 </button>
               ))}
             </div>
+            <Button variant="outline" size="sm" aria-pressed={picking} disabled={!previewUrl} onClick={() => { setSelectedField(null); setPicking(!picking); }}>{picking ? "Cancel selecting" : "Select a setting in preview"}</Button>
             <div role="radiogroup" aria-label="Device" className="flex gap-1">
               {DEVICES.map(({ id, label, Icon }) => (
                 <button

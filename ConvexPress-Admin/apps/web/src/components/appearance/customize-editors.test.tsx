@@ -76,6 +76,14 @@ test("native chrome controls preserve accessible fields and draft-only presets, 
       expect(label.control).toBeTruthy();
       expect(label.control?.tagName).toBe("INPUT");
     }
+    await act(async () => root.render(<HeaderSettingsEditor value={{}} onChange={() => {}} focusField="header.search.variant" />));
+    expect(document.activeElement?.closest('[data-customize-field]')?.getAttribute('data-customize-field')).toBe('header.search.variant');
+    const selectedSection = [...container.querySelectorAll<HTMLButtonElement>('button')].find(button => button.textContent?.startsWith('Search'))!;
+    await act(async () => selectedSection.click());
+    expect(selectedSection.getAttribute('aria-expanded')).toBe('false');
+
+    await act(async () => root.render(<FooterSettingsEditor value={{}} onChange={() => {}} focusField="footer.bottomBar.copyrightText" />));
+    expect(document.activeElement?.closest('[data-customize-field]')?.getAttribute('data-customize-field')).toBe('footer.bottomBar.copyrightText');
     let changed: Record<string, any> = {};
     for (const [preset, style] of [["Marketing", "standard"], ["Publication", "centered"], ["Minimal", "split"]]) {
       await act(async () => root.render(<HeaderSettingsEditor value={{}} onChange={next => { changed = next; }} />));

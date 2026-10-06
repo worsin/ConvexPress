@@ -107,32 +107,38 @@ export default function CustomizerPanel({ recoveryOwner }: { recoveryOwner: stri
   useEffect(() => {
     if (base) controller.setDraft({ packId, ...history.present });
   }, [base, packId, history.present, controller.setDraft]);
-  const sendFrame = () =>
+  const sendFrame = () => {
     frame.current?.contentWindow?.postMessage(
       { type: CUSTOMIZE_MESSAGE, packId, ...history.present },
       window.location.origin,
     );
+    frame.current?.contentWindow?.postMessage({ type: `${CUSTOMIZE_MESSAGE}:pick`, enabled: picking }, window.location.origin);
+  };
   useEffect(() => {
     sendFrame();
-  }, [history.present, packId, device]);
+  }, [history.present, packId, device, picking]);
   useEffect(() => {
     const listener = (event: MessageEvent) => {
-      if (
-        event.source === frame.current?.contentWindow &&
-        event.origin === window.location.origin &&
-        event.data?.type === `${CUSTOMIZE_MESSAGE}:ready`
-      )
-        sendFrame();
+      if (event.source !== frame.current?.contentWindow || event.origin !== window.location.origin) return;
+      if (event.data?.type === `${CUSTOMIZE_MESSAGE}:ready`) sendFrame();
+      if (!picking || device === "desktop") return;
+      if (event.data?.type === `${CUSTOMIZE_MESSAGE}:cancelled`) setPicking(false);
+      if (event.data?.type === `${CUSTOMIZE_MESSAGE}:selected` && modules.some(module => module.fields.some(field => `${module.id}.${field.id}` === event.data.field))) {
+        setQuery("");
+        setSelected(event.data.field);
+        setPicking(false);
+      }
     };
     window.addEventListener("message", listener);
     return () => window.removeEventListener("message", listener);
-  }, [history.present, packId]);
+  }, [history.present, packId, picking, device, modules]);
   useEffect(() => {
     if (!picking) {
       setHovered(null);
       return;
     }
     const pick = (event: MouseEvent) => {
+      if (device !== "desktop") return;
       const element =
         event.target instanceof Element
           ? event.target.closest<HTMLElement>("[data-customize]")
@@ -169,7 +175,7 @@ export default function CustomizerPanel({ recoveryOwner }: { recoveryOwner: stri
       document.removeEventListener("click", pick, true);
       document.removeEventListener("mouseover", hover);
     };
-  }, [picking]);
+  }, [picking, device]);
   useEffect(() => {
     if (!selected) return;
     const target = panel.current?.querySelector<HTMLElement>(

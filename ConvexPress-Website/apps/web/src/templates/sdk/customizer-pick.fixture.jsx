@@ -16,4 +16,14 @@ assert.equal(document.activeElement.getAttribute('data-customize-field'),'header
 await act(async()=>pick.click());
 await act(async()=>document.dispatchEvent(new dom.window.KeyboardEvent('keydown',{key:'Escape',bubbles:true,cancelable:true})));
 assert.equal(document.querySelector('[aria-label="Customize template"]').style.visibility,'','Escape restores the settings panel');
+await act(async()=>fireEvent.change(document.querySelector('select[aria-label="Preview device"]'),{target:{value:'phone'}}));
+const preview=document.querySelector('iframe');assert(preview,'phone preview exists');
+await act(async()=>fireEvent.change(filter,{target:{value:'Contact'}}));await act(async()=>pick.click());
+const selection={type:'convexpress:customize:selected',field:'header.cta.label'};
+const selectMessage=async(source,origin,data)=>act(async()=>window.dispatchEvent(new dom.window.MessageEvent('message',{source,origin,data})));
+await selectMessage(window,window.location.origin,selection);assert.equal(filter.value,'Contact','unrelated frame cannot select');
+await selectMessage(preview.contentWindow,'https://wrong.example',selection);assert.equal(filter.value,'Contact','wrong origin cannot select');
+await selectMessage(preview.contentWindow,window.location.origin,{...selection,field:'unknown.field'});assert.equal(filter.value,'Contact','unknown field cannot select');
+await selectMessage(preview.contentWindow,window.location.origin,selection);assert.equal(document.activeElement.getAttribute('data-customize-field'),'header.cta.label','actual phone frame selects and reveals its field');
+await act(async()=>pick.click());await selectMessage(preview.contentWindow,window.location.origin,{type:'convexpress:customize:cancelled'});assert.equal(document.querySelector('[aria-label="Customize template"]').style.visibility,'','frame Escape restores panel');
 await act(async()=>root.unmount());dom.window.close();console.log(JSON.stringify({pickPassed:true}));

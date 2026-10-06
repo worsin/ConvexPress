@@ -1,6 +1,7 @@
+import { focusCustomizeField } from "@/lib/templates/customizeSelection";
 /** Footer section controls owned by the Customizer draft. */
 
-import { useState, useId } from "react";
+import { useState, useId, useEffect, useRef } from "react";
 import {
   ChevronDown,
   Plus,
@@ -72,6 +73,7 @@ function VariantGrid({
       {field.options?.map((opt) => (
         <button
           key={opt.value}
+          aria-pressed={value === opt.value}
           type="button"
           onClick={() => onChange(opt.value)}
           className={cn(
@@ -287,12 +289,14 @@ function NavColumnsEditor({
 
 function SectionPanel({
   section,
+  focusField,
   config,
   onToggle,
   onFieldChange,
   onNavColumnsChange,
 }: {
   section: ComposerSectionDef;
+  focusField?: string | null;
   config: FooterConfig;
   onToggle: (sectionId: string, enabled: boolean) => void;
   onFieldChange: (sectionId: string, fieldId: string, value: unknown) => void;
@@ -300,6 +304,13 @@ function SectionPanel({
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const fieldPrefix = useId();
+  const sectionRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (focusField?.startsWith(`footer.${section.id}.`)) setIsOpen(true);
+  }, [focusField, section.id]);
+  useEffect(() => {
+    if (isOpen && focusField?.startsWith(`footer.${section.id}.`)) focusCustomizeField(sectionRef.current, focusField);
+  }, [focusField, isOpen, section.id]);
   const sectionConfig = config[section.id as keyof FooterConfig] as Record<
     string,
     unknown
@@ -312,14 +323,14 @@ function SectionPanel({
 
   return (
     <Collapsible open={isOpen} onOpenChange={setIsOpen}>
-      <div
+      <div ref={sectionRef}
         className={cn(
           "border border-border rounded-lg overflow-hidden",
           !isEnabled && section.hasToggle && "opacity-60",
         )}
       >
         {/* Section header */}
-        <div className="flex items-center gap-2 px-3 py-2.5 bg-card">
+        <div data-customize-field={`footer.${section.id}.enabled`} className="flex items-center gap-2 px-3 py-2.5 bg-card">
           {section.hasToggle && (
             <ToggleSwitch
               checked={isEnabled}
@@ -355,7 +366,7 @@ function SectionPanel({
               const fieldId = `${fieldPrefix}-${field.id}`;
 
               return (
-                <div key={field.id} className="space-y-1">
+                <div key={field.id} data-customize-field={`footer.${section.id}.${field.id}`} className="space-y-1">
                   {field.type !== "toggle" && (
                     <label htmlFor={field.type === "text" || field.type === "select" ? fieldId : undefined} className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
                       {field.label}
@@ -422,8 +433,8 @@ function SectionPanel({
 }
 
 /** Existing footer section/column controls reuse the active template draft. */
-export function FooterSettingsEditor({ value, onChange }: { value: Record<string, unknown>; onChange: (value: Record<string, unknown>) => void }) {
+export function FooterSettingsEditor({ value, onChange, focusField }: { value: Record<string, unknown>; onChange: (value: Record<string, unknown>) => void; focusField?: string | null }) {
   const config = deepMerge(FOOTER_DEFAULTS, value as unknown as Partial<FooterConfig>);
   const setField = (sectionId: string, fieldId: string, next: unknown) => onChange({ ...value, [sectionId]: { ...(config[sectionId as keyof FooterConfig] as Record<string, unknown>), [fieldId]: next } });
-  return <div className="space-y-2">{FOOTER_SECTIONS.map(section => <SectionPanel key={section.id} section={section} config={config} onToggle={(id, enabled) => setField(id, "enabled", enabled)} onFieldChange={setField} onNavColumnsChange={columns => setField("navColumns", "columns", columns)} />)}</div>;
+  return <div className="space-y-2">{FOOTER_SECTIONS.map(section => <SectionPanel key={section.id} section={section} focusField={focusField} config={config} onToggle={(id, enabled) => setField(id, "enabled", enabled)} onFieldChange={setField} onNavColumnsChange={columns => setField("navColumns", "columns", columns)} />)}</div>;
 }
