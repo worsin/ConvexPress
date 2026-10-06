@@ -17,7 +17,7 @@ import { useFooterConfig } from "@/hooks/layout/useFooterConfig";
 import { useLayoutConfig } from "@/hooks/layout/useLayoutConfig";
 import { useLayoutShell } from "@/hooks/layout/useLayoutShell";
 import { useHeaderConfig } from "@/hooks/layout/useHeaderConfig";
-import { useMenuForLocation } from "@/hooks/layout/useMenuForLocation";
+import { useHeaderMenu } from "@/hooks/layout/useHeaderMenu";
 import { useSiteIdentity } from "@/hooks/layout/useSiteIdentity";
 import { checkRouteAccess } from "@/lib/routeRestriction";
 import type { RouteAccessResult } from "@/lib/routeRestriction";
@@ -81,7 +81,7 @@ function MarketingLayoutInner({ routeAccess }: { routeAccess: RouteAccessResult 
     || /^\/forms\/[^/]+\/resume\/[^/]+\/?$/.test(pathname);
   const siteIdentity = useSiteIdentity();
   const headerConfig = useHeaderConfig();
-  const headerMenu = useMenuForLocation(getHeaderMenuLocation(headerConfig.navigation));
+  const headerMenu = useHeaderMenu(headerConfig.navigation);
   const layoutConfig = useLayoutConfig();
   const footerConfig = useFooterConfig();
   const { mobileNavOpen, closeMobileNav } = useLayoutShell();
@@ -175,15 +175,4 @@ function MarketingLayoutInner({ routeAccess }: { routeAccess: RouteAccessResult 
       </div>
     </>
   );
-}
-
-function getHeaderMenuLocation(navigation: {
-  menuSource: string;
-  customLocation?: string;
-}): string {
-  if (navigation.menuSource === "secondary") return "secondary";
-  if (navigation.menuSource === "custom") {
-    return navigation.customLocation?.trim() || "header";
-  }
-  return "header";
 }

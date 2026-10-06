@@ -27,7 +27,7 @@ import { useFooterConfig } from "@/hooks/layout/useFooterConfig";
 import { useHeaderConfig } from "@/hooks/layout/useHeaderConfig";
 import { useLayoutConfig } from "@/hooks/layout/useLayoutConfig";
 import { useLayoutShell } from "@/hooks/layout/useLayoutShell";
-import { useMenuForLocation } from "@/hooks/layout/useMenuForLocation";
+import { useHeaderMenu } from "@/hooks/layout/useHeaderMenu";
 import { useSiteIdentity } from "@/hooks/layout/useSiteIdentity";
 import { useClerk } from "@/lib/auth/clerk";
 import type { DashboardConfig } from "@/lib/layout/types";
@@ -161,7 +161,7 @@ function CompactShell({ data }: { data: DashboardShellSurfaceData }) {
   const { config, badges, to, children } = data;
   const siteIdentity = useSiteIdentity();
   const headerConfig = useHeaderConfig();
-  const headerMenu = useMenuForLocation(getHeaderMenuLocation(headerConfig.navigation));
+  const headerMenu = useHeaderMenu(headerConfig.navigation);
   const layoutConfig = useLayoutConfig();
   const { mobileNavOpen, closeMobileNav } = useLayoutShell();
 
@@ -225,10 +225,4 @@ function flattenHrefs(items: NavItem[]): string[] {
     if (item.children.length) out.push(...flattenHrefs(item.children));
   }
   return out;
-}
-
-function getHeaderMenuLocation(navigation: { menuSource: string; customLocation?: string }): string {
-  if (navigation.menuSource === "secondary") return "secondary";
-  if (navigation.menuSource === "custom") return navigation.customLocation?.trim() || "header";
-  return "header";
 }

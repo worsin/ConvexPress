@@ -13,7 +13,7 @@ import { SiteFooter } from "@/components/layout/SiteFooter";
 import { SiteHeader } from "@/components/layout/SiteHeader";
 import { SkipToContent } from "@/components/layout/SkipToContent";
 import { useHeaderConfig } from "@/hooks/layout/useHeaderConfig";
-import { useMenuForLocation } from "@/hooks/layout/useMenuForLocation";
+import { useHeaderMenu } from "@/hooks/layout/useHeaderMenu";
 import { useSiteIdentity } from "@/hooks/layout/useSiteIdentity";
 import { cn } from "@/lib/utils";
 import { resolveIcon } from "./icons";
@@ -35,7 +35,7 @@ const ACCOUNT_TABS: Array<{ id: string; label: string; icon: string; path: strin
 export function AccountLayout({ children }: { children: ReactNode }) {
   const siteIdentity = useSiteIdentity();
   const headerConfig = useHeaderConfig();
-  const headerMenu = useMenuForLocation("header");
+  const headerMenu = useHeaderMenu(headerConfig.navigation);
   const { to, badges, config } = useDashboardShell();
   const pathname = useRouterState({ select: (state) => state.location.pathname });
 
