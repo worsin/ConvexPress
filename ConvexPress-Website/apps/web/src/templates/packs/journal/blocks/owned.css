@@ -21,6 +21,7 @@
   .cp-owned-journal .journal-stories > .cp-layout-query > .cp-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .cp-owned-journal .journal-story[data-lead="true"][data-has-image="true"] { display: grid; grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); align-items: center; gap: var(--stack-gap-lg, 2rem); }
 }
+.cp-owned-journal .journal-form.cp-embedded-form { max-inline-size: none; }
 .cp-owned-journal .journal-form-fields { min-width: 0; }
 @media (max-width: 640px) { .cp-owned-journal .journal-banner-image img { aspect-ratio: 16/9; } }
 

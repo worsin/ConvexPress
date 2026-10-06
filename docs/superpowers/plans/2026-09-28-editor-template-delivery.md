@@ -179,7 +179,7 @@ Task5 reconciliation: `customizer-global-layout-20261006.md` maps the completed 
 - [ ] Use existing motion infrastructure. Favor transform/opacity and compositor-friendly effects; no per-frame React animation loops, pixelated gradient bitmaps or motion-required content. Support reduced motion and pause controls where applicable.
 - [x] Profile moving flagship examples in a visible hardware-accelerated browser; record environment and reproducible bad transitions. Fix observed stutter. Resolve E11 through controlled evidence and an honest supported-environment result, not infinite repeats or a blanket performance claim. Evidence: steps-review-20260929.md; E11 accepted with bounded Apple M5/ANGLE Metal results and historical/startup limits retained.
 
-Task6 final review checkpoint: `layout-wrapper-final-20261006.md` records137 Aster desktop selected examples reviewed, E103 responsive CSS repair and27 passing responsive cases. The other three packs and remaining state/mobile/integration checks are still open; capture counts are not acceptance.
+Task6 final review checkpoint: `desktop-matrix-final-20261006.md` records all four packs ×137 selected desktop examples visually reviewed (548 records/699 segments). E103–E105 repairs have27+12+24 scoped responsive cases. Remaining state/mobile/motion/native and installed-candidate checks stay open; this desktop subset does not close the full matrix gate.
 
 ### Task 7 — Prove SDK, plugin and AI authoring workflows
 

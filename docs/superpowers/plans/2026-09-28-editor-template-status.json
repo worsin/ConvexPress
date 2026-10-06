@@ -7,7 +7,7 @@
     "In progress": 4
   },
   "goal": "Complete block editor and template delivery plus all demonstrated blockers; defer unrelated whole-app audit campaigns.",
-  "currentTask": "133Verified/4In progress. Task8 active: Aster and Core137desktop selected examples each reviewed (274records/360segments, hashes and coverage verified). E103 three CSS consumers repaired and committed191c678c;27responsive cases and renderer/build gates pass. Continue Depot/Journal274records and final state/mobile/native/candidate artifact acceptance. Missing providers block only their affected gates; no waiting for Claude.",
+  "currentTask": "133 Verified / 4 In progress. Task8 active: all four packs x137 selected desktop examples visually reviewed (548 records /699 segments), hashes and coverage verified. E104 Business Menu and E105 Journal form/sidebar repaired with12+24 responsive cases. Continue final state/mobile/motion reconciliation, native integrated journey and candidate/installed artifact parity. Provider gaps block only their affected gates; no waiting for Claude.",
   "tasks": [
     {
       "id": 1,
@@ -1326,12 +1326,44 @@
       "causalConnection": "Root direct-child selectors skip the SDK cp-layout-query wrapper, leaving primitive defaults active.",
       "repairBoundary": "Exactly three root CSS consumers; retain all authored breakpoints, SDK markup, content and backend.",
       "exitCheck": "Three browser failures become27 passing responsive cases; complete replacement screenshots reviewed; renderer/contracts/kit/drift and Website build.",
-      "status": "Repaired;27 responsive cases pass. Aster selected-example desktop review complete, full four-pack/state/mobile integration remains open.",
+      "status": "Repaired;27 responsive cases pass. Four-pack selected-example desktop review is now complete; full state/mobile/native and installed-candidate acceptance remain open.",
       "currentEvidence": [
         "ConvexPress-Admin/audits/2026-09-04/layout-wrapper-final-20261006.md",
         "output/final-evidence-20261006/responsive-red.json",
         "output/final-evidence-20261006/responsive-green.json",
         "output/final-evidence-20261006/viewport-manifest.json"
+      ]
+    },
+    {
+      "id": "E104",
+      "classification": "repaired and runtime verified",
+      "deliveryTask": 6,
+      "requiredWorkflow": "Readable responsive block presentation without changing saved content.",
+      "initialFinding": "Business Menu descriptions shrink into narrow columns across four packs.",
+      "causalConnection": "Start-aligned structural Stacks shrink around a container-query Grid with no intrinsic inline width.",
+      "repairBoundary": "Use single-column SDK Grids for the root and section; preserve content and item columns.",
+      "exitCheck": "Four-pack red geometry,12 green responsive cases and reviewed replacement images.",
+      "status": "Accepted within selected-example visual scope; full final delivery remains open.",
+      "currentEvidence": [
+        "ConvexPress-Admin/audits/2026-09-04/desktop-matrix-final-20261006.md",
+        "output/final-evidence-20261006/viewport-manifest.json",
+        "output/final-evidence-20261006/review-integrity.json"
+      ]
+    },
+    {
+      "id": "E105",
+      "classification": "repaired and runtime verified",
+      "deliveryTask": 6,
+      "requiredWorkflow": "Readable responsive block presentation without changing saved content.",
+      "initialFinding": "Journal form and sticky sidebar headings break words at desktop width.",
+      "causalConnection": "The form inherits a768px cap before its one-third split; sidebar headline size follows viewport rather than its narrow column.",
+      "repairBoundary": "Journal-owned form maximum and Journal primitive heading sizing inside sticky aside; no other pack typography change.",
+      "exitCheck": "24 final responsive cases across two blocks and four packs, with corrected desktop and phone Journal images reviewed.",
+      "status": "Accepted within selected-example visual scope; full final delivery remains open.",
+      "currentEvidence": [
+        "ConvexPress-Admin/audits/2026-09-04/desktop-matrix-final-20261006.md",
+        "output/final-evidence-20261006/viewport-manifest.json",
+        "output/final-evidence-20261006/review-integrity.json"
       ]
     }
   ],
@@ -5237,7 +5269,8 @@
     "audit55": "ACCEPT 132/5 count and no-drift assessment against current local evidence. ADAPT E99 status: this native private-draft recovery renders automatically, retain intermittent integration watch without claiming a causal fix. No new defect or scope change. Codex independently retired the unused seven-function closure; no waiting for deep audit.",
     "reusableRetirement": "Audit55 remains latest/already adjudicated. Codex independently completed reusable corpus reconciliation and seven-function retirement. All three original sources map exactly; no new provider prerequisite or wait. Task4 now accepted; full goal remains active.",
     "paletteShop": "Audit55 remains latest and already adjudicated. Independently repaired E102 operator canonical reads and completed palette/Shop field mapping; no new Claude scope directive. Next bounded work: Task6 demo/motion and Task7 actual AI, retain E05 external staging requirement and Task8 overlay/artifact integration.",
-    "audit57": "ACCEPT bounded scope/progress/133-4 counts against local receipts. ADAPT E99: retain intermittent final-integration watch; successful later restores are not a causal fix and do not justify repeating identical passing checks or stopping independent work. Independently reproduced/repaired E103; no new broad audit scope and no waiting for Claude."
+    "audit57": "ACCEPT bounded scope/progress/133-4 counts against local receipts. ADAPT E99: retain intermittent final-integration watch; successful later restores are not a causal fix and do not justify repeating identical passing checks or stopping independent work. Independently reproduced/repaired E103; no new broad audit scope and no waiting for Claude.",
+    "audit58": "ACCEPT bounded scope/progress/count assessment against current source and133/4 checkpoint. ADAPT E99 reminder into final integrated native watch, without inferring a causal repair from successful later restores. E104/E105 independently reproduced and repaired; no new scope or audit wait."
   },
   "sessionBaseCommit": "9824d9605e50c4b0ebd711c13715b506f8ef5bd3"
 }

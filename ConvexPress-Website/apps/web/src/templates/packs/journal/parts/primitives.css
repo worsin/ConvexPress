@@ -4,6 +4,13 @@
 	line-height: 1.06;
 	max-width: 22ch;
 }
+.cp-sticky-complement .journal-primitive-heading {
+	container-type: inline-size;
+	inline-size: 100%;
+}
+.cp-sticky-complement .journal-primitive-heading .cp-heading[data-size="lg"] {
+	font-size: clamp(2rem, min(4.4vw, calc(2rem + 2cqi)), 3.75rem);
+}
 .journal-primitive-eyebrow .cp-eyebrow {
 	letter-spacing: 0.25em;
 	font-size: 0.65rem;
