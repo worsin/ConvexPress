@@ -1,3 +1,4 @@
+import { FooterRowFrame } from "./FooterRowFrame";
 import { footerMenuItems } from "@/components/menus/footerMenuItems";
 import { FooterCopyright } from "./FooterCopyright";
 import { MenuItemTarget } from "@/components/menus/MenuItemTarget";
@@ -55,31 +56,6 @@ export function FooterRowsRenderer({ rows }: FooterRowsRendererProps) {
 
 // ─── Row ─────────────────────────────────────────────────────────────────────
 
-const ROW_BG: Record<FooterRow["background"], string> = {
-  default: "bg-background",
-  muted: "bg-muted/40",
-  accent: "bg-accent/10",
-  contrast: "bg-foreground text-background",
-  transparent: "",
-};
-const ROW_PAD: Record<FooterRow["padding"], string> = {
-  none: "py-0",
-  compact: "py-3 lg:py-4",
-  normal: "py-6 lg:py-8",
-  spacious: "py-10 lg:py-14",
-};
-const ROW_CONTAINER: Record<FooterRow["container"], string> = {
-  narrow: "max-w-3xl",
-  default: "max-w-5xl",
-  wide: "max-w-7xl",
-  full: "max-w-none",
-};
-const ROW_BORDER: Record<NonNullable<FooterRow["topBorder"]>, string> = {
-  none: "",
-  subtle: "border-t border-border",
-  bold: "border-t-2 border-border",
-  accent: "border-t-2 border-accent",
-};
 const ALIGN: Record<NonNullable<FooterRow["alignment"]>, string> = {
   left: "text-left items-start",
   center: "text-center items-center",
@@ -88,33 +64,12 @@ const ALIGN: Record<NonNullable<FooterRow["alignment"]>, string> = {
 
 function FooterRowRenderer({ row }: { row: FooterRow }) {
   return (
-    <div className={cn(ROW_BG[row.background], row.topBorder && ROW_BORDER[row.topBorder])}>
-      <div
-        className={cn(
-          "mx-auto px-4 md:px-6 lg:px-8",
-          ROW_CONTAINER[row.container],
-          ROW_PAD[row.padding],
-        )}
-      >
-        {row.heading && (
-          <h2 className="mb-4 text-sm font-semibold text-foreground">{row.heading}</h2>
-        )}
-        <div
-          className={cn(
-            "grid grid-cols-12 gap-8",
-            row.alignment && ALIGN[row.alignment],
-          )}
-        >
-          {row.columns.map((col) => (
-            <FooterColumnRenderer
-              key={col.id}
-              column={col}
-              totalColumns={row.columns.length}
-            />
-          ))}
-        </div>
+    <FooterRowFrame row={row}>
+      {row.heading && <h2 className="mb-4 text-sm font-semibold text-foreground">{row.heading}</h2>}
+      <div className={cn("grid grid-cols-12 gap-8", row.alignment && ALIGN[row.alignment])}>
+        {row.columns.map(col => <FooterColumnRenderer key={col.id} column={col} totalColumns={row.columns.length} />)}
       </div>
-    </div>
+    </FooterRowFrame>
   );
 }
 

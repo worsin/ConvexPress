@@ -1,3 +1,4 @@
+import { FooterRowFrame } from "@/components/layout/FooterRowFrame";
 import { footerMenuItems } from "@/components/menus/footerMenuItems";
 import { FooterCopyright } from "@/components/layout/FooterCopyright";
 import { MenuItemTarget } from "@/components/menus/MenuItemTarget";
@@ -42,20 +43,20 @@ export default function JournalChromeFooter({ data }: SurfaceProps<FooterSurface
   const rows = footerConfig.rows ?? [];
   const padding = footerConfig.layout.padding === "compact" ? "py-10 md:py-14" : footerConfig.layout.padding === "spacious" ? "py-20 md:py-28" : "py-14 md:py-20";
 
+  if (rows.length > 0) {
+    return <footer data-slot="site-footer" data-customize="footer.layout.background" role="contentinfo" className={cn("border-t border-border bg-background", footerConfig.layout.background === "dark" && "bg-muted/30")}>
+      <Container className={padding}><Masthead siteIdentity={siteIdentity} footerConfig={footerConfig} /></Container>
+      {rows.map(row => <RowColumns key={row.id} row={row} />)}
+      <Container className="flex flex-col gap-6 py-6"><Rule /><Copyright siteTitle={siteTitle} footerConfig={footerConfig} /></Container>
+    </footer>;
+  }
+
   return (
     <footer data-slot="site-footer" data-customize="footer.layout.background" role="contentinfo" className={cn("border-t border-border bg-background", footerConfig.layout.background === "dark" && "bg-muted/30")}>
       <Container className={cn("flex flex-col gap-12", padding)}>
         <Masthead siteIdentity={siteIdentity} footerConfig={footerConfig} />
-        {rows.length > 0 ? (
-          <div className="flex flex-col gap-12">
-            {rows.map((row) => (
-              <RowColumns key={row.id} row={row} />
-            ))}
-          </div>
-        ) : (
-          <LegacyColumns footerConfig={footerConfig} />
-        )}
-        {footerConfig.bottomBar.enabled || rows.length > 0 ? (
+        <LegacyColumns footerConfig={footerConfig} />
+        {footerConfig.bottomBar.enabled ? (
           <div className="flex flex-col gap-6">
             <Rule />
             <Copyright siteTitle={siteTitle} footerConfig={footerConfig} />
@@ -102,14 +103,14 @@ const SPAN: Record<number, string> = {
 function RowColumns({ row }: { row: FooterRow }) {
   const align = row.alignment === "center" ? "text-center items-center" : row.alignment === "right" ? "text-right items-end" : "";
   return (
-    <div className={cn("flex flex-col gap-6", row.topBorder && row.topBorder !== "none" && "border-t border-border pt-10")}>
-      {row.heading ? <SmallCaps as="h2">{row.heading}</SmallCaps> : null}
+    <FooterRowFrame row={row}>
+      {row.heading ? <SmallCaps as="h2" className="mb-6">{row.heading}</SmallCaps> : null}
       <div className={cn("grid grid-cols-1 gap-10 sm:grid-cols-2 lg:grid-cols-12", align)}>
         {row.columns.map((column) => (
           <Column key={column.id} column={column} total={row.columns.length} />
         ))}
       </div>
-    </div>
+    </FooterRowFrame>
   );
 }
 
