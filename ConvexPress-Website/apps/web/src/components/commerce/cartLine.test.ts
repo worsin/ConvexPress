@@ -42,3 +42,20 @@ describe("cart line display helpers", () => {
     ).toBe("VARIANT-SKU");
   });
 });
+
+describe("live cart variant read model", () => {
+  const variant = { title: "Pair", optionSummary: "Set size: Pair", sku: "LINEN-PAIR" };
+  test("uses the resolved variant when cart metadata is absent", () => {
+    expect(getCartLineSubtitle(undefined, variant)).toBe("Set size: Pair");
+    expect(getCartLineSku({ sku: "LINEN" }, undefined, variant)).toBe("LINEN-PAIR");
+  });
+  test("resolved variant overrides stale client-supplied metadata", () => {
+    expect(getCartLineSubtitle({ optionSummary: "Single" }, variant)).toBe("Set size: Pair");
+    expect(getCartLineSku({ sku: "LINEN" }, { variantSku: "FAKE" }, variant)).toBe("LINEN-PAIR");
+  });
+  test("resolved title is usable without options and bundles retain their separate labels", () => {
+    expect(getCartLineSubtitle(undefined, { title: "Pair" })).toBe("Pair");
+    expect(getCartLineSubtitle({ lineType: "bundle" }, variant)).toBeNull();
+    expect(getCartLineSku({ sku: "LINEN" }, { lineType: "bundle" }, variant)).toBeNull();
+  });
+});

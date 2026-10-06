@@ -39,8 +39,8 @@ export default function DepotSharedCart({ data }: SurfaceProps<SharedCartSurface
             <tbody>
               {sharedCart.items.map((item: any) => {
                 const bundle = item.metadata?.lineType === "bundle";
-                const subtitle = getCartLineSubtitle(item.metadata);
-                const sku = getCartLineSku(item.product, item.metadata);
+                const subtitle = getCartLineSubtitle(item.metadata, item.variant);
+                const sku = getCartLineSku(item.product, item.metadata, item.variant);
                 return (
                   <tr key={item._id} className="border-t border-border">
                     <Td className="min-w-56">

@@ -12,7 +12,7 @@ import {
   CheckoutProgress,
   CheckoutStatusNotice,
 } from "@/components/commerce/CheckoutProgress";
-import { getCartLineTitle } from "@/components/commerce/cartLine";
+import { getCartLineTitle, getCartLineSubtitle, getCartLineSku } from "@/components/commerce/cartLine";
 import type { SurfaceProps } from "@/templates/sdk/types";
 
 export type CheckoutReviewStep = "review" | "processing" | "stripe";
@@ -256,6 +256,8 @@ export default function CoreCheckoutReview({ data }: SurfaceProps<CheckoutReview
                     <p className="font-medium text-foreground">
                       {getCartLineTitle(item.product, item.metadata)}
                     </p>
+                    {getCartLineSubtitle(item.metadata, item.variant) ? <p className="text-sm text-muted-foreground">{getCartLineSubtitle(item.metadata, item.variant)}</p> : null}
+                    {getCartLineSku(item.product, item.metadata, item.variant) ? <p className="text-xs text-muted-foreground">SKU {getCartLineSku(item.product, item.metadata, item.variant)}</p> : null}
                     <p className="text-sm text-muted-foreground">
                       Quantity {item.quantity}
                     </p>

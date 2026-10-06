@@ -4,6 +4,8 @@ import { Link } from "@tanstack/react-router";
 import {
   getCartLineBundleSelections,
   getCartLineTitle,
+  getCartLineSubtitle,
+  getCartLineSku,
 } from "@/components/commerce/cartLine";
 import type { SurfaceProps } from "@/templates/sdk/types";
 
@@ -61,6 +63,8 @@ export default function CoreSharedCart({ data }: SurfaceProps<SharedCartSurfaceD
                       <p className="font-semibold text-foreground">
                         {getCartLineTitle(item.product, item.metadata)}
                       </p>
+                    {getCartLineSubtitle(item.metadata, item.variant) ? <p className="text-sm text-muted-foreground">{getCartLineSubtitle(item.metadata, item.variant)}</p> : null}
+                    {getCartLineSku(item.product, item.metadata, item.variant) ? <p className="text-xs text-muted-foreground">SKU {getCartLineSku(item.product, item.metadata, item.variant)}</p> : null}
                       {item.metadata?.lineType === "bundle" ? (
                         <div className="mt-2 flex flex-wrap gap-2">
                           {getCartLineBundleSelections(item.metadata).map(

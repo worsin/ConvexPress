@@ -157,8 +157,8 @@ function Line({
   const busy = busyAction !== null;
   const mediaId = item.variant?.featuredMediaId ?? item.product?.featuredMediaId;
   const title = getCartLineTitle(item.product, item.metadata);
-  const subtitle = getCartLineSubtitle(item.metadata);
-  const sku = getCartLineSku(item.product, item.metadata);
+  const subtitle = getCartLineSubtitle(item.metadata, item.variant);
+  const sku = getCartLineSku(item.product, item.metadata, item.variant);
   const isBundle = item.metadata?.lineType === "bundle";
   const slug = item.product?.slug ?? "";
 

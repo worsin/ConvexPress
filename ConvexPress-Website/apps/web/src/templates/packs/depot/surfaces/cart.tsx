@@ -153,8 +153,8 @@ function CartRow({
   const mediaId = item.variant?.featuredMediaId ?? item.product?.featuredMediaId;
   const bundle = item.metadata?.lineType === "bundle";
   const title = getCartLineTitle(item.product, item.metadata);
-  const subtitle = getCartLineSubtitle(item.metadata);
-  const sku = getCartLineSku(item.product, item.metadata);
+  const subtitle = getCartLineSubtitle(item.metadata, item.variant);
+  const sku = getCartLineSku(item.product, item.metadata, item.variant);
   const unit = item.quantity > 0 ? item.lineTotalAmount / item.quantity : item.lineTotalAmount;
 
   return (

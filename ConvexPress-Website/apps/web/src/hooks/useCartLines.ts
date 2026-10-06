@@ -12,7 +12,7 @@ import { api } from "@convexpress-website/backend/generated/api";
 import { useCallback, useState } from "react";
 import { toast } from "sonner";
 
-import type { CartLineMetadata, CartLineProduct } from "@/components/commerce/cartLine";
+import type { CartLineMetadata, CartLineProduct, CartLineVariant } from "@/components/commerce/cartLine";
 import { useSettings } from "@/contexts/SettingsContext";
 import { useCommerceSessionToken } from "@/hooks/useCommerceSessionToken";
 
@@ -23,7 +23,7 @@ export interface CartLine {
   lineTotalAmount: number;
   metadata?: CartLineMetadata;
   product?: (CartLineProduct & { _id: string; slug: string; featuredMediaId?: string }) | null;
-  variant?: { _id: string; featuredMediaId?: string } | null;
+  variant?: (CartLineVariant & { _id: string; featuredMediaId?: string }) | null;
 }
 
 export interface CartLines {

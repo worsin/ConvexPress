@@ -9,7 +9,7 @@
 import { Elements, PaymentElement, useElements, useStripe } from "@stripe/react-stripe-js";
 import { useMemo, useState, type FormEvent } from "react";
 
-import { getCartLineTitle } from "@/components/commerce/cartLine";
+import { getCartLineTitle, getCartLineSubtitle, getCartLineSku } from "@/components/commerce/cartLine";
 import type { CheckoutReviewSurfaceData } from "@/templates/packs/core/surfaces/checkout.review";
 import type { SurfaceProps } from "@/templates/sdk/types";
 
@@ -131,6 +131,8 @@ export default function AsterCheckoutReview({ data }: SurfaceProps<CheckoutRevie
                 <li key={item._id} className="flex items-start justify-between gap-6 py-5">
                   <div className="flex min-w-0 flex-col gap-1.5">
                     <p className="font-display text-xl leading-snug text-foreground">{getCartLineTitle(item.product, item.metadata)}</p>
+                    {getCartLineSubtitle(item.metadata, item.variant) ? <p className="text-sm text-muted-foreground">{getCartLineSubtitle(item.metadata, item.variant)}</p> : null}
+                    {getCartLineSku(item.product, item.metadata, item.variant) ? <p className="text-xs text-muted-foreground">SKU {getCartLineSku(item.product, item.metadata, item.variant)}</p> : null}
                     <SmallCaps className="tabular-nums">Qty {item.quantity}</SmallCaps>
                   </div>
                   <p className="shrink-0 font-display text-lg tabular-nums text-foreground">{money(item.lineTotalAmount)}</p>
