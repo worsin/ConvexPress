@@ -142,6 +142,7 @@ const source = [
 `import {resolveFormDemo} from ${JSON.stringify(fileURLToPath(new URL("../../../../block-demo/form-adapter.ts", import.meta.url)))};`,
 		`import ${JSON.stringify(cases)};`,
 `import ${JSON.stringify(fileURLToPath(new URL("./events.cases.tsx", import.meta.url)))};`,
+`import ${JSON.stringify(fileURLToPath(new URL("./calendar-dom.cases.jsx", import.meta.url)))};`,
 `import {resolveUpcomingEventsDemo} from ${JSON.stringify(fileURLToPath(new URL("../../../../block-demo/events-adapter.ts", import.meta.url)))};`,
 `import ${JSON.stringify(fileURLToPath(new URL("./post-grid.cases.tsx", import.meta.url)))};`,
 `import {resolvePostGridDemo} from ${JSON.stringify(fileURLToPath(new URL("../../../../block-demo/post-grid-adapter.ts", import.meta.url)))};`,

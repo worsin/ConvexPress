@@ -6,7 +6,11 @@ import * as P from '../../../ConvexPress-Website/apps/web/src/templates/sdk/prim
 import '../../../ConvexPress-Website/apps/web/src/templates/sdk/block-renderer/calendar.css';
 const weekdays=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
 export default defineDataBlock('events/calendar','events.list',({attrs,data,blockId})=>{
- const [view,setView]=useState<'month'|'agenda'>(attrs.view),pageHref=useBlockPageHref(blockId);
+ const [display,setDisplay]=useState({authored:attrs.view,selected:attrs.view}),pageHref=useBlockPageHref(blockId);
+ // Apply author edits and undo without discarding visitor choice on data refresh.
+ if(display.authored!==attrs.view)setDisplay({authored:attrs.view,selected:attrs.view});
+ const view=display.authored===attrs.view?display.selected:attrs.view;
+ const setView=(selected:'month'|'agenda')=>setDisplay({authored:attrs.view,selected});
  const href=(month:string|null,cursor:string|null=null)=>month?pageHref(JSON.stringify({month,cursor})):null;
  const label=new Intl.DateTimeFormat('en',{month:'long',year:'numeric',timeZone:data.timeZone}).format(data.startsAt);
  const days=calendarDays(data.month,data.timeZone),leading=days[0]!.weekday;

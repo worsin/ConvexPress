@@ -7,7 +7,7 @@
     "In progress": 20
   },
   "goal": "Complete block editor and template delivery plus all demonstrated blockers; defer unrelated whole-app audit campaigns.",
-  "currentTask": "Task5: E97 committed51464992; actual native broker promotion now accepted: missing-list refusal, destination-consent drift rejection, fresh1dispatch apply, destination ID/consent retained and source1/target0subscribers preserved. Both databases restored, sessions/runtimes cleaned. Next finish Task5 aggregate coverage reconciliation and E05 hosted HTTPS editing. Goal active117/20; reuse accepted matrices.",
+  "currentTask": "Task3 event display batch: Calendar authored-view defect repaired; native three-block author/save/reopen and actual public keyboard/month/DST/cancel/restore accepted. Original71pages and both appearance/settings preserved; temporary sessions/runtimes cleaned. Next finish remaining event family four-pack responsive/time-boundary/access evidence and reconcile rows. E05 HTTPS awaits existing staging URL/configured host; independent work continues. Full goal active117/20.",
   "tasks": [
     {
       "id": 1,
@@ -3777,15 +3777,16 @@
         "output/calendar-20260906.",
         "output/calendar-foundation-20260906.",
         "output/derived-restore-20260906.",
-        "output/events-categories-20260906"
+        "output/events-categories-20260906",
+        "ConvexPress-Admin/audits/2026-09-04/events-display-20261006.md"
       ],
-      "remainingReview": "Native view/category/limit; actual month/range/time-zone boundaries, cancelled/private/empty events and keyboard navigation.",
+      "remainingReview": "Reuse October6 native author/save/reopen, exact public fields/links, cancellation/restoration and Calendar DST/keyboard evidence. Finish current four-pack responsive acceptance, time-boundary refresh and any remaining live private-access/withdrawn-category clause; then reconcile tracker.",
       "deliveryTask": 3,
       "acceptanceBatch": "events",
       "reviewedAtCommit": "d8a0ea2c",
       "notesSha256": "ce230f7d38145e5cebe9788860703fbfffb736463283cd051f74a26d8e1750c9",
       "specSha256": "40642786c705b5b7cbbd60efefb38118cd6b3db5623ffb021a0de48c4c3b7959",
-      "rendererSha256": "831d8afb91c9f746080b87763282f6071e15fc0caf3075ef196167828d43ad46",
+      "rendererSha256": "6ff38412c84af1202b41dfd6421ff018aef55d3a4a40d30943e54a6da256df1d",
       "canonicalFields": [
         "view",
         "category",
@@ -3808,9 +3809,10 @@
         "output/block-library-review-20260915/coverage-review.json.",
         "output/events-upcoming-20260906",
         "output/playwright/events-upcoming-20260906.",
-        "ConvexPress-Admin/audits/2026-09-04/search-library-prose-20260928.md"
+        "ConvexPress-Admin/audits/2026-09-04/search-library-prose-20260928.md",
+        "ConvexPress-Admin/audits/2026-09-04/events-display-20261006.md"
       ],
-      "remainingReview": "Reuse actual publish/cancel/reappear flow; count/heading/intro/show-description/empty copy and final pack/time-boundary review.",
+      "remainingReview": "Reuse October6 native author/save/reopen, exact public fields/links, cancellation/restoration and Calendar DST/keyboard evidence. Finish current four-pack responsive acceptance, time-boundary refresh and any remaining live private-access/withdrawn-category clause; then reconcile tracker.",
       "deliveryTask": 3,
       "acceptanceBatch": "events",
       "reviewedAtCommit": "d8a0ea2c",
@@ -3839,9 +3841,10 @@
         "output/block-library-review-20260915/coverage-review.json.",
         "output/events-categories-20260906",
         "output/next-event-20260906",
-        "output/playwright/next-event-20260906."
+        "output/playwright/next-event-20260906.",
+        "ConvexPress-Admin/audits/2026-09-04/events-display-20261006.md"
       ],
-      "remainingReview": "Reuse actual category rename/filter/empty proof; current source bounds, missing/withdrawn category and final all-pack exact target/date.",
+      "remainingReview": "Reuse October6 native author/save/reopen, exact public fields/links, cancellation/restoration and Calendar DST/keyboard evidence. Finish current four-pack responsive acceptance, time-boundary refresh and any remaining live private-access/withdrawn-category clause; then reconcile tracker.",
       "deliveryTask": 3,
       "acceptanceBatch": "events",
       "reviewedAtCommit": "d8a0ea2c",
