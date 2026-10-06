@@ -1108,3 +1108,14 @@ Reproduced16real-header failures:12Journal/Aster flattened slot ordering/duplica
 Native configured/published all4packs. Actual1440/335Website checks verify contact-left/announcement-right, Space theme toggle and reload persistence, CTA to/blog, Login Only hiding registration, and no mobile header overflow. Original appearance/pages/general/reading/locations/drafts exact; no content fixtures/backend deploy/target writes. Native Live/sign-out restored; API revoked401;56239/56328 cleaned/profile removed;7protected processes alive. No push. Report: ConvexPress-Admin/audits/2026-09-04/header-controls-20261006.md.
 
 NEXT:E09 signed-in display/presets and contextual click-to-edit; reuse E82–E89. UserMenu source consumes the config, but that is not fresh runtime acceptance. Bounded question for Claude: concrete remaining control mismatch with consumer and rendered repro, especially contextual field targeting. Codex remains in charge; goalactive117/20.
+
+
+## 2026-10-06 — E90 contextual picking repaired; audit48 adjudicated
+
+ACCEPT audit48 register consistency finding: E86–E89 classifications now say repaired and verified; issueType preserves the descriptive titles. Audit snapshot predates07b08732. No automatic scope expansion; Codex remains in charge.
+
+56 real-header target failures and filtered-field focus failure repaired. Live on-site use additionally proved the fixed panel intercepted right-side header clicks; picker now reveals whole page and restores panel/target focus, with Cancel/Escape.18 focused tests, types/build and changed-file lint pass. Existing whole-Website lint warnings remain separate. Actual four-pack local previews pass12theme/search/sign-in picks, repeat and cancellation, without triggering target actions. Screenshot/receipts/report: ConvexPress-Admin/audits/2026-09-04/customizer-targets-20261006.md.
+
+Published appearance,43pages,general/reading,menu locations and four drafts exact. No content/publish/backend writes. UI editing ended, API revoked/refresh401, Website57700 stopped, tab27 closed/viewport reset;7protected alive. No push.
+
+NEXT:E09 native/device iframe contextual picking and signed-in account display/presets; reuse E82–E90. Bounded Claude question: identify any remaining concrete selection/control mismatch with pack, source consumer and reproducible rendered action; separate missing evidence from broken behavior. Full goal active117Verified/20In progress.
