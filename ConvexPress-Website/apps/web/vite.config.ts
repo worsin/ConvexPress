@@ -1,3 +1,4 @@
+import { typeScale } from "./type-scale.mjs";
 import { canonicalBlockWatch } from "./canonical-block-watch.mjs";
 import fs from "node:fs";
 import path from "node:path";
@@ -54,6 +55,7 @@ export default defineConfig(() => {
       // bundle a second hook dispatcher beside external react-dom/server.
       dedupe: ["react", "react-dom", "zod"],
     },
+    css: { postcss: { plugins: [typeScale()] } },
     plugins: [
       canonicalBlockWatch({root:canonicalBlocksDir,discoveryId:path.join(appDir,"src/templates/sdk/block-renderer/discovery.ts")}),
       tsconfigPaths(),

@@ -7,7 +7,7 @@
     "In progress": 20
   },
   "goal": "Complete block editor and template delivery plus all demonstrated blockers; defer unrelated whole-app audit campaigns.",
-  "currentTask": "Task5 E79 catalog density repaired and native/four-pack16-state accepted; no published changes. E80 actual Type scale no-op confirmed (CSS changes, fonts unchanged); connect typography and verify native/pack rendering next. Remaining E09/E05, actual AI, final visual and Task8 gates stay open. Goal active117/20.",
+  "currentTask": "Task5 E80 Type scale repaired and native/four-pack catalog32 plus authored SDK16-state accepted; no published settings changes. Continue remaining E09 full Customizer and22Dashboard matrix, E05, actualAI, final visual and Task8 integration gates. Goal active117/20.",
   "tasks": [
     {
       "id": 1,
@@ -940,13 +940,14 @@
     },
     {
       "id": "E80",
-      "status": "Open: production preview changes --type-scale to0.94/1.06 but Core catalog heading stays30px and eyebrow11px. No source consumer exists.",
+      "status": "Closed: explicit typography consumes finite scale in Website/BlockDemo builds; native draft/reset, four-pack desktop/mobile catalogs and authored SDK typography accepted with unchanged root/layout and exact appearance preservation.",
       "classification": "missing implementation",
       "initialFinding": "Visible Type scale control changes an unused CSS variable rather than rendered typography.",
       "closureBoundary": "Connect typography scale to actual shared and pack-owned typography, preserve comfortable defaults and non-text layout, then verify native draft/reset and actual four-pack output.",
       "currentEvidence": [
         "output/customizer-density-20261006/type-scale-noop.json",
-        "ConvexPress-Admin/audits/2026-09-04/customizer-density-20261006.md"
+        "ConvexPress-Admin/audits/2026-09-04/customizer-density-20261006.md",
+        "ConvexPress-Admin/audits/2026-09-04/customizer-type-scale-20261006.md"
       ]
     }
   ],
@@ -4705,7 +4706,7 @@
   "coordination": {
     "folder": "/Users/worsin/Development/ConvexPress/Opus Audits/",
     "authority": "Codex leads; Claude audits are advisory and independently verified",
-    "lastAudit": "2026-10-05T2207-audit-40-task6-example-sites.md",
+    "lastAudit": "2026-10-06T0206-audit-44-progress.md",
     "pendingAdvisory": {
       "F19": "Accepted shared public document href contract. Historical encoded-slug fixture reproduced discrepancy; ordinary authoring slugifies safely. Legacy menu root/prefix behavior and membership aliases preserved. See locale-destinations-20260928.md.",
       "F20": "Source-verified enterprise commerce backfill truncation recorded in current-acceptance.md deferred register. No live reproduction or repair; promote only if catalog/customer-commerce delivery demonstrates a dependency.",

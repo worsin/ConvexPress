@@ -64,3 +64,12 @@ test("native and on-site Customizers expose the same installed module fields and
     expect(adminDefaultsFor(actual)).toEqual(defaultsFor(expected));
   }
 });
+
+
+test("type scale has finite values and an explicit comfortable reset", () => {
+  for (const [scale, factor] of [["compact", 0.94], ["comfortable", 1], ["spacious", 1.06], [undefined, 1], ["1;display:none", 1]]) {
+    const css = settingsCss({ typography: { scale } }).css;
+    expect(css).toContain(`--type-scale: ${factor};`);
+    expect(css).not.toContain("display:none");
+  }
+});

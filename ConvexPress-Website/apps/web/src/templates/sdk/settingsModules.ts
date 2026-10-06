@@ -33,8 +33,7 @@ export function settingsCss(values: Record<string, Record<string, unknown>>): { 
     if (display !== "Inter" && display !== body) fonts.push(display);
   }
   const scale = typography.scale;
-  if (scale === "compact") vars.push("--type-scale: 0.94;");
-  if (scale === "spacious") vars.push("--type-scale: 1.06;");
+  vars.push(`--type-scale: ${scale === "compact" ? 0.94 : scale === "spacious" ? 1.06 : 1};`);
   const layout = values.layout ?? {};
   if (typeof layout.radius === "string" && Object.hasOwn(RADIUS_VALUES, layout.radius)) vars.push(`--radius: ${RADIUS_VALUES[layout.radius]};`);
   if (typeof layout.contentWidth === "string" && Object.hasOwn(CONTENT_WIDTH_VALUES, layout.contentWidth)) vars.push(`--content-max-width: ${CONTENT_WIDTH_VALUES[layout.contentWidth]};`);

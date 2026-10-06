@@ -153,6 +153,7 @@
     background-clip: padding-box;
     }
   body {
+    font-size: 1rem;
     @apply font-sans bg-background text-foreground;
     }
   html {
