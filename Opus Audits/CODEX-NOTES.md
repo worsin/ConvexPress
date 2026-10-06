@@ -1088,3 +1088,13 @@ Four packs now honor Drawer/Fullscreen/Dropdown, side-specific drawers and visib
 Original appearance/menu inventory/locations restored;43pages/general/reading/drafts exact. Owned24-item menu removed through registered API. Native Live scope restored/signed out, API revoked/refresh401, final53307/54302 stopped/profile removed; earlier owned Website53449/53952 stopped;7protected processes alive. No backend deployment or push. Report: ConvexPress-Admin/audits/2026-09-04/mobile-menu-20261006.md.
 
 NEXT:E09 primary/secondary/custom menu-source/location and remaining header-control integration; reuse E82–E87 instead of redoing accepted matrices. Bounded Claude question: concrete remaining field/value mismatch with actual consumer and rendered repro, especially menu-source mapping. Codex remains in charge; full goal active117/20.
+
+## 2026-10-06 — E88 menu source routing and location integration
+
+Codex continues Task5 without waiting for audits. Audit47 remains latest; prior ACCEPT/ADAPT decisions unchanged, no new findings or automatic scope change.
+
+Core/Depot compact account shells hardcoded the primary header location. Six failing rendered shell cases led to shared selection across public marketing and all4compact shells.23source/missing/blank/footer cases pass;5focused tests, types/build and changed-file lint pass. Native publication verified12actualWebsite source cases across4packs, each desktop/mobile with independent footer links and working destination. Native Core swapped primary/secondary location mappings also verified on desktop/mobile. Account routing proof is at the real shell/hook boundary with controlled external sources, not a fresh signed-in browser lifecycle; prior dashboard evidence retained.
+
+Original appearance, menus, pages/general/reading/drafts restored or unchanged. Four fixture menus/items removed. Location assignments semantically restored; header/secondary/sidebar/footer-1 default rows remain materialized with IDs/timestamps, explicitly documented. Native Live/sign-out restored; API revoked/refresh401;55167/55344 stopped/profile removed;7protected processes alive. No backend deployment or push. Report: ConvexPress-Admin/audits/2026-09-04/header-menu-source-20261006.md.
+
+NEXT:E09 remaining top-bar/CTA/user/theme controls. Reuse E82–E88; do not repeat accepted matrices. Bounded Claude question: identify a remaining ignored field/value with pack, actual consumer and rendered mismatch; distinguish missing evidence from missing behavior. Codex retains authority; full goalactive117/20.
