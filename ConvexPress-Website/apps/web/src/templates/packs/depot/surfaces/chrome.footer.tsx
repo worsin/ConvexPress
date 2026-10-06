@@ -1,3 +1,4 @@
+import { footerMenuItems } from "@/components/menus/footerMenuItems";
 import { MenuItemTarget } from "@/components/menus/MenuItemTarget";
 /**
  * Depot · chrome.footer — a "back to top" bar, four link columns on a muted
@@ -134,7 +135,7 @@ function LinkColumns({ siteIdentity, siteTitle, footerConfig }: { siteIdentity: 
 
 function MenuColumn({ heading, location }: { heading: string; location: MenuLocation }) {
   const menu = useMenuForLocation(location);
-  const items = menu?.items.filter((item) => !item.isOrphaned) ?? [];
+  const items = footerMenuItems(menu?.items ?? []);
   if (items.length === 0) return null;
   return (
     <nav aria-label={heading} className="flex flex-col gap-2">
@@ -248,7 +249,7 @@ function BottomRow({ siteTitle, footerConfig, showFooterMenu }: { siteTitle: str
 /** The flat "footer" menu as the legal-links row. */
 function LegalLinks() {
   const menu = useMenuForLocation("footer");
-  const items = menu?.items.filter((item) => !item.isOrphaned) ?? [];
+  const items = footerMenuItems(menu?.items ?? []);
   if (items.length === 0) return null;
   return (
     <nav aria-label="Footer navigation">

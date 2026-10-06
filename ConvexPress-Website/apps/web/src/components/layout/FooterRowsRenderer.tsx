@@ -1,3 +1,4 @@
+import { footerMenuItems } from "@/components/menus/footerMenuItems";
 import { FooterCopyright } from "./FooterCopyright";
 import { MenuItemTarget } from "@/components/menus/MenuItemTarget";
 /**
@@ -236,7 +237,7 @@ function NavCellRenderer({ cell }: { cell: FooterNavCell }) {
     <>
       <CellHeading>{cell.heading || menu.name}</CellHeading>
       <ul className="flex flex-col gap-2">
-        {menu.items.map((item) => (
+        {footerMenuItems(menu.items).map((item) => (
           <NavItemLink key={item.id} item={item} />
         ))}
       </ul>

@@ -1,3 +1,4 @@
+import { footerMenuItems } from "@/components/menus/footerMenuItems";
 import { FooterCopyright } from "@/components/layout/FooterCopyright";
 import { MenuItemTarget } from "@/components/menus/MenuItemTarget";
 /**
@@ -218,7 +219,7 @@ function NavCell({ heading, location }: { heading?: string; location: string }) 
 }
 
 function MenuLinks({ items }: { items: ResolvedMenuItem[] }) {
-  const visible = items.filter((item) => !item.isOrphaned);
+  const visible = footerMenuItems(items);
   if (visible.length === 0) return null;
   return (
     <ul className="flex flex-col gap-1.5">
@@ -357,7 +358,7 @@ function FooterLocationLinks({ location, inline = false }: { location: string; i
   return (
     <nav data-slot="footer-nav" aria-label="Footer navigation">
       <ul className="flex flex-wrap items-center gap-x-6 gap-y-2">
-        {visible.map((item) => {
+        {footerMenuItems(visible).map((item) => {
           const props = { ...(item.target ? { target: item.target } : {}), ...(item.rel ? { rel: item.rel } : {}) };
           return (
             <li key={item.id}>

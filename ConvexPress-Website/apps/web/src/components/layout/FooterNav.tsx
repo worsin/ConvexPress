@@ -1,10 +1,11 @@
+import { footerMenuItems } from "@/components/menus/footerMenuItems";
 import { MenuItemTarget } from "@/components/menus/MenuItemTarget";
 
 import { useMenuForLocation } from "@/hooks/layout/useMenuForLocation";
 
 /**
  * Horizontal footer navigation links from the "footer" menu location.
- * Flat links only (no dropdowns in footer).
+ * All resolved descendants remain reachable without dropdowns.
  */
 export function FooterNav({ location = "footer", heading, column = false, fallback = false }: {
   location?: string;
@@ -18,7 +19,7 @@ export function FooterNav({ location = "footer", heading, column = false, fallba
 
   if (!footerMenu || footerMenu.items.length === 0) return null;
 
-  const visibleItems = footerMenu.items.filter((item) => !item.isOrphaned);
+  const visibleItems = footerMenuItems(footerMenu.items);
 
   if (visibleItems.length === 0) return null;
 
