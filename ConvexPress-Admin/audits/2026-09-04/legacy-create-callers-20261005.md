@@ -4,7 +4,7 @@ Removed the unused `createPost` and `createPage` wrappers from the native mutati
 
 Validation: Admin `bun run check-types` passed. Existing canonical route test passed (one top-level wrapper). `git diff --check` passed. No backend or installed-site mutation, new runtime acceptance, or full E07 closure is claimed for this deletion.
 
-## Remaining HTTP authoring boundary
+## HTTP authoring boundary — accepted in follow-up
 
 1. **Required workflow:** External API creates a post/page, reads its authored body and subsequently updates it; the result opens in native canonical editing and renders on the actual Website.
 2. **Evidence:** `convex/http/posts.ts` and `convex/http/pages.ts` call their domain `httpInternals.createInternal` functions. Both insert raw `content` without canonical blocks/version. Their GET DTOs still read `content`; UPDATE still builds legacy content patches. Native hooks are no longer callers of the generic public creation mutations.
@@ -13,3 +13,5 @@ Validation: Admin `bun run check-types` passed. Existing canonical route test pa
 5. **Exit check:** API-created post and nested page retain body/metadata through read, edit and stale-write refusal, then open in native canonical editing and render on the actual Website; failed conversion/authority checks leave no partial writes.
 
 Generic public create APIs, deliberate WordPress import, demo seeding and remaining stored legacy schema fields still require separate caller-aware retirement. No schema deletion is justified by this hook cleanup.
+
+The coordinated HTTP boundary above is accepted in [http-canonical-20261005.md](http-canonical-20261005.md), including its native/Website exit check on both sites. The generic create/import/demo/schema follow-up remains open.

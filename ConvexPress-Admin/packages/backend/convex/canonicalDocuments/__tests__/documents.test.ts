@@ -376,6 +376,9 @@ test("legacy block migration refuses unknown fields and stale settings reviews w
   }
 });
 const modules = {
+ "./convex/api/internals.ts":()=>import("../../api/internals"),
+ "./convex/posts/httpInternals.ts": () => import("../../posts/httpInternals"),
+ "./convex/pages/httpInternals.ts": () => import("../../pages/httpInternals"),
  "./convex/extensions/events/rsvp.ts":()=>import("../../extensions/events/rsvp"),
  "./convex/extensions/forms/polls.ts":()=>import("../../extensions/forms/polls"),
  "./convex/extensions/forms/mutations.ts":()=>import("../../extensions/forms/mutations"),
@@ -3021,4 +3024,382 @@ test("Quick Draft refuses invalid input, denied creation and unavailable present
  await expect(f.client.mutation(quick,{title:"Oversized",content:"x".repeat(1024*1024)})).rejects.toThrow();expect(await snapshot()).toEqual(before);
  await f.t.run(async ctx=>{const identity=await ctx.db.query("convexpress_siteIdentity").first();await ctx.db.delete("convexpress_siteIdentity",identity!._id);});
  await expect(f.client.mutation(quick,{title:"Unavailable site",content:"Text"})).rejects.toThrow();expect(await snapshot()).toEqual(before);
+});
+
+const httpTest = (name: string, run: () => Promise<void>) =>
+	test(name, async () => {
+		const previous = process.env.AUTH_ISSUER_URL;
+		try {
+			await run();
+		} finally {
+			if (previous === undefined) delete process.env.AUTH_ISSUER_URL;
+			else process.env.AUTH_ISSUER_URL = previous;
+		}
+	});
+
+async function apiFixture() {
+	const f = await fixture();
+	process.env.AUTH_ISSUER_URL = "https://fixture.convex.site";
+	const keyId = await f.t.run(async (ctx) => {
+		const user = (await ctx.db.get("users", f.ids.user))!;
+		await ctx.db.patch("roles", user.roleId!, {
+			capabilities: [
+				"post.create",
+				"page.create",
+				"post.update",
+				"page.update",
+				"post.publish",
+				"page.publish",
+				"page.set_parent",
+			],
+		});
+		return ctx.db.insert("apiKeys", {
+			name: "Disposable test key",
+			keyPrefix: "fixture",
+			keyHash: "fixture-not-a-secret",
+			environmentBinding: process.env.AUTH_ISSUER_URL,
+			userId: f.ids.user,
+			scopes: ["read:posts", "write:posts"],
+			status: "active",
+			rateLimitPerMinute: 60,
+			rateLimitPerHour: 1000,
+			requestCount: 0,
+			createdAt: 1,
+			updatedAt: 1,
+		});
+	});
+	return { ...f, keyId };
+}
+const httpRef = (type: "post" | "page", name: string) =>
+	makeFunctionReference<any, any, any>(
+		`${type === "page" ? "pages" : "posts"}/httpInternals:${name}`,
+	);
+for (const type of ["post", "page"] as const)
+	httpTest(
+		`HTTP ${type} canonical round trip and stale-write protection`,
+		async () => {
+			const f = await apiFixture(),
+				idKey = type === "post" ? "postId" : "pageId";
+			const id = await f.t.mutation(httpRef(type, "createInternal"), {
+				keyId: f.keyId,
+				title: "API draft",
+				content:
+					"<h2>Original heading</h2><p><strong>Original body</strong></p>",
+				excerpt: "Summary",
+			});
+			const read = () =>
+				f.t.query(httpRef(type, "getInternal"), {
+					keyId: f.keyId,
+					[idKey]: id,
+				});
+			const initial = await read();
+			expect(initial).toMatchObject({
+				_id: id,
+				title: "API draft",
+				blocksVersion: 2,
+				blocksRevision: 1,
+				excerpt: "Summary",
+			});
+			expect(JSON.stringify(initial.blocks)).toContain("Original body");
+			expect(JSON.stringify(initial.blocks)).toContain('"bold"');
+			expect(initial.content).toBeUndefined();
+			const blocks = [
+				{
+					id: "api-body",
+					name: "core/paragraph",
+					version: 2,
+					attrs: {
+						body: {
+							type: "doc",
+							content: [
+								{
+									type: "paragraph",
+									content: [{ type: "text", text: "Updated body" }],
+								},
+							],
+						},
+					},
+				},
+			];
+			await f.t.mutation(httpRef(type, "updateInternal"), {
+				keyId: f.keyId,
+				[idKey]: id,
+				expectedRevision: 1,
+				title: "Updated title",
+				blocks,
+				excerpt: "Updated summary",
+			});
+			expect(await read()).toMatchObject({
+				title: "Updated title",
+				blocks,
+				blocksRevision: 2,
+				excerpt: "Updated summary",
+			});
+			const snapshot = () =>
+				f.t.run(async (ctx) => ({
+					post: await ctx.db.get("posts", id),
+					history: await ctx.db.query("revisions").collect(),
+					events: await ctx.db.query("events").collect(),
+				}));
+			const before = await snapshot();
+			await expect(
+				f.t.mutation(httpRef(type, "updateInternal"), {
+					keyId: f.keyId,
+					[idKey]: id,
+					expectedRevision: 1,
+					content: "Stale write",
+				}),
+			).rejects.toMatchObject({ data: { code: "CONFLICT" } });
+			expect(await snapshot()).toEqual(before);
+			expect(before.history).toHaveLength(1);
+		expect(before.events.filter(event => event.code === `${type}.updated`)).toHaveLength(1);
+			await f.t.mutation(httpRef(type, "updateInternal"), {
+				keyId: f.keyId,
+				[idKey]: id,
+				expectedRevision: 2,
+				status: "publish",
+			});
+			expect(
+				(await f.t.query(reference("getForRender"), { postId: id })).document
+					.blocks,
+			).toEqual(blocks);
+		},
+	);
+for (const type of ["post", "page"] as const)
+	httpTest(
+		`HTTP ${type} invalid input and revoked authority leave no writes`,
+		async () => {
+			const f = await apiFixture();
+			const snapshot = () =>
+				f.t.run(async (ctx) => ({
+					posts: await ctx.db.query("posts").collect(),
+					events: await ctx.db.query("events").collect(),
+				}));
+			const before = await snapshot();
+			for (const input of [
+				{ content: '{"unfinished":true}' },
+				{ content: "text", blocks: [] },
+				{ status: "future" },
+				{
+					blocks: [{ id: "bad", name: "missing/block", version: 1, attrs: {} }],
+				},
+			]) {
+				await expect(
+					f.t.mutation(httpRef(type, "createInternal"), {
+						keyId: f.keyId,
+						title: "Refused",
+						...input,
+					}),
+				).rejects.toThrow();
+				expect(await snapshot()).toEqual(before);
+			}
+			for (const patch of [
+				{ status: "revoked" as const },
+				{
+					status: "active" as const,
+					scopes: ["read:posts"] as ("read:posts" | "write:posts")[],
+				},
+				{
+					status: "active" as const,
+					scopes: ["read:posts", "write:posts"] as (
+						| "read:posts"
+						| "write:posts"
+					)[],
+					environmentBinding: "https://other.convex.site",
+				},
+			]) {
+				await f.t.run((ctx) => ctx.db.patch("apiKeys", f.keyId, patch));
+				await expect(
+					f.t.mutation(httpRef(type, "createInternal"), {
+						keyId: f.keyId,
+						title: "Denied",
+					}),
+				).rejects.toMatchObject({ data: { code: "FORBIDDEN" } });
+				expect(await snapshot()).toEqual(before);
+			}
+		},
+	);
+httpTest(
+	"HTTP page hierarchy moves preserve descendants and refuse cycles",
+	async () => {
+		const f = await apiFixture(),
+			create = (title: string, parentId?: string) =>
+				f.t.mutation(httpRef("page", "createInternal"), {
+					keyId: f.keyId,
+					title,
+					...(parentId ? { parentId } : {}),
+				});
+		const parent = await create("Parent"),
+			child = await create("Child", parent),
+			leaf = await create("Leaf", child),
+			other = await create("Other");
+		const read = (pageId: string) =>
+			f.t.query(httpRef("page", "getInternal"), { keyId: f.keyId, pageId });
+		expect(await read(child)).toMatchObject({
+			path: "/parent/child",
+			depth: 1,
+		});
+		await f.t.mutation(httpRef("page", "updateInternal"), {
+			keyId: f.keyId,
+			pageId: child,
+			expectedRevision: 1,
+			parentId: other,
+			slug: "renamed",
+		});
+		expect(await read(child)).toMatchObject({
+			path: "/other/renamed",
+			depth: 1,
+			parentId: other,
+			blocksRevision: 2,
+		});
+		expect(await read(leaf)).toMatchObject({
+			path: "/other/renamed/leaf",
+			depth: 2,
+		});
+		const before = await f.t.run((ctx) => ctx.db.query("posts").collect());
+		await expect(
+			f.t.mutation(httpRef("page", "updateInternal"), {
+				keyId: f.keyId,
+				pageId: other,
+				expectedRevision: 1,
+				parentId: leaf,
+			}),
+		).rejects.toThrow();
+		expect(await f.t.run((ctx) => ctx.db.query("posts").collect())).toEqual(
+			before,
+		);
+	},
+);
+
+for (const type of ["post", "page"] as const)
+	httpTest(
+		`HTTP ${type} real handlers preserve canonical DTO and response codes`,
+		async () => {
+			const f = await apiFixture(),
+				token = "shk_" + "a".repeat(44);
+			const { sha256Hash } = await import("../../api/crypto_helpers");
+			await f.t.run(async (ctx) =>
+				ctx.db.patch("apiKeys", f.keyId, { keyHash: await sha256Hash(token) }),
+			);
+			const handlers =
+				type === "post"
+					? await import("../../http/posts")
+					: await import("../../http/pages");
+			const ctx = {
+				runMutation: (ref: any, args: any) => f.t.mutation(ref, args),
+				runQuery: (ref: any, args: any) => f.t.query(ref, args),
+			};
+			const request = async (
+				verb: "Create" | "Get" | "Update",
+				id = "",
+				body?: unknown,
+			) => {
+				const handler = (handlers as any)[`${type}s${verb}Handler`];
+				const response: Response = await handler._handler(
+					ctx,
+					new Request(
+						`https://fixture.convex.site/api/v1/${type}s${id ? "/" + id : ""}`,
+						{
+							method:
+								verb === "Create" ? "POST" : verb === "Get" ? "GET" : "PUT",
+							headers: {
+								Authorization: `Bearer ${token}`,
+								"Content-Type": "application/json",
+							},
+							...(body === undefined ? {} : { body: JSON.stringify(body) }),
+						},
+					),
+				);
+				return { status: response.status, body: await response.json() };
+			};
+			const created = await request("Create", "", {
+				title: "HTTP authored",
+				content: "First line\n\nFinal line",
+			});
+			expect(created.status).toBe(201);
+			expect(created.body).toMatchObject({
+				blocks_version: 2,
+				blocks_revision: 1,
+			});
+			const id = created.body.id,
+				read = await request("Get", id);
+			expect(read.status).toBe(200);
+			expect(read.body).toMatchObject({
+				blocks_version: 2,
+				blocks_revision: 1,
+			});
+			expect(JSON.stringify(read.body.blocks)).toContain("hardBreak");
+			expect(read.body.content).toBeUndefined();
+			expect(
+				(await request("Update", id, { title: "No revision" })).status,
+			).toBe(428);
+			const updated = await request("Update", id, {
+				expected_revision: 1,
+				content: "Accepted edit",
+			});
+			expect(updated.status).toBe(200);
+			expect(updated.body).toMatchObject({ updated: true, blocks_revision: 2 });
+			expect(
+				(
+					await request("Update", id, {
+						expected_revision: 1,
+						content: "Stale edit",
+					})
+				).status,
+			).toBe(409);
+			expect(
+				(await request("Create", "", { title: "Bad", content: 23 })).status,
+			).toBe(400);
+			await f.t.run((ctx) =>
+				ctx.db.patch("apiKeys", f.keyId, { status: "revoked" }),
+			);
+			expect((await request("Get", id)).status).toBe(401);
+		},
+	);
+httpTest(
+	"HTTP writes require current owner capability and preserve other authors' drafts",
+	async () => {
+		const f = await apiFixture();
+		const id = await f.t.mutation(httpRef("post", "createInternal"), {
+			keyId: f.keyId,
+			title: "Owned",
+			content: "Body",
+		});
+		const user = (await f.t.run((ctx) => ctx.db.get("users", f.ids.user)))!;
+		await f.t.run((ctx) => ctx.db.patch("roles", user.roleId!, { level: 40 }));
+		await f.t.run((ctx) =>
+			ctx.db.patch("posts", id, { authorId: f.ids.denied }),
+		);
+		expect(
+			await f.t.query(httpRef("post", "getInternal"), {
+				keyId: f.keyId,
+				postId: id,
+			}),
+		).toBeNull();
+		const original = await f.t.run((ctx) => ctx.db.get("posts", id));
+		await expect(
+			f.t.mutation(httpRef("post", "updateInternal"), {
+				keyId: f.keyId,
+				postId: id,
+				expectedRevision: 1,
+				content: "Forbidden",
+			}),
+		).rejects.toMatchObject({ data: { code: "FORBIDDEN" } });
+		await f.t.run((ctx) =>
+			ctx.db.patch("roles", user.roleId!, { capabilities: [] }),
+		);
+		await expect(
+			f.t.mutation(httpRef("post", "createInternal"), {
+				keyId: f.keyId,
+				title: "Denied",
+			}),
+		).rejects.toMatchObject({ data: { code: "FORBIDDEN" } });
+		expect(await f.t.run((ctx) => ctx.db.get("posts", id))).toEqual(original);
+	},
+);
+
+for(const type of ["post","page"] as const) httpTest(`HTTP ${type} new draft enforces action authoring validation`,async()=>{
+ const f=await apiFixture();const before=await f.t.run(ctx=>ctx.db.query("posts").collect());
+ await expect(f.t.mutation(httpRef(type,"createInternal"),{keyId:f.keyId,title:"Invalid action",blocks:[{id:"unsafe-cta",name:"blocks/promo-band",version:1,attrs:{primaryCtaUrl:"javascript:alert(1)",primaryCtaLabel:"Open"}}]})).rejects.toMatchObject({data:{code:"INVALID_CANONICAL_DOCUMENT"}});
+ expect(await f.t.run(ctx=>ctx.db.query("posts").collect())).toEqual(before);
 });

@@ -1,3 +1,7 @@
+## October 5 — HTTP canonical authoring accepted
+
+Both isolated sites pass API create/read/update, revision conflict refusal, native post/page Save/reload, actual Website 335px preview and API readback at revision3. Working168 focused tests; preserved source162/target132; types/deploy/contracts/writer checks pass. Target missing20 CTA rules and structured-error boundary corrected with bounded backports. Six owned documents/history/private drafts cleaned; original145 documents/522 revisions, appearance/mail and original keys exact; owned keys/sessions revoked and runtimes stopped. E07 and full delivery remain open,117Verified/20In progress unchanged. [Evidence and next deployment bases](http-canonical-20261005.md).
+
 ## September29 Lead Magnet customer lifecycle accepted
 
 Tracker117Verified/20In progress, all137Notes/unrelated cells exact. Two real Clerk customers, cross-account retry refusal, deactivated-account delivery refusal, same-cookie/explicit-proof target refusal and exact308-byte downloads pass. E61 repairs known-expired request reuse: natural15-minute expiry followed by one-click fresh lease succeeds; uncertain retries retain identity.11lifecycle cases/33assertions, Website types/build/lint pass. Owned fixtures/identities cleaned; original42source/28target pages and99queue exact. [Evidence and limits](lead-customer-20260929.md). E22 screenshot mapping progressed separately; centralized-test mapping/Tasks4–8/E18/E28 remain open.

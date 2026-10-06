@@ -116,7 +116,11 @@ test('reparenting cannot move a descendant into a configured dashboard and leave
 });
 test('REST internal create follows the same reserved route policy', async () => {
  const {t,authorId}=await fixture();
- await expect(t.mutation(internal.pages.httpInternals.createInternal,{title:'Login',slug:'login',authorId})).rejects.toThrow('built-in website route');
+ const previous=process.env.AUTH_ISSUER_URL;process.env.AUTH_ISSUER_URL='https://fixture.convex.site';
+ try {
+ const keyId=await t.run(ctx=>ctx.db.insert('apiKeys',{name:'Route fixture',keyPrefix:'fixture',keyHash:'fixture',userId:authorId,environmentBinding:process.env.AUTH_ISSUER_URL,scopes:['write:posts'],status:'active',rateLimitPerMinute:60,rateLimitPerHour:1000,requestCount:0,createdAt:1,updatedAt:1}));
+ await expect(t.mutation(internal.pages.httpInternals.createInternal,{title:'Login',slug:'login',keyId})).rejects.toThrow('built-in website route');
+ } finally { if(previous===undefined)delete process.env.AUTH_ISSUER_URL;else process.env.AUTH_ISSUER_URL=previous; }
 });
 test('both explicit reparent and drag reorder reject a new root collision', async () => {
  const {t,editor,authorId}=await fixture();

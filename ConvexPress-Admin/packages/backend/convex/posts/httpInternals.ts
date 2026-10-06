@@ -1,3 +1,5 @@
+import { canonicalBoundary, createApiDocument, updateApiDocument, readApiDocument } from "../canonicalDocuments/service";
+import { apiDocumentInput, apiPageInput, apiDocumentRead } from "../canonicalDocuments/apiValidators";
 /**
  * Post System - HTTP API Internal Functions
  *
@@ -16,7 +18,7 @@
  *   trashInternal         - Trash post via HTTP API
  */
 
-import { insertWithMediaReferences, patchWithMediaReferences } from "../media/attachmentGuard";
+import { patchWithMediaReferences } from "../media/attachmentGuard";
 import { readPublicContent, publicContentAuthor } from "../helpers/publicContent";
 import { internalMutation, internalQuery } from "../_generated/server";
 import { internal } from "../_generated/api";
@@ -25,7 +27,7 @@ import { emitEvent } from "../helpers/events";
 import { POST_EVENTS, SYSTEM } from "../events/constants";
 
 /** Valid post status values */
-type PostStatus = "auto-draft" | "draft" | "pending" | "publish" | "future" | "private" | "trash";
+
 
 /** User record with profile fields that may be merged */
 interface UserWithProfile {
@@ -97,138 +99,23 @@ export const listPublishedInternal = internalQuery({
  * No auth required - caller handles API key auth.
  */
 export const getInternal = internalQuery({
-  args: { postId: v.id("posts") },
-  handler: async (ctx, args) => {
-    const post = await ctx.db.get("posts", args.postId);
-    if (!post || post.type !== "post") return null;
-    const data = await readPublicContent(ctx, post);
-    return data ? { ...data, author: await publicContentAuthor(ctx, post) } : null;
-  },
+ args:{postId:v.id("posts"),keyId:v.id("apiKeys")},
+ returns:apiDocumentRead,
+ handler:(ctx,args)=>canonicalBoundary(()=>readApiDocument(ctx,"post",args.postId,args.keyId)),
 });
 
-/**
- * Internal version of create for HTTP API.
- * Authentication is handled by the HTTP handler via API key.
- * This function performs the database operations without client-side auth checks.
- */
 export const createInternal = internalMutation({
-  args: {
-    title: v.string(),
-    content: v.optional(v.string()),
-    excerpt: v.optional(v.string()),
-    status: v.optional(v.string()),
-    slug: v.optional(v.string()),
-    authorId: v.id("users"),
-  },
-  handler: async (ctx, args) => {
-    const now = Date.now();
-    const status = args.status ?? "draft";
-
-    // Generate slug from title
-    const baseSlug = (args.slug || args.title || "post")
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/^-|-$/g, "")
-      .slice(0, 200) || "post";
-
-    // Check for slug uniqueness and append suffix if needed
-    let slug = baseSlug;
-    let suffix = 0;
-    while (true) {
-      const candidate = suffix === 0 ? slug : `${slug}-${suffix}`;
-      const existing = await ctx.db
-        .query("posts")
-        .withIndex("by_slug", (q) => q.eq("slug", candidate).eq("type", "post"))
-        .first();
-      if (!existing) {
-        slug = candidate;
-        break;
-      }
-      suffix++;
-      if (suffix > 100) {
-        slug = `${baseSlug}-${now}`;
-        break;
-      }
-    }
-
-    const postId: import("../_generated/dataModel").Id<"posts"> = await insertWithMediaReferences<"posts">(ctx, "posts", {
-      type: "post",
-      title: args.title,
-      slug,
-      content: args.content ?? "",
-      excerpt: args.excerpt,
-      status: status as PostStatus,
-      visibility: "public",
-      authorId: args.authorId,
-      commentStatus: "open",
-      commentCount: 0,
-      isSticky: false,
-      publishedAt: status === "publish" ? now : undefined,
-      createdAt: now,
-      updatedAt: now,
-    });
-
-    // Emit event
-    await emitEvent(ctx, POST_EVENTS.CREATED, SYSTEM.POST, {
-      postId,
-      title: args.title,
-      authorId: args.authorId,
-      postType: "post",
-      status,
-    });
-
-    return postId;
-  },
+ args: {...apiDocumentInput,title:v.string()},
+ returns:v.id("posts"),
+ handler:(ctx,args)=>canonicalBoundary(()=>createApiDocument(ctx,"post",args)),
 });
 
-/**
- * Internal version of update for HTTP API.
- */
 export const updateInternal = internalMutation({
-  args: {
-    postId: v.id("posts"),
-    title: v.optional(v.string()),
-    content: v.optional(v.string()),
-    excerpt: v.optional(v.string()),
-    status: v.optional(v.string()),
-    slug: v.optional(v.string()),
-  },
-  handler: async (ctx, args) => {
-    const post = await ctx.db.get("posts", args.postId);
-    if (!post) {
-      throw new Error("Post not found");
-    }
-
-    const now = Date.now();
-    const patch: Record<string, unknown> = { updatedAt: now };
-
-    if (args.title !== undefined) patch.title = args.title;
-    if (args.content !== undefined) patch.content = args.content;
-    if (args.excerpt !== undefined) patch.excerpt = args.excerpt;
-    if (args.status !== undefined) {
-      patch.status = args.status;
-      if (args.status === "publish" && !post.publishedAt) {
-        patch.publishedAt = now;
-      }
-    }
-    if (args.slug !== undefined) patch.slug = args.slug;
-
-    await patchWithMediaReferences<"posts">(ctx, "posts", args.postId, patch);
-
-    await emitEvent(ctx, POST_EVENTS.UPDATED, SYSTEM.POST, {
-      postId: args.postId,
-      title: (patch.title as string) ?? post.title,
-      authorId: post.authorId,
-      changes: Object.keys(patch).filter((k) => k !== "updatedAt"),
-    });
-
-    return args.postId;
-  },
+ args: {...apiDocumentInput,postId:v.id("posts"),expectedRevision:v.number()},
+ returns:v.object({postId:v.id("posts"),revision:v.number(),digest:v.string(),changed:v.boolean()}),
+ handler:(ctx,args)=>canonicalBoundary(()=>updateApiDocument(ctx,"post",{...args,postId:args.postId})),
 });
 
-/**
- * Internal version of trash for HTTP API.
- */
 export const trashInternal = internalMutation({
   args: {
     postId: v.id("posts"),

@@ -1,4 +1,5 @@
-import { assertPagePathAvailable, assertPageTreePathAvailable } from "../helpers/pageRouteGuard";
+import { canonicalBoundary, createApiDocument, updateApiDocument, readApiDocument } from "../canonicalDocuments/service";
+import { apiDocumentInput, apiPageInput, apiDocumentRead } from "../canonicalDocuments/apiValidators";
 /**
  * Page System - HTTP API Internal Functions
  *
@@ -19,15 +20,14 @@ import { assertPagePathAvailable, assertPageTreePathAvailable } from "../helpers
 
 import { readPublicContent, canDiscoverContent } from "../helpers/publicContent";
 import { internalMutation, internalQuery } from "../_generated/server";
-import type { MutationCtx } from "../_generated/server";
 import { v } from "convex/values";
 
 /** Valid post status values */
-type PostStatus = "auto-draft" | "draft" | "pending" | "publish" | "future" | "private" | "trash";
+
 import { emitEvent } from "../helpers/events";
 import { PAGE_EVENTS, SYSTEM } from "../events/constants";
 import type { Id } from "../_generated/dataModel";
-import { insertWithMediaReferences, patchWithMediaReferences } from "../media/attachmentGuard";
+import { patchWithMediaReferences } from "../media/attachmentGuard";
 
 /**
  * Internal version of listPublished for HTTP API.
@@ -93,284 +93,23 @@ export const listPublishedInternal = internalQuery({
  * No auth required - caller handles API key auth.
  */
 export const getInternal = internalQuery({
-  args: {
-    pageId: v.id("posts"),
-  },
-  handler: async (ctx, args) => {
-    const page = await ctx.db.get("posts", args.pageId);
-    if (!page || page.type !== "page") return null;
-    const data = await readPublicContent(ctx, page);
-    if (!data) return null;
-
-    // Enrich with parent info
-    let parentInfo = null;
-    if (page.parentId) {
-      const parent = await ctx.db.get("posts", page.parentId as Id<"posts">);
-      if (parent && parent.type === "page" && await canDiscoverContent(ctx, parent)) {
-        parentInfo = {
-          _id: parent._id,
-          title: parent.title,
-          slug: parent.slug,
-          path: parent.path,
-        };
-      }
-    }
-
-    // Fetch direct children
-    const childrenQuery = await ctx.db
-      .query("posts")
-      .withIndex("by_type_parent", (q) =>
-        q.eq("type", "page").eq("parentId", page._id),
-      )
-      .collect();
-
-    const visibleChildren = [];
-    for (const child of childrenQuery) {
-      if (await canDiscoverContent(ctx, child)) visibleChildren.push(child);
-    }
-    const children = visibleChildren
-      .filter((c) => c.status === "publish")
-      .sort((a, b) =>
-        ((a.menuOrder as number) ?? 0) - ((b.menuOrder as number) ?? 0),
-      )
-      .map((c) => ({
-        _id: c._id,
-        title: c.title,
-        slug: c.slug,
-        status: c.status,
-        menuOrder: c.menuOrder,
-        path: c.path,
-      }));
-
-    return {
-      ...data,
-      isPasswordProtected: page.visibility === "password",
-      parent: parentInfo,
-      children,
-    };
-  },
+ args:{pageId:v.id("posts"),keyId:v.id("apiKeys")},
+ returns:apiDocumentRead,
+ handler:(ctx,args)=>canonicalBoundary(()=>readApiDocument(ctx,"page",args.pageId,args.keyId)),
 });
 
-/**
- * Slugify a string for URL-safe page slugs.
- */
-function slugify(str: string): string {
-  return str
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-|-$/g, "")
-    .slice(0, 200) || "page";
-}
-
-/**
- * Generate a unique slug for a page.
- */
-async function generateUniqueSlug(
-  ctx: MutationCtx,
-  baseSlug: string,
-  excludeId?: Id<"posts">,
-): Promise<string> {
-  let slug = baseSlug;
-  let suffix = 0;
-  while (true) {
-    const candidate = suffix === 0 ? slug : `${slug}-${suffix}`;
-    const existing = await ctx.db
-      .query("posts")
-      .withIndex("by_type_slug", (q) =>
-        q.eq("type", "page").eq("slug", candidate),
-      )
-      .unique();
-    if (!existing || (excludeId && existing._id === excludeId)) {
-      return candidate;
-    }
-    suffix++;
-    if (suffix > 100) {
-      return `${baseSlug}-${Date.now()}`;
-    }
-  }
-}
-
-/**
- * Compute the full URL path for a page based on its parent chain.
- */
-async function computePagePath(
-  ctx: MutationCtx,
-  slug: string,
-  parentId?: Id<"posts">,
-): Promise<string> {
-  if (!parentId) return `/${slug}`;
-
-  const parent = await ctx.db.get("posts", parentId);
-  if (!parent || parent.type !== "page") return `/${slug}`;
-
-  const parentPath = (parent.path as string) ?? `/${parent.slug}`;
-  return `${parentPath}/${slug}`;
-}
-
-/**
- * Internal version of create for HTTP API.
- */
 export const createInternal = internalMutation({
-  args: {
-    title: v.string(),
-    content: v.optional(v.string()),
-    excerpt: v.optional(v.string()),
-    status: v.optional(v.string()),
-    slug: v.optional(v.string()),
-    parentId: v.optional(v.id("posts")),
-    menuOrder: v.optional(v.number()),
-    pageTemplate: v.optional(v.string()),
-    authorId: v.id("users"),
-  },
-  handler: async (ctx, args) => {
-    const now = Date.now();
-    const status = args.status ?? "draft";
-
-    // Generate slug
-    const baseSlug = args.slug ? slugify(args.slug) : slugify(args.title || "page");
-    await assertPagePathAvailable(ctx, await computePagePath(ctx, baseSlug, args.parentId));
-    const slug = await generateUniqueSlug(ctx, baseSlug);
-
-    // Compute path
-    const path = await computePagePath(ctx, slug, args.parentId);
-    await assertPagePathAvailable(ctx, path);
-
-    // Compute depth
-    let depth = 0;
-    if (args.parentId) {
-      const parent = await ctx.db.get("posts", args.parentId);
-      if (parent) {
-        depth = ((parent.depth as number) ?? 0) + 1;
-      }
-    }
-
-    const pageId: import("../_generated/dataModel").Id<"posts"> = await insertWithMediaReferences<"posts">(ctx, "posts", {
-      type: "page",
-      title: args.title,
-      slug,
-      content: args.content ?? "",
-      excerpt: args.excerpt,
-      status: status as PostStatus,
-      visibility: "public",
-      authorId: args.authorId,
-      commentStatus: "closed",
-      parentId: args.parentId,
-      menuOrder: args.menuOrder ?? 0,
-      pageTemplate: args.pageTemplate ?? "default",
-      path,
-      depth,
-      publishedAt: status === "publish" ? now : undefined,
-      createdAt: now,
-      updatedAt: now,
-    });
-
-    // Emit event
-    await emitEvent(ctx, PAGE_EVENTS.CREATED, SYSTEM.PAGE, {
-      pageId,
-      title: args.title,
-      authorId: args.authorId,
-    });
-
-    return pageId;
-  },
+ args: {...apiDocumentInput,...apiPageInput,title:v.string()},
+ returns:v.id("posts"),
+ handler:(ctx,args)=>canonicalBoundary(()=>createApiDocument(ctx,"page",args)),
 });
 
-/**
- * Internal version of update for HTTP API.
- */
 export const updateInternal = internalMutation({
-  args: {
-    pageId: v.id("posts"),
-    title: v.optional(v.string()),
-    content: v.optional(v.string()),
-    excerpt: v.optional(v.string()),
-    status: v.optional(v.string()),
-    slug: v.optional(v.string()),
-    parentId: v.optional(v.id("posts")),
-    menuOrder: v.optional(v.number()),
-    pageTemplate: v.optional(v.string()),
-    visibility: v.optional(v.string()),
-    password: v.optional(v.string()),
-    commentStatus: v.optional(v.string()),
-  },
-  handler: async (ctx, args) => {
-    const page = await ctx.db.get("posts", args.pageId);
-    if (!page || page.type !== "page") {
-      throw new Error("Page not found");
-    }
-
-    const now = Date.now();
-    const patch: Record<string, unknown> = { updatedAt: now };
-    const changes: string[] = [];
-
-    if (args.title !== undefined && args.title !== page.title) {
-      patch.title = args.title;
-      changes.push("title");
-    }
-    if (args.content !== undefined && args.content !== page.content) {
-      patch.content = args.content;
-      changes.push("content");
-    }
-    if (args.excerpt !== undefined && args.excerpt !== page.excerpt) {
-      patch.excerpt = args.excerpt;
-      changes.push("excerpt");
-    }
-    if (args.status !== undefined && args.status !== page.status) {
-      patch.status = args.status;
-      if (args.status === "publish" && !page.publishedAt) {
-        patch.publishedAt = now;
-      }
-      changes.push("status");
-    }
-    if (args.slug !== undefined && args.slug !== page.slug) {
-      await assertPagePathAvailable(ctx, await computePagePath(ctx, slugify(args.slug), page.parentId), page.path ?? `/${page.slug}`);
-      const newSlug = await generateUniqueSlug(ctx, slugify(args.slug), args.pageId);
-      patch.slug = newSlug;
-      // Recompute path
-      patch.path = await computePagePath(ctx, newSlug, page.parentId as Id<"posts"> | undefined);
-      await assertPageTreePathAvailable(ctx, args.pageId, patch.path as string, page.path ?? `/${page.slug}`);
-      changes.push("slug");
-    }
-    if (args.menuOrder !== undefined && args.menuOrder !== page.menuOrder) {
-      patch.menuOrder = args.menuOrder;
-      changes.push("menuOrder");
-    }
-    if (args.pageTemplate !== undefined && args.pageTemplate !== page.pageTemplate) {
-      patch.pageTemplate = args.pageTemplate;
-      changes.push("template");
-    }
-    if (args.visibility !== undefined && args.visibility !== page.visibility) {
-      patch.visibility = args.visibility;
-      if (args.visibility === "password") {
-        patch.password = args.password;
-      } else {
-        patch.password = undefined;
-      }
-      changes.push("visibility");
-    }
-    if (args.commentStatus !== undefined) {
-      patch.commentStatus = args.commentStatus;
-      changes.push("commentStatus");
-    }
-
-    if (changes.length > 0) {
-      await patchWithMediaReferences<"posts">(ctx, "posts", args.pageId, patch);
-
-      await emitEvent(ctx, PAGE_EVENTS.UPDATED, SYSTEM.PAGE, {
-        pageId: args.pageId,
-        title: (patch.title as string) ?? page.title,
-        authorId: page.authorId,
-        changes,
-      });
-    }
-
-    return args.pageId;
-  },
+ args: {...apiDocumentInput,...apiPageInput,pageId:v.id("posts"),expectedRevision:v.number()},
+ returns:v.object({postId:v.id("posts"),revision:v.number(),digest:v.string(),changed:v.boolean()}),
+ handler:(ctx,args)=>canonicalBoundary(()=>updateApiDocument(ctx,"page",{...args,postId:args.pageId})),
 });
 
-/**
- * Internal version of trash for HTTP API.
- */
 export const trashInternal = internalMutation({
   args: {
     pageId: v.id("posts"),

@@ -1,3 +1,4 @@
+import { canonicalHttpInput, canonicalHttpRevision, canonicalHttpError } from "./canonicalInput";
 /**
  * Posts API Endpoints
  *
@@ -36,6 +37,9 @@ type ApiPostRecord = {
   slug?: string;
   status?: string;
   content?: string;
+  blocks?: unknown;
+  blocksVersion?: number;
+  blocksRevision?: number;
   excerpt?: string;
   author?: ApiAuthorRecord | null;
   featuredImageUrl?: string;
@@ -97,6 +101,7 @@ export const postsGetHandler = httpAction(async (ctx, request) => {
   try {
     const post = (await ctx.runQuery(internal.posts.httpInternals.getInternal, {
       postId: asId<"posts">(id),
+      keyId: asId<"apiKeys">(auth.keyId),
     })) as ApiPostRecord | null;
 
     if (!post) {
@@ -108,7 +113,7 @@ export const postsGetHandler = httpAction(async (ctx, request) => {
       title: post.title ?? "",
       slug: post.slug ?? "",
       status: post.status ?? "draft",
-      content: post.content ?? "",
+      ...(post.blocksVersion===2 ? {blocks:post.blocks,blocks_version:2,blocks_revision:post.blocksRevision} : {content:post.content??""}),
       excerpt: post.excerpt ?? "",
       author: post.author
         ? { id: post.author._id, display_name: post.author.displayName ?? "" }
@@ -118,8 +123,8 @@ export const postsGetHandler = httpAction(async (ctx, request) => {
       updated_at: post.updatedAt ? toISOString(post.updatedAt) : null,
       published_at: post.publishedAt ? toISOString(post.publishedAt) : null,
     });
-  } catch {
-    return errorResponse("Post not found", "NOT_FOUND", 404);
+  } catch (error) {
+    return canonicalHttpError(error,"Failed to read post");
   }
 });
 
@@ -137,19 +142,12 @@ export const postsCreateHandler = httpAction(async (ctx, request) => {
   }
 
   try {
-    const result = await ctx.runMutation(internal.posts.httpInternals.createInternal, {
-      title: body.title,
-      content: (body.content as string) ?? "",
-      excerpt: (body.excerpt as string) ?? "",
-      status: (body.status as string) ?? "draft",
-      slug: (body.slug as string) ?? undefined,
-      authorId: asId<"users">(auth.userId), // H-17: Pass authenticated user ID
-    });
+    const input=canonicalHttpInput(body,auth.keyId,false);
+    const result = await ctx.runMutation(internal.posts.httpInternals.createInternal, {...input,title:body.title});
 
-    return jsonResponse({ id: result, title: body.title }, 201);
+    return jsonResponse({ id: result, title: body.title, blocks_version:2, blocks_revision:1 }, 201);
   } catch (error: unknown) {
-    const message = getHttpErrorMessage(error, "Failed to create post");
-    return errorResponse(message, getHttpErrorCode(error, "SERVER_ERROR"), 500);
+    return canonicalHttpError(error,"Failed to create post");
   }
 });
 
@@ -169,25 +167,11 @@ export const postsUpdateHandler = httpAction(async (ctx, request) => {
   }
 
   try {
-    const args: {
-      postId: Id<"posts">;
-      title?: string;
-      content?: string;
-      excerpt?: string;
-      status?: string;
-      slug?: string;
-    } = { postId: asId<"posts">(id) };
-    if (body.title !== undefined) args.title = body.title as string;
-    if (body.content !== undefined) args.content = body.content as string;
-    if (body.excerpt !== undefined) args.excerpt = body.excerpt as string;
-    if (body.status !== undefined) args.status = body.status as string;
-    if (body.slug !== undefined) args.slug = body.slug as string;
-
-    await ctx.runMutation(internal.posts.httpInternals.updateInternal, args);
-    return jsonResponse({ id, updated: true });
+    const args = {...canonicalHttpInput(body,auth.keyId,false),postId:asId<"posts">(id),expectedRevision:canonicalHttpRevision(body)};
+    const receipt=await ctx.runMutation(internal.posts.httpInternals.updateInternal, args);
+    return jsonResponse({ id, updated: receipt.changed, blocks_version:2, blocks_revision:receipt.revision, digest:receipt.digest });
   } catch (error: unknown) {
-    const message = getHttpErrorMessage(error, "Failed to update post");
-    return errorResponse(message, getHttpErrorCode(error, "SERVER_ERROR"), 500);
+    return canonicalHttpError(error,"Failed to update post");
   }
 });
 

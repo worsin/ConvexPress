@@ -23,7 +23,7 @@ import type {
 import type { Doc, Id } from "../_generated/dataModel";
 import type { QueryCtx, MutationCtx } from "../_generated/server";
 import { requireAuth, requireCan } from "../helpers/permissions";
-import { canEditContent, canDiscoverContent, readPublicContent } from "../helpers/publicContent";
+import { canEditContent, canDiscoverContent, readPublicContent, publicContentAuthor } from "../helpers/publicContent";
 import { RequestReadLedger } from "../helpers/requestReadLedger";
 import { enabledPluginIds } from "../helpers/plugins";
 import {
@@ -1263,4 +1263,500 @@ export async function mailingListOptions(ctx:QueryCtx,args: CanonicalOptionsArgs
  budget.beforeRead();
  const result=chargePage(await ctx.db.query("mailingLists").withIndex("by_installation_status_name",q=>q.eq("websiteKey",identity.websiteKey).eq("instanceKey",identity.instanceKey).eq("status","active")).paginate(opts),budget);
  return canonicalMailingListOptionsSchema.parse({...result,page:result.page.map(list=>({id:list._id,name:list.name}))});
+}
+
+
+// API-key authoring shares canonical validation, history, media and publication.
+// Only the caller's authority is different from a native interactive session.
+import {
+	apiContentActor,
+	apiCanEdit,
+	requireApiCapability,
+} from "./apiAuthority";
+import { slugify as apiSlugify } from "../helpers/slug";
+import { MAX_PAGE_DEPTH } from "../pages/internals";
+export type ApiDocumentInput = {
+	keyId: Id<"apiKeys">;
+	title?: string;
+	content?: string;
+	blocks?: unknown;
+	excerpt?: string;
+	status?: string;
+	scheduledAt?: number;
+	slug?: string;
+	parentId?: Id<"posts"> | null;
+	menuOrder?: number;
+	pageTemplate?: string;
+	visibility?: "public" | "private" | "password";
+	password?: string;
+	commentStatus?: "open" | "closed";
+};
+function apiBody(
+	input: ApiDocumentInput,
+	identity: string,
+	fallback: unknown = [],
+) {
+	if (input.content !== undefined && input.blocks !== undefined)
+		refuse(
+			"INVALID_CANONICAL_DOCUMENT",
+			"Supply either content for conversion or canonical blocks, not both.",
+		);
+	return (
+		input.blocks ??
+		(input.content === undefined
+			? fallback
+			: reviewLegacyDocumentSource({ postId: identity, content: input.content })
+					.blocks)
+	);
+}
+function apiMetadata(input: ApiDocumentInput, previous?: Doc<"posts">) {
+	if (input.excerpt !== undefined && input.excerpt.length > 1000)
+		refuse(
+			"INVALID_DOCUMENT_EXCERPT",
+			"The excerpt is limited to 1000 characters.",
+		);
+	if (input.menuOrder !== undefined && !Number.isSafeInteger(input.menuOrder))
+		refuse("INVALID_DOCUMENT_ORDER", "Menu order must be a safe integer.");
+	const patch: Partial<WithoutSystemFields<Doc<"posts">>> = {};
+	for (const key of [
+		"excerpt",
+		"menuOrder",
+		"pageTemplate",
+		"commentStatus",
+	] as const)
+		if (input[key] !== undefined) Object.assign(patch, { [key]: input[key] });
+	const visibility = input.visibility ?? previous?.visibility ?? "public";
+	if (input.password !== undefined && visibility !== "password")
+		refuse(
+			"DOCUMENT_VISIBILITY_INVALID",
+			"Choose password protection before setting a password.",
+		);
+	const password =
+		visibility === "password"
+			? (input.password ?? previous?.password)
+			: undefined;
+	if (visibility === "password" && !password)
+		refuse(
+			"DOCUMENT_PASSWORD_REQUIRED",
+			"Enter a password to protect this document.",
+		);
+	if (input.visibility !== undefined || input.password !== undefined)
+		Object.assign(patch, { visibility, password });
+	return patch;
+}
+function apiPublication(
+	input: ApiDocumentInput,
+	post: Doc<"posts">,
+	context?: Awaited<ReturnType<typeof loadDocumentWriteContext>>,
+) {
+	const args = {
+		expectedRevision: authoringRevision(post),
+		status: (input.status ?? post.status) as PublicationStatus,
+		...(input.scheduledAt !== undefined
+			? { scheduledAt: input.scheduledAt }
+			: input.status === undefined && post.status === "future"
+				? { scheduledAt: post.scheduledAt }
+				: {}),
+	};
+	return (
+		context
+			? prepareCanonicalPublication(post, args, Date.now(), context)
+			: prepareCanonicalPublication(post, args, Date.now())
+	).publication;
+}
+export async function createApiDocument(
+	ctx: MutationCtx,
+	type: "post" | "page",
+	input: ApiDocumentInput,
+): Promise<Id<"posts">> {
+	const budget = new RequestReadLedger(),
+		user = await apiContentActor(ctx, input.keyId, "write:posts");
+	await requireApiCapability(
+		ctx,
+		user,
+		type === "page" ? "page.create" : "post.create",
+	);
+	const title = input.title?.trim();
+	if (!title) refuse("INVALID_DOCUMENT_TITLE", "A document title is required.");
+	if (
+		(input.status !== undefined && input.status !== "draft") ||
+		(input.visibility !== undefined && input.visibility !== "public")
+	)
+		await requireApiCapability(
+			ctx,
+			user,
+			type === "page" ? "page.publish" : "post.publish",
+		);
+	const slug = await generateUniqueSlug(
+			ctx,
+			input.slug ?? title,
+			type,
+			undefined,
+			budget,
+		),
+		now = Date.now();
+	let path = `/${slug}`,
+		depth = 0;
+	if (type === "page") {
+		const seen = new Set<string>();
+		let parentId = input.parentId;
+		while (parentId) {
+			if (seen.has(parentId) || depth >= MAX_PAGE_DEPTH)
+				refuse(
+					"DOCUMENT_ROUTE_INVALID",
+					"The page hierarchy exceeds its supported depth or contains a cycle.",
+				);
+			seen.add(parentId);
+			budget.beforeRead();
+			const parent = budget.record(await ctx.db.get("posts", parentId));
+			if (!parent || parent.type !== "page" || parent.status === "trash")
+				refuse("DOCUMENT_ROUTE_INVALID", "The parent page is unavailable.");
+			path = `/${parent.slug}${path}`;
+			depth++;
+			parentId = parent.parentId;
+		}
+		if (input.parentId)
+			await requireApiCapability(ctx, user, "page.set_parent");
+		await assertPagePathAvailable(ctx, path, undefined, budget);
+	}
+	const value: WithoutSystemFields<Doc<"posts">> = {
+		type,
+		title,
+		slug,
+		status: "draft",
+		visibility: "public",
+		authorId: user._id,
+		content: "",
+		contentMode: "blocks",
+		blocks: [],
+		blocksVersion: 2,
+		blocksRevision: 1,
+		commentStatus: type === "page" ? "closed" : "open",
+		commentCount: 0,
+		isSticky: false,
+		...(type === "page"
+			? {
+					path,
+					depth,
+					parentId: input.parentId ?? undefined,
+					menuOrder: 0,
+					pageTemplate: "default",
+				}
+			: {}),
+		...apiMetadata(input),
+		createdAt: now,
+		updatedAt: now,
+	};
+	assertStoredSize(value, budget);
+	const id = await insertWithMediaReferences(
+		ctx,
+		"posts",
+		value,
+		permitValidatedCanonicalAuthoringWrite({
+			table: "posts",
+			operation: "insert",
+			value,
+		}),
+		budget,
+	);
+	const post = budget.record(await ctx.db.get("posts", id))!;
+	const blocks = apiBody(input, id),
+		context = await loadDocumentWriteContext(ctx, blocks, budget);
+	const candidate = {
+		...post,
+		blocks,
+		composedDefinitions: context?.definitions,
+	};
+	const prepared = context
+		? prepareCanonicalCurrent(candidate, 1, context)
+		: prepareCanonicalCurrent(candidate, 1);
+	const publication = apiPublication(
+		input,
+		{
+			...post,
+			blocks: prepared.blocks,
+			composedDefinitions: prepared.composedDefinitions,
+		},
+		context,
+	);
+	assertAuthoredActions(prepared, prepared.composedDefinitions?.scope);
+	await validateNewKnowledgeCategoryReferences(ctx, prepared.blocks, [], budget);
+	const patch = {
+		blocks: prepared.blocks,
+		composedDefinitions: prepared.composedDefinitions,
+		...publication,
+	};
+	const ready = { ...post, ...patch };
+	documentSettings(ready);
+	assertStoredSize(ready, budget);
+	await project(
+		ctx,
+		ready,
+		budget,
+		prepared,
+		{},
+		publication.status === "draft" ? "authoring" : "published",
+	);
+	await syncDocumentContactForms(
+		ctx,
+		{
+			postId: id,
+			title,
+			blocks: prepared.blocks,
+			...(prepared.composedDefinitions
+				? {
+						composed: {
+							scope: prepared.composedDefinitions.scope,
+							definitions: prepared.composedDefinitions,
+						},
+					}
+				: {}),
+		},
+		budget,
+	);
+	await patchWithMediaReferences(
+		ctx,
+		"posts",
+		id,
+		patch,
+		permitValidatedCanonicalAuthoringWrite({
+			table: "posts",
+			operation: "patch",
+			id,
+			previous: post,
+			value: patch,
+		}),
+		budget,
+	);
+	await clearSyncedConsumerDirty(ctx, id, budget);
+	if (publication.status === "future")
+		await replacePublicationSchedule(ctx, id, publication.scheduledAt!, budget);
+	await emitEvent(
+		ctx,
+		type === "page" ? PAGE_EVENTS.CREATED : POST_EVENTS.CREATED,
+		type === "page" ? SYSTEM.PAGE : SYSTEM.POST,
+		{
+			postId: id,
+			...(type === "page" ? { pageId: id } : {}),
+			title,
+			authorId: user._id,
+			postType: type,
+			status: publication.status,
+		},
+		undefined,
+		budget,
+	);
+	if (publication.status === "publish")
+		await publishedEvent(ctx, ready, publication.publishedAt!, false, budget);
+	return id;
+}
+export async function updateApiDocument(
+	ctx: MutationCtx,
+	type: "post" | "page",
+	input: ApiDocumentInput & { postId: Id<"posts">; expectedRevision: number },
+): Promise<CanonicalWriteReceipt & { postId: Id<"posts"> }> {
+	const budget = new RequestReadLedger(),
+		user = await apiContentActor(ctx, input.keyId, "write:posts");
+	budget.beforeRead();
+	const post = budget.record(await ctx.db.get("posts", input.postId));
+	if (!post || post.type !== type) refuse("NOT_FOUND", "Document not found.");
+	if (!(await apiCanEdit(ctx, user, post)))
+		refuse("FORBIDDEN", "The API key owner cannot edit this document.");
+	const blocks = apiBody(input, post._id, post.blocks),
+		context = await loadDocumentWriteContext(
+			ctx,
+			blocks,
+			budget,
+			post.composedDefinitions,
+		);
+	let prepared = context
+		? prepareCanonicalSave(
+				post,
+				{
+					expectedRevision: input.expectedRevision,
+					title: input.title ?? post.title,
+					blocks,
+				},
+				context,
+			)
+		: prepareCanonicalSave(post, {
+				expectedRevision: input.expectedRevision,
+				title: input.title ?? post.title,
+				blocks,
+			});
+	const metadata = apiMetadata(input, post);
+	if (
+		post.status !== "draft" ||
+		(input.status !== undefined && input.status !== post.status) ||
+		(metadata.visibility !== undefined &&
+			metadata.visibility !== post.visibility) ||
+		(metadata.password !== post.password &&
+			(input.password !== undefined || input.visibility !== undefined))
+	)
+		await requireApiCapability(
+			ctx,
+			user,
+			type === "page" ? "page.publish" : "post.publish",
+		);
+	if (
+		type === "post" &&
+		(input.parentId !== undefined ||
+			input.menuOrder !== undefined ||
+			input.pageTemplate !== undefined)
+	)
+		refuse("DOCUMENT_LAYOUT_INVALID", "Page settings apply to pages.");
+	if (input.parentId !== undefined && input.parentId !== post.parentId)
+		await requireApiCapability(ctx, user, "page.set_parent");
+	const routes = await planDocumentSlug(
+		ctx,
+		post,
+		input.slug === undefined ? post.slug : apiSlugify(input.slug),
+		budget,
+		{ parentId: input.parentId, canEdit: (row) => apiCanEdit(ctx, user, row) },
+	);
+	if (routes.length)
+		Object.assign(metadata, {
+			slug: input.slug === undefined ? post.slug : apiSlugify(input.slug),
+			...(type === "page"
+				? {
+						path: routes[0]!.path,
+						depth: routes[0]!.depth,
+						parentId:
+							input.parentId === undefined
+								? post.parentId
+								: (input.parentId ?? undefined),
+					}
+				: {}),
+		});
+	const publication = apiPublication(
+			input,
+			{
+				...post,
+				title: prepared.title,
+				blocks: prepared.blocks,
+				composedDefinitions: prepared.composedDefinitions,
+			},
+			context,
+		),
+		patch = { ...metadata, ...publication };
+	documentSettings({ ...post, ...patch });
+	const changed =
+		prepared.changed ||
+		Object.entries(patch).some(
+			([key, value]) => value !== post[key as keyof typeof post],
+		);
+	prepared = {
+		...prepared,
+		changed,
+		revision: authoringRevision(post) + (changed ? 1 : 0),
+	};
+	const receipt = await commit(
+		ctx,
+		post,
+		user,
+		prepared,
+		budget,
+		undefined,
+		patch,
+	);
+	if (changed) {
+		if (publication.status === "future")
+			await replacePublicationSchedule(
+				ctx,
+				post._id,
+				publication.scheduledAt!,
+				budget,
+			);
+		else await clearPublicationSchedule(ctx, post._id, budget);
+		if (publication.status === "publish" && post.status !== "publish")
+			await publishedEvent(
+				ctx,
+				{ ...post, ...patch, title: prepared.title },
+				publication.publishedAt!,
+				false,
+				budget,
+			);
+		for (const route of routes.slice(1)) {
+			const routePatch = {
+				path: route.path,
+				depth: route.depth,
+				updatedAt: Date.now(),
+			};
+			await patchWithMediaReferences(
+				ctx,
+				"posts",
+				route.post._id,
+				routePatch,
+				undefined,
+				budget,
+			);
+			await authoringUpdatedEvent(
+				ctx,
+				{ ...route.post, ...routePatch },
+				Object.keys(routePatch),
+				budget,
+				route.post,
+			);
+		}
+	}
+	return { ...receipt, postId: post._id };
+}
+export async function readApiDocument(
+	ctx: QueryCtx,
+	type: "post" | "page",
+	postId: Id<"posts">,
+	keyId: Id<"apiKeys">,
+) {
+	const user = await apiContentActor(ctx, keyId, "read:posts"),
+		budget = new RequestReadLedger();
+	budget.beforeRead();
+	const post = budget.record(await ctx.db.get("posts", postId));
+	if (!post || post.type !== type) return null;
+	const editable = await apiCanEdit(ctx, user, post);
+	let blocks: unknown, revision: number | undefined;
+	if (editable) {
+		const authored = await readStoredDocument(ctx, post, budget);
+		blocks = authored.blocks;
+		revision = authoringRevision(post);
+	} else {
+		const published = await getPublicDocument(ctx, { postId });
+		if (!published || published.state !== "ready") return null;
+		blocks = published.document.blocks;
+		revision = published.document.revision;
+	}
+	let parent: { _id: Id<"posts">; title: string; slug: string; path?: string } | null = null;
+ const children: { _id: Id<"posts">; title: string; slug: string; path?: string; status: string; menuOrder?: number }[] = [];
+ if(type === "page") {
+  if(post.parentId) {
+   budget.beforeRead();const row=budget.record(await ctx.db.get("posts",post.parentId));
+   if(row?.type === "page" && (await apiCanEdit(ctx,user,row) || await canDiscoverContent(ctx,row,budget))) parent={_id:row._id,title:row.title,slug:row.slug,path:row.path};
+  }
+  budget.beforeRead();const rows=await ctx.db.query("posts").withIndex("by_type_parent",q=>q.eq("type","page").eq("parentId",postId)).take(101);
+  if(rows.length>100) refuse("LIMIT_EXCEEDED","This page has more children than a single document response supports.");
+  for(const row of rows){budget.record(row);if(row.status==="publish"&&await canDiscoverContent(ctx,row,budget)) children.push({_id:row._id,title:row.title,slug:row.slug,status:row.status,menuOrder:row.menuOrder,path:row.path});}
+  children.sort((a,b)=>(a.menuOrder??0)-(b.menuOrder??0));
+ }
+ return {
+  ...(type==="post"?{author:await publicContentAuthor(ctx,post)}:{parent,children}),
+		_id: post._id,
+		type: post.type,
+		title: post.title,
+		slug: post.slug,
+		status: post.status,
+		excerpt: post.excerpt,
+		path: post.path,
+		parentId: post.parentId,
+		depth: post.depth,
+		menuOrder: post.menuOrder,
+		pageTemplate: post.pageTemplate,
+		visibility: post.visibility,
+		commentStatus: post.commentStatus,
+		isPasswordProtected: post.visibility === "password",
+		blocks,
+		blocksVersion: 2 as const,
+		blocksRevision: revision,
+		createdAt: post.createdAt,
+		updatedAt: post.updatedAt,
+		publishedAt: post.publishedAt,
+	};
 }
