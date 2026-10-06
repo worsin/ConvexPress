@@ -282,7 +282,7 @@ test("resolved image resources retain a self-hosted HTTP source through the temp
 test("social profiles use existing platform artwork decoratively without replacing accessible names", () => {
   const doc=new JSDOM(html(social,{links:[{platform:"twitter",label:"Studio updates",href:"https://example.test/updates"},{platform:"unknown",label:"Another profile",href:"https://example.test/profile"},{platform:"instagram",label:"Coming soon",href:""}]})).window.document;
   expect(doc.querySelectorAll("a svg").length + doc.querySelectorAll(".cp-social-profile > svg").length).toBe(2);
-  expect(doc.querySelector("a").textContent).toBe("Studio updates");
+  expect(doc.querySelector("a")?.textContent).toBe("Studio updates");
   expect(doc.querySelectorAll("svg[aria-hidden=true]").length).toBe(2);
   expect(doc.querySelectorAll("a").length).toBe(2);
   expect(doc.body.textContent).toContain("Coming soon");

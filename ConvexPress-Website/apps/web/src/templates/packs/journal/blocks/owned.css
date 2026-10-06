@@ -38,6 +38,11 @@
 @container (max-width: 30rem) { .cp-owned-journal .journal-categories .cp-category-grid { grid-template-columns: minmax(0,1fr); } }
 
 .cp-owned-journal .journal-cta[data-block-style="inset"] { border: 1px solid var(--border); padding: clamp(1.25rem, 4vw, 3rem); background: var(--muted); border-radius: var(--radius, 0.5rem); }
+.cp-owned-journal .journal-cta[data-block-style="inset"] {
+  color: var(--foreground);
+  --cp-inline-accent: var(--primary);
+  --cp-inline-muted: var(--muted-foreground);
+}
 
 .journal-hero-treatment { --hero-title-max: 7rem; --hero-poster-max: 10rem; --hero-image-radius: 0; --hero-treatment-gap: var(--stack-gap-lg, 2.5rem); }
 .journal-hero-treatment .cp-hero-composition-heading .cp-heading { font-style: italic; }

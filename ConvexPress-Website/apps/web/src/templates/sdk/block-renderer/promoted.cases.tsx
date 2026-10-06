@@ -24,7 +24,7 @@ function fixture(composition: Composition, dynamic = false, packTreatments?: Rec
   const records = installedPromotions as Record<string, InstalledPromotion>;
   if (records[name]) throw Error("Fixture must not replace installed provenance");
   const record = { sourceName: encoded.definition.spec.name, sourceVersion: encoded.definition.spec.version, sourceDigest: encoded.digest,
-    packageDigest: promotion.bundle.packageDigest, specDigest: promotion.specDigest, rendererDigest: "a".repeat(64) };
+    packageDigest: promotion.bundle.packageDigest, specDigest: promotion.specDigest, rendererDigest: "a".repeat(64), definitionJson: encoded.json };
   records[name] = record;
   try {
     const renderer = definePromotedBlock(name, promotion.bundle);

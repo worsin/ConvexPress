@@ -49,10 +49,31 @@ for (const width of [1440, 390]) test(`starter patterns render as complete edita
       }
       if (pattern.id === "questions") {
         const question = canvas.locator("summary").filter({ hasText: "Where should I start?" });
-        await question.click();
+        await question.press("Enter");
         await expect(question.locator("..")).toHaveAttribute("open", "");
-        await question.click();
+        await expect(question).toBeFocused();
+        await question.press("Space");
         await expect(question.locator("..")).not.toHaveAttribute("open", "");
+        await expect(question).toBeFocused();
+      }
+      if (pattern.id === "invitation") {
+        const contrast = await canvas.locator('[data-tone="inverted"]').first().evaluate(surface => {
+          const luminance = (color: string) => {
+            const channels = color.match(/[\d.]+/g)!.slice(0, 3).map(Number).map(value => value / 255)
+              .map(value => value <= .04045 ? value / 12.92 : ((value + .055) / 1.055) ** 2.4);
+            return channels.reduce((sum, value, index) => sum + value * [.2126, .7152, .0722][index], 0);
+          };
+          return [...surface.querySelectorAll('h2,p')].map(node => {
+            let painted: Element | null = node;
+            while (painted && getComputedStyle(painted).backgroundColor === 'rgba(0, 0, 0, 0)') painted = painted.parentElement;
+            if (!painted) throw new Error('Invitation text has no painted background');
+            const background = luminance(getComputedStyle(painted).backgroundColor);
+            const foreground = luminance(getComputedStyle(node).color);
+            return { text: node.textContent, ratio: (Math.max(foreground, background) + .05) / (Math.min(foreground, background) + .05) };
+          });
+        });
+        expect(contrast.length).toBeGreaterThanOrEqual(3);
+        for (const item of contrast) expect(item.ratio, `${pack}: ${item.text}`).toBeGreaterThanOrEqual(4.5);
       }
       await canvas.screenshot({ path: info.outputPath(`${pack}-${pattern.id}-${width}.png`), animations: "disabled" });
       captured++;
