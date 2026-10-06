@@ -7,7 +7,7 @@
     "In progress": 20
   },
   "goal": "Complete block editor and template delivery plus all demonstrated blockers; defer unrelated whole-app audit campaigns.",
-  "currentTask": "Task7: template skills and token-first scaffold trial accepted; stale Admin mirror and unsupported BlockDemo treatment crashes repaired. Continue eight block workflows/reference completeness/plugin/AI/native composition gates. Task5 E09/E05,Task6 final visual and Task8 remain; goal active117/20.",
+  "currentTask": "Task7: reference completeness gate and isolated Aster Events disable/re-enable accepted at bounded scope. Continue native mixed reusable/composed/extension document and eight block workflows. Actual Aster AI compose lacks configured provider/key; other work continues. Task5 E09/E05, Task6 final visual and Task8 remain; goal active117/20.",
   "tasks": [
     {
       "id": 1,
@@ -233,13 +233,15 @@
     },
     {
       "id": "E13",
-      "status": "Current customer-commerce Assistant Band prompt returns unavailable; own real customer thread confirms missing_api_key. No actual model response accepted. This does not block other customer blocks. Task7 AI workflow remains open.",
+      "status": "Current customer-commerce Assistant Band prompt returns unavailable; own real customer thread confirms missing_api_key. No actual model response accepted. This does not block other customer blocks. Task7 AI workflow remains open. October6 normal Aster blockDefinitions/ai:compose also returns CONFIGURATION_ERROR requiring provider/API key; no live proposal accepted. Static/native authoring remains independent.",
       "classification": "external prerequisite",
       "initialFinding": "Some isolated AI exercises returned missing_api_key; earlier provider success does not establish current end-to-end editor generation.",
       "closureBoundary": "Inspect authorized configured connections without exposing secrets; use the existing provider if available. Prove one live structured generation, resource selection, review, insert/save and Website output, plus composition/style/promotion. Do not substitute mocked success.",
       "currentEvidence": [
         "ConvexPress-Admin/audits/2026-09-04/customer-commerce-20260929.md",
-        "output/customer-commerce-20260929/assistant-provider-proof.json"
+        "output/customer-commerce-20260929/assistant-provider-proof.json",
+        "ConvexPress-Admin/audits/2026-09-04/reference-extension-acceptance-20261006.md",
+        "output/extension-lifecycle-20261006/ai-probe.json"
       ]
     },
     {
@@ -265,18 +267,21 @@
     },
     {
       "id": "E16",
-      "status": "Deployment preservation accepted and enforced: external-embeds-reviewed checkpoint has1624exact source hashes,22Events files and2410unchanged function signatures. Extension lifecycle and Events/Dashboard workflows remain Task7.",
+      "status": "Deployment preservation accepted and enforced: external-embeds-reviewed checkpoint has1624exact source hashes,22Events files and2410unchanged function signatures. Extension lifecycle and Events/Dashboard workflows remain Task7. Isolated Aster reference Events disable/re-enable now verified: public data withdrawn/fresh routes404, Admin PLUGIN_DISABLED, Dashboard registry removes/restores Events, both records exact after restore, appearance and empty email queue unchanged. Generated extension scaffold9tests159assertions pass; native Extensions UI/customer Dashboard and newly generated live install remain unproved.",
       "classification": "accepted/reusable evidence",
       "initialFinding": "Installed extension code can be lost by deploying a generic backend snapshot; this happened and was repaired.",
       "closureBoundary": "Preserve the installed plugin directories/generated indexes. Build next snapshot from verified installed checkpoint and overlay reviewed source changes; verify plugin parity before deployment. Complete install/disable/re-enable and reference Events/Dashboard manifest workflows.",
-      "nextCheck": "Task7: exercise extension lifecycle on disposable installed snapshots; verify source/data/manifest parity and public denial on disable. Every intervening deployment must continue verified installed-checkpoint overlay discipline.",
+      "nextCheck": "Task7: finish native Extensions/customer Dashboard and generated extension live install acceptance; reuse accepted reference Events API/public lifecycle. Preserve installed-checkpoint overlay discipline for every deployment.",
       "deliveryTask": 7,
       "triagedAt": "2026-09-29",
-      "triageEvidence": "ConvexPress-Admin/audits/2026-09-04/delivery-blocker-triage-20260929.md"
+      "triageEvidence": "ConvexPress-Admin/audits/2026-09-04/delivery-blocker-triage-20260929.md",
+      "currentEvidence": [
+        "ConvexPress-Admin/audits/2026-09-04/reference-extension-acceptance-20261006.md"
+      ]
     },
     {
       "id": "E17",
-      "status": "Three template skills added and sequentially exercised; token-first fifth pack passes 2owned/88Core resolver coverage, loading/lazy/canonical SSR, types and actual responsive internal demo with keyboard. Stale Admin mirror read-only detection and undeclared-treatment demo crashes repaired. Existing design-homepage already SDK-targeted. See template-sdk-trial-20261006.md. Eight block workflows, enabled-plugin reference completeness, extension lifecycle and actual AI/native composition/promotion acceptance remain; no full E17 closure.",
+      "status": "Three template skills added and sequentially exercised; token-first fifth pack passes 2owned/88Core resolver coverage, loading/lazy/canonical SSR, types and actual responsive internal demo with keyboard. Stale Admin mirror read-only detection and undeclared-treatment demo crashes repaired. Existing design-homepage already SDK-targeted. See template-sdk-trial-20261006.md. Eight block workflows, actual AI/native composition/promotion and remaining extension acceptance remain; no full E17 closure. Reference completeness now enforced by check:blocks against actual displayContext:27blocks/34fields with all installed plugins enabled and structural index ready; negative metadata mutation proves unsupported fields fail. See reference-extension-acceptance-20261006.md.",
       "classification": "partial acceptance / remaining workflow gates",
       "initialFinding": "SDK existence is proven more broadly than each workflow's end-to-end operation.",
       "closureBoundary": "Exercise all eight block-kit operations plus template and extension scaffolds in disposable outputs. Verify generated source, authoring and rendered result; remove owned scaffolds afterward."

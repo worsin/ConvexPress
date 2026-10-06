@@ -24,3 +24,14 @@ Runtime custom definitions have registered draft, AI proposal, approval and SDK-
 `core/author-bio` uses `content.author`. A nonempty `userId` selects one active public site profile; an empty ID preserves the authored card. `useCurrentAuthor: true` instead selects the authorized host document's current author, including inside reused content. Its default is false so existing version-2 manual/selected cards retain their behavior. The server supplies the current document identity; block attributes cannot choose another host document.
 
 Authored name, bio and media override the chosen profile; role and links remain authored. A missing/inactive/management or route-denied profile produces an explicit unavailable state even when authored overrides exist. Public results contain only ID, display name, biography, optional public portrait and a real author archive path when the profile has a slug. Search rechecks profile availability before disclosing authored text from profile-bound cards.
+
+## Reference support gate
+
+`bun run check:blocks` includes a reference-support completeness gate against the
+actual display policy and generated field inventory. It enables every installed
+plugin and supplies a ready synced-content index; every reference-bearing block
+must then be available. An unsupported field fails with its block and field path.
+Synced references expand before ordinary resolver planning and still require
+runtime index readiness. Plugin disablement and incomplete indexes remain real
+runtime denials, not exemptions from SDK support. This gate proves policy wiring;
+resource authorization, native pickers and loaded rendering need their own tests.

@@ -25,6 +25,7 @@ try {
   await syncDeployedFoundation({root,check:true});
   execFileSync("bun", ["scripts/blocks/generate-transport-validators.ts", "--check"], { cwd: root, stdio: "inherit", timeout: 30000 });
   execFileSync("bun", ["test", fileURLToPath(new URL("../plugins/defaults.test.ts", import.meta.url))], { cwd: new URL("../../ConvexPress-Admin/packages/backend/", import.meta.url), stdio: "inherit", timeout: 30000 });
+  execFileSync("bun", ["test", "./convex/canonicalDocuments/__tests__/referenceCoverage.test.ts"], { cwd: new URL("../../ConvexPress-Admin/packages/backend/", import.meta.url), stdio: "inherit", timeout: 30000 });
   if (tracker || trackerFile) {
     const rows = tracker ? await pullTracker() : await readTrackerFile(trackerFile);
     const checked = await reconcileTracker({ root, discovered: await discoverBlocks(root), rows, rendererEvidence: rendererEvidenceFile ? JSON.parse(await readFile(rendererEvidenceFile, "utf8")) : undefined });
