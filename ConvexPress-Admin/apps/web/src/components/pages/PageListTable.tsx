@@ -57,6 +57,8 @@ type OrderDir = "asc" | "desc";
 
 // --- Page Type (from Convex) ---
 interface PageRow {
+  blocksVersion?: number;
+  blocksRevision?: number;
   _id: string;
   title: string;
   slug: string;

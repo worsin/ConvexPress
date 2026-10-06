@@ -22,7 +22,9 @@ import type {
 } from "convex/server";
 import type { Doc, Id } from "../_generated/dataModel";
 import type { QueryCtx, MutationCtx } from "../_generated/server";
-import { requireAuth, requireCan } from "../helpers/permissions";
+import { requireAuth, requireCan, getCurrentRoleLevel } from "../helpers/permissions";
+import type { Capability } from "../types/capabilities";
+import { isPublicAuthor } from "../helpers/publicAuthor";
 import { canEditContent, canDiscoverContent, readPublicContent, publicContentAuthor } from "../helpers/publicContent";
 import { RequestReadLedger } from "../helpers/requestReadLedger";
 import { enabledPluginIds } from "../helpers/plugins";
@@ -1358,7 +1360,7 @@ function apiPublication(
 		status: (input.status ?? post.status) as PublicationStatus,
 		...(input.scheduledAt !== undefined
 			? { scheduledAt: input.scheduledAt }
-			: input.status === undefined && post.status === "future"
+			: (input.status === undefined || input.status === "future") && post.status === "future"
 				? { scheduledAt: post.scheduledAt }
 				: {}),
 	};
@@ -1560,13 +1562,41 @@ async function createForActor(ctx: MutationCtx, type: "post" | "page", input: Do
 export async function updateApiDocument(ctx: MutationCtx, type: "post" | "page", input: ApiDocumentInput & { postId: Id<"posts">; expectedRevision: number }): Promise<CanonicalWriteReceipt & { postId: Id<"posts"> }> {
  return updateForActor(ctx, type, input, await apiContentActor(ctx, input.keyId, "write:posts"));
 }
-async function updateForActor(ctx: MutationCtx, type: "post" | "page", input: DocumentInput & { postId: Id<"posts">; expectedRevision: number }, user: Doc<"users">, imported: ImportMetadata = {}): Promise<CanonicalWriteReceipt & { postId: Id<"posts"> }> {
+export type MetadataArgs = Pick<DocumentInput, "title" | "slug" | "status" | "scheduledAt" | "parentId" | "menuOrder" | "pageTemplate" | "commentStatus"> & {
+ postId: Id<"posts">; expectedRevision: number; authorId?: Id<"users">; isSticky?: boolean;
+};
+/** Native metadata uses the current session's authority, including a broker's
+ * current site capabilities. Body writes remain exclusive to the editor. */
+export async function updateDocumentMetadata(ctx: MutationCtx, input: MetadataArgs) {
+ const budget = new RequestReadLedger();
+ const {post,user} = await authorized(ctx,input.postId,budget);
+ if (!post || (post.type !== "post" && post.type !== "page")) refuse("NOT_FOUND","Document not found.");
+ const metadata: ImportMetadata = {};
+ if (input.authorId !== undefined || input.isSticky !== undefined) {
+  if (post.type !== "post") refuse("DOCUMENT_LAYOUT_INVALID","Author and sticky settings apply to posts.");
+  if ((input.authorId !== undefined && input.authorId !== post.authorId) || (input.isSticky !== undefined && input.isSticky !== post.isSticky)) {
+   if (await getCurrentRoleLevel(ctx,budget) < 80) refuse("FORBIDDEN","Only Editors and Administrators can change author or sticky settings.");
+  }
+  if (input.authorId !== undefined && input.authorId !== post.authorId) {
+   budget.beforeRead();const author=budget.record(await ctx.db.get("users",input.authorId));
+   if (!isPublicAuthor(author)) refuse("VALIDATION_ERROR","Choose an active site user as the post author.");
+   metadata.authorId=input.authorId;
+  }
+  if(input.isSticky !== undefined) metadata.isSticky=input.isSticky;
+ }
+ return updateForActor(ctx,post.type,input,user,metadata,{
+  canEdit: row=>canEditContent(ctx,row,budget),
+  requireCapability: async capability=>{await requireCan(ctx,capability,budget);},
+ });
+}
+type UpdateAuthority = {canEdit:(post:Doc<"posts">)=>Promise<boolean>;requireCapability:(capability:Capability)=>Promise<void>};
+async function updateForActor(ctx: MutationCtx, type: "post" | "page", input: DocumentInput & { postId: Id<"posts">; expectedRevision: number }, user: Doc<"users">, imported: ImportMetadata = {}, authority: UpdateAuthority = {canEdit: row=>apiCanEdit(ctx,user,row),requireCapability: capability=>requireApiCapability(ctx,user,capability)}): Promise<CanonicalWriteReceipt & { postId: Id<"posts"> }> {
  const budget = new RequestReadLedger();
 	budget.beforeRead();
 	const post = budget.record(await ctx.db.get("posts", input.postId));
 	if (!post || post.type !== type) refuse("NOT_FOUND", "Document not found.");
-	if (!(await apiCanEdit(ctx, user, post)))
-		refuse("FORBIDDEN", "The API key owner cannot edit this document.");
+	if (!(await authority.canEdit(post)))
+		refuse("FORBIDDEN", "You cannot edit this document.");
 	const blocks = apiBody(input, post._id, post.blocks),
 		context = await loadDocumentWriteContext(
 			ctx,
@@ -1598,9 +1628,7 @@ async function updateForActor(ctx: MutationCtx, type: "post" | "page", input: Do
 		(metadata.password !== post.password &&
 			(input.password !== undefined || input.visibility !== undefined))
 	)
-		await requireApiCapability(
-			ctx,
-			user,
+		await authority.requireCapability(
 			type === "page" ? "page.publish" : "post.publish",
 		);
 	if (
@@ -1610,14 +1638,14 @@ async function updateForActor(ctx: MutationCtx, type: "post" | "page", input: Do
 			input.pageTemplate !== undefined)
 	)
 		refuse("DOCUMENT_LAYOUT_INVALID", "Page settings apply to pages.");
-	if (input.parentId !== undefined && input.parentId !== post.parentId)
-		await requireApiCapability(ctx, user, "page.set_parent");
+	if (input.parentId !== undefined && (input.parentId ?? undefined) !== post.parentId)
+		await authority.requireCapability("page.set_parent");
 	const routes = await planDocumentSlug(
 		ctx,
 		post,
 		input.slug === undefined ? post.slug : apiSlugify(input.slug),
 		budget,
-		{ parentId: input.parentId, canEdit: (row) => apiCanEdit(ctx, user, row) },
+		{ parentId: input.parentId, canEdit: authority.canEdit },
 	);
 	if (routes.length)
 		Object.assign(metadata, {

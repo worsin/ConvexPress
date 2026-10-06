@@ -468,3 +468,8 @@ Newsletter Signup accepted:113Verified/24In progress, all Notes preserved. E57 f
 ## September29 Poll policy completion
 
 Poll accepted:114Verified/23In progress; all Notes/unrelated cells exact. Two real customer accounts, guest refusal, stable reordered/hidden-results ballots, question/choice revision separation, exact original ballot recovery, stale-version refusal, settled404/source refusal and republish pass.16current customer/guest pack cases plus14backend tests; prior native/maximum evidence reused. Cleanup corrects a settings-alert side effect:12Forms-restoration+60Poll-pack jobs queued, all72cancelled at0attempts; original27queue rows exact,99total including cancelled history. No provider key/delivery. [Evidence](poll-policy-20260929.md). Opus20 F27 short summary aligned; E18 already held target-auth evidence and nextCheck. Goal remains open.
+
+
+## October5 canonical Quick Edit
+
+Native post/page title/metadata/parent transaction fixed; stale open form refuses atomically and preserves input. Both installed sites, focused source167/target137tests, scoped backend/Admin types and contracts pass. Exact original145documents/522revisions,appearance/mail,target private draft after cleanup. Owned sessions/Electron/profile removed. [Evidence](quick-edit-canonical-20261005.md). E07 and full goal remain open; bulk/generic consumers next.

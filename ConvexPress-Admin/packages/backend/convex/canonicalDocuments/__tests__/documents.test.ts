@@ -3522,3 +3522,61 @@ for(const status of ["pending","auto-draft","trash"] as const) test(`WordPress $
  const f=await wordpressFixture("post"),before=await f.state();
  await expect(f.write({wpPost:{...f.wp,status}})).rejects.toMatchObject({data:{code:"IMPORT_STATUS_REVIEW_REQUIRED"}});expect(await f.state()).toEqual(before);
 });
+
+for (const type of ['post','page'] as const) test(`Quick Edit ${type} metadata is one canonical revision and stale/denied writes preserve everything`, async()=>{
+ const f=await fixture();await initialize(f);
+ await f.t.run(async ctx=>{await ctx.db.patch('posts',f.ids.post,{type});const user=(await ctx.db.get('users',f.ids.user))!;await ctx.db.patch('roles',user.roleId!,{capabilities:['page.update','post.update','page.create','page.set_parent','page.publish','post.publish']});});
+ const parent=await f.client.mutation(reference('create','mutation'),{type:'page',title:'Quick Edit parent'});
+ const before=await f.t.run(ctx=>ctx.db.get('posts',f.ids.post));
+ const args={postId:f.ids.post,expectedRevision:before!.blocksRevision,title:'Quick edited',slug:'quick-edited',commentStatus:'open',...(type==='page'?{parentId:parent.postId,menuOrder:7,pageTemplate:'default'}:{isSticky:true})};
+ const receipt=await f.client.mutation(reference('updateMetadata','mutation'),args);
+ expect(receipt).toMatchObject({revision:before!.blocksRevision!+1,changed:true});
+ const after=await f.t.run(ctx=>ctx.db.get('posts',f.ids.post));expect(after).toMatchObject({title:'Quick edited',slug:'quick-edited',blocks:before!.blocks,commentStatus:'open'});
+ if(type==='page')expect(after).toMatchObject({parentId:parent.postId,path:'/quick-edit-parent/quick-edited',menuOrder:7});else expect(after!.isSticky).toBe(true);
+ const snapshot=()=>f.t.run(async ctx=>({posts:await ctx.db.query('posts').collect(),history:await ctx.db.query('revisions').collect()}));const accepted=await snapshot();
+ await expect(f.client.mutation(reference('updateMetadata','mutation'),{...args,title:'Stale',...(type==='page'?{parentId:null}:{})})).rejects.toMatchObject({data:{code:'CONFLICT'}});expect(await snapshot()).toEqual(accepted);
+ await expect(f.as(f.ids.denied).mutation(reference('updateMetadata','mutation'),{...args,expectedRevision:receipt.revision})).rejects.toThrow();expect(await snapshot()).toEqual(accepted);
+ const same=await f.client.mutation(reference('updateMetadata','mutation'),{...args,expectedRevision:receipt.revision});expect(same).toMatchObject({revision:receipt.revision,changed:false});expect(await snapshot()).toEqual(accepted);
+ if(type==='page'){
+  await expect(f.client.mutation(reference('updateMetadata','mutation'),{postId:f.ids.post,expectedRevision:receipt.revision,title:'Invalid move',parentId:f.ids.post})).rejects.toThrow();expect(await snapshot()).toEqual(accepted);
+  await f.client.mutation(reference('updateMetadata','mutation'),{postId:f.ids.post,expectedRevision:receipt.revision,parentId:null,title:'Root again'});expect(await f.t.run(ctx=>ctx.db.get('posts',f.ids.post))).toMatchObject({title:'Root again',path:'/quick-edited',depth:0,blocks:before!.blocks});
+ }
+});
+
+test('Quick Edit preserves schedules and refuses revoked publishing, parent and sticky authority atomically',async()=>{
+ const f=await fixture();await initialize(f);const user=(await f.t.run(ctx=>ctx.db.get('users',f.ids.user)))!;
+ const state=()=>f.t.run(async ctx=>({post:await ctx.db.get('posts',f.ids.post),history:await ctx.db.query('revisions').collect()}));
+ const before=await state();
+ await f.client.mutation(reference('updateMetadata','mutation'),{postId:f.ids.post,expectedRevision:before.post!.blocksRevision,parentId:null,title:'Root metadata'});
+ await f.t.run(ctx=>ctx.db.patch('roles',user.roleId!,{capabilities:['page.update','page.publish']}));
+ const current=await state();const scheduledAt=Date.now()+86400000;
+ const scheduled=await f.client.mutation(reference('updateMetadata','mutation'),{postId:f.ids.post,expectedRevision:current.post!.blocksRevision,status:'future',scheduledAt});
+ const edited=await f.client.mutation(reference('updateMetadata','mutation'),{postId:f.ids.post,expectedRevision:scheduled.revision,status:'future',title:'Same schedule'});
+ expect((await state()).post).toMatchObject({status:'future',scheduledAt,title:'Same schedule'});
+ await f.t.run(ctx=>ctx.db.patch('roles',user.roleId!,{capabilities:['page.update']}));const protectedState=await state();
+ await expect(f.client.mutation(reference('updateMetadata','mutation'),{postId:f.ids.post,expectedRevision:edited.revision,title:'Denied'})).rejects.toMatchObject({data:{code:'FORBIDDEN'}});expect(await state()).toEqual(protectedState);
+ await f.t.run(async ctx=>{await ctx.db.patch('posts',f.ids.post,{type:'post',status:'draft'});await ctx.db.patch('roles',user.roleId!,{level:50,capabilities:['post.update']});});const authorState=await state();
+ await expect(f.client.mutation(reference('updateMetadata','mutation'),{postId:f.ids.post,expectedRevision:edited.revision,title:'Denied sticky',isSticky:true})).rejects.toMatchObject({data:{code:'FORBIDDEN'}});expect(await state()).toEqual(authorState);
+});
+
+test('Quick Edit uses broker site authority and rechecks revocation, author eligibility and trash',async()=>{
+ const f=await fixture();await initialize(f);
+ const session=await f.t.run(async ctx=>{
+  const user=(await ctx.db.get('users',f.ids.user))!,now=Date.now();
+  const managed=await ctx.db.insert('users',{email:'quick-broker@example.invalid',emailVerified:true,status:'active',authSource:'management',roleId:user.roleId,createdAt:now,updatedAt:now});
+  const authorityId=await ctx.db.insert('convexpress_managementAuthorities',{controllerId:'fixture',keyId:'quick-key',publicKeyPem:'fixture',fingerprintSha256:'fixture',websiteKey:'fixture',instanceKey:'fixture-stage',capabilities:[],capabilityRevision:1,status:'active',notBefore:now-1000,enrolledAt:now,updatedAt:now});
+  const bindingId=await ctx.db.insert('convexpress_managementBindings',{authorityId,controllerId:'fixture',syntheticOperatorId:'quick-broker',userId:managed,capabilityRevision:1,status:'active',createdAt:now,updatedAt:now});
+  const id=await ctx.db.insert('convexpress_managementSessions',{authorityId,bindingId,userId:managed,tokenHash:'fixture',websiteKey:'fixture',instanceKey:'fixture-stage',capabilities:[],siteRoleSlug:'editor',siteCapabilities:['page.update','post.update'],capabilityRevision:1,expiresAt:now+60000,status:'active',createdAt:now});return{id,managed};
+ });
+ const broker=f.t.withIdentity({subject:session.id,issuer:'https://convexpress-management.local'});
+ const current=await f.client.query(reference('get'),{postId:f.ids.post});
+ const saved=await broker.mutation(reference('updateMetadata','mutation'),{postId:f.ids.post,expectedRevision:current.document.revision,title:'Broker quick edit',parentId:null});
+ expect(saved.changed).toBe(true);
+ await f.t.run(ctx=>ctx.db.patch('posts',f.ids.post,{type:'post'}));
+ const state=()=>f.t.run(async ctx=>({post:await ctx.db.get('posts',f.ids.post),history:await ctx.db.query('revisions').collect()}));const before=await state();
+ await expect(broker.mutation(reference('updateMetadata','mutation'),{postId:f.ids.post,expectedRevision:saved.revision,authorId:session.managed})).rejects.toMatchObject({data:{code:'VALIDATION_ERROR'}});expect(await state()).toEqual(before);
+ await f.t.run(ctx=>ctx.db.patch('convexpress_managementSessions',session.id,{siteCapabilities:[]}));
+ await expect(broker.mutation(reference('updateMetadata','mutation'),{postId:f.ids.post,expectedRevision:saved.revision,title:'Revoked'})).rejects.toMatchObject({data:{code:'FORBIDDEN'}});expect(await state()).toEqual(before);
+ await f.t.run(ctx=>ctx.db.patch('posts',f.ids.post,{status:'trash'}));const trashed=await state();
+ await expect(f.client.mutation(reference('updateMetadata','mutation'),{postId:f.ids.post,expectedRevision:saved.revision,title:'Trash edit'})).rejects.toMatchObject({data:{code:'CANONICAL_DRAFT_REQUIRED'}});expect(await state()).toEqual(trashed);
+});

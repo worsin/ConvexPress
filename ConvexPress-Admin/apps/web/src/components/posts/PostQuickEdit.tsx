@@ -6,6 +6,7 @@ import type { Id } from "@backend/convex/_generated/dataModel";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
+import { useCanonicalMetadata } from "@/hooks/useCanonicalMetadata";
 import { usePostMutations } from "@/hooks/posts/usePostMutations";
 import type { PostWithAuthor, PostStatus } from "@/lib/posts/types";
 
@@ -34,15 +35,17 @@ interface TermSummary {
  * Inline Quick Edit form for posts. Replaces the row when active.
  * Fields: Title, Slug, Status, Date, Author, Categories, Tags, Allow Comments, Sticky.
  *
- * Calls the real Convex posts.update mutation on save.
+ * Canonical documents save metadata atomically against the opened revision.
  */
 export function PostQuickEdit({ post, onClose }: PostQuickEditProps) {
+  const [base] = useState(() => ({canonical:post.blocksVersion === 2, revision:post.blocksRevision}));
+  const updateCanonical = useCanonicalMetadata();
   const [title, setTitle] = useState(post.title);
   const [slug, setSlug] = useState(post.slug);
   const [status, setStatus] = useState(post.status);
   const [publishDate, setPublishDate] = useState(
-    post.publishedAt
-      ? new Date(post.publishedAt).toISOString().split("T")[0]
+    (post.scheduledAt ?? post.publishedAt)
+      ? new Date((post.scheduledAt ?? post.publishedAt)!).toISOString().split("T")[0]
       : "",
   );
   const [authorId, setAuthorId] = useState<string>(post.authorId ?? "");
@@ -105,7 +108,8 @@ export function PostQuickEdit({ post, onClose }: PostQuickEditProps) {
         isSticky,
       };
 
-      if (publishDate) {
+      const originalDate = (post.scheduledAt ?? post.publishedAt) ? new Date((post.scheduledAt ?? post.publishedAt)!).toISOString().split("T")[0] : "";
+      if (publishDate && (publishDate !== originalDate || (status === "future" && post.status !== "future"))) {
         const scheduledAt = new Date(publishDate).getTime();
         if (status === "future" || scheduledAt > Date.now()) {
           updateArgs.status = "future";
@@ -118,14 +122,17 @@ export function PostQuickEdit({ post, onClose }: PostQuickEditProps) {
         updateArgs.authorId = authorId;
       }
 
-      await updatePost(updateArgs as Parameters<typeof updatePost>[0]);
+      if (base.canonical) {
+        if (base.revision === undefined) throw new Error("Reload this document before editing.");
+        await updateCanonical({...updateArgs, expectedRevision:base.revision} as Parameters<typeof updateCanonical>[0]);
+      } else await updatePost(updateArgs as Parameters<typeof updatePost>[0]);
       onClose();
     } catch {
       // Error toast is handled by usePostMutations
     } finally {
       setIsSaving(false);
     }
-  }, [title, slug, status, publishDate, authorId, allowComments, isSticky, onClose, post._id, post.authorId, updatePost]);
+  }, [title, slug, status, publishDate, authorId, allowComments, isSticky, onClose, post._id, post.authorId, post.scheduledAt, post.publishedAt, post.status, updatePost, base, updateCanonical]);
 
   return (
     <div className="border border-border bg-card rounded-none">
@@ -141,6 +148,7 @@ export function PostQuickEdit({ post, onClose }: PostQuickEditProps) {
               Title
             </label>
             <Input
+              aria-label="Title"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               className="w-full"
@@ -151,6 +159,7 @@ export function PostQuickEdit({ post, onClose }: PostQuickEditProps) {
               Slug
             </label>
             <Input
+              aria-label="Slug"
               value={slug}
               onChange={(e) => setSlug(e.target.value)}
               className="w-full"
@@ -165,12 +174,14 @@ export function PostQuickEdit({ post, onClose }: PostQuickEditProps) {
               Status
             </label>
             <select
+              aria-label="Status"
               value={status}
               onChange={(e) => setStatus(e.target.value as PostStatus)}
               className="h-8 w-full rounded-none border border-input bg-transparent px-2 text-xs text-foreground outline-hidden focus-visible:border-ring focus-visible:ring-1 focus-visible:ring-ring/50"
             >
               <option value="draft">Draft</option>
-              <option value="pending">Pending Review</option>
+              {!base.canonical && <option value="pending">Pending Review</option>}
+              <option value="future">Scheduled</option>
               <option value="publish">Published</option>
               <option value="private">Private</option>
             </select>
@@ -181,6 +192,7 @@ export function PostQuickEdit({ post, onClose }: PostQuickEditProps) {
             </label>
             <Input
               type="date"
+              aria-label="Date"
               value={publishDate}
               onChange={(e) => setPublishDate(e.target.value)}
               className="w-full"
@@ -238,6 +250,7 @@ export function PostQuickEdit({ post, onClose }: PostQuickEditProps) {
         <div className="flex items-center gap-6">
           <label className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer">
             <Checkbox
+              aria-label="Allow Comments"
               checked={allowComments}
               onCheckedChange={(checked) => setAllowComments(!!checked)}
             />
@@ -245,6 +258,7 @@ export function PostQuickEdit({ post, onClose }: PostQuickEditProps) {
           </label>
           <label className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer">
             <Checkbox
+              aria-label="Make this post sticky"
               checked={isSticky}
               onCheckedChange={(checked) => setIsSticky(!!checked)}
             />

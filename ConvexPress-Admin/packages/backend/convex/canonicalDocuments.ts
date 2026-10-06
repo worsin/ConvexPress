@@ -24,6 +24,8 @@ import {
 import {
 	canonicalBoundary,
 	createDocument,
+ updateDocumentMetadata,
+ type MetadataArgs,
 	getDocument,
 	previewDocument,
 	initializeDocument,
@@ -55,6 +57,15 @@ export const create: RegisteredMutation<"public", { type: "post" | "page"; title
   args: { type: v.union(v.literal("post"), v.literal("page")), title: v.string() },
   returns: receiptValidator,
   handler: (ctx, args) => canonicalBoundary(() => createDocument(ctx, args)),
+});
+/** Atomic native Quick Edit; the form's original revision is required. */
+export const updateMetadata: RegisteredMutation<"public", MetadataArgs, Promise<CanonicalWriteReceipt>> = mutation({
+ args: {postId:v.id("posts"),expectedRevision:v.number(),title:v.optional(v.string()),slug:v.optional(v.string()),
+  status:v.optional(v.union(v.literal("draft"),v.literal("publish"),v.literal("future"),v.literal("private"))),scheduledAt:v.optional(v.number()),
+  parentId:v.optional(v.union(v.id("posts"),v.null())),menuOrder:v.optional(v.number()),pageTemplate:v.optional(v.string()),
+  commentStatus:v.optional(v.union(v.literal("open"),v.literal("closed"))),authorId:v.optional(v.id("users")),isSticky:v.optional(v.boolean())},
+ returns:receiptValidator,
+ handler:(ctx,args)=>canonicalBoundary(()=>updateDocumentMetadata(ctx,args)),
 });
 export const get: RegisteredQuery<
 	"public",
