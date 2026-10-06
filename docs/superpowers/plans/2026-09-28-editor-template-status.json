@@ -1,13 +1,13 @@
 {
   "plan": "2026-09-28-editor-template-delivery.md",
   "baselineCommit": "d0fee8acceb408fd306a15f3c054322cb73ac8bc",
-  "checkpointSource": "output/social-final-20261006/mt-accept-after.json",
+  "checkpointSource": "output/lms-final-20261006/mt-accept-after.json",
   "checkpointCounts": {
-    "Verified": 124,
-    "In progress": 13
+    "Verified": 127,
+    "In progress": 10
   },
   "goal": "Complete block editor and template delivery plus all demonstrated blockers; defer unrelated whole-app audit campaigns.",
-  "currentTask": "Task3 UGC accepted: native tag/count save/reopen, actual public paging/lightbox, consent expiry and revocation without reload, private-parent exclusion, responsive images and reused four-pack motion evidence. Original71pages/12media/settings/social configuration exact; owned fixtures recoverably trashed, sessions/runtime cleanup complete. Social Feed Mastodon works; E98 records unimplemented declared Instagram provider. Next bounded LMS acceptance/repair. E05 hosted HTTPS remains independent. Full goal active124/13.",
+  "currentTask": "Task3 course-grid/curriculum/progress accepted on real two-customer login, lesson completion50%, selected/all scopes, enrollment revocation without reload, account-switch isolation and course withdrawal; reused native/four-pack/paging/hydration evidence. Original71pages/9courses/settings/emailqueue exact; customers/enrollments/fixtures/sessions/runtime cleaned. UGC also accepted; E98 Instagram adapter remains open. Next instructor/profile and certificate acceptance reconciliation, then remaining integration gates. E05 hosted HTTPS remains independent. Full goal active127/10.",
   "tasks": [
     {
       "id": 1,
@@ -3676,9 +3676,9 @@
       "name": "lms/course-grid",
       "title": "Course grid",
       "category": "Plugin",
-      "checkpointStatus": "In progress",
-      "nextClassification": "Reviewed against live Notes and current canonical specification; Native category/limit and actual course cards; real customer progress/access/privacy, continuation/empty states; avoid unrelated player maintenance absent a causal failure.",
-      "classification": "missing evidence",
+      "checkpointStatus": "Verified",
+      "nextClassification": "reuse valid evidence",
+      "classification": "accepted/reusable evidence",
       "source": "blocks/lms/course-grid/block.json",
       "requirements": "query.category (LMS normalized category label text), limit (1-48)",
       "evidenceReferences": [
@@ -3686,9 +3686,10 @@
         "output/course-blocks-20260911/catalog-checks.json.",
         "output/course-blocks-20260911/course-grid-checks.json.",
         "output/course-blocks-20260911/learner-counts-checks.json",
-        "output/course-blocks-20260911/preview-origin-repair-journal.json"
+        "output/course-blocks-20260911/preview-origin-repair-journal.json",
+        "ConvexPress-Admin/audits/2026-09-04/lms-customer-20261006.md"
       ],
-      "remainingReview": "Native category/limit and actual course cards; real customer progress/access/privacy, continuation/empty states; avoid unrelated player maintenance absent a causal failure.",
+      "remainingReview": "Block accepted on current actual customer lifecycle/isolation/withdrawal and accumulated native/four-pack/pagination/hydration evidence; shared SDK/promotion integration remains separate.",
       "deliveryTask": 3,
       "acceptanceBatch": "learning",
       "reviewedAtCommit": "d8a0ea2c",
@@ -3698,15 +3699,16 @@
       "canonicalFields": [
         "query",
         "limit"
-      ]
+      ],
+      "acceptedEvidence": "ConvexPress-Admin/audits/2026-09-04/lms-customer-20261006.md"
     },
     {
       "name": "lms/curriculum",
       "title": "Curriculum",
       "category": "Plugin",
-      "checkpointStatus": "In progress",
-      "nextClassification": "Reviewed against live Notes and current canonical specification; Reuse all-pack navigation/accordion proof; native course/expanded and real enrollment authorization, locked/available modules and continuation.",
-      "classification": "missing evidence",
+      "checkpointStatus": "Verified",
+      "nextClassification": "reuse valid evidence",
+      "classification": "accepted/reusable evidence",
       "source": "blocks/lms/curriculum/block.json",
       "requirements": "course (reference), expanded (boolean)",
       "evidenceReferences": [
@@ -3714,9 +3716,10 @@
         "output/curriculum-block-20260911/checks.json.118/136renderers18missing",
         "output/hydration-interaction-20260911/checks.json",
         "output/website-bundle-20260911.",
-        "output/website-payload-20260911/checks.json."
+        "output/website-payload-20260911/checks.json.",
+        "ConvexPress-Admin/audits/2026-09-04/lms-customer-20261006.md"
       ],
-      "remainingReview": "Reuse all-pack navigation/accordion proof; native course/expanded and real enrollment authorization, locked/available modules and continuation.",
+      "remainingReview": "Block accepted on current actual customer lifecycle/isolation/withdrawal and accumulated native/four-pack/pagination/hydration evidence; shared SDK/promotion integration remains separate.",
       "deliveryTask": 3,
       "acceptanceBatch": "learning",
       "reviewedAtCommit": "d8a0ea2c",
@@ -3726,7 +3729,8 @@
       "canonicalFields": [
         "course",
         "expanded"
-      ]
+      ],
+      "acceptedEvidence": "ConvexPress-Admin/audits/2026-09-04/lms-customer-20261006.md"
     },
     {
       "name": "lms/instructor",
@@ -3739,9 +3743,10 @@
       "requirements": "instructor (reference)",
       "evidenceReferences": [
         "output/block-library-review-20260915/coverage-review.json.",
-        "output/instructor-block-20260911."
+        "output/instructor-block-20260911.",
+        "ConvexPress-Admin/audits/2026-09-04/lms-customer-20261006.md"
       ],
-      "remainingReview": "Reuse picker/cross-database/public course proof; exact remaining optional profile/media/pagination variants and native revision recovery before closure.",
+      "remainingReview": "Current actual public course withdrawal and old native picker/cross-database/paging evidence accepted. Reconcile remaining optional profile/media variants before closure.",
       "deliveryTask": 3,
       "acceptanceBatch": "learning",
       "reviewedAtCommit": "d8a0ea2c",
@@ -3756,18 +3761,19 @@
       "name": "lms/progress",
       "title": "Learner progress",
       "category": "Plugin",
-      "checkpointStatus": "In progress",
-      "nextClassification": "Reviewed against live Notes and current canonical specification; Reuse all-pack42/100 display proof; real learner/course scope, signed-out/empty/unavailable, revoked enrollment and no other customer's progress.",
-      "classification": "missing evidence",
+      "checkpointStatus": "Verified",
+      "nextClassification": "reuse valid evidence",
+      "classification": "accepted/reusable evidence",
       "source": "blocks/lms/progress/block.json",
       "requirements": "scope (select), course (reference)",
       "evidenceReferences": [
         "output/acceptance-reconciliation-20260920/acceptance-review.md.",
         "output/block-library-review-20260915/coverage-review.json.",
         "output/course-blocks-20260911/progress-integrity-checks.json.",
-        "output/progress-block-20260911.117/136"
+        "output/progress-block-20260911.117/136",
+        "ConvexPress-Admin/audits/2026-09-04/lms-customer-20261006.md"
       ],
-      "remainingReview": "Reuse all-pack42/100 display proof; real learner/course scope, signed-out/empty/unavailable, revoked enrollment and no other customer's progress.",
+      "remainingReview": "Block accepted on current actual customer lifecycle/isolation/withdrawal and accumulated native/four-pack/pagination/hydration evidence; shared SDK/promotion integration remains separate.",
       "deliveryTask": 3,
       "acceptanceBatch": "learning",
       "reviewedAtCommit": "d8a0ea2c",
@@ -3777,7 +3783,8 @@
       "canonicalFields": [
         "scope",
         "course"
-      ]
+      ],
+      "acceptedEvidence": "ConvexPress-Admin/audits/2026-09-04/lms-customer-20261006.md"
     },
     {
       "name": "events/calendar",
