@@ -67,9 +67,13 @@ export function ShopCatalog({ variant }: { variant?: string }) {
     ? layout.gridDensity === "dense"
       ? "grid gap-3 grid-cols-2 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5"
       : "grid gap-4 grid-cols-2 md:grid-cols-3 2xl:grid-cols-4"
-    : shell?.railOpen && shell.cartColumn
-      ? "grid gap-4 sm:grid-cols-2 2xl:grid-cols-3"
-      : "grid gap-4 sm:grid-cols-2 xl:grid-cols-3";
+    : layout.gridDensity === "dense"
+      ? shell?.railOpen && shell.cartColumn
+        ? "grid gap-3 grid-cols-2 2xl:grid-cols-3"
+        : "grid gap-3 grid-cols-2 md:grid-cols-3 2xl:grid-cols-4"
+      : shell?.railOpen && shell.cartColumn
+        ? "grid gap-4 sm:grid-cols-2 2xl:grid-cols-3"
+        : "grid gap-4 sm:grid-cols-2 xl:grid-cols-3";
 
   const filterProps = { search, data, q, currency, hasFilters, update };
 

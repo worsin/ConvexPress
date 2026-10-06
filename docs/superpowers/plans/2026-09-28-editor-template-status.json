@@ -7,7 +7,7 @@
     "In progress": 20
   },
   "goal": "Complete block editor and template delivery plus all demonstrated blockers; defer unrelated whole-app audit campaigns.",
-  "currentTask": "Task7: eight block SDK operation trials accepted through the consolidated evidence map; optional extension/pattern/native/four-pack trial cleaned. See block-sdk-workflows-20261006.md. Continue E09 remaining per-field/shop/promotion and Dashboard surface matrix; actual AI/E05/final visual/Task8 still open. Goal active117/20.",
+  "currentTask": "Task5 E79 catalog density repaired and native/four-pack16-state accepted; no published changes. E80 actual Type scale no-op confirmed (CSS changes, fonts unchanged); connect typography and verify native/pack rendering next. Remaining E09/E05, actual AI, final visual and Task8 gates stay open. Goal active117/20.",
   "tasks": [
     {
       "id": 1,
@@ -177,7 +177,7 @@
     },
     {
       "id": "E09",
-      "status": "Open with reusable partial evidence: Core native chrome/menu publication; Journal/Depot customization, conflicts and promotion; four-pack primary/history/context; actual natural renewal; signed-in Clerk customer UI/API denial; real parent-operator revocation and same-tab recovery accepted. Full per-field/Aster native,22dashboard surfaces, hosted HTTPS permission and migration/runtime retirement remain. E68/E69 refreshed actual Website acceptance completed October5; repeated focus and correct denial notice/same-document recovery pass. October5 Aster native activation, palette/type/layout/CTA/footer draft-save-reload-publication and public desktop/phone accepted within recorded field scope; see customizer-aster-20261005.md. Full matrix remains open.",
+      "status": "Open with reusable partial evidence: Core native chrome/menu publication; Journal/Depot customization, conflicts and promotion; four-pack primary/history/context; actual natural renewal; signed-in Clerk customer UI/API denial; real parent-operator revocation and same-tab recovery accepted. Full per-field/Aster native,22dashboard surfaces, hosted HTTPS permission and migration/runtime retirement remain. E68/E69 refreshed actual Website acceptance completed October5; repeated focus and correct denial notice/same-document recovery pass. October5 Aster native activation, palette/type/layout/CTA/footer draft-save-reload-publication and public desktop/phone accepted within recorded field scope; see customizer-aster-20261005.md. Full matrix remains open. E79 density now changes actual four-pack catalog grids; native unsaved/undo and16 populated390/1280 states pass with exact appearance preservation. E80 Type scale is a proven no-op (30px heading unchanged at0.94/1.06); repair next. See customizer-density-20261006.md.",
       "classification": "missing evidence",
       "initialFinding": "Customizer contextual fields, all packs/surfaces, header/footer/menu integration and operator authority are not fully accepted.",
       "closureBoundary": "Verify the field group controls the actual surface, click-to-edit focus, draft/publish/reset/history/conflicts, pack switches, session continuity, customer denial and revocation.",
@@ -926,6 +926,27 @@
       "status": "Exact approved Aster resource composition now exports through authenticated API and native Electron. Native download matches reviewed package; actual CLI dry/write/sync/idempotence/generated contract passes in disposable SDK repository. Source19/164,definition42/571,renderer321/5524,snapshot7/80,types/mirrors pass. Aster deployment2359API exact; revision9 entire document and generation2 definition listing preserved. Newly installed canonical/native confirmation remains separate E17 gate. Subsequent installed canonical/native confirmation gate accepted by promotion-installed-20261006.md; shipped137 inventory unchanged.",
       "evidence": [
         "ConvexPress-Admin/audits/2026-09-04/promotion-resources-20261006.md"
+      ]
+    },
+    {
+      "id": "E79",
+      "status": "Closed within catalog grid setting boundary: actual four-pack regressions red/green, native draft/undo and16 populated production preview states pass. Exact published appearance preserved; owned runtime cleaned.",
+      "classification": "repaired and verified",
+      "initialFinding": "Product grid density was exposed but ignored by Journal/Aster/Depot grids and Core boutique.",
+      "closureBoundary": "Both loading and populated grids consume the resolved setting; actual native/public preview changes while preserving content.",
+      "currentEvidence": [
+        "ConvexPress-Admin/audits/2026-09-04/customizer-density-20261006.md"
+      ]
+    },
+    {
+      "id": "E80",
+      "status": "Open: production preview changes --type-scale to0.94/1.06 but Core catalog heading stays30px and eyebrow11px. No source consumer exists.",
+      "classification": "missing implementation",
+      "initialFinding": "Visible Type scale control changes an unused CSS variable rather than rendered typography.",
+      "closureBoundary": "Connect typography scale to actual shared and pack-owned typography, preserve comfortable defaults and non-text layout, then verify native draft/reset and actual four-pack output.",
+      "currentEvidence": [
+        "output/customizer-density-20261006/type-scale-noop.json",
+        "ConvexPress-Admin/audits/2026-09-04/customizer-density-20261006.md"
       ]
     }
   ],

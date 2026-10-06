@@ -16,12 +16,14 @@ import type { SurfaceProps } from "@/templates/sdk/types";
 import { Button, Chip, EmptyState, Label, Pagination, ProductCard, Select, Skeleton, Toolbar, buttonClasses } from "../parts";
 
 const PRICE_CAPS = [25, 50, 100, 250, 1000];
-const GRID = "grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5";
 
 export default function DepotShopCatalog(_props: SurfaceProps<Record<string, never>>) {
   // Depot offers the marketplace layout only.
-  const { search, q, data, facetChips, commerceEnabled, currency, siteTitle, assistant, shell, hasFilters, activeCategory, update } = useShopCatalogData("marketplace");
+  const { search, q, data, facetChips, commerceEnabled, currency, siteTitle, assistant, shell, layout, hasFilters, activeCategory, update } = useShopCatalogData("marketplace");
   const [draft, setDraft] = useState(q);
+  const gridClass = layout.gridDensity === "dense"
+    ? "grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5"
+    : "grid grid-cols-2 gap-4 md:grid-cols-3 2xl:grid-cols-4";
 
   const submit = (event: FormEvent) => {
     event.preventDefault();
@@ -155,7 +157,7 @@ export default function DepotShopCatalog(_props: SurfaceProps<Record<string, nev
 
       {/* Results */}
       {!data ? (
-        <div className={GRID}>
+        <div className={gridClass}>
           {Array.from({ length: 10 }).map((_, index) => (
             <Skeleton key={index} className="aspect-[3/4]" />
           ))}
@@ -172,7 +174,7 @@ export default function DepotShopCatalog(_props: SurfaceProps<Record<string, nev
         />
       ) : (
         <>
-          <div className={GRID}>
+          <div className={gridClass}>
             {data.items.map((product) => (
               <ProductCard key={product.productId} product={product} />
             ))}
