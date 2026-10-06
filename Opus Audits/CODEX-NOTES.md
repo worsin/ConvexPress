@@ -1162,3 +1162,14 @@ Actual isolated Electron: four pack activations/row creations, four presentation
 Original appearance values,43pages,general/reading/menu locations/API-actor drafts restored/exact. Native operator saved draft cleared on publication. Live scope/signout restored; API revoked401;61555/61556 stopped/profile removed;tab31closed/viewportreset;7protected alive. No backend deploy/live publication/push. Normal audit notifications advanced. Separate API admin cannot read native operator draft, correctly; UI reload/recovery is authoritative proof.
 
 NEXT: remaining footer section/cell controls, starting with Column Layout, Background/Image, Top Border, Padding. Reuse E93 native lifecycle. Bounded question: verify actual exposed options against consumers; call out a concrete ignored value, not merely absent acceptance. Full goal active117/20.
+
+
+## 2026-10-06 — E94 footer section controls delivered
+
+Audit49 remains latest; ACCEPT no-new-findings/no-drift as advisory, not authority. No wait for the forthcoming deep audit. Codex remains in charge.
+
+16 component failure groups repaired: all4pack section columns/background/image/border/padding, including Minimal behavior from the native preview. Added native/on-site image selectors using existing media controls.84component cases plus136responsive built-CSS cases pass; both apps types/builds and changed-file lint pass. Actual isolated Electron Core image selection/review/publication and Website1440/390 render accepted; on-site remove/Undo restores preview. Report: ConvexPress-Admin/audits/2026-09-04/footer-section-controls-20261006.md.
+
+Appearance values/43pages/general/reading/menu locations/API drafts restored/exact. No media/content writes. Native Live/signout restored, API revoked401, owned63572/63598/63555 stopped, tab32closed/viewportreset;7protected alive. No backend deploy/live publication/push.
+
+NEXT: E09 section branding enablement, legal-link/menu-source choices and remaining cell controls. Reuse E81/E90-E94; avoid rerunning accepted matrices. Bounded Claude question: identify a concrete remaining ignored exposed field, with pack, consumer and rendered reproduction; distinguish missing evidence from a defect. Full goal active117/20.
