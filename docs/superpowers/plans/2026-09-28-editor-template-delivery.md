@@ -143,11 +143,13 @@ September29 closure: all20 assigned Task2 block rows are Verified on the linked 
 
 **Consumes:** finished canonical capabilities and actual retained content inventory. **Produces:** one active content model/Website renderer, preserved history and explicit old-content import support.
 
-- [ ] Enumerate real legacy shapes and references once; distinguish retained revision snapshots from active authoring fields. Match converter coverage to that inventory.
-- [ ] Prove each supported conversion preserves editorial text, inline structure, media identity, layout intent, anchors, links, visibility/locks and revision source. Mixed/oversized unsupported inputs must be refused without loss, then receive a complete supported conversion before claiming closure.
-- [ ] Run native conversion/reopen/publication/recovery and before/after rendered comparison on representative owned copies of actual content.
-- [ ] Migrate known installed/demo content with backups, explicit receipts and exact readback. Preserve original user data and rollback until success is established.
-- [ ] Remove obsolete live editor/renderer/contentMode paths and fields only after preservation and import/recovery requirements pass; no premature destructive schema cleanup.
+- [x] Enumerate real legacy shapes and references once; distinguish retained revision snapshots from active authoring fields. Match converter coverage to that inventory.
+- [x] Prove each supported conversion preserves editorial text, inline structure, media identity, layout intent, anchors, links, visibility/locks and revision source. Mixed/oversized unsupported inputs must be refused without loss, then receive a complete supported conversion before claiming closure.
+- [x] Run native conversion/reopen/publication/recovery and before/after rendered comparison on representative owned copies of actual content.
+- [x] Migrate known installed/demo content with backups, explicit receipts and exact readback. Preserve original user data and rollback until success is established.
+- [x] Remove obsolete live editor/renderer/contentMode paths and fields only after preservation and import/recovery requirements pass; no premature destructive schema cleanup.
+
+Acceptance: `ConvexPress-Admin/audits/2026-09-04/legacy-reusable-retirement-20261006.md` maps all five clauses to current complete corpus, retained sources, native/Website conversion evidence and exact API/data preservation. Historical import/schema compatibility is intentional; full delivery remains open.
 
 ### Task 5 — Finish Templates and Customizer as one workflow
 

@@ -22,7 +22,6 @@ export function legacyReferences(raw:string):string[]{
  const visit=(node:unknown,depth:number)=>{if(depth>32||++count>4000)return syncedFailure('LEGACY_IMPORT_LIMIT','The legacy document exceeds the reference scan limit.');if(!node||typeof node!=='object')return;const n=node as {type?:unknown;attrs?:{blockId?:unknown};content?:unknown};if(n.type==='reusableBlock'){if(typeof n.attrs?.blockId!=='string'||!n.attrs.blockId)return syncedFailure('LEGACY_IMPORT_REFERENCE','A legacy reusable source identity is missing.');ids.add(n.attrs.blockId);}if(Array.isArray(n.content))for(const child of n.content)visit(child,depth+1);};visit(root,0);return [...ids];
 }
 async function mapped(ctx:QueryCtx,id:Id<'reusableBlocks'>,budget:RequestReadLedger){budget.beforeRead();return budget.record(await ctx.db.query('syncedBlocks').withIndex('by_legacy_source',q=>q.eq('legacySourceId',id)).unique());}
-export async function assertLegacyWritable(ctx:QueryCtx,id:Id<'reusableBlocks'>){if(await mapped(ctx,id,new RequestReadLedger()))syncedFailure('LEGACY_SOURCE_IMPORTED','This source was imported. Edit its canonical synced content; the original is retained for recovery.');}
 /** Resolve imports for ordinary document migration without granting source editing. */
 export async function legacyReferenceMap(ctx:QueryCtx,raw:string,budget:RequestReadLedger){
  const result=new Map<string,string>(),scope=await installation(ctx,budget);

@@ -1,75 +1,7 @@
-/**
- * Content Editor System - Shared Argument Validators
- *
- * Reusable Convex argument validators for editor mutations and queries.
- * Centralizes validation logic so mutations and queries stay clean.
- *
- * Convention: each exported object is an args shape (Record<string, Validator>)
- * ready to spread into a Convex function's `args` field.
- */
-
+/** Shared edit-lock argument validators. */
 import { v } from "convex/values";
-
-// ─── Constants ──────────────────────────────────────────────────────────────
-
-/** Maximum reusable block title length in characters. */
-export const MAX_BLOCK_TITLE_LENGTH = 200;
-
-/** Maximum reusable block description length in characters. */
-export const MAX_BLOCK_DESCRIPTION_LENGTH = 500;
-
-/** Lock duration in milliseconds (2 minutes). */
 export const LOCK_DURATION_MS = 2 * 60 * 1000;
-
-/** Lock renewal interval in milliseconds (30 seconds) - for reference. */
 export const LOCK_RENEWAL_INTERVAL_MS = 30 * 1000;
-
-/** Maximum content size for reusable blocks (1MB in characters). */
-export const MAX_BLOCK_CONTENT_SIZE = 1_000_000;
-
-// ─── Reusable Block Mutation Args ───────────────────────────────────────────
-
-/**
- * Arguments for creating a new reusable block.
- */
-export const createReusableBlockArgs = {
-  title: v.string(),
-  content: v.string(),
-  blockType: v.optional(v.string()),
-  category: v.optional(v.string()),
-  description: v.optional(v.string()),
-  isPublished: v.optional(v.boolean()),
-};
-
-/**
- * Arguments for updating an existing reusable block.
- *
- * All fields except blockId are optional - only provided fields are updated.
- */
-export const updateReusableBlockArgs: { blockId: import("convex/values").VId<import("../_generated/dataModel").Id<"reusableBlocks">>; title: import("convex/values").VString<string | undefined, "optional">; content: import("convex/values").VString<string | undefined, "optional">; blockType: import("convex/values").VString<string | undefined, "optional">; category: import("convex/values").VString<string | undefined, "optional">; description: import("convex/values").VString<string | undefined, "optional">; isPublished: import("convex/values").VBoolean<boolean | undefined, "optional">; isLocked: import("convex/values").VBoolean<boolean | undefined, "optional"> } = {
-  blockId: v.id("reusableBlocks"),
-  title: v.optional(v.string()),
-  content: v.optional(v.string()),
-  blockType: v.optional(v.string()),
-  category: v.optional(v.string()),
-  description: v.optional(v.string()),
-  isPublished: v.optional(v.boolean()),
-  isLocked: v.optional(v.boolean()),
-};
-
-/**
- * Arguments for deleting a reusable block.
- */
-export const deleteReusableBlockArgs: { blockId: import("convex/values").VId<import("../_generated/dataModel").Id<"reusableBlocks">> } = {
-  blockId: v.id("reusableBlocks"),
-};
-
-/**
- * Arguments for duplicating a reusable block.
- */
-export const duplicateReusableBlockArgs: { blockId: import("convex/values").VId<import("../_generated/dataModel").Id<"reusableBlocks">> } = {
-  blockId: v.id("reusableBlocks"),
-};
 
 // ─── Edit Lock Mutation Args ────────────────────────────────────────────────
 
@@ -94,27 +26,6 @@ export const renewLockArgs: { postId: import("convex/values").VId<import("../_ge
   postId: v.id("posts"),
 };
 
-// ─── Reusable Block Query Args ──────────────────────────────────────────────
-
-/**
- * Arguments for listing reusable blocks.
- *
- * Supports filtering by published status, author, and search.
- */
-export const listReusableBlocksArgs = {
-  publishedOnly: v.optional(v.boolean()),
-  createdBy: v.optional(v.id("users")),
-  search: v.optional(v.string()),
-  blockType: v.optional(v.string()),
-};
-
-/**
- * Arguments for getting a single reusable block.
- */
-export const getReusableBlockArgs: { blockId: import("convex/values").VId<import("../_generated/dataModel").Id<"reusableBlocks">> } = {
-  blockId: v.id("reusableBlocks"),
-};
-
 // ─── Edit Lock Query Args ───────────────────────────────────────────────────
 
 /**
@@ -122,14 +33,4 @@ export const getReusableBlockArgs: { blockId: import("convex/values").VId<import
  */
 export const getLockArgs: { postId: import("convex/values").VId<import("../_generated/dataModel").Id<"posts">> } = {
   postId: v.id("posts"),
-};
-
-// ─── Internal Function Args ─────────────────────────────────────────────────
-
-/**
- * Arguments for incrementing usage count on a reusable block.
- */
-export const incrementUsageCountArgs: { blockId: import("convex/values").VId<import("../_generated/dataModel").Id<"reusableBlocks">>; delta: import("convex/values").VFloat64 } = {
-  blockId: v.id("reusableBlocks"),
-  delta: v.number(), // +1 when inserted, -1 when removed
 };

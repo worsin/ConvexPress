@@ -27,7 +27,6 @@ test('reviewed nested import preserves originals, sharing, publication, locks an
  const heads=await f.t.run(ctx=>ctx.db.query('syncedBlocks').collect()),leaf=heads.find(h=>h.legacySourceId===f.leaf)!;expect(heads).toHaveLength(2);expect(leaf.isLocked).toBe(true);const first=await f.t.run(ctx=>ctx.db.query("syncedBlockRevisions").withIndex("by_source_revision",q=>q.eq("syncedBlockId",leaf._id).eq("revision",1)).unique());expect(JSON.parse(first!.legacySourceJson!)).toEqual(original.find(s=>s._id===f.leaf));
  const p=await f.operator.query(get,{id:result.id});expect(p.blocks.map((b:any)=>b.attrs.syncedBlock)).toEqual([leaf._id,leaf._id]);expect(p.blocks.every((b:any)=>b.attrs.revisionPolicy==='latest')).toBe(true);expect(p.publishedRevision).toBe(1);
  await expect(f.operator.mutation(save,{id:leaf._id,expectedGeneration:2,title:'Overwrite locked source',blocks:[]})).rejects.toThrow('locked');
- await expect(f.operator.mutation(ref<'mutation'>('editor/mutations:updateReusableBlock'),{blockId:f.parent,title:'Old writer'})).rejects.toThrow('canonical');
  expect(await f.t.run(ctx=>ctx.db.query('reusableBlocks').collect())).toEqual(original);
  const replay=await f.operator.query(review,{legacyId:f.parent});expect(await f.operator.mutation(apply,{legacyId:f.parent,expectedDigest:replay.digest})).toEqual({id:result.id,created:0,reused:2});expect(await f.t.run(ctx=>ctx.db.query('syncedBlockRevisions').collect())).toHaveLength(2);
 });
@@ -67,4 +66,27 @@ test('missing dependencies, foreign authors and changed installation refuse impo
  const missing=await setup();await missing.t.run(ctx=>ctx.db.delete('reusableBlocks',missing.leaf));
  await expect(missing.operator.query(review,{legacyId:missing.parent})).rejects.toThrow('missing');
  expect(await missing.t.run(ctx=>ctx.db.query('syncedBlocks').collect())).toHaveLength(0);
+});
+
+test('over-limit reusable graphs refuse atomically and inventory pagination still accounts for every source',async()=>{
+ const f=await fixture();
+ const ids=await f.t.run(async ctx=>{
+  const leaves=[];
+  for(let i=0;i<40;i++)leaves.push(await ctx.db.insert('reusableBlocks',{title:`Leaf ${String(i).padStart(2,'0')}`,content:body(`Original ${i}`),isPublished:false,usageCount:1,createdBy:f.ids.user,createdAt:11,updatedAt:12}));
+  const root=await ctx.db.insert('reusableBlocks',{title:'Root',content:JSON.stringify({type:'doc',content:leaves.map(blockId=>({type:'reusableBlock',attrs:{blockId}}))}),isPublished:false,usageCount:0,createdBy:f.ids.user,createdAt:11,updatedAt:12});
+  return {root,all:[...leaves,root]};
+ });
+ const originals=await f.t.run(ctx=>ctx.db.query('reusableBlocks').collect());
+ await expect(f.operator.query(review,{legacyId:ids.root})).rejects.toThrow('Import is incomplete');
+ await expect(f.operator.mutation(apply,{legacyId:ids.root,expectedDigest:'unreviewed'})).rejects.toThrow('Import is incomplete');
+ expect(await f.t.run(ctx=>ctx.db.query('syncedBlocks').collect())).toHaveLength(0);
+ expect(await f.t.run(ctx=>ctx.db.query('syncedBlockRevisions').collect())).toHaveLength(0);
+ expect(await f.t.run(ctx=>ctx.db.query('reusableBlocks').collect())).toEqual(originals);
+ const list=ref<'query'>('syncedBlocks/legacy:list');const first=await f.operator.query(list,{paginationOpts:{numItems:100,cursor:null}});
+ expect(first.page).toHaveLength(20);expect(first.isDone).toBe(false);
+ const second=await f.operator.query(list,{paginationOpts:{numItems:100,cursor:first.continueCursor}});
+ expect(second.page).toHaveLength(20);expect(second.isDone).toBe(false);
+ const third=await f.operator.query(list,{paginationOpts:{numItems:100,cursor:second.continueCursor}});
+ expect(third.isDone).toBe(true);expect(third.page).toHaveLength(1);
+ expect([...first.page,...second.page,...third.page].map((s:{id:string})=>s.id).sort()).toEqual([...ids.all].sort());
 });

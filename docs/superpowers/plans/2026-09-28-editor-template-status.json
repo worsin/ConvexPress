@@ -7,7 +7,7 @@
     "In progress": 5
   },
   "goal": "Complete block editor and template delivery plus all demonstrated blockers; defer unrelated whole-app audit campaigns.",
-  "currentTask": "132 Verified / 5 In progress. Seven unused legacy autosave/preview/structured-AI functions retired on both installed sites; canonical private drafts, native reopen/recovery/save and actual Website preview verified with exact original-data preservation. Next: Task4 final corpus and reachable compatibility reconciliation, including reusable sources and retained AI routing, then integrated delivery gates; do not wait on provider prerequisites or Claude.",
+  "currentTask": "132 Verified / 5 In progress. Task4 accepted: all160 installed documents canonical,198 retained legacy saved/draft sources convertible,625 canonical stored trees valid,3/3 reusable originals mapped and exact,obsolete reusable APIs retired on both sites. Next: reconcile Task5 aggregate Customizer coverage and E05 hosted editing; retain Task6 motion/BlockDemo, Task7 actual AI and Task8 integrated artifact/identity gates.",
   "tasks": [
     {
       "id": 1,
@@ -24,7 +24,8 @@
     },
     {
       "id": 4,
-      "status": "in_progress"
+      "status": "complete",
+      "scope": "Known installed/demo corpus migration, exact archive/reference preservation and inventoried obsolete authoring/renderer retirement accepted; legacy-reusable-retirement-20261006.md maps all five plan criteria. Retained compatibility schema/import readers are intentional. Full delivery remains open."
     },
     {
       "id": 5,
@@ -100,11 +101,11 @@
     },
     {
       "id": "E07",
-      "status": "All current source116/116 and target29/29 documents canonical; historical format/reference reconciliation complete within its documented scope. Downgrade API/permit/control retired; exact downloads and deliberate saved/unsaved canonical import/undo verified. Normal native edit routes and all four packs use canonical dispatch. New post/page and Dashboard Quick Draft create canonical revision1 directly on both sites; Quick Draft native literal text/line breaks/save/reload/335px Website accepted (quick-draft-20261005.md). Original rows, appearance/mail and other private drafts exact after cleanup. HTTP create/read/update now canonical with live API/native/Website acceptance on both sites; API revocation, stale revision and invalid CTA refusal verified. Unused generic public create endpoints are retired; installed inventories remove exactly those two functions. Canonical creation and hierarchy/lifecycle acceptance pass on both sites. WordPress import now uses canonical document transactions, retained source archives and accepted mapping receipts; native/Website round trips and exact cleanup pass on both sites. Unsupported conversion/lifecycle states explicitly require review. Obsolete seedMarketingSite/repairSeededPageLinks and their CLI are retired; media/shop workflows remain exact. Remaining native/backend/schema consumers still require bounded retirement. E07 remains open. Unreachable native EditorLayout/useEditorForm, original article/text widgets and v1 composition controls retired with current canonical/shared controls preserved. The isolated16-endpoint v1 block/AI API is retired on both sites; current canonical AI and usage queries preserved, focused tests169source/139target and exact data/signature preservation pass. Canonical native post/page Quick Edit now uses one expected-revision metadata/title/parent transaction. Native save/reopen/stale refusal and exact cleanup pass; bulk and other generic callers remain. Bulk Edit now captures per-document revisions across pages, refuses stale writes and reports partial/uncertain results without replay. Native verification and exact cleanup pass. Audit38 identifies unresolved canonical metadata authoring parity; retirement remains incomplete. Audit38 metadata controls repaired: native canonical excerpt/featured-image/comments and post category/tag assignment/removal save atomically with revision/settings-digest checks. Reopen, stale-input preservation, body isolation, event parity and exact final cleanup verified. Generic fallback/schema retirement remains open. Generic posts/pages update handlers/validators and noncanonical QuickEdit fallbacks retired on both sites; canonical native save/reopen/stale refusal and exact cleanup pass. Legacy gate rendered tests pass; live legacy fixture setup unavailable on target, with no source write. E07 contentMode/schema consumers remain open. Website raw-body/mode/section/version DTO projections retired; Aster cover follows canonical opening role, including Hero Video and access loss. Focused lifecycle/SSR, types/build and read-only live page/post checks pass. Configured Aster homepage remains E10 acceptance. Nine-file unreachable Website article/structured/block-list renderer closure and unused UI types retired; current canonical rendering and actual BlockDemo registry comparison preserved. Focused/renderers/demo/types/build/SSR pass; no schema/data changes. Current canonical contentMode identity removed across edit/recovery/publication/drafts/AI/promotion; current writers clear it. Legacy importer and exact archives retained. Both deployments/live API/native save-reopen accepted; originals/private drafts/appearance/mail exact. Optional legacy schema field remains pending final classification. Retained fields classified as import/history compatibility; destructive removal rejected to preserve exact recovery. Promotion review now detects canonical version without obsolete mode. Legacy compatibility APIs still require bounded retirement; proceed with E10 rather than erase archives. October6: unused legacy autosave/preview/structured-AI seven-function closure and native control retired on both sites. Exact API surface, original posts/revisions/private drafts/settings, canonical API drafts/conflict/preview and actual native recovery/save/Website iframe verified. Shared AI routing compatibility and final corpus accounting remain separate; retained historical data not erased.",
-      "classification": "missing evidence",
+      "status": "Closed for Task4: complete installed corpus160canonicaldocuments/579revisions;198legacy saved/draft sources convertible,625canonicaltrees valid,3/3old reusable sources mapped with exact immutable originals. Retired inventoried generic/v1/mode/downgrade/autosave/structured-AI/reusable live APIs and private UI/renderer closures. Canonical native migration/recovery/publication/Website and current API evidence reused with provenance. Exact original data/settings and129media-reference reconciliation pass. Explicit archive/schema/import compatibility retained; no destructive sweep.",
+      "classification": "accepted/reusable evidence",
       "initialFinding": "One-content-model migration and legacy retirement remain incomplete.",
       "closureBoundary": "Complete lossless conversion/recovery for actual retained content, source snapshots and installed-site receipts; then remove active legacy editor/renderer/schema dispatch as specified. Keep historical recovery data and a deliberate import converter. Do not delete old fields before proving preservation or claim migration complete while silently relying on legacy rendering.",
-      "nextCheck": "Bound remaining structured-AI/autosave compatibility API callers, preserve deliberate import/history readers, then retire obsolete live writers and reconcile corpus counts. Source installed baseline output/synced-promotion-final-20261006/source-source-installed.json; target baseline output/synced-promotion-final-20261006/target-source-installed.json. Preserve each installed extension closure.",
+      "nextCheck": "Reuse Task4 evidence during the frozen Task8 integration gate; reopen only on a demonstrated migration or live legacy-dispatch defect. Current installed bases: output/legacy-reusable-retirement-20261006/{source,target}-source-installed.json.",
       "deliveryTask": 4,
       "triagedAt": "2026-09-29",
       "triageEvidence": "ConvexPress-Admin/audits/2026-09-04/delivery-blocker-triage-20260929.md",
@@ -159,7 +160,8 @@
         "ConvexPress-Admin/audits/2026-09-04/document-settings-20261005.md",
         "ConvexPress-Admin/audits/2026-09-04/generic-update-retirement-20261005.md",
         "ConvexPress-Admin/audits/2026-09-04/field-guide-legacy-final-20261006.md",
-        "ConvexPress-Admin/audits/2026-09-04/legacy-compatibility-retirement-20261006.md"
+        "ConvexPress-Admin/audits/2026-09-04/legacy-compatibility-retirement-20261006.md",
+        "ConvexPress-Admin/audits/2026-09-04/legacy-reusable-retirement-20261006.md"
       ]
     },
     {
@@ -1254,7 +1256,7 @@
     {
       "id": "E100",
       "classification": "implementation repaired and verified; corpus retirement pending",
-      "status": "Reviewed/idempotent graph import, retained originals/history, publication/locks, native document conversion and historical recovery pass. No legacy retirement claim; full corpus accounting remains Task 4.",
+      "status": "Closed: reviewed/idempotent graph import and native recovery accepted, with complete current3/3source and0target original corpus mappings, exact immutable originals and canonical reference/media readback. Old reusable CRUD/query/counter APIs retired on both sites; limits refuse atomically and inventory pagination remains complete.",
       "requiredWorkflow": "Migrate retained legacy reusable content and referencing documents to canonical synced content while preserving authored values, shared-reference semantics, original records/history and site/operator authority.",
       "initialFinding": "migrateLegacyDocument on a mixed TipTap document returns LEGACY_CONVERSION_REQUIRED at content[1], A lossless reusableBlock adapter is required. Legacy reusableBlocks stores serialized TipTap; current canonical source APIs accept canonical trees without legacy source mapping.",
       "repairBoundary": "Reviewed/idempotent legacy-source graph conversion and old-to-new reference mapping; retain originals, bind candidate/source/dependencies, enforce authority/cycle/size budgets, preserve publication/lock intent explicitly. No flattening or premature legacy deletion.",
@@ -1263,7 +1265,8 @@
       "currentEvidence": [
         "ConvexPress-Admin/audits/2026-09-04/synced-nested-20261006.md",
         "output/synced-nested-20261006/migration-probe.json",
-        "ConvexPress-Admin/audits/2026-09-04/synced-legacy-20261006.md"
+        "ConvexPress-Admin/audits/2026-09-04/synced-legacy-20261006.md",
+        "ConvexPress-Admin/audits/2026-09-04/legacy-reusable-retirement-20261006.md"
       ]
     },
     {
@@ -5083,7 +5086,12 @@
     "output/field-guide-legacy-final-20261006/mt-accept-verified.json",
     "ConvexPress-Admin/audits/2026-09-04/legacy-compatibility-retirement-20261006.md",
     "output/legacy-compatibility-retirement-20261006/installed-source-proof.json",
-    "output/legacy-compatibility-retirement-20261006/cleanup.json"
+    "output/legacy-compatibility-retirement-20261006/cleanup.json",
+    "ConvexPress-Admin/audits/2026-09-04/legacy-reusable-retirement-20261006.md",
+    "output/legacy-reusable-retirement-20261006/corpus.json",
+    "output/legacy-reusable-retirement-20261006/history-final.json",
+    "output/legacy-reusable-retirement-20261006/reference-reconciliation.json",
+    "output/legacy-reusable-retirement-20261006/preservation.json"
   ],
   "trackerRefresh": {
     "source": "output/field-guide-legacy-final-20261006/mt-accept-after.json",
@@ -5144,7 +5152,8 @@
     "audit54": "ACCEPT scope/count/no-drift assessment at c290ca0f. ADAPT E99: three prior native reproductions plus current migration recovery render automatically; retain intermittent Task 8 watch without speculative fix. E100 adapter now implemented and verified in native/stored workflows. No waiting for deep audit or automatic scope expansion.",
     "syncedPromotion": "Audit54 remains latest and already adjudicated. Codex independently verified and repaired E101 promotion lock gap; 131/6 verified tracker. No waiting for upcoming deep audit; keep corpus retirement and final integration distinct from block acceptance.",
     "fieldGuideLegacy": "Audit54 remains latest and already adjudicated. Native conversion/history recovery passed without reconnection; E99 remains an intermittent integration watch. 132/5 tracker verified. Next bounded E07 compatibility retirement; no wait for deep audit.",
-    "audit55": "ACCEPT 132/5 count and no-drift assessment against current local evidence. ADAPT E99 status: this native private-draft recovery renders automatically, retain intermittent integration watch without claiming a causal fix. No new defect or scope change. Codex independently retired the unused seven-function closure; no waiting for deep audit."
+    "audit55": "ACCEPT 132/5 count and no-drift assessment against current local evidence. ADAPT E99 status: this native private-draft recovery renders automatically, retain intermittent integration watch without claiming a causal fix. No new defect or scope change. Codex independently retired the unused seven-function closure; no waiting for deep audit.",
+    "reusableRetirement": "Audit55 remains latest/already adjudicated. Codex independently completed reusable corpus reconciliation and seven-function retirement. All three original sources map exactly; no new provider prerequisite or wait. Task4 now accepted; full goal remains active."
   },
   "sessionBaseCommit": "9824d9605e50c4b0ebd711c13715b506f8ef5bd3"
 }
