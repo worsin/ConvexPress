@@ -8,6 +8,8 @@ A recipe is not an accepted website. Its acceptance flags deliberately remain fa
 
 Use a distinct site database for each example. First provision that site's staging instance through the existing Admin platform workflow, activate the matching installed pack, and establish an authorized session. Do not substitute another customer's database because it is available. A paired live instance must retain its own database.
 
+Deployment initialization must finish before reusable-content acceptance. The normal desktop setup/deploy path calls `initializeDeploymentMediaIndex`; a direct acceptance bootstrap must use that same coordinator rather than writing an epoch by hand. In native Synced content, run **Index existing pages** until page dependencies and reusable forms are verified. An unconfigured index is a setup failure; do not bypass it or treat unavailable synced blocks as accepted.
+
 Save a secret-free target file with `origin`, `websiteKey`, `instanceKey`, and `environmentKind: "staging"`. Read these from the actual registered instance. Store its access token alone in a private regular file with permissions 0600, outside the repository.
 
 Run from the repository root:
