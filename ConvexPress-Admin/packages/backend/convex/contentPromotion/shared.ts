@@ -288,7 +288,8 @@ export function validateManifest(raw: unknown): ContentPromotionManifest {
 					parent = path[path.length - 2] ?? "";
 				const kind = kinds.get(key);
 				const fieldKinds: Record<string, string[]> = {
-					featuredImageId: ["media"],
+					audienceId: ["mailingList"],
+          featuredImageId: ["media"],
           featuredMediaId: ["media"],
           thumbnailMediaId: ["media"],
           logoMediaId: ["media"],

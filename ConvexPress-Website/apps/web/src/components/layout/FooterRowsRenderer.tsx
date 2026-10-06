@@ -1,3 +1,4 @@
+import {FooterAudienceNewsletter} from "@/components/layout/FooterAudienceNewsletter";
 import { FooterImage } from "./FooterImage";
 import { footerCellAlignment } from "./footerCellAlignment";
 import { FooterAutoPages } from "./FooterAutoPages";
@@ -131,7 +132,7 @@ function FooterCellRenderer({ cell }: { cell: FooterCell }) {
     case "social":
       return <SocialCellRenderer cell={cell} />;
     case "newsletter":
-      return <NewsletterCellRenderer cell={cell} />;
+      return cell.audienceId ? <FooterAudienceNewsletter cell={cell} /> : <NewsletterCellRenderer cell={cell} />;
     case "contact":
       return <ContactCellRenderer cell={cell} />;
     case "brand":

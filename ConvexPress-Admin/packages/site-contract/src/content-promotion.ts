@@ -348,6 +348,7 @@ export const promotionDependencySchema: z.ZodType<PromotionDependency> = z
 			"course",
 			"plan",
 			"form",
+      "mailingList",
 			"role",
 			"plugin",
 			"catalog",
@@ -422,7 +423,7 @@ export interface PromotionIssue {
 }
 export interface PromotionDependency {
   key: string;
-  kind: "product" | "course" | "plan" | "form" | "role" | "plugin" | "catalog";
+  kind: "product" | "course" | "plan" | "form" | "mailingList" | "role" | "plugin" | "catalog";
   sourceId?: string;
   slug?: string;
   requiredBy: string[];

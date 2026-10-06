@@ -1,0 +1,2 @@
+import {test,expect} from 'bun:test';import {spawnSync} from 'node:child_process';import {fileURLToPath} from 'node:url';
+test('every footer pack binds audience consent and public signup/opt-out transport',()=>{const p=spawnSync(process.execPath,[fileURLToPath(new URL('./footer-newsletter.fixture.jsx',import.meta.url))],{encoding:'utf8'});if(p.status!==0)throw Error(p.stderr||p.stdout);expect(p.stdout).toContain('"packs":4');});

@@ -183,6 +183,7 @@ const manifestResult = v.object({
 				v.literal("course"),
 				v.literal("plan"),
 				v.literal("form"),
+        v.literal("mailingList"),
 				v.literal("role"),
 				v.literal("plugin"),
 				v.literal("catalog"),

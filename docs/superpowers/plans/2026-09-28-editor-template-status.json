@@ -7,7 +7,7 @@
     "In progress": 20
   },
   "goal": "Complete block editor and template delivery plus all demonstrated blockers; defer unrelated whole-app audit campaigns.",
-  "currentTask": "Task5: E96 footer cell icons/alignment/responsive images and native URL-image editor repaired;40component cases,8built-CSS cases,native Journal publication and2actual Website widths verified/restored. Next E97 connect footer audience to existing installation-owned mailing lists with published source/consent and promotion mapping. Goal active117/20; do not repeat E93\u2013E96 matrices.",
+  "currentTask": "Task5: E97 footer mailing-list selection, published consent/source, public signup/opt-out and safe promotion dependency mapping repaired. Native selection/publication and actual Website signup/suppression accepted;137backend tests pass. Next reconcile Task5 aggregate coverage and finish hosted HTTPS/operator and integrated promotion gaps. Goal active117/20; reuse E63\u2013E97 evidence.",
   "tasks": [
     {
       "id": 1,
@@ -181,7 +181,7 @@
       "classification": "missing evidence",
       "initialFinding": "Customizer contextual fields, all packs/surfaces, header/footer/menu integration and operator authority are not fully accepted.",
       "closureBoundary": "Verify the field group controls the actual surface, click-to-edit focus, draft/publish/reset/history/conflicts, pack switches, session continuity, customer denial and revocation.",
-      "nextCheck": "Implement E97 footer newsletter audience behavior using existing installation-owned mailing lists, with published footer source/consent and promotion mapping; then reconcile Task5 closure using reusable E93\u2013E96 evidence.",
+      "nextCheck": "Reconcile Task5 aggregate clauses against E63\u2013E97 and existing native lifecycle reports; finish E05 hosted HTTPS editing and the final integrated promotion path. Do not repeat accepted header/footer matrices.",
       "deliveryTask": 5,
       "triagedAt": "2026-09-29",
       "triageEvidence": "ConvexPress-Admin/audits/2026-09-04/delivery-blocker-triage-20260929.md",
@@ -205,7 +205,8 @@
         "ConvexPress-Admin/audits/2026-09-04/footer-native-20261006.md",
         "ConvexPress-Admin/audits/2026-09-04/footer-section-controls-20261006.md",
         "ConvexPress-Admin/audits/2026-09-04/footer-content-controls-20261006.md",
-        "ConvexPress-Admin/audits/2026-09-04/footer-cell-controls-20261006.md"
+        "ConvexPress-Admin/audits/2026-09-04/footer-cell-controls-20261006.md",
+        "ConvexPress-Admin/audits/2026-09-04/footer-newsletter-20261006.md"
       ]
     },
     {
@@ -1210,15 +1211,16 @@
     },
     {
       "id": "E97",
-      "status": "Open: footer audienceId is exposed but ignored. Existing owned mailing-list subscription model is post-bound.",
-      "classification": "reproduced defect",
+      "status": "Repaired and verified at scoped boundary: native list selection/publication, actual Website consented signup/opt-out/suppression and registered two-database promotion remapping pass. Full native controller-broker integration remains E09/Task8.",
+      "classification": "repaired and verified",
       "requiredWorkflow": "A configured footer audience receives consented public subscriptions in the correct isolated installation.",
       "initialFinding": "All footer consumers omit audienceId; generic subscribeNewsletter writes newsletterSubscribers, while mailingListSubscribers requires post/block source fields.",
       "repairBoundary": "Reuse mailingLists ownership/status/consent/suppression; define published footer source, connect editors/forms and safe cross-environment resource mapping; preserve generic no-audience behavior.",
       "closureBoundary": "Native list selection and actual public subscription; intended list/consent/source verified,stale/inactive/foreign/unpublished targets denied,promotion preserved.",
       "deliveryTask": 5,
       "currentEvidence": [
-        "ConvexPress-Admin/audits/2026-09-04/footer-cell-controls-20261006.md"
+        "ConvexPress-Admin/audits/2026-09-04/footer-cell-controls-20261006.md",
+        "ConvexPress-Admin/audits/2026-09-04/footer-newsletter-20261006.md"
       ]
     }
   ],
@@ -4991,7 +4993,7 @@
   "coordination": {
     "folder": "/Users/worsin/Development/ConvexPress/Opus Audits/",
     "authority": "Codex leads; Claude audits are advisory and independently verified",
-    "lastAudit": "2026-10-06T0706-audit-49-customize-picker-footers.md",
+    "lastAudit": "2026-10-06T0806-audit-50-footer-rows.md",
     "pendingAdvisory": {
       "F19": "Accepted shared public document href contract. Historical encoded-slug fixture reproduced discrepancy; ordinary authoring slugifies safely. Legacy menu root/prefix behavior and membership aliases preserved. See locale-destinations-20260928.md.",
       "F20": "Source-verified enterprise commerce backfill truncation recorded in current-acceptance.md deferred register. No live reproduction or repair; promote only if catalog/customer-commerce delivery demonstrates a dependency.",
@@ -5015,7 +5017,8 @@
       "settingsEmailAcceptance": "Correction: restoring email.enabled after Forms created12queued settings alerts; Poll template matrix created60more. All72exact operator/event-bound alerts cancelled through registered API with0attempts; original27rows exact,finalqueue99includingcancelledhistory. No configured provider key or delivery. Suppress settings-changed-alert template before future template settings/email restoration, restore last after event completion; email_templates changes are explicitly ignored by settings alert handler. Never claim post-cleanup queue preservation from a pre-restoration sample.",
       "pollRuntime": "Website72085/PTY44566 unchanged; backend unchanged. Poll customer browser closed;2owned Clerk identities deleted/site profiles inactive, private credentials/profile/token files removed,API revoked. Ownedpage deleted,42originalpages/appearance/email/security exact. Deactivation template active value restored after exact events completed; normal timestamp advanced.3votes/2tallies and72cancelled alerts retained. Ownerprocesses preserved.",
       "audit45": "Accepted and repaired E79/E80 deliveryTask5 metadata and E80 classification in67730a1e; no new scope. Current chrome retirement and footer conversion evidence recorded separately.",
-      "audit47": "Accept bounded in-scope progress/no-new-findings; source and current E85/E86 evidence advance beyond audit snapshot. No completion inference or scope change. Continue E87 without waiting for Claude."
+      "audit47": "Accept bounded in-scope progress/no-new-findings; source and current E85/E86 evidence advance beyond audit snapshot. No completion inference or scope change. Continue E87 without waiting for Claude.",
+      "audit50": "ACCEPT audit50 state/no-drift/E97 assessment at9457bb27. ADAPT with completed native/public newsletter repair and registered promotion evidence. Full hosted editing and integrated promotion remain explicit; no scope expansion or audit wait."
     },
     "audit19": "Read/responded. F26 prerequisite visibility useful; exact owner-only/exhaustive claim not established. No acceptance on missing model/provider proof. Corrected core/reviews/E56. Actual signed-in target Clerk provider/provisioning failure now recorded under E18; Recently Viewed remains open. Forms six next, F21 and Tasks4\u20138 retained.",
     "audit21": "Read/responded. Snapshot predates64feddce116/21; E60 auth hydration distinct from E59 confirmation. Narrow public-read lens retained. Targeted notification templates suppressed before customer creation; final async queue proof required. F21/Tasks4\u20138/E18/E22/E28 remain open.",

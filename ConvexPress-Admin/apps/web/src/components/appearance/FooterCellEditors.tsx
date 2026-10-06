@@ -1,3 +1,4 @@
+import {FooterAudienceSelect} from "./FooterAudienceSelect";
 /**
  * Per-type editors for footer cells. One small component per cell type so
  * the cell dispatcher can render the right form without a giant switch
@@ -377,12 +378,7 @@ export function NewsletterCellEditor({ cell, onChange }: CellEditorProps<FooterN
           onChange={(e) => onChange({ ...cell, buttonText: e.target.value })}
         />
       </FieldRow>
-      <FieldRow label="Audience ID (optional)" hint="Connect to an email provider list.">
-        <Input
-          value={cell.audienceId ?? ""}
-          onChange={(e) => onChange({ ...cell, audienceId: e.target.value })}
-        />
-      </FieldRow>
+      <FooterAudienceSelect value={cell.audienceId ?? ""} onChange={audienceId => { const next = { ...cell }; if (audienceId) next.audienceId = audienceId; else delete next.audienceId; onChange(next); }} />
     </div>
   );
 }

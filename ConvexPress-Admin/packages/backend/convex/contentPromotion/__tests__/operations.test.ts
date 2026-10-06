@@ -71,7 +71,7 @@ function manifest(): ContentPromotionManifest {
 			deploymentOrigin: "https://source.convex.cloud",
 			siteOrigin: "https://source.example.test",
 		},
-		target,
+		target: { ...target },
 		selection: {
 			pageIds: ["source-page"],
 			postIds: [],
@@ -2420,4 +2420,21 @@ test("appearance-only promotion remaps footer media and preserves unrelated live
  expect(media!._id).not.toBe(src.ids.mediaId); expect(media!.storageId).toBe(storageId);
  expect(await preserved()).toEqual(before);
  expect(await src.source.authed.query(snapshotRef, {})).toEqual(published);
+});
+
+test("footer audience promotion resolves only one active target-owned list and copies no audience records",async()=>{
+ const source=await fixture(),destination=await fixture();
+ const fields={name:"Journal letters",description:"Local audience",consentText:"Source wording",privacyUrl:"/privacy",status:"active" as const,revision:1,createdAt:1,updatedAt:1};
+ const sourceList=await source.t.run(async ctx=>{const site=(await ctx.db.query("convexpress_siteIdentity").unique())!;await ctx.db.patch(site._id,manifest().source);const id=await ctx.db.insert("mailingLists",{...fields,websiteKey:"site",instanceKey:"site:staging",createdBy:source.userId,updatedBy:source.userId});await ctx.db.insert("settings",{section:"appearance.template",values:{active:"journal",overrides:{},variants:{},settings:{journal:{footer:{rows:[{id:"r",columns:[{id:"c",cell:{type:"newsletter",buttonText:"Subscribe",audienceId:id}}]}]}}}},updatedAt:1,updatedBy:source.userId,legacyAppearanceMigration:{version:2,migratedAt:1}});return id;});
+ const exported=await source.authed.query(makeFunctionReference<"query">("contentPromotion/operations:exportManifest"),{target,selection:{...manifest().selection,pageIds:[],includeAppearance:true}});
+ const m=exported.manifest as ContentPromotionManifest;expect(m.dependencies).toContainEqual(expect.objectContaining({kind:"mailingList",sourceId:sourceList,slug:fields.name}));expect(m.records).toHaveLength(1);
+ const missing=await destination.authed.mutation(fn("dryRun"),{manifest:m,...bindings});expect(missing.ready).toBe(false);
+ const targetList=await destination.t.run(ctx=>ctx.db.insert("mailingLists",{...fields,consentText:"Target wording",websiteKey:"site",instanceKey:"site:live",createdBy:destination.userId,updatedBy:destination.userId}));
+ const review=await destination.authed.mutation(fn("dryRun"),{manifest:m,...bindings});if(!review.ready)throw Error(JSON.stringify(review.issues));expect(review.ready).toBe(true);
+ await destination.t.run(ctx=>ctx.db.patch("mailingLists",targetList,{status:"archived"}));await expect(destination.authed.mutation(fn("apply"),receiptArgs(review))).rejects.toThrow();
+ await destination.t.run(ctx=>ctx.db.patch("mailingLists",targetList,{status:"active",revision:2}));
+ const fresh=await destination.authed.mutation(fn("dryRun"),{manifest:m,...bindings});expect(fresh.ready).toBe(true);await destination.authed.mutation(fn("apply"),receiptArgs(fresh));
+ const saved=await destination.t.run(ctx=>ctx.db.query("settings").withIndex("by_section",q=>q.eq("section","appearance.template")).unique());expect((saved!.values as any).settings.journal.footer.rows[0].columns[0].cell.audienceId).toBe(targetList);
+ expect((await destination.t.run(ctx=>ctx.db.get("mailingLists",targetList)))!.consentText).toBe("Target wording");for(const table of ["mailingListSubscribers","mailingListConsentEvents"] as const)expect(await destination.t.run(ctx=>ctx.db.query(table).take(1))).toEqual([]);
+ await destination.t.run(ctx=>ctx.db.insert("mailingLists",{...fields,websiteKey:"site",instanceKey:"site:live",createdBy:destination.userId,updatedBy:destination.userId}));expect((await destination.authed.mutation(fn("dryRun"),{manifest:m,...bindings})).ready).toBe(false);
 });

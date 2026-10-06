@@ -1,3 +1,4 @@
+import {ownedMailingList} from "../audiences/policy";
 import {captureSyncedPromotionClosure} from "./syncedClosure";
 import {RequestReadLedger} from "../helpers/requestReadLedger";
 import type {CanonicalReference} from "../canonicalDocuments/foundation/promotionTree";
@@ -188,6 +189,13 @@ export async function exportAuthoredManifest(
 						continue;
 					}
           if (field === "brandId" && owner.startsWith("product:")) { output[field] = ref(await add("productBrand", item)); continue; }
+                    if (field === "audienceId") {
+                      const id = ctx.db.normalizeId("mailingLists", item);
+                      const list = id ? await ownedMailingList(ctx as Parameters<typeof ownedMailingList>[0], id) : null;
+                      if (!list) fail("PROMOTION_DEPENDENCY_MISSING", "Select a mailing list owned by this installation before promoting the footer.");
+                      output[field] = dependency("mailingList", item, owner, list.name);
+                      continue;
+                    }
 					if (field === "menuId") {
 						output[field] = ref(await add("menu", item));
 						continue;

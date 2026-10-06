@@ -1,3 +1,4 @@
+import {listFieldsSchema} from "../audiences/policy";
 import type { RuntimeCanonicalTree } from "../canonicalDocuments/foundation/composedRegistry";
 import {readLocaleGroup,reviewLocalization} from "./localization";
 import { reviewCanonicalPromotionPolicy } from "../canonicalDocuments/displayContext";
@@ -315,16 +316,23 @@ export async function planPromotion(
 			course: "lms_courses",
 			plan: "membership_plans",
 			form: "forms",
+      mailingList: "mailingLists",
 			role: "roles",
 		}[dep.kind];
-		const binding = bindings.dependencyBindings.find(
+		let binding = bindings.dependencyBindings.find(
 			(item) => item.key === dep.key,
 		);
+    // Lists remain installation-local. Match a unique active name on the
+    // target, pin its entire current revision, and never copy members/consent.
+    if (dep.kind === "mailingList" && !binding && dep.slug) {
+      const candidates = await ctx.db.query("mailingLists").withIndex("by_installation_name", q => q.eq("websiteKey", manifest.target.websiteKey).eq("instanceKey", manifest.target.instanceKey).eq("name", dep.slug!)).take(2);
+      if (candidates.length === 1) binding = {key: dep.key, targetId: candidates[0]._id};
+    }
 		if (!binding) {
 			issue(
 				"TARGET_DEPENDENCY_REQUIRED",
 				dep.key,
-				`Map ${dep.kind} ${dep.slug ?? dep.sourceId ?? dep.key} to an explicitly reviewed existing target record. Its catalog/learning structure is not copied by this adapter.`,
+				dep.kind === "mailingList" ? `Create one active mailing list named "${dep.slug}" on the destination before reviewing this footer. Subscribers and consent records are never copied.` : `Map ${dep.kind} ${dep.slug ?? dep.sourceId ?? dep.key} to an explicitly reviewed existing target record. Its catalog/learning structure is not copied by this adapter.`,
 			);
 			continue;
 		}
@@ -332,11 +340,11 @@ export async function planPromotion(
 		const row = normalized
 			? ((await ctx.db.get(normalized)) as Row | null)
 			: null;
-		if (!row || (dep.slug && row.slug !== dep.slug)) {
+		if (!row || (dep.slug && (dep.kind === "mailingList" ? row.name : row.slug) !== dep.slug) || (dep.kind === "mailingList" && (row.websiteKey !== manifest.target.websiteKey || row.instanceKey !== manifest.target.instanceKey || row.status !== "active" || !listFieldsSchema.safeParse({name: row.name, description: row.description, consentText: row.consentText, privacyUrl: row.privacyUrl, status: row.status}).success))) {
 			issue(
 				"TARGET_DEPENDENCY_MISMATCH",
 				dep.key,
-				"The selected target record is missing or does not match the required stable slug.",
+				"The selected target record is missing, inactive, foreign, or does not match the required name or slug.",
 			);
 			continue;
 		}

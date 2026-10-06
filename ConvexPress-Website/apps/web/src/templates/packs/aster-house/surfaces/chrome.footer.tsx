@@ -1,3 +1,4 @@
+import {FooterAudienceNewsletter} from "@/components/layout/FooterAudienceNewsletter";
 import { FooterImage } from "@/components/layout/FooterImage";
 import { footerCellAlignment } from "@/components/layout/footerCellAlignment";
 import { Mail, MapPin, Phone } from "lucide-react";
@@ -172,7 +173,7 @@ function Cell({ cell }: { cell: FooterCell }) {
         </>
       );
     case "newsletter":
-      return <NewsletterForm heading={cell.heading} subtext={cell.subtext} buttonText={cell.buttonText} />;
+      return cell.audienceId ? <FooterAudienceNewsletter cell={cell} tone="editorial" /> : <NewsletterForm heading={cell.heading} subtext={cell.subtext} buttonText={cell.buttonText} />;
     case "contact":
       return (
         <>

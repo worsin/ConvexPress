@@ -1,3 +1,4 @@
+import {FooterAudienceSelect} from "./FooterAudienceSelect";
 import { Component, useState, type ReactNode } from "react";
 import { usePaginatedQuery } from "convex/react";
 import { api } from "@convexpress-website/backend/generated/api";
@@ -185,9 +186,10 @@ function ColumnFields({
             </label>
             <ObjectFields
               value={cell}
-              omit={["type", "alignment"]}
+              omit={["type", "alignment", "audienceId"]}
               onChange={(value) => patch(index, { ...column, cell: value })}
             />
+            {cell.type === "newsletter" && <FooterAudienceSelect value={String(cell.audienceId ?? "")} onChange={audienceId => { const next = { ...cell }; if (audienceId) next.audienceId = audienceId; else delete next.audienceId; patch(index, { ...column, cell: next }); }} />}
             <div className="mt-2 flex gap-3 text-xs">
               <button
                 type="button"
