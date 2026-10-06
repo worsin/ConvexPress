@@ -14,7 +14,7 @@ import CoreDashboardPosts, {
 import { Surface } from "@/templates/sdk/Surface";
 
 export function MyPostsPage() {
-  const access = useCapabilityAccess("edit_posts");
+  const access = useCapabilityAccess("post.update");
   if (access === "pending") {
     return <p role="status" className="py-12 text-sm text-muted-foreground">Loading your access…</p>;
   }

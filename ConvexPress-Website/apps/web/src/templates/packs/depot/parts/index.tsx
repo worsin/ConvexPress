@@ -417,7 +417,7 @@ export function DataTable({
   firstColumnLabel?: boolean;
 }) {
   return (
-    <div className={cn("overflow-x-auto rounded-md border border-border bg-card", className)}>
+    <div className={cn("relative overflow-x-auto rounded-md border border-border bg-card", className)}>
       <table className="w-full border-collapse text-[13px] text-foreground">
         {caption ? <caption className="sr-only">{caption}</caption> : null}
         {head ? (

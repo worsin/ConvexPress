@@ -13,7 +13,7 @@ import type { DashboardPageDefinition } from "./types";
 
 const pages: DashboardPageDefinition[] = [
   { id: "home", title: "Dashboard", icon: "layout-dashboard", description: "", path: "", pluginId: "core", group: "overview", defaultInSidebar: true },
-  { id: "posts", title: "My posts", icon: "file-text", description: "", path: "/posts", pluginId: "core", capability: "edit_posts", group: "activity", defaultInSidebar: true },
+  { id: "posts", title: "My posts", icon: "file-text", description: "", path: "/posts", pluginId: "core", capability: "post.update", group: "activity", defaultInSidebar: true },
   { id: "orders", title: "Orders", icon: "shopping-bag", description: "", path: "/orders", pluginId: "commerce", group: "commerce", defaultInSidebar: true, badge: "orders.active" },
   { id: "reviews", title: "My reviews", icon: "star", description: "", path: "/reviews", pluginId: "commerceReviews", group: "commerce", defaultInSidebar: false },
   { id: "profile", title: "Profile", icon: "user", description: "", path: "/profile", pluginId: "core", group: "account", defaultInSidebar: true },
@@ -58,7 +58,7 @@ describe("registryToNav", () => {
     expect(nav.find((item) => item.pageId === "orders")?.href).toBe("/dashboard/orders");
   });
   test("includes capability-gated and hidden pages when allowed", () => {
-    const nav = registryToNav(pages, { basePath: "/account", capabilities: ["edit_posts"], includeAll: true });
+    const nav = registryToNav(pages, { basePath: "/account", capabilities: ["post.update"], includeAll: true });
     expect(nav.map((item) => item.pageId)).toEqual(["home", "posts", "orders", "reviews", "profile"]);
   });
   test("skips pages that have no website module", () => {
