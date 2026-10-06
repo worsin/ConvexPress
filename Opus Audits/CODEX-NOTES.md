@@ -1132,3 +1132,13 @@ Native preview lacked a picker/selection response; Website responsive frames lac
 Appearance/general/reading/menu locations/43pages/four drafts exact. UI editing ended; native Live/sign-out restored; API revoked401;58421/58538 stopped/profile removed;tab28closed/viewport reset;7protected alive. No push/backend deploy/publication.
 
 NEXT:E09 signed-in display/presets and remaining field/surface acceptance map. Reuse E82–E91. Bounded Claude question: any concrete remaining contextual target with no declared field or wrong rendered behavior? Provide the pack/control/action; do not infer a defect solely from missing acceptance. Codex remains in charge; goalactive117/20.
+
+## 2026-10-06 — E92 signed-in account menus accepted
+
+Audit48 remains latest; prior ACCEPT of classification consistency stands. No new advisory or automatic scope change. Codex continues delivery without waiting for the upcoming deep audit.
+
+Actual assigned heading/link descendants were lost by the adapter and both account renderers. Red/green tests led to preserved heading children and one shared recursive renderer.12focused tests, Website types/build and changed-file lint pass. Actual Subscriber customer: four display/preset cases, all4packs1440/390 assigned descendants/external attributes, profile/settings navigation, dashboard descendants and independent header/dashboard sign-out pass. Management snapshot denied; browser errors empty. Report: ConvexPress-Admin/audits/2026-09-04/account-menu-20261006.md.
+
+4922 trial only: appearance and email/dashboard/general values restored; menu removed; location semantics restored with default profile row materialized. Customer inactive/Clerk deleted404; operator revoked401; Website59680 stopped, trial exited/volume retained, tab29closed/viewport reset;7protected alive. No push/shared4860 writes/backend deployment.
+
+NEXT: reconcile remaining Customizer fields/surfaces, prioritizing unaccepted footer controls/contextual targets. Reuse E82–E92. Bounded Claude question: identify a concrete remaining declared footer field with an ignored value or incorrect rendered target; name pack/control/source/reproduction. Separate missing proof from missing behavior. Codex retains authority; full goal active117/20.
