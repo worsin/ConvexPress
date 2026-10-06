@@ -7,13 +7,14 @@ import type { HeaderConfig, SiteIdentity } from "@/lib/layout/types";
 interface SiteBrandProps {
   siteIdentity: SiteIdentity | undefined;
   className?: string;
+  onNavigate?: () => void;
   logo?: HeaderConfig["logo"];
 }
 
 /**
  * Logo image and/or site title text, linking to the homepage.
  */
-export function SiteBrand({ siteIdentity, className, logo }: SiteBrandProps) {
+export function SiteBrand({ siteIdentity, className, logo, onNavigate }: SiteBrandProps) {
   if (logo?.enabled === false) return null;
   // Loading skeleton
   if (!siteIdentity) {
@@ -35,6 +36,7 @@ export function SiteBrand({ siteIdentity, className, logo }: SiteBrandProps) {
   return (
     <Link
       to="/"
+      onClick={onNavigate}
       data-slot="site-brand" data-customize="header.logo.showTitle"
       className={cn(
         "flex min-w-0 items-center gap-2 text-foreground no-underline",

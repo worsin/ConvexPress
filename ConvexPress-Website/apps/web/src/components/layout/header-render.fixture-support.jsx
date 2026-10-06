@@ -13,7 +13,7 @@ mock.module('@/hooks/layout/useHeaderConfig', () => ({ useHeaderConfig: () => un
 mock.module('@/hooks/useCart', () => ({ useCart: () => ({ enabled:false,cart:null }) }));
 mock.module('@/hooks/useCommerceSessionToken', () => ({ useCommerceSessionToken: () => ({sessionToken:null,isReady:false}) }));
 const auth = await import('@/lib/auth/clerk');
-mock.module('@/lib/auth/clerk', () => ({ ...auth,useAuth: () => ({ isLoaded:true,isSignedIn:false }) }));
+mock.module('@/lib/auth/clerk', () => ({ ...auth,useUser: () => ({user:null}),useClerk: () => ({signOut:noop}),useAuth: () => ({ isLoaded:true,isSignedIn:false }) }));
 export const settingsState = { plugins:{} };
 export const navigationEvents = [];
 const settings = await import('@/contexts/SettingsContext');
@@ -21,5 +21,5 @@ mock.module('@/contexts/SettingsContext', () => ({ ...settings,useSettings: () =
 const convex = await import('convex/react');
 mock.module('convex/react', () => ({ ...convex,useQuery: () => undefined }));
 const router = await import('@tanstack/react-router');
-mock.module('@tanstack/react-router', () => ({ ...router,Link: ({to,children,activeProps:_activeProps,...props}) => createElement('a',{href:to,...props},children),useRouterState: ({select}) => select({location:{pathname:'/'}}),useNavigate: () => options => navigationEvents.push(options) }));
+mock.module('@tanstack/react-router', () => ({ ...router,Link: ({to,children,activeProps:_activeProps,...props}) => createElement('a',{href:to,...props},children),useRouterState: (options) => options?.select ? options.select({location:{pathname:'/'}}) : {location:{pathname:'/'}},useNavigate: () => options => navigationEvents.push(options) }));
 export const { HEADER_DEFAULTS } = await import('@/templates/sdk/chromeDefinitions');

@@ -1,3 +1,4 @@
+import { useMobileMenuGeometry } from "@/hooks/layout/useMobileMenuGeometry";
 import { MenuItemTarget } from "@/components/menus/MenuItemTarget";
 /**
  * Depot · chrome.mobileNav — the menu behind the hamburger as a drawer with
@@ -36,8 +37,7 @@ export default function DepotMobileNav({ data }: SurfaceProps<MobileNavSurfaceDa
   const visibleItems = menu?.items.filter((item) => !item.isOrphaned) ?? [];
   const groups = visibleItems.filter((item) => item.children.length > 0);
   const singles = visibleItems.filter((item) => item.children.length === 0);
-  const side = config?.drawerSide ?? "left";
-  const fullscreen = config?.variant === "fullscreen";
+  const geometry = useMobileMenuGeometry(config, open, "w-80");
 
   return (
     <DialogPrimitive.Root
@@ -47,19 +47,18 @@ export default function DepotMobileNav({ data }: SurfaceProps<MobileNavSurfaceDa
       }}
     >
       <DialogPrimitive.Portal>
-        <DialogPrimitive.Backdrop className="fixed inset-0 z-50 bg-foreground/40 transition-opacity duration-200 data-closed:opacity-0 data-open:opacity-100 lg:hidden" />
+        <DialogPrimitive.Backdrop data-slot="mobile-nav-backdrop" className="fixed inset-0 z-50 bg-foreground/40 transition-opacity duration-200 data-closed:pointer-events-none data-closed:opacity-0 data-open:opacity-100 lg:hidden" />
         <DialogPrimitive.Popup
           data-slot="mobile-nav"
+          data-variant={geometry.variant}
+          style={geometry.style}
           aria-label="Navigation menu"
           className={cn(
-            "fixed inset-y-0 z-50 flex flex-col bg-background shadow-lg outline-hidden transition-transform duration-300 lg:hidden",
-            fullscreen ? "inset-x-0 w-full" : "w-80 max-w-[88vw]",
-            !fullscreen && side === "left" && "left-0 data-closed:-translate-x-full",
-            !fullscreen && side === "right" && "right-0 data-closed:translate-x-full",
-            fullscreen && "data-closed:-translate-y-full",
+            "fixed z-50 flex flex-col data-closed:pointer-events-none bg-background shadow-lg outline-hidden transition-transform duration-300 lg:hidden",
+            geometry.className,
           )}
         >
-          <div className="flex h-14 items-center justify-between border-b border-border px-4">
+          <div className="flex h-14 shrink-0 items-center justify-between border-b border-border px-4">
             <Brand siteIdentity={siteIdentity} onNavigate={onClose} />
             <DialogPrimitive.Close
               className="flex size-10 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
@@ -69,7 +68,7 @@ export default function DepotMobileNav({ data }: SurfaceProps<MobileNavSurfaceDa
             </DialogPrimitive.Close>
           </div>
 
-          <nav aria-label="Mobile navigation" className="flex-1 overflow-y-auto px-4 py-3">
+          <nav aria-label="Mobile navigation" className="min-h-0 flex-1 overflow-y-auto px-4 py-3">
             {visibleItems.length === 0 ? (
               <Group label="Browse">
                 <NavLink label="Home" url="/" onNavigate={onClose} />

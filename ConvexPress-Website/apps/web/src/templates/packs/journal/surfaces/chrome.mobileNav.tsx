@@ -1,3 +1,4 @@
+import { useMobileMenuGeometry } from "@/hooks/layout/useMobileMenuGeometry";
 import { MenuItemTarget } from "@/components/menus/MenuItemTarget";
 /**
  * Journal · chrome.mobileNav — a full-height sheet with the menu set in large
@@ -80,21 +81,24 @@ export default function JournalChromeMobileNav({ data }: SurfaceProps<MobileNavS
   }, [open]);
 
   const items = menu?.items.filter((item) => !item.isOrphaned) ?? [];
-  const fromRight = config?.drawerSide === "right";
+  const geometry = useMobileMenuGeometry(config, open, "w-80");
 
   return (
     <div className="pointer-events-none fixed inset-0 z-50 overflow-hidden lg:hidden">
+    {open && <div data-slot="mobile-nav-backdrop" className="pointer-events-auto absolute inset-0 bg-black/40" onClick={onClose} aria-hidden="true" />}
     <div
       ref={panelRef}
       data-slot="mobile-nav"
+      data-variant={geometry.variant}
+      style={geometry.style}
       role="dialog"
       aria-modal={open}
       aria-label="Navigation menu"
       {...(open ? {} : { inert: true })}
       className={cn(
-        "absolute inset-0 flex flex-col bg-background transition-transform duration-300 ease-out motion-reduce:transition-none",
+        "absolute flex flex-col bg-background transition-transform duration-300 ease-out motion-reduce:transition-none",
         open && "pointer-events-auto",
-        open ? "translate-x-0" : fromRight ? "translate-x-full" : "-translate-x-full",
+        geometry.className,
       )}
     >
       <Container className="flex h-16 shrink-0 items-center justify-between border-b border-border">
