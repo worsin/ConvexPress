@@ -1,3 +1,4 @@
+import { MediaField } from "@/components/media/MediaField";
 import { focusCustomizeField } from "@/lib/templates/customizeSelection";
 /** Footer section controls owned by the Customizer draft. */
 
@@ -367,7 +368,7 @@ function SectionPanel({
 
               return (
                 <div key={field.id} data-customize-field={`footer.${section.id}.${field.id}`} className="space-y-1">
-                  {field.type !== "toggle" && (
+                  {field.type !== "toggle" && field.type !== "image" && (
                     <label htmlFor={field.type === "text" || field.type === "select" ? fieldId : undefined} className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
                       {field.label}
                     </label>
@@ -402,6 +403,10 @@ function SectionPanel({
                         onFieldChange(section.id, field.id, val)
                       }
                     />
+                  )}
+
+                  {field.type === "image" && (
+                    <MediaField label={field.label} value={(fieldValue as string) ?? ""} onChange={val => onFieldChange(section.id, field.id, val || null)} />
                   )}
 
                   {field.type === "text" && (

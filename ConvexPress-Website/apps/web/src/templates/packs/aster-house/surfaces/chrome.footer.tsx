@@ -1,3 +1,4 @@
+import { FooterSectionFrame, footerColumnsClass } from "@/components/layout/FooterSectionFrame";
 import { FooterRowFrame } from "@/components/layout/FooterRowFrame";
 import { footerMenuItems } from "@/components/menus/footerMenuItems";
 import { FooterCopyright } from "@/components/layout/FooterCopyright";
@@ -52,7 +53,7 @@ export default function AsterChromeFooter({ data }: SurfaceProps<FooterSurfaceDa
   }
 
   return (
-    <footer data-pack="aster-house" data-slot="site-footer" data-customize="footer.layout.background" role="contentinfo" className={cn("border-t border-border bg-background", footerConfig.layout.background === "dark" && "bg-muted/30")}>
+    <FooterSectionFrame layout={footerConfig.layout} pack="aster-house">
       <Container className={cn("flex flex-col gap-16", padding)}>
         <Masthead siteIdentity={siteIdentity} footerConfig={footerConfig} />
         <LegacyColumns footerConfig={footerConfig} />
@@ -63,7 +64,7 @@ export default function AsterChromeFooter({ data }: SurfaceProps<FooterSurfaceDa
           </div>
         ) : null}
       </Container>
-    </footer>
+    </FooterSectionFrame>
   );
 }
 
@@ -278,8 +279,8 @@ function BrandCell({ showLogo, showTagline, description }: { showLogo: boolean; 
 function LegacyColumns({ footerConfig }: { footerConfig: FooterConfig }) {
   const showBranding = footerConfig.branding.enabled;
   const showNav = footerConfig.navColumns.enabled;
-  const showNewsletter = footerConfig.newsletter.enabled;
-  const showContact = footerConfig.contactInfo.enabled;
+  const showNewsletter = footerConfig.newsletter.enabled && footerConfig.layout.columns !== "minimal";
+  const showContact = footerConfig.contactInfo.enabled && footerConfig.layout.columns !== "minimal";
   const navColumns = showNav ? footerConfig.navColumns.columns : [];
 
   if (!showBranding && !showNav && !showNewsletter && !showContact) {
@@ -287,7 +288,7 @@ function LegacyColumns({ footerConfig }: { footerConfig: FooterConfig }) {
   }
 
   return (
-    <div className="grid grid-cols-1 gap-10 sm:grid-cols-2 lg:grid-cols-4">
+    <div className={cn("gap-10 [&>*]:min-w-0", footerColumnsClass(footerConfig.layout.columns))}>
       {showBranding ? (
         <div className="flex flex-col gap-3">
           {footerConfig.branding.showDescription && footerConfig.branding.description ? (

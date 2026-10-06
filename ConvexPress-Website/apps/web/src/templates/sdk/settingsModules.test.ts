@@ -73,3 +73,12 @@ test("type scale has finite values and an explicit comfortable reset", () => {
     expect(css).not.toContain("display:none");
   }
 });
+
+test("footer background image has a media picker in native and on-site field schemas", () => {
+  for (const modules of [STANDARD_MODULES, ADMIN_MODULES]) {
+    const image = modules.footer.fields.find(field => field.id === "layout.backgroundImageId");
+    expect(image?.type).toBe("image");
+    expect(image?.default).toBeNull();
+    expect(image?.surfaces).toEqual(["chrome.footer"]);
+  }
+});

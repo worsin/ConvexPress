@@ -1,3 +1,4 @@
+import { FooterSectionFrame, footerColumnsClass } from "./FooterSectionFrame";
 import { useState, type FormEvent } from "react";
 import { Link } from "@tanstack/react-router";
 import { useMutation } from "convex/react";
@@ -65,26 +66,8 @@ export function SiteFooter({ variant = "full", siteIdentity: siteIdentityProp, f
       ? "py-12 lg:py-16"
       : "py-8 lg:py-12";
 
-  const backgroundClass = footerConfig.layout.background === "dark"
-    ? "bg-muted/30"
-    : footerConfig.layout.background === "accent"
-      ? "bg-accent/10"
-      : "bg-background";
-
-  const borderClass = footerConfig.layout.topBorder === "bold"
-    ? "border-t-2 border-border"
-    : footerConfig.layout.topBorder === "accent"
-      ? "border-t-2 border-accent"
-      : footerConfig.layout.topBorder === "none"
-        ? ""
-        : "border-t border-border";
-
   return (
-    <footer
-      data-slot="site-footer" data-customize="footer.layout.background"
-      role="contentinfo"
-      className={cn(borderClass, backgroundClass)}
-    >
+    <FooterSectionFrame layout={footerConfig.layout}>
       <div className={cn("mx-auto max-w-7xl px-4 md:px-6 lg:px-8", paddingClass)}>
         {/* Main footer content area */}
         <FooterContent
@@ -100,7 +83,7 @@ export function SiteFooter({ variant = "full", siteIdentity: siteIdentityProp, f
           </div>
         )}
       </div>
-    </footer>
+    </FooterSectionFrame>
   );
 }
 
@@ -115,8 +98,8 @@ interface FooterContentProps {
 function FooterContent({ footerConfig, siteIdentity, siteTitle }: FooterContentProps) {
   const showBranding = footerConfig.branding.enabled;
   const showNavColumns = footerConfig.navColumns.enabled;
-  const showNewsletter = footerConfig.newsletter.enabled;
-  const showContact = footerConfig.contactInfo.enabled;
+  const showNewsletter = footerConfig.newsletter.enabled && footerConfig.layout.columns !== "minimal";
+  const showContact = footerConfig.contactInfo.enabled && footerConfig.layout.columns !== "minimal";
   const subscribeNewsletter = useMutation(
     (api as any).emails.mutations.subscribeNewsletter,
   );
@@ -158,8 +141,8 @@ function FooterContent({ footerConfig, siteIdentity, siteTitle }: FooterContentP
 
   return (
     <div className={cn(
-      "grid gap-8",
-      getColumnsGridClass(footerConfig.layout.columns),
+      "gap-8 [&>*]:min-w-0",
+      footerColumnsClass(footerConfig.layout.columns),
     )}>
       {/* Branding column */}
       {showBranding && (
@@ -227,7 +210,7 @@ function FooterContent({ footerConfig, siteIdentity, siteTitle }: FooterContentP
                   setNewsletterMessage("");
                 }
               }}
-              className="flex-1 border border-border bg-background px-3 py-1.5 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+              className="min-w-0 flex-1 border border-border bg-background px-3 py-1.5 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring"
               required
             />
             <button
@@ -284,25 +267,4 @@ function FooterContent({ footerConfig, siteIdentity, siteTitle }: FooterContentP
       )}
     </div>
   );
-}
-
-// ─── Helpers ────────────────────────────────────────────────────────────────
-
-function getColumnsGridClass(columns: FooterConfig["layout"]["columns"]): string {
-  switch (columns) {
-    case "1":
-      return "grid-cols-1";
-    case "2":
-      return "grid-cols-1 md:grid-cols-2";
-    case "3":
-      return "grid-cols-1 md:grid-cols-3";
-    case "4":
-      return "grid-cols-1 sm:grid-cols-2 lg:grid-cols-4";
-    case "centered":
-      return "grid-cols-1 place-items-center text-center";
-    case "minimal":
-      return "grid-cols-1";
-    default:
-      return "grid-cols-1 sm:grid-cols-2 lg:grid-cols-4";
-  }
 }

@@ -357,16 +357,20 @@ class ImageSettingBoundary extends Component<{ children: ReactNode }, { failed: 
   }
 }
 
-function ImageSetting(props: { value: string; onChange: (value: unknown) => void }) {
+export function ImageSetting(props: { value: string; onChange: (value: unknown) => void; label?: string; id?: string }) {
   return <ImageSettingBoundary><ImageSettingContent {...props} /></ImageSettingBoundary>;
 }
 
 function ImageSettingContent({
   value,
   onChange,
+  label = "Image",
+  id,
 }: {
   value: string;
   onChange: (value: unknown) => void;
+  label?: string;
+  id?: string;
 }) {
   const [search, setSearch] = useState("");
   const images = usePaginatedQuery(api.media.queries.list, {
@@ -385,7 +389,8 @@ function ImageSettingContent({
         />
       </label>
       <select
-        aria-label="Image"
+        aria-label={label}
+        id={id}
         className={input}
         value={value}
         onChange={(event) => onChange(event.target.value || null)}

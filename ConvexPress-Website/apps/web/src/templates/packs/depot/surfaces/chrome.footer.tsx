@@ -1,3 +1,4 @@
+import { FooterSectionFrame, footerColumnsClass } from "@/components/layout/FooterSectionFrame";
 import { footerMenuItems } from "@/components/menus/footerMenuItems";
 import { MenuItemTarget } from "@/components/menus/MenuItemTarget";
 /**
@@ -41,18 +42,22 @@ export default function DepotFooter({ data }: SurfaceProps<FooterSurfaceData>) {
 
   const hasRows = !!footerConfig.rows && footerConfig.rows.length > 0;
 
+  if (hasRows) return <footer data-slot="site-footer" data-customize="footer.layout.background" data-pack="depot" role="contentinfo" className="mt-8 border-t border-border bg-background">
+    <BackToTopBar /><FooterRowsRenderer rows={footerConfig.rows!} />
+  </footer>;
+
   return (
-    <footer data-slot="site-footer" data-customize="footer.layout.background" data-pack="depot" role="contentinfo" className="mt-8 border-t border-border bg-background">
+    <FooterSectionFrame layout={footerConfig.layout} pack="depot" className="mt-8">
       <BackToTopBar />
-      {hasRows ? <FooterRowsRenderer rows={footerConfig.rows!} /> : <LinkColumns siteIdentity={siteIdentity} siteTitle={siteTitle} footerConfig={footerConfig} />}
-      {!hasRows && footerConfig.bottomBar.enabled && (
+      <LinkColumns siteIdentity={siteIdentity} siteTitle={siteTitle} footerConfig={footerConfig} />
+      {footerConfig.bottomBar.enabled && (
         <div className="border-t border-border">
           <Container className="py-3">
             <BottomRow siteTitle={siteTitle} footerConfig={footerConfig} showFooterMenu={!usesFooterLocation(footerConfig)} />
           </Container>
         </div>
       )}
-    </footer>
+    </FooterSectionFrame>
   );
 }
 
@@ -93,17 +98,17 @@ function usesFooterLocation(footerConfig: FooterConfig) {
 function LinkColumns({ siteIdentity, siteTitle, footerConfig }: { siteIdentity: SiteIdentity | undefined; siteTitle: string; footerConfig: FooterConfig }) {
   const showBranding = footerConfig.branding.enabled;
   const columns = navColumns(footerConfig);
-  const showNewsletter = footerConfig.newsletter.enabled;
-  const showContact = footerConfig.contactInfo.enabled;
+  const showNewsletter = footerConfig.newsletter.enabled && footerConfig.layout.columns !== "minimal";
+  const showContact = footerConfig.contactInfo.enabled && footerConfig.layout.columns !== "minimal";
   const nothing = !showBranding && columns.length === 0 && !showNewsletter && !showContact;
 
   return (
-    <div className="border-t border-border bg-muted/40">
-      <Container className="py-6 md:py-8">
+    <div>
+      <Container className={footerConfig.layout.padding === "compact" ? "py-4 md:py-6" : footerConfig.layout.padding === "spacious" ? "py-10 md:py-14" : "py-6 md:py-8"}>
         {nothing ? (
           <MenuColumn heading="Links" location="footer" />
         ) : (
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+          <div className={cn("gap-6 [&>*]:min-w-0", footerColumnsClass(footerConfig.layout.columns))}>
             {showBranding && (
               <div className="flex flex-col gap-3">
                 {footerConfig.branding.showLogo && siteIdentity?.logoUrl ? (

@@ -1,3 +1,4 @@
+import { ImageSetting } from "./FooterRowsSettings";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useOperatorDraftRecovery } from "@/lib/auth/OperatorDraftContext";
 import { useWebsiteOperator } from "@/lib/auth/WebsiteOperatorContext";
@@ -656,6 +657,12 @@ function SettingField({
     "data-customize-field": `${module}.${field.id}`,
     className: controlClass,
   };
+  if (field.type === "image") return (
+    <fieldset data-customize-field={`${module}.${field.id}`} className="space-y-1 text-xs">
+      <legend>{field.label}</legend>
+      <ImageSetting id={id} label={field.label} value={String(value ?? "")} onChange={onChange} />
+    </fieldset>
+  );
   return (
     <label htmlFor={id} className="block space-y-1 text-xs">
       <span>{field.label}</span>

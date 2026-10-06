@@ -7,7 +7,7 @@
     "In progress": 20
   },
   "goal": "Complete block editor and template delivery plus all demonstrated blockers; defer unrelated whole-app audit campaigns.",
-  "currentTask": "Task5: E93 native footer row lifecycle accepted across all4packs with actual Website1440/390 checks; Core saved-draft recovery and Depot preset history verified. Next remaining exposed footer section/cell controls, beginning with layout/background/border/padding. Goal active117/20.",
+  "currentTask": "Task5: E94 footer section layout/image controls repaired across all4packs;136responsive cases and native Core image publication/on-site Undo verified. Next section branding enablement, legal-link/menu-source choices and remaining cell controls; reuse E81/E90-E94. Goal active117/20.",
   "tasks": [
     {
       "id": 1,
@@ -1156,6 +1156,22 @@
         "ConvexPress-Admin/audits/2026-09-04/footer-row-controls-20261006.md",
         "output/footer-row-controls-20261006/browser-receipts.json",
         "ConvexPress-Admin/audits/2026-09-04/footer-native-20261006.md"
+      ]
+    },
+    {
+      "id": "E94",
+      "status": "Footer section columns/background/image/border/padding repaired and verified; remaining footer fields stay E09.",
+      "classification": "repaired and verified",
+      "requiredWorkflow": "Every exposed section layout choice renders in all four packs and a background image can be selected in both editors.",
+      "initialFinding": "16 actual component groups fail; Image has no editor selector and Minimal behaves like one column.",
+      "repairBoundary": "Shared section frame/column mapping, native/on-site image field wiring; preserve authored-row and dashboard paths.",
+      "closureBoundary": "84component cases,136responsive built-CSS cases, native Core library selection/review/publication, actual Website1440/390 and on-site removal/Undo.",
+      "deliveryTask": 5,
+      "currentEvidence": [
+        "ConvexPress-Admin/audits/2026-09-04/footer-section-controls-20261006.md",
+        "output/footer-section-controls-20261006/browser-receipts.json",
+        "output/footer-section-controls-20261006/native-receipts.json",
+        "output/footer-section-controls-20261006/cleanup.json"
       ]
     }
   ],
