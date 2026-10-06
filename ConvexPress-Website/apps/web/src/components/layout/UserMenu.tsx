@@ -52,6 +52,7 @@ export function UserMenu() {
     <DropdownMenu>
       <DropdownMenuTrigger
         data-slot="user-menu-trigger"
+        data-customize="header.userMenu.loggedInDisplay"
         aria-label="Account menu"
         className={cn(
           "flex items-center gap-2 rounded-none px-1.5 py-1 text-xs outline-hidden",

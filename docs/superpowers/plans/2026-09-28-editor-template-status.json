@@ -181,7 +181,7 @@
       "classification": "missing evidence",
       "initialFinding": "Customizer contextual fields, all packs/surfaces, header/footer/menu integration and operator authority are not fully accepted.",
       "closureBoundary": "Verify the field group controls the actual surface, click-to-edit focus, draft/publish/reset/history/conflicts, pack switches, session continuity, customer denial and revocation.",
-      "nextCheck": "Verify signed-in account display/preset controls and contextual click-to-edit against current source and existing dashboard/authority evidence. Reuse E82\u2013E89 and shared native draft/history evidence; complete remaining Customizer acceptance map.",
+      "nextCheck": "Complete native and responsive-device iframe contextual selection and signed-in account display/preset acceptance. Reuse E82\u2013E90 and existing native history/authority evidence.",
       "deliveryTask": 5,
       "triagedAt": "2026-09-29",
       "triageEvidence": "ConvexPress-Admin/audits/2026-09-04/delivery-blocker-triage-20260929.md",
@@ -197,7 +197,8 @@
         "ConvexPress-Admin/audits/2026-09-04/header-search-20261006.md",
         "ConvexPress-Admin/audits/2026-09-04/mobile-menu-20261006.md",
         "ConvexPress-Admin/audits/2026-09-04/header-menu-source-20261006.md",
-        "ConvexPress-Admin/audits/2026-09-04/header-controls-20261006.md"
+        "ConvexPress-Admin/audits/2026-09-04/header-controls-20261006.md",
+        "ConvexPress-Admin/audits/2026-09-04/customizer-targets-20261006.md"
       ]
     },
     {
@@ -1023,7 +1024,7 @@
     {
       "id": "E86",
       "status": "Repaired and verified: all12 search variant cases, native publication and24 desktop/mobile Website checks; original appearance restored.",
-      "classification": "Customizer search consumer repair",
+      "classification": "repaired and verified",
       "initialFinding": "Core/Journal/Aster always render search icon and hardcode overlay placeholder;Depot always renders inline SearchBar. HeaderConfig.search.variant is not consumed by these headers.",
       "closureBoundary": "All4packs consume Inline/Icon/Expandable and placeholder. Native publication, actual desktop/mobile geometry, query submission, focus/Escape and preservation accepted. Shared draft/history lifecycle reuses E84; no claim for arbitrary long-menu combinations.",
       "currentEvidence": [
@@ -1033,12 +1034,13 @@
         "output/header-search-20261006/restoration.json",
         "output/header-search-20261006/cleanup.json"
       ],
-      "deliveryTask": 5
+      "deliveryTask": 5,
+      "issueType": "Customizer search consumer repair"
     },
     {
       "id": "E87",
       "status": "Repaired and verified:4pack native publication,16variant/side Website cases,4long-menu checks,4desktop-resize release checks and preservation.",
-      "classification": "Customizer mobile navigation consumer repair",
+      "classification": "repaired and verified",
       "initialFinding": "Core/Depot distinguish fullscreen but treat dropdown as drawer;Journal/Aster consume drawerSide but not variant.",
       "closureBoundary": "Drawer sides, Fullscreen, header-anchored Dropdown, nested navigation, Tab/Escape/focus restoration, bounded long menus and desktop release accepted. Core same-page brand dismissal and Depot closed-layer interception also repaired. Full menu-source/location integration remains E09.",
       "currentEvidence": [
@@ -1049,12 +1051,13 @@
         "output/mobile-menu-20261006/restoration.json",
         "output/mobile-menu-20261006/cleanup.json"
       ],
-      "deliveryTask": 5
+      "deliveryTask": 5,
+      "issueType": "Customizer mobile navigation consumer repair"
     },
     {
       "id": "E88",
       "status": "Repaired; four-pack compact-shell regression and native/public menu-source integration verified.",
-      "classification": "Compact account header menu source mismatch",
+      "classification": "repaired and verified",
       "initialFinding": "Core and Depot compact account shells hardcode header, ignoring selected Secondary/Custom menus. Six rendered shell cases fail; Journal/Aster already honor the setting.",
       "requiredWorkflow": "Published header menu-source selection must reach desktop and mobile site chrome on compact account pages.",
       "dependency": "Core AccountLayout and Depot CompactFrame bypass the header navigation source selector.",
@@ -1067,12 +1070,13 @@
         "output/menu-source-20261006/restoration.json",
         "output/menu-source-20261006/cleanup.json"
       ],
-      "deliveryTask": 5
+      "deliveryTask": 5,
+      "issueType": "Compact account header menu source mismatch"
     },
     {
       "id": "E89",
       "status": "Repaired and verified:84rendered control cases,4pack native publication and actual desktop/mobile theme/CTA/guest/top-bar checks.",
-      "classification": "Header top-bar placement and theme variant controls",
+      "classification": "repaired and verified",
       "requiredWorkflow": "Native top-bar left/right content and theme toggle variant control actual pack headers.",
       "initialFinding": "16 real-header groups fail:12Journal/Aster ordering/duplicate-content cases and4ignored Switch variants. CTA styles and guest account choices already pass.",
       "dependency": "Journal/Aster flatten both configured top-bar slots; all headers omit variant when rendering an icon-only ThemeToggle.",
@@ -1084,7 +1088,24 @@
         "output/header-controls-20261006/restoration.json",
         "output/header-controls-20261006/cleanup.json"
       ],
-      "deliveryTask": 5
+      "deliveryTask": 5,
+      "issueType": "Header top-bar placement and theme variant controls"
+    },
+    {
+      "id": "E90",
+      "status": "Desktop on-site contextual picking repaired and verified across four packs; native/device iframe picking remains E09 work.",
+      "classification": "repaired and verified",
+      "requiredWorkflow": "Select a visible header control in the on-site Customizer and focus its own setting, even while the settings search hides that field.",
+      "initialFinding": "56actual-header target assertions resolve to header.layout.sticky rather than the clicked control. Real CustomizerPanel test prevents navigation but fails to reveal/focus a filtered target. Live Website additionally reproduced the fixed panel covering right-hand header controls.",
+      "dependency": "Missing nearest data-customize targets on shared/pack header controls; picker retains a search that removes the selected field.",
+      "repairBoundary": "Header control annotations, filtered-target reveal, and temporary panel hiding with Cancel/Escape. Native and device iframe selection remain separate E09 work.",
+      "closureBoundary": "56 real-header target cases, real-panel filtered/repeated selection and Escape checks, 12 actual four-pack operator picks plus repeat/cancellation; exact baseline preservation and cleanup.",
+      "deliveryTask": 5,
+      "currentEvidence": [
+        "ConvexPress-Admin/audits/2026-09-04/customizer-targets-20261006.md",
+        "output/customizer-targets-20261006/browser-receipts.json",
+        "output/customizer-targets-20261006/cleanup.json"
+      ]
     }
   ],
   "blocks": [
@@ -4885,7 +4906,8 @@
     "audit25": "Read/responded: authority workflow advanced without backend changes; customer fully cleaned. Actual parent revocation/recovery now accepted; newly demonstrated E69 banner mismatch source-fixed, refreshed runtime pending alongside E68. No new broad scope; Codex retains decision authority.",
     "audit33": "Accepted E07 status parity and Website-before-backend nested-list rollout requirement. Direct HTML converter probe preserves _blank and refuses unsupported target. D3 adapted/deferred pending bounded reproduction without authoring reload; D5/O3/O5 deferred, D4 remains rejected under E39, O4 informational. Source now79canonical/37legacy, five published pages preserved and republished; continue two raw-text posts without waiting for audit.",
     "audit37": "Read/responded: accepted bounded E07 scope and resolved prior target failures; on-track is not completion. WordPress canonical import and cleanup now accepted. Nine orphan page metadata rows exposed a real cascade gap; bounded fix deployed/tested. Deep audit remains advisory; exact caller/evidence requested, no waiting or scope expansion. Latest available audit37. Subsequent native closure retirement cddfab37 and16 old block/AI endpoint removal accepted. Latest audit remains37; no new feedback awaited. Next concrete caller is Quick Edit canonical title/metadata transaction.",
-    "audit41": "Read and accepted bounded in-scope progress/no-new-findings at9d78674a; adapted with subsequent E76 contrast repair. Codex continues Task6; final goal remains active and broad findings deferred."
+    "audit41": "Read and accepted bounded in-scope progress/no-new-findings at9d78674a; adapted with subsequent E76 contrast repair. Codex continues Task6; final goal remains active and broad findings deferred.",
+    "audit48": "ACCEPT register-state consistency finding; normalize E86\u2013E89 classification from issue titles to repaired and verified, retaining issueType/status/closure boundaries. Audit snapshot predates07b08732. No scope change; Codex continues E09."
   },
   "sessionBaseCommit": "9824d9605e50c4b0ebd711c13715b506f8ef5bd3"
 }

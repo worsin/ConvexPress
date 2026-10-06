@@ -11,10 +11,10 @@ export function HeaderTopBar({ config, className, icons = true }: {
 }) {
   return (
     <div data-slot="header-top-bar" className={cn("grid min-w-0 grid-cols-2 items-center gap-3 py-1.5", className)}>
-      <div data-slot="top-bar-left" className="min-w-0 text-left">
+      <div data-slot="top-bar-left" data-customize="header.topBar.leftContent" className="min-w-0 text-left">
         <Content type={config.leftContent} config={config} icons={icons} />
       </div>
-      <div data-slot="top-bar-right" className="min-w-0 text-right [&>div]:justify-end">
+      <div data-slot="top-bar-right" data-customize="header.topBar.rightContent" className="min-w-0 text-right [&>div]:justify-end">
         <Content type={config.rightContent} config={config} icons={icons} />
       </div>
     </div>

@@ -140,6 +140,7 @@ export default function CustomizerPanel({ recoveryOwner }: { recoveryOwner: stri
       if (!element || panel.current?.contains(element)) return;
       event.preventDefault();
       event.stopPropagation();
+      setQuery("");
       setSelected(element.dataset.customize ?? null);
       setPicking(false);
     };
@@ -154,9 +155,17 @@ export default function CustomizerPanel({ recoveryOwner }: { recoveryOwner: stri
           : null,
       );
     };
+    const cancel = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      event.preventDefault();
+      setPicking(false);
+      window.requestAnimationFrame(() => panel.current?.focus());
+    };
+    document.addEventListener("keydown", cancel);
     document.addEventListener("click", pick, true);
     document.addEventListener("mouseover", hover);
     return () => {
+      document.removeEventListener("keydown", cancel);
       document.removeEventListener("click", pick, true);
       document.removeEventListener("mouseover", hover);
     };
@@ -317,10 +326,24 @@ export default function CustomizerPanel({ recoveryOwner }: { recoveryOwner: stri
         </div>
       )}
       {picking && (
-        <style>{`[data-customize]:hover { outline: 2px solid var(--primary); outline-offset: 3px; cursor: crosshair; }`}</style>
+        <>
+          <style>{`[data-customize]:hover { outline: 2px solid var(--primary); outline-offset: 3px; cursor: crosshair; }`}</style>
+          <button
+            type="button"
+            autoFocus
+            className="fixed bottom-4 right-4 z-[110] rounded bg-background px-4 py-2 text-sm text-foreground shadow-xl ring-1 ring-border"
+            onClick={() => {
+              setPicking(false);
+              window.requestAnimationFrame(() => panel.current?.focus());
+            }}
+          >
+            Cancel selecting
+          </button>
+        </>
       )}
       <aside
         ref={panel}
+        style={{ visibility: picking ? "hidden" : undefined }}
         tabIndex={-1}
         role="region"
         aria-label="Customize template"

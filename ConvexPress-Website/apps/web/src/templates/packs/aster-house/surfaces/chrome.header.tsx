@@ -54,7 +54,7 @@ export default function AsterChromeHeader({ data }: SurfaceProps<HeaderSurfaceDa
             type="button"
             onClick={toggleMobileNav}
             className="-ml-2 flex size-10 items-center justify-center text-muted-foreground transition-colors hover:text-foreground lg:hidden"
-            aria-label="Open navigation menu"
+            data-customize="header.mobileMenu.variant" aria-label="Open navigation menu"
           >
             <Menu className="size-5" aria-hidden="true" />
           </button>);
@@ -73,7 +73,7 @@ export default function AsterChromeHeader({ data }: SurfaceProps<HeaderSurfaceDa
           <HeaderSearchTrigger config={headerConfig.search} />
           {headerConfig.cta.enabled ? (
             <Link
-              to={headerConfig.cta.url as any}
+              data-customize="header.cta.label" to={headerConfig.cta.url as any}
               className={cn(
                 "mx-1 hidden h-9 items-center rounded-full px-4 text-sm font-medium transition-colors md:inline-flex",
                 headerConfig.cta.style === "outline"
@@ -86,7 +86,7 @@ export default function AsterChromeHeader({ data }: SurfaceProps<HeaderSurfaceDa
               {headerConfig.cta.label}
             </Link>
           ) : null}
-          {headerConfig.darkModeToggle.enabled ? <ThemeToggle variant={headerConfig.darkModeToggle.variant} /> : null}
+          {headerConfig.darkModeToggle.enabled ? <ThemeToggle customize="header.darkModeToggle.variant" variant={headerConfig.darkModeToggle.variant} /> : null}
           <AccountCluster userMenu={headerConfig.userMenu} />
           <CartButton />
         </div>);
@@ -265,12 +265,12 @@ function AccountCluster({ userMenu }: { userMenu: HeaderConfig["userMenu"] }) {
   if (userMenu.guestDisplay === "hidden") return null;
   return (
     <div className="flex shrink-0 items-center gap-3 sm:px-2">
-      <Link to="/login" aria-label="Sign in" className="flex size-10 shrink-0 items-center justify-center whitespace-nowrap text-sm tracking-wide text-muted-foreground transition-colors hover:text-foreground sm:w-auto">
+      <Link data-customize="header.userMenu.guestDisplay" to="/login" aria-label="Sign in" className="flex size-10 shrink-0 items-center justify-center whitespace-nowrap text-sm tracking-wide text-muted-foreground transition-colors hover:text-foreground sm:w-auto">
         <UserRound className="size-[18px] sm:hidden" aria-hidden="true" />
         <span className="hidden sm:inline">Sign in</span>
       </Link>
       {userMenu.guestDisplay === "login-register" ? (
-        <Link to="/register" className="hidden text-sm tracking-wide text-muted-foreground transition-colors hover:text-foreground sm:inline">
+        <Link data-customize="header.userMenu.guestDisplay" to="/register" className="hidden text-sm tracking-wide text-muted-foreground transition-colors hover:text-foreground sm:inline">
           Register
         </Link>
       ) : null}

@@ -57,7 +57,7 @@ export default function DepotHeader({ data }: SurfaceProps<HeaderSurfaceData>) {
           type="button"
           onClick={toggleMobileNav}
           className="flex size-10 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground lg:hidden"
-          aria-label="Open navigation menu"
+          data-customize="header.mobileMenu.variant" aria-label="Open navigation menu"
         >
           <Menu className="size-5" aria-hidden="true" />
         </button>);
@@ -148,14 +148,14 @@ function HeaderCluster({ headerConfig, className }: { headerConfig: HeaderConfig
       <HeaderSearchTrigger config={headerConfig.search} />
       {showCta && (
         <Link
-          to={headerConfig.cta.url}
+          data-customize="header.cta.label" to={headerConfig.cta.url}
           className={buttonClasses(headerConfig.cta.style === "filled" ? "primary" : headerConfig.cta.style === "outline" ? "secondary" : "quiet", "sm", "hidden md:inline-flex")}
         >
           {headerConfig.cta.label}
         </Link>
       )}
 
-      {showDarkMode && <ThemeToggle variant={headerConfig.darkModeToggle.variant} />}
+      {showDarkMode && <ThemeToggle customize="header.darkModeToggle.variant" variant={headerConfig.darkModeToggle.variant} />}
 
       {showUserMenu && isLoaded && (
         <>
@@ -167,12 +167,12 @@ function HeaderCluster({ headerConfig, className }: { headerConfig: HeaderConfig
           ) : (
             guestDisplay !== "hidden" && (
               <div className="flex items-center gap-1">
-                <Link to="/login" aria-label="Sign in" className={cn(buttonClasses("quiet", "sm", "px-2"), "gap-1.5")}>
+                <Link data-customize="header.userMenu.guestDisplay" to="/login" aria-label="Sign in" className={cn(buttonClasses("quiet", "sm", "px-2"), "gap-1.5")}>
                   <User className="size-4" aria-hidden="true" />
                   <span className="hidden sm:inline">Sign in</span>
                 </Link>
                 {guestDisplay === "login-register" && (
-                  <Link to="/register" className={buttonClasses("secondary", "sm", "hidden sm:inline-flex")}>
+                  <Link data-customize="header.userMenu.guestDisplay" to="/register" className={buttonClasses("secondary", "sm", "hidden sm:inline-flex")}>
                     Register
                   </Link>
                 )}

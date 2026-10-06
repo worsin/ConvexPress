@@ -83,7 +83,7 @@ export function HeaderActions({ className, headerConfig }: HeaderActionsProps) {
       )}
 
       {/* Theme toggle */}
-      {showDarkMode && <ThemeToggle variant={headerConfig?.darkModeToggle?.variant} />}
+      {showDarkMode && <ThemeToggle customize="header.darkModeToggle.variant" variant={headerConfig?.darkModeToggle?.variant} />}
 
       {/* User menu or login link */}
       {showUserMenu && isLoaded && (
@@ -97,7 +97,7 @@ export function HeaderActions({ className, headerConfig }: HeaderActionsProps) {
             guestDisplay !== "hidden" && (
               <div className="flex items-center gap-2">
                 <Link
-                  to="/login"
+                  data-customize="header.userMenu.guestDisplay" to="/login"
                   className="inline-flex size-8 shrink-0 items-center justify-center border border-border bg-background text-xs font-medium text-foreground transition-colors hover:bg-muted sm:h-auto sm:w-auto sm:px-3 sm:py-1.5"
                 >
                   <LogIn className="size-4 sm:hidden" aria-hidden="true" />
@@ -105,7 +105,7 @@ export function HeaderActions({ className, headerConfig }: HeaderActionsProps) {
                 </Link>
                 {guestDisplay === "login-register" && (
                   <Link
-                    to="/register"
+                    data-customize="header.userMenu.guestDisplay" to="/register"
                     className="inline-flex size-8 shrink-0 items-center justify-center bg-foreground text-xs font-medium text-background transition-colors hover:bg-foreground/90 sm:h-auto sm:w-auto sm:px-3 sm:py-1.5"
                   >
                     <UserPlus className="size-4 sm:hidden" aria-hidden="true" />
@@ -139,7 +139,7 @@ function CtaButton({ label, url, style }: CtaButtonProps) {
 
   return (
     <Link
-      to={url}
+      data-customize="header.cta.label" to={url}
       className={cn(
         "hidden items-center justify-center px-4 py-1.5 text-xs font-medium transition-colors md:inline-flex",
         styleClasses,

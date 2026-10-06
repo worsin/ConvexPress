@@ -20,7 +20,7 @@ export function HeaderSearchTrigger({ config }: { config?: SearchConfig }) {
     wasOpen.current = searchOpen;
   }, [searchOpen]);
   if (config?.enabled === false || config?.variant === "inline") return null;
-  return <button ref={ref} type="button" onClick={toggleSearch} aria-label="Toggle search" aria-expanded={searchOpen}
+  return <button ref={ref} type="button" onClick={toggleSearch} data-customize="header.search.variant" aria-label="Toggle search" aria-expanded={searchOpen}
     className="flex size-9 shrink-0 items-center justify-center text-muted-foreground transition-colors hover:text-foreground">
     <Search className="size-[18px]" aria-hidden="true" />
   </button>;
@@ -48,7 +48,7 @@ function HeaderSearchField({ placeholder, pack, onClose, className }: { placehol
   const target = settings?.plugins?.commerceEnabled === true ? "/products" : "/search";
   const editorial = pack === "journal" || pack === "aster-house";
   useEffect(() => { if (onClose) inputRef.current?.focus(); }, [onClose]);
-  return <div data-slot="header-search-field" className={cn("relative min-w-0 items-center gap-2", className)}>
+  return <div data-slot="header-search-field" data-customize="header.search.placeholder" className={cn("relative min-w-0 items-center gap-2", className)}>
     <form role="search" aria-label="Search the site" className="flex min-w-0 flex-1 items-center" onSubmit={event => {
       event.preventDefault();
       const q = query.trim();

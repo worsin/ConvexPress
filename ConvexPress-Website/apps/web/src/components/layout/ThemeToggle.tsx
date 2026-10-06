@@ -3,7 +3,7 @@ import { Sun, Moon } from "lucide-react";
 import type { HeaderConfig } from "@/lib/layout/types";
 import { cn } from "@/lib/utils";
 
-export function ThemeToggle({ variant = "icon" }: { variant?: HeaderConfig["darkModeToggle"]["variant"] }) {
+export function ThemeToggle({ variant = "icon", customize }: { variant?: HeaderConfig["darkModeToggle"]["variant"]; customize?: string }) {
   const [isDark, setIsDark] = useState(false);
 
   useEffect(() => {
@@ -20,6 +20,7 @@ export function ThemeToggle({ variant = "icon" }: { variant?: HeaderConfig["dark
   return (
     <button
       type="button"
+      data-customize={customize}
       onClick={toggle}
       role={variant === "switch" ? "switch" : undefined}
       aria-checked={variant === "switch" ? isDark : undefined}

@@ -86,7 +86,7 @@ export function SiteHeader({ siteIdentity, menu, layoutConfig, headerConfig: hea
               type="button"
               onClick={toggleMobileNav}
               className="flex size-8 shrink-0 items-center justify-center text-muted-foreground transition-colors hover:text-foreground lg:hidden"
-              aria-label="Open navigation menu"
+              data-customize="header.mobileMenu.variant" aria-label="Open navigation menu"
             >
               <Menu className="size-5" aria-hidden="true" />
             </button>
