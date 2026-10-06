@@ -1,13 +1,13 @@
 {
   "plan": "2026-09-28-editor-template-delivery.md",
   "baselineCommit": "d0fee8acceb408fd306a15f3c054322cb73ac8bc",
-  "checkpointSource": "output/lms-final-20261006/mt-accept-after.json",
+  "checkpointSource": "output/certificate-final-20261006/mt-accept-after.json",
   "checkpointCounts": {
-    "Verified": 127,
-    "In progress": 10
+    "Verified": 128,
+    "In progress": 9
   },
   "goal": "Complete block editor and template delivery plus all demonstrated blockers; defer unrelated whole-app audit campaigns.",
-  "currentTask": "Task3 course-grid/curriculum/progress accepted on real two-customer login, lesson completion50%, selected/all scopes, enrollment revocation without reload, account-switch isolation and course withdrawal; reused native/four-pack/paging/hydration evidence. Original71pages/9courses/settings/emailqueue exact; customers/enrollments/fixtures/sessions/runtime cleaned. UGC also accepted; E98 Instagram adapter remains open. Next instructor/profile and certificate acceptance reconciliation, then remaining integration gates. E05 hosted HTTPS remains independent. Full goal active127/10.",
+  "currentTask": "Certificate Verification accepted on retained real issuance/native/four-pack proof and current revoked/foreign code retry/privacy plus stale-response tests.128/9 full goal active. Next instructor optional portrait/profile BlockDemo variants, then remaining provider/composition/integration gates. E98 Instagram implementation and E05 hosted HTTPS remain explicit; independent work continues.",
   "tasks": [
     {
       "id": 1,
@@ -4072,9 +4072,9 @@
       "name": "certificates/verify",
       "title": "Certificate verify",
       "category": "Plugin",
-      "checkpointStatus": "In progress",
-      "nextClassification": "Reviewed against live Notes and current canonical specification; Reuse all-pack invalid/valid/revoked fixture and stale-response repair; real certificate provider verification, privacy, retry and native title/recovery.",
-      "classification": "missing evidence",
+      "checkpointStatus": "Verified",
+      "nextClassification": "reuse valid evidence",
+      "classification": "accepted/reusable evidence",
       "source": "blocks/certificates/verify/block.json",
       "requirements": "title (text)",
       "evidenceReferences": [
@@ -4082,9 +4082,10 @@
         "output/block-library-review-20260915/coverage-review.json.",
         "output/certificate-block-20260911/checks.json.",
         "output/course-blocks-20260911/certificate-authority-checks.json.",
-        "ConvexPress-Admin/audits/2026-09-04/search-library-prose-20260928.md"
+        "ConvexPress-Admin/audits/2026-09-04/search-library-prose-20260928.md",
+        "ConvexPress-Admin/audits/2026-09-04/certificate-final-20261006.md"
       ],
-      "remainingReview": "Reuse all-pack invalid/valid/revoked fixture and stale-response repair; real certificate provider verification, privacy, retry and native title/recovery.",
+      "remainingReview": "Block accepted on retained real provider/native/four-pack proof and current public retry/privacy/stale-response checks; broader PDF typography and editor integration are separate.",
       "deliveryTask": 3,
       "acceptanceBatch": "learning",
       "reviewedAtCommit": "d8a0ea2c",
@@ -4093,7 +4094,8 @@
       "rendererSha256": "183508e5da3434351d7f97c9b2c1d18a57fe52e1430ea6a0d8da3b5c9ebb54e2",
       "canonicalFields": [
         "title"
-      ]
+      ],
+      "acceptedEvidence": "ConvexPress-Admin/audits/2026-09-04/certificate-final-20261006.md"
     },
     {
       "name": "core/site-info",
