@@ -1,3 +1,5 @@
+import {DocumentSettings} from "./DocumentSettings";
+import {Button} from "@/components/ui/button";
 import { useDefinitionClients } from "../../custom-blocks/useDefinitionClients";
 import { DefinitionPreviewPanel } from "../../custom-blocks/DefinitionPreviewPanel";
 import { useCan } from "@/hooks/useCan";
@@ -107,8 +109,9 @@ function ConnectedEditor({
 		pending = useRef<((result: PickerResult | null) => void) | null>(null);
 	const [picker, setPicker] = useState<CanonicalPickerRequest | null>(null);
 	const [dirty, setDirty] = useState(false);
+ const [settingsOpen,setSettingsOpen]=useState(false),[settingsDirty,setSettingsDirty]=useState(false);
 	useUnsavedChangesWarning({
-		isDirty: dirty || picker !== null,
+		isDirty: dirty || settingsDirty || picker !== null,
 		enabled: true,
 	});
 	const [preview, setPreview] = useState<CanonicalDocumentDto | null>(null);
@@ -618,8 +621,13 @@ function ConnectedEditor({
 					reappear automatically…
 				</p>
 			)}
-			{/* Keep unsaved editor state mounted but inaccessible while its index recovers. */}
-			<div hidden={recovery.preparing} inert={recovery.preparing}>
+			{!recovery.preparing && decodedRead?.contract === "canonical-document-v1" && <div className="mb-4 flex items-center justify-end gap-3">
+    {dirty && <p className="text-xs text-muted-foreground">Save or discard body edits before opening document settings.</p>}
+    {!settingsOpen && <Button variant="outline" disabled={dirty || picker!==null} onClick={()=>setSettingsOpen(true)}>Document settings</Button>}
+   </div>}
+   {settingsOpen && !recovery.preparing && <DocumentSettings postId={postId} onClose={()=>setSettingsOpen(false)} onDirtyChange={setSettingsDirty}/>}
+   {/* Keep unsaved editor state mounted but inaccessible while its index recovers. */}
+			<div hidden={recovery.preparing || settingsOpen} inert={recovery.preparing || settingsOpen}>
 				<CanonicalDocumentWorkspace
 					siteOrigin={
 						recovery.preparing ? undefined : runtime.target.siteOrigin

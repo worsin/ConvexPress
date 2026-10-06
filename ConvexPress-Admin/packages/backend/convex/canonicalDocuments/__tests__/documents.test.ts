@@ -3580,3 +3580,57 @@ test('Quick Edit uses broker site authority and rechecks revocation, author elig
  await f.t.run(ctx=>ctx.db.patch('posts',f.ids.post,{status:'trash'}));const trashed=await state();
  await expect(f.client.mutation(reference('updateMetadata','mutation'),{postId:f.ids.post,expectedRevision:saved.revision,title:'Trash edit'})).rejects.toMatchObject({data:{code:'CANONICAL_DRAFT_REQUIRED'}});expect(await state()).toEqual(trashed);
 });
+
+for (const type of ['post','page'] as const) test(`Document settings ${type} save excerpt image and taxonomy atomically without body loss`,async()=>{
+ const f=await fixture();await initialize(f);
+ const ids=await f.t.run(async ctx=>{
+  await ctx.db.patch('posts',f.ids.post,{type});const user=(await ctx.db.get('users',f.ids.user))!;
+  await ctx.db.patch('roles',user.roleId!,{capabilities:['post.update','page.update','taxonomy.assign','taxonomy.unassign','media.read']});
+  const category=await ctx.db.insert('terms',{name:'News',slug:'news',taxonomy:'category',count:0,isDefault:false,createdAt:1,updatedAt:1});
+  const tag=await ctx.db.insert('terms',{name:'Release',slug:'release',taxonomy:'post_tag',count:0,isDefault:false,createdAt:1,updatedAt:1});
+  const image=await ctx.db.insert('media',{title:'Cover',fileName:'cover.png',slug:'cover',url:'https://example.invalid/cover.png',mimeType:'image/png',fileSize:1,mediaType:'image',status:'active',uploadedBy:f.ids.user,createdAt:1,updatedAt:1});
+  return {category,tag,image};
+ });
+ const before=await f.t.run(ctx=>ctx.db.get('posts',f.ids.post));
+ const args={postId:f.ids.post,expectedSettingsDigest:(await f.client.query(reference('getMetadata'),{postId:f.ids.post})).settingsDigest,expectedRevision:before!.blocksRevision,excerpt:'A short summary',featuredImageId:ids.image,commentStatus:'open',...(type==='post'?{termIds:[ids.category,ids.tag]}:{})};
+ const saved=await f.client.mutation(reference('updateMetadata','mutation'),args);expect(saved.revision).toBe(before!.blocksRevision!+1);
+ const read=await f.client.query(reference('getMetadata'),{postId:f.ids.post});expect(read).toMatchObject({revision:saved.revision,excerpt:args.excerpt,featuredImageId:ids.image,commentStatus:'open'});
+ expect(read.terms.map((t:any)=>t.id).sort()).toEqual(type==='post'?[ids.category,ids.tag].sort():[]);
+ const snapshot=()=>f.t.run(async ctx=>({post:await ctx.db.get('posts',f.ids.post),history:await ctx.db.query('revisions').collect(),relations:await ctx.db.query('termRelationships').collect(),terms:await ctx.db.query('terms').collect()}));
+ const accepted=await snapshot();expect(accepted.post!.blocks).toEqual(before!.blocks);
+ await expect(f.client.mutation(reference('updateMetadata','mutation'),{...args,excerpt:'Stale'})).rejects.toMatchObject({data:{code:'CONFLICT'}});expect(await snapshot()).toEqual(accepted);
+ const same=await f.client.mutation(reference('updateMetadata','mutation'),{...args,expectedSettingsDigest:read.settingsDigest,expectedRevision:saved.revision});expect(same).toMatchObject({changed:false,revision:saved.revision});expect(await snapshot()).toEqual(accepted);
+ await expect(f.as(f.ids.denied).query(reference('getMetadata'),{postId:f.ids.post})).rejects.toThrow();
+ await expect(f.client.mutation(reference('updateMetadata','mutation'),{...args,expectedSettingsDigest:read.settingsDigest,expectedRevision:saved.revision,excerpt:'x'.repeat(1001)})).rejects.toThrow();expect(await snapshot()).toEqual(accepted);
+ await f.t.run(ctx=>ctx.db.patch('media',ids.image,{status:'trashed'}));
+ await expect(f.client.mutation(reference('updateMetadata','mutation'),{...args,expectedSettingsDigest:read.settingsDigest,expectedRevision:saved.revision,excerpt:'Bad image'})).rejects.toThrow();
+ await f.t.run(ctx=>ctx.db.patch('media',ids.image,{status:'active'}));
+ const cleared=await f.client.mutation(reference('updateMetadata','mutation'),{postId:f.ids.post,expectedSettingsDigest:read.settingsDigest,expectedRevision:saved.revision,excerpt:'',featuredImageId:null,...(type==='post'?{termIds:[]}:{})});
+ expect(cleared.revision).toBe(saved.revision+1);const final=await f.client.query(reference('getMetadata'),{postId:f.ids.post});expect(final).toMatchObject({excerpt:'',featuredImageId:null,terms:[]});expect((await snapshot()).post!.blocks).toEqual(before!.blocks);
+});
+
+test('Document settings taxonomy-only edits advance revision and revoked assignment rolls back metadata',async()=>{
+ const f=await fixture();await initialize(f);const term=await f.t.run(async ctx=>{await ctx.db.patch('posts',f.ids.post,{type:'post'});return ctx.db.insert('terms',{name:'Topic',slug:'topic',taxonomy:'category',count:0,isDefault:false,createdAt:1,updatedAt:1});});
+ const before=await f.t.run(ctx=>ctx.db.get('posts',f.ids.post));const args={postId:f.ids.post,expectedSettingsDigest:(await f.client.query(reference('getMetadata'),{postId:f.ids.post})).settingsDigest,expectedRevision:before!.blocksRevision,termIds:[term]};
+ await expect(f.client.mutation(reference('updateMetadata','mutation'),{...args,excerpt:'Must roll back'})).rejects.toMatchObject({data:{code:'FORBIDDEN'}});expect(await f.t.run(ctx=>ctx.db.get('posts',f.ids.post))).toEqual(before);
+ await f.t.run(async ctx=>{const u=(await ctx.db.get('users',f.ids.user))!;await ctx.db.patch('roles',u.roleId!,{capabilities:['post.update','taxonomy.assign']});});
+ const saved=await f.client.mutation(reference('updateMetadata','mutation'),args);const read=await f.client.query(reference('getMetadata'),{postId:f.ids.post});expect(saved).toMatchObject({revision:before!.blocksRevision!+1,changed:true});
+ await expect(f.client.mutation(reference('updateMetadata','mutation'),{...args,expectedSettingsDigest:read.settingsDigest,expectedRevision:saved.revision,termIds:[],excerpt:'Denied removal'})).rejects.toMatchObject({data:{code:'FORBIDDEN'}});
+ expect(await f.client.query(reference('getMetadata'),{postId:f.ids.post})).toMatchObject({revision:saved.revision,excerpt:'',terms:[{id:term}]});
+});
+
+test('Document settings detect a generic metadata change without a canonical revision advance',async()=>{
+ const f=await fixture();await initialize(f);const base=await f.client.query(reference('getMetadata'),{postId:f.ids.post});
+ await f.t.run(ctx=>ctx.db.patch('posts',f.ids.post,{excerpt:'Concurrent generic writer'}));
+ await expect(f.client.mutation(reference('updateMetadata','mutation'),{postId:f.ids.post,expectedRevision:base.revision,expectedSettingsDigest:base.settingsDigest,excerpt:'Stale settings'})).rejects.toMatchObject({data:{code:'CONFLICT'}});
+ expect((await f.t.run(ctx=>ctx.db.get('posts',f.ids.post)))!.excerpt).toBe('Concurrent generic writer');
+});
+
+test('Document settings preserves taxonomy assignment events without replaying no-op assignments',async()=>{
+ const f=await fixture();await initialize(f);const term=await f.t.run(async ctx=>{await ctx.db.patch('posts',f.ids.post,{type:'post'});const u=(await ctx.db.get('users',f.ids.user))!;await ctx.db.patch('roles',u.roleId!,{capabilities:['post.update','taxonomy.assign']});return ctx.db.insert('terms',{name:'News',slug:'news',taxonomy:'category',count:0,isDefault:false,createdAt:1,updatedAt:1});});
+ const read=()=>f.client.query(reference('getMetadata'),{postId:f.ids.post});const base=await read();
+ await f.client.mutation(reference('updateMetadata','mutation'),{postId:f.ids.post,expectedRevision:base.revision,expectedSettingsDigest:base.settingsDigest,termIds:[term]});
+ const events=await f.t.run(ctx=>ctx.db.query('events').collect());expect(events.filter(e=>e.code==='taxonomy.term_assigned')).toHaveLength(1);
+ const saved=await read();await f.client.mutation(reference('updateMetadata','mutation'),{postId:f.ids.post,expectedRevision:saved.revision,expectedSettingsDigest:saved.settingsDigest,termIds:[term]});
+ expect(await f.t.run(ctx=>ctx.db.query('events').collect())).toEqual(events);
+});

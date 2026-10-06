@@ -12,7 +12,7 @@ import type { ComposedDataContext } from "./foundation/planner";
 import * as catalogRevisionWrites from "../media/attachmentGuard";
 import { syncDocumentContactForms } from "./contactDocuments";
 import { clearSyncedConsumerDirty } from "../syncedBlocks/consumerWrites";
-import { insertTermRelationship } from "../helpers/postDiscovery";
+import { insertTermRelationship, deleteTermRelationship } from "../helpers/postDiscovery";
 import { makeFunctionReference } from "convex/server";
 import { ConvexError, getDocumentSize, type Value } from "convex/values";
 import type {
@@ -769,7 +769,7 @@ export async function getPublicDocument(ctx: QueryCtx, args: { postId: Id<"posts
 
 import { replacePublicationSchedule, clearPublicationSchedule } from "../helpers/publicationSchedule";
 import { emitEvent } from "../helpers/events";
-import { PAGE_EVENTS, POST_EVENTS, SYSTEM } from "../events/constants";
+import { PAGE_EVENTS, POST_EVENTS, TAXONOMY_EVENTS, SYSTEM } from "../events/constants";
 /** Canonical authoring uses the same incremental listeners as the original
  * editors. Only identities and field names enter the event; protected bodies
  * and access secrets stay in the authorized source document. */
@@ -1562,16 +1562,59 @@ async function createForActor(ctx: MutationCtx, type: "post" | "page", input: Do
 export async function updateApiDocument(ctx: MutationCtx, type: "post" | "page", input: ApiDocumentInput & { postId: Id<"posts">; expectedRevision: number }): Promise<CanonicalWriteReceipt & { postId: Id<"posts"> }> {
  return updateForActor(ctx, type, input, await apiContentActor(ctx, input.keyId, "write:posts"));
 }
-export type MetadataArgs = Pick<DocumentInput, "title" | "slug" | "status" | "scheduledAt" | "parentId" | "menuOrder" | "pageTemplate" | "commentStatus"> & {
- postId: Id<"posts">; expectedRevision: number; authorId?: Id<"users">; isSticky?: boolean;
+export type MetadataArgs = Pick<DocumentInput, "title" | "slug" | "status" | "scheduledAt" | "parentId" | "menuOrder" | "pageTemplate" | "commentStatus" | "excerpt"> & {
+ postId: Id<"posts">; expectedRevision: number; authorId?: Id<"users">; isSticky?: boolean; featuredImageId?: Id<"media"> | null; expectedSettingsDigest?: string; termIds?: Id<"terms">[];
 };
+export type DocumentMetadata = {postId:Id<"posts">;type:"post"|"page";revision:number;settingsDigest:string;excerpt:string;featuredImageId:Id<"media">|null;commentStatus:"open"|"closed";terms:{id:Id<"terms">;name:string;taxonomy:"category"|"post_tag"}[]};
+async function documentTerms(ctx:QueryCtx,postId:Id<"posts">,budget:RequestReadLedger){
+ budget.beforeRead();const rows=await ctx.db.query("termRelationships").withIndex("by_post",q=>q.eq("postId",postId)).take(257);
+ if(rows.length>256)refuse("POST_TERM_LIMIT","Review this document's taxonomy assignments before editing settings.");
+ for(const row of rows)budget.record(row);return rows;
+}
+export async function getDocumentMetadata(ctx:QueryCtx,postId:Id<"posts">):Promise<DocumentMetadata>{
+ const budget=new RequestReadLedger();const {post}=await authorized(ctx,postId,budget);
+ if(!post || (post.type!=="post" && post.type!=="page"))refuse("NOT_FOUND","Document not found.");
+ if(post.blocksVersion!==2)refuse("CANONICAL_AUTHORING_REQUIRED","Complete canonical migration before editing settings.");
+ const terms:DocumentMetadata["terms"]=[];
+ for(const id of new Set((await documentTerms(ctx,postId,budget)).map(row=>row.termId))){
+  budget.beforeRead();const term=budget.record(await ctx.db.get("terms",id));
+  if(!term)refuse("DOCUMENT_TERM_INVALID","A saved taxonomy assignment is unavailable. Repair it before editing settings.");
+  terms.push({id:term._id,name:term.name,taxonomy:term.taxonomy});
+ }
+ const values={excerpt:post.excerpt??"",featuredImageId:post.featuredImageId??null,commentStatus:post.commentStatus,termIds:terms.map(t=>t.id).sort()};
+ return {postId,type:post.type,revision:authoringRevision(post),settingsDigest:sha256Hex(canonicalJson(values)),excerpt:values.excerpt,featuredImageId:values.featuredImageId,commentStatus:values.commentStatus,terms};
+}
 /** Native metadata uses the current session's authority, including a broker's
  * current site capabilities. Body writes remain exclusive to the editor. */
 export async function updateDocumentMetadata(ctx: MutationCtx, input: MetadataArgs) {
  const budget = new RequestReadLedger();
  const {post,user} = await authorized(ctx,input.postId,budget);
  if (!post || (post.type !== "post" && post.type !== "page")) refuse("NOT_FOUND","Document not found.");
+ // Remaining generic metadata/taxonomy callers may not advance the canonical
+ // revision. Compare the opened settings as well until those callers retire.
+ if(input.excerpt!==undefined || input.featuredImageId!==undefined || input.termIds!==undefined || input.expectedSettingsDigest!==undefined){
+  const current=await getDocumentMetadata(ctx,input.postId);
+  if(input.expectedSettingsDigest!==current.settingsDigest)refuse("CONFLICT","Document settings changed. Reopen settings before saving.");
+ }
  const metadata: ImportMetadata = {};
+ if(input.featuredImageId!==undefined){
+  if(input.featuredImageId!==null){
+   await requireCan(ctx,"media.read",budget);budget.beforeRead();const media=budget.record(await ctx.db.get("media",input.featuredImageId));
+   if(!media || media.status!=="active" || media.mediaType!=="image")refuse("DOCUMENT_IMAGE_INVALID","Choose an active image from this website's media library.");
+  }
+  metadata.featuredImageId=input.featuredImageId??undefined;
+ }
+ const additions:Id<"terms">[]=[];const removals:Doc<"termRelationships">[]=[];
+ if(input.termIds!==undefined){
+  if(post.type!=="post")refuse("DOCUMENT_LAYOUT_INVALID","Categories and tags apply to posts.");
+  if(input.termIds.length>256)refuse("POST_TERM_LIMIT","A post supports up to 256 taxonomy assignments.");
+  const wanted=new Set(input.termIds);const previous=await documentTerms(ctx,post._id,budget);const current=new Set(previous.map(row=>row.termId));
+  for(const id of wanted){budget.beforeRead();const term=budget.record(await ctx.db.get("terms",id));if(!term)refuse("DOCUMENT_TERM_INVALID","A selected category or tag is no longer available.");if(!current.has(id))additions.push(id);}
+  removals.push(...previous.filter(row=>!wanted.has(row.termId)));
+  if(additions.length)await requireCan(ctx,"taxonomy.assign",budget);
+  if(removals.length)await requireCan(ctx,"taxonomy.unassign",budget);
+ }
+
  if (input.authorId !== undefined || input.isSticky !== undefined) {
   if (post.type !== "post") refuse("DOCUMENT_LAYOUT_INVALID","Author and sticky settings apply to posts.");
   if ((input.authorId !== undefined && input.authorId !== post.authorId) || (input.isSticky !== undefined && input.isSticky !== post.isSticky)) {
@@ -1584,13 +1627,20 @@ export async function updateDocumentMetadata(ctx: MutationCtx, input: MetadataAr
   }
   if(input.isSticky !== undefined) metadata.isSticky=input.isSticky;
  }
- return updateForActor(ctx,post.type,input,user,metadata,{
+ const receipt=await updateForActor(ctx,post.type,input,user,metadata,{
   canEdit: row=>canEditContent(ctx,row,budget),
   requireCapability: async capability=>{await requireCan(ctx,capability,budget);},
- });
+ },additions.length>0 || removals.length>0);
+ for(const row of removals)await deleteTermRelationship(ctx,row._id,budget);
+ for(const termId of additions){
+  await insertTermRelationship(ctx,{postId:post._id,termId},budget);
+  budget.beforeRead();const term=budget.record(await ctx.db.get("terms",termId))!;
+  await emitEvent(ctx,TAXONOMY_EVENTS.TERM_ASSIGNED,SYSTEM.TAXONOMY,{postId:post._id,termId,taxonomyType:term.taxonomy},undefined,budget);
+ }
+ return receipt;
 }
 type UpdateAuthority = {canEdit:(post:Doc<"posts">)=>Promise<boolean>;requireCapability:(capability:Capability)=>Promise<void>};
-async function updateForActor(ctx: MutationCtx, type: "post" | "page", input: DocumentInput & { postId: Id<"posts">; expectedRevision: number }, user: Doc<"users">, imported: ImportMetadata = {}, authority: UpdateAuthority = {canEdit: row=>apiCanEdit(ctx,user,row),requireCapability: capability=>requireApiCapability(ctx,user,capability)}): Promise<CanonicalWriteReceipt & { postId: Id<"posts"> }> {
+async function updateForActor(ctx: MutationCtx, type: "post" | "page", input: DocumentInput & { postId: Id<"posts">; expectedRevision: number }, user: Doc<"users">, imported: ImportMetadata = {}, authority: UpdateAuthority = {canEdit: row=>apiCanEdit(ctx,user,row),requireCapability: capability=>requireApiCapability(ctx,user,capability)}, relatedMetadataChanged = false): Promise<CanonicalWriteReceipt & { postId: Id<"posts"> }> {
  const budget = new RequestReadLedger();
 	budget.beforeRead();
 	const post = budget.record(await ctx.db.get("posts", input.postId));
@@ -1674,6 +1724,7 @@ async function updateForActor(ctx: MutationCtx, type: "post" | "page", input: Do
 		patch = { ...metadata, ...publication };
 	documentSettings({ ...post, ...patch });
 	const changed =
+    relatedMetadataChanged ||
 		prepared.changed ||
 		Object.entries(patch).some(
 			([key, value]) => value !== post[key as keyof typeof post],

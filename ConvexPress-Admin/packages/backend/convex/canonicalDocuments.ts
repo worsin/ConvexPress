@@ -25,6 +25,8 @@ import {
 	canonicalBoundary,
 	createDocument,
  updateDocumentMetadata,
+ getDocumentMetadata,
+ type DocumentMetadata,
  type MetadataArgs,
 	getDocument,
 	previewDocument,
@@ -63,9 +65,15 @@ export const updateMetadata: RegisteredMutation<"public", MetadataArgs, Promise<
  args: {postId:v.id("posts"),expectedRevision:v.number(),title:v.optional(v.string()),slug:v.optional(v.string()),
   status:v.optional(v.union(v.literal("draft"),v.literal("publish"),v.literal("future"),v.literal("private"))),scheduledAt:v.optional(v.number()),
   parentId:v.optional(v.union(v.id("posts"),v.null())),menuOrder:v.optional(v.number()),pageTemplate:v.optional(v.string()),
+  expectedSettingsDigest:v.optional(v.string()),excerpt:v.optional(v.string()),featuredImageId:v.optional(v.union(v.id("media"),v.null())),termIds:v.optional(v.array(v.id("terms"))),
   commentStatus:v.optional(v.union(v.literal("open"),v.literal("closed"))),authorId:v.optional(v.id("users")),isSticky:v.optional(v.boolean())},
  returns:receiptValidator,
- handler:(ctx,args)=>canonicalBoundary(()=>updateDocumentMetadata(ctx,args)),
+ handler:(ctx,args:MetadataArgs)=>canonicalBoundary(()=>updateDocumentMetadata(ctx,args)),
+});
+export const getMetadata:RegisteredQuery<"public",ReadArgs,Promise<DocumentMetadata>> = query({
+ args:{postId:v.id("posts")},
+ returns:v.object({postId:v.id("posts"),type:v.union(v.literal("post"),v.literal("page")),revision:v.number(),settingsDigest:v.string(),excerpt:v.string(),featuredImageId:v.union(v.id("media"),v.null()),commentStatus:v.union(v.literal("open"),v.literal("closed")),terms:v.array(v.object({id:v.id("terms"),name:v.string(),taxonomy:v.union(v.literal("category"),v.literal("post_tag"))}))}),
+ handler:(ctx,args)=>canonicalBoundary(()=>getDocumentMetadata(ctx,args.postId)),
 });
 export const get: RegisteredQuery<
 	"public",

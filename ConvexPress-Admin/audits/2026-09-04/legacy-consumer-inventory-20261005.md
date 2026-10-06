@@ -26,3 +26,7 @@ The failure above was reproduced in native Electron, including partial parent ap
 ## Bulk Edit closure and audit 38 parity gap
 
 Bulk Edit canonical revisions, stale/partial results and cross-page selection verified in native Electron; see bulk-edit-canonical-20261005.md. Generic metadata retirement remains open. Current post edit route mounts NativeCanonicalEditor without a metadata sidebar; CanonicalEditor/NativeCanonicalEditor have no excerpt/featured-image/discussion controls. Quick Edit supports comments and author but renders categories/tags read-only. Audit38 correctly identifies a parity gap requiring native reproduction and canonical metadata repair before removing further generic consumers. The old destructive marketing seed's replacement belongs to open E10 safe canonical example-site provisioning; restored legacy deletion is not the repair.
+
+## Metadata parity closure
+
+Audit38 excerpt/image/discussion/category/tag gap is repaired and accepted within document-settings-20261005.md. Native save/reopen/stale refusal and exact cleanup pass. Settings compare the opened digest because generic metadata/taxonomy callers can still change values without a canonical revision. Current web search finds only post/page Quick Edit noncanonical fallbacks through usePostMutations/usePageMutations invoking generic update; no current web taxonomy assign/unassign caller. Review external/backend consumers before retirement. Latest installed bases are document-settings-events-20261005. E07 is not yet closed.

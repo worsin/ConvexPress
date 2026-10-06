@@ -1,3 +1,7 @@
+# October5 canonical document settings
+
+Excerpt/image/comments and post categories/tags restored in canonical native editor. Atomic save/reopen/stale refusal and body isolation pass; taxonomy assignment event preserved. Working/source174 tests,target144,types/contracts/writer checks pass. Final live event proofs and exact original145documents/522revisions preservation pass; fixtures and owned sessions/runtime cleaned. [Evidence and deployment bases](document-settings-20261005.md). E07/full goal remain open117/20.
+
 # October 5 canonical Bulk Edit
 
 Revision-checked cross-page batches, explicit partial/stale results and sticky removal accepted in native Electron. Three helper tests and four Admin type tasks pass; all eleven fixtures and owned sessions/runtime cleaned. Original145 documents/522 revisions exact. No backend redeploy; Quick Edit installed bases remain current. [Evidence](bulk-edit-canonical-20261005.md). Audit38 metadata parity and E10 safe example-site provisioning remain open; full goal incomplete117/20.
