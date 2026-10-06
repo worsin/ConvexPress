@@ -1,3 +1,6 @@
+import { FooterImage } from "@/components/layout/FooterImage";
+import { footerCellAlignment } from "@/components/layout/footerCellAlignment";
+import { Mail, MapPin, Phone } from "lucide-react";
 import { FooterAutoPages } from "@/components/layout/FooterAutoPages";
 import { FooterLegalLinks } from "@/components/layout/FooterLegalLinks";
 import { FooterSectionFrame, footerColumnsClass } from "@/components/layout/FooterSectionFrame";
@@ -18,7 +21,6 @@ import DOMPurify from "@/lib/html-sanitizer";
 import { useState, type FormEvent } from "react";
 
 import { SocialLinks } from "@/components/layout/SocialLinks";
-import { MediaImage } from "@/components/media/MediaImage";
 import { useMenuForLocation } from "@/hooks/layout/useMenuForLocation";
 import { useSiteIdentity } from "@/hooks/layout/useSiteIdentity";
 import { useNewsletterSubscribe } from "@/hooks/useNewsletterSubscribe";
@@ -119,7 +121,7 @@ function RowColumns({ row }: { row: FooterRow }) {
 
 function Column({ column, total }: { column: FooterColumn; total: number }) {
   const width = column.width ?? Math.max(1, Math.floor(12 / Math.max(1, total)));
-  const align = column.alignment === "center" ? "text-center items-center" : column.alignment === "right" ? "text-right items-end" : "";
+  const align = footerCellAlignment(column);
   return (
     <div className={cn("flex min-w-0 flex-col gap-3", SPAN[Math.min(12, Math.max(1, width))], align)}>
       <Cell cell={column.cell} />
@@ -161,7 +163,7 @@ function Cell({ cell }: { cell: FooterCell }) {
     case "nav":
       return <NavCell heading={cell.heading} location={cell.menuLocation} />;
     case "image":
-      return <ImageCell mediaId={cell.mediaId} alt={cell.alt} href={cell.href} width={cell.width} />;
+      return <FooterImage cell={cell} />;
     case "social":
       return (
         <>
@@ -176,15 +178,15 @@ function Cell({ cell }: { cell: FooterCell }) {
         <>
           <CellHeading>{cell.heading}</CellHeading>
           <div className="flex flex-col gap-1.5 text-sm leading-6 text-muted-foreground">
-            {cell.address ? <p className="whitespace-pre-line">{cell.address}</p> : null}
+            {cell.address ? <div className="flex items-start gap-2">{cell.showIcons && <MapPin className="mt-1 size-3 shrink-0" aria-hidden="true" />}<span className="whitespace-pre-line">{cell.address}</span></div> : null}
             {cell.phone ? (
-              <a href={`tel:${cell.phone}`} className={linkClass}>
-                {cell.phone}
+              <a href={`tel:${cell.phone}`} className={cn(linkClass, "flex min-w-0 items-center gap-2")}>
+                {cell.showIcons && <Phone className="size-3 shrink-0" aria-hidden="true" />}<span className="break-words">{cell.phone}</span>
               </a>
             ) : null}
             {cell.email ? (
-              <a href={`mailto:${cell.email}`} className={cn(linkClass, "break-all")}>
-                {cell.email}
+              <a href={`mailto:${cell.email}`} className={cn(linkClass, "flex min-w-0 items-center gap-2")}>
+                {cell.showIcons && <Mail className="size-3 shrink-0" aria-hidden="true" />}<span className="break-all">{cell.email}</span>
               </a>
             ) : null}
           </div>
@@ -241,26 +243,6 @@ function MenuLinks({ items }: { items: ResolvedMenuItem[] }) {
       })}
     </ul>
   );
-}
-
-function ImageCell({ mediaId, alt, href, width }: { mediaId: string | null; alt: string; href?: string; width?: number }) {
-  if (!mediaId) return null;
-  const isUrl = mediaId.startsWith("http://") || mediaId.startsWith("https://");
-  const image = isUrl ? (
-    <img src={mediaId} alt={alt} style={{ width: width ?? 200, height: "auto" }} loading="lazy" />
-  ) : (
-    <div style={{ width: width ?? 200 }}>
-      <MediaImage mediaId={mediaId as any} alt={alt} className="h-auto w-full" preferredSize="medium" sizes={`${width ?? 200}px`} />
-    </div>
-  );
-  if (href) {
-    return (
-      <a href={href} target="_blank" rel="noreferrer" className="inline-block">
-        {image}
-      </a>
-    );
-  }
-  return image;
 }
 
 function BrandCell({ showLogo, showTagline, description }: { showLogo: boolean; showTagline: boolean; description: string }) {

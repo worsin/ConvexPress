@@ -116,7 +116,7 @@ function ColumnFields({
   return (
     <div className="mt-3 space-y-2">
       {list.map((column, index) => {
-        const cell =
+        const cell: Item =
           column.cell && typeof column.cell === "object"
             ? (column.cell as Item)
             : newCell();
@@ -172,9 +172,20 @@ function ColumnFields({
                 ))}
               </select>
             </label>
+            <label className="mb-2 block text-xs">
+              Content alignment
+              <select className={input} value={String(cell.alignment ?? "inherit")} onChange={event => {
+                const next = { ...cell };
+                if (event.target.value === "inherit") delete next.alignment;
+                else next.alignment = event.target.value;
+                patch(index, { ...column, cell: next });
+              }}>
+                {["inherit", "left", "center", "right"].map(value => <option key={value} value={value}>{label(value)}</option>)}
+              </select>
+            </label>
             <ObjectFields
               value={cell}
-              omit={["type"]}
+              omit={["type", "alignment"]}
               onChange={(value) => patch(index, { ...column, cell: value })}
             />
             <div className="mt-2 flex gap-3 text-xs">

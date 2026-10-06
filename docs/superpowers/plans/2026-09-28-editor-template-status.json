@@ -7,7 +7,7 @@
     "In progress": 20
   },
   "goal": "Complete block editor and template delivery plus all demonstrated blockers; defer unrelated whole-app audit campaigns.",
-  "currentTask": "Task5: E95 footer branding/legal/menu sources and conversion repaired across all four packs;63 cases and native Core conversion/publication/reopen plus actual Website38public destinations at1440/390 verified. Next remaining cell controls: contact icons, alignment, image sizing and newsletter audience semantics. Reuse E81/E90-E95. Goal active117/20.",
+  "currentTask": "Task5: E96 footer cell icons/alignment/responsive images and native URL-image editor repaired;40component cases,8built-CSS cases,native Journal publication and2actual Website widths verified/restored. Next E97 connect footer audience to existing installation-owned mailing lists with published source/consent and promotion mapping. Goal active117/20; do not repeat E93\u2013E96 matrices.",
   "tasks": [
     {
       "id": 1,
@@ -181,7 +181,7 @@
       "classification": "missing evidence",
       "initialFinding": "Customizer contextual fields, all packs/surfaces, header/footer/menu integration and operator authority are not fully accepted.",
       "closureBoundary": "Verify the field group controls the actual surface, click-to-edit focus, draft/publish/reset/history/conflicts, pack switches, session continuity, customer denial and revocation.",
-      "nextCheck": "Finish remaining footer cell controls: contact icons, cell alignment, image sizing and newsletter audience semantics; then reconcile Task5 against reusable lifecycle evidence. E94 section presentation and E95 section content accepted; do not repeat their matrices.",
+      "nextCheck": "Implement E97 footer newsletter audience behavior using existing installation-owned mailing lists, with published footer source/consent and promotion mapping; then reconcile Task5 closure using reusable E93\u2013E96 evidence.",
       "deliveryTask": 5,
       "triagedAt": "2026-09-29",
       "triageEvidence": "ConvexPress-Admin/audits/2026-09-04/delivery-blocker-triage-20260929.md",
@@ -204,7 +204,8 @@
         "ConvexPress-Admin/audits/2026-09-04/footer-row-controls-20261006.md",
         "ConvexPress-Admin/audits/2026-09-04/footer-native-20261006.md",
         "ConvexPress-Admin/audits/2026-09-04/footer-section-controls-20261006.md",
-        "ConvexPress-Admin/audits/2026-09-04/footer-content-controls-20261006.md"
+        "ConvexPress-Admin/audits/2026-09-04/footer-content-controls-20261006.md",
+        "ConvexPress-Admin/audits/2026-09-04/footer-cell-controls-20261006.md"
       ]
     },
     {
@@ -1190,6 +1191,34 @@
         "output/footer-content-controls-20261006/browser-receipts.json",
         "output/footer-content-controls-20261006/restoration.json",
         "output/footer-content-controls-20261006/cleanup.json"
+      ]
+    },
+    {
+      "id": "E96",
+      "status": "Cell icons, alignment, responsive images and URL-backed native image editing repaired and verified.",
+      "classification": "repaired and verified",
+      "requiredWorkflow": "Footer cell presentation fields affect the rendered Website and remain editable natively.",
+      "initialFinding": "34 component groups fail; native URL-backed image additionally crashes by querying URL as media ID.",
+      "repairBoundary": "Shared image/alignment consumers, Journal/Aster contact icons, native/on-site alignment fields and native existing-URL editor.",
+      "closureBoundary": "40 component cases,8responsive CSS checks,native Journal edit/publication,2actual Website widths,site/session restoration.",
+      "deliveryTask": 5,
+      "currentEvidence": [
+        "ConvexPress-Admin/audits/2026-09-04/footer-cell-controls-20261006.md",
+        "output/footer-cell-controls-20261006/published-receipts.json",
+        "output/footer-cell-controls-20261006/cleanup.json"
+      ]
+    },
+    {
+      "id": "E97",
+      "status": "Open: footer audienceId is exposed but ignored. Existing owned mailing-list subscription model is post-bound.",
+      "classification": "reproduced defect",
+      "requiredWorkflow": "A configured footer audience receives consented public subscriptions in the correct isolated installation.",
+      "initialFinding": "All footer consumers omit audienceId; generic subscribeNewsletter writes newsletterSubscribers, while mailingListSubscribers requires post/block source fields.",
+      "repairBoundary": "Reuse mailingLists ownership/status/consent/suppression; define published footer source, connect editors/forms and safe cross-environment resource mapping; preserve generic no-audience behavior.",
+      "closureBoundary": "Native list selection and actual public subscription; intended list/consent/source verified,stale/inactive/foreign/unpublished targets denied,promotion preserved.",
+      "deliveryTask": 5,
+      "currentEvidence": [
+        "ConvexPress-Admin/audits/2026-09-04/footer-cell-controls-20261006.md"
       ]
     }
   ],

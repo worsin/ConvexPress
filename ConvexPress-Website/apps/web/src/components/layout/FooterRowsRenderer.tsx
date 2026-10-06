@@ -1,3 +1,5 @@
+import { FooterImage } from "./FooterImage";
+import { footerCellAlignment } from "./footerCellAlignment";
 import { FooterAutoPages } from "./FooterAutoPages";
 import { FooterRowFrame } from "./FooterRowFrame";
 import { footerMenuItems } from "@/components/menus/footerMenuItems";
@@ -14,7 +16,7 @@ import { MenuItemTarget } from "@/components/menus/MenuItemTarget";
 import { useState, type FormEvent } from "react";
 import { Link } from "@tanstack/react-router";
 import DOMPurify from "@/lib/html-sanitizer";
-import { useMutation, useQuery } from "convex/react";
+import { useMutation } from "convex/react";
 import { Mail, MapPin, Phone } from "lucide-react";
 import { api } from "@convexpress-website/backend/generated/api";
 
@@ -28,7 +30,6 @@ import type {
   FooterContactCell,
   FooterDividerCell,
   FooterHtmlCell,
-  FooterImageCell,
   FooterLinksCell,
   FooterNavCell,
   FooterNewsletterCell,
@@ -90,9 +91,9 @@ function FooterColumnRenderer({
   return (
     <div
       className={cn(
-        "col-span-12 flex flex-col gap-3",
+        "col-span-12 flex min-w-0 flex-col gap-3",
         colSpanClass,
-        column.alignment && ALIGN[column.alignment],
+        footerCellAlignment(column),
       )}
     >
       <FooterCellRenderer cell={column.cell} />
@@ -126,7 +127,7 @@ function FooterCellRenderer({ cell }: { cell: FooterCell }) {
     case "nav":
       return <NavCellRenderer cell={cell} />;
     case "image":
-      return <ImageCellRenderer cell={cell} />;
+      return <FooterImage cell={cell} />;
     case "social":
       return <SocialCellRenderer cell={cell} />;
     case "newsletter":
@@ -223,34 +224,6 @@ function NavItemLink({ item }: { item: ResolvedMenuItem }) {
   );
 }
 
-function ImageCellRenderer({ cell }: { cell: FooterImageCell }) {
-  const mediaId = cell.mediaId ?? "";
-  const mediaDoc = useQuery(
-    (api as any).media.queries.getPublic,
-    !mediaId || mediaId.startsWith("http://") || mediaId.startsWith("https://")
-      ? "skip"
-      : { mediaId },
-  ) as { url?: string; altText?: string; title?: string } | null | undefined;
-  if (!mediaId) return null;
-  const src = mediaDoc?.url ?? mediaId;
-  const img = (
-    <img
-      src={src}
-      alt={cell.alt || mediaDoc?.altText || mediaDoc?.title || ""}
-      style={{ width: cell.width ?? 200, height: "auto" }}
-      loading="lazy"
-    />
-  );
-  if (cell.href) {
-    return (
-      <a href={cell.href} target="_blank" rel="noreferrer">
-        {img}
-      </a>
-    );
-  }
-  return img;
-}
-
 function SocialCellRenderer({ cell }: { cell: FooterSocialCell }) {
   return (
     <>
@@ -303,7 +276,7 @@ function NewsletterCellRenderer({ cell }: { cell: FooterNewsletterCell }) {
           placeholder="you@example.com"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          className="flex-1 border border-border bg-background px-3 py-1.5 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+          className="min-w-0 flex-1 border border-border bg-background px-3 py-1.5 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring"
           required
         />
         <button

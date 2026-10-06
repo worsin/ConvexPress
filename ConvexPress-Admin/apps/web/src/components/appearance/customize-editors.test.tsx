@@ -107,6 +107,18 @@ test("native chrome controls preserve accessible fields and draft-only presets, 
     await clickButton("Minimal");
     expect(changed.rows.length).toBe(1);
     expect(changed.rows[0].columns.map((column: any) => column.cell.type)).toEqual(["copyright", "social"]);
+    const { FooterCellEditor } = await import("./FooterCellEditors");
+    const cell = { type: "text" as const, heading: "Aligned", body: "Keep this text" };
+    let editedCell = cell as typeof cell & { alignment?: string };
+    const renderCell = async () => act(async () => root.render(<FooterCellEditor cell={editedCell as any} onChange={next => { editedCell = next as typeof editedCell; }} />));
+    await renderCell();
+    for (const alignment of ["center", "right", "left", "inherit"]) {
+      const select = [...container.querySelectorAll("label")].find(label => label.textContent?.includes("Content alignment"))!.querySelector("select")!;
+      await act(async () => { select.value = alignment; select.dispatchEvent(new dom.window.Event("change", { bubbles: true })); });
+      expect(editedCell.alignment).toBe(alignment === "inherit" ? undefined : alignment);
+      expect(editedCell.body).toBe(cell.body);
+      await renderCell();
+    }
     await renderRows(baseline); // Customizer Undo/reset supplies the authoritative draft.
     expect(container.textContent).toContain("The footer builder is empty");
     await clickButton("Convert from current sections");
@@ -120,4 +132,12 @@ test("native chrome controls preserve accessible fields and draft-only presets, 
       else Reflect.deleteProperty(globalThis, name);
     }
   }
+});
+
+test("existing footer image URLs remain editable without querying a media ID", async () => {
+  const { ImageCellEditor } = await import("./FooterCellEditors");
+  const html = renderToStaticMarkup(<ImageCellEditor cell={{ type: "image", mediaId: "https://example.org/footer.svg", alt: "Authored alt", width: 1200 }} onChange={() => {}} />);
+  expect(html).toContain("Image URL");
+  expect(html).toContain('value="https://example.org/footer.svg"');
+  expect(html).toContain("Choose from media library");
 });
