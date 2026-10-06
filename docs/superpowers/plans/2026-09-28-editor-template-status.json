@@ -1,13 +1,13 @@
 {
   "plan": "2026-09-28-editor-template-delivery.md",
   "baselineCommit": "d0fee8acceb408fd306a15f3c054322cb73ac8bc",
-  "checkpointSource": "output/certificate-final-20261006/mt-accept-after.json",
+  "checkpointSource": "output/instructor-final-20261006/mt-accept-after.json",
   "checkpointCounts": {
-    "Verified": 128,
-    "In progress": 9
+    "Verified": 129,
+    "In progress": 8
   },
   "goal": "Complete block editor and template delivery plus all demonstrated blockers; defer unrelated whole-app audit campaigns.",
-  "currentTask": "Certificate Verification accepted on retained real issuance/native/four-pack proof and current revoked/foreign code retry/privacy plus stale-response tests.128/9 full goal active. Next instructor optional portrait/profile BlockDemo variants, then remaining provider/composition/integration gates. E98 Instagram implementation and E05 hosted HTTPS remain explicit; independent work continues.",
+  "currentTask": "Instructor accepted: native/live evidence plus new selectable portrait/initials/minimal/unavailable BlockDemo specimens, four-pack1440/390 paging/focus/withdrawal checks.129/8 full goal active. Next Field Guide and Studio services exact field/editorial/migration/composition evidence, then synced/integration and remaining provider gates. E98 Instagram implementation and E05 hosted HTTPS remain explicit; independent work continues.",
   "tasks": [
     {
       "id": 1,
@@ -3736,17 +3736,18 @@
       "name": "lms/instructor",
       "title": "Instructor",
       "category": "Plugin",
-      "checkpointStatus": "In progress",
-      "nextClassification": "Reviewed against live Notes and current canonical specification; Reuse picker/cross-database/public course proof; exact remaining optional profile/media/pagination variants and native revision recovery before closure.",
-      "classification": "missing evidence",
+      "checkpointStatus": "Verified",
+      "nextClassification": "reuse valid evidence",
+      "classification": "accepted/reusable evidence",
       "source": "blocks/lms/instructor/block.json",
       "requirements": "instructor (reference)",
       "evidenceReferences": [
         "output/block-library-review-20260915/coverage-review.json.",
         "output/instructor-block-20260911.",
-        "ConvexPress-Admin/audits/2026-09-04/lms-customer-20261006.md"
+        "ConvexPress-Admin/audits/2026-09-04/lms-customer-20261006.md",
+        "ConvexPress-Admin/audits/2026-09-04/instructor-final-20261006.md"
       ],
-      "remainingReview": "Current actual public course withdrawal and old native picker/cross-database/paging evidence accepted. Reconcile remaining optional profile/media variants before closure.",
+      "remainingReview": "Block-specific reference authoring, live public/cross-database/course withdrawal and optional portrait/profile/pagination variants accepted. Shared editor recovery, migration and SDK workflow requirements retain their separate delivery gates.",
       "deliveryTask": 3,
       "acceptanceBatch": "learning",
       "reviewedAtCommit": "d8a0ea2c",
@@ -3755,7 +3756,8 @@
       "rendererSha256": "4ccc0234d1a9b92a5de79dc7fd208f0f324f2d7eb1ff4753897b80ffef19bb84",
       "canonicalFields": [
         "instructor"
-      ]
+      ],
+      "acceptedEvidence": "ConvexPress-Admin/audits/2026-09-04/instructor-final-20261006.md"
     },
     {
       "name": "lms/progress",

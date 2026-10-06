@@ -481,3 +481,8 @@ Poll accepted:114Verified/23In progress; all Notes/unrelated cells exact. Two re
 ## October5 canonical Quick Edit
 
 Native post/page title/metadata/parent transaction fixed; stale open form refuses atomically and preserves input. Both installed sites, focused source167/target137tests, scoped backend/Admin types and contracts pass. Exact original145documents/522revisions,appearance/mail,target private draft after cleanup. Owned sessions/Electron/profile removed. [Evidence](quick-edit-canonical-20261005.md). E07 and full goal remain open; bulk/generic consumers next.
+
+
+## October6 Instructor profile variants
+
+Instructor accepted:129Verified/8In progress, full tracker readback and all Notes preserved. Added fictional portrait/initials/minimal/unavailable BlockDemo specimens; all four packs pass1440/390 portrait/state checks and desktop paging/focus.13demo tests/170assertions, Website and BlockDemo types, canonical/generated/kit checks pass. Reused actual native picker/save/preview, independent databases and current live course withdrawal. No backend or site-data changes; owned tab closed, protected processes preserved. [Evidence](instructor-final-20261006.md). Shared editor/migration/Customizer/SDK and final integration remain open.

@@ -180,7 +180,7 @@ function StaticRenderExample({ instance, packId }: { instance: BlockInstance; pa
  if(instance.name === "core/post-grid") return <PostGridDemo instance={instance} registry={stagedRenderers}/>;
  if(instance.name==="lms/curriculum")return <CurriculumDemo instance={instance} registry={stagedRenderers} packId={packId}/>;
  if(instance.name==="lms/progress")return <ProgressDemo instance={instance} registry={stagedRenderers} packId={packId}/>;
- if(instance.name==="lms/instructor")return <InstructorDemo instance={instance} registry={stagedRenderers} packId={packId}/>;
+ if(instance.name==="lms/instructor")return <InstructorDemo instance={instance} registry={stagedRenderers} packId={packId} portrait={studioPortrait}/>;
  if(instance.name==="lms/course-grid")return <CoursesDemo instance={instance} registry={stagedRenderers} packId={packId}/>;
  if(instance.name==="membership/plans")return <MembershipPlansDemo instance={instance} registry={stagedRenderers} packId={packId}/>;
  if(instance.name==="membership/gated-teaser")return <MembershipDemo instance={instance} registry={stagedRenderers} packId={packId}/>;

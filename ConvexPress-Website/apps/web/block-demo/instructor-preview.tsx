@@ -5,23 +5,24 @@ import { parseBlockPageSearch } from "../src/templates/sdk/block-data/portable/p
 import { stableKey } from "../src/templates/sdk/block-data/portable/contracts";
 import { prepareBlocks, type BlockInstance, type RendererRegistry } from "../src/templates/sdk/block-renderer/model";
 import { BlockPaginationProvider } from "../src/templates/sdk/block-renderer/pagination";
-import { resolveInstructorDemo } from "./instructor-adapter";
+import { resolveInstructorDemo, type InstructorSpecimen } from "./instructor-adapter";
 const base={scope:{websiteKey:'block-demo',instanceKey:'isolated-demo'},documentKey:'synthetic-instructor-study',revision:'1',viewerKey:'synthetic-public-viewer'};
 const policy={enabledPlugins:['lms'],capabilities:['reference.targetResolution','viewer.authorization'],disabledBlocks:[]};
 const currentHref=()=>location.pathname+location.search+location.hash;
-export function InstructorDemo({instance,registry,packId}:{instance:BlockInstance;registry:RendererRegistry;packId:string}) {
+export function InstructorDemo({instance,registry,packId,portrait}:{instance:BlockInstance;registry:RendererRegistry;packId:string;portrait:string}) {
   const surface=useRef<HTMLDivElement>(null), moved=useRef(false);
   const host=useMemo(()=>createDemoContentPageHost(),[]);
   const [href,setHref]=useState(currentHref);
+  const [profile,setProfile]=useState<InstructorSpecimen['profile']>('initials');
   const tree=[{...instance,attrs:{...blockSchemas["lms/instructor"].parse(instance.attrs),instructor:"demo-instructor"}}];
   const request=parseBlockPageSearch(new URL(href,'https://demo.invalid').searchParams.get('blockPages'));
-  const context={...base,request},key=stableKey({tree,request});
+  const context={...base,revision:stableKey({profile,portrait}),request},key=stableKey({tree,request,profile,portrait});
   const [resolved,setResolved]=useState<{key:string;host:ReturnType<typeof createDemoContentPageHost>;grant:InstalledDemoPageData}|null>(null);
   const [failure,setFailure]=useState<string|null>(null);
   useEffect(()=>{const update=()=>{moved.current=true;setHref(currentHref());};window.addEventListener('popstate',update);return()=>window.removeEventListener('popstate',update);},[]);
   useEffect(()=>{
     let active=true;host.invalidate();setFailure(null);
-    void resolveInstructorDemo(tree,context.scope,policy,request).then(envelope=>{
+    void resolveInstructorDemo(tree,context.scope,policy,request,{profile,portrait}).then(envelope=>{
       if(active)setResolved({key,host,grant:host.install({tree,context,policy,envelope})});
     }).catch(error=>{if(active)setFailure(error instanceof Error?error.message:'Grid fixture refused');});
     return()=>{active=false;host.invalidate();};
@@ -36,6 +37,12 @@ export function InstructorDemo({instance,registry,packId}:{instance:BlockInstanc
     event.preventDefault();moved.current=true;history.pushState(null,'',anchor.href);setHref(currentHref());
   }}>
     <p className="specimen-note">Fictional instructor · seven demonstration courses</p>
+    <label>Instructor specimen <select aria-label="Instructor specimen" value={profile} onChange={event=>setProfile(event.target.value as InstructorSpecimen['profile'])}>
+      <option value="initials">Initials and biography</option>
+      <option value="portrait">Portrait and biography</option>
+      <option value="minimal">Name only</option>
+      <option value="unavailable">Profile unavailable</option>
+    </select></label>
     {failure?<p role="status">{failure}</p>:resolved?.key===key && resolved.host===host?
       <BlockPaginationProvider href={href}>{prepareBlocks(tree,registry,policy,{media:{}},{grant:resolved.grant,current:context},packId)}</BlockPaginationProvider>
       :<p role="status">Preparing instructor…</p>}
