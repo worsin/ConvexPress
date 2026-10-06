@@ -7,7 +7,7 @@
     "In progress": 4
   },
   "goal": "Complete block editor and template delivery plus all demonstrated blockers; defer unrelated whole-app audit campaigns.",
-  "currentTask": "133Verified/4In progress. Task7 all-field/live-Events pack switching and public update accepted; ICU date-range hydration repaired and remaining owned live fixtures retired with original data/settings restored. Kit documentation/cleanup gate closed. Continue Task8 final candidate/source/artifact/evidence reconciliation and native integrated acceptance. Actual AI, Instagram, human Turnstile and Vimeo remain explicit prerequisites; no waiting for Claude.",
+  "currentTask": "133Verified/4In progress. Task8 active: Aster137 desktop selected examples reviewed; E103 course/membership/media-text wrapper CSS repaired with27 actual responsive cases. Continue remaining three-pack visual matrix and integrated candidate/source/artifact parity. Actual AI, Instagram, human Turnstile and Vimeo remain explicit prerequisites; no waiting for Claude.",
   "tasks": [
     {
       "id": 1,
@@ -41,7 +41,7 @@
     },
     {
       "id": 8,
-      "status": "pending"
+      "status": "in_progress"
     }
   ],
   "blockers": [
@@ -1315,6 +1315,23 @@
         "output/customizer-palette-shop-20261006/artifact-proof.json",
         "output/customizer-palette-shop-20261006/preservation.json",
         "output/customizer-palette-shop-20261006/cleanup.json"
+      ]
+    },
+    {
+      "id": "E103",
+      "classification": "repaired and runtime verified",
+      "deliveryTask": 6,
+      "requiredWorkflow": "Course/membership responsive grids and baseline Media Text container stacking render across installed packs.",
+      "initialFinding": "Aster desktop grids have one giant column; Core783px Media Text unexpectedly splits.",
+      "causalConnection": "Root direct-child selectors skip the SDK cp-layout-query wrapper, leaving primitive defaults active.",
+      "repairBoundary": "Exactly three root CSS consumers; retain all authored breakpoints, SDK markup, content and backend.",
+      "exitCheck": "Three browser failures become27 passing responsive cases; complete replacement screenshots reviewed; renderer/contracts/kit/drift and Website build.",
+      "status": "Repaired;27 responsive cases pass. Aster selected-example desktop review complete, full four-pack/state/mobile integration remains open.",
+      "currentEvidence": [
+        "ConvexPress-Admin/audits/2026-09-04/layout-wrapper-final-20261006.md",
+        "output/final-evidence-20261006/responsive-red.json",
+        "output/final-evidence-20261006/responsive-green.json",
+        "output/final-evidence-20261006/viewport-manifest.json"
       ]
     }
   ],
@@ -5155,7 +5172,8 @@
     "ConvexPress-Admin/audits/2026-09-04/native-integration-20261006.md",
     "ConvexPress-Admin/audits/2026-09-04/target-customer-auth-20261006.md",
     "ConvexPress-Admin/audits/2026-09-04/recent-auth-final-20261006.md",
-    "ConvexPress-Admin/audits/2026-09-04/field-events-final-20261006.md"
+    "ConvexPress-Admin/audits/2026-09-04/field-events-final-20261006.md",
+    "ConvexPress-Admin/audits/2026-09-04/layout-wrapper-final-20261006.md"
   ],
   "trackerRefresh": {
     "source": "output/field-guide-legacy-final-20261006/mt-accept-after.json",
@@ -5218,7 +5236,8 @@
     "fieldGuideLegacy": "Audit54 remains latest and already adjudicated. Native conversion/history recovery passed without reconnection; E99 remains an intermittent integration watch. 132/5 tracker verified. Next bounded E07 compatibility retirement; no wait for deep audit.",
     "audit55": "ACCEPT 132/5 count and no-drift assessment against current local evidence. ADAPT E99 status: this native private-draft recovery renders automatically, retain intermittent integration watch without claiming a causal fix. No new defect or scope change. Codex independently retired the unused seven-function closure; no waiting for deep audit.",
     "reusableRetirement": "Audit55 remains latest/already adjudicated. Codex independently completed reusable corpus reconciliation and seven-function retirement. All three original sources map exactly; no new provider prerequisite or wait. Task4 now accepted; full goal remains active.",
-    "paletteShop": "Audit55 remains latest and already adjudicated. Independently repaired E102 operator canonical reads and completed palette/Shop field mapping; no new Claude scope directive. Next bounded work: Task6 demo/motion and Task7 actual AI, retain E05 external staging requirement and Task8 overlay/artifact integration."
+    "paletteShop": "Audit55 remains latest and already adjudicated. Independently repaired E102 operator canonical reads and completed palette/Shop field mapping; no new Claude scope directive. Next bounded work: Task6 demo/motion and Task7 actual AI, retain E05 external staging requirement and Task8 overlay/artifact integration.",
+    "audit57": "ACCEPT bounded scope/progress/133-4 counts against local receipts. ADAPT E99: retain intermittent final-integration watch; successful later restores are not a causal fix and do not justify repeating identical passing checks or stopping independent work. Independently reproduced/repaired E103; no new broad audit scope and no waiting for Claude."
   },
   "sessionBaseCommit": "9824d9605e50c4b0ebd711c13715b506f8ef5bd3"
 }
