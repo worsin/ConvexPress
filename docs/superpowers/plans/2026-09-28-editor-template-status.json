@@ -1,13 +1,13 @@
 {
   "plan": "2026-09-28-editor-template-delivery.md",
   "baselineCommit": "d0fee8acceb408fd306a15f3c054322cb73ac8bc",
-  "checkpointSource": "output/events-final-20261006/mt-accept-after.json",
+  "checkpointSource": "output/membership-final-20261006/mt-accept-after.json",
   "checkpointCounts": {
-    "Verified": 120,
-    "In progress": 17
+    "Verified": 123,
+    "In progress": 14
   },
   "goal": "Complete block editor and template delivery plus all demonstrated blockers; defer unrelated whole-app audit campaigns.",
-  "currentTask": "Task3 events/calendar, events/upcoming and events/next-event accepted: native exact authoring/view Undo, public cancellation/DST/keyboard, real-clock rollover, private access and withdrawn category, four-pack responsive evidence. Original71pages/appearance/settings preserved; sessions/runtime/tabs cleaned. Next membership plans/gated teaser/account teaser bounded reconciliation. E05 HTTPS awaits existing staging URL/configured host; independent work continues. Full goal active120/17.",
+  "currentTask": "Task3 membership plans/gated teaser/account teaser accepted: actual customer login, grant/revocation/plan withdrawal without reload, customer dashboard and normal logout;56 four-pack responsive states. Reused native authoring/order/paging evidence. Original71 pages/settings/plans preserved; customer/session/runtime cleanup complete, one terminal failed unsent test notification retained explicitly. Next social/UGC bounded reconciliation. E05 HTTPS awaits existing staging URL/configured host; independent work continues. Full goal active123/14.",
   "tasks": [
     {
       "id": 1,
@@ -3862,19 +3862,20 @@
       "name": "membership/plans",
       "title": "Membership plans",
       "category": "Plugin",
-      "checkpointStatus": "In progress",
-      "nextClassification": "Reviewed against live Notes and current canonical specification; Reuse real selected/all order and9-plan paging; actual customer/session/availability, limit/copy/action link and final pack states.",
-      "classification": "missing evidence",
+      "checkpointStatus": "Verified",
+      "nextClassification": "Accepted: native authoring and current actual customer/session, availability and four-pack presentation evidence.",
+      "classification": "accepted/reusable evidence",
       "source": "blocks/membership/plans/block.json",
       "requirements": "selection (all/selected), plans (membershipPlan ids, up to12), limit (1-12), heading, introduction, actionLabel, actionLink (safe href)",
       "evidenceReferences": [
         "output/block-library-review-20260915/coverage-review.json.",
-        "ConvexPress-Admin/audits/2026-09-04/search-library-prose-20260928.md"
+        "ConvexPress-Admin/audits/2026-09-04/search-library-prose-20260928.md",
+        "ConvexPress-Admin/audits/2026-09-04/membership-final-20261006.md"
       ],
-      "remainingReview": "Reuse real selected/all order and9-plan paging; actual customer/session/availability, limit/copy/action link and final pack states.",
+      "remainingReview": "None for the current block-specific contract. Reuse membership-final-20261006.md; full integrated editor/template delivery remains separate.",
       "deliveryTask": 3,
       "acceptanceBatch": "membership",
-      "reviewedAtCommit": "d8a0ea2c",
+      "reviewedAtCommit": "d17ab358",
       "notesSha256": "a18c6365489c9169da1f664a0853cfa333a89448b3a96e97c83d6f88354ccf34",
       "specSha256": "ba3cd04aa720b03b53e27599d9c229f26713dee58bf4b536b9f98de89b7b1037",
       "rendererSha256": "1af104d05a8ec542e3726e7f259d257d2567df967c556b9e2916f6262f54f9f8",
@@ -3892,19 +3893,20 @@
       "name": "membership/gated-teaser",
       "title": "Gated teaser",
       "category": "Plugin",
-      "checkpointStatus": "In progress",
-      "nextClassification": "Reviewed against live Notes and current canonical specification; Reuse native plan/grant/revocation API proof; actual browser member login/upgrade destination, signed-out/denied/withdrawn plan and all-pack presentation.",
-      "classification": "missing evidence",
+      "checkpointStatus": "Verified",
+      "nextClassification": "Accepted: native authoring and current actual customer/session, availability and four-pack presentation evidence.",
+      "classification": "accepted/reusable evidence",
       "source": "blocks/membership/gated-teaser/block.json",
       "requirements": "teaserText (text), requiredPlan (membershipPlan reference by id), upgradeLink (optional safe href)",
       "evidenceReferences": [
         "output/block-library-review-20260915/coverage-review.json.",
-        "ConvexPress-Admin/audits/2026-09-04/search-library-prose-20260928.md"
+        "ConvexPress-Admin/audits/2026-09-04/search-library-prose-20260928.md",
+        "ConvexPress-Admin/audits/2026-09-04/membership-final-20261006.md"
       ],
-      "remainingReview": "Reuse native plan/grant/revocation API proof; actual browser member login/upgrade destination, signed-out/denied/withdrawn plan and all-pack presentation.",
+      "remainingReview": "None for the current block-specific contract. Reuse membership-final-20261006.md; full integrated editor/template delivery remains separate.",
       "deliveryTask": 3,
       "acceptanceBatch": "membership",
-      "reviewedAtCommit": "d8a0ea2c",
+      "reviewedAtCommit": "d17ab358",
       "notesSha256": "18a1892b46433eb17f2e4ecdcde780296b26f2b51bc547fd0bef4a1af3bd7e6c",
       "specSha256": "f142e98a27c54f6663e9cae10c8549afc5c7f3d70be1847e1ababe6fcc9add72",
       "rendererSha256": "c9e3d198e9210c38ee782f60657936f66ca676035722aa9898da078cf8f94d66",
@@ -4136,20 +4138,21 @@
       "name": "core/account-teaser",
       "title": "Account teaser",
       "category": "Site",
-      "checkpointStatus": "In progress",
-      "nextClassification": "Reviewed against live Notes and current canonical specification; Reuse native independent-site API proof; actual browser sign-in/out/session change, correct current customer action and configured text under all packs.",
-      "classification": "missing evidence",
+      "checkpointStatus": "Verified",
+      "nextClassification": "Accepted: native authoring and current actual customer/session, availability and four-pack presentation evidence.",
+      "classification": "accepted/reusable evidence",
       "source": "blocks/core/account-teaser/block.json",
       "requirements": "signedOutText (text), signedInText (text)",
       "evidenceReferences": [
         "output/block-library-review-20260915/coverage-review.json.",
         "output/canonical-promotion-20260911/account-*.",
-        "ConvexPress-Admin/audits/2026-09-04/search-conditional-prose-20260928.md"
+        "ConvexPress-Admin/audits/2026-09-04/search-conditional-prose-20260928.md",
+        "ConvexPress-Admin/audits/2026-09-04/membership-final-20261006.md"
       ],
-      "remainingReview": "Reuse native independent-site API proof; actual browser sign-in/out/session change, correct current customer action and configured text under all packs.",
+      "remainingReview": "None for the current block-specific contract. Reuse membership-final-20261006.md; full integrated editor/template delivery remains separate.",
       "deliveryTask": 3,
       "acceptanceBatch": "membership",
-      "reviewedAtCommit": "d8a0ea2c",
+      "reviewedAtCommit": "d17ab358",
       "notesSha256": "1a3739065e2b2933375f34dc2f17944db00982175851f71fad879a63553739d1",
       "specSha256": "a29013bc36cd74f1b13b852d26756369ea4e26ddf217da9419f83ac14c692bb4",
       "rendererSha256": "e799b21b4fb70fbbb756a0f26953aff7c3b103a197503681c3809e0a8f82f9e0",
@@ -4980,23 +4983,29 @@
     "ConvexPress-Admin/audits/2026-09-04/footer-row-controls-20261006.md",
     "ConvexPress-Admin/audits/2026-09-04/footer-native-20261006.md",
     "ConvexPress-Admin/audits/2026-09-04/events-final-20261006.md",
-    "output/events-final-20261006/mt-accept-verified.json"
+    "output/events-final-20261006/mt-accept-verified.json",
+    "ConvexPress-Admin/audits/2026-09-04/membership-final-20261006.md",
+    "output/membership-final-20261006/presentation.json",
+    "output/membership-final-20261006/customer-cleanup.json",
+    "output/membership-final-20261006/restoration.json",
+    "output/membership-final-20261006/cleanup.json",
+    "output/membership-final-20261006/mt-accept-verified.json"
   ],
   "trackerRefresh": {
-    "source": "output/events-final-20261006/mt-accept-after.json",
+    "source": "output/membership-final-20261006/mt-accept-after.json",
     "schema": "output/lead-customer-20260929/mt-schema.json",
     "rows": 137,
     "counts": {
-      "Verified": 120,
-      "In progress": 17
+      "Verified": 123,
+      "In progress": 14
     },
     "otherCellsUnchangedFromPreviousRead": true,
     "pendingNotesReconciled": 77,
     "classificationScope": "Block-specific missing gates; historical whole-app audit conditions retained in Notes but not automatic prerequisites.",
     "lastAcceptedNames": [
-      "events/calendar",
-      "events/upcoming",
-      "events/next-event"
+      "membership/plans",
+      "membership/gated-teaser",
+      "core/account-teaser"
     ],
     "allNotesExact": true
   },
