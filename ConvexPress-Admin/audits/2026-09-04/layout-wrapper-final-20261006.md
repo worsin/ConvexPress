@@ -29,3 +29,9 @@ viewport-manifest.json carries current hashes, capture geometry, selected exampl
 The old468PNG/117block matrix is historical; it is not evidence of current137-block completion. The tracker PNG gate has not been relaxed and these JPEG captures have not been mislabeled or installed as PNG. Existing provider/human, final candidate/artifact parity, motion/state and integrated acceptance gates remain explicit.
 
 No site data, credentials, backend deployment or protected runtime was changed. No push.
+
+## Core follow-up at191c678c
+
+Core137 selected desktop examples were captured after the repair and all177 segments visually reviewed in30 indexed contact sheets. No additional product layout defect was found in this scope. Together the current manifest has274records/360segments across Aster and Core; review-integrity.json confirms exact image hashes, caption alignment and complete final-bottom coverage for every record. Depot and Journal274records remain pending.
+
+Sticky Aside exposed a capture-harness issue: wheel input over the inner content did not advance the outer page. A first retry still used the old closure-bound batch helper. Calling the corrected helper directly, targeting the outer margin and requiring scroll advancement completed the capture;16partial files are excluded. The capture helper is saved for continuation. This was not established as a product defect. Provider/motion/mobile and native integration are not inferred from these desktop images.
