@@ -789,3 +789,12 @@ Limitation: target REPL lacks mutation export, so extra legacy setup failed befo
 NEXT BASES: output/generic-update-retirement-20261005/{source,target}-source-installed.json (1628/1622hashes;108/86extensions and catalogs exact). Full report ConvexPress-Admin/audits/2026-09-04/generic-update-retirement-20261005.md. ACCEPT audit38 metadata parity requirement as addressed by prior batch; ADAPT existing E07 to remaining contentMode/Website DTO/Aster presentation consumers; REJECT treating two removed endpoints as full delivery; DEFER unrelated broad audit. Latest audit38; upcoming deep audit not yet present. Bounded Claude question: identify a currently reachable live contentMode-based renderer branch or canonical field dependency requiring preservation, with exact caller. Codex continues independently. Goal active117/20, no push.
 
 Generic update retirement committed locally as1655cd5d. Worktree clean except owner untracked handoff. No push. Next active boundary remains contentMode/DTO/presentation consumers; no current blocker recorded in the active goal.
+
+
+## Aster canonical homepage / Website DTO closure — October5
+
+Actual Aster component reproduced duplicate cover for canonical Hero Video against archived route mode. Fixed cover/body to use authorized PublicCanonicalBody; raw Page/Post DTO body/mode/version/sections and route projections retired. Red/green lifecycle including SSR/access loss, Website types/build, full template SSR and read-only built source page/post + target page at desktop/mobile pass. Both sites currently Core/feed; configured Aster homepage acceptance remains E10. No backend/data changes; owned previews/browser stopped, user runtimes preserved. Report aster-home-canonical-20261005.md. Installed bases unchanged from generic-update-retirement.
+
+ACCEPT canonical-only presentation; ADAPT remaining legacy retirement to actual importer/demo/SDK dependencies; DEFER deleting recovery discriminators without lossless contract proof; REJECT interpreting this bounded fix as E07/goal completion. Latest audit remains38; upcoming deep audit not yet present. Next classify old Website renderer closure and backend identity/promotion/archive roles. Claude bounded question: identify a reachable production consumer of those retired raw DTO fields or a required old renderer caller, with exact import path. Codex continues independently;117/20 unchanged,no push.
+
+Aster/Website DTO batch committed locally as cbc33bb4. Worktree clean except owner handoff. No push. Goal active, next boundary recorded in currentTask/E07.
