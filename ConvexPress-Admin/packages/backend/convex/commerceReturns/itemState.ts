@@ -235,39 +235,34 @@ export function calculateApprovedRefundLimit(
 
 export function normalizeStoredReturnItems(
   returnRequest: {
+    status?: string;
     items?: StoredReturnLineItem[];
   } | null | undefined,
   returnItems?: StoredReturnLineItem[],
 ): NormalizedReturnLineItem[] {
-  if (Array.isArray(returnItems) && returnItems.length > 0) {
-    const items: StoredReturnLineItem[] = returnItems;
-    return items.map((item) => ({
+  const hasSeparateItems = Array.isArray(returnItems) && returnItems.length > 0;
+  const items = hasSeparateItems ? returnItems : returnRequest?.items;
+  if (!Array.isArray(items)) return [];
+
+  // Missing counters are legacy defaults, not evidence that an action happened.
+  // Statusless callers retain the historical fallback for legacy migrations.
+  const status = returnRequest?.status;
+  const awaitingApproval = status === "requested" || status === "rejected";
+  const awaitingReceipt = awaitingApproval || status === "approved";
+  return items.map((item) => {
+    const requested = getRequestedQuantity(item);
+    const approved = Math.max(0, item.quantityApproved ?? (awaitingApproval ? 0 : requested));
+    const received = Math.max(0, item.quantityReceived ?? (awaitingReceipt ? 0 : approved));
+    return {
       orderItemId: item.orderItemId?.toString(),
-      quantity: getRequestedQuantity(item),
-      quantityRequested: getRequestedQuantity(item),
-      quantityApproved: getApprovedQuantity(item),
-      quantityReceived: getReceivedQuantity(item),
+      quantity: requested,
+      quantityRequested: requested,
+      quantityApproved: approved,
+      quantityReceived: received,
       quantityRestocked: Math.max(0, item.quantityRestocked ?? 0),
-      reason: item.reasonText ?? item.reasonCode,
+      reason: hasSeparateItems ? item.reasonText ?? item.reasonCode : item.reason,
       conditionCode: item.conditionCode,
       resolutionType: item.resolutionType,
-    }));
-  }
-
-  if (!Array.isArray(returnRequest?.items)) {
-    return [];
-  }
-
-  const items: StoredReturnLineItem[] = returnRequest.items;
-  return items.map((item) => ({
-    orderItemId: item.orderItemId?.toString(),
-    quantity: Math.max(0, item.quantity ?? 0),
-    quantityRequested: Math.max(0, item.quantity ?? 0),
-    quantityApproved: Math.max(0, item.quantity ?? 0),
-    quantityReceived: Math.max(0, item.quantity ?? 0),
-    quantityRestocked: 0,
-    reason: item.reason,
-    conditionCode: undefined,
-    resolutionType: undefined,
-  }));
+    };
+  });
 }

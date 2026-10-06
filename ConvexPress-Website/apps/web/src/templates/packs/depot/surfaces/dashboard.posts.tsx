@@ -2,7 +2,7 @@
  * Depot · dashboard.posts — the member's posts as a dense `DataTable`
  * (title, status badge, date). Same gate, loading and empty states as Core.
  */
-import { Link } from "@tanstack/react-router";
+import { DashboardPostTitle } from "@/components/dashboard/DashboardPostTitle";
 
 import type { DashboardPostsSurfaceData } from "@/templates/packs/core/surfaces/dashboard.posts";
 import type { SurfaceProps } from "@/templates/sdk/types";
@@ -38,9 +38,7 @@ export default function DepotDashboardPosts({ data }: SurfaceProps<DashboardPost
             {posts.map((post) => (
               <tr key={post._id} className="border-t border-border">
                 <Td className="min-w-56">
-                  <Link to={`/blog/${post.slug}`} className="line-clamp-1 font-medium text-foreground hover:text-primary">
-                    {post.title || "(no title)"}
-                  </Link>
+                  <DashboardPostTitle post={post} className="line-clamp-1 font-medium text-foreground" />
                 </Td>
                 <Td>
                   <StatusBadge status={post.status} />

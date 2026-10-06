@@ -33,3 +33,20 @@ The shared source at 4860 received no application-data writes; all 43 pages, app
 ## Next bounded work
 
 Continue the existing Task 5 field/header/footer/menu/promotion gaps. Before declaring the dashboard interaction contract fully accepted, investigate two observations from the populated fixture: draft titles currently link to a public blog URL, and the requested return detail displayed approved/received quantities before those operator actions. Verify the intended publication and return-query projection contracts before repair; do not infer a payment/refund implementation change from this rendering pass. E80 Type scale is already repaired in 9aef73d7 and must not remain listed as a no-op.
+
+## Follow-up: public draft links and premature return quantities
+
+Two observations from the populated dashboard pass reproduced as contract defects. All four post surfaces linked drafts to `/blog/<slug>`, whose published-only loader correctly returns 404. A shared `DashboardPostTitle` now links only published posts with a nonempty slug; other titles and their existing status remain visible. No customer editor or private preview route was introduced.
+
+Return enrichment treated missing approved/received counters as the requested amount regardless of request status. Normalization now defaults pending/rejected approval to zero and pre-receipt received quantities to zero. Recorded partial/zero values remain authoritative; legacy received/completed requests and statusless legacy callers retain their fallback. The same normalization protects legacy item backfill without inventing completed actions. Operational approval/receipt builders retain their existing behavior.
+
+Verification:
+- Return helper regressions failed for requested, rejected and approved stages before the repair; all 41 return tests now pass (123 assertions), including legacy migration, refund lifecycle and eligibility coverage.
+- Actual four-pack component rendering checks published/draft/future/private/trash posts and untitled empty-slug rows: 20 cases. Regression failed before the repair and passes afterward. The router link alone is replaced with an anchor in the isolated test process; the actual pack components render.
+- Website and backend TypeScript, focused Website lint, Website production build and isolated backend deployment typecheck pass.
+- Retained disposable backend4922 record `wd7dj710gwjg3h8yxrp4rbh5rd8fs7j5`, already rejected during earlier cleanup: actual authorized `commerceReturns/queries:getWithDetails` returned requested/approved/received **1/1/1** before deployment and **1/0/0** afterward. The record itself was not edited. This uses the shared enrichment consumed by customer detail; no new customer login/browser pass is claimed.
+- Temporary plugin values restored exactly; appearance snapshot exact; API session normally revoked and refresh returns401. Owned backend stopped again, volume retained. No protected Website/native process was restarted or stopped; no Git push.
+
+Raw evidence: `output/dashboard-contracts-20261006/`. Initial query assertion mistakenly inspected raw `items` instead of enriched `returnItems`; its artifact is retained separately and is not accepted proof. An initial test command from the repository root scanned historical snapshots and hit EMFILE; the corrected explicit backend test path produced the accepted 41-test result. Full dashboard coverage and remaining Task5 limitations above are unchanged.
+
+Claude audit45 accepted: E79/E80 now reference deliveryTask5; E80 classification matches its previously verified Type scale repair. This is bookkeeping, not new delivery scope.

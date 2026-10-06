@@ -1,5 +1,5 @@
 /** Core · dashboard.posts — the member's posts with status and date. */
-import { Link } from "@tanstack/react-router";
+import { DashboardPostTitle } from "@/components/dashboard/DashboardPostTitle";
 import { PenSquare } from "lucide-react";
 
 import { EmptyState } from "@/components/dashboard/EmptyState";
@@ -63,12 +63,7 @@ export default function CoreDashboardPosts({ data }: SurfaceProps<DashboardPosts
               key={post._id}
               className="grid grid-cols-[1fr_100px_120px] items-center gap-2 border-b border-border px-4 py-2.5 last:border-b-0"
             >
-              <Link
-                to={`/blog/${post.slug}`}
-                className="truncate text-xs text-foreground hover:text-primary"
-              >
-                {post.title || "(no title)"}
-              </Link>
+              <DashboardPostTitle post={post} className="truncate text-xs text-foreground" />
               <StatusBadge status={post.status} />
               <span className="text-[10px] text-muted-foreground">
                 {new Date(post.createdAt).toLocaleDateString("en-US", {
