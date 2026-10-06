@@ -12,13 +12,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useCanonicalMetadata } from "@/hooks/useCanonicalMetadata";
-import { usePageMutations } from "@/hooks/pages/usePageMutations";
+import { QuickEditImportNotice } from "@/components/blocks/canonical-editor/QuickEditImportNotice";
 import { usePageTree } from "@/hooks/pages/usePageTree";
 import { usePageTemplates } from "@/hooks/pages/usePageTemplates";
 import type { Id } from "@backend/convex/_generated/dataModel";
-
-/** Valid page status values */
-type PageStatus = "auto-draft" | "draft" | "pending" | "publish" | "future" | "private" | "trash";
 
 interface PageQuickEditProps {
   page: {
@@ -41,7 +38,14 @@ interface PageTemplateOption {
 }
 
 export function PageQuickEdit({ page, onClose }: PageQuickEditProps) {
-  const [base] = useState(() => ({canonical:page.blocksVersion === 2, revision:page.blocksRevision}));
+  if (page.blocksVersion !== 2 || !Number.isInteger(page.blocksRevision) || (page.blocksRevision ?? 0) < 1) {
+    return <QuickEditImportNotice type="page" postId={String(page._id)} onClose={onClose} />;
+  }
+  return <CanonicalPageQuickEdit page={page} onClose={onClose} />;
+}
+
+function CanonicalPageQuickEdit({ page, onClose }: PageQuickEditProps) {
+  const [revision] = useState(() => page.blocksRevision!);
   const updateCanonical = useCanonicalMetadata();
   const [title, setTitle] = useState(page.title);
   const [slug, setSlug] = useState(page.slug);
@@ -51,7 +55,6 @@ export function PageQuickEdit({ page, onClose }: PageQuickEditProps) {
   const [menuOrder, setMenuOrder] = useState(page.menuOrder ?? 0);
   const [isSaving, setIsSaving] = useState(false);
 
-  const { updatePage, setPageParent } = usePageMutations();
   const { tree } = usePageTree({ status: "all" });
   const { templates } = usePageTemplates();
   const templateOptions = templates as PageTemplateOption[];
@@ -82,21 +85,15 @@ export function PageQuickEdit({ page, onClose }: PageQuickEditProps) {
   const handleUpdate = useCallback(async () => {
     setIsSaving(true);
     try {
-      if (base.canonical) {
-        if (base.revision === undefined) throw new Error("Reload this document before editing.");
-        await updateCanonical({postId:page._id as Id<"posts">,expectedRevision:base.revision,title,slug,
-          status:status as "draft"|"publish"|"future"|"private",parentId:(parentId || null) as Id<"posts">|null,pageTemplate,menuOrder});
-      } else {
-        if (parentId !== (page.parentId ?? "")) await setPageParent(page._id as Id<"posts">, (parentId || undefined) as Id<"posts">|undefined);
-        await updatePage({pageId:page._id as Id<"posts">,title,slug,status:status as PageStatus,pageTemplate,menuOrder});
-      }
+      await updateCanonical({postId:page._id as Id<"posts">,expectedRevision:revision,title,slug,
+        status:status as "draft"|"publish"|"future"|"private",parentId:(parentId || null) as Id<"posts">|null,pageTemplate,menuOrder});
       onClose();
     } catch {
       // Error toast is handled by the mutation hooks
     } finally {
       setIsSaving(false);
     }
-  }, [title, slug, status, parentId, pageTemplate, menuOrder, page._id, page.parentId, updatePage, setPageParent, onClose, base, updateCanonical]);
+  }, [title, slug, status, parentId, pageTemplate, menuOrder, page._id, onClose, revision, updateCanonical]);
 
   return (
     <div className="border border-border bg-card rounded-none">
@@ -144,7 +141,6 @@ export function PageQuickEdit({ page, onClose }: PageQuickEditProps) {
               className="h-8 w-full rounded-none border border-input bg-transparent px-2 text-xs text-foreground outline-hidden focus-visible:border-ring focus-visible:ring-1 focus-visible:ring-ring/50"
             >
               <option value="draft">Draft</option>
-              {!base.canonical && <option value="pending">Pending Review</option>}
               {status === "future" && <option value="future">Scheduled</option>}
               <option value="publish">Published</option>
               <option value="private">Private</option>

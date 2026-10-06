@@ -2474,592 +2474,586 @@ export type Dto2469 = { "deleted": number; "hasMore": boolean; };
 export type Dto2470 = { "_id": GenericId<"posts">; "title": string; "slug": string; "path"?: (undefined | string); };
 export type Dto2471 = { "success": boolean; };
 export type Dto2472 = { "parentId"?: (undefined | GenericId<"posts">); "menuOrder": number; "pageId": GenericId<"posts">; };
-export type Dto2473 = { "title"?: (undefined | string); "content"?: (undefined | string); "subtitle"?: (undefined | string); "imageId"?: (undefined | GenericId<"media">); "videoUrl"?: (undefined | string); "ctaText"?: (undefined | string); "ctaUrl"?: (undefined | string); };
-export type Dto2474 = { "title"?: (undefined | string); "content"?: (undefined | string); "subtitle"?: (undefined | string); "imageId"?: (undefined | GenericId<"media">); "videoUrl"?: (undefined | string); };
-export type Dto2475 = { "title"?: (undefined | string); "content"?: (undefined | string); };
-export type Dto2476 = { "layout"?: (undefined | Dto2477); "lock"?: (undefined | Dto2478); "innerBlocks"?: unknown; "id": string; "name": string; "version": number; "attrs": unknown; };
-export type Dto2477 = { "tone"?: (undefined | "default" | "muted" | "accent" | "contrast"); "align"?: (undefined | "wide" | "full" | "default"); "padding"?: (undefined | "compact" | "spacious" | "normal"); "container"?: (undefined | "wide" | "full" | "content"); };
-export type Dto2478 = { "move"?: (undefined | false | true); "remove"?: (undefined | false | true); "edit"?: (undefined | false | true); };
-export type Dto2479 = { "all": number; "publish": number; "draft": number; "pending": number; "private": number; "trash": number; "future": number; };
-export type Dto2480 = { "parent": (null | Dto2481); "children": Array<Dto2482>; "_id": GenericId<"posts">; "_creationTime": number; "blocks"?: (undefined | Array<Dto1018> | Array<Dto1822>); "composedDefinitions"?: (undefined | Dto1060); "commentCount"?: (undefined | number); "wpSourceSiteId"?: (undefined | GenericId<"wordpressSites">); "summary"?: (undefined | Dto31); "trashedAt"?: (undefined | number); "previousStatus"?: (undefined | string); "path"?: (undefined | string); "parentId"?: (undefined | GenericId<"posts">); "menuOrder"?: (undefined | number); "content"?: (undefined | string); "excerpt"?: (undefined | string); "password"?: (undefined | string); "featuredImageId"?: (undefined | GenericId<"media">); "isSticky"?: (undefined | false | true); "publishedAt"?: (undefined | number); "scheduledAt"?: (undefined | number); "pageTemplate"?: (undefined | string); "pageSections"?: unknown; "contentMode"?: (undefined | "blocks" | "article"); "blocksVersion"?: (undefined | number); "blocksRevision"?: (undefined | number); "layoutId"?: (undefined | string); "hideHeader"?: (undefined | false | true); "hideFooter"?: (undefined | false | true); "depth"?: (undefined | number); "autosaveContent"?: (undefined | string); "autosaveTitle"?: (undefined | string); "autosavedAt"?: (undefined | number); "hero"?: (undefined | Dto29); "topics"?: (undefined | Array<Dto30>); "sources"?: (undefined | string); "tableOfContents"?: (undefined | string); "pagePrompt"?: (undefined | string); "wpPostId"?: (undefined | number); "wpGuid"?: (undefined | string); "type": ("post" | "page"); "title": string; "visibility": ("private" | "public" | "password"); "updatedAt": number; "createdAt": number; "status": ("draft" | "pending" | "trash" | "auto-draft" | "publish" | "future" | "private"); "slug": string; "authorId": GenericId<"users">; "commentStatus": ("open" | "closed"); };
-export type Dto2481 = { "_id": GenericId<"posts">; "title": string; "slug": string; "path": (undefined | string); };
-export type Dto2482 = { "_id": GenericId<"posts">; "title": string; "slug": string; "status": ("draft" | "pending" | "auto-draft" | "publish" | "future" | "private"); "menuOrder": (undefined | number); "path": (undefined | string); };
-export type Dto2483 = { "parent": (null | Dto2484); "children": Array<Dto2482>; "isPasswordProtected": boolean; "passwordVerified": boolean; "isMembershipRestricted": boolean; "membershipAccess": Dto2422; "_id": GenericId<"posts">; "_creationTime": number; "type": ("post" | "page"); "title": string; "slug": string; "status": ("draft" | "pending" | "trash" | "auto-draft" | "publish" | "future" | "private"); "visibility": ("private" | "public" | "password"); "authorId": GenericId<"users">; "featuredImageId": (undefined | GenericId<"media">); "commentStatus": ("open" | "closed"); "commentCount": (undefined | number); "isSticky": (undefined | false | true); "publishedAt": (undefined | number); "createdAt": number; "updatedAt": number; "parentId": (undefined | GenericId<"posts">); "menuOrder": (undefined | number); "pageTemplate": (undefined | string); "path": (undefined | string); "depth": (undefined | number); "hideHeader": (undefined | false | true); "hideFooter": (undefined | false | true); "layoutId": (undefined | string); "contentMode": (undefined | "blocks" | "article"); "excerpt": (undefined | string); "content": (undefined | string); "blocks": (undefined | Array<Dto1018> | Array<Dto1822>); "blocksVersion": (undefined | number); "blocksRevision": (undefined | number); "pageSections": unknown; "hero": (undefined | Dto29); "topics": (undefined | Array<Dto30>); "summary": (undefined | Dto31); "sources": (undefined | string); "tableOfContents": (undefined | string); };
-export type Dto2484 = { "_id": GenericId<"posts">; "title": string; "slug": string; "path": (undefined | string); };
-export type Dto2485 = { "_id": string; "title": string; "slug": string; "path": string; };
-export type Dto2486 = { "featuredImageUrl": undefined; "featuredImageAlt": undefined; "isPasswordProtected": boolean; "passwordVerified": boolean; "isMembershipRestricted": boolean; "membershipAccess": Dto2422; "_id": GenericId<"posts">; "_creationTime": number; "type": ("post" | "page"); "title": string; "slug": string; "status": ("draft" | "pending" | "trash" | "auto-draft" | "publish" | "future" | "private"); "visibility": ("private" | "public" | "password"); "authorId": GenericId<"users">; "featuredImageId": (undefined | GenericId<"media">); "commentStatus": ("open" | "closed"); "commentCount": (undefined | number); "isSticky": (undefined | false | true); "publishedAt": (undefined | number); "createdAt": number; "updatedAt": number; "parentId": (undefined | GenericId<"posts">); "menuOrder": (undefined | number); "pageTemplate": (undefined | string); "path": (undefined | string); "depth": (undefined | number); "hideHeader": (undefined | false | true); "hideFooter": (undefined | false | true); "layoutId": (undefined | string); "contentMode": (undefined | "blocks" | "article"); "excerpt": (undefined | string); "content": (undefined | string); "blocks": (undefined | Array<Dto1018> | Array<Dto1822>); "blocksVersion": (undefined | number); "blocksRevision": (undefined | number); "pageSections": unknown; "hero": (undefined | Dto29); "topics": (undefined | Array<Dto30>); "summary": (undefined | Dto31); "sources": (undefined | string); "tableOfContents": (undefined | string); };
-export type Dto2487 = { "featuredImageUrl": string; "featuredImageAlt": (undefined | string); "isPasswordProtected": boolean; "passwordVerified": boolean; "isMembershipRestricted": boolean; "membershipAccess": Dto2422; "_id": GenericId<"posts">; "_creationTime": number; "type": ("post" | "page"); "title": string; "slug": string; "status": ("draft" | "pending" | "trash" | "auto-draft" | "publish" | "future" | "private"); "visibility": ("private" | "public" | "password"); "authorId": GenericId<"users">; "featuredImageId": (undefined | GenericId<"media">); "commentStatus": ("open" | "closed"); "commentCount": (undefined | number); "isSticky": (undefined | false | true); "publishedAt": (undefined | number); "createdAt": number; "updatedAt": number; "parentId": (undefined | GenericId<"posts">); "menuOrder": (undefined | number); "pageTemplate": (undefined | string); "path": (undefined | string); "depth": (undefined | number); "hideHeader": (undefined | false | true); "hideFooter": (undefined | false | true); "layoutId": (undefined | string); "contentMode": (undefined | "blocks" | "article"); "excerpt": (undefined | string); "content": (undefined | string); "blocks": (undefined | Array<Dto1018> | Array<Dto1822>); "blocksVersion": (undefined | number); "blocksRevision": (undefined | number); "pageSections": unknown; "hero": (undefined | Dto29); "topics": (undefined | Array<Dto30>); "summary": (undefined | Dto31); "sources": (undefined | string); "tableOfContents": (undefined | string); };
-export type Dto2488 = { "_id": GenericId<"posts">; "title": string; "slug": string; "status": ("draft" | "pending" | "trash" | "auto-draft" | "publish" | "future" | "private"); "menuOrder": (undefined | number); "path": (undefined | string); "depth": (undefined | number); "pageTemplate": (undefined | string); };
-export type Dto2489 = { "isPasswordProtected": boolean; "passwordVerified": boolean; "isMembershipRestricted": boolean; "membershipAccess": Dto2422; "_id": GenericId<"posts">; "_creationTime": number; "type": ("post" | "page"); "title": string; "slug": string; "status": ("draft" | "pending" | "trash" | "auto-draft" | "publish" | "future" | "private"); "visibility": ("private" | "public" | "password"); "authorId": GenericId<"users">; "featuredImageId": (undefined | GenericId<"media">); "commentStatus": ("open" | "closed"); "commentCount": (undefined | number); "isSticky": (undefined | false | true); "publishedAt": (undefined | number); "createdAt": number; "updatedAt": number; "parentId": (undefined | GenericId<"posts">); "menuOrder": (undefined | number); "pageTemplate": (undefined | string); "path": (undefined | string); "depth": (undefined | number); "hideHeader": (undefined | false | true); "hideFooter": (undefined | false | true); "layoutId": (undefined | string); "contentMode": (undefined | "blocks" | "article"); "excerpt": (undefined | string); "content": (undefined | string); "blocks": (undefined | Array<Dto1018> | Array<Dto1822>); "blocksVersion": (undefined | number); "blocksRevision": (undefined | number); "pageSections": unknown; "hero": (undefined | Dto29); "topics": (undefined | Array<Dto30>); "summary": (undefined | Dto31); "sources": (undefined | string); "tableOfContents": (undefined | string); };
-export type Dto2490 = { "id": "default"; "name": "Default Template"; "description": "Standard page layout with sidebar"; "supports": Dto2491; };
+export type Dto2473 = { "all": number; "publish": number; "draft": number; "pending": number; "private": number; "trash": number; "future": number; };
+export type Dto2474 = { "parent": (null | Dto2475); "children": Array<Dto2476>; "_id": GenericId<"posts">; "_creationTime": number; "blocks"?: (undefined | Array<Dto1018> | Array<Dto1822>); "composedDefinitions"?: (undefined | Dto1060); "commentCount"?: (undefined | number); "wpSourceSiteId"?: (undefined | GenericId<"wordpressSites">); "summary"?: (undefined | Dto31); "trashedAt"?: (undefined | number); "previousStatus"?: (undefined | string); "path"?: (undefined | string); "parentId"?: (undefined | GenericId<"posts">); "menuOrder"?: (undefined | number); "content"?: (undefined | string); "excerpt"?: (undefined | string); "password"?: (undefined | string); "featuredImageId"?: (undefined | GenericId<"media">); "isSticky"?: (undefined | false | true); "publishedAt"?: (undefined | number); "scheduledAt"?: (undefined | number); "pageTemplate"?: (undefined | string); "pageSections"?: unknown; "contentMode"?: (undefined | "blocks" | "article"); "blocksVersion"?: (undefined | number); "blocksRevision"?: (undefined | number); "layoutId"?: (undefined | string); "hideHeader"?: (undefined | false | true); "hideFooter"?: (undefined | false | true); "depth"?: (undefined | number); "autosaveContent"?: (undefined | string); "autosaveTitle"?: (undefined | string); "autosavedAt"?: (undefined | number); "hero"?: (undefined | Dto29); "topics"?: (undefined | Array<Dto30>); "sources"?: (undefined | string); "tableOfContents"?: (undefined | string); "pagePrompt"?: (undefined | string); "wpPostId"?: (undefined | number); "wpGuid"?: (undefined | string); "type": ("post" | "page"); "title": string; "visibility": ("private" | "public" | "password"); "updatedAt": number; "createdAt": number; "status": ("draft" | "pending" | "trash" | "auto-draft" | "publish" | "future" | "private"); "slug": string; "authorId": GenericId<"users">; "commentStatus": ("open" | "closed"); };
+export type Dto2475 = { "_id": GenericId<"posts">; "title": string; "slug": string; "path": (undefined | string); };
+export type Dto2476 = { "_id": GenericId<"posts">; "title": string; "slug": string; "status": ("draft" | "pending" | "auto-draft" | "publish" | "future" | "private"); "menuOrder": (undefined | number); "path": (undefined | string); };
+export type Dto2477 = { "parent": (null | Dto2478); "children": Array<Dto2476>; "isPasswordProtected": boolean; "passwordVerified": boolean; "isMembershipRestricted": boolean; "membershipAccess": Dto2422; "_id": GenericId<"posts">; "_creationTime": number; "type": ("post" | "page"); "title": string; "slug": string; "status": ("draft" | "pending" | "trash" | "auto-draft" | "publish" | "future" | "private"); "visibility": ("private" | "public" | "password"); "authorId": GenericId<"users">; "featuredImageId": (undefined | GenericId<"media">); "commentStatus": ("open" | "closed"); "commentCount": (undefined | number); "isSticky": (undefined | false | true); "publishedAt": (undefined | number); "createdAt": number; "updatedAt": number; "parentId": (undefined | GenericId<"posts">); "menuOrder": (undefined | number); "pageTemplate": (undefined | string); "path": (undefined | string); "depth": (undefined | number); "hideHeader": (undefined | false | true); "hideFooter": (undefined | false | true); "layoutId": (undefined | string); "contentMode": (undefined | "blocks" | "article"); "excerpt": (undefined | string); "content": (undefined | string); "blocks": (undefined | Array<Dto1018> | Array<Dto1822>); "blocksVersion": (undefined | number); "blocksRevision": (undefined | number); "pageSections": unknown; "hero": (undefined | Dto29); "topics": (undefined | Array<Dto30>); "summary": (undefined | Dto31); "sources": (undefined | string); "tableOfContents": (undefined | string); };
+export type Dto2478 = { "_id": GenericId<"posts">; "title": string; "slug": string; "path": (undefined | string); };
+export type Dto2479 = { "_id": string; "title": string; "slug": string; "path": string; };
+export type Dto2480 = { "featuredImageUrl": undefined; "featuredImageAlt": undefined; "isPasswordProtected": boolean; "passwordVerified": boolean; "isMembershipRestricted": boolean; "membershipAccess": Dto2422; "_id": GenericId<"posts">; "_creationTime": number; "type": ("post" | "page"); "title": string; "slug": string; "status": ("draft" | "pending" | "trash" | "auto-draft" | "publish" | "future" | "private"); "visibility": ("private" | "public" | "password"); "authorId": GenericId<"users">; "featuredImageId": (undefined | GenericId<"media">); "commentStatus": ("open" | "closed"); "commentCount": (undefined | number); "isSticky": (undefined | false | true); "publishedAt": (undefined | number); "createdAt": number; "updatedAt": number; "parentId": (undefined | GenericId<"posts">); "menuOrder": (undefined | number); "pageTemplate": (undefined | string); "path": (undefined | string); "depth": (undefined | number); "hideHeader": (undefined | false | true); "hideFooter": (undefined | false | true); "layoutId": (undefined | string); "contentMode": (undefined | "blocks" | "article"); "excerpt": (undefined | string); "content": (undefined | string); "blocks": (undefined | Array<Dto1018> | Array<Dto1822>); "blocksVersion": (undefined | number); "blocksRevision": (undefined | number); "pageSections": unknown; "hero": (undefined | Dto29); "topics": (undefined | Array<Dto30>); "summary": (undefined | Dto31); "sources": (undefined | string); "tableOfContents": (undefined | string); };
+export type Dto2481 = { "featuredImageUrl": string; "featuredImageAlt": (undefined | string); "isPasswordProtected": boolean; "passwordVerified": boolean; "isMembershipRestricted": boolean; "membershipAccess": Dto2422; "_id": GenericId<"posts">; "_creationTime": number; "type": ("post" | "page"); "title": string; "slug": string; "status": ("draft" | "pending" | "trash" | "auto-draft" | "publish" | "future" | "private"); "visibility": ("private" | "public" | "password"); "authorId": GenericId<"users">; "featuredImageId": (undefined | GenericId<"media">); "commentStatus": ("open" | "closed"); "commentCount": (undefined | number); "isSticky": (undefined | false | true); "publishedAt": (undefined | number); "createdAt": number; "updatedAt": number; "parentId": (undefined | GenericId<"posts">); "menuOrder": (undefined | number); "pageTemplate": (undefined | string); "path": (undefined | string); "depth": (undefined | number); "hideHeader": (undefined | false | true); "hideFooter": (undefined | false | true); "layoutId": (undefined | string); "contentMode": (undefined | "blocks" | "article"); "excerpt": (undefined | string); "content": (undefined | string); "blocks": (undefined | Array<Dto1018> | Array<Dto1822>); "blocksVersion": (undefined | number); "blocksRevision": (undefined | number); "pageSections": unknown; "hero": (undefined | Dto29); "topics": (undefined | Array<Dto30>); "summary": (undefined | Dto31); "sources": (undefined | string); "tableOfContents": (undefined | string); };
+export type Dto2482 = { "_id": GenericId<"posts">; "title": string; "slug": string; "status": ("draft" | "pending" | "trash" | "auto-draft" | "publish" | "future" | "private"); "menuOrder": (undefined | number); "path": (undefined | string); "depth": (undefined | number); "pageTemplate": (undefined | string); };
+export type Dto2483 = { "isPasswordProtected": boolean; "passwordVerified": boolean; "isMembershipRestricted": boolean; "membershipAccess": Dto2422; "_id": GenericId<"posts">; "_creationTime": number; "type": ("post" | "page"); "title": string; "slug": string; "status": ("draft" | "pending" | "trash" | "auto-draft" | "publish" | "future" | "private"); "visibility": ("private" | "public" | "password"); "authorId": GenericId<"users">; "featuredImageId": (undefined | GenericId<"media">); "commentStatus": ("open" | "closed"); "commentCount": (undefined | number); "isSticky": (undefined | false | true); "publishedAt": (undefined | number); "createdAt": number; "updatedAt": number; "parentId": (undefined | GenericId<"posts">); "menuOrder": (undefined | number); "pageTemplate": (undefined | string); "path": (undefined | string); "depth": (undefined | number); "hideHeader": (undefined | false | true); "hideFooter": (undefined | false | true); "layoutId": (undefined | string); "contentMode": (undefined | "blocks" | "article"); "excerpt": (undefined | string); "content": (undefined | string); "blocks": (undefined | Array<Dto1018> | Array<Dto1822>); "blocksVersion": (undefined | number); "blocksRevision": (undefined | number); "pageSections": unknown; "hero": (undefined | Dto29); "topics": (undefined | Array<Dto30>); "summary": (undefined | Dto31); "sources": (undefined | string); "tableOfContents": (undefined | string); };
+export type Dto2484 = { "id": "default"; "name": "Default Template"; "description": "Standard page layout with sidebar"; "supports": Dto2485; };
+export type Dto2485 = { "featuredImage": true; "excerpt": true; "customFields": true; "comments": true; };
+export type Dto2486 = { "id": "full-width"; "name": "Full Width"; "description": "Full-width layout without sidebar"; "supports": Dto2487; };
+export type Dto2487 = { "featuredImage": true; "excerpt": true; "customFields": true; "comments": true; };
+export type Dto2488 = { "id": "sidebar-left"; "name": "Sidebar Left"; "description": "Content with left sidebar"; "supports": Dto2489; };
+export type Dto2489 = { "featuredImage": true; "excerpt": true; "customFields": true; "comments": true; };
+export type Dto2490 = { "id": "sidebar-right"; "name": "Sidebar Right"; "description": "Content with right sidebar"; "supports": Dto2491; };
 export type Dto2491 = { "featuredImage": true; "excerpt": true; "customFields": true; "comments": true; };
-export type Dto2492 = { "id": "full-width"; "name": "Full Width"; "description": "Full-width layout without sidebar"; "supports": Dto2493; };
+export type Dto2492 = { "id": "no-sidebar"; "name": "No Sidebar"; "description": "Content-only layout at the theme reading width"; "supports": Dto2493; };
 export type Dto2493 = { "featuredImage": true; "excerpt": true; "customFields": true; "comments": true; };
-export type Dto2494 = { "id": "sidebar-left"; "name": "Sidebar Left"; "description": "Content with left sidebar"; "supports": Dto2495; };
-export type Dto2495 = { "featuredImage": true; "excerpt": true; "customFields": true; "comments": true; };
-export type Dto2496 = { "id": "sidebar-right"; "name": "Sidebar Right"; "description": "Content with right sidebar"; "supports": Dto2497; };
-export type Dto2497 = { "featuredImage": true; "excerpt": true; "customFields": true; "comments": true; };
-export type Dto2498 = { "id": "no-sidebar"; "name": "No Sidebar"; "description": "Content-only layout at the theme reading width"; "supports": Dto2499; };
-export type Dto2499 = { "featuredImage": true; "excerpt": true; "customFields": true; "comments": true; };
-export type Dto2500 = { "id": "landing"; "name": "Landing Page"; "description": "Clean layout for landing pages, no header/footer nav"; "supports": Dto2501; };
-export type Dto2501 = { "featuredImage": true; "excerpt": false; "customFields": true; "comments": false; };
-export type Dto2502 = { "id": "blank"; "name": "Blank Canvas"; "description": "Completely blank - only renders the content"; "supports": Dto2503; };
-export type Dto2503 = { "featuredImage": false; "excerpt": false; "customFields": true; "comments": false; };
-export type Dto2504 = { "_id": string; "title": string; "slug": string; "status": string; "depth": number; "menuOrder": number; "path": string; "parentId"?: (undefined | string); "children": Dto2505; };
-export type Dto2505 = Array<Dto2504>;
-export type Dto2506 = { "pages": Array<Dto2507>; "pagination": Dto2509; "counts": Dto2510; };
-export type Dto2507 = { "author": (null | Dto2508); "_id": GenericId<"posts">; "_creationTime": number; "blocks"?: (undefined | Array<Dto1018> | Array<Dto1822>); "composedDefinitions"?: (undefined | Dto1060); "commentCount"?: (undefined | number); "wpSourceSiteId"?: (undefined | GenericId<"wordpressSites">); "summary"?: (undefined | Dto31); "trashedAt"?: (undefined | number); "previousStatus"?: (undefined | string); "path"?: (undefined | string); "parentId"?: (undefined | GenericId<"posts">); "menuOrder"?: (undefined | number); "content"?: (undefined | string); "excerpt"?: (undefined | string); "password"?: (undefined | string); "featuredImageId"?: (undefined | GenericId<"media">); "isSticky"?: (undefined | false | true); "publishedAt"?: (undefined | number); "scheduledAt"?: (undefined | number); "pageTemplate"?: (undefined | string); "pageSections"?: unknown; "contentMode"?: (undefined | "blocks" | "article"); "blocksVersion"?: (undefined | number); "blocksRevision"?: (undefined | number); "layoutId"?: (undefined | string); "hideHeader"?: (undefined | false | true); "hideFooter"?: (undefined | false | true); "depth"?: (undefined | number); "autosaveContent"?: (undefined | string); "autosaveTitle"?: (undefined | string); "autosavedAt"?: (undefined | number); "hero"?: (undefined | Dto29); "topics"?: (undefined | Array<Dto30>); "sources"?: (undefined | string); "tableOfContents"?: (undefined | string); "pagePrompt"?: (undefined | string); "wpPostId"?: (undefined | number); "wpGuid"?: (undefined | string); "type": ("post" | "page"); "title": string; "visibility": ("private" | "public" | "password"); "updatedAt": number; "createdAt": number; "status": ("draft" | "pending" | "trash" | "auto-draft" | "publish" | "future" | "private"); "slug": string; "authorId": GenericId<"users">; "commentStatus": ("open" | "closed"); };
-export type Dto2508 = { "_id": GenericId<"users">; "displayName": string; "email": string; };
-export type Dto2509 = { "page": number; "perPage": number; "total": number; "totalPages": number; };
-export type Dto2510 = { "all": number; "publish": number; "draft": number; "pending": number; "private": number; "trash": number; "future": number; };
-export type Dto2511 = { "pages": Array<Dto2512>; "total": number; "page": number; "perPage": number; "totalPages": number; };
-export type Dto2512 = { "_id": GenericId<"posts">; "title": string; "slug": string; "path": (undefined | string); "depth": (undefined | number); "menuOrder": (undefined | number); "parentId": (undefined | GenericId<"posts">); "pageTemplate": (undefined | string); "excerpt": (undefined | string); "featuredImageId": (undefined | GenericId<"media">); "publishedAt": (undefined | number); "createdAt": number; };
-export type Dto2513 = { "success": boolean; };
-export type Dto2514 = { "userId": GenericId<"users">; };
-export type Dto2515 = { "lastPasswordChangedAt": (null | number); "passwordResetRequestedAt": (null | number); "passwordResetCount": number; };
-export type Dto2516 = { "_id": GenericId<"users">; "_creationTime": number; "authSource"?: (undefined | "local" | "clerk" | "management"); "passwordHash"?: (undefined | string); "clerkUserId"?: (undefined | string); "email": string; "emailVerified": boolean; "firstName"?: (undefined | string); "lastName"?: (undefined | string); "phone"?: (undefined | string); "profilePictureUrl"?: (undefined | string); "username"?: (undefined | string); "nickname"?: (undefined | string); "displayName"?: (undefined | string); "slug"?: (undefined | string); "bio"?: (undefined | string); "url"?: (undefined | string); "avatarUrl"?: (undefined | string); "avatarMediaId"?: (undefined | GenericId<"media">); "avatarStorageId"?: (undefined | string); "socialLinks"?: (undefined | Dto2517); "roleId"?: (undefined | GenericId<"roles">); "status": ("active" | "inactive" | "banned"); "deactivatedAt"?: (undefined | number); "deactivatedBy"?: (undefined | GenericId<"users">); "preferences"?: (undefined | Dto2518); "locale"?: (undefined | string); "timezone"?: (undefined | string); "postCount"?: (undefined | number); "commentCount"?: (undefined | number); "registrationMethod"?: (undefined | string); "invitedBy"?: (undefined | GenericId<"users">); "emailVerifiedAt"?: (undefined | number); "registeredAt"?: (undefined | number); "lastLoginAt"?: (undefined | number); "lastPasswordChangedAt"?: (undefined | number); "passwordResetRequestedAt"?: (undefined | number); "passwordResetCount"?: (undefined | number); "internalRole"?: (undefined | string); "isInternal"?: (undefined | false | true); "createdAt": number; "updatedAt": number; };
-export type Dto2517 = { "twitter"?: (undefined | string); "facebook"?: (undefined | string); "instagram"?: (undefined | string); "linkedin"?: (undefined | string); "youtube"?: (undefined | string); "github"?: (undefined | string); "website"?: (undefined | string); };
-export type Dto2518 = { "adminColorScheme"?: (undefined | string); "showAdminBar"?: (undefined | false | true); "editorMode"?: (undefined | "code" | "visual"); "emailDigest"?: (undefined | "none" | "immediate" | "daily" | "weekly"); "notifyOnComment"?: (undefined | false | true); "notifyOnReply"?: (undefined | false | true); "notifyOnMention"?: (undefined | false | true); };
-export type Dto2519 = { "_id": GenericId<"users">; };
-export type Dto2520 = { "posts": Array<Dto2521>; "total": number; "page": number; "perPage": number; };
-export type Dto2521 = { "author": (null | Dto2522); "isPasswordProtected": boolean; "passwordVerified": boolean; "isMembershipRestricted": boolean; "membershipAccess": Dto2422; "_id": GenericId<"posts">; "_creationTime": number; "type": ("post" | "page"); "title": string; "slug": string; "status": ("draft" | "pending" | "trash" | "auto-draft" | "publish" | "future" | "private"); "visibility": ("private" | "public" | "password"); "authorId": GenericId<"users">; "featuredImageId": (undefined | GenericId<"media">); "commentStatus": ("open" | "closed"); "commentCount": (undefined | number); "isSticky": (undefined | false | true); "publishedAt": (undefined | number); "createdAt": number; "updatedAt": number; "parentId": (undefined | GenericId<"posts">); "menuOrder": (undefined | number); "pageTemplate": (undefined | string); "path": (undefined | string); "depth": (undefined | number); "hideHeader": (undefined | false | true); "hideFooter": (undefined | false | true); "layoutId": (undefined | string); "contentMode": (undefined | "blocks" | "article"); "excerpt": (undefined | string); "content": (undefined | string); "blocks": (undefined | Array<Dto1018> | Array<Dto1822>); "blocksVersion": (undefined | number); "blocksRevision": (undefined | number); "pageSections": unknown; "hero": (undefined | Dto29); "topics": (undefined | Array<Dto30>); "summary": (undefined | Dto31); "sources": (undefined | string); "tableOfContents": (undefined | string); };
-export type Dto2522 = { "_id": GenericId<"users">; "displayName": string; };
-export type Dto2523 = { "success": boolean; };
-export type Dto2524 = { "postId": GenericId<"posts">; "digest": string; "revision": number; "changed": boolean; };
-export type Dto2525 = { "_id": GenericId<"posts">; "slug": string; "publishedAt": (undefined | number); };
-export type Dto2526 = { "autosavedAt": number; };
-export type Dto2527 = { "deleted": number; "errors": Array<Dto2528>; };
-export type Dto2528 = { "postId": string; "error": string; };
-export type Dto2529 = { "published": number; "errors": Array<Dto2530>; };
+export type Dto2494 = { "id": "landing"; "name": "Landing Page"; "description": "Clean layout for landing pages, no header/footer nav"; "supports": Dto2495; };
+export type Dto2495 = { "featuredImage": true; "excerpt": false; "customFields": true; "comments": false; };
+export type Dto2496 = { "id": "blank"; "name": "Blank Canvas"; "description": "Completely blank - only renders the content"; "supports": Dto2497; };
+export type Dto2497 = { "featuredImage": false; "excerpt": false; "customFields": true; "comments": false; };
+export type Dto2498 = { "_id": string; "title": string; "slug": string; "status": string; "depth": number; "menuOrder": number; "path": string; "parentId"?: (undefined | string); "children": Dto2499; };
+export type Dto2499 = Array<Dto2498>;
+export type Dto2500 = { "pages": Array<Dto2501>; "pagination": Dto2503; "counts": Dto2504; };
+export type Dto2501 = { "author": (null | Dto2502); "_id": GenericId<"posts">; "_creationTime": number; "blocks"?: (undefined | Array<Dto1018> | Array<Dto1822>); "composedDefinitions"?: (undefined | Dto1060); "commentCount"?: (undefined | number); "wpSourceSiteId"?: (undefined | GenericId<"wordpressSites">); "summary"?: (undefined | Dto31); "trashedAt"?: (undefined | number); "previousStatus"?: (undefined | string); "path"?: (undefined | string); "parentId"?: (undefined | GenericId<"posts">); "menuOrder"?: (undefined | number); "content"?: (undefined | string); "excerpt"?: (undefined | string); "password"?: (undefined | string); "featuredImageId"?: (undefined | GenericId<"media">); "isSticky"?: (undefined | false | true); "publishedAt"?: (undefined | number); "scheduledAt"?: (undefined | number); "pageTemplate"?: (undefined | string); "pageSections"?: unknown; "contentMode"?: (undefined | "blocks" | "article"); "blocksVersion"?: (undefined | number); "blocksRevision"?: (undefined | number); "layoutId"?: (undefined | string); "hideHeader"?: (undefined | false | true); "hideFooter"?: (undefined | false | true); "depth"?: (undefined | number); "autosaveContent"?: (undefined | string); "autosaveTitle"?: (undefined | string); "autosavedAt"?: (undefined | number); "hero"?: (undefined | Dto29); "topics"?: (undefined | Array<Dto30>); "sources"?: (undefined | string); "tableOfContents"?: (undefined | string); "pagePrompt"?: (undefined | string); "wpPostId"?: (undefined | number); "wpGuid"?: (undefined | string); "type": ("post" | "page"); "title": string; "visibility": ("private" | "public" | "password"); "updatedAt": number; "createdAt": number; "status": ("draft" | "pending" | "trash" | "auto-draft" | "publish" | "future" | "private"); "slug": string; "authorId": GenericId<"users">; "commentStatus": ("open" | "closed"); };
+export type Dto2502 = { "_id": GenericId<"users">; "displayName": string; "email": string; };
+export type Dto2503 = { "page": number; "perPage": number; "total": number; "totalPages": number; };
+export type Dto2504 = { "all": number; "publish": number; "draft": number; "pending": number; "private": number; "trash": number; "future": number; };
+export type Dto2505 = { "pages": Array<Dto2506>; "total": number; "page": number; "perPage": number; "totalPages": number; };
+export type Dto2506 = { "_id": GenericId<"posts">; "title": string; "slug": string; "path": (undefined | string); "depth": (undefined | number); "menuOrder": (undefined | number); "parentId": (undefined | GenericId<"posts">); "pageTemplate": (undefined | string); "excerpt": (undefined | string); "featuredImageId": (undefined | GenericId<"media">); "publishedAt": (undefined | number); "createdAt": number; };
+export type Dto2507 = { "success": boolean; };
+export type Dto2508 = { "userId": GenericId<"users">; };
+export type Dto2509 = { "lastPasswordChangedAt": (null | number); "passwordResetRequestedAt": (null | number); "passwordResetCount": number; };
+export type Dto2510 = { "_id": GenericId<"users">; "_creationTime": number; "authSource"?: (undefined | "local" | "clerk" | "management"); "passwordHash"?: (undefined | string); "clerkUserId"?: (undefined | string); "email": string; "emailVerified": boolean; "firstName"?: (undefined | string); "lastName"?: (undefined | string); "phone"?: (undefined | string); "profilePictureUrl"?: (undefined | string); "username"?: (undefined | string); "nickname"?: (undefined | string); "displayName"?: (undefined | string); "slug"?: (undefined | string); "bio"?: (undefined | string); "url"?: (undefined | string); "avatarUrl"?: (undefined | string); "avatarMediaId"?: (undefined | GenericId<"media">); "avatarStorageId"?: (undefined | string); "socialLinks"?: (undefined | Dto2511); "roleId"?: (undefined | GenericId<"roles">); "status": ("active" | "inactive" | "banned"); "deactivatedAt"?: (undefined | number); "deactivatedBy"?: (undefined | GenericId<"users">); "preferences"?: (undefined | Dto2512); "locale"?: (undefined | string); "timezone"?: (undefined | string); "postCount"?: (undefined | number); "commentCount"?: (undefined | number); "registrationMethod"?: (undefined | string); "invitedBy"?: (undefined | GenericId<"users">); "emailVerifiedAt"?: (undefined | number); "registeredAt"?: (undefined | number); "lastLoginAt"?: (undefined | number); "lastPasswordChangedAt"?: (undefined | number); "passwordResetRequestedAt"?: (undefined | number); "passwordResetCount"?: (undefined | number); "internalRole"?: (undefined | string); "isInternal"?: (undefined | false | true); "createdAt": number; "updatedAt": number; };
+export type Dto2511 = { "twitter"?: (undefined | string); "facebook"?: (undefined | string); "instagram"?: (undefined | string); "linkedin"?: (undefined | string); "youtube"?: (undefined | string); "github"?: (undefined | string); "website"?: (undefined | string); };
+export type Dto2512 = { "adminColorScheme"?: (undefined | string); "showAdminBar"?: (undefined | false | true); "editorMode"?: (undefined | "code" | "visual"); "emailDigest"?: (undefined | "none" | "immediate" | "daily" | "weekly"); "notifyOnComment"?: (undefined | false | true); "notifyOnReply"?: (undefined | false | true); "notifyOnMention"?: (undefined | false | true); };
+export type Dto2513 = { "_id": GenericId<"users">; };
+export type Dto2514 = { "posts": Array<Dto2515>; "total": number; "page": number; "perPage": number; };
+export type Dto2515 = { "author": (null | Dto2516); "isPasswordProtected": boolean; "passwordVerified": boolean; "isMembershipRestricted": boolean; "membershipAccess": Dto2422; "_id": GenericId<"posts">; "_creationTime": number; "type": ("post" | "page"); "title": string; "slug": string; "status": ("draft" | "pending" | "trash" | "auto-draft" | "publish" | "future" | "private"); "visibility": ("private" | "public" | "password"); "authorId": GenericId<"users">; "featuredImageId": (undefined | GenericId<"media">); "commentStatus": ("open" | "closed"); "commentCount": (undefined | number); "isSticky": (undefined | false | true); "publishedAt": (undefined | number); "createdAt": number; "updatedAt": number; "parentId": (undefined | GenericId<"posts">); "menuOrder": (undefined | number); "pageTemplate": (undefined | string); "path": (undefined | string); "depth": (undefined | number); "hideHeader": (undefined | false | true); "hideFooter": (undefined | false | true); "layoutId": (undefined | string); "contentMode": (undefined | "blocks" | "article"); "excerpt": (undefined | string); "content": (undefined | string); "blocks": (undefined | Array<Dto1018> | Array<Dto1822>); "blocksVersion": (undefined | number); "blocksRevision": (undefined | number); "pageSections": unknown; "hero": (undefined | Dto29); "topics": (undefined | Array<Dto30>); "summary": (undefined | Dto31); "sources": (undefined | string); "tableOfContents": (undefined | string); };
+export type Dto2516 = { "_id": GenericId<"users">; "displayName": string; };
+export type Dto2517 = { "success": boolean; };
+export type Dto2518 = { "postId": GenericId<"posts">; "digest": string; "revision": number; "changed": boolean; };
+export type Dto2519 = { "_id": GenericId<"posts">; "slug": string; "publishedAt": (undefined | number); };
+export type Dto2520 = { "autosavedAt": number; };
+export type Dto2521 = { "deleted": number; "errors": Array<Dto2522>; };
+export type Dto2522 = { "postId": string; "error": string; };
+export type Dto2523 = { "published": number; "errors": Array<Dto2524>; };
+export type Dto2524 = { "postId": string; "error": string; };
+export type Dto2525 = { "restored": number; "errors": Array<Dto2526>; };
+export type Dto2526 = { "postId": string; "error": string; };
+export type Dto2527 = { "key": string; "value": string; };
+export type Dto2528 = { "success": boolean; };
+export type Dto2529 = { "trashed": number; "errors": Array<Dto2530>; };
 export type Dto2530 = { "postId": string; "error": string; };
-export type Dto2531 = { "restored": number; "errors": Array<Dto2532>; };
-export type Dto2532 = { "postId": string; "error": string; };
-export type Dto2533 = { "key": string; "value": string; };
-export type Dto2534 = { "success": boolean; };
-export type Dto2535 = { "trashed": number; "errors": Array<Dto2536>; };
-export type Dto2536 = { "postId": string; "error": string; };
-export type Dto2537 = { "success": boolean; };
-export type Dto2538 = { "success": boolean; };
-export type Dto2539 = { "success": boolean; };
-export type Dto2540 = { "all": number; "publish": number; "draft": number; "pending": number; "future": number; "private": number; "trash": number; "mine": number; };
-export type Dto2541 = { "isPasswordProtected": boolean; "author": (null | Dto2542); "_id": GenericId<"posts">; "_creationTime": number; "blocks"?: (undefined | Array<Dto1018> | Array<Dto1822>); "composedDefinitions"?: (undefined | Dto1060); "commentCount"?: (undefined | number); "wpSourceSiteId"?: (undefined | GenericId<"wordpressSites">); "summary"?: (undefined | Dto31); "trashedAt"?: (undefined | number); "previousStatus"?: (undefined | string); "path"?: (undefined | string); "parentId"?: (undefined | GenericId<"posts">); "menuOrder"?: (undefined | number); "content"?: (undefined | string); "excerpt"?: (undefined | string); "password"?: (undefined | string); "featuredImageId"?: (undefined | GenericId<"media">); "isSticky"?: (undefined | false | true); "publishedAt"?: (undefined | number); "scheduledAt"?: (undefined | number); "pageTemplate"?: (undefined | string); "pageSections"?: unknown; "contentMode"?: (undefined | "blocks" | "article"); "blocksVersion"?: (undefined | number); "blocksRevision"?: (undefined | number); "layoutId"?: (undefined | string); "hideHeader"?: (undefined | false | true); "hideFooter"?: (undefined | false | true); "depth"?: (undefined | number); "autosaveContent"?: (undefined | string); "autosaveTitle"?: (undefined | string); "autosavedAt"?: (undefined | number); "hero"?: (undefined | Dto29); "topics"?: (undefined | Array<Dto30>); "sources"?: (undefined | string); "tableOfContents"?: (undefined | string); "pagePrompt"?: (undefined | string); "wpPostId"?: (undefined | number); "wpGuid"?: (undefined | string); "type": ("post" | "page"); "title": string; "visibility": ("private" | "public" | "password"); "updatedAt": number; "createdAt": number; "status": ("draft" | "pending" | "trash" | "auto-draft" | "publish" | "future" | "private"); "slug": string; "authorId": GenericId<"users">; "commentStatus": ("open" | "closed"); };
-export type Dto2542 = { "_id": GenericId<"users">; "displayName": string; "bio": (undefined | string); "avatarUrl": (undefined | string); "slug": (undefined | string); };
-export type Dto2543 = { "author": (null | Dto2542); "isPasswordProtected": boolean; "passwordVerified": boolean; "isMembershipRestricted": boolean; "membershipAccess": Dto2422; "_id": GenericId<"posts">; "_creationTime": number; "type": ("post" | "page"); "title": string; "slug": string; "status": ("draft" | "pending" | "trash" | "auto-draft" | "publish" | "future" | "private"); "visibility": ("private" | "public" | "password"); "authorId": GenericId<"users">; "featuredImageId": (undefined | GenericId<"media">); "commentStatus": ("open" | "closed"); "commentCount": (undefined | number); "isSticky": (undefined | false | true); "publishedAt": (undefined | number); "createdAt": number; "updatedAt": number; "parentId": (undefined | GenericId<"posts">); "menuOrder": (undefined | number); "pageTemplate": (undefined | string); "path": (undefined | string); "depth": (undefined | number); "hideHeader": (undefined | false | true); "hideFooter": (undefined | false | true); "layoutId": (undefined | string); "contentMode": (undefined | "blocks" | "article"); "excerpt": (undefined | string); "content": (undefined | string); "blocks": (undefined | Array<Dto1018> | Array<Dto1822>); "blocksVersion": (undefined | number); "blocksRevision": (undefined | number); "pageSections": unknown; "hero": (undefined | Dto29); "topics": (undefined | Array<Dto30>); "summary": (undefined | Dto31); "sources": (undefined | string); "tableOfContents": (undefined | string); };
-export type Dto2544 = { "previous": (null | Dto2545); "next": (null | Dto2546); };
-export type Dto2545 = { "_id": GenericId<"posts">; "title": string; "slug": string; "featuredImageId"?: (undefined | GenericId<"media">); };
-export type Dto2546 = { "_id": GenericId<"posts">; "title": string; "slug": string; "featuredImageId"?: (undefined | GenericId<"media">); };
-export type Dto2547 = { "slug": string; "title": string; };
-export type Dto2548 = { "year": number; "month": number; "count": number; };
-export type Dto2549 = { "author": (null | Dto2542); "featuredImageUrl": undefined; "featuredImageAlt": undefined; "isPasswordProtected": boolean; "passwordVerified": boolean; "isMembershipRestricted": boolean; "membershipAccess": Dto2422; "_id": GenericId<"posts">; "_creationTime": number; "type": ("post" | "page"); "title": string; "slug": string; "status": ("draft" | "pending" | "trash" | "auto-draft" | "publish" | "future" | "private"); "visibility": ("private" | "public" | "password"); "authorId": GenericId<"users">; "featuredImageId": (undefined | GenericId<"media">); "commentStatus": ("open" | "closed"); "commentCount": (undefined | number); "isSticky": (undefined | false | true); "publishedAt": (undefined | number); "createdAt": number; "updatedAt": number; "parentId": (undefined | GenericId<"posts">); "menuOrder": (undefined | number); "pageTemplate": (undefined | string); "path": (undefined | string); "depth": (undefined | number); "hideHeader": (undefined | false | true); "hideFooter": (undefined | false | true); "layoutId": (undefined | string); "contentMode": (undefined | "blocks" | "article"); "excerpt": (undefined | string); "content": (undefined | string); "blocks": (undefined | Array<Dto1018> | Array<Dto1822>); "blocksVersion": (undefined | number); "blocksRevision": (undefined | number); "pageSections": unknown; "hero": (undefined | Dto29); "topics": (undefined | Array<Dto30>); "summary": (undefined | Dto31); "sources": (undefined | string); "tableOfContents": (undefined | string); };
-export type Dto2550 = { "author": (null | Dto2542); "featuredImageUrl": string; "featuredImageAlt": (undefined | string); "isPasswordProtected": boolean; "passwordVerified": boolean; "isMembershipRestricted": boolean; "membershipAccess": Dto2422; "_id": GenericId<"posts">; "_creationTime": number; "type": ("post" | "page"); "title": string; "slug": string; "status": ("draft" | "pending" | "trash" | "auto-draft" | "publish" | "future" | "private"); "visibility": ("private" | "public" | "password"); "authorId": GenericId<"users">; "featuredImageId": (undefined | GenericId<"media">); "commentStatus": ("open" | "closed"); "commentCount": (undefined | number); "isSticky": (undefined | false | true); "publishedAt": (undefined | number); "createdAt": number; "updatedAt": number; "parentId": (undefined | GenericId<"posts">); "menuOrder": (undefined | number); "pageTemplate": (undefined | string); "path": (undefined | string); "depth": (undefined | number); "hideHeader": (undefined | false | true); "hideFooter": (undefined | false | true); "layoutId": (undefined | string); "contentMode": (undefined | "blocks" | "article"); "excerpt": (undefined | string); "content": (undefined | string); "blocks": (undefined | Array<Dto1018> | Array<Dto1822>); "blocksVersion": (undefined | number); "blocksRevision": (undefined | number); "pageSections": unknown; "hero": (undefined | Dto29); "topics": (undefined | Array<Dto30>); "summary": (undefined | Dto31); "sources": (undefined | string); "tableOfContents": (undefined | string); };
-export type Dto2551 = { "_id": GenericId<"posts">; "title": string; "slug": string; "excerpt"?: (undefined | string); "featuredImageId"?: (undefined | GenericId<"media">); "publishedAt"?: (undefined | number); "score": number; };
-export type Dto2552 = { "slug": string; "publishedAt": (undefined | number); "updatedAt": number; };
-export type Dto2553 = { "featuredImageUrl": undefined; "featuredImageAlt": undefined; "author": (null | Dto2542); "isPasswordProtected": boolean; "passwordVerified": boolean; "isMembershipRestricted": boolean; "membershipAccess": Dto2422; "_id": GenericId<"posts">; "_creationTime": number; "type": ("post" | "page"); "title": string; "slug": string; "status": ("draft" | "pending" | "trash" | "auto-draft" | "publish" | "future" | "private"); "visibility": ("private" | "public" | "password"); "authorId": GenericId<"users">; "featuredImageId": (undefined | GenericId<"media">); "commentStatus": ("open" | "closed"); "commentCount": (undefined | number); "isSticky": (undefined | false | true); "publishedAt": (undefined | number); "createdAt": number; "updatedAt": number; "parentId": (undefined | GenericId<"posts">); "menuOrder": (undefined | number); "pageTemplate": (undefined | string); "path": (undefined | string); "depth": (undefined | number); "hideHeader": (undefined | false | true); "hideFooter": (undefined | false | true); "layoutId": (undefined | string); "contentMode": (undefined | "blocks" | "article"); "excerpt": (undefined | string); "content": (undefined | string); "blocks": (undefined | Array<Dto1018> | Array<Dto1822>); "blocksVersion": (undefined | number); "blocksRevision": (undefined | number); "pageSections": unknown; "hero": (undefined | Dto29); "topics": (undefined | Array<Dto30>); "summary": (undefined | Dto31); "sources": (undefined | string); "tableOfContents": (undefined | string); };
-export type Dto2554 = { "featuredImageUrl": string; "featuredImageAlt": (undefined | string); "author": (null | Dto2542); "isPasswordProtected": boolean; "passwordVerified": boolean; "isMembershipRestricted": boolean; "membershipAccess": Dto2422; "_id": GenericId<"posts">; "_creationTime": number; "type": ("post" | "page"); "title": string; "slug": string; "status": ("draft" | "pending" | "trash" | "auto-draft" | "publish" | "future" | "private"); "visibility": ("private" | "public" | "password"); "authorId": GenericId<"users">; "featuredImageId": (undefined | GenericId<"media">); "commentStatus": ("open" | "closed"); "commentCount": (undefined | number); "isSticky": (undefined | false | true); "publishedAt": (undefined | number); "createdAt": number; "updatedAt": number; "parentId": (undefined | GenericId<"posts">); "menuOrder": (undefined | number); "pageTemplate": (undefined | string); "path": (undefined | string); "depth": (undefined | number); "hideHeader": (undefined | false | true); "hideFooter": (undefined | false | true); "layoutId": (undefined | string); "contentMode": (undefined | "blocks" | "article"); "excerpt": (undefined | string); "content": (undefined | string); "blocks": (undefined | Array<Dto1018> | Array<Dto1822>); "blocksVersion": (undefined | number); "blocksRevision": (undefined | number); "pageSections": unknown; "hero": (undefined | Dto29); "topics": (undefined | Array<Dto30>); "summary": (undefined | Dto31); "sources": (undefined | string); "tableOfContents": (undefined | string); };
-export type Dto2555 = { "posts": Array<(Dto2556 | Dto2558 | Dto2560)>; "total": number; "page": number; "perPage": number; "totalPages": number; };
-export type Dto2556 = { "author": (null | Dto2557); };
-export type Dto2557 = { "_id": GenericId<"users">; "displayName": string; "email": string; };
-export type Dto2558 = { "author": (null | Dto2559); "_id": GenericId<"posts">; "_creationTime": number; "blocks"?: (undefined | Array<Dto1018> | Array<Dto1822>); "composedDefinitions"?: (undefined | Dto1060); "commentCount"?: (undefined | number); "wpSourceSiteId"?: (undefined | GenericId<"wordpressSites">); "summary"?: (undefined | Dto31); "trashedAt"?: (undefined | number); "previousStatus"?: (undefined | string); "path"?: (undefined | string); "parentId"?: (undefined | GenericId<"posts">); "menuOrder"?: (undefined | number); "content"?: (undefined | string); "excerpt"?: (undefined | string); "password"?: (undefined | string); "featuredImageId"?: (undefined | GenericId<"media">); "isSticky"?: (undefined | false | true); "publishedAt"?: (undefined | number); "scheduledAt"?: (undefined | number); "pageTemplate"?: (undefined | string); "pageSections"?: unknown; "contentMode"?: (undefined | "blocks" | "article"); "blocksVersion"?: (undefined | number); "blocksRevision"?: (undefined | number); "layoutId"?: (undefined | string); "hideHeader"?: (undefined | false | true); "hideFooter"?: (undefined | false | true); "depth"?: (undefined | number); "autosaveContent"?: (undefined | string); "autosaveTitle"?: (undefined | string); "autosavedAt"?: (undefined | number); "hero"?: (undefined | Dto29); "topics"?: (undefined | Array<Dto30>); "sources"?: (undefined | string); "tableOfContents"?: (undefined | string); "pagePrompt"?: (undefined | string); "wpPostId"?: (undefined | number); "wpGuid"?: (undefined | string); "type": ("post" | "page"); "title": string; "visibility": ("private" | "public" | "password"); "updatedAt": number; "createdAt": number; "status": ("draft" | "pending" | "trash" | "auto-draft" | "publish" | "future" | "private"); "slug": string; "authorId": GenericId<"users">; "commentStatus": ("open" | "closed"); };
-export type Dto2559 = { "_id": GenericId<"users">; "displayName": string; "email": string; };
-export type Dto2560 = { "author": (null | Dto2561); "isPasswordProtected": boolean; "passwordVerified": boolean; "isMembershipRestricted": boolean; "membershipAccess": Dto2422; "_id": GenericId<"posts">; "_creationTime": number; "type": ("post" | "page"); "title": string; "slug": string; "status": ("draft" | "pending" | "trash" | "auto-draft" | "publish" | "future" | "private"); "visibility": ("private" | "public" | "password"); "authorId": GenericId<"users">; "featuredImageId": (undefined | GenericId<"media">); "commentStatus": ("open" | "closed"); "commentCount": (undefined | number); "isSticky": (undefined | false | true); "publishedAt": (undefined | number); "createdAt": number; "updatedAt": number; "parentId": (undefined | GenericId<"posts">); "menuOrder": (undefined | number); "pageTemplate": (undefined | string); "path": (undefined | string); "depth": (undefined | number); "hideHeader": (undefined | false | true); "hideFooter": (undefined | false | true); "layoutId": (undefined | string); "contentMode": (undefined | "blocks" | "article"); "excerpt": (undefined | string); "content": (undefined | string); "blocks": (undefined | Array<Dto1018> | Array<Dto1822>); "blocksVersion": (undefined | number); "blocksRevision": (undefined | number); "pageSections": unknown; "hero": (undefined | Dto29); "topics": (undefined | Array<Dto30>); "summary": (undefined | Dto31); "sources": (undefined | string); "tableOfContents": (undefined | string); };
+export type Dto2531 = { "success": boolean; };
+export type Dto2532 = { "success": boolean; };
+export type Dto2533 = { "success": boolean; };
+export type Dto2534 = { "all": number; "publish": number; "draft": number; "pending": number; "future": number; "private": number; "trash": number; "mine": number; };
+export type Dto2535 = { "isPasswordProtected": boolean; "author": (null | Dto2536); "_id": GenericId<"posts">; "_creationTime": number; "blocks"?: (undefined | Array<Dto1018> | Array<Dto1822>); "composedDefinitions"?: (undefined | Dto1060); "commentCount"?: (undefined | number); "wpSourceSiteId"?: (undefined | GenericId<"wordpressSites">); "summary"?: (undefined | Dto31); "trashedAt"?: (undefined | number); "previousStatus"?: (undefined | string); "path"?: (undefined | string); "parentId"?: (undefined | GenericId<"posts">); "menuOrder"?: (undefined | number); "content"?: (undefined | string); "excerpt"?: (undefined | string); "password"?: (undefined | string); "featuredImageId"?: (undefined | GenericId<"media">); "isSticky"?: (undefined | false | true); "publishedAt"?: (undefined | number); "scheduledAt"?: (undefined | number); "pageTemplate"?: (undefined | string); "pageSections"?: unknown; "contentMode"?: (undefined | "blocks" | "article"); "blocksVersion"?: (undefined | number); "blocksRevision"?: (undefined | number); "layoutId"?: (undefined | string); "hideHeader"?: (undefined | false | true); "hideFooter"?: (undefined | false | true); "depth"?: (undefined | number); "autosaveContent"?: (undefined | string); "autosaveTitle"?: (undefined | string); "autosavedAt"?: (undefined | number); "hero"?: (undefined | Dto29); "topics"?: (undefined | Array<Dto30>); "sources"?: (undefined | string); "tableOfContents"?: (undefined | string); "pagePrompt"?: (undefined | string); "wpPostId"?: (undefined | number); "wpGuid"?: (undefined | string); "type": ("post" | "page"); "title": string; "visibility": ("private" | "public" | "password"); "updatedAt": number; "createdAt": number; "status": ("draft" | "pending" | "trash" | "auto-draft" | "publish" | "future" | "private"); "slug": string; "authorId": GenericId<"users">; "commentStatus": ("open" | "closed"); };
+export type Dto2536 = { "_id": GenericId<"users">; "displayName": string; "bio": (undefined | string); "avatarUrl": (undefined | string); "slug": (undefined | string); };
+export type Dto2537 = { "author": (null | Dto2536); "isPasswordProtected": boolean; "passwordVerified": boolean; "isMembershipRestricted": boolean; "membershipAccess": Dto2422; "_id": GenericId<"posts">; "_creationTime": number; "type": ("post" | "page"); "title": string; "slug": string; "status": ("draft" | "pending" | "trash" | "auto-draft" | "publish" | "future" | "private"); "visibility": ("private" | "public" | "password"); "authorId": GenericId<"users">; "featuredImageId": (undefined | GenericId<"media">); "commentStatus": ("open" | "closed"); "commentCount": (undefined | number); "isSticky": (undefined | false | true); "publishedAt": (undefined | number); "createdAt": number; "updatedAt": number; "parentId": (undefined | GenericId<"posts">); "menuOrder": (undefined | number); "pageTemplate": (undefined | string); "path": (undefined | string); "depth": (undefined | number); "hideHeader": (undefined | false | true); "hideFooter": (undefined | false | true); "layoutId": (undefined | string); "contentMode": (undefined | "blocks" | "article"); "excerpt": (undefined | string); "content": (undefined | string); "blocks": (undefined | Array<Dto1018> | Array<Dto1822>); "blocksVersion": (undefined | number); "blocksRevision": (undefined | number); "pageSections": unknown; "hero": (undefined | Dto29); "topics": (undefined | Array<Dto30>); "summary": (undefined | Dto31); "sources": (undefined | string); "tableOfContents": (undefined | string); };
+export type Dto2538 = { "previous": (null | Dto2539); "next": (null | Dto2540); };
+export type Dto2539 = { "_id": GenericId<"posts">; "title": string; "slug": string; "featuredImageId"?: (undefined | GenericId<"media">); };
+export type Dto2540 = { "_id": GenericId<"posts">; "title": string; "slug": string; "featuredImageId"?: (undefined | GenericId<"media">); };
+export type Dto2541 = { "slug": string; "title": string; };
+export type Dto2542 = { "year": number; "month": number; "count": number; };
+export type Dto2543 = { "author": (null | Dto2536); "featuredImageUrl": undefined; "featuredImageAlt": undefined; "isPasswordProtected": boolean; "passwordVerified": boolean; "isMembershipRestricted": boolean; "membershipAccess": Dto2422; "_id": GenericId<"posts">; "_creationTime": number; "type": ("post" | "page"); "title": string; "slug": string; "status": ("draft" | "pending" | "trash" | "auto-draft" | "publish" | "future" | "private"); "visibility": ("private" | "public" | "password"); "authorId": GenericId<"users">; "featuredImageId": (undefined | GenericId<"media">); "commentStatus": ("open" | "closed"); "commentCount": (undefined | number); "isSticky": (undefined | false | true); "publishedAt": (undefined | number); "createdAt": number; "updatedAt": number; "parentId": (undefined | GenericId<"posts">); "menuOrder": (undefined | number); "pageTemplate": (undefined | string); "path": (undefined | string); "depth": (undefined | number); "hideHeader": (undefined | false | true); "hideFooter": (undefined | false | true); "layoutId": (undefined | string); "contentMode": (undefined | "blocks" | "article"); "excerpt": (undefined | string); "content": (undefined | string); "blocks": (undefined | Array<Dto1018> | Array<Dto1822>); "blocksVersion": (undefined | number); "blocksRevision": (undefined | number); "pageSections": unknown; "hero": (undefined | Dto29); "topics": (undefined | Array<Dto30>); "summary": (undefined | Dto31); "sources": (undefined | string); "tableOfContents": (undefined | string); };
+export type Dto2544 = { "author": (null | Dto2536); "featuredImageUrl": string; "featuredImageAlt": (undefined | string); "isPasswordProtected": boolean; "passwordVerified": boolean; "isMembershipRestricted": boolean; "membershipAccess": Dto2422; "_id": GenericId<"posts">; "_creationTime": number; "type": ("post" | "page"); "title": string; "slug": string; "status": ("draft" | "pending" | "trash" | "auto-draft" | "publish" | "future" | "private"); "visibility": ("private" | "public" | "password"); "authorId": GenericId<"users">; "featuredImageId": (undefined | GenericId<"media">); "commentStatus": ("open" | "closed"); "commentCount": (undefined | number); "isSticky": (undefined | false | true); "publishedAt": (undefined | number); "createdAt": number; "updatedAt": number; "parentId": (undefined | GenericId<"posts">); "menuOrder": (undefined | number); "pageTemplate": (undefined | string); "path": (undefined | string); "depth": (undefined | number); "hideHeader": (undefined | false | true); "hideFooter": (undefined | false | true); "layoutId": (undefined | string); "contentMode": (undefined | "blocks" | "article"); "excerpt": (undefined | string); "content": (undefined | string); "blocks": (undefined | Array<Dto1018> | Array<Dto1822>); "blocksVersion": (undefined | number); "blocksRevision": (undefined | number); "pageSections": unknown; "hero": (undefined | Dto29); "topics": (undefined | Array<Dto30>); "summary": (undefined | Dto31); "sources": (undefined | string); "tableOfContents": (undefined | string); };
+export type Dto2545 = { "_id": GenericId<"posts">; "title": string; "slug": string; "excerpt"?: (undefined | string); "featuredImageId"?: (undefined | GenericId<"media">); "publishedAt"?: (undefined | number); "score": number; };
+export type Dto2546 = { "slug": string; "publishedAt": (undefined | number); "updatedAt": number; };
+export type Dto2547 = { "featuredImageUrl": undefined; "featuredImageAlt": undefined; "author": (null | Dto2536); "isPasswordProtected": boolean; "passwordVerified": boolean; "isMembershipRestricted": boolean; "membershipAccess": Dto2422; "_id": GenericId<"posts">; "_creationTime": number; "type": ("post" | "page"); "title": string; "slug": string; "status": ("draft" | "pending" | "trash" | "auto-draft" | "publish" | "future" | "private"); "visibility": ("private" | "public" | "password"); "authorId": GenericId<"users">; "featuredImageId": (undefined | GenericId<"media">); "commentStatus": ("open" | "closed"); "commentCount": (undefined | number); "isSticky": (undefined | false | true); "publishedAt": (undefined | number); "createdAt": number; "updatedAt": number; "parentId": (undefined | GenericId<"posts">); "menuOrder": (undefined | number); "pageTemplate": (undefined | string); "path": (undefined | string); "depth": (undefined | number); "hideHeader": (undefined | false | true); "hideFooter": (undefined | false | true); "layoutId": (undefined | string); "contentMode": (undefined | "blocks" | "article"); "excerpt": (undefined | string); "content": (undefined | string); "blocks": (undefined | Array<Dto1018> | Array<Dto1822>); "blocksVersion": (undefined | number); "blocksRevision": (undefined | number); "pageSections": unknown; "hero": (undefined | Dto29); "topics": (undefined | Array<Dto30>); "summary": (undefined | Dto31); "sources": (undefined | string); "tableOfContents": (undefined | string); };
+export type Dto2548 = { "featuredImageUrl": string; "featuredImageAlt": (undefined | string); "author": (null | Dto2536); "isPasswordProtected": boolean; "passwordVerified": boolean; "isMembershipRestricted": boolean; "membershipAccess": Dto2422; "_id": GenericId<"posts">; "_creationTime": number; "type": ("post" | "page"); "title": string; "slug": string; "status": ("draft" | "pending" | "trash" | "auto-draft" | "publish" | "future" | "private"); "visibility": ("private" | "public" | "password"); "authorId": GenericId<"users">; "featuredImageId": (undefined | GenericId<"media">); "commentStatus": ("open" | "closed"); "commentCount": (undefined | number); "isSticky": (undefined | false | true); "publishedAt": (undefined | number); "createdAt": number; "updatedAt": number; "parentId": (undefined | GenericId<"posts">); "menuOrder": (undefined | number); "pageTemplate": (undefined | string); "path": (undefined | string); "depth": (undefined | number); "hideHeader": (undefined | false | true); "hideFooter": (undefined | false | true); "layoutId": (undefined | string); "contentMode": (undefined | "blocks" | "article"); "excerpt": (undefined | string); "content": (undefined | string); "blocks": (undefined | Array<Dto1018> | Array<Dto1822>); "blocksVersion": (undefined | number); "blocksRevision": (undefined | number); "pageSections": unknown; "hero": (undefined | Dto29); "topics": (undefined | Array<Dto30>); "summary": (undefined | Dto31); "sources": (undefined | string); "tableOfContents": (undefined | string); };
+export type Dto2549 = { "posts": Array<(Dto2550 | Dto2552 | Dto2554)>; "total": number; "page": number; "perPage": number; "totalPages": number; };
+export type Dto2550 = { "author": (null | Dto2551); };
+export type Dto2551 = { "_id": GenericId<"users">; "displayName": string; "email": string; };
+export type Dto2552 = { "author": (null | Dto2553); "_id": GenericId<"posts">; "_creationTime": number; "blocks"?: (undefined | Array<Dto1018> | Array<Dto1822>); "composedDefinitions"?: (undefined | Dto1060); "commentCount"?: (undefined | number); "wpSourceSiteId"?: (undefined | GenericId<"wordpressSites">); "summary"?: (undefined | Dto31); "trashedAt"?: (undefined | number); "previousStatus"?: (undefined | string); "path"?: (undefined | string); "parentId"?: (undefined | GenericId<"posts">); "menuOrder"?: (undefined | number); "content"?: (undefined | string); "excerpt"?: (undefined | string); "password"?: (undefined | string); "featuredImageId"?: (undefined | GenericId<"media">); "isSticky"?: (undefined | false | true); "publishedAt"?: (undefined | number); "scheduledAt"?: (undefined | number); "pageTemplate"?: (undefined | string); "pageSections"?: unknown; "contentMode"?: (undefined | "blocks" | "article"); "blocksVersion"?: (undefined | number); "blocksRevision"?: (undefined | number); "layoutId"?: (undefined | string); "hideHeader"?: (undefined | false | true); "hideFooter"?: (undefined | false | true); "depth"?: (undefined | number); "autosaveContent"?: (undefined | string); "autosaveTitle"?: (undefined | string); "autosavedAt"?: (undefined | number); "hero"?: (undefined | Dto29); "topics"?: (undefined | Array<Dto30>); "sources"?: (undefined | string); "tableOfContents"?: (undefined | string); "pagePrompt"?: (undefined | string); "wpPostId"?: (undefined | number); "wpGuid"?: (undefined | string); "type": ("post" | "page"); "title": string; "visibility": ("private" | "public" | "password"); "updatedAt": number; "createdAt": number; "status": ("draft" | "pending" | "trash" | "auto-draft" | "publish" | "future" | "private"); "slug": string; "authorId": GenericId<"users">; "commentStatus": ("open" | "closed"); };
+export type Dto2553 = { "_id": GenericId<"users">; "displayName": string; "email": string; };
+export type Dto2554 = { "author": (null | Dto2555); "isPasswordProtected": boolean; "passwordVerified": boolean; "isMembershipRestricted": boolean; "membershipAccess": Dto2422; "_id": GenericId<"posts">; "_creationTime": number; "type": ("post" | "page"); "title": string; "slug": string; "status": ("draft" | "pending" | "trash" | "auto-draft" | "publish" | "future" | "private"); "visibility": ("private" | "public" | "password"); "authorId": GenericId<"users">; "featuredImageId": (undefined | GenericId<"media">); "commentStatus": ("open" | "closed"); "commentCount": (undefined | number); "isSticky": (undefined | false | true); "publishedAt": (undefined | number); "createdAt": number; "updatedAt": number; "parentId": (undefined | GenericId<"posts">); "menuOrder": (undefined | number); "pageTemplate": (undefined | string); "path": (undefined | string); "depth": (undefined | number); "hideHeader": (undefined | false | true); "hideFooter": (undefined | false | true); "layoutId": (undefined | string); "contentMode": (undefined | "blocks" | "article"); "excerpt": (undefined | string); "content": (undefined | string); "blocks": (undefined | Array<Dto1018> | Array<Dto1822>); "blocksVersion": (undefined | number); "blocksRevision": (undefined | number); "pageSections": unknown; "hero": (undefined | Dto29); "topics": (undefined | Array<Dto30>); "summary": (undefined | Dto31); "sources": (undefined | string); "tableOfContents": (undefined | string); };
+export type Dto2555 = { "_id": GenericId<"users">; "displayName": string; "email": string; };
+export type Dto2556 = { "posts": Array<Dto2557>; "total": number; "page": number; "perPage": number; "totalPages": number; };
+export type Dto2557 = { "featuredImageUrl": (undefined | string); "featuredImageAlt": (undefined | string); "primaryCategory": (null | Dto2558); "author": (null | Dto2559); "isPasswordProtected": boolean; "passwordVerified": boolean; "isMembershipRestricted": boolean; "membershipAccess": Dto2422; "_id": GenericId<"posts">; "_creationTime": number; "type": ("post" | "page"); "title": string; "slug": string; "status": ("draft" | "pending" | "trash" | "auto-draft" | "publish" | "future" | "private"); "visibility": ("private" | "public" | "password"); "authorId": GenericId<"users">; "featuredImageId": (undefined | GenericId<"media">); "commentStatus": ("open" | "closed"); "commentCount": (undefined | number); "isSticky": (undefined | false | true); "publishedAt": (undefined | number); "createdAt": number; "updatedAt": number; "parentId": (undefined | GenericId<"posts">); "menuOrder": (undefined | number); "pageTemplate": (undefined | string); "path": (undefined | string); "depth": (undefined | number); "hideHeader": (undefined | false | true); "hideFooter": (undefined | false | true); "layoutId": (undefined | string); "contentMode": (undefined | "blocks" | "article"); "excerpt": (undefined | string); "content": (undefined | string); "blocks": (undefined | Array<Dto1018> | Array<Dto1822>); "blocksVersion": (undefined | number); "blocksRevision": (undefined | number); "pageSections": unknown; "hero": (undefined | Dto29); "topics": (undefined | Array<Dto30>); "summary": (undefined | Dto31); "sources": (undefined | string); "tableOfContents": (undefined | string); };
+export type Dto2558 = { "_id": GenericId<"terms">; "name": string; "slug": string; };
+export type Dto2559 = { "_id": GenericId<"users">; "displayName": string; "avatarUrl": (undefined | string); "slug": (undefined | string); };
+export type Dto2560 = { "author": (null | Dto2561); "_id": GenericId<"posts">; "_creationTime": number; "blocks"?: (undefined | Array<Dto1018> | Array<Dto1822>); "composedDefinitions"?: (undefined | Dto1060); "commentCount"?: (undefined | number); "wpSourceSiteId"?: (undefined | GenericId<"wordpressSites">); "summary"?: (undefined | Dto31); "trashedAt"?: (undefined | number); "previousStatus"?: (undefined | string); "path"?: (undefined | string); "parentId"?: (undefined | GenericId<"posts">); "menuOrder"?: (undefined | number); "content"?: (undefined | string); "excerpt"?: (undefined | string); "password"?: (undefined | string); "featuredImageId"?: (undefined | GenericId<"media">); "isSticky"?: (undefined | false | true); "publishedAt"?: (undefined | number); "scheduledAt"?: (undefined | number); "pageTemplate"?: (undefined | string); "pageSections"?: unknown; "contentMode"?: (undefined | "blocks" | "article"); "blocksVersion"?: (undefined | number); "blocksRevision"?: (undefined | number); "layoutId"?: (undefined | string); "hideHeader"?: (undefined | false | true); "hideFooter"?: (undefined | false | true); "depth"?: (undefined | number); "autosaveContent"?: (undefined | string); "autosaveTitle"?: (undefined | string); "autosavedAt"?: (undefined | number); "hero"?: (undefined | Dto29); "topics"?: (undefined | Array<Dto30>); "sources"?: (undefined | string); "tableOfContents"?: (undefined | string); "pagePrompt"?: (undefined | string); "wpPostId"?: (undefined | number); "wpGuid"?: (undefined | string); "type": ("post" | "page"); "title": string; "visibility": ("private" | "public" | "password"); "updatedAt": number; "createdAt": number; "status": ("draft" | "pending" | "trash" | "auto-draft" | "publish" | "future" | "private"); "slug": string; "authorId": GenericId<"users">; "commentStatus": ("open" | "closed"); };
 export type Dto2561 = { "_id": GenericId<"users">; "displayName": string; "email": string; };
-export type Dto2562 = { "posts": Array<Dto2563>; "total": number; "page": number; "perPage": number; "totalPages": number; };
-export type Dto2563 = { "featuredImageUrl": (undefined | string); "featuredImageAlt": (undefined | string); "primaryCategory": (null | Dto2564); "author": (null | Dto2565); "isPasswordProtected": boolean; "passwordVerified": boolean; "isMembershipRestricted": boolean; "membershipAccess": Dto2422; "_id": GenericId<"posts">; "_creationTime": number; "type": ("post" | "page"); "title": string; "slug": string; "status": ("draft" | "pending" | "trash" | "auto-draft" | "publish" | "future" | "private"); "visibility": ("private" | "public" | "password"); "authorId": GenericId<"users">; "featuredImageId": (undefined | GenericId<"media">); "commentStatus": ("open" | "closed"); "commentCount": (undefined | number); "isSticky": (undefined | false | true); "publishedAt": (undefined | number); "createdAt": number; "updatedAt": number; "parentId": (undefined | GenericId<"posts">); "menuOrder": (undefined | number); "pageTemplate": (undefined | string); "path": (undefined | string); "depth": (undefined | number); "hideHeader": (undefined | false | true); "hideFooter": (undefined | false | true); "layoutId": (undefined | string); "contentMode": (undefined | "blocks" | "article"); "excerpt": (undefined | string); "content": (undefined | string); "blocks": (undefined | Array<Dto1018> | Array<Dto1822>); "blocksVersion": (undefined | number); "blocksRevision": (undefined | number); "pageSections": unknown; "hero": (undefined | Dto29); "topics": (undefined | Array<Dto30>); "summary": (undefined | Dto31); "sources": (undefined | string); "tableOfContents": (undefined | string); };
-export type Dto2564 = { "_id": GenericId<"terms">; "name": string; "slug": string; };
-export type Dto2565 = { "_id": GenericId<"users">; "displayName": string; "avatarUrl": (undefined | string); "slug": (undefined | string); };
-export type Dto2566 = { "author": (null | Dto2567); "_id": GenericId<"posts">; "_creationTime": number; "blocks"?: (undefined | Array<Dto1018> | Array<Dto1822>); "composedDefinitions"?: (undefined | Dto1060); "commentCount"?: (undefined | number); "wpSourceSiteId"?: (undefined | GenericId<"wordpressSites">); "summary"?: (undefined | Dto31); "trashedAt"?: (undefined | number); "previousStatus"?: (undefined | string); "path"?: (undefined | string); "parentId"?: (undefined | GenericId<"posts">); "menuOrder"?: (undefined | number); "content"?: (undefined | string); "excerpt"?: (undefined | string); "password"?: (undefined | string); "featuredImageId"?: (undefined | GenericId<"media">); "isSticky"?: (undefined | false | true); "publishedAt"?: (undefined | number); "scheduledAt"?: (undefined | number); "pageTemplate"?: (undefined | string); "pageSections"?: unknown; "contentMode"?: (undefined | "blocks" | "article"); "blocksVersion"?: (undefined | number); "blocksRevision"?: (undefined | number); "layoutId"?: (undefined | string); "hideHeader"?: (undefined | false | true); "hideFooter"?: (undefined | false | true); "depth"?: (undefined | number); "autosaveContent"?: (undefined | string); "autosaveTitle"?: (undefined | string); "autosavedAt"?: (undefined | number); "hero"?: (undefined | Dto29); "topics"?: (undefined | Array<Dto30>); "sources"?: (undefined | string); "tableOfContents"?: (undefined | string); "pagePrompt"?: (undefined | string); "wpPostId"?: (undefined | number); "wpGuid"?: (undefined | string); "type": ("post" | "page"); "title": string; "visibility": ("private" | "public" | "password"); "updatedAt": number; "createdAt": number; "status": ("draft" | "pending" | "trash" | "auto-draft" | "publish" | "future" | "private"); "slug": string; "authorId": GenericId<"users">; "commentStatus": ("open" | "closed"); };
-export type Dto2567 = { "_id": GenericId<"users">; "displayName": string; "email": string; };
-export type Dto2568 = { "author": (null | Dto2542); "featuredImageUrl": undefined; "featuredImageAlt": undefined; "isPasswordProtected": boolean; "passwordVerified": boolean; "isMembershipRestricted": boolean; "membershipAccess": Dto2422; "_id": GenericId<"posts">; "_creationTime": number; "type": ("post" | "page"); "title": string; "slug": string; "status": ("draft" | "pending" | "trash" | "auto-draft" | "publish" | "future" | "private"); "visibility": ("private" | "public" | "password"); "authorId": GenericId<"users">; "featuredImageId": (undefined | GenericId<"media">); "commentStatus": ("open" | "closed"); "commentCount": (undefined | number); "isSticky": (undefined | false | true); "publishedAt": (undefined | number); "createdAt": number; "updatedAt": number; "parentId": (undefined | GenericId<"posts">); "menuOrder": (undefined | number); "pageTemplate": (undefined | string); "path": (undefined | string); "depth": (undefined | number); "hideHeader": (undefined | false | true); "hideFooter": (undefined | false | true); "layoutId": (undefined | string); "contentMode": (undefined | "blocks" | "article"); "excerpt": (undefined | string); "content": (undefined | string); "blocks": (undefined | Array<Dto1018> | Array<Dto1822>); "blocksVersion": (undefined | number); "blocksRevision": (undefined | number); "pageSections": unknown; "hero": (undefined | Dto29); "topics": (undefined | Array<Dto30>); "summary": (undefined | Dto31); "sources": (undefined | string); "tableOfContents": (undefined | string); };
-export type Dto2569 = { "author": (null | Dto2542); "featuredImageUrl": string; "featuredImageAlt": (undefined | string); "isPasswordProtected": boolean; "passwordVerified": boolean; "isMembershipRestricted": boolean; "membershipAccess": Dto2422; "_id": GenericId<"posts">; "_creationTime": number; "type": ("post" | "page"); "title": string; "slug": string; "status": ("draft" | "pending" | "trash" | "auto-draft" | "publish" | "future" | "private"); "visibility": ("private" | "public" | "password"); "authorId": GenericId<"users">; "featuredImageId": (undefined | GenericId<"media">); "commentStatus": ("open" | "closed"); "commentCount": (undefined | number); "isSticky": (undefined | false | true); "publishedAt": (undefined | number); "createdAt": number; "updatedAt": number; "parentId": (undefined | GenericId<"posts">); "menuOrder": (undefined | number); "pageTemplate": (undefined | string); "path": (undefined | string); "depth": (undefined | number); "hideHeader": (undefined | false | true); "hideFooter": (undefined | false | true); "layoutId": (undefined | string); "contentMode": (undefined | "blocks" | "article"); "excerpt": (undefined | string); "content": (undefined | string); "blocks": (undefined | Array<Dto1018> | Array<Dto1822>); "blocksVersion": (undefined | number); "blocksRevision": (undefined | number); "pageSections": unknown; "hero": (undefined | Dto29); "topics": (undefined | Array<Dto30>); "summary": (undefined | Dto31); "sources": (undefined | string); "tableOfContents": (undefined | string); };
-export type Dto2570 = { "success": boolean; };
-export type Dto2571 = { "success": boolean; };
-export type Dto2572 = { "success": boolean; };
-export type Dto2573 = { "closed": true; "clerkDeleted": boolean; };
-export type Dto2574 = { "updated": number; };
-export type Dto2575 = { "resolvedAvatarUrl": (null | string); "roleName": (undefined | string); "roleLevel": (undefined | number); "_id": GenericId<"users">; "_creationTime": number; "authSource"?: (undefined | "local" | "clerk" | "management"); "passwordHash"?: (undefined | string); "clerkUserId"?: (undefined | string); "clerkProvisioningStatus"?: (undefined | "pending" | "provisioned" | "linked_existing" | "reset_required" | "skipped" | "failed"); "clerkProvisioningSource"?: (undefined | string); "clerkProvisioningReason"?: (undefined | string); "clerkProvisioningError"?: (undefined | string); "clerkProvisionedAt"?: (undefined | number); "clerkProvisioningAttemptedAt"?: (undefined | number); "firstName"?: (undefined | string); "lastName"?: (undefined | string); "phone"?: (undefined | string); "profilePictureUrl"?: (undefined | string); "isTaxExempt"?: (undefined | false | true); "taxExemptId"?: (undefined | string); "taxExemptReason"?: (undefined | string); "taxExemptVerifiedAt"?: (undefined | number); "username"?: (undefined | string); "nickname"?: (undefined | string); "displayName"?: (undefined | string); "slug"?: (undefined | string); "bio"?: (undefined | string); "url"?: (undefined | string); "avatarUrl"?: (undefined | string); "avatarMediaId"?: (undefined | GenericId<"media">); "avatarStorageId"?: (undefined | string); "socialLinks"?: (undefined | Dto149); "roleId"?: (undefined | GenericId<"roles">); "deactivatedAt"?: (undefined | number); "deactivatedBy"?: (undefined | GenericId<"users">); "preferences"?: (undefined | Dto150); "locale"?: (undefined | string); "timezone"?: (undefined | string); "postCount"?: (undefined | number); "postCountReady"?: (undefined | false | true); "commentCount"?: (undefined | number); "registrationMethod"?: (undefined | string); "invitedBy"?: (undefined | GenericId<"users">); "emailVerifiedAt"?: (undefined | number); "registeredAt"?: (undefined | number); "lastLoginAt"?: (undefined | number); "lastPasswordChangedAt"?: (undefined | number); "passwordResetRequestedAt"?: (undefined | number); "passwordResetCount"?: (undefined | number); "passwordResetToken"?: (undefined | string); "passwordResetTokenExpiresAt"?: (undefined | number); "internalRole"?: (undefined | string); "isInternal"?: (undefined | false | true); "wpUserId"?: (undefined | number); "wpSourceSiteId"?: (undefined | GenericId<"wordpressSites">); "wpCredentialMigrationStatus"?: (undefined | "provisioned" | "linked_existing" | "reset_required" | "skipped" | "failed" | "unsupported_hash"); "wpCredentialMigrationReason"?: (undefined | string); "wpCredentialPasswordHasher"?: (undefined | string); "wpCredentialMigratedAt"?: (undefined | number); "wpCredentialMigrationError"?: (undefined | string); "updatedAt": number; "createdAt": number; "status": ("active" | "inactive" | "banned"); "email": string; "emailVerified": boolean; };
-export type Dto2576 = { "users": Array<Dto2577>; "total": number; "page": number; "perPage": number; "totalPages": number; };
-export type Dto2577 = { "resolvedAvatarUrl": (null | string); "roleName": (undefined | string); "roleLevel": (undefined | number); "_id": GenericId<"users">; "_creationTime": number; "authSource"?: (undefined | "local" | "clerk" | "management"); "passwordHash"?: (undefined | string); "clerkUserId"?: (undefined | string); "clerkProvisioningStatus"?: (undefined | "pending" | "provisioned" | "linked_existing" | "reset_required" | "skipped" | "failed"); "clerkProvisioningSource"?: (undefined | string); "clerkProvisioningReason"?: (undefined | string); "clerkProvisioningError"?: (undefined | string); "clerkProvisionedAt"?: (undefined | number); "clerkProvisioningAttemptedAt"?: (undefined | number); "firstName"?: (undefined | string); "lastName"?: (undefined | string); "phone"?: (undefined | string); "profilePictureUrl"?: (undefined | string); "isTaxExempt"?: (undefined | false | true); "taxExemptId"?: (undefined | string); "taxExemptReason"?: (undefined | string); "taxExemptVerifiedAt"?: (undefined | number); "username"?: (undefined | string); "nickname"?: (undefined | string); "displayName"?: (undefined | string); "slug"?: (undefined | string); "bio"?: (undefined | string); "url"?: (undefined | string); "avatarUrl"?: (undefined | string); "avatarMediaId"?: (undefined | GenericId<"media">); "avatarStorageId"?: (undefined | string); "socialLinks"?: (undefined | Dto149); "roleId"?: (undefined | GenericId<"roles">); "deactivatedAt"?: (undefined | number); "deactivatedBy"?: (undefined | GenericId<"users">); "preferences"?: (undefined | Dto150); "locale"?: (undefined | string); "timezone"?: (undefined | string); "postCount"?: (undefined | number); "postCountReady"?: (undefined | false | true); "commentCount"?: (undefined | number); "registrationMethod"?: (undefined | string); "invitedBy"?: (undefined | GenericId<"users">); "emailVerifiedAt"?: (undefined | number); "registeredAt"?: (undefined | number); "lastLoginAt"?: (undefined | number); "lastPasswordChangedAt"?: (undefined | number); "passwordResetRequestedAt"?: (undefined | number); "passwordResetCount"?: (undefined | number); "passwordResetToken"?: (undefined | string); "passwordResetTokenExpiresAt"?: (undefined | number); "internalRole"?: (undefined | string); "isInternal"?: (undefined | false | true); "wpUserId"?: (undefined | number); "wpSourceSiteId"?: (undefined | GenericId<"wordpressSites">); "wpCredentialMigrationStatus"?: (undefined | "provisioned" | "linked_existing" | "reset_required" | "skipped" | "failed" | "unsupported_hash"); "wpCredentialMigrationReason"?: (undefined | string); "wpCredentialPasswordHasher"?: (undefined | string); "wpCredentialMigratedAt"?: (undefined | number); "wpCredentialMigrationError"?: (undefined | string); "updatedAt": number; "createdAt": number; "status": ("active" | "inactive" | "banned"); "email": string; "emailVerified": boolean; };
-export type Dto2578 = { "updated": number; };
-export type Dto2579 = { "updated": number; "errors": Array<Dto2580>; };
-export type Dto2580 = { "userId": string; "error": string; };
-export type Dto2581 = { "deleted": number; "errors": Array<Dto2582>; };
-export type Dto2582 = { "userId": string; "error": string; };
-export type Dto2583 = { "userId": GenericId<"users">; "clerkUserId": string; };
-export type Dto2584 = { "twitter"?: (undefined | string); "facebook"?: (undefined | string); "instagram"?: (undefined | string); "linkedin"?: (undefined | string); "youtube"?: (undefined | string); "github"?: (undefined | string); "website"?: (undefined | string); };
-export type Dto2585 = { "adminColorScheme"?: (undefined | string); "showAdminBar"?: (undefined | false | true); "editorMode"?: (undefined | "code" | "visual"); "emailDigest"?: (undefined | "none" | "immediate" | "daily" | "weekly"); "notifyOnComment"?: (undefined | false | true); "notifyOnReply"?: (undefined | false | true); "notifyOnMention"?: (undefined | false | true); };
-export type Dto2586 = { "total": number; "active": number; "inactive": number; "banned": number; };
-export type Dto2587 = { "resolvedAvatarUrl": (null | string); "_id": GenericId<"users">; "_creationTime": number; "authSource"?: (undefined | "local" | "clerk" | "management"); "passwordHash"?: (undefined | string); "clerkUserId"?: (undefined | string); "email": string; "emailVerified": boolean; "firstName"?: (undefined | string); "lastName"?: (undefined | string); "phone"?: (undefined | string); "profilePictureUrl"?: (undefined | string); "username"?: (undefined | string); "nickname"?: (undefined | string); "displayName"?: (undefined | string); "slug"?: (undefined | string); "bio"?: (undefined | string); "url"?: (undefined | string); "avatarUrl"?: (undefined | string); "avatarMediaId"?: (undefined | GenericId<"media">); "avatarStorageId"?: (undefined | string); "socialLinks"?: (undefined | Dto2517); "roleId"?: (undefined | GenericId<"roles">); "status": ("active" | "inactive" | "banned"); "deactivatedAt"?: (undefined | number); "deactivatedBy"?: (undefined | GenericId<"users">); "preferences"?: (undefined | Dto2518); "locale"?: (undefined | string); "timezone"?: (undefined | string); "postCount"?: (undefined | number); "commentCount"?: (undefined | number); "registrationMethod"?: (undefined | string); "invitedBy"?: (undefined | GenericId<"users">); "emailVerifiedAt"?: (undefined | number); "registeredAt"?: (undefined | number); "lastLoginAt"?: (undefined | number); "lastPasswordChangedAt"?: (undefined | number); "passwordResetRequestedAt"?: (undefined | number); "passwordResetCount"?: (undefined | number); "internalRole"?: (undefined | string); "isInternal"?: (undefined | false | true); "createdAt": number; "updatedAt": number; };
-export type Dto2588 = { "_id": string; "displayName": (undefined | string); "slug": (undefined | string); "bio": (undefined | string); "avatarUrl": (null | string); "url": (undefined | string); "socialLinks": (undefined | Dto206); "status": (undefined | string); };
-export type Dto2589 = { "resolvedAvatarUrl": (null | string); "_id": GenericId<"users">; "_creationTime": number; "authSource"?: (undefined | "local" | "clerk" | "management"); "passwordHash"?: (undefined | string); "clerkUserId"?: (undefined | string); "email": string; "emailVerified": boolean; "firstName"?: (undefined | string); "lastName"?: (undefined | string); "phone"?: (undefined | string); "profilePictureUrl"?: (undefined | string); "username"?: (undefined | string); "nickname"?: (undefined | string); "displayName"?: (undefined | string); "slug"?: (undefined | string); "bio"?: (undefined | string); "url"?: (undefined | string); "avatarUrl"?: (undefined | string); "avatarMediaId"?: (undefined | GenericId<"media">); "avatarStorageId"?: (undefined | string); "socialLinks"?: (undefined | Dto2517); "roleId"?: (undefined | GenericId<"roles">); "status": ("active" | "inactive" | "banned"); "deactivatedAt"?: (undefined | number); "deactivatedBy"?: (undefined | GenericId<"users">); "preferences"?: (undefined | Dto2518); "locale"?: (undefined | string); "timezone"?: (undefined | string); "postCount"?: (undefined | number); "commentCount"?: (undefined | number); "registrationMethod"?: (undefined | string); "invitedBy"?: (undefined | GenericId<"users">); "emailVerifiedAt"?: (undefined | number); "registeredAt"?: (undefined | number); "lastLoginAt"?: (undefined | number); "lastPasswordChangedAt"?: (undefined | number); "passwordResetRequestedAt"?: (undefined | number); "passwordResetCount"?: (undefined | number); "internalRole"?: (undefined | string); "isInternal"?: (undefined | false | true); "createdAt": number; "updatedAt": number; };
-export type Dto2590 = { "users": Array<Dto2591>; "total": number; "page": number; "perPage": number; "totalPages": number; };
-export type Dto2591 = { "resolvedAvatarUrl": (null | string); "roleName": (undefined | string); "roleLevel": (undefined | number); "_id": GenericId<"users">; "_creationTime": number; "authSource"?: (undefined | "local" | "clerk" | "management"); "passwordHash"?: (undefined | string); "clerkUserId"?: (undefined | string); "clerkProvisioningStatus"?: (undefined | "pending" | "provisioned" | "linked_existing" | "reset_required" | "skipped" | "failed"); "clerkProvisioningSource"?: (undefined | string); "clerkProvisioningReason"?: (undefined | string); "clerkProvisioningError"?: (undefined | string); "clerkProvisionedAt"?: (undefined | number); "clerkProvisioningAttemptedAt"?: (undefined | number); "firstName"?: (undefined | string); "lastName"?: (undefined | string); "phone"?: (undefined | string); "profilePictureUrl"?: (undefined | string); "isTaxExempt"?: (undefined | false | true); "taxExemptId"?: (undefined | string); "taxExemptReason"?: (undefined | string); "taxExemptVerifiedAt"?: (undefined | number); "username"?: (undefined | string); "nickname"?: (undefined | string); "displayName"?: (undefined | string); "slug"?: (undefined | string); "bio"?: (undefined | string); "url"?: (undefined | string); "avatarUrl"?: (undefined | string); "avatarMediaId"?: (undefined | GenericId<"media">); "avatarStorageId"?: (undefined | string); "socialLinks"?: (undefined | Dto149); "roleId"?: (undefined | GenericId<"roles">); "deactivatedAt"?: (undefined | number); "deactivatedBy"?: (undefined | GenericId<"users">); "preferences"?: (undefined | Dto150); "locale"?: (undefined | string); "timezone"?: (undefined | string); "postCount"?: (undefined | number); "postCountReady"?: (undefined | false | true); "commentCount"?: (undefined | number); "registrationMethod"?: (undefined | string); "invitedBy"?: (undefined | GenericId<"users">); "emailVerifiedAt"?: (undefined | number); "registeredAt"?: (undefined | number); "lastLoginAt"?: (undefined | number); "lastPasswordChangedAt"?: (undefined | number); "passwordResetRequestedAt"?: (undefined | number); "passwordResetCount"?: (undefined | number); "passwordResetToken"?: (undefined | string); "passwordResetTokenExpiresAt"?: (undefined | number); "internalRole"?: (undefined | string); "isInternal"?: (undefined | false | true); "wpUserId"?: (undefined | number); "wpSourceSiteId"?: (undefined | GenericId<"wordpressSites">); "wpCredentialMigrationStatus"?: (undefined | "provisioned" | "linked_existing" | "reset_required" | "skipped" | "failed" | "unsupported_hash"); "wpCredentialMigrationReason"?: (undefined | string); "wpCredentialPasswordHasher"?: (undefined | string); "wpCredentialMigratedAt"?: (undefined | number); "wpCredentialMigrationError"?: (undefined | string); "updatedAt": number; "createdAt": number; "status": ("active" | "inactive" | "banned"); "email": string; "emailVerified": boolean; };
-export type Dto2592 = { "commerceOrders": number; "formOrders": number; "subscriptionSignups": number; "subscriptionInvoices": number; "emailTemplatesCreated": number; "emailTemplatesUpdated": number; };
-export type Dto2593 = { "items": Array<unknown>; "total": number; "page": number; "perPage": number; "totalPages": number; };
-export type Dto2594 = { "prepMinutes": (undefined | number); "cookMinutes": (undefined | number); "totalMinutes": (undefined | number); "scanMediaId": GenericId<"media">; "aiExtractedFromScan": boolean; "title"?: (undefined | string); "excerpt"?: (undefined | string); "description"?: (undefined | string); "servings"?: (undefined | string); "yieldText"?: (undefined | string); "difficulty"?: (undefined | "medium" | "easy" | "hard"); "ingredients"?: (undefined | Array<string>); "instructions"?: (undefined | Array<string>); "notes"?: (undefined | string); "categorySuggestions"?: (undefined | Array<string>); "scannedText"?: (undefined | string); };
-export type Dto2595 = { "enabled": boolean; "all": number; "draft": number; "published": number; "trash": number; };
-export type Dto2596 = { "categories": Array<(null | Dto2597)>; "_id": GenericId<"recipes">; "_creationTime": number; "description"?: (undefined | string); "excerpt"?: (undefined | string); "featuredImageId"?: (undefined | GenericId<"media">); "publishedAt"?: (undefined | number); "notes"?: (undefined | string); "scanMediaId"?: (undefined | GenericId<"media">); "prepMinutes"?: (undefined | number); "cookMinutes"?: (undefined | number); "totalMinutes"?: (undefined | number); "servings"?: (undefined | string); "yieldText"?: (undefined | string); "difficulty"?: (undefined | "medium" | "easy" | "hard"); "nutrition"?: (undefined | Dto2032); "scannedText"?: (undefined | string); "title": string; "updatedAt": number; "createdAt": number; "status": ("draft" | "trash" | "publish"); "slug": string; "authorId": GenericId<"users">; "instructions": Array<string>; "isFeatured": boolean; "categoryIds": Array<GenericId<"recipe_categories">>; "ingredients": Array<string>; "aiExtractedFromScan": boolean; };
-export type Dto2597 = { "_id": string; "name": string; "slug": string; "color"?: (undefined | string); };
-export type Dto2598 = { "_id": GenericId<"recipes">; "title": string; "slug": string; "excerpt"?: (undefined | string); "description"?: (undefined | string); "featuredImageId"?: (undefined | GenericId<"media">); "categories": Array<Dto2599>; "prepMinutes"?: (undefined | number); "cookMinutes"?: (undefined | number); "totalMinutes"?: (undefined | number); "servings"?: (undefined | string); "yieldText"?: (undefined | string); "difficulty"?: (undefined | "medium" | "easy" | "hard"); "ingredients": Array<string>; "instructions": Array<string>; "notes"?: (undefined | string); "nutrition"?: (undefined | Dto2600); };
-export type Dto2599 = { "_id": GenericId<"recipe_categories">; "name": string; "slug": string; "description"?: (undefined | string); "color"?: (undefined | string); };
-export type Dto2600 = { "calories"?: (undefined | string); "protein"?: (undefined | string); "carbs"?: (undefined | string); "fat"?: (undefined | string); "fiber"?: (undefined | string); "sugar"?: (undefined | string); };
-export type Dto2601 = { "categories": Array<(null | Dto2597)>; };
-export type Dto2602 = { "description"?: (undefined | string); "color"?: (undefined | string); "name": string; "updatedAt": number; "_creationTime": number; "createdAt": number; "slug": string; "recipeCount": number; "_id": GenericId<"recipe_categories">; };
-export type Dto2603 = { "recipes": Array<Dto2598>; "page": number; "perPage": number; "total": number; "totalPages": number; "category": (null | Dto2599); };
-export type Dto2604 = { "deleted": number; };
-export type Dto2605 = { "expired": number; };
-export type Dto2606 = { "firstName"?: (undefined | string); "lastName"?: (undefined | string); "message"?: (undefined | string); "email": string; "role": string; };
-export type Dto2607 = { "error"?: (undefined | string); "invitationId"?: (undefined | string); "email": string; "success": boolean; };
-export type Dto2608 = { "token": string; "invitationId": GenericId<"invitations">; };
-export type Dto2609 = { "total": number; "pending": number; "accepted": number; "expired": number; "revoked": number; };
-export type Dto2610 = { "email": string; "role": string; "message": (null | string); "expiresAt": number; };
-export type Dto2611 = { "inviterName": string; "inviterEmail": (undefined | string); "acceptedUserName": (undefined | string); "acceptedUserEmail": (undefined | string); "revokedByName": (undefined | string); "isEffectivelyExpired": boolean; "_id": GenericId<"invitations">; "_creationTime": number; "message"?: (undefined | string); "previousToken"?: (undefined | string); "previousTokenExpiresAt"?: (undefined | number); "acceptedBy"?: (undefined | GenericId<"users">); "acceptedAt"?: (undefined | number); "revokedAt"?: (undefined | number); "revokedBy"?: (undefined | GenericId<"users">); "resentAt"?: (undefined | number); "createdAt": number; "status": ("pending" | "revoked" | "accepted" | "expired"); "expiresAt": number; "email": string; "invitedBy": GenericId<"users">; "role": string; "token": string; "resentCount": number; };
-export type Dto2612 = { "total": number; "last24h": number; "last7d": number; "last30d": number; "pendingInvitations": number; };
-export type Dto2613 = { "status": ("open" | "closed" | "invite_only"); "canRegister": boolean; "inviteOnly": boolean; "defaultRole": string; "requireEmailVerification": boolean; };
-export type Dto2614 = { "inviterName": string; "inviterEmail"?: (undefined | string); "acceptedUserName"?: (undefined | string); "acceptedUserEmail"?: (undefined | string); "isEffectivelyExpired": boolean; };
-export type Dto2615 = { "deleted": number; };
-export type Dto2616 = { "prunedCount": number; "postsAffected": number; };
-export type Dto2617 = { "success": boolean; };
-export type Dto2618 = { "left": (Dto2619 & Dto2620); "right": (Dto2619 & Dto2620); "parentId": GenericId<"posts">; "parentTitle": string; "totalRevisions": number; };
-export type Dto2619 = { "type": ("manual" | "autosave"); "title": string; "createdAt": number; "content": string; "excerpt"?: (undefined | string); "revisionNumber": number; "changedFields": Array<string>; "contentLength": number; "_id": GenericId<"revisions">; };
-export type Dto2620 = { "details": string; "authorName": string; "authorAvatar"?: (undefined | string); };
-export type Dto2621 = { "authorName": string; "authorAvatar": (undefined | string); "_id": GenericId<"revisions">; "_creationTime": number; "blocks"?: (undefined | Array<Dto1018> | Array<Dto1822>); "composedDefinitions"?: (undefined | Dto1060); "summary"?: (undefined | Dto31); "excerpt"?: (undefined | string); "featuredImageId"?: (undefined | GenericId<"media">); "pageTemplate"?: (undefined | string); "pageSections"?: unknown; "contentMode"?: (undefined | "blocks" | "article"); "blocksVersion"?: (undefined | number); "blocksRevision"?: (undefined | number); "layoutId"?: (undefined | string); "hideHeader"?: (undefined | false | true); "hideFooter"?: (undefined | false | true); "autosaveContent"?: (undefined | string); "autosaveTitle"?: (undefined | string); "autosavedAt"?: (undefined | number); "hero"?: (undefined | Dto29); "topics"?: (undefined | Array<Dto30>); "sources"?: (undefined | string); "tableOfContents"?: (undefined | string); "pagePrompt"?: (undefined | string); "snapshotVersion"?: (undefined | 1 | 2); "type": ("manual" | "autosave"); "title": string; "createdAt": number; "authorId": string; "parentId": GenericId<"posts">; "content": string; "parentType": ("post" | "page"); "revisionNumber": number; "changedFields": Array<string>; "contentLength": number; };
-export type Dto2622 = { "authorName": string; "authorAvatar": (undefined | string); "_id": GenericId<"revisions">; "_creationTime": number; "blocks"?: (undefined | Array<Dto1018> | Array<Dto1822>); "composedDefinitions"?: (undefined | Dto1060); "summary"?: (undefined | Dto31); "excerpt"?: (undefined | string); "featuredImageId"?: (undefined | GenericId<"media">); "pageTemplate"?: (undefined | string); "pageSections"?: unknown; "contentMode"?: (undefined | "blocks" | "article"); "blocksVersion"?: (undefined | number); "blocksRevision"?: (undefined | number); "layoutId"?: (undefined | string); "hideHeader"?: (undefined | false | true); "hideFooter"?: (undefined | false | true); "autosaveContent"?: (undefined | string); "autosaveTitle"?: (undefined | string); "autosavedAt"?: (undefined | number); "hero"?: (undefined | Dto29); "topics"?: (undefined | Array<Dto30>); "sources"?: (undefined | string); "tableOfContents"?: (undefined | string); "pagePrompt"?: (undefined | string); "snapshotVersion"?: (undefined | 1 | 2); "type": ("manual" | "autosave"); "title": string; "createdAt": number; "authorId": string; "parentId": GenericId<"posts">; "content": string; "parentType": ("post" | "page"); "revisionNumber": number; "changedFields": Array<string>; "contentLength": number; };
-export type Dto2623 = { "revisions": Array<(Dto2094 & Dto2624)>; "total": number; "hasMore": boolean; };
-export type Dto2624 = { "details": string; "authorName": string; "authorAvatar": (undefined | string); };
-export type Dto2625 = { "updated": boolean; "reason": string; "added"?: undefined; };
-export type Dto2626 = { "updated": boolean; "added": Array<string>; "reason"?: undefined; };
-export type Dto2627 = { "message": string; "migrated": number; "failed": number; "errors": (undefined | Array<string>); };
-export type Dto2628 = { "message": string; "updated": Array<string>; "created": Array<string>; };
-export type Dto2629 = { "message": string; "created": Array<string>; "skipped": Array<string>; };
-export type Dto2630 = { "userId": GenericId<"users">; "success": boolean; "newRole": string; };
-export type Dto2631 = { "success": boolean; "role": string; "capability": ("post.publish" | "post.unpublish" | "auth.login" | "search.query" | "auth.logout" | "post.create" | "post.read" | "post.update" | "post.delete" | "post.schedule" | "post.trash" | "post.restore" | "post.duplicate" | "post.bulk_delete" | "post.bulk_publish" | "post.preview" | "page.create" | "page.read" | "page.read_private" | "page.update" | "page.delete" | "page.publish" | "page.reorder" | "page.set_parent" | "media.read" | "media.upload" | "media.update" | "media.delete" | "media.crop" | "media.bulk_delete" | "taxonomy.create_category" | "taxonomy.update_category" | "taxonomy.delete_category" | "taxonomy.create_tag" | "taxonomy.update_tag" | "taxonomy.delete_tag" | "taxonomy.assign" | "taxonomy.unassign" | "taxonomy.merge" | "comment.create" | "comment.read" | "comment.update" | "comment.delete" | "comment.reply" | "comment.approve" | "comment.reject" | "comment.spam" | "comment.flag" | "comment.like" | "comment.bulk_approve" | "comment.bulk_delete" | "comment.bulk_spam" | "role.create" | "role.update" | "role.delete" | "role.assign" | "role.grant_capability" | "role.revoke_capability" | "profile.view" | "profile.update" | "profile.upload_avatar" | "profile.deactivate" | "profile.delete_user" | "profile.bulk_delete" | "auth.oauth_login" | "auth.refresh_session" | "auth.verify_email" | "password.change" | "password.reset" | "password.request_reset" | "registration.register" | "registration.invite" | "registration.resend_verification" | "dashboard.view" | "dashboard.quick_draft" | "dashboard.dismiss_widget" | "dashboard.reorder_widgets" | "editor.add_block" | "editor.remove_block" | "editor.reorder_blocks" | "editor.save_draft" | "editor.save_reusable" | "editor.autosave" | "blocks.compose" | "blocks.ai" | "blocks.promote" | "custom_field.create_group" | "custom_field.update_group" | "custom_field.delete_group" | "custom_field.set_value" | "custom_field.read_value" | "revision.view" | "revision.compare" | "revision.restore" | "revision.delete" | "seo.update_post" | "seo.update_global" | "seo.update_robots" | "seo.generate_sitemap" | "search.reindex" | "menu.create" | "menu.update" | "menu.delete" | "menu.add_item" | "menu.update_item" | "menu.delete_item" | "menu.reorder" | "menu.assign_location" | "settings.update_general" | "settings.update_reading" | "settings.update_writing" | "settings.update_discussion" | "settings.update_permalinks" | "settings.update_privacy" | "settings.update_email" | "settings.export" | "settings.import" | "email.send" | "email.queue" | "email.retry" | "email.update_template" | "notification.send" | "notification.mark_read" | "notification.mark_all_read" | "notification.delete" | "notification.update_preferences" | "audit.view" | "audit.export" | "audit.clear" | "api.create_key" | "api.revoke_key" | "api.create_webhook" | "api.update_webhook" | "api.delete_webhook" | "api.test_webhook" | "event.emit" | "event.register_listener" | "event.remove_listener" | "routing.view_redirects" | "routing.create_redirect" | "routing.update_redirect" | "routing.delete_redirect" | "analytics.view" | "analytics.manage" | "kb.view" | "kb.create" | "kb.edit" | "kb.editOwn" | "kb.delete" | "kb.publish" | "kb.manageCategories" | "kb.manageTags" | "kb.manageCollections" | "kb.manageWorkflows" | "kb.manageTemplates" | "kb.moderateComments" | "kb.viewAnalytics" | "lms.course.view" | "lms.course.create" | "lms.course.edit" | "lms.course.publish" | "lms.course.delete" | "lms.lesson.edit" | "lms.lesson.delete" | "lms.builder.manage" | "lms.ai.generate" | "lms.enroll.manage" | "lms.certificate.manage" | "lms.settings.manage" | "ticket.view" | "ticket.viewAll" | "ticket.respond" | "ticket.assign" | "ticket.updateStatus" | "ticket.updatePriority" | "ticket.close" | "ticket.manageCannedResponses" | "ticket.viewAnalytics" | "ticket.viewInternalNotes" | "form.view" | "form.create" | "form.update" | "form.delete" | "form.duplicate" | "form.view_entries" | "form.edit_entry" | "form.delete_entry" | "form.manage_notifications" | "form.manage_confirmations" | "form.manage_actions" | "form.view_analytics" | "form.export_entries" | "form.manage_security" | "commerce.returns.view" | "commerce.returns.review" | "commerce.returns.receive" | "commerce.returns.refund" | "commerce.returns.manage" | "commerce.bundles.view" | "commerce.bundles.create" | "commerce.bundles.edit" | "commerce.bundles.delete" | "commerce.reviews.view" | "commerce.reviews.moderate" | "commerce.reviews.delete" | "commerce.wishlists.view" | "commerce.wishlists.manage" | "commerce.tax.view" | "commerce.tax.manage" | "commerce.customers.tax_exempt" | "commerce.discount.view" | "commerce.discount.create" | "commerce.discount.update" | "commerce.discount.delete" | "commerce.discount.apply" | "manage_options" | "shipping.zones.manage" | "shipping.zones.read" | "shipping.classes.manage" | "shipping.classes.read" | "shipping.packages.manage" | "shipping.packages.read" | "shipping.locations.manage" | "shipping.locations.read" | "shipping.address_validation.manage" | "shipping.address_validation.read" | "shipping.rules.manage" | "shipping.rules.read" | "shipping.diagnostics.view" | "shipping.test_rates.run" | "shipping.methods.manage" | "shipping.methods.read" | "shipping.methods.preview" | "shipping.methods.test" | "shipping.methods.quote" | "shipping.providers.manage" | "shipping.providers.read" | "shipping.providers.test" | "shipping.labels.purchase" | "shipping.labels.void" | "shipping.labels.reprint" | "shipping.labels.batch" | "shipping.labels.read" | "shipping.tracking.view" | "shipping.tracking.sync" | "shipping.manifests.view" | "shipping.manifests.close" | "shipping.manifests.reprint" | "post.edit" | "post.delete_one" | "post.publish_one" | "page.edit" | "media.edit" | "media.delete_one" | "comment.edit" | "comment.delete_one" | "seo.edit_post" | "custom_field.edit_value"); "alreadyGranted": boolean; };
-export type Dto2632 = { "success": boolean; "role": string; "capability": ("post.publish" | "post.unpublish" | "auth.login" | "search.query" | "auth.logout" | "post.create" | "post.read" | "post.update" | "post.delete" | "post.schedule" | "post.trash" | "post.restore" | "post.duplicate" | "post.bulk_delete" | "post.bulk_publish" | "post.preview" | "page.create" | "page.read" | "page.read_private" | "page.update" | "page.delete" | "page.publish" | "page.reorder" | "page.set_parent" | "media.read" | "media.upload" | "media.update" | "media.delete" | "media.crop" | "media.bulk_delete" | "taxonomy.create_category" | "taxonomy.update_category" | "taxonomy.delete_category" | "taxonomy.create_tag" | "taxonomy.update_tag" | "taxonomy.delete_tag" | "taxonomy.assign" | "taxonomy.unassign" | "taxonomy.merge" | "comment.create" | "comment.read" | "comment.update" | "comment.delete" | "comment.reply" | "comment.approve" | "comment.reject" | "comment.spam" | "comment.flag" | "comment.like" | "comment.bulk_approve" | "comment.bulk_delete" | "comment.bulk_spam" | "role.create" | "role.update" | "role.delete" | "role.assign" | "role.grant_capability" | "role.revoke_capability" | "profile.view" | "profile.update" | "profile.upload_avatar" | "profile.deactivate" | "profile.delete_user" | "profile.bulk_delete" | "auth.oauth_login" | "auth.refresh_session" | "auth.verify_email" | "password.change" | "password.reset" | "password.request_reset" | "registration.register" | "registration.invite" | "registration.resend_verification" | "dashboard.view" | "dashboard.quick_draft" | "dashboard.dismiss_widget" | "dashboard.reorder_widgets" | "editor.add_block" | "editor.remove_block" | "editor.reorder_blocks" | "editor.save_draft" | "editor.save_reusable" | "editor.autosave" | "blocks.compose" | "blocks.ai" | "blocks.promote" | "custom_field.create_group" | "custom_field.update_group" | "custom_field.delete_group" | "custom_field.set_value" | "custom_field.read_value" | "revision.view" | "revision.compare" | "revision.restore" | "revision.delete" | "seo.update_post" | "seo.update_global" | "seo.update_robots" | "seo.generate_sitemap" | "search.reindex" | "menu.create" | "menu.update" | "menu.delete" | "menu.add_item" | "menu.update_item" | "menu.delete_item" | "menu.reorder" | "menu.assign_location" | "settings.update_general" | "settings.update_reading" | "settings.update_writing" | "settings.update_discussion" | "settings.update_permalinks" | "settings.update_privacy" | "settings.update_email" | "settings.export" | "settings.import" | "email.send" | "email.queue" | "email.retry" | "email.update_template" | "notification.send" | "notification.mark_read" | "notification.mark_all_read" | "notification.delete" | "notification.update_preferences" | "audit.view" | "audit.export" | "audit.clear" | "api.create_key" | "api.revoke_key" | "api.create_webhook" | "api.update_webhook" | "api.delete_webhook" | "api.test_webhook" | "event.emit" | "event.register_listener" | "event.remove_listener" | "routing.view_redirects" | "routing.create_redirect" | "routing.update_redirect" | "routing.delete_redirect" | "analytics.view" | "analytics.manage" | "kb.view" | "kb.create" | "kb.edit" | "kb.editOwn" | "kb.delete" | "kb.publish" | "kb.manageCategories" | "kb.manageTags" | "kb.manageCollections" | "kb.manageWorkflows" | "kb.manageTemplates" | "kb.moderateComments" | "kb.viewAnalytics" | "lms.course.view" | "lms.course.create" | "lms.course.edit" | "lms.course.publish" | "lms.course.delete" | "lms.lesson.edit" | "lms.lesson.delete" | "lms.builder.manage" | "lms.ai.generate" | "lms.enroll.manage" | "lms.certificate.manage" | "lms.settings.manage" | "ticket.view" | "ticket.viewAll" | "ticket.respond" | "ticket.assign" | "ticket.updateStatus" | "ticket.updatePriority" | "ticket.close" | "ticket.manageCannedResponses" | "ticket.viewAnalytics" | "ticket.viewInternalNotes" | "form.view" | "form.create" | "form.update" | "form.delete" | "form.duplicate" | "form.view_entries" | "form.edit_entry" | "form.delete_entry" | "form.manage_notifications" | "form.manage_confirmations" | "form.manage_actions" | "form.view_analytics" | "form.export_entries" | "form.manage_security" | "commerce.returns.view" | "commerce.returns.review" | "commerce.returns.receive" | "commerce.returns.refund" | "commerce.returns.manage" | "commerce.bundles.view" | "commerce.bundles.create" | "commerce.bundles.edit" | "commerce.bundles.delete" | "commerce.reviews.view" | "commerce.reviews.moderate" | "commerce.reviews.delete" | "commerce.wishlists.view" | "commerce.wishlists.manage" | "commerce.tax.view" | "commerce.tax.manage" | "commerce.customers.tax_exempt" | "commerce.discount.view" | "commerce.discount.create" | "commerce.discount.update" | "commerce.discount.delete" | "commerce.discount.apply" | "manage_options" | "shipping.zones.manage" | "shipping.zones.read" | "shipping.classes.manage" | "shipping.classes.read" | "shipping.packages.manage" | "shipping.packages.read" | "shipping.locations.manage" | "shipping.locations.read" | "shipping.address_validation.manage" | "shipping.address_validation.read" | "shipping.rules.manage" | "shipping.rules.read" | "shipping.diagnostics.view" | "shipping.test_rates.run" | "shipping.methods.manage" | "shipping.methods.read" | "shipping.methods.preview" | "shipping.methods.test" | "shipping.methods.quote" | "shipping.providers.manage" | "shipping.providers.read" | "shipping.providers.test" | "shipping.labels.purchase" | "shipping.labels.void" | "shipping.labels.reprint" | "shipping.labels.batch" | "shipping.labels.read" | "shipping.tracking.view" | "shipping.tracking.sync" | "shipping.manifests.view" | "shipping.manifests.close" | "shipping.manifests.reprint" | "post.edit" | "post.delete_one" | "post.publish_one" | "page.edit" | "media.edit" | "media.delete_one" | "comment.edit" | "comment.delete_one" | "seo.edit_post" | "custom_field.edit_value"); "alreadyGranted"?: undefined; };
-export type Dto2633 = { "success": boolean; "deletedRole": string; };
-export type Dto2634 = { "success": boolean; "role": string; "capability": string; "alreadyRevoked": boolean; };
-export type Dto2635 = { "success": boolean; "role": string; "capability": string; "alreadyRevoked"?: undefined; };
-export type Dto2636 = { "targetUserName": string; "changedByName": string; "oldRoleName": string; "newRoleName": string; "_id": GenericId<"roleChanges">; "_creationTime": number; "reason"?: (undefined | string); "oldRoleId"?: (undefined | GenericId<"roles">); "userId": GenericId<"users">; "newRoleId": GenericId<"roles">; "changedBy": GenericId<"users">; "timestamp": number; };
-export type Dto2637 = { "_id": GenericId<"roles">; "_creationTime": number; "name": string; "slug": string; "description": string; "level": number; "type": ("internal" | "customer" | "system"); "isDefault": boolean; "isProtected": boolean; "status": ("active" | "inactive"); "capabilities": Array<string>; "pageAccess": Array<string>; "userCount": number; };
-export type Dto2638 = { "userCount": number; "_id": GenericId<"roles">; "_creationTime": number; "createdBy"?: (undefined | GenericId<"users">); "airtableRecordId"?: (undefined | string); "type": ("internal" | "customer" | "system"); "name": string; "updatedAt": number; "createdAt": number; "status": ("active" | "inactive"); "slug": string; "description": string; "level": number; "isDefault": boolean; "isProtected": boolean; "capabilities": Array<string>; "pageAccess": Array<string>; };
-export type Dto2639 = { [key: string]: number; };
-export type Dto2640 = { "sourceUrl": string; "targetUrl": string; };
-export type Dto2641 = { "created": number; "skipped": number; };
-export type Dto2642 = { "deletedCount": number; };
-export type Dto2643 = { "_resolvedTargetUrl": string; "_id": GenericId<"redirects">; "_creationTime": number; "updatedBy"?: (undefined | GenericId<"users">); "createdBy"?: (undefined | GenericId<"users">); "note"?: (undefined | string); "contentType"?: (undefined | "category" | "post" | "page" | "tag" | "author"); "contentId"?: (undefined | string); "lastHitAt"?: (undefined | number); "updatedAt": number; "createdAt": number; "enabled": boolean; "source": ("import" | "manual" | "slug_change" | "permalink_change"); "statusCode": (301 | 302 | 307 | 308); "matchType": ("exact" | "prefix" | "regex"); "sourceUrl": string; "targetUrl": string; "hitCount": number; };
-export type Dto2644 = { "dismissed": number; "skipped": number; "errors": number; };
-export type Dto2645 = { "success": boolean; };
-export type Dto2646 = { "_id": string; "sourceUrl": string; "targetUrl": string; "statusCode": number; "matchType": ("exact" | "prefix" | "regex"); "_resolvedTargetUrl"?: (undefined | string); };
-export type Dto2647 = { "entries": Array<Dto2091>; "total": number; "page": number; "perPage": number; "totalPages": number; };
-export type Dto2648 = { "redirects": Array<Dto1848>; "total": number; "page": number; "perPage": number; "totalPages": number; };
-export type Dto2649 = { "totalRedirects": number; "activeRedirects": number; "totalHits": number; "total404s": number; "unresolved404s": number; "topRedirects": Array<Dto1848>; };
-export type Dto2650 = { "updated": true; };
-export type Dto2651 = { "failure"?: (undefined | Dto2652); "status": ("failed" | "completed" | "running"); "duration": number; "sequence": number; "processed": number; "jobId": string; "contentType": (null | "event" | "media" | "post" | "page" | "comment" | "course" | "product"); "indexed": Dto2653; "removed": number; "failedAttempts": number; "errors": number; "needsRestart": boolean; };
-export type Dto2652 = { "contentType": ("event" | "media" | "post" | "page" | "comment" | "course" | "product"); "contentId": string; };
-export type Dto2653 = { "event": number; "media": number; "post": number; "page": number; "comment": number; "course": number; "product": number; };
-export type Dto2654 = { "bytes": number; "page": Array<Dto2655>; "rows": number; "isDone": boolean; "continueCursor": string; };
-export type Dto2655 = { "contentType": ("event" | "media" | "post" | "page" | "comment" | "course" | "product"); "contentId": string; };
-export type Dto2656 = { "cursor": (null | string); "processed": number; "isDone": boolean; };
-export type Dto2657 = { "removed": number; "isDone": boolean; };
-export type Dto2658 = { "purged": number; };
-export type Dto2659 = { "processed": unknown; "cursor": unknown; };
-export type Dto2660 = { "results": Array<never>; "query": string; "total": number; "page": number; "perPage": number; "totalPages": number; "filters": Dto2661; };
-export type Dto2661 = { "contentType"?: undefined; "status"?: undefined; "authorId"?: undefined; };
-export type Dto2662 = { "results": Array<Dto2663>; "query": string; "total": number; "page": number; "perPage": number; "totalPages": number; "filters": Dto2664; };
-export type Dto2663 = { "contentType": ("event" | "media" | "post" | "page" | "comment" | "course" | "product"); "contentId": string; "title": string; "excerpt": string; "url": string; "authorName": string; "authorId": string; "status": string; "publishedAt": (null | number); "categoryNames": (undefined | Array<string>); "tagNames": (undefined | Array<string>); "mimeType": (undefined | string); "relevanceScore": number; };
-export type Dto2664 = { "contentType": (undefined | "event" | "media" | "post" | "page" | "comment" | "course" | "product"); "status": (undefined | string); "authorId": (undefined | string); };
-export type Dto2665 = { "summary": Dto2666; "topQueries": Array<Dto2667>; "zeroResultQueries": Array<Dto2668>; "volumeByDay": Array<Dto2669>; "sourceBreakdown": Dto2670; };
-export type Dto2666 = { "totalSearches": number; "uniqueQueries": number; "averageResultCount": number; "clickThroughRate": number; "zeroResultRate": number; };
-export type Dto2667 = { "query": string; "count": number; "avgResults": number; "clickRate": number; };
-export type Dto2668 = { "query": string; "count": number; };
-export type Dto2669 = { "date": string; "count": number; };
-export type Dto2670 = { "website": number; "admin": number; "api": number; };
-export type Dto2671 = { "page": number; "query": string; "total": number; "filters": Dto2672; "perPage": number; "totalPages": number; "displayLease": (null | Dto2673); "viewerSubject": (null | string); "results": Array<Dto2674>; };
-export type Dto2672 = { "category"?: (undefined | string); "tag"?: (undefined | string); "contentType"?: (undefined | "event" | "media" | "post" | "page" | "comment" | "course" | "product"); "author"?: (undefined | string); "dateFrom"?: (undefined | number); "dateTo"?: (undefined | number); };
-export type Dto2673 = { "expiresAt": number; "evaluatedAt": number; };
-export type Dto2674 = { "mimeType"?: (undefined | string); "categoryNames"?: (undefined | Array<string>); "tagNames"?: (undefined | Array<string>); "title": string; "url": string; "excerpt": string; "publishedAt": (null | number); "authorName": string; "contentType": ("event" | "media" | "post" | "page" | "comment" | "course" | "product"); "contentId": string; };
-export type Dto2675 = { "suggestions": Array<Dto2676>; };
-export type Dto2676 = { "type": "content"; "text": string; "contentType": ("event" | "media" | "post" | "page" | "comment" | "course" | "product"); };
-export type Dto2677 = { "postId": string; "postTitle": string; };
-export type Dto2678 = { "seoTitle": (null | string); "seoDescription": (null | string); "focusKeyphrase": (null | string); "additionalKeyphrases": Array<string>; "canonical": (null | string); "noindex": (null | false | true); "nofollow": (null | false | true); "ogTitle": (null | string); "ogDescription": (null | string); "ogImage": (null | string); "twitterTitle": (null | string); "twitterDescription": (null | string); "twitterImage": (null | string); "schemaType": (null | string); "schemaArticleType": (null | string); "seoScore": (null | number); "readabilityScore": (null | number); "cornerstone": boolean; };
-export type Dto2679 = { "titles": Dto2680; "social": Dto2681; "robots": Dto2682; "schema": Dto2683; "breadcrumbs": Dto2684; "verification": Dto2685; "advanced": Dto2686; };
-export type Dto2680 = { "separator": string; "siteTitle": string; "tagline": string; "homepageTitle": string; "homepageDescription": string; "postTitleTemplate": string; "pageTitleTemplate": string; "categoryTitleTemplate": string; "tagTitleTemplate": string; "authorTitleTemplate": string; "searchTitleTemplate": string; "notFoundTitleTemplate": string; "dateArchiveTitleTemplate": string; "postNoindex": boolean; "pageNoindex": boolean; "categoryNoindex": boolean; "tagNoindex": boolean; "authorArchiveNoindex": boolean; "dateArchiveNoindex": boolean; };
-export type Dto2681 = { "organizationName": string; "organizationLogo": string; "facebookUrl": string; "twitterUsername": string; "instagramUrl": string; "linkedinUrl": string; "youtubeUrl": string; "pinterestUrl": string; "defaultOgImage": string; "twitterCardType": ("summary" | "summary_large_image"); "facebookAppId": string; };
-export type Dto2682 = { "customRules": string; "siteNoindex": boolean; "blockAiBots": boolean; };
-export type Dto2683 = { "representType": ("organization" | "person"); "organizationName": string; "organizationLogoUrl": string; "personName": string; "personImageUrl": string; "defaultArticleType": ("Article" | "BlogPosting" | "NewsArticle" | "TechArticle"); "defaultPageType": ("WebPage" | "AboutPage" | "ContactPage" | "FAQPage" | "CollectionPage" | "ItemPage" | "ProfilePage" | "SearchResultsPage" | "CheckoutPage"); "sitelinksSearchBox": boolean; };
-export type Dto2684 = { "enabled": boolean; "separator": string; "homeAnchorText": string; "showBlogPage": boolean; "boldLastItem": boolean; };
-export type Dto2685 = { "googleSiteVerification": string; "bingSiteVerification": string; "pinterestVerification": string; "yandexVerification": string; };
-export type Dto2686 = { "stripCategoryBase": boolean; "redirectAttachmentUrls": boolean; "cleanPermalinkFragments": boolean; "nofollowExternalLinks": boolean; "openExternalLinksNewTab": boolean; };
-export type Dto2687 = { "authorName": string; "authorUrl": string; "authorImageUrl": (undefined | string); "title": string; "description": string; "canonical": string; "noindex": boolean; "nofollow": boolean; "robots": string; "ogTitle": string; "ogDescription": string; "ogImage": (null | string); "ogType": string; "ogUrl": string; "ogSiteName": string; "twitterCard": string; "twitterTitle": string; "twitterDescription": string; "twitterImage": (null | string); "twitterSite": (null | string); "schemaType": string; "schemaArticleType": (null | string); "cornerstone": boolean; "focusKeyphrase": (null | string); "seoScore": (null | number); "readabilityScore": (null | number); };
-export type Dto2688 = { "success": boolean; "message": string; };
-export type Dto2689 = { "success": boolean; "key": ("schema" | "verification" | "social" | "titles" | "robots" | "breadcrumbs" | "advanced"); };
-export type Dto2690 = { "success": boolean; "updatedKeys": Array<string>; };
-export type Dto2691 = { "success": boolean; };
-export type Dto2692 = { "totalPublished": number; "totalIndexed": number; "scoreDistribution": Dto2693; "issues": Dto2694; "cornerstoneCount": number; "recentPosts": Array<Dto2695>; };
-export type Dto2693 = { "good": number; "ok": number; "poor": number; "noData": number; };
-export type Dto2694 = { "missingDescription": number; "missingKeyphrase": number; "noindexCount": number; };
-export type Dto2695 = { "postId": string; "title": string; "type": string; "slug": string; "seoScore": (null | number); "readabilityScore": (null | number); "hasKeyphrase": boolean; "hasDescription": boolean; "noindex": boolean; "cornerstone": boolean; "updatedAt": number; };
-export type Dto2696 = { "key": ("schema" | "verification" | "social" | "titles" | "robots" | "breadcrumbs" | "advanced"); "value": Dto2697; "updatedAt": (null | number); "updatedBy": (null | string); };
-export type Dto2697 = {  };
-export type Dto2698 = { "_id": (null | GenericId<"settings">); "updatedAt": (null | number); "updatedBy": (null | GenericId<"users">); };
-export type Dto2699 = { "siteTitle": unknown; "tagline": unknown; "siteUrl": unknown; "homeUrl": unknown; "membershipEnabled": unknown; "siteLanguage": unknown; "timezone": unknown; "dateFormat": unknown; "timeFormat": unknown; "weekStartsOn": unknown; "homepageDisplays": unknown; "homepageId": unknown; "postsPageId": unknown; "postsPerPage": unknown; "feedItemCount": unknown; "feedContentDisplay": unknown; "searchEngineVisibility": unknown; "allowComments": unknown; "requireNameEmail": unknown; "requireRegistration": unknown; "enableThreadedComments": unknown; "threadedCommentsDepth": unknown; "commentOrder": unknown; "showAvatars": unknown; "avatarRating": unknown; "defaultAvatar": unknown; "permalinkStructure": unknown; "categoryBase": unknown; "tagBase": unknown; "privacyPolicyPageId": unknown; "showPrivacyPolicyLink": unknown; "plugins": Dto2700; };
-export type Dto2700 = { "commerceEnabled": unknown; "commerceSubscriptionsEnabled": unknown; "commerceDigitalEnabled": unknown; "commerceReviewsEnabled": unknown; "commerceWishlistsEnabled": unknown; "commerceBundlesEnabled": unknown; "commerceReturnsEnabled": unknown; "membershipEnabled": unknown; "knowledgeBaseEnabled": unknown; "ticketsEnabled": unknown; "customFieldsEnabled": unknown; "recipesEnabled": unknown; "galleryEnabled": unknown; "formsEnabled": unknown; };
-export type Dto2701 = { "success": boolean; "detail"?: (undefined | string); };
-export type Dto2702 = { "upgraded": number; "sections": Array<string>; };
-export type Dto2703 = { "_id": (null | GenericId<"settings">); "updatedAt": (null | number); "updatedBy": (null | GenericId<"users">); };
-export type Dto2704 = { "migrated": boolean; };
-export type Dto2705 = { "imported": Array<string>; "skipped": Array<string>; };
-export type Dto2706 = { "version": string; "exportedAt": number; "exportedBy": string; "settings": Dto2707; };
-export type Dto2707 = { [key: string]: Dto108; };
-export type Dto2708 = { "values": (null | Dto1022); "_id": GenericId<"settings">; "_creationTime": number; "legacyAppearanceMigration"?: (undefined | Dto1835); "updatedAt": number; "updatedBy": GenericId<"users">; "section": ("layout" | "blocks" | "email" | "media" | "general" | "reading" | "writing" | "discussion" | "permalinks" | "privacy" | "analytics" | "ai" | "plugins" | "membership.general" | "search" | "kb.general" | "kb.features" | "kb.search" | "ticket.general" | "ticket.sla" | "support.widget" | "support.ai" | "header" | "footer" | "commerce.general" | "commerce.payments" | "commerce.assistant" | "commerce.layout" | "appearance.template" | "brand" | "commerce.subscriptions.counters" | "integrations.shipping" | "integrations.shipping.shipstation" | "integrations.shipping.ups" | "integrations.shipping.usps" | "integrations.shipping.fedex" | "integrations.shipping.dhl" | "integrations.clerk" | "integrations.google" | "dashboard" | "analytics.ga4"); };
-export type Dto2709 = { [key: string]: unknown; };
-export type Dto2710 = { "siteTitle": (undefined | string); "tagline": (undefined | string); "siteUrl": (undefined | string); "homeUrl": (undefined | string); "logoUrl": (undefined | string); "siteLogo": (undefined | string); "membershipEnabled": (undefined | false | true); "siteLanguage": (undefined | string); "timezone": (undefined | string); "dateFormat": (undefined | string); "timeFormat": (undefined | string); "weekStartsOn": (undefined | number); "homepageDisplays": (undefined | string); "homepageId": (undefined | string); "postsPageId": (undefined | string); "postsPerPage": (undefined | number); "feedItemCount": (undefined | number); "feedContentDisplay": (undefined | string); "searchEngineVisibility": (undefined | false | true); "allowComments": (undefined | false | true); "requireNameEmail": (undefined | false | true); "requireRegistration": (undefined | false | true); "enableThreadedComments": (undefined | false | true); "threadedCommentsDepth": (undefined | number); "commentOrder": (undefined | string); "showAvatars": (undefined | false | true); "avatarRating": (undefined | string); "defaultAvatar": (undefined | string); "permalinkStructure": (undefined | string); "categoryBase": (undefined | string); "tagBase": (undefined | string); "privacyPolicyPageId": (undefined | string); "showPrivacyPolicyLink": (undefined | false | true); "headerConfig": Dto108; "footerConfig": Dto108; "colorPalette": Array<Dto2711>; "plugins": Dto2712; "dashboardConfig": Dto2713; "blocksConfig": Dto2714; "commerceConfig": Dto2715; "assistantConfig": Dto2713; "layoutConfig": Dto2716; "templateConfig": Dto2717; "brandConfig": Dto2721; };
-export type Dto2711 = { "slug": string; "color": unknown; };
-export type Dto2712 = { [key: string]: boolean; };
-export type Dto2713 = { [key: string]: unknown; };
-export type Dto2714 = { "disabledBlockNames": unknown; };
-export type Dto2715 = { "storeName": (undefined | string); "storeEmail": (undefined | string); "currencyCode": (undefined | string); "currencySymbol": (undefined | string); "pricesIncludeTax": (undefined | false | true); "taxRateBasis": (undefined | string); "defaultCountryCode": (undefined | string); "defaultState": (undefined | string); "checkoutRequiresPhone": (undefined | false | true); "allowGuestCheckout": (undefined | false | true); "shippingEnabled": (undefined | false | true); "shippingMethods": unknown; "paymentMethods": unknown; "preferredProvider": (undefined | string); "liveRatesEnabled": (undefined | false | true); "fallbackToManualRates": (undefined | false | true); "fallbackMessage": (undefined | string); "cheapestBadgeLabel": (undefined | string); "fastestBadgeLabel": (undefined | string); "bestOptionBadgeLabel": (undefined | string); };
-export type Dto2716 = { "gridDensity"?: (undefined | Dto1734); "cartPanel"?: (undefined | Dto1734); "productLayout"?: (undefined | string); "shopLayout"?: (undefined | string); };
-export type Dto2717 = { "active": string; "overrides": Dto206; "variants": Dto206; "settings": Dto2718; };
-export type Dto2718 = { [key: string]: Dto2719; };
-export type Dto2719 = { [key: string]: Dto2720; };
-export type Dto2720 = { [key: string]: unknown; };
-export type Dto2721 = { "typography": unknown; "density": unknown; "radius": unknown; "industry": unknown; };
-export type Dto2722 = { "values": unknown; "variants": Dto206; "sourceRevision": string; "revision": string; "updatedAt": number; };
-export type Dto2723 = { "websiteKey": string; "instanceKey": string; "revision": string; "environmentKind": "staging"; };
-export type Dto2724 = { "values": Dto2717; "revision": string; "identity": (null | Dto2725); };
-export type Dto2725 = { "websiteKey": string; "instanceKey": string; "environmentKind": ("local" | "custom" | "live" | "staging" | "beta" | "preview" | "development"); };
-export type Dto2726 = { "revision": string; };
-export type Dto2727 = { "success": boolean; "provider": string; "shipmentId": unknown; "trackingNumber": unknown; "labelUrl": unknown; };
-export type Dto2728 = { "firstName"?: (undefined | string); "lastName"?: (undefined | string); "phone"?: (undefined | string); "company"?: (undefined | string); "line2"?: (undefined | string); "state"?: (undefined | string); "line1": string; "city": string; "postalCode": string; "countryCode": string; };
-export type Dto2729 = { "fallbackMessage"?: (undefined | string); "provider": ("live" | "manual_fallback"); "success": boolean; "fellBackToManual": boolean; "stages": Array<Dto2730>; "providerResults": Array<null>; "quotes": Array<Dto2731>; "aggregatedProviders": Array<null>; "matchedZone": (null | Dto2732); };
-export type Dto2730 = { "detail"?: (undefined | string); "startedAt": number; "success": boolean; "durationMs": number; "stage": string; };
-export type Dto2731 = { "expiresAt"?: (undefined | number); "addressKey"?: (undefined | string); "cartKey"?: (undefined | string); "estimatedDaysMin"?: (undefined | number); "estimatedDaysMax"?: (undefined | number); "deliveryDateEstimated"?: (undefined | number); "provider": string; "amount": number; "quoteKey": string; "carrierCode": string; "carrierName": string; "serviceCode": string; "serviceName": string; "currency": string; "isCheapest": boolean; "isFastest": boolean; "isBestValue": boolean; };
-export type Dto2732 = { "name": string; "_id": GenericId<"commerce_shipping_zones">; };
-export type Dto2733 = { "success": boolean; "provider": string; "trackingStatus": string; "status": unknown; };
-export type Dto2734 = { "success": boolean; "provider": string; "trackingStatus": string; "status": unknown; };
-export type Dto2735 = { "success": boolean; "verificationMode": string; "missingFields": Array<string>; "message": string; };
-export type Dto2736 = { "success": boolean; "status": number; "error": string; "accountCount"?: undefined; "readOnlyCheck"?: undefined; };
-export type Dto2737 = { "success": boolean; "accountCount": unknown; "readOnlyCheck": string; "status"?: undefined; "error"?: undefined; };
-export type Dto2738 = { "firstName"?: (undefined | string); "lastName"?: (undefined | string); "phone"?: (undefined | string); "company"?: (undefined | string); "line2"?: (undefined | string); "state"?: (undefined | string); "line1": string; "city": string; "postalCode": string; "countryCode": string; };
-export type Dto2739 = { "purged": number; };
-export type Dto2740 = { "lat": number; "lng": number; "accuracy": string; };
-export type Dto2741 = { "totalCached": number; "totalActive": number; "totalExpired": number; "byStatus": Dto21; "byProvider": Dto21; };
-export type Dto2742 = { "variantId"?: (undefined | GenericId<"commerce_product_variants">); "productId": GenericId<"commerce_products">; };
-export type Dto2743 = { [key: string]: (null | string); };
-export type Dto2744 = { "updated": number; };
-export type Dto2745 = { "deleted": boolean; "reassignedProducts": number; "reassignedVariants": number; };
-export type Dto2746 = { "updated": number; };
-export type Dto2747 = { "name"?: (undefined | string); "slug"?: (undefined | string); "description"?: (undefined | string); "sortOrder"?: (undefined | number); };
-export type Dto2748 = { [key: string]: Dto2749; };
-export type Dto2749 = { "productCount": number; "variantCount": number; };
-export type Dto2750 = { "authorized": boolean; "userId": GenericId<"users">; };
-export type Dto2751 = { "quantity": number; "orderItemId": GenericId<"commerce_order_items">; };
-export type Dto2752 = { "order": Dto1384; "items": Array<Dto1411>; "quote": (null | Dto1882); "existingShipment": (undefined | Dto1897); };
-export type Dto2753 = { "connection": Dto1895; "secret": (null | Dto1965); };
-export type Dto2754 = { "checkoutSession": Dto1162; "cart": Dto1149; "items": Array<(Dto1151 & Dto2755)>; "shipstationConnection": (null | Dto1895); };
-export type Dto2755 = { "product": (null | Dto1153); };
-export type Dto2756 = { "shipment": Dto1897; "order": (null | Dto1384); };
-export type Dto2757 = { "zone": Dto1901; "methods": Array<Dto2001>; };
-export type Dto2758 = { "expiresAt"?: (undefined | number); "origin"?: (undefined | Dto1883); "accountId"?: (undefined | GenericId<"shipping_provider_accounts">); "packages"?: (undefined | Array<Dto1884>); "rawQuote"?: unknown; "addressKey"?: (undefined | string); "cartKey"?: (undefined | string); "estimatedDaysMin"?: (undefined | number); "estimatedDaysMax"?: (undefined | number); "deliveryDateEstimated"?: (undefined | number); "provider": string; "amount": number; "quoteKey": string; "carrierCode": string; "carrierName": string; "serviceCode": string; "serviceName": string; "currency": string; "isCheapest": boolean; "isFastest": boolean; "isBestValue": boolean; };
-export type Dto2759 = { "errorCode"?: (undefined | string); "durationMs"?: (undefined | number); "errorMessage"?: (undefined | string); "skippedReason"?: (undefined | string); "provider": string; "success": boolean; "quoteCount": number; "attempted": boolean; };
-export type Dto2760 = { "total": number; "succeeded": number; "failed": number; "results": Array<Dto2761>; };
-export type Dto2761 = { "orderId": string; "success": boolean; "labelIds"?: (undefined | Array<unknown>); "errorCode"?: (undefined | string); "errorMessage"?: (undefined | string); };
-export type Dto2762 = { "success": boolean; "idempotent": boolean; "labelUrl": unknown; "trackingNumber": unknown; "externalLabelId": unknown; "labelIds": Array<unknown>; "packageCount": number; };
-export type Dto2763 = { "success": boolean; "labelUrl": string; "trackingNumber": string; "externalLabelId": string; "labelIds": Array<unknown>; "packageCount": number; "idempotent"?: undefined; };
-export type Dto2764 = { "voided": boolean; "refundPending": boolean; };
-export type Dto2765 = { "addressKey": (null | string); "cartKey": string; };
-export type Dto2766 = { "labelUrl": (undefined | string); "labelFileStorageId": (undefined | GenericId<"_storage">); "printCount": number; };
-export type Dto2767 = { "closed": number; "failed": number; "total": number; };
-export type Dto2768 = { "success": boolean; "externalManifestId"?: (undefined | string); "errorMessage"?: (undefined | string); };
-export type Dto2769 = { "deleted": boolean; };
-export type Dto2770 = { "currencyCode"?: (undefined | string); "appliedDiscountCode"?: (undefined | string); "shippingClasses"?: (undefined | Array<string>); "customerTags"?: (undefined | Array<string>); "destinationPostalCode"?: (undefined | string); "destinationCountryCode"?: (undefined | string); "itemCount": number; "subtotalAmount": number; "totalWeightOz": number; };
-export type Dto2771 = { "quotes": Array<Dto2772>; "error"?: undefined; };
-export type Dto2772 = { "quoteKey": string; "provider": ("manual" | "shipstation" | "ups" | "usps" | "fedex" | "dhl"); "carrierCode": string; "carrierName": string; "serviceCode": string; "serviceName": string; "amount": number; "currency": string; "estimatedDaysMin"?: (undefined | number); "estimatedDaysMax"?: (undefined | number); "deliveryDateEstimated"?: (undefined | number); "isCheapest": boolean; "isFastest": boolean; "isBestValue": boolean; "rawQuote"?: unknown; "accountId"?: (undefined | GenericId<"shipping_provider_accounts">); "origin"?: (undefined | Dto1883); "packages"?: (undefined | Array<Dto1884>); "addressKey"?: (undefined | string); "cartKey"?: (undefined | string); "expiresAt": number; };
-export type Dto2773 = { "quotes": Array<never>; "error": string; };
-export type Dto2774 = { "methodType": string; "config": unknown; };
-export type Dto2775 = { "length": number; "width": number; "height": number; };
-export type Dto2776 = { "success": boolean; };
-export type Dto2777 = { "length": number; "width": number; "height": number; };
-export type Dto2778 = { "length": number; "width": number; "height": number; };
-export type Dto2779 = { "deleted": boolean; };
-export type Dto2780 = { "code"?: (undefined | string); "label"?: (undefined | string); "isDefault"?: (undefined | false | true); "notes"?: (undefined | string); "sortOrder"?: (undefined | number); "shipFromLocationId"?: (undefined | GenericId<"commerce_ship_from_locations">); "weightUnit"?: (undefined | "oz" | "g" | "lb" | "kg"); "dimensionUnit"?: (undefined | "in" | "cm"); "isArchived"?: (undefined | false | true); "packageType"?: (undefined | string); "dimensions"?: (undefined | Dto2778); "tareWeight"?: (undefined | number); "maxLoadWeight"?: (undefined | number); "innerDimensions"?: (undefined | Dto2778); };
-export type Dto2781 = { "invalidated": number; };
-export type Dto2782 = { "purged": number; };
-export type Dto2783 = { "integrationSettings": unknown; "providers": Array<Dto2784>; };
-export type Dto2784 = { "provider": ("shipstation" | "ups" | "usps" | "fedex" | "dhl"); "descriptor": Dto2785; "connection": (null | Dto1895); "secretStored": boolean; "settings": unknown; "accountCount": number; };
-export type Dto2785 = { "provider": ("shipstation" | "ups" | "usps" | "fedex" | "dhl"); "title": string; "summary": string; "modeNotes": string; "implementationStatus": ("active" | "planned" | "foundation"); "operations": Dto2786; "primaryUseCase": string; "verificationMode": ("live_api" | "local_readiness"); "credentialFields": Array<Dto2787>; };
-export type Dto2786 = { "returns": ("planned" | "implemented" | "not_supported"); "rates": ("planned" | "implemented" | "not_supported"); "labels": ("planned" | "implemented" | "not_supported"); "tracking": ("planned" | "implemented" | "not_supported"); "manifests": ("planned" | "implemented" | "not_supported"); "address_validation": ("planned" | "implemented" | "not_supported"); };
-export type Dto2787 = { "key": string; "label": string; "type": ("url" | "password" | "text"); "placeholder"?: (undefined | string); "required": boolean; };
-export type Dto2788 = { "provider": ("shipstation" | "ups" | "usps" | "fedex" | "dhl"); "status": ("error" | "disconnected" | "connected" | "degraded"); "enabled": boolean; "supportsRates": boolean; "supportsLabels": boolean; "supportsTracking": boolean; "supportsManifests": boolean; "supportsReturns": boolean; };
-export type Dto2789 = { "provider": ("shipstation" | "ups" | "usps" | "fedex" | "dhl"); "descriptor": Dto2785; "settings": unknown; "connection": (null | Dto1895); "secretStored": boolean; "accounts": Array<Dto1896>; "services": Array<Dto1966>; };
-export type Dto2790 = { "methods": Array<Dto2001>; "_id": GenericId<"commerce_shipping_zones">; "_creationTime": number; "updatedBy"?: (undefined | GenericId<"users">); "description"?: (undefined | string); "createdBy"?: (undefined | GenericId<"users">); "name": string; "updatedAt": number; "createdAt": number; "enabled": boolean; "slug": string; "sortOrder": number; "countries": Array<string>; "states": Array<string>; "postalCodeRules": Array<string>; "isFallback": boolean; };
-export type Dto2791 = { "methodType": string; "config": unknown; };
-export type Dto2792 = { "itemCount"?: (undefined | number); "currencyCode"?: (undefined | string); "subtotalAmount"?: (undefined | number); "shippingAddress"?: unknown; "totalWeightOz"?: (undefined | number); "preferredProvider"?: (undefined | string); };
-export type Dto2793 = { "detail"?: (undefined | string); "startedAt": number; "success": boolean; "durationMs": number; "stage": string; };
-export type Dto2794 = { "error"?: (undefined | string); "provider": string; "success": boolean; "durationMs": number; "quoteCount": number; };
-export type Dto2795 = { "firstName"?: (undefined | string); "lastName"?: (undefined | string); "phone"?: (undefined | string); "company"?: (undefined | string); "line2"?: (undefined | string); "state"?: (undefined | string); "line1": string; "city": string; "postalCode": string; "countryCode": string; };
-export type Dto2796 = { "success": boolean; "quotes": Array<Dto2772>; "matchedZone": null; "fellBackToManual": boolean; "stages": Array<Dto2797>; };
-export type Dto2797 = { "stage": string; "startedAt": number; "durationMs": number; "success": boolean; "detail"?: (undefined | string); };
-export type Dto2798 = { "success": boolean; "quotes": Array<Dto2772>; "matchedZone": Dto2799; "fellBackToManual": boolean; "stages": Array<Dto2797>; };
-export type Dto2799 = { "_id": GenericId<"commerce_shipping_zones">; "_creationTime": number; "updatedBy"?: (undefined | GenericId<"users">); "description"?: (undefined | string); "createdBy"?: (undefined | GenericId<"users">); "name": string; "updatedAt": number; "createdAt": number; "enabled": boolean; "slug": string; "sortOrder": number; "countries": Array<string>; "states": Array<string>; "postalCodeRules": Array<string>; "isFallback": boolean; };
-export type Dto2800 = { "deleted": boolean; };
-export type Dto2801 = { "name"?: (undefined | string); "description"?: (undefined | string); "ruleAST"?: unknown; };
-export type Dto2802 = { "path": string; "message": string; };
-export type Dto2803 = { "archived": boolean; };
-export type Dto2804 = { "email"?: (undefined | string); "phone"?: (undefined | string); "line2"?: (undefined | string); "companyName"?: (undefined | string); "line1": string; "city": string; "state": string; "postalCode": string; "countryCode": string; "contactName": string; };
-export type Dto2805 = { "open": string; "close": string; };
-export type Dto2806 = { "removed": boolean; };
-export type Dto2807 = { "isActive": boolean; };
-export type Dto2808 = { "name"?: (undefined | string); "code"?: (undefined | string); "timezone"?: (undefined | string); "priority"?: (undefined | number); "isActive"?: (undefined | false | true); "address"?: (undefined | Dto2804); "locationType"?: (undefined | "other" | "warehouse" | "retail_store" | "dropshipper" | "fulfillment_center"); "isPickupEnabled"?: (undefined | false | true); "cutoffTime"?: (undefined | string); "operatingDays"?: (undefined | Array<number>); "operatingHours"?: (undefined | Dto2809); "handlingTimeDays"?: (undefined | number); "fulfillmentProvider"?: (undefined | "custom" | "manual" | "shipstation" | "amazon_mcf" | "third_party_logistics"); "externalProviderLocationId"?: (undefined | string); "fulfillmentProviderConfig"?: unknown; };
-export type Dto2809 = { "open": string; "close": string; };
-export type Dto2810 = { "synced": number; "failed": number; "total": number; };
-export type Dto2811 = { "shipmentId": GenericId<"commerce_shipments">; "orderId": GenericId<"commerce_orders">; "labelId": GenericId<"commerce_shipment_labels">; };
-export type Dto2812 = { "shipmentId": GenericId<"commerce_shipments">; "orderId": GenericId<"commerce_orders">; "labelId": undefined; };
-export type Dto2813 = { "windowSize": number; "webhookCount": number; "pollCount": number; "webhookShare": number; "last24h": number; "last7d": number; "lastReceivedAt": (null | number); "lastWebhookAt": (null | number); "lastPollAt": (null | number); "statusCounts": Dto21; "perProviderWebhook": Dto21; "activeShipmentStatusCounts": Dto21; "uniqueShipmentsInWindow": number; };
-export type Dto2814 = { "orderNumber": string; "status": ("pending" | "failed" | "processing" | "completed" | "cancelled" | "paid" | "refunded" | "fulfilled"); "fulfillmentStatus": string; "shipments": Array<unknown>; };
-export type Dto2815 = { "replay": boolean; "receivedAt"?: undefined; };
-export type Dto2816 = { "replay": boolean; "receivedAt": number; };
-export type Dto2817 = { "deleted": number; };
-export type Dto2818 = { "zone": Dto1901; "matchedFallback": boolean; };
-export type Dto2819 = { "deleted": boolean; "cascadedMethodCount": number; };
-export type Dto2820 = { "updated": number; };
-export type Dto2821 = { "previousFallbackId": (null | GenericId<"commerce_shipping_zones">); "currentFallbackId": (null | GenericId<"commerce_shipping_zones">); };
-export type Dto2822 = { "name"?: (undefined | string); "enabled"?: (undefined | false | true); "slug"?: (undefined | string); "description"?: (undefined | string); "sortOrder"?: (undefined | number); "countries"?: (undefined | Array<string>); "states"?: (undefined | Array<string>); "postalCodeRules"?: (undefined | Array<string>); };
-export type Dto2823 = { "zone": Dto1901; "matchedFallback": boolean; };
-export type Dto2824 = { "success": boolean; "durationMs": number; "triggeredBy": "manual"; };
-export type Dto2825 = { "authorized": boolean; "userId": GenericId<"users">; };
-export type Dto2826 = { "deleted": number; };
-export type Dto2827 = { "settings": Dto2828; "siteUrl": string; "posts"?: (undefined | Array<Dto2829>); "pages"?: (undefined | Array<Dto2830>); "courses"?: (undefined | Array<Dto2831>); "categories"?: (undefined | Array<Dto2832>); "tags"?: (undefined | Array<Dto2833>); "authors"?: (undefined | Array<Dto2834>); "existingHashes": Dto206; };
-export type Dto2828 = { "enabled": boolean; "include_posts": boolean; "include_pages": boolean; "include_courses": boolean; "include_categories": boolean; "include_tags": boolean; "include_authors": boolean; "max_urls_per_sitemap": number; "changefreq_posts": ("daily" | "weekly" | "never" | "always" | "hourly" | "monthly" | "yearly"); "changefreq_pages": ("daily" | "weekly" | "never" | "always" | "hourly" | "monthly" | "yearly"); "changefreq_courses": ("daily" | "weekly" | "never" | "always" | "hourly" | "monthly" | "yearly"); "changefreq_categories": ("daily" | "weekly" | "never" | "always" | "hourly" | "monthly" | "yearly"); "changefreq_tags": ("daily" | "weekly" | "never" | "always" | "hourly" | "monthly" | "yearly"); "changefreq_authors": ("daily" | "weekly" | "never" | "always" | "hourly" | "monthly" | "yearly"); "changefreq_homepage": ("daily" | "weekly" | "never" | "always" | "hourly" | "monthly" | "yearly"); "priority_homepage": number; "priority_posts": number; "priority_pages": number; "priority_courses": number; "priority_categories": number; "priority_tags": number; "priority_authors": number; "ping_google": boolean; "ping_bing": boolean; "auto_regenerate": boolean; "regeneration_debounce_ms": number; };
-export type Dto2829 = { "id": string; "slug": string; "publishedAt": number; "updatedAt": number; };
-export type Dto2830 = { "id": string; "slug": string; "path"?: (undefined | string); "publishedAt": number; "updatedAt": number; "menuOrder": number; "title": string; };
-export type Dto2831 = { "id": string; "slug": string; "publishedAt": number; "updatedAt": number; "title": string; };
-export type Dto2832 = { "id": string; "slug": string; "updatedAt": number; "count": number; };
-export type Dto2833 = { "id": string; "slug": string; "updatedAt": number; "count": number; };
-export type Dto2834 = { "id": string; "slug": string; "latestPublishedAt": number; };
-export type Dto2835 = { "count": number; };
-export type Dto2836 = { "enabled"?: (undefined | false | true); "include_posts"?: (undefined | false | true); "include_pages"?: (undefined | false | true); "include_courses"?: (undefined | false | true); "include_categories"?: (undefined | false | true); "include_tags"?: (undefined | false | true); "include_authors"?: (undefined | false | true); "max_urls_per_sitemap"?: (undefined | number); "changefreq_posts"?: (undefined | string); "changefreq_pages"?: (undefined | string); "changefreq_courses"?: (undefined | string); "changefreq_categories"?: (undefined | string); "changefreq_tags"?: (undefined | string); "changefreq_authors"?: (undefined | string); "changefreq_homepage"?: (undefined | string); "priority_homepage"?: (undefined | number); "priority_posts"?: (undefined | number); "priority_pages"?: (undefined | number); "priority_courses"?: (undefined | number); "priority_categories"?: (undefined | number); "priority_tags"?: (undefined | number); "priority_authors"?: (undefined | number); "ping_google"?: (undefined | false | true); "ping_bing"?: (undefined | false | true); "auto_regenerate"?: (undefined | false | true); "regeneration_debounce_ms"?: (undefined | number); };
-export type Dto2837 = { "success": boolean; };
-export type Dto2838 = { "xml": string; "generatedAt": number; "urlCount": number; };
-export type Dto2839 = { "enabled": boolean; "indexUrl": (null | string); "totalUrls": number; "perType": Dto2840; "lastGenerated": (null | number); "hasStale": boolean; "recentGenerations": Array<Dto2081>; "recentPings": Array<Dto2082>; };
-export type Dto2840 = { "posts": Dto2841; "pages": Dto2841; "index": Dto2841; "courses": Dto2841; "categories": Dto2841; "tags": Dto2841; "authors": Dto2841; };
-export type Dto2841 = { "urlCount": number; "pages": number; "lastGenerated": (null | number); };
-export type Dto2842 = { "xml": string; };
-export type Dto2843 = { "status": ("skipped" | "failed" | "superseded" | "refreshed"); };
-export type Dto2844 = { "websiteKey": string; "instanceKey": string; "deploymentOrigin": string; "revision": number; "attempt": number; "provider": ("instagram" | "mastodon"); "handle": string; "sourceId": GenericId<"socialFeedSources">; "manual": boolean; };
-export type Dto2845 = { "profile": Dto2111; "items": Array<Dto2112>; };
-export type Dto2846 = { "sources": Array<Dto2847>; "approvedMastodonOrigins": Array<string>; };
-export type Dto2847 = { "id": GenericId<"socialFeedSources">; "status": ("ready" | "pending" | "failed" | "disabled"); "expiresAt": (null | number); "enabled": boolean; "revision": number; "provider": ("instagram" | "mastodon"); "handle": string; "refreshedAt": (null | number); };
-export type Dto2848 = { "query": string; "count": number; "lastAskedAt": number; };
-export type Dto2849 = { "totalQueries": number; "deflectionRate": number; "outcomeBreakdown": Dto2850; "outcomes": Dto2850; "avgResponseLatencyMs": number; "totalTokensUsed": number; };
-export type Dto2850 = { "helpful": number; "notHelpful": number; "escalated": number; "abandoned": number; };
-export type Dto2851 = { "articleId": string; "title": string; "helpfulCount": number; "helpfulAppearances": number; "totalCitedCount": number; "deflectionRate": number; };
-export type Dto2852 = { "_id": unknown; "code": unknown; "kind": unknown; "label": unknown; "lastInboundAt": unknown; "healthy": boolean; "silentHours": (null | number); };
-export type Dto2853 = { "success": boolean; };
-export type Dto2854 = { "success": boolean; };
-export type Dto2855 = { "answer": string; "sourceArticles": Array<Dto2856>; "confidence": ("none" | "high" | "medium" | "low"); "usedAi": boolean; "responseLatencyMs": number; };
-export type Dto2856 = { "id": string; "title": string; "excerpt": string; "slug": string; "score": number; };
-export type Dto2857 = { "exists": false; "active": false; };
-export type Dto2858 = { "exists": true; "active": boolean; "security": Dto2859; };
-export type Dto2859 = { "signingSecret": (null | string); "allowUnsigned": boolean; "signatureHeader": string; "timestampHeader": (null | string); "toleranceSeconds": number; };
-export type Dto2860 = { "ok": false; "reason": "tickets_disabled"; "idempotent"?: undefined; "eventId"?: undefined; "ticketId"?: undefined; };
-export type Dto2861 = { "ok": false; "reason": "channel_not_found"; "idempotent"?: undefined; "eventId"?: undefined; "ticketId"?: undefined; };
-export type Dto2862 = { "ok": false; "reason": "channel_inactive"; "idempotent"?: undefined; "eventId"?: undefined; "ticketId"?: undefined; };
-export type Dto2863 = { "ok": true; "idempotent": true; "eventId": GenericId<"support_inbound_events">; "ticketId": (undefined | string); "reason"?: undefined; };
-export type Dto2864 = { "ok": false; "reason": "unknown_user"; "eventId": GenericId<"support_inbound_events">; "idempotent"?: undefined; "ticketId"?: undefined; };
-export type Dto2865 = { "ok": true; "eventId": GenericId<"support_inbound_events">; "ticketId": string; "reason"?: undefined; "idempotent"?: undefined; };
-export type Dto2866 = { "deleted": number; };
-export type Dto2867 = { "aiProvider": (null | string); "aiApiKey": (null | string); "aiModel": (null | string); "meilisearchEnabled": boolean; "meilisearchUrl": (null | string); "meilisearchApiKey": (null | string); "ragEnabled": boolean; };
-export type Dto2868 = { "id": string; "title": string; "excerpt": string; "slug": string; "score": number; };
-export type Dto2869 = { "id": string; "title": string; "excerpt": string; "slug": string; "score": number; };
-export type Dto2870 = { "widget": Dto2871; "ai": Dto2872; };
-export type Dto2871 = { "enabled": true; "widgetTitle": "Support"; "widgetSubtitle": "How can we help you today?"; "widgetColor": "#3b82f6"; "showKbSearch": true; "showTicketHistory": true; "aiEnabled": false; "escalationButtonLabel": "Contact Support"; };
-export type Dto2872 = { "aiProvider": (null | "anthropic" | "openai"); "aiApiKey": string; "aiModel": string; "meilisearchEnabled": boolean; "meilisearchUrl": string; "meilisearchApiKey": string; "ragEnabled": boolean; };
-export type Dto2873 = { "enabled"?: (undefined | false | true); "widgetTitle"?: (undefined | string); "widgetSubtitle"?: (undefined | string); "widgetColor"?: (undefined | string); "showKbSearch"?: (undefined | false | true); "showTicketHistory"?: (undefined | false | true); "aiEnabled"?: (undefined | false | true); "escalationButtonLabel"?: (undefined | string); };
-export type Dto2874 = { "aiApiKey"?: (undefined | string); "aiModel"?: (undefined | string); "meilisearchEnabled"?: (undefined | false | true); "meilisearchUrl"?: (undefined | string); "meilisearchApiKey"?: (undefined | string); "ragEnabled"?: (undefined | false | true); "aiProvider"?: (undefined | null | "anthropic" | "openai"); };
-export type Dto2875 = { "updatedSections": Array<string>; };
-export type Dto2876 = { "showKbSearch": boolean; "position": string; "greeting": string; "enabled": true; "widgetTitle": "Support"; "widgetSubtitle": "How can we help you today?"; "widgetColor": "#3b82f6"; "showTicketHistory": true; "aiEnabled": false; "escalationButtonLabel": "Contact Support"; };
-export type Dto2877 = { "lastMessageAt"?: (undefined | number); "updatedAt": number; "createdAt": number; "status": ("open" | "closed" | "resolved" | "inProgress" | "awaitingResponse"); "priority": ("high" | "medium" | "low" | "urgent"); "subject": string; "ticketNumber": string; "messageCount": number; "_id": GenericId<"ticket_tickets">; };
-export type Dto2878 = { "generation": (null | string); "status": ("ready" | "building" | "blocked" | "stale" | "unconfigured"); "phase": ("posts" | "ready" | "edges" | "dirty" | "forms"); "sequence": number; "documents": number; "errorCode": (null | string); };
-export type Dto2879 = { "id": GenericId<"posts">; "type": ("post" | "page"); "title": string; };
-export type Dto2880 = { "id": GenericId<"syncedBlocks">; "generation": number; "digest": string; "revision": number; "changed": boolean; };
-export type Dto2881 = { "id": GenericId<"syncedBlocks">; "generation": number; "title": string; "blocks": Array<Dto1018>; "digest": string; "revision": number; "publishedRevision": (null | number); };
-export type Dto2882 = { "digest": string; "dependencies": Array<Dto2883>; "expandedNodes": number; };
-export type Dto2883 = { "id": string; "digest": string; "revision": number; "path": Array<string>; };
-export type Dto2884 = { "id": GenericId<"syncedBlocks">; "generation": number; "changed": boolean; };
-export type Dto2885 = { "id": GenericId<"syncedBlocks">; "generation": number; "title": string; "blocks": Array<Dto1018>; "scope": Dto2886; "digest": string; "revision": number; "policy": Dto2887; };
-export type Dto2886 = { "websiteKey": string; "instanceKey": string; };
-export type Dto2887 = { "capabilities": Array<string>; "enabledPlugins": Array<string>; "disabledBlocks": Array<string>; };
-export type Dto2888 = { "postId": GenericId<"posts">; "expectedRevision": number; };
-export type Dto2889 = { "syncedBlockId": GenericId<"syncedBlocks">; "expectedGeneration": number; };
-export type Dto2890 = { "websiteKey": string; "instanceKey": string; };
-export type Dto2891 = { "splitCursor"?: (undefined | null | string); "pageStatus"?: (undefined | null | "SplitRecommended" | "SplitRequired"); "page": Array<Dto2892>; "sourceId": GenericId<"syncedBlocks">; "publishedRevision": number; "isDone": boolean; "continueCursor": string; };
-export type Dto2892 = { "title": string; "digest": string; "revision": number; };
-export type Dto2893 = { "id": GenericId<"syncedBlocks">; "scope": Dto2890; "digest": string; "revision": number; "publishedRevision": number; "revisionPolicy": ("pinned" | "latest"); };
-export type Dto2894 = { "splitCursor"?: (undefined | null | string); "pageStatus"?: (undefined | null | "SplitRecommended" | "SplitRequired"); "page": Array<Dto2895>; "isDone": boolean; "continueCursor": string; };
-export type Dto2895 = { "id": GenericId<"syncedBlocks">; "title": string; "digest": string; "revision": number; };
-export type Dto2896 = { "id": GenericId<"syncedBlocks">; "generation": number; "title": string; "revision": number; "publishedRevision": (null | number); };
+export type Dto2562 = { "author": (null | Dto2536); "featuredImageUrl": undefined; "featuredImageAlt": undefined; "isPasswordProtected": boolean; "passwordVerified": boolean; "isMembershipRestricted": boolean; "membershipAccess": Dto2422; "_id": GenericId<"posts">; "_creationTime": number; "type": ("post" | "page"); "title": string; "slug": string; "status": ("draft" | "pending" | "trash" | "auto-draft" | "publish" | "future" | "private"); "visibility": ("private" | "public" | "password"); "authorId": GenericId<"users">; "featuredImageId": (undefined | GenericId<"media">); "commentStatus": ("open" | "closed"); "commentCount": (undefined | number); "isSticky": (undefined | false | true); "publishedAt": (undefined | number); "createdAt": number; "updatedAt": number; "parentId": (undefined | GenericId<"posts">); "menuOrder": (undefined | number); "pageTemplate": (undefined | string); "path": (undefined | string); "depth": (undefined | number); "hideHeader": (undefined | false | true); "hideFooter": (undefined | false | true); "layoutId": (undefined | string); "contentMode": (undefined | "blocks" | "article"); "excerpt": (undefined | string); "content": (undefined | string); "blocks": (undefined | Array<Dto1018> | Array<Dto1822>); "blocksVersion": (undefined | number); "blocksRevision": (undefined | number); "pageSections": unknown; "hero": (undefined | Dto29); "topics": (undefined | Array<Dto30>); "summary": (undefined | Dto31); "sources": (undefined | string); "tableOfContents": (undefined | string); };
+export type Dto2563 = { "author": (null | Dto2536); "featuredImageUrl": string; "featuredImageAlt": (undefined | string); "isPasswordProtected": boolean; "passwordVerified": boolean; "isMembershipRestricted": boolean; "membershipAccess": Dto2422; "_id": GenericId<"posts">; "_creationTime": number; "type": ("post" | "page"); "title": string; "slug": string; "status": ("draft" | "pending" | "trash" | "auto-draft" | "publish" | "future" | "private"); "visibility": ("private" | "public" | "password"); "authorId": GenericId<"users">; "featuredImageId": (undefined | GenericId<"media">); "commentStatus": ("open" | "closed"); "commentCount": (undefined | number); "isSticky": (undefined | false | true); "publishedAt": (undefined | number); "createdAt": number; "updatedAt": number; "parentId": (undefined | GenericId<"posts">); "menuOrder": (undefined | number); "pageTemplate": (undefined | string); "path": (undefined | string); "depth": (undefined | number); "hideHeader": (undefined | false | true); "hideFooter": (undefined | false | true); "layoutId": (undefined | string); "contentMode": (undefined | "blocks" | "article"); "excerpt": (undefined | string); "content": (undefined | string); "blocks": (undefined | Array<Dto1018> | Array<Dto1822>); "blocksVersion": (undefined | number); "blocksRevision": (undefined | number); "pageSections": unknown; "hero": (undefined | Dto29); "topics": (undefined | Array<Dto30>); "summary": (undefined | Dto31); "sources": (undefined | string); "tableOfContents": (undefined | string); };
+export type Dto2564 = { "success": boolean; };
+export type Dto2565 = { "success": boolean; };
+export type Dto2566 = { "success": boolean; };
+export type Dto2567 = { "closed": true; "clerkDeleted": boolean; };
+export type Dto2568 = { "updated": number; };
+export type Dto2569 = { "resolvedAvatarUrl": (null | string); "roleName": (undefined | string); "roleLevel": (undefined | number); "_id": GenericId<"users">; "_creationTime": number; "authSource"?: (undefined | "local" | "clerk" | "management"); "passwordHash"?: (undefined | string); "clerkUserId"?: (undefined | string); "clerkProvisioningStatus"?: (undefined | "pending" | "provisioned" | "linked_existing" | "reset_required" | "skipped" | "failed"); "clerkProvisioningSource"?: (undefined | string); "clerkProvisioningReason"?: (undefined | string); "clerkProvisioningError"?: (undefined | string); "clerkProvisionedAt"?: (undefined | number); "clerkProvisioningAttemptedAt"?: (undefined | number); "firstName"?: (undefined | string); "lastName"?: (undefined | string); "phone"?: (undefined | string); "profilePictureUrl"?: (undefined | string); "isTaxExempt"?: (undefined | false | true); "taxExemptId"?: (undefined | string); "taxExemptReason"?: (undefined | string); "taxExemptVerifiedAt"?: (undefined | number); "username"?: (undefined | string); "nickname"?: (undefined | string); "displayName"?: (undefined | string); "slug"?: (undefined | string); "bio"?: (undefined | string); "url"?: (undefined | string); "avatarUrl"?: (undefined | string); "avatarMediaId"?: (undefined | GenericId<"media">); "avatarStorageId"?: (undefined | string); "socialLinks"?: (undefined | Dto149); "roleId"?: (undefined | GenericId<"roles">); "deactivatedAt"?: (undefined | number); "deactivatedBy"?: (undefined | GenericId<"users">); "preferences"?: (undefined | Dto150); "locale"?: (undefined | string); "timezone"?: (undefined | string); "postCount"?: (undefined | number); "postCountReady"?: (undefined | false | true); "commentCount"?: (undefined | number); "registrationMethod"?: (undefined | string); "invitedBy"?: (undefined | GenericId<"users">); "emailVerifiedAt"?: (undefined | number); "registeredAt"?: (undefined | number); "lastLoginAt"?: (undefined | number); "lastPasswordChangedAt"?: (undefined | number); "passwordResetRequestedAt"?: (undefined | number); "passwordResetCount"?: (undefined | number); "passwordResetToken"?: (undefined | string); "passwordResetTokenExpiresAt"?: (undefined | number); "internalRole"?: (undefined | string); "isInternal"?: (undefined | false | true); "wpUserId"?: (undefined | number); "wpSourceSiteId"?: (undefined | GenericId<"wordpressSites">); "wpCredentialMigrationStatus"?: (undefined | "provisioned" | "linked_existing" | "reset_required" | "skipped" | "failed" | "unsupported_hash"); "wpCredentialMigrationReason"?: (undefined | string); "wpCredentialPasswordHasher"?: (undefined | string); "wpCredentialMigratedAt"?: (undefined | number); "wpCredentialMigrationError"?: (undefined | string); "updatedAt": number; "createdAt": number; "status": ("active" | "inactive" | "banned"); "email": string; "emailVerified": boolean; };
+export type Dto2570 = { "users": Array<Dto2571>; "total": number; "page": number; "perPage": number; "totalPages": number; };
+export type Dto2571 = { "resolvedAvatarUrl": (null | string); "roleName": (undefined | string); "roleLevel": (undefined | number); "_id": GenericId<"users">; "_creationTime": number; "authSource"?: (undefined | "local" | "clerk" | "management"); "passwordHash"?: (undefined | string); "clerkUserId"?: (undefined | string); "clerkProvisioningStatus"?: (undefined | "pending" | "provisioned" | "linked_existing" | "reset_required" | "skipped" | "failed"); "clerkProvisioningSource"?: (undefined | string); "clerkProvisioningReason"?: (undefined | string); "clerkProvisioningError"?: (undefined | string); "clerkProvisionedAt"?: (undefined | number); "clerkProvisioningAttemptedAt"?: (undefined | number); "firstName"?: (undefined | string); "lastName"?: (undefined | string); "phone"?: (undefined | string); "profilePictureUrl"?: (undefined | string); "isTaxExempt"?: (undefined | false | true); "taxExemptId"?: (undefined | string); "taxExemptReason"?: (undefined | string); "taxExemptVerifiedAt"?: (undefined | number); "username"?: (undefined | string); "nickname"?: (undefined | string); "displayName"?: (undefined | string); "slug"?: (undefined | string); "bio"?: (undefined | string); "url"?: (undefined | string); "avatarUrl"?: (undefined | string); "avatarMediaId"?: (undefined | GenericId<"media">); "avatarStorageId"?: (undefined | string); "socialLinks"?: (undefined | Dto149); "roleId"?: (undefined | GenericId<"roles">); "deactivatedAt"?: (undefined | number); "deactivatedBy"?: (undefined | GenericId<"users">); "preferences"?: (undefined | Dto150); "locale"?: (undefined | string); "timezone"?: (undefined | string); "postCount"?: (undefined | number); "postCountReady"?: (undefined | false | true); "commentCount"?: (undefined | number); "registrationMethod"?: (undefined | string); "invitedBy"?: (undefined | GenericId<"users">); "emailVerifiedAt"?: (undefined | number); "registeredAt"?: (undefined | number); "lastLoginAt"?: (undefined | number); "lastPasswordChangedAt"?: (undefined | number); "passwordResetRequestedAt"?: (undefined | number); "passwordResetCount"?: (undefined | number); "passwordResetToken"?: (undefined | string); "passwordResetTokenExpiresAt"?: (undefined | number); "internalRole"?: (undefined | string); "isInternal"?: (undefined | false | true); "wpUserId"?: (undefined | number); "wpSourceSiteId"?: (undefined | GenericId<"wordpressSites">); "wpCredentialMigrationStatus"?: (undefined | "provisioned" | "linked_existing" | "reset_required" | "skipped" | "failed" | "unsupported_hash"); "wpCredentialMigrationReason"?: (undefined | string); "wpCredentialPasswordHasher"?: (undefined | string); "wpCredentialMigratedAt"?: (undefined | number); "wpCredentialMigrationError"?: (undefined | string); "updatedAt": number; "createdAt": number; "status": ("active" | "inactive" | "banned"); "email": string; "emailVerified": boolean; };
+export type Dto2572 = { "updated": number; };
+export type Dto2573 = { "updated": number; "errors": Array<Dto2574>; };
+export type Dto2574 = { "userId": string; "error": string; };
+export type Dto2575 = { "deleted": number; "errors": Array<Dto2576>; };
+export type Dto2576 = { "userId": string; "error": string; };
+export type Dto2577 = { "userId": GenericId<"users">; "clerkUserId": string; };
+export type Dto2578 = { "twitter"?: (undefined | string); "facebook"?: (undefined | string); "instagram"?: (undefined | string); "linkedin"?: (undefined | string); "youtube"?: (undefined | string); "github"?: (undefined | string); "website"?: (undefined | string); };
+export type Dto2579 = { "adminColorScheme"?: (undefined | string); "showAdminBar"?: (undefined | false | true); "editorMode"?: (undefined | "code" | "visual"); "emailDigest"?: (undefined | "none" | "immediate" | "daily" | "weekly"); "notifyOnComment"?: (undefined | false | true); "notifyOnReply"?: (undefined | false | true); "notifyOnMention"?: (undefined | false | true); };
+export type Dto2580 = { "total": number; "active": number; "inactive": number; "banned": number; };
+export type Dto2581 = { "resolvedAvatarUrl": (null | string); "_id": GenericId<"users">; "_creationTime": number; "authSource"?: (undefined | "local" | "clerk" | "management"); "passwordHash"?: (undefined | string); "clerkUserId"?: (undefined | string); "email": string; "emailVerified": boolean; "firstName"?: (undefined | string); "lastName"?: (undefined | string); "phone"?: (undefined | string); "profilePictureUrl"?: (undefined | string); "username"?: (undefined | string); "nickname"?: (undefined | string); "displayName"?: (undefined | string); "slug"?: (undefined | string); "bio"?: (undefined | string); "url"?: (undefined | string); "avatarUrl"?: (undefined | string); "avatarMediaId"?: (undefined | GenericId<"media">); "avatarStorageId"?: (undefined | string); "socialLinks"?: (undefined | Dto2511); "roleId"?: (undefined | GenericId<"roles">); "status": ("active" | "inactive" | "banned"); "deactivatedAt"?: (undefined | number); "deactivatedBy"?: (undefined | GenericId<"users">); "preferences"?: (undefined | Dto2512); "locale"?: (undefined | string); "timezone"?: (undefined | string); "postCount"?: (undefined | number); "commentCount"?: (undefined | number); "registrationMethod"?: (undefined | string); "invitedBy"?: (undefined | GenericId<"users">); "emailVerifiedAt"?: (undefined | number); "registeredAt"?: (undefined | number); "lastLoginAt"?: (undefined | number); "lastPasswordChangedAt"?: (undefined | number); "passwordResetRequestedAt"?: (undefined | number); "passwordResetCount"?: (undefined | number); "internalRole"?: (undefined | string); "isInternal"?: (undefined | false | true); "createdAt": number; "updatedAt": number; };
+export type Dto2582 = { "_id": string; "displayName": (undefined | string); "slug": (undefined | string); "bio": (undefined | string); "avatarUrl": (null | string); "url": (undefined | string); "socialLinks": (undefined | Dto206); "status": (undefined | string); };
+export type Dto2583 = { "resolvedAvatarUrl": (null | string); "_id": GenericId<"users">; "_creationTime": number; "authSource"?: (undefined | "local" | "clerk" | "management"); "passwordHash"?: (undefined | string); "clerkUserId"?: (undefined | string); "email": string; "emailVerified": boolean; "firstName"?: (undefined | string); "lastName"?: (undefined | string); "phone"?: (undefined | string); "profilePictureUrl"?: (undefined | string); "username"?: (undefined | string); "nickname"?: (undefined | string); "displayName"?: (undefined | string); "slug"?: (undefined | string); "bio"?: (undefined | string); "url"?: (undefined | string); "avatarUrl"?: (undefined | string); "avatarMediaId"?: (undefined | GenericId<"media">); "avatarStorageId"?: (undefined | string); "socialLinks"?: (undefined | Dto2511); "roleId"?: (undefined | GenericId<"roles">); "status": ("active" | "inactive" | "banned"); "deactivatedAt"?: (undefined | number); "deactivatedBy"?: (undefined | GenericId<"users">); "preferences"?: (undefined | Dto2512); "locale"?: (undefined | string); "timezone"?: (undefined | string); "postCount"?: (undefined | number); "commentCount"?: (undefined | number); "registrationMethod"?: (undefined | string); "invitedBy"?: (undefined | GenericId<"users">); "emailVerifiedAt"?: (undefined | number); "registeredAt"?: (undefined | number); "lastLoginAt"?: (undefined | number); "lastPasswordChangedAt"?: (undefined | number); "passwordResetRequestedAt"?: (undefined | number); "passwordResetCount"?: (undefined | number); "internalRole"?: (undefined | string); "isInternal"?: (undefined | false | true); "createdAt": number; "updatedAt": number; };
+export type Dto2584 = { "users": Array<Dto2585>; "total": number; "page": number; "perPage": number; "totalPages": number; };
+export type Dto2585 = { "resolvedAvatarUrl": (null | string); "roleName": (undefined | string); "roleLevel": (undefined | number); "_id": GenericId<"users">; "_creationTime": number; "authSource"?: (undefined | "local" | "clerk" | "management"); "passwordHash"?: (undefined | string); "clerkUserId"?: (undefined | string); "clerkProvisioningStatus"?: (undefined | "pending" | "provisioned" | "linked_existing" | "reset_required" | "skipped" | "failed"); "clerkProvisioningSource"?: (undefined | string); "clerkProvisioningReason"?: (undefined | string); "clerkProvisioningError"?: (undefined | string); "clerkProvisionedAt"?: (undefined | number); "clerkProvisioningAttemptedAt"?: (undefined | number); "firstName"?: (undefined | string); "lastName"?: (undefined | string); "phone"?: (undefined | string); "profilePictureUrl"?: (undefined | string); "isTaxExempt"?: (undefined | false | true); "taxExemptId"?: (undefined | string); "taxExemptReason"?: (undefined | string); "taxExemptVerifiedAt"?: (undefined | number); "username"?: (undefined | string); "nickname"?: (undefined | string); "displayName"?: (undefined | string); "slug"?: (undefined | string); "bio"?: (undefined | string); "url"?: (undefined | string); "avatarUrl"?: (undefined | string); "avatarMediaId"?: (undefined | GenericId<"media">); "avatarStorageId"?: (undefined | string); "socialLinks"?: (undefined | Dto149); "roleId"?: (undefined | GenericId<"roles">); "deactivatedAt"?: (undefined | number); "deactivatedBy"?: (undefined | GenericId<"users">); "preferences"?: (undefined | Dto150); "locale"?: (undefined | string); "timezone"?: (undefined | string); "postCount"?: (undefined | number); "postCountReady"?: (undefined | false | true); "commentCount"?: (undefined | number); "registrationMethod"?: (undefined | string); "invitedBy"?: (undefined | GenericId<"users">); "emailVerifiedAt"?: (undefined | number); "registeredAt"?: (undefined | number); "lastLoginAt"?: (undefined | number); "lastPasswordChangedAt"?: (undefined | number); "passwordResetRequestedAt"?: (undefined | number); "passwordResetCount"?: (undefined | number); "passwordResetToken"?: (undefined | string); "passwordResetTokenExpiresAt"?: (undefined | number); "internalRole"?: (undefined | string); "isInternal"?: (undefined | false | true); "wpUserId"?: (undefined | number); "wpSourceSiteId"?: (undefined | GenericId<"wordpressSites">); "wpCredentialMigrationStatus"?: (undefined | "provisioned" | "linked_existing" | "reset_required" | "skipped" | "failed" | "unsupported_hash"); "wpCredentialMigrationReason"?: (undefined | string); "wpCredentialPasswordHasher"?: (undefined | string); "wpCredentialMigratedAt"?: (undefined | number); "wpCredentialMigrationError"?: (undefined | string); "updatedAt": number; "createdAt": number; "status": ("active" | "inactive" | "banned"); "email": string; "emailVerified": boolean; };
+export type Dto2586 = { "commerceOrders": number; "formOrders": number; "subscriptionSignups": number; "subscriptionInvoices": number; "emailTemplatesCreated": number; "emailTemplatesUpdated": number; };
+export type Dto2587 = { "items": Array<unknown>; "total": number; "page": number; "perPage": number; "totalPages": number; };
+export type Dto2588 = { "prepMinutes": (undefined | number); "cookMinutes": (undefined | number); "totalMinutes": (undefined | number); "scanMediaId": GenericId<"media">; "aiExtractedFromScan": boolean; "title"?: (undefined | string); "excerpt"?: (undefined | string); "description"?: (undefined | string); "servings"?: (undefined | string); "yieldText"?: (undefined | string); "difficulty"?: (undefined | "medium" | "easy" | "hard"); "ingredients"?: (undefined | Array<string>); "instructions"?: (undefined | Array<string>); "notes"?: (undefined | string); "categorySuggestions"?: (undefined | Array<string>); "scannedText"?: (undefined | string); };
+export type Dto2589 = { "enabled": boolean; "all": number; "draft": number; "published": number; "trash": number; };
+export type Dto2590 = { "categories": Array<(null | Dto2591)>; "_id": GenericId<"recipes">; "_creationTime": number; "description"?: (undefined | string); "excerpt"?: (undefined | string); "featuredImageId"?: (undefined | GenericId<"media">); "publishedAt"?: (undefined | number); "notes"?: (undefined | string); "scanMediaId"?: (undefined | GenericId<"media">); "prepMinutes"?: (undefined | number); "cookMinutes"?: (undefined | number); "totalMinutes"?: (undefined | number); "servings"?: (undefined | string); "yieldText"?: (undefined | string); "difficulty"?: (undefined | "medium" | "easy" | "hard"); "nutrition"?: (undefined | Dto2032); "scannedText"?: (undefined | string); "title": string; "updatedAt": number; "createdAt": number; "status": ("draft" | "trash" | "publish"); "slug": string; "authorId": GenericId<"users">; "instructions": Array<string>; "isFeatured": boolean; "categoryIds": Array<GenericId<"recipe_categories">>; "ingredients": Array<string>; "aiExtractedFromScan": boolean; };
+export type Dto2591 = { "_id": string; "name": string; "slug": string; "color"?: (undefined | string); };
+export type Dto2592 = { "_id": GenericId<"recipes">; "title": string; "slug": string; "excerpt"?: (undefined | string); "description"?: (undefined | string); "featuredImageId"?: (undefined | GenericId<"media">); "categories": Array<Dto2593>; "prepMinutes"?: (undefined | number); "cookMinutes"?: (undefined | number); "totalMinutes"?: (undefined | number); "servings"?: (undefined | string); "yieldText"?: (undefined | string); "difficulty"?: (undefined | "medium" | "easy" | "hard"); "ingredients": Array<string>; "instructions": Array<string>; "notes"?: (undefined | string); "nutrition"?: (undefined | Dto2594); };
+export type Dto2593 = { "_id": GenericId<"recipe_categories">; "name": string; "slug": string; "description"?: (undefined | string); "color"?: (undefined | string); };
+export type Dto2594 = { "calories"?: (undefined | string); "protein"?: (undefined | string); "carbs"?: (undefined | string); "fat"?: (undefined | string); "fiber"?: (undefined | string); "sugar"?: (undefined | string); };
+export type Dto2595 = { "categories": Array<(null | Dto2591)>; };
+export type Dto2596 = { "description"?: (undefined | string); "color"?: (undefined | string); "name": string; "updatedAt": number; "_creationTime": number; "createdAt": number; "slug": string; "recipeCount": number; "_id": GenericId<"recipe_categories">; };
+export type Dto2597 = { "recipes": Array<Dto2592>; "page": number; "perPage": number; "total": number; "totalPages": number; "category": (null | Dto2593); };
+export type Dto2598 = { "deleted": number; };
+export type Dto2599 = { "expired": number; };
+export type Dto2600 = { "firstName"?: (undefined | string); "lastName"?: (undefined | string); "message"?: (undefined | string); "email": string; "role": string; };
+export type Dto2601 = { "error"?: (undefined | string); "invitationId"?: (undefined | string); "email": string; "success": boolean; };
+export type Dto2602 = { "token": string; "invitationId": GenericId<"invitations">; };
+export type Dto2603 = { "total": number; "pending": number; "accepted": number; "expired": number; "revoked": number; };
+export type Dto2604 = { "email": string; "role": string; "message": (null | string); "expiresAt": number; };
+export type Dto2605 = { "inviterName": string; "inviterEmail": (undefined | string); "acceptedUserName": (undefined | string); "acceptedUserEmail": (undefined | string); "revokedByName": (undefined | string); "isEffectivelyExpired": boolean; "_id": GenericId<"invitations">; "_creationTime": number; "message"?: (undefined | string); "previousToken"?: (undefined | string); "previousTokenExpiresAt"?: (undefined | number); "acceptedBy"?: (undefined | GenericId<"users">); "acceptedAt"?: (undefined | number); "revokedAt"?: (undefined | number); "revokedBy"?: (undefined | GenericId<"users">); "resentAt"?: (undefined | number); "createdAt": number; "status": ("pending" | "revoked" | "accepted" | "expired"); "expiresAt": number; "email": string; "invitedBy": GenericId<"users">; "role": string; "token": string; "resentCount": number; };
+export type Dto2606 = { "total": number; "last24h": number; "last7d": number; "last30d": number; "pendingInvitations": number; };
+export type Dto2607 = { "status": ("open" | "closed" | "invite_only"); "canRegister": boolean; "inviteOnly": boolean; "defaultRole": string; "requireEmailVerification": boolean; };
+export type Dto2608 = { "inviterName": string; "inviterEmail"?: (undefined | string); "acceptedUserName"?: (undefined | string); "acceptedUserEmail"?: (undefined | string); "isEffectivelyExpired": boolean; };
+export type Dto2609 = { "deleted": number; };
+export type Dto2610 = { "prunedCount": number; "postsAffected": number; };
+export type Dto2611 = { "success": boolean; };
+export type Dto2612 = { "left": (Dto2613 & Dto2614); "right": (Dto2613 & Dto2614); "parentId": GenericId<"posts">; "parentTitle": string; "totalRevisions": number; };
+export type Dto2613 = { "type": ("manual" | "autosave"); "title": string; "createdAt": number; "content": string; "excerpt"?: (undefined | string); "revisionNumber": number; "changedFields": Array<string>; "contentLength": number; "_id": GenericId<"revisions">; };
+export type Dto2614 = { "details": string; "authorName": string; "authorAvatar"?: (undefined | string); };
+export type Dto2615 = { "authorName": string; "authorAvatar": (undefined | string); "_id": GenericId<"revisions">; "_creationTime": number; "blocks"?: (undefined | Array<Dto1018> | Array<Dto1822>); "composedDefinitions"?: (undefined | Dto1060); "summary"?: (undefined | Dto31); "excerpt"?: (undefined | string); "featuredImageId"?: (undefined | GenericId<"media">); "pageTemplate"?: (undefined | string); "pageSections"?: unknown; "contentMode"?: (undefined | "blocks" | "article"); "blocksVersion"?: (undefined | number); "blocksRevision"?: (undefined | number); "layoutId"?: (undefined | string); "hideHeader"?: (undefined | false | true); "hideFooter"?: (undefined | false | true); "autosaveContent"?: (undefined | string); "autosaveTitle"?: (undefined | string); "autosavedAt"?: (undefined | number); "hero"?: (undefined | Dto29); "topics"?: (undefined | Array<Dto30>); "sources"?: (undefined | string); "tableOfContents"?: (undefined | string); "pagePrompt"?: (undefined | string); "snapshotVersion"?: (undefined | 1 | 2); "type": ("manual" | "autosave"); "title": string; "createdAt": number; "authorId": string; "parentId": GenericId<"posts">; "content": string; "parentType": ("post" | "page"); "revisionNumber": number; "changedFields": Array<string>; "contentLength": number; };
+export type Dto2616 = { "authorName": string; "authorAvatar": (undefined | string); "_id": GenericId<"revisions">; "_creationTime": number; "blocks"?: (undefined | Array<Dto1018> | Array<Dto1822>); "composedDefinitions"?: (undefined | Dto1060); "summary"?: (undefined | Dto31); "excerpt"?: (undefined | string); "featuredImageId"?: (undefined | GenericId<"media">); "pageTemplate"?: (undefined | string); "pageSections"?: unknown; "contentMode"?: (undefined | "blocks" | "article"); "blocksVersion"?: (undefined | number); "blocksRevision"?: (undefined | number); "layoutId"?: (undefined | string); "hideHeader"?: (undefined | false | true); "hideFooter"?: (undefined | false | true); "autosaveContent"?: (undefined | string); "autosaveTitle"?: (undefined | string); "autosavedAt"?: (undefined | number); "hero"?: (undefined | Dto29); "topics"?: (undefined | Array<Dto30>); "sources"?: (undefined | string); "tableOfContents"?: (undefined | string); "pagePrompt"?: (undefined | string); "snapshotVersion"?: (undefined | 1 | 2); "type": ("manual" | "autosave"); "title": string; "createdAt": number; "authorId": string; "parentId": GenericId<"posts">; "content": string; "parentType": ("post" | "page"); "revisionNumber": number; "changedFields": Array<string>; "contentLength": number; };
+export type Dto2617 = { "revisions": Array<(Dto2094 & Dto2618)>; "total": number; "hasMore": boolean; };
+export type Dto2618 = { "details": string; "authorName": string; "authorAvatar": (undefined | string); };
+export type Dto2619 = { "updated": boolean; "reason": string; "added"?: undefined; };
+export type Dto2620 = { "updated": boolean; "added": Array<string>; "reason"?: undefined; };
+export type Dto2621 = { "message": string; "migrated": number; "failed": number; "errors": (undefined | Array<string>); };
+export type Dto2622 = { "message": string; "updated": Array<string>; "created": Array<string>; };
+export type Dto2623 = { "message": string; "created": Array<string>; "skipped": Array<string>; };
+export type Dto2624 = { "userId": GenericId<"users">; "success": boolean; "newRole": string; };
+export type Dto2625 = { "success": boolean; "role": string; "capability": ("post.publish" | "post.unpublish" | "auth.login" | "search.query" | "auth.logout" | "post.create" | "post.read" | "post.update" | "post.delete" | "post.schedule" | "post.trash" | "post.restore" | "post.duplicate" | "post.bulk_delete" | "post.bulk_publish" | "post.preview" | "page.create" | "page.read" | "page.read_private" | "page.update" | "page.delete" | "page.publish" | "page.reorder" | "page.set_parent" | "media.read" | "media.upload" | "media.update" | "media.delete" | "media.crop" | "media.bulk_delete" | "taxonomy.create_category" | "taxonomy.update_category" | "taxonomy.delete_category" | "taxonomy.create_tag" | "taxonomy.update_tag" | "taxonomy.delete_tag" | "taxonomy.assign" | "taxonomy.unassign" | "taxonomy.merge" | "comment.create" | "comment.read" | "comment.update" | "comment.delete" | "comment.reply" | "comment.approve" | "comment.reject" | "comment.spam" | "comment.flag" | "comment.like" | "comment.bulk_approve" | "comment.bulk_delete" | "comment.bulk_spam" | "role.create" | "role.update" | "role.delete" | "role.assign" | "role.grant_capability" | "role.revoke_capability" | "profile.view" | "profile.update" | "profile.upload_avatar" | "profile.deactivate" | "profile.delete_user" | "profile.bulk_delete" | "auth.oauth_login" | "auth.refresh_session" | "auth.verify_email" | "password.change" | "password.reset" | "password.request_reset" | "registration.register" | "registration.invite" | "registration.resend_verification" | "dashboard.view" | "dashboard.quick_draft" | "dashboard.dismiss_widget" | "dashboard.reorder_widgets" | "editor.add_block" | "editor.remove_block" | "editor.reorder_blocks" | "editor.save_draft" | "editor.save_reusable" | "editor.autosave" | "blocks.compose" | "blocks.ai" | "blocks.promote" | "custom_field.create_group" | "custom_field.update_group" | "custom_field.delete_group" | "custom_field.set_value" | "custom_field.read_value" | "revision.view" | "revision.compare" | "revision.restore" | "revision.delete" | "seo.update_post" | "seo.update_global" | "seo.update_robots" | "seo.generate_sitemap" | "search.reindex" | "menu.create" | "menu.update" | "menu.delete" | "menu.add_item" | "menu.update_item" | "menu.delete_item" | "menu.reorder" | "menu.assign_location" | "settings.update_general" | "settings.update_reading" | "settings.update_writing" | "settings.update_discussion" | "settings.update_permalinks" | "settings.update_privacy" | "settings.update_email" | "settings.export" | "settings.import" | "email.send" | "email.queue" | "email.retry" | "email.update_template" | "notification.send" | "notification.mark_read" | "notification.mark_all_read" | "notification.delete" | "notification.update_preferences" | "audit.view" | "audit.export" | "audit.clear" | "api.create_key" | "api.revoke_key" | "api.create_webhook" | "api.update_webhook" | "api.delete_webhook" | "api.test_webhook" | "event.emit" | "event.register_listener" | "event.remove_listener" | "routing.view_redirects" | "routing.create_redirect" | "routing.update_redirect" | "routing.delete_redirect" | "analytics.view" | "analytics.manage" | "kb.view" | "kb.create" | "kb.edit" | "kb.editOwn" | "kb.delete" | "kb.publish" | "kb.manageCategories" | "kb.manageTags" | "kb.manageCollections" | "kb.manageWorkflows" | "kb.manageTemplates" | "kb.moderateComments" | "kb.viewAnalytics" | "lms.course.view" | "lms.course.create" | "lms.course.edit" | "lms.course.publish" | "lms.course.delete" | "lms.lesson.edit" | "lms.lesson.delete" | "lms.builder.manage" | "lms.ai.generate" | "lms.enroll.manage" | "lms.certificate.manage" | "lms.settings.manage" | "ticket.view" | "ticket.viewAll" | "ticket.respond" | "ticket.assign" | "ticket.updateStatus" | "ticket.updatePriority" | "ticket.close" | "ticket.manageCannedResponses" | "ticket.viewAnalytics" | "ticket.viewInternalNotes" | "form.view" | "form.create" | "form.update" | "form.delete" | "form.duplicate" | "form.view_entries" | "form.edit_entry" | "form.delete_entry" | "form.manage_notifications" | "form.manage_confirmations" | "form.manage_actions" | "form.view_analytics" | "form.export_entries" | "form.manage_security" | "commerce.returns.view" | "commerce.returns.review" | "commerce.returns.receive" | "commerce.returns.refund" | "commerce.returns.manage" | "commerce.bundles.view" | "commerce.bundles.create" | "commerce.bundles.edit" | "commerce.bundles.delete" | "commerce.reviews.view" | "commerce.reviews.moderate" | "commerce.reviews.delete" | "commerce.wishlists.view" | "commerce.wishlists.manage" | "commerce.tax.view" | "commerce.tax.manage" | "commerce.customers.tax_exempt" | "commerce.discount.view" | "commerce.discount.create" | "commerce.discount.update" | "commerce.discount.delete" | "commerce.discount.apply" | "manage_options" | "shipping.zones.manage" | "shipping.zones.read" | "shipping.classes.manage" | "shipping.classes.read" | "shipping.packages.manage" | "shipping.packages.read" | "shipping.locations.manage" | "shipping.locations.read" | "shipping.address_validation.manage" | "shipping.address_validation.read" | "shipping.rules.manage" | "shipping.rules.read" | "shipping.diagnostics.view" | "shipping.test_rates.run" | "shipping.methods.manage" | "shipping.methods.read" | "shipping.methods.preview" | "shipping.methods.test" | "shipping.methods.quote" | "shipping.providers.manage" | "shipping.providers.read" | "shipping.providers.test" | "shipping.labels.purchase" | "shipping.labels.void" | "shipping.labels.reprint" | "shipping.labels.batch" | "shipping.labels.read" | "shipping.tracking.view" | "shipping.tracking.sync" | "shipping.manifests.view" | "shipping.manifests.close" | "shipping.manifests.reprint" | "post.edit" | "post.delete_one" | "post.publish_one" | "page.edit" | "media.edit" | "media.delete_one" | "comment.edit" | "comment.delete_one" | "seo.edit_post" | "custom_field.edit_value"); "alreadyGranted": boolean; };
+export type Dto2626 = { "success": boolean; "role": string; "capability": ("post.publish" | "post.unpublish" | "auth.login" | "search.query" | "auth.logout" | "post.create" | "post.read" | "post.update" | "post.delete" | "post.schedule" | "post.trash" | "post.restore" | "post.duplicate" | "post.bulk_delete" | "post.bulk_publish" | "post.preview" | "page.create" | "page.read" | "page.read_private" | "page.update" | "page.delete" | "page.publish" | "page.reorder" | "page.set_parent" | "media.read" | "media.upload" | "media.update" | "media.delete" | "media.crop" | "media.bulk_delete" | "taxonomy.create_category" | "taxonomy.update_category" | "taxonomy.delete_category" | "taxonomy.create_tag" | "taxonomy.update_tag" | "taxonomy.delete_tag" | "taxonomy.assign" | "taxonomy.unassign" | "taxonomy.merge" | "comment.create" | "comment.read" | "comment.update" | "comment.delete" | "comment.reply" | "comment.approve" | "comment.reject" | "comment.spam" | "comment.flag" | "comment.like" | "comment.bulk_approve" | "comment.bulk_delete" | "comment.bulk_spam" | "role.create" | "role.update" | "role.delete" | "role.assign" | "role.grant_capability" | "role.revoke_capability" | "profile.view" | "profile.update" | "profile.upload_avatar" | "profile.deactivate" | "profile.delete_user" | "profile.bulk_delete" | "auth.oauth_login" | "auth.refresh_session" | "auth.verify_email" | "password.change" | "password.reset" | "password.request_reset" | "registration.register" | "registration.invite" | "registration.resend_verification" | "dashboard.view" | "dashboard.quick_draft" | "dashboard.dismiss_widget" | "dashboard.reorder_widgets" | "editor.add_block" | "editor.remove_block" | "editor.reorder_blocks" | "editor.save_draft" | "editor.save_reusable" | "editor.autosave" | "blocks.compose" | "blocks.ai" | "blocks.promote" | "custom_field.create_group" | "custom_field.update_group" | "custom_field.delete_group" | "custom_field.set_value" | "custom_field.read_value" | "revision.view" | "revision.compare" | "revision.restore" | "revision.delete" | "seo.update_post" | "seo.update_global" | "seo.update_robots" | "seo.generate_sitemap" | "search.reindex" | "menu.create" | "menu.update" | "menu.delete" | "menu.add_item" | "menu.update_item" | "menu.delete_item" | "menu.reorder" | "menu.assign_location" | "settings.update_general" | "settings.update_reading" | "settings.update_writing" | "settings.update_discussion" | "settings.update_permalinks" | "settings.update_privacy" | "settings.update_email" | "settings.export" | "settings.import" | "email.send" | "email.queue" | "email.retry" | "email.update_template" | "notification.send" | "notification.mark_read" | "notification.mark_all_read" | "notification.delete" | "notification.update_preferences" | "audit.view" | "audit.export" | "audit.clear" | "api.create_key" | "api.revoke_key" | "api.create_webhook" | "api.update_webhook" | "api.delete_webhook" | "api.test_webhook" | "event.emit" | "event.register_listener" | "event.remove_listener" | "routing.view_redirects" | "routing.create_redirect" | "routing.update_redirect" | "routing.delete_redirect" | "analytics.view" | "analytics.manage" | "kb.view" | "kb.create" | "kb.edit" | "kb.editOwn" | "kb.delete" | "kb.publish" | "kb.manageCategories" | "kb.manageTags" | "kb.manageCollections" | "kb.manageWorkflows" | "kb.manageTemplates" | "kb.moderateComments" | "kb.viewAnalytics" | "lms.course.view" | "lms.course.create" | "lms.course.edit" | "lms.course.publish" | "lms.course.delete" | "lms.lesson.edit" | "lms.lesson.delete" | "lms.builder.manage" | "lms.ai.generate" | "lms.enroll.manage" | "lms.certificate.manage" | "lms.settings.manage" | "ticket.view" | "ticket.viewAll" | "ticket.respond" | "ticket.assign" | "ticket.updateStatus" | "ticket.updatePriority" | "ticket.close" | "ticket.manageCannedResponses" | "ticket.viewAnalytics" | "ticket.viewInternalNotes" | "form.view" | "form.create" | "form.update" | "form.delete" | "form.duplicate" | "form.view_entries" | "form.edit_entry" | "form.delete_entry" | "form.manage_notifications" | "form.manage_confirmations" | "form.manage_actions" | "form.view_analytics" | "form.export_entries" | "form.manage_security" | "commerce.returns.view" | "commerce.returns.review" | "commerce.returns.receive" | "commerce.returns.refund" | "commerce.returns.manage" | "commerce.bundles.view" | "commerce.bundles.create" | "commerce.bundles.edit" | "commerce.bundles.delete" | "commerce.reviews.view" | "commerce.reviews.moderate" | "commerce.reviews.delete" | "commerce.wishlists.view" | "commerce.wishlists.manage" | "commerce.tax.view" | "commerce.tax.manage" | "commerce.customers.tax_exempt" | "commerce.discount.view" | "commerce.discount.create" | "commerce.discount.update" | "commerce.discount.delete" | "commerce.discount.apply" | "manage_options" | "shipping.zones.manage" | "shipping.zones.read" | "shipping.classes.manage" | "shipping.classes.read" | "shipping.packages.manage" | "shipping.packages.read" | "shipping.locations.manage" | "shipping.locations.read" | "shipping.address_validation.manage" | "shipping.address_validation.read" | "shipping.rules.manage" | "shipping.rules.read" | "shipping.diagnostics.view" | "shipping.test_rates.run" | "shipping.methods.manage" | "shipping.methods.read" | "shipping.methods.preview" | "shipping.methods.test" | "shipping.methods.quote" | "shipping.providers.manage" | "shipping.providers.read" | "shipping.providers.test" | "shipping.labels.purchase" | "shipping.labels.void" | "shipping.labels.reprint" | "shipping.labels.batch" | "shipping.labels.read" | "shipping.tracking.view" | "shipping.tracking.sync" | "shipping.manifests.view" | "shipping.manifests.close" | "shipping.manifests.reprint" | "post.edit" | "post.delete_one" | "post.publish_one" | "page.edit" | "media.edit" | "media.delete_one" | "comment.edit" | "comment.delete_one" | "seo.edit_post" | "custom_field.edit_value"); "alreadyGranted"?: undefined; };
+export type Dto2627 = { "success": boolean; "deletedRole": string; };
+export type Dto2628 = { "success": boolean; "role": string; "capability": string; "alreadyRevoked": boolean; };
+export type Dto2629 = { "success": boolean; "role": string; "capability": string; "alreadyRevoked"?: undefined; };
+export type Dto2630 = { "targetUserName": string; "changedByName": string; "oldRoleName": string; "newRoleName": string; "_id": GenericId<"roleChanges">; "_creationTime": number; "reason"?: (undefined | string); "oldRoleId"?: (undefined | GenericId<"roles">); "userId": GenericId<"users">; "newRoleId": GenericId<"roles">; "changedBy": GenericId<"users">; "timestamp": number; };
+export type Dto2631 = { "_id": GenericId<"roles">; "_creationTime": number; "name": string; "slug": string; "description": string; "level": number; "type": ("internal" | "customer" | "system"); "isDefault": boolean; "isProtected": boolean; "status": ("active" | "inactive"); "capabilities": Array<string>; "pageAccess": Array<string>; "userCount": number; };
+export type Dto2632 = { "userCount": number; "_id": GenericId<"roles">; "_creationTime": number; "createdBy"?: (undefined | GenericId<"users">); "airtableRecordId"?: (undefined | string); "type": ("internal" | "customer" | "system"); "name": string; "updatedAt": number; "createdAt": number; "status": ("active" | "inactive"); "slug": string; "description": string; "level": number; "isDefault": boolean; "isProtected": boolean; "capabilities": Array<string>; "pageAccess": Array<string>; };
+export type Dto2633 = { [key: string]: number; };
+export type Dto2634 = { "sourceUrl": string; "targetUrl": string; };
+export type Dto2635 = { "created": number; "skipped": number; };
+export type Dto2636 = { "deletedCount": number; };
+export type Dto2637 = { "_resolvedTargetUrl": string; "_id": GenericId<"redirects">; "_creationTime": number; "updatedBy"?: (undefined | GenericId<"users">); "createdBy"?: (undefined | GenericId<"users">); "note"?: (undefined | string); "contentType"?: (undefined | "category" | "post" | "page" | "tag" | "author"); "contentId"?: (undefined | string); "lastHitAt"?: (undefined | number); "updatedAt": number; "createdAt": number; "enabled": boolean; "source": ("import" | "manual" | "slug_change" | "permalink_change"); "statusCode": (301 | 302 | 307 | 308); "matchType": ("exact" | "prefix" | "regex"); "sourceUrl": string; "targetUrl": string; "hitCount": number; };
+export type Dto2638 = { "dismissed": number; "skipped": number; "errors": number; };
+export type Dto2639 = { "success": boolean; };
+export type Dto2640 = { "_id": string; "sourceUrl": string; "targetUrl": string; "statusCode": number; "matchType": ("exact" | "prefix" | "regex"); "_resolvedTargetUrl"?: (undefined | string); };
+export type Dto2641 = { "entries": Array<Dto2091>; "total": number; "page": number; "perPage": number; "totalPages": number; };
+export type Dto2642 = { "redirects": Array<Dto1848>; "total": number; "page": number; "perPage": number; "totalPages": number; };
+export type Dto2643 = { "totalRedirects": number; "activeRedirects": number; "totalHits": number; "total404s": number; "unresolved404s": number; "topRedirects": Array<Dto1848>; };
+export type Dto2644 = { "updated": true; };
+export type Dto2645 = { "failure"?: (undefined | Dto2646); "status": ("failed" | "completed" | "running"); "duration": number; "sequence": number; "processed": number; "jobId": string; "contentType": (null | "event" | "media" | "post" | "page" | "comment" | "course" | "product"); "indexed": Dto2647; "removed": number; "failedAttempts": number; "errors": number; "needsRestart": boolean; };
+export type Dto2646 = { "contentType": ("event" | "media" | "post" | "page" | "comment" | "course" | "product"); "contentId": string; };
+export type Dto2647 = { "event": number; "media": number; "post": number; "page": number; "comment": number; "course": number; "product": number; };
+export type Dto2648 = { "bytes": number; "page": Array<Dto2649>; "rows": number; "isDone": boolean; "continueCursor": string; };
+export type Dto2649 = { "contentType": ("event" | "media" | "post" | "page" | "comment" | "course" | "product"); "contentId": string; };
+export type Dto2650 = { "cursor": (null | string); "processed": number; "isDone": boolean; };
+export type Dto2651 = { "removed": number; "isDone": boolean; };
+export type Dto2652 = { "purged": number; };
+export type Dto2653 = { "processed": unknown; "cursor": unknown; };
+export type Dto2654 = { "results": Array<never>; "query": string; "total": number; "page": number; "perPage": number; "totalPages": number; "filters": Dto2655; };
+export type Dto2655 = { "contentType"?: undefined; "status"?: undefined; "authorId"?: undefined; };
+export type Dto2656 = { "results": Array<Dto2657>; "query": string; "total": number; "page": number; "perPage": number; "totalPages": number; "filters": Dto2658; };
+export type Dto2657 = { "contentType": ("event" | "media" | "post" | "page" | "comment" | "course" | "product"); "contentId": string; "title": string; "excerpt": string; "url": string; "authorName": string; "authorId": string; "status": string; "publishedAt": (null | number); "categoryNames": (undefined | Array<string>); "tagNames": (undefined | Array<string>); "mimeType": (undefined | string); "relevanceScore": number; };
+export type Dto2658 = { "contentType": (undefined | "event" | "media" | "post" | "page" | "comment" | "course" | "product"); "status": (undefined | string); "authorId": (undefined | string); };
+export type Dto2659 = { "summary": Dto2660; "topQueries": Array<Dto2661>; "zeroResultQueries": Array<Dto2662>; "volumeByDay": Array<Dto2663>; "sourceBreakdown": Dto2664; };
+export type Dto2660 = { "totalSearches": number; "uniqueQueries": number; "averageResultCount": number; "clickThroughRate": number; "zeroResultRate": number; };
+export type Dto2661 = { "query": string; "count": number; "avgResults": number; "clickRate": number; };
+export type Dto2662 = { "query": string; "count": number; };
+export type Dto2663 = { "date": string; "count": number; };
+export type Dto2664 = { "website": number; "admin": number; "api": number; };
+export type Dto2665 = { "page": number; "query": string; "total": number; "filters": Dto2666; "perPage": number; "totalPages": number; "displayLease": (null | Dto2667); "viewerSubject": (null | string); "results": Array<Dto2668>; };
+export type Dto2666 = { "category"?: (undefined | string); "tag"?: (undefined | string); "contentType"?: (undefined | "event" | "media" | "post" | "page" | "comment" | "course" | "product"); "author"?: (undefined | string); "dateFrom"?: (undefined | number); "dateTo"?: (undefined | number); };
+export type Dto2667 = { "expiresAt": number; "evaluatedAt": number; };
+export type Dto2668 = { "mimeType"?: (undefined | string); "categoryNames"?: (undefined | Array<string>); "tagNames"?: (undefined | Array<string>); "title": string; "url": string; "excerpt": string; "publishedAt": (null | number); "authorName": string; "contentType": ("event" | "media" | "post" | "page" | "comment" | "course" | "product"); "contentId": string; };
+export type Dto2669 = { "suggestions": Array<Dto2670>; };
+export type Dto2670 = { "type": "content"; "text": string; "contentType": ("event" | "media" | "post" | "page" | "comment" | "course" | "product"); };
+export type Dto2671 = { "postId": string; "postTitle": string; };
+export type Dto2672 = { "seoTitle": (null | string); "seoDescription": (null | string); "focusKeyphrase": (null | string); "additionalKeyphrases": Array<string>; "canonical": (null | string); "noindex": (null | false | true); "nofollow": (null | false | true); "ogTitle": (null | string); "ogDescription": (null | string); "ogImage": (null | string); "twitterTitle": (null | string); "twitterDescription": (null | string); "twitterImage": (null | string); "schemaType": (null | string); "schemaArticleType": (null | string); "seoScore": (null | number); "readabilityScore": (null | number); "cornerstone": boolean; };
+export type Dto2673 = { "titles": Dto2674; "social": Dto2675; "robots": Dto2676; "schema": Dto2677; "breadcrumbs": Dto2678; "verification": Dto2679; "advanced": Dto2680; };
+export type Dto2674 = { "separator": string; "siteTitle": string; "tagline": string; "homepageTitle": string; "homepageDescription": string; "postTitleTemplate": string; "pageTitleTemplate": string; "categoryTitleTemplate": string; "tagTitleTemplate": string; "authorTitleTemplate": string; "searchTitleTemplate": string; "notFoundTitleTemplate": string; "dateArchiveTitleTemplate": string; "postNoindex": boolean; "pageNoindex": boolean; "categoryNoindex": boolean; "tagNoindex": boolean; "authorArchiveNoindex": boolean; "dateArchiveNoindex": boolean; };
+export type Dto2675 = { "organizationName": string; "organizationLogo": string; "facebookUrl": string; "twitterUsername": string; "instagramUrl": string; "linkedinUrl": string; "youtubeUrl": string; "pinterestUrl": string; "defaultOgImage": string; "twitterCardType": ("summary" | "summary_large_image"); "facebookAppId": string; };
+export type Dto2676 = { "customRules": string; "siteNoindex": boolean; "blockAiBots": boolean; };
+export type Dto2677 = { "representType": ("organization" | "person"); "organizationName": string; "organizationLogoUrl": string; "personName": string; "personImageUrl": string; "defaultArticleType": ("Article" | "BlogPosting" | "NewsArticle" | "TechArticle"); "defaultPageType": ("WebPage" | "AboutPage" | "ContactPage" | "FAQPage" | "CollectionPage" | "ItemPage" | "ProfilePage" | "SearchResultsPage" | "CheckoutPage"); "sitelinksSearchBox": boolean; };
+export type Dto2678 = { "enabled": boolean; "separator": string; "homeAnchorText": string; "showBlogPage": boolean; "boldLastItem": boolean; };
+export type Dto2679 = { "googleSiteVerification": string; "bingSiteVerification": string; "pinterestVerification": string; "yandexVerification": string; };
+export type Dto2680 = { "stripCategoryBase": boolean; "redirectAttachmentUrls": boolean; "cleanPermalinkFragments": boolean; "nofollowExternalLinks": boolean; "openExternalLinksNewTab": boolean; };
+export type Dto2681 = { "authorName": string; "authorUrl": string; "authorImageUrl": (undefined | string); "title": string; "description": string; "canonical": string; "noindex": boolean; "nofollow": boolean; "robots": string; "ogTitle": string; "ogDescription": string; "ogImage": (null | string); "ogType": string; "ogUrl": string; "ogSiteName": string; "twitterCard": string; "twitterTitle": string; "twitterDescription": string; "twitterImage": (null | string); "twitterSite": (null | string); "schemaType": string; "schemaArticleType": (null | string); "cornerstone": boolean; "focusKeyphrase": (null | string); "seoScore": (null | number); "readabilityScore": (null | number); };
+export type Dto2682 = { "success": boolean; "message": string; };
+export type Dto2683 = { "success": boolean; "key": ("schema" | "verification" | "social" | "titles" | "robots" | "breadcrumbs" | "advanced"); };
+export type Dto2684 = { "success": boolean; "updatedKeys": Array<string>; };
+export type Dto2685 = { "success": boolean; };
+export type Dto2686 = { "totalPublished": number; "totalIndexed": number; "scoreDistribution": Dto2687; "issues": Dto2688; "cornerstoneCount": number; "recentPosts": Array<Dto2689>; };
+export type Dto2687 = { "good": number; "ok": number; "poor": number; "noData": number; };
+export type Dto2688 = { "missingDescription": number; "missingKeyphrase": number; "noindexCount": number; };
+export type Dto2689 = { "postId": string; "title": string; "type": string; "slug": string; "seoScore": (null | number); "readabilityScore": (null | number); "hasKeyphrase": boolean; "hasDescription": boolean; "noindex": boolean; "cornerstone": boolean; "updatedAt": number; };
+export type Dto2690 = { "key": ("schema" | "verification" | "social" | "titles" | "robots" | "breadcrumbs" | "advanced"); "value": Dto2691; "updatedAt": (null | number); "updatedBy": (null | string); };
+export type Dto2691 = {  };
+export type Dto2692 = { "_id": (null | GenericId<"settings">); "updatedAt": (null | number); "updatedBy": (null | GenericId<"users">); };
+export type Dto2693 = { "siteTitle": unknown; "tagline": unknown; "siteUrl": unknown; "homeUrl": unknown; "membershipEnabled": unknown; "siteLanguage": unknown; "timezone": unknown; "dateFormat": unknown; "timeFormat": unknown; "weekStartsOn": unknown; "homepageDisplays": unknown; "homepageId": unknown; "postsPageId": unknown; "postsPerPage": unknown; "feedItemCount": unknown; "feedContentDisplay": unknown; "searchEngineVisibility": unknown; "allowComments": unknown; "requireNameEmail": unknown; "requireRegistration": unknown; "enableThreadedComments": unknown; "threadedCommentsDepth": unknown; "commentOrder": unknown; "showAvatars": unknown; "avatarRating": unknown; "defaultAvatar": unknown; "permalinkStructure": unknown; "categoryBase": unknown; "tagBase": unknown; "privacyPolicyPageId": unknown; "showPrivacyPolicyLink": unknown; "plugins": Dto2694; };
+export type Dto2694 = { "commerceEnabled": unknown; "commerceSubscriptionsEnabled": unknown; "commerceDigitalEnabled": unknown; "commerceReviewsEnabled": unknown; "commerceWishlistsEnabled": unknown; "commerceBundlesEnabled": unknown; "commerceReturnsEnabled": unknown; "membershipEnabled": unknown; "knowledgeBaseEnabled": unknown; "ticketsEnabled": unknown; "customFieldsEnabled": unknown; "recipesEnabled": unknown; "galleryEnabled": unknown; "formsEnabled": unknown; };
+export type Dto2695 = { "success": boolean; "detail"?: (undefined | string); };
+export type Dto2696 = { "upgraded": number; "sections": Array<string>; };
+export type Dto2697 = { "_id": (null | GenericId<"settings">); "updatedAt": (null | number); "updatedBy": (null | GenericId<"users">); };
+export type Dto2698 = { "migrated": boolean; };
+export type Dto2699 = { "imported": Array<string>; "skipped": Array<string>; };
+export type Dto2700 = { "version": string; "exportedAt": number; "exportedBy": string; "settings": Dto2701; };
+export type Dto2701 = { [key: string]: Dto108; };
+export type Dto2702 = { "values": (null | Dto1022); "_id": GenericId<"settings">; "_creationTime": number; "legacyAppearanceMigration"?: (undefined | Dto1835); "updatedAt": number; "updatedBy": GenericId<"users">; "section": ("layout" | "blocks" | "email" | "media" | "general" | "reading" | "writing" | "discussion" | "permalinks" | "privacy" | "analytics" | "ai" | "plugins" | "membership.general" | "search" | "kb.general" | "kb.features" | "kb.search" | "ticket.general" | "ticket.sla" | "support.widget" | "support.ai" | "header" | "footer" | "commerce.general" | "commerce.payments" | "commerce.assistant" | "commerce.layout" | "appearance.template" | "brand" | "commerce.subscriptions.counters" | "integrations.shipping" | "integrations.shipping.shipstation" | "integrations.shipping.ups" | "integrations.shipping.usps" | "integrations.shipping.fedex" | "integrations.shipping.dhl" | "integrations.clerk" | "integrations.google" | "dashboard" | "analytics.ga4"); };
+export type Dto2703 = { [key: string]: unknown; };
+export type Dto2704 = { "siteTitle": (undefined | string); "tagline": (undefined | string); "siteUrl": (undefined | string); "homeUrl": (undefined | string); "logoUrl": (undefined | string); "siteLogo": (undefined | string); "membershipEnabled": (undefined | false | true); "siteLanguage": (undefined | string); "timezone": (undefined | string); "dateFormat": (undefined | string); "timeFormat": (undefined | string); "weekStartsOn": (undefined | number); "homepageDisplays": (undefined | string); "homepageId": (undefined | string); "postsPageId": (undefined | string); "postsPerPage": (undefined | number); "feedItemCount": (undefined | number); "feedContentDisplay": (undefined | string); "searchEngineVisibility": (undefined | false | true); "allowComments": (undefined | false | true); "requireNameEmail": (undefined | false | true); "requireRegistration": (undefined | false | true); "enableThreadedComments": (undefined | false | true); "threadedCommentsDepth": (undefined | number); "commentOrder": (undefined | string); "showAvatars": (undefined | false | true); "avatarRating": (undefined | string); "defaultAvatar": (undefined | string); "permalinkStructure": (undefined | string); "categoryBase": (undefined | string); "tagBase": (undefined | string); "privacyPolicyPageId": (undefined | string); "showPrivacyPolicyLink": (undefined | false | true); "headerConfig": Dto108; "footerConfig": Dto108; "colorPalette": Array<Dto2705>; "plugins": Dto2706; "dashboardConfig": Dto2707; "blocksConfig": Dto2708; "commerceConfig": Dto2709; "assistantConfig": Dto2707; "layoutConfig": Dto2710; "templateConfig": Dto2711; "brandConfig": Dto2715; };
+export type Dto2705 = { "slug": string; "color": unknown; };
+export type Dto2706 = { [key: string]: boolean; };
+export type Dto2707 = { [key: string]: unknown; };
+export type Dto2708 = { "disabledBlockNames": unknown; };
+export type Dto2709 = { "storeName": (undefined | string); "storeEmail": (undefined | string); "currencyCode": (undefined | string); "currencySymbol": (undefined | string); "pricesIncludeTax": (undefined | false | true); "taxRateBasis": (undefined | string); "defaultCountryCode": (undefined | string); "defaultState": (undefined | string); "checkoutRequiresPhone": (undefined | false | true); "allowGuestCheckout": (undefined | false | true); "shippingEnabled": (undefined | false | true); "shippingMethods": unknown; "paymentMethods": unknown; "preferredProvider": (undefined | string); "liveRatesEnabled": (undefined | false | true); "fallbackToManualRates": (undefined | false | true); "fallbackMessage": (undefined | string); "cheapestBadgeLabel": (undefined | string); "fastestBadgeLabel": (undefined | string); "bestOptionBadgeLabel": (undefined | string); };
+export type Dto2710 = { "gridDensity"?: (undefined | Dto1734); "cartPanel"?: (undefined | Dto1734); "productLayout"?: (undefined | string); "shopLayout"?: (undefined | string); };
+export type Dto2711 = { "active": string; "overrides": Dto206; "variants": Dto206; "settings": Dto2712; };
+export type Dto2712 = { [key: string]: Dto2713; };
+export type Dto2713 = { [key: string]: Dto2714; };
+export type Dto2714 = { [key: string]: unknown; };
+export type Dto2715 = { "typography": unknown; "density": unknown; "radius": unknown; "industry": unknown; };
+export type Dto2716 = { "values": unknown; "variants": Dto206; "sourceRevision": string; "revision": string; "updatedAt": number; };
+export type Dto2717 = { "websiteKey": string; "instanceKey": string; "revision": string; "environmentKind": "staging"; };
+export type Dto2718 = { "values": Dto2711; "revision": string; "identity": (null | Dto2719); };
+export type Dto2719 = { "websiteKey": string; "instanceKey": string; "environmentKind": ("local" | "custom" | "live" | "staging" | "beta" | "preview" | "development"); };
+export type Dto2720 = { "revision": string; };
+export type Dto2721 = { "success": boolean; "provider": string; "shipmentId": unknown; "trackingNumber": unknown; "labelUrl": unknown; };
+export type Dto2722 = { "firstName"?: (undefined | string); "lastName"?: (undefined | string); "phone"?: (undefined | string); "company"?: (undefined | string); "line2"?: (undefined | string); "state"?: (undefined | string); "line1": string; "city": string; "postalCode": string; "countryCode": string; };
+export type Dto2723 = { "fallbackMessage"?: (undefined | string); "provider": ("live" | "manual_fallback"); "success": boolean; "fellBackToManual": boolean; "stages": Array<Dto2724>; "providerResults": Array<null>; "quotes": Array<Dto2725>; "aggregatedProviders": Array<null>; "matchedZone": (null | Dto2726); };
+export type Dto2724 = { "detail"?: (undefined | string); "startedAt": number; "success": boolean; "durationMs": number; "stage": string; };
+export type Dto2725 = { "expiresAt"?: (undefined | number); "addressKey"?: (undefined | string); "cartKey"?: (undefined | string); "estimatedDaysMin"?: (undefined | number); "estimatedDaysMax"?: (undefined | number); "deliveryDateEstimated"?: (undefined | number); "provider": string; "amount": number; "quoteKey": string; "carrierCode": string; "carrierName": string; "serviceCode": string; "serviceName": string; "currency": string; "isCheapest": boolean; "isFastest": boolean; "isBestValue": boolean; };
+export type Dto2726 = { "name": string; "_id": GenericId<"commerce_shipping_zones">; };
+export type Dto2727 = { "success": boolean; "provider": string; "trackingStatus": string; "status": unknown; };
+export type Dto2728 = { "success": boolean; "provider": string; "trackingStatus": string; "status": unknown; };
+export type Dto2729 = { "success": boolean; "verificationMode": string; "missingFields": Array<string>; "message": string; };
+export type Dto2730 = { "success": boolean; "status": number; "error": string; "accountCount"?: undefined; "readOnlyCheck"?: undefined; };
+export type Dto2731 = { "success": boolean; "accountCount": unknown; "readOnlyCheck": string; "status"?: undefined; "error"?: undefined; };
+export type Dto2732 = { "firstName"?: (undefined | string); "lastName"?: (undefined | string); "phone"?: (undefined | string); "company"?: (undefined | string); "line2"?: (undefined | string); "state"?: (undefined | string); "line1": string; "city": string; "postalCode": string; "countryCode": string; };
+export type Dto2733 = { "purged": number; };
+export type Dto2734 = { "lat": number; "lng": number; "accuracy": string; };
+export type Dto2735 = { "totalCached": number; "totalActive": number; "totalExpired": number; "byStatus": Dto21; "byProvider": Dto21; };
+export type Dto2736 = { "variantId"?: (undefined | GenericId<"commerce_product_variants">); "productId": GenericId<"commerce_products">; };
+export type Dto2737 = { [key: string]: (null | string); };
+export type Dto2738 = { "updated": number; };
+export type Dto2739 = { "deleted": boolean; "reassignedProducts": number; "reassignedVariants": number; };
+export type Dto2740 = { "updated": number; };
+export type Dto2741 = { "name"?: (undefined | string); "slug"?: (undefined | string); "description"?: (undefined | string); "sortOrder"?: (undefined | number); };
+export type Dto2742 = { [key: string]: Dto2743; };
+export type Dto2743 = { "productCount": number; "variantCount": number; };
+export type Dto2744 = { "authorized": boolean; "userId": GenericId<"users">; };
+export type Dto2745 = { "quantity": number; "orderItemId": GenericId<"commerce_order_items">; };
+export type Dto2746 = { "order": Dto1384; "items": Array<Dto1411>; "quote": (null | Dto1882); "existingShipment": (undefined | Dto1897); };
+export type Dto2747 = { "connection": Dto1895; "secret": (null | Dto1965); };
+export type Dto2748 = { "checkoutSession": Dto1162; "cart": Dto1149; "items": Array<(Dto1151 & Dto2749)>; "shipstationConnection": (null | Dto1895); };
+export type Dto2749 = { "product": (null | Dto1153); };
+export type Dto2750 = { "shipment": Dto1897; "order": (null | Dto1384); };
+export type Dto2751 = { "zone": Dto1901; "methods": Array<Dto2001>; };
+export type Dto2752 = { "expiresAt"?: (undefined | number); "origin"?: (undefined | Dto1883); "accountId"?: (undefined | GenericId<"shipping_provider_accounts">); "packages"?: (undefined | Array<Dto1884>); "rawQuote"?: unknown; "addressKey"?: (undefined | string); "cartKey"?: (undefined | string); "estimatedDaysMin"?: (undefined | number); "estimatedDaysMax"?: (undefined | number); "deliveryDateEstimated"?: (undefined | number); "provider": string; "amount": number; "quoteKey": string; "carrierCode": string; "carrierName": string; "serviceCode": string; "serviceName": string; "currency": string; "isCheapest": boolean; "isFastest": boolean; "isBestValue": boolean; };
+export type Dto2753 = { "errorCode"?: (undefined | string); "durationMs"?: (undefined | number); "errorMessage"?: (undefined | string); "skippedReason"?: (undefined | string); "provider": string; "success": boolean; "quoteCount": number; "attempted": boolean; };
+export type Dto2754 = { "total": number; "succeeded": number; "failed": number; "results": Array<Dto2755>; };
+export type Dto2755 = { "orderId": string; "success": boolean; "labelIds"?: (undefined | Array<unknown>); "errorCode"?: (undefined | string); "errorMessage"?: (undefined | string); };
+export type Dto2756 = { "success": boolean; "idempotent": boolean; "labelUrl": unknown; "trackingNumber": unknown; "externalLabelId": unknown; "labelIds": Array<unknown>; "packageCount": number; };
+export type Dto2757 = { "success": boolean; "labelUrl": string; "trackingNumber": string; "externalLabelId": string; "labelIds": Array<unknown>; "packageCount": number; "idempotent"?: undefined; };
+export type Dto2758 = { "voided": boolean; "refundPending": boolean; };
+export type Dto2759 = { "addressKey": (null | string); "cartKey": string; };
+export type Dto2760 = { "labelUrl": (undefined | string); "labelFileStorageId": (undefined | GenericId<"_storage">); "printCount": number; };
+export type Dto2761 = { "closed": number; "failed": number; "total": number; };
+export type Dto2762 = { "success": boolean; "externalManifestId"?: (undefined | string); "errorMessage"?: (undefined | string); };
+export type Dto2763 = { "deleted": boolean; };
+export type Dto2764 = { "currencyCode"?: (undefined | string); "appliedDiscountCode"?: (undefined | string); "shippingClasses"?: (undefined | Array<string>); "customerTags"?: (undefined | Array<string>); "destinationPostalCode"?: (undefined | string); "destinationCountryCode"?: (undefined | string); "itemCount": number; "subtotalAmount": number; "totalWeightOz": number; };
+export type Dto2765 = { "quotes": Array<Dto2766>; "error"?: undefined; };
+export type Dto2766 = { "quoteKey": string; "provider": ("manual" | "shipstation" | "ups" | "usps" | "fedex" | "dhl"); "carrierCode": string; "carrierName": string; "serviceCode": string; "serviceName": string; "amount": number; "currency": string; "estimatedDaysMin"?: (undefined | number); "estimatedDaysMax"?: (undefined | number); "deliveryDateEstimated"?: (undefined | number); "isCheapest": boolean; "isFastest": boolean; "isBestValue": boolean; "rawQuote"?: unknown; "accountId"?: (undefined | GenericId<"shipping_provider_accounts">); "origin"?: (undefined | Dto1883); "packages"?: (undefined | Array<Dto1884>); "addressKey"?: (undefined | string); "cartKey"?: (undefined | string); "expiresAt": number; };
+export type Dto2767 = { "quotes": Array<never>; "error": string; };
+export type Dto2768 = { "methodType": string; "config": unknown; };
+export type Dto2769 = { "length": number; "width": number; "height": number; };
+export type Dto2770 = { "success": boolean; };
+export type Dto2771 = { "length": number; "width": number; "height": number; };
+export type Dto2772 = { "length": number; "width": number; "height": number; };
+export type Dto2773 = { "deleted": boolean; };
+export type Dto2774 = { "code"?: (undefined | string); "label"?: (undefined | string); "isDefault"?: (undefined | false | true); "notes"?: (undefined | string); "sortOrder"?: (undefined | number); "shipFromLocationId"?: (undefined | GenericId<"commerce_ship_from_locations">); "weightUnit"?: (undefined | "oz" | "g" | "lb" | "kg"); "dimensionUnit"?: (undefined | "in" | "cm"); "isArchived"?: (undefined | false | true); "packageType"?: (undefined | string); "dimensions"?: (undefined | Dto2772); "tareWeight"?: (undefined | number); "maxLoadWeight"?: (undefined | number); "innerDimensions"?: (undefined | Dto2772); };
+export type Dto2775 = { "invalidated": number; };
+export type Dto2776 = { "purged": number; };
+export type Dto2777 = { "integrationSettings": unknown; "providers": Array<Dto2778>; };
+export type Dto2778 = { "provider": ("shipstation" | "ups" | "usps" | "fedex" | "dhl"); "descriptor": Dto2779; "connection": (null | Dto1895); "secretStored": boolean; "settings": unknown; "accountCount": number; };
+export type Dto2779 = { "provider": ("shipstation" | "ups" | "usps" | "fedex" | "dhl"); "title": string; "summary": string; "modeNotes": string; "implementationStatus": ("active" | "planned" | "foundation"); "operations": Dto2780; "primaryUseCase": string; "verificationMode": ("live_api" | "local_readiness"); "credentialFields": Array<Dto2781>; };
+export type Dto2780 = { "returns": ("planned" | "implemented" | "not_supported"); "rates": ("planned" | "implemented" | "not_supported"); "labels": ("planned" | "implemented" | "not_supported"); "tracking": ("planned" | "implemented" | "not_supported"); "manifests": ("planned" | "implemented" | "not_supported"); "address_validation": ("planned" | "implemented" | "not_supported"); };
+export type Dto2781 = { "key": string; "label": string; "type": ("url" | "password" | "text"); "placeholder"?: (undefined | string); "required": boolean; };
+export type Dto2782 = { "provider": ("shipstation" | "ups" | "usps" | "fedex" | "dhl"); "status": ("error" | "disconnected" | "connected" | "degraded"); "enabled": boolean; "supportsRates": boolean; "supportsLabels": boolean; "supportsTracking": boolean; "supportsManifests": boolean; "supportsReturns": boolean; };
+export type Dto2783 = { "provider": ("shipstation" | "ups" | "usps" | "fedex" | "dhl"); "descriptor": Dto2779; "settings": unknown; "connection": (null | Dto1895); "secretStored": boolean; "accounts": Array<Dto1896>; "services": Array<Dto1966>; };
+export type Dto2784 = { "methods": Array<Dto2001>; "_id": GenericId<"commerce_shipping_zones">; "_creationTime": number; "updatedBy"?: (undefined | GenericId<"users">); "description"?: (undefined | string); "createdBy"?: (undefined | GenericId<"users">); "name": string; "updatedAt": number; "createdAt": number; "enabled": boolean; "slug": string; "sortOrder": number; "countries": Array<string>; "states": Array<string>; "postalCodeRules": Array<string>; "isFallback": boolean; };
+export type Dto2785 = { "methodType": string; "config": unknown; };
+export type Dto2786 = { "itemCount"?: (undefined | number); "currencyCode"?: (undefined | string); "subtotalAmount"?: (undefined | number); "shippingAddress"?: unknown; "totalWeightOz"?: (undefined | number); "preferredProvider"?: (undefined | string); };
+export type Dto2787 = { "detail"?: (undefined | string); "startedAt": number; "success": boolean; "durationMs": number; "stage": string; };
+export type Dto2788 = { "error"?: (undefined | string); "provider": string; "success": boolean; "durationMs": number; "quoteCount": number; };
+export type Dto2789 = { "firstName"?: (undefined | string); "lastName"?: (undefined | string); "phone"?: (undefined | string); "company"?: (undefined | string); "line2"?: (undefined | string); "state"?: (undefined | string); "line1": string; "city": string; "postalCode": string; "countryCode": string; };
+export type Dto2790 = { "success": boolean; "quotes": Array<Dto2766>; "matchedZone": null; "fellBackToManual": boolean; "stages": Array<Dto2791>; };
+export type Dto2791 = { "stage": string; "startedAt": number; "durationMs": number; "success": boolean; "detail"?: (undefined | string); };
+export type Dto2792 = { "success": boolean; "quotes": Array<Dto2766>; "matchedZone": Dto2793; "fellBackToManual": boolean; "stages": Array<Dto2791>; };
+export type Dto2793 = { "_id": GenericId<"commerce_shipping_zones">; "_creationTime": number; "updatedBy"?: (undefined | GenericId<"users">); "description"?: (undefined | string); "createdBy"?: (undefined | GenericId<"users">); "name": string; "updatedAt": number; "createdAt": number; "enabled": boolean; "slug": string; "sortOrder": number; "countries": Array<string>; "states": Array<string>; "postalCodeRules": Array<string>; "isFallback": boolean; };
+export type Dto2794 = { "deleted": boolean; };
+export type Dto2795 = { "name"?: (undefined | string); "description"?: (undefined | string); "ruleAST"?: unknown; };
+export type Dto2796 = { "path": string; "message": string; };
+export type Dto2797 = { "archived": boolean; };
+export type Dto2798 = { "email"?: (undefined | string); "phone"?: (undefined | string); "line2"?: (undefined | string); "companyName"?: (undefined | string); "line1": string; "city": string; "state": string; "postalCode": string; "countryCode": string; "contactName": string; };
+export type Dto2799 = { "open": string; "close": string; };
+export type Dto2800 = { "removed": boolean; };
+export type Dto2801 = { "isActive": boolean; };
+export type Dto2802 = { "name"?: (undefined | string); "code"?: (undefined | string); "timezone"?: (undefined | string); "priority"?: (undefined | number); "isActive"?: (undefined | false | true); "address"?: (undefined | Dto2798); "locationType"?: (undefined | "other" | "warehouse" | "retail_store" | "dropshipper" | "fulfillment_center"); "isPickupEnabled"?: (undefined | false | true); "cutoffTime"?: (undefined | string); "operatingDays"?: (undefined | Array<number>); "operatingHours"?: (undefined | Dto2803); "handlingTimeDays"?: (undefined | number); "fulfillmentProvider"?: (undefined | "custom" | "manual" | "shipstation" | "amazon_mcf" | "third_party_logistics"); "externalProviderLocationId"?: (undefined | string); "fulfillmentProviderConfig"?: unknown; };
+export type Dto2803 = { "open": string; "close": string; };
+export type Dto2804 = { "synced": number; "failed": number; "total": number; };
+export type Dto2805 = { "shipmentId": GenericId<"commerce_shipments">; "orderId": GenericId<"commerce_orders">; "labelId": GenericId<"commerce_shipment_labels">; };
+export type Dto2806 = { "shipmentId": GenericId<"commerce_shipments">; "orderId": GenericId<"commerce_orders">; "labelId": undefined; };
+export type Dto2807 = { "windowSize": number; "webhookCount": number; "pollCount": number; "webhookShare": number; "last24h": number; "last7d": number; "lastReceivedAt": (null | number); "lastWebhookAt": (null | number); "lastPollAt": (null | number); "statusCounts": Dto21; "perProviderWebhook": Dto21; "activeShipmentStatusCounts": Dto21; "uniqueShipmentsInWindow": number; };
+export type Dto2808 = { "orderNumber": string; "status": ("pending" | "failed" | "processing" | "completed" | "cancelled" | "paid" | "refunded" | "fulfilled"); "fulfillmentStatus": string; "shipments": Array<unknown>; };
+export type Dto2809 = { "replay": boolean; "receivedAt"?: undefined; };
+export type Dto2810 = { "replay": boolean; "receivedAt": number; };
+export type Dto2811 = { "deleted": number; };
+export type Dto2812 = { "zone": Dto1901; "matchedFallback": boolean; };
+export type Dto2813 = { "deleted": boolean; "cascadedMethodCount": number; };
+export type Dto2814 = { "updated": number; };
+export type Dto2815 = { "previousFallbackId": (null | GenericId<"commerce_shipping_zones">); "currentFallbackId": (null | GenericId<"commerce_shipping_zones">); };
+export type Dto2816 = { "name"?: (undefined | string); "enabled"?: (undefined | false | true); "slug"?: (undefined | string); "description"?: (undefined | string); "sortOrder"?: (undefined | number); "countries"?: (undefined | Array<string>); "states"?: (undefined | Array<string>); "postalCodeRules"?: (undefined | Array<string>); };
+export type Dto2817 = { "zone": Dto1901; "matchedFallback": boolean; };
+export type Dto2818 = { "success": boolean; "durationMs": number; "triggeredBy": "manual"; };
+export type Dto2819 = { "authorized": boolean; "userId": GenericId<"users">; };
+export type Dto2820 = { "deleted": number; };
+export type Dto2821 = { "settings": Dto2822; "siteUrl": string; "posts"?: (undefined | Array<Dto2823>); "pages"?: (undefined | Array<Dto2824>); "courses"?: (undefined | Array<Dto2825>); "categories"?: (undefined | Array<Dto2826>); "tags"?: (undefined | Array<Dto2827>); "authors"?: (undefined | Array<Dto2828>); "existingHashes": Dto206; };
+export type Dto2822 = { "enabled": boolean; "include_posts": boolean; "include_pages": boolean; "include_courses": boolean; "include_categories": boolean; "include_tags": boolean; "include_authors": boolean; "max_urls_per_sitemap": number; "changefreq_posts": ("daily" | "weekly" | "never" | "always" | "hourly" | "monthly" | "yearly"); "changefreq_pages": ("daily" | "weekly" | "never" | "always" | "hourly" | "monthly" | "yearly"); "changefreq_courses": ("daily" | "weekly" | "never" | "always" | "hourly" | "monthly" | "yearly"); "changefreq_categories": ("daily" | "weekly" | "never" | "always" | "hourly" | "monthly" | "yearly"); "changefreq_tags": ("daily" | "weekly" | "never" | "always" | "hourly" | "monthly" | "yearly"); "changefreq_authors": ("daily" | "weekly" | "never" | "always" | "hourly" | "monthly" | "yearly"); "changefreq_homepage": ("daily" | "weekly" | "never" | "always" | "hourly" | "monthly" | "yearly"); "priority_homepage": number; "priority_posts": number; "priority_pages": number; "priority_courses": number; "priority_categories": number; "priority_tags": number; "priority_authors": number; "ping_google": boolean; "ping_bing": boolean; "auto_regenerate": boolean; "regeneration_debounce_ms": number; };
+export type Dto2823 = { "id": string; "slug": string; "publishedAt": number; "updatedAt": number; };
+export type Dto2824 = { "id": string; "slug": string; "path"?: (undefined | string); "publishedAt": number; "updatedAt": number; "menuOrder": number; "title": string; };
+export type Dto2825 = { "id": string; "slug": string; "publishedAt": number; "updatedAt": number; "title": string; };
+export type Dto2826 = { "id": string; "slug": string; "updatedAt": number; "count": number; };
+export type Dto2827 = { "id": string; "slug": string; "updatedAt": number; "count": number; };
+export type Dto2828 = { "id": string; "slug": string; "latestPublishedAt": number; };
+export type Dto2829 = { "count": number; };
+export type Dto2830 = { "enabled"?: (undefined | false | true); "include_posts"?: (undefined | false | true); "include_pages"?: (undefined | false | true); "include_courses"?: (undefined | false | true); "include_categories"?: (undefined | false | true); "include_tags"?: (undefined | false | true); "include_authors"?: (undefined | false | true); "max_urls_per_sitemap"?: (undefined | number); "changefreq_posts"?: (undefined | string); "changefreq_pages"?: (undefined | string); "changefreq_courses"?: (undefined | string); "changefreq_categories"?: (undefined | string); "changefreq_tags"?: (undefined | string); "changefreq_authors"?: (undefined | string); "changefreq_homepage"?: (undefined | string); "priority_homepage"?: (undefined | number); "priority_posts"?: (undefined | number); "priority_pages"?: (undefined | number); "priority_courses"?: (undefined | number); "priority_categories"?: (undefined | number); "priority_tags"?: (undefined | number); "priority_authors"?: (undefined | number); "ping_google"?: (undefined | false | true); "ping_bing"?: (undefined | false | true); "auto_regenerate"?: (undefined | false | true); "regeneration_debounce_ms"?: (undefined | number); };
+export type Dto2831 = { "success": boolean; };
+export type Dto2832 = { "xml": string; "generatedAt": number; "urlCount": number; };
+export type Dto2833 = { "enabled": boolean; "indexUrl": (null | string); "totalUrls": number; "perType": Dto2834; "lastGenerated": (null | number); "hasStale": boolean; "recentGenerations": Array<Dto2081>; "recentPings": Array<Dto2082>; };
+export type Dto2834 = { "posts": Dto2835; "pages": Dto2835; "index": Dto2835; "courses": Dto2835; "categories": Dto2835; "tags": Dto2835; "authors": Dto2835; };
+export type Dto2835 = { "urlCount": number; "pages": number; "lastGenerated": (null | number); };
+export type Dto2836 = { "xml": string; };
+export type Dto2837 = { "status": ("skipped" | "failed" | "superseded" | "refreshed"); };
+export type Dto2838 = { "websiteKey": string; "instanceKey": string; "deploymentOrigin": string; "revision": number; "attempt": number; "provider": ("instagram" | "mastodon"); "handle": string; "sourceId": GenericId<"socialFeedSources">; "manual": boolean; };
+export type Dto2839 = { "profile": Dto2111; "items": Array<Dto2112>; };
+export type Dto2840 = { "sources": Array<Dto2841>; "approvedMastodonOrigins": Array<string>; };
+export type Dto2841 = { "id": GenericId<"socialFeedSources">; "status": ("ready" | "pending" | "failed" | "disabled"); "expiresAt": (null | number); "enabled": boolean; "revision": number; "provider": ("instagram" | "mastodon"); "handle": string; "refreshedAt": (null | number); };
+export type Dto2842 = { "query": string; "count": number; "lastAskedAt": number; };
+export type Dto2843 = { "totalQueries": number; "deflectionRate": number; "outcomeBreakdown": Dto2844; "outcomes": Dto2844; "avgResponseLatencyMs": number; "totalTokensUsed": number; };
+export type Dto2844 = { "helpful": number; "notHelpful": number; "escalated": number; "abandoned": number; };
+export type Dto2845 = { "articleId": string; "title": string; "helpfulCount": number; "helpfulAppearances": number; "totalCitedCount": number; "deflectionRate": number; };
+export type Dto2846 = { "_id": unknown; "code": unknown; "kind": unknown; "label": unknown; "lastInboundAt": unknown; "healthy": boolean; "silentHours": (null | number); };
+export type Dto2847 = { "success": boolean; };
+export type Dto2848 = { "success": boolean; };
+export type Dto2849 = { "answer": string; "sourceArticles": Array<Dto2850>; "confidence": ("none" | "high" | "medium" | "low"); "usedAi": boolean; "responseLatencyMs": number; };
+export type Dto2850 = { "id": string; "title": string; "excerpt": string; "slug": string; "score": number; };
+export type Dto2851 = { "exists": false; "active": false; };
+export type Dto2852 = { "exists": true; "active": boolean; "security": Dto2853; };
+export type Dto2853 = { "signingSecret": (null | string); "allowUnsigned": boolean; "signatureHeader": string; "timestampHeader": (null | string); "toleranceSeconds": number; };
+export type Dto2854 = { "ok": false; "reason": "tickets_disabled"; "idempotent"?: undefined; "eventId"?: undefined; "ticketId"?: undefined; };
+export type Dto2855 = { "ok": false; "reason": "channel_not_found"; "idempotent"?: undefined; "eventId"?: undefined; "ticketId"?: undefined; };
+export type Dto2856 = { "ok": false; "reason": "channel_inactive"; "idempotent"?: undefined; "eventId"?: undefined; "ticketId"?: undefined; };
+export type Dto2857 = { "ok": true; "idempotent": true; "eventId": GenericId<"support_inbound_events">; "ticketId": (undefined | string); "reason"?: undefined; };
+export type Dto2858 = { "ok": false; "reason": "unknown_user"; "eventId": GenericId<"support_inbound_events">; "idempotent"?: undefined; "ticketId"?: undefined; };
+export type Dto2859 = { "ok": true; "eventId": GenericId<"support_inbound_events">; "ticketId": string; "reason"?: undefined; "idempotent"?: undefined; };
+export type Dto2860 = { "deleted": number; };
+export type Dto2861 = { "aiProvider": (null | string); "aiApiKey": (null | string); "aiModel": (null | string); "meilisearchEnabled": boolean; "meilisearchUrl": (null | string); "meilisearchApiKey": (null | string); "ragEnabled": boolean; };
+export type Dto2862 = { "id": string; "title": string; "excerpt": string; "slug": string; "score": number; };
+export type Dto2863 = { "id": string; "title": string; "excerpt": string; "slug": string; "score": number; };
+export type Dto2864 = { "widget": Dto2865; "ai": Dto2866; };
+export type Dto2865 = { "enabled": true; "widgetTitle": "Support"; "widgetSubtitle": "How can we help you today?"; "widgetColor": "#3b82f6"; "showKbSearch": true; "showTicketHistory": true; "aiEnabled": false; "escalationButtonLabel": "Contact Support"; };
+export type Dto2866 = { "aiProvider": (null | "anthropic" | "openai"); "aiApiKey": string; "aiModel": string; "meilisearchEnabled": boolean; "meilisearchUrl": string; "meilisearchApiKey": string; "ragEnabled": boolean; };
+export type Dto2867 = { "enabled"?: (undefined | false | true); "widgetTitle"?: (undefined | string); "widgetSubtitle"?: (undefined | string); "widgetColor"?: (undefined | string); "showKbSearch"?: (undefined | false | true); "showTicketHistory"?: (undefined | false | true); "aiEnabled"?: (undefined | false | true); "escalationButtonLabel"?: (undefined | string); };
+export type Dto2868 = { "aiApiKey"?: (undefined | string); "aiModel"?: (undefined | string); "meilisearchEnabled"?: (undefined | false | true); "meilisearchUrl"?: (undefined | string); "meilisearchApiKey"?: (undefined | string); "ragEnabled"?: (undefined | false | true); "aiProvider"?: (undefined | null | "anthropic" | "openai"); };
+export type Dto2869 = { "updatedSections": Array<string>; };
+export type Dto2870 = { "showKbSearch": boolean; "position": string; "greeting": string; "enabled": true; "widgetTitle": "Support"; "widgetSubtitle": "How can we help you today?"; "widgetColor": "#3b82f6"; "showTicketHistory": true; "aiEnabled": false; "escalationButtonLabel": "Contact Support"; };
+export type Dto2871 = { "lastMessageAt"?: (undefined | number); "updatedAt": number; "createdAt": number; "status": ("open" | "closed" | "resolved" | "inProgress" | "awaitingResponse"); "priority": ("high" | "medium" | "low" | "urgent"); "subject": string; "ticketNumber": string; "messageCount": number; "_id": GenericId<"ticket_tickets">; };
+export type Dto2872 = { "generation": (null | string); "status": ("ready" | "building" | "blocked" | "stale" | "unconfigured"); "phase": ("posts" | "ready" | "edges" | "dirty" | "forms"); "sequence": number; "documents": number; "errorCode": (null | string); };
+export type Dto2873 = { "id": GenericId<"posts">; "type": ("post" | "page"); "title": string; };
+export type Dto2874 = { "id": GenericId<"syncedBlocks">; "generation": number; "digest": string; "revision": number; "changed": boolean; };
+export type Dto2875 = { "id": GenericId<"syncedBlocks">; "generation": number; "title": string; "blocks": Array<Dto1018>; "digest": string; "revision": number; "publishedRevision": (null | number); };
+export type Dto2876 = { "digest": string; "dependencies": Array<Dto2877>; "expandedNodes": number; };
+export type Dto2877 = { "id": string; "digest": string; "revision": number; "path": Array<string>; };
+export type Dto2878 = { "id": GenericId<"syncedBlocks">; "generation": number; "changed": boolean; };
+export type Dto2879 = { "id": GenericId<"syncedBlocks">; "generation": number; "title": string; "blocks": Array<Dto1018>; "scope": Dto2880; "digest": string; "revision": number; "policy": Dto2881; };
+export type Dto2880 = { "websiteKey": string; "instanceKey": string; };
+export type Dto2881 = { "capabilities": Array<string>; "enabledPlugins": Array<string>; "disabledBlocks": Array<string>; };
+export type Dto2882 = { "postId": GenericId<"posts">; "expectedRevision": number; };
+export type Dto2883 = { "syncedBlockId": GenericId<"syncedBlocks">; "expectedGeneration": number; };
+export type Dto2884 = { "websiteKey": string; "instanceKey": string; };
+export type Dto2885 = { "splitCursor"?: (undefined | null | string); "pageStatus"?: (undefined | null | "SplitRecommended" | "SplitRequired"); "page": Array<Dto2886>; "sourceId": GenericId<"syncedBlocks">; "publishedRevision": number; "isDone": boolean; "continueCursor": string; };
+export type Dto2886 = { "title": string; "digest": string; "revision": number; };
+export type Dto2887 = { "id": GenericId<"syncedBlocks">; "scope": Dto2884; "digest": string; "revision": number; "publishedRevision": number; "revisionPolicy": ("pinned" | "latest"); };
+export type Dto2888 = { "splitCursor"?: (undefined | null | string); "pageStatus"?: (undefined | null | "SplitRecommended" | "SplitRequired"); "page": Array<Dto2889>; "isDone": boolean; "continueCursor": string; };
+export type Dto2889 = { "id": GenericId<"syncedBlocks">; "title": string; "digest": string; "revision": number; };
+export type Dto2890 = { "id": GenericId<"syncedBlocks">; "generation": number; "title": string; "revision": number; "publishedRevision": (null | number); };
+export type Dto2891 = { "splitCursor"?: (undefined | null | string); "pageStatus"?: (undefined | null | "SplitRecommended" | "SplitRequired"); "page": Array<Dto2892>; "isDone": boolean; "continueCursor": string; };
+export type Dto2892 = { "id": GenericId<"syncedBlocks">; "generation": number; "title": string; "updatedAt": number; "revision": number; "publishedRevision": (null | number); };
+export type Dto2893 = { "splitCursor"?: (undefined | null | string); "pageStatus"?: (undefined | null | "SplitRecommended" | "SplitRequired"); "page": Array<Dto2894>; "isDone": boolean; "continueCursor": string; };
+export type Dto2894 = { "id": GenericId<"syncedBlocks">; "title": string; "digest": string; "revision": number; };
+export type Dto2895 = { "id": GenericId<"syncedBlocks">; "generation": number; "title": string; "blocks": Array<Dto1018>; "digest": string; "revision": number; "isPublished": boolean; "wasPublished": boolean; "state": "ready"; };
+export type Dto2896 = { "id": GenericId<"syncedBlocks">; "generation": number; "revision": number; "state": "unavailable"; };
 export type Dto2897 = { "splitCursor"?: (undefined | null | string); "pageStatus"?: (undefined | null | "SplitRecommended" | "SplitRequired"); "page": Array<Dto2898>; "isDone": boolean; "continueCursor": string; };
-export type Dto2898 = { "id": GenericId<"syncedBlocks">; "generation": number; "title": string; "updatedAt": number; "revision": number; "publishedRevision": (null | number); };
-export type Dto2899 = { "splitCursor"?: (undefined | null | string); "pageStatus"?: (undefined | null | "SplitRecommended" | "SplitRequired"); "page": Array<Dto2900>; "isDone": boolean; "continueCursor": string; };
-export type Dto2900 = { "id": GenericId<"syncedBlocks">; "title": string; "digest": string; "revision": number; };
-export type Dto2901 = { "id": GenericId<"syncedBlocks">; "generation": number; "title": string; "blocks": Array<Dto1018>; "digest": string; "revision": number; "isPublished": boolean; "wasPublished": boolean; "state": "ready"; };
-export type Dto2902 = { "id": GenericId<"syncedBlocks">; "generation": number; "revision": number; "state": "unavailable"; };
-export type Dto2903 = { "splitCursor"?: (undefined | null | string); "pageStatus"?: (undefined | null | "SplitRecommended" | "SplitRequired"); "page": Array<Dto2904>; "isDone": boolean; "continueCursor": string; };
-export type Dto2904 = { "title": string; "digest": string; "createdAt": number; "revision": number; "isPublished": boolean; "wasPublished": boolean; };
-export type Dto2905 = { "attempt": number; "jobId": GenericId<"syncedBlockRefreshJobs">; };
-export type Dto2906 = { "attempt": number; "jobId": GenericId<"syncedBlockRefreshJobs">; };
-export type Dto2907 = { "updatedAt": number; "status": ("pending" | "failed" | "completed" | "superseded"); "failed": number; "attempt": number; "errorCode": (null | string); "sourceGeneration": number; "processed": number; "jobId": GenericId<"syncedBlockRefreshJobs">; };
-export type Dto2908 = { "terms": Array<Dto1832>; "total": number; "page": number; "perPage": number; "totalPages": number; };
-export type Dto2909 = { "deleted": number; };
-export type Dto2910 = { "scheduled": boolean; };
-export type Dto2911 = { "termsUpdated": number; };
-export type Dto2912 = { "success": boolean; "alreadyAssigned": boolean; };
-export type Dto2913 = { "reassignedPosts": number; "reparentedChildren": number; };
-export type Dto2914 = { "removedFromPosts": number; };
-export type Dto2915 = { "mergedPosts": number; "reparentedChildren": number; };
-export type Dto2916 = { "success": boolean; "wasAssigned": boolean; };
-export type Dto2917 = { "categories": number; "tags": number; };
-export type Dto2918 = { "categories": Array<Dto2919>; "tags": Array<Dto2919>; };
-export type Dto2919 = { "name": string; "slug": string; "_id": GenericId<"terms">; };
-export type Dto2920 = { "_id": GenericId<"terms">; "name": string; "slug": string; "count": number; "countReady": boolean; "isDefault": boolean; "depth": number; "children": Dto2921; };
-export type Dto2921 = Array<Dto2920>;
-export type Dto2922 = { "terms": Array<Dto2923>; "total": number; "page": number; "perPage": number; "totalPages": number; };
-export type Dto2923 = { "depth": number; "children": (undefined | Array<GenericId<"terms">>); "_id": GenericId<"terms">; "_creationTime": number; "wpSourceSiteId"?: (undefined | GenericId<"wordpressSites">); "description"?: (undefined | string); "createdBy"?: (undefined | string); "parentId"?: (undefined | GenericId<"terms">); "countReady"?: (undefined | false | true); "wpTermId"?: (undefined | number); "name": string; "updatedAt": number; "createdAt": number; "slug": string; "count": number; "isDefault": boolean; "taxonomy": ("category" | "post_tag"); };
-export type Dto2924 = { "scope": Dto2925; "slug": string; "cursor": (null | string); "items": Array<Dto2926>; "tag": (null | Dto2928); "nextCursor": (null | string); "resetRequired": boolean; "viewerSubject": (null | string); };
-export type Dto2925 = { "websiteKey": string; "instanceKey": string; };
-export type Dto2926 = { "id": string; "title": string; "image": (null | Dto2927); "excerpt": (null | string); "publishedAt": number; "author": (null | string); "href": string; };
-export type Dto2927 = { "alt": string; "src": string; };
-export type Dto2928 = { "id": GenericId<"terms">; "name": string; "slug": string; "description": (null | string); };
-export type Dto2929 = { "uploadUrl": string; };
-export type Dto2930 = { "maxBytes": number; "maxCount": number; "mimeTypes": Array<("application/pdf" | "text/plain" | "image/png" | "image/jpeg" | "image/webp" | "image/gif")>; };
-export type Dto2931 = { "content": string; };
-export type Dto2932 = { "id": GenericId<"ticket_cannedResponses">; };
-export type Dto2933 = { "id": GenericId<"ticket_cannedResponses">; };
-export type Dto2934 = { "closed": number; "message": string; };
-export type Dto2935 = { "closed": number; "message"?: undefined; };
-export type Dto2936 = { "messageId": GenericId<"ticket_messages">; };
-export type Dto2937 = { "messageId": GenericId<"ticket_messages">; };
-export type Dto2938 = { "messageId": GenericId<"ticket_messages">; };
-export type Dto2939 = { "publicCount": number; "internalCount": (undefined | number); "totalCount": number; };
-export type Dto2940 = { "messageId": GenericId<"ticket_messages">; };
-export type Dto2941 = { "messageId": GenericId<"ticket_messages">; };
-export type Dto2942 = { "ticketId": GenericId<"ticket_tickets">; "ticketNumber": string; };
-export type Dto2943 = { "updated": boolean; };
-export type Dto2944 = { "messageId": GenericId<"ticket_messages">; "reopened": boolean; };
-export type Dto2945 = { "changed": boolean; };
-export type Dto2946 = { "_id": GenericId<"ticket_tickets">; "ticketNumber": string; "subject": string; "status": ("open" | "closed" | "resolved" | "inProgress" | "awaitingResponse"); "priority": ("high" | "medium" | "low" | "urgent"); "userNameSnapshot": string; "assignedTo": (undefined | GenericId<"users">); "createdAt": number; "waitingMs": number; };
-export type Dto2947 = { "categories": Array<Dto2948>; "firstResponseTargetMinutes": (null | number); "resolutionTargetMinutes": (null | number); };
-export type Dto2948 = { "value": string; "label": string; "responseWindow": string; };
-export type Dto2949 = { "page": Array<Dto2950>; "isDone": boolean; "continueCursor": string; "splitCursor"?: (undefined | null | string); "pageStatus"?: (undefined | null | "SplitRecommended" | "SplitRequired"); };
-export type Dto2950 = { "_id": GenericId<"ticket_tickets">; "ticketNumber": string; "subject": string; "category": ("general" | "other" | "billing" | "technical" | "account" | "featureRequest"); "status": ("open" | "closed" | "resolved" | "inProgress" | "awaitingResponse"); "priority": ("high" | "medium" | "low" | "urgent"); "messageCount": number; "lastMessageAt": (undefined | number); "createdAt": number; "rating": (undefined | number); };
-export type Dto2951 = { "tickets": Array<Dto108>; "counts": Dto2952; "responseWindow": string; };
-export type Dto2952 = { "yours": number; "active": number; "done": number; "total": number; };
-export type Dto2953 = { "total": number; "page": number; "perPage": number; "totalPages": number; "tickets": Array<Dto2954>; };
-export type Dto2954 = { "_id": GenericId<"ticket_tickets">; "ticketNumber": string; "subject": string; "category": ("general" | "other" | "billing" | "technical" | "account" | "featureRequest"); "status": ("open" | "closed" | "resolved" | "inProgress" | "awaitingResponse"); "priority": ("high" | "medium" | "low" | "urgent"); "assignedTo": (undefined | GenericId<"users">); "assigneeName": (undefined | string); "userNameSnapshot": string; "userEmailSnapshot": string; "messageCount": number; "lastMessageAt": (undefined | number); "firstResponseAt": (undefined | number); "createdAt": number; "updatedAt": number; "tags": Array<string>; "rating": (undefined | number); };
-export type Dto2955 = { "_id": GenericId<"ticket_tickets">; "ticketNumber": string; "subject": string; "status": ("open" | "closed" | "resolved" | "inProgress" | "awaitingResponse"); "priority": ("high" | "medium" | "low" | "urgent"); "userNameSnapshot": string; "createdAt": number; };
-export type Dto2956 = { "counts": Dto21; "priorityCounts": Dto21; "avgFirstResponseMs": number; "avgResolutionMs": number; "avgRating": number; "ratedCount": number; "totalActive": number; "awaitingFirstResponseCount": number; };
-export type Dto2957 = { "ticket": Dto2958; "messages": Array<Dto2039>; };
-export type Dto2958 = { "assigneeName": (undefined | string); "_id": GenericId<"ticket_tickets">; "_creationTime": number; "resolvedAt"?: (undefined | number); "rating"?: (undefined | number); "assignedTo"?: (undefined | GenericId<"users">); "assignedAt"?: (undefined | number); "aiQuery"?: (undefined | string); "aiResponse"?: (undefined | string); "kbArticlesShown"?: (undefined | Array<string>); "ratingComment"?: (undefined | string); "lastCustomerReadAt"?: (undefined | number); "lastAgentMessageAt"?: (undefined | number); "lastMessageSenderType"?: (undefined | "system" | "ai" | "user" | "admin"); "lastMessageAt"?: (undefined | number); "firstResponseAt"?: (undefined | number); "closedAt"?: (undefined | number); "userId": GenericId<"users">; "updatedAt": number; "createdAt": number; "status": ("open" | "closed" | "resolved" | "inProgress" | "awaitingResponse"); "description": string; "priority": ("high" | "medium" | "low" | "urgent"); "category": ("general" | "other" | "billing" | "technical" | "account" | "featureRequest"); "subject": string; "source": ("email" | "dashboard" | "api" | "widget"); "tags": Array<string>; "ticketNumber": string; "userEmailSnapshot": string; "userNameSnapshot": string; "aiAttempted": boolean; "messageCount": number; };
-export type Dto2959 = { "allowed": boolean; "retryAfterMs": number; "remaining"?: undefined; "windowMs"?: undefined; };
-export type Dto2960 = { "allowed": boolean; "remaining": number; "windowMs": number; "retryAfterMs"?: undefined; };
-export type Dto2961 = { "deleted": number; };
-export type Dto2962 = { [key: string]: Dto2963; };
-export type Dto2963 = { "count": number; "uniqueSessions": number; };
-export type Dto2964 = { "used": number; "remaining": number; "limit": (3 | 5 | 10); "windowMs": number; "isLimited": boolean; };
-export type Dto2965 = { "deleted": number; };
-export type Dto2966 = { "sessionId": string; "isNew": boolean; };
-export type Dto2967 = { "valid": boolean; "reason": string; "userId"?: undefined; "createdAt"?: undefined; "lastActivityAt"?: undefined; };
-export type Dto2968 = { "valid": boolean; "userId": (undefined | GenericId<"users">); "createdAt": number; "lastActivityAt": number; "reason"?: undefined; };
-export type Dto2969 = { "general": Dto2970; "sla": Dto2972; };
-export type Dto2970 = { "categories": Array<Dto2971>; "defaultPriority": ("high" | "medium" | "low" | "urgent"); "autoCloseAfterDays": number; };
-export type Dto2971 = { "value": string; "label": string; };
-export type Dto2972 = { "firstResponseTarget": number; "resolutionTarget": number; };
-export type Dto2973 = { "categories"?: (undefined | Array<Dto2974>); "autoCloseAfterDays"?: (undefined | number); "defaultPriority"?: (undefined | "high" | "medium" | "low" | "urgent"); };
-export type Dto2974 = { "label": string; "value": string; };
-export type Dto2975 = { "firstResponseTarget"?: (undefined | number); "resolutionTarget"?: (undefined | number); };
-export type Dto2976 = { "updatedSections": Array<string>; };
-export type Dto2977 = { "id": GenericId<"users">; "email": string; "firstName": (undefined | string); "lastName": (undefined | string); "profilePictureUrl": (undefined | string); "internalRole": (undefined | string); "isInternal": (undefined | false | true); };
-export type Dto2978 = { "userId": GenericId<"users">; "role": Dto2979; "validUntil": (null | number); };
-export type Dto2979 = { "type": ("internal" | "customer" | "system"); "name": string; "status": ("active" | "inactive"); "slug": string; "level": number; "capabilities": Array<string>; "pageAccess": Array<string>; "_id": GenericId<"roles">; };
-export type Dto2980 = { "_id": string; "_creationTime": number; "email": string; "emailVerified": boolean; "firstName"?: (undefined | string); "lastName"?: (undefined | string); "phone"?: (undefined | string); "profilePictureUrl"?: (undefined | string); "username"?: (undefined | string); "nickname"?: (undefined | string); "displayName"?: (undefined | string); "slug"?: (undefined | string); "bio"?: (undefined | string); "url"?: (undefined | string); "avatarUrl"?: (undefined | string); "avatarMediaId"?: (undefined | string); "avatarStorageId"?: (undefined | string); "socialLinks"?: (undefined | Dto2981); "roleId"?: (undefined | string); "status": ("active" | "inactive" | "banned"); "preferences"?: (undefined | Dto108); "locale"?: (undefined | string); "timezone"?: (undefined | string); "postCount"?: (undefined | number); "commentCount"?: (undefined | number); "internalRole"?: (undefined | string); "isInternal"?: (undefined | false | true); "createdAt": number; "updatedAt": number; };
-export type Dto2981 = { [key: string]: (undefined | string); };
-export type Dto2982 = { "message": string; "count"?: undefined; };
-export type Dto2983 = { "message": string; "count": number; };
-export type Dto2984 = { "success": boolean; "userId": GenericId<"users">; "email": string; };
-export type Dto2985 = { "success": boolean; "userId": GenericId<"users">; "email": string; };
-export type Dto2986 = { "users": number; "posts": number; "pages": number; "categories": number; "tags": number; "media": number; "comments": number; };
-export type Dto2987 = { "success": true; "siteInfo": Dto2988; };
-export type Dto2988 = { "name": string; "url": string; "description": string; "home": string; "gmt_offset": number; "timezone_string": string; "site_icon": number; "site_icon_url": string; "namespaces": Array<string>; };
-export type Dto2989 = { "capabilities": (undefined | Dto1831); };
-export type Dto2990 = { "success": false; "error": string; };
-export type Dto2991 = { "sourceUrl"?: (undefined | string); "sourceUrls"?: (undefined | Array<string>); "objectType": ("media" | "category" | "post" | "page" | "comment" | "user" | "menu" | "tag" | "menuItem" | "commerceCategory" | "commerceProduct" | "commerceProductVariant" | "commerceCustomer" | "commerceOrder" | "commerceOrderItem" | "commercePaymentTransaction" | "commerceDiscount" | "commerceReview" | "commerceRefund"); "wpId": number; "convexId": string; };
-export type Dto2992 = { "phase": string; "timestamp": number; "message": string; "wpId": number; };
-export type Dto2993 = { "marked": number; };
-export type Dto2994 = { "deleted": number; };
-export type Dto2995 = { "deleted": number; };
-export type Dto2996 = { "convexId": string; "sourceUrl": (undefined | string); "sourceUrls": (undefined | Array<string>); "url": string; };
-export type Dto2997 = { "posts": number; "users": number; "media": number; "pages": number; "comments": number; "categories": number; "tags": number; };
-export type Dto2998 = { "skipped"?: (undefined | number); "cursor"?: (undefined | number); "created"?: (undefined | number); "updated"?: (undefined | number); "conflicted"?: (undefined | number); "failed": number; "total": number; "imported": number; };
-export type Dto2999 = { "wpRest": boolean; "wpAuthValid": boolean; "wooAuthValid": boolean; "menusApi": boolean; "elementorDetected": boolean; "mediaAccessible": boolean; "wooRest": boolean; "customMetaEndpoint": boolean; };
-export type Dto3000 = { "skipped": number; "failed": number; "created": number; "updated": number; "conflicted": number; };
-export type Dto3001 = { "cleared": number; };
-export type Dto3002 = { "reportsDeleted": number; "findingsDeleted": number; "deleted": boolean; };
-export type Dto3003 = { "reportsDeleted": number; "findingsDeleted": number; "deleted": boolean; "jobsDeleted": number; "mappingsDeleted": number; };
-export type Dto3004 = { "authorId"?: (undefined | string); "parentId"?: (undefined | string); "authorEmail"?: (undefined | string); "authorUrl"?: (undefined | string); "id": number; "postId": string; "createdAt": number; "status": ("pending" | "trash" | "approved" | "spam"); "content": string; "authorName": string; };
-export type Dto3005 = { "wooConsumerKey"?: (undefined | string); "wooConsumerSecret"?: (undefined | string); "wooAuthMode"?: (undefined | "shared" | "separate"); "userPasswordExportPath"?: (undefined | string); "userPasswordExportSecret"?: (undefined | string); "username": string; "siteUrl": string; "applicationPassword": string; };
-export type Dto3006 = { "progress": Dto3007; "errors": Array<Dto3008>; "hasMore": boolean; };
-export type Dto3007 = { "total": number; "imported": number; "failed": number; "cursor"?: (undefined | number); "created"?: (undefined | number); "updated"?: (undefined | number); "skipped"?: (undefined | number); "conflicted"?: (undefined | number); };
-export type Dto3008 = { "phase": string; "wpId": number; "message": string; "timestamp": number; };
-export type Dto3009 = { "description"?: (undefined | string); "thumbnailMediaId"?: (undefined | string); "id": number; "name": string; "slug": string; "count": number; };
-export type Dto3010 = { "description"?: (undefined | string); "excerpt"?: (undefined | string); "publishedAt"?: (undefined | number); "sku"?: (undefined | string); "featuredMediaId"?: (undefined | string); "salePrice"?: (undefined | Dto3011); "stockQuantity"?: (undefined | number); "shippingWeightOz"?: (undefined | number); "shippingLengthIn"?: (undefined | number); "shippingWidthIn"?: (undefined | number); "shippingHeightIn"?: (undefined | number); "salePriceFrom"?: (undefined | number); "salePriceTo"?: (undefined | number); "rawSourceMeta"?: (undefined | string); "optionTypes"?: unknown; "title": string; "status": ("draft" | "trash" | "publish" | "private"); "slug": string; "categoryIds": Array<string>; "productType": ("simple" | "variable" | "external"); "basePrice": Dto3012; "galleryMediaIds": Array<string>; "trackInventory": boolean; "allowBackorders": boolean; "isVirtual": boolean; "isDownloadable": boolean; };
-export type Dto3011 = { "currencyCode": string; "amount": number; };
-export type Dto3012 = { "currencyCode": string; "amount": number; };
-export type Dto3013 = { "status"?: (undefined | string); "description"?: (undefined | string); "menuOrder"?: (undefined | number); "sku"?: (undefined | string); "featuredMediaId"?: (undefined | string); "salePrice"?: (undefined | Dto3014); "stockQuantity"?: (undefined | number); "isVirtual"?: (undefined | false | true); "shippingLengthIn"?: (undefined | string); "shippingWidthIn"?: (undefined | string); "shippingHeightIn"?: (undefined | string); "salePriceFrom"?: (undefined | number); "salePriceTo"?: (undefined | number); "isDownloadable"?: (undefined | false | true); "downloadLimit"?: (undefined | number); "taxClass"?: (undefined | string); "shippingClassId"?: (undefined | string); "globalUniqueId"?: (undefined | string); "selections"?: unknown; "manageStock"?: (undefined | string); "stockStatus"?: (undefined | string); "backorders"?: (undefined | string); "lowStockAmount"?: (undefined | number); "weight"?: (undefined | string); "downloadExpiry"?: (undefined | number); "title": string; "isDefault": boolean; "price": Dto3015; "optionSummary": string; };
-export type Dto3014 = { "currencyCode": string; "amount": number; };
-export type Dto3015 = { "currencyCode": string; "amount": number; };
-export type Dto3016 = { "title"?: (undefined | string); "content"?: (undefined | string); "orderId"?: (undefined | string); "createdAtSource"?: (undefined | number); "userId": string; "status": ("pending" | "approved" | "spam" | "rejected" | "deleted"); "rating": number; "productId": string; "isVerifiedPurchase": boolean; "helpfulCount": number; };
-export type Dto3017 = { "firstName"?: (undefined | string); "lastName"?: (undefined | string); "phone"?: (undefined | string); "company"?: (undefined | string); "line2"?: (undefined | string); "state"?: (undefined | string); "line1": string; "city": string; "postalCode": string; "countryCode": string; };
-export type Dto3018 = { "userId"?: (undefined | string); "firstName"?: (undefined | string); "lastName"?: (undefined | string); "phone"?: (undefined | string); "isGuest"?: (undefined | false | true); "email": string; "currencyCode": string; "totalOrders": number; "totalSpentAmount": number; };
-export type Dto3019 = { "description"?: (undefined | string); "startsAt"?: (undefined | number); "endsAt"?: (undefined | number); "rawSourceMeta"?: (undefined | string); "minimumSubtotalAmount"?: (undefined | number); "maximumSubtotalAmount"?: (undefined | number); "productIds"?: (undefined | Array<string>); "excludedProductIds"?: (undefined | Array<string>); "allowedEmails"?: (undefined | Array<string>); "individualUse"?: (undefined | false | true); "excludeSaleItems"?: (undefined | false | true); "perUserUsageLimit"?: (undefined | number); "usageLimit"?: (undefined | number); "status": ("active" | "inactive"); "code": string; "usageCount": number; "amount": number; "discountType": ("fixed_cart" | "percent" | "fixed_product" | "free_shipping"); };
-export type Dto3020 = { "userId"?: (undefined | string); "notes"?: (undefined | string); "customerId"?: (undefined | string); "paidAt"?: (undefined | number); "appliedDiscountCode"?: (undefined | string); "appliedDiscountDescription"?: (undefined | string); "shippingAddress"?: (undefined | Dto3021); "selectedShippingMethodCode"?: (undefined | string); "selectedShippingMethodLabel"?: (undefined | string); "selectedPaymentMethodCode"?: (undefined | string); "selectedPaymentMethodLabel"?: (undefined | string); "createdAtSource"?: (undefined | number); "status": ("pending" | "failed" | "processing" | "completed" | "cancelled" | "paid" | "refunded" | "fulfilled"); "email": string; "paymentStatus": string; "orderNumber": string; "fulfillmentStatus": string; "currencyCode": string; "subtotalAmount": number; "discountAmount": number; "shippingAmount": number; "taxAmount": number; "totalAmount": number; "billingAddress": Dto3022; "trackingToken": string; };
-export type Dto3021 = { "firstName"?: (undefined | string); "lastName"?: (undefined | string); "phone"?: (undefined | string); "company"?: (undefined | string); "line2"?: (undefined | string); "state"?: (undefined | string); "line1": string; "city": string; "postalCode": string; "countryCode": string; };
-export type Dto3022 = { "firstName"?: (undefined | string); "lastName"?: (undefined | string); "phone"?: (undefined | string); "company"?: (undefined | string); "line2"?: (undefined | string); "state"?: (undefined | string); "line1": string; "city": string; "postalCode": string; "countryCode": string; };
-export type Dto3023 = { "metadata"?: unknown; "sku"?: (undefined | string); "variantId"?: (undefined | string); "quantity": number; "lineSubtotalAmount": number; "lineTotalAmount": number; "productId": string; "unitPriceAmount": number; "productTitle": string; };
-export type Dto3024 = { "reason"?: (undefined | string); "createdBy"?: (undefined | string); "transactionId"?: (undefined | string); "createdAtSource"?: (undefined | number); "status": string; "amount": Dto3025; "orderId": string; };
-export type Dto3025 = { "currencyCode": string; "amount": number; };
-export type Dto3026 = { "completedAt"?: (undefined | number); "metadata"?: unknown; "createdAtSource"?: (undefined | number); "status": string; "provider": string; "providerTransactionId": string; "amount": Dto3027; "orderId": string; };
-export type Dto3027 = { "currencyCode": string; "amount": number; };
-export type Dto3028 = { "width"?: (undefined | number); "description"?: (undefined | string); "caption"?: (undefined | string); "altText"?: (undefined | string); "height"?: (undefined | number); "sizes"?: (undefined | Array<Dto3029>); "id": number; "title": string; "fileSize": number; "mimeType": string; "slug": string; "mediaType": ("image" | "video" | "audio" | "document" | "archive" | "other"); "fileName": string; "sourceUrl": string; "authorWpId": number; };
-export type Dto3029 = { "name": string; "width": number; "fileSize": number; "mimeType": string; "height": number; };
-export type Dto3030 = { "width"?: (undefined | number); "description"?: (undefined | string); "caption"?: (undefined | string); "altText"?: (undefined | string); "height"?: (undefined | number); "sizes"?: (undefined | Array<Dto3031>); "id": number; "title": string; "fileSize": number; "mimeType": string; "slug": string; "mediaType": ("image" | "video" | "audio" | "document" | "archive" | "other"); "fileName": string; "sourceUrl": string; "authorWpId": number; };
-export type Dto3031 = { "name": string; "width": number; "fileSize": number; "mimeType": string; "height": number; };
-export type Dto3032 = { "description"?: (undefined | string); "id": number; "name": string; "slug": string; "locations": Array<string>; };
-export type Dto3033 = { "url"?: (undefined | string); "description"?: (undefined | string); "objectId"?: (undefined | string); "parentItemId"?: (undefined | string); "cssClasses"?: (undefined | string); "id": number; "title": string; "position": number; "itemType": ("category" | "post" | "page" | "custom" | "tag"); "menuId": string; "target": ("_self" | "_blank"); };
-export type Dto3034 = { "key": string; "value": string; };
-export type Dto3035 = { "publishedAt"?: (undefined | number); "guid"?: (undefined | string); "id": number; "title": string; "status": ("draft" | "pending" | "trash" | "auto-draft" | "publish" | "future" | "private"); "slug": string; "menuOrder": number; "commentStatus": ("open" | "closed"); "content": string; "excerpt": string; "template": string; };
-export type Dto3036 = { "key": string; "value": string; };
-export type Dto3037 = { "publishedAt"?: (undefined | number); "guid"?: (undefined | string); "id": number; "title": string; "status": ("draft" | "pending" | "trash" | "auto-draft" | "publish" | "future" | "private"); "slug": string; "commentStatus": ("open" | "closed"); "content": string; "excerpt": string; "isSticky": boolean; };
-export type Dto3038 = { "progress": Dto3039; "errors": Array<never>; "hasMore": boolean; };
-export type Dto3039 = { "total": number; "imported": number; "failed": number; "cursor"?: undefined; };
-export type Dto3040 = { "progress": Dto3041; "errors": Array<never>; "hasMore": boolean; };
-export type Dto3041 = { "total": number; "imported": number; "failed": number; "cursor": number; };
-export type Dto3042 = { "description"?: (undefined | string); "id": number; "name": string; "slug": string; "count": number; "parent": number; };
-export type Dto3043 = { "processed": number; "hasMore": boolean; "nextAfterWpId": number; };
-export type Dto3044 = { "users": Array<Dto3045>; "nextAfterWpId": number; "hasMore": boolean; };
-export type Dto3045 = { "userId": GenericId<"users">; "wpUserId": number; "email": string; "username": (undefined | string); "firstName": (undefined | string); "lastName": (undefined | string); "displayName": (undefined | string); };
-export type Dto3046 = { "status": "skipped"; "reason"?: undefined; "error"?: undefined; "clerkUserId"?: undefined; };
-export type Dto3047 = { "status": "reset_required"; "reason"?: undefined; "error"?: undefined; "clerkUserId"?: undefined; };
-export type Dto3048 = { "status": "reset_required"; "reason": string; "error"?: undefined; "clerkUserId"?: undefined; };
-export type Dto3049 = { "status": "failed"; "error": string; "reason"?: undefined; "clerkUserId"?: undefined; };
-export type Dto3050 = { "status": "failed"; "reason"?: undefined; "error"?: undefined; "clerkUserId"?: undefined; };
-export type Dto3051 = { "status": string; "clerkUserId": string; "reason"?: undefined; "error"?: undefined; };
-export type Dto3052 = { "email"?: (undefined | string); "firstName"?: (undefined | string); "lastName"?: (undefined | string); "slug"?: (undefined | string); "url"?: (undefined | string); "avatarUrl"?: (undefined | string); "roles"?: (undefined | Array<string>); "description"?: (undefined | string); "id": number; "name": string; "username": string; };
-export type Dto3053 = { "total": number; "posts": number; "pages": number; "media": number; "users": number; "categories": number; "tags": number; "comments": number; "menus": number; "fromJob": boolean; "jobId"?: (undefined | GenericId<"wordpressSyncJobs">); "isApproximate"?: (undefined | false | true); };
-export type Dto3054 = { "errors": Array<Dto1856>; "total": number; };
-export type Dto3055 = { "totalSites": number; "activeSites": number; "activeJobs": number; "totalImported": number; "totalImportedIsApproximate": boolean; "lastSyncAt": (undefined | number); "lastSyncSite": (undefined | string); };
-export type Dto3056 = { "name": string; "updatedAt": number; "createdAt": number; "status": ("active" | "inactive" | "error"); "username": string; "capabilities"?: (undefined | Dto1831); "createdBy": GenericId<"users">; "siteUrl": string; "lastConnectionTest"?: (undefined | number); "lastSyncAt"?: (undefined | number); "connectionError"?: (undefined | string); "wpVersion"?: (undefined | string); "siteName"?: (undefined | string); "siteDescription"?: (undefined | string); "wooAuthMode"?: (undefined | "shared" | "separate"); "_id": GenericId<"wordpressSites">; };
-export type Dto3057 = { "hasWooCredentials": boolean; };
-export type Dto3058 = { "_id": GenericId<"wordpressSites">; "name": string; "siteUrl": string; "username": string; "status": ("active" | "inactive" | "error"); "lastConnectionTest": (undefined | number); "lastSyncAt": (undefined | number); "connectionError": (undefined | string); "wpVersion": (undefined | string); "siteName": (undefined | string); "siteDescription": (undefined | string); "capabilities": (undefined | Dto1831); "hasWooCredentials": boolean; "wooAuthMode": (undefined | "shared" | "separate"); "createdAt": number; "updatedAt": number; "activeJob": boolean; };
+export type Dto2898 = { "title": string; "digest": string; "createdAt": number; "revision": number; "isPublished": boolean; "wasPublished": boolean; };
+export type Dto2899 = { "attempt": number; "jobId": GenericId<"syncedBlockRefreshJobs">; };
+export type Dto2900 = { "attempt": number; "jobId": GenericId<"syncedBlockRefreshJobs">; };
+export type Dto2901 = { "updatedAt": number; "status": ("pending" | "failed" | "completed" | "superseded"); "failed": number; "attempt": number; "errorCode": (null | string); "sourceGeneration": number; "processed": number; "jobId": GenericId<"syncedBlockRefreshJobs">; };
+export type Dto2902 = { "terms": Array<Dto1832>; "total": number; "page": number; "perPage": number; "totalPages": number; };
+export type Dto2903 = { "deleted": number; };
+export type Dto2904 = { "scheduled": boolean; };
+export type Dto2905 = { "termsUpdated": number; };
+export type Dto2906 = { "success": boolean; "alreadyAssigned": boolean; };
+export type Dto2907 = { "reassignedPosts": number; "reparentedChildren": number; };
+export type Dto2908 = { "removedFromPosts": number; };
+export type Dto2909 = { "mergedPosts": number; "reparentedChildren": number; };
+export type Dto2910 = { "success": boolean; "wasAssigned": boolean; };
+export type Dto2911 = { "categories": number; "tags": number; };
+export type Dto2912 = { "categories": Array<Dto2913>; "tags": Array<Dto2913>; };
+export type Dto2913 = { "name": string; "slug": string; "_id": GenericId<"terms">; };
+export type Dto2914 = { "_id": GenericId<"terms">; "name": string; "slug": string; "count": number; "countReady": boolean; "isDefault": boolean; "depth": number; "children": Dto2915; };
+export type Dto2915 = Array<Dto2914>;
+export type Dto2916 = { "terms": Array<Dto2917>; "total": number; "page": number; "perPage": number; "totalPages": number; };
+export type Dto2917 = { "depth": number; "children": (undefined | Array<GenericId<"terms">>); "_id": GenericId<"terms">; "_creationTime": number; "wpSourceSiteId"?: (undefined | GenericId<"wordpressSites">); "description"?: (undefined | string); "createdBy"?: (undefined | string); "parentId"?: (undefined | GenericId<"terms">); "countReady"?: (undefined | false | true); "wpTermId"?: (undefined | number); "name": string; "updatedAt": number; "createdAt": number; "slug": string; "count": number; "isDefault": boolean; "taxonomy": ("category" | "post_tag"); };
+export type Dto2918 = { "scope": Dto2919; "slug": string; "cursor": (null | string); "items": Array<Dto2920>; "tag": (null | Dto2922); "nextCursor": (null | string); "resetRequired": boolean; "viewerSubject": (null | string); };
+export type Dto2919 = { "websiteKey": string; "instanceKey": string; };
+export type Dto2920 = { "id": string; "title": string; "image": (null | Dto2921); "excerpt": (null | string); "publishedAt": number; "author": (null | string); "href": string; };
+export type Dto2921 = { "alt": string; "src": string; };
+export type Dto2922 = { "id": GenericId<"terms">; "name": string; "slug": string; "description": (null | string); };
+export type Dto2923 = { "uploadUrl": string; };
+export type Dto2924 = { "maxBytes": number; "maxCount": number; "mimeTypes": Array<("application/pdf" | "text/plain" | "image/png" | "image/jpeg" | "image/webp" | "image/gif")>; };
+export type Dto2925 = { "content": string; };
+export type Dto2926 = { "id": GenericId<"ticket_cannedResponses">; };
+export type Dto2927 = { "id": GenericId<"ticket_cannedResponses">; };
+export type Dto2928 = { "closed": number; "message": string; };
+export type Dto2929 = { "closed": number; "message"?: undefined; };
+export type Dto2930 = { "messageId": GenericId<"ticket_messages">; };
+export type Dto2931 = { "messageId": GenericId<"ticket_messages">; };
+export type Dto2932 = { "messageId": GenericId<"ticket_messages">; };
+export type Dto2933 = { "publicCount": number; "internalCount": (undefined | number); "totalCount": number; };
+export type Dto2934 = { "messageId": GenericId<"ticket_messages">; };
+export type Dto2935 = { "messageId": GenericId<"ticket_messages">; };
+export type Dto2936 = { "ticketId": GenericId<"ticket_tickets">; "ticketNumber": string; };
+export type Dto2937 = { "updated": boolean; };
+export type Dto2938 = { "messageId": GenericId<"ticket_messages">; "reopened": boolean; };
+export type Dto2939 = { "changed": boolean; };
+export type Dto2940 = { "_id": GenericId<"ticket_tickets">; "ticketNumber": string; "subject": string; "status": ("open" | "closed" | "resolved" | "inProgress" | "awaitingResponse"); "priority": ("high" | "medium" | "low" | "urgent"); "userNameSnapshot": string; "assignedTo": (undefined | GenericId<"users">); "createdAt": number; "waitingMs": number; };
+export type Dto2941 = { "categories": Array<Dto2942>; "firstResponseTargetMinutes": (null | number); "resolutionTargetMinutes": (null | number); };
+export type Dto2942 = { "value": string; "label": string; "responseWindow": string; };
+export type Dto2943 = { "page": Array<Dto2944>; "isDone": boolean; "continueCursor": string; "splitCursor"?: (undefined | null | string); "pageStatus"?: (undefined | null | "SplitRecommended" | "SplitRequired"); };
+export type Dto2944 = { "_id": GenericId<"ticket_tickets">; "ticketNumber": string; "subject": string; "category": ("general" | "other" | "billing" | "technical" | "account" | "featureRequest"); "status": ("open" | "closed" | "resolved" | "inProgress" | "awaitingResponse"); "priority": ("high" | "medium" | "low" | "urgent"); "messageCount": number; "lastMessageAt": (undefined | number); "createdAt": number; "rating": (undefined | number); };
+export type Dto2945 = { "tickets": Array<Dto108>; "counts": Dto2946; "responseWindow": string; };
+export type Dto2946 = { "yours": number; "active": number; "done": number; "total": number; };
+export type Dto2947 = { "total": number; "page": number; "perPage": number; "totalPages": number; "tickets": Array<Dto2948>; };
+export type Dto2948 = { "_id": GenericId<"ticket_tickets">; "ticketNumber": string; "subject": string; "category": ("general" | "other" | "billing" | "technical" | "account" | "featureRequest"); "status": ("open" | "closed" | "resolved" | "inProgress" | "awaitingResponse"); "priority": ("high" | "medium" | "low" | "urgent"); "assignedTo": (undefined | GenericId<"users">); "assigneeName": (undefined | string); "userNameSnapshot": string; "userEmailSnapshot": string; "messageCount": number; "lastMessageAt": (undefined | number); "firstResponseAt": (undefined | number); "createdAt": number; "updatedAt": number; "tags": Array<string>; "rating": (undefined | number); };
+export type Dto2949 = { "_id": GenericId<"ticket_tickets">; "ticketNumber": string; "subject": string; "status": ("open" | "closed" | "resolved" | "inProgress" | "awaitingResponse"); "priority": ("high" | "medium" | "low" | "urgent"); "userNameSnapshot": string; "createdAt": number; };
+export type Dto2950 = { "counts": Dto21; "priorityCounts": Dto21; "avgFirstResponseMs": number; "avgResolutionMs": number; "avgRating": number; "ratedCount": number; "totalActive": number; "awaitingFirstResponseCount": number; };
+export type Dto2951 = { "ticket": Dto2952; "messages": Array<Dto2039>; };
+export type Dto2952 = { "assigneeName": (undefined | string); "_id": GenericId<"ticket_tickets">; "_creationTime": number; "resolvedAt"?: (undefined | number); "rating"?: (undefined | number); "assignedTo"?: (undefined | GenericId<"users">); "assignedAt"?: (undefined | number); "aiQuery"?: (undefined | string); "aiResponse"?: (undefined | string); "kbArticlesShown"?: (undefined | Array<string>); "ratingComment"?: (undefined | string); "lastCustomerReadAt"?: (undefined | number); "lastAgentMessageAt"?: (undefined | number); "lastMessageSenderType"?: (undefined | "system" | "ai" | "user" | "admin"); "lastMessageAt"?: (undefined | number); "firstResponseAt"?: (undefined | number); "closedAt"?: (undefined | number); "userId": GenericId<"users">; "updatedAt": number; "createdAt": number; "status": ("open" | "closed" | "resolved" | "inProgress" | "awaitingResponse"); "description": string; "priority": ("high" | "medium" | "low" | "urgent"); "category": ("general" | "other" | "billing" | "technical" | "account" | "featureRequest"); "subject": string; "source": ("email" | "dashboard" | "api" | "widget"); "tags": Array<string>; "ticketNumber": string; "userEmailSnapshot": string; "userNameSnapshot": string; "aiAttempted": boolean; "messageCount": number; };
+export type Dto2953 = { "allowed": boolean; "retryAfterMs": number; "remaining"?: undefined; "windowMs"?: undefined; };
+export type Dto2954 = { "allowed": boolean; "remaining": number; "windowMs": number; "retryAfterMs"?: undefined; };
+export type Dto2955 = { "deleted": number; };
+export type Dto2956 = { [key: string]: Dto2957; };
+export type Dto2957 = { "count": number; "uniqueSessions": number; };
+export type Dto2958 = { "used": number; "remaining": number; "limit": (3 | 5 | 10); "windowMs": number; "isLimited": boolean; };
+export type Dto2959 = { "deleted": number; };
+export type Dto2960 = { "sessionId": string; "isNew": boolean; };
+export type Dto2961 = { "valid": boolean; "reason": string; "userId"?: undefined; "createdAt"?: undefined; "lastActivityAt"?: undefined; };
+export type Dto2962 = { "valid": boolean; "userId": (undefined | GenericId<"users">); "createdAt": number; "lastActivityAt": number; "reason"?: undefined; };
+export type Dto2963 = { "general": Dto2964; "sla": Dto2966; };
+export type Dto2964 = { "categories": Array<Dto2965>; "defaultPriority": ("high" | "medium" | "low" | "urgent"); "autoCloseAfterDays": number; };
+export type Dto2965 = { "value": string; "label": string; };
+export type Dto2966 = { "firstResponseTarget": number; "resolutionTarget": number; };
+export type Dto2967 = { "categories"?: (undefined | Array<Dto2968>); "autoCloseAfterDays"?: (undefined | number); "defaultPriority"?: (undefined | "high" | "medium" | "low" | "urgent"); };
+export type Dto2968 = { "label": string; "value": string; };
+export type Dto2969 = { "firstResponseTarget"?: (undefined | number); "resolutionTarget"?: (undefined | number); };
+export type Dto2970 = { "updatedSections": Array<string>; };
+export type Dto2971 = { "id": GenericId<"users">; "email": string; "firstName": (undefined | string); "lastName": (undefined | string); "profilePictureUrl": (undefined | string); "internalRole": (undefined | string); "isInternal": (undefined | false | true); };
+export type Dto2972 = { "userId": GenericId<"users">; "role": Dto2973; "validUntil": (null | number); };
+export type Dto2973 = { "type": ("internal" | "customer" | "system"); "name": string; "status": ("active" | "inactive"); "slug": string; "level": number; "capabilities": Array<string>; "pageAccess": Array<string>; "_id": GenericId<"roles">; };
+export type Dto2974 = { "_id": string; "_creationTime": number; "email": string; "emailVerified": boolean; "firstName"?: (undefined | string); "lastName"?: (undefined | string); "phone"?: (undefined | string); "profilePictureUrl"?: (undefined | string); "username"?: (undefined | string); "nickname"?: (undefined | string); "displayName"?: (undefined | string); "slug"?: (undefined | string); "bio"?: (undefined | string); "url"?: (undefined | string); "avatarUrl"?: (undefined | string); "avatarMediaId"?: (undefined | string); "avatarStorageId"?: (undefined | string); "socialLinks"?: (undefined | Dto2975); "roleId"?: (undefined | string); "status": ("active" | "inactive" | "banned"); "preferences"?: (undefined | Dto108); "locale"?: (undefined | string); "timezone"?: (undefined | string); "postCount"?: (undefined | number); "commentCount"?: (undefined | number); "internalRole"?: (undefined | string); "isInternal"?: (undefined | false | true); "createdAt": number; "updatedAt": number; };
+export type Dto2975 = { [key: string]: (undefined | string); };
+export type Dto2976 = { "message": string; "count"?: undefined; };
+export type Dto2977 = { "message": string; "count": number; };
+export type Dto2978 = { "success": boolean; "userId": GenericId<"users">; "email": string; };
+export type Dto2979 = { "success": boolean; "userId": GenericId<"users">; "email": string; };
+export type Dto2980 = { "users": number; "posts": number; "pages": number; "categories": number; "tags": number; "media": number; "comments": number; };
+export type Dto2981 = { "success": true; "siteInfo": Dto2982; };
+export type Dto2982 = { "name": string; "url": string; "description": string; "home": string; "gmt_offset": number; "timezone_string": string; "site_icon": number; "site_icon_url": string; "namespaces": Array<string>; };
+export type Dto2983 = { "capabilities": (undefined | Dto1831); };
+export type Dto2984 = { "success": false; "error": string; };
+export type Dto2985 = { "sourceUrl"?: (undefined | string); "sourceUrls"?: (undefined | Array<string>); "objectType": ("media" | "category" | "post" | "page" | "comment" | "user" | "menu" | "tag" | "menuItem" | "commerceCategory" | "commerceProduct" | "commerceProductVariant" | "commerceCustomer" | "commerceOrder" | "commerceOrderItem" | "commercePaymentTransaction" | "commerceDiscount" | "commerceReview" | "commerceRefund"); "wpId": number; "convexId": string; };
+export type Dto2986 = { "phase": string; "timestamp": number; "message": string; "wpId": number; };
+export type Dto2987 = { "marked": number; };
+export type Dto2988 = { "deleted": number; };
+export type Dto2989 = { "deleted": number; };
+export type Dto2990 = { "convexId": string; "sourceUrl": (undefined | string); "sourceUrls": (undefined | Array<string>); "url": string; };
+export type Dto2991 = { "posts": number; "users": number; "media": number; "pages": number; "comments": number; "categories": number; "tags": number; };
+export type Dto2992 = { "skipped"?: (undefined | number); "cursor"?: (undefined | number); "created"?: (undefined | number); "updated"?: (undefined | number); "conflicted"?: (undefined | number); "failed": number; "total": number; "imported": number; };
+export type Dto2993 = { "wpRest": boolean; "wpAuthValid": boolean; "wooAuthValid": boolean; "menusApi": boolean; "elementorDetected": boolean; "mediaAccessible": boolean; "wooRest": boolean; "customMetaEndpoint": boolean; };
+export type Dto2994 = { "skipped": number; "failed": number; "created": number; "updated": number; "conflicted": number; };
+export type Dto2995 = { "cleared": number; };
+export type Dto2996 = { "reportsDeleted": number; "findingsDeleted": number; "deleted": boolean; };
+export type Dto2997 = { "reportsDeleted": number; "findingsDeleted": number; "deleted": boolean; "jobsDeleted": number; "mappingsDeleted": number; };
+export type Dto2998 = { "authorId"?: (undefined | string); "parentId"?: (undefined | string); "authorEmail"?: (undefined | string); "authorUrl"?: (undefined | string); "id": number; "postId": string; "createdAt": number; "status": ("pending" | "trash" | "approved" | "spam"); "content": string; "authorName": string; };
+export type Dto2999 = { "wooConsumerKey"?: (undefined | string); "wooConsumerSecret"?: (undefined | string); "wooAuthMode"?: (undefined | "shared" | "separate"); "userPasswordExportPath"?: (undefined | string); "userPasswordExportSecret"?: (undefined | string); "username": string; "siteUrl": string; "applicationPassword": string; };
+export type Dto3000 = { "progress": Dto3001; "errors": Array<Dto3002>; "hasMore": boolean; };
+export type Dto3001 = { "total": number; "imported": number; "failed": number; "cursor"?: (undefined | number); "created"?: (undefined | number); "updated"?: (undefined | number); "skipped"?: (undefined | number); "conflicted"?: (undefined | number); };
+export type Dto3002 = { "phase": string; "wpId": number; "message": string; "timestamp": number; };
+export type Dto3003 = { "description"?: (undefined | string); "thumbnailMediaId"?: (undefined | string); "id": number; "name": string; "slug": string; "count": number; };
+export type Dto3004 = { "description"?: (undefined | string); "excerpt"?: (undefined | string); "publishedAt"?: (undefined | number); "sku"?: (undefined | string); "featuredMediaId"?: (undefined | string); "salePrice"?: (undefined | Dto3005); "stockQuantity"?: (undefined | number); "shippingWeightOz"?: (undefined | number); "shippingLengthIn"?: (undefined | number); "shippingWidthIn"?: (undefined | number); "shippingHeightIn"?: (undefined | number); "salePriceFrom"?: (undefined | number); "salePriceTo"?: (undefined | number); "rawSourceMeta"?: (undefined | string); "optionTypes"?: unknown; "title": string; "status": ("draft" | "trash" | "publish" | "private"); "slug": string; "categoryIds": Array<string>; "productType": ("simple" | "variable" | "external"); "basePrice": Dto3006; "galleryMediaIds": Array<string>; "trackInventory": boolean; "allowBackorders": boolean; "isVirtual": boolean; "isDownloadable": boolean; };
+export type Dto3005 = { "currencyCode": string; "amount": number; };
+export type Dto3006 = { "currencyCode": string; "amount": number; };
+export type Dto3007 = { "status"?: (undefined | string); "description"?: (undefined | string); "menuOrder"?: (undefined | number); "sku"?: (undefined | string); "featuredMediaId"?: (undefined | string); "salePrice"?: (undefined | Dto3008); "stockQuantity"?: (undefined | number); "isVirtual"?: (undefined | false | true); "shippingLengthIn"?: (undefined | string); "shippingWidthIn"?: (undefined | string); "shippingHeightIn"?: (undefined | string); "salePriceFrom"?: (undefined | number); "salePriceTo"?: (undefined | number); "isDownloadable"?: (undefined | false | true); "downloadLimit"?: (undefined | number); "taxClass"?: (undefined | string); "shippingClassId"?: (undefined | string); "globalUniqueId"?: (undefined | string); "selections"?: unknown; "manageStock"?: (undefined | string); "stockStatus"?: (undefined | string); "backorders"?: (undefined | string); "lowStockAmount"?: (undefined | number); "weight"?: (undefined | string); "downloadExpiry"?: (undefined | number); "title": string; "isDefault": boolean; "price": Dto3009; "optionSummary": string; };
+export type Dto3008 = { "currencyCode": string; "amount": number; };
+export type Dto3009 = { "currencyCode": string; "amount": number; };
+export type Dto3010 = { "title"?: (undefined | string); "content"?: (undefined | string); "orderId"?: (undefined | string); "createdAtSource"?: (undefined | number); "userId": string; "status": ("pending" | "approved" | "spam" | "rejected" | "deleted"); "rating": number; "productId": string; "isVerifiedPurchase": boolean; "helpfulCount": number; };
+export type Dto3011 = { "firstName"?: (undefined | string); "lastName"?: (undefined | string); "phone"?: (undefined | string); "company"?: (undefined | string); "line2"?: (undefined | string); "state"?: (undefined | string); "line1": string; "city": string; "postalCode": string; "countryCode": string; };
+export type Dto3012 = { "userId"?: (undefined | string); "firstName"?: (undefined | string); "lastName"?: (undefined | string); "phone"?: (undefined | string); "isGuest"?: (undefined | false | true); "email": string; "currencyCode": string; "totalOrders": number; "totalSpentAmount": number; };
+export type Dto3013 = { "description"?: (undefined | string); "startsAt"?: (undefined | number); "endsAt"?: (undefined | number); "rawSourceMeta"?: (undefined | string); "minimumSubtotalAmount"?: (undefined | number); "maximumSubtotalAmount"?: (undefined | number); "productIds"?: (undefined | Array<string>); "excludedProductIds"?: (undefined | Array<string>); "allowedEmails"?: (undefined | Array<string>); "individualUse"?: (undefined | false | true); "excludeSaleItems"?: (undefined | false | true); "perUserUsageLimit"?: (undefined | number); "usageLimit"?: (undefined | number); "status": ("active" | "inactive"); "code": string; "usageCount": number; "amount": number; "discountType": ("fixed_cart" | "percent" | "fixed_product" | "free_shipping"); };
+export type Dto3014 = { "userId"?: (undefined | string); "notes"?: (undefined | string); "customerId"?: (undefined | string); "paidAt"?: (undefined | number); "appliedDiscountCode"?: (undefined | string); "appliedDiscountDescription"?: (undefined | string); "shippingAddress"?: (undefined | Dto3015); "selectedShippingMethodCode"?: (undefined | string); "selectedShippingMethodLabel"?: (undefined | string); "selectedPaymentMethodCode"?: (undefined | string); "selectedPaymentMethodLabel"?: (undefined | string); "createdAtSource"?: (undefined | number); "status": ("pending" | "failed" | "processing" | "completed" | "cancelled" | "paid" | "refunded" | "fulfilled"); "email": string; "paymentStatus": string; "orderNumber": string; "fulfillmentStatus": string; "currencyCode": string; "subtotalAmount": number; "discountAmount": number; "shippingAmount": number; "taxAmount": number; "totalAmount": number; "billingAddress": Dto3016; "trackingToken": string; };
+export type Dto3015 = { "firstName"?: (undefined | string); "lastName"?: (undefined | string); "phone"?: (undefined | string); "company"?: (undefined | string); "line2"?: (undefined | string); "state"?: (undefined | string); "line1": string; "city": string; "postalCode": string; "countryCode": string; };
+export type Dto3016 = { "firstName"?: (undefined | string); "lastName"?: (undefined | string); "phone"?: (undefined | string); "company"?: (undefined | string); "line2"?: (undefined | string); "state"?: (undefined | string); "line1": string; "city": string; "postalCode": string; "countryCode": string; };
+export type Dto3017 = { "metadata"?: unknown; "sku"?: (undefined | string); "variantId"?: (undefined | string); "quantity": number; "lineSubtotalAmount": number; "lineTotalAmount": number; "productId": string; "unitPriceAmount": number; "productTitle": string; };
+export type Dto3018 = { "reason"?: (undefined | string); "createdBy"?: (undefined | string); "transactionId"?: (undefined | string); "createdAtSource"?: (undefined | number); "status": string; "amount": Dto3019; "orderId": string; };
+export type Dto3019 = { "currencyCode": string; "amount": number; };
+export type Dto3020 = { "completedAt"?: (undefined | number); "metadata"?: unknown; "createdAtSource"?: (undefined | number); "status": string; "provider": string; "providerTransactionId": string; "amount": Dto3021; "orderId": string; };
+export type Dto3021 = { "currencyCode": string; "amount": number; };
+export type Dto3022 = { "width"?: (undefined | number); "description"?: (undefined | string); "caption"?: (undefined | string); "altText"?: (undefined | string); "height"?: (undefined | number); "sizes"?: (undefined | Array<Dto3023>); "id": number; "title": string; "fileSize": number; "mimeType": string; "slug": string; "mediaType": ("image" | "video" | "audio" | "document" | "archive" | "other"); "fileName": string; "sourceUrl": string; "authorWpId": number; };
+export type Dto3023 = { "name": string; "width": number; "fileSize": number; "mimeType": string; "height": number; };
+export type Dto3024 = { "width"?: (undefined | number); "description"?: (undefined | string); "caption"?: (undefined | string); "altText"?: (undefined | string); "height"?: (undefined | number); "sizes"?: (undefined | Array<Dto3025>); "id": number; "title": string; "fileSize": number; "mimeType": string; "slug": string; "mediaType": ("image" | "video" | "audio" | "document" | "archive" | "other"); "fileName": string; "sourceUrl": string; "authorWpId": number; };
+export type Dto3025 = { "name": string; "width": number; "fileSize": number; "mimeType": string; "height": number; };
+export type Dto3026 = { "description"?: (undefined | string); "id": number; "name": string; "slug": string; "locations": Array<string>; };
+export type Dto3027 = { "url"?: (undefined | string); "description"?: (undefined | string); "objectId"?: (undefined | string); "parentItemId"?: (undefined | string); "cssClasses"?: (undefined | string); "id": number; "title": string; "position": number; "itemType": ("category" | "post" | "page" | "custom" | "tag"); "menuId": string; "target": ("_self" | "_blank"); };
+export type Dto3028 = { "key": string; "value": string; };
+export type Dto3029 = { "publishedAt"?: (undefined | number); "guid"?: (undefined | string); "id": number; "title": string; "status": ("draft" | "pending" | "trash" | "auto-draft" | "publish" | "future" | "private"); "slug": string; "menuOrder": number; "commentStatus": ("open" | "closed"); "content": string; "excerpt": string; "template": string; };
+export type Dto3030 = { "key": string; "value": string; };
+export type Dto3031 = { "publishedAt"?: (undefined | number); "guid"?: (undefined | string); "id": number; "title": string; "status": ("draft" | "pending" | "trash" | "auto-draft" | "publish" | "future" | "private"); "slug": string; "commentStatus": ("open" | "closed"); "content": string; "excerpt": string; "isSticky": boolean; };
+export type Dto3032 = { "progress": Dto3033; "errors": Array<never>; "hasMore": boolean; };
+export type Dto3033 = { "total": number; "imported": number; "failed": number; "cursor"?: undefined; };
+export type Dto3034 = { "progress": Dto3035; "errors": Array<never>; "hasMore": boolean; };
+export type Dto3035 = { "total": number; "imported": number; "failed": number; "cursor": number; };
+export type Dto3036 = { "description"?: (undefined | string); "id": number; "name": string; "slug": string; "count": number; "parent": number; };
+export type Dto3037 = { "processed": number; "hasMore": boolean; "nextAfterWpId": number; };
+export type Dto3038 = { "users": Array<Dto3039>; "nextAfterWpId": number; "hasMore": boolean; };
+export type Dto3039 = { "userId": GenericId<"users">; "wpUserId": number; "email": string; "username": (undefined | string); "firstName": (undefined | string); "lastName": (undefined | string); "displayName": (undefined | string); };
+export type Dto3040 = { "status": "skipped"; "reason"?: undefined; "error"?: undefined; "clerkUserId"?: undefined; };
+export type Dto3041 = { "status": "reset_required"; "reason"?: undefined; "error"?: undefined; "clerkUserId"?: undefined; };
+export type Dto3042 = { "status": "reset_required"; "reason": string; "error"?: undefined; "clerkUserId"?: undefined; };
+export type Dto3043 = { "status": "failed"; "error": string; "reason"?: undefined; "clerkUserId"?: undefined; };
+export type Dto3044 = { "status": "failed"; "reason"?: undefined; "error"?: undefined; "clerkUserId"?: undefined; };
+export type Dto3045 = { "status": string; "clerkUserId": string; "reason"?: undefined; "error"?: undefined; };
+export type Dto3046 = { "email"?: (undefined | string); "firstName"?: (undefined | string); "lastName"?: (undefined | string); "slug"?: (undefined | string); "url"?: (undefined | string); "avatarUrl"?: (undefined | string); "roles"?: (undefined | Array<string>); "description"?: (undefined | string); "id": number; "name": string; "username": string; };
+export type Dto3047 = { "total": number; "posts": number; "pages": number; "media": number; "users": number; "categories": number; "tags": number; "comments": number; "menus": number; "fromJob": boolean; "jobId"?: (undefined | GenericId<"wordpressSyncJobs">); "isApproximate"?: (undefined | false | true); };
+export type Dto3048 = { "errors": Array<Dto1856>; "total": number; };
+export type Dto3049 = { "totalSites": number; "activeSites": number; "activeJobs": number; "totalImported": number; "totalImportedIsApproximate": boolean; "lastSyncAt": (undefined | number); "lastSyncSite": (undefined | string); };
+export type Dto3050 = { "name": string; "updatedAt": number; "createdAt": number; "status": ("active" | "inactive" | "error"); "username": string; "capabilities"?: (undefined | Dto1831); "createdBy": GenericId<"users">; "siteUrl": string; "lastConnectionTest"?: (undefined | number); "lastSyncAt"?: (undefined | number); "connectionError"?: (undefined | string); "wpVersion"?: (undefined | string); "siteName"?: (undefined | string); "siteDescription"?: (undefined | string); "wooAuthMode"?: (undefined | "shared" | "separate"); "_id": GenericId<"wordpressSites">; };
+export type Dto3051 = { "hasWooCredentials": boolean; };
+export type Dto3052 = { "_id": GenericId<"wordpressSites">; "name": string; "siteUrl": string; "username": string; "status": ("active" | "inactive" | "error"); "lastConnectionTest": (undefined | number); "lastSyncAt": (undefined | number); "connectionError": (undefined | string); "wpVersion": (undefined | string); "siteName": (undefined | string); "siteDescription": (undefined | string); "capabilities": (undefined | Dto1831); "hasWooCredentials": boolean; "wooAuthMode": (undefined | "shared" | "separate"); "createdAt": number; "updatedAt": number; "activeJob": boolean; };
 export type PublicApi = {
   "ai": {
   "actions": {
@@ -5982,20 +5976,19 @@ export type PublicApi = {
   "restore": FunctionReference<"mutation", "public", { "pageId": GenericId<"posts">; }, GenericId<"posts">>;
   "setParent": FunctionReference<"mutation", "public", { "pageId": GenericId<"posts">; "parentId"?: (undefined | GenericId<"posts">); }, GenericId<"posts">>;
   "trash": FunctionReference<"mutation", "public", { "pageId": GenericId<"posts">; }, GenericId<"posts">>;
-  "update": FunctionReference<"mutation", "public", { "pageId": GenericId<"posts">; "title"?: (undefined | string); "content"?: (undefined | string); "excerpt"?: (undefined | string); "status"?: (undefined | "draft" | "pending" | "trash" | "auto-draft" | "publish" | "future" | "private"); "parentId"?: (undefined | null | GenericId<"posts">); "menuOrder"?: (undefined | number); "pageTemplate"?: (undefined | string); "featuredImageId"?: (undefined | GenericId<"media">); "commentStatus"?: (undefined | "open" | "closed"); "visibility"?: (undefined | "private" | "public" | "password"); "password"?: (undefined | string); "slug"?: (undefined | string); "scheduledAt"?: (undefined | number); "layoutId"?: (undefined | string); "hideHeader"?: (undefined | false | true); "hideFooter"?: (undefined | false | true); "hero"?: (undefined | Dto2473); "topics"?: (undefined | Array<Dto2474>); "summary"?: (undefined | Dto2475); "sources"?: (undefined | string); "tableOfContents"?: (undefined | string); "pagePrompt"?: (undefined | string); "contentMode"?: (undefined | "blocks" | "article"); "blocks"?: (undefined | Array<Dto2476>); "blocksVersion"?: (undefined | number); "blocksRevision"?: (undefined | number); }, GenericId<"posts">>;
 };
   "queries": {
-  "counts": FunctionReference<"query", "public", {  }, Dto2479>;
-  "get": FunctionReference<"query", "public", { "pageId"?: (undefined | GenericId<"posts">); "slug"?: (undefined | string); "path"?: (undefined | string); }, (null | Dto2480 | Dto2483)>;
-  "getBreadcrumbs": FunctionReference<"query", "public", { "pageId": GenericId<"posts">; }, Array<Dto2485>>;
-  "getByPath": FunctionReference<"query", "public", { "path": string; }, (null | Dto2486 | Dto2487)>;
-  "getChildren": FunctionReference<"query", "public", { "pageId": GenericId<"posts">; "status"?: (undefined | "publish" | "all"); }, Array<Dto2488>>;
-  "getFrontPage": FunctionReference<"query", "public", {  }, (null | Dto2489)>;
-  "getTemplates": FunctionReference<"query", "public", {  }, [Dto2490, Dto2492, Dto2494, Dto2496, Dto2498, Dto2500, Dto2502]>;
-  "getTree": FunctionReference<"query", "public", { "status"?: (undefined | "publish" | "all"); }, Dto2505>;
-  "list": FunctionReference<"query", "public", { "status"?: (undefined | "draft" | "pending" | "trash" | "auto-draft" | "publish" | "future" | "private"); "parentId"?: (undefined | GenericId<"posts">); "search"?: (undefined | string); "pageTemplate"?: (undefined | string); "authorId"?: (undefined | string); "page"?: (undefined | number); "perPage"?: (undefined | number); "orderBy"?: (undefined | "title" | "menuOrder" | "author" | "date"); "orderDir"?: (undefined | "asc" | "desc"); }, Dto2506>;
-  "listPublished": FunctionReference<"query", "public", { "page"?: (undefined | number); "perPage"?: (undefined | number); }, Dto2511>;
-  "verifyPassword": FunctionReference<"query", "public", { "pageId": GenericId<"posts">; "password": string; }, (null | Dto2489)>;
+  "counts": FunctionReference<"query", "public", {  }, Dto2473>;
+  "get": FunctionReference<"query", "public", { "pageId"?: (undefined | GenericId<"posts">); "slug"?: (undefined | string); "path"?: (undefined | string); }, (null | Dto2474 | Dto2477)>;
+  "getBreadcrumbs": FunctionReference<"query", "public", { "pageId": GenericId<"posts">; }, Array<Dto2479>>;
+  "getByPath": FunctionReference<"query", "public", { "path": string; }, (null | Dto2480 | Dto2481)>;
+  "getChildren": FunctionReference<"query", "public", { "pageId": GenericId<"posts">; "status"?: (undefined | "publish" | "all"); }, Array<Dto2482>>;
+  "getFrontPage": FunctionReference<"query", "public", {  }, (null | Dto2483)>;
+  "getTemplates": FunctionReference<"query", "public", {  }, [Dto2484, Dto2486, Dto2488, Dto2490, Dto2492, Dto2494, Dto2496]>;
+  "getTree": FunctionReference<"query", "public", { "status"?: (undefined | "publish" | "all"); }, Dto2499>;
+  "list": FunctionReference<"query", "public", { "status"?: (undefined | "draft" | "pending" | "trash" | "auto-draft" | "publish" | "future" | "private"); "parentId"?: (undefined | GenericId<"posts">); "search"?: (undefined | string); "pageTemplate"?: (undefined | string); "authorId"?: (undefined | string); "page"?: (undefined | number); "perPage"?: (undefined | number); "orderBy"?: (undefined | "title" | "menuOrder" | "author" | "date"); "orderDir"?: (undefined | "asc" | "desc"); }, Dto2500>;
+  "listPublished": FunctionReference<"query", "public", { "page"?: (undefined | number); "perPage"?: (undefined | number); }, Dto2505>;
+  "verifyPassword": FunctionReference<"query", "public", { "pageId": GenericId<"posts">; "password": string; }, (null | Dto2483)>;
 };
 };
   "pages/mutations": {
@@ -6005,118 +5998,115 @@ export type PublicApi = {
   "restore": FunctionReference<"mutation", "public", { "pageId": GenericId<"posts">; }, GenericId<"posts">>;
   "setParent": FunctionReference<"mutation", "public", { "pageId": GenericId<"posts">; "parentId"?: (undefined | GenericId<"posts">); }, GenericId<"posts">>;
   "trash": FunctionReference<"mutation", "public", { "pageId": GenericId<"posts">; }, GenericId<"posts">>;
-  "update": FunctionReference<"mutation", "public", { "pageId": GenericId<"posts">; "title"?: (undefined | string); "content"?: (undefined | string); "excerpt"?: (undefined | string); "status"?: (undefined | "draft" | "pending" | "trash" | "auto-draft" | "publish" | "future" | "private"); "parentId"?: (undefined | null | GenericId<"posts">); "menuOrder"?: (undefined | number); "pageTemplate"?: (undefined | string); "featuredImageId"?: (undefined | GenericId<"media">); "commentStatus"?: (undefined | "open" | "closed"); "visibility"?: (undefined | "private" | "public" | "password"); "password"?: (undefined | string); "slug"?: (undefined | string); "scheduledAt"?: (undefined | number); "layoutId"?: (undefined | string); "hideHeader"?: (undefined | false | true); "hideFooter"?: (undefined | false | true); "hero"?: (undefined | Dto2473); "topics"?: (undefined | Array<Dto2474>); "summary"?: (undefined | Dto2475); "sources"?: (undefined | string); "tableOfContents"?: (undefined | string); "pagePrompt"?: (undefined | string); "contentMode"?: (undefined | "blocks" | "article"); "blocks"?: (undefined | Array<Dto2476>); "blocksVersion"?: (undefined | number); "blocksRevision"?: (undefined | number); }, GenericId<"posts">>;
 };
   "pages/queries": {
-  "counts": FunctionReference<"query", "public", {  }, Dto2479>;
-  "get": FunctionReference<"query", "public", { "pageId"?: (undefined | GenericId<"posts">); "slug"?: (undefined | string); "path"?: (undefined | string); }, (null | Dto2480 | Dto2483)>;
-  "getBreadcrumbs": FunctionReference<"query", "public", { "pageId": GenericId<"posts">; }, Array<Dto2485>>;
-  "getByPath": FunctionReference<"query", "public", { "path": string; }, (null | Dto2486 | Dto2487)>;
-  "getChildren": FunctionReference<"query", "public", { "pageId": GenericId<"posts">; "status"?: (undefined | "publish" | "all"); }, Array<Dto2488>>;
-  "getFrontPage": FunctionReference<"query", "public", {  }, (null | Dto2489)>;
-  "getTemplates": FunctionReference<"query", "public", {  }, [Dto2490, Dto2492, Dto2494, Dto2496, Dto2498, Dto2500, Dto2502]>;
-  "getTree": FunctionReference<"query", "public", { "status"?: (undefined | "publish" | "all"); }, Dto2505>;
-  "list": FunctionReference<"query", "public", { "status"?: (undefined | "draft" | "pending" | "trash" | "auto-draft" | "publish" | "future" | "private"); "parentId"?: (undefined | GenericId<"posts">); "search"?: (undefined | string); "pageTemplate"?: (undefined | string); "authorId"?: (undefined | string); "page"?: (undefined | number); "perPage"?: (undefined | number); "orderBy"?: (undefined | "title" | "menuOrder" | "author" | "date"); "orderDir"?: (undefined | "asc" | "desc"); }, Dto2506>;
-  "listPublished": FunctionReference<"query", "public", { "page"?: (undefined | number); "perPage"?: (undefined | number); }, Dto2511>;
-  "verifyPassword": FunctionReference<"query", "public", { "pageId": GenericId<"posts">; "password": string; }, (null | Dto2489)>;
+  "counts": FunctionReference<"query", "public", {  }, Dto2473>;
+  "get": FunctionReference<"query", "public", { "pageId"?: (undefined | GenericId<"posts">); "slug"?: (undefined | string); "path"?: (undefined | string); }, (null | Dto2474 | Dto2477)>;
+  "getBreadcrumbs": FunctionReference<"query", "public", { "pageId": GenericId<"posts">; }, Array<Dto2479>>;
+  "getByPath": FunctionReference<"query", "public", { "path": string; }, (null | Dto2480 | Dto2481)>;
+  "getChildren": FunctionReference<"query", "public", { "pageId": GenericId<"posts">; "status"?: (undefined | "publish" | "all"); }, Array<Dto2482>>;
+  "getFrontPage": FunctionReference<"query", "public", {  }, (null | Dto2483)>;
+  "getTemplates": FunctionReference<"query", "public", {  }, [Dto2484, Dto2486, Dto2488, Dto2490, Dto2492, Dto2494, Dto2496]>;
+  "getTree": FunctionReference<"query", "public", { "status"?: (undefined | "publish" | "all"); }, Dto2499>;
+  "list": FunctionReference<"query", "public", { "status"?: (undefined | "draft" | "pending" | "trash" | "auto-draft" | "publish" | "future" | "private"); "parentId"?: (undefined | GenericId<"posts">); "search"?: (undefined | string); "pageTemplate"?: (undefined | string); "authorId"?: (undefined | string); "page"?: (undefined | number); "perPage"?: (undefined | number); "orderBy"?: (undefined | "title" | "menuOrder" | "author" | "date"); "orderDir"?: (undefined | "asc" | "desc"); }, Dto2500>;
+  "listPublished": FunctionReference<"query", "public", { "page"?: (undefined | number); "perPage"?: (undefined | number); }, Dto2505>;
+  "verifyPassword": FunctionReference<"query", "public", { "pageId": GenericId<"posts">; "password": string; }, (null | Dto2483)>;
 };
   "password": {
   "actions": {
   "adminResetUserPassword": FunctionReference<"action", "public", { "targetUserId": GenericId<"users">; }, null>;
-  "completePasswordReset": FunctionReference<"action", "public", { "email": string; "token": string; "newPassword": string; }, Dto2513>;
+  "completePasswordReset": FunctionReference<"action", "public", { "email": string; "token": string; "newPassword": string; }, Dto2507>;
   "requestPasswordReset": FunctionReference<"action", "public", { "email": string; }, null>;
 };
   "queries": {
-  "getPasswordStatus": FunctionReference<"query", "public", { "userId"?: (undefined | GenericId<"users">); }, (null | Dto2515)>;
+  "getPasswordStatus": FunctionReference<"query", "public", { "userId"?: (undefined | GenericId<"users">); }, (null | Dto2509)>;
 };
 };
   "password/actions": {
   "adminResetUserPassword": FunctionReference<"action", "public", { "targetUserId": GenericId<"users">; }, null>;
-  "completePasswordReset": FunctionReference<"action", "public", { "email": string; "token": string; "newPassword": string; }, Dto2513>;
+  "completePasswordReset": FunctionReference<"action", "public", { "email": string; "token": string; "newPassword": string; }, Dto2507>;
   "requestPasswordReset": FunctionReference<"action", "public", { "email": string; }, null>;
 };
   "password/queries": {
-  "getPasswordStatus": FunctionReference<"query", "public", { "userId"?: (undefined | GenericId<"users">); }, (null | Dto2515)>;
+  "getPasswordStatus": FunctionReference<"query", "public", { "userId"?: (undefined | GenericId<"users">); }, (null | Dto2509)>;
 };
   "posts": {
   "mutations": {
-  "autosave": FunctionReference<"mutation", "public", { "postId": GenericId<"posts">; "title"?: (undefined | string); "content"?: (undefined | string); }, Dto2526>;
-  "bulkDelete": FunctionReference<"mutation", "public", { "postIds": Array<GenericId<"posts">>; }, Dto2527>;
-  "bulkPublish": FunctionReference<"mutation", "public", { "postIds": Array<GenericId<"posts">>; }, Dto2529>;
-  "bulkRestore": FunctionReference<"mutation", "public", { "postIds": Array<GenericId<"posts">>; }, Dto2531>;
-  "bulkSetMeta": FunctionReference<"mutation", "public", { "postId": GenericId<"posts">; "meta": Array<Dto2533>; }, Dto2534>;
-  "bulkTrash": FunctionReference<"mutation", "public", { "postIds": Array<GenericId<"posts">>; }, Dto2535>;
-  "deleteMeta": FunctionReference<"mutation", "public", { "postId": GenericId<"posts">; "key": string; }, Dto2537>;
+  "autosave": FunctionReference<"mutation", "public", { "postId": GenericId<"posts">; "title"?: (undefined | string); "content"?: (undefined | string); }, Dto2520>;
+  "bulkDelete": FunctionReference<"mutation", "public", { "postIds": Array<GenericId<"posts">>; }, Dto2521>;
+  "bulkPublish": FunctionReference<"mutation", "public", { "postIds": Array<GenericId<"posts">>; }, Dto2523>;
+  "bulkRestore": FunctionReference<"mutation", "public", { "postIds": Array<GenericId<"posts">>; }, Dto2525>;
+  "bulkSetMeta": FunctionReference<"mutation", "public", { "postId": GenericId<"posts">; "meta": Array<Dto2527>; }, Dto2528>;
+  "bulkTrash": FunctionReference<"mutation", "public", { "postIds": Array<GenericId<"posts">>; }, Dto2529>;
+  "deleteMeta": FunctionReference<"mutation", "public", { "postId": GenericId<"posts">; "key": string; }, Dto2531>;
   "duplicate": FunctionReference<"mutation", "public", { "postId": GenericId<"posts">; "expectedRevision"?: (undefined | number); }, GenericId<"posts">>;
-  "permanentDelete": FunctionReference<"mutation", "public", { "postId": GenericId<"posts">; "force"?: (undefined | false | true); }, Dto2538>;
+  "permanentDelete": FunctionReference<"mutation", "public", { "postId": GenericId<"posts">; "force"?: (undefined | false | true); }, Dto2532>;
   "publish": FunctionReference<"mutation", "public", { "postId": GenericId<"posts">; }, GenericId<"posts">>;
   "restore": FunctionReference<"mutation", "public", { "postId": GenericId<"posts">; }, GenericId<"posts">>;
   "schedule": FunctionReference<"mutation", "public", { "postId": GenericId<"posts">; "scheduledAt": number; }, GenericId<"posts">>;
   "setMeta": FunctionReference<"mutation", "public", { "postId": GenericId<"posts">; "key": string; "value": string; }, GenericId<"postMeta">>;
-  "trash": FunctionReference<"mutation", "public", { "postId": GenericId<"posts">; }, Dto2539>;
+  "trash": FunctionReference<"mutation", "public", { "postId": GenericId<"posts">; }, Dto2533>;
   "unpublish": FunctionReference<"mutation", "public", { "postId": GenericId<"posts">; "targetStatus"?: (undefined | "draft" | "pending"); }, GenericId<"posts">>;
-  "update": FunctionReference<"mutation", "public", { "postId": GenericId<"posts">; "title"?: (undefined | string); "content"?: (undefined | string); "excerpt"?: (undefined | string); "status"?: (undefined | "draft" | "pending" | "trash" | "auto-draft" | "publish" | "future" | "private"); "visibility"?: (undefined | "private" | "public" | "password"); "password"?: (undefined | string); "commentStatus"?: (undefined | "open" | "closed"); "featuredImageId"?: (undefined | GenericId<"media">); "isSticky"?: (undefined | false | true); "slug"?: (undefined | string); "menuOrder"?: (undefined | number); "authorId"?: (undefined | GenericId<"users">); "scheduledAt"?: (undefined | number); "layoutId"?: (undefined | string); "hideHeader"?: (undefined | false | true); "hideFooter"?: (undefined | false | true); "categoryIds"?: (undefined | Array<GenericId<"terms">>); "tagIds"?: (undefined | Array<GenericId<"terms">>); "hero"?: (undefined | Dto2473); "topics"?: (undefined | Array<Dto2474>); "summary"?: (undefined | Dto2475); "sources"?: (undefined | string); "tableOfContents"?: (undefined | string); "pagePrompt"?: (undefined | string); "contentMode"?: (undefined | "blocks" | "article"); "blocks"?: (undefined | Array<Dto2476>); "blocksVersion"?: (undefined | number); "blocksRevision"?: (undefined | number); }, GenericId<"posts">>;
 };
   "queries": {
-  "counts": FunctionReference<"query", "public", { "type"?: (undefined | "post" | "page"); }, Dto2540>;
-  "get": FunctionReference<"query", "public", { "postId"?: (undefined | GenericId<"posts">); "slug"?: (undefined | string); "type"?: (undefined | "post" | "page"); }, (null | Dto2541 | Dto2543)>;
-  "getAdjacentPosts": FunctionReference<"query", "public", { "postId": GenericId<"posts">; }, Dto2544>;
-  "getByNumericId": FunctionReference<"query", "public", { "numericId": number; }, (null | Dto2547)>;
-  "getDateArchiveGroups": FunctionReference<"query", "public", { "type"?: (undefined | "post" | "page"); }, Array<Dto2548>>;
+  "counts": FunctionReference<"query", "public", { "type"?: (undefined | "post" | "page"); }, Dto2534>;
+  "get": FunctionReference<"query", "public", { "postId"?: (undefined | GenericId<"posts">); "slug"?: (undefined | string); "type"?: (undefined | "post" | "page"); }, (null | Dto2535 | Dto2537)>;
+  "getAdjacentPosts": FunctionReference<"query", "public", { "postId": GenericId<"posts">; }, Dto2538>;
+  "getByNumericId": FunctionReference<"query", "public", { "numericId": number; }, (null | Dto2541)>;
+  "getDateArchiveGroups": FunctionReference<"query", "public", { "type"?: (undefined | "post" | "page"); }, Array<Dto2542>>;
   "getMetaByKey": FunctionReference<"query", "public", { "postId": GenericId<"posts">; "key": string; }, (null | Dto2118)>;
   "getMetaByPost": FunctionReference<"query", "public", { "postId": GenericId<"posts">; }, Array<Dto2118>>;
-  "getPublished": FunctionReference<"query", "public", { "slug": string; }, (null | Dto2549 | Dto2550)>;
-  "getRelatedPosts": FunctionReference<"query", "public", { "postId": GenericId<"posts">; "limit"?: (undefined | number); }, Array<Dto2551>>;
-  "getSlugs": FunctionReference<"query", "public", {  }, Array<Dto2552>>;
-  "getSticky": FunctionReference<"query", "public", {  }, Array<(Dto2553 | Dto2554)>>;
-  "list": FunctionReference<"query", "public", { "type"?: (undefined | "post" | "page"); "status"?: (undefined | "draft" | "pending" | "trash" | "auto-draft" | "publish" | "future" | "private"); "authorId"?: (undefined | GenericId<"users">); "search"?: (undefined | string); "dateFrom"?: (undefined | number); "dateTo"?: (undefined | number); "categoryId"?: (undefined | GenericId<"terms">); "tagId"?: (undefined | GenericId<"terms">); "isSticky"?: (undefined | false | true); "page"?: (undefined | number); "perPage"?: (undefined | number); "orderBy"?: (undefined | "title" | "updatedAt" | "createdAt" | "commentCount" | "publishedAt"); "orderDir"?: (undefined | "asc" | "desc"); }, Dto2555>;
-  "listPublished": FunctionReference<"query", "public", { "page"?: (undefined | number); "perPage"?: (undefined | number); "authorId"?: (undefined | GenericId<"users">); "categoryId"?: (undefined | GenericId<"terms">); "tagId"?: (undefined | GenericId<"terms">); }, Dto2562>;
-  "preview": FunctionReference<"query", "public", { "postId": GenericId<"posts">; }, (null | Dto2566)>;
-  "verifyPostPassword": FunctionReference<"query", "public", { "slug": string; "password": string; }, (null | Dto2568 | Dto2569)>;
+  "getPublished": FunctionReference<"query", "public", { "slug": string; }, (null | Dto2543 | Dto2544)>;
+  "getRelatedPosts": FunctionReference<"query", "public", { "postId": GenericId<"posts">; "limit"?: (undefined | number); }, Array<Dto2545>>;
+  "getSlugs": FunctionReference<"query", "public", {  }, Array<Dto2546>>;
+  "getSticky": FunctionReference<"query", "public", {  }, Array<(Dto2547 | Dto2548)>>;
+  "list": FunctionReference<"query", "public", { "type"?: (undefined | "post" | "page"); "status"?: (undefined | "draft" | "pending" | "trash" | "auto-draft" | "publish" | "future" | "private"); "authorId"?: (undefined | GenericId<"users">); "search"?: (undefined | string); "dateFrom"?: (undefined | number); "dateTo"?: (undefined | number); "categoryId"?: (undefined | GenericId<"terms">); "tagId"?: (undefined | GenericId<"terms">); "isSticky"?: (undefined | false | true); "page"?: (undefined | number); "perPage"?: (undefined | number); "orderBy"?: (undefined | "title" | "updatedAt" | "createdAt" | "commentCount" | "publishedAt"); "orderDir"?: (undefined | "asc" | "desc"); }, Dto2549>;
+  "listPublished": FunctionReference<"query", "public", { "page"?: (undefined | number); "perPage"?: (undefined | number); "authorId"?: (undefined | GenericId<"users">); "categoryId"?: (undefined | GenericId<"terms">); "tagId"?: (undefined | GenericId<"terms">); }, Dto2556>;
+  "preview": FunctionReference<"query", "public", { "postId": GenericId<"posts">; }, (null | Dto2560)>;
+  "verifyPostPassword": FunctionReference<"query", "public", { "slug": string; "password": string; }, (null | Dto2562 | Dto2563)>;
 };
 };
   "posts/mutations": {
-  "autosave": FunctionReference<"mutation", "public", { "postId": GenericId<"posts">; "title"?: (undefined | string); "content"?: (undefined | string); }, Dto2526>;
-  "bulkDelete": FunctionReference<"mutation", "public", { "postIds": Array<GenericId<"posts">>; }, Dto2527>;
-  "bulkPublish": FunctionReference<"mutation", "public", { "postIds": Array<GenericId<"posts">>; }, Dto2529>;
-  "bulkRestore": FunctionReference<"mutation", "public", { "postIds": Array<GenericId<"posts">>; }, Dto2531>;
-  "bulkSetMeta": FunctionReference<"mutation", "public", { "postId": GenericId<"posts">; "meta": Array<Dto2533>; }, Dto2534>;
-  "bulkTrash": FunctionReference<"mutation", "public", { "postIds": Array<GenericId<"posts">>; }, Dto2535>;
-  "deleteMeta": FunctionReference<"mutation", "public", { "postId": GenericId<"posts">; "key": string; }, Dto2537>;
+  "autosave": FunctionReference<"mutation", "public", { "postId": GenericId<"posts">; "title"?: (undefined | string); "content"?: (undefined | string); }, Dto2520>;
+  "bulkDelete": FunctionReference<"mutation", "public", { "postIds": Array<GenericId<"posts">>; }, Dto2521>;
+  "bulkPublish": FunctionReference<"mutation", "public", { "postIds": Array<GenericId<"posts">>; }, Dto2523>;
+  "bulkRestore": FunctionReference<"mutation", "public", { "postIds": Array<GenericId<"posts">>; }, Dto2525>;
+  "bulkSetMeta": FunctionReference<"mutation", "public", { "postId": GenericId<"posts">; "meta": Array<Dto2527>; }, Dto2528>;
+  "bulkTrash": FunctionReference<"mutation", "public", { "postIds": Array<GenericId<"posts">>; }, Dto2529>;
+  "deleteMeta": FunctionReference<"mutation", "public", { "postId": GenericId<"posts">; "key": string; }, Dto2531>;
   "duplicate": FunctionReference<"mutation", "public", { "postId": GenericId<"posts">; "expectedRevision"?: (undefined | number); }, GenericId<"posts">>;
-  "permanentDelete": FunctionReference<"mutation", "public", { "postId": GenericId<"posts">; "force"?: (undefined | false | true); }, Dto2538>;
+  "permanentDelete": FunctionReference<"mutation", "public", { "postId": GenericId<"posts">; "force"?: (undefined | false | true); }, Dto2532>;
   "publish": FunctionReference<"mutation", "public", { "postId": GenericId<"posts">; }, GenericId<"posts">>;
   "restore": FunctionReference<"mutation", "public", { "postId": GenericId<"posts">; }, GenericId<"posts">>;
   "schedule": FunctionReference<"mutation", "public", { "postId": GenericId<"posts">; "scheduledAt": number; }, GenericId<"posts">>;
   "setMeta": FunctionReference<"mutation", "public", { "postId": GenericId<"posts">; "key": string; "value": string; }, GenericId<"postMeta">>;
-  "trash": FunctionReference<"mutation", "public", { "postId": GenericId<"posts">; }, Dto2539>;
+  "trash": FunctionReference<"mutation", "public", { "postId": GenericId<"posts">; }, Dto2533>;
   "unpublish": FunctionReference<"mutation", "public", { "postId": GenericId<"posts">; "targetStatus"?: (undefined | "draft" | "pending"); }, GenericId<"posts">>;
-  "update": FunctionReference<"mutation", "public", { "postId": GenericId<"posts">; "title"?: (undefined | string); "content"?: (undefined | string); "excerpt"?: (undefined | string); "status"?: (undefined | "draft" | "pending" | "trash" | "auto-draft" | "publish" | "future" | "private"); "visibility"?: (undefined | "private" | "public" | "password"); "password"?: (undefined | string); "commentStatus"?: (undefined | "open" | "closed"); "featuredImageId"?: (undefined | GenericId<"media">); "isSticky"?: (undefined | false | true); "slug"?: (undefined | string); "menuOrder"?: (undefined | number); "authorId"?: (undefined | GenericId<"users">); "scheduledAt"?: (undefined | number); "layoutId"?: (undefined | string); "hideHeader"?: (undefined | false | true); "hideFooter"?: (undefined | false | true); "categoryIds"?: (undefined | Array<GenericId<"terms">>); "tagIds"?: (undefined | Array<GenericId<"terms">>); "hero"?: (undefined | Dto2473); "topics"?: (undefined | Array<Dto2474>); "summary"?: (undefined | Dto2475); "sources"?: (undefined | string); "tableOfContents"?: (undefined | string); "pagePrompt"?: (undefined | string); "contentMode"?: (undefined | "blocks" | "article"); "blocks"?: (undefined | Array<Dto2476>); "blocksVersion"?: (undefined | number); "blocksRevision"?: (undefined | number); }, GenericId<"posts">>;
 };
   "posts/queries": {
-  "counts": FunctionReference<"query", "public", { "type"?: (undefined | "post" | "page"); }, Dto2540>;
-  "get": FunctionReference<"query", "public", { "postId"?: (undefined | GenericId<"posts">); "slug"?: (undefined | string); "type"?: (undefined | "post" | "page"); }, (null | Dto2541 | Dto2543)>;
-  "getAdjacentPosts": FunctionReference<"query", "public", { "postId": GenericId<"posts">; }, Dto2544>;
-  "getByNumericId": FunctionReference<"query", "public", { "numericId": number; }, (null | Dto2547)>;
-  "getDateArchiveGroups": FunctionReference<"query", "public", { "type"?: (undefined | "post" | "page"); }, Array<Dto2548>>;
+  "counts": FunctionReference<"query", "public", { "type"?: (undefined | "post" | "page"); }, Dto2534>;
+  "get": FunctionReference<"query", "public", { "postId"?: (undefined | GenericId<"posts">); "slug"?: (undefined | string); "type"?: (undefined | "post" | "page"); }, (null | Dto2535 | Dto2537)>;
+  "getAdjacentPosts": FunctionReference<"query", "public", { "postId": GenericId<"posts">; }, Dto2538>;
+  "getByNumericId": FunctionReference<"query", "public", { "numericId": number; }, (null | Dto2541)>;
+  "getDateArchiveGroups": FunctionReference<"query", "public", { "type"?: (undefined | "post" | "page"); }, Array<Dto2542>>;
   "getMetaByKey": FunctionReference<"query", "public", { "postId": GenericId<"posts">; "key": string; }, (null | Dto2118)>;
   "getMetaByPost": FunctionReference<"query", "public", { "postId": GenericId<"posts">; }, Array<Dto2118>>;
-  "getPublished": FunctionReference<"query", "public", { "slug": string; }, (null | Dto2549 | Dto2550)>;
-  "getRelatedPosts": FunctionReference<"query", "public", { "postId": GenericId<"posts">; "limit"?: (undefined | number); }, Array<Dto2551>>;
-  "getSlugs": FunctionReference<"query", "public", {  }, Array<Dto2552>>;
-  "getSticky": FunctionReference<"query", "public", {  }, Array<(Dto2553 | Dto2554)>>;
-  "list": FunctionReference<"query", "public", { "type"?: (undefined | "post" | "page"); "status"?: (undefined | "draft" | "pending" | "trash" | "auto-draft" | "publish" | "future" | "private"); "authorId"?: (undefined | GenericId<"users">); "search"?: (undefined | string); "dateFrom"?: (undefined | number); "dateTo"?: (undefined | number); "categoryId"?: (undefined | GenericId<"terms">); "tagId"?: (undefined | GenericId<"terms">); "isSticky"?: (undefined | false | true); "page"?: (undefined | number); "perPage"?: (undefined | number); "orderBy"?: (undefined | "title" | "updatedAt" | "createdAt" | "commentCount" | "publishedAt"); "orderDir"?: (undefined | "asc" | "desc"); }, Dto2555>;
-  "listPublished": FunctionReference<"query", "public", { "page"?: (undefined | number); "perPage"?: (undefined | number); "authorId"?: (undefined | GenericId<"users">); "categoryId"?: (undefined | GenericId<"terms">); "tagId"?: (undefined | GenericId<"terms">); }, Dto2562>;
-  "preview": FunctionReference<"query", "public", { "postId": GenericId<"posts">; }, (null | Dto2566)>;
-  "verifyPostPassword": FunctionReference<"query", "public", { "slug": string; "password": string; }, (null | Dto2568 | Dto2569)>;
+  "getPublished": FunctionReference<"query", "public", { "slug": string; }, (null | Dto2543 | Dto2544)>;
+  "getRelatedPosts": FunctionReference<"query", "public", { "postId": GenericId<"posts">; "limit"?: (undefined | number); }, Array<Dto2545>>;
+  "getSlugs": FunctionReference<"query", "public", {  }, Array<Dto2546>>;
+  "getSticky": FunctionReference<"query", "public", {  }, Array<(Dto2547 | Dto2548)>>;
+  "list": FunctionReference<"query", "public", { "type"?: (undefined | "post" | "page"); "status"?: (undefined | "draft" | "pending" | "trash" | "auto-draft" | "publish" | "future" | "private"); "authorId"?: (undefined | GenericId<"users">); "search"?: (undefined | string); "dateFrom"?: (undefined | number); "dateTo"?: (undefined | number); "categoryId"?: (undefined | GenericId<"terms">); "tagId"?: (undefined | GenericId<"terms">); "isSticky"?: (undefined | false | true); "page"?: (undefined | number); "perPage"?: (undefined | number); "orderBy"?: (undefined | "title" | "updatedAt" | "createdAt" | "commentCount" | "publishedAt"); "orderDir"?: (undefined | "asc" | "desc"); }, Dto2549>;
+  "listPublished": FunctionReference<"query", "public", { "page"?: (undefined | number); "perPage"?: (undefined | number); "authorId"?: (undefined | GenericId<"users">); "categoryId"?: (undefined | GenericId<"terms">); "tagId"?: (undefined | GenericId<"terms">); }, Dto2556>;
+  "preview": FunctionReference<"query", "public", { "postId": GenericId<"posts">; }, (null | Dto2560)>;
+  "verifyPostPassword": FunctionReference<"query", "public", { "slug": string; "password": string; }, (null | Dto2562 | Dto2563)>;
 };
   "productAttributes": {
   "mutations": {
   "createAttribute": FunctionReference<"mutation", "public", { "name": string; "label": string; "slug"?: (undefined | string); "type"?: (undefined | "text" | "select"); "orderBy"?: (undefined | "id" | "name" | "menu_order" | "name_num"); "hasArchives"?: (undefined | false | true); }, unknown>;
   "createTerm": FunctionReference<"mutation", "public", { "attributeId": GenericId<"commerce_product_attributes">; "name": string; "slug"?: (undefined | string); "description"?: (undefined | string); "menuOrder"?: (undefined | number); }, unknown>;
-  "deleteAttribute": FunctionReference<"mutation", "public", { "attributeId": GenericId<"commerce_product_attributes">; }, Dto2570>;
-  "deleteTerm": FunctionReference<"mutation", "public", { "termId": GenericId<"commerce_product_attribute_terms">; }, Dto2571>;
-  "reorderTerms": FunctionReference<"mutation", "public", { "attributeId": GenericId<"commerce_product_attributes">; "termIds": Array<GenericId<"commerce_product_attribute_terms">>; }, Dto2572>;
+  "deleteAttribute": FunctionReference<"mutation", "public", { "attributeId": GenericId<"commerce_product_attributes">; }, Dto2564>;
+  "deleteTerm": FunctionReference<"mutation", "public", { "termId": GenericId<"commerce_product_attribute_terms">; }, Dto2565>;
+  "reorderTerms": FunctionReference<"mutation", "public", { "attributeId": GenericId<"commerce_product_attributes">; "termIds": Array<GenericId<"commerce_product_attribute_terms">>; }, Dto2566>;
   "updateAttribute": FunctionReference<"mutation", "public", { "attributeId": GenericId<"commerce_product_attributes">; "label"?: (undefined | string); "type"?: (undefined | "text" | "select"); "orderBy"?: (undefined | "id" | "name" | "menu_order" | "name_num"); "hasArchives"?: (undefined | false | true); }, unknown>;
   "updateTerm": FunctionReference<"mutation", "public", { "termId": GenericId<"commerce_product_attribute_terms">; "name"?: (undefined | string); "slug"?: (undefined | string); "description"?: (undefined | string); "menuOrder"?: (undefined | number); }, unknown>;
 };
@@ -6129,9 +6119,9 @@ export type PublicApi = {
   "productAttributes/mutations": {
   "createAttribute": FunctionReference<"mutation", "public", { "name": string; "label": string; "slug"?: (undefined | string); "type"?: (undefined | "text" | "select"); "orderBy"?: (undefined | "id" | "name" | "menu_order" | "name_num"); "hasArchives"?: (undefined | false | true); }, unknown>;
   "createTerm": FunctionReference<"mutation", "public", { "attributeId": GenericId<"commerce_product_attributes">; "name": string; "slug"?: (undefined | string); "description"?: (undefined | string); "menuOrder"?: (undefined | number); }, unknown>;
-  "deleteAttribute": FunctionReference<"mutation", "public", { "attributeId": GenericId<"commerce_product_attributes">; }, Dto2570>;
-  "deleteTerm": FunctionReference<"mutation", "public", { "termId": GenericId<"commerce_product_attribute_terms">; }, Dto2571>;
-  "reorderTerms": FunctionReference<"mutation", "public", { "attributeId": GenericId<"commerce_product_attributes">; "termIds": Array<GenericId<"commerce_product_attribute_terms">>; }, Dto2572>;
+  "deleteAttribute": FunctionReference<"mutation", "public", { "attributeId": GenericId<"commerce_product_attributes">; }, Dto2564>;
+  "deleteTerm": FunctionReference<"mutation", "public", { "termId": GenericId<"commerce_product_attribute_terms">; }, Dto2565>;
+  "reorderTerms": FunctionReference<"mutation", "public", { "attributeId": GenericId<"commerce_product_attributes">; "termIds": Array<GenericId<"commerce_product_attribute_terms">>; }, Dto2566>;
   "updateAttribute": FunctionReference<"mutation", "public", { "attributeId": GenericId<"commerce_product_attributes">; "label"?: (undefined | string); "type"?: (undefined | "text" | "select"); "orderBy"?: (undefined | "id" | "name" | "menu_order" | "name_num"); "hasArchives"?: (undefined | false | true); }, unknown>;
   "updateTerm": FunctionReference<"mutation", "public", { "termId": GenericId<"commerce_product_attribute_terms">; "name"?: (undefined | string); "slug"?: (undefined | string); "description"?: (undefined | string); "menuOrder"?: (undefined | number); }, unknown>;
 };
@@ -6142,79 +6132,79 @@ export type PublicApi = {
 };
   "profiles": {
   "actions": {
-  "deleteOwnAccount": FunctionReference<"action", "public", {  }, Dto2573>;
+  "deleteOwnAccount": FunctionReference<"action", "public", {  }, Dto2567>;
 };
   "mutations": {
-  "bulkChangeRole": FunctionReference<"mutation", "public", { "userIds": Array<GenericId<"users">>; "newRoleId": GenericId<"roles">; }, Dto2579>;
-  "bulkDeleteUsers": FunctionReference<"mutation", "public", { "userIds": Array<GenericId<"users">>; "reassignTo"?: (undefined | GenericId<"users">); "deleteContent": boolean; }, Dto2581>;
+  "bulkChangeRole": FunctionReference<"mutation", "public", { "userIds": Array<GenericId<"users">>; "newRoleId": GenericId<"roles">; }, Dto2573>;
+  "bulkDeleteUsers": FunctionReference<"mutation", "public", { "userIds": Array<GenericId<"users">>; "reassignTo"?: (undefined | GenericId<"users">); "deleteContent": boolean; }, Dto2575>;
   "createUser": FunctionReference<"mutation", "public", { "email": string; "firstName"?: (undefined | string); "lastName"?: (undefined | string); "displayName"?: (undefined | string); "roleId"?: (undefined | GenericId<"roles">); "status"?: (undefined | "active" | "inactive" | "banned"); }, GenericId<"users">>;
   "deactivateUser": FunctionReference<"mutation", "public", { "userId": GenericId<"users">; "reason"?: (undefined | string); }, null>;
   "deleteUser": FunctionReference<"mutation", "public", { "userId": GenericId<"users">; "reassignTo"?: (undefined | GenericId<"users">); "deleteContent": boolean; }, null>;
   "reactivateUser": FunctionReference<"mutation", "public", { "userId": GenericId<"users">; }, null>;
   "removeAvatar": FunctionReference<"mutation", "public", { "userId"?: (undefined | GenericId<"users">); }, null>;
-  "updateProfile": FunctionReference<"mutation", "public", { "nickname"?: (undefined | string); "displayName"?: (undefined | string); "bio"?: (undefined | string); "url"?: (undefined | string); "socialLinks"?: (undefined | Dto2584); "preferences"?: (undefined | Dto2585); "locale"?: (undefined | string); "timezone"?: (undefined | string); "avatarUrl"?: (undefined | string); "avatarMediaId"?: (undefined | GenericId<"media">); }, null>;
-  "updateUser": FunctionReference<"mutation", "public", { "userId": GenericId<"users">; "nickname"?: (undefined | string); "displayName"?: (undefined | string); "bio"?: (undefined | string); "url"?: (undefined | string); "socialLinks"?: (undefined | Dto2584); "preferences"?: (undefined | Dto2585); "locale"?: (undefined | string); "timezone"?: (undefined | string); "avatarUrl"?: (undefined | string); "avatarMediaId"?: (undefined | GenericId<"media">); "status"?: (undefined | "active" | "inactive" | "banned"); "roleId"?: (undefined | GenericId<"roles">); "email"?: (undefined | string); }, null>;
+  "updateProfile": FunctionReference<"mutation", "public", { "nickname"?: (undefined | string); "displayName"?: (undefined | string); "bio"?: (undefined | string); "url"?: (undefined | string); "socialLinks"?: (undefined | Dto2578); "preferences"?: (undefined | Dto2579); "locale"?: (undefined | string); "timezone"?: (undefined | string); "avatarUrl"?: (undefined | string); "avatarMediaId"?: (undefined | GenericId<"media">); }, null>;
+  "updateUser": FunctionReference<"mutation", "public", { "userId": GenericId<"users">; "nickname"?: (undefined | string); "displayName"?: (undefined | string); "bio"?: (undefined | string); "url"?: (undefined | string); "socialLinks"?: (undefined | Dto2578); "preferences"?: (undefined | Dto2579); "locale"?: (undefined | string); "timezone"?: (undefined | string); "avatarUrl"?: (undefined | string); "avatarMediaId"?: (undefined | GenericId<"media">); "status"?: (undefined | "active" | "inactive" | "banned"); "roleId"?: (undefined | GenericId<"roles">); "email"?: (undefined | string); }, null>;
   "uploadAvatar": FunctionReference<"mutation", "public", { "userId"?: (undefined | GenericId<"users">); "storageId": string; }, null>;
 };
   "queries": {
-  "counts": FunctionReference<"query", "public", {  }, Dto2586>;
+  "counts": FunctionReference<"query", "public", {  }, Dto2580>;
   "getDisplayNameOptions": FunctionReference<"query", "public", { "userId"?: (undefined | GenericId<"users">); }, Array<string>>;
-  "getProfile": FunctionReference<"query", "public", {  }, (null | Dto2587)>;
-  "getUser": FunctionReference<"query", "public", { "userId"?: (undefined | GenericId<"users">); "slug"?: (undefined | string); "externalAuthId"?: (undefined | string); }, (null | Dto2588 | Dto2589)>;
-  "getUserBySlug": FunctionReference<"query", "public", { "slug": string; }, (null | Dto2588)>;
-  "listUsers": FunctionReference<"query", "public", { "search"?: (undefined | string); "status"?: (undefined | "active" | "inactive" | "banned"); "roleId"?: (undefined | GenericId<"roles">); "page"?: (undefined | number); "perPage"?: (undefined | number); "orderBy"?: (undefined | "createdAt" | "email" | "displayName" | "postCount"); "orderDir"?: (undefined | "asc" | "desc"); }, Dto2590>;
+  "getProfile": FunctionReference<"query", "public", {  }, (null | Dto2581)>;
+  "getUser": FunctionReference<"query", "public", { "userId"?: (undefined | GenericId<"users">); "slug"?: (undefined | string); "externalAuthId"?: (undefined | string); }, (null | Dto2582 | Dto2583)>;
+  "getUserBySlug": FunctionReference<"query", "public", { "slug": string; }, (null | Dto2582)>;
+  "listUsers": FunctionReference<"query", "public", { "search"?: (undefined | string); "status"?: (undefined | "active" | "inactive" | "banned"); "roleId"?: (undefined | GenericId<"roles">); "page"?: (undefined | number); "perPage"?: (undefined | number); "orderBy"?: (undefined | "createdAt" | "email" | "displayName" | "postCount"); "orderDir"?: (undefined | "asc" | "desc"); }, Dto2584>;
 };
 };
   "profiles/actions": {
-  "deleteOwnAccount": FunctionReference<"action", "public", {  }, Dto2573>;
+  "deleteOwnAccount": FunctionReference<"action", "public", {  }, Dto2567>;
 };
   "profiles/mutations": {
-  "bulkChangeRole": FunctionReference<"mutation", "public", { "userIds": Array<GenericId<"users">>; "newRoleId": GenericId<"roles">; }, Dto2579>;
-  "bulkDeleteUsers": FunctionReference<"mutation", "public", { "userIds": Array<GenericId<"users">>; "reassignTo"?: (undefined | GenericId<"users">); "deleteContent": boolean; }, Dto2581>;
+  "bulkChangeRole": FunctionReference<"mutation", "public", { "userIds": Array<GenericId<"users">>; "newRoleId": GenericId<"roles">; }, Dto2573>;
+  "bulkDeleteUsers": FunctionReference<"mutation", "public", { "userIds": Array<GenericId<"users">>; "reassignTo"?: (undefined | GenericId<"users">); "deleteContent": boolean; }, Dto2575>;
   "createUser": FunctionReference<"mutation", "public", { "email": string; "firstName"?: (undefined | string); "lastName"?: (undefined | string); "displayName"?: (undefined | string); "roleId"?: (undefined | GenericId<"roles">); "status"?: (undefined | "active" | "inactive" | "banned"); }, GenericId<"users">>;
   "deactivateUser": FunctionReference<"mutation", "public", { "userId": GenericId<"users">; "reason"?: (undefined | string); }, null>;
   "deleteUser": FunctionReference<"mutation", "public", { "userId": GenericId<"users">; "reassignTo"?: (undefined | GenericId<"users">); "deleteContent": boolean; }, null>;
   "reactivateUser": FunctionReference<"mutation", "public", { "userId": GenericId<"users">; }, null>;
   "removeAvatar": FunctionReference<"mutation", "public", { "userId"?: (undefined | GenericId<"users">); }, null>;
-  "updateProfile": FunctionReference<"mutation", "public", { "nickname"?: (undefined | string); "displayName"?: (undefined | string); "bio"?: (undefined | string); "url"?: (undefined | string); "socialLinks"?: (undefined | Dto2584); "preferences"?: (undefined | Dto2585); "locale"?: (undefined | string); "timezone"?: (undefined | string); "avatarUrl"?: (undefined | string); "avatarMediaId"?: (undefined | GenericId<"media">); }, null>;
-  "updateUser": FunctionReference<"mutation", "public", { "userId": GenericId<"users">; "nickname"?: (undefined | string); "displayName"?: (undefined | string); "bio"?: (undefined | string); "url"?: (undefined | string); "socialLinks"?: (undefined | Dto2584); "preferences"?: (undefined | Dto2585); "locale"?: (undefined | string); "timezone"?: (undefined | string); "avatarUrl"?: (undefined | string); "avatarMediaId"?: (undefined | GenericId<"media">); "status"?: (undefined | "active" | "inactive" | "banned"); "roleId"?: (undefined | GenericId<"roles">); "email"?: (undefined | string); }, null>;
+  "updateProfile": FunctionReference<"mutation", "public", { "nickname"?: (undefined | string); "displayName"?: (undefined | string); "bio"?: (undefined | string); "url"?: (undefined | string); "socialLinks"?: (undefined | Dto2578); "preferences"?: (undefined | Dto2579); "locale"?: (undefined | string); "timezone"?: (undefined | string); "avatarUrl"?: (undefined | string); "avatarMediaId"?: (undefined | GenericId<"media">); }, null>;
+  "updateUser": FunctionReference<"mutation", "public", { "userId": GenericId<"users">; "nickname"?: (undefined | string); "displayName"?: (undefined | string); "bio"?: (undefined | string); "url"?: (undefined | string); "socialLinks"?: (undefined | Dto2578); "preferences"?: (undefined | Dto2579); "locale"?: (undefined | string); "timezone"?: (undefined | string); "avatarUrl"?: (undefined | string); "avatarMediaId"?: (undefined | GenericId<"media">); "status"?: (undefined | "active" | "inactive" | "banned"); "roleId"?: (undefined | GenericId<"roles">); "email"?: (undefined | string); }, null>;
   "uploadAvatar": FunctionReference<"mutation", "public", { "userId"?: (undefined | GenericId<"users">); "storageId": string; }, null>;
 };
   "profiles/queries": {
-  "counts": FunctionReference<"query", "public", {  }, Dto2586>;
+  "counts": FunctionReference<"query", "public", {  }, Dto2580>;
   "getDisplayNameOptions": FunctionReference<"query", "public", { "userId"?: (undefined | GenericId<"users">); }, Array<string>>;
-  "getProfile": FunctionReference<"query", "public", {  }, (null | Dto2587)>;
-  "getUser": FunctionReference<"query", "public", { "userId"?: (undefined | GenericId<"users">); "slug"?: (undefined | string); "externalAuthId"?: (undefined | string); }, (null | Dto2588 | Dto2589)>;
-  "getUserBySlug": FunctionReference<"query", "public", { "slug": string; }, (null | Dto2588)>;
-  "listUsers": FunctionReference<"query", "public", { "search"?: (undefined | string); "status"?: (undefined | "active" | "inactive" | "banned"); "roleId"?: (undefined | GenericId<"roles">); "page"?: (undefined | number); "perPage"?: (undefined | number); "orderBy"?: (undefined | "createdAt" | "email" | "displayName" | "postCount"); "orderDir"?: (undefined | "asc" | "desc"); }, Dto2590>;
+  "getProfile": FunctionReference<"query", "public", {  }, (null | Dto2581)>;
+  "getUser": FunctionReference<"query", "public", { "userId"?: (undefined | GenericId<"users">); "slug"?: (undefined | string); "externalAuthId"?: (undefined | string); }, (null | Dto2582 | Dto2583)>;
+  "getUserBySlug": FunctionReference<"query", "public", { "slug": string; }, (null | Dto2582)>;
+  "listUsers": FunctionReference<"query", "public", { "search"?: (undefined | string); "status"?: (undefined | "active" | "inactive" | "banned"); "roleId"?: (undefined | GenericId<"roles">); "page"?: (undefined | number); "perPage"?: (undefined | number); "orderBy"?: (undefined | "createdAt" | "email" | "displayName" | "postCount"); "orderDir"?: (undefined | "asc" | "desc"); }, Dto2584>;
 };
   "purchases": {
   "migrations": {
-  "repairLedger": FunctionReference<"mutation", "public", { "limit"?: (undefined | number); "includeEmailTemplates"?: (undefined | false | true); }, Dto2592>;
+  "repairLedger": FunctionReference<"mutation", "public", { "limit"?: (undefined | number); "includeEmailTemplates"?: (undefined | false | true); }, Dto2586>;
 };
   "queries": {
   "counts": FunctionReference<"query", "public", { "sourceType"?: (undefined | "api" | "manual" | "storefront_order" | "form_order" | "subscription_signup" | "subscription_invoice"); "search"?: (undefined | string); "email"?: (undefined | string); "userId"?: (undefined | GenericId<"users">); "customerId"?: (undefined | GenericId<"commerce_customer_profiles">); "dateFrom"?: (undefined | number); "dateTo"?: (undefined | number); }, Dto21>;
   "get": FunctionReference<"query", "public", { "purchaseOrderId": GenericId<"purchase_orders">; }, unknown>;
   "getByAnyId": FunctionReference<"query", "public", { "id": string; }, unknown>;
   "getMineByAnyId": FunctionReference<"query", "public", { "id": string; }, unknown>;
-  "list": FunctionReference<"query", "public", { "page"?: (undefined | number); "perPage"?: (undefined | number); "search"?: (undefined | string); "sourceType"?: (undefined | "api" | "manual" | "storefront_order" | "form_order" | "subscription_signup" | "subscription_invoice"); "status"?: (undefined | "draft" | "pending" | "cancelled" | "payment_pending" | "paid" | "payment_failed" | "partially_refunded" | "refunded" | "fulfilled"); "paymentStatus"?: (undefined | "pending" | "failed" | "processing" | "cancelled" | "paid" | "partially_refunded" | "refunded" | "requires_action" | "authorized" | "captured"); "userId"?: (undefined | GenericId<"users">); "customerId"?: (undefined | GenericId<"commerce_customer_profiles">); "email"?: (undefined | string); "dateFrom"?: (undefined | number); "dateTo"?: (undefined | number); "orderBy"?: (undefined | string); "orderDir"?: (undefined | "asc" | "desc"); }, Dto2593>;
+  "list": FunctionReference<"query", "public", { "page"?: (undefined | number); "perPage"?: (undefined | number); "search"?: (undefined | string); "sourceType"?: (undefined | "api" | "manual" | "storefront_order" | "form_order" | "subscription_signup" | "subscription_invoice"); "status"?: (undefined | "draft" | "pending" | "cancelled" | "payment_pending" | "paid" | "payment_failed" | "partially_refunded" | "refunded" | "fulfilled"); "paymentStatus"?: (undefined | "pending" | "failed" | "processing" | "cancelled" | "paid" | "partially_refunded" | "refunded" | "requires_action" | "authorized" | "captured"); "userId"?: (undefined | GenericId<"users">); "customerId"?: (undefined | GenericId<"commerce_customer_profiles">); "email"?: (undefined | string); "dateFrom"?: (undefined | number); "dateTo"?: (undefined | number); "orderBy"?: (undefined | string); "orderDir"?: (undefined | "asc" | "desc"); }, Dto2587>;
   "listMine": FunctionReference<"query", "public", {  }, Array<unknown>>;
 };
 };
   "purchases/migrations": {
-  "repairLedger": FunctionReference<"mutation", "public", { "limit"?: (undefined | number); "includeEmailTemplates"?: (undefined | false | true); }, Dto2592>;
+  "repairLedger": FunctionReference<"mutation", "public", { "limit"?: (undefined | number); "includeEmailTemplates"?: (undefined | false | true); }, Dto2586>;
 };
   "purchases/queries": {
   "counts": FunctionReference<"query", "public", { "sourceType"?: (undefined | "api" | "manual" | "storefront_order" | "form_order" | "subscription_signup" | "subscription_invoice"); "search"?: (undefined | string); "email"?: (undefined | string); "userId"?: (undefined | GenericId<"users">); "customerId"?: (undefined | GenericId<"commerce_customer_profiles">); "dateFrom"?: (undefined | number); "dateTo"?: (undefined | number); }, Dto21>;
   "get": FunctionReference<"query", "public", { "purchaseOrderId": GenericId<"purchase_orders">; }, unknown>;
   "getByAnyId": FunctionReference<"query", "public", { "id": string; }, unknown>;
   "getMineByAnyId": FunctionReference<"query", "public", { "id": string; }, unknown>;
-  "list": FunctionReference<"query", "public", { "page"?: (undefined | number); "perPage"?: (undefined | number); "search"?: (undefined | string); "sourceType"?: (undefined | "api" | "manual" | "storefront_order" | "form_order" | "subscription_signup" | "subscription_invoice"); "status"?: (undefined | "draft" | "pending" | "cancelled" | "payment_pending" | "paid" | "payment_failed" | "partially_refunded" | "refunded" | "fulfilled"); "paymentStatus"?: (undefined | "pending" | "failed" | "processing" | "cancelled" | "paid" | "partially_refunded" | "refunded" | "requires_action" | "authorized" | "captured"); "userId"?: (undefined | GenericId<"users">); "customerId"?: (undefined | GenericId<"commerce_customer_profiles">); "email"?: (undefined | string); "dateFrom"?: (undefined | number); "dateTo"?: (undefined | number); "orderBy"?: (undefined | string); "orderDir"?: (undefined | "asc" | "desc"); }, Dto2593>;
+  "list": FunctionReference<"query", "public", { "page"?: (undefined | number); "perPage"?: (undefined | number); "search"?: (undefined | string); "sourceType"?: (undefined | "api" | "manual" | "storefront_order" | "form_order" | "subscription_signup" | "subscription_invoice"); "status"?: (undefined | "draft" | "pending" | "cancelled" | "payment_pending" | "paid" | "payment_failed" | "partially_refunded" | "refunded" | "fulfilled"); "paymentStatus"?: (undefined | "pending" | "failed" | "processing" | "cancelled" | "paid" | "partially_refunded" | "refunded" | "requires_action" | "authorized" | "captured"); "userId"?: (undefined | GenericId<"users">); "customerId"?: (undefined | GenericId<"commerce_customer_profiles">); "email"?: (undefined | string); "dateFrom"?: (undefined | number); "dateTo"?: (undefined | number); "orderBy"?: (undefined | string); "orderDir"?: (undefined | "asc" | "desc"); }, Dto2587>;
   "listMine": FunctionReference<"query", "public", {  }, Array<unknown>>;
 };
   "recipes": {
   "actions": {
-  "extractRecipeFromImage": FunctionReference<"action", "public", { "mediaId": GenericId<"media">; }, Dto2594>;
+  "extractRecipeFromImage": FunctionReference<"action", "public", { "mediaId": GenericId<"media">; }, Dto2588>;
 };
   "mutations": {
   "createCategory": FunctionReference<"mutation", "public", { "name": string; "description"?: (undefined | string); "color"?: (undefined | string); }, GenericId<"recipe_categories">>;
@@ -6225,17 +6215,17 @@ export type PublicApi = {
   "updateRecipe": FunctionReference<"mutation", "public", { "recipeId": GenericId<"recipes">; "title"?: (undefined | string); "slug"?: (undefined | string); "excerpt"?: (undefined | string); "description"?: (undefined | string); "status"?: (undefined | "draft" | "trash" | "publish"); "featuredImageId"?: (undefined | GenericId<"media">); "scanMediaId"?: (undefined | GenericId<"media">); "categoryIds"?: (undefined | Array<GenericId<"recipe_categories">>); "prepMinutes"?: (undefined | number); "cookMinutes"?: (undefined | number); "totalMinutes"?: (undefined | number); "servings"?: (undefined | string); "yieldText"?: (undefined | string); "difficulty"?: (undefined | "medium" | "easy" | "hard"); "ingredients"?: (undefined | Array<string>); "instructions"?: (undefined | Array<string>); "notes"?: (undefined | string); "nutrition"?: (undefined | Dto2032); "scannedText"?: (undefined | string); "aiExtractedFromScan"?: (undefined | false | true); "isFeatured"?: (undefined | false | true); "publishedAt"?: (undefined | number); }, GenericId<"recipes">>;
 };
   "queries": {
-  "counts": FunctionReference<"query", "public", {  }, (null | Dto2595)>;
-  "get": FunctionReference<"query", "public", { "recipeId": GenericId<"recipes">; }, (null | Dto2596)>;
-  "getBySlug": FunctionReference<"query", "public", { "slug": string; }, (null | Dto2598)>;
-  "getCategoryBySlug": FunctionReference<"query", "public", { "slug": string; }, (null | Dto2599)>;
-  "list": FunctionReference<"query", "public", { "search"?: (undefined | string); "status"?: (undefined | "draft" | "trash" | "publish"); }, Array<(Dto2031 & Dto2601)>>;
-  "listCategories": FunctionReference<"query", "public", {  }, (null | Array<Dto2602>)>;
-  "listPublished": FunctionReference<"query", "public", { "page"?: (undefined | number); "perPage"?: (undefined | number); "categorySlug"?: (undefined | string); }, (null | Dto2603)>;
+  "counts": FunctionReference<"query", "public", {  }, (null | Dto2589)>;
+  "get": FunctionReference<"query", "public", { "recipeId": GenericId<"recipes">; }, (null | Dto2590)>;
+  "getBySlug": FunctionReference<"query", "public", { "slug": string; }, (null | Dto2592)>;
+  "getCategoryBySlug": FunctionReference<"query", "public", { "slug": string; }, (null | Dto2593)>;
+  "list": FunctionReference<"query", "public", { "search"?: (undefined | string); "status"?: (undefined | "draft" | "trash" | "publish"); }, Array<(Dto2031 & Dto2595)>>;
+  "listCategories": FunctionReference<"query", "public", {  }, (null | Array<Dto2596>)>;
+  "listPublished": FunctionReference<"query", "public", { "page"?: (undefined | number); "perPage"?: (undefined | number); "categorySlug"?: (undefined | string); }, (null | Dto2597)>;
 };
 };
   "recipes/actions": {
-  "extractRecipeFromImage": FunctionReference<"action", "public", { "mediaId": GenericId<"media">; }, Dto2594>;
+  "extractRecipeFromImage": FunctionReference<"action", "public", { "mediaId": GenericId<"media">; }, Dto2588>;
 };
   "recipes/mutations": {
   "createCategory": FunctionReference<"mutation", "public", { "name": string; "description"?: (undefined | string); "color"?: (undefined | string); }, GenericId<"recipe_categories">>;
@@ -6246,121 +6236,121 @@ export type PublicApi = {
   "updateRecipe": FunctionReference<"mutation", "public", { "recipeId": GenericId<"recipes">; "title"?: (undefined | string); "slug"?: (undefined | string); "excerpt"?: (undefined | string); "description"?: (undefined | string); "status"?: (undefined | "draft" | "trash" | "publish"); "featuredImageId"?: (undefined | GenericId<"media">); "scanMediaId"?: (undefined | GenericId<"media">); "categoryIds"?: (undefined | Array<GenericId<"recipe_categories">>); "prepMinutes"?: (undefined | number); "cookMinutes"?: (undefined | number); "totalMinutes"?: (undefined | number); "servings"?: (undefined | string); "yieldText"?: (undefined | string); "difficulty"?: (undefined | "medium" | "easy" | "hard"); "ingredients"?: (undefined | Array<string>); "instructions"?: (undefined | Array<string>); "notes"?: (undefined | string); "nutrition"?: (undefined | Dto2032); "scannedText"?: (undefined | string); "aiExtractedFromScan"?: (undefined | false | true); "isFeatured"?: (undefined | false | true); "publishedAt"?: (undefined | number); }, GenericId<"recipes">>;
 };
   "recipes/queries": {
-  "counts": FunctionReference<"query", "public", {  }, (null | Dto2595)>;
-  "get": FunctionReference<"query", "public", { "recipeId": GenericId<"recipes">; }, (null | Dto2596)>;
-  "getBySlug": FunctionReference<"query", "public", { "slug": string; }, (null | Dto2598)>;
-  "getCategoryBySlug": FunctionReference<"query", "public", { "slug": string; }, (null | Dto2599)>;
-  "list": FunctionReference<"query", "public", { "search"?: (undefined | string); "status"?: (undefined | "draft" | "trash" | "publish"); }, Array<(Dto2031 & Dto2601)>>;
-  "listCategories": FunctionReference<"query", "public", {  }, (null | Array<Dto2602>)>;
-  "listPublished": FunctionReference<"query", "public", { "page"?: (undefined | number); "perPage"?: (undefined | number); "categorySlug"?: (undefined | string); }, (null | Dto2603)>;
+  "counts": FunctionReference<"query", "public", {  }, (null | Dto2589)>;
+  "get": FunctionReference<"query", "public", { "recipeId": GenericId<"recipes">; }, (null | Dto2590)>;
+  "getBySlug": FunctionReference<"query", "public", { "slug": string; }, (null | Dto2592)>;
+  "getCategoryBySlug": FunctionReference<"query", "public", { "slug": string; }, (null | Dto2593)>;
+  "list": FunctionReference<"query", "public", { "search"?: (undefined | string); "status"?: (undefined | "draft" | "trash" | "publish"); }, Array<(Dto2031 & Dto2595)>>;
+  "listCategories": FunctionReference<"query", "public", {  }, (null | Array<Dto2596>)>;
+  "listPublished": FunctionReference<"query", "public", { "page"?: (undefined | number); "perPage"?: (undefined | number); "categorySlug"?: (undefined | string); }, (null | Dto2597)>;
 };
   "registration": {
   "mutations": {
   "acceptInvitation": FunctionReference<"mutation", "public", { "token": string; "userId": GenericId<"users">; }, null>;
-  "bulkInvite": FunctionReference<"mutation", "public", { "invitations": Array<Dto2606>; "sendNotification": boolean; }, Array<Dto2607>>;
-  "inviteUser": FunctionReference<"mutation", "public", { "email": string; "role": string; "firstName"?: (undefined | string); "lastName"?: (undefined | string); "message"?: (undefined | string); "sendNotification": boolean; }, Dto2608>;
+  "bulkInvite": FunctionReference<"mutation", "public", { "invitations": Array<Dto2600>; "sendNotification": boolean; }, Array<Dto2601>>;
+  "inviteUser": FunctionReference<"mutation", "public", { "email": string; "role": string; "firstName"?: (undefined | string); "lastName"?: (undefined | string); "message"?: (undefined | string); "sendNotification": boolean; }, Dto2602>;
   "resendInvitation": FunctionReference<"mutation", "public", { "invitationId": GenericId<"invitations">; }, null>;
   "revokeInvitation": FunctionReference<"mutation", "public", { "invitationId": GenericId<"invitations">; }, null>;
 };
   "queries": {
-  "counts": FunctionReference<"query", "public", {  }, Dto2609>;
-  "getByToken": FunctionReference<"query", "public", { "token": string; }, (null | Dto2610)>;
-  "getInvitation": FunctionReference<"query", "public", { "invitationId": GenericId<"invitations">; }, (null | Dto2611)>;
-  "getRegistrationStats": FunctionReference<"query", "public", {  }, Dto2612>;
-  "getRegistrationStatus": FunctionReference<"query", "public", {  }, Dto2613>;
+  "counts": FunctionReference<"query", "public", {  }, Dto2603>;
+  "getByToken": FunctionReference<"query", "public", { "token": string; }, (null | Dto2604)>;
+  "getInvitation": FunctionReference<"query", "public", { "invitationId": GenericId<"invitations">; }, (null | Dto2605)>;
+  "getRegistrationStats": FunctionReference<"query", "public", {  }, Dto2606>;
+  "getRegistrationStatus": FunctionReference<"query", "public", {  }, Dto2607>;
   "isRegistrationOpen": FunctionReference<"query", "public", {  }, boolean>;
-  "listInvitations": FunctionReference<"query", "public", { "status"?: (undefined | "pending" | "revoked" | "accepted" | "expired"); }, Array<(Dto2093 & Dto2614)>>;
+  "listInvitations": FunctionReference<"query", "public", { "status"?: (undefined | "pending" | "revoked" | "accepted" | "expired"); }, Array<(Dto2093 & Dto2608)>>;
 };
 };
   "registration/mutations": {
   "acceptInvitation": FunctionReference<"mutation", "public", { "token": string; "userId": GenericId<"users">; }, null>;
-  "bulkInvite": FunctionReference<"mutation", "public", { "invitations": Array<Dto2606>; "sendNotification": boolean; }, Array<Dto2607>>;
-  "inviteUser": FunctionReference<"mutation", "public", { "email": string; "role": string; "firstName"?: (undefined | string); "lastName"?: (undefined | string); "message"?: (undefined | string); "sendNotification": boolean; }, Dto2608>;
+  "bulkInvite": FunctionReference<"mutation", "public", { "invitations": Array<Dto2600>; "sendNotification": boolean; }, Array<Dto2601>>;
+  "inviteUser": FunctionReference<"mutation", "public", { "email": string; "role": string; "firstName"?: (undefined | string); "lastName"?: (undefined | string); "message"?: (undefined | string); "sendNotification": boolean; }, Dto2602>;
   "resendInvitation": FunctionReference<"mutation", "public", { "invitationId": GenericId<"invitations">; }, null>;
   "revokeInvitation": FunctionReference<"mutation", "public", { "invitationId": GenericId<"invitations">; }, null>;
 };
   "registration/queries": {
-  "counts": FunctionReference<"query", "public", {  }, Dto2609>;
-  "getByToken": FunctionReference<"query", "public", { "token": string; }, (null | Dto2610)>;
-  "getInvitation": FunctionReference<"query", "public", { "invitationId": GenericId<"invitations">; }, (null | Dto2611)>;
-  "getRegistrationStats": FunctionReference<"query", "public", {  }, Dto2612>;
-  "getRegistrationStatus": FunctionReference<"query", "public", {  }, Dto2613>;
+  "counts": FunctionReference<"query", "public", {  }, Dto2603>;
+  "getByToken": FunctionReference<"query", "public", { "token": string; }, (null | Dto2604)>;
+  "getInvitation": FunctionReference<"query", "public", { "invitationId": GenericId<"invitations">; }, (null | Dto2605)>;
+  "getRegistrationStats": FunctionReference<"query", "public", {  }, Dto2606>;
+  "getRegistrationStatus": FunctionReference<"query", "public", {  }, Dto2607>;
   "isRegistrationOpen": FunctionReference<"query", "public", {  }, boolean>;
-  "listInvitations": FunctionReference<"query", "public", { "status"?: (undefined | "pending" | "revoked" | "accepted" | "expired"); }, Array<(Dto2093 & Dto2614)>>;
+  "listInvitations": FunctionReference<"query", "public", { "status"?: (undefined | "pending" | "revoked" | "accepted" | "expired"); }, Array<(Dto2093 & Dto2608)>>;
 };
   "revisions": {
   "mutations": {
-  "deleteRevision": FunctionReference<"mutation", "public", { "revisionId": GenericId<"revisions">; }, Dto2617>;
+  "deleteRevision": FunctionReference<"mutation", "public", { "revisionId": GenericId<"revisions">; }, Dto2611>;
   "restore": FunctionReference<"mutation", "public", { "revisionId": GenericId<"revisions">; }, GenericId<"posts">>;
 };
   "queries": {
-  "compare": FunctionReference<"query", "public", { "leftRevisionId": GenericId<"revisions">; "rightRevisionId": GenericId<"revisions">; }, Dto2618>;
+  "compare": FunctionReference<"query", "public", { "leftRevisionId": GenericId<"revisions">; "rightRevisionId": GenericId<"revisions">; }, Dto2612>;
   "count": FunctionReference<"query", "public", { "parentId": GenericId<"posts">; }, number>;
-  "get": FunctionReference<"query", "public", { "revisionId": GenericId<"revisions">; }, Dto2621>;
-  "getLatest": FunctionReference<"query", "public", { "parentId": GenericId<"posts">; "type"?: (undefined | "manual" | "autosave"); }, (null | Dto2622)>;
-  "listByPost": FunctionReference<"query", "public", { "parentId": GenericId<"posts">; "type"?: (undefined | "manual" | "autosave"); "limit"?: (undefined | number); }, Dto2623>;
+  "get": FunctionReference<"query", "public", { "revisionId": GenericId<"revisions">; }, Dto2615>;
+  "getLatest": FunctionReference<"query", "public", { "parentId": GenericId<"posts">; "type"?: (undefined | "manual" | "autosave"); }, (null | Dto2616)>;
+  "listByPost": FunctionReference<"query", "public", { "parentId": GenericId<"posts">; "type"?: (undefined | "manual" | "autosave"); "limit"?: (undefined | number); }, Dto2617>;
 };
 };
   "revisions/mutations": {
-  "deleteRevision": FunctionReference<"mutation", "public", { "revisionId": GenericId<"revisions">; }, Dto2617>;
+  "deleteRevision": FunctionReference<"mutation", "public", { "revisionId": GenericId<"revisions">; }, Dto2611>;
   "restore": FunctionReference<"mutation", "public", { "revisionId": GenericId<"revisions">; }, GenericId<"posts">>;
 };
   "revisions/queries": {
-  "compare": FunctionReference<"query", "public", { "leftRevisionId": GenericId<"revisions">; "rightRevisionId": GenericId<"revisions">; }, Dto2618>;
+  "compare": FunctionReference<"query", "public", { "leftRevisionId": GenericId<"revisions">; "rightRevisionId": GenericId<"revisions">; }, Dto2612>;
   "count": FunctionReference<"query", "public", { "parentId": GenericId<"posts">; }, number>;
-  "get": FunctionReference<"query", "public", { "revisionId": GenericId<"revisions">; }, Dto2621>;
-  "getLatest": FunctionReference<"query", "public", { "parentId": GenericId<"posts">; "type"?: (undefined | "manual" | "autosave"); }, (null | Dto2622)>;
-  "listByPost": FunctionReference<"query", "public", { "parentId": GenericId<"posts">; "type"?: (undefined | "manual" | "autosave"); "limit"?: (undefined | number); }, Dto2623>;
+  "get": FunctionReference<"query", "public", { "revisionId": GenericId<"revisions">; }, Dto2615>;
+  "getLatest": FunctionReference<"query", "public", { "parentId": GenericId<"posts">; "type"?: (undefined | "manual" | "autosave"); }, (null | Dto2616)>;
+  "listByPost": FunctionReference<"query", "public", { "parentId": GenericId<"posts">; "type"?: (undefined | "manual" | "autosave"); "limit"?: (undefined | number); }, Dto2617>;
 };
   "roles": {
   "mutations": {
-  "assign": FunctionReference<"mutation", "public", { "userId": GenericId<"users">; "roleId": GenericId<"roles">; "reason"?: (undefined | string); }, Dto2630>;
+  "assign": FunctionReference<"mutation", "public", { "userId": GenericId<"users">; "roleId": GenericId<"roles">; "reason"?: (undefined | string); }, Dto2624>;
   "create": FunctionReference<"mutation", "public", { "name": string; "slug": string; "description": string; "level": number; "type": ("internal" | "customer" | "system"); "isDefault"?: (undefined | false | true); "capabilities": Array<string>; "pageAccess": Array<string>; }, GenericId<"roles">>;
-  "grantCapability": FunctionReference<"mutation", "public", { "roleId": GenericId<"roles">; "capability": string; }, (Dto2631 | Dto2632)>;
-  "remove": FunctionReference<"mutation", "public", { "roleId": GenericId<"roles">; }, Dto2633>;
-  "revokeCapability": FunctionReference<"mutation", "public", { "roleId": GenericId<"roles">; "capability": string; }, (Dto2634 | Dto2635)>;
+  "grantCapability": FunctionReference<"mutation", "public", { "roleId": GenericId<"roles">; "capability": string; }, (Dto2625 | Dto2626)>;
+  "remove": FunctionReference<"mutation", "public", { "roleId": GenericId<"roles">; }, Dto2627>;
+  "revokeCapability": FunctionReference<"mutation", "public", { "roleId": GenericId<"roles">; "capability": string; }, (Dto2628 | Dto2629)>;
   "update": FunctionReference<"mutation", "public", { "roleId": GenericId<"roles">; "name"?: (undefined | string); "slug"?: (undefined | string); "description"?: (undefined | string); "level"?: (undefined | number); "type"?: (undefined | "internal" | "customer" | "system"); "isDefault"?: (undefined | false | true); "capabilities"?: (undefined | Array<string>); "pageAccess"?: (undefined | Array<string>); "status"?: (undefined | "active" | "inactive"); }, GenericId<"roles">>;
 };
   "queries": {
   "getDefaultRole": FunctionReference<"query", "public", {  }, (null | Dto42)>;
   "getRole": FunctionReference<"query", "public", { "roleId": GenericId<"roles">; }, (null | Dto42)>;
   "getRoleBySlug": FunctionReference<"query", "public", { "slug": string; }, (null | Dto42)>;
-  "getRoleChanges": FunctionReference<"query", "public", { "userId"?: (undefined | GenericId<"users">); "limit"?: (undefined | number); }, Array<Dto2636>>;
-  "listRoles": FunctionReference<"query", "public", {  }, Array<(Dto2637 | Dto2638)>>;
+  "getRoleChanges": FunctionReference<"query", "public", { "userId"?: (undefined | GenericId<"users">); "limit"?: (undefined | number); }, Array<Dto2630>>;
+  "listRoles": FunctionReference<"query", "public", {  }, Array<(Dto2631 | Dto2632)>>;
 };
 };
   "roles/mutations": {
-  "assign": FunctionReference<"mutation", "public", { "userId": GenericId<"users">; "roleId": GenericId<"roles">; "reason"?: (undefined | string); }, Dto2630>;
+  "assign": FunctionReference<"mutation", "public", { "userId": GenericId<"users">; "roleId": GenericId<"roles">; "reason"?: (undefined | string); }, Dto2624>;
   "create": FunctionReference<"mutation", "public", { "name": string; "slug": string; "description": string; "level": number; "type": ("internal" | "customer" | "system"); "isDefault"?: (undefined | false | true); "capabilities": Array<string>; "pageAccess": Array<string>; }, GenericId<"roles">>;
-  "grantCapability": FunctionReference<"mutation", "public", { "roleId": GenericId<"roles">; "capability": string; }, (Dto2631 | Dto2632)>;
-  "remove": FunctionReference<"mutation", "public", { "roleId": GenericId<"roles">; }, Dto2633>;
-  "revokeCapability": FunctionReference<"mutation", "public", { "roleId": GenericId<"roles">; "capability": string; }, (Dto2634 | Dto2635)>;
+  "grantCapability": FunctionReference<"mutation", "public", { "roleId": GenericId<"roles">; "capability": string; }, (Dto2625 | Dto2626)>;
+  "remove": FunctionReference<"mutation", "public", { "roleId": GenericId<"roles">; }, Dto2627>;
+  "revokeCapability": FunctionReference<"mutation", "public", { "roleId": GenericId<"roles">; "capability": string; }, (Dto2628 | Dto2629)>;
   "update": FunctionReference<"mutation", "public", { "roleId": GenericId<"roles">; "name"?: (undefined | string); "slug"?: (undefined | string); "description"?: (undefined | string); "level"?: (undefined | number); "type"?: (undefined | "internal" | "customer" | "system"); "isDefault"?: (undefined | false | true); "capabilities"?: (undefined | Array<string>); "pageAccess"?: (undefined | Array<string>); "status"?: (undefined | "active" | "inactive"); }, GenericId<"roles">>;
 };
   "roles/queries": {
   "getDefaultRole": FunctionReference<"query", "public", {  }, (null | Dto42)>;
   "getRole": FunctionReference<"query", "public", { "roleId": GenericId<"roles">; }, (null | Dto42)>;
   "getRoleBySlug": FunctionReference<"query", "public", { "slug": string; }, (null | Dto42)>;
-  "getRoleChanges": FunctionReference<"query", "public", { "userId"?: (undefined | GenericId<"users">); "limit"?: (undefined | number); }, Array<Dto2636>>;
-  "listRoles": FunctionReference<"query", "public", {  }, Array<(Dto2637 | Dto2638)>>;
+  "getRoleChanges": FunctionReference<"query", "public", { "userId"?: (undefined | GenericId<"users">); "limit"?: (undefined | number); }, Array<Dto2630>>;
+  "listRoles": FunctionReference<"query", "public", {  }, Array<(Dto2631 | Dto2632)>>;
 };
   "routeDefinitions": {
   "queries": {
-  "counts": FunctionReference<"query", "public", {  }, Dto2639>;
+  "counts": FunctionReference<"query", "public", {  }, Dto2633>;
   "get": FunctionReference<"query", "public", { "id": GenericId<"routeDefinitions">; }, (null | Dto43)>;
   "list": FunctionReference<"query", "public", { "status"?: (undefined | string); "app"?: (undefined | string); "search"?: (undefined | string); }, Array<Dto43>>;
 };
 };
   "routeDefinitions/queries": {
-  "counts": FunctionReference<"query", "public", {  }, Dto2639>;
+  "counts": FunctionReference<"query", "public", {  }, Dto2633>;
   "get": FunctionReference<"query", "public", { "id": GenericId<"routeDefinitions">; }, (null | Dto43)>;
   "list": FunctionReference<"query", "public", { "status"?: (undefined | string); "app"?: (undefined | string); "search"?: (undefined | string); }, Array<Dto43>>;
 };
   "routing": {
   "mutations": {
-  "bulkDismiss404": FunctionReference<"mutation", "public", { "notFoundIds": Array<GenericId<"notFound">>; }, Dto2644>;
+  "bulkDismiss404": FunctionReference<"mutation", "public", { "notFoundIds": Array<GenericId<"notFound">>; }, Dto2638>;
   "createRedirect": FunctionReference<"mutation", "public", { "sourceUrl": string; "targetUrl": string; "statusCode": (301 | 302 | 307 | 308); "matchType": ("exact" | "prefix" | "regex"); "note"?: (undefined | string); }, GenericId<"redirects">>;
-  "deleteRedirect": FunctionReference<"mutation", "public", { "redirectId": GenericId<"redirects">; }, Dto2645>;
+  "deleteRedirect": FunctionReference<"mutation", "public", { "redirectId": GenericId<"redirects">; }, Dto2639>;
   "dismiss404": FunctionReference<"mutation", "public", { "notFoundId": GenericId<"notFound">; }, GenericId<"notFound">>;
   "logNotFound": FunctionReference<"mutation", "public", { "url": string; "referrer"?: (undefined | string); "userAgent"?: (undefined | string); }, null>;
   "resolve404": FunctionReference<"mutation", "public", { "notFoundId": GenericId<"notFound">; "redirectId"?: (undefined | GenericId<"redirects">); }, GenericId<"notFound">>;
@@ -6368,19 +6358,19 @@ export type PublicApi = {
 };
   "public": {
   "recordRedirectHit": FunctionReference<"mutation", "public", { "redirectId": GenericId<"redirects">; }, null>;
-  "resolveRedirect": FunctionReference<"query", "public", { "url": string; }, (null | Dto2646)>;
+  "resolveRedirect": FunctionReference<"query", "public", { "url": string; }, (null | Dto2640)>;
 };
   "queries": {
-  "get404Log": FunctionReference<"query", "public", { "resolved"?: (undefined | false | true); "minHits"?: (undefined | number); "sortBy"?: (undefined | "url" | "hitCount" | "lastHitAt"); "sortOrder"?: (undefined | "asc" | "desc"); "page"?: (undefined | number); "perPage"?: (undefined | number); }, Dto2647>;
+  "get404Log": FunctionReference<"query", "public", { "resolved"?: (undefined | false | true); "minHits"?: (undefined | number); "sortBy"?: (undefined | "url" | "hitCount" | "lastHitAt"); "sortOrder"?: (undefined | "asc" | "desc"); "page"?: (undefined | number); "perPage"?: (undefined | number); }, Dto2641>;
   "getRedirectById": FunctionReference<"query", "public", { "redirectId": GenericId<"redirects">; }, (null | Dto1848)>;
-  "getRedirects": FunctionReference<"query", "public", { "source"?: (undefined | "import" | "manual" | "slug_change" | "permalink_change"); "enabled"?: (undefined | false | true); "search"?: (undefined | string); "sortBy"?: (undefined | "createdAt" | "sourceUrl" | "hitCount" | "lastHitAt"); "sortOrder"?: (undefined | "asc" | "desc"); "page"?: (undefined | number); "perPage"?: (undefined | number); }, Dto2648>;
-  "getRedirectStats": FunctionReference<"query", "public", {  }, Dto2649>;
+  "getRedirects": FunctionReference<"query", "public", { "source"?: (undefined | "import" | "manual" | "slug_change" | "permalink_change"); "enabled"?: (undefined | false | true); "search"?: (undefined | string); "sortBy"?: (undefined | "createdAt" | "sourceUrl" | "hitCount" | "lastHitAt"); "sortOrder"?: (undefined | "asc" | "desc"); "page"?: (undefined | number); "perPage"?: (undefined | number); }, Dto2642>;
+  "getRedirectStats": FunctionReference<"query", "public", {  }, Dto2643>;
 };
 };
   "routing/mutations": {
-  "bulkDismiss404": FunctionReference<"mutation", "public", { "notFoundIds": Array<GenericId<"notFound">>; }, Dto2644>;
+  "bulkDismiss404": FunctionReference<"mutation", "public", { "notFoundIds": Array<GenericId<"notFound">>; }, Dto2638>;
   "createRedirect": FunctionReference<"mutation", "public", { "sourceUrl": string; "targetUrl": string; "statusCode": (301 | 302 | 307 | 308); "matchType": ("exact" | "prefix" | "regex"); "note"?: (undefined | string); }, GenericId<"redirects">>;
-  "deleteRedirect": FunctionReference<"mutation", "public", { "redirectId": GenericId<"redirects">; }, Dto2645>;
+  "deleteRedirect": FunctionReference<"mutation", "public", { "redirectId": GenericId<"redirects">; }, Dto2639>;
   "dismiss404": FunctionReference<"mutation", "public", { "notFoundId": GenericId<"notFound">; }, GenericId<"notFound">>;
   "logNotFound": FunctionReference<"mutation", "public", { "url": string; "referrer"?: (undefined | string); "userAgent"?: (undefined | string); }, null>;
   "resolve404": FunctionReference<"mutation", "public", { "notFoundId": GenericId<"notFound">; "redirectId"?: (undefined | GenericId<"redirects">); }, GenericId<"notFound">>;
@@ -6388,17 +6378,17 @@ export type PublicApi = {
 };
   "routing/public": {
   "recordRedirectHit": FunctionReference<"mutation", "public", { "redirectId": GenericId<"redirects">; }, null>;
-  "resolveRedirect": FunctionReference<"query", "public", { "url": string; }, (null | Dto2646)>;
+  "resolveRedirect": FunctionReference<"query", "public", { "url": string; }, (null | Dto2640)>;
 };
   "routing/queries": {
-  "get404Log": FunctionReference<"query", "public", { "resolved"?: (undefined | false | true); "minHits"?: (undefined | number); "sortBy"?: (undefined | "url" | "hitCount" | "lastHitAt"); "sortOrder"?: (undefined | "asc" | "desc"); "page"?: (undefined | number); "perPage"?: (undefined | number); }, Dto2647>;
+  "get404Log": FunctionReference<"query", "public", { "resolved"?: (undefined | false | true); "minHits"?: (undefined | number); "sortBy"?: (undefined | "url" | "hitCount" | "lastHitAt"); "sortOrder"?: (undefined | "asc" | "desc"); "page"?: (undefined | number); "perPage"?: (undefined | number); }, Dto2641>;
   "getRedirectById": FunctionReference<"query", "public", { "redirectId": GenericId<"redirects">; }, (null | Dto1848)>;
-  "getRedirects": FunctionReference<"query", "public", { "source"?: (undefined | "import" | "manual" | "slug_change" | "permalink_change"); "enabled"?: (undefined | false | true); "search"?: (undefined | string); "sortBy"?: (undefined | "createdAt" | "sourceUrl" | "hitCount" | "lastHitAt"); "sortOrder"?: (undefined | "asc" | "desc"); "page"?: (undefined | number); "perPage"?: (undefined | number); }, Dto2648>;
-  "getRedirectStats": FunctionReference<"query", "public", {  }, Dto2649>;
+  "getRedirects": FunctionReference<"query", "public", { "source"?: (undefined | "import" | "manual" | "slug_change" | "permalink_change"); "enabled"?: (undefined | false | true); "search"?: (undefined | string); "sortBy"?: (undefined | "createdAt" | "sourceUrl" | "hitCount" | "lastHitAt"); "sortOrder"?: (undefined | "asc" | "desc"); "page"?: (undefined | number); "perPage"?: (undefined | number); }, Dto2642>;
+  "getRedirectStats": FunctionReference<"query", "public", {  }, Dto2643>;
 };
   "search": {
   "actions": {
-  "reindex": FunctionReference<"action", "public", { "contentType"?: (undefined | "event" | "media" | "post" | "page" | "comment" | "course" | "product"); "contentId"?: (undefined | string); "force"?: (undefined | false | true); "jobId"?: (undefined | string); }, (Dto2650 | Dto2651)>;
+  "reindex": FunctionReference<"action", "public", { "contentType"?: (undefined | "event" | "media" | "post" | "page" | "comment" | "course" | "product"); "contentId"?: (undefined | string); "force"?: (undefined | false | true); "jobId"?: (undefined | string); }, (Dto2644 | Dto2645)>;
 };
   "mutations": {
   "createSynonym": FunctionReference<"mutation", "public", { "term": string; "synonyms": Array<string>; }, GenericId<"searchSynonyms">>;
@@ -6408,18 +6398,18 @@ export type PublicApi = {
   "updateSynonym": FunctionReference<"mutation", "public", { "synonymId": GenericId<"searchSynonyms">; "term"?: (undefined | string); "synonyms"?: (undefined | Array<string>); "isActive"?: (undefined | false | true); }, null>;
 };
   "queries": {
-  "adminSearch": FunctionReference<"query", "public", { "q": string; "contentType"?: (undefined | "event" | "media" | "post" | "page" | "comment" | "course" | "product"); "status"?: (undefined | string); "authorId"?: (undefined | string); "page"?: (undefined | number); "perPage"?: (undefined | number); }, (Dto2660 | Dto2662)>;
-  "getAnalytics": FunctionReference<"query", "public", { "dateFrom"?: (undefined | number); "dateTo"?: (undefined | number); "limit"?: (undefined | number); }, Dto2665>;
+  "adminSearch": FunctionReference<"query", "public", { "q": string; "contentType"?: (undefined | "event" | "media" | "post" | "page" | "comment" | "course" | "product"); "status"?: (undefined | string); "authorId"?: (undefined | string); "page"?: (undefined | number); "perPage"?: (undefined | number); }, (Dto2654 | Dto2656)>;
+  "getAnalytics": FunctionReference<"query", "public", { "dateFrom"?: (undefined | number); "dateTo"?: (undefined | number); "limit"?: (undefined | number); }, Dto2659>;
   "listSynonyms": FunctionReference<"query", "public", {  }, Array<Dto2090>>;
-  "search": FunctionReference<"query", "public", { "q": string; "refreshKey"?: (undefined | string); "contentType"?: (undefined | "event" | "media" | "post" | "page" | "comment" | "course" | "product"); "category"?: (undefined | string); "tag"?: (undefined | string); "author"?: (undefined | string); "dateFrom"?: (undefined | number); "dateTo"?: (undefined | number); "orderBy"?: (undefined | "title" | "date" | "relevance"); "orderDir"?: (undefined | "asc" | "desc"); "page"?: (undefined | number); "perPage"?: (undefined | number); }, Dto2671>;
-  "suggest": FunctionReference<"query", "public", { "q": string; "limit"?: (undefined | number); }, Dto2675>;
+  "search": FunctionReference<"query", "public", { "q": string; "refreshKey"?: (undefined | string); "contentType"?: (undefined | "event" | "media" | "post" | "page" | "comment" | "course" | "product"); "category"?: (undefined | string); "tag"?: (undefined | string); "author"?: (undefined | string); "dateFrom"?: (undefined | number); "dateTo"?: (undefined | number); "orderBy"?: (undefined | "title" | "date" | "relevance"); "orderDir"?: (undefined | "asc" | "desc"); "page"?: (undefined | number); "perPage"?: (undefined | number); }, Dto2665>;
+  "suggest": FunctionReference<"query", "public", { "q": string; "limit"?: (undefined | number); }, Dto2669>;
 };
   "reindex": {
-  "current": FunctionReference<"query", "public", {  }, (null | Dto2651)>;
+  "current": FunctionReference<"query", "public", {  }, (null | Dto2645)>;
 };
 };
   "search/actions": {
-  "reindex": FunctionReference<"action", "public", { "contentType"?: (undefined | "event" | "media" | "post" | "page" | "comment" | "course" | "product"); "contentId"?: (undefined | string); "force"?: (undefined | false | true); "jobId"?: (undefined | string); }, (Dto2650 | Dto2651)>;
+  "reindex": FunctionReference<"action", "public", { "contentType"?: (undefined | "event" | "media" | "post" | "page" | "comment" | "course" | "product"); "contentId"?: (undefined | string); "force"?: (undefined | false | true); "jobId"?: (undefined | string); }, (Dto2644 | Dto2645)>;
 };
   "search/mutations": {
   "createSynonym": FunctionReference<"mutation", "public", { "term": string; "synonyms": Array<string>; }, GenericId<"searchSynonyms">>;
@@ -6429,137 +6419,137 @@ export type PublicApi = {
   "updateSynonym": FunctionReference<"mutation", "public", { "synonymId": GenericId<"searchSynonyms">; "term"?: (undefined | string); "synonyms"?: (undefined | Array<string>); "isActive"?: (undefined | false | true); }, null>;
 };
   "search/queries": {
-  "adminSearch": FunctionReference<"query", "public", { "q": string; "contentType"?: (undefined | "event" | "media" | "post" | "page" | "comment" | "course" | "product"); "status"?: (undefined | string); "authorId"?: (undefined | string); "page"?: (undefined | number); "perPage"?: (undefined | number); }, (Dto2660 | Dto2662)>;
-  "getAnalytics": FunctionReference<"query", "public", { "dateFrom"?: (undefined | number); "dateTo"?: (undefined | number); "limit"?: (undefined | number); }, Dto2665>;
+  "adminSearch": FunctionReference<"query", "public", { "q": string; "contentType"?: (undefined | "event" | "media" | "post" | "page" | "comment" | "course" | "product"); "status"?: (undefined | string); "authorId"?: (undefined | string); "page"?: (undefined | number); "perPage"?: (undefined | number); }, (Dto2654 | Dto2656)>;
+  "getAnalytics": FunctionReference<"query", "public", { "dateFrom"?: (undefined | number); "dateTo"?: (undefined | number); "limit"?: (undefined | number); }, Dto2659>;
   "listSynonyms": FunctionReference<"query", "public", {  }, Array<Dto2090>>;
-  "search": FunctionReference<"query", "public", { "q": string; "refreshKey"?: (undefined | string); "contentType"?: (undefined | "event" | "media" | "post" | "page" | "comment" | "course" | "product"); "category"?: (undefined | string); "tag"?: (undefined | string); "author"?: (undefined | string); "dateFrom"?: (undefined | number); "dateTo"?: (undefined | number); "orderBy"?: (undefined | "title" | "date" | "relevance"); "orderDir"?: (undefined | "asc" | "desc"); "page"?: (undefined | number); "perPage"?: (undefined | number); }, Dto2671>;
-  "suggest": FunctionReference<"query", "public", { "q": string; "limit"?: (undefined | number); }, Dto2675>;
+  "search": FunctionReference<"query", "public", { "q": string; "refreshKey"?: (undefined | string); "contentType"?: (undefined | "event" | "media" | "post" | "page" | "comment" | "course" | "product"); "category"?: (undefined | string); "tag"?: (undefined | string); "author"?: (undefined | string); "dateFrom"?: (undefined | number); "dateTo"?: (undefined | number); "orderBy"?: (undefined | "title" | "date" | "relevance"); "orderDir"?: (undefined | "asc" | "desc"); "page"?: (undefined | number); "perPage"?: (undefined | number); }, Dto2665>;
+  "suggest": FunctionReference<"query", "public", { "q": string; "limit"?: (undefined | number); }, Dto2669>;
 };
   "search/reindex": {
-  "current": FunctionReference<"query", "public", {  }, (null | Dto2651)>;
+  "current": FunctionReference<"query", "public", {  }, (null | Dto2645)>;
 };
   "seo": {
   "mutations": {
-  "generateSitemap": FunctionReference<"mutation", "public", {  }, Dto2688>;
-  "updateGlobal": FunctionReference<"mutation", "public", { "key": ("schema" | "verification" | "social" | "titles" | "robots" | "breadcrumbs" | "advanced"); "value": string; }, Dto2689>;
-  "updatePostSeo": FunctionReference<"mutation", "public", { "postId": GenericId<"posts">; "seoTitle"?: (undefined | string); "seoDescription"?: (undefined | string); "focusKeyphrase"?: (undefined | string); "additionalKeyphrases"?: (undefined | Array<string>); "canonical"?: (undefined | string); "noindex"?: (undefined | false | true); "nofollow"?: (undefined | false | true); "ogTitle"?: (undefined | string); "ogDescription"?: (undefined | string); "ogImage"?: (undefined | string); "twitterTitle"?: (undefined | string); "twitterDescription"?: (undefined | string); "twitterImage"?: (undefined | string); "schemaType"?: (undefined | string); "schemaArticleType"?: (undefined | string); "seoScore"?: (undefined | number); "readabilityScore"?: (undefined | number); "cornerstone"?: (undefined | false | true); }, Dto2690>;
-  "updateRobots": FunctionReference<"mutation", "public", { "customRules"?: (undefined | string); "siteNoindex"?: (undefined | false | true); "blockAiBots"?: (undefined | false | true); }, Dto2691>;
+  "generateSitemap": FunctionReference<"mutation", "public", {  }, Dto2682>;
+  "updateGlobal": FunctionReference<"mutation", "public", { "key": ("schema" | "verification" | "social" | "titles" | "robots" | "breadcrumbs" | "advanced"); "value": string; }, Dto2683>;
+  "updatePostSeo": FunctionReference<"mutation", "public", { "postId": GenericId<"posts">; "seoTitle"?: (undefined | string); "seoDescription"?: (undefined | string); "focusKeyphrase"?: (undefined | string); "additionalKeyphrases"?: (undefined | Array<string>); "canonical"?: (undefined | string); "noindex"?: (undefined | false | true); "nofollow"?: (undefined | false | true); "ogTitle"?: (undefined | string); "ogDescription"?: (undefined | string); "ogImage"?: (undefined | string); "twitterTitle"?: (undefined | string); "twitterDescription"?: (undefined | string); "twitterImage"?: (undefined | string); "schemaType"?: (undefined | string); "schemaArticleType"?: (undefined | string); "seoScore"?: (undefined | number); "readabilityScore"?: (undefined | number); "cornerstone"?: (undefined | false | true); }, Dto2684>;
+  "updateRobots": FunctionReference<"mutation", "public", { "customRules"?: (undefined | string); "siteNoindex"?: (undefined | false | true); "blockAiBots"?: (undefined | false | true); }, Dto2685>;
 };
   "queries": {
-  "getPostSeo": FunctionReference<"query", "public", { "postId": GenericId<"posts">; }, Dto2678>;
+  "getPostSeo": FunctionReference<"query", "public", { "postId": GenericId<"posts">; }, Dto2672>;
   "getRobotsTxt": FunctionReference<"query", "public", {  }, string>;
-  "getSeoOverview": FunctionReference<"query", "public", {  }, Dto2692>;
-  "getSettings": FunctionReference<"query", "public", { "key"?: (undefined | "schema" | "verification" | "social" | "titles" | "robots" | "breadcrumbs" | "advanced"); }, (null | Dto2679 | Dto2696)>;
+  "getSeoOverview": FunctionReference<"query", "public", {  }, Dto2686>;
+  "getSettings": FunctionReference<"query", "public", { "key"?: (undefined | "schema" | "verification" | "social" | "titles" | "robots" | "breadcrumbs" | "advanced"); }, (null | Dto2673 | Dto2690)>;
 };
 };
   "seo/mutations": {
-  "generateSitemap": FunctionReference<"mutation", "public", {  }, Dto2688>;
-  "updateGlobal": FunctionReference<"mutation", "public", { "key": ("schema" | "verification" | "social" | "titles" | "robots" | "breadcrumbs" | "advanced"); "value": string; }, Dto2689>;
-  "updatePostSeo": FunctionReference<"mutation", "public", { "postId": GenericId<"posts">; "seoTitle"?: (undefined | string); "seoDescription"?: (undefined | string); "focusKeyphrase"?: (undefined | string); "additionalKeyphrases"?: (undefined | Array<string>); "canonical"?: (undefined | string); "noindex"?: (undefined | false | true); "nofollow"?: (undefined | false | true); "ogTitle"?: (undefined | string); "ogDescription"?: (undefined | string); "ogImage"?: (undefined | string); "twitterTitle"?: (undefined | string); "twitterDescription"?: (undefined | string); "twitterImage"?: (undefined | string); "schemaType"?: (undefined | string); "schemaArticleType"?: (undefined | string); "seoScore"?: (undefined | number); "readabilityScore"?: (undefined | number); "cornerstone"?: (undefined | false | true); }, Dto2690>;
-  "updateRobots": FunctionReference<"mutation", "public", { "customRules"?: (undefined | string); "siteNoindex"?: (undefined | false | true); "blockAiBots"?: (undefined | false | true); }, Dto2691>;
+  "generateSitemap": FunctionReference<"mutation", "public", {  }, Dto2682>;
+  "updateGlobal": FunctionReference<"mutation", "public", { "key": ("schema" | "verification" | "social" | "titles" | "robots" | "breadcrumbs" | "advanced"); "value": string; }, Dto2683>;
+  "updatePostSeo": FunctionReference<"mutation", "public", { "postId": GenericId<"posts">; "seoTitle"?: (undefined | string); "seoDescription"?: (undefined | string); "focusKeyphrase"?: (undefined | string); "additionalKeyphrases"?: (undefined | Array<string>); "canonical"?: (undefined | string); "noindex"?: (undefined | false | true); "nofollow"?: (undefined | false | true); "ogTitle"?: (undefined | string); "ogDescription"?: (undefined | string); "ogImage"?: (undefined | string); "twitterTitle"?: (undefined | string); "twitterDescription"?: (undefined | string); "twitterImage"?: (undefined | string); "schemaType"?: (undefined | string); "schemaArticleType"?: (undefined | string); "seoScore"?: (undefined | number); "readabilityScore"?: (undefined | number); "cornerstone"?: (undefined | false | true); }, Dto2684>;
+  "updateRobots": FunctionReference<"mutation", "public", { "customRules"?: (undefined | string); "siteNoindex"?: (undefined | false | true); "blockAiBots"?: (undefined | false | true); }, Dto2685>;
 };
   "seo/queries": {
-  "getPostSeo": FunctionReference<"query", "public", { "postId": GenericId<"posts">; }, Dto2678>;
+  "getPostSeo": FunctionReference<"query", "public", { "postId": GenericId<"posts">; }, Dto2672>;
   "getRobotsTxt": FunctionReference<"query", "public", {  }, string>;
-  "getSeoOverview": FunctionReference<"query", "public", {  }, Dto2692>;
-  "getSettings": FunctionReference<"query", "public", { "key"?: (undefined | "schema" | "verification" | "social" | "titles" | "robots" | "breadcrumbs" | "advanced"); }, (null | Dto2679 | Dto2696)>;
+  "getSeoOverview": FunctionReference<"query", "public", {  }, Dto2686>;
+  "getSettings": FunctionReference<"query", "public", { "key"?: (undefined | "schema" | "verification" | "social" | "titles" | "robots" | "breadcrumbs" | "advanced"); }, (null | Dto2673 | Dto2690)>;
 };
   "settings": {
   "integrations": {
   "testActions": {
-  "testClerk": FunctionReference<"action", "public", {  }, Dto2701>;
-  "testGa4": FunctionReference<"action", "public", {  }, Dto2701>;
-  "testGooglePlaces": FunctionReference<"action", "public", {  }, Dto2701>;
-  "testPayPal": FunctionReference<"action", "public", {  }, Dto2701>;
-  "testStripe": FunctionReference<"action", "public", {  }, Dto2701>;
-  "testUspsAddress": FunctionReference<"action", "public", {  }, Dto2701>;
+  "testClerk": FunctionReference<"action", "public", {  }, Dto2695>;
+  "testGa4": FunctionReference<"action", "public", {  }, Dto2695>;
+  "testGooglePlaces": FunctionReference<"action", "public", {  }, Dto2695>;
+  "testPayPal": FunctionReference<"action", "public", {  }, Dto2695>;
+  "testStripe": FunctionReference<"action", "public", {  }, Dto2695>;
+  "testUspsAddress": FunctionReference<"action", "public", {  }, Dto2695>;
 };
 };
   "migrations": {
-  "migrateLegacyAppearance": FunctionReference<"mutation", "public", {  }, Dto2704>;
+  "migrateLegacyAppearance": FunctionReference<"mutation", "public", {  }, Dto2698>;
 };
   "mutations": {
-  "encryptStoredSecrets": FunctionReference<"mutation", "public", {  }, Dto2702>;
-  "importAll": FunctionReference<"mutation", "public", { "data": unknown; }, Dto2705>;
+  "encryptStoredSecrets": FunctionReference<"mutation", "public", {  }, Dto2696>;
+  "importAll": FunctionReference<"mutation", "public", { "data": unknown; }, Dto2699>;
   "updateSection": FunctionReference<"mutation", "public", { "section": ("layout" | "blocks" | "email" | "media" | "general" | "reading" | "writing" | "discussion" | "permalinks" | "privacy" | "analytics" | "ai" | "plugins" | "membership.general" | "search" | "kb.general" | "kb.features" | "kb.search" | "ticket.general" | "ticket.sla" | "support.widget" | "support.ai" | "header" | "footer" | "commerce.general" | "commerce.payments" | "commerce.assistant" | "commerce.layout" | "appearance.template" | "brand" | "commerce.subscriptions.counters" | "integrations.shipping" | "integrations.shipping.shipstation" | "integrations.shipping.ups" | "integrations.shipping.usps" | "integrations.shipping.fedex" | "integrations.shipping.dhl" | "integrations.clerk" | "integrations.google" | "dashboard" | "analytics.ga4"); "values": unknown; }, null>;
 };
   "queries": {
-  "exportAll": FunctionReference<"query", "public", {  }, Dto2706>;
-  "get": FunctionReference<"query", "public", { "section": ("layout" | "blocks" | "email" | "media" | "general" | "reading" | "writing" | "discussion" | "permalinks" | "privacy" | "analytics" | "ai" | "plugins" | "membership.general" | "search" | "kb.general" | "kb.features" | "kb.search" | "ticket.general" | "ticket.sla" | "support.widget" | "support.ai" | "header" | "footer" | "commerce.general" | "commerce.payments" | "commerce.assistant" | "commerce.layout" | "appearance.template" | "brand" | "commerce.subscriptions.counters" | "integrations.shipping" | "integrations.shipping.shipstation" | "integrations.shipping.ups" | "integrations.shipping.usps" | "integrations.shipping.fedex" | "integrations.shipping.dhl" | "integrations.clerk" | "integrations.google" | "dashboard" | "analytics.ga4"); }, (null | Dto2708)>;
-  "getAutoloaded": FunctionReference<"query", "public", {  }, Dto2707>;
+  "exportAll": FunctionReference<"query", "public", {  }, Dto2700>;
+  "get": FunctionReference<"query", "public", { "section": ("layout" | "blocks" | "email" | "media" | "general" | "reading" | "writing" | "discussion" | "permalinks" | "privacy" | "analytics" | "ai" | "plugins" | "membership.general" | "search" | "kb.general" | "kb.features" | "kb.search" | "ticket.general" | "ticket.sla" | "support.widget" | "support.ai" | "header" | "footer" | "commerce.general" | "commerce.payments" | "commerce.assistant" | "commerce.layout" | "appearance.template" | "brand" | "commerce.subscriptions.counters" | "integrations.shipping" | "integrations.shipping.shipstation" | "integrations.shipping.ups" | "integrations.shipping.usps" | "integrations.shipping.fedex" | "integrations.shipping.dhl" | "integrations.clerk" | "integrations.google" | "dashboard" | "analytics.ga4"); }, (null | Dto2702)>;
+  "getAutoloaded": FunctionReference<"query", "public", {  }, Dto2701>;
   "getBySection": FunctionReference<"query", "public", { "section": ("layout" | "blocks" | "email" | "media" | "general" | "reading" | "writing" | "discussion" | "permalinks" | "privacy" | "analytics" | "ai" | "plugins" | "membership.general" | "search" | "kb.general" | "kb.features" | "kb.search" | "ticket.general" | "ticket.sla" | "support.widget" | "support.ai" | "header" | "footer" | "commerce.general" | "commerce.payments" | "commerce.assistant" | "commerce.layout" | "appearance.template" | "brand" | "commerce.subscriptions.counters" | "integrations.shipping" | "integrations.shipping.shipstation" | "integrations.shipping.ups" | "integrations.shipping.usps" | "integrations.shipping.fedex" | "integrations.shipping.dhl" | "integrations.clerk" | "integrations.google" | "dashboard" | "analytics.ga4"); }, unknown>;
-  "getPluginAvailability": FunctionReference<"query", "public", {  }, (null | Dto2709)>;
-  "getPublic": FunctionReference<"query", "public", {  }, Dto2710>;
+  "getPluginAvailability": FunctionReference<"query", "public", {  }, (null | Dto2703)>;
+  "getPublic": FunctionReference<"query", "public", {  }, Dto2704>;
 };
   "templateDrafts": {
   "discardDraft": FunctionReference<"mutation", "public", { "packId": string; "expectedDraftRevision": string; }, null>;
-  "getDraft": FunctionReference<"query", "public", { "packId": string; }, (null | Dto2722)>;
-  "publish": FunctionReference<"mutation", "public", { "values": unknown; "expectedRevision": string; "confirmLive"?: (undefined | false | true); "source"?: (undefined | Dto2723); }, Dto2724>;
-  "saveDraft": FunctionReference<"mutation", "public", { "packId": string; "sourceRevision": string; "expectedDraftRevision": (null | string); "values": unknown; "variants": Dto206; }, Dto2726>;
-  "snapshot": FunctionReference<"query", "public", {  }, Dto2724>;
+  "getDraft": FunctionReference<"query", "public", { "packId": string; }, (null | Dto2716)>;
+  "publish": FunctionReference<"mutation", "public", { "values": unknown; "expectedRevision": string; "confirmLive"?: (undefined | false | true); "source"?: (undefined | Dto2717); }, Dto2718>;
+  "saveDraft": FunctionReference<"mutation", "public", { "packId": string; "sourceRevision": string; "expectedDraftRevision": (null | string); "values": unknown; "variants": Dto206; }, Dto2720>;
+  "snapshot": FunctionReference<"query", "public", {  }, Dto2718>;
 };
 };
   "settings/integrations/testActions": {
-  "testClerk": FunctionReference<"action", "public", {  }, Dto2701>;
-  "testGa4": FunctionReference<"action", "public", {  }, Dto2701>;
-  "testGooglePlaces": FunctionReference<"action", "public", {  }, Dto2701>;
-  "testPayPal": FunctionReference<"action", "public", {  }, Dto2701>;
-  "testStripe": FunctionReference<"action", "public", {  }, Dto2701>;
-  "testUspsAddress": FunctionReference<"action", "public", {  }, Dto2701>;
+  "testClerk": FunctionReference<"action", "public", {  }, Dto2695>;
+  "testGa4": FunctionReference<"action", "public", {  }, Dto2695>;
+  "testGooglePlaces": FunctionReference<"action", "public", {  }, Dto2695>;
+  "testPayPal": FunctionReference<"action", "public", {  }, Dto2695>;
+  "testStripe": FunctionReference<"action", "public", {  }, Dto2695>;
+  "testUspsAddress": FunctionReference<"action", "public", {  }, Dto2695>;
 };
   "settings/migrations": {
-  "migrateLegacyAppearance": FunctionReference<"mutation", "public", {  }, Dto2704>;
+  "migrateLegacyAppearance": FunctionReference<"mutation", "public", {  }, Dto2698>;
 };
   "settings/mutations": {
-  "encryptStoredSecrets": FunctionReference<"mutation", "public", {  }, Dto2702>;
-  "importAll": FunctionReference<"mutation", "public", { "data": unknown; }, Dto2705>;
+  "encryptStoredSecrets": FunctionReference<"mutation", "public", {  }, Dto2696>;
+  "importAll": FunctionReference<"mutation", "public", { "data": unknown; }, Dto2699>;
   "updateSection": FunctionReference<"mutation", "public", { "section": ("layout" | "blocks" | "email" | "media" | "general" | "reading" | "writing" | "discussion" | "permalinks" | "privacy" | "analytics" | "ai" | "plugins" | "membership.general" | "search" | "kb.general" | "kb.features" | "kb.search" | "ticket.general" | "ticket.sla" | "support.widget" | "support.ai" | "header" | "footer" | "commerce.general" | "commerce.payments" | "commerce.assistant" | "commerce.layout" | "appearance.template" | "brand" | "commerce.subscriptions.counters" | "integrations.shipping" | "integrations.shipping.shipstation" | "integrations.shipping.ups" | "integrations.shipping.usps" | "integrations.shipping.fedex" | "integrations.shipping.dhl" | "integrations.clerk" | "integrations.google" | "dashboard" | "analytics.ga4"); "values": unknown; }, null>;
 };
   "settings/queries": {
-  "exportAll": FunctionReference<"query", "public", {  }, Dto2706>;
-  "get": FunctionReference<"query", "public", { "section": ("layout" | "blocks" | "email" | "media" | "general" | "reading" | "writing" | "discussion" | "permalinks" | "privacy" | "analytics" | "ai" | "plugins" | "membership.general" | "search" | "kb.general" | "kb.features" | "kb.search" | "ticket.general" | "ticket.sla" | "support.widget" | "support.ai" | "header" | "footer" | "commerce.general" | "commerce.payments" | "commerce.assistant" | "commerce.layout" | "appearance.template" | "brand" | "commerce.subscriptions.counters" | "integrations.shipping" | "integrations.shipping.shipstation" | "integrations.shipping.ups" | "integrations.shipping.usps" | "integrations.shipping.fedex" | "integrations.shipping.dhl" | "integrations.clerk" | "integrations.google" | "dashboard" | "analytics.ga4"); }, (null | Dto2708)>;
-  "getAutoloaded": FunctionReference<"query", "public", {  }, Dto2707>;
+  "exportAll": FunctionReference<"query", "public", {  }, Dto2700>;
+  "get": FunctionReference<"query", "public", { "section": ("layout" | "blocks" | "email" | "media" | "general" | "reading" | "writing" | "discussion" | "permalinks" | "privacy" | "analytics" | "ai" | "plugins" | "membership.general" | "search" | "kb.general" | "kb.features" | "kb.search" | "ticket.general" | "ticket.sla" | "support.widget" | "support.ai" | "header" | "footer" | "commerce.general" | "commerce.payments" | "commerce.assistant" | "commerce.layout" | "appearance.template" | "brand" | "commerce.subscriptions.counters" | "integrations.shipping" | "integrations.shipping.shipstation" | "integrations.shipping.ups" | "integrations.shipping.usps" | "integrations.shipping.fedex" | "integrations.shipping.dhl" | "integrations.clerk" | "integrations.google" | "dashboard" | "analytics.ga4"); }, (null | Dto2702)>;
+  "getAutoloaded": FunctionReference<"query", "public", {  }, Dto2701>;
   "getBySection": FunctionReference<"query", "public", { "section": ("layout" | "blocks" | "email" | "media" | "general" | "reading" | "writing" | "discussion" | "permalinks" | "privacy" | "analytics" | "ai" | "plugins" | "membership.general" | "search" | "kb.general" | "kb.features" | "kb.search" | "ticket.general" | "ticket.sla" | "support.widget" | "support.ai" | "header" | "footer" | "commerce.general" | "commerce.payments" | "commerce.assistant" | "commerce.layout" | "appearance.template" | "brand" | "commerce.subscriptions.counters" | "integrations.shipping" | "integrations.shipping.shipstation" | "integrations.shipping.ups" | "integrations.shipping.usps" | "integrations.shipping.fedex" | "integrations.shipping.dhl" | "integrations.clerk" | "integrations.google" | "dashboard" | "analytics.ga4"); }, unknown>;
-  "getPluginAvailability": FunctionReference<"query", "public", {  }, (null | Dto2709)>;
-  "getPublic": FunctionReference<"query", "public", {  }, Dto2710>;
+  "getPluginAvailability": FunctionReference<"query", "public", {  }, (null | Dto2703)>;
+  "getPublic": FunctionReference<"query", "public", {  }, Dto2704>;
 };
   "settings/templateDrafts": {
   "discardDraft": FunctionReference<"mutation", "public", { "packId": string; "expectedDraftRevision": string; }, null>;
-  "getDraft": FunctionReference<"query", "public", { "packId": string; }, (null | Dto2722)>;
-  "publish": FunctionReference<"mutation", "public", { "values": unknown; "expectedRevision": string; "confirmLive"?: (undefined | false | true); "source"?: (undefined | Dto2723); }, Dto2724>;
-  "saveDraft": FunctionReference<"mutation", "public", { "packId": string; "sourceRevision": string; "expectedDraftRevision": (null | string); "values": unknown; "variants": Dto206; }, Dto2726>;
-  "snapshot": FunctionReference<"query", "public", {  }, Dto2724>;
+  "getDraft": FunctionReference<"query", "public", { "packId": string; }, (null | Dto2716)>;
+  "publish": FunctionReference<"mutation", "public", { "values": unknown; "expectedRevision": string; "confirmLive"?: (undefined | false | true); "source"?: (undefined | Dto2717); }, Dto2718>;
+  "saveDraft": FunctionReference<"mutation", "public", { "packId": string; "sourceRevision": string; "expectedDraftRevision": (null | string); "values": unknown; "variants": Dto206; }, Dto2720>;
+  "snapshot": FunctionReference<"query", "public", {  }, Dto2718>;
 };
   "shipping": {
   "actions": {
-  "createShippingLabelForOrder": FunctionReference<"action", "public", { "orderId": GenericId<"commerce_orders">; "rateId"?: (undefined | string); }, Dto2727>;
-  "createShipStationLabelForOrder": FunctionReference<"action", "public", { "orderId": GenericId<"commerce_orders">; "rateId"?: (undefined | string); }, Dto2727>;
-  "fetchCheckoutRates": FunctionReference<"action", "public", { "sessionToken": string; "provider"?: (undefined | "shipstation" | "ups" | "usps" | "fedex" | "dhl"); "shippingAddress": Dto2728; }, Dto2729>;
-  "syncShipmentTracking": FunctionReference<"action", "public", { "shipmentId": GenericId<"commerce_shipments">; }, Dto2733>;
-  "syncShipStationTracking": FunctionReference<"action", "public", { "shipmentId": GenericId<"commerce_shipments">; }, Dto2734>;
-  "verifyDirectCarrierFoundation": FunctionReference<"action", "public", { "provider": ("ups" | "usps" | "fedex" | "dhl"); }, Dto2735>;
-  "verifyShipStationConnection": FunctionReference<"action", "public", {  }, (Dto2736 | Dto2737)>;
+  "createShippingLabelForOrder": FunctionReference<"action", "public", { "orderId": GenericId<"commerce_orders">; "rateId"?: (undefined | string); }, Dto2721>;
+  "createShipStationLabelForOrder": FunctionReference<"action", "public", { "orderId": GenericId<"commerce_orders">; "rateId"?: (undefined | string); }, Dto2721>;
+  "fetchCheckoutRates": FunctionReference<"action", "public", { "sessionToken": string; "provider"?: (undefined | "shipstation" | "ups" | "usps" | "fedex" | "dhl"); "shippingAddress": Dto2722; }, Dto2723>;
+  "syncShipmentTracking": FunctionReference<"action", "public", { "shipmentId": GenericId<"commerce_shipments">; }, Dto2727>;
+  "syncShipStationTracking": FunctionReference<"action", "public", { "shipmentId": GenericId<"commerce_shipments">; }, Dto2728>;
+  "verifyDirectCarrierFoundation": FunctionReference<"action", "public", { "provider": ("ups" | "usps" | "fedex" | "dhl"); }, Dto2729>;
+  "verifyShipStationConnection": FunctionReference<"action", "public", {  }, (Dto2730 | Dto2731)>;
 };
   "addressValidation": {
   "actions": {
-  "validateAddress": FunctionReference<"action", "public", { "address": Dto2738; "force"?: (undefined | false | true); }, unknown>;
+  "validateAddress": FunctionReference<"action", "public", { "address": Dto2732; "force"?: (undefined | false | true); }, unknown>;
 };
   "queries": {
-  "stats": FunctionReference<"query", "public", {  }, Dto2741>;
+  "stats": FunctionReference<"query", "public", {  }, Dto2735>;
 };
 };
   "classes": {
   "mutations": {
   "assignToProduct": FunctionReference<"mutation", "public", { "productId": GenericId<"commerce_products">; "classId": (null | GenericId<"commerce_shipping_classes">); }, GenericId<"commerce_products">>;
   "assignToVariant": FunctionReference<"mutation", "public", { "variantId": GenericId<"commerce_product_variants">; "classId": (null | GenericId<"commerce_shipping_classes"> | "inherit"); }, GenericId<"commerce_product_variants">>;
-  "bulkAssign": FunctionReference<"mutation", "public", { "productIds": Array<GenericId<"commerce_products">>; "classId": (null | GenericId<"commerce_shipping_classes">); }, Dto2744>;
+  "bulkAssign": FunctionReference<"mutation", "public", { "productIds": Array<GenericId<"commerce_products">>; "classId": (null | GenericId<"commerce_shipping_classes">); }, Dto2738>;
   "create": FunctionReference<"mutation", "public", { "name": string; "slug"?: (undefined | string); "description"?: (undefined | string); "sortOrder"?: (undefined | number); }, GenericId<"commerce_shipping_classes">>;
-  "remove": FunctionReference<"mutation", "public", { "classId": GenericId<"commerce_shipping_classes">; "reassignTo"?: (undefined | null | GenericId<"commerce_shipping_classes">); }, Dto2745>;
-  "reorder": FunctionReference<"mutation", "public", { "orderedIds": Array<GenericId<"commerce_shipping_classes">>; }, Dto2746>;
-  "update": FunctionReference<"mutation", "public", { "classId": GenericId<"commerce_shipping_classes">; "patch": Dto2747; }, GenericId<"commerce_shipping_classes">>;
+  "remove": FunctionReference<"mutation", "public", { "classId": GenericId<"commerce_shipping_classes">; "reassignTo"?: (undefined | null | GenericId<"commerce_shipping_classes">); }, Dto2739>;
+  "reorder": FunctionReference<"mutation", "public", { "orderedIds": Array<GenericId<"commerce_shipping_classes">>; }, Dto2740>;
+  "update": FunctionReference<"mutation", "public", { "classId": GenericId<"commerce_shipping_classes">; "patch": Dto2741; }, GenericId<"commerce_shipping_classes">>;
 };
   "queries": {
-  "countProductsPerClass": FunctionReference<"query", "public", {  }, Dto2748>;
+  "countProductsPerClass": FunctionReference<"query", "public", {  }, Dto2742>;
   "get": FunctionReference<"query", "public", { "classId": GenericId<"commerce_shipping_classes">; }, (null | Dto1878)>;
   "getBySlug": FunctionReference<"query", "public", { "slug": string; }, (null | Dto1878)>;
   "list": FunctionReference<"query", "public", {  }, Array<Dto1878>>;
@@ -6567,12 +6557,12 @@ export type PublicApi = {
 };
   "labels": {
   "actions": {
-  "batchPurchaseLabels": FunctionReference<"action", "public", { "orderIds": Array<GenericId<"commerce_orders">>; "provider"?: (undefined | "shipstation" | "ups" | "fedex"); }, Dto2760>;
-  "purchaseLabel": FunctionReference<"action", "public", { "orderId": GenericId<"commerce_orders">; "provider"?: (undefined | "shipstation" | "ups" | "fedex"); "idempotencyKey"?: (undefined | string); "rateId"?: (undefined | string); }, (Dto2762 | Dto2763)>;
-  "voidLabelWithCarrier": FunctionReference<"action", "public", { "labelId": GenericId<"commerce_shipment_labels">; }, Dto2764>;
+  "batchPurchaseLabels": FunctionReference<"action", "public", { "orderIds": Array<GenericId<"commerce_orders">>; "provider"?: (undefined | "shipstation" | "ups" | "fedex"); }, Dto2754>;
+  "purchaseLabel": FunctionReference<"action", "public", { "orderId": GenericId<"commerce_orders">; "provider"?: (undefined | "shipstation" | "ups" | "fedex"); "idempotencyKey"?: (undefined | string); "rateId"?: (undefined | string); }, (Dto2756 | Dto2757)>;
+  "voidLabelWithCarrier": FunctionReference<"action", "public", { "labelId": GenericId<"commerce_shipment_labels">; }, Dto2758>;
 };
   "mutations": {
-  "reprintLabel": FunctionReference<"mutation", "public", { "labelId": GenericId<"commerce_shipment_labels">; }, Dto2766>;
+  "reprintLabel": FunctionReference<"mutation", "public", { "labelId": GenericId<"commerce_shipment_labels">; }, Dto2760>;
   "voidLabel": FunctionReference<"mutation", "public", { "labelId": GenericId<"commerce_shipment_labels">; "reason"?: (undefined | string); }, GenericId<"commerce_shipment_labels">>;
 };
   "queries": {
@@ -6593,37 +6583,37 @@ export type PublicApi = {
   "methods": {
   "mutations": {
   "createMethod": FunctionReference<"mutation", "public", { "methodType": ("free" | "flat_rate" | "local_pickup" | "weight_based" | "dimensional" | "price_based" | "quantity_based" | "local_delivery" | "table_rate"); "config": unknown; }, string>;
-  "deleteMethod": FunctionReference<"mutation", "public", { "methodType": ("free" | "flat_rate" | "local_pickup" | "weight_based" | "dimensional" | "price_based" | "quantity_based" | "local_delivery" | "table_rate"); "methodId": string; }, Dto2769>;
+  "deleteMethod": FunctionReference<"mutation", "public", { "methodType": ("free" | "flat_rate" | "local_pickup" | "weight_based" | "dimensional" | "price_based" | "quantity_based" | "local_delivery" | "table_rate"); "methodId": string; }, Dto2763>;
   "toggleMethodEnabled": FunctionReference<"mutation", "public", { "methodType": ("free" | "flat_rate" | "local_pickup" | "weight_based" | "dimensional" | "price_based" | "quantity_based" | "local_delivery" | "table_rate"); "methodId": string; "enabled": boolean; }, unknown>;
   "updateMethod": FunctionReference<"mutation", "public", { "methodType": ("free" | "flat_rate" | "local_pickup" | "weight_based" | "dimensional" | "price_based" | "quantity_based" | "local_delivery" | "table_rate"); "methodId": string; "patch": unknown; }, unknown>;
 };
   "preview": {
-  "previewMethod": FunctionReference<"query", "public", { "methodType": ("free" | "flat_rate" | "local_pickup" | "weight_based" | "dimensional" | "price_based" | "quantity_based" | "local_delivery" | "table_rate"); "config": unknown; "sample": Dto2770; }, (Dto2771 | Dto2773)>;
+  "previewMethod": FunctionReference<"query", "public", { "methodType": ("free" | "flat_rate" | "local_pickup" | "weight_based" | "dimensional" | "price_based" | "quantity_based" | "local_delivery" | "table_rate"); "config": unknown; "sample": Dto2764; }, (Dto2765 | Dto2767)>;
 };
   "queries": {
   "getMethod": FunctionReference<"query", "public", { "methodType": ("free" | "flat_rate" | "local_pickup" | "weight_based" | "dimensional" | "price_based" | "quantity_based" | "local_delivery" | "table_rate"); "methodId": string; }, (null | Dto1821 | Dto148 | Dto1825 | Dto1826 | Dto1827 | Dto1828 | Dto1829 | Dto42 | Dto1830 | Dto38 | Dto1696 | Dto1697 | Dto1832 | Dto1599 | Dto1834 | Dto1598 | Dto1836 | Dto1837 | Dto1838 | Dto1765 | Dto1840 | Dto1841 | Dto1842 | Dto1844 | Dto1845 | Dto1846 | Dto1847 | Dto1848 | Dto80 | Dto1849 | Dto1857 | Dto1858 | Dto1859 | Dto1861 | Dto1862 | Dto1863 | Dto1865 | Dto1866 | Dto1867 | Dto1868 | Dto1869 | Dto1870 | Dto1384 | Dto1773 | Dto1871 | Dto1472 | Dto1470 | Dto1477 | Dto1170 | Dto1872 | Dto1153 | Dto1155 | Dto1873 | Dto1874 | Dto1875 | Dto1876 | Dto1877 | Dto1878 | Dto1879 | Dto1297 | Dto1301 | Dto1166 | Dto1192 | Dto1149 | Dto1162 | Dto1882 | Dto1169 | Dto1885 | Dto1886 | Dto1411 | Dto1177 | Dto1890 | Dto1261 | Dto1263 | Dto1891 | Dto1251 | Dto1151 | Dto1892 | Dto1256 | Dto1406 | Dto1188 | Dto1893 | Dto1314 | Dto1894 | Dto1895 | Dto1896 | Dto1897 | Dto1900 | Dto1901 | Dto1902 | Dto1526 | Dto1345 | Dto1903 | Dto1492 | Dto1525 | Dto1904 | Dto1521 | Dto1905 | Dto1906 | Dto1519 | Dto1459 | Dto1907 | Dto1377 | Dto1379 | Dto1381 | Dto1908 | Dto1909 | Dto1352 | Dto1910 | Dto1911 | Dto1912 | Dto1913 | Dto1914 | Dto1915 | Dto1718 | Dto1916 | Dto1777 | Dto1753 | Dto1731 | Dto1917 | Dto1918 | Dto1920 | Dto1921 | Dto1764 | Dto1735 | Dto1922 | Dto1923 | Dto1924 | Dto1815 | Dto1925 | Dto1926 | Dto1927 | Dto1928 | Dto1929 | Dto1930 | Dto1931 | Dto1932 | Dto1933 | Dto1934 | Dto1935 | Dto1936 | Dto1937 | Dto1938 | Dto1939 | Dto1940 | Dto1941 | Dto1942 | Dto1943 | Dto1944 | Dto1945 | Dto1946 | Dto1412 | Dto1423 | Dto1432 | Dto1355 | Dto1947 | Dto1948 | Dto1949 | Dto1950 | Dto1951 | Dto1952 | Dto1953 | Dto1376 | Dto1380 | Dto1954 | Dto1955 | Dto1956 | Dto1957 | Dto1958 | Dto1478 | Dto1520 | Dto1465 | Dto1959 | Dto1960 | Dto1961 | Dto1962 | Dto1963 | Dto1964 | Dto1965 | Dto1966 | Dto1967 | Dto1969 | Dto1970 | Dto1971 | Dto1973 | Dto1977 | Dto1980 | Dto1982 | Dto1984 | Dto1985 | Dto1986 | Dto1989 | Dto1992 | Dto1996 | Dto1997 | Dto1999 | Dto2000 | Dto2001 | Dto2002 | Dto2004 | Dto2005 | Dto2006 | Dto2007 | Dto2008 | Dto2010 | Dto2011 | Dto2012 | Dto2013 | Dto2014 | Dto2015 | Dto2016 | Dto2017 | Dto2018 | Dto2019 | Dto1249 | Dto1233 | Dto2020 | Dto1320 | Dto2021 | Dto2022 | Dto1281 | Dto2023 | Dto2024 | Dto2025 | Dto1187 | Dto1331 | Dto2026 | Dto1254 | Dto2027 | Dto2028 | Dto2029 | Dto2030 | Dto2031 | Dto2033 | Dto2036 | Dto2037 | Dto2038 | Dto2039 | Dto2041 | Dto2042 | Dto2043 | Dto2044 | Dto2045 | Dto2048 | Dto2049 | Dto2050 | Dto2051 | Dto2052 | Dto2053 | Dto2054 | Dto2055 | Dto2056 | Dto2057 | Dto2058 | Dto2059 | Dto2060 | Dto2061 | Dto2063 | Dto2064 | Dto2065 | Dto2068 | Dto156 | Dto2070 | Dto2071 | Dto2072 | Dto2073 | Dto2076 | Dto44 | Dto43 | Dto41 | Dto2077 | Dto2078 | Dto93 | Dto2079 | Dto2080 | Dto2081 | Dto2082 | Dto2083 | Dto2084 | Dto2087 | Dto2088 | Dto2090 | Dto2091 | Dto2092 | Dto2093 | Dto2094 | Dto2095 | Dto2096 | Dto2097 | Dto2098 | Dto2099 | Dto2100 | Dto2101 | Dto2102 | Dto2103 | Dto2104 | Dto2105 | Dto2106 | Dto2107 | Dto2108 | Dto2109 | Dto2114 | Dto39 | Dto2115 | Dto2116 | Dto2117 | Dto2118 | Dto2119 | Dto2120 | Dto2121 | Dto2122 | Dto2123 | Dto2124 | Dto2126 | Dto2127 | Dto2128 | Dto2130 | Dto2132 | Dto2133 | Dto2134 | Dto2135 | Dto2136 | Dto2138 | Dto2139 | Dto2140 | Dto2141 | Dto2142)>;
-  "listMethodsForZone": FunctionReference<"query", "public", { "zoneId": GenericId<"commerce_shipping_zones">; }, Array<Dto2774>>;
+  "listMethodsForZone": FunctionReference<"query", "public", { "zoneId": GenericId<"commerce_shipping_zones">; }, Array<Dto2768>>;
 };
 };
   "mutations": {
-  "createPackage": FunctionReference<"mutation", "public", { "code": string; "label": string; "packageType": string; "weight"?: (undefined | number); "dimensions"?: (undefined | Dto2775); "carrierCode"?: (undefined | string); "provider"?: (undefined | "shipstation" | "ups" | "usps" | "fedex" | "dhl"); }, GenericId<"commerce_shipping_packages">>;
+  "createPackage": FunctionReference<"mutation", "public", { "code": string; "label": string; "packageType": string; "weight"?: (undefined | number); "dimensions"?: (undefined | Dto2769); "carrierCode"?: (undefined | string); "provider"?: (undefined | "shipstation" | "ups" | "usps" | "fedex" | "dhl"); }, GenericId<"commerce_shipping_packages">>;
   "createZone": FunctionReference<"mutation", "public", { "name": string; "countries": Array<string>; "states"?: (undefined | Array<string>); "postalCodeRules"?: (undefined | Array<string>); "sortOrder"?: (undefined | number); }, GenericId<"commerce_shipping_zones">>;
   "createZoneMethod": FunctionReference<"mutation", "public", { "zoneId": GenericId<"commerce_shipping_zones">; "methodCode": string; "label": string; "methodType": ("free_shipping" | "live_rate" | "flat_rate" | "local_pickup"); "provider"?: (undefined | "shipstation" | "ups" | "usps" | "fedex" | "dhl"); "serviceFilters"?: unknown; "pricingRules"?: unknown; "enabled"?: (undefined | false | true); "sortOrder"?: (undefined | number); }, GenericId<"commerce_shipping_zone_methods">>;
-  "deletePackage": FunctionReference<"mutation", "public", { "packageId": GenericId<"commerce_shipping_packages">; }, Dto2776>;
+  "deletePackage": FunctionReference<"mutation", "public", { "packageId": GenericId<"commerce_shipping_packages">; }, Dto2770>;
   "deleteZone": FunctionReference<"mutation", "public", { "zoneId": GenericId<"commerce_shipping_zones">; }, null>;
   "deleteZoneMethod": FunctionReference<"mutation", "public", { "methodId": GenericId<"commerce_shipping_zone_methods">; }, null>;
   "saveProviderSecret": FunctionReference<"mutation", "public", { "provider": ("shipstation" | "ups" | "usps" | "fedex" | "dhl"); "credentials": unknown; }, GenericId<"shipping_provider_secrets">>;
-  "updatePackage": FunctionReference<"mutation", "public", { "packageId": GenericId<"commerce_shipping_packages">; "code"?: (undefined | string); "label"?: (undefined | string); "packageType"?: (undefined | string); "weight"?: (undefined | number); "dimensions"?: (undefined | Dto2777); "carrierCode"?: (undefined | string); "provider"?: (undefined | "shipstation" | "ups" | "usps" | "fedex" | "dhl"); }, GenericId<"commerce_shipping_packages">>;
+  "updatePackage": FunctionReference<"mutation", "public", { "packageId": GenericId<"commerce_shipping_packages">; "code"?: (undefined | string); "label"?: (undefined | string); "packageType"?: (undefined | string); "weight"?: (undefined | number); "dimensions"?: (undefined | Dto2771); "carrierCode"?: (undefined | string); "provider"?: (undefined | "shipstation" | "ups" | "usps" | "fedex" | "dhl"); }, GenericId<"commerce_shipping_packages">>;
   "updateZone": FunctionReference<"mutation", "public", { "zoneId": GenericId<"commerce_shipping_zones">; "name"?: (undefined | string); "countries"?: (undefined | Array<string>); "states"?: (undefined | Array<string>); "postalCodeRules"?: (undefined | Array<string>); "enabled"?: (undefined | false | true); "sortOrder"?: (undefined | number); }, null>;
   "updateZoneMethod": FunctionReference<"mutation", "public", { "methodId": GenericId<"commerce_shipping_zone_methods">; "methodCode"?: (undefined | string); "label"?: (undefined | string); "methodType"?: (undefined | "free_shipping" | "live_rate" | "flat_rate" | "local_pickup"); "provider"?: (undefined | "shipstation" | "ups" | "usps" | "fedex" | "dhl"); "serviceFilters"?: unknown; "pricingRules"?: unknown; "enabled"?: (undefined | false | true); "sortOrder"?: (undefined | number); }, null>;
   "upsertConnectionMetadata": FunctionReference<"mutation", "public", { "provider": ("shipstation" | "ups" | "usps" | "fedex" | "dhl"); "displayName": string; "enabled": boolean; "mode": ("sandbox" | "production"); "isPrimary": boolean; "rateShoppingEnabled": boolean; "rateShoppingPriority": number; "webhookSecret"?: (undefined | string); }, GenericId<"shipping_provider_connections">>;
 };
   "packages": {
   "mutations": {
-  "create": FunctionReference<"mutation", "public", { "code": string; "label": string; "packageType": string; "packageSource"?: (undefined | "custom" | "shipstation" | "ups" | "usps" | "fedex" | "dhl"); "carrierPackageCode"?: (undefined | string); "shipFromLocationId"?: (undefined | GenericId<"commerce_ship_from_locations">); "isDefault"?: (undefined | false | true); "dimensionUnit"?: (undefined | "in" | "cm"); "weightUnit"?: (undefined | "oz" | "g" | "lb" | "kg"); "dimensions"?: (undefined | Dto2778); "innerDimensions"?: (undefined | Dto2778); "tareWeight"?: (undefined | number); "maxLoadWeight"?: (undefined | number); "shipStationPackageId"?: (undefined | string); "shipStationCarrierCode"?: (undefined | string); "carrierCode"?: (undefined | string); "notes"?: (undefined | string); "sortOrder"?: (undefined | number); }, GenericId<"commerce_shipping_packages">>;
-  "remove": FunctionReference<"mutation", "public", { "packageId": GenericId<"commerce_shipping_packages">; }, Dto2779>;
+  "create": FunctionReference<"mutation", "public", { "code": string; "label": string; "packageType": string; "packageSource"?: (undefined | "custom" | "shipstation" | "ups" | "usps" | "fedex" | "dhl"); "carrierPackageCode"?: (undefined | string); "shipFromLocationId"?: (undefined | GenericId<"commerce_ship_from_locations">); "isDefault"?: (undefined | false | true); "dimensionUnit"?: (undefined | "in" | "cm"); "weightUnit"?: (undefined | "oz" | "g" | "lb" | "kg"); "dimensions"?: (undefined | Dto2772); "innerDimensions"?: (undefined | Dto2772); "tareWeight"?: (undefined | number); "maxLoadWeight"?: (undefined | number); "shipStationPackageId"?: (undefined | string); "shipStationCarrierCode"?: (undefined | string); "carrierCode"?: (undefined | string); "notes"?: (undefined | string); "sortOrder"?: (undefined | number); }, GenericId<"commerce_shipping_packages">>;
+  "remove": FunctionReference<"mutation", "public", { "packageId": GenericId<"commerce_shipping_packages">; }, Dto2773>;
   "setDefault": FunctionReference<"mutation", "public", { "packageId": GenericId<"commerce_shipping_packages">; "shipFromLocationId"?: (undefined | GenericId<"commerce_ship_from_locations">); }, GenericId<"commerce_shipping_packages">>;
-  "update": FunctionReference<"mutation", "public", { "packageId": GenericId<"commerce_shipping_packages">; "patch": Dto2780; }, GenericId<"commerce_shipping_packages">>;
+  "update": FunctionReference<"mutation", "public", { "packageId": GenericId<"commerce_shipping_packages">; "patch": Dto2774; }, GenericId<"commerce_shipping_packages">>;
 };
   "queries": {
   "get": FunctionReference<"query", "public", { "packageId": GenericId<"commerce_shipping_packages">; }, (null | Dto1879)>;
@@ -6632,41 +6622,41 @@ export type PublicApi = {
 };
 };
   "queries": {
-  "getOverview": FunctionReference<"query", "public", {  }, Dto2783>;
+  "getOverview": FunctionReference<"query", "public", {  }, Dto2777>;
   "getPackage": FunctionReference<"query", "public", { "packageId": GenericId<"commerce_shipping_packages">; }, (null | Dto1879)>;
-  "getProviderCapabilities": FunctionReference<"query", "public", {  }, Array<Dto2788>>;
-  "getProviderConnection": FunctionReference<"query", "public", { "provider": ("shipstation" | "ups" | "usps" | "fedex" | "dhl"); }, Dto2789>;
+  "getProviderCapabilities": FunctionReference<"query", "public", {  }, Array<Dto2782>>;
+  "getProviderConnection": FunctionReference<"query", "public", { "provider": ("shipstation" | "ups" | "usps" | "fedex" | "dhl"); }, Dto2783>;
   "getRecentQuoteDiagnostics": FunctionReference<"query", "public", { "limit"?: (undefined | number); }, Array<Dto2002>>;
-  "listCheckoutQuotes": FunctionReference<"query", "public", { "sessionToken": string; }, Array<Dto2731>>;
+  "listCheckoutQuotes": FunctionReference<"query", "public", { "sessionToken": string; }, Array<Dto2725>>;
   "listPackages": FunctionReference<"query", "public", {  }, Array<Dto1879>>;
-  "listZonesWithMethods": FunctionReference<"query", "public", {  }, Array<Dto2790>>;
+  "listZonesWithMethods": FunctionReference<"query", "public", {  }, Array<Dto2784>>;
 };
   "rates": {
   "pipeline": {
-  "calculateRates": FunctionReference<"action", "public", { "sessionToken": string; "preferredProvider"?: (undefined | "shipstation" | "ups" | "usps" | "fedex" | "dhl"); "shippingAddress": Dto2795; }, (Dto2796 | Dto2798)>;
+  "calculateRates": FunctionReference<"action", "public", { "sessionToken": string; "preferredProvider"?: (undefined | "shipstation" | "ups" | "usps" | "fedex" | "dhl"); "shippingAddress": Dto2789; }, (Dto2790 | Dto2792)>;
 };
 };
   "rulesEngine": {
   "mutations": {
   "createRule": FunctionReference<"mutation", "public", { "name": string; "description"?: (undefined | string); "ruleAST": unknown; }, GenericId<"commerce_shipping_rules">>;
-  "deleteRule": FunctionReference<"mutation", "public", { "ruleId": GenericId<"commerce_shipping_rules">; }, Dto2800>;
-  "updateRule": FunctionReference<"mutation", "public", { "ruleId": GenericId<"commerce_shipping_rules">; "patch": Dto2801; }, GenericId<"commerce_shipping_rules">>;
+  "deleteRule": FunctionReference<"mutation", "public", { "ruleId": GenericId<"commerce_shipping_rules">; }, Dto2794>;
+  "updateRule": FunctionReference<"mutation", "public", { "ruleId": GenericId<"commerce_shipping_rules">; "patch": Dto2795; }, GenericId<"commerce_shipping_rules">>;
 };
   "queries": {
   "get": FunctionReference<"query", "public", { "ruleId": GenericId<"commerce_shipping_rules">; }, (null | Dto1902)>;
   "list": FunctionReference<"query", "public", {  }, Array<Dto1902>>;
-  "validateAST": FunctionReference<"query", "public", { "ruleAST": unknown; }, Array<Dto2802>>;
+  "validateAST": FunctionReference<"query", "public", { "ruleAST": unknown; }, Array<Dto2796>>;
 };
 };
   "shipFromLocations": {
   "mutations": {
-  "archive": FunctionReference<"mutation", "public", { "locationId": GenericId<"commerce_ship_from_locations">; }, Dto2803>;
+  "archive": FunctionReference<"mutation", "public", { "locationId": GenericId<"commerce_ship_from_locations">; }, Dto2797>;
   "assignProductLocation": FunctionReference<"mutation", "public", { "productId": GenericId<"commerce_products">; "variantId"?: (undefined | GenericId<"commerce_product_variants">); "locationId": GenericId<"commerce_ship_from_locations">; "priority"?: (undefined | number); "enabled"?: (undefined | false | true); "notes"?: (undefined | string); }, GenericId<"commerce_product_location_fulfillment">>;
-  "create": FunctionReference<"mutation", "public", { "name": string; "code": string; "locationType": ("other" | "warehouse" | "retail_store" | "dropshipper" | "fulfillment_center"); "address": Dto2804; "isActive"?: (undefined | false | true); "isDefault"?: (undefined | false | true); "isPickupEnabled"?: (undefined | false | true); "timezone": string; "cutoffTime"?: (undefined | string); "operatingDays"?: (undefined | Array<number>); "operatingHours"?: (undefined | Dto2805); "handlingTimeDays"?: (undefined | number); "priority"?: (undefined | number); "fulfillmentProvider"?: (undefined | "custom" | "manual" | "shipstation" | "amazon_mcf" | "third_party_logistics"); "externalProviderLocationId"?: (undefined | string); "fulfillmentProviderConfig"?: unknown; }, GenericId<"commerce_ship_from_locations">>;
-  "removeProductLocation": FunctionReference<"mutation", "public", { "mappingId": GenericId<"commerce_product_location_fulfillment">; }, Dto2806>;
-  "setActive": FunctionReference<"mutation", "public", { "locationId": GenericId<"commerce_ship_from_locations">; "active": boolean; }, Dto2807>;
+  "create": FunctionReference<"mutation", "public", { "name": string; "code": string; "locationType": ("other" | "warehouse" | "retail_store" | "dropshipper" | "fulfillment_center"); "address": Dto2798; "isActive"?: (undefined | false | true); "isDefault"?: (undefined | false | true); "isPickupEnabled"?: (undefined | false | true); "timezone": string; "cutoffTime"?: (undefined | string); "operatingDays"?: (undefined | Array<number>); "operatingHours"?: (undefined | Dto2799); "handlingTimeDays"?: (undefined | number); "priority"?: (undefined | number); "fulfillmentProvider"?: (undefined | "custom" | "manual" | "shipstation" | "amazon_mcf" | "third_party_logistics"); "externalProviderLocationId"?: (undefined | string); "fulfillmentProviderConfig"?: unknown; }, GenericId<"commerce_ship_from_locations">>;
+  "removeProductLocation": FunctionReference<"mutation", "public", { "mappingId": GenericId<"commerce_product_location_fulfillment">; }, Dto2800>;
+  "setActive": FunctionReference<"mutation", "public", { "locationId": GenericId<"commerce_ship_from_locations">; "active": boolean; }, Dto2801>;
   "setDefault": FunctionReference<"mutation", "public", { "locationId": GenericId<"commerce_ship_from_locations">; }, GenericId<"commerce_ship_from_locations">>;
-  "update": FunctionReference<"mutation", "public", { "locationId": GenericId<"commerce_ship_from_locations">; "patch": Dto2808; }, GenericId<"commerce_ship_from_locations">>;
+  "update": FunctionReference<"mutation", "public", { "locationId": GenericId<"commerce_ship_from_locations">; "patch": Dto2802; }, GenericId<"commerce_ship_from_locations">>;
 };
   "queries": {
   "get": FunctionReference<"query", "public", { "locationId": GenericId<"commerce_ship_from_locations">; }, (null | Dto1886)>;
@@ -6678,65 +6668,65 @@ export type PublicApi = {
 };
   "tracking": {
   "queries": {
-  "getTrackingHealth": FunctionReference<"query", "public", {  }, Dto2813>;
+  "getTrackingHealth": FunctionReference<"query", "public", {  }, Dto2807>;
   "listForShipment": FunctionReference<"query", "public", { "shipmentId": GenericId<"commerce_shipments">; }, Array<Dto1969>>;
-  "publicTracking": FunctionReference<"query", "public", { "trackingToken": string; }, (null | Dto2814)>;
+  "publicTracking": FunctionReference<"query", "public", { "trackingToken": string; }, (null | Dto2808)>;
 };
 };
   "zones": {
   "mutations": {
   "createZone": FunctionReference<"mutation", "public", { "name": string; "slug"?: (undefined | string); "description"?: (undefined | string); "countries": Array<string>; "states"?: (undefined | Array<string>); "postalCodeRules"?: (undefined | Array<string>); "enabled"?: (undefined | false | true); "isFallback"?: (undefined | false | true); "sortOrder"?: (undefined | number); }, GenericId<"commerce_shipping_zones">>;
-  "deleteZone": FunctionReference<"mutation", "public", { "zoneId": GenericId<"commerce_shipping_zones">; }, Dto2819>;
-  "reorderZones": FunctionReference<"mutation", "public", { "orderedIds": Array<GenericId<"commerce_shipping_zones">>; }, Dto2820>;
-  "setFallbackZone": FunctionReference<"mutation", "public", { "zoneId": (null | GenericId<"commerce_shipping_zones">); }, Dto2821>;
+  "deleteZone": FunctionReference<"mutation", "public", { "zoneId": GenericId<"commerce_shipping_zones">; }, Dto2813>;
+  "reorderZones": FunctionReference<"mutation", "public", { "orderedIds": Array<GenericId<"commerce_shipping_zones">>; }, Dto2814>;
+  "setFallbackZone": FunctionReference<"mutation", "public", { "zoneId": (null | GenericId<"commerce_shipping_zones">); }, Dto2815>;
   "toggleZoneEnabled": FunctionReference<"mutation", "public", { "zoneId": GenericId<"commerce_shipping_zones">; "enabled": boolean; }, GenericId<"commerce_shipping_zones">>;
-  "updateZone": FunctionReference<"mutation", "public", { "zoneId": GenericId<"commerce_shipping_zones">; "patch": Dto2822; }, GenericId<"commerce_shipping_zones">>;
+  "updateZone": FunctionReference<"mutation", "public", { "zoneId": GenericId<"commerce_shipping_zones">; "patch": Dto2816; }, GenericId<"commerce_shipping_zones">>;
 };
   "queries": {
   "getZone": FunctionReference<"query", "public", { "zoneId": GenericId<"commerce_shipping_zones">; }, (null | Dto1901)>;
   "getZoneBySlug": FunctionReference<"query", "public", { "slug": string; }, (null | Dto1901)>;
   "listZones": FunctionReference<"query", "public", {  }, Array<Dto1901>>;
-  "matchZoneForAddress": FunctionReference<"query", "public", { "countryCode": string; "state"?: (undefined | string); "postalCode"?: (undefined | string); }, (null | Dto2823)>;
+  "matchZoneForAddress": FunctionReference<"query", "public", { "countryCode": string; "state"?: (undefined | string); "postalCode"?: (undefined | string); }, (null | Dto2817)>;
 };
 };
 };
   "shipping/actions": {
-  "createShippingLabelForOrder": FunctionReference<"action", "public", { "orderId": GenericId<"commerce_orders">; "rateId"?: (undefined | string); }, Dto2727>;
-  "createShipStationLabelForOrder": FunctionReference<"action", "public", { "orderId": GenericId<"commerce_orders">; "rateId"?: (undefined | string); }, Dto2727>;
-  "fetchCheckoutRates": FunctionReference<"action", "public", { "sessionToken": string; "provider"?: (undefined | "shipstation" | "ups" | "usps" | "fedex" | "dhl"); "shippingAddress": Dto2728; }, Dto2729>;
-  "syncShipmentTracking": FunctionReference<"action", "public", { "shipmentId": GenericId<"commerce_shipments">; }, Dto2733>;
-  "syncShipStationTracking": FunctionReference<"action", "public", { "shipmentId": GenericId<"commerce_shipments">; }, Dto2734>;
-  "verifyDirectCarrierFoundation": FunctionReference<"action", "public", { "provider": ("ups" | "usps" | "fedex" | "dhl"); }, Dto2735>;
-  "verifyShipStationConnection": FunctionReference<"action", "public", {  }, (Dto2736 | Dto2737)>;
+  "createShippingLabelForOrder": FunctionReference<"action", "public", { "orderId": GenericId<"commerce_orders">; "rateId"?: (undefined | string); }, Dto2721>;
+  "createShipStationLabelForOrder": FunctionReference<"action", "public", { "orderId": GenericId<"commerce_orders">; "rateId"?: (undefined | string); }, Dto2721>;
+  "fetchCheckoutRates": FunctionReference<"action", "public", { "sessionToken": string; "provider"?: (undefined | "shipstation" | "ups" | "usps" | "fedex" | "dhl"); "shippingAddress": Dto2722; }, Dto2723>;
+  "syncShipmentTracking": FunctionReference<"action", "public", { "shipmentId": GenericId<"commerce_shipments">; }, Dto2727>;
+  "syncShipStationTracking": FunctionReference<"action", "public", { "shipmentId": GenericId<"commerce_shipments">; }, Dto2728>;
+  "verifyDirectCarrierFoundation": FunctionReference<"action", "public", { "provider": ("ups" | "usps" | "fedex" | "dhl"); }, Dto2729>;
+  "verifyShipStationConnection": FunctionReference<"action", "public", {  }, (Dto2730 | Dto2731)>;
 };
   "shipping/addressValidation/actions": {
-  "validateAddress": FunctionReference<"action", "public", { "address": Dto2738; "force"?: (undefined | false | true); }, unknown>;
+  "validateAddress": FunctionReference<"action", "public", { "address": Dto2732; "force"?: (undefined | false | true); }, unknown>;
 };
   "shipping/addressValidation/queries": {
-  "stats": FunctionReference<"query", "public", {  }, Dto2741>;
+  "stats": FunctionReference<"query", "public", {  }, Dto2735>;
 };
   "shipping/classes/mutations": {
   "assignToProduct": FunctionReference<"mutation", "public", { "productId": GenericId<"commerce_products">; "classId": (null | GenericId<"commerce_shipping_classes">); }, GenericId<"commerce_products">>;
   "assignToVariant": FunctionReference<"mutation", "public", { "variantId": GenericId<"commerce_product_variants">; "classId": (null | GenericId<"commerce_shipping_classes"> | "inherit"); }, GenericId<"commerce_product_variants">>;
-  "bulkAssign": FunctionReference<"mutation", "public", { "productIds": Array<GenericId<"commerce_products">>; "classId": (null | GenericId<"commerce_shipping_classes">); }, Dto2744>;
+  "bulkAssign": FunctionReference<"mutation", "public", { "productIds": Array<GenericId<"commerce_products">>; "classId": (null | GenericId<"commerce_shipping_classes">); }, Dto2738>;
   "create": FunctionReference<"mutation", "public", { "name": string; "slug"?: (undefined | string); "description"?: (undefined | string); "sortOrder"?: (undefined | number); }, GenericId<"commerce_shipping_classes">>;
-  "remove": FunctionReference<"mutation", "public", { "classId": GenericId<"commerce_shipping_classes">; "reassignTo"?: (undefined | null | GenericId<"commerce_shipping_classes">); }, Dto2745>;
-  "reorder": FunctionReference<"mutation", "public", { "orderedIds": Array<GenericId<"commerce_shipping_classes">>; }, Dto2746>;
-  "update": FunctionReference<"mutation", "public", { "classId": GenericId<"commerce_shipping_classes">; "patch": Dto2747; }, GenericId<"commerce_shipping_classes">>;
+  "remove": FunctionReference<"mutation", "public", { "classId": GenericId<"commerce_shipping_classes">; "reassignTo"?: (undefined | null | GenericId<"commerce_shipping_classes">); }, Dto2739>;
+  "reorder": FunctionReference<"mutation", "public", { "orderedIds": Array<GenericId<"commerce_shipping_classes">>; }, Dto2740>;
+  "update": FunctionReference<"mutation", "public", { "classId": GenericId<"commerce_shipping_classes">; "patch": Dto2741; }, GenericId<"commerce_shipping_classes">>;
 };
   "shipping/classes/queries": {
-  "countProductsPerClass": FunctionReference<"query", "public", {  }, Dto2748>;
+  "countProductsPerClass": FunctionReference<"query", "public", {  }, Dto2742>;
   "get": FunctionReference<"query", "public", { "classId": GenericId<"commerce_shipping_classes">; }, (null | Dto1878)>;
   "getBySlug": FunctionReference<"query", "public", { "slug": string; }, (null | Dto1878)>;
   "list": FunctionReference<"query", "public", {  }, Array<Dto1878>>;
 };
   "shipping/labels/actions": {
-  "batchPurchaseLabels": FunctionReference<"action", "public", { "orderIds": Array<GenericId<"commerce_orders">>; "provider"?: (undefined | "shipstation" | "ups" | "fedex"); }, Dto2760>;
-  "purchaseLabel": FunctionReference<"action", "public", { "orderId": GenericId<"commerce_orders">; "provider"?: (undefined | "shipstation" | "ups" | "fedex"); "idempotencyKey"?: (undefined | string); "rateId"?: (undefined | string); }, (Dto2762 | Dto2763)>;
-  "voidLabelWithCarrier": FunctionReference<"action", "public", { "labelId": GenericId<"commerce_shipment_labels">; }, Dto2764>;
+  "batchPurchaseLabels": FunctionReference<"action", "public", { "orderIds": Array<GenericId<"commerce_orders">>; "provider"?: (undefined | "shipstation" | "ups" | "fedex"); }, Dto2754>;
+  "purchaseLabel": FunctionReference<"action", "public", { "orderId": GenericId<"commerce_orders">; "provider"?: (undefined | "shipstation" | "ups" | "fedex"); "idempotencyKey"?: (undefined | string); "rateId"?: (undefined | string); }, (Dto2756 | Dto2757)>;
+  "voidLabelWithCarrier": FunctionReference<"action", "public", { "labelId": GenericId<"commerce_shipment_labels">; }, Dto2758>;
 };
   "shipping/labels/mutations": {
-  "reprintLabel": FunctionReference<"mutation", "public", { "labelId": GenericId<"commerce_shipment_labels">; }, Dto2766>;
+  "reprintLabel": FunctionReference<"mutation", "public", { "labelId": GenericId<"commerce_shipment_labels">; }, Dto2760>;
   "voidLabel": FunctionReference<"mutation", "public", { "labelId": GenericId<"commerce_shipment_labels">; "reason"?: (undefined | string); }, GenericId<"commerce_shipment_labels">>;
 };
   "shipping/labels/queries": {
@@ -6753,35 +6743,35 @@ export type PublicApi = {
 };
   "shipping/methods/mutations": {
   "createMethod": FunctionReference<"mutation", "public", { "methodType": ("free" | "flat_rate" | "local_pickup" | "weight_based" | "dimensional" | "price_based" | "quantity_based" | "local_delivery" | "table_rate"); "config": unknown; }, string>;
-  "deleteMethod": FunctionReference<"mutation", "public", { "methodType": ("free" | "flat_rate" | "local_pickup" | "weight_based" | "dimensional" | "price_based" | "quantity_based" | "local_delivery" | "table_rate"); "methodId": string; }, Dto2769>;
+  "deleteMethod": FunctionReference<"mutation", "public", { "methodType": ("free" | "flat_rate" | "local_pickup" | "weight_based" | "dimensional" | "price_based" | "quantity_based" | "local_delivery" | "table_rate"); "methodId": string; }, Dto2763>;
   "toggleMethodEnabled": FunctionReference<"mutation", "public", { "methodType": ("free" | "flat_rate" | "local_pickup" | "weight_based" | "dimensional" | "price_based" | "quantity_based" | "local_delivery" | "table_rate"); "methodId": string; "enabled": boolean; }, unknown>;
   "updateMethod": FunctionReference<"mutation", "public", { "methodType": ("free" | "flat_rate" | "local_pickup" | "weight_based" | "dimensional" | "price_based" | "quantity_based" | "local_delivery" | "table_rate"); "methodId": string; "patch": unknown; }, unknown>;
 };
   "shipping/methods/preview": {
-  "previewMethod": FunctionReference<"query", "public", { "methodType": ("free" | "flat_rate" | "local_pickup" | "weight_based" | "dimensional" | "price_based" | "quantity_based" | "local_delivery" | "table_rate"); "config": unknown; "sample": Dto2770; }, (Dto2771 | Dto2773)>;
+  "previewMethod": FunctionReference<"query", "public", { "methodType": ("free" | "flat_rate" | "local_pickup" | "weight_based" | "dimensional" | "price_based" | "quantity_based" | "local_delivery" | "table_rate"); "config": unknown; "sample": Dto2764; }, (Dto2765 | Dto2767)>;
 };
   "shipping/methods/queries": {
   "getMethod": FunctionReference<"query", "public", { "methodType": ("free" | "flat_rate" | "local_pickup" | "weight_based" | "dimensional" | "price_based" | "quantity_based" | "local_delivery" | "table_rate"); "methodId": string; }, (null | Dto1821 | Dto148 | Dto1825 | Dto1826 | Dto1827 | Dto1828 | Dto1829 | Dto42 | Dto1830 | Dto38 | Dto1696 | Dto1697 | Dto1832 | Dto1599 | Dto1834 | Dto1598 | Dto1836 | Dto1837 | Dto1838 | Dto1765 | Dto1840 | Dto1841 | Dto1842 | Dto1844 | Dto1845 | Dto1846 | Dto1847 | Dto1848 | Dto80 | Dto1849 | Dto1857 | Dto1858 | Dto1859 | Dto1861 | Dto1862 | Dto1863 | Dto1865 | Dto1866 | Dto1867 | Dto1868 | Dto1869 | Dto1870 | Dto1384 | Dto1773 | Dto1871 | Dto1472 | Dto1470 | Dto1477 | Dto1170 | Dto1872 | Dto1153 | Dto1155 | Dto1873 | Dto1874 | Dto1875 | Dto1876 | Dto1877 | Dto1878 | Dto1879 | Dto1297 | Dto1301 | Dto1166 | Dto1192 | Dto1149 | Dto1162 | Dto1882 | Dto1169 | Dto1885 | Dto1886 | Dto1411 | Dto1177 | Dto1890 | Dto1261 | Dto1263 | Dto1891 | Dto1251 | Dto1151 | Dto1892 | Dto1256 | Dto1406 | Dto1188 | Dto1893 | Dto1314 | Dto1894 | Dto1895 | Dto1896 | Dto1897 | Dto1900 | Dto1901 | Dto1902 | Dto1526 | Dto1345 | Dto1903 | Dto1492 | Dto1525 | Dto1904 | Dto1521 | Dto1905 | Dto1906 | Dto1519 | Dto1459 | Dto1907 | Dto1377 | Dto1379 | Dto1381 | Dto1908 | Dto1909 | Dto1352 | Dto1910 | Dto1911 | Dto1912 | Dto1913 | Dto1914 | Dto1915 | Dto1718 | Dto1916 | Dto1777 | Dto1753 | Dto1731 | Dto1917 | Dto1918 | Dto1920 | Dto1921 | Dto1764 | Dto1735 | Dto1922 | Dto1923 | Dto1924 | Dto1815 | Dto1925 | Dto1926 | Dto1927 | Dto1928 | Dto1929 | Dto1930 | Dto1931 | Dto1932 | Dto1933 | Dto1934 | Dto1935 | Dto1936 | Dto1937 | Dto1938 | Dto1939 | Dto1940 | Dto1941 | Dto1942 | Dto1943 | Dto1944 | Dto1945 | Dto1946 | Dto1412 | Dto1423 | Dto1432 | Dto1355 | Dto1947 | Dto1948 | Dto1949 | Dto1950 | Dto1951 | Dto1952 | Dto1953 | Dto1376 | Dto1380 | Dto1954 | Dto1955 | Dto1956 | Dto1957 | Dto1958 | Dto1478 | Dto1520 | Dto1465 | Dto1959 | Dto1960 | Dto1961 | Dto1962 | Dto1963 | Dto1964 | Dto1965 | Dto1966 | Dto1967 | Dto1969 | Dto1970 | Dto1971 | Dto1973 | Dto1977 | Dto1980 | Dto1982 | Dto1984 | Dto1985 | Dto1986 | Dto1989 | Dto1992 | Dto1996 | Dto1997 | Dto1999 | Dto2000 | Dto2001 | Dto2002 | Dto2004 | Dto2005 | Dto2006 | Dto2007 | Dto2008 | Dto2010 | Dto2011 | Dto2012 | Dto2013 | Dto2014 | Dto2015 | Dto2016 | Dto2017 | Dto2018 | Dto2019 | Dto1249 | Dto1233 | Dto2020 | Dto1320 | Dto2021 | Dto2022 | Dto1281 | Dto2023 | Dto2024 | Dto2025 | Dto1187 | Dto1331 | Dto2026 | Dto1254 | Dto2027 | Dto2028 | Dto2029 | Dto2030 | Dto2031 | Dto2033 | Dto2036 | Dto2037 | Dto2038 | Dto2039 | Dto2041 | Dto2042 | Dto2043 | Dto2044 | Dto2045 | Dto2048 | Dto2049 | Dto2050 | Dto2051 | Dto2052 | Dto2053 | Dto2054 | Dto2055 | Dto2056 | Dto2057 | Dto2058 | Dto2059 | Dto2060 | Dto2061 | Dto2063 | Dto2064 | Dto2065 | Dto2068 | Dto156 | Dto2070 | Dto2071 | Dto2072 | Dto2073 | Dto2076 | Dto44 | Dto43 | Dto41 | Dto2077 | Dto2078 | Dto93 | Dto2079 | Dto2080 | Dto2081 | Dto2082 | Dto2083 | Dto2084 | Dto2087 | Dto2088 | Dto2090 | Dto2091 | Dto2092 | Dto2093 | Dto2094 | Dto2095 | Dto2096 | Dto2097 | Dto2098 | Dto2099 | Dto2100 | Dto2101 | Dto2102 | Dto2103 | Dto2104 | Dto2105 | Dto2106 | Dto2107 | Dto2108 | Dto2109 | Dto2114 | Dto39 | Dto2115 | Dto2116 | Dto2117 | Dto2118 | Dto2119 | Dto2120 | Dto2121 | Dto2122 | Dto2123 | Dto2124 | Dto2126 | Dto2127 | Dto2128 | Dto2130 | Dto2132 | Dto2133 | Dto2134 | Dto2135 | Dto2136 | Dto2138 | Dto2139 | Dto2140 | Dto2141 | Dto2142)>;
-  "listMethodsForZone": FunctionReference<"query", "public", { "zoneId": GenericId<"commerce_shipping_zones">; }, Array<Dto2774>>;
+  "listMethodsForZone": FunctionReference<"query", "public", { "zoneId": GenericId<"commerce_shipping_zones">; }, Array<Dto2768>>;
 };
   "shipping/mutations": {
-  "createPackage": FunctionReference<"mutation", "public", { "code": string; "label": string; "packageType": string; "weight"?: (undefined | number); "dimensions"?: (undefined | Dto2775); "carrierCode"?: (undefined | string); "provider"?: (undefined | "shipstation" | "ups" | "usps" | "fedex" | "dhl"); }, GenericId<"commerce_shipping_packages">>;
+  "createPackage": FunctionReference<"mutation", "public", { "code": string; "label": string; "packageType": string; "weight"?: (undefined | number); "dimensions"?: (undefined | Dto2769); "carrierCode"?: (undefined | string); "provider"?: (undefined | "shipstation" | "ups" | "usps" | "fedex" | "dhl"); }, GenericId<"commerce_shipping_packages">>;
   "createZone": FunctionReference<"mutation", "public", { "name": string; "countries": Array<string>; "states"?: (undefined | Array<string>); "postalCodeRules"?: (undefined | Array<string>); "sortOrder"?: (undefined | number); }, GenericId<"commerce_shipping_zones">>;
   "createZoneMethod": FunctionReference<"mutation", "public", { "zoneId": GenericId<"commerce_shipping_zones">; "methodCode": string; "label": string; "methodType": ("free_shipping" | "live_rate" | "flat_rate" | "local_pickup"); "provider"?: (undefined | "shipstation" | "ups" | "usps" | "fedex" | "dhl"); "serviceFilters"?: unknown; "pricingRules"?: unknown; "enabled"?: (undefined | false | true); "sortOrder"?: (undefined | number); }, GenericId<"commerce_shipping_zone_methods">>;
-  "deletePackage": FunctionReference<"mutation", "public", { "packageId": GenericId<"commerce_shipping_packages">; }, Dto2776>;
+  "deletePackage": FunctionReference<"mutation", "public", { "packageId": GenericId<"commerce_shipping_packages">; }, Dto2770>;
   "deleteZone": FunctionReference<"mutation", "public", { "zoneId": GenericId<"commerce_shipping_zones">; }, null>;
   "deleteZoneMethod": FunctionReference<"mutation", "public", { "methodId": GenericId<"commerce_shipping_zone_methods">; }, null>;
   "saveProviderSecret": FunctionReference<"mutation", "public", { "provider": ("shipstation" | "ups" | "usps" | "fedex" | "dhl"); "credentials": unknown; }, GenericId<"shipping_provider_secrets">>;
-  "updatePackage": FunctionReference<"mutation", "public", { "packageId": GenericId<"commerce_shipping_packages">; "code"?: (undefined | string); "label"?: (undefined | string); "packageType"?: (undefined | string); "weight"?: (undefined | number); "dimensions"?: (undefined | Dto2777); "carrierCode"?: (undefined | string); "provider"?: (undefined | "shipstation" | "ups" | "usps" | "fedex" | "dhl"); }, GenericId<"commerce_shipping_packages">>;
+  "updatePackage": FunctionReference<"mutation", "public", { "packageId": GenericId<"commerce_shipping_packages">; "code"?: (undefined | string); "label"?: (undefined | string); "packageType"?: (undefined | string); "weight"?: (undefined | number); "dimensions"?: (undefined | Dto2771); "carrierCode"?: (undefined | string); "provider"?: (undefined | "shipstation" | "ups" | "usps" | "fedex" | "dhl"); }, GenericId<"commerce_shipping_packages">>;
   "updateZone": FunctionReference<"mutation", "public", { "zoneId": GenericId<"commerce_shipping_zones">; "name"?: (undefined | string); "countries"?: (undefined | Array<string>); "states"?: (undefined | Array<string>); "postalCodeRules"?: (undefined | Array<string>); "enabled"?: (undefined | false | true); "sortOrder"?: (undefined | number); }, null>;
   "updateZoneMethod": FunctionReference<"mutation", "public", { "methodId": GenericId<"commerce_shipping_zone_methods">; "methodCode"?: (undefined | string); "label"?: (undefined | string); "methodType"?: (undefined | "free_shipping" | "live_rate" | "flat_rate" | "local_pickup"); "provider"?: (undefined | "shipstation" | "ups" | "usps" | "fedex" | "dhl"); "serviceFilters"?: unknown; "pricingRules"?: unknown; "enabled"?: (undefined | false | true); "sortOrder"?: (undefined | number); }, null>;
   "upsertConnectionMetadata": FunctionReference<"mutation", "public", { "provider": ("shipstation" | "ups" | "usps" | "fedex" | "dhl"); "displayName": string; "enabled": boolean; "mode": ("sandbox" | "production"); "isPrimary": boolean; "rateShoppingEnabled": boolean; "rateShoppingPriority": number; "webhookSecret"?: (undefined | string); }, GenericId<"shipping_provider_connections">>;
 };
   "shipping/packages/mutations": {
-  "create": FunctionReference<"mutation", "public", { "code": string; "label": string; "packageType": string; "packageSource"?: (undefined | "custom" | "shipstation" | "ups" | "usps" | "fedex" | "dhl"); "carrierPackageCode"?: (undefined | string); "shipFromLocationId"?: (undefined | GenericId<"commerce_ship_from_locations">); "isDefault"?: (undefined | false | true); "dimensionUnit"?: (undefined | "in" | "cm"); "weightUnit"?: (undefined | "oz" | "g" | "lb" | "kg"); "dimensions"?: (undefined | Dto2778); "innerDimensions"?: (undefined | Dto2778); "tareWeight"?: (undefined | number); "maxLoadWeight"?: (undefined | number); "shipStationPackageId"?: (undefined | string); "shipStationCarrierCode"?: (undefined | string); "carrierCode"?: (undefined | string); "notes"?: (undefined | string); "sortOrder"?: (undefined | number); }, GenericId<"commerce_shipping_packages">>;
-  "remove": FunctionReference<"mutation", "public", { "packageId": GenericId<"commerce_shipping_packages">; }, Dto2779>;
+  "create": FunctionReference<"mutation", "public", { "code": string; "label": string; "packageType": string; "packageSource"?: (undefined | "custom" | "shipstation" | "ups" | "usps" | "fedex" | "dhl"); "carrierPackageCode"?: (undefined | string); "shipFromLocationId"?: (undefined | GenericId<"commerce_ship_from_locations">); "isDefault"?: (undefined | false | true); "dimensionUnit"?: (undefined | "in" | "cm"); "weightUnit"?: (undefined | "oz" | "g" | "lb" | "kg"); "dimensions"?: (undefined | Dto2772); "innerDimensions"?: (undefined | Dto2772); "tareWeight"?: (undefined | number); "maxLoadWeight"?: (undefined | number); "shipStationPackageId"?: (undefined | string); "shipStationCarrierCode"?: (undefined | string); "carrierCode"?: (undefined | string); "notes"?: (undefined | string); "sortOrder"?: (undefined | number); }, GenericId<"commerce_shipping_packages">>;
+  "remove": FunctionReference<"mutation", "public", { "packageId": GenericId<"commerce_shipping_packages">; }, Dto2773>;
   "setDefault": FunctionReference<"mutation", "public", { "packageId": GenericId<"commerce_shipping_packages">; "shipFromLocationId"?: (undefined | GenericId<"commerce_ship_from_locations">); }, GenericId<"commerce_shipping_packages">>;
-  "update": FunctionReference<"mutation", "public", { "packageId": GenericId<"commerce_shipping_packages">; "patch": Dto2780; }, GenericId<"commerce_shipping_packages">>;
+  "update": FunctionReference<"mutation", "public", { "packageId": GenericId<"commerce_shipping_packages">; "patch": Dto2774; }, GenericId<"commerce_shipping_packages">>;
 };
   "shipping/packages/queries": {
   "get": FunctionReference<"query", "public", { "packageId": GenericId<"commerce_shipping_packages">; }, (null | Dto1879)>;
@@ -6789,36 +6779,36 @@ export type PublicApi = {
   "list": FunctionReference<"query", "public", { "source"?: (undefined | "custom" | "shipstation" | "ups" | "usps" | "fedex" | "dhl"); "shipFromLocationId"?: (undefined | GenericId<"commerce_ship_from_locations">); "includeArchived"?: (undefined | false | true); }, Array<Dto1879>>;
 };
   "shipping/queries": {
-  "getOverview": FunctionReference<"query", "public", {  }, Dto2783>;
+  "getOverview": FunctionReference<"query", "public", {  }, Dto2777>;
   "getPackage": FunctionReference<"query", "public", { "packageId": GenericId<"commerce_shipping_packages">; }, (null | Dto1879)>;
-  "getProviderCapabilities": FunctionReference<"query", "public", {  }, Array<Dto2788>>;
-  "getProviderConnection": FunctionReference<"query", "public", { "provider": ("shipstation" | "ups" | "usps" | "fedex" | "dhl"); }, Dto2789>;
+  "getProviderCapabilities": FunctionReference<"query", "public", {  }, Array<Dto2782>>;
+  "getProviderConnection": FunctionReference<"query", "public", { "provider": ("shipstation" | "ups" | "usps" | "fedex" | "dhl"); }, Dto2783>;
   "getRecentQuoteDiagnostics": FunctionReference<"query", "public", { "limit"?: (undefined | number); }, Array<Dto2002>>;
-  "listCheckoutQuotes": FunctionReference<"query", "public", { "sessionToken": string; }, Array<Dto2731>>;
+  "listCheckoutQuotes": FunctionReference<"query", "public", { "sessionToken": string; }, Array<Dto2725>>;
   "listPackages": FunctionReference<"query", "public", {  }, Array<Dto1879>>;
-  "listZonesWithMethods": FunctionReference<"query", "public", {  }, Array<Dto2790>>;
+  "listZonesWithMethods": FunctionReference<"query", "public", {  }, Array<Dto2784>>;
 };
   "shipping/rates/pipeline": {
-  "calculateRates": FunctionReference<"action", "public", { "sessionToken": string; "preferredProvider"?: (undefined | "shipstation" | "ups" | "usps" | "fedex" | "dhl"); "shippingAddress": Dto2795; }, (Dto2796 | Dto2798)>;
+  "calculateRates": FunctionReference<"action", "public", { "sessionToken": string; "preferredProvider"?: (undefined | "shipstation" | "ups" | "usps" | "fedex" | "dhl"); "shippingAddress": Dto2789; }, (Dto2790 | Dto2792)>;
 };
   "shipping/rulesEngine/mutations": {
   "createRule": FunctionReference<"mutation", "public", { "name": string; "description"?: (undefined | string); "ruleAST": unknown; }, GenericId<"commerce_shipping_rules">>;
-  "deleteRule": FunctionReference<"mutation", "public", { "ruleId": GenericId<"commerce_shipping_rules">; }, Dto2800>;
-  "updateRule": FunctionReference<"mutation", "public", { "ruleId": GenericId<"commerce_shipping_rules">; "patch": Dto2801; }, GenericId<"commerce_shipping_rules">>;
+  "deleteRule": FunctionReference<"mutation", "public", { "ruleId": GenericId<"commerce_shipping_rules">; }, Dto2794>;
+  "updateRule": FunctionReference<"mutation", "public", { "ruleId": GenericId<"commerce_shipping_rules">; "patch": Dto2795; }, GenericId<"commerce_shipping_rules">>;
 };
   "shipping/rulesEngine/queries": {
   "get": FunctionReference<"query", "public", { "ruleId": GenericId<"commerce_shipping_rules">; }, (null | Dto1902)>;
   "list": FunctionReference<"query", "public", {  }, Array<Dto1902>>;
-  "validateAST": FunctionReference<"query", "public", { "ruleAST": unknown; }, Array<Dto2802>>;
+  "validateAST": FunctionReference<"query", "public", { "ruleAST": unknown; }, Array<Dto2796>>;
 };
   "shipping/shipFromLocations/mutations": {
-  "archive": FunctionReference<"mutation", "public", { "locationId": GenericId<"commerce_ship_from_locations">; }, Dto2803>;
+  "archive": FunctionReference<"mutation", "public", { "locationId": GenericId<"commerce_ship_from_locations">; }, Dto2797>;
   "assignProductLocation": FunctionReference<"mutation", "public", { "productId": GenericId<"commerce_products">; "variantId"?: (undefined | GenericId<"commerce_product_variants">); "locationId": GenericId<"commerce_ship_from_locations">; "priority"?: (undefined | number); "enabled"?: (undefined | false | true); "notes"?: (undefined | string); }, GenericId<"commerce_product_location_fulfillment">>;
-  "create": FunctionReference<"mutation", "public", { "name": string; "code": string; "locationType": ("other" | "warehouse" | "retail_store" | "dropshipper" | "fulfillment_center"); "address": Dto2804; "isActive"?: (undefined | false | true); "isDefault"?: (undefined | false | true); "isPickupEnabled"?: (undefined | false | true); "timezone": string; "cutoffTime"?: (undefined | string); "operatingDays"?: (undefined | Array<number>); "operatingHours"?: (undefined | Dto2805); "handlingTimeDays"?: (undefined | number); "priority"?: (undefined | number); "fulfillmentProvider"?: (undefined | "custom" | "manual" | "shipstation" | "amazon_mcf" | "third_party_logistics"); "externalProviderLocationId"?: (undefined | string); "fulfillmentProviderConfig"?: unknown; }, GenericId<"commerce_ship_from_locations">>;
-  "removeProductLocation": FunctionReference<"mutation", "public", { "mappingId": GenericId<"commerce_product_location_fulfillment">; }, Dto2806>;
-  "setActive": FunctionReference<"mutation", "public", { "locationId": GenericId<"commerce_ship_from_locations">; "active": boolean; }, Dto2807>;
+  "create": FunctionReference<"mutation", "public", { "name": string; "code": string; "locationType": ("other" | "warehouse" | "retail_store" | "dropshipper" | "fulfillment_center"); "address": Dto2798; "isActive"?: (undefined | false | true); "isDefault"?: (undefined | false | true); "isPickupEnabled"?: (undefined | false | true); "timezone": string; "cutoffTime"?: (undefined | string); "operatingDays"?: (undefined | Array<number>); "operatingHours"?: (undefined | Dto2799); "handlingTimeDays"?: (undefined | number); "priority"?: (undefined | number); "fulfillmentProvider"?: (undefined | "custom" | "manual" | "shipstation" | "amazon_mcf" | "third_party_logistics"); "externalProviderLocationId"?: (undefined | string); "fulfillmentProviderConfig"?: unknown; }, GenericId<"commerce_ship_from_locations">>;
+  "removeProductLocation": FunctionReference<"mutation", "public", { "mappingId": GenericId<"commerce_product_location_fulfillment">; }, Dto2800>;
+  "setActive": FunctionReference<"mutation", "public", { "locationId": GenericId<"commerce_ship_from_locations">; "active": boolean; }, Dto2801>;
   "setDefault": FunctionReference<"mutation", "public", { "locationId": GenericId<"commerce_ship_from_locations">; }, GenericId<"commerce_ship_from_locations">>;
-  "update": FunctionReference<"mutation", "public", { "locationId": GenericId<"commerce_ship_from_locations">; "patch": Dto2808; }, GenericId<"commerce_ship_from_locations">>;
+  "update": FunctionReference<"mutation", "public", { "locationId": GenericId<"commerce_ship_from_locations">; "patch": Dto2802; }, GenericId<"commerce_ship_from_locations">>;
 };
   "shipping/shipFromLocations/queries": {
   "get": FunctionReference<"query", "public", { "locationId": GenericId<"commerce_ship_from_locations">; }, (null | Dto1886)>;
@@ -6828,51 +6818,51 @@ export type PublicApi = {
   "listProductLocations": FunctionReference<"query", "public", { "productId": GenericId<"commerce_products">; }, Array<Dto1999>>;
 };
   "shipping/tracking/queries": {
-  "getTrackingHealth": FunctionReference<"query", "public", {  }, Dto2813>;
+  "getTrackingHealth": FunctionReference<"query", "public", {  }, Dto2807>;
   "listForShipment": FunctionReference<"query", "public", { "shipmentId": GenericId<"commerce_shipments">; }, Array<Dto1969>>;
-  "publicTracking": FunctionReference<"query", "public", { "trackingToken": string; }, (null | Dto2814)>;
+  "publicTracking": FunctionReference<"query", "public", { "trackingToken": string; }, (null | Dto2808)>;
 };
   "shipping/zones/mutations": {
   "createZone": FunctionReference<"mutation", "public", { "name": string; "slug"?: (undefined | string); "description"?: (undefined | string); "countries": Array<string>; "states"?: (undefined | Array<string>); "postalCodeRules"?: (undefined | Array<string>); "enabled"?: (undefined | false | true); "isFallback"?: (undefined | false | true); "sortOrder"?: (undefined | number); }, GenericId<"commerce_shipping_zones">>;
-  "deleteZone": FunctionReference<"mutation", "public", { "zoneId": GenericId<"commerce_shipping_zones">; }, Dto2819>;
-  "reorderZones": FunctionReference<"mutation", "public", { "orderedIds": Array<GenericId<"commerce_shipping_zones">>; }, Dto2820>;
-  "setFallbackZone": FunctionReference<"mutation", "public", { "zoneId": (null | GenericId<"commerce_shipping_zones">); }, Dto2821>;
+  "deleteZone": FunctionReference<"mutation", "public", { "zoneId": GenericId<"commerce_shipping_zones">; }, Dto2813>;
+  "reorderZones": FunctionReference<"mutation", "public", { "orderedIds": Array<GenericId<"commerce_shipping_zones">>; }, Dto2814>;
+  "setFallbackZone": FunctionReference<"mutation", "public", { "zoneId": (null | GenericId<"commerce_shipping_zones">); }, Dto2815>;
   "toggleZoneEnabled": FunctionReference<"mutation", "public", { "zoneId": GenericId<"commerce_shipping_zones">; "enabled": boolean; }, GenericId<"commerce_shipping_zones">>;
-  "updateZone": FunctionReference<"mutation", "public", { "zoneId": GenericId<"commerce_shipping_zones">; "patch": Dto2822; }, GenericId<"commerce_shipping_zones">>;
+  "updateZone": FunctionReference<"mutation", "public", { "zoneId": GenericId<"commerce_shipping_zones">; "patch": Dto2816; }, GenericId<"commerce_shipping_zones">>;
 };
   "shipping/zones/queries": {
   "getZone": FunctionReference<"query", "public", { "zoneId": GenericId<"commerce_shipping_zones">; }, (null | Dto1901)>;
   "getZoneBySlug": FunctionReference<"query", "public", { "slug": string; }, (null | Dto1901)>;
   "listZones": FunctionReference<"query", "public", {  }, Array<Dto1901>>;
-  "matchZoneForAddress": FunctionReference<"query", "public", { "countryCode": string; "state"?: (undefined | string); "postalCode"?: (undefined | string); }, (null | Dto2823)>;
+  "matchZoneForAddress": FunctionReference<"query", "public", { "countryCode": string; "state"?: (undefined | string); "postalCode"?: (undefined | string); }, (null | Dto2817)>;
 };
   "sitemaps": {
   "actions": {
-  "generate": FunctionReference<"action", "public", { "force"?: (undefined | false | true); "types"?: (undefined | Array<("posts" | "pages" | "courses" | "categories" | "tags" | "authors")>); }, Dto2824>;
+  "generate": FunctionReference<"action", "public", { "force"?: (undefined | false | true); "types"?: (undefined | Array<("posts" | "pages" | "courses" | "categories" | "tags" | "authors")>); }, Dto2818>;
 };
   "mutations": {
-  "updateSettings": FunctionReference<"mutation", "public", { "settings": Dto2836; }, Dto2837>;
+  "updateSettings": FunctionReference<"mutation", "public", { "settings": Dto2830; }, Dto2831>;
 };
   "queries": {
-  "getIndex": FunctionReference<"query", "public", {  }, (null | Dto2838)>;
+  "getIndex": FunctionReference<"query", "public", {  }, (null | Dto2832)>;
   "getRobotsContent": FunctionReference<"query", "public", {  }, string>;
-  "getSettings": FunctionReference<"query", "public", {  }, Dto2828>;
-  "getStatus": FunctionReference<"query", "public", {  }, Dto2839>;
-  "getSubSitemap": FunctionReference<"query", "public", { "type": ("posts" | "pages" | "courses" | "categories" | "tags" | "authors"); "page": number; }, (null | Dto2842)>;
+  "getSettings": FunctionReference<"query", "public", {  }, Dto2822>;
+  "getStatus": FunctionReference<"query", "public", {  }, Dto2833>;
+  "getSubSitemap": FunctionReference<"query", "public", { "type": ("posts" | "pages" | "courses" | "categories" | "tags" | "authors"); "page": number; }, (null | Dto2836)>;
 };
 };
   "sitemaps/actions": {
-  "generate": FunctionReference<"action", "public", { "force"?: (undefined | false | true); "types"?: (undefined | Array<("posts" | "pages" | "courses" | "categories" | "tags" | "authors")>); }, Dto2824>;
+  "generate": FunctionReference<"action", "public", { "force"?: (undefined | false | true); "types"?: (undefined | Array<("posts" | "pages" | "courses" | "categories" | "tags" | "authors")>); }, Dto2818>;
 };
   "sitemaps/mutations": {
-  "updateSettings": FunctionReference<"mutation", "public", { "settings": Dto2836; }, Dto2837>;
+  "updateSettings": FunctionReference<"mutation", "public", { "settings": Dto2830; }, Dto2831>;
 };
   "sitemaps/queries": {
-  "getIndex": FunctionReference<"query", "public", {  }, (null | Dto2838)>;
+  "getIndex": FunctionReference<"query", "public", {  }, (null | Dto2832)>;
   "getRobotsContent": FunctionReference<"query", "public", {  }, string>;
-  "getSettings": FunctionReference<"query", "public", {  }, Dto2828>;
-  "getStatus": FunctionReference<"query", "public", {  }, Dto2839>;
-  "getSubSitemap": FunctionReference<"query", "public", { "type": ("posts" | "pages" | "courses" | "categories" | "tags" | "authors"); "page": number; }, (null | Dto2842)>;
+  "getSettings": FunctionReference<"query", "public", {  }, Dto2822>;
+  "getStatus": FunctionReference<"query", "public", {  }, Dto2833>;
+  "getSubSitemap": FunctionReference<"query", "public", { "type": ("posts" | "pages" | "courses" | "categories" | "tags" | "authors"); "page": number; }, (null | Dto2836)>;
 };
   "siteNotificationDefinitions": {
   "queries": {
@@ -6888,96 +6878,96 @@ export type PublicApi = {
 };
   "socialFeeds": {
   "actions": {
-  "refreshSource": FunctionReference<"action", "public", { "sourceId": GenericId<"socialFeedSources">; }, Dto2843>;
+  "refreshSource": FunctionReference<"action", "public", { "sourceId": GenericId<"socialFeedSources">; }, Dto2837>;
 };
   "sources": {
   "create": FunctionReference<"mutation", "public", { "provider": ("instagram" | "mastodon"); "handle": string; "enabled": boolean; }, GenericId<"socialFeedSources">>;
-  "list": FunctionReference<"query", "public", {  }, Dto2846>;
+  "list": FunctionReference<"query", "public", {  }, Dto2840>;
   "remove": FunctionReference<"mutation", "public", { "sourceId": GenericId<"socialFeedSources">; "expectedRevision": number; }, null>;
   "setEnabled": FunctionReference<"mutation", "public", { "sourceId": GenericId<"socialFeedSources">; "expectedRevision": number; "enabled": boolean; }, null>;
   "updateAccount": FunctionReference<"mutation", "public", { "sourceId": GenericId<"socialFeedSources">; "expectedRevision": number; "handle": string; }, null>;
 };
 };
   "socialFeeds/actions": {
-  "refreshSource": FunctionReference<"action", "public", { "sourceId": GenericId<"socialFeedSources">; }, Dto2843>;
+  "refreshSource": FunctionReference<"action", "public", { "sourceId": GenericId<"socialFeedSources">; }, Dto2837>;
 };
   "socialFeeds/sources": {
   "create": FunctionReference<"mutation", "public", { "provider": ("instagram" | "mastodon"); "handle": string; "enabled": boolean; }, GenericId<"socialFeedSources">>;
-  "list": FunctionReference<"query", "public", {  }, Dto2846>;
+  "list": FunctionReference<"query", "public", {  }, Dto2840>;
   "remove": FunctionReference<"mutation", "public", { "sourceId": GenericId<"socialFeedSources">; "expectedRevision": number; }, null>;
   "setEnabled": FunctionReference<"mutation", "public", { "sourceId": GenericId<"socialFeedSources">; "expectedRevision": number; "enabled": boolean; }, null>;
   "updateAccount": FunctionReference<"mutation", "public", { "sourceId": GenericId<"socialFeedSources">; "expectedRevision": number; "handle": string; }, null>;
 };
   "support": {
   "analytics": {
-  "getCommonUnanswered": FunctionReference<"query", "public", { "limit"?: (undefined | number); "startDate"?: (undefined | number); "endDate"?: (undefined | number); }, (null | Array<Dto2848>)>;
-  "getDeflectionStats": FunctionReference<"query", "public", { "startDate"?: (undefined | number); "endDate"?: (undefined | number); }, (null | Dto2849)>;
-  "getTopDeflectingArticles": FunctionReference<"query", "public", { "limit"?: (undefined | number); "startDate"?: (undefined | number); "endDate"?: (undefined | number); }, (null | Array<Dto2851>)>;
+  "getCommonUnanswered": FunctionReference<"query", "public", { "limit"?: (undefined | number); "startDate"?: (undefined | number); "endDate"?: (undefined | number); }, (null | Array<Dto2842>)>;
+  "getDeflectionStats": FunctionReference<"query", "public", { "startDate"?: (undefined | number); "endDate"?: (undefined | number); }, (null | Dto2843)>;
+  "getTopDeflectingArticles": FunctionReference<"query", "public", { "limit"?: (undefined | number); "startDate"?: (undefined | number); "endDate"?: (undefined | number); }, (null | Array<Dto2845>)>;
 };
   "channels": {
   "create": FunctionReference<"mutation", "public", { "code": string; "kind": ("email" | "api" | "slack" | "discord" | "twilio_sms" | "form" | "chat"); "label": string; "config"?: unknown; "webhookUrl"?: (undefined | string); }, GenericId<"support_channels">>;
   "getByCode": FunctionReference<"query", "public", { "code": string; }, (null | Dto1867)>;
-  "healthReport": FunctionReference<"query", "public", { "silentThresholdMs"?: (undefined | number); }, Array<Dto2852>>;
+  "healthReport": FunctionReference<"query", "public", { "silentThresholdMs"?: (undefined | number); }, Array<Dto2846>>;
   "list": FunctionReference<"query", "public", { "activeOnly"?: (undefined | false | true); }, Array<Dto1867>>;
-  "remove": FunctionReference<"mutation", "public", { "id": GenericId<"support_channels">; }, Dto2853>;
-  "update": FunctionReference<"mutation", "public", { "id": GenericId<"support_channels">; "label"?: (undefined | string); "isActive"?: (undefined | false | true); "config"?: unknown; }, Dto2854>;
+  "remove": FunctionReference<"mutation", "public", { "id": GenericId<"support_channels">; }, Dto2847>;
+  "update": FunctionReference<"mutation", "public", { "id": GenericId<"support_channels">; "label"?: (undefined | string); "isActive"?: (undefined | false | true); "config"?: unknown; }, Dto2848>;
 };
   "deflection": {
-  "generateAnswer": FunctionReference<"action", "public", { "query": string; "sessionId": string; }, Dto2855>;
+  "generateAnswer": FunctionReference<"action", "public", { "query": string; "sessionId": string; }, Dto2849>;
   "logInteraction": FunctionReference<"mutation", "public", { "sessionId": string; "query": string; "aiResponse": string; "kbArticleIds": Array<string>; "outcome": ("helpful" | "notHelpful" | "escalated" | "abandoned"); "ticketId"?: (undefined | string); "responseLatencyMs": number; "tokensUsed"?: (undefined | number); }, GenericId<"support_deflectionLogs">>;
 };
   "settings": {
-  "getSupportSettings": FunctionReference<"query", "public", {  }, (null | Dto2870)>;
-  "updateSupportSettings": FunctionReference<"mutation", "public", { "widget"?: (undefined | Dto2873); "ai"?: (undefined | Dto2874); }, Dto2875>;
+  "getSupportSettings": FunctionReference<"query", "public", {  }, (null | Dto2864)>;
+  "updateSupportSettings": FunctionReference<"mutation", "public", { "widget"?: (undefined | Dto2867); "ai"?: (undefined | Dto2868); }, Dto2869>;
 };
   "widget": {
-  "getConfig": FunctionReference<"query", "public", {  }, (null | Dto2876)>;
-  "getRecentTickets": FunctionReference<"query", "public", { "limit"?: (undefined | number); }, (null | Array<Dto2877>)>;
+  "getConfig": FunctionReference<"query", "public", {  }, (null | Dto2870)>;
+  "getRecentTickets": FunctionReference<"query", "public", { "limit"?: (undefined | number); }, (null | Array<Dto2871>)>;
 };
 };
   "support/analytics": {
-  "getCommonUnanswered": FunctionReference<"query", "public", { "limit"?: (undefined | number); "startDate"?: (undefined | number); "endDate"?: (undefined | number); }, (null | Array<Dto2848>)>;
-  "getDeflectionStats": FunctionReference<"query", "public", { "startDate"?: (undefined | number); "endDate"?: (undefined | number); }, (null | Dto2849)>;
-  "getTopDeflectingArticles": FunctionReference<"query", "public", { "limit"?: (undefined | number); "startDate"?: (undefined | number); "endDate"?: (undefined | number); }, (null | Array<Dto2851>)>;
+  "getCommonUnanswered": FunctionReference<"query", "public", { "limit"?: (undefined | number); "startDate"?: (undefined | number); "endDate"?: (undefined | number); }, (null | Array<Dto2842>)>;
+  "getDeflectionStats": FunctionReference<"query", "public", { "startDate"?: (undefined | number); "endDate"?: (undefined | number); }, (null | Dto2843)>;
+  "getTopDeflectingArticles": FunctionReference<"query", "public", { "limit"?: (undefined | number); "startDate"?: (undefined | number); "endDate"?: (undefined | number); }, (null | Array<Dto2845>)>;
 };
   "support/channels": {
   "create": FunctionReference<"mutation", "public", { "code": string; "kind": ("email" | "api" | "slack" | "discord" | "twilio_sms" | "form" | "chat"); "label": string; "config"?: unknown; "webhookUrl"?: (undefined | string); }, GenericId<"support_channels">>;
   "getByCode": FunctionReference<"query", "public", { "code": string; }, (null | Dto1867)>;
-  "healthReport": FunctionReference<"query", "public", { "silentThresholdMs"?: (undefined | number); }, Array<Dto2852>>;
+  "healthReport": FunctionReference<"query", "public", { "silentThresholdMs"?: (undefined | number); }, Array<Dto2846>>;
   "list": FunctionReference<"query", "public", { "activeOnly"?: (undefined | false | true); }, Array<Dto1867>>;
-  "remove": FunctionReference<"mutation", "public", { "id": GenericId<"support_channels">; }, Dto2853>;
-  "update": FunctionReference<"mutation", "public", { "id": GenericId<"support_channels">; "label"?: (undefined | string); "isActive"?: (undefined | false | true); "config"?: unknown; }, Dto2854>;
+  "remove": FunctionReference<"mutation", "public", { "id": GenericId<"support_channels">; }, Dto2847>;
+  "update": FunctionReference<"mutation", "public", { "id": GenericId<"support_channels">; "label"?: (undefined | string); "isActive"?: (undefined | false | true); "config"?: unknown; }, Dto2848>;
 };
   "support/deflection": {
-  "generateAnswer": FunctionReference<"action", "public", { "query": string; "sessionId": string; }, Dto2855>;
+  "generateAnswer": FunctionReference<"action", "public", { "query": string; "sessionId": string; }, Dto2849>;
   "logInteraction": FunctionReference<"mutation", "public", { "sessionId": string; "query": string; "aiResponse": string; "kbArticleIds": Array<string>; "outcome": ("helpful" | "notHelpful" | "escalated" | "abandoned"); "ticketId"?: (undefined | string); "responseLatencyMs": number; "tokensUsed"?: (undefined | number); }, GenericId<"support_deflectionLogs">>;
 };
   "support/settings": {
-  "getSupportSettings": FunctionReference<"query", "public", {  }, (null | Dto2870)>;
-  "updateSupportSettings": FunctionReference<"mutation", "public", { "widget"?: (undefined | Dto2873); "ai"?: (undefined | Dto2874); }, Dto2875>;
+  "getSupportSettings": FunctionReference<"query", "public", {  }, (null | Dto2864)>;
+  "updateSupportSettings": FunctionReference<"mutation", "public", { "widget"?: (undefined | Dto2867); "ai"?: (undefined | Dto2868); }, Dto2869>;
 };
   "support/widget": {
-  "getConfig": FunctionReference<"query", "public", {  }, (null | Dto2876)>;
-  "getRecentTickets": FunctionReference<"query", "public", { "limit"?: (undefined | number); }, (null | Array<Dto2877>)>;
+  "getConfig": FunctionReference<"query", "public", {  }, (null | Dto2870)>;
+  "getRecentTickets": FunctionReference<"query", "public", { "limit"?: (undefined | number); }, (null | Array<Dto2871>)>;
 };
   "syncedBlocks": {
   "consumerIndex": {
-  "begin": FunctionReference<"mutation", "public", {  }, Dto2878>;
-  "blockedDocument": FunctionReference<"query", "public", {  }, (null | Dto2879)>;
-  "status": FunctionReference<"query", "public", {  }, Dto2878>;
-  "step": FunctionReference<"mutation", "public", { "generation": string; "expectedSequence": number; }, Dto2878>;
+  "begin": FunctionReference<"mutation", "public", {  }, Dto2872>;
+  "blockedDocument": FunctionReference<"query", "public", {  }, (null | Dto2873)>;
+  "status": FunctionReference<"query", "public", {  }, Dto2872>;
+  "step": FunctionReference<"mutation", "public", { "generation": string; "expectedSequence": number; }, Dto2872>;
 };
   "content": {
-  "create": FunctionReference<"mutation", "public", { "title": string; "blocks": Array<Dto1018>; }, Dto2880>;
-  "get": FunctionReference<"query", "public", { "id": GenericId<"syncedBlocks">; }, Dto2881>;
-  "publish": FunctionReference<"mutation", "public", { "revision": number; "reviewDigest": string; "id": GenericId<"syncedBlocks">; "expectedGeneration": number; }, Dto2880>;
-  "restore": FunctionReference<"mutation", "public", { "revision": number; "expectedDigest": string; "id": GenericId<"syncedBlocks">; "expectedGeneration": number; }, Dto2880>;
-  "reviewPublication": FunctionReference<"query", "public", { "revision": number; "id": GenericId<"syncedBlocks">; "expectedGeneration": number; }, Dto2882>;
-  "save": FunctionReference<"mutation", "public", { "title": string; "blocks": Array<Dto1018>; "id": GenericId<"syncedBlocks">; "expectedGeneration": number; }, Dto2880>;
-  "withdraw": FunctionReference<"mutation", "public", { "id": GenericId<"syncedBlocks">; "expectedGeneration": number; }, Dto2884>;
+  "create": FunctionReference<"mutation", "public", { "title": string; "blocks": Array<Dto1018>; }, Dto2874>;
+  "get": FunctionReference<"query", "public", { "id": GenericId<"syncedBlocks">; }, Dto2875>;
+  "publish": FunctionReference<"mutation", "public", { "revision": number; "reviewDigest": string; "id": GenericId<"syncedBlocks">; "expectedGeneration": number; }, Dto2874>;
+  "restore": FunctionReference<"mutation", "public", { "revision": number; "expectedDigest": string; "id": GenericId<"syncedBlocks">; "expectedGeneration": number; }, Dto2874>;
+  "reviewPublication": FunctionReference<"query", "public", { "revision": number; "id": GenericId<"syncedBlocks">; "expectedGeneration": number; }, Dto2876>;
+  "save": FunctionReference<"mutation", "public", { "title": string; "blocks": Array<Dto1018>; "id": GenericId<"syncedBlocks">; "expectedGeneration": number; }, Dto2874>;
+  "withdraw": FunctionReference<"mutation", "public", { "id": GenericId<"syncedBlocks">; "expectedGeneration": number; }, Dto2878>;
 };
   "editor": {
-  "get": FunctionReference<"query", "public", { "id": GenericId<"syncedBlocks">; }, Dto2885>;
+  "get": FunctionReference<"query", "public", { "id": GenericId<"syncedBlocks">; }, Dto2879>;
 };
   "options": {
   "albumOptions": FunctionReference<"query", "public", { "syncedBlockId": GenericId<"syncedBlocks">; "expectedGeneration": number; "paginationOpts": Dto97; }, Dto992>;
@@ -6999,40 +6989,40 @@ export type PublicApi = {
   "termOptions": FunctionReference<"query", "public", { "taxonomy": ("category" | "tag"); "syncedBlockId": GenericId<"syncedBlocks">; "expectedGeneration": number; "paginationOpts": Dto97; }, Dto1050>;
 };
   "picker": {
-  "revisions": FunctionReference<"query", "public", { "sourceId": GenericId<"syncedBlocks">; "publishedRevision": number; "paginationOpts": Dto97; "owner": (Dto2888 | Dto2889); "expectedScope": Dto2890; }, Dto2891>;
-  "select": FunctionReference<"query", "public", { "sourceId": GenericId<"syncedBlocks">; "publishedRevision": number; "revisionPolicy": ("pinned" | "latest"); "revision": number; "owner": (Dto2888 | Dto2889); "expectedScope": Dto2890; }, Dto2893>;
-  "sources": FunctionReference<"query", "public", { "paginationOpts": Dto97; "owner": (Dto2888 | Dto2889); "expectedScope": Dto2890; }, Dto2894>;
+  "revisions": FunctionReference<"query", "public", { "sourceId": GenericId<"syncedBlocks">; "publishedRevision": number; "paginationOpts": Dto97; "owner": (Dto2882 | Dto2883); "expectedScope": Dto2884; }, Dto2885>;
+  "select": FunctionReference<"query", "public", { "sourceId": GenericId<"syncedBlocks">; "publishedRevision": number; "revisionPolicy": ("pinned" | "latest"); "revision": number; "owner": (Dto2882 | Dto2883); "expectedScope": Dto2884; }, Dto2887>;
+  "sources": FunctionReference<"query", "public", { "paginationOpts": Dto97; "owner": (Dto2882 | Dto2883); "expectedScope": Dto2884; }, Dto2888>;
 };
   "queries": {
-  "head": FunctionReference<"query", "public", { "id": GenericId<"syncedBlocks">; }, Dto2896>;
-  "list": FunctionReference<"query", "public", { "paginationOpts": Dto97; }, Dto2897>;
-  "publishedOptions": FunctionReference<"query", "public", { "paginationOpts": Dto97; }, Dto2899>;
-  "revision": FunctionReference<"query", "public", { "id": GenericId<"syncedBlocks">; "revision": number; }, (Dto2901 | Dto2902)>;
-  "revisions": FunctionReference<"query", "public", { "id": GenericId<"syncedBlocks">; "paginationOpts": Dto97; }, Dto2903>;
+  "head": FunctionReference<"query", "public", { "id": GenericId<"syncedBlocks">; }, Dto2890>;
+  "list": FunctionReference<"query", "public", { "paginationOpts": Dto97; }, Dto2891>;
+  "publishedOptions": FunctionReference<"query", "public", { "paginationOpts": Dto97; }, Dto2893>;
+  "revision": FunctionReference<"query", "public", { "id": GenericId<"syncedBlocks">; "revision": number; }, (Dto2895 | Dto2896)>;
+  "revisions": FunctionReference<"query", "public", { "id": GenericId<"syncedBlocks">; "paginationOpts": Dto97; }, Dto2897>;
 };
   "refresh": {
-  "retry": FunctionReference<"mutation", "public", { "id": GenericId<"syncedBlocks">; "jobId": GenericId<"syncedBlockRefreshJobs">; "expectedAttempt": number; }, Dto2905>;
-  "start": FunctionReference<"mutation", "public", { "id": GenericId<"syncedBlocks">; "expectedGeneration": number; }, Dto2906>;
-  "status": FunctionReference<"query", "public", { "id": GenericId<"syncedBlocks">; }, (null | Dto2907)>;
+  "retry": FunctionReference<"mutation", "public", { "id": GenericId<"syncedBlocks">; "jobId": GenericId<"syncedBlockRefreshJobs">; "expectedAttempt": number; }, Dto2899>;
+  "start": FunctionReference<"mutation", "public", { "id": GenericId<"syncedBlocks">; "expectedGeneration": number; }, Dto2900>;
+  "status": FunctionReference<"query", "public", { "id": GenericId<"syncedBlocks">; }, (null | Dto2901)>;
 };
 };
   "syncedBlocks/consumerIndex": {
-  "begin": FunctionReference<"mutation", "public", {  }, Dto2878>;
-  "blockedDocument": FunctionReference<"query", "public", {  }, (null | Dto2879)>;
-  "status": FunctionReference<"query", "public", {  }, Dto2878>;
-  "step": FunctionReference<"mutation", "public", { "generation": string; "expectedSequence": number; }, Dto2878>;
+  "begin": FunctionReference<"mutation", "public", {  }, Dto2872>;
+  "blockedDocument": FunctionReference<"query", "public", {  }, (null | Dto2873)>;
+  "status": FunctionReference<"query", "public", {  }, Dto2872>;
+  "step": FunctionReference<"mutation", "public", { "generation": string; "expectedSequence": number; }, Dto2872>;
 };
   "syncedBlocks/content": {
-  "create": FunctionReference<"mutation", "public", { "title": string; "blocks": Array<Dto1018>; }, Dto2880>;
-  "get": FunctionReference<"query", "public", { "id": GenericId<"syncedBlocks">; }, Dto2881>;
-  "publish": FunctionReference<"mutation", "public", { "revision": number; "reviewDigest": string; "id": GenericId<"syncedBlocks">; "expectedGeneration": number; }, Dto2880>;
-  "restore": FunctionReference<"mutation", "public", { "revision": number; "expectedDigest": string; "id": GenericId<"syncedBlocks">; "expectedGeneration": number; }, Dto2880>;
-  "reviewPublication": FunctionReference<"query", "public", { "revision": number; "id": GenericId<"syncedBlocks">; "expectedGeneration": number; }, Dto2882>;
-  "save": FunctionReference<"mutation", "public", { "title": string; "blocks": Array<Dto1018>; "id": GenericId<"syncedBlocks">; "expectedGeneration": number; }, Dto2880>;
-  "withdraw": FunctionReference<"mutation", "public", { "id": GenericId<"syncedBlocks">; "expectedGeneration": number; }, Dto2884>;
+  "create": FunctionReference<"mutation", "public", { "title": string; "blocks": Array<Dto1018>; }, Dto2874>;
+  "get": FunctionReference<"query", "public", { "id": GenericId<"syncedBlocks">; }, Dto2875>;
+  "publish": FunctionReference<"mutation", "public", { "revision": number; "reviewDigest": string; "id": GenericId<"syncedBlocks">; "expectedGeneration": number; }, Dto2874>;
+  "restore": FunctionReference<"mutation", "public", { "revision": number; "expectedDigest": string; "id": GenericId<"syncedBlocks">; "expectedGeneration": number; }, Dto2874>;
+  "reviewPublication": FunctionReference<"query", "public", { "revision": number; "id": GenericId<"syncedBlocks">; "expectedGeneration": number; }, Dto2876>;
+  "save": FunctionReference<"mutation", "public", { "title": string; "blocks": Array<Dto1018>; "id": GenericId<"syncedBlocks">; "expectedGeneration": number; }, Dto2874>;
+  "withdraw": FunctionReference<"mutation", "public", { "id": GenericId<"syncedBlocks">; "expectedGeneration": number; }, Dto2878>;
 };
   "syncedBlocks/editor": {
-  "get": FunctionReference<"query", "public", { "id": GenericId<"syncedBlocks">; }, Dto2885>;
+  "get": FunctionReference<"query", "public", { "id": GenericId<"syncedBlocks">; }, Dto2879>;
 };
   "syncedBlocks/options": {
   "albumOptions": FunctionReference<"query", "public", { "syncedBlockId": GenericId<"syncedBlocks">; "expectedGeneration": number; "paginationOpts": Dto97; }, Dto992>;
@@ -7054,69 +7044,69 @@ export type PublicApi = {
   "termOptions": FunctionReference<"query", "public", { "taxonomy": ("category" | "tag"); "syncedBlockId": GenericId<"syncedBlocks">; "expectedGeneration": number; "paginationOpts": Dto97; }, Dto1050>;
 };
   "syncedBlocks/picker": {
-  "revisions": FunctionReference<"query", "public", { "sourceId": GenericId<"syncedBlocks">; "publishedRevision": number; "paginationOpts": Dto97; "owner": (Dto2888 | Dto2889); "expectedScope": Dto2890; }, Dto2891>;
-  "select": FunctionReference<"query", "public", { "sourceId": GenericId<"syncedBlocks">; "publishedRevision": number; "revisionPolicy": ("pinned" | "latest"); "revision": number; "owner": (Dto2888 | Dto2889); "expectedScope": Dto2890; }, Dto2893>;
-  "sources": FunctionReference<"query", "public", { "paginationOpts": Dto97; "owner": (Dto2888 | Dto2889); "expectedScope": Dto2890; }, Dto2894>;
+  "revisions": FunctionReference<"query", "public", { "sourceId": GenericId<"syncedBlocks">; "publishedRevision": number; "paginationOpts": Dto97; "owner": (Dto2882 | Dto2883); "expectedScope": Dto2884; }, Dto2885>;
+  "select": FunctionReference<"query", "public", { "sourceId": GenericId<"syncedBlocks">; "publishedRevision": number; "revisionPolicy": ("pinned" | "latest"); "revision": number; "owner": (Dto2882 | Dto2883); "expectedScope": Dto2884; }, Dto2887>;
+  "sources": FunctionReference<"query", "public", { "paginationOpts": Dto97; "owner": (Dto2882 | Dto2883); "expectedScope": Dto2884; }, Dto2888>;
 };
   "syncedBlocks/queries": {
-  "head": FunctionReference<"query", "public", { "id": GenericId<"syncedBlocks">; }, Dto2896>;
-  "list": FunctionReference<"query", "public", { "paginationOpts": Dto97; }, Dto2897>;
-  "publishedOptions": FunctionReference<"query", "public", { "paginationOpts": Dto97; }, Dto2899>;
-  "revision": FunctionReference<"query", "public", { "id": GenericId<"syncedBlocks">; "revision": number; }, (Dto2901 | Dto2902)>;
-  "revisions": FunctionReference<"query", "public", { "id": GenericId<"syncedBlocks">; "paginationOpts": Dto97; }, Dto2903>;
+  "head": FunctionReference<"query", "public", { "id": GenericId<"syncedBlocks">; }, Dto2890>;
+  "list": FunctionReference<"query", "public", { "paginationOpts": Dto97; }, Dto2891>;
+  "publishedOptions": FunctionReference<"query", "public", { "paginationOpts": Dto97; }, Dto2893>;
+  "revision": FunctionReference<"query", "public", { "id": GenericId<"syncedBlocks">; "revision": number; }, (Dto2895 | Dto2896)>;
+  "revisions": FunctionReference<"query", "public", { "id": GenericId<"syncedBlocks">; "paginationOpts": Dto97; }, Dto2897>;
 };
   "syncedBlocks/refresh": {
-  "retry": FunctionReference<"mutation", "public", { "id": GenericId<"syncedBlocks">; "jobId": GenericId<"syncedBlockRefreshJobs">; "expectedAttempt": number; }, Dto2905>;
-  "start": FunctionReference<"mutation", "public", { "id": GenericId<"syncedBlocks">; "expectedGeneration": number; }, Dto2906>;
-  "status": FunctionReference<"query", "public", { "id": GenericId<"syncedBlocks">; }, (null | Dto2907)>;
+  "retry": FunctionReference<"mutation", "public", { "id": GenericId<"syncedBlocks">; "jobId": GenericId<"syncedBlockRefreshJobs">; "expectedAttempt": number; }, Dto2899>;
+  "start": FunctionReference<"mutation", "public", { "id": GenericId<"syncedBlocks">; "expectedGeneration": number; }, Dto2900>;
+  "status": FunctionReference<"query", "public", { "id": GenericId<"syncedBlocks">; }, (null | Dto2901)>;
 };
   "taxonomies": {
   "mutations": {
-  "assign": FunctionReference<"mutation", "public", { "postId": GenericId<"posts">; "termId": GenericId<"terms">; }, Dto2912>;
+  "assign": FunctionReference<"mutation", "public", { "postId": GenericId<"posts">; "termId": GenericId<"terms">; }, Dto2906>;
   "createCategory": FunctionReference<"mutation", "public", { "name": string; "slug"?: (undefined | string); "parentId"?: (undefined | GenericId<"terms">); "description"?: (undefined | string); }, GenericId<"terms">>;
   "createTag": FunctionReference<"mutation", "public", { "name": string; "slug"?: (undefined | string); "description"?: (undefined | string); }, GenericId<"terms">>;
-  "deleteCategory": FunctionReference<"mutation", "public", { "termId": GenericId<"terms">; }, Dto2913>;
-  "deleteTag": FunctionReference<"mutation", "public", { "termId": GenericId<"terms">; }, Dto2914>;
-  "merge": FunctionReference<"mutation", "public", { "sourceTermId": GenericId<"terms">; "targetTermId": GenericId<"terms">; }, Dto2915>;
-  "unassign": FunctionReference<"mutation", "public", { "postId": GenericId<"posts">; "termId": GenericId<"terms">; }, Dto2916>;
+  "deleteCategory": FunctionReference<"mutation", "public", { "termId": GenericId<"terms">; }, Dto2907>;
+  "deleteTag": FunctionReference<"mutation", "public", { "termId": GenericId<"terms">; }, Dto2908>;
+  "merge": FunctionReference<"mutation", "public", { "sourceTermId": GenericId<"terms">; "targetTermId": GenericId<"terms">; }, Dto2909>;
+  "unassign": FunctionReference<"mutation", "public", { "postId": GenericId<"posts">; "termId": GenericId<"terms">; }, Dto2910>;
   "updateCategory": FunctionReference<"mutation", "public", { "termId": GenericId<"terms">; "name"?: (undefined | string); "slug"?: (undefined | string); "parentId"?: (undefined | null | GenericId<"terms">); "description"?: (undefined | string); }, (null | Dto1832)>;
   "updateTag": FunctionReference<"mutation", "public", { "termId": GenericId<"terms">; "name"?: (undefined | string); "slug"?: (undefined | string); "description"?: (undefined | string); }, (null | Dto1832)>;
 };
   "queries": {
-  "counts": FunctionReference<"query", "public", {  }, Dto2917>;
-  "getByPost": FunctionReference<"query", "public", { "postId": GenericId<"posts">; "taxonomy"?: (undefined | "category" | "post_tag"); }, Dto2918>;
-  "getCategoryTree": FunctionReference<"query", "public", {  }, Dto2921>;
-  "list": FunctionReference<"query", "public", { "taxonomy"?: (undefined | "category" | "post_tag"); "parentId"?: (undefined | GenericId<"terms">); "search"?: (undefined | string); "orderBy"?: (undefined | "name" | "createdAt" | "slug" | "count"); "orderDir"?: (undefined | "asc" | "desc"); "page"?: (undefined | number); "perPage"?: (undefined | number); "hideEmpty"?: (undefined | false | true); }, Dto2922>;
+  "counts": FunctionReference<"query", "public", {  }, Dto2911>;
+  "getByPost": FunctionReference<"query", "public", { "postId": GenericId<"posts">; "taxonomy"?: (undefined | "category" | "post_tag"); }, Dto2912>;
+  "getCategoryTree": FunctionReference<"query", "public", {  }, Dto2915>;
+  "list": FunctionReference<"query", "public", { "taxonomy"?: (undefined | "category" | "post_tag"); "parentId"?: (undefined | GenericId<"terms">); "search"?: (undefined | string); "orderBy"?: (undefined | "name" | "createdAt" | "slug" | "count"); "orderDir"?: (undefined | "asc" | "desc"); "page"?: (undefined | number); "perPage"?: (undefined | number); "hideEmpty"?: (undefined | false | true); }, Dto2916>;
 };
 };
   "taxonomies/mutations": {
-  "assign": FunctionReference<"mutation", "public", { "postId": GenericId<"posts">; "termId": GenericId<"terms">; }, Dto2912>;
+  "assign": FunctionReference<"mutation", "public", { "postId": GenericId<"posts">; "termId": GenericId<"terms">; }, Dto2906>;
   "createCategory": FunctionReference<"mutation", "public", { "name": string; "slug"?: (undefined | string); "parentId"?: (undefined | GenericId<"terms">); "description"?: (undefined | string); }, GenericId<"terms">>;
   "createTag": FunctionReference<"mutation", "public", { "name": string; "slug"?: (undefined | string); "description"?: (undefined | string); }, GenericId<"terms">>;
-  "deleteCategory": FunctionReference<"mutation", "public", { "termId": GenericId<"terms">; }, Dto2913>;
-  "deleteTag": FunctionReference<"mutation", "public", { "termId": GenericId<"terms">; }, Dto2914>;
-  "merge": FunctionReference<"mutation", "public", { "sourceTermId": GenericId<"terms">; "targetTermId": GenericId<"terms">; }, Dto2915>;
-  "unassign": FunctionReference<"mutation", "public", { "postId": GenericId<"posts">; "termId": GenericId<"terms">; }, Dto2916>;
+  "deleteCategory": FunctionReference<"mutation", "public", { "termId": GenericId<"terms">; }, Dto2907>;
+  "deleteTag": FunctionReference<"mutation", "public", { "termId": GenericId<"terms">; }, Dto2908>;
+  "merge": FunctionReference<"mutation", "public", { "sourceTermId": GenericId<"terms">; "targetTermId": GenericId<"terms">; }, Dto2909>;
+  "unassign": FunctionReference<"mutation", "public", { "postId": GenericId<"posts">; "termId": GenericId<"terms">; }, Dto2910>;
   "updateCategory": FunctionReference<"mutation", "public", { "termId": GenericId<"terms">; "name"?: (undefined | string); "slug"?: (undefined | string); "parentId"?: (undefined | null | GenericId<"terms">); "description"?: (undefined | string); }, (null | Dto1832)>;
   "updateTag": FunctionReference<"mutation", "public", { "termId": GenericId<"terms">; "name"?: (undefined | string); "slug"?: (undefined | string); "description"?: (undefined | string); }, (null | Dto1832)>;
 };
   "taxonomies/queries": {
-  "counts": FunctionReference<"query", "public", {  }, Dto2917>;
-  "getByPost": FunctionReference<"query", "public", { "postId": GenericId<"posts">; "taxonomy"?: (undefined | "category" | "post_tag"); }, Dto2918>;
-  "getCategoryTree": FunctionReference<"query", "public", {  }, Dto2921>;
-  "list": FunctionReference<"query", "public", { "taxonomy"?: (undefined | "category" | "post_tag"); "parentId"?: (undefined | GenericId<"terms">); "search"?: (undefined | string); "orderBy"?: (undefined | "name" | "createdAt" | "slug" | "count"); "orderDir"?: (undefined | "asc" | "desc"); "page"?: (undefined | number); "perPage"?: (undefined | number); "hideEmpty"?: (undefined | false | true); }, Dto2922>;
+  "counts": FunctionReference<"query", "public", {  }, Dto2911>;
+  "getByPost": FunctionReference<"query", "public", { "postId": GenericId<"posts">; "taxonomy"?: (undefined | "category" | "post_tag"); }, Dto2912>;
+  "getCategoryTree": FunctionReference<"query", "public", {  }, Dto2915>;
+  "list": FunctionReference<"query", "public", { "taxonomy"?: (undefined | "category" | "post_tag"); "parentId"?: (undefined | GenericId<"terms">); "search"?: (undefined | string); "orderBy"?: (undefined | "name" | "createdAt" | "slug" | "count"); "orderDir"?: (undefined | "asc" | "desc"); "page"?: (undefined | number); "perPage"?: (undefined | number); "hideEmpty"?: (undefined | false | true); }, Dto2916>;
 };
   "taxonomyArchives": {
-  "tag": FunctionReference<"query", "public", { "slug": string; "instanceKey": string; "cursor"?: (undefined | string); "refreshKey"?: (undefined | string); }, (null | Dto2924)>;
+  "tag": FunctionReference<"query", "public", { "slug": string; "instanceKey": string; "cursor"?: (undefined | string); "refreshKey"?: (undefined | string); }, (null | Dto2918)>;
 };
   "tickets": {
   "attachments": {
-  "generateUploadUrl": FunctionReference<"mutation", "public", { "name": string; "mimeType": string; "size": number; }, Dto2929>;
-  "getAttachmentLimits": FunctionReference<"query", "public", {  }, Dto2930>;
+  "generateUploadUrl": FunctionReference<"mutation", "public", { "name": string; "mimeType": string; "size": number; }, Dto2923>;
+  "getAttachmentLimits": FunctionReference<"query", "public", {  }, Dto2924>;
 };
   "cannedResponses": {
-  "applyTemplate": FunctionReference<"mutation", "public", { "id": GenericId<"ticket_cannedResponses">; "ticketId": GenericId<"ticket_tickets">; }, Dto2931>;
-  "create": FunctionReference<"mutation", "public", { "title": string; "shortcut": string; "content": string; "category": string; }, Dto2932>;
+  "applyTemplate": FunctionReference<"mutation", "public", { "id": GenericId<"ticket_cannedResponses">; "ticketId": GenericId<"ticket_tickets">; }, Dto2925>;
+  "create": FunctionReference<"mutation", "public", { "title": string; "shortcut": string; "content": string; "category": string; }, Dto2926>;
   "getByShortcut": FunctionReference<"query", "public", { "shortcut": string; }, (null | Dto2042)>;
   "getCategories": FunctionReference<"query", "public", {  }, (null | Array<string>)>;
   "incrementUsage": FunctionReference<"mutation", "public", { "id": GenericId<"ticket_cannedResponses">; }, null>;
@@ -7124,69 +7114,69 @@ export type PublicApi = {
   "listByCategory": FunctionReference<"query", "public", { "category": string; }, (null | Array<Dto2042>)>;
   "remove": FunctionReference<"mutation", "public", { "id": GenericId<"ticket_cannedResponses">; }, null>;
   "search": FunctionReference<"query", "public", { "query": string; "category"?: (undefined | string); }, (null | Array<Dto2042>)>;
-  "update": FunctionReference<"mutation", "public", { "id": GenericId<"ticket_cannedResponses">; "title"?: (undefined | string); "shortcut"?: (undefined | string); "content"?: (undefined | string); "category"?: (undefined | string); }, Dto2933>;
+  "update": FunctionReference<"mutation", "public", { "id": GenericId<"ticket_cannedResponses">; "title"?: (undefined | string); "shortcut"?: (undefined | string); "content"?: (undefined | string); "category"?: (undefined | string); }, Dto2927>;
 };
   "messages": {
-  "addInternalNote": FunctionReference<"mutation", "public", { "ticketId": GenericId<"ticket_tickets">; "content": string; "attachments"?: (undefined | Array<Dto2040>); }, Dto2936>;
-  "edit": FunctionReference<"mutation", "public", { "messageId": GenericId<"ticket_messages">; "content": string; }, Dto2938>;
+  "addInternalNote": FunctionReference<"mutation", "public", { "ticketId": GenericId<"ticket_tickets">; "content": string; "attachments"?: (undefined | Array<Dto2040>); }, Dto2930>;
+  "edit": FunctionReference<"mutation", "public", { "messageId": GenericId<"ticket_messages">; "content": string; }, Dto2932>;
   "getByTicket": FunctionReference<"query", "public", { "ticketId": GenericId<"ticket_tickets">; }, (null | Array<Dto2039>)>;
-  "getCount": FunctionReference<"query", "public", { "ticketId": GenericId<"ticket_tickets">; }, (null | Dto2939)>;
+  "getCount": FunctionReference<"query", "public", { "ticketId": GenericId<"ticket_tickets">; }, (null | Dto2933)>;
   "getPublicByTicket": FunctionReference<"query", "public", { "ticketId": GenericId<"ticket_tickets">; }, (null | Array<Dto2039>)>;
-  "remove": FunctionReference<"mutation", "public", { "messageId": GenericId<"ticket_messages">; }, Dto2940>;
+  "remove": FunctionReference<"mutation", "public", { "messageId": GenericId<"ticket_messages">; }, Dto2934>;
 };
   "mutations": {
   "addTags": FunctionReference<"mutation", "public", { "ticketId": GenericId<"ticket_tickets">; "tags": Array<string>; }, null>;
-  "adminReply": FunctionReference<"mutation", "public", { "ticketId": GenericId<"ticket_tickets">; "content": string; "isInternal"?: (undefined | false | true); "attachments"?: (undefined | Array<Dto2040>); }, Dto2941>;
+  "adminReply": FunctionReference<"mutation", "public", { "ticketId": GenericId<"ticket_tickets">; "content": string; "isInternal"?: (undefined | false | true); "attachments"?: (undefined | Array<Dto2040>); }, Dto2935>;
   "assign": FunctionReference<"mutation", "public", { "ticketId": GenericId<"ticket_tickets">; "assigneeId": GenericId<"users">; }, null>;
   "close": FunctionReference<"mutation", "public", { "ticketId": GenericId<"ticket_tickets">; }, null>;
-  "create": FunctionReference<"mutation", "public", { "subject": string; "description": string; "category": ("general" | "other" | "billing" | "technical" | "account" | "featureRequest"); "priority"?: (undefined | "high" | "medium" | "low" | "urgent"); "source"?: (undefined | "email" | "dashboard" | "api" | "widget"); "tags"?: (undefined | Array<string>); "aiAttempted"?: (undefined | false | true); "aiQuery"?: (undefined | string); "aiResponse"?: (undefined | string); "kbArticlesShown"?: (undefined | Array<string>); "attachments"?: (undefined | Array<Dto2040>); }, Dto2942>;
-  "markReadByCustomer": FunctionReference<"mutation", "public", { "ticketId": GenericId<"ticket_tickets">; }, Dto2943>;
+  "create": FunctionReference<"mutation", "public", { "subject": string; "description": string; "category": ("general" | "other" | "billing" | "technical" | "account" | "featureRequest"); "priority"?: (undefined | "high" | "medium" | "low" | "urgent"); "source"?: (undefined | "email" | "dashboard" | "api" | "widget"); "tags"?: (undefined | Array<string>); "aiAttempted"?: (undefined | false | true); "aiQuery"?: (undefined | string); "aiResponse"?: (undefined | string); "kbArticlesShown"?: (undefined | Array<string>); "attachments"?: (undefined | Array<Dto2040>); }, Dto2936>;
+  "markReadByCustomer": FunctionReference<"mutation", "public", { "ticketId": GenericId<"ticket_tickets">; }, Dto2937>;
   "rate": FunctionReference<"mutation", "public", { "ticketId": GenericId<"ticket_tickets">; "rating": number; "comment"?: (undefined | string); }, null>;
   "removeTags": FunctionReference<"mutation", "public", { "ticketId": GenericId<"ticket_tickets">; "tags": Array<string>; }, null>;
   "reopen": FunctionReference<"mutation", "public", { "ticketId": GenericId<"ticket_tickets">; }, null>;
-  "reply": FunctionReference<"mutation", "public", { "ticketId": GenericId<"ticket_tickets">; "content": string; "attachments"?: (undefined | Array<Dto2040>); }, Dto2944>;
-  "resolveByCustomer": FunctionReference<"mutation", "public", { "ticketId": GenericId<"ticket_tickets">; }, Dto2945>;
+  "reply": FunctionReference<"mutation", "public", { "ticketId": GenericId<"ticket_tickets">; "content": string; "attachments"?: (undefined | Array<Dto2040>); }, Dto2938>;
+  "resolveByCustomer": FunctionReference<"mutation", "public", { "ticketId": GenericId<"ticket_tickets">; }, Dto2939>;
   "unassign": FunctionReference<"mutation", "public", { "ticketId": GenericId<"ticket_tickets">; }, null>;
   "updatePriority": FunctionReference<"mutation", "public", { "ticketId": GenericId<"ticket_tickets">; "priority": ("high" | "medium" | "low" | "urgent"); }, null>;
   "updateStatus": FunctionReference<"mutation", "public", { "ticketId": GenericId<"ticket_tickets">; "status": ("open" | "closed" | "resolved" | "inProgress" | "awaitingResponse"); }, null>;
 };
   "queries": {
-  "getAwaitingFirstResponse": FunctionReference<"query", "public", { "limit"?: (undefined | number); }, (null | Array<Dto2946>)>;
+  "getAwaitingFirstResponse": FunctionReference<"query", "public", { "limit"?: (undefined | number); }, (null | Array<Dto2940>)>;
   "getById": FunctionReference<"query", "public", { "ticketId": GenericId<"ticket_tickets">; }, (null | Dto1866)>;
   "getByTicketNumber": FunctionReference<"query", "public", { "ticketNumber": string; }, (null | Dto1866)>;
-  "getCustomerCategories": FunctionReference<"query", "public", {  }, (null | Dto2947)>;
-  "getMyTickets": FunctionReference<"query", "public", { "paginationOpts": Dto97; "status"?: (undefined | "open" | "closed" | "resolved" | "inProgress" | "awaitingResponse"); }, Dto2949>;
-  "getMyTicketsOverview": FunctionReference<"query", "public", { "limit"?: (undefined | number); }, Dto2951>;
+  "getCustomerCategories": FunctionReference<"query", "public", {  }, (null | Dto2941)>;
+  "getMyTickets": FunctionReference<"query", "public", { "paginationOpts": Dto97; "status"?: (undefined | "open" | "closed" | "resolved" | "inProgress" | "awaitingResponse"); }, Dto2943>;
+  "getMyTicketsOverview": FunctionReference<"query", "public", { "limit"?: (undefined | number); }, Dto2945>;
   "getMyTicketThread": FunctionReference<"query", "public", { "ticketNumber": string; }, (null | Dto108)>;
-  "getQueue": FunctionReference<"query", "public", { "status"?: (undefined | "open" | "closed" | "resolved" | "inProgress" | "awaitingResponse"); "priority"?: (undefined | "high" | "medium" | "low" | "urgent"); "category"?: (undefined | "general" | "other" | "billing" | "technical" | "account" | "featureRequest"); "assignedTo"?: (undefined | GenericId<"users">); "unassigned"?: (undefined | false | true); "search"?: (undefined | string); "orderBy"?: (undefined | "updatedAt" | "createdAt" | "priority" | "lastMessageAt"); "orderDir"?: (undefined | "asc" | "desc"); "page"?: (undefined | number); "perPage"?: (undefined | number); }, (null | Dto2953)>;
-  "getRecent": FunctionReference<"query", "public", { "limit"?: (undefined | number); }, (null | Array<Dto2955>)>;
-  "getStats": FunctionReference<"query", "public", {  }, (null | Dto2956)>;
-  "getTicketWithReplies": FunctionReference<"query", "public", { "ticketId": GenericId<"ticket_tickets">; "includeInternal"?: (undefined | false | true); }, (null | Dto2957)>;
+  "getQueue": FunctionReference<"query", "public", { "status"?: (undefined | "open" | "closed" | "resolved" | "inProgress" | "awaitingResponse"); "priority"?: (undefined | "high" | "medium" | "low" | "urgent"); "category"?: (undefined | "general" | "other" | "billing" | "technical" | "account" | "featureRequest"); "assignedTo"?: (undefined | GenericId<"users">); "unassigned"?: (undefined | false | true); "search"?: (undefined | string); "orderBy"?: (undefined | "updatedAt" | "createdAt" | "priority" | "lastMessageAt"); "orderDir"?: (undefined | "asc" | "desc"); "page"?: (undefined | number); "perPage"?: (undefined | number); }, (null | Dto2947)>;
+  "getRecent": FunctionReference<"query", "public", { "limit"?: (undefined | number); }, (null | Array<Dto2949>)>;
+  "getStats": FunctionReference<"query", "public", {  }, (null | Dto2950)>;
+  "getTicketWithReplies": FunctionReference<"query", "public", { "ticketId": GenericId<"ticket_tickets">; "includeInternal"?: (undefined | false | true); }, (null | Dto2951)>;
 };
   "rateLimit": {
-  "checkAndRecord": FunctionReference<"mutation", "public", { "sessionId": string; "action": ("search" | "aiQuery" | "ticketCreate"); "userId"?: (undefined | string); }, (Dto2959 | Dto2960)>;
-  "getGlobalStats": FunctionReference<"query", "public", {  }, (null | Dto2962)>;
-  "getStatus": FunctionReference<"query", "public", { "sessionId": string; "action": ("search" | "aiQuery" | "ticketCreate"); }, (null | Dto2964)>;
+  "checkAndRecord": FunctionReference<"mutation", "public", { "sessionId": string; "action": ("search" | "aiQuery" | "ticketCreate"); "userId"?: (undefined | string); }, (Dto2953 | Dto2954)>;
+  "getGlobalStats": FunctionReference<"query", "public", {  }, (null | Dto2956)>;
+  "getStatus": FunctionReference<"query", "public", { "sessionId": string; "action": ("search" | "aiQuery" | "ticketCreate"); }, (null | Dto2958)>;
 };
   "sessions": {
   "associateUser": FunctionReference<"mutation", "public", { "sessionId": string; "userId": GenericId<"users">; }, null>;
-  "create": FunctionReference<"mutation", "public", { "sessionId": string; }, Dto2966>;
+  "create": FunctionReference<"mutation", "public", { "sessionId": string; }, Dto2960>;
   "invalidate": FunctionReference<"mutation", "public", { "sessionId": string; }, null>;
   "touch": FunctionReference<"mutation", "public", { "sessionId": string; }, null>;
-  "validate": FunctionReference<"query", "public", { "sessionId": string; }, (null | Dto2967 | Dto2968)>;
+  "validate": FunctionReference<"query", "public", { "sessionId": string; }, (null | Dto2961 | Dto2962)>;
 };
   "settings": {
-  "getTicketSettings": FunctionReference<"query", "public", {  }, (null | Dto2969)>;
-  "updateTicketSettings": FunctionReference<"mutation", "public", { "general"?: (undefined | Dto2973); "sla"?: (undefined | Dto2975); }, Dto2976>;
+  "getTicketSettings": FunctionReference<"query", "public", {  }, (null | Dto2963)>;
+  "updateTicketSettings": FunctionReference<"mutation", "public", { "general"?: (undefined | Dto2967); "sla"?: (undefined | Dto2969); }, Dto2970>;
 };
 };
   "tickets/attachments": {
-  "generateUploadUrl": FunctionReference<"mutation", "public", { "name": string; "mimeType": string; "size": number; }, Dto2929>;
-  "getAttachmentLimits": FunctionReference<"query", "public", {  }, Dto2930>;
+  "generateUploadUrl": FunctionReference<"mutation", "public", { "name": string; "mimeType": string; "size": number; }, Dto2923>;
+  "getAttachmentLimits": FunctionReference<"query", "public", {  }, Dto2924>;
 };
   "tickets/cannedResponses": {
-  "applyTemplate": FunctionReference<"mutation", "public", { "id": GenericId<"ticket_cannedResponses">; "ticketId": GenericId<"ticket_tickets">; }, Dto2931>;
-  "create": FunctionReference<"mutation", "public", { "title": string; "shortcut": string; "content": string; "category": string; }, Dto2932>;
+  "applyTemplate": FunctionReference<"mutation", "public", { "id": GenericId<"ticket_cannedResponses">; "ticketId": GenericId<"ticket_tickets">; }, Dto2925>;
+  "create": FunctionReference<"mutation", "public", { "title": string; "shortcut": string; "content": string; "category": string; }, Dto2926>;
   "getByShortcut": FunctionReference<"query", "public", { "shortcut": string; }, (null | Dto2042)>;
   "getCategories": FunctionReference<"query", "public", {  }, (null | Array<string>)>;
   "incrementUsage": FunctionReference<"mutation", "public", { "id": GenericId<"ticket_cannedResponses">; }, null>;
@@ -7194,83 +7184,83 @@ export type PublicApi = {
   "listByCategory": FunctionReference<"query", "public", { "category": string; }, (null | Array<Dto2042>)>;
   "remove": FunctionReference<"mutation", "public", { "id": GenericId<"ticket_cannedResponses">; }, null>;
   "search": FunctionReference<"query", "public", { "query": string; "category"?: (undefined | string); }, (null | Array<Dto2042>)>;
-  "update": FunctionReference<"mutation", "public", { "id": GenericId<"ticket_cannedResponses">; "title"?: (undefined | string); "shortcut"?: (undefined | string); "content"?: (undefined | string); "category"?: (undefined | string); }, Dto2933>;
+  "update": FunctionReference<"mutation", "public", { "id": GenericId<"ticket_cannedResponses">; "title"?: (undefined | string); "shortcut"?: (undefined | string); "content"?: (undefined | string); "category"?: (undefined | string); }, Dto2927>;
 };
   "tickets/messages": {
-  "addInternalNote": FunctionReference<"mutation", "public", { "ticketId": GenericId<"ticket_tickets">; "content": string; "attachments"?: (undefined | Array<Dto2040>); }, Dto2936>;
-  "edit": FunctionReference<"mutation", "public", { "messageId": GenericId<"ticket_messages">; "content": string; }, Dto2938>;
+  "addInternalNote": FunctionReference<"mutation", "public", { "ticketId": GenericId<"ticket_tickets">; "content": string; "attachments"?: (undefined | Array<Dto2040>); }, Dto2930>;
+  "edit": FunctionReference<"mutation", "public", { "messageId": GenericId<"ticket_messages">; "content": string; }, Dto2932>;
   "getByTicket": FunctionReference<"query", "public", { "ticketId": GenericId<"ticket_tickets">; }, (null | Array<Dto2039>)>;
-  "getCount": FunctionReference<"query", "public", { "ticketId": GenericId<"ticket_tickets">; }, (null | Dto2939)>;
+  "getCount": FunctionReference<"query", "public", { "ticketId": GenericId<"ticket_tickets">; }, (null | Dto2933)>;
   "getPublicByTicket": FunctionReference<"query", "public", { "ticketId": GenericId<"ticket_tickets">; }, (null | Array<Dto2039>)>;
-  "remove": FunctionReference<"mutation", "public", { "messageId": GenericId<"ticket_messages">; }, Dto2940>;
+  "remove": FunctionReference<"mutation", "public", { "messageId": GenericId<"ticket_messages">; }, Dto2934>;
 };
   "tickets/mutations": {
   "addTags": FunctionReference<"mutation", "public", { "ticketId": GenericId<"ticket_tickets">; "tags": Array<string>; }, null>;
-  "adminReply": FunctionReference<"mutation", "public", { "ticketId": GenericId<"ticket_tickets">; "content": string; "isInternal"?: (undefined | false | true); "attachments"?: (undefined | Array<Dto2040>); }, Dto2941>;
+  "adminReply": FunctionReference<"mutation", "public", { "ticketId": GenericId<"ticket_tickets">; "content": string; "isInternal"?: (undefined | false | true); "attachments"?: (undefined | Array<Dto2040>); }, Dto2935>;
   "assign": FunctionReference<"mutation", "public", { "ticketId": GenericId<"ticket_tickets">; "assigneeId": GenericId<"users">; }, null>;
   "close": FunctionReference<"mutation", "public", { "ticketId": GenericId<"ticket_tickets">; }, null>;
-  "create": FunctionReference<"mutation", "public", { "subject": string; "description": string; "category": ("general" | "other" | "billing" | "technical" | "account" | "featureRequest"); "priority"?: (undefined | "high" | "medium" | "low" | "urgent"); "source"?: (undefined | "email" | "dashboard" | "api" | "widget"); "tags"?: (undefined | Array<string>); "aiAttempted"?: (undefined | false | true); "aiQuery"?: (undefined | string); "aiResponse"?: (undefined | string); "kbArticlesShown"?: (undefined | Array<string>); "attachments"?: (undefined | Array<Dto2040>); }, Dto2942>;
-  "markReadByCustomer": FunctionReference<"mutation", "public", { "ticketId": GenericId<"ticket_tickets">; }, Dto2943>;
+  "create": FunctionReference<"mutation", "public", { "subject": string; "description": string; "category": ("general" | "other" | "billing" | "technical" | "account" | "featureRequest"); "priority"?: (undefined | "high" | "medium" | "low" | "urgent"); "source"?: (undefined | "email" | "dashboard" | "api" | "widget"); "tags"?: (undefined | Array<string>); "aiAttempted"?: (undefined | false | true); "aiQuery"?: (undefined | string); "aiResponse"?: (undefined | string); "kbArticlesShown"?: (undefined | Array<string>); "attachments"?: (undefined | Array<Dto2040>); }, Dto2936>;
+  "markReadByCustomer": FunctionReference<"mutation", "public", { "ticketId": GenericId<"ticket_tickets">; }, Dto2937>;
   "rate": FunctionReference<"mutation", "public", { "ticketId": GenericId<"ticket_tickets">; "rating": number; "comment"?: (undefined | string); }, null>;
   "removeTags": FunctionReference<"mutation", "public", { "ticketId": GenericId<"ticket_tickets">; "tags": Array<string>; }, null>;
   "reopen": FunctionReference<"mutation", "public", { "ticketId": GenericId<"ticket_tickets">; }, null>;
-  "reply": FunctionReference<"mutation", "public", { "ticketId": GenericId<"ticket_tickets">; "content": string; "attachments"?: (undefined | Array<Dto2040>); }, Dto2944>;
-  "resolveByCustomer": FunctionReference<"mutation", "public", { "ticketId": GenericId<"ticket_tickets">; }, Dto2945>;
+  "reply": FunctionReference<"mutation", "public", { "ticketId": GenericId<"ticket_tickets">; "content": string; "attachments"?: (undefined | Array<Dto2040>); }, Dto2938>;
+  "resolveByCustomer": FunctionReference<"mutation", "public", { "ticketId": GenericId<"ticket_tickets">; }, Dto2939>;
   "unassign": FunctionReference<"mutation", "public", { "ticketId": GenericId<"ticket_tickets">; }, null>;
   "updatePriority": FunctionReference<"mutation", "public", { "ticketId": GenericId<"ticket_tickets">; "priority": ("high" | "medium" | "low" | "urgent"); }, null>;
   "updateStatus": FunctionReference<"mutation", "public", { "ticketId": GenericId<"ticket_tickets">; "status": ("open" | "closed" | "resolved" | "inProgress" | "awaitingResponse"); }, null>;
 };
   "tickets/queries": {
-  "getAwaitingFirstResponse": FunctionReference<"query", "public", { "limit"?: (undefined | number); }, (null | Array<Dto2946>)>;
+  "getAwaitingFirstResponse": FunctionReference<"query", "public", { "limit"?: (undefined | number); }, (null | Array<Dto2940>)>;
   "getById": FunctionReference<"query", "public", { "ticketId": GenericId<"ticket_tickets">; }, (null | Dto1866)>;
   "getByTicketNumber": FunctionReference<"query", "public", { "ticketNumber": string; }, (null | Dto1866)>;
-  "getCustomerCategories": FunctionReference<"query", "public", {  }, (null | Dto2947)>;
-  "getMyTickets": FunctionReference<"query", "public", { "paginationOpts": Dto97; "status"?: (undefined | "open" | "closed" | "resolved" | "inProgress" | "awaitingResponse"); }, Dto2949>;
-  "getMyTicketsOverview": FunctionReference<"query", "public", { "limit"?: (undefined | number); }, Dto2951>;
+  "getCustomerCategories": FunctionReference<"query", "public", {  }, (null | Dto2941)>;
+  "getMyTickets": FunctionReference<"query", "public", { "paginationOpts": Dto97; "status"?: (undefined | "open" | "closed" | "resolved" | "inProgress" | "awaitingResponse"); }, Dto2943>;
+  "getMyTicketsOverview": FunctionReference<"query", "public", { "limit"?: (undefined | number); }, Dto2945>;
   "getMyTicketThread": FunctionReference<"query", "public", { "ticketNumber": string; }, (null | Dto108)>;
-  "getQueue": FunctionReference<"query", "public", { "status"?: (undefined | "open" | "closed" | "resolved" | "inProgress" | "awaitingResponse"); "priority"?: (undefined | "high" | "medium" | "low" | "urgent"); "category"?: (undefined | "general" | "other" | "billing" | "technical" | "account" | "featureRequest"); "assignedTo"?: (undefined | GenericId<"users">); "unassigned"?: (undefined | false | true); "search"?: (undefined | string); "orderBy"?: (undefined | "updatedAt" | "createdAt" | "priority" | "lastMessageAt"); "orderDir"?: (undefined | "asc" | "desc"); "page"?: (undefined | number); "perPage"?: (undefined | number); }, (null | Dto2953)>;
-  "getRecent": FunctionReference<"query", "public", { "limit"?: (undefined | number); }, (null | Array<Dto2955>)>;
-  "getStats": FunctionReference<"query", "public", {  }, (null | Dto2956)>;
-  "getTicketWithReplies": FunctionReference<"query", "public", { "ticketId": GenericId<"ticket_tickets">; "includeInternal"?: (undefined | false | true); }, (null | Dto2957)>;
+  "getQueue": FunctionReference<"query", "public", { "status"?: (undefined | "open" | "closed" | "resolved" | "inProgress" | "awaitingResponse"); "priority"?: (undefined | "high" | "medium" | "low" | "urgent"); "category"?: (undefined | "general" | "other" | "billing" | "technical" | "account" | "featureRequest"); "assignedTo"?: (undefined | GenericId<"users">); "unassigned"?: (undefined | false | true); "search"?: (undefined | string); "orderBy"?: (undefined | "updatedAt" | "createdAt" | "priority" | "lastMessageAt"); "orderDir"?: (undefined | "asc" | "desc"); "page"?: (undefined | number); "perPage"?: (undefined | number); }, (null | Dto2947)>;
+  "getRecent": FunctionReference<"query", "public", { "limit"?: (undefined | number); }, (null | Array<Dto2949>)>;
+  "getStats": FunctionReference<"query", "public", {  }, (null | Dto2950)>;
+  "getTicketWithReplies": FunctionReference<"query", "public", { "ticketId": GenericId<"ticket_tickets">; "includeInternal"?: (undefined | false | true); }, (null | Dto2951)>;
 };
   "tickets/rateLimit": {
-  "checkAndRecord": FunctionReference<"mutation", "public", { "sessionId": string; "action": ("search" | "aiQuery" | "ticketCreate"); "userId"?: (undefined | string); }, (Dto2959 | Dto2960)>;
-  "getGlobalStats": FunctionReference<"query", "public", {  }, (null | Dto2962)>;
-  "getStatus": FunctionReference<"query", "public", { "sessionId": string; "action": ("search" | "aiQuery" | "ticketCreate"); }, (null | Dto2964)>;
+  "checkAndRecord": FunctionReference<"mutation", "public", { "sessionId": string; "action": ("search" | "aiQuery" | "ticketCreate"); "userId"?: (undefined | string); }, (Dto2953 | Dto2954)>;
+  "getGlobalStats": FunctionReference<"query", "public", {  }, (null | Dto2956)>;
+  "getStatus": FunctionReference<"query", "public", { "sessionId": string; "action": ("search" | "aiQuery" | "ticketCreate"); }, (null | Dto2958)>;
 };
   "tickets/sessions": {
   "associateUser": FunctionReference<"mutation", "public", { "sessionId": string; "userId": GenericId<"users">; }, null>;
-  "create": FunctionReference<"mutation", "public", { "sessionId": string; }, Dto2966>;
+  "create": FunctionReference<"mutation", "public", { "sessionId": string; }, Dto2960>;
   "invalidate": FunctionReference<"mutation", "public", { "sessionId": string; }, null>;
   "touch": FunctionReference<"mutation", "public", { "sessionId": string; }, null>;
-  "validate": FunctionReference<"query", "public", { "sessionId": string; }, (null | Dto2967 | Dto2968)>;
+  "validate": FunctionReference<"query", "public", { "sessionId": string; }, (null | Dto2961 | Dto2962)>;
 };
   "tickets/settings": {
-  "getTicketSettings": FunctionReference<"query", "public", {  }, (null | Dto2969)>;
-  "updateTicketSettings": FunctionReference<"mutation", "public", { "general"?: (undefined | Dto2973); "sla"?: (undefined | Dto2975); }, Dto2976>;
+  "getTicketSettings": FunctionReference<"query", "public", {  }, (null | Dto2963)>;
+  "updateTicketSettings": FunctionReference<"mutation", "public", { "general"?: (undefined | Dto2967); "sla"?: (undefined | Dto2969); }, Dto2970>;
 };
   "users": {
   "bootstrapAdmin": FunctionReference<"mutation", "public", {  }, never>;
-  "checkAdminAccess": FunctionReference<"query", "public", {  }, (null | Dto2977)>;
-  "getCurrentRoleAccess": FunctionReference<"query", "public", { "refresh"?: (undefined | number); }, (null | Dto2978)>;
-  "getCurrentUser": FunctionReference<"query", "public", {  }, (null | Dto2980)>;
+  "checkAdminAccess": FunctionReference<"query", "public", {  }, (null | Dto2971)>;
+  "getCurrentRoleAccess": FunctionReference<"query", "public", { "refresh"?: (undefined | number); }, (null | Dto2972)>;
+  "getCurrentUser": FunctionReference<"query", "public", {  }, (null | Dto2974)>;
   "hasAnyAdmin": FunctionReference<"query", "public", {  }, (null | false | true)>;
   "updateUserRole": FunctionReference<"mutation", "public", { "userId": GenericId<"users">; "internalRole": string; "isInternal": boolean; }, null>;
 };
   "wordpressSync": {
   "actions": {
-  "getWPContentCounts": FunctionReference<"action", "public", { "siteId": GenericId<"wordpressSites">; }, Dto2986>;
+  "getWPContentCounts": FunctionReference<"action", "public", { "siteId": GenericId<"wordpressSites">; }, Dto2980>;
   "resumeSync": FunctionReference<"action", "public", { "jobId": GenericId<"wordpressSyncJobs">; }, GenericId<"wordpressSyncJobs">>;
   "startSync": FunctionReference<"action", "public", { "siteId": GenericId<"wordpressSites">; "importConfig"?: unknown; }, GenericId<"wordpressSyncJobs">>;
-  "testSiteConnection": FunctionReference<"action", "public", { "siteId"?: (undefined | GenericId<"wordpressSites">); "siteUrl"?: (undefined | string); "username"?: (undefined | string); "applicationPassword"?: (undefined | string); "wooConsumerKey"?: (undefined | string); "wooConsumerSecret"?: (undefined | string); "wooAuthMode"?: (undefined | "shared" | "separate"); "userPasswordExportPath"?: (undefined | string); "userPasswordExportSecret"?: (undefined | string); }, ((Dto2987 & Dto2989) | (Dto2990 & Dto2989))>;
+  "testSiteConnection": FunctionReference<"action", "public", { "siteId"?: (undefined | GenericId<"wordpressSites">); "siteUrl"?: (undefined | string); "username"?: (undefined | string); "applicationPassword"?: (undefined | string); "wooConsumerKey"?: (undefined | string); "wooConsumerSecret"?: (undefined | string); "wooAuthMode"?: (undefined | "shared" | "separate"); "userPasswordExportPath"?: (undefined | string); "userPasswordExportSecret"?: (undefined | string); }, ((Dto2981 & Dto2983) | (Dto2984 & Dto2983))>;
 };
   "mutations": {
   "cancelJob": FunctionReference<"mutation", "public", { "jobId": GenericId<"wordpressSyncJobs">; }, GenericId<"wordpressSyncJobs">>;
-  "clearMappings": FunctionReference<"mutation", "public", { "siteId": GenericId<"wordpressSites">; }, Dto3001>;
+  "clearMappings": FunctionReference<"mutation", "public", { "siteId": GenericId<"wordpressSites">; }, Dto2995>;
   "createJob": FunctionReference<"mutation", "public", { "siteId": GenericId<"wordpressSites">; "importConfig"?: unknown; }, GenericId<"wordpressSyncJobs">>;
   "createSite": FunctionReference<"mutation", "public", { "name": string; "siteUrl": string; "username": string; "applicationPassword": string; "wooConsumerKey"?: (undefined | string); "wooConsumerSecret"?: (undefined | string); "wooAuthMode"?: (undefined | "shared" | "separate"); "userPasswordExportPath"?: (undefined | string); "userPasswordExportSecret"?: (undefined | string); }, GenericId<"wordpressSites">>;
-  "deleteJob": FunctionReference<"mutation", "public", { "jobId": GenericId<"wordpressSyncJobs">; }, Dto3002>;
-  "deleteSite": FunctionReference<"mutation", "public", { "siteId": GenericId<"wordpressSites">; }, Dto3003>;
+  "deleteJob": FunctionReference<"mutation", "public", { "jobId": GenericId<"wordpressSyncJobs">; }, Dto2996>;
+  "deleteSite": FunctionReference<"mutation", "public", { "siteId": GenericId<"wordpressSites">; }, Dto2997>;
   "pauseJob": FunctionReference<"mutation", "public", { "jobId": GenericId<"wordpressSyncJobs">; }, GenericId<"wordpressSyncJobs">>;
   "startJob": FunctionReference<"mutation", "public", { "jobId": GenericId<"wordpressSyncJobs">; }, GenericId<"wordpressSyncJobs">>;
   "updateConnectionTest": FunctionReference<"mutation", "public", { "siteId": GenericId<"wordpressSites">; "success": boolean; "wpVersion"?: (undefined | string); "siteName"?: (undefined | string); "siteDescription"?: (undefined | string); "error"?: (undefined | string); "capabilities"?: unknown; }, GenericId<"wordpressSites">>;
@@ -7278,60 +7268,60 @@ export type PublicApi = {
 };
   "phases": {
   "users": {
-  "backfillImportedUserCredentials": FunctionReference<"action", "public", { "siteId": GenericId<"wordpressSites">; "afterWpId"?: (undefined | number); "limit"?: (undefined | number); }, Dto3043>;
+  "backfillImportedUserCredentials": FunctionReference<"action", "public", { "siteId": GenericId<"wordpressSites">; "afterWpId"?: (undefined | number); "limit"?: (undefined | number); }, Dto3037>;
 };
 };
   "queries": {
   "getActiveJob": FunctionReference<"query", "public", { "siteId": GenericId<"wordpressSites">; }, (null | Dto1849)>;
-  "getImportStats": FunctionReference<"query", "public", { "siteId": GenericId<"wordpressSites">; }, Dto3053>;
+  "getImportStats": FunctionReference<"query", "public", { "siteId": GenericId<"wordpressSites">; }, Dto3047>;
   "getJob": FunctionReference<"query", "public", { "jobId": GenericId<"wordpressSyncJobs">; }, (null | Dto1849)>;
-  "getJobErrors": FunctionReference<"query", "public", { "jobId": GenericId<"wordpressSyncJobs">; "limit"?: (undefined | number); "offset"?: (undefined | number); }, Dto3054>;
+  "getJobErrors": FunctionReference<"query", "public", { "jobId": GenericId<"wordpressSyncJobs">; "limit"?: (undefined | number); "offset"?: (undefined | number); }, Dto3048>;
   "getJobReport": FunctionReference<"query", "public", { "jobId": GenericId<"wordpressSyncJobs">; }, (null | Dto2073)>;
   "getLatestJob": FunctionReference<"query", "public", { "siteId": GenericId<"wordpressSites">; }, (null | Dto1849)>;
   "getLatestReport": FunctionReference<"query", "public", { "siteId": GenericId<"wordpressSites">; }, (null | Dto2073)>;
-  "getOverview": FunctionReference<"query", "public", {  }, Dto3055>;
-  "getSite": FunctionReference<"query", "public", { "siteId": GenericId<"wordpressSites">; }, (null | (Dto3056 & Dto3057))>;
+  "getOverview": FunctionReference<"query", "public", {  }, Dto3049>;
+  "getSite": FunctionReference<"query", "public", { "siteId": GenericId<"wordpressSites">; }, (null | (Dto3050 & Dto3051))>;
   "listFindings": FunctionReference<"query", "public", { "jobId": GenericId<"wordpressSyncJobs">; "severity"?: (undefined | "error" | "info" | "warning"); "code"?: (undefined | string); "limit"?: (undefined | number); }, Array<Dto2072>>;
   "listJobs": FunctionReference<"query", "public", { "siteId": GenericId<"wordpressSites">; "limit"?: (undefined | number); }, Array<Dto1849>>;
   "listReports": FunctionReference<"query", "public", { "siteId": GenericId<"wordpressSites">; "limit"?: (undefined | number); }, Array<Dto2073>>;
-  "listSites": FunctionReference<"query", "public", { "limit"?: (undefined | number); }, Array<Dto3058>>;
+  "listSites": FunctionReference<"query", "public", { "limit"?: (undefined | number); }, Array<Dto3052>>;
 };
 };
   "wordpressSync/actions": {
-  "getWPContentCounts": FunctionReference<"action", "public", { "siteId": GenericId<"wordpressSites">; }, Dto2986>;
+  "getWPContentCounts": FunctionReference<"action", "public", { "siteId": GenericId<"wordpressSites">; }, Dto2980>;
   "resumeSync": FunctionReference<"action", "public", { "jobId": GenericId<"wordpressSyncJobs">; }, GenericId<"wordpressSyncJobs">>;
   "startSync": FunctionReference<"action", "public", { "siteId": GenericId<"wordpressSites">; "importConfig"?: unknown; }, GenericId<"wordpressSyncJobs">>;
-  "testSiteConnection": FunctionReference<"action", "public", { "siteId"?: (undefined | GenericId<"wordpressSites">); "siteUrl"?: (undefined | string); "username"?: (undefined | string); "applicationPassword"?: (undefined | string); "wooConsumerKey"?: (undefined | string); "wooConsumerSecret"?: (undefined | string); "wooAuthMode"?: (undefined | "shared" | "separate"); "userPasswordExportPath"?: (undefined | string); "userPasswordExportSecret"?: (undefined | string); }, ((Dto2987 & Dto2989) | (Dto2990 & Dto2989))>;
+  "testSiteConnection": FunctionReference<"action", "public", { "siteId"?: (undefined | GenericId<"wordpressSites">); "siteUrl"?: (undefined | string); "username"?: (undefined | string); "applicationPassword"?: (undefined | string); "wooConsumerKey"?: (undefined | string); "wooConsumerSecret"?: (undefined | string); "wooAuthMode"?: (undefined | "shared" | "separate"); "userPasswordExportPath"?: (undefined | string); "userPasswordExportSecret"?: (undefined | string); }, ((Dto2981 & Dto2983) | (Dto2984 & Dto2983))>;
 };
   "wordpressSync/mutations": {
   "cancelJob": FunctionReference<"mutation", "public", { "jobId": GenericId<"wordpressSyncJobs">; }, GenericId<"wordpressSyncJobs">>;
-  "clearMappings": FunctionReference<"mutation", "public", { "siteId": GenericId<"wordpressSites">; }, Dto3001>;
+  "clearMappings": FunctionReference<"mutation", "public", { "siteId": GenericId<"wordpressSites">; }, Dto2995>;
   "createJob": FunctionReference<"mutation", "public", { "siteId": GenericId<"wordpressSites">; "importConfig"?: unknown; }, GenericId<"wordpressSyncJobs">>;
   "createSite": FunctionReference<"mutation", "public", { "name": string; "siteUrl": string; "username": string; "applicationPassword": string; "wooConsumerKey"?: (undefined | string); "wooConsumerSecret"?: (undefined | string); "wooAuthMode"?: (undefined | "shared" | "separate"); "userPasswordExportPath"?: (undefined | string); "userPasswordExportSecret"?: (undefined | string); }, GenericId<"wordpressSites">>;
-  "deleteJob": FunctionReference<"mutation", "public", { "jobId": GenericId<"wordpressSyncJobs">; }, Dto3002>;
-  "deleteSite": FunctionReference<"mutation", "public", { "siteId": GenericId<"wordpressSites">; }, Dto3003>;
+  "deleteJob": FunctionReference<"mutation", "public", { "jobId": GenericId<"wordpressSyncJobs">; }, Dto2996>;
+  "deleteSite": FunctionReference<"mutation", "public", { "siteId": GenericId<"wordpressSites">; }, Dto2997>;
   "pauseJob": FunctionReference<"mutation", "public", { "jobId": GenericId<"wordpressSyncJobs">; }, GenericId<"wordpressSyncJobs">>;
   "startJob": FunctionReference<"mutation", "public", { "jobId": GenericId<"wordpressSyncJobs">; }, GenericId<"wordpressSyncJobs">>;
   "updateConnectionTest": FunctionReference<"mutation", "public", { "siteId": GenericId<"wordpressSites">; "success": boolean; "wpVersion"?: (undefined | string); "siteName"?: (undefined | string); "siteDescription"?: (undefined | string); "error"?: (undefined | string); "capabilities"?: unknown; }, GenericId<"wordpressSites">>;
   "updateSite": FunctionReference<"mutation", "public", { "siteId": GenericId<"wordpressSites">; "name"?: (undefined | string); "username"?: (undefined | string); "applicationPassword"?: (undefined | string); "status"?: (undefined | "active" | "inactive" | "error"); "wooConsumerKey"?: (undefined | string); "wooConsumerSecret"?: (undefined | string); "wooAuthMode"?: (undefined | "shared" | "separate"); "userPasswordExportPath"?: (undefined | string); "userPasswordExportSecret"?: (undefined | string); }, GenericId<"wordpressSites">>;
 };
   "wordpressSync/phases/users": {
-  "backfillImportedUserCredentials": FunctionReference<"action", "public", { "siteId": GenericId<"wordpressSites">; "afterWpId"?: (undefined | number); "limit"?: (undefined | number); }, Dto3043>;
+  "backfillImportedUserCredentials": FunctionReference<"action", "public", { "siteId": GenericId<"wordpressSites">; "afterWpId"?: (undefined | number); "limit"?: (undefined | number); }, Dto3037>;
 };
   "wordpressSync/queries": {
   "getActiveJob": FunctionReference<"query", "public", { "siteId": GenericId<"wordpressSites">; }, (null | Dto1849)>;
-  "getImportStats": FunctionReference<"query", "public", { "siteId": GenericId<"wordpressSites">; }, Dto3053>;
+  "getImportStats": FunctionReference<"query", "public", { "siteId": GenericId<"wordpressSites">; }, Dto3047>;
   "getJob": FunctionReference<"query", "public", { "jobId": GenericId<"wordpressSyncJobs">; }, (null | Dto1849)>;
-  "getJobErrors": FunctionReference<"query", "public", { "jobId": GenericId<"wordpressSyncJobs">; "limit"?: (undefined | number); "offset"?: (undefined | number); }, Dto3054>;
+  "getJobErrors": FunctionReference<"query", "public", { "jobId": GenericId<"wordpressSyncJobs">; "limit"?: (undefined | number); "offset"?: (undefined | number); }, Dto3048>;
   "getJobReport": FunctionReference<"query", "public", { "jobId": GenericId<"wordpressSyncJobs">; }, (null | Dto2073)>;
   "getLatestJob": FunctionReference<"query", "public", { "siteId": GenericId<"wordpressSites">; }, (null | Dto1849)>;
   "getLatestReport": FunctionReference<"query", "public", { "siteId": GenericId<"wordpressSites">; }, (null | Dto2073)>;
-  "getOverview": FunctionReference<"query", "public", {  }, Dto3055>;
-  "getSite": FunctionReference<"query", "public", { "siteId": GenericId<"wordpressSites">; }, (null | (Dto3056 & Dto3057))>;
+  "getOverview": FunctionReference<"query", "public", {  }, Dto3049>;
+  "getSite": FunctionReference<"query", "public", { "siteId": GenericId<"wordpressSites">; }, (null | (Dto3050 & Dto3051))>;
   "listFindings": FunctionReference<"query", "public", { "jobId": GenericId<"wordpressSyncJobs">; "severity"?: (undefined | "error" | "info" | "warning"); "code"?: (undefined | string); "limit"?: (undefined | number); }, Array<Dto2072>>;
   "listJobs": FunctionReference<"query", "public", { "siteId": GenericId<"wordpressSites">; "limit"?: (undefined | number); }, Array<Dto1849>>;
   "listReports": FunctionReference<"query", "public", { "siteId": GenericId<"wordpressSites">; "limit"?: (undefined | number); }, Array<Dto2073>>;
-  "listSites": FunctionReference<"query", "public", { "limit"?: (undefined | number); }, Array<Dto3058>>;
+  "listSites": FunctionReference<"query", "public", { "limit"?: (undefined | number); }, Array<Dto3052>>;
 };
 };
 export type InternalApi = {
@@ -8816,7 +8806,7 @@ export type InternalApi = {
   "password": {
   "internals": {
   "detectAndHandlePasswordChange": FunctionReference<"mutation", "internal", { "userId": GenericId<"users">; }, null>;
-  "verifyResetToken": FunctionReference<"mutation", "internal", { "email": string; "tokenHash": string; }, (null | Dto2514)>;
+  "verifyResetToken": FunctionReference<"mutation", "internal", { "email": string; "tokenHash": string; }, (null | Dto2508)>;
 };
   "mutations": {
   "handlePasswordChanged": FunctionReference<"mutation", "internal", { "userId": GenericId<"users">; "timestamp": number; }, null>;
@@ -8830,14 +8820,14 @@ export type InternalApi = {
   "getSiteUrl": FunctionReference<"query", "internal", {  }, string>;
   "getUserByEmail": FunctionReference<"query", "internal", { "email": string; }, (null | Dto148)>;
   "getUserById": FunctionReference<"query", "internal", { "userId": GenericId<"users">; }, (null | Dto148)>;
-  "getUserBySubject": FunctionReference<"query", "internal", { "subject": string; }, (null | Dto2516)>;
+  "getUserBySubject": FunctionReference<"query", "internal", { "subject": string; }, (null | Dto2510)>;
   "getUserRoleLevel": FunctionReference<"query", "internal", { "userId": GenericId<"users">; }, number>;
-  "requirePasswordResetCapability": FunctionReference<"query", "internal", {  }, Dto2519>;
+  "requirePasswordResetCapability": FunctionReference<"query", "internal", {  }, Dto2513>;
 };
 };
   "password/internals": {
   "detectAndHandlePasswordChange": FunctionReference<"mutation", "internal", { "userId": GenericId<"users">; }, null>;
-  "verifyResetToken": FunctionReference<"mutation", "internal", { "email": string; "tokenHash": string; }, (null | Dto2514)>;
+  "verifyResetToken": FunctionReference<"mutation", "internal", { "email": string; "tokenHash": string; }, (null | Dto2508)>;
 };
   "password/mutations": {
   "handlePasswordChanged": FunctionReference<"mutation", "internal", { "userId": GenericId<"users">; "timestamp": number; }, null>;
@@ -8851,9 +8841,9 @@ export type InternalApi = {
   "getSiteUrl": FunctionReference<"query", "internal", {  }, string>;
   "getUserByEmail": FunctionReference<"query", "internal", { "email": string; }, (null | Dto148)>;
   "getUserById": FunctionReference<"query", "internal", { "userId": GenericId<"users">; }, (null | Dto148)>;
-  "getUserBySubject": FunctionReference<"query", "internal", { "subject": string; }, (null | Dto2516)>;
+  "getUserBySubject": FunctionReference<"query", "internal", { "subject": string; }, (null | Dto2510)>;
   "getUserRoleLevel": FunctionReference<"query", "internal", { "userId": GenericId<"users">; }, number>;
-  "requirePasswordResetCapability": FunctionReference<"query", "internal", {  }, Dto2519>;
+  "requirePasswordResetCapability": FunctionReference<"query", "internal", {  }, Dto2513>;
 };
   "posts": {
   "authorCounts": {
@@ -8867,12 +8857,12 @@ export type InternalApi = {
   "httpInternals": {
   "createInternal": FunctionReference<"mutation", "internal", { "title": string; "keyId": GenericId<"apiKeys">; "content"?: (undefined | string); "blocks"?: unknown; "excerpt"?: (undefined | string); "status"?: (undefined | "draft" | "pending" | "trash" | "auto-draft" | "publish" | "future" | "private"); "scheduledAt"?: (undefined | number); "slug"?: (undefined | string); }, GenericId<"posts">>;
   "getInternal": FunctionReference<"query", "internal", { "postId": GenericId<"posts">; "keyId": GenericId<"apiKeys">; }, (null | Dto2461)>;
-  "listPublishedInternal": FunctionReference<"query", "internal", { "page"?: (undefined | number); "perPage"?: (undefined | number); }, Dto2520>;
-  "trashInternal": FunctionReference<"mutation", "internal", { "postId": GenericId<"posts">; }, Dto2523>;
-  "updateInternal": FunctionReference<"mutation", "internal", { "postId": GenericId<"posts">; "expectedRevision": number; "keyId": GenericId<"apiKeys">; "title"?: (undefined | string); "content"?: (undefined | string); "blocks"?: unknown; "excerpt"?: (undefined | string); "status"?: (undefined | "draft" | "pending" | "trash" | "auto-draft" | "publish" | "future" | "private"); "scheduledAt"?: (undefined | number); "slug"?: (undefined | string); }, Dto2524>;
+  "listPublishedInternal": FunctionReference<"query", "internal", { "page"?: (undefined | number); "perPage"?: (undefined | number); }, Dto2514>;
+  "trashInternal": FunctionReference<"mutation", "internal", { "postId": GenericId<"posts">; }, Dto2517>;
+  "updateInternal": FunctionReference<"mutation", "internal", { "postId": GenericId<"posts">; "expectedRevision": number; "keyId": GenericId<"apiKeys">; "title"?: (undefined | string); "content"?: (undefined | string); "blocks"?: unknown; "excerpt"?: (undefined | string); "status"?: (undefined | "draft" | "pending" | "trash" | "auto-draft" | "publish" | "future" | "private"); "scheduledAt"?: (undefined | number); "slug"?: (undefined | string); }, Dto2518>;
 };
   "internals": {
-  "getAllPublished": FunctionReference<"query", "internal", {  }, Array<Dto2525>>;
+  "getAllPublished": FunctionReference<"query", "internal", {  }, Array<Dto2519>>;
   "publishScheduled": FunctionReference<"mutation", "internal", { "postId": GenericId<"posts">; "expectedScheduledAt"?: (undefined | number); }, null>;
   "purgeOldTrash": FunctionReference<"mutation", "internal", { "postId": GenericId<"posts">; }, null>;
   "updatePostCount": FunctionReference<"mutation", "internal", { "authorId": GenericId<"users">; }, null>;
@@ -8889,12 +8879,12 @@ export type InternalApi = {
   "posts/httpInternals": {
   "createInternal": FunctionReference<"mutation", "internal", { "title": string; "keyId": GenericId<"apiKeys">; "content"?: (undefined | string); "blocks"?: unknown; "excerpt"?: (undefined | string); "status"?: (undefined | "draft" | "pending" | "trash" | "auto-draft" | "publish" | "future" | "private"); "scheduledAt"?: (undefined | number); "slug"?: (undefined | string); }, GenericId<"posts">>;
   "getInternal": FunctionReference<"query", "internal", { "postId": GenericId<"posts">; "keyId": GenericId<"apiKeys">; }, (null | Dto2461)>;
-  "listPublishedInternal": FunctionReference<"query", "internal", { "page"?: (undefined | number); "perPage"?: (undefined | number); }, Dto2520>;
-  "trashInternal": FunctionReference<"mutation", "internal", { "postId": GenericId<"posts">; }, Dto2523>;
-  "updateInternal": FunctionReference<"mutation", "internal", { "postId": GenericId<"posts">; "expectedRevision": number; "keyId": GenericId<"apiKeys">; "title"?: (undefined | string); "content"?: (undefined | string); "blocks"?: unknown; "excerpt"?: (undefined | string); "status"?: (undefined | "draft" | "pending" | "trash" | "auto-draft" | "publish" | "future" | "private"); "scheduledAt"?: (undefined | number); "slug"?: (undefined | string); }, Dto2524>;
+  "listPublishedInternal": FunctionReference<"query", "internal", { "page"?: (undefined | number); "perPage"?: (undefined | number); }, Dto2514>;
+  "trashInternal": FunctionReference<"mutation", "internal", { "postId": GenericId<"posts">; }, Dto2517>;
+  "updateInternal": FunctionReference<"mutation", "internal", { "postId": GenericId<"posts">; "expectedRevision": number; "keyId": GenericId<"apiKeys">; "title"?: (undefined | string); "content"?: (undefined | string); "blocks"?: unknown; "excerpt"?: (undefined | string); "status"?: (undefined | "draft" | "pending" | "trash" | "auto-draft" | "publish" | "future" | "private"); "scheduledAt"?: (undefined | number); "slug"?: (undefined | string); }, Dto2518>;
 };
   "posts/internals": {
-  "getAllPublished": FunctionReference<"query", "internal", {  }, Array<Dto2525>>;
+  "getAllPublished": FunctionReference<"query", "internal", {  }, Array<Dto2519>>;
   "publishScheduled": FunctionReference<"mutation", "internal", { "postId": GenericId<"posts">; "expectedScheduledAt"?: (undefined | number); }, null>;
   "purgeOldTrash": FunctionReference<"mutation", "internal", { "postId": GenericId<"posts">; }, null>;
   "updatePostCount": FunctionReference<"mutation", "internal", { "authorId": GenericId<"users">; }, null>;
@@ -8911,33 +8901,33 @@ export type InternalApi = {
 };
   "profiles": {
   "internals": {
-  "ensureSlug": FunctionReference<"mutation", "internal", {  }, Dto2574>;
+  "ensureSlug": FunctionReference<"mutation", "internal", {  }, Dto2568>;
   "generateSlugForUser": FunctionReference<"mutation", "internal", { "userId": GenericId<"users">; }, (null | string)>;
   "getByEmail": FunctionReference<"query", "internal", { "email": string; }, (null | Dto148)>;
-  "getUserInternal": FunctionReference<"query", "internal", { "userId": GenericId<"users">; }, (null | Dto2575)>;
-  "listUsersInternal": FunctionReference<"query", "internal", { "search"?: (undefined | string); "status"?: (undefined | "active" | "inactive" | "banned"); "roleId"?: (undefined | GenericId<"roles">); "page"?: (undefined | number); "perPage"?: (undefined | number); "orderBy"?: (undefined | "createdAt" | "email" | "displayName" | "postCount"); "orderDir"?: (undefined | "asc" | "desc"); }, Dto2576>;
-  "recalculateAllCounts": FunctionReference<"mutation", "internal", {  }, Dto2578>;
+  "getUserInternal": FunctionReference<"query", "internal", { "userId": GenericId<"users">; }, (null | Dto2569)>;
+  "listUsersInternal": FunctionReference<"query", "internal", { "search"?: (undefined | string); "status"?: (undefined | "active" | "inactive" | "banned"); "roleId"?: (undefined | GenericId<"roles">); "page"?: (undefined | number); "perPage"?: (undefined | number); "orderBy"?: (undefined | "createdAt" | "email" | "displayName" | "postCount"); "orderDir"?: (undefined | "asc" | "desc"); }, Dto2570>;
+  "recalculateAllCounts": FunctionReference<"mutation", "internal", {  }, Dto2572>;
   "updateCommentCount": FunctionReference<"mutation", "internal", { "userId": GenericId<"users">; }, null>;
   "updateLastLogin": FunctionReference<"mutation", "internal", { "userId": GenericId<"users">; }, null>;
   "updatePostCount": FunctionReference<"mutation", "internal", { "userId": GenericId<"users">; }, null>;
 };
   "mutations": {
-  "closeOwnAccount": FunctionReference<"mutation", "internal", {  }, Dto2583>;
+  "closeOwnAccount": FunctionReference<"mutation", "internal", {  }, Dto2577>;
 };
 };
   "profiles/internals": {
-  "ensureSlug": FunctionReference<"mutation", "internal", {  }, Dto2574>;
+  "ensureSlug": FunctionReference<"mutation", "internal", {  }, Dto2568>;
   "generateSlugForUser": FunctionReference<"mutation", "internal", { "userId": GenericId<"users">; }, (null | string)>;
   "getByEmail": FunctionReference<"query", "internal", { "email": string; }, (null | Dto148)>;
-  "getUserInternal": FunctionReference<"query", "internal", { "userId": GenericId<"users">; }, (null | Dto2575)>;
-  "listUsersInternal": FunctionReference<"query", "internal", { "search"?: (undefined | string); "status"?: (undefined | "active" | "inactive" | "banned"); "roleId"?: (undefined | GenericId<"roles">); "page"?: (undefined | number); "perPage"?: (undefined | number); "orderBy"?: (undefined | "createdAt" | "email" | "displayName" | "postCount"); "orderDir"?: (undefined | "asc" | "desc"); }, Dto2576>;
-  "recalculateAllCounts": FunctionReference<"mutation", "internal", {  }, Dto2578>;
+  "getUserInternal": FunctionReference<"query", "internal", { "userId": GenericId<"users">; }, (null | Dto2569)>;
+  "listUsersInternal": FunctionReference<"query", "internal", { "search"?: (undefined | string); "status"?: (undefined | "active" | "inactive" | "banned"); "roleId"?: (undefined | GenericId<"roles">); "page"?: (undefined | number); "perPage"?: (undefined | number); "orderBy"?: (undefined | "createdAt" | "email" | "displayName" | "postCount"); "orderDir"?: (undefined | "asc" | "desc"); }, Dto2570>;
+  "recalculateAllCounts": FunctionReference<"mutation", "internal", {  }, Dto2572>;
   "updateCommentCount": FunctionReference<"mutation", "internal", { "userId": GenericId<"users">; }, null>;
   "updateLastLogin": FunctionReference<"mutation", "internal", { "userId": GenericId<"users">; }, null>;
   "updatePostCount": FunctionReference<"mutation", "internal", { "userId": GenericId<"users">; }, null>;
 };
   "profiles/mutations": {
-  "closeOwnAccount": FunctionReference<"mutation", "internal", {  }, Dto2583>;
+  "closeOwnAccount": FunctionReference<"mutation", "internal", {  }, Dto2577>;
 };
   "purchases": {
   "internals": {
@@ -8955,15 +8945,15 @@ export type InternalApi = {
 };
   "registration": {
   "internals": {
-  "cleanupExpiredInvitations": FunctionReference<"mutation", "internal", {  }, Dto2604>;
-  "expireOldInvitations": FunctionReference<"mutation", "internal", {  }, Dto2605>;
+  "cleanupExpiredInvitations": FunctionReference<"mutation", "internal", {  }, Dto2598>;
+  "expireOldInvitations": FunctionReference<"mutation", "internal", {  }, Dto2599>;
   "getPendingByEmail": FunctionReference<"query", "internal", { "email": string; }, (null | Dto2093)>;
   "handleExternalAuthUserCreated": FunctionReference<"mutation", "internal", { "externalAuthId": string; "email": string; "username"?: (undefined | string); "firstName"?: (undefined | string); "lastName"?: (undefined | string); "avatarUrl"?: (undefined | string); "emailVerified": boolean; "oauthProvider"?: (undefined | string); }, GenericId<"users">>;
 };
 };
   "registration/internals": {
-  "cleanupExpiredInvitations": FunctionReference<"mutation", "internal", {  }, Dto2604>;
-  "expireOldInvitations": FunctionReference<"mutation", "internal", {  }, Dto2605>;
+  "cleanupExpiredInvitations": FunctionReference<"mutation", "internal", {  }, Dto2598>;
+  "expireOldInvitations": FunctionReference<"mutation", "internal", {  }, Dto2599>;
   "getPendingByEmail": FunctionReference<"query", "internal", { "email": string; }, (null | Dto2093)>;
   "handleExternalAuthUserCreated": FunctionReference<"mutation", "internal", { "externalAuthId": string; "email": string; "username"?: (undefined | string); "firstName"?: (undefined | string); "lastName"?: (undefined | string); "avatarUrl"?: (undefined | string); "emailVerified": boolean; "oauthProvider"?: (undefined | string); }, GenericId<"users">>;
 };
@@ -8971,29 +8961,29 @@ export type InternalApi = {
   "internals": {
   "createAutosave": FunctionReference<"mutation", "internal", { "parentId": GenericId<"posts">; "parentType": ("post" | "page"); "title": string; "content": string; "excerpt"?: (undefined | string); "authorId": string; }, GenericId<"revisions">>;
   "createOnSave": FunctionReference<"mutation", "internal", { "parentId": GenericId<"posts">; "parentType": ("post" | "page"); "title": string; "content": string; "excerpt"?: (undefined | string); "authorId": string; "changedFields": Array<string>; }, (null | GenericId<"revisions">)>;
-  "deleteByParent": FunctionReference<"mutation", "internal", { "parentId": GenericId<"posts">; }, Dto2615>;
-  "prune": FunctionReference<"mutation", "internal", { "parentId"?: (undefined | GenericId<"posts">); "maxRevisions"?: (undefined | number); }, Dto2616>;
+  "deleteByParent": FunctionReference<"mutation", "internal", { "parentId": GenericId<"posts">; }, Dto2609>;
+  "prune": FunctionReference<"mutation", "internal", { "parentId"?: (undefined | GenericId<"posts">); "maxRevisions"?: (undefined | number); }, Dto2610>;
 };
 };
   "revisions/internals": {
   "createAutosave": FunctionReference<"mutation", "internal", { "parentId": GenericId<"posts">; "parentType": ("post" | "page"); "title": string; "content": string; "excerpt"?: (undefined | string); "authorId": string; }, GenericId<"revisions">>;
   "createOnSave": FunctionReference<"mutation", "internal", { "parentId": GenericId<"posts">; "parentType": ("post" | "page"); "title": string; "content": string; "excerpt"?: (undefined | string); "authorId": string; "changedFields": Array<string>; }, (null | GenericId<"revisions">)>;
-  "deleteByParent": FunctionReference<"mutation", "internal", { "parentId": GenericId<"posts">; }, Dto2615>;
-  "prune": FunctionReference<"mutation", "internal", { "parentId"?: (undefined | GenericId<"posts">); "maxRevisions"?: (undefined | number); }, Dto2616>;
+  "deleteByParent": FunctionReference<"mutation", "internal", { "parentId": GenericId<"posts">; }, Dto2609>;
+  "prune": FunctionReference<"mutation", "internal", { "parentId"?: (undefined | GenericId<"posts">); "maxRevisions"?: (undefined | number); }, Dto2610>;
 };
   "roles": {
   "internals": {
-  "ensureAdminSetupPageAccess": FunctionReference<"mutation", "internal", {  }, (Dto2625 | Dto2626)>;
-  "migrateLegacyRoles": FunctionReference<"mutation", "internal", {  }, Dto2627>;
-  "reseedRoles": FunctionReference<"mutation", "internal", {  }, Dto2628>;
-  "seedRoles": FunctionReference<"mutation", "internal", {  }, Dto2629>;
+  "ensureAdminSetupPageAccess": FunctionReference<"mutation", "internal", {  }, (Dto2619 | Dto2620)>;
+  "migrateLegacyRoles": FunctionReference<"mutation", "internal", {  }, Dto2621>;
+  "reseedRoles": FunctionReference<"mutation", "internal", {  }, Dto2622>;
+  "seedRoles": FunctionReference<"mutation", "internal", {  }, Dto2623>;
 };
 };
   "roles/internals": {
-  "ensureAdminSetupPageAccess": FunctionReference<"mutation", "internal", {  }, (Dto2625 | Dto2626)>;
-  "migrateLegacyRoles": FunctionReference<"mutation", "internal", {  }, Dto2627>;
-  "reseedRoles": FunctionReference<"mutation", "internal", {  }, Dto2628>;
-  "seedRoles": FunctionReference<"mutation", "internal", {  }, Dto2629>;
+  "ensureAdminSetupPageAccess": FunctionReference<"mutation", "internal", {  }, (Dto2619 | Dto2620)>;
+  "migrateLegacyRoles": FunctionReference<"mutation", "internal", {  }, Dto2621>;
+  "reseedRoles": FunctionReference<"mutation", "internal", {  }, Dto2622>;
+  "seedRoles": FunctionReference<"mutation", "internal", {  }, Dto2623>;
 };
   "routing": {
   "eventHandlers": {
@@ -9003,13 +8993,13 @@ export type InternalApi = {
   "onSlugChanged": FunctionReference<"mutation", "internal", { "eventId": GenericId<"events">; }, null>;
 };
   "internals": {
-  "batchCreateRedirects": FunctionReference<"mutation", "internal", { "redirects": Array<Dto2640>; "source": ("slug_change" | "permalink_change"); }, Dto2641>;
-  "cleanup404Log": FunctionReference<"mutation", "internal", {  }, Dto2642>;
+  "batchCreateRedirects": FunctionReference<"mutation", "internal", { "redirects": Array<Dto2634>; "source": ("slug_change" | "permalink_change"); }, Dto2635>;
+  "cleanup404Log": FunctionReference<"mutation", "internal", {  }, Dto2636>;
   "clearNotFoundForUrl": FunctionReference<"mutation", "internal", { "url": string; }, null>;
   "generateSlugRedirect": FunctionReference<"mutation", "internal", { "contentType": ("post" | "page"); "contentId": string; "oldSlug": string; "newSlug": string; }, null>;
   "log404": FunctionReference<"mutation", "internal", { "url": string; "referrer"?: (undefined | string); "userAgent"?: (undefined | string); }, null>;
   "recordRedirectHit": FunctionReference<"mutation", "internal", { "redirectId": GenericId<"redirects">; }, null>;
-  "resolveRedirect": FunctionReference<"query", "internal", { "url": string; }, (null | Dto1848 | Dto2643)>;
+  "resolveRedirect": FunctionReference<"query", "internal", { "url": string; }, (null | Dto1848 | Dto2637)>;
 };
 };
   "routing/eventHandlers": {
@@ -9019,23 +9009,23 @@ export type InternalApi = {
   "onSlugChanged": FunctionReference<"mutation", "internal", { "eventId": GenericId<"events">; }, null>;
 };
   "routing/internals": {
-  "batchCreateRedirects": FunctionReference<"mutation", "internal", { "redirects": Array<Dto2640>; "source": ("slug_change" | "permalink_change"); }, Dto2641>;
-  "cleanup404Log": FunctionReference<"mutation", "internal", {  }, Dto2642>;
+  "batchCreateRedirects": FunctionReference<"mutation", "internal", { "redirects": Array<Dto2634>; "source": ("slug_change" | "permalink_change"); }, Dto2635>;
+  "cleanup404Log": FunctionReference<"mutation", "internal", {  }, Dto2636>;
   "clearNotFoundForUrl": FunctionReference<"mutation", "internal", { "url": string; }, null>;
   "generateSlugRedirect": FunctionReference<"mutation", "internal", { "contentType": ("post" | "page"); "contentId": string; "oldSlug": string; "newSlug": string; }, null>;
   "log404": FunctionReference<"mutation", "internal", { "url": string; "referrer"?: (undefined | string); "userAgent"?: (undefined | string); }, null>;
   "recordRedirectHit": FunctionReference<"mutation", "internal", { "redirectId": GenericId<"redirects">; }, null>;
-  "resolveRedirect": FunctionReference<"query", "internal", { "url": string; }, (null | Dto1848 | Dto2643)>;
+  "resolveRedirect": FunctionReference<"query", "internal", { "url": string; }, (null | Dto1848 | Dto2637)>;
 };
   "search": {
   "actions": {
-  "_reindexInternal": FunctionReference<"action", "internal", { "contentType"?: (undefined | "event" | "media" | "post" | "page" | "comment" | "course" | "product"); "contentId"?: (undefined | string); "force"?: (undefined | false | true); "jobId"?: (undefined | string); }, (Dto2650 | Dto2651)>;
+  "_reindexInternal": FunctionReference<"action", "internal", { "contentType"?: (undefined | "event" | "media" | "post" | "page" | "comment" | "course" | "product"); "contentId"?: (undefined | string); "force"?: (undefined | false | true); "jobId"?: (undefined | string); }, (Dto2644 | Dto2645)>;
 };
   "candidates": {
-  "page": FunctionReference<"query", "internal", { "query": string; "phase": ("title" | "body"); "kind": (null | "event" | "post" | "page" | "course" | "product"); "cursor": (null | string); "pageSize": number; "maxBytes": number; "maxDocuments": number; "maxDocumentBytes": number; }, Dto2654>;
+  "page": FunctionReference<"query", "internal", { "query": string; "phase": ("title" | "body"); "kind": (null | "event" | "post" | "page" | "course" | "product"); "cursor": (null | string); "pageSize": number; "maxBytes": number; "maxDocuments": number; "maxDocumentBytes": number; }, Dto2648>;
 };
   "eventBackfill": {
-  "page": FunctionReference<"mutation", "internal", { "cursor": (null | string); }, Dto2656>;
+  "page": FunctionReference<"mutation", "internal", { "cursor": (null | string); }, Dto2650>;
 };
   "eventHandlers": {
   "onCommentChanged": FunctionReference<"mutation", "internal", { "eventId": GenericId<"events">; }, null>;
@@ -9050,32 +9040,32 @@ export type InternalApi = {
   "internals": {
   "acquireReindexLock": FunctionReference<"mutation", "internal", {  }, boolean>;
   "checkReindexPermission": FunctionReference<"query", "internal", { "userId": string; }, boolean>;
-  "cleanupOrphanedIndex": FunctionReference<"mutation", "internal", { "cursor"?: (undefined | string); }, Dto2657>;
+  "cleanupOrphanedIndex": FunctionReference<"mutation", "internal", { "cursor"?: (undefined | string); }, Dto2651>;
   "logSearchQuery": FunctionReference<"mutation", "internal", { "query": string; "normalizedQuery": string; "resultCount": number; "userId"?: (undefined | string); "source": ("website" | "api" | "admin"); "contentTypeFilter"?: (undefined | "event" | "media" | "post" | "page" | "comment" | "course" | "product"); "categoryFilter"?: (undefined | string); "tagFilter"?: (undefined | string); }, null>;
   "onContentChanged": FunctionReference<"mutation", "internal", { "contentType": ("event" | "media" | "post" | "page" | "comment" | "course" | "product"); "contentId": string; "action": ("delete" | "upsert"); }, null>;
-  "purgeOldAnalytics": FunctionReference<"mutation", "internal", { "retentionDays"?: (undefined | number); }, Dto2658>;
+  "purgeOldAnalytics": FunctionReference<"mutation", "internal", { "retentionDays"?: (undefined | number); }, Dto2652>;
   "reindexAll": FunctionReference<"mutation", "internal", { "contentType"?: (undefined | "event" | "media" | "post" | "page" | "comment" | "course" | "product"); }, null>;
   "releaseReindexLock": FunctionReference<"mutation", "internal", {  }, null>;
 };
   "products": {
-  "syncAllProducts": FunctionReference<"mutation", "internal", { "cursor"?: (undefined | string); "batch"?: (undefined | number); }, Dto2659>;
+  "syncAllProducts": FunctionReference<"mutation", "internal", { "cursor"?: (undefined | string); "batch"?: (undefined | number); }, Dto2653>;
   "syncProduct": FunctionReference<"mutation", "internal", { "productId": GenericId<"commerce_products">; }, null>;
 };
   "reindex": {
-  "begin": FunctionReference<"mutation", "internal", { "jobId"?: (undefined | string); "newJobId": string; "leaseId": string; "contentType"?: (undefined | "event" | "media" | "post" | "page" | "comment" | "course" | "product"); }, Dto2651>;
-  "finishChunk": FunctionReference<"mutation", "internal", { "failed": boolean; "failure"?: (undefined | Dto2652); "jobId": string; "leaseId": string; "sequence": number; }, Dto2651>;
-  "status": FunctionReference<"query", "internal", { "jobId": string; }, Dto2651>;
-  "step": FunctionReference<"mutation", "internal", { "jobId": string; "leaseId": string; "sequence": number; }, Dto2651>;
+  "begin": FunctionReference<"mutation", "internal", { "jobId"?: (undefined | string); "newJobId": string; "leaseId": string; "contentType"?: (undefined | "event" | "media" | "post" | "page" | "comment" | "course" | "product"); }, Dto2645>;
+  "finishChunk": FunctionReference<"mutation", "internal", { "failed": boolean; "failure"?: (undefined | Dto2646); "jobId": string; "leaseId": string; "sequence": number; }, Dto2645>;
+  "status": FunctionReference<"query", "internal", { "jobId": string; }, Dto2645>;
+  "step": FunctionReference<"mutation", "internal", { "jobId": string; "leaseId": string; "sequence": number; }, Dto2645>;
 };
 };
   "search/actions": {
-  "_reindexInternal": FunctionReference<"action", "internal", { "contentType"?: (undefined | "event" | "media" | "post" | "page" | "comment" | "course" | "product"); "contentId"?: (undefined | string); "force"?: (undefined | false | true); "jobId"?: (undefined | string); }, (Dto2650 | Dto2651)>;
+  "_reindexInternal": FunctionReference<"action", "internal", { "contentType"?: (undefined | "event" | "media" | "post" | "page" | "comment" | "course" | "product"); "contentId"?: (undefined | string); "force"?: (undefined | false | true); "jobId"?: (undefined | string); }, (Dto2644 | Dto2645)>;
 };
   "search/candidates": {
-  "page": FunctionReference<"query", "internal", { "query": string; "phase": ("title" | "body"); "kind": (null | "event" | "post" | "page" | "course" | "product"); "cursor": (null | string); "pageSize": number; "maxBytes": number; "maxDocuments": number; "maxDocumentBytes": number; }, Dto2654>;
+  "page": FunctionReference<"query", "internal", { "query": string; "phase": ("title" | "body"); "kind": (null | "event" | "post" | "page" | "course" | "product"); "cursor": (null | string); "pageSize": number; "maxBytes": number; "maxDocuments": number; "maxDocumentBytes": number; }, Dto2648>;
 };
   "search/eventBackfill": {
-  "page": FunctionReference<"mutation", "internal", { "cursor": (null | string); }, Dto2656>;
+  "page": FunctionReference<"mutation", "internal", { "cursor": (null | string); }, Dto2650>;
 };
   "search/eventHandlers": {
   "onCommentChanged": FunctionReference<"mutation", "internal", { "eventId": GenericId<"events">; }, null>;
@@ -9090,67 +9080,67 @@ export type InternalApi = {
   "search/internals": {
   "acquireReindexLock": FunctionReference<"mutation", "internal", {  }, boolean>;
   "checkReindexPermission": FunctionReference<"query", "internal", { "userId": string; }, boolean>;
-  "cleanupOrphanedIndex": FunctionReference<"mutation", "internal", { "cursor"?: (undefined | string); }, Dto2657>;
+  "cleanupOrphanedIndex": FunctionReference<"mutation", "internal", { "cursor"?: (undefined | string); }, Dto2651>;
   "logSearchQuery": FunctionReference<"mutation", "internal", { "query": string; "normalizedQuery": string; "resultCount": number; "userId"?: (undefined | string); "source": ("website" | "api" | "admin"); "contentTypeFilter"?: (undefined | "event" | "media" | "post" | "page" | "comment" | "course" | "product"); "categoryFilter"?: (undefined | string); "tagFilter"?: (undefined | string); }, null>;
   "onContentChanged": FunctionReference<"mutation", "internal", { "contentType": ("event" | "media" | "post" | "page" | "comment" | "course" | "product"); "contentId": string; "action": ("delete" | "upsert"); }, null>;
-  "purgeOldAnalytics": FunctionReference<"mutation", "internal", { "retentionDays"?: (undefined | number); }, Dto2658>;
+  "purgeOldAnalytics": FunctionReference<"mutation", "internal", { "retentionDays"?: (undefined | number); }, Dto2652>;
   "reindexAll": FunctionReference<"mutation", "internal", { "contentType"?: (undefined | "event" | "media" | "post" | "page" | "comment" | "course" | "product"); }, null>;
   "releaseReindexLock": FunctionReference<"mutation", "internal", {  }, null>;
 };
   "search/products": {
-  "syncAllProducts": FunctionReference<"mutation", "internal", { "cursor"?: (undefined | string); "batch"?: (undefined | number); }, Dto2659>;
+  "syncAllProducts": FunctionReference<"mutation", "internal", { "cursor"?: (undefined | string); "batch"?: (undefined | number); }, Dto2653>;
   "syncProduct": FunctionReference<"mutation", "internal", { "productId": GenericId<"commerce_products">; }, null>;
 };
   "search/reindex": {
-  "begin": FunctionReference<"mutation", "internal", { "jobId"?: (undefined | string); "newJobId": string; "leaseId": string; "contentType"?: (undefined | "event" | "media" | "post" | "page" | "comment" | "course" | "product"); }, Dto2651>;
-  "finishChunk": FunctionReference<"mutation", "internal", { "failed": boolean; "failure"?: (undefined | Dto2652); "jobId": string; "leaseId": string; "sequence": number; }, Dto2651>;
-  "status": FunctionReference<"query", "internal", { "jobId": string; }, Dto2651>;
-  "step": FunctionReference<"mutation", "internal", { "jobId": string; "leaseId": string; "sequence": number; }, Dto2651>;
+  "begin": FunctionReference<"mutation", "internal", { "jobId"?: (undefined | string); "newJobId": string; "leaseId": string; "contentType"?: (undefined | "event" | "media" | "post" | "page" | "comment" | "course" | "product"); }, Dto2645>;
+  "finishChunk": FunctionReference<"mutation", "internal", { "failed": boolean; "failure"?: (undefined | Dto2646); "jobId": string; "leaseId": string; "sequence": number; }, Dto2645>;
+  "status": FunctionReference<"query", "internal", { "jobId": string; }, Dto2645>;
+  "step": FunctionReference<"mutation", "internal", { "jobId": string; "leaseId": string; "sequence": number; }, Dto2645>;
 };
   "seo": {
   "internals": {
-  "checkDuplicateKeyphrase": FunctionReference<"query", "internal", { "keyphrase": string; "excludePostId"?: (undefined | GenericId<"posts">); }, Array<Dto2677>>;
+  "checkDuplicateKeyphrase": FunctionReference<"query", "internal", { "keyphrase": string; "excludePostId"?: (undefined | GenericId<"posts">); }, Array<Dto2671>>;
   "getNoindexPostIds": FunctionReference<"query", "internal", {  }, Array<GenericId<"posts">>>;
-  "getPostSeoInternal": FunctionReference<"query", "internal", { "postId": GenericId<"posts">; }, Dto2678>;
-  "getSettingsInternal": FunctionReference<"query", "internal", {  }, Dto2679>;
-  "resolvePostSeoInternal": FunctionReference<"query", "internal", { "postId": GenericId<"posts">; "siteUrl": string; }, (null | Dto2687)>;
+  "getPostSeoInternal": FunctionReference<"query", "internal", { "postId": GenericId<"posts">; }, Dto2672>;
+  "getSettingsInternal": FunctionReference<"query", "internal", {  }, Dto2673>;
+  "resolvePostSeoInternal": FunctionReference<"query", "internal", { "postId": GenericId<"posts">; "siteUrl": string; }, (null | Dto2681)>;
 };
 };
   "seo/internals": {
-  "checkDuplicateKeyphrase": FunctionReference<"query", "internal", { "keyphrase": string; "excludePostId"?: (undefined | GenericId<"posts">); }, Array<Dto2677>>;
+  "checkDuplicateKeyphrase": FunctionReference<"query", "internal", { "keyphrase": string; "excludePostId"?: (undefined | GenericId<"posts">); }, Array<Dto2671>>;
   "getNoindexPostIds": FunctionReference<"query", "internal", {  }, Array<GenericId<"posts">>>;
-  "getPostSeoInternal": FunctionReference<"query", "internal", { "postId": GenericId<"posts">; }, Dto2678>;
-  "getSettingsInternal": FunctionReference<"query", "internal", {  }, Dto2679>;
-  "resolvePostSeoInternal": FunctionReference<"query", "internal", { "postId": GenericId<"posts">; "siteUrl": string; }, (null | Dto2687)>;
+  "getPostSeoInternal": FunctionReference<"query", "internal", { "postId": GenericId<"posts">; }, Dto2672>;
+  "getSettingsInternal": FunctionReference<"query", "internal", {  }, Dto2673>;
+  "resolvePostSeoInternal": FunctionReference<"query", "internal", { "postId": GenericId<"posts">; "siteUrl": string; }, (null | Dto2681)>;
 };
   "settings": {
   "httpInternals": {
-  "getBySectionInternal": FunctionReference<"query", "internal", { "section": string; }, Dto2698>;
-  "getPublicInternal": FunctionReference<"query", "internal", {  }, Dto2699>;
+  "getBySectionInternal": FunctionReference<"query", "internal", { "section": string; }, Dto2692>;
+  "getPublicInternal": FunctionReference<"query", "internal", {  }, Dto2693>;
 };
   "internals": {
-  "encryptStoredSecrets": FunctionReference<"mutation", "internal", {  }, Dto2702>;
-  "getInternal": FunctionReference<"query", "internal", { "section": string; }, (null | Dto2703)>;
+  "encryptStoredSecrets": FunctionReference<"mutation", "internal", {  }, Dto2696>;
+  "getInternal": FunctionReference<"query", "internal", { "section": string; }, (null | Dto2697)>;
   "requireManageOptionsInternal": FunctionReference<"query", "internal", {  }, boolean>;
 };
 };
   "settings/httpInternals": {
-  "getBySectionInternal": FunctionReference<"query", "internal", { "section": string; }, Dto2698>;
-  "getPublicInternal": FunctionReference<"query", "internal", {  }, Dto2699>;
+  "getBySectionInternal": FunctionReference<"query", "internal", { "section": string; }, Dto2692>;
+  "getPublicInternal": FunctionReference<"query", "internal", {  }, Dto2693>;
 };
   "settings/internals": {
-  "encryptStoredSecrets": FunctionReference<"mutation", "internal", {  }, Dto2702>;
-  "getInternal": FunctionReference<"query", "internal", { "section": string; }, (null | Dto2703)>;
+  "encryptStoredSecrets": FunctionReference<"mutation", "internal", {  }, Dto2696>;
+  "getInternal": FunctionReference<"query", "internal", { "section": string; }, (null | Dto2697)>;
   "requireManageOptionsInternal": FunctionReference<"query", "internal", {  }, boolean>;
 };
   "shipping": {
   "addressValidation": {
   "actions": {
-  "validateAddressInternal": FunctionReference<"action", "internal", { "address": Dto2738; "force"?: (undefined | false | true); }, unknown>;
+  "validateAddressInternal": FunctionReference<"action", "internal", { "address": Dto2732; "force"?: (undefined | false | true); }, unknown>;
 };
   "mutations": {
-  "purgeExpired": FunctionReference<"mutation", "internal", {  }, Dto2739>;
-  "recordValidation": FunctionReference<"mutation", "internal", { "fingerprint": string; "provider": ("google" | "ups" | "usps" | "fedex" | "smartystreets" | "skip"); "status": ("skipped" | "valid" | "corrected" | "invalid" | "unconfirmed" | "ambiguous" | "unsupported_country"); "inputAddress": unknown; "normalizedAddress"?: unknown; "isResidential"?: (undefined | false | true); "deliveryPoint"?: (undefined | string); "warnings"?: (undefined | Array<string>); "geocode"?: (undefined | Dto2740); "rawResponse"?: unknown; "validationDiagnostics"?: unknown; "ttlMs"?: (undefined | number); }, unknown>;
+  "purgeExpired": FunctionReference<"mutation", "internal", {  }, Dto2733>;
+  "recordValidation": FunctionReference<"mutation", "internal", { "fingerprint": string; "provider": ("google" | "ups" | "usps" | "fedex" | "smartystreets" | "skip"); "status": ("skipped" | "valid" | "corrected" | "invalid" | "unconfirmed" | "ambiguous" | "unsupported_country"); "inputAddress": unknown; "normalizedAddress"?: unknown; "isResidential"?: (undefined | false | true); "deliveryPoint"?: (undefined | string); "warnings"?: (undefined | Array<string>); "geocode"?: (undefined | Dto2734); "rawResponse"?: unknown; "validationDiagnostics"?: unknown; "ttlMs"?: (undefined | number); }, unknown>;
 };
   "queries": {
   "getValidationByFingerprintInternal": FunctionReference<"query", "internal", { "fingerprint": string; }, (null | Dto1997)>;
@@ -9161,21 +9151,21 @@ export type InternalApi = {
 };
   "classes": {
   "internals": {
-  "resolveBatch": FunctionReference<"query", "internal", { "lines": Array<Dto2742>; }, Dto2743>;
+  "resolveBatch": FunctionReference<"query", "internal", { "lines": Array<Dto2736>; }, Dto2737>;
   "resolveForCartLine": FunctionReference<"query", "internal", { "productId": GenericId<"commerce_products">; "variantId"?: (undefined | GenericId<"commerce_product_variants">); }, (null | string)>;
 };
 };
   "internals": {
-  "checkShippingAdminAction": FunctionReference<"query", "internal", { "userId": string; "capability": string; }, Dto2750>;
-  "createOrderShipmentFromLabel": FunctionReference<"mutation", "internal", { "orderId": GenericId<"commerce_orders">; "actorUserId": GenericId<"users">; "shipmentNumber": string; "provider": string; "status": ("delivered" | "label_created" | "shipped" | "returned"); "carrier"?: (undefined | string); "carrierCode"?: (undefined | string); "serviceCode"?: (undefined | string); "serviceName"?: (undefined | string); "trackingNumber"?: (undefined | string); "trackingUrl"?: (undefined | string); "trackingStatus"?: (undefined | string); "externalShipmentId"?: (undefined | string); "externalLabelId"?: (undefined | string); "labelUrl"?: (undefined | string); "labelFormat"?: (undefined | string); "items": Array<Dto2751>; "rawMetadata"?: unknown; "originProof"?: (undefined | Dto1898); }, GenericId<"commerce_shipments">>;
-  "getLabelContextForOrder": FunctionReference<"query", "internal", { "orderId": GenericId<"commerce_orders">; }, (null | Dto2752)>;
-  "getProviderSecret": FunctionReference<"query", "internal", { "provider": ("shipstation" | "ups" | "usps" | "fedex" | "dhl"); }, (null | Dto2753)>;
-  "getRateContextForSession": FunctionReference<"query", "internal", { "sessionToken": string; }, (null | Dto2754)>;
-  "getShipmentForTracking": FunctionReference<"query", "internal", { "shipmentId": GenericId<"commerce_shipments">; }, (null | Dto2756)>;
+  "checkShippingAdminAction": FunctionReference<"query", "internal", { "userId": string; "capability": string; }, Dto2744>;
+  "createOrderShipmentFromLabel": FunctionReference<"mutation", "internal", { "orderId": GenericId<"commerce_orders">; "actorUserId": GenericId<"users">; "shipmentNumber": string; "provider": string; "status": ("delivered" | "label_created" | "shipped" | "returned"); "carrier"?: (undefined | string); "carrierCode"?: (undefined | string); "serviceCode"?: (undefined | string); "serviceName"?: (undefined | string); "trackingNumber"?: (undefined | string); "trackingUrl"?: (undefined | string); "trackingStatus"?: (undefined | string); "externalShipmentId"?: (undefined | string); "externalLabelId"?: (undefined | string); "labelUrl"?: (undefined | string); "labelFormat"?: (undefined | string); "items": Array<Dto2745>; "rawMetadata"?: unknown; "originProof"?: (undefined | Dto1898); }, GenericId<"commerce_shipments">>;
+  "getLabelContextForOrder": FunctionReference<"query", "internal", { "orderId": GenericId<"commerce_orders">; }, (null | Dto2746)>;
+  "getProviderSecret": FunctionReference<"query", "internal", { "provider": ("shipstation" | "ups" | "usps" | "fedex" | "dhl"); }, (null | Dto2747)>;
+  "getRateContextForSession": FunctionReference<"query", "internal", { "sessionToken": string; }, (null | Dto2748)>;
+  "getShipmentForTracking": FunctionReference<"query", "internal", { "shipmentId": GenericId<"commerce_shipments">; }, (null | Dto2750)>;
   "listProviderConnections": FunctionReference<"query", "internal", {  }, Array<Dto1895>>;
-  "matchZoneForAddress": FunctionReference<"query", "internal", { "countryCode": string; "state"?: (undefined | string); "postalCode"?: (undefined | string); }, (null | Dto2757)>;
-  "replaceCheckoutQuotes": FunctionReference<"mutation", "internal", { "checkoutSessionId": GenericId<"commerce_checkout_sessions">; "quotes": Array<Dto2758>; "addressKey"?: (undefined | string); "cartKey"?: (undefined | string); }, GenericId<"commerce_checkout_sessions">>;
-  "saveQuoteDiagnostics": FunctionReference<"mutation", "internal", { "checkoutSessionId"?: (undefined | GenericId<"commerce_checkout_sessions">); "requestedAt": number; "requestedBy"?: (undefined | string); "shippingAddress"?: unknown; "providerResults": Array<Dto2759>; "totalQuotes": number; "fallbackUsed": boolean; }, GenericId<"shipping_quote_diagnostics">>;
+  "matchZoneForAddress": FunctionReference<"query", "internal", { "countryCode": string; "state"?: (undefined | string); "postalCode"?: (undefined | string); }, (null | Dto2751)>;
+  "replaceCheckoutQuotes": FunctionReference<"mutation", "internal", { "checkoutSessionId": GenericId<"commerce_checkout_sessions">; "quotes": Array<Dto2752>; "addressKey"?: (undefined | string); "cartKey"?: (undefined | string); }, GenericId<"commerce_checkout_sessions">>;
+  "saveQuoteDiagnostics": FunctionReference<"mutation", "internal", { "checkoutSessionId"?: (undefined | GenericId<"commerce_checkout_sessions">); "requestedAt": number; "requestedBy"?: (undefined | string); "shippingAddress"?: unknown; "providerResults": Array<Dto2753>; "totalQuotes": number; "fallbackUsed": boolean; }, GenericId<"shipping_quote_diagnostics">>;
   "syncProviderAccountsAndServices": FunctionReference<"mutation", "internal", { "provider": ("shipstation" | "ups" | "usps" | "fedex" | "dhl"); "carriers": Array<unknown>; }, (null | GenericId<"shipping_provider_connections">)>;
   "updateConnectionHealth": FunctionReference<"mutation", "internal", { "provider": ("shipstation" | "ups" | "usps" | "fedex" | "dhl"); "status": ("error" | "disconnected" | "connected" | "degraded"); "lastSyncAt"?: (undefined | number); "lastErrorCode"?: (undefined | string); "lastErrorMessage"?: (undefined | string); }, (null | GenericId<"shipping_provider_connections">)>;
   "updateOrderShippingSnapshot": FunctionReference<"mutation", "internal", { "orderId": GenericId<"commerce_orders">; "shippingProvider"?: (undefined | string); "shippingCarrierCode"?: (undefined | string); "shippingCarrierName"?: (undefined | string); "shippingServiceCode"?: (undefined | string); "shippingServiceName"?: (undefined | string); "shippingQuoteRaw"?: unknown; }, GenericId<"commerce_orders">>;
@@ -9184,7 +9174,7 @@ export type InternalApi = {
   "labels": {
   "internals": {
   "findByIdempotencyKey": FunctionReference<"query", "internal", { "orderId": GenericId<"commerce_orders">; "idempotencyKey": string; }, (null | Dto1900)>;
-  "getCurrentQuoteFingerprint": FunctionReference<"query", "internal", { "orderId": GenericId<"commerce_orders">; }, (null | Dto2765)>;
+  "getCurrentQuoteFingerprint": FunctionReference<"query", "internal", { "orderId": GenericId<"commerce_orders">; }, (null | Dto2759)>;
   "getLabelById": FunctionReference<"query", "internal", { "labelId": GenericId<"commerce_shipment_labels">; }, (null | Dto1900)>;
   "getOrderById": FunctionReference<"query", "internal", { "orderId": GenericId<"commerce_orders">; }, (null | Dto1384)>;
 };
@@ -9195,8 +9185,8 @@ export type InternalApi = {
 };
   "manifests": {
   "actions": {
-  "autoCloseDueManifests": FunctionReference<"action", "internal", {  }, Dto2767>;
-  "submitOneManifest": FunctionReference<"action", "internal", { "manifestId": GenericId<"commerce_shipment_manifests">; }, Dto2768>;
+  "autoCloseDueManifests": FunctionReference<"action", "internal", {  }, Dto2761>;
+  "submitOneManifest": FunctionReference<"action", "internal", { "manifestId": GenericId<"commerce_shipment_manifests">; }, Dto2762>;
 };
   "internals": {
   "getManifestById": FunctionReference<"query", "internal", { "manifestId": GenericId<"commerce_shipment_manifests">; }, (null | Dto1970)>;
@@ -9219,8 +9209,8 @@ export type InternalApi = {
   "tokenCache": {
   "findConnectionByProvider": FunctionReference<"query", "internal", { "provider": ("shipstation" | "ups" | "usps" | "fedex" | "dhl"); }, (null | Dto1895)>;
   "getCachedToken": FunctionReference<"query", "internal", { "connectionId": GenericId<"shipping_provider_connections">; }, (null | Dto1963)>;
-  "invalidateForProvider": FunctionReference<"mutation", "internal", { "provider": ("shipstation" | "ups" | "usps" | "fedex" | "dhl"); }, Dto2781>;
-  "purgeExpiredTokens": FunctionReference<"mutation", "internal", {  }, Dto2782>;
+  "invalidateForProvider": FunctionReference<"mutation", "internal", { "provider": ("shipstation" | "ups" | "usps" | "fedex" | "dhl"); }, Dto2775>;
+  "purgeExpiredTokens": FunctionReference<"mutation", "internal", {  }, Dto2776>;
   "setCachedToken": FunctionReference<"mutation", "internal", { "connectionId": GenericId<"shipping_provider_connections">; "provider": ("shipstation" | "ups" | "usps" | "fedex" | "dhl"); "accessToken": string; "expiresAt": number; }, GenericId<"shipping_provider_oauth_tokens">>;
 };
 };
@@ -9230,9 +9220,9 @@ export type InternalApi = {
   "emitRateEvent": FunctionReference<"mutation", "internal", { "eventCode": string; "payload": unknown; }, null>;
   "getCachedQuotesForSession": FunctionReference<"query", "internal", { "checkoutSessionId": GenericId<"commerce_checkout_sessions">; "addressKey": string; "cartKey": string; }, (null | Array<Dto1882>)>;
   "getUserTags": FunctionReference<"query", "internal", { "userId": string; }, Array<string>>;
-  "listEnabledMethodsForZone": FunctionReference<"query", "internal", { "zoneId": GenericId<"commerce_shipping_zones">; }, Array<Dto2791>>;
+  "listEnabledMethodsForZone": FunctionReference<"query", "internal", { "zoneId": GenericId<"commerce_shipping_zones">; }, Array<Dto2785>>;
   "listLiveRateZoneMethods": FunctionReference<"query", "internal", { "zoneId": GenericId<"commerce_shipping_zones">; }, Array<Dto2001>>;
-  "recordPipelineRun": FunctionReference<"mutation", "internal", { "checkoutSessionId"?: (undefined | GenericId<"commerce_checkout_sessions">); "requestedAt": number; "totalDurationMs": number; "matchedZoneId"?: (undefined | GenericId<"commerce_shipping_zones">); "matchedZoneName"?: (undefined | string); "fellBackToManual": boolean; "totalQuotes": number; "cacheHit"?: (undefined | false | true); "shipFromLocationId"?: (undefined | GenericId<"commerce_ship_from_locations">); "selectedPackageIds"?: (undefined | Array<string>); "warnings"?: (undefined | Array<string>); "zeroQuoteReasons"?: (undefined | Array<string>); "requestContext"?: (undefined | Dto2792); "stages": Array<Dto2793>; "providerResults"?: (undefined | Array<Dto2794>); "addressKey"?: (undefined | string); "cartKey"?: (undefined | string); }, GenericId<"commerce_rate_pipeline_runs">>;
+  "recordPipelineRun": FunctionReference<"mutation", "internal", { "checkoutSessionId"?: (undefined | GenericId<"commerce_checkout_sessions">); "requestedAt": number; "totalDurationMs": number; "matchedZoneId"?: (undefined | GenericId<"commerce_shipping_zones">); "matchedZoneName"?: (undefined | string); "fellBackToManual": boolean; "totalQuotes": number; "cacheHit"?: (undefined | false | true); "shipFromLocationId"?: (undefined | GenericId<"commerce_ship_from_locations">); "selectedPackageIds"?: (undefined | Array<string>); "warnings"?: (undefined | Array<string>); "zeroQuoteReasons"?: (undefined | Array<string>); "requestContext"?: (undefined | Dto2786); "stages": Array<Dto2787>; "providerResults"?: (undefined | Array<Dto2788>); "addressKey"?: (undefined | string); "cartKey"?: (undefined | string); }, GenericId<"commerce_rate_pipeline_runs">>;
 };
 };
   "rulesEngine": {
@@ -9250,10 +9240,10 @@ export type InternalApi = {
 };
   "tracking": {
   "actions": {
-  "syncTracking": FunctionReference<"action", "internal", { "shipmentLabelId"?: (undefined | GenericId<"commerce_shipment_labels">); "maxAgeMs"?: (undefined | number); }, Dto2810>;
+  "syncTracking": FunctionReference<"action", "internal", { "shipmentLabelId"?: (undefined | GenericId<"commerce_shipment_labels">); "maxAgeMs"?: (undefined | number); }, Dto2804>;
 };
   "internals": {
-  "findShipmentByTracking": FunctionReference<"query", "internal", { "trackingNumber": string; }, (null | Dto2811 | Dto2812)>;
+  "findShipmentByTracking": FunctionReference<"query", "internal", { "trackingNumber": string; }, (null | Dto2805 | Dto2806)>;
   "getLabelById": FunctionReference<"query", "internal", { "labelId": GenericId<"commerce_shipment_labels">; }, (null | Dto1900)>;
   "listSyncableLabels": FunctionReference<"query", "internal", { "maxAgeMs": number; }, Array<Dto1900>>;
   "recordSyncLog": FunctionReference<"mutation", "internal", { "provider": string; "shipmentId"?: (undefined | GenericId<"commerce_shipments">); "labelId"?: (undefined | GenericId<"commerce_shipment_labels">); "trackingNumber"?: (undefined | string); "source": ("webhook" | "poll"); "success": boolean; "durationMs"?: (undefined | number); "statusCode"?: (undefined | number); "errorCode"?: (undefined | string); "errorMessage"?: (undefined | string); "eventCount"?: (undefined | number); }, GenericId<"commerce_tracking_sync_log">>;
@@ -9263,22 +9253,22 @@ export type InternalApi = {
 };
 };
   "webhookDedup": {
-  "checkAndRecord": FunctionReference<"mutation", "internal", { "provider": ("shipstation" | "ups" | "fedex"); "signatureHash": string; }, (Dto2815 | Dto2816)>;
+  "checkAndRecord": FunctionReference<"mutation", "internal", { "provider": ("shipstation" | "ups" | "fedex"); "signatureHash": string; }, (Dto2809 | Dto2810)>;
   "listRecent": FunctionReference<"query", "internal", { "provider": ("shipstation" | "ups" | "usps" | "fedex" | "dhl"); }, Array<Dto1964>>;
-  "purgeExpired": FunctionReference<"mutation", "internal", {  }, Dto2817>;
+  "purgeExpired": FunctionReference<"mutation", "internal", {  }, Dto2811>;
 };
   "zones": {
   "internals": {
-  "matchZoneForAddressInternal": FunctionReference<"query", "internal", { "countryCode": string; "state"?: (undefined | string); "postalCode"?: (undefined | string); }, (null | Dto2818)>;
+  "matchZoneForAddressInternal": FunctionReference<"query", "internal", { "countryCode": string; "state"?: (undefined | string); "postalCode"?: (undefined | string); }, (null | Dto2812)>;
 };
 };
 };
   "shipping/addressValidation/actions": {
-  "validateAddressInternal": FunctionReference<"action", "internal", { "address": Dto2738; "force"?: (undefined | false | true); }, unknown>;
+  "validateAddressInternal": FunctionReference<"action", "internal", { "address": Dto2732; "force"?: (undefined | false | true); }, unknown>;
 };
   "shipping/addressValidation/mutations": {
-  "purgeExpired": FunctionReference<"mutation", "internal", {  }, Dto2739>;
-  "recordValidation": FunctionReference<"mutation", "internal", { "fingerprint": string; "provider": ("google" | "ups" | "usps" | "fedex" | "smartystreets" | "skip"); "status": ("skipped" | "valid" | "corrected" | "invalid" | "unconfirmed" | "ambiguous" | "unsupported_country"); "inputAddress": unknown; "normalizedAddress"?: unknown; "isResidential"?: (undefined | false | true); "deliveryPoint"?: (undefined | string); "warnings"?: (undefined | Array<string>); "geocode"?: (undefined | Dto2740); "rawResponse"?: unknown; "validationDiagnostics"?: unknown; "ttlMs"?: (undefined | number); }, unknown>;
+  "purgeExpired": FunctionReference<"mutation", "internal", {  }, Dto2733>;
+  "recordValidation": FunctionReference<"mutation", "internal", { "fingerprint": string; "provider": ("google" | "ups" | "usps" | "fedex" | "smartystreets" | "skip"); "status": ("skipped" | "valid" | "corrected" | "invalid" | "unconfirmed" | "ambiguous" | "unsupported_country"); "inputAddress": unknown; "normalizedAddress"?: unknown; "isResidential"?: (undefined | false | true); "deliveryPoint"?: (undefined | string); "warnings"?: (undefined | Array<string>); "geocode"?: (undefined | Dto2734); "rawResponse"?: unknown; "validationDiagnostics"?: unknown; "ttlMs"?: (undefined | number); }, unknown>;
 };
   "shipping/addressValidation/queries": {
   "getValidationByFingerprintInternal": FunctionReference<"query", "internal", { "fingerprint": string; }, (null | Dto1997)>;
@@ -9287,20 +9277,20 @@ export type InternalApi = {
   "bootstrapShippingTemplates": FunctionReference<"mutation", "internal", {  }, Dto1670>;
 };
   "shipping/classes/internals": {
-  "resolveBatch": FunctionReference<"query", "internal", { "lines": Array<Dto2742>; }, Dto2743>;
+  "resolveBatch": FunctionReference<"query", "internal", { "lines": Array<Dto2736>; }, Dto2737>;
   "resolveForCartLine": FunctionReference<"query", "internal", { "productId": GenericId<"commerce_products">; "variantId"?: (undefined | GenericId<"commerce_product_variants">); }, (null | string)>;
 };
   "shipping/internals": {
-  "checkShippingAdminAction": FunctionReference<"query", "internal", { "userId": string; "capability": string; }, Dto2750>;
-  "createOrderShipmentFromLabel": FunctionReference<"mutation", "internal", { "orderId": GenericId<"commerce_orders">; "actorUserId": GenericId<"users">; "shipmentNumber": string; "provider": string; "status": ("delivered" | "label_created" | "shipped" | "returned"); "carrier"?: (undefined | string); "carrierCode"?: (undefined | string); "serviceCode"?: (undefined | string); "serviceName"?: (undefined | string); "trackingNumber"?: (undefined | string); "trackingUrl"?: (undefined | string); "trackingStatus"?: (undefined | string); "externalShipmentId"?: (undefined | string); "externalLabelId"?: (undefined | string); "labelUrl"?: (undefined | string); "labelFormat"?: (undefined | string); "items": Array<Dto2751>; "rawMetadata"?: unknown; "originProof"?: (undefined | Dto1898); }, GenericId<"commerce_shipments">>;
-  "getLabelContextForOrder": FunctionReference<"query", "internal", { "orderId": GenericId<"commerce_orders">; }, (null | Dto2752)>;
-  "getProviderSecret": FunctionReference<"query", "internal", { "provider": ("shipstation" | "ups" | "usps" | "fedex" | "dhl"); }, (null | Dto2753)>;
-  "getRateContextForSession": FunctionReference<"query", "internal", { "sessionToken": string; }, (null | Dto2754)>;
-  "getShipmentForTracking": FunctionReference<"query", "internal", { "shipmentId": GenericId<"commerce_shipments">; }, (null | Dto2756)>;
+  "checkShippingAdminAction": FunctionReference<"query", "internal", { "userId": string; "capability": string; }, Dto2744>;
+  "createOrderShipmentFromLabel": FunctionReference<"mutation", "internal", { "orderId": GenericId<"commerce_orders">; "actorUserId": GenericId<"users">; "shipmentNumber": string; "provider": string; "status": ("delivered" | "label_created" | "shipped" | "returned"); "carrier"?: (undefined | string); "carrierCode"?: (undefined | string); "serviceCode"?: (undefined | string); "serviceName"?: (undefined | string); "trackingNumber"?: (undefined | string); "trackingUrl"?: (undefined | string); "trackingStatus"?: (undefined | string); "externalShipmentId"?: (undefined | string); "externalLabelId"?: (undefined | string); "labelUrl"?: (undefined | string); "labelFormat"?: (undefined | string); "items": Array<Dto2745>; "rawMetadata"?: unknown; "originProof"?: (undefined | Dto1898); }, GenericId<"commerce_shipments">>;
+  "getLabelContextForOrder": FunctionReference<"query", "internal", { "orderId": GenericId<"commerce_orders">; }, (null | Dto2746)>;
+  "getProviderSecret": FunctionReference<"query", "internal", { "provider": ("shipstation" | "ups" | "usps" | "fedex" | "dhl"); }, (null | Dto2747)>;
+  "getRateContextForSession": FunctionReference<"query", "internal", { "sessionToken": string; }, (null | Dto2748)>;
+  "getShipmentForTracking": FunctionReference<"query", "internal", { "shipmentId": GenericId<"commerce_shipments">; }, (null | Dto2750)>;
   "listProviderConnections": FunctionReference<"query", "internal", {  }, Array<Dto1895>>;
-  "matchZoneForAddress": FunctionReference<"query", "internal", { "countryCode": string; "state"?: (undefined | string); "postalCode"?: (undefined | string); }, (null | Dto2757)>;
-  "replaceCheckoutQuotes": FunctionReference<"mutation", "internal", { "checkoutSessionId": GenericId<"commerce_checkout_sessions">; "quotes": Array<Dto2758>; "addressKey"?: (undefined | string); "cartKey"?: (undefined | string); }, GenericId<"commerce_checkout_sessions">>;
-  "saveQuoteDiagnostics": FunctionReference<"mutation", "internal", { "checkoutSessionId"?: (undefined | GenericId<"commerce_checkout_sessions">); "requestedAt": number; "requestedBy"?: (undefined | string); "shippingAddress"?: unknown; "providerResults": Array<Dto2759>; "totalQuotes": number; "fallbackUsed": boolean; }, GenericId<"shipping_quote_diagnostics">>;
+  "matchZoneForAddress": FunctionReference<"query", "internal", { "countryCode": string; "state"?: (undefined | string); "postalCode"?: (undefined | string); }, (null | Dto2751)>;
+  "replaceCheckoutQuotes": FunctionReference<"mutation", "internal", { "checkoutSessionId": GenericId<"commerce_checkout_sessions">; "quotes": Array<Dto2752>; "addressKey"?: (undefined | string); "cartKey"?: (undefined | string); }, GenericId<"commerce_checkout_sessions">>;
+  "saveQuoteDiagnostics": FunctionReference<"mutation", "internal", { "checkoutSessionId"?: (undefined | GenericId<"commerce_checkout_sessions">); "requestedAt": number; "requestedBy"?: (undefined | string); "shippingAddress"?: unknown; "providerResults": Array<Dto2753>; "totalQuotes": number; "fallbackUsed": boolean; }, GenericId<"shipping_quote_diagnostics">>;
   "syncProviderAccountsAndServices": FunctionReference<"mutation", "internal", { "provider": ("shipstation" | "ups" | "usps" | "fedex" | "dhl"); "carriers": Array<unknown>; }, (null | GenericId<"shipping_provider_connections">)>;
   "updateConnectionHealth": FunctionReference<"mutation", "internal", { "provider": ("shipstation" | "ups" | "usps" | "fedex" | "dhl"); "status": ("error" | "disconnected" | "connected" | "degraded"); "lastSyncAt"?: (undefined | number); "lastErrorCode"?: (undefined | string); "lastErrorMessage"?: (undefined | string); }, (null | GenericId<"shipping_provider_connections">)>;
   "updateOrderShippingSnapshot": FunctionReference<"mutation", "internal", { "orderId": GenericId<"commerce_orders">; "shippingProvider"?: (undefined | string); "shippingCarrierCode"?: (undefined | string); "shippingCarrierName"?: (undefined | string); "shippingServiceCode"?: (undefined | string); "shippingServiceName"?: (undefined | string); "shippingQuoteRaw"?: unknown; }, GenericId<"commerce_orders">>;
@@ -9308,7 +9298,7 @@ export type InternalApi = {
 };
   "shipping/labels/internals": {
   "findByIdempotencyKey": FunctionReference<"query", "internal", { "orderId": GenericId<"commerce_orders">; "idempotencyKey": string; }, (null | Dto1900)>;
-  "getCurrentQuoteFingerprint": FunctionReference<"query", "internal", { "orderId": GenericId<"commerce_orders">; }, (null | Dto2765)>;
+  "getCurrentQuoteFingerprint": FunctionReference<"query", "internal", { "orderId": GenericId<"commerce_orders">; }, (null | Dto2759)>;
   "getLabelById": FunctionReference<"query", "internal", { "labelId": GenericId<"commerce_shipment_labels">; }, (null | Dto1900)>;
   "getOrderById": FunctionReference<"query", "internal", { "orderId": GenericId<"commerce_orders">; }, (null | Dto1384)>;
 };
@@ -9317,8 +9307,8 @@ export type InternalApi = {
   "recordPurchasedLabel": FunctionReference<"mutation", "internal", { "shipmentId": GenericId<"commerce_shipments">; "orderId": GenericId<"commerce_orders">; "packageIndex": number; "packageTemplateId"?: (undefined | GenericId<"commerce_shipping_packages">); "provider": string; "carrierCode"?: (undefined | string); "serviceCode"?: (undefined | string); "trackingNumber"?: (undefined | string); "externalLabelId"?: (undefined | string); "labelFileStorageId"?: (undefined | GenericId<"_storage">); "labelFormat"?: (undefined | string); "labelUrl"?: (undefined | string); "labelCost": number; "labelCurrency": string; "idempotencyKey"?: (undefined | string); "rawMetadata"?: unknown; }, GenericId<"commerce_shipment_labels">>;
 };
   "shipping/manifests/actions": {
-  "autoCloseDueManifests": FunctionReference<"action", "internal", {  }, Dto2767>;
-  "submitOneManifest": FunctionReference<"action", "internal", { "manifestId": GenericId<"commerce_shipment_manifests">; }, Dto2768>;
+  "autoCloseDueManifests": FunctionReference<"action", "internal", {  }, Dto2761>;
+  "submitOneManifest": FunctionReference<"action", "internal", { "manifestId": GenericId<"commerce_shipment_manifests">; }, Dto2762>;
 };
   "shipping/manifests/internals": {
   "getManifestById": FunctionReference<"query", "internal", { "manifestId": GenericId<"commerce_shipment_manifests">; }, (null | Dto1970)>;
@@ -9336,17 +9326,17 @@ export type InternalApi = {
   "shipping/providers/_shared/tokenCache": {
   "findConnectionByProvider": FunctionReference<"query", "internal", { "provider": ("shipstation" | "ups" | "usps" | "fedex" | "dhl"); }, (null | Dto1895)>;
   "getCachedToken": FunctionReference<"query", "internal", { "connectionId": GenericId<"shipping_provider_connections">; }, (null | Dto1963)>;
-  "invalidateForProvider": FunctionReference<"mutation", "internal", { "provider": ("shipstation" | "ups" | "usps" | "fedex" | "dhl"); }, Dto2781>;
-  "purgeExpiredTokens": FunctionReference<"mutation", "internal", {  }, Dto2782>;
+  "invalidateForProvider": FunctionReference<"mutation", "internal", { "provider": ("shipstation" | "ups" | "usps" | "fedex" | "dhl"); }, Dto2775>;
+  "purgeExpiredTokens": FunctionReference<"mutation", "internal", {  }, Dto2776>;
   "setCachedToken": FunctionReference<"mutation", "internal", { "connectionId": GenericId<"shipping_provider_connections">; "provider": ("shipstation" | "ups" | "usps" | "fedex" | "dhl"); "accessToken": string; "expiresAt": number; }, GenericId<"shipping_provider_oauth_tokens">>;
 };
   "shipping/rates/internals": {
   "emitRateEvent": FunctionReference<"mutation", "internal", { "eventCode": string; "payload": unknown; }, null>;
   "getCachedQuotesForSession": FunctionReference<"query", "internal", { "checkoutSessionId": GenericId<"commerce_checkout_sessions">; "addressKey": string; "cartKey": string; }, (null | Array<Dto1882>)>;
   "getUserTags": FunctionReference<"query", "internal", { "userId": string; }, Array<string>>;
-  "listEnabledMethodsForZone": FunctionReference<"query", "internal", { "zoneId": GenericId<"commerce_shipping_zones">; }, Array<Dto2791>>;
+  "listEnabledMethodsForZone": FunctionReference<"query", "internal", { "zoneId": GenericId<"commerce_shipping_zones">; }, Array<Dto2785>>;
   "listLiveRateZoneMethods": FunctionReference<"query", "internal", { "zoneId": GenericId<"commerce_shipping_zones">; }, Array<Dto2001>>;
-  "recordPipelineRun": FunctionReference<"mutation", "internal", { "checkoutSessionId"?: (undefined | GenericId<"commerce_checkout_sessions">); "requestedAt": number; "totalDurationMs": number; "matchedZoneId"?: (undefined | GenericId<"commerce_shipping_zones">); "matchedZoneName"?: (undefined | string); "fellBackToManual": boolean; "totalQuotes": number; "cacheHit"?: (undefined | false | true); "shipFromLocationId"?: (undefined | GenericId<"commerce_ship_from_locations">); "selectedPackageIds"?: (undefined | Array<string>); "warnings"?: (undefined | Array<string>); "zeroQuoteReasons"?: (undefined | Array<string>); "requestContext"?: (undefined | Dto2792); "stages": Array<Dto2793>; "providerResults"?: (undefined | Array<Dto2794>); "addressKey"?: (undefined | string); "cartKey"?: (undefined | string); }, GenericId<"commerce_rate_pipeline_runs">>;
+  "recordPipelineRun": FunctionReference<"mutation", "internal", { "checkoutSessionId"?: (undefined | GenericId<"commerce_checkout_sessions">); "requestedAt": number; "totalDurationMs": number; "matchedZoneId"?: (undefined | GenericId<"commerce_shipping_zones">); "matchedZoneName"?: (undefined | string); "fellBackToManual": boolean; "totalQuotes": number; "cacheHit"?: (undefined | false | true); "shipFromLocationId"?: (undefined | GenericId<"commerce_ship_from_locations">); "selectedPackageIds"?: (undefined | Array<string>); "warnings"?: (undefined | Array<string>); "zeroQuoteReasons"?: (undefined | Array<string>); "requestContext"?: (undefined | Dto2786); "stages": Array<Dto2787>; "providerResults"?: (undefined | Array<Dto2788>); "addressKey"?: (undefined | string); "cartKey"?: (undefined | string); }, GenericId<"commerce_rate_pipeline_runs">>;
 };
   "shipping/rulesEngine/internals": {
   "getById": FunctionReference<"query", "internal", { "ruleId": GenericId<"commerce_shipping_rules">; }, (null | Dto1902)>;
@@ -9358,10 +9348,10 @@ export type InternalApi = {
   "resolveForProduct": FunctionReference<"query", "internal", { "productId": GenericId<"commerce_products">; "variantId"?: (undefined | GenericId<"commerce_product_variants">); }, Array<unknown>>;
 };
   "shipping/tracking/actions": {
-  "syncTracking": FunctionReference<"action", "internal", { "shipmentLabelId"?: (undefined | GenericId<"commerce_shipment_labels">); "maxAgeMs"?: (undefined | number); }, Dto2810>;
+  "syncTracking": FunctionReference<"action", "internal", { "shipmentLabelId"?: (undefined | GenericId<"commerce_shipment_labels">); "maxAgeMs"?: (undefined | number); }, Dto2804>;
 };
   "shipping/tracking/internals": {
-  "findShipmentByTracking": FunctionReference<"query", "internal", { "trackingNumber": string; }, (null | Dto2811 | Dto2812)>;
+  "findShipmentByTracking": FunctionReference<"query", "internal", { "trackingNumber": string; }, (null | Dto2805 | Dto2806)>;
   "getLabelById": FunctionReference<"query", "internal", { "labelId": GenericId<"commerce_shipment_labels">; }, (null | Dto1900)>;
   "listSyncableLabels": FunctionReference<"query", "internal", { "maxAgeMs": number; }, Array<Dto1900>>;
   "recordSyncLog": FunctionReference<"mutation", "internal", { "provider": string; "shipmentId"?: (undefined | GenericId<"commerce_shipments">); "labelId"?: (undefined | GenericId<"commerce_shipment_labels">); "trackingNumber"?: (undefined | string); "source": ("webhook" | "poll"); "success": boolean; "durationMs"?: (undefined | number); "statusCode"?: (undefined | number); "errorCode"?: (undefined | string); "errorMessage"?: (undefined | string); "eventCount"?: (undefined | number); }, GenericId<"commerce_tracking_sync_log">>;
@@ -9370,12 +9360,12 @@ export type InternalApi = {
   "recordTrackingEvent": FunctionReference<"mutation", "internal", { "shipmentId": GenericId<"commerce_shipments">; "labelId"?: (undefined | GenericId<"commerce_shipment_labels">); "eventId": string; "occurredAt": number; "normalizedStatus": ("pending" | "delivered" | "returned" | "picked_up" | "in_transit" | "out_for_delivery" | "exception"); "carrierStatus"?: (undefined | string); "description"?: (undefined | string); "location"?: (undefined | string); "rawMetadata"?: unknown; "receivedVia": ("webhook" | "poll"); }, GenericId<"commerce_shipment_tracking_events">>;
 };
   "shipping/webhookDedup": {
-  "checkAndRecord": FunctionReference<"mutation", "internal", { "provider": ("shipstation" | "ups" | "fedex"); "signatureHash": string; }, (Dto2815 | Dto2816)>;
+  "checkAndRecord": FunctionReference<"mutation", "internal", { "provider": ("shipstation" | "ups" | "fedex"); "signatureHash": string; }, (Dto2809 | Dto2810)>;
   "listRecent": FunctionReference<"query", "internal", { "provider": ("shipstation" | "ups" | "usps" | "fedex" | "dhl"); }, Array<Dto1964>>;
-  "purgeExpired": FunctionReference<"mutation", "internal", {  }, Dto2817>;
+  "purgeExpired": FunctionReference<"mutation", "internal", {  }, Dto2811>;
 };
   "shipping/zones/internals": {
-  "matchZoneForAddressInternal": FunctionReference<"query", "internal", { "countryCode": string; "state"?: (undefined | string); "postalCode"?: (undefined | string); }, (null | Dto2818)>;
+  "matchZoneForAddressInternal": FunctionReference<"query", "internal", { "countryCode": string; "state"?: (undefined | string); "postalCode"?: (undefined | string); }, (null | Dto2812)>;
 };
   "sitemaps": {
   "actions": {
@@ -9383,20 +9373,20 @@ export type InternalApi = {
 };
   "helpers": {
   "auth": {
-  "checkCapability": FunctionReference<"query", "internal", { "userId": string; "capability": string; }, Dto2825>;
+  "checkCapability": FunctionReference<"query", "internal", { "userId": string; "capability": string; }, Dto2819>;
 };
 };
   "internals": {
-  "deleteCacheByType": FunctionReference<"mutation", "internal", { "type": ("posts" | "pages" | "index" | "courses" | "categories" | "tags" | "authors"); }, Dto2826>;
+  "deleteCacheByType": FunctionReference<"mutation", "internal", { "type": ("posts" | "pages" | "index" | "courses" | "categories" | "tags" | "authors"); }, Dto2820>;
   "emitGeneratedEvent": FunctionReference<"mutation", "internal", { "siteUrl": string; "totalUrls": number; "sitemapsGenerated": number; "durationMs": number; "triggeredBy": ("scheduled" | "manual" | "content_change" | "settings_change"); "triggeredByUserId"?: (undefined | string); }, null>;
-  "gatherSitemapData": FunctionReference<"query", "internal", { "types": Array<("posts" | "pages" | "courses" | "categories" | "tags" | "authors")>; }, Dto2827>;
+  "gatherSitemapData": FunctionReference<"query", "internal", { "types": Array<("posts" | "pages" | "courses" | "categories" | "tags" | "authors")>; }, Dto2821>;
   "logGeneration": FunctionReference<"mutation", "internal", { "triggeredBy": ("scheduled" | "manual" | "content_change" | "settings_change"); "triggeredByUserId"?: (undefined | string); "triggeredByEvent"?: (undefined | string); "triggeredByContentId"?: (undefined | string); "status": ("error" | "success"); "sitemapsGenerated": number; "totalUrls": number; "durationMs": number; "errorMessage"?: (undefined | string); }, null>;
   "logPing": FunctionReference<"mutation", "internal", { "engine": ("google" | "bing"); "url": string; "status": ("error" | "success"); "httpStatus"?: (undefined | number); "errorMessage"?: (undefined | string); }, null>;
   "regenerateStale": FunctionReference<"action", "internal", { "triggeredBy"?: (undefined | "scheduled" | "manual" | "content_change" | "settings_change"); "triggeredByUserId"?: (undefined | string); "triggeredByEvent"?: (undefined | string); "force"?: (undefined | false | true); "types"?: (undefined | Array<("posts" | "pages" | "courses" | "categories" | "tags" | "authors")>); }, null>;
   "upsertCache": FunctionReference<"mutation", "internal", { "type": ("posts" | "pages" | "index" | "courses" | "categories" | "tags" | "authors"); "page": number; "xml": string; "urlCount": number; "generatedAt": number; "generationDurationMs": number; "contentHash": string; }, null>;
 };
   "mutations": {
-  "markStale": FunctionReference<"mutation", "internal", { "types": Array<("posts" | "pages" | "index" | "courses" | "categories" | "tags" | "authors")>; }, Dto2835>;
+  "markStale": FunctionReference<"mutation", "internal", { "types": Array<("posts" | "pages" | "index" | "courses" | "categories" | "tags" | "authors")>; }, Dto2829>;
 };
   "subscribers": {
   "onLmsCourseChanged": FunctionReference<"mutation", "internal", { "eventId"?: (undefined | GenericId<"events">); "payload"?: (undefined | string); }, null>;
@@ -9423,19 +9413,19 @@ export type InternalApi = {
   "_generateInternal": FunctionReference<"action", "internal", { "force"?: (undefined | false | true); "types"?: (undefined | Array<("posts" | "pages" | "courses" | "categories" | "tags" | "authors")>); }, null>;
 };
   "sitemaps/helpers/auth": {
-  "checkCapability": FunctionReference<"query", "internal", { "userId": string; "capability": string; }, Dto2825>;
+  "checkCapability": FunctionReference<"query", "internal", { "userId": string; "capability": string; }, Dto2819>;
 };
   "sitemaps/internals": {
-  "deleteCacheByType": FunctionReference<"mutation", "internal", { "type": ("posts" | "pages" | "index" | "courses" | "categories" | "tags" | "authors"); }, Dto2826>;
+  "deleteCacheByType": FunctionReference<"mutation", "internal", { "type": ("posts" | "pages" | "index" | "courses" | "categories" | "tags" | "authors"); }, Dto2820>;
   "emitGeneratedEvent": FunctionReference<"mutation", "internal", { "siteUrl": string; "totalUrls": number; "sitemapsGenerated": number; "durationMs": number; "triggeredBy": ("scheduled" | "manual" | "content_change" | "settings_change"); "triggeredByUserId"?: (undefined | string); }, null>;
-  "gatherSitemapData": FunctionReference<"query", "internal", { "types": Array<("posts" | "pages" | "courses" | "categories" | "tags" | "authors")>; }, Dto2827>;
+  "gatherSitemapData": FunctionReference<"query", "internal", { "types": Array<("posts" | "pages" | "courses" | "categories" | "tags" | "authors")>; }, Dto2821>;
   "logGeneration": FunctionReference<"mutation", "internal", { "triggeredBy": ("scheduled" | "manual" | "content_change" | "settings_change"); "triggeredByUserId"?: (undefined | string); "triggeredByEvent"?: (undefined | string); "triggeredByContentId"?: (undefined | string); "status": ("error" | "success"); "sitemapsGenerated": number; "totalUrls": number; "durationMs": number; "errorMessage"?: (undefined | string); }, null>;
   "logPing": FunctionReference<"mutation", "internal", { "engine": ("google" | "bing"); "url": string; "status": ("error" | "success"); "httpStatus"?: (undefined | number); "errorMessage"?: (undefined | string); }, null>;
   "regenerateStale": FunctionReference<"action", "internal", { "triggeredBy"?: (undefined | "scheduled" | "manual" | "content_change" | "settings_change"); "triggeredByUserId"?: (undefined | string); "triggeredByEvent"?: (undefined | string); "force"?: (undefined | false | true); "types"?: (undefined | Array<("posts" | "pages" | "courses" | "categories" | "tags" | "authors")>); }, null>;
   "upsertCache": FunctionReference<"mutation", "internal", { "type": ("posts" | "pages" | "index" | "courses" | "categories" | "tags" | "authors"); "page": number; "xml": string; "urlCount": number; "generatedAt": number; "generationDurationMs": number; "contentHash": string; }, null>;
 };
   "sitemaps/mutations": {
-  "markStale": FunctionReference<"mutation", "internal", { "types": Array<("posts" | "pages" | "index" | "courses" | "categories" | "tags" | "authors")>; }, Dto2835>;
+  "markStale": FunctionReference<"mutation", "internal", { "types": Array<("posts" | "pages" | "index" | "courses" | "categories" | "tags" | "authors")>; }, Dto2829>;
 };
   "sitemaps/subscribers": {
   "onLmsCourseChanged": FunctionReference<"mutation", "internal", { "eventId"?: (undefined | GenericId<"events">); "payload"?: (undefined | string); }, null>;
@@ -9463,8 +9453,8 @@ export type InternalApi = {
 };
   "cache": {
   "due": FunctionReference<"query", "internal", {  }, Array<GenericId<"socialFeedSources">>>;
-  "finish": FunctionReference<"mutation", "internal", { "job": Dto2844; "snapshot": (null | Dto2845); "error": (null | "identity" | "configuration" | "network" | "response" | "rate_limit"); }, boolean>;
-  "reserve": FunctionReference<"mutation", "internal", { "sourceId": GenericId<"socialFeedSources">; "manual": boolean; }, (null | Dto2844)>;
+  "finish": FunctionReference<"mutation", "internal", { "job": Dto2838; "snapshot": (null | Dto2839); "error": (null | "identity" | "configuration" | "network" | "response" | "rate_limit"); }, boolean>;
+  "reserve": FunctionReference<"mutation", "internal", { "sourceId": GenericId<"socialFeedSources">; "manual": boolean; }, (null | Dto2838)>;
 };
 };
   "socialFeeds/actions": {
@@ -9472,32 +9462,32 @@ export type InternalApi = {
 };
   "socialFeeds/cache": {
   "due": FunctionReference<"query", "internal", {  }, Array<GenericId<"socialFeedSources">>>;
-  "finish": FunctionReference<"mutation", "internal", { "job": Dto2844; "snapshot": (null | Dto2845); "error": (null | "identity" | "configuration" | "network" | "response" | "rate_limit"); }, boolean>;
-  "reserve": FunctionReference<"mutation", "internal", { "sourceId": GenericId<"socialFeedSources">; "manual": boolean; }, (null | Dto2844)>;
+  "finish": FunctionReference<"mutation", "internal", { "job": Dto2838; "snapshot": (null | Dto2839); "error": (null | "identity" | "configuration" | "network" | "response" | "rate_limit"); }, boolean>;
+  "reserve": FunctionReference<"mutation", "internal", { "sourceId": GenericId<"socialFeedSources">; "manual": boolean; }, (null | Dto2838)>;
 };
   "support": {
   "inboundEmail": {
-  "getInboundChannelSecurity": FunctionReference<"query", "internal", { "channelCode": string; }, (Dto2857 | Dto2858)>;
-  "recordInboundEmail": FunctionReference<"mutation", "internal", { "channelCode": string; "externalId": string; "fromEmail": string; "fromName"?: (undefined | string); "subject": string; "body": string; "rawPayload": string; "ticketNumber"?: (undefined | string); "receivedAt": number; }, (Dto2860 | Dto2861 | Dto2862 | Dto2863 | Dto2864 | Dto2865)>;
+  "getInboundChannelSecurity": FunctionReference<"query", "internal", { "channelCode": string; }, (Dto2851 | Dto2852)>;
+  "recordInboundEmail": FunctionReference<"mutation", "internal", { "channelCode": string; "externalId": string; "fromEmail": string; "fromName"?: (undefined | string); "subject": string; "body": string; "rawPayload": string; "ticketNumber"?: (undefined | string); "receivedAt": number; }, (Dto2854 | Dto2855 | Dto2856 | Dto2857 | Dto2858 | Dto2859)>;
 };
   "internals": {
-  "cleanupOldLogs": FunctionReference<"mutation", "internal", {  }, Dto2866>;
-  "getSupportAiSettings": FunctionReference<"query", "internal", {  }, Dto2867>;
+  "cleanupOldLogs": FunctionReference<"mutation", "internal", {  }, Dto2860>;
+  "getSupportAiSettings": FunctionReference<"query", "internal", {  }, Dto2861>;
   "logDeflection": FunctionReference<"mutation", "internal", { "sessionId": string; "userId"?: (undefined | GenericId<"users">); "query": string; "aiResponse": string; "kbArticleIds": Array<string>; "outcome": ("helpful" | "notHelpful" | "escalated" | "abandoned"); "ticketId"?: (undefined | string); "responseLatencyMs": number; "tokensUsed"?: (undefined | number); }, GenericId<"support_deflectionLogs">>;
-  "searchKbConvex": FunctionReference<"query", "internal", { "query": string; }, Array<Dto2868>>;
-  "searchKbKeywordFallback": FunctionReference<"query", "internal", { "query": string; }, Array<Dto2869>>;
+  "searchKbConvex": FunctionReference<"query", "internal", { "query": string; }, Array<Dto2862>>;
+  "searchKbKeywordFallback": FunctionReference<"query", "internal", { "query": string; }, Array<Dto2863>>;
 };
 };
   "support/inboundEmail": {
-  "getInboundChannelSecurity": FunctionReference<"query", "internal", { "channelCode": string; }, (Dto2857 | Dto2858)>;
-  "recordInboundEmail": FunctionReference<"mutation", "internal", { "channelCode": string; "externalId": string; "fromEmail": string; "fromName"?: (undefined | string); "subject": string; "body": string; "rawPayload": string; "ticketNumber"?: (undefined | string); "receivedAt": number; }, (Dto2860 | Dto2861 | Dto2862 | Dto2863 | Dto2864 | Dto2865)>;
+  "getInboundChannelSecurity": FunctionReference<"query", "internal", { "channelCode": string; }, (Dto2851 | Dto2852)>;
+  "recordInboundEmail": FunctionReference<"mutation", "internal", { "channelCode": string; "externalId": string; "fromEmail": string; "fromName"?: (undefined | string); "subject": string; "body": string; "rawPayload": string; "ticketNumber"?: (undefined | string); "receivedAt": number; }, (Dto2854 | Dto2855 | Dto2856 | Dto2857 | Dto2858 | Dto2859)>;
 };
   "support/internals": {
-  "cleanupOldLogs": FunctionReference<"mutation", "internal", {  }, Dto2866>;
-  "getSupportAiSettings": FunctionReference<"query", "internal", {  }, Dto2867>;
+  "cleanupOldLogs": FunctionReference<"mutation", "internal", {  }, Dto2860>;
+  "getSupportAiSettings": FunctionReference<"query", "internal", {  }, Dto2861>;
   "logDeflection": FunctionReference<"mutation", "internal", { "sessionId": string; "userId"?: (undefined | GenericId<"users">); "query": string; "aiResponse": string; "kbArticleIds": Array<string>; "outcome": ("helpful" | "notHelpful" | "escalated" | "abandoned"); "ticketId"?: (undefined | string); "responseLatencyMs": number; "tokensUsed"?: (undefined | number); }, GenericId<"support_deflectionLogs">>;
-  "searchKbConvex": FunctionReference<"query", "internal", { "query": string; }, Array<Dto2868>>;
-  "searchKbKeywordFallback": FunctionReference<"query", "internal", { "query": string; }, Array<Dto2869>>;
+  "searchKbConvex": FunctionReference<"query", "internal", { "query": string; }, Array<Dto2862>>;
+  "searchKbKeywordFallback": FunctionReference<"query", "internal", { "query": string; }, Array<Dto2863>>;
 };
   "syncedBlocks": {
   "consumerIndex": {
@@ -9527,14 +9517,14 @@ export type InternalApi = {
   "httpInternals": {
   "createCategoryInternal": FunctionReference<"mutation", "internal", { "name": string; "slug"?: (undefined | string); "description"?: (undefined | string); "parentId"?: (undefined | GenericId<"terms">); "createdByUserId": string; }, GenericId<"terms">>;
   "createTagInternal": FunctionReference<"mutation", "internal", { "name": string; "slug"?: (undefined | string); "description"?: (undefined | string); "createdByUserId": string; }, GenericId<"terms">>;
-  "listInternal": FunctionReference<"query", "internal", { "taxonomy": ("category" | "post_tag"); "page"?: (undefined | number); "perPage"?: (undefined | number); "search"?: (undefined | string); "hideEmpty"?: (undefined | false | true); "orderBy"?: (undefined | string); "orderDir"?: (undefined | "asc" | "desc"); }, Dto2908>;
+  "listInternal": FunctionReference<"query", "internal", { "taxonomy": ("category" | "post_tag"); "page"?: (undefined | number); "perPage"?: (undefined | number); "search"?: (undefined | string); "hideEmpty"?: (undefined | false | true); "orderBy"?: (undefined | string); "orderDir"?: (undefined | "asc" | "desc"); }, Dto2902>;
 };
   "internals": {
-  "deleteRelationshipsForPost": FunctionReference<"mutation", "internal", { "postId": GenericId<"posts">; }, Dto2909>;
+  "deleteRelationshipsForPost": FunctionReference<"mutation", "internal", { "postId": GenericId<"posts">; }, Dto2903>;
   "getDefaultCategoryId": FunctionReference<"query", "internal", {  }, (null | GenericId<"terms">)>;
-  "recalculateAllCounts": FunctionReference<"mutation", "internal", {  }, Dto2910>;
+  "recalculateAllCounts": FunctionReference<"mutation", "internal", {  }, Dto2904>;
   "seedDefaultCategory": FunctionReference<"mutation", "internal", {  }, GenericId<"terms">>;
-  "updateCountsForPost": FunctionReference<"mutation", "internal", { "postId": GenericId<"posts">; }, Dto2911>;
+  "updateCountsForPost": FunctionReference<"mutation", "internal", { "postId": GenericId<"posts">; }, Dto2905>;
   "updateTermCount": FunctionReference<"mutation", "internal", { "termId": GenericId<"terms">; }, null>;
 };
 };
@@ -9547,54 +9537,54 @@ export type InternalApi = {
   "taxonomies/httpInternals": {
   "createCategoryInternal": FunctionReference<"mutation", "internal", { "name": string; "slug"?: (undefined | string); "description"?: (undefined | string); "parentId"?: (undefined | GenericId<"terms">); "createdByUserId": string; }, GenericId<"terms">>;
   "createTagInternal": FunctionReference<"mutation", "internal", { "name": string; "slug"?: (undefined | string); "description"?: (undefined | string); "createdByUserId": string; }, GenericId<"terms">>;
-  "listInternal": FunctionReference<"query", "internal", { "taxonomy": ("category" | "post_tag"); "page"?: (undefined | number); "perPage"?: (undefined | number); "search"?: (undefined | string); "hideEmpty"?: (undefined | false | true); "orderBy"?: (undefined | string); "orderDir"?: (undefined | "asc" | "desc"); }, Dto2908>;
+  "listInternal": FunctionReference<"query", "internal", { "taxonomy": ("category" | "post_tag"); "page"?: (undefined | number); "perPage"?: (undefined | number); "search"?: (undefined | string); "hideEmpty"?: (undefined | false | true); "orderBy"?: (undefined | string); "orderDir"?: (undefined | "asc" | "desc"); }, Dto2902>;
 };
   "taxonomies/internals": {
-  "deleteRelationshipsForPost": FunctionReference<"mutation", "internal", { "postId": GenericId<"posts">; }, Dto2909>;
+  "deleteRelationshipsForPost": FunctionReference<"mutation", "internal", { "postId": GenericId<"posts">; }, Dto2903>;
   "getDefaultCategoryId": FunctionReference<"query", "internal", {  }, (null | GenericId<"terms">)>;
-  "recalculateAllCounts": FunctionReference<"mutation", "internal", {  }, Dto2910>;
+  "recalculateAllCounts": FunctionReference<"mutation", "internal", {  }, Dto2904>;
   "seedDefaultCategory": FunctionReference<"mutation", "internal", {  }, GenericId<"terms">>;
-  "updateCountsForPost": FunctionReference<"mutation", "internal", { "postId": GenericId<"posts">; }, Dto2911>;
+  "updateCountsForPost": FunctionReference<"mutation", "internal", { "postId": GenericId<"posts">; }, Dto2905>;
   "updateTermCount": FunctionReference<"mutation", "internal", { "termId": GenericId<"terms">; }, null>;
 };
   "tickets": {
   "internals": {
-  "autoCloseResolved": FunctionReference<"mutation", "internal", { "batchSize"?: (undefined | number); }, (Dto2934 | Dto2935)>;
+  "autoCloseResolved": FunctionReference<"mutation", "internal", { "batchSize"?: (undefined | number); }, (Dto2928 | Dto2929)>;
   "cleanupAll": FunctionReference<"mutation", "internal", {  }, null>;
 };
   "messages": {
-  "addSystemMessage": FunctionReference<"mutation", "internal", { "ticketId": GenericId<"ticket_tickets">; "content": string; }, Dto2937>;
+  "addSystemMessage": FunctionReference<"mutation", "internal", { "ticketId": GenericId<"ticket_tickets">; "content": string; }, Dto2931>;
 };
   "rateLimit": {
-  "cleanup": FunctionReference<"mutation", "internal", { "batchSize"?: (undefined | number); }, Dto2961>;
+  "cleanup": FunctionReference<"mutation", "internal", { "batchSize"?: (undefined | number); }, Dto2955>;
 };
   "sessions": {
-  "cleanupExpired": FunctionReference<"mutation", "internal", { "batchSize"?: (undefined | number); }, Dto2965>;
+  "cleanupExpired": FunctionReference<"mutation", "internal", { "batchSize"?: (undefined | number); }, Dto2959>;
 };
 };
   "tickets/internals": {
-  "autoCloseResolved": FunctionReference<"mutation", "internal", { "batchSize"?: (undefined | number); }, (Dto2934 | Dto2935)>;
+  "autoCloseResolved": FunctionReference<"mutation", "internal", { "batchSize"?: (undefined | number); }, (Dto2928 | Dto2929)>;
   "cleanupAll": FunctionReference<"mutation", "internal", {  }, null>;
 };
   "tickets/messages": {
-  "addSystemMessage": FunctionReference<"mutation", "internal", { "ticketId": GenericId<"ticket_tickets">; "content": string; }, Dto2937>;
+  "addSystemMessage": FunctionReference<"mutation", "internal", { "ticketId": GenericId<"ticket_tickets">; "content": string; }, Dto2931>;
 };
   "tickets/rateLimit": {
-  "cleanup": FunctionReference<"mutation", "internal", { "batchSize"?: (undefined | number); }, Dto2961>;
+  "cleanup": FunctionReference<"mutation", "internal", { "batchSize"?: (undefined | number); }, Dto2955>;
 };
   "tickets/sessions": {
-  "cleanupExpired": FunctionReference<"mutation", "internal", { "batchSize"?: (undefined | number); }, Dto2965>;
+  "cleanupExpired": FunctionReference<"mutation", "internal", { "batchSize"?: (undefined | number); }, Dto2959>;
 };
   "users": {
-  "seedRoles": FunctionReference<"mutation", "internal", {  }, (Dto2982 | Dto2983)>;
-  "setAdminByEmail": FunctionReference<"mutation", "internal", { "email": string; }, Dto2984>;
-  "setCustomerByEmail": FunctionReference<"mutation", "internal", { "email": string; }, Dto2985>;
+  "seedRoles": FunctionReference<"mutation", "internal", {  }, (Dto2976 | Dto2977)>;
+  "setAdminByEmail": FunctionReference<"mutation", "internal", { "email": string; }, Dto2978>;
+  "setCustomerByEmail": FunctionReference<"mutation", "internal", { "email": string; }, Dto2979>;
 };
   "wordpressSync": {
   "helpers": {
   "idMapping": {
   "create": FunctionReference<"mutation", "internal", { "siteId": GenericId<"wordpressSites">; "objectType": ("media" | "category" | "post" | "page" | "comment" | "user" | "menu" | "tag" | "menuItem" | "commerceCategory" | "commerceProduct" | "commerceProductVariant" | "commerceCustomer" | "commerceOrder" | "commerceOrderItem" | "commercePaymentTransaction" | "commerceDiscount" | "commerceReview" | "commerceRefund"); "wpId": number; "convexId": string; "sourceUrl"?: (undefined | string); "sourceUrls"?: (undefined | Array<string>); "sourceHash"?: (undefined | string); "jobId"?: (undefined | GenericId<"wordpressSyncJobs">); }, GenericId<"wpIdMappings">>;
-  "createBatch": FunctionReference<"mutation", "internal", { "siteId": GenericId<"wordpressSites">; "mappings": Array<Dto2991>; "jobId"?: (undefined | GenericId<"wordpressSyncJobs">); }, Array<GenericId<"wpIdMappings">>>;
+  "createBatch": FunctionReference<"mutation", "internal", { "siteId": GenericId<"wordpressSites">; "mappings": Array<Dto2985>; "jobId"?: (undefined | GenericId<"wordpressSyncJobs">); }, Array<GenericId<"wpIdMappings">>>;
   "deleteAllForSite": FunctionReference<"mutation", "internal", { "siteId": GenericId<"wordpressSites">; }, number>;
   "deleteByType": FunctionReference<"mutation", "internal", { "siteId": GenericId<"wordpressSites">; "objectType": ("media" | "category" | "post" | "page" | "comment" | "user" | "menu" | "tag" | "menuItem" | "commerceCategory" | "commerceProduct" | "commerceProductVariant" | "commerceCustomer" | "commerceOrder" | "commerceOrderItem" | "commercePaymentTransaction" | "commerceDiscount" | "commerceReview" | "commerceRefund"); }, number>;
   "exists": FunctionReference<"query", "internal", { "siteId": GenericId<"wordpressSites">; "objectType": ("media" | "category" | "post" | "page" | "comment" | "user" | "menu" | "tag" | "menuItem" | "commerceCategory" | "commerceProduct" | "commerceProductVariant" | "commerceCustomer" | "commerceOrder" | "commerceOrderItem" | "commercePaymentTransaction" | "commerceDiscount" | "commerceReview" | "commerceRefund"); "wpId": number; }, boolean>;
@@ -9609,11 +9599,11 @@ export type InternalApi = {
 };
 };
   "internals": {
-  "addErrors": FunctionReference<"mutation", "internal", { "jobId": GenericId<"wordpressSyncJobs">; "errors": Array<Dto2992>; }, null>;
+  "addErrors": FunctionReference<"mutation", "internal", { "jobId": GenericId<"wordpressSyncJobs">; "errors": Array<Dto2986>; }, null>;
   "advancePhase": FunctionReference<"mutation", "internal", { "jobId": GenericId<"wordpressSyncJobs">; "phase": ("posts" | "users" | "media" | "pages" | "comments" | "menus" | "taxonomies" | "commerceCatalog" | "commerceTransactions" | "reconciliation" | "cleanup"); }, null>;
-  "checkStaleJobs": FunctionReference<"mutation", "internal", {  }, Dto2993>;
-  "cleanupOldJobs": FunctionReference<"mutation", "internal", {  }, Dto2994>;
-  "cleanupOrphanedMappings": FunctionReference<"mutation", "internal", {  }, Dto2995>;
+  "checkStaleJobs": FunctionReference<"mutation", "internal", {  }, Dto2987>;
+  "cleanupOldJobs": FunctionReference<"mutation", "internal", {  }, Dto2988>;
+  "cleanupOrphanedMappings": FunctionReference<"mutation", "internal", {  }, Dto2989>;
   "completeJob": FunctionReference<"mutation", "internal", { "jobId": GenericId<"wordpressSyncJobs">; }, null>;
   "countFindings": FunctionReference<"query", "internal", { "jobId": GenericId<"wordpressSyncJobs">; "limit": number; }, Array<Dto2072>>;
   "failJob": FunctionReference<"mutation", "internal", { "jobId": GenericId<"wordpressSyncJobs">; "error": string; }, null>;
@@ -9629,83 +9619,83 @@ export type InternalApi = {
   "getEntityById": FunctionReference<"query", "internal", { "table": string; "id": string; }, (null | Dto1821 | Dto148 | Dto1825 | Dto1826 | Dto1827 | Dto1828 | Dto1829 | Dto42 | Dto1830 | Dto38 | Dto1696 | Dto1697 | Dto1832 | Dto1599 | Dto1834 | Dto1598 | Dto1836 | Dto1837 | Dto1838 | Dto1765 | Dto1840 | Dto1841 | Dto1842 | Dto1844 | Dto1845 | Dto1846 | Dto1847 | Dto1848 | Dto80 | Dto1849 | Dto1857 | Dto1858 | Dto1859 | Dto1861 | Dto1862 | Dto1863 | Dto1865 | Dto1866 | Dto1867 | Dto1868 | Dto1869 | Dto1870 | Dto1384 | Dto1773 | Dto1871 | Dto1472 | Dto1470 | Dto1477 | Dto1170 | Dto1872 | Dto1153 | Dto1155 | Dto1873 | Dto1874 | Dto1875 | Dto1876 | Dto1877 | Dto1878 | Dto1879 | Dto1297 | Dto1301 | Dto1166 | Dto1192 | Dto1149 | Dto1162 | Dto1882 | Dto1169 | Dto1885 | Dto1886 | Dto1411 | Dto1177 | Dto1890 | Dto1261 | Dto1263 | Dto1891 | Dto1251 | Dto1151 | Dto1892 | Dto1256 | Dto1406 | Dto1188 | Dto1893 | Dto1314 | Dto1894 | Dto1895 | Dto1896 | Dto1897 | Dto1900 | Dto1901 | Dto1902 | Dto1526 | Dto1345 | Dto1903 | Dto1492 | Dto1525 | Dto1904 | Dto1521 | Dto1905 | Dto1906 | Dto1519 | Dto1459 | Dto1907 | Dto1377 | Dto1379 | Dto1381 | Dto1908 | Dto1909 | Dto1352 | Dto1910 | Dto1911 | Dto1912 | Dto1913 | Dto1914 | Dto1915 | Dto1718 | Dto1916 | Dto1777 | Dto1753 | Dto1731 | Dto1917 | Dto1918 | Dto1920 | Dto1921 | Dto1764 | Dto1735 | Dto1922 | Dto1923 | Dto1924 | Dto1815 | Dto1925 | Dto1926 | Dto1927 | Dto1928 | Dto1929 | Dto1930 | Dto1931 | Dto1932 | Dto1933 | Dto1934 | Dto1935 | Dto1936 | Dto1937 | Dto1938 | Dto1939 | Dto1940 | Dto1941 | Dto1942 | Dto1943 | Dto1944 | Dto1945 | Dto1946 | Dto1412 | Dto1423 | Dto1432 | Dto1355 | Dto1947 | Dto1948 | Dto1949 | Dto1950 | Dto1951 | Dto1952 | Dto1953 | Dto1376 | Dto1380 | Dto1954 | Dto1955 | Dto1956 | Dto1957 | Dto1958 | Dto1478 | Dto1520 | Dto1465 | Dto1959 | Dto1960 | Dto1961 | Dto1962 | Dto1963 | Dto1964 | Dto1965 | Dto1966 | Dto1967 | Dto1969 | Dto1970 | Dto1971 | Dto1973 | Dto1977 | Dto1980 | Dto1982 | Dto1984 | Dto1985 | Dto1986 | Dto1989 | Dto1992 | Dto1996 | Dto1997 | Dto1999 | Dto2000 | Dto2001 | Dto2002 | Dto2004 | Dto2005 | Dto2006 | Dto2007 | Dto2008 | Dto2010 | Dto2011 | Dto2012 | Dto2013 | Dto2014 | Dto2015 | Dto2016 | Dto2017 | Dto2018 | Dto2019 | Dto1249 | Dto1233 | Dto2020 | Dto1320 | Dto2021 | Dto2022 | Dto1281 | Dto2023 | Dto2024 | Dto2025 | Dto1187 | Dto1331 | Dto2026 | Dto1254 | Dto2027 | Dto2028 | Dto2029 | Dto2030 | Dto2031 | Dto2033 | Dto2036 | Dto2037 | Dto2038 | Dto2039 | Dto2041 | Dto2042 | Dto2043 | Dto2044 | Dto2045 | Dto2048 | Dto2049 | Dto2050 | Dto2051 | Dto2052 | Dto2053 | Dto2054 | Dto2055 | Dto2056 | Dto2057 | Dto2058 | Dto2059 | Dto2060 | Dto2061 | Dto2063 | Dto2064 | Dto2065 | Dto2068 | Dto156 | Dto2070 | Dto2071 | Dto2072 | Dto2073 | Dto2076 | Dto44 | Dto43 | Dto41 | Dto2077 | Dto2078 | Dto93 | Dto2079 | Dto2080 | Dto2081 | Dto2082 | Dto2083 | Dto2084 | Dto2087 | Dto2088 | Dto2090 | Dto2091 | Dto2092 | Dto2093 | Dto2094 | Dto2095 | Dto2096 | Dto2097 | Dto2098 | Dto2099 | Dto2100 | Dto2101 | Dto2102 | Dto2103 | Dto2104 | Dto2105 | Dto2106 | Dto2107 | Dto2108 | Dto2109 | Dto2114 | Dto39 | Dto2115 | Dto2116 | Dto2117 | Dto2118 | Dto2119 | Dto2120 | Dto2121 | Dto2122 | Dto2123 | Dto2124 | Dto2126 | Dto2127 | Dto2128 | Dto2130 | Dto2132 | Dto2133 | Dto2134 | Dto2135 | Dto2136 | Dto2138 | Dto2139 | Dto2140 | Dto2141 | Dto2142)>;
   "getJobInternal": FunctionReference<"query", "internal", { "jobId": GenericId<"wordpressSyncJobs">; }, (null | Dto1849)>;
   "getMappingsBatch": FunctionReference<"query", "internal", { "siteId": GenericId<"wordpressSites">; "objectType": string; "afterWpId": number; "limit": number; }, Array<Dto2071>>;
-  "getMediaMappingsWithUrls": FunctionReference<"query", "internal", { "siteId": GenericId<"wordpressSites">; "limit": number; }, Array<Dto2996>>;
+  "getMediaMappingsWithUrls": FunctionReference<"query", "internal", { "siteId": GenericId<"wordpressSites">; "limit": number; }, Array<Dto2990>>;
   "getSiteWithCredentials": FunctionReference<"query", "internal", { "siteId": GenericId<"wordpressSites">; }, (null | Dto1830)>;
-  "initializeProgress": FunctionReference<"mutation", "internal", { "jobId": GenericId<"wordpressSyncJobs">; "counts": Dto2997; }, null>;
+  "initializeProgress": FunctionReference<"mutation", "internal", { "jobId": GenericId<"wordpressSyncJobs">; "counts": Dto2991; }, null>;
   "insertFinding": FunctionReference<"mutation", "internal", { "siteId": GenericId<"wordpressSites">; "jobId": GenericId<"wordpressSyncJobs">; "severity": ("error" | "info" | "warning"); "phase": string; "code"?: (undefined | string); "message": string; "sourceType"?: (undefined | string); "sourceId"?: (undefined | string); "destinationTable"?: (undefined | string); "wpId"?: (undefined | number); "objectType"?: (undefined | string); "convexId"?: (undefined | string); "metadata"?: (undefined | string); "createdAt": number; }, null>;
   "patchEntity": FunctionReference<"mutation", "internal", { "table": string; "id": string; "fields": unknown; }, null>;
   "runSyncPhase": FunctionReference<"action", "internal", { "jobId": GenericId<"wordpressSyncJobs">; }, null>;
-  "updatePhaseProgress": FunctionReference<"mutation", "internal", { "jobId": GenericId<"wordpressSyncJobs">; "phase": string; "progress": Dto2998; }, null>;
-  "upsertReport": FunctionReference<"mutation", "internal", { "jobId": GenericId<"wordpressSyncJobs">; "siteId": GenericId<"wordpressSites">; "startedAt": number; "completedAt"?: (undefined | number); "finalStatus": string; "detectedCapabilities": Dto2999; "importConfig": string; "phaseCounts": string; "totalCounts": Dto3000; "findingSummary": string; "operatorSummary": string; }, GenericId<"wordpressSyncReports">>;
+  "updatePhaseProgress": FunctionReference<"mutation", "internal", { "jobId": GenericId<"wordpressSyncJobs">; "phase": string; "progress": Dto2992; }, null>;
+  "upsertReport": FunctionReference<"mutation", "internal", { "jobId": GenericId<"wordpressSyncJobs">; "siteId": GenericId<"wordpressSites">; "startedAt": number; "completedAt"?: (undefined | number); "finalStatus": string; "detectedCapabilities": Dto2993; "importConfig": string; "phaseCounts": string; "totalCounts": Dto2994; "findingSummary": string; "operatorSummary": string; }, GenericId<"wordpressSyncReports">>;
 };
   "phases": {
   "comments": {
-  "commentsCreate": FunctionReference<"mutation", "internal", { "existingId"?: (undefined | string); "wpComment": Dto3004; "siteId": GenericId<"wordpressSites">; }, string>;
-  "importBatch": FunctionReference<"action", "internal", { "jobId": GenericId<"wordpressSyncJobs">; "siteId": GenericId<"wordpressSites">; "credentials": Dto3005; }, Dto3006>;
+  "commentsCreate": FunctionReference<"mutation", "internal", { "existingId"?: (undefined | string); "wpComment": Dto2998; "siteId": GenericId<"wordpressSites">; }, string>;
+  "importBatch": FunctionReference<"action", "internal", { "jobId": GenericId<"wordpressSyncJobs">; "siteId": GenericId<"wordpressSites">; "credentials": Dto2999; }, Dto3000>;
 };
   "commerceCatalog": {
-  "importBatch": FunctionReference<"action", "internal", { "jobId": GenericId<"wordpressSyncJobs">; "siteId": GenericId<"wordpressSites">; "credentials": Dto3005; }, Dto3006>;
+  "importBatch": FunctionReference<"action", "internal", { "jobId": GenericId<"wordpressSyncJobs">; "siteId": GenericId<"wordpressSites">; "credentials": Dto2999; }, Dto3000>;
   "setCategoryParent": FunctionReference<"mutation", "internal", { "categoryId": string; "parentId"?: (undefined | string); }, null>;
-  "upsertCategory": FunctionReference<"mutation", "internal", { "existingId"?: (undefined | string); "parentId"?: (undefined | string); "wpCategory": Dto3009; }, GenericId<"commerce_product_categories">>;
-  "upsertProduct": FunctionReference<"mutation", "internal", { "existingId"?: (undefined | string); "authorId": GenericId<"users">; "product": Dto3010; }, GenericId<"commerce_products">>;
-  "upsertVariant": FunctionReference<"mutation", "internal", { "existingId"?: (undefined | string); "productId": string; "variant": Dto3013; }, GenericId<"commerce_product_variants">>;
+  "upsertCategory": FunctionReference<"mutation", "internal", { "existingId"?: (undefined | string); "parentId"?: (undefined | string); "wpCategory": Dto3003; }, GenericId<"commerce_product_categories">>;
+  "upsertProduct": FunctionReference<"mutation", "internal", { "existingId"?: (undefined | string); "authorId": GenericId<"users">; "product": Dto3004; }, GenericId<"commerce_products">>;
+  "upsertVariant": FunctionReference<"mutation", "internal", { "existingId"?: (undefined | string); "productId": string; "variant": Dto3007; }, GenericId<"commerce_product_variants">>;
 };
   "commerceTransactions": {
-  "importBatch": FunctionReference<"action", "internal", { "jobId": GenericId<"wordpressSyncJobs">; "siteId": GenericId<"wordpressSites">; "credentials": Dto3005; }, Dto3006>;
+  "importBatch": FunctionReference<"action", "internal", { "jobId": GenericId<"wordpressSyncJobs">; "siteId": GenericId<"wordpressSites">; "credentials": Dto2999; }, Dto3000>;
   "recomputeCustomerTotals": FunctionReference<"mutation", "internal", { "customerId": string; }, (null | GenericId<"commerce_customer_profiles">)>;
   "reconcileOrderRefundStatus": FunctionReference<"mutation", "internal", { "orderId": GenericId<"commerce_orders">; }, (null | GenericId<"commerce_orders">)>;
-  "upsertCommerceReview": FunctionReference<"mutation", "internal", { "existingId"?: (undefined | string); "review": Dto3016; }, GenericId<"commerce_review_items">>;
-  "upsertCustomerDefaultAddress": FunctionReference<"mutation", "internal", { "customerId": GenericId<"commerce_customer_profiles">; "addressType": ("billing" | "shipping"); "address": Dto3017; "phone"?: (undefined | string); }, GenericId<"commerce_customer_addresses">>;
-  "upsertCustomerProfile": FunctionReference<"mutation", "internal", { "existingId"?: (undefined | string); "customer": Dto3018; }, GenericId<"commerce_customer_profiles">>;
-  "upsertDiscountCode": FunctionReference<"mutation", "internal", { "existingId"?: (undefined | string); "discount": Dto3019; }, GenericId<"commerce_discount_codes">>;
+  "upsertCommerceReview": FunctionReference<"mutation", "internal", { "existingId"?: (undefined | string); "review": Dto3010; }, GenericId<"commerce_review_items">>;
+  "upsertCustomerDefaultAddress": FunctionReference<"mutation", "internal", { "customerId": GenericId<"commerce_customer_profiles">; "addressType": ("billing" | "shipping"); "address": Dto3011; "phone"?: (undefined | string); }, GenericId<"commerce_customer_addresses">>;
+  "upsertCustomerProfile": FunctionReference<"mutation", "internal", { "existingId"?: (undefined | string); "customer": Dto3012; }, GenericId<"commerce_customer_profiles">>;
+  "upsertDiscountCode": FunctionReference<"mutation", "internal", { "existingId"?: (undefined | string); "discount": Dto3013; }, GenericId<"commerce_discount_codes">>;
   "upsertImportedReviewUser": FunctionReference<"mutation", "internal", { "siteId": GenericId<"wordpressSites">; "email": string; "reviewerName"?: (undefined | string); }, GenericId<"users">>;
-  "upsertOrder": FunctionReference<"mutation", "internal", { "existingId"?: (undefined | string); "order": Dto3020; }, GenericId<"commerce_orders">>;
-  "upsertOrderItem": FunctionReference<"mutation", "internal", { "existingId"?: (undefined | string); "orderId": string; "item": Dto3023; }, string>;
-  "upsertPaymentRefund": FunctionReference<"mutation", "internal", { "existingId"?: (undefined | string); "refund": Dto3024; }, string>;
-  "upsertPaymentTransaction": FunctionReference<"mutation", "internal", { "existingId"?: (undefined | string); "transaction": Dto3026; }, GenericId<"commerce_payment_transactions">>;
+  "upsertOrder": FunctionReference<"mutation", "internal", { "existingId"?: (undefined | string); "order": Dto3014; }, GenericId<"commerce_orders">>;
+  "upsertOrderItem": FunctionReference<"mutation", "internal", { "existingId"?: (undefined | string); "orderId": string; "item": Dto3017; }, string>;
+  "upsertPaymentRefund": FunctionReference<"mutation", "internal", { "existingId"?: (undefined | string); "refund": Dto3018; }, string>;
+  "upsertPaymentTransaction": FunctionReference<"mutation", "internal", { "existingId"?: (undefined | string); "transaction": Dto3020; }, GenericId<"commerce_payment_transactions">>;
 };
   "media": {
-  "importBatch": FunctionReference<"action", "internal", { "jobId": GenericId<"wordpressSyncJobs">; "siteId": GenericId<"wordpressSites">; "credentials": Dto3005; }, Dto3006>;
-  "mediaCreate": FunctionReference<"mutation", "internal", { "existingId"?: (undefined | string); "wpMedia": Dto3028; "storageId"?: (undefined | GenericId<"_storage">); "url": string; "siteId": GenericId<"wordpressSites">; }, string>;
+  "importBatch": FunctionReference<"action", "internal", { "jobId": GenericId<"wordpressSyncJobs">; "siteId": GenericId<"wordpressSites">; "credentials": Dto2999; }, Dto3000>;
+  "mediaCreate": FunctionReference<"mutation", "internal", { "existingId"?: (undefined | string); "wpMedia": Dto3022; "storageId"?: (undefined | GenericId<"_storage">); "url": string; "siteId": GenericId<"wordpressSites">; }, string>;
   "mediaFindBySourceUrl": FunctionReference<"query", "internal", { "sourceUrl": string; }, (null | GenericId<"media">)>;
-  "mediaUpdateMetadata": FunctionReference<"mutation", "internal", { "mediaId": string; "wpMedia": Dto3030; "siteId": GenericId<"wordpressSites">; }, string>;
+  "mediaUpdateMetadata": FunctionReference<"mutation", "internal", { "mediaId": string; "wpMedia": Dto3024; "siteId": GenericId<"wordpressSites">; }, string>;
 };
   "menus": {
-  "importBatch": FunctionReference<"action", "internal", { "jobId": GenericId<"wordpressSyncJobs">; "siteId": GenericId<"wordpressSites">; "credentials": Dto3005; }, Dto3006>;
-  "menusCreate": FunctionReference<"mutation", "internal", { "existingId"?: (undefined | string); "wpMenu": Dto3032; "siteId": GenericId<"wordpressSites">; }, string>;
-  "menusCreateItem": FunctionReference<"mutation", "internal", { "existingId"?: (undefined | string); "wpItem": Dto3033; "siteId": GenericId<"wordpressSites">; }, string>;
+  "importBatch": FunctionReference<"action", "internal", { "jobId": GenericId<"wordpressSyncJobs">; "siteId": GenericId<"wordpressSites">; "credentials": Dto2999; }, Dto3000>;
+  "menusCreate": FunctionReference<"mutation", "internal", { "existingId"?: (undefined | string); "wpMenu": Dto3026; "siteId": GenericId<"wordpressSites">; }, string>;
+  "menusCreateItem": FunctionReference<"mutation", "internal", { "existingId"?: (undefined | string); "wpItem": Dto3027; "siteId": GenericId<"wordpressSites">; }, string>;
   "menusUpdateCount": FunctionReference<"mutation", "internal", { "menuId": string; "count": number; }, null>;
 };
   "pages": {
-  "importBatch": FunctionReference<"action", "internal", { "jobId": GenericId<"wordpressSyncJobs">; "siteId": GenericId<"wordpressSites">; "credentials": Dto3005; }, Dto3006>;
-  "pagesCreate": FunctionReference<"mutation", "internal", { "jobId": GenericId<"wordpressSyncJobs">; "sourceHash": string; "expectedRevision"?: (undefined | number); "expectedUpdatedAt"?: (undefined | number); "meta": Array<Dto3034>; "existingId"?: (undefined | string); "wpPage": Dto3035; "authorId"?: (undefined | string); "featuredImageId"?: (undefined | string); "parentId"?: (undefined | string); "siteId": GenericId<"wordpressSites">; }, GenericId<"posts">>;
+  "importBatch": FunctionReference<"action", "internal", { "jobId": GenericId<"wordpressSyncJobs">; "siteId": GenericId<"wordpressSites">; "credentials": Dto2999; }, Dto3000>;
+  "pagesCreate": FunctionReference<"mutation", "internal", { "jobId": GenericId<"wordpressSyncJobs">; "sourceHash": string; "expectedRevision"?: (undefined | number); "expectedUpdatedAt"?: (undefined | number); "meta": Array<Dto3028>; "existingId"?: (undefined | string); "wpPage": Dto3029; "authorId"?: (undefined | string); "featuredImageId"?: (undefined | string); "parentId"?: (undefined | string); "siteId": GenericId<"wordpressSites">; }, GenericId<"posts">>;
 };
   "posts": {
-  "importBatch": FunctionReference<"action", "internal", { "jobId": GenericId<"wordpressSyncJobs">; "siteId": GenericId<"wordpressSites">; "credentials": Dto3005; }, Dto3006>;
-  "postsCreate": FunctionReference<"mutation", "internal", { "jobId": GenericId<"wordpressSyncJobs">; "sourceHash": string; "expectedRevision"?: (undefined | number); "expectedUpdatedAt"?: (undefined | number); "meta": Array<Dto3036>; "termIds": Array<string>; "existingId"?: (undefined | string); "wpPost": Dto3037; "authorId"?: (undefined | string); "featuredImageId"?: (undefined | string); "siteId": GenericId<"wordpressSites">; }, GenericId<"posts">>;
+  "importBatch": FunctionReference<"action", "internal", { "jobId": GenericId<"wordpressSyncJobs">; "siteId": GenericId<"wordpressSites">; "credentials": Dto2999; }, Dto3000>;
+  "postsCreate": FunctionReference<"mutation", "internal", { "jobId": GenericId<"wordpressSyncJobs">; "sourceHash": string; "expectedRevision"?: (undefined | number); "expectedUpdatedAt"?: (undefined | number); "meta": Array<Dto3030>; "termIds": Array<string>; "existingId"?: (undefined | string); "wpPost": Dto3031; "authorId"?: (undefined | string); "featuredImageId"?: (undefined | string); "siteId": GenericId<"wordpressSites">; }, GenericId<"posts">>;
   "postsCreateMeta": FunctionReference<"mutation", "internal", { "postId": string; "key": string; "value": string; }, null>;
   "postsCreateTermRelationship": FunctionReference<"mutation", "internal", { "postId": string; "termId": string; }, null>;
 };
   "reconciliation": {
-  "runBatch": FunctionReference<"action", "internal", { "jobId": GenericId<"wordpressSyncJobs">; "siteId": GenericId<"wordpressSites">; "credentials": Dto3005; }, (Dto3038 | Dto3040)>;
+  "runBatch": FunctionReference<"action", "internal", { "jobId": GenericId<"wordpressSyncJobs">; "siteId": GenericId<"wordpressSites">; "credentials": Dto2999; }, (Dto3032 | Dto3034)>;
 };
   "taxonomies": {
-  "importBatch": FunctionReference<"action", "internal", { "jobId": GenericId<"wordpressSyncJobs">; "siteId": GenericId<"wordpressSites">; "credentials": Dto3005; }, Dto3006>;
-  "taxonomiesCreateTerm": FunctionReference<"mutation", "internal", { "existingId"?: (undefined | string); "wpTerm": Dto3042; "taxonomy": ("category" | "post_tag"); "parentId"?: (undefined | string); "siteId": GenericId<"wordpressSites">; }, string>;
+  "importBatch": FunctionReference<"action", "internal", { "jobId": GenericId<"wordpressSyncJobs">; "siteId": GenericId<"wordpressSites">; "credentials": Dto2999; }, Dto3000>;
+  "taxonomiesCreateTerm": FunctionReference<"mutation", "internal", { "existingId"?: (undefined | string); "wpTerm": Dto3036; "taxonomy": ("category" | "post_tag"); "parentId"?: (undefined | string); "siteId": GenericId<"wordpressSites">; }, string>;
   "taxonomiesSetParent": FunctionReference<"mutation", "internal", { "termId": string; "parentId"?: (undefined | string); }, null>;
 };
   "users": {
-  "getCredentialBackfillBatch": FunctionReference<"query", "internal", { "siteId": GenericId<"wordpressSites">; "afterWpId"?: (undefined | number); "limit": number; }, Dto3044>;
-  "importBatch": FunctionReference<"action", "internal", { "jobId": GenericId<"wordpressSyncJobs">; "siteId": GenericId<"wordpressSites">; "credentials": Dto3005; }, Dto3006>;
+  "getCredentialBackfillBatch": FunctionReference<"query", "internal", { "siteId": GenericId<"wordpressSites">; "afterWpId"?: (undefined | number); "limit": number; }, Dto3038>;
+  "importBatch": FunctionReference<"action", "internal", { "jobId": GenericId<"wordpressSyncJobs">; "siteId": GenericId<"wordpressSites">; "credentials": Dto2999; }, Dto3000>;
   "markImportedUserCredentialMigration": FunctionReference<"mutation", "internal", { "userId": GenericId<"users">; "status": ("provisioned" | "linked_existing" | "reset_required" | "skipped" | "failed" | "unsupported_hash"); "reason"?: (undefined | string); "passwordHasher"?: (undefined | string); "clerkUserId"?: (undefined | string); "error"?: (undefined | string); }, null>;
-  "provisionImportedUserCredentials": FunctionReference<"action", "internal", { "userId": GenericId<"users">; "siteId": GenericId<"wordpressSites">; "wpUserId": number; "email"?: (undefined | string); "username"?: (undefined | string); "firstName"?: (undefined | string); "lastName"?: (undefined | string); "displayName"?: (undefined | string); "passwordDigest"?: (undefined | string); "credentialExportConfigured": boolean; "credentialExportFailed": boolean; "jobId"?: (undefined | GenericId<"wordpressSyncJobs">); }, (Dto3046 | Dto3047 | Dto3048 | Dto3049 | Dto3050 | Dto3051)>;
-  "usersCreate": FunctionReference<"mutation", "internal", { "wpUser": Dto3052; "siteId": GenericId<"wordpressSites">; }, GenericId<"users">>;
+  "provisionImportedUserCredentials": FunctionReference<"action", "internal", { "userId": GenericId<"users">; "siteId": GenericId<"wordpressSites">; "wpUserId": number; "email"?: (undefined | string); "username"?: (undefined | string); "firstName"?: (undefined | string); "lastName"?: (undefined | string); "displayName"?: (undefined | string); "passwordDigest"?: (undefined | string); "credentialExportConfigured": boolean; "credentialExportFailed": boolean; "jobId"?: (undefined | GenericId<"wordpressSyncJobs">); }, (Dto3040 | Dto3041 | Dto3042 | Dto3043 | Dto3044 | Dto3045)>;
+  "usersCreate": FunctionReference<"mutation", "internal", { "wpUser": Dto3046; "siteId": GenericId<"wordpressSites">; }, GenericId<"users">>;
 };
 };
 };
   "wordpressSync/helpers/idMapping": {
   "create": FunctionReference<"mutation", "internal", { "siteId": GenericId<"wordpressSites">; "objectType": ("media" | "category" | "post" | "page" | "comment" | "user" | "menu" | "tag" | "menuItem" | "commerceCategory" | "commerceProduct" | "commerceProductVariant" | "commerceCustomer" | "commerceOrder" | "commerceOrderItem" | "commercePaymentTransaction" | "commerceDiscount" | "commerceReview" | "commerceRefund"); "wpId": number; "convexId": string; "sourceUrl"?: (undefined | string); "sourceUrls"?: (undefined | Array<string>); "sourceHash"?: (undefined | string); "jobId"?: (undefined | GenericId<"wordpressSyncJobs">); }, GenericId<"wpIdMappings">>;
-  "createBatch": FunctionReference<"mutation", "internal", { "siteId": GenericId<"wordpressSites">; "mappings": Array<Dto2991>; "jobId"?: (undefined | GenericId<"wordpressSyncJobs">); }, Array<GenericId<"wpIdMappings">>>;
+  "createBatch": FunctionReference<"mutation", "internal", { "siteId": GenericId<"wordpressSites">; "mappings": Array<Dto2985>; "jobId"?: (undefined | GenericId<"wordpressSyncJobs">); }, Array<GenericId<"wpIdMappings">>>;
   "deleteAllForSite": FunctionReference<"mutation", "internal", { "siteId": GenericId<"wordpressSites">; }, number>;
   "deleteByType": FunctionReference<"mutation", "internal", { "siteId": GenericId<"wordpressSites">; "objectType": ("media" | "category" | "post" | "page" | "comment" | "user" | "menu" | "tag" | "menuItem" | "commerceCategory" | "commerceProduct" | "commerceProductVariant" | "commerceCustomer" | "commerceOrder" | "commerceOrderItem" | "commercePaymentTransaction" | "commerceDiscount" | "commerceReview" | "commerceRefund"); }, number>;
   "exists": FunctionReference<"query", "internal", { "siteId": GenericId<"wordpressSites">; "objectType": ("media" | "category" | "post" | "page" | "comment" | "user" | "menu" | "tag" | "menuItem" | "commerceCategory" | "commerceProduct" | "commerceProductVariant" | "commerceCustomer" | "commerceOrder" | "commerceOrderItem" | "commercePaymentTransaction" | "commerceDiscount" | "commerceReview" | "commerceRefund"); "wpId": number; }, boolean>;
@@ -9719,11 +9709,11 @@ export type InternalApi = {
   "updateSourceHash": FunctionReference<"mutation", "internal", { "siteId": GenericId<"wordpressSites">; "objectType": ("media" | "category" | "post" | "page" | "comment" | "user" | "menu" | "tag" | "menuItem" | "commerceCategory" | "commerceProduct" | "commerceProductVariant" | "commerceCustomer" | "commerceOrder" | "commerceOrderItem" | "commercePaymentTransaction" | "commerceDiscount" | "commerceReview" | "commerceRefund"); "wpId": number; "sourceHash": string; }, null>;
 };
   "wordpressSync/internals": {
-  "addErrors": FunctionReference<"mutation", "internal", { "jobId": GenericId<"wordpressSyncJobs">; "errors": Array<Dto2992>; }, null>;
+  "addErrors": FunctionReference<"mutation", "internal", { "jobId": GenericId<"wordpressSyncJobs">; "errors": Array<Dto2986>; }, null>;
   "advancePhase": FunctionReference<"mutation", "internal", { "jobId": GenericId<"wordpressSyncJobs">; "phase": ("posts" | "users" | "media" | "pages" | "comments" | "menus" | "taxonomies" | "commerceCatalog" | "commerceTransactions" | "reconciliation" | "cleanup"); }, null>;
-  "checkStaleJobs": FunctionReference<"mutation", "internal", {  }, Dto2993>;
-  "cleanupOldJobs": FunctionReference<"mutation", "internal", {  }, Dto2994>;
-  "cleanupOrphanedMappings": FunctionReference<"mutation", "internal", {  }, Dto2995>;
+  "checkStaleJobs": FunctionReference<"mutation", "internal", {  }, Dto2987>;
+  "cleanupOldJobs": FunctionReference<"mutation", "internal", {  }, Dto2988>;
+  "cleanupOrphanedMappings": FunctionReference<"mutation", "internal", {  }, Dto2989>;
   "completeJob": FunctionReference<"mutation", "internal", { "jobId": GenericId<"wordpressSyncJobs">; }, null>;
   "countFindings": FunctionReference<"query", "internal", { "jobId": GenericId<"wordpressSyncJobs">; "limit": number; }, Array<Dto2072>>;
   "failJob": FunctionReference<"mutation", "internal", { "jobId": GenericId<"wordpressSyncJobs">; "error": string; }, null>;
@@ -9739,76 +9729,76 @@ export type InternalApi = {
   "getEntityById": FunctionReference<"query", "internal", { "table": string; "id": string; }, (null | Dto1821 | Dto148 | Dto1825 | Dto1826 | Dto1827 | Dto1828 | Dto1829 | Dto42 | Dto1830 | Dto38 | Dto1696 | Dto1697 | Dto1832 | Dto1599 | Dto1834 | Dto1598 | Dto1836 | Dto1837 | Dto1838 | Dto1765 | Dto1840 | Dto1841 | Dto1842 | Dto1844 | Dto1845 | Dto1846 | Dto1847 | Dto1848 | Dto80 | Dto1849 | Dto1857 | Dto1858 | Dto1859 | Dto1861 | Dto1862 | Dto1863 | Dto1865 | Dto1866 | Dto1867 | Dto1868 | Dto1869 | Dto1870 | Dto1384 | Dto1773 | Dto1871 | Dto1472 | Dto1470 | Dto1477 | Dto1170 | Dto1872 | Dto1153 | Dto1155 | Dto1873 | Dto1874 | Dto1875 | Dto1876 | Dto1877 | Dto1878 | Dto1879 | Dto1297 | Dto1301 | Dto1166 | Dto1192 | Dto1149 | Dto1162 | Dto1882 | Dto1169 | Dto1885 | Dto1886 | Dto1411 | Dto1177 | Dto1890 | Dto1261 | Dto1263 | Dto1891 | Dto1251 | Dto1151 | Dto1892 | Dto1256 | Dto1406 | Dto1188 | Dto1893 | Dto1314 | Dto1894 | Dto1895 | Dto1896 | Dto1897 | Dto1900 | Dto1901 | Dto1902 | Dto1526 | Dto1345 | Dto1903 | Dto1492 | Dto1525 | Dto1904 | Dto1521 | Dto1905 | Dto1906 | Dto1519 | Dto1459 | Dto1907 | Dto1377 | Dto1379 | Dto1381 | Dto1908 | Dto1909 | Dto1352 | Dto1910 | Dto1911 | Dto1912 | Dto1913 | Dto1914 | Dto1915 | Dto1718 | Dto1916 | Dto1777 | Dto1753 | Dto1731 | Dto1917 | Dto1918 | Dto1920 | Dto1921 | Dto1764 | Dto1735 | Dto1922 | Dto1923 | Dto1924 | Dto1815 | Dto1925 | Dto1926 | Dto1927 | Dto1928 | Dto1929 | Dto1930 | Dto1931 | Dto1932 | Dto1933 | Dto1934 | Dto1935 | Dto1936 | Dto1937 | Dto1938 | Dto1939 | Dto1940 | Dto1941 | Dto1942 | Dto1943 | Dto1944 | Dto1945 | Dto1946 | Dto1412 | Dto1423 | Dto1432 | Dto1355 | Dto1947 | Dto1948 | Dto1949 | Dto1950 | Dto1951 | Dto1952 | Dto1953 | Dto1376 | Dto1380 | Dto1954 | Dto1955 | Dto1956 | Dto1957 | Dto1958 | Dto1478 | Dto1520 | Dto1465 | Dto1959 | Dto1960 | Dto1961 | Dto1962 | Dto1963 | Dto1964 | Dto1965 | Dto1966 | Dto1967 | Dto1969 | Dto1970 | Dto1971 | Dto1973 | Dto1977 | Dto1980 | Dto1982 | Dto1984 | Dto1985 | Dto1986 | Dto1989 | Dto1992 | Dto1996 | Dto1997 | Dto1999 | Dto2000 | Dto2001 | Dto2002 | Dto2004 | Dto2005 | Dto2006 | Dto2007 | Dto2008 | Dto2010 | Dto2011 | Dto2012 | Dto2013 | Dto2014 | Dto2015 | Dto2016 | Dto2017 | Dto2018 | Dto2019 | Dto1249 | Dto1233 | Dto2020 | Dto1320 | Dto2021 | Dto2022 | Dto1281 | Dto2023 | Dto2024 | Dto2025 | Dto1187 | Dto1331 | Dto2026 | Dto1254 | Dto2027 | Dto2028 | Dto2029 | Dto2030 | Dto2031 | Dto2033 | Dto2036 | Dto2037 | Dto2038 | Dto2039 | Dto2041 | Dto2042 | Dto2043 | Dto2044 | Dto2045 | Dto2048 | Dto2049 | Dto2050 | Dto2051 | Dto2052 | Dto2053 | Dto2054 | Dto2055 | Dto2056 | Dto2057 | Dto2058 | Dto2059 | Dto2060 | Dto2061 | Dto2063 | Dto2064 | Dto2065 | Dto2068 | Dto156 | Dto2070 | Dto2071 | Dto2072 | Dto2073 | Dto2076 | Dto44 | Dto43 | Dto41 | Dto2077 | Dto2078 | Dto93 | Dto2079 | Dto2080 | Dto2081 | Dto2082 | Dto2083 | Dto2084 | Dto2087 | Dto2088 | Dto2090 | Dto2091 | Dto2092 | Dto2093 | Dto2094 | Dto2095 | Dto2096 | Dto2097 | Dto2098 | Dto2099 | Dto2100 | Dto2101 | Dto2102 | Dto2103 | Dto2104 | Dto2105 | Dto2106 | Dto2107 | Dto2108 | Dto2109 | Dto2114 | Dto39 | Dto2115 | Dto2116 | Dto2117 | Dto2118 | Dto2119 | Dto2120 | Dto2121 | Dto2122 | Dto2123 | Dto2124 | Dto2126 | Dto2127 | Dto2128 | Dto2130 | Dto2132 | Dto2133 | Dto2134 | Dto2135 | Dto2136 | Dto2138 | Dto2139 | Dto2140 | Dto2141 | Dto2142)>;
   "getJobInternal": FunctionReference<"query", "internal", { "jobId": GenericId<"wordpressSyncJobs">; }, (null | Dto1849)>;
   "getMappingsBatch": FunctionReference<"query", "internal", { "siteId": GenericId<"wordpressSites">; "objectType": string; "afterWpId": number; "limit": number; }, Array<Dto2071>>;
-  "getMediaMappingsWithUrls": FunctionReference<"query", "internal", { "siteId": GenericId<"wordpressSites">; "limit": number; }, Array<Dto2996>>;
+  "getMediaMappingsWithUrls": FunctionReference<"query", "internal", { "siteId": GenericId<"wordpressSites">; "limit": number; }, Array<Dto2990>>;
   "getSiteWithCredentials": FunctionReference<"query", "internal", { "siteId": GenericId<"wordpressSites">; }, (null | Dto1830)>;
-  "initializeProgress": FunctionReference<"mutation", "internal", { "jobId": GenericId<"wordpressSyncJobs">; "counts": Dto2997; }, null>;
+  "initializeProgress": FunctionReference<"mutation", "internal", { "jobId": GenericId<"wordpressSyncJobs">; "counts": Dto2991; }, null>;
   "insertFinding": FunctionReference<"mutation", "internal", { "siteId": GenericId<"wordpressSites">; "jobId": GenericId<"wordpressSyncJobs">; "severity": ("error" | "info" | "warning"); "phase": string; "code"?: (undefined | string); "message": string; "sourceType"?: (undefined | string); "sourceId"?: (undefined | string); "destinationTable"?: (undefined | string); "wpId"?: (undefined | number); "objectType"?: (undefined | string); "convexId"?: (undefined | string); "metadata"?: (undefined | string); "createdAt": number; }, null>;
   "patchEntity": FunctionReference<"mutation", "internal", { "table": string; "id": string; "fields": unknown; }, null>;
   "runSyncPhase": FunctionReference<"action", "internal", { "jobId": GenericId<"wordpressSyncJobs">; }, null>;
-  "updatePhaseProgress": FunctionReference<"mutation", "internal", { "jobId": GenericId<"wordpressSyncJobs">; "phase": string; "progress": Dto2998; }, null>;
-  "upsertReport": FunctionReference<"mutation", "internal", { "jobId": GenericId<"wordpressSyncJobs">; "siteId": GenericId<"wordpressSites">; "startedAt": number; "completedAt"?: (undefined | number); "finalStatus": string; "detectedCapabilities": Dto2999; "importConfig": string; "phaseCounts": string; "totalCounts": Dto3000; "findingSummary": string; "operatorSummary": string; }, GenericId<"wordpressSyncReports">>;
+  "updatePhaseProgress": FunctionReference<"mutation", "internal", { "jobId": GenericId<"wordpressSyncJobs">; "phase": string; "progress": Dto2992; }, null>;
+  "upsertReport": FunctionReference<"mutation", "internal", { "jobId": GenericId<"wordpressSyncJobs">; "siteId": GenericId<"wordpressSites">; "startedAt": number; "completedAt"?: (undefined | number); "finalStatus": string; "detectedCapabilities": Dto2993; "importConfig": string; "phaseCounts": string; "totalCounts": Dto2994; "findingSummary": string; "operatorSummary": string; }, GenericId<"wordpressSyncReports">>;
 };
   "wordpressSync/phases/comments": {
-  "commentsCreate": FunctionReference<"mutation", "internal", { "existingId"?: (undefined | string); "wpComment": Dto3004; "siteId": GenericId<"wordpressSites">; }, string>;
-  "importBatch": FunctionReference<"action", "internal", { "jobId": GenericId<"wordpressSyncJobs">; "siteId": GenericId<"wordpressSites">; "credentials": Dto3005; }, Dto3006>;
+  "commentsCreate": FunctionReference<"mutation", "internal", { "existingId"?: (undefined | string); "wpComment": Dto2998; "siteId": GenericId<"wordpressSites">; }, string>;
+  "importBatch": FunctionReference<"action", "internal", { "jobId": GenericId<"wordpressSyncJobs">; "siteId": GenericId<"wordpressSites">; "credentials": Dto2999; }, Dto3000>;
 };
   "wordpressSync/phases/commerceCatalog": {
-  "importBatch": FunctionReference<"action", "internal", { "jobId": GenericId<"wordpressSyncJobs">; "siteId": GenericId<"wordpressSites">; "credentials": Dto3005; }, Dto3006>;
+  "importBatch": FunctionReference<"action", "internal", { "jobId": GenericId<"wordpressSyncJobs">; "siteId": GenericId<"wordpressSites">; "credentials": Dto2999; }, Dto3000>;
   "setCategoryParent": FunctionReference<"mutation", "internal", { "categoryId": string; "parentId"?: (undefined | string); }, null>;
-  "upsertCategory": FunctionReference<"mutation", "internal", { "existingId"?: (undefined | string); "parentId"?: (undefined | string); "wpCategory": Dto3009; }, GenericId<"commerce_product_categories">>;
-  "upsertProduct": FunctionReference<"mutation", "internal", { "existingId"?: (undefined | string); "authorId": GenericId<"users">; "product": Dto3010; }, GenericId<"commerce_products">>;
-  "upsertVariant": FunctionReference<"mutation", "internal", { "existingId"?: (undefined | string); "productId": string; "variant": Dto3013; }, GenericId<"commerce_product_variants">>;
+  "upsertCategory": FunctionReference<"mutation", "internal", { "existingId"?: (undefined | string); "parentId"?: (undefined | string); "wpCategory": Dto3003; }, GenericId<"commerce_product_categories">>;
+  "upsertProduct": FunctionReference<"mutation", "internal", { "existingId"?: (undefined | string); "authorId": GenericId<"users">; "product": Dto3004; }, GenericId<"commerce_products">>;
+  "upsertVariant": FunctionReference<"mutation", "internal", { "existingId"?: (undefined | string); "productId": string; "variant": Dto3007; }, GenericId<"commerce_product_variants">>;
 };
   "wordpressSync/phases/commerceTransactions": {
-  "importBatch": FunctionReference<"action", "internal", { "jobId": GenericId<"wordpressSyncJobs">; "siteId": GenericId<"wordpressSites">; "credentials": Dto3005; }, Dto3006>;
+  "importBatch": FunctionReference<"action", "internal", { "jobId": GenericId<"wordpressSyncJobs">; "siteId": GenericId<"wordpressSites">; "credentials": Dto2999; }, Dto3000>;
   "recomputeCustomerTotals": FunctionReference<"mutation", "internal", { "customerId": string; }, (null | GenericId<"commerce_customer_profiles">)>;
   "reconcileOrderRefundStatus": FunctionReference<"mutation", "internal", { "orderId": GenericId<"commerce_orders">; }, (null | GenericId<"commerce_orders">)>;
-  "upsertCommerceReview": FunctionReference<"mutation", "internal", { "existingId"?: (undefined | string); "review": Dto3016; }, GenericId<"commerce_review_items">>;
-  "upsertCustomerDefaultAddress": FunctionReference<"mutation", "internal", { "customerId": GenericId<"commerce_customer_profiles">; "addressType": ("billing" | "shipping"); "address": Dto3017; "phone"?: (undefined | string); }, GenericId<"commerce_customer_addresses">>;
-  "upsertCustomerProfile": FunctionReference<"mutation", "internal", { "existingId"?: (undefined | string); "customer": Dto3018; }, GenericId<"commerce_customer_profiles">>;
-  "upsertDiscountCode": FunctionReference<"mutation", "internal", { "existingId"?: (undefined | string); "discount": Dto3019; }, GenericId<"commerce_discount_codes">>;
+  "upsertCommerceReview": FunctionReference<"mutation", "internal", { "existingId"?: (undefined | string); "review": Dto3010; }, GenericId<"commerce_review_items">>;
+  "upsertCustomerDefaultAddress": FunctionReference<"mutation", "internal", { "customerId": GenericId<"commerce_customer_profiles">; "addressType": ("billing" | "shipping"); "address": Dto3011; "phone"?: (undefined | string); }, GenericId<"commerce_customer_addresses">>;
+  "upsertCustomerProfile": FunctionReference<"mutation", "internal", { "existingId"?: (undefined | string); "customer": Dto3012; }, GenericId<"commerce_customer_profiles">>;
+  "upsertDiscountCode": FunctionReference<"mutation", "internal", { "existingId"?: (undefined | string); "discount": Dto3013; }, GenericId<"commerce_discount_codes">>;
   "upsertImportedReviewUser": FunctionReference<"mutation", "internal", { "siteId": GenericId<"wordpressSites">; "email": string; "reviewerName"?: (undefined | string); }, GenericId<"users">>;
-  "upsertOrder": FunctionReference<"mutation", "internal", { "existingId"?: (undefined | string); "order": Dto3020; }, GenericId<"commerce_orders">>;
-  "upsertOrderItem": FunctionReference<"mutation", "internal", { "existingId"?: (undefined | string); "orderId": string; "item": Dto3023; }, string>;
-  "upsertPaymentRefund": FunctionReference<"mutation", "internal", { "existingId"?: (undefined | string); "refund": Dto3024; }, string>;
-  "upsertPaymentTransaction": FunctionReference<"mutation", "internal", { "existingId"?: (undefined | string); "transaction": Dto3026; }, GenericId<"commerce_payment_transactions">>;
+  "upsertOrder": FunctionReference<"mutation", "internal", { "existingId"?: (undefined | string); "order": Dto3014; }, GenericId<"commerce_orders">>;
+  "upsertOrderItem": FunctionReference<"mutation", "internal", { "existingId"?: (undefined | string); "orderId": string; "item": Dto3017; }, string>;
+  "upsertPaymentRefund": FunctionReference<"mutation", "internal", { "existingId"?: (undefined | string); "refund": Dto3018; }, string>;
+  "upsertPaymentTransaction": FunctionReference<"mutation", "internal", { "existingId"?: (undefined | string); "transaction": Dto3020; }, GenericId<"commerce_payment_transactions">>;
 };
   "wordpressSync/phases/media": {
-  "importBatch": FunctionReference<"action", "internal", { "jobId": GenericId<"wordpressSyncJobs">; "siteId": GenericId<"wordpressSites">; "credentials": Dto3005; }, Dto3006>;
-  "mediaCreate": FunctionReference<"mutation", "internal", { "existingId"?: (undefined | string); "wpMedia": Dto3028; "storageId"?: (undefined | GenericId<"_storage">); "url": string; "siteId": GenericId<"wordpressSites">; }, string>;
+  "importBatch": FunctionReference<"action", "internal", { "jobId": GenericId<"wordpressSyncJobs">; "siteId": GenericId<"wordpressSites">; "credentials": Dto2999; }, Dto3000>;
+  "mediaCreate": FunctionReference<"mutation", "internal", { "existingId"?: (undefined | string); "wpMedia": Dto3022; "storageId"?: (undefined | GenericId<"_storage">); "url": string; "siteId": GenericId<"wordpressSites">; }, string>;
   "mediaFindBySourceUrl": FunctionReference<"query", "internal", { "sourceUrl": string; }, (null | GenericId<"media">)>;
-  "mediaUpdateMetadata": FunctionReference<"mutation", "internal", { "mediaId": string; "wpMedia": Dto3030; "siteId": GenericId<"wordpressSites">; }, string>;
+  "mediaUpdateMetadata": FunctionReference<"mutation", "internal", { "mediaId": string; "wpMedia": Dto3024; "siteId": GenericId<"wordpressSites">; }, string>;
 };
   "wordpressSync/phases/menus": {
-  "importBatch": FunctionReference<"action", "internal", { "jobId": GenericId<"wordpressSyncJobs">; "siteId": GenericId<"wordpressSites">; "credentials": Dto3005; }, Dto3006>;
-  "menusCreate": FunctionReference<"mutation", "internal", { "existingId"?: (undefined | string); "wpMenu": Dto3032; "siteId": GenericId<"wordpressSites">; }, string>;
-  "menusCreateItem": FunctionReference<"mutation", "internal", { "existingId"?: (undefined | string); "wpItem": Dto3033; "siteId": GenericId<"wordpressSites">; }, string>;
+  "importBatch": FunctionReference<"action", "internal", { "jobId": GenericId<"wordpressSyncJobs">; "siteId": GenericId<"wordpressSites">; "credentials": Dto2999; }, Dto3000>;
+  "menusCreate": FunctionReference<"mutation", "internal", { "existingId"?: (undefined | string); "wpMenu": Dto3026; "siteId": GenericId<"wordpressSites">; }, string>;
+  "menusCreateItem": FunctionReference<"mutation", "internal", { "existingId"?: (undefined | string); "wpItem": Dto3027; "siteId": GenericId<"wordpressSites">; }, string>;
   "menusUpdateCount": FunctionReference<"mutation", "internal", { "menuId": string; "count": number; }, null>;
 };
   "wordpressSync/phases/pages": {
-  "importBatch": FunctionReference<"action", "internal", { "jobId": GenericId<"wordpressSyncJobs">; "siteId": GenericId<"wordpressSites">; "credentials": Dto3005; }, Dto3006>;
-  "pagesCreate": FunctionReference<"mutation", "internal", { "jobId": GenericId<"wordpressSyncJobs">; "sourceHash": string; "expectedRevision"?: (undefined | number); "expectedUpdatedAt"?: (undefined | number); "meta": Array<Dto3034>; "existingId"?: (undefined | string); "wpPage": Dto3035; "authorId"?: (undefined | string); "featuredImageId"?: (undefined | string); "parentId"?: (undefined | string); "siteId": GenericId<"wordpressSites">; }, GenericId<"posts">>;
+  "importBatch": FunctionReference<"action", "internal", { "jobId": GenericId<"wordpressSyncJobs">; "siteId": GenericId<"wordpressSites">; "credentials": Dto2999; }, Dto3000>;
+  "pagesCreate": FunctionReference<"mutation", "internal", { "jobId": GenericId<"wordpressSyncJobs">; "sourceHash": string; "expectedRevision"?: (undefined | number); "expectedUpdatedAt"?: (undefined | number); "meta": Array<Dto3028>; "existingId"?: (undefined | string); "wpPage": Dto3029; "authorId"?: (undefined | string); "featuredImageId"?: (undefined | string); "parentId"?: (undefined | string); "siteId": GenericId<"wordpressSites">; }, GenericId<"posts">>;
 };
   "wordpressSync/phases/posts": {
-  "importBatch": FunctionReference<"action", "internal", { "jobId": GenericId<"wordpressSyncJobs">; "siteId": GenericId<"wordpressSites">; "credentials": Dto3005; }, Dto3006>;
-  "postsCreate": FunctionReference<"mutation", "internal", { "jobId": GenericId<"wordpressSyncJobs">; "sourceHash": string; "expectedRevision"?: (undefined | number); "expectedUpdatedAt"?: (undefined | number); "meta": Array<Dto3036>; "termIds": Array<string>; "existingId"?: (undefined | string); "wpPost": Dto3037; "authorId"?: (undefined | string); "featuredImageId"?: (undefined | string); "siteId": GenericId<"wordpressSites">; }, GenericId<"posts">>;
+  "importBatch": FunctionReference<"action", "internal", { "jobId": GenericId<"wordpressSyncJobs">; "siteId": GenericId<"wordpressSites">; "credentials": Dto2999; }, Dto3000>;
+  "postsCreate": FunctionReference<"mutation", "internal", { "jobId": GenericId<"wordpressSyncJobs">; "sourceHash": string; "expectedRevision"?: (undefined | number); "expectedUpdatedAt"?: (undefined | number); "meta": Array<Dto3030>; "termIds": Array<string>; "existingId"?: (undefined | string); "wpPost": Dto3031; "authorId"?: (undefined | string); "featuredImageId"?: (undefined | string); "siteId": GenericId<"wordpressSites">; }, GenericId<"posts">>;
   "postsCreateMeta": FunctionReference<"mutation", "internal", { "postId": string; "key": string; "value": string; }, null>;
   "postsCreateTermRelationship": FunctionReference<"mutation", "internal", { "postId": string; "termId": string; }, null>;
 };
   "wordpressSync/phases/reconciliation": {
-  "runBatch": FunctionReference<"action", "internal", { "jobId": GenericId<"wordpressSyncJobs">; "siteId": GenericId<"wordpressSites">; "credentials": Dto3005; }, (Dto3038 | Dto3040)>;
+  "runBatch": FunctionReference<"action", "internal", { "jobId": GenericId<"wordpressSyncJobs">; "siteId": GenericId<"wordpressSites">; "credentials": Dto2999; }, (Dto3032 | Dto3034)>;
 };
   "wordpressSync/phases/taxonomies": {
-  "importBatch": FunctionReference<"action", "internal", { "jobId": GenericId<"wordpressSyncJobs">; "siteId": GenericId<"wordpressSites">; "credentials": Dto3005; }, Dto3006>;
-  "taxonomiesCreateTerm": FunctionReference<"mutation", "internal", { "existingId"?: (undefined | string); "wpTerm": Dto3042; "taxonomy": ("category" | "post_tag"); "parentId"?: (undefined | string); "siteId": GenericId<"wordpressSites">; }, string>;
+  "importBatch": FunctionReference<"action", "internal", { "jobId": GenericId<"wordpressSyncJobs">; "siteId": GenericId<"wordpressSites">; "credentials": Dto2999; }, Dto3000>;
+  "taxonomiesCreateTerm": FunctionReference<"mutation", "internal", { "existingId"?: (undefined | string); "wpTerm": Dto3036; "taxonomy": ("category" | "post_tag"); "parentId"?: (undefined | string); "siteId": GenericId<"wordpressSites">; }, string>;
   "taxonomiesSetParent": FunctionReference<"mutation", "internal", { "termId": string; "parentId"?: (undefined | string); }, null>;
 };
   "wordpressSync/phases/users": {
-  "getCredentialBackfillBatch": FunctionReference<"query", "internal", { "siteId": GenericId<"wordpressSites">; "afterWpId"?: (undefined | number); "limit": number; }, Dto3044>;
-  "importBatch": FunctionReference<"action", "internal", { "jobId": GenericId<"wordpressSyncJobs">; "siteId": GenericId<"wordpressSites">; "credentials": Dto3005; }, Dto3006>;
+  "getCredentialBackfillBatch": FunctionReference<"query", "internal", { "siteId": GenericId<"wordpressSites">; "afterWpId"?: (undefined | number); "limit": number; }, Dto3038>;
+  "importBatch": FunctionReference<"action", "internal", { "jobId": GenericId<"wordpressSyncJobs">; "siteId": GenericId<"wordpressSites">; "credentials": Dto2999; }, Dto3000>;
   "markImportedUserCredentialMigration": FunctionReference<"mutation", "internal", { "userId": GenericId<"users">; "status": ("provisioned" | "linked_existing" | "reset_required" | "skipped" | "failed" | "unsupported_hash"); "reason"?: (undefined | string); "passwordHasher"?: (undefined | string); "clerkUserId"?: (undefined | string); "error"?: (undefined | string); }, null>;
-  "provisionImportedUserCredentials": FunctionReference<"action", "internal", { "userId": GenericId<"users">; "siteId": GenericId<"wordpressSites">; "wpUserId": number; "email"?: (undefined | string); "username"?: (undefined | string); "firstName"?: (undefined | string); "lastName"?: (undefined | string); "displayName"?: (undefined | string); "passwordDigest"?: (undefined | string); "credentialExportConfigured": boolean; "credentialExportFailed": boolean; "jobId"?: (undefined | GenericId<"wordpressSyncJobs">); }, (Dto3046 | Dto3047 | Dto3048 | Dto3049 | Dto3050 | Dto3051)>;
-  "usersCreate": FunctionReference<"mutation", "internal", { "wpUser": Dto3052; "siteId": GenericId<"wordpressSites">; }, GenericId<"users">>;
+  "provisionImportedUserCredentials": FunctionReference<"action", "internal", { "userId": GenericId<"users">; "siteId": GenericId<"wordpressSites">; "wpUserId": number; "email"?: (undefined | string); "username"?: (undefined | string); "firstName"?: (undefined | string); "lastName"?: (undefined | string); "displayName"?: (undefined | string); "passwordDigest"?: (undefined | string); "credentialExportConfigured": boolean; "credentialExportFailed": boolean; "jobId"?: (undefined | GenericId<"wordpressSyncJobs">); }, (Dto3040 | Dto3041 | Dto3042 | Dto3043 | Dto3044 | Dto3045)>;
+  "usersCreate": FunctionReference<"mutation", "internal", { "wpUser": Dto3046; "siteId": GenericId<"wordpressSites">; }, GenericId<"users">>;
 };
 };
 export declare const api: PublicApi;

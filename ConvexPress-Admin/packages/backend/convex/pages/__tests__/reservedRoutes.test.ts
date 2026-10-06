@@ -7,6 +7,7 @@ import { api, internal } from '../../_generated/api';
 import schema from '../../schema';
 import { reservedPageRoute } from '../../helpers/pageRoutePolicy';
 const modules = {
+  './convex/canonicalDocuments.ts': () => import('../../canonicalDocuments'),
   './convex/pages/internals.ts': () => import('../internals'),
   './convex/_generated/server.js': () => import('../../_generated/server.js'),
   './convex/pages/mutations.ts': () => import('../mutations'),
@@ -54,7 +55,7 @@ test('page parent changes keep depths consistent with recomputation and retain t
   expect((await t.run(ctx=>ctx.db.get('posts',leaf)))?.depth).toBe(2);
   await editor.mutation(api.pages.mutations.setParent,{pageId:child});
   expect((await t.run(ctx=>ctx.db.get('posts',leaf)))?.depth).toBe(1);
-  await editor.mutation(api.pages.mutations.update,{pageId:child,parentId:root});
+  await editor.mutation(api.canonicalDocuments.updateMetadata,{postId:child,expectedRevision:(await t.run(ctx=>ctx.db.get(child)))!.blocksRevision!,parentId:root});
   expect((await t.run(ctx=>ctx.db.get('posts',child)))?.depth).toBe(1);
   expect((await t.run(ctx=>ctx.db.get('posts',leaf)))?.path).toBe('/root/child/leaf');
   let deepParent=root;
@@ -100,12 +101,13 @@ test('canonical HTTP create rejects reserved routes', async () => {
   await expect(createPage({title:'Private preview collision',slug:'document-preview'})).rejects.toThrow('built-in website route');
   expect((await t.run(ctx=>ctx.db.query('posts').collect())).length).toBe(1);
 });
-test('legacy collision permits content-only edits but a rename into a reserved route is rejected', async () => {
+test('existing canonical route collision permits title edits but a rename into a reserved route is rejected', async () => {
   const {t,editor,authorId,createPage}=await fixture();
-  const pageId=await t.run(ctx=>ctx.db.insert('posts',{type:'page',title:'Legacy',slug:'events',path:'/events',content:'',status:'auto-draft',visibility:'public',authorId,commentStatus:'closed',createdAt:1,updatedAt:1}));
-  await editor.mutation(api.pages.mutations.update,{pageId,title:'Edited legacy title'});
-  expect((await t.run(ctx=>ctx.db.get(pageId)))?.title).toBe('Edited legacy title');
-  await expect(editor.mutation(api.pages.mutations.update,{pageId,slug:'products'})).rejects.toThrow('built-in website route');
+  const pageId=await createPage({title:'Existing page',slug:'existing-page'});
+  await t.run(ctx=>ctx.db.patch(pageId,{slug:'events',path:'/events'}));
+  await editor.mutation(api.canonicalDocuments.updateMetadata,{postId:pageId,expectedRevision:1,title:'Edited existing title'});
+  expect((await t.run(ctx=>ctx.db.get(pageId)))?.title).toBe('Edited existing title');
+  await expect(editor.mutation(api.canonicalDocuments.updateMetadata,{postId:pageId,expectedRevision:2,slug:'products'})).rejects.toThrow('built-in website route');
 });
 test('configured dashboard namespace blocks new page creation', async () => {
   const {t,editor,authorId,createPage}=await fixture();
@@ -115,14 +117,10 @@ test('configured dashboard namespace blocks new page creation', async () => {
 
 test('reparenting cannot move a descendant into a configured dashboard and leaves the tree intact', async () => {
  const {t,editor,authorId,createPage}=await fixture();
- const {parentId,childId}=await t.run(async ctx=>{
-  await ctx.db.insert('settings',{section:'dashboard',values:{basePath:'/new/portal'},updatedAt:1,updatedBy:authorId});
-  const common={type:'page' as const,content:'',status:'auto-draft' as const,visibility:'public' as const,authorId,commentStatus:'closed' as const,createdAt:1,updatedAt:1};
-  const parentId=await ctx.db.insert('posts',{...common,title:'Old',slug:'old',path:'/old',depth:0});
-  const childId=await ctx.db.insert('posts',{...common,title:'Portal',slug:'portal',path:'/old/portal',parentId,depth:1});
-  return {parentId,childId};
- });
- await expect(editor.mutation(api.pages.mutations.update,{pageId:parentId,slug:'new'})).rejects.toThrow('built-in website route');
+ await t.run(ctx=>ctx.db.insert('settings',{section:'dashboard',values:{basePath:'/new/portal'},updatedAt:1,updatedBy:authorId}));
+ const parentId=await createPage({title:'Old',slug:'old'});
+ const childId=await createPage({title:'Portal',slug:'portal',parentId});
+ await expect(editor.mutation(api.canonicalDocuments.updateMetadata,{postId:parentId,expectedRevision:1,slug:'new'})).rejects.toThrow('built-in website route');
  expect((await t.run(ctx=>ctx.db.get(childId)))?.path).toBe('/old/portal');
  expect((await t.run(ctx=>ctx.db.get(parentId)))?.slug).toBe('old');
 });

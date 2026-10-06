@@ -21,7 +21,6 @@ import type { Id } from "@backend/convex/_generated/dataModel";
  * ```
  */
 export function usePostMutations() {
-  const updateMutation = useMutation(api.posts.mutations.update);
   const publishMutation = useMutation(api.posts.mutations.publish);
   const unpublishMutation = useMutation(api.posts.mutations.unpublish);
   const trashMutation = useMutation(api.posts.mutations.trash);
@@ -37,40 +36,6 @@ export function usePostMutations() {
   const setMetaMutation = useMutation(api.posts.mutations.setMeta);
   const deleteMetaMutation = useMutation(api.posts.mutations.deleteMeta);
   const bulkSetMetaMutation = useMutation(api.posts.mutations.bulkSetMeta);
-
-  // ─── Update ─────────────────────────────────────────────────────────────
-
-  async function updatePost(args: {
-    postId: Id<"posts">;
-    title?: string;
-    content?: string;
-    excerpt?: string;
-    status?: string;
-    visibility?: string;
-    password?: string;
-    commentStatus?: string;
-    featuredImageId?: Id<"media">;
-    isSticky?: boolean;
-    slug?: string;
-    menuOrder?: number;
-    authorId?: Id<"users">;
-    scheduledAt?: number;
-    categoryIds?: Id<"terms">[];
-    tagIds?: Id<"terms">[];
-  }) {
-    try {
-      // Build properly typed args for the Convex mutation
-      const mutationArgs: Record<string, unknown> = { ...args };
-      const result = await updateMutation(mutationArgs as Parameters<typeof updateMutation>[0]);
-      toast.success("Post updated.");
-      return result;
-    } catch (error: unknown) {
-      const err = error as { data?: { message?: string }; message?: string };
-      const message = err?.data?.message ?? err?.message ?? "Failed to update post";
-      toast.error(message);
-      throw error;
-    }
-  }
 
   // ─── Publish ────────────────────────────────────────────────────────────
 
@@ -329,7 +294,6 @@ export function usePostMutations() {
   }
 
   return {
-    updatePost,
     publishPost,
     unpublishPost,
     schedulePost,

@@ -928,7 +928,7 @@ test("canonical lock changes require canonical writes and canonical reads preser
 	expect((await f.t.run(ctx => ctx.db.get("posts", f.ids.post)))?.blocksRevision).toBe(2);
 });
 
-test("ordinary post/page edits, autosave and legacy revision restore cannot mutate canonical documents", async () => {
+test("legacy autosave and revision restore cannot mutate canonical documents", async () => {
 	const f = await fixture();
 	await initialize(f);
 	const history = await f.client.query(reference("pageRevisions"), {
@@ -940,14 +940,6 @@ test("ordinary post/page edits, autosave and legacy revision restore cannot muta
 		revisions: await ctx.db.query("revisions").collect(),
 	}));
 	for (const [name, args] of [
-		[
-			"posts/mutations:update",
-			{ postId: f.ids.post, title: "Legacy post write" },
-		],
-		[
-			"pages/mutations:update",
-			{ pageId: f.ids.post, title: "Legacy page write" },
-		],
 		[
 			"posts/mutations:autosave",
 			{ postId: f.ids.post, content: "Legacy autosave" },
@@ -1111,17 +1103,12 @@ test("usage documents include canonical descendants once per document", async ()
 	).toEqual(["core/group", "core/paragraph"]);
 });
 
-test("legacy status-only submission cannot strand a canonical draft in an unsupported workflow", async () => {
-	const f = await fixture();
-	await initialize(f);
-	expect(
-		await code(() =>
-			f.client.mutation(
-				makeFunctionReference<any, any, any>("posts/mutations:update"),
-				{ postId: f.ids.post, status: "pending" },
-			),
-		),
-	).toBe("CANONICAL_PUBLICATION_UNAVAILABLE");
+test("canonical metadata rejects unsupported pending workflow status", async () => {
+  const f = await fixture();
+  await initialize(f);
+  await expect(f.client.mutation(reference("updateMetadata", "mutation"), {
+    postId: f.ids.post, expectedRevision: 1, status: "pending",
+  })).rejects.toThrow();
 	expect(
 		(await f.t.run((ctx) => ctx.db.get("posts", f.ids.post)))?.status,
 	).toBe("draft");
@@ -1255,26 +1242,17 @@ test("nested-list migration uses registered review/commit and restores the exact
   expect((await f.client.query(reference("get"), { postId: f.ids.post })).document.blocks).toEqual(blocks);
 });
 
-test("manual page and post saves reconcile only redundant autosaves before immediate canonical entry", async () => {
+test("retired generic updates preserve unconverted page/post bodies and distinct autosaves for import review", async () => {
   for (const kind of ["page", "post"] as const) {
     const f = await fixture();
-    await f.t.run(async ctx => { await ctx.db.patch("posts", f.ids.post, { type: kind, autosaveTitle: "Disposable draft", autosaveContent: "", autosavedAt: 42 }); });
+    await f.t.run(ctx => ctx.db.patch(f.ids.post, {type:kind, content:"Saved source", autosaveTitle:"Unsaved title", autosaveContent:"Distinct unsaved body", autosavedAt:43}));
+    const snapshot = () => f.t.run(async ctx => ({post:await ctx.db.get(f.ids.post),history:await ctx.db.query("revisions").collect()}));
+    const before = await snapshot();
     const update = makeFunctionReference<any, any, any>(`${kind === "page" ? "pages" : "posts"}/mutations:update`);
-    const idArgs = kind === "page" ? { pageId: f.ids.post } : { postId: f.ids.post };
-    await f.client.mutation(update, { ...idArgs, title: "Saved new title", content: "" });
-    const read = await f.client.query(reference("get"), { postId: f.ids.post });
-    expect(read.document.title).toBe("Saved new title");
-    expect(read.initialization.eligible).toBe(true);
-    let post = await f.t.run(ctx => ctx.db.get("posts", f.ids.post));
-    expect(post!.autosaveTitle).toBeUndefined();
-    expect(post!.autosavedAt).toBeUndefined();
-    await f.t.run(async ctx => { await ctx.db.patch("posts", f.ids.post, { autosaveTitle: "Another unsaved draft", autosaveContent: "Unsaved distinct body", autosavedAt: 43 }); });
-    await f.client.mutation(update, { ...idArgs, title: "Saved again", content: "" });
-    post = await f.t.run(ctx => ctx.db.get("posts", f.ids.post));
-    expect(post!.autosaveTitle).toBe("Another unsaved draft");
-    expect(post!.autosaveContent).toBe("Unsaved distinct body");
-    expect(post!.autosavedAt).toBe(43);
-    expect((await f.client.query(reference("get"), { postId: f.ids.post })).initialization.eligible).toBe(false);
+    const idArgs = kind === "page" ? {pageId:f.ids.post} : {postId:f.ids.post};
+    await expect(f.client.mutation(update, {...idArgs,title:"Overwrite",content:""})).rejects.toThrow();
+    expect(await snapshot()).toEqual(before);
+    expect((await f.client.query(reference("get"), {postId:f.ids.post})).initialization.eligible).toBe(false);
   }
 });
 
@@ -1382,8 +1360,7 @@ test("legacy publication metadata writers cannot expose canonical content or cha
   const f = await fixture();
   await initialize(f);
   for (const patch of [{ visibility: "private" }, { visibility: "password", password: "other" }, { scheduledAt: Date.now() + 100000 }, { status: "publish" }]) {
-    const outcome = await code(() => f.client.mutation(makeFunctionReference<any, any, any>("pages/mutations:update"), { pageId: f.ids.post, ...patch }));
-    expect({ patch, denied: outcome !== null }).toEqual({ patch, denied: true });
+    await expect(f.client.mutation(makeFunctionReference<any, any, any>("pages/mutations:update"), { pageId: f.ids.post, ...patch })).rejects.toThrow();
   }
   const post = await f.t.run(ctx => ctx.db.get("posts", f.ids.post));
   expect(post!.status).toBe("draft");
@@ -3633,4 +3610,19 @@ test('Document settings preserves taxonomy assignment events without replaying n
  const events=await f.t.run(ctx=>ctx.db.query('events').collect());expect(events.filter(e=>e.code==='taxonomy.term_assigned')).toHaveLength(1);
  const saved=await read();await f.client.mutation(reference('updateMetadata','mutation'),{postId:f.ids.post,expectedRevision:saved.revision,expectedSettingsDigest:saved.settingsDigest,termIds:[term]});
  expect(await f.t.run(ctx=>ctx.db.query('events').collect())).toEqual(events);
+});
+
+
+test("retired generic post/page updates have no registered export", async () => {
+  expect("update" in await import("../../posts/mutations")).toBe(false);
+  expect("update" in await import("../../pages/mutations")).toBe(false);
+  const f = await fixture();
+  await initialize(f);
+  const read = () => f.t.run(async ctx => ({post: await ctx.db.get(f.ids.post), revisions: await ctx.db.query("revisions").collect()}));
+  const before = await read();
+  for (const [name, args] of [
+    ["posts/mutations:update", {postId:f.ids.post, title:"Old writer", content:"Old body"}],
+    ["pages/mutations:update", {pageId:f.ids.post, title:"Old writer", content:"Old body"}],
+  ] as const) await expect(f.client.mutation(makeFunctionReference<any, any, any>(name), args)).rejects.toThrow();
+  expect(await read()).toEqual(before);
 });

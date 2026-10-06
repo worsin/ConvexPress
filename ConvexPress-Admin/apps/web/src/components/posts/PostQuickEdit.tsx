@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { useCanonicalMetadata } from "@/hooks/useCanonicalMetadata";
-import { usePostMutations } from "@/hooks/posts/usePostMutations";
+import { QuickEditImportNotice } from "@/components/blocks/canonical-editor/QuickEditImportNotice";
 import type { PostWithAuthor, PostStatus } from "@/lib/posts/types";
 
 interface PostQuickEditProps {
@@ -38,7 +38,14 @@ interface TermSummary {
  * Canonical documents save metadata atomically against the opened revision.
  */
 export function PostQuickEdit({ post, onClose }: PostQuickEditProps) {
-  const [base] = useState(() => ({canonical:post.blocksVersion === 2, revision:post.blocksRevision}));
+  if (post.blocksVersion !== 2 || !Number.isInteger(post.blocksRevision) || (post.blocksRevision ?? 0) < 1) {
+    return <QuickEditImportNotice type="post" postId={String(post._id)} onClose={onClose} />;
+  }
+  return <CanonicalPostQuickEdit post={post} onClose={onClose} />;
+}
+
+function CanonicalPostQuickEdit({ post, onClose }: PostQuickEditProps) {
+  const [revision] = useState(() => post.blocksRevision!);
   const updateCanonical = useCanonicalMetadata();
   const [title, setTitle] = useState(post.title);
   const [slug, setSlug] = useState(post.slug);
@@ -53,7 +60,6 @@ export function PostQuickEdit({ post, onClose }: PostQuickEditProps) {
   const [isSticky, setIsSticky] = useState(post.isSticky);
   const [isSaving, setIsSaving] = useState(false);
 
-  const { updatePost } = usePostMutations();
 
   // Fetch authors for the Author dropdown
   const authorsResult = useQuery(api.profiles.queries.listUsers, {
@@ -122,17 +128,14 @@ export function PostQuickEdit({ post, onClose }: PostQuickEditProps) {
         updateArgs.authorId = authorId;
       }
 
-      if (base.canonical) {
-        if (base.revision === undefined) throw new Error("Reload this document before editing.");
-        await updateCanonical({...updateArgs, expectedRevision:base.revision} as Parameters<typeof updateCanonical>[0]);
-      } else await updatePost(updateArgs as Parameters<typeof updatePost>[0]);
+      await updateCanonical({...updateArgs, expectedRevision:revision} as Parameters<typeof updateCanonical>[0]);
       onClose();
     } catch {
-      // Error toast is handled by usePostMutations
+      // Error toast is handled by useCanonicalMetadata
     } finally {
       setIsSaving(false);
     }
-  }, [title, slug, status, publishDate, authorId, allowComments, isSticky, onClose, post._id, post.authorId, post.scheduledAt, post.publishedAt, post.status, updatePost, base, updateCanonical]);
+  }, [title, slug, status, publishDate, authorId, allowComments, isSticky, onClose, post._id, post.authorId, post.scheduledAt, post.publishedAt, post.status, revision, updateCanonical]);
 
   return (
     <div className="border border-border bg-card rounded-none">
@@ -180,7 +183,6 @@ export function PostQuickEdit({ post, onClose }: PostQuickEditProps) {
               className="h-8 w-full rounded-none border border-input bg-transparent px-2 text-xs text-foreground outline-hidden focus-visible:border-ring focus-visible:ring-1 focus-visible:ring-ring/50"
             >
               <option value="draft">Draft</option>
-              {!base.canonical && <option value="pending">Pending Review</option>}
               <option value="future">Scheduled</option>
               <option value="publish">Published</option>
               <option value="private">Private</option>

@@ -1,14 +1,11 @@
 import { canonicalTrashRestorePermit } from "../canonicalDocuments/service";
-import { reconcileManualSaveAutosave } from "../helpers/autosaveReconciliation";
-import { assertNoNewDisabledBlocks } from "../blocks/policy";
-import { assertPagePathAvailable, assertPageTreePathAvailable } from "../helpers/pageRouteGuard";
-import { replacePublicationSchedule } from "../helpers/publicationSchedule";
-import { AUTHORING_FIELDS } from "../helpers/authoringSnapshot";
+
+import { assertPageTreePathAvailable } from "../helpers/pageRouteGuard";
+
 /**
  * Page System - Mutations
  *
  * All write operations for the page lifecycle:
- *   update           - Update an existing page (partial patch)
  *   publish          - Publish a draft/pending page
  *   trash            - Soft-delete (move to trash)
  *   restore          - Restore from trash
@@ -37,13 +34,12 @@ import { mutation } from "../_generated/server";
 import type { MutationCtx } from "../_generated/server";
 import { internal } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
-import { requireCan , getUserIdentifier } from "../helpers/permissions";
-import { sanitizeTipTapContent } from "../helpers/sanitize";
+import { requireCan } from "../helpers/permissions";
+
 import { emitEvent } from "../helpers/events";
-import { setMediaAttachment, setMediaAttachmentBatch } from "../media/helpers";
+
 import { PAGE_EVENTS, SYSTEM } from "../events/constants";
 import {
-  updatePageArgs,
   trashPageArgs,
   restorePageArgs,
   deletePageArgs,
@@ -52,7 +48,6 @@ import {
   setPageParentArgs,
 } from "./validators";
 import {
-  slugify,
   generateUniqueSlug,
   computePagePath,
   computePageDepth,
@@ -63,368 +58,12 @@ import {
   MAX_PAGE_DEPTH,
   deletePageMetadata,
 } from "./internals";
-import { validateBlocks, validateBlocksAgainstCatalog, getStoredBlocks, type StoredBlock } from "../blocks/helpers";
+
 import { deleteWithMediaReferences, patchWithMediaReferences } from "../media/attachmentGuard";
 
 // New documents are created through canonicalDocuments.create or the canonical HTTP API.
 
-// ─── Update ──────────────────────────────────────────────────────────────────
-
-/**
- * Update an existing page.
- *
- * Supports partial updates -- only provided fields are changed.
- *
- * Special behaviors:
- *   - If slug changes, path is recomputed for this page AND all descendants
- *   - If status changes to "publish", publishedAt is set (if not already)
- *   - If status changes to "trash", trashedAt is set
- *   - Only emits event if actual changes were made
- *
- * @returns The page ID
- */
-export const update = mutation({
-  args: updatePageArgs,
-  handler: async (ctx, args) => {
-    // ── Auth check ────────────────────────────────────────────────────────
-    const user = await requireCan(ctx, "page.update");
-
-    // ── Fetch existing page ───────────────────────────────────────────────
-    const page = await ctx.db.get("posts", args.pageId);
-    if (!page || page.type !== "page") {
-      throw new ConvexError({
-        code: "NOT_FOUND",
-        message: "Page not found",
-      });
-    }
-
-    // Ownership check note: In WordPress, edit_pages (own) and edit_others_pages
-    // (others) are distinct capabilities. In ConvexPress, page management is
-    // restricted to Administrator and Editor roles only (both have page.update),
-    // so the requireCan("page.update") check above is sufficient for all users
-    // who can reach this mutation. No additional non-owner check is needed.
-
-    // ── Additional capability checks ──────────────────────────────────────
-    // If publishing, require page.publish
-    if (args.status === "publish" && page.status !== "publish") {
-      await requireCan(ctx, "page.publish");
-    }
-
-    // ── Title validation ──────────────────────────────────────────────────
-    if (args.title !== undefined) {
-      const title = args.title.trim();
-      if (!title) {
-        throw new ConvexError({
-          code: "VALIDATION_ERROR",
-          message: "Page title cannot be empty",
-        });
-      }
-    }
-
-    // ── Slug uniqueness check ─────────────────────────────────────────────
-    let newSlug: string | undefined;
-    if (args.slug !== undefined && args.slug !== page.slug) {
-      const baseSlug = slugify(args.slug);
-      const targetParent = args.parentId === null ? undefined : args.parentId ?? page.parentId;
-      await assertPagePathAvailable(ctx, await computePagePath(ctx, baseSlug, targetParent), page.path ?? `/${page.slug}`);
-      newSlug = await generateUniqueSlug(ctx, baseSlug, args.pageId);
-    }
-
-    // ── Build patch object ────────────────────────────────────────────────
-    const now = Date.now();
-    const patch: Record<string, unknown> = { updatedAt: now };
-    const changes: string[] = [];
-
-    if (args.title !== undefined && args.title.trim() !== page.title) {
-      patch.title = args.title.trim();
-      changes.push("title");
-    }
-
-    if (newSlug) {
-      patch.slug = newSlug;
-      changes.push("slug");
-    }
-
-    if (args.content !== undefined && args.content !== page.content) {
-      patch.content = sanitizeTipTapContent(args.content);
-      changes.push("content");
-    }
-
-    if (args.excerpt !== undefined && args.excerpt !== page.excerpt) {
-      patch.excerpt = args.excerpt;
-      changes.push("excerpt");
-    }
-
-    if (args.status !== undefined && args.status !== page.status) {
-      patch.status = args.status;
-      changes.push("status");
-
-      // Set publishedAt when first publishing
-      if (args.status === "publish" && !page.publishedAt) {
-        patch.publishedAt = now;
-      }
-
-      // Set trashedAt when trashing
-      if (args.status === "trash") {
-        patch.trashedAt = now;
-      }
-    }
-
-    if (args.visibility !== undefined && args.visibility !== page.visibility) {
-      patch.visibility = args.visibility;
-      changes.push("visibility");
-
-      // Handle password for password-protected pages
-      if (args.visibility === "password") {
-        patch.password = args.password;
-      } else {
-        patch.password = undefined;
-      }
-    } else if (args.password !== undefined && args.visibility === "password") {
-      patch.password = args.password;
-    }
-
-    if (args.menuOrder !== undefined && args.menuOrder !== page.menuOrder) {
-      patch.menuOrder = args.menuOrder;
-      changes.push("menuOrder");
-    }
-
-    if (args.pageTemplate !== undefined && args.pageTemplate !== page.pageTemplate) {
-      patch.pageTemplate = args.pageTemplate;
-      changes.push("template");
-    }
-
-    if (args.layoutId !== undefined && args.layoutId !== page.layoutId) {
-      patch.layoutId = args.layoutId || undefined;
-      changes.push("layoutId");
-    }
-    if (args.hideHeader !== undefined && args.hideHeader !== page.hideHeader) {
-      patch.hideHeader = args.hideHeader;
-      changes.push("hideHeader");
-    }
-    if (args.hideFooter !== undefined && args.hideFooter !== page.hideFooter) {
-      patch.hideFooter = args.hideFooter;
-      changes.push("hideFooter");
-    }
-
-    if (args.featuredImageId !== undefined && args.featuredImageId !== page.featuredImageId) {
-      patch.featuredImageId = args.featuredImageId;
-      changes.push("featuredImage");
-    }
-
-    if (args.commentStatus !== undefined) {
-      patch.commentStatus = args.commentStatus;
-      changes.push("commentStatus");
-    }
-
-    if (args.scheduledAt !== undefined && args.scheduledAt !== page.scheduledAt) {
-      patch.scheduledAt = args.scheduledAt;
-      changes.push("scheduledAt");
-    }
-
-    // ── Structured content fields ──────────────────────────────────────
-    if (args.hero !== undefined) {
-      patch.hero = args.hero;
-      changes.push("hero");
-    }
-    if (args.topics !== undefined) {
-      if (args.topics && args.topics.length > 5) {
-        throw new ConvexError({
-          code: "VALIDATION_ERROR",
-          message: "Maximum 5 topics allowed",
-        });
-      }
-      patch.topics = args.topics;
-      changes.push("topics");
-    }
-    if (args.summary !== undefined) {
-      patch.summary = args.summary;
-      changes.push("summary");
-    }
-    if (args.sources !== undefined) {
-      patch.sources = args.sources;
-      changes.push("sources");
-    }
-    if (args.tableOfContents !== undefined) {
-      patch.tableOfContents = args.tableOfContents;
-      changes.push("tableOfContents");
-    }
-    if (args.pagePrompt !== undefined && args.pagePrompt !== page.pagePrompt) {
-      patch.pagePrompt = args.pagePrompt;
-      changes.push("pagePrompt");
-    }
-    if (args.contentMode !== undefined && args.contentMode !== page.contentMode) {
-      patch.contentMode = args.contentMode;
-      changes.push("contentMode");
-    }
-    if (args.blocks !== undefined) {
-      validateBlocks(args.blocks as StoredBlock[]);
-      const blocks = validateBlocksAgainstCatalog(args.blocks as StoredBlock[]);
-      await assertNoNewDisabledBlocks(ctx, getStoredBlocks(page), blocks);
-      patch.blocks = blocks;
-      patch.blocksVersion = args.blocksVersion ?? page.blocksVersion ?? 1;
-      patch.blocksRevision =
-        args.blocksRevision ?? ((page.blocksRevision as number | undefined) ?? 0) + 1;
-      changes.push("blocks");
-    }
-    if (args.blocksVersion !== undefined && args.blocks === undefined) {
-      patch.blocksVersion = args.blocksVersion;
-      changes.push("blocksVersion");
-    }
-    if (args.blocksRevision !== undefined && args.blocks === undefined) {
-      patch.blocksRevision = args.blocksRevision;
-      changes.push("blocksRevision");
-    }
-
-    // ── Schedule auto-publish for future-dated pages ──────────────────────
-    // If status is changing to "future" or staying "future" with a new scheduledAt,
-    // schedule the auto-publish. The publishScheduled function is a no-op if the
-    // page's status has changed by the time it fires.
-    const effectiveStatus = (patch.status as string) ?? page.status;
-    const effectiveScheduledAt = (patch.scheduledAt as number | undefined) ?? page.scheduledAt;
-    if (
-      effectiveStatus === "future" &&
-      effectiveScheduledAt &&
-      (args.status === "future" || args.scheduledAt !== undefined)
-    ) {
-      await requireCan(ctx, "page.publish");
-      await replacePublicationSchedule(ctx, args.pageId, effectiveScheduledAt);
-    }
-
-    // ── Handle parentId change (reparenting via update) ───────────────────
-    let parentChanged = false;
-    if (args.parentId !== undefined && args.parentId !== page.parentId) {
-      const oldParentId = page.parentId as Id<"posts"> | undefined;
-      const newParentId = args.parentId;
-
-      // Validate new parent if not making top-level
-      if (newParentId) {
-        await validateParent(ctx, newParentId);
-
-        // Check for circular reference
-        if (await wouldCreateCircle(ctx, args.pageId, newParentId)) {
-          throw new ConvexError({
-            code: "VALIDATION_ERROR",
-            message: "Circular parent-child relationship detected",
-          });
-        }
-
-        const newDepth = await computePageDepth(ctx, newParentId);
-        const subtreeDepth = await getMaxSubtreeDepth(ctx, args.pageId);
-        if (newDepth + subtreeDepth > MAX_PAGE_DEPTH) {
-          throw new ConvexError({
-            code: "VALIDATION_ERROR",
-            message: `Maximum page nesting depth is ${MAX_PAGE_DEPTH + 1} levels`,
-          });
-        }
-
-        patch.parentId = newParentId;
-        patch.depth = newDepth;
-        patch.path = await computePagePath(ctx, newSlug ?? page.slug, newParentId);
-      } else {
-        // Making top-level
-        patch.parentId = undefined;
-        patch.depth = 0;
-        patch.path = `/${newSlug ?? page.slug}`;
-      }
-
-      changes.push("parent");
-      parentChanged = true;
-
-      // NOTE: childCount is NOT stored on the schema. Child counts are derived
-      // at query time using the by_type_parent index. No childCount update needed.
-    }
-
-    if (newSlug || parentChanged) {
-      const candidatePath = typeof patch.path === "string" ? patch.path : await computePagePath(ctx, newSlug ?? page.slug, page.parentId);
-      await assertPageTreePathAvailable(ctx, args.pageId, candidatePath, page.path ?? `/${page.slug}`);
-    }
-
-    // ── Create revision snapshot BEFORE applying patch ─────────────────────
-    // Mirrors Post System behavior: snapshot the current state before changes.
-    // Must be synchronous to guarantee snapshot captures pre-update state.
-    if (page.status !== "auto-draft" && changes.length > 0) {
-      const contentFields: readonly string[] = AUTHORING_FIELDS;
-      const hasContentChange = changes.some((f) => contentFields.includes(f));
-      if (hasContentChange) {
-        await ctx.runMutation(
-          internal.revisions.internals.createOnSave,
-          {
-            parentId: args.pageId,
-            parentType: "page" as const,
-            title: page.title ?? "",
-            content: (page.content as string) ?? "",
-            excerpt: page.excerpt as string | undefined,
-            authorId: getUserIdentifier(user),
-            changedFields: changes.filter((f) => contentFields.includes(f)),
-          },
-        );
-      }
-    }
-
-    // Retire only an autosave pair represented by this transaction's saved body.
-    Object.assign(patch, reconcileManualSaveAutosave(page, patch, args));
-
-    // ── Apply patch ───────────────────────────────────────────────────────
-    if (changes.length > 0 || Object.keys(patch).length > 1) {
-      await patchWithMediaReferences<"posts">(ctx, "posts", args.pageId, patch);
-    }
-
-    // ── Auto-attach newly-assigned media (first-use wins) ────────────────
-    if (args.featuredImageId !== undefined && args.featuredImageId) {
-      await setMediaAttachment(ctx, args.featuredImageId, args.pageId);
-    }
-    if (args.hero?.imageId) {
-      await setMediaAttachment(ctx, args.hero.imageId, args.pageId);
-    }
-    if (Array.isArray(args.topics)) {
-      await setMediaAttachmentBatch(
-        ctx,
-        args.topics.map((t: any) => t?.imageId).filter(Boolean),
-        args.pageId,
-      );
-    }
-
-    // ── Recompute paths if slug changed (and parent didn't already handle it)
-    if (newSlug && !parentChanged) {
-      const updatedPath = await computePagePath(
-        ctx,
-        newSlug,
-        page.parentId as Id<"posts"> | undefined,
-      );
-      await patchWithMediaReferences<"posts">(ctx, "posts", args.pageId, { path: updatedPath });
-
-      // Cascade path updates to all descendants
-      const parentPath = updatedPath.substring(0, updatedPath.lastIndexOf("/")) || "";
-      await recomputeDescendantPaths(
-        ctx,
-        args.pageId,
-        parentPath,
-        (page.depth as number) ?? 0,
-      );
-    }
-
-    // ── Recompute descendant paths if parent changed ──────────────────────
-    if (parentChanged) {
-      const newPath = (patch.path as string) ?? page.path ?? `/${page.slug}`;
-      const newDepth = (patch.depth as number) ?? page.depth ?? 0;
-      const computedParentPath = newPath.substring(0, newPath.lastIndexOf("/")) || "";
-      await recomputeDescendantPaths(ctx, args.pageId, computedParentPath, newDepth);
-    }
-
-    // ── Emit event (only if there were actual changes) ────────────────────
-    if (changes.length > 0) {
-      await emitEvent(ctx, PAGE_EVENTS.UPDATED, SYSTEM.PAGE, {
-        pageId: args.pageId,
-        title: (patch.title as string) ?? page.title,
-        authorId: user._id,
-        changes,
-      });
-    }
-
-    return args.pageId;
-  },
-});
+// Metadata and authoring use revision-checked canonicalDocuments mutations.
 
 // ─── Publish ─────────────────────────────────────────────────────────────────
 

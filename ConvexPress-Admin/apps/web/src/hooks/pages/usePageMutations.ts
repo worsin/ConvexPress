@@ -8,13 +8,8 @@
 import { useMutation } from "convex/react";
 import { api } from "@backend/convex/_generated/api";
 import { toast } from "sonner";
-import type { Id, Doc } from "@backend/convex/_generated/dataModel";
+import type { Id } from "@backend/convex/_generated/dataModel";
 import { getErrorMessage } from "@/lib/utils";
-
-// Page-specific types derived from Convex schema
-type PageStatus = Doc<"posts">["status"];
-type PageVisibility = Doc<"posts">["visibility"];
-type CommentStatus = Doc<"posts">["commentStatus"];
 
 /**
  * Existing-page lifecycle and metadata mutations with toast feedback.
@@ -27,41 +22,12 @@ type CommentStatus = Doc<"posts">["commentStatus"];
  * ```
  */
 export function usePageMutations() {
-  const updateMutation = useMutation(api.pages.mutations.update);
   const publishMutation = useMutation(api.pages.mutations.publish);
   const trashMutation = useMutation(api.pages.mutations.trash);
   const restoreMutation = useMutation(api.pages.mutations.restore);
   const permanentDeleteMutation = useMutation(api.pages.mutations.permanentDelete);
   const reorderMutation = useMutation(api.pages.mutations.reorder);
   const setParentMutation = useMutation(api.pages.mutations.setParent);
-
-  // ─── Update ─────────────────────────────────────────────────────────────
-
-  async function updatePage(args: {
-    pageId: Id<"posts">;
-    title?: string;
-    content?: string;
-    excerpt?: string;
-    status?: PageStatus;
-    visibility?: PageVisibility;
-    password?: string;
-    menuOrder?: number;
-    pageTemplate?: string;
-    featuredImageId?: Id<"media">;
-    slug?: string;
-    scheduledAt?: number;
-    commentStatus?: CommentStatus;
-  }) {
-    try {
-      const result = await updateMutation(args);
-      toast.success("Page updated.");
-      return result;
-    } catch (error: unknown) {
-      const message = getErrorMessage(error, "Failed to update page");
-      toast.error(message);
-      throw error;
-    }
-  }
 
   // ─── Publish ────────────────────────────────────────────────────────────
 
@@ -158,7 +124,6 @@ export function usePageMutations() {
   }
 
   return {
-    updatePage,
     publishPage,
     trashPage,
     restorePage,

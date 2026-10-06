@@ -16,3 +16,23 @@ for(const [name,route] of [['page',page],['post',post]]){
  for(const version of [undefined,1,2])test(`${name} version ${version} opens canonical authoring or deliberate import without a legacy editor`,()=>{record={_id:'document',title:'Retained source',status:'draft',content:'Unconverted source',contentMode:'article',blocksVersion:version};const html=renderToStaticMarkup(<Component/>);expect(html).toContain('data-document="document"');expect(html).toContain('Canonical editor and import review');});
  test(`${name} loading, unavailable and trash states do not mount editable content`,()=>{for(const value of [undefined,null,{_id:'document',title:'Trashed',status:'trash'}]){record=value;expect(renderToStaticMarkup(<Component/>)).not.toContain('data-document=');}});
 }
+
+// Neither legacy nor malformed records may mount any Quick Edit write/query hooks.
+mock.module('@/hooks/useCanonicalMetadata',()=>({useCanonicalMetadata:()=>{throw Error('Quick Edit mutation mounted before review')}}));
+mock.module('@/hooks/pages/usePageTree',()=>({usePageTree:()=>{throw Error('Quick Edit tree mounted before review')}}));
+mock.module('@/hooks/pages/usePageTemplates',()=>({usePageTemplates:()=>{throw Error('Quick Edit templates mounted before review')}}));
+mock.module('@/components/ui/button',()=>({Button:({children,...props})=><button {...props}>{children}</button>}));
+mock.module('@tanstack/react-router',()=>({...router,Link:({children,to,params})=><a href={to.replace(/\$(postId|pageId)/,()=>params.postId??params.pageId)}>{children}</a>}));
+const {PostQuickEdit}=await import('../../posts/PostQuickEdit');
+const {PageQuickEdit}=await import('../../pages/PageQuickEdit');
+for(const [kind,Component] of [['post',PostQuickEdit],['page',PageQuickEdit]]) {
+  test(`${kind} Quick Edit sends legacy and incomplete records to the editor without mounting a writer`,()=>{
+    for(const fields of [{},{blocksVersion:1,blocksRevision:8},{blocksVersion:2},{blocksVersion:2,blocksRevision:0},{blocksVersion:2,blocksRevision:1.5}]) {
+      const value={_id:'retained-document',title:'Saved content',slug:'saved',status:'draft',...fields};
+      const html=renderToStaticMarkup(<Component {...{[kind]:value}} onClose={()=>{}}/>);
+      expect(html).toContain(`href="/${kind}s/retained-document/edit"`);
+      expect(html).toContain('Your existing content is preserved');
+      expect(html).not.toContain('<input');
+    }
+  });
+}

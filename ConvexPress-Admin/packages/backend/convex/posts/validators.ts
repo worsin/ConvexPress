@@ -15,10 +15,6 @@ import {
   commentStatusValidator,
   postTypeValidator,
 } from "../schema/posts";
-import {
-  blocksValidator,
-  contentModeValidator,
-} from "../blocks/validators";
 
 // ─── Re-exports for convenience ──────────────────────────────────────────────
 
@@ -28,36 +24,6 @@ export {
   commentStatusValidator,
   postTypeValidator,
 };
-
-// ─── Structured Content Validators ─────────────────────────────────────────
-
-export const heroValidator = v.optional(v.object({
-  title: v.optional(v.string()),
-  subtitle: v.optional(v.string()),
-  content: v.optional(v.string()),
-  imageId: v.optional(v.id("media")),
-  videoUrl: v.optional(v.string()),
-  ctaText: v.optional(v.string()),
-  ctaUrl: v.optional(v.string()),
-}));
-
-export const topicValidator = v.object({
-  title: v.optional(v.string()),
-  subtitle: v.optional(v.string()),
-  content: v.optional(v.string()),
-  imageId: v.optional(v.id("media")),
-  videoUrl: v.optional(v.string()),
-});
-
-export const topicsValidator = v.optional(v.array(topicValidator));
-
-export const summaryValidator = v.optional(v.object({
-  title: v.optional(v.string()),
-  content: v.optional(v.string()),
-}));
-
-/** Maximum number of topic sections per post/page. */
-export const MAX_TOPICS = 5;
 
 // ─── Constants ──────────────────────────────────────────────────────────────
 
@@ -86,46 +52,6 @@ export const MAX_BULK_SIZE = 100;
 export const TRASH_PURGE_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
 
 // ─── Mutation Args ──────────────────────────────────────────────────────────
-
-/**
- * Arguments for updating an existing post.
- *
- * All fields except postId are optional - only provided fields are updated.
- */
-export const updatePostArgs = {
-  postId: v.id("posts"),
-  title: v.optional(v.string()),
-  content: v.optional(v.string()),
-  excerpt: v.optional(v.string()),
-  status: v.optional(postStatusValidator),
-  visibility: v.optional(postVisibilityValidator),
-  password: v.optional(v.string()),
-  commentStatus: v.optional(commentStatusValidator),
-  featuredImageId: v.optional(v.id("media")),
-  isSticky: v.optional(v.boolean()),
-  slug: v.optional(v.string()),
-  menuOrder: v.optional(v.number()),
-  authorId: v.optional(v.id("users")),
-  scheduledAt: v.optional(v.number()),
-  layoutId: v.optional(v.string()),
-  hideHeader: v.optional(v.boolean()),
-  hideFooter: v.optional(v.boolean()),
-  // Taxonomy IDs - update category/tag assignments
-  categoryIds: v.optional(v.array(v.id("terms"))),
-  tagIds: v.optional(v.array(v.id("terms"))),
-  // Structured content fields
-  hero: heroValidator,
-  topics: topicsValidator,
-  summary: summaryValidator,
-  sources: v.optional(v.string()),
-  tableOfContents: v.optional(v.string()),
-  pagePrompt: v.optional(v.string()),
-  // Composition block fields (posts default to article mode, but can opt in)
-  contentMode: v.optional(contentModeValidator),
-  blocks: v.optional(blocksValidator),
-  blocksVersion: v.optional(v.number()),
-  blocksRevision: v.optional(v.number()),
-};
 
 /**
  * Arguments for publishing a post.
