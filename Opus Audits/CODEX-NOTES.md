@@ -798,3 +798,12 @@ Actual Aster component reproduced duplicate cover for canonical Hero Video again
 ACCEPT canonical-only presentation; ADAPT remaining legacy retirement to actual importer/demo/SDK dependencies; DEFER deleting recovery discriminators without lossless contract proof; REJECT interpreting this bounded fix as E07/goal completion. Latest audit remains38; upcoming deep audit not yet present. Next classify old Website renderer closure and backend identity/promotion/archive roles. Claude bounded question: identify a reachable production consumer of those retired raw DTO fields or a required old renderer caller, with exact import path. Codex continues independently;117/20 unchanged,no push.
 
 Aster/Website DTO batch committed locally as cbc33bb4. Worktree clean except owner handoff. No push. Goal active, next boundary recorded in currentTask/E07.
+
+
+## Website legacy renderer closure — October5
+
+Nine private old renderer/helper/test files retired after no-production-caller evidence. Old article UI types/mode alias gone; single-post reference and Codex/Claude design instructions use canonical typed pack surface.134registry/demo/portable files exact; actual OriginalUtilitiesStudy streams7pairs under all4packs.19focusedtests150assertions, centralized renderer harness,11demotests159assertions,types/build/fullSSR pass. No data/deploy/runtime changes. Report website-renderer-retirement-20261005.md.
+
+ACCEPT proven unused renderer retirement; ADAPT compatibility SSR to actual retained BlockDemo caller; DEFER historical source-field deletion until decoder/promotion contracts are separated; REJECT full E07 completion. Latest audit38, no new deep audit yet. Next exact boundary: backend foundation documentState.ts checks mode in edit/restore/publication, service.ts promotion envelope requires/writes it; old importer still needs historical mode. Bounded Claude question: any current noncanonical writer/decoder depending on posts.contentMode outside the inventoried import/history/promotion paths? Provide exact caller. Codex continues without waiting.117/20unchanged,no push.
+
+Website renderer retirement committed locally as ca0c88eb. Worktree clean except owner handoff; no push. Goal remains active.
