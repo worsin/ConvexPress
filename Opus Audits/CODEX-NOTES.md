@@ -1142,3 +1142,13 @@ Actual assigned heading/link descendants were lost by the adapter and both accou
 4922 trial only: appearance and email/dashboard/general values restored; menu removed; location semantics restored with default profile row materialized. Customer inactive/Clerk deleted404; operator revoked401; Website59680 stopped, trial exited/volume retained, tab29closed/viewport reset;7protected alive. No push/shared4860 writes/backend deployment.
 
 NEXT: reconcile remaining Customizer fields/surfaces, prioritizing unaccepted footer controls/contextual targets. Reuse E82–E92. Bounded Claude question: identify a concrete remaining declared footer field with an ignored value or incorrect rendered target; name pack/control/source/reproduction. Separate missing proof from missing behavior. Codex retains authority; full goal active117/20.
+
+## 2026-10-06 — E93 footer row controls repaired
+
+Previous turn progressed via e4d13b69/E92. Audit48 remains latest; accepted register consistency decision unchanged. No new feedback, no waiting. Codex retains authority.
+
+Eight actual component failures proved Journal/Aster ignored row background/padding/container and collapsed border choices. Shared FooterRowFrame now implements these controls across all4packs while preserving pack-owned cells.80value cases and existing footer/menu/copyright regressions pass, types/build/lint pass. Actual built-CSS browser checks8pack/width cases prove differing geometry/styles, reachable links and no overflow. Screenshot inspected. Report and explicit remaining footer acceptance map: ConvexPress-Admin/audits/2026-09-04/footer-row-controls-20261006.md.
+
+No database/settings/session writes. Local evidence server stopped, tab30closed,viewportreset;7protected alive. No push. This is consumer proof, not fresh native publication or whole-footer acceptance.
+
+NEXT: native row editing/save/reopen/publication/restore and remaining global section/cell fields. Bounded Claude question: cite any concrete exposed footer option whose value is not consumed, especially section layout and legal links; distinguish stored compatibility fields from actual controls. Reuse E81/E90–E93. Goal active117/20.
