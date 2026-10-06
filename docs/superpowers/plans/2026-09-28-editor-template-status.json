@@ -1,13 +1,13 @@
 {
   "plan": "2026-09-28-editor-template-delivery.md",
   "baselineCommit": "d0fee8acceb408fd306a15f3c054322cb73ac8bc",
-  "checkpointSource": "output/field-guide-legacy-final-20261006/mt-accept-after.json",
+  "checkpointSource": "output/recent-auth-final-20261006/mt-accept-after.json",
   "checkpointCounts": {
-    "Verified": 132,
-    "In progress": 5
+    "Verified": 133,
+    "In progress": 4
   },
   "goal": "Complete block editor and template delivery plus all demonstrated blockers; defer unrelated whole-app audit campaigns.",
-  "currentTask": "132Verified/5In progress. Native recovery/publication accepted at bounded scope. Target development issuer repair deployed with real Clerk token acceptance and exact installed source/data preservation. Next complete target connection metadata/provisioning and the pending actual signed-in Recently Viewed browser switch. Full Task8, final capture/dependency reconciliation, Task7 AI/docs, E05 and other provider prerequisites remain explicit.",
+  "currentTask": "133Verified/4In progress. Recently Viewed signed-in site switch now accepted and tracker read back. Remaining rows: Assistant Band actual provider, Social Feed authorized Instagram, Event RSVP human Turnstile, Script Embed actual Vimeo. Continue independent kit/docs cleanup, remaining template/all-block final evidence and candidate integration; live AI connection question is pending without blocking independent work.",
   "tasks": [
     {
       "id": 1,
@@ -332,12 +332,12 @@
     },
     {
       "id": "E18",
-      "status": "Open integrated-artifact requirement. October6 target has all four draft functions; development Clerk issuer/key environment configured and exact target snapshot redeployed. Actual Clerk token now accepted. Native connection metadata, actual target customer provisioning and signed-in Recently Viewed browser switch remain unaccepted, plus final candidate/main/target parity.",
+      "status": "Open final integrated-artifact/setup metadata requirement. Live target has all four draft functions. Development issuer repair, actual customer provisioning and real signed-in source\u2192target\u2192source Recently Viewed browser acceptance pass. Stored native connection metadata and final candidate/main/target parity remain.",
       "classification": "missing evidence",
       "initialFinding": "Current source/main/deployed artifacts and historical screenshots can diverge.",
       "closureBoundary": "Record exact source and deployment identity; reuse only relevant current evidence. Run a final integrated gate on the deliverable, not a collection of unrelated historical green logs.",
-      "currentEvidence": "September29 target remains on its own older extension checkpoint. Four canonical draft functions absent; native editor autosave unavailable and separate document-settings warning observed. Website iframe correct. Final integrated artifact parity remains open; see locale-promotion-20260929.md. September29 actual signed-in Website switch also proves target has no matching Clerk auth provider; customer provisioning reports clerk_secret_key_missing. Guest switch and exact source restoration pass, signed-in target document remains loading. See recent-site-switch-20260929.md. October6 read-only live function-spec confirms drafts get/save/discard and draftMaintenance cleanup all present; see native-integration-20261006.md. This supersedes only the current missing-function claim, not the customer identity failure. October6 environment-only target repair: full backup, exact unchanged1620-file installed snapshot, strict redeploy, registered contracts unchanged, real development Clerk token accepted by target; owned identity/session cleaned and28 original target pages/settings exact. See target-customer-auth-20261006.md. Stored setup metadata remains absent; browser/profile acceptance not inferred.",
-      "nextCheck": "Complete target native connection metadata/provisioning through the normal workflow, then actual signed-in source\u2192target\u2192source Recently Viewed acceptance with separate databases. Do not redo the now-passing provider-token probe or treat historical missing draft functions as current. Continue final candidate/backend/Website parity and integrated gates; no push.",
+      "currentEvidence": "September29 target remains on its own older extension checkpoint. Four canonical draft functions absent; native editor autosave unavailable and separate document-settings warning observed. Website iframe correct. Final integrated artifact parity remains open; see locale-promotion-20260929.md. September29 actual signed-in Website switch also proves target has no matching Clerk auth provider; customer provisioning reports clerk_secret_key_missing. Guest switch and exact source restoration pass, signed-in target document remains loading. See recent-site-switch-20260929.md. October6 read-only live function-spec confirms drafts get/save/discard and draftMaintenance cleanup all present; see native-integration-20261006.md. This supersedes only the current missing-function claim, not the customer identity failure. October6 environment-only target repair: full backup, exact unchanged1620-file installed snapshot, strict redeploy, registered contracts unchanged, real development Clerk token accepted by target; owned identity/session cleaned and28 original target pages/settings exact. See target-customer-auth-20261006.md. Stored setup metadata remains absent; browser/profile acceptance not inferred. October6 actual normal customer sign-in and same-origin source\u2192target\u2192source Recently Viewed pass; both isolated profiles linked_existing/Clerk, target empty then target-only history and source history restored exactly. See recent-auth-final-20261006.md.",
+      "nextCheck": "Reconcile stored target connection metadata using the normal setup workflow without changing the proven customer identity; then freeze exact candidate/backend/Website contracts, extension snapshots and final integrated gate. Reuse completed signed-in history acceptance. No push.",
       "deliveryTask": 8,
       "triagedAt": "2026-09-29",
       "triageEvidence": "ConvexPress-Admin/audits/2026-09-04/delivery-blocker-triage-20260929.md"
@@ -2995,9 +2995,9 @@
       "name": "commerce/recently-viewed",
       "title": "Recently viewed",
       "category": "Commerce",
-      "checkpointStatus": "In progress",
-      "nextClassification": "Actual guest source\u2192target\u2192source switch passes in one browser origin with separate databases and preserved history. Signed-in target rejects Clerk token: No auth provider found; provisioning clerk_secret_key_missing. Keep open pending E18 target identity readiness and real signed-in repeat.",
-      "classification": "missing evidence",
+      "checkpointStatus": "Verified",
+      "nextClassification": "Actual signed-in source\u2192target\u2192source passes after target development identity repair; separate database profiles link successfully. Target begins empty, records only its product, and returning source restores only source history. Prior native/account/ordering/limit/four-pack evidence reused.",
+      "classification": "accepted/reusable evidence",
       "source": "blocks/commerce/recently-viewed/block.json",
       "requirements": "limit, title",
       "evidenceReferences": [
@@ -3009,19 +3009,21 @@
         "ConvexPress-Admin/audits/2026-09-04/recent-site-switch-20260929.md",
         "output/recent-site-switch-20260929/source-restored.json",
         "output/recent-auth-switch-20260929/target-auth-console.json",
-        "output/recent-auth-switch-20260929/target-provisioning.json"
+        "output/recent-auth-switch-20260929/target-provisioning.json",
+        "ConvexPress-Admin/audits/2026-09-04/recent-auth-final-20261006.md"
       ],
-      "remainingReview": "Configure and verify the actual target customer identity provider as part of E18 integrated target readiness, then repeat signed-in source\u2192target\u2192source history acceptance; guest environment and prior source account-switch evidence are reusable.",
+      "remainingReview": "None for this block row. Full E18 candidate/setup metadata and Task8 integrated acceptance remain separate.",
       "deliveryTask": 3,
-      "acceptanceBatch": "customer-commerce",
-      "reviewedAtCommit": "ca7cb390 + Purchased Downloads flex-shrink repair",
+      "acceptanceBatch": "recent-auth-final",
+      "reviewedAtCommit": "220f6428",
       "notesSha256": "72c31c7383c35d2ae342244a8708240f6ad13d9bb8fa7060c69e06fee88d7a5f",
       "specSha256": "b5490c4ea27773629ec36ed4a9744576cfdae7f8868878eef2eac6509be7370f",
       "rendererSha256": "893d7da1f7399c601947c7406db5b2cae6c82c21252a3197b9dc58b4546e01bc",
       "canonicalFields": [
         "limit",
         "title"
-      ]
+      ],
+      "acceptedEvidence": "ConvexPress-Admin/audits/2026-09-04/recent-auth-final-20261006.md"
     },
     {
       "name": "commerce/cart-cta",
@@ -5132,7 +5134,8 @@
     "output/customizer-palette-shop-20261006/preservation.json",
     "output/customizer-palette-shop-20261006/cleanup.json",
     "ConvexPress-Admin/audits/2026-09-04/native-integration-20261006.md",
-    "ConvexPress-Admin/audits/2026-09-04/target-customer-auth-20261006.md"
+    "ConvexPress-Admin/audits/2026-09-04/target-customer-auth-20261006.md",
+    "ConvexPress-Admin/audits/2026-09-04/recent-auth-final-20261006.md"
   ],
   "trackerRefresh": {
     "source": "output/field-guide-legacy-final-20261006/mt-accept-after.json",
