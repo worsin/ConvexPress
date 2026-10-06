@@ -7,7 +7,7 @@
     "In progress": 20
   },
   "goal": "Complete block editor and template delivery plus all demonstrated blockers; defer unrelated whole-app audit campaigns.",
-  "currentTask": "Task 4 / E07: native New post/page and Dashboard Quick Draft create canonical drafts on both sites. E19 immediate-reload follow-up repaired: verified accepted Save settles its known private generation before reporting completion, preserving newer remote generations and later typing. Native source/target autosave→Save→immediate reload→335px Website checks pass. Originals, appearance/mail and other private drafts exact after cleanup. Next: remaining generic legacy create/HTTP/import callers and their demonstrated retirement boundaries. Full goal active/incomplete; 117 Verified / 20 In progress unchanged.",
+  "currentTask": "Task 4 / E07: native New post/page and Dashboard Quick Draft create canonical drafts on both sites; E19 accepted-Save private cleanup verified. Removed unused legacy createPost/createPage native wrappers after caller search, passing Admin types and canonical route test. Next: coordinate remaining HTTP create/read/update canonical contracts (body, revision and API-key authority), followed by generic create/import/demo and schema retirement. Full goal active/incomplete; 117 Verified / 20 In progress unchanged.",
   "tasks": [
     {
       "id": 1,

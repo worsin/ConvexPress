@@ -17,16 +17,16 @@ type PageVisibility = Doc<"posts">["visibility"];
 type CommentStatus = Doc<"posts">["commentStatus"];
 
 /**
- * Hook providing all page mutation functions with toast feedback.
+ * Existing-page lifecycle and metadata mutations with toast feedback.
+ * New documents use canonicalDocuments.create in the native creation route.
  *
  * Usage:
  * ```tsx
- * const { createPage, updatePage, trashPage, ... } = usePageMutations();
- * await createPage({ title: "About Us" });
+ * const { trashPage } = usePageMutations();
+ * await trashPage(pageId);
  * ```
  */
 export function usePageMutations() {
-  const createMutation = useMutation(api.pages.mutations.create);
   const updateMutation = useMutation(api.pages.mutations.update);
   const publishMutation = useMutation(api.pages.mutations.publish);
   const trashMutation = useMutation(api.pages.mutations.trash);
@@ -34,36 +34,6 @@ export function usePageMutations() {
   const permanentDeleteMutation = useMutation(api.pages.mutations.permanentDelete);
   const reorderMutation = useMutation(api.pages.mutations.reorder);
   const setParentMutation = useMutation(api.pages.mutations.setParent);
-
-  // ─── Create ─────────────────────────────────────────────────────────────
-
-  async function createPage(args: {
-    title: string;
-    content?: string;
-    excerpt?: string;
-    status?: Exclude<PageStatus, "trash">;
-    visibility?: PageVisibility;
-    password?: string;
-    parentId?: Id<"posts">;
-    menuOrder?: number;
-    pageTemplate?: string;
-    featuredImageId?: Id<"media">;
-    slug?: string;
-    publishedAt?: number;
-    scheduledAt?: number;
-  }) {
-    try {
-      const pageId = await createMutation(args);
-      if (args.status && args.status !== "auto-draft") {
-        toast.success("Page created.");
-      }
-      return pageId;
-    } catch (error: unknown) {
-      const message = getErrorMessage(error, "Failed to create page");
-      toast.error(message);
-      throw error;
-    }
-  }
 
   // ─── Update ─────────────────────────────────────────────────────────────
 
@@ -188,7 +158,6 @@ export function usePageMutations() {
   }
 
   return {
-    createPage,
     updatePage,
     publishPage,
     trashPage,

@@ -11,16 +11,16 @@ import { toast } from "sonner";
 import type { Id } from "@backend/convex/_generated/dataModel";
 
 /**
- * Hook providing all post mutation functions with toast feedback.
+ * Existing-post lifecycle and metadata mutations with toast feedback.
+ * New documents use canonicalDocuments.create in the native creation route.
  *
  * Usage:
  * ```tsx
- * const { createPost, updatePost, trashPost, ... } = usePostMutations();
- * await createPost({ status: "auto-draft" });
+ * const { trashPost } = usePostMutations();
+ * await trashPost(postId);
  * ```
  */
 export function usePostMutations() {
-  const createMutation = useMutation(api.posts.mutations.create);
   const updateMutation = useMutation(api.posts.mutations.update);
   const publishMutation = useMutation(api.posts.mutations.publish);
   const unpublishMutation = useMutation(api.posts.mutations.unpublish);
@@ -37,38 +37,6 @@ export function usePostMutations() {
   const setMetaMutation = useMutation(api.posts.mutations.setMeta);
   const deleteMetaMutation = useMutation(api.posts.mutations.deleteMeta);
   const bulkSetMetaMutation = useMutation(api.posts.mutations.bulkSetMeta);
-
-  // ─── Create ─────────────────────────────────────────────────────────────
-
-  async function createPost(args: {
-    title?: string;
-    content?: string;
-    excerpt?: string;
-    status?: string;
-    visibility?: string;
-    password?: string;
-    commentStatus?: string;
-    featuredImageId?: Id<"media">;
-    isSticky?: boolean;
-    scheduledAt?: number;
-    categoryIds?: Id<"terms">[];
-    tagIds?: Id<"terms">[];
-  }) {
-    try {
-      // Build properly typed args for the Convex mutation
-      const mutationArgs: Record<string, unknown> = { ...args };
-      const postId = await createMutation(mutationArgs as Parameters<typeof createMutation>[0]);
-      if (args.status && args.status !== "auto-draft") {
-        toast.success("Post created.");
-      }
-      return postId;
-    } catch (error: unknown) {
-      const err = error as { data?: { message?: string }; message?: string };
-      const message = err?.data?.message ?? err?.message ?? "Failed to create post";
-      toast.error(message);
-      throw error;
-    }
-  }
 
   // ─── Update ─────────────────────────────────────────────────────────────
 
@@ -361,7 +329,6 @@ export function usePostMutations() {
   }
 
   return {
-    createPost,
     updatePost,
     publishPost,
     unpublishPost,
