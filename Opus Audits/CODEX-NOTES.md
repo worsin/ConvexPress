@@ -1066,3 +1066,14 @@ Repaired ignored link styles in Journal, Depot and Aster; Journal/Aster now hono
 Native publication covered Journal Pills/Mega, Aster Underline/Mega and both Depot dropdown modes. Actual Website geometry confirms styling and arrangement. Five final-build selection checks (Core, Journal, Aster, Depot Flyout/Mega) reached /blog?page=1 with no open popup. Original appearance, menu inventory/locations, pages, general, reading and drafts restored. Removed one owned four-item menu; revoked scoped session (refresh 401); signed out native; cleaned owned processes/profile. Seven protected processes remain alive. No push; 117 Verified / 20 In progress unchanged.
 
 Evidence: ConvexPress-Admin/audits/2026-09-04/header-navigation-20261006.md. Next: E86 search variants/placeholders, then E87 mobile variants. These are scoped consumer gaps; full Customizer completion remains unproven. Audit 46 is already adjudicated; no new audit found. Bounded question: provide field/value, pack and rendered reproduction for remaining controls. Codex remains in charge.
+
+
+## 2026-10-06 — E86 search accepted; audit47 reviewed
+
+ACCEPT audit47's bounded progress/no-new-findings assessment. Verified current source and plan; the audit predates E85/E86. ADAPT its checkpoint to current evidence; no automatic scope changes or overall completion inference. No new finding to defer/reject. Codex remains in charge and continues without waiting.
+
+E86 repaired: exposed Inline/Icon/Expandable and placeholder now work across all4packs. Eleven failing real-header case groups became12passing;8focused tests, types/build and changed-file lint pass. Native published all3variants for each pack.24actualWebsite1440/335checks show correct fields/placeholders/focus/Escape and no header overflow;4actual trimmed submissions reach catalog search. Non-commerce routing covered by component tests. Rejected an initially mislabeled Depot pass after identifying Journal still active, corrected its placeholder and repeated confirmed Depot; accepted evidence excludes those results.
+
+Original appearance,43pages/general/reading/menu locations/drafts restored or unchanged. Native Live scope restored and signed out; API revoked/refresh401; owned52199/52344 stopped/profile removed;7protected processes alive. No backend deployment or push. Report: ConvexPress-Admin/audits/2026-09-04/header-search-20261006.md.
+
+NEXT:E87 mobile-menu variants, then remaining menu-source/location matrix. Bounded question: any concrete mobile field/value mismatch beyond known Drawer/Fullscreen/Dropdown/side gaps, with pack and rendered repro? Full goal active117/20; Tasks3–7/8 not declared complete.
