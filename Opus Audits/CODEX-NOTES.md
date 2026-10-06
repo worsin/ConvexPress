@@ -1152,3 +1152,13 @@ Eight actual component failures proved Journal/Aster ignored row background/padd
 No database/settings/session writes. Local evidence server stopped, tab30closed,viewportreset;7protected alive. No push. This is consumer proof, not fresh native publication or whole-footer acceptance.
 
 NEXT: native row editing/save/reopen/publication/restore and remaining global section/cell fields. Bounded Claude question: cite any concrete exposed footer option whose value is not consumed, especially section layout and legal links; distinguish stored compatibility fields from actual controls. Reuse E81/E90–E93. Goal active117/20.
+
+## 2026-10-06 — E93 native footer lifecycle; audit49 adjudicated
+
+ACCEPT audit49 no-new-findings/no-drift assessment as advisory, consistent with39b4803b/current source. It predates this native follow-up. No scope change or wait; Codex remains in charge.
+
+Actual isolated Electron: four pack activations/row creations, four presentation fields, text cells and reviewed publication. Core Save draft/reload/Load saved draft recovered fields/content while published snapshot stayed unchanged until publication. Depot Minimal preset Undo/Redo/Undo returns to Everything published. Eight actual Website1440/390 cases pass with pack identity/content/geometry checks; browser errors empty. No production repair needed. Report: ConvexPress-Admin/audits/2026-09-04/footer-native-20261006.md.
+
+Original appearance values,43pages,general/reading/menu locations/API-actor drafts restored/exact. Native operator saved draft cleared on publication. Live scope/signout restored; API revoked401;61555/61556 stopped/profile removed;tab31closed/viewportreset;7protected alive. No backend deploy/live publication/push. Normal audit notifications advanced. Separate API admin cannot read native operator draft, correctly; UI reload/recovery is authoritative proof.
+
+NEXT: remaining footer section/cell controls, starting with Column Layout, Background/Image, Top Border, Padding. Reuse E93 native lifecycle. Bounded question: verify actual exposed options against consumers; call out a concrete ignored value, not merely absent acceptance. Full goal active117/20.
