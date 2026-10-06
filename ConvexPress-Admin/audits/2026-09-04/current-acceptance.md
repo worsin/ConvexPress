@@ -491,3 +491,8 @@ Instructor accepted:129Verified/8In progress, full tracker readback and all Note
 ## October6 Synced content promotion completion
 
 Synced content accepted:131Verified/6In progress; one tracker row changed and all Notes preserved. E101 transports imported editing locks through review/apply/rollback, refuses locked target overwrite, supports explicit target unlock and native guidance; canonical SDK owner synchronized with deployed E100 conversion. Native broker applied nested closure once; unselected live Website updates latest while preserving pin and exact authored document, rollback restores publication and retains imported history. Original71pages/settings/appearance/access policies and language configuration restored;3ownedpagestrashed,4sourceswithdrawn,originallegacy/historyretained,APIrefresh401,native/profile/Website/tabclean,protected7alive. [Evidence](synced-promotion-final-20261006.md). Next reference/field-guide live conversion; corpus retirement and Tasks4–8 delivery gates remain open.
+
+
+## October6 Field Guide legacy acceptance
+
+Field Guide accepted:132Verified/5In progress. Native reviewed version-one conversion, selected-media preservation, distinct saved edit and exact original archive import to canonical revision3 pass; native publication and actual Website output verified. Original71pages/settings/appearance unchanged, ownedpage recoverablytrashed with exactarchive/historyretained, APIrefresh401 and ownedruntime/profile/tab cleanup verified. Prior native/mobile/four-pack geometry reused. [Evidence](field-guide-legacy-final-20261006.md). Next E07 remaining compatibility caller retirement and corpus reconciliation; whole goal remains active.

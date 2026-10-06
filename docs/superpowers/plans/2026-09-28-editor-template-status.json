@@ -1,13 +1,13 @@
 {
   "plan": "2026-09-28-editor-template-delivery.md",
   "baselineCommit": "d0fee8acceb408fd306a15f3c054322cb73ac8bc",
-  "checkpointSource": "output/field-studio-final-20261006/mt-accept-after.json",
+  "checkpointSource": "output/field-guide-legacy-final-20261006/mt-accept-after.json",
   "checkpointCounts": {
-    "Verified": 131,
-    "In progress": 6
+    "Verified": 132,
+    "In progress": 5
   },
   "goal": "Complete block editor and template delivery plus all demonstrated blockers; defer unrelated whole-app audit campaigns.",
-  "currentTask": "131 Verified / 6 In progress. Synced content accepted after native cross-environment lock-preserving promotion, outside-selection live refresh/pin retention and rollback/history verification. Next: reference/field-guide live legacy conversion and remaining corpus/retirement/integration gates; continue independent work while external-provider prerequisites remain.",
+  "currentTask": "132 Verified / 5 In progress. Field Guide accepted after native reviewed legacy conversion, exact selected-media/history recovery and public Website proof. Next: E07 remaining structured-AI/autosave compatibility caller retirement and corpus reconciliation; continue independent delivery work while provider/target identity prerequisites remain.",
   "tasks": [
     {
       "id": 1,
@@ -104,7 +104,7 @@
       "classification": "missing evidence",
       "initialFinding": "One-content-model migration and legacy retirement remain incomplete.",
       "closureBoundary": "Complete lossless conversion/recovery for actual retained content, source snapshots and installed-site receipts; then remove active legacy editor/renderer/schema dispatch as specified. Keep historical recovery data and a deliberate import converter. Do not delete old fields before proving preservation or claim migration complete while silently relying on legacy rendering.",
-      "nextCheck": "Retain lossless historic schema/source fields per legacy-field-preservation-20261005.md. Remaining old structured-AI/autosave compatibility APIs require bounded caller retirement; current canonical writes are fenced. Continue E10 authored site provisioning now; installed bases remain output/canonical-mode-retirement-20261005/{source,target}-source-installed.json.",
+      "nextCheck": "Bound remaining structured-AI/autosave compatibility API callers, preserve deliberate import/history readers, then retire obsolete live writers and reconcile corpus counts. Source installed baseline output/synced-promotion-final-20261006/source-source-installed.json; target baseline output/synced-promotion-final-20261006/target-source-installed.json. Preserve each installed extension closure.",
       "deliveryTask": 4,
       "triagedAt": "2026-09-29",
       "triageEvidence": "ConvexPress-Admin/audits/2026-09-04/delivery-blocker-triage-20260929.md",
@@ -157,7 +157,8 @@
         "ConvexPress-Admin/audits/2026-09-04/quick-edit-canonical-20261005.md",
         "ConvexPress-Admin/audits/2026-09-04/bulk-edit-canonical-20261005.md",
         "ConvexPress-Admin/audits/2026-09-04/document-settings-20261005.md",
-        "ConvexPress-Admin/audits/2026-09-04/generic-update-retirement-20261005.md"
+        "ConvexPress-Admin/audits/2026-09-04/generic-update-retirement-20261005.md",
+        "ConvexPress-Admin/audits/2026-09-04/field-guide-legacy-final-20261006.md"
       ]
     },
     {
@@ -4679,9 +4680,9 @@
       "name": "reference/field-guide",
       "title": "Field Guide",
       "category": "Site",
-      "checkpointStatus": "In progress",
-      "nextClassification": "Live reviewed legacy conversion/archive import remains; native all fields/editorial axes, selected media, links, public responsive rendering, exact canonical revision recovery and registered migration preservation now passed. Reuse retained four-pack geometry.",
-      "classification": "missing evidence",
+      "checkpointStatus": "Verified",
+      "nextClassification": "Native reviewed version-one conversion, later edit, exact original archive import and publication passed. All nine fields including selected media, null, item order and Editorial axes retained. Reuse prior four-pack/mobile/native field evidence.",
+      "classification": "accepted/reusable evidence",
       "source": "blocks/reference/field-guide/block.json",
       "requirements": "Current schema fields preserved through explicit migration",
       "evidenceReferences": [
@@ -4690,12 +4691,13 @@
         "output/block-demo/browser-results-media66",
         "output/block-library-review-20260915/coverage-review.json.",
         "ConvexPress-Admin/audits/2026-09-04/search-conditional-prose-20260928.md",
-        "ConvexPress-Admin/audits/2026-09-04/field-studio-final-20261006.md"
+        "ConvexPress-Admin/audits/2026-09-04/field-studio-final-20261006.md",
+        "ConvexPress-Admin/audits/2026-09-04/field-guide-legacy-final-20261006.md"
       ],
-      "remainingReview": "Live reviewed legacy conversion/archive import remains; native all fields/editorial axes, selected media, links, public responsive rendering, exact canonical revision recovery and registered migration preservation now passed. Reuse retained four-pack geometry.",
+      "remainingReview": "Block acceptance complete. Shared corpus retirement and integrated editor/template acceptance remain separate.",
       "deliveryTask": 4,
       "acceptanceBatch": "text-migration",
-      "reviewedAtCommit": "d8a0ea2c",
+      "reviewedAtCommit": "972abbc9 + live legacy migration acceptance",
       "notesSha256": "79cc39bbebcc2fd971e6659b65cb62cad3b65034583fee4ad33c13a2d32c9ca7",
       "specSha256": "6a07d425d7390ea5c067372e2a8fd6a0548a98bb035ce51dd812ce684b34895f",
       "rendererSha256": "fa7cf5a4ba14e51c9b17994fd3e47eb9d160fdca52c5421287b3fd2b763112d0",
@@ -5073,21 +5075,25 @@
     "output/synced-legacy-20261006/cleanup.json",
     "ConvexPress-Admin/audits/2026-09-04/synced-promotion-final-20261006.md",
     "output/synced-promotion-final-20261006/cleanup.json",
-    "output/synced-promotion-final-20261006/mt-accept-verified.json"
+    "output/synced-promotion-final-20261006/mt-accept-verified.json",
+    "ConvexPress-Admin/audits/2026-09-04/field-guide-legacy-final-20261006.md",
+    "output/field-guide-legacy-final-20261006/recovered.json",
+    "output/field-guide-legacy-final-20261006/cleanup.json",
+    "output/field-guide-legacy-final-20261006/mt-accept-verified.json"
   ],
   "trackerRefresh": {
-    "source": "output/synced-promotion-final-20261006/mt-accept-after.json",
+    "source": "output/field-guide-legacy-final-20261006/mt-accept-after.json",
     "schema": "output/lead-customer-20260929/mt-schema.json",
     "rows": 137,
     "counts": {
-      "Verified": 131,
-      "In progress": 6
+      "Verified": 132,
+      "In progress": 5
     },
     "otherCellsUnchangedFromPreviousRead": true,
     "pendingNotesReconciled": 77,
     "classificationScope": "Block-specific missing gates; historical whole-app audit conditions retained in Notes but not automatic prerequisites.",
     "lastAcceptedNames": [
-      "core/synced"
+      "reference/field-guide"
     ],
     "allNotesExact": true
   },
@@ -5132,7 +5138,8 @@
     "audit49": "ACCEPT no-new-findings/no-drift assessment as advisory, verified against39b4803b and native footer follow-up. No scope change or wait; Codex remains in charge.",
     "audit51": "ACCEPT footer newsletter closure and no-new-findings assessment at a9b9b754 as advisory; verified against local commits and subsequent Calendar repair. Current event acceptance advances120/17. No automatic scope change or waiting; Codex retains decision authority.",
     "audit54": "ACCEPT scope/count/no-drift assessment at c290ca0f. ADAPT E99: three prior native reproductions plus current migration recovery render automatically; retain intermittent Task 8 watch without speculative fix. E100 adapter now implemented and verified in native/stored workflows. No waiting for deep audit or automatic scope expansion.",
-    "syncedPromotion": "Audit54 remains latest and already adjudicated. Codex independently verified and repaired E101 promotion lock gap; 131/6 verified tracker. No waiting for upcoming deep audit; keep corpus retirement and final integration distinct from block acceptance."
+    "syncedPromotion": "Audit54 remains latest and already adjudicated. Codex independently verified and repaired E101 promotion lock gap; 131/6 verified tracker. No waiting for upcoming deep audit; keep corpus retirement and final integration distinct from block acceptance.",
+    "fieldGuideLegacy": "Audit54 remains latest and already adjudicated. Native conversion/history recovery passed without reconnection; E99 remains an intermittent integration watch. 132/5 tracker verified. Next bounded E07 compatibility retirement; no wait for deep audit."
   },
   "sessionBaseCommit": "9824d9605e50c4b0ebd711c13715b506f8ef5bd3"
 }
