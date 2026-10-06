@@ -1,7 +1,8 @@
 import { z } from "zod";
 import { canonicalTreeSchema, validateCanonicalTree } from "./generated/instances";
 import type { CanonicalTree } from "./generated/types";
-import type { RuntimeCanonicalTree } from "./composedRegistry";
+import { createComposedRegistry, type RuntimeCanonicalTree } from "./composedRegistry";
+import type { ComposedDataContext } from "./planner";
 import { encodedBytes, type DataScope } from "./contracts";
 import { canonicalJson, sha256Hex } from "./shared/fingerprints";
 import { publicCanonicalTree, assertPublicCanonicalTree } from "./publicTree";
@@ -21,15 +22,15 @@ export type SyncedDisplay = z.infer<typeof syncedDisplaySchema>;
 function fail(message: string): never { throw new SyncedContentError("SYNCED_DISPLAY_INVALID", message); }
 function requestKey(request: SyncedRequest): string { return canonicalJson(request); }
 function versionKey(source: { id: string; revision: number }): string { return canonicalJson([source.id, source.revision]); }
-function rootDigest(tree: CanonicalTree): string { return sha256Hex(canonicalJson(tree)); }
+function rootDigest(tree: RuntimeCanonicalTree): string { return sha256Hex(canonicalJson(tree)); }
 export function containsSyncedContent(tree: RuntimeCanonicalTree): boolean { return tree.some(node => node.name === "core/synced" || !!node.children && containsSyncedContent(node.children)); }
 
 /** Strict synchronous transport gate. Rebuild identities and all graph limits
  * using the same walker as server publication. This validates a display from
  * an authenticated transport; it is never a backend authorization credential. */
-export function resolveSyncedDisplay(input: unknown, root: CanonicalTree, expected: DataScope & Partial<Pick<SyncedScope, "deploymentOrigin">>): SyncedOccurrencePlan {
+export function resolveSyncedDisplay(input: unknown, root: unknown, expected: DataScope & Partial<Pick<SyncedScope, "deploymentOrigin">>, composed?: ComposedDataContext): SyncedOccurrencePlan {
   if (encodedBytes(input) > SYNCED_CONTENT_LIMITS.bytes) fail("Reusable display exceeds its transport budget.");
-  const value = syncedDisplaySchema.parse(input), tree = validateCanonicalTree(root);
+  const value = syncedDisplaySchema.parse(input), tree = composed ? createComposedRegistry(composed.definitions, value.scope).validateTree(root) : validateCanonicalTree(root);
   if (value.scope.websiteKey !== expected.websiteKey || value.scope.instanceKey !== expected.instanceKey || expected.deploymentOrigin !== undefined && value.scope.deploymentOrigin !== expected.deploymentOrigin) fail("Reusable display belongs to another installation.");
   if (value.rootDigest !== rootDigest(tree)) fail("Reusable display belongs to a different authored document.");
   const selections = new Map(value.selections.map(selection => [requestKey(selection.request), selection]));
@@ -49,7 +50,7 @@ export function resolveSyncedDisplay(input: unknown, root: CanonicalTree, expect
     if (!source || source.displayDigest !== selection.target.displayDigest) return fail("Missing exact reusable display revision.");
     usedVersions.add(targetKey);
     return { id: source.id, revision: source.revision, title: source.title, blocks: source.blocks, digest: source.displayDigest, scope: value.scope, published: true };
-  });
+  }, { composed });
   if (usedSelections.size !== selections.size || usedVersions.size !== versions.size) fail("Unreferenced reusable display content is forbidden.");
   return applyDisplayOmissions(plan, value.omitted ?? []);
 }
@@ -58,7 +59,7 @@ function withRoots(plan: SyncedOccurrencePlan, roots: SyncedOccurrence[]): Synce
   const byId = new Map<string, SyncedOccurrence>();
   const visit = (nodes: SyncedOccurrence[]) => { for (const node of nodes) { byId.set(node.id, node);visit(node.children); } };
   visit(roots);
-  return { ...plan, roots, byId, resolverTree: validateCanonicalTree(occurrenceResolverTree(roots)), digest: sha256Hex(canonicalJson({ contract: "synced-occurrences-v1", scope: plan.scope, roots })) };
+  return { ...plan, roots, byId, resolverTree: plan.composed ? createComposedRegistry(plan.composed.definitions, plan.scope).validateTree(occurrenceResolverTree(roots)) : validateCanonicalTree(occurrenceResolverTree(roots)), digest: sha256Hex(canonicalJson({ contract: "synced-occurrences-v1", scope: plan.scope, roots })) };
 }
 /** A mask can hide a repeated copy only when its content is legitimately
  * displayed elsewhere in this document. Hidden-only bodies must be absent from
@@ -92,7 +93,7 @@ function applyDisplayOmissions(plan: SyncedOccurrencePlan, omitted: string[]): S
  * this boundary. The document's own authoring digest remains a separate field. */
 export function createSyncedDisplay(plan: SyncedOccurrencePlan, options: { publicRoot?: boolean } = {}): SyncedDisplay {
   const value = unmaskedDisplay(plan, options.publicRoot ?? false);
-  resolveSyncedDisplay(value, options.publicRoot ? publicCanonicalTree(plan.resolution.blocks) : plan.resolution.blocks, plan.scope);
+  resolveSyncedDisplay(value, options.publicRoot ? publicCanonicalTree(plan.resolution.blocks) : plan.resolution.blocks, plan.scope, plan.composed);
   return value;
 }
 function unmaskedDisplay(plan: SyncedOccurrencePlan, publicRoot: boolean): SyncedDisplay {
@@ -138,8 +139,11 @@ export function projectSyncedDisplay(plan: SyncedOccurrencePlan, visibleIds: Rea
     if (!node.owner) rootIds.add(node.node.id);
     else { const key = versionKey(node.owner), ids = bodyIds.get(key) ?? new Set<string>();ids.add(node.node.id);bodyIds.set(key, ids); }
   }
-  const filter = (nodes: CanonicalTree, ids: ReadonlySet<string>): CanonicalTree => nodes.flatMap(node => ids.has(node.id) ? [{ ...node, ...(node.children ? { children: filter(node.children, ids) } : {}) } as CanonicalTree[number]] : []);
-  const root = validateCanonicalTree(filter(plan.resolution.blocks, rootIds));
+  const filter = (nodes: RuntimeCanonicalTree, ids: ReadonlySet<string>): RuntimeCanonicalTree => nodes.flatMap(node => ids.has(node.id) ? [{ ...node, ...(node.children ? { children: filter(node.children, ids) } : {}) } as RuntimeCanonicalTree[number]] : []);
+  const registry = plan.composed ? createComposedRegistry(plan.composed.definitions, plan.scope) : undefined;
+  const root = registry ? registry.validateTree(filter(plan.resolution.blocks, rootIds)) : validateCanonicalTree(filter(plan.resolution.blocks, rootIds));
+  const definitions = registry?.snapshotFor(root);
+  const composed = definitions?.definitions.length ? { scope: plan.scope, definitions } : undefined;
   const versions = new Map(plan.resolution.revisions.filter(source => referenced.has(versionKey(source))).map(source => {
     const blocks = validateCanonicalTree(filter(source.blocks, bodyIds.get(versionKey(source)) ?? new Set()));
     return [versionKey(source), { ...source, blocks, digest: syncedContentDigest(source.title, blocks) }] as const;
@@ -156,13 +160,13 @@ export function projectSyncedDisplay(plan: SyncedOccurrencePlan, visibleIds: Rea
     const target = requests.get(key);
     if (!target) return null;
     return versions.get(versionKey(target)) ?? fail("Hidden-only source survived the projection.");
-  });
+  }, { composed });
   const omitted: string[] = [];
   const visit = (nodes: SyncedOccurrence[]) => { for (const node of nodes) { if (!visibleIds.has(node.id)) omitted.push(node.id);else visit(node.children); } };
   visit(union.roots);
   const synced = { ...unmaskedDisplay(union, true), ...(omitted.length ? { omitted } : {}) };
   const blocks = publicCanonicalTree(root);
-  const checked = resolveSyncedDisplay(synced, blocks, plan.scope);
+  const checked = resolveSyncedDisplay(synced, blocks, plan.scope, composed);
   if (canonicalJson([...checked.byId.keys()]) !== canonicalJson([...allowed.byId.keys()])) fail("Projected visibility does not match the authorized occurrence forest.");
   return { blocks, synced, resolverTree: allowed.resolverTree, displayPlan: checked };
 }

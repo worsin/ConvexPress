@@ -79,8 +79,7 @@ export function resolveDocumentDisplayTree(source: DisplayTreeSource): RuntimeCa
     if (containsSyncedContent(tree)) throw new CanonicalDataError("SYNCED_DISPLAY_REQUIRED", "document", "Reusable content requires its complete published display binding");
     return tree;
   }
-  if (documentComposedContext(source, tree)) throw new CanonicalDataError("COMPOSED_SYNCED_UNAVAILABLE", "document", "Custom reusable occurrences require definition-aware snapshots");
-  const plan = resolveSyncedDisplay(source.synced, validateCanonicalTree(tree), source.scope);
+  const plan = resolveSyncedDisplay(source.synced, tree, source.scope, documentComposedContext(source, tree));
   planSyncedOccurrenceData(plan, source.scope, source.policy, source.data.request);
   return plan.resolverTree;
 }

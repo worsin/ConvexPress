@@ -1,5 +1,4 @@
 import { resolveSyncedDisplay } from "../block-data/portable/syncedDisplay";
-import { validateCanonicalTree } from "../block-data/portable/generated/instances";
 import { PrimitiveProvider } from "../primitives";
 import { rendererLoader } from "../block-renderer/discovery";
 import {
@@ -44,7 +43,7 @@ export function CanonicalDocumentView({
 			"The document's template pack is not installed on this Website.",
 		);
 	if (synced && !scope) throw new Error("Reusable display requires the current website scope.");
-	const expanded = synced ? resolveSyncedDisplay(synced, validateCanonicalTree(tree), scope!).resolverTree : undefined;
+	const expanded = synced ? resolveSyncedDisplay(synced, tree, scope!, composed).resolverTree : undefined;
   const names = rendererLoader.preload(packId, expanded ? [tree, expanded] : [tree]);
   const content = prepareBlocks(tree, rendererLoader.forPack(packId), policy, resources, data, packId, synced ? { source: synced, scope: scope! } : undefined, composed);
 	return (

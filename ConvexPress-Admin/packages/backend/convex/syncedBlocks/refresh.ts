@@ -4,7 +4,7 @@ import { internalMutation, mutation, query, type MutationCtx } from "../_generat
 import type { Id, Doc } from "../_generated/dataModel";
 import { capturePublicationAuthority, requireCapturedPublicationAuthority, requireCan } from "../helpers/permissions";
 import { RequestReadLedger } from "../helpers/requestReadLedger";
-import { validateCanonicalTree } from "../canonicalDocuments/foundation/generated/instances";
+import { readStoredDocument } from "../canonicalDocuments/definitions";
 import { collectContactDefinitions } from "../canonicalDocuments/contactDefinitions";
 import { syncContactForm } from "../canonicalDocuments/contactForms";
 import { contactProjectionMatches } from "../canonicalDocuments/contactProjection";
@@ -84,7 +84,9 @@ export const refreshPage = internalMutation({
       return null;
     }
     const sources = new Set<Id<"syncedBlocks">>();
-    const plan = await resolvePublishedOccurrences(ctx, validateCanonicalTree(post.blocks), budget, { onSource: id => { sources.add(id); } });
+    const authored = await readStoredDocument(ctx, post, budget);
+    const composed = authored.composedDefinitions ? { scope: authored.composedDefinitions.scope, definitions: authored.composedDefinitions } : undefined;
+    const plan = await resolvePublishedOccurrences(ctx, authored.blocks, budget, { composed, onSource: id => { sources.add(id); } });
     // Current authored references, not discovery edges, determine write scope.
     // No post content, unrelated page contacts, or other reusable sources change.
     const contacts = collectContactDefinitions(plan.resolverTree).filter(contact =>

@@ -68,9 +68,10 @@ export const reconcileDocument = internalMutation({
     budget.beforeRead(); const post = budget.record(await ctx.db.get("posts", args.postId));
     if (state.phase === "forms") {
       if (!post || post.blocksVersion !== 2 || !post.blocks) return true;
-      const tree = (await readStoredDocument(ctx, post, budget)).blocks;
+      const authored = await readStoredDocument(ctx, post, budget), tree = authored.blocks;
+      const composed = authored.composedDefinitions ? { scope: authored.composedDefinitions.scope, definitions: authored.composedDefinitions } : undefined;
       if (!containsSyncedContent(tree)) return true;
-      const plan = await resolvePublishedOccurrences(ctx, tree, budget);
+      const plan = await resolvePublishedOccurrences(ctx, tree, budget, { composed });
       for (const contact of collectContactDefinitions(plan.resolverTree)) {
         if (!plan.byId.get(contact.blockId)?.sourceChain.length) continue;
         budget.beforeRead();
@@ -82,8 +83,9 @@ export const reconcileDocument = internalMutation({
     }
     const sources = new Set<Id<"syncedBlocks">>();
     if (post?.blocksVersion === 2 && post.blocks) {
-      const tree = (await readStoredDocument(ctx, post, budget)).blocks;
-      if (containsSyncedContent(tree)) await resolvePublishedOccurrences(ctx, tree, budget, { onSource: id => { sources.add(id); } });
+      const authored = await readStoredDocument(ctx, post, budget), tree = authored.blocks;
+      const composed = authored.composedDefinitions ? { scope: authored.composedDefinitions.scope, definitions: authored.composedDefinitions } : undefined;
+      if (containsSyncedContent(tree)) await resolvePublishedOccurrences(ctx, tree, budget, { composed, onSource: id => { sources.add(id); } });
     }
     // Repair overflow in bounded chunks instead of demanding a repair that the
     // repair endpoint itself refuses. Preserve valid unique edges. At most eight

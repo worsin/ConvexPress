@@ -25,7 +25,7 @@ export async function syncDocumentContactForms(
   const authored = args.composed ? createComposedRegistry(args.composed.definitions, args.composed.scope).validateTree(args.blocks) : validateCanonicalTree(args.blocks);
   const sources = new Set<Id<"syncedBlocks">>();
   const plan = containsSyncedContent(authored)
-    ? await resolvePublishedOccurrences(ctx, validateCanonicalTree(authored), budget, { requireAvailable: args.scheduled, onSource: id => { sources.add(id); } })
+    ? await resolvePublishedOccurrences(ctx, authored, budget, { composed: args.composed, requireAvailable: args.scheduled, onSource: id => { sources.add(id); } })
     : null;
   const tree = plan?.resolverTree ?? authored;
   const contacts = collectContactDefinitions(tree);

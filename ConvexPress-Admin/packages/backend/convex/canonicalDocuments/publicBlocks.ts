@@ -82,9 +82,7 @@ export async function projectPublicBlocks(ctx: QueryCtx, input: unknown, scope: 
     if (composed) planCanonicalData(resolverTree, scope, policy, {}, visibleContext);
     return { blocks: publicCanonicalTree(resolverTree), resolverTree, authoringTree: authored, ...(visibleContext ? { composed: visibleContext } : {}) };
   }
-  if (registry?.snapshotFor(authored).definitions.length)
-    throw new CanonicalDataError("COMPOSED_SYNCED_UNAVAILABLE", "document", "Custom reusable occurrences require definition-aware snapshots");
-  const plan = await resolvePublishedOccurrences(ctx, validateCanonicalTree(authored), budget), visible = new Set<string>();
+  const plan = await resolvePublishedOccurrences(ctx, authored, budget, { composed }), visible = new Set<string>();
   if (options.validateAuthoringPolicy) planSyncedOccurrenceData(plan, scope, policy);
   const visit = async (nodes: SyncedOccurrence[]) => {
     const candidates: SyncedOccurrence[] = [];
@@ -95,5 +93,5 @@ export async function projectPublicBlocks(ctx: QueryCtx, input: unknown, scope: 
   await visit(plan.roots);
   const projected = projectSyncedDisplay(plan, visible);
   planSyncedOccurrenceData(projected.displayPlan, scope, policy);
-  return { blocks: projected.blocks, resolverTree: projected.resolverTree, authoringTree: plan.resolverTree, ...(containsSyncedContent(projected.blocks) ? { synced: projected.synced } : {}) };
+  return { blocks: projected.blocks, resolverTree: projected.resolverTree, authoringTree: plan.resolverTree, ...(containsSyncedContent(projected.blocks) ? { synced: projected.synced } : {}), ...(projected.displayPlan.composed ? { composed: projected.displayPlan.composed } : {}) };
 }

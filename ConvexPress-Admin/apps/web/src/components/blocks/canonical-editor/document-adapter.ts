@@ -427,9 +427,10 @@ export function canonicalEditorAdapter(
 							checked.blocks,
 							{
 								...scope,
-								deploymentOrigin: "https://editor-validation.convex.cloud",
+								deploymentOrigin: composed?.scope.deploymentOrigin ?? "https://editor-validation.convex.cloud",
 							},
 							() => null,
+							{ composed },
 						),
 						scope,
 						policy,

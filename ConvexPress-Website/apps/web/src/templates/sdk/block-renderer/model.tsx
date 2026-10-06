@@ -25,7 +25,7 @@ import {
 import { collectCanonicalAnchors } from "../block-data/portable/generated/instance-runtime.mjs";
 import { layoutSchema, type PrimitiveData } from "../primitives/contracts";
 import { Section } from "../primitives";
-import { createComposedRegistry } from "../block-data/portable/composedRegistry";
+import { createComposedRegistry, type RuntimeCanonicalBlock } from "../block-data/portable/composedRegistry";
 import { planCanonicalData, type ComposedDataContext } from "../block-data/portable/planner";
 import { resolveComposedPresentation, assertComposedReferenceBindings, COMPOSED_PRESENTATION_LIMITS } from "../block-data/portable/composedPresentation";
 import type { ComposedDefinition } from "../block-data/portable/composedDefinitions";
@@ -52,7 +52,6 @@ import {
 import { navigationTreeIndex } from "../block-data/portable/navigationTree";
 import { resolveSyncedDisplay, type SyncedDisplay } from "../block-data/portable/syncedDisplay";
 import { planSyncedOccurrenceData, type SyncedOccurrence } from "../block-data/portable/syncedOccurrences";
-import { validateCanonicalTree } from "../block-data/portable/generated/instances";
 import type { DataScope } from "../block-data/portable/contracts";
 const HeadingAnchorsContext = createContext<Readonly<Record<string, string>>>(
 	{},
@@ -313,19 +312,18 @@ export function prepareBlocks(
   const composedRegistry = composed ? createComposedRegistry(composed.definitions, composed.scope) : undefined;
   let composedTree;
   if (composedRegistry) {
-    if (display && composed!.definitions.definitions.length) throw new BlockRenderError("COMPOSED_SYNCED_UNAVAILABLE", "tree", "Reusable-source composition requires a definition-aware occurrence adapter");
     composedTree = composedRegistry.validateTree(input);
   }
-  const composedPlan = composed ? planCanonicalData(input, { websiteKey: composed.scope.websiteKey, instanceKey: composed.scope.instanceKey }, policy, pageData?.current.request, composed) : undefined;
 	// Reconstruct from the closed server display, not a caller-supplied expanded
 	// tree. The canonical root remains immutable. Wrappers participate in layout
 	// and policy; only their resolved descendants enter the shared data grant.
 	const occurrences = display
-		? resolveSyncedDisplay(display.source, validateCanonicalTree(input), display.scope)
+		? resolveSyncedDisplay(display.source, input, display.scope, composed)
 		: undefined;
 	if (occurrences) planSyncedOccurrenceData(occurrences, display!.scope, policy);
 	const dataTree = occurrences?.resolverTree ?? input;
-	const renderNode = (node: SyncedOccurrence): BlockInstance => ({
+  const composedPlan = composed ? planCanonicalData(dataTree, { websiteKey: composed.scope.websiteKey, instanceKey: composed.scope.instanceKey }, policy, pageData?.current.request, composed) : undefined;
+	const renderNode = (node: SyncedOccurrence): RuntimeCanonicalBlock => ({
 		...node.node, id: node.id,
 		...(node.children.length ? { children: node.children.map(renderNode) } : {}),
 	});

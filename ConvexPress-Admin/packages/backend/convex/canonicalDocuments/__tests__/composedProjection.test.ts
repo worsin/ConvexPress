@@ -97,7 +97,9 @@ test("hidden custom definitions do not bypass authoring policy or leak unused sn
   await expect(f.t.run(ctx => projectPublicBlocks(ctx, f.tree.slice(0, 1), scope, policy, new RequestReadLedger(), { composed: f.composed }))).rejects.toThrow("exactly the authored definitions");
   await expect(f.t.run(ctx => projectPublicBlocks(ctx, f.tree, scope, { ...policy, disabledBlocks: ["composed/visible"] }, new RequestReadLedger(), { composed: f.composed }))).rejects.toThrow("disabled");
   const mixed = [...f.tree, { id: "reused", name: "core/synced", version: 1, attrs: { syncedBlock: "unread-source", revisionPolicy: "latest" } }];
-  await expect(f.t.run(ctx => projectPublicBlocks(ctx, mixed, scope, policy, new RequestReadLedger(), { composed: f.composed }))).rejects.toThrow("definition-aware snapshots");
+  const unavailable = await f.t.run(ctx => projectPublicBlocks(ctx, mixed, scope, policy, new RequestReadLedger(), { composed: f.composed }));
+  expect(unavailable.synced?.selections[0]?.target).toBeNull();
+  expect(unavailable.synced?.revisions).toEqual([]);
 });
 
 test("custom membership expiry updates the shared authorization lease and removes the complete subtree", async () => {
@@ -110,4 +112,37 @@ test("custom membership expiry updates the shared authorization lease and remove
   const read = () => f.author.run(async ctx => { const budget = new RequestReadLedger(); const value = await projectPublicBlocks(ctx, f.tree, scope, policy, budget, { composed: f.composed }); return { value, deadline: budget.authorizationRecheckAt }; });
   setSystemTime(now); expect((await read()).value.blocks).toHaveLength(2); expect((await read()).deadline).toBe(now + 1000);
   setSystemTime(now + 1000); const expired = await read(); expect(expired.value.blocks).toHaveLength(1); expect(expired.value.composed?.definitions.definitions).toHaveLength(1); expect(expired.deadline).toBeNull();
+});
+
+test("custom definitions and published reusable children retain scoped bindings and redaction", async () => {
+  const f = await fixture();
+  const { syncedContentDigest } = await import("../foundation/syncedContent");
+  const { resolveSyncedDisplay } = await import("../foundation/syncedDisplay");
+  const blocks = [{ id: "shared", name: "core/paragraph", version: 2, attrs: {} }];
+  const sourceId = await f.t.run(async ctx => {
+    const id = await ctx.db.insert("syncedBlocks", { ...installation, title: "Shared", generation: 2, lastRevision: 1, publishedRevision: 1, createdBy: f.ids.user, updatedBy: f.ids.user, createdAt: 1, updatedAt: 1 });
+    await ctx.db.insert("syncedBlockRevisions", { syncedBlockId: id, revision: 1, title: "Shared", blocks, digest: syncedContentDigest("Shared", blocks), createdBy: f.ids.user, createdAt: 1, publishedAt: 1 });
+    return id;
+  });
+  const reference = { id: "reusable", name: "core/synced", version: 1, attrs: { syncedBlock: sourceId, revisionPolicy: "pinned", revision: 1 } };
+  const tree = [{ ...f.tree[0], children: [reference] }, f.tree[1]];
+  const read = () => f.t.run(ctx => projectPublicBlocks(ctx, tree, scope, policy, new RequestReadLedger(), { composed: f.composed }));
+  await f.deny("private");
+  const result = await read();
+  expect(result.blocks.map(n => n.id)).toEqual(["visible"]);
+  expect(result.composed?.definitions.definitions.map(d => d.name)).toEqual(["composed/visible"]);
+  expect(result.synced?.revisions).toHaveLength(1);
+  const display = resolveSyncedDisplay(result.synced, result.blocks, scope, result.composed);
+  expect(display.resolverTree).toEqual(result.resolverTree);
+  expect(display.resolverTree[0]?.children?.[0]?.id.startsWith("synced_")).toBe(true);
+  expect(planCanonicalData(display.resolverTree, scope, policy, {}, result.composed).jobs).toHaveLength(1);
+  expect(JSON.stringify(result.blocks)).not.toContain("PRIVATE");
+  expect(() => resolveSyncedDisplay(result.synced, result.blocks, scope)).toThrow();
+  await f.deny("shared");
+  const hidden = await read();
+  expect(hidden.synced?.revisions[0]?.blocks).toEqual([]);
+  expect(hidden.resolverTree[0]?.children ?? []).toEqual([]);
+  await f.deny("visible");
+  const allHidden = await read();
+  expect(allHidden.blocks).toEqual([]);expect(allHidden.composed).toBeUndefined();expect(allHidden.synced).toBeUndefined();
 });

@@ -7,7 +7,7 @@
     "In progress": 20
   },
   "goal": "Complete block editor and template delivery plus all demonstrated blockers; defer unrelated whole-app audit campaigns.",
-  "currentTask": "Task7: native Field Guide + Events + pinned reusable source saved/reopened at revision5 with actual Website preview. Aster missing bootstrap epoch repaired through existing initializer; native index ready. Continue approved custom composition/promotion and remaining eight SDK workflows; E09/E05, final visual and Task8 remain. Goal active117/20.",
+  "currentTask": "Task7: E77 native custom+Field Guide+Events+pinned reusable document accepted through recovery, nested slot, actual mobile Website, save/reopen and exact history restores to revision9. Aster4910 narrow deployment+existing decode-cache rollout complete; acceptance CPU cap corrected1\u21922. Continue remaining block SDK/promotion and E09/E05, final visual, Task8. Goal active117/20.",
   "tasks": [
     {
       "id": 1,
@@ -89,7 +89,7 @@
     },
     {
       "id": "E06",
-      "status": "Native Field Guide text/multiline/number/boolean/media/object/link/repeater/nullable reset and Editorial alignment now saved/reopened with exact API tree and actual Aster Website preview. Numeric limit13 rejected (max12), invalid repeaters pause preview/save. Same document includes live Events and pinned reusable revision2; final revision5 reload renders all three. Approved custom composition in this mixed document and remaining combined recovery/field matrix still open. See native-field-reusable-20261006.md.",
+      "status": "Native Field Guide text/multiline/number/boolean/media/object/link/repeater/nullable reset and Editorial alignment now saved/reopened with exact API tree and actual Aster Website preview. Numeric limit13 rejected (max12), invalid repeaters pause preview/save. Same document includes live Events and pinned reusable revision2; final revision5 reload renders all three. Approved custom composition in this mixed document and remaining combined recovery/field matrix still open. See native-field-reusable-20261006.md. E77 native manual composition with exact media/page resolver and Aster treatment, sibling and nested pinned reusable, autosave recovery, save/reopen/history now accepted at revision9; see mixed-composition-20261006.md. Actual AI/canonical promotion and remaining workflow gates stay open.",
       "classification": "missing evidence",
       "initialFinding": "All native field types, picker states, keyboard operations and mixed nested/reusable/composed content are not fully covered.",
       "closureBoundary": "Exercise them on batched authored pages, compare saved/reopened trees and revision restores exactly; test field-specific limits and omitted/null/empty semantics where meaningful.",
@@ -281,7 +281,7 @@
     },
     {
       "id": "E17",
-      "status": "Three template skills added and sequentially exercised; token-first fifth pack passes 2owned/88Core resolver coverage, loading/lazy/canonical SSR, types and actual responsive internal demo with keyboard. Stale Admin mirror read-only detection and undeclared-treatment demo crashes repaired. Existing design-homepage already SDK-targeted. See template-sdk-trial-20261006.md. Eight block workflows, actual AI/native composition/promotion and remaining extension acceptance remain; no full E17 closure. Reference completeness now enforced by check:blocks against actual displayContext:27blocks/34fields with all installed plugins enabled and structural index ready; negative metadata mutation proves unsupported fields fail. See reference-extension-acceptance-20261006.md. Native Field Guide/Events/pinned reusable mixture now accepted at revision5. Aster direct acceptance bootstrap omitted deployment epoch initialization: existing initializeDeploymentMediaIndex coordinator + native12-record index repaired setup. Production setup/deploy already calls initializer; no product-guard bypass. Remaining three example index readiness not yet rechecked.",
+      "status": "Three template skills added and sequentially exercised; token-first fifth pack passes 2owned/88Core resolver coverage, loading/lazy/canonical SSR, types and actual responsive internal demo with keyboard. Stale Admin mirror read-only detection and undeclared-treatment demo crashes repaired. Existing design-homepage already SDK-targeted. See template-sdk-trial-20261006.md. Eight block workflows, actual AI/native composition/promotion and remaining extension acceptance remain; no full E17 closure. Reference completeness now enforced by check:blocks against actual displayContext:27blocks/34fields with all installed plugins enabled and structural index ready; negative metadata mutation proves unsupported fields fail. See reference-extension-acceptance-20261006.md. Native Field Guide/Events/pinned reusable mixture now accepted at revision5. Aster direct acceptance bootstrap omitted deployment epoch initialization: existing initializeDeploymentMediaIndex coordinator + native12-record index repaired setup. Production setup/deploy already calls initializer; no product-guard bypass. Remaining three example index readiness not yet rechecked. E77 native manual composition with exact media/page resolver and Aster treatment, sibling and nested pinned reusable, autosave recovery, save/reopen/history now accepted at revision9; see mixed-composition-20261006.md. Actual AI/canonical promotion and remaining workflow gates stay open.",
       "classification": "partial acceptance / remaining workflow gates",
       "initialFinding": "SDK existence is proven more broadly than each workflow's end-to-end operation.",
       "closureBoundary": "Exercise all eight block-kit operations plus template and extension scaffolds in disposable outputs. Verify generated source, authoring and rendered result; remove owned scaffolds afterward."
@@ -894,6 +894,17 @@
       "status": "Four packs at1280px/390px pass minimum4.5:1 for invitation text;32Journal/Depot pattern count/geometry/image cases pass; keyboardFAQ proof. Website build/types,BlockDemo types,320renderer tests pass. Long mobile captures are not complete visual signoff.",
       "evidence": [
         "ConvexPress-Admin/audits/2026-09-04/pattern-tone-review-20261005.md"
+      ]
+    },
+    {
+      "id": "E77",
+      "classification": "implemented and runtime verified",
+      "deliveryTask": 7,
+      "initialFinding": "Native insertion of approved custom composition into Field Guide+Events+pinned reusable page disables save. Client, shared occurrence/display, renderer and server paths assume root documents are Library-only.",
+      "closureBoundary": "Carry exact scoped custom definitions through mixed root occurrences, visibility projection, planning, rendering, contacts, consumer maintenance and public ancestor authorization. Keep reusable source bodies Library-only. Verify native recovery/save/nesting/Website preview.",
+      "status": "Native recovered custom draft saved5\u21926; nested pinned reusable child saved6\u21927; actual mobile Website rendered; native restores6\u21928 and7\u21929 and reopened saved page pass. Exact tree/digest/definition/source readbacks. Source106/890,snapshot96/808,renderer321/5524,client9/48 pass. Isolated Aster deployment2359API parity. Existing missing decode cache restored; one-CPU throttling proved and acceptance cap raised to2; no one-CPU throughput claim.",
+      "evidence": [
+        "ConvexPress-Admin/audits/2026-09-04/mixed-composition-20261006.md"
       ]
     }
   ],

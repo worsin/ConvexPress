@@ -50,13 +50,12 @@ export async function readPublishedBlockPath(ctx: QueryCtx, authored: unknown, b
     const path = find(tree, []);
     return path ? { path, tree, sourceChain: [], ...(composed ? { composed } : {}) } : null;
   }
-  if (composed?.definitions.definitions.length) return null;
   try {
-    const plan = await resolvePublishedOccurrences(ctx, validateCanonicalTree(tree), budget);
+    const plan = await resolvePublishedOccurrences(ctx, tree, budget, { composed });
     function find(nodes: SyncedOccurrence[], ancestors: PathEntry[]): PublishedBlockPath | null {
       for (const occurrence of nodes) {
         const path = [...ancestors, { node: { ...occurrence.node, id: occurrence.id } as RuntimeCanonicalTree[number], authoredId: occurrence.node.id }];
-        if (occurrence.id === blockId) return { path, tree: plan.resolverTree, sourceChain: occurrence.sourceChain };
+        if (occurrence.id === blockId) return { path, tree: plan.resolverTree, sourceChain: occurrence.sourceChain, ...(composed ? { composed } : {}) };
         const match = find(occurrence.children, path);
         if (match) return match;
       }

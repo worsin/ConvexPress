@@ -1,3 +1,4 @@
+import type { RuntimeCanonicalTree } from "../canonicalDocuments/foundation/composedRegistry";
 import {readLocaleGroup,reviewLocalization} from "./localization";
 import { reviewCanonicalPromotionPolicy } from "../canonicalDocuments/displayContext";
 import { syncedClosureFromManifest } from './syncedClosure';
@@ -510,7 +511,7 @@ export async function planPromotion(
         plan.dependencies.push({key:`canonical-policy:${record.key}`,table:"settings",targetId:"canonical-policy",revision});
         const targetPostId = current ? ctx.db.normalizeId("posts", String(current._id)) : null;
         if (current && !targetPostId) fail("INVALID_PROMOTION_TARGET", "The contact form source is not a valid document.");
-        const reviewContacts = async (nodes: CanonicalTree): Promise<void> => {
+        const reviewContacts = async (nodes: RuntimeCanonicalTree): Promise<void> => {
           for (const node of nodes) {
             if (node.name === "core/contact-form") {
               const newSource = expanded?.byId.get(node.id)?.sourceChain.some(source => source.id.startsWith('new:'));
