@@ -436,3 +436,42 @@ test("removal requires disable, current revision and moderator authority, and fr
  expect((await operator.query(list,{})).sources).toHaveLength(0);
  expect(await source()).not.toBe(sourceId);
 });
+
+test("authorized Instagram refresh publishes bounded posts and honors media, account and site withdrawal", async () => {
+ const oldAccounts=process.env.CONVEXPRESS_INSTAGRAM_ACCOUNTS,oldMedia=process.env.CONVEXPRESS_INSTAGRAM_MEDIA_ORIGINS;
+ const token="synthetic-instagram-test-token";
+ process.env.CONVEXPRESS_INSTAGRAM_ACCOUNTS=JSON.stringify([{handle:"studio.name",userId:"123456",accessToken:token,apiVersion:"v25.0"}]);
+ process.env.CONVEXPRESS_INSTAGRAM_MEDIA_ORIGINS=JSON.stringify(["https://images.example.com"]);
+ const requests:string[]=[];
+ const fetchMock=spyOn(globalThis,"fetch").mockImplementation(async (input,init)=>{
+  const url=new URL(String(input));requests.push(url.href);
+  expect(url.origin).toBe("https://graph.facebook.com");expect(url.href).not.toContain(token);
+  expect(new Headers(init?.headers).get("Authorization")).toBe(`Bearer ${token}`);
+  const body=url.pathname.endsWith("/media")?{data:[{id:"987",username:"studio.name",caption:"A studio update",media_type:"IMAGE",media_url:"https://images.example.com/post.jpg",permalink:"https://www.instagram.com/p/Studio987/",timestamp:"2026-09-01T00:00:00Z"}]}:{id:"123456",username:"studio.name",name:"Studio"};
+  return new Response(JSON.stringify(body),{headers:{"Content-Type":"application/json"}});
+ });
+ try {
+  const {t,operator,customer,ids}=await fixture(),refresh=ref<"action">("socialFeeds/actions:refreshSource");
+  const config={provider:"instagram" as const,handle:"@Studio.Name",enabled:true};
+  for(const actor of [t,customer])await expect(actor.mutation(create,config)).rejects.toThrow();
+  const sourceId=await operator.mutation(create,config);
+  for(const actor of [t,customer])await expect(actor.action(refresh,{sourceId})).rejects.toThrow();
+  expect(requests).toHaveLength(0);
+  expect(await operator.action(refresh,{sourceId})).toEqual({status:"refreshed"});expect(requests).toHaveLength(2);
+  const read=()=>t.run(ctx=>readSocialFeed(ctx,{provider:"instagram",handle:"studio.name",limit:6}));
+  const result=await read();expect(result.status).toBe("ready");expect(result.items[0].image?.url).toBe("https://images.example.com/post.jpg");
+  expect(JSON.stringify(result)).not.toContain(token);expect(JSON.stringify(await operator.query(list,{}))).not.toContain(token);
+  expect(JSON.stringify(await t.run(ctx=>ctx.db.get("socialFeedSources",sourceId)))).not.toContain(token);
+  process.env.CONVEXPRESS_INSTAGRAM_MEDIA_ORIGINS="[]";expect((await read()).items[0].image).toBeNull();
+  process.env.CONVEXPRESS_INSTAGRAM_ACCOUNTS="[]";expect((await read()).status).toBe("unavailable");
+  process.env.CONVEXPRESS_INSTAGRAM_ACCOUNTS=JSON.stringify([{handle:"studio.name",userId:"123456",accessToken:token,apiVersion:"v25.0"}]);
+  await t.run(ctx=>ctx.db.patch("convexpress_siteIdentity",ids.site,{deploymentOrigin:"https://other.convex.cloud"}));expect((await read()).status).toBe("unavailable");
+  await t.run(ctx=>ctx.db.patch("convexpress_siteIdentity",ids.site,{deploymentOrigin:"https://social.convex.cloud"}));
+  await operator.mutation(enable,{sourceId,expectedRevision:1,enabled:false});expect((await read()).status).toBe("unavailable");
+  expect(requests).toHaveLength(2);
+ } finally {
+  fetchMock.mockRestore();
+  if(oldAccounts===undefined)delete process.env.CONVEXPRESS_INSTAGRAM_ACCOUNTS;else process.env.CONVEXPRESS_INSTAGRAM_ACCOUNTS=oldAccounts;
+  if(oldMedia===undefined)delete process.env.CONVEXPRESS_INSTAGRAM_MEDIA_ORIGINS;else process.env.CONVEXPRESS_INSTAGRAM_MEDIA_ORIGINS=oldMedia;
+ }
+});
