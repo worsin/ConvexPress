@@ -719,3 +719,15 @@ NEXT DEPLOYMENT BASES: source output/http-canonical-gates-20261005/source-source
 ACCEPT audit36's evidence alignment; ADAPT on-track as progress, not completion; REJECT full E07/block acceptance from prose API tests; DEFER unrelated audit scope. Next bounded question: identify an active generic-create or WordPress/demo caller still producing legacy bodies, with exact caller, authority and payload. Codex proceeds independently. Goal active/incomplete;117Verified/20In progress unchanged.
 
 HTTP batch committed locally as f1946677; no push. Working tree clean except the user-owned untracked handoff. Full delivery goal remains active.
+
+## 2026-10-05 — Generic legacy creation endpoints retired
+
+Removed unused posts/pages.mutations.create and their legacy validators; no current application callers found. Route tests now create canonical pages; current site-authoring guide and historical experts point to canonicalDocuments. Actual installed inventories remove exactly2functions: source2413→2411,target2378→2376, all other signatures unchanged. Root source route test reproduced reserved-route suffix bypass when an old row occupied /products; requested path now checked before accepting generated suffix.
+
+The target initially failed5 expanded route/lifecycle tests. Reviewed exact source diffs and backported four depth increments, page topic-relationship deletion cascade, and orphan/default-category handling. No whole-source or unrelated code overlay. Working/source168tests1666assertions; target138/1168; backend/Admin types, contracts, writer and deploy checks pass. Both live canonical create/read + nested parent/reorder/deletion-reparent flows pass. Eight owned docs/history removed; originalsource116/434,target29/88,appearance/mail/otherprivatedrafts exact. Sessions revoked, no user runtime touched, consumer/media indexesready, no push.
+
+Report: hardening ConvexPress-Admin/audits/2026-09-04/legacy-create-retirement-20261005.md. NEXT DEPLOYMENT BASES: output/legacy-create-retirement-20261005/{source,target}-source-installed.json,1630/1624hashes,108/86extensions exact; catalogs/packs exact. Older HTTP bases superseded.
+
+ACCEPT concrete native lifecycle failures as delivery dependencies; ADAPT through existing bounded source fixes; REJECT weakening route assertions or equating endpoint retirement with full E07; DEFER unrelated hardening. Audit36 still latest observed. Next: WordPress phase postsCreate/pagesCreate raw HTML writers; then inspect preserved installed demoSeed wrappers (root internal seed has no current caller and destructively clears content—do not execute against retained data). Advisory question: any supported WordPress import mapping needing explicit preservation beyond HTML, author/media, status/timing, parent/order/template and WP IDs? Codex continues independently. Full goal active/incomplete117Verified/20In progress.
+
+Generic creation retirement committed locally as599374ce. Worktree clean except user-owned handoff; no push. Next active boundary is WordPress canonical import.
