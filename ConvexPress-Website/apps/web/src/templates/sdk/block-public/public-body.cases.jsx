@@ -407,3 +407,28 @@ test('all four actual page surfaces suppress their title only for the current ca
   },{},view);
  }
 });
+
+mock.module('@/hooks/layout/useSiteIdentity',()=>({useSiteIdentity:()=>({title:'Aster fixture',tagline:'A considered stay'})}));
+test('Aster home follows the authorized current hero and ignores archived route body/mode, including access loss',async()=>{
+ const {default:AsterHome}=await import('../../packs/aster-house/surfaces/home');
+ const frontPage={_id:'page',title:'Fallback cover title',slug:'home',path:'/',excerpt:'Cover description',children:[],contentMode:'article',blocks:[{name:'core/paragraph'}],blocksVersion:1};
+ const view=()=> <AsterHome data={{frontPage,latestPosts:[]}}/>;
+ const hero=ready(null),name='core/hero-video';
+ hero.policy.capabilities=['reference.targetResolution'];
+ hero.document.blocks=validateCanonicalTree([{id:'opening',name,version:dependencyDescriptors[name].version,attrs:{title:'Canonical hero heading'}}]);
+ hero.document.digest=canonicalContentDigest(hero.document.title,hero.document.blocks);
+ hero.data=await resolveCanonicalData(hero.document.blocks,scope,hero.policy,async()=>null);
+ await withSeededBody(hero,async()=>{
+  expect(document.querySelector('h1')).toBeNull();
+  expect(document.querySelector('#aster-story article')).not.toBeNull();
+  const {renderToStaticMarkup}=await import('react-dom/server');
+  expect(renderToStaticMarkup(<PublicCanonicalScope documentId="page" initial={hero}>{view()}</PublicCanonicalScope>)).not.toContain('>Fallback cover title</h1>');
+  const w=watches.at(-1);w.value=ready(null);await act(async()=>w.listener());
+  expect(document.querySelectorAll('h1')).toHaveLength(1);
+  expect(document.querySelector('h1').textContent).toBe(frontPage.title);
+  frontPage.contentMode='blocks';frontPage.blocks=[{name:'core/hero'}];
+  w.value=new Error('access revoked');await act(async()=>w.listener());
+  expect(document.querySelector('h1').textContent).toBe(frontPage.title);
+  expect(document.querySelector('#aster-story')?.textContent).not.toContain('Authorized body');
+ },{},view);
+});

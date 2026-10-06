@@ -9,7 +9,7 @@ Bounded continuation of Task 4/E07 after canonical import and legacy seed retire
 | `blocks/queries`, `blocks/mutations`, `blocks/ai` | Retired16 obsolete functions in11338bbf; canonical AI and usage queries retained. | Completed for this isolated API boundary; see legacy-block-api-retirement-20261005.md. |
 | Canonical foundation and service | contentMode currently participates in canonical identity, history conversion/import and promotion envelopes. | Migrate dependent contracts deliberately; do not remove the schema discriminator ahead of installed readers/writers. |
 | Revision schema, authoring snapshots and import converters | Old content, sections and structured values retained for recovery/import, distinct from current canonical body. | Retain recoverable source or replace with a proven lossless archive before deleting fields. |
-| Website route DTOs and Aster home presentation | Route DTOs carry contentMode; Aster uses it for wrapper/opening presentation while shared Blocks handles canonical rendering. | Remove obsolete presentation assumptions with existing four-pack native/public evidence and focused rendered checks. |
+| Website route DTOs and Aster home presentation | Raw body/mode/section/version projections removed; Aster cover follows the authorized canonical opening role. | Bounded closure verified; see aster-home-canonical-20261005.md. Configured Aster homepage remains E10 acceptance. |
 
 Original corpus: source116 documents/434revisions and target29/88; all current documents canonical, retained source/history preserved. The block117/20 count is unchanged and is not a delivery percentage. See the delivery status file for the complete remaining tasks.
 
@@ -34,3 +34,7 @@ Audit38 excerpt/image/discussion/category/tag gap is repaired and accepted withi
 ## Generic update closure
 
 Both generic update endpoints and validators plus dead frontend hook methods retired; canonical native post/page QuickEdit save/reopen/stale refusal pass. Legacy/incomplete records link to deliberate editor review; isolated rendered tests cover this gate, live legacy fixture setup unavailable. Original145documents/522revisions, appearance/mail and private target drafts/metadata exact after cleanup. Next bounded scope: current contentMode identity/DTO/presentation assumptions; retain explicit archives/import source. Latest installed bases output/generic-update-retirement-20261005. Full E07 remains open.
+
+## Website presentation closure
+
+Aster uses PublicCanonicalBody for both opening role and body. Page/Post detail DTOs and route projections no longer carry raw body/mode/sections/version. Regression red/green, Website types/build, full template SSR and read-only live page/post checks pass. No source data changes. Remaining old Website renderers are outside live route dispatch; BlockDemo original-utilities and SSR compatibility fixtures retain explicit registry/rendering dependencies. Next classify their import closure before removal, then decide backend identity/promotion versus retained archive discriminators. See aster-home-canonical-20261005.md. E07 remains open.

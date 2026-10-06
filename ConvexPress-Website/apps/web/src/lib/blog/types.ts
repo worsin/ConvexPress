@@ -5,8 +5,6 @@
  * archive pages, and search results.
  */
 
-import type { PageSection } from "@/lib/page-builder/types";
-import type { ConvexPressBlock, BlockContentMode } from "@/lib/blocks/types";
 
 // ---------------------------------------------------------------------------
 // Block Content Types (TipTap JSON)
@@ -313,11 +311,6 @@ export interface PostCard {
 }
 
 export interface PostDetail extends PostCard {
-  content: BlockDocument | null;
-  contentMode?: BlockContentMode;
-  blocks?: ConvexPressBlock[];
-  blocksVersion?: number;
-  blocksRevision?: number;
   categories: PostCategory[];
   tags: PostTag[];
   seoTitle?: string;
@@ -339,7 +332,6 @@ export interface PageDetail {
   title: string;
   slug: string;
   path: string;
-  content: BlockDocument | null;
   featuredImageUrl?: string;
   featuredImageAlt?: string;
   template?: "default" | "full-width" | "sidebar-left" | "sidebar-right" | "no-sidebar" | "landing" | "blank";
@@ -351,11 +343,6 @@ export interface PageDetail {
   ogImageUrl?: string;
   canonicalUrl?: string;
   isPasswordProtected?: boolean;
-  pageSections?: PageSection[];
-  contentMode?: BlockContentMode;
-  blocks?: ConvexPressBlock[];
-  blocksVersion?: number;
-  blocksRevision?: number;
   /** Breadcrumbs for hierarchical navigation */
   breadcrumbs?: Array<{
     _id: string;

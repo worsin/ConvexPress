@@ -273,15 +273,6 @@ function SinglePost() {
 		title: resolvedPostData.title,
 		slug: resolvedPostData.slug,
 		excerpt: resolvedPostData.excerpt,
-			content: null,
-			contentMode:
-				((resolvedPostData as { contentMode?: PostDetail["contentMode"] }).contentMode ??
-					"article"),
-			blocks: (resolvedPostData as { blocks?: PostDetail["blocks"] }).blocks ?? undefined,
-			blocksVersion:
-				(resolvedPostData as { blocksVersion?: number }).blocksVersion ?? undefined,
-			blocksRevision:
-				(resolvedPostData as { blocksRevision?: number }).blocksRevision ?? undefined,
 		featuredImageUrl: resolvedPostData.featuredImageUrl ?? undefined,
 		featuredImageAlt: resolvedPostData.featuredImageAlt ?? undefined,
 		publishedAt: resolvedPostData.publishedAt

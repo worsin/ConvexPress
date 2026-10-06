@@ -1,7 +1,6 @@
 import { canonicalPaginationSearch } from "@/templates/sdk/block-public/pagination-search";
 import { loadAnonymousCanonical } from "@/templates/sdk/block-public/anonymous-loader";
 import { PublicCanonicalScope } from "@/templates/sdk/block-public/PublicCanonicalBody";
-import { parseTipTapDocument } from "@/lib/schemas/content";
 /**
  * Home Page Route - /_marketing/
  *
@@ -27,7 +26,7 @@ import { useQuery as useTanStackQuery } from "@tanstack/react-query";
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { api } from "@convexpress-website/backend/generated/api";
 
-import type { PageDetail, BlockDocument } from "@/lib/blog/types";
+import type { PageDetail } from "@/lib/blog/types";
 import { buildIndexablePageHead } from "@/lib/seo/head";
 import CoreHome, { type HomeLatestPost } from "@/templates/packs/core/surfaces/home";
 import { Surface } from "@/templates/sdk/Surface";
@@ -115,12 +114,7 @@ function HomeComponent() {
         featuredImageAlt: (frontPage as { featuredImageAlt?: string }).featuredImageAlt,
         slug: frontPage.slug,
         path: frontPage.path ?? "/",
-        content: frontPage.content ? (parseTipTapDocument(frontPage.content) as BlockDocument | null) : null,
         template: (frontPage.pageTemplate as PageDetail["template"]) ?? "full-width",
-        contentMode: (frontPage as { contentMode?: PageDetail["contentMode"] }).contentMode,
-        blocks: (frontPage as { blocks?: PageDetail["blocks"] }).blocks,
-        blocksVersion: (frontPage as { blocksVersion?: number }).blocksVersion,
-        blocksRevision: (frontPage as { blocksRevision?: number }).blocksRevision,
         parentId: frontPage.parentId as string | undefined,
         isPasswordProtected: false,
       }

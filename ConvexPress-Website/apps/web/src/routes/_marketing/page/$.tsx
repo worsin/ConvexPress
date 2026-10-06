@@ -263,7 +263,6 @@ function SinglePage() {
 		title: resolvedPage.title,
 		slug: resolvedPage.slug,
 		path: resolvedPage.path ?? pagePath,
-		content: null,
 		featuredImageUrl:
 			(resolvedPage as { featuredImageUrl?: string }).featuredImageUrl ??
 			undefined,
@@ -272,15 +271,6 @@ function SinglePage() {
 			undefined,
 		template:
 			(resolvedPage.pageTemplate as PageDetail["template"]) ?? "default",
-		contentMode:
-			((resolvedPage as { contentMode?: PageDetail["contentMode"] }).contentMode ??
-				undefined),
-		blocks:
-			((resolvedPage as { blocks?: PageDetail["blocks"] }).blocks ?? undefined),
-		blocksVersion:
-			(resolvedPage as { blocksVersion?: number }).blocksVersion ?? undefined,
-		blocksRevision:
-			(resolvedPage as { blocksRevision?: number }).blocksRevision ?? undefined,
 		parentId: resolvedPage.parentId as string | undefined,
 		menuOrder: ("menuOrder" in resolvedPage
 			? resolvedPage.menuOrder

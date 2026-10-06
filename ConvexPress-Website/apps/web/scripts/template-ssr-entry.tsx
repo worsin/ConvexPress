@@ -1,4 +1,5 @@
 import { createElement, Suspense } from "react";
+import { ConvexProviderWithAuth, ConvexReactClient } from "convex/react";
 import { renderToReadableStream, renderToStaticMarkup } from "react-dom/server";
 import type { SurfaceComponent } from "../src/templates/sdk/types";
 
@@ -11,12 +12,16 @@ for (const [path, Home] of Object.entries(homes)) {
   console.log(`SSR loading fixture passed: ${packId} (${html.length} bytes)`);
 }
 
+// The real canonical body requires the same provider boundary as the app.
+// SSR runs no subscriptions/effects; this offline client never contacts a site.
+const offlineClient = new ConvexReactClient("https://template-ssr.invalid", { skipConvexDeploymentUrlCheck: true });
+const anonymousAuth = () => ({isLoading:false,isAuthenticated:false,fetchAccessToken:async()=>null});
 // Authored cover exercises escaping and media projection without a network request.
 const AsterHome = homes["../src/templates/packs/aster-house/surfaces/home.tsx"];
-const cover = renderToStaticMarkup(createElement(AsterHome, {
+const cover = renderToStaticMarkup(createElement(ConvexProviderWithAuth, {client:offlineClient,useAuth:anonymousAuth}, createElement(AsterHome, {
   packId: "aster-house",
-  data: { frontPage: { _id: "fixture-page", title: "A place <outside>", excerpt: "An authored introduction.", content: "", contentMode: "richtext", featuredImageUrl: "https://example.invalid/fixture-cover.jpg", featuredImageAlt: "Authored mountain photograph" }, latestPosts: [] },
-}));
+  data: { frontPage: { _id: "fixture-page", title: "A place <outside>", excerpt: "An authored introduction.", slug:"fixture-page", path:"/", featuredImageUrl: "https://example.invalid/fixture-cover.jpg", featuredImageAlt: "Authored mountain photograph" }, latestPosts: [] },
+})));
 for (const expected of ["A place &lt;outside&gt;", "An authored introduction.", "https://example.invalid/fixture-cover.jpg", "Authored mountain photograph"]) {
   if (!cover.includes(expected)) throw new Error(`Aster authored cover omitted or failed to escape: ${expected}`);
 }
@@ -109,3 +114,5 @@ for(const packId of ['core','journal','depot','aster-house']){
   console.log('Lazy canonical SSR passed: '+packId+'/'+scenario.name);
  }
 }
+
+await offlineClient.close();
