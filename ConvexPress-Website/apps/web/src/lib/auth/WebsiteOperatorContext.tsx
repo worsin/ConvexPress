@@ -2,7 +2,7 @@ import { createContext, useContext } from "react";
 import { useConvexAuth } from "convex/react";
 import { useCapabilityAccess } from "@/hooks/useCan";
 
-export type WebsiteOperatorState = { active: boolean; expiresAt: number | null; pending: boolean; error: string | null; end: () => void; dismiss: () => void; reconnect(): void; canReconnect: boolean };
+export type WebsiteOperatorState = { active: boolean; viewerSubject?: string | null; instanceKey?: string | null; expiresAt: number | null; pending: boolean; error: string | null; end: () => void; dismiss: () => void; reconnect(): void; canReconnect: boolean };
 export const WebsiteOperatorContext = createContext<WebsiteOperatorState>({ active: false, expiresAt: null, pending: false, error: null, end() {}, dismiss() {}, reconnect() {}, canReconnect: false });
 export const useWebsiteOperator = () => useContext(WebsiteOperatorContext);
 

@@ -159,12 +159,12 @@ Acceptance: `ConvexPress-Admin/audits/2026-09-04/legacy-reusable-retirement-2026
 
 - [x] Complete palette and commerce-layout migrations with idempotent receipts; retain explicit new settings over legacy defaults. Accepted six-site receipts, no-write replay and four-pack handler/consumer preservation: `appearance-rollout-20261006.md`.
 - [x] Connect header/footer/menu builders fully to Customize, then retire duplicate screens and obsolete runtime consumers.
-- [ ] Exercise each pack's fields, presets, brand/group reset, undo/redo, context groups and click-to-edit. A visible control must change its declared rendered surface.
+- [x] Exercise each pack's fields, presets, brand/group reset, undo/redo, context groups and click-to-edit. A visible control must change its declared rendered surface.
 - [x] Verify draft versus published values, conflicting changes, pack switches, save/reopen and staging appearance promotion preserving unrelated live data.
 - [ ] Verify operator-only Website editing, customer denial, live revocation, session expiry/reconnect and retained unsaved values.
 - [x] Cover the template handoff's 22 signed-in dashboard surfaces per applicable pack plus affected public surfaces. Use shared valid fixtures and batch route captures; do not invent extra dashboard features.
 
-Task5 reconciliation: `customizer-global-layout-20261006.md` maps the completed chrome, separate-database promotion and dashboard clauses. Actual global layout controls pass156rendered checks. Remaining palette/preset/Shop field mapping and E05 public HTTPS/local-network editing stay open.
+Task5 reconciliation: `customizer-global-layout-20261006.md` maps the completed chrome, separate-database promotion and dashboard clauses. Actual global layout controls pass156rendered checks. `customizer-palette-shop-20261006.md` adds20palette/theme combinations,64manual color mappings and96Shop responsive combinations, closing field mapping and the E102 operator canonical-body defect. E05 public HTTPS/local-network editing remains open.
 
 ### Task 6 — Deliver four polished starter websites and BlockDemo
 

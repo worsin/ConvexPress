@@ -144,7 +144,7 @@ export function SessionBoundConvexProvider(props: Props) {
   const identity = auth.isLoaded ? auth : null;
   const key = JSON.stringify([identity?.userId ?? null, identity?.sessionId ?? null, identity?.orgId ?? null]);
   const canReconnect = !!desktop.current && !!owner.current;
-  const operator = useMemo(() => ({ active: !!session, expiresAt: session?.expiresAt ?? null, pending, error, end, dismiss, reconnect, canReconnect }), [session, pending, error, end, dismiss, reconnect, canReconnect]);
+  const operator = useMemo(() => ({ active: !!session, viewerSubject: session?.viewerSubject ?? null, instanceKey: session?.instanceKey ?? null, expiresAt: session?.expiresAt ?? null, pending, error, end, dismiss, reconnect, canReconnect }), [session, pending, error, end, dismiss, reconnect, canReconnect]);
   const draftAccess = useMemo(() => session ? recovery.access(session) : null, [session, recovery]);
   return <WebsiteOperatorContext.Provider value={operator}>
     <OperatorDraftContext.Provider value={draftAccess}>

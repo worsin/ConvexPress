@@ -17,11 +17,14 @@ let auth = {
 		sessionId: "session_a",
 	},
 	convexAuth = { isLoading: false, isAuthenticated: true };
+let operator = {active:false};
+mock.module("@/lib/auth/WebsiteOperatorContext", () => ({useWebsiteOperator:()=>operator}));
 let templateSettings = { packId: "core", savedPackId: "core" };
 let siteInstance = "stage", history = {ids:[],ready:true};
 const watches = [];
 let lastInstallation;
 let transport = {
+  url: "https://public-test.convex.cloud",
 	watchQuery(_name, args) {
 		const watch = {
 			args,
@@ -86,7 +89,10 @@ mock.module("../block-renderer/shopping-assistant-production", () => ({ Producti
 mock.module("../block-renderer/collection-cart-production", () => ({ ProductionCollectionCartProvider: ({children}) => children }));
 mock.module("../block-renderer/rsvp-production", () => ({ ProductionRsvpProvider: ({children}) => children, RsvpDraftScope: ({children}) => children }));
 mock.module("../block-renderer/poll-production", () => ({ ProductionPollProvider: ({children}) => children, PollDraftScope: ({children}) => children }));
-mock.module("../../../hooks/useProductHistory",()=>({useProductHistory:()=>history}));
+const actualHistory = await import("../../../hooks/useProductHistory");
+const realUseProductHistory = actualHistory.useProductHistory;
+let realHistory = false;
+mock.module("../../../hooks/useProductHistory",()=>({useProductHistory:(enabled)=>realHistory ? realUseProductHistory(enabled) : history}));
 const { PublicCanonicalBody, PublicCanonicalScope } = await import(
 	"./PublicCanonicalBody"
 );
@@ -431,4 +437,58 @@ test('Aster home follows the authorized current hero and ignores archived route 
   expect(document.querySelector('h1').textContent).toBe(frontPage.title);
   expect(document.querySelector('#aster-story')?.textContent).not.toContain('Authorized body');
  },{},view);
+});
+
+
+test('operator canonical reads bind the backend subject independently of Clerk and clear on renewal identity changes or exit',async()=>{
+ await withSeededBody({...ready(null),historyDigest:productHistoryDigest([])},async({render})=>{
+  try {
+   operator={active:true,userId:'operator_a',viewerSubject:'management_session_a',instanceKey:'stage',expiresAt:Date.now()+60000};
+   convexAuth={isLoading:false,isAuthenticated:true};
+   const before=watches.length;await render();
+   expect(watches.length).toBeGreaterThan(before);
+   expect(document.querySelector('article')).toBeNull();
+   const deliver=async(value)=>{const w=watches.at(-1);w.value={...value,historyDigest:productHistoryDigest([])};await act(async()=>w.listener());};
+   await deliver(ready('reader_a'));expect(document.querySelector('article')).toBeNull();
+   await deliver(ready('management_session_a'));expect(document.body.textContent).toContain('Authorized body');
+   const watch=watches.at(-1),article=document.querySelector('article');
+   operator={...operator,expiresAt:Date.now()+120000};await render();
+   expect(watches.at(-1)).toBe(watch);expect(document.querySelector('article')).toBe(article);
+   auth={isLoaded:true,isSignedIn:true,userId:'reader_a',sessionId:'clerk_a'};await render();
+   expect(watches.at(-1)).toBe(watch);expect(document.querySelector('article')).toBe(article);
+   operator={...operator,viewerSubject:'management_session_b'};await render();
+   expect(watch.stopped).toBe(true);expect(document.querySelector('article')).toBeNull();
+   await act(async()=>watch.listener());expect(document.querySelector('article')).toBeNull();
+   await deliver(ready('management_session_b'));expect(document.querySelector('article')).not.toBeNull();
+   convexAuth={isLoading:false,isAuthenticated:false};await render();expect(document.querySelector('article')).toBeNull();
+   operator={active:false};convexAuth={isLoading:false,isAuthenticated:true};await render();
+   await deliver(ready('management_session_b'));expect(document.querySelector('article')).toBeNull();
+   await deliver(ready('reader_a'));expect(document.querySelector('article')).not.toBeNull();
+   for(const invalid of [{active:true,instanceKey:'stage'},{active:true,viewerSubject:'operator_a',instanceKey:'other'}]){
+    const count=watches.length;operator=invalid;await render();
+    expect(watches.length).toBe(count);expect(document.querySelector('article')).toBeNull();
+    expect(document.body.textContent).toContain('This document is not currently available.');
+   }
+  } finally {operator={active:false};}
+ });
+});
+
+
+test('operator canonical bodies settle with actual history storage without borrowing anonymous or customer visits',async()=>{
+ realHistory=true;
+ try {await withSeededBody({...ready(null),historyDigest:productHistoryDigest([])},async({render})=>{
+  const {productHistoryKey,recordProductVisit}=await import('../../../lib/commerce/product-history');
+  const key=viewerKey=>productHistoryKey({backendUrl:transport.url,instanceKey:'stage',viewerKey});
+  recordProductVisit(window.localStorage,key('anonymous'),'anonymous-product');
+  recordProductVisit(window.localStorage,key('user:reader_a'),'customer-product');
+  recordProductVisit(window.localStorage,key('operator:operator_a'),'operator-product');
+  operator={active:true,viewerSubject:'operator_a',instanceKey:'stage'};convexAuth={isLoading:false,isAuthenticated:true};
+  await render();const w=watches.at(-1);
+  expect(w.args.recentlyViewedIds).toEqual(['operator-product']);
+  w.value={...ready('operator_a'),historyDigest:productHistoryDigest(['operator-product'])};await act(async()=>w.listener());
+  expect(document.querySelector('article')).not.toBeNull();
+  operator={active:false};auth={isLoaded:true,isSignedIn:true,userId:'reader_a',sessionId:'reader-session'};
+  await render();expect(document.querySelector('article')).toBeNull();expect(w.stopped).toBe(true);
+  expect(watches.at(-1).args.recentlyViewedIds).toEqual(['customer-product']);
+ });}finally{realHistory=false;operator={active:false};}
 });

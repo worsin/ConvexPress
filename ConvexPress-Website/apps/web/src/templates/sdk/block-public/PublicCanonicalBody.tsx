@@ -29,7 +29,7 @@ import {
 import { useConvex, useConvexAuth } from "convex/react";
 import { api } from "@convexpress-website/backend/generated/api";
 import type { Id } from "@convexpress-website/backend/generated/dataModel";
-import { useAuth } from "@/lib/auth/clerk";
+import { usePublicViewer } from "@/lib/auth/usePublicViewer";
 import { getSiteRuntime } from "@/lib/site-runtime";
 import { useTemplateSettings } from "../useTemplateSettings";
 import { CanonicalDocumentView } from "../block-preview/CanonicalDocumentView";
@@ -77,7 +77,7 @@ export type PublicBodyLayout = (body: ReactNode, opensWithHero: boolean) => Reac
 const defaultLayout: PublicBodyLayout = body => body;
 export function PublicCanonicalBody({ documentId, renderLayout = defaultLayout }: { documentId: string; renderLayout?: PublicBodyLayout }) {
 	const scope = useContext(Context),
-		auth = useAuth(),
+		auth = usePublicViewer(),
 		convexAuth = useConvexAuth(),
 		convex = useConvex();
 	const [mounted, setMounted] = useState(false);
@@ -95,6 +95,7 @@ export function PublicCanonicalBody({ documentId, renderLayout = defaultLayout }
 			convex,
 			instanceKey,
 			documentId,
+			auth.kind,
 			Boolean(auth.isSignedIn),
 			auth.userId ?? null,
 			auth.sessionId ?? null,
@@ -104,7 +105,7 @@ export function PublicCanonicalBody({ documentId, renderLayout = defaultLayout }
 		],
 	);
 	const firstGeneration = useRef(generation);
-	if (!scope || scope.documentId !== documentId || !instanceKey)
+	if (!scope || scope.documentId !== documentId || !instanceKey || auth.unavailable)
 		return renderLayout(<Unavailable />, false);
 	const enabled = mounted && auth.isLoaded && !convexAuth.isLoading &&
 		Boolean(auth.isSignedIn) === convexAuth.isAuthenticated &&

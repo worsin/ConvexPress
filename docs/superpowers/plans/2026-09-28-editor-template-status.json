@@ -7,7 +7,7 @@
     "In progress": 5
   },
   "goal": "Complete block editor and template delivery plus all demonstrated blockers; defer unrelated whole-app audit campaigns.",
-  "currentTask": "132Verified/5In progress. Task4complete. Task5 chrome/retirement, draft-publication/promotion and original22dashboard clauses now accepted;156global-layout renders preserve exact text/reset. Finish remaining palette/preset and Shop field evidence mapping; E05 requires authorized public staging host. Task6 demo/motion, Task7 actual AI and Task8 frozen integration remain open.",
+  "currentTask": "132Verified/5In progress. Task4 complete. Task5 field/preset/Shop mapping now accepted, including E102 canonical operator viewer repair; E05 hosted HTTPS/local-network editing remains open. Continue Task6 demo/motion, Task7 actual AI composition and Task8 frozen integration; five independent block acceptance rows remain.",
   "tasks": [
     {
       "id": 1,
@@ -188,11 +188,11 @@
     },
     {
       "id": "E09",
-      "status": "Unified header/footer/menu controls and obsolete editor retirement accepted; draft/publish/conflict/switch/recovery and real separate-database appearance promotion accepted, including target-owned media and mailing-list mapping. Original22dashboard surface coverage accepted across4packs at390/1280. Global layout now passes156actual Website checks with exact reset/text and no overflow. Schema inventory:94fields perpack across7modules; inventory is not a per-field acceptance claim. Remaining: finish palette/preset and Shop variant evidence mapping at all-pack scope; hosted HTTPS/local-network launch remains E05. See customizer-global-layout-20261006.md; do not reopen accepted Aster/header/footer/menu/dashboard matrices from stale report next-step text.",
-      "classification": "missing evidence",
+      "status": "Customizer field-to-surface mapping accepted across all four packs: prior chrome/context/history/typography/promotion/dashboard evidence plus156global-layout checks,20palette/theme combinations,64manual color mappings and96Shop responsive combinations. E102 operator canonical-body mismatch repaired and verified. Hosted HTTPS/local-network editing remains separately open in E05; final integration remains Task8.",
+      "classification": "accepted/reusable evidence",
       "initialFinding": "Customizer contextual fields, all packs/surfaces, header/footer/menu integration and operator authority are not fully accepted.",
       "closureBoundary": "Verify the field group controls the actual surface, click-to-edit focus, draft/publish/reset/history/conflicts, pack switches, session continuity, customer denial and revocation.",
-      "nextCheck": "Map remaining Colors16/presets and Shop4 choices to actual all-pack rendered evidence; only exercise unproved combinations. Reuse global layout, typography, native histories, chrome, promotion and dashboard receipts. E05 needs an authorized public staging host; continue independent work.",
+      "nextCheck": "Reuse accepted field, reset, history, context, chrome and promotion receipts. E05 needs an authorized public staging host. Continue Task6 demo/motion, Task7 actual AI and Task8 final artifact/overlay integration without reopening accepted matrices.",
       "deliveryTask": 5,
       "triagedAt": "2026-09-29",
       "triageEvidence": "ConvexPress-Admin/audits/2026-09-04/delivery-blocker-triage-20260929.md",
@@ -218,7 +218,8 @@
         "ConvexPress-Admin/audits/2026-09-04/footer-content-controls-20261006.md",
         "ConvexPress-Admin/audits/2026-09-04/footer-cell-controls-20261006.md",
         "ConvexPress-Admin/audits/2026-09-04/footer-newsletter-20261006.md",
-        "ConvexPress-Admin/audits/2026-09-04/customizer-global-layout-20261006.md"
+        "ConvexPress-Admin/audits/2026-09-04/customizer-global-layout-20261006.md",
+        "ConvexPress-Admin/audits/2026-09-04/customizer-palette-shop-20261006.md"
       ]
     },
     {
@@ -1291,6 +1292,26 @@
         "output/synced-promotion-final-20261006/locks-red.log",
         "output/synced-promotion-final-20261006/first-apply-proof.json",
         "output/synced-promotion-final-20261006/rollback-proof.json"
+      ]
+    },
+    {
+      "id": "E102",
+      "classification": "accepted/reusable evidence",
+      "ownerTask": "Task 5",
+      "requiredWorkflow": "Open canonical pages in the authorized on-site Customizer and preview palette changes.",
+      "initialFinding": "Production Website 6fc1e5fa renders Loading document indefinitely after operator handoff: canonical body and product history compare Clerk customer readiness with the operator Convex session.",
+      "causalConnection": "Operator and customer identities differ. Managed operator JWT subject is the management session ID, not the operator user ID.",
+      "repairBoundary": "Expose the existing signed viewer subject in handoff metadata; bind canonical reads and isolated operator history to that identity while retaining backend acknowledgement and stale-result rejection. Do not alter Clerk customer identity or capabilities.",
+      "exitCheck": "Focused lifecycle/HTTP/history regressions plus actual production Website canonical body and palette preview under a normal operator handoff; verify ending editing and preservation.",
+      "status": "Repaired and accepted on production Website through a normal source-site operator handoff; full scoped preservation and cleanup verified.",
+      "deliveryTask": 5,
+      "currentEvidence": [
+        "ConvexPress-Admin/audits/2026-09-04/customizer-palette-shop-20261006.md",
+        "output/customizer-palette-shop-20261006/identity-final.log",
+        "output/customizer-palette-shop-20261006/http-tests.log",
+        "output/customizer-palette-shop-20261006/artifact-proof.json",
+        "output/customizer-palette-shop-20261006/preservation.json",
+        "output/customizer-palette-shop-20261006/cleanup.json"
       ]
     }
   ],
@@ -5103,7 +5124,11 @@
     "output/legacy-reusable-retirement-20261006/corpus.json",
     "output/legacy-reusable-retirement-20261006/history-final.json",
     "output/legacy-reusable-retirement-20261006/reference-reconciliation.json",
-    "output/legacy-reusable-retirement-20261006/preservation.json"
+    "output/legacy-reusable-retirement-20261006/preservation.json",
+    "ConvexPress-Admin/audits/2026-09-04/customizer-palette-shop-20261006.md",
+    "output/customizer-palette-shop-20261006/source-source-installed.json",
+    "output/customizer-palette-shop-20261006/preservation.json",
+    "output/customizer-palette-shop-20261006/cleanup.json"
   ],
   "trackerRefresh": {
     "source": "output/field-guide-legacy-final-20261006/mt-accept-after.json",
@@ -5165,7 +5190,8 @@
     "syncedPromotion": "Audit54 remains latest and already adjudicated. Codex independently verified and repaired E101 promotion lock gap; 131/6 verified tracker. No waiting for upcoming deep audit; keep corpus retirement and final integration distinct from block acceptance.",
     "fieldGuideLegacy": "Audit54 remains latest and already adjudicated. Native conversion/history recovery passed without reconnection; E99 remains an intermittent integration watch. 132/5 tracker verified. Next bounded E07 compatibility retirement; no wait for deep audit.",
     "audit55": "ACCEPT 132/5 count and no-drift assessment against current local evidence. ADAPT E99 status: this native private-draft recovery renders automatically, retain intermittent integration watch without claiming a causal fix. No new defect or scope change. Codex independently retired the unused seven-function closure; no waiting for deep audit.",
-    "reusableRetirement": "Audit55 remains latest/already adjudicated. Codex independently completed reusable corpus reconciliation and seven-function retirement. All three original sources map exactly; no new provider prerequisite or wait. Task4 now accepted; full goal remains active."
+    "reusableRetirement": "Audit55 remains latest/already adjudicated. Codex independently completed reusable corpus reconciliation and seven-function retirement. All three original sources map exactly; no new provider prerequisite or wait. Task4 now accepted; full goal remains active.",
+    "paletteShop": "Audit55 remains latest and already adjudicated. Independently repaired E102 operator canonical reads and completed palette/Shop field mapping; no new Claude scope directive. Next bounded work: Task6 demo/motion and Task7 actual AI, retain E05 external staging requirement and Task8 overlay/artifact integration."
   },
   "sessionBaseCommit": "9824d9605e50c4b0ebd711c13715b506f8ef5bd3"
 }

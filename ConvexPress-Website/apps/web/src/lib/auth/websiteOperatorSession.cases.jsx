@@ -87,7 +87,10 @@ test("StrictMode redeems once, removes the secret, separates customer authority 
   expect(calls).toBe(1);
   expect(document.body.textContent).toContain("Opening website editing");
   const before = childMounts;
-  await act(async () => resolve(Response.json({ token: "operator-token", expiresAt: Date.now() + 60000, instanceKey: "one:staging" })));
+  await act(async () => resolve(Response.json({ token: "operator-token", expiresAt: Date.now() + 60000, instanceKey: "one:staging", viewerSubject: "management-session" })));
+  expect(operatorControls.viewerSubject).toBe("management-session");
+  expect(operatorControls.instanceKey).toBe("one:staging");
+
   expect(document.querySelector("[data-operator]")).not.toBeNull();
   expect(document.querySelector("[data-customer]")).toBeNull();
   expect(await lastOperatorAuth.fetchAccessToken()).toBe("operator-token");

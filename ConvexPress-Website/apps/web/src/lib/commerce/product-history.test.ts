@@ -32,3 +32,15 @@ test("pending and changing authentication cannot fall through to anonymous histo
  for(const change of [{loaded:false},{backendLoading:true},{backendAuthenticated:false},{userId:null},{signedIn:false}]) expect(productHistoryScope({...ready,...change})).toBeNull();
  expect(productHistoryScope({...ready,signedIn:false,userId:null,backendAuthenticated:false})).toContain("anonymous");
 });
+
+
+test("operator history cannot read or write the customer or anonymous bucket",async()=>{
+ const {productHistoryScope}=await import('./product-history');
+ const identity={backendUrl:scope.backendUrl,instanceKey:'stage',loaded:true,signedIn:true,userId:'same-subject',backendLoading:false,backendAuthenticated:true};
+ const customer=productHistoryScope(identity)!,operator=productHistoryScope({...identity,viewerKind:'operator'})!;
+ expect(operator).not.toBe(customer);expect(operator).toContain('operator:same-subject');
+ const store=storage();recordProductVisit(store,customer,'customer-product');recordProductVisit(store,operator,'operator-product');
+ expect(readProductHistory(store,customer).map(v=>v.id)).toEqual(['customer-product']);
+ expect(readProductHistory(store,operator).map(v=>v.id)).toEqual(['operator-product']);
+ expect(productHistoryScope({...identity,viewerKind:'operator',backendAuthenticated:false})).toBeNull();
+});

@@ -99,9 +99,23 @@ test("HTTP exchange rejects invalid origins and signs a bounded existing-provide
     expect(result.status).toBe(200); expect(result.headers.get("cache-control")).toBe("no-store");
     const data = await result.json();
     expect(data.userId).toBe("admin");
+    expect(data.viewerSubject).toBe("admin");
     const verified = await jwtVerify(data.token, keys.publicKey, { issuer: "https://convexpress-admin.local", audience: "convexpress-admin" });
     expect(verified.payload.sub).toBe("admin"); expect(verified.payload.exp! * 1000).toBeLessThanOrEqual(Date.now() + 300_000);
     expect((await run(operatorHandoffHandler, ctx, request())).status).toBe(403);
     expect((await run(operatorHandoffPreflight, ctx, request())).status).toBe(204);
   } finally { if (previousKey === undefined) delete process.env.AUTH_PRIVATE_KEY; else process.env.AUTH_PRIVATE_KEY = previousKey; }
+});
+
+
+test("managed handoff exposes its signed subject separately from the operator user", async()=>{
+ const previous=process.env.AUTH_PRIVATE_KEY,keys=await generateKeyPair("ES256",{extractable:true});
+ process.env.AUTH_PRIVATE_KEY=await exportPKCS8(keys.privateKey);
+ try {
+  const ctx=fixture(true),code="c".repeat(64);await run(create,ctx,{codeHash:await hashRefreshToken(code)});
+  const response=await run(operatorHandoffHandler,ctx,new Request(origin+"/auth/operator-handoff",{method:"POST",headers:{Origin:origin,"Content-Type":"application/json"},body:JSON.stringify({code})}));
+  expect(response.status).toBe(200);const data=await response.json();
+  const verified=await jwtVerify(data.token,keys.publicKey,{issuer:"https://convexpress-management.local",audience:"convexpress-admin"});
+  expect(data.viewerSubject).toBe(verified.payload.sub);expect(data.viewerSubject).toBe("session");expect(data.userId).toBe("admin");
+ } finally {if(previous===undefined)delete process.env.AUTH_PRIVATE_KEY;else process.env.AUTH_PRIVATE_KEY=previous;}
 });
