@@ -1,3 +1,7 @@
+## October 5 — Legacy demo content seed retired
+
+Both sites remove exactly seedMarketingSite and repairSeededPageLinks; the old CLI exits before side effects. Shared media/shop functions and all remaining signatures preserved. Original145documents/522revisions and appearance/mail exact, indexes ready, readback sessions revoked. No destructive seed executed. E07 remains open for the recorded native/backend/schema consumers;117/20 unchanged. [Evidence and next deployment bases](demo-seed-retirement-20261005.md).
+
 ## October 5 — WordPress canonical import accepted
 
 Both sites import posts/pages through canonical transactions with current owner/job authority, compare-and-swap, retained source archives and atomic mapping receipts. Four actual native edit/reload/388px Website journeys pass. Final178 focused tests; page metadata cascade regression repaired and live cleanup exact. Six owned documents removed; original145documents/522revisions, metadata/private drafts/appearance/mail exact; temporary keys/sessions/runtimes cleaned. E07 and full goal remain open117Verified/20In progress. [Evidence, limits and next deployment bases](wp-canonical-20261005.md).

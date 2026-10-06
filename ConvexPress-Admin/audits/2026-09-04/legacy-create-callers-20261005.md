@@ -33,3 +33,12 @@ The coordinated HTTP boundary above is accepted in [http-canonical-20261005.md](
 5. Exit check: imported post and nested page create/update with canonical history, metadata and mapping; invalid content, stale revision, revoked/cancelled authority and late metadata failure leave the prior record/receipt unchanged. Failed jobs do not advance last successful sync. Native/Website verification and separate-site preservation remain required before deployment acceptance.
 
 WordPress exit-check dependency: actual source fixture cleanup left 9 metadata rows belonging to two permanently deleted pages. `pages.permanentDelete` never deleted postMeta; posts already do. Add a bounded, media-aware page metadata cascade and a bounded internal orphan-only repair (refuses any existing parent) for those already-deleted fixture rows. Regression: normal deletion removes only its own metadata; repair refuses a live parent and processes 100 rows per call. Reuse the completed native import roundtrip; deploy only these page changes and verify target deletion through the ordinary endpoint. No unrelated cleanup or original metadata deletion.
+
+
+## Legacy demo content retirement
+
+1. Required workflow: all supported new post/page content uses canonical authoring; retained documents/history survive migration.
+2. Evidence: both installed `seedMarketingSite` implementations call `clearExistingContent`, which deletes posts/pages, revisions, metadata, taxonomy and menus, then inserts old bodies. `repairSeededPageLinks` patches legacy content strings. The app-only caller search missed `scripts/seed-demo-site.mjs`; full source and both installed backend searches show no other callers.
+3. Dependency: these registered content writers could reintroduce legacy documents or silently patch stale projections after canonical migration.
+4. Repair boundary: remove the two obsolete registered mutations and their private content helpers; replace their CLI with an explicit side-effect-free retirement message. Preserve the shared media importer byte-for-byte and all shop/catalog functions. Do not run a destructive seed or delete existing data.
+5. Exit check: source/target function inventories remove exactly these two endpoints; media/shop signatures and implementation remain exact, backend/contracts/writer checks pass, and original site documents/history/appearance/mail remain exact.
