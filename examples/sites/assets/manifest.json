@@ -1,0 +1,42 @@
+[
+  {
+    "pack": "core",
+    "file": "fieldwork-studio.png",
+    "alt": "A sunlit design studio with paper layouts, pencils and material samples on a pale wood table.",
+    "width": 1536,
+    "height": 1024,
+    "sha256": "87e60f410582c0f65841bdd883ccfdde8e5102a728a5b8322ee8b71db3badac4",
+    "bytes": 2052410,
+    "provenance": "Original image generated with the built-in image_gen tool for this fictional example site."
+  },
+  {
+    "pack": "journal",
+    "file": "slow-current-bench.png",
+    "alt": "A weathered wooden bench under an autumn tree beside a neighborhood walking path.",
+    "width": 1536,
+    "height": 1024,
+    "sha256": "f339b027b5c72ba64adb101667c98dbe8ec8f42b39551ecbd47111b4f2bb8f2d",
+    "bytes": 3602027,
+    "provenance": "Original image generated with the built-in image_gen tool for this fictional example site."
+  },
+  {
+    "pack": "depot",
+    "file": "common-supply-collection.png",
+    "alt": "A chalk stoneware cup, folded oat linen cloth and shallow oak tray on a warm ivory tabletop.",
+    "width": 1536,
+    "height": 1024,
+    "sha256": "c2f5649197f9abe63845e5556599cfa7be9a0fb4dc118621403a2c9fba21c92e",
+    "bytes": 2319720,
+    "provenance": "Original image generated with the built-in image_gen tool for this fictional example site."
+  },
+  {
+    "pack": "aster-house",
+    "file": "aster-house-terrace.png",
+    "alt": "A limestone guesthouse and shaded terrace overlook grasses and foothills in morning light.",
+    "width": 1536,
+    "height": 1024,
+    "sha256": "686033300feaeb26dd26e0678dd21c96ad89d440dff121ddd2d77255d1173394",
+    "bytes": 3532417,
+    "provenance": "Original image generated with the built-in image_gen tool for this fictional example site."
+  }
+]

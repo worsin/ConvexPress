@@ -7,7 +7,7 @@
     "In progress": 20
   },
   "goal": "Complete block editor and template delivery plus all demonstrated blockers; defer unrelated whole-app audit campaigns.",
-  "currentTask": "Task6/E10: four dedicated staging sites now attached in Admin and running at localhost4325-4328;21 canonical documents published with homepages/menus/appearance,3 real Depot products and2 Aster events. All21 HTTP route checks pass; observed browser article/navigation/catalog/cart/event detail pass. Owned API sessions revoked. Next owned media, forms, resource/category/copy polish, actual native edit/Website preview and explicit responsive acceptance. See example-sites-live-20261005.md. No finished-site or overall delivery claim; no push.",
+  "currentTask": "Task6/E10: four sites remain live. Added4 original media assets via real upload/thumbnail pipeline;7 canonical documents saved with media. Core/Aster inquiry forms published, browser validation/submission/confirmation accepted, exactly1complete synthetic entry per form verified through Admin API; notifications disabled. Next Depot individual product media/category/variant/checkout, then native edit/Website preview and explicit responsive/visual acceptance. See example-site-media-inquiries-20261005.md; no full-site/goal completion claim.",
   "tasks": [
     {
       "id": 1,
@@ -187,16 +187,17 @@
     },
     {
       "id": "E10",
-      "status": "Open: individual block/pack matrices and Steps motion are accepted within their boundaries; they do not constitute four complete authored example sites or a finished all-block BlockDemo review. Named flagship/pattern/site requirements still need explicit inventory reconciliation. Audit38: retired destructive marketing seed has no canonical replacement yet. Link its safe example-site provisioning capability to this open task; retirement alone is not delivery. Four fictional content recipes and canonical draft-authoring CLI now implemented;21 pages/articles pass actual-handler idempotency/preservation tests. Four separate live staging instances, media/plugin records, menus/appearance and rendered acceptance remain unfinished. Four dedicated staging sites now deployed/registered; all21 authored documents published with actual homepage/menu/appearance configuration. Three Depot products and two Aster events published. HTTP21routes and bounded actual-browser navigation/article/catalog/cart/event detail checks pass. Media/forms/native/responsive and remaining resource/copy polish stay open.",
+      "status": "Open: individual block/pack matrices and Steps motion are accepted within their boundaries; they do not constitute four complete authored example sites or a finished all-block BlockDemo review. Named flagship/pattern/site requirements still need explicit inventory reconciliation. Audit38: retired destructive marketing seed has no canonical replacement yet. Link its safe example-site provisioning capability to this open task; retirement alone is not delivery. Four fictional content recipes and canonical draft-authoring CLI now implemented;21 pages/articles pass actual-handler idempotency/preservation tests. Four separate live staging instances, media/plugin records, menus/appearance and rendered acceptance remain unfinished. Four dedicated staging sites now deployed/registered; all21 authored documents published with actual homepage/menu/appearance configuration. Three Depot products and two Aster events published. HTTP21routes and bounded actual-browser navigation/article/catalog/cart/event detail checks pass. Media/forms/native/responsive and remaining resource/copy polish stay open. Four original images processed active with4sizes each and bound to7documents. Core/Aster local inquiry flows passed actual browser validation/submission/confirmation plus3-answer Admin entry readback each. Individual product imagery and full native/responsive/commerce acceptance remain open.",
       "classification": "missing implementation",
       "initialFinding": "Full default websites, remaining flagship treatments and the complete BlockDemo visual review are unfinished.",
       "closureBoundary": "Deliver four complete simple sites and all-block demo coverage. Check realistic copy, optional assets, narrow placements, links, image crops, visible focus and template consistency. Provide a non-destructive, idempotent canonical example-site authoring/provisioning path; preserve existing documents, menus and revisions.",
-      "nextCheck": "Complete owned media and inquiry forms, product/category/variant and test checkout workflows, native edit/reopen/actual Website preview and desktop/mobile acceptance for the four dedicated examples. Preserve durable sites and original sites; do not rerun draft journals after publication. See example-sites-live-20261005.md and output/example-sites-20261005 receipts.",
+      "nextCheck": "Complete Depot individual product presentation/category/variant/test checkout workflow, then actual native editor/Website preview and responsive/visual acceptance across4examples. Preserve durable site/media/forms and synthetic review entries. See example-site-media-inquiries-20261005.md.",
       "deliveryTask": 6,
       "triagedAt": "2026-09-29",
       "triageEvidence": "ConvexPress-Admin/audits/2026-09-04/delivery-blocker-triage-20260929.md",
       "currentEvidence": [
-        "ConvexPress-Admin/audits/2026-09-04/example-sites-live-20261005.md"
+        "ConvexPress-Admin/audits/2026-09-04/example-sites-live-20261005.md",
+        "ConvexPress-Admin/audits/2026-09-04/example-site-media-inquiries-20261005.md"
       ]
     },
     {
