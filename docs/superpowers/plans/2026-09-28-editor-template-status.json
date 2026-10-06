@@ -187,11 +187,11 @@
     },
     {
       "id": "E10",
-      "status": "Open: four dedicated authored sites,21published canonical documents,original media,Core/Aster local inquiries,Depot catalog/variant/demo checkout and representative native editing across4packs accepted within documented boundaries. All13distinct authored CTA destinations resolve. Full responsive site/chrome/focus/visual review and remaining flagship/pattern/all-block BlockDemo requirements are unfinished.",
+      "status": "Open: four dedicated authored sites/21published documents, media,Core/Aster local inquiries,Depot catalog/variant/demo checkout and representative native editing accepted. Bounded390px/1280px homepage/drawer/chrome proof accepted; E74 mobile account and E75 footer defects repaired. Six posts cleaned of redundant title headings. Journal and Depot each have8source patterns and all15P0 owned renderers, explicitly reconciled with saved tracker. Remaining final all-block/demo/state/motion and integrated site acceptance remain open.",
       "classification": "missing implementation",
       "initialFinding": "Full default websites, remaining flagship treatments and the complete BlockDemo visual review are unfinished.",
       "closureBoundary": "Deliver four complete simple sites and all-block demo coverage. Check realistic copy, optional assets, narrow placements, links, image crops, visible focus and template consistency. Provide a non-destructive, idempotent canonical example-site authoring/provisioning path; preserve existing documents, menus and revisions.",
-      "nextCheck": "Review complete four-site narrow/wide chrome, image crops and focus/navigation; verify reported Core mobile user-menu setting mismatch against its contract. Continue remaining Task5/7/8 gates.",
+      "nextCheck": "Review current BlockDemo pattern compositions, selected-pack states and final remaining visual/motion evidence; reuse prior matrix provenance. Continue remaining Task5/7/8 gates.",
       "deliveryTask": 6,
       "triagedAt": "2026-09-29",
       "triageEvidence": "ConvexPress-Admin/audits/2026-09-04/delivery-blocker-triage-20260929.md",
@@ -199,7 +199,8 @@
         "ConvexPress-Admin/audits/2026-09-04/example-sites-live-20261005.md",
         "ConvexPress-Admin/audits/2026-09-04/example-site-media-inquiries-20261005.md",
         "ConvexPress-Admin/audits/2026-09-04/example-products-20261005.md",
-        "ConvexPress-Admin/audits/2026-09-04/example-native-20261005.md"
+        "ConvexPress-Admin/audits/2026-09-04/example-native-20261005.md",
+        "ConvexPress-Admin/audits/2026-09-04/example-responsive-20261005.md"
       ]
     },
     {
@@ -4604,7 +4605,8 @@
     "ConvexPress-Admin/audits/2026-09-04/legacy-field-preservation-20261005.md",
     "ConvexPress-Admin/audits/2026-09-04/example-site-authoring-20261005.md",
     "ConvexPress-Admin/audits/2026-09-04/example-native-20261005.md",
-    "ConvexPress-Admin/audits/2026-09-04/example-responsive-20261005.md"
+    "ConvexPress-Admin/audits/2026-09-04/example-responsive-20261005.md",
+    "output/example-responsive-20261005/flagship-pattern-reconciliation.json"
   ],
   "trackerRefresh": {
     "source": "output/lead-customer-20260929/mt-accept-after.json",

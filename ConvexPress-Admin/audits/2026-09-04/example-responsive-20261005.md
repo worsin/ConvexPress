@@ -25,3 +25,7 @@ Journal article repeats its post title as the first canonical body heading. All 
 Follow-up verification: Website types and production build pass; changed-footer-file lint passes, combined isolated mobile/footer wrappers pass, recipe5tests/83assertions pass. All four preview receipts now point to output/example-responsive-20261005/footer-dist (PIDs8147/8161/8179/8191). Full lint limitation above remains. Viewport override reset, four deliverable tabs retained, source/target preservation and existing order/forms unchanged.
 
 Goal remains active, 117 Verified / 20 In progress. Task6 and Tasks5/7/8 remain open. No push.
+
+## Task6 source reconciliation
+
+Explicitly compared all15 P0 Flagship names from the saved137-row tracker readback with Journal and Depot manifests: both have an existing owned renderer for every one, exceeding the phase3 minimum12. Both have eight individually named pattern files, not an inferred share of32. Pattern contract tests and4pack/90surface template check pass. Receipt: output/example-responsive-20261005/flagship-pattern-reconciliation.json. This closes the source inventory uncertainty; final runtime pattern/flagship visual acceptance remains separate.
