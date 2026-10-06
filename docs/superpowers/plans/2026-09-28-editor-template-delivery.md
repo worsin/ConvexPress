@@ -174,10 +174,10 @@ Task5 reconciliation: `customizer-global-layout-20261006.md` maps the completed 
 
 - [ ] Finish required flagship owned treatments and named styles from the existing handoff/tracker; every other block must look intentional through SDK/pack styling. Reconcile the phase-3 flagship minimum and all P0 tracker rows explicitly; verify at least the specified eight patterns each for Journal and Depot rather than inferring that from 32 aggregate patterns.
 - [ ] Author Core studio/business, Journal editorial, Depot store and Aster House hospitality examples with real navigation, headers/footers, media and applicable detail pages. Preserve literal authored content through pack switches.
-- [ ] Organize BlockDemo by purpose with every block discoverable, selected-pack previews, full-page compositions and useful state variants. Keep demo-only fixtures out of customer starter data.
+- [x] Organize BlockDemo by purpose with every block discoverable, selected-pack previews, full-page compositions and useful state variants. Keep demo-only fixtures out of customer starter data. Evidence: demo-visible-review-20261006.md; exact137 identities,24 category cases,40 full-page route cases and16 composition states. Final all-block visual acceptance remains separate.
 - [ ] Review actual rendered desktop/mobile and narrow nested layouts, realistic short/long copy, media present/absent, keyboard/focus and all interactive controls. Inspect screenshots, not just successful capture counts.
 - [ ] Use existing motion infrastructure. Favor transform/opacity and compositor-friendly effects; no per-frame React animation loops, pixelated gradient bitmaps or motion-required content. Support reduced motion and pause controls where applicable.
-- [ ] Profile moving flagship examples in a visible hardware-accelerated browser; record environment and reproducible bad transitions. Fix observed stutter. Resolve E11 through controlled evidence and an honest supported-environment result, not infinite repeats or a blanket performance claim.
+- [x] Profile moving flagship examples in a visible hardware-accelerated browser; record environment and reproducible bad transitions. Fix observed stutter. Resolve E11 through controlled evidence and an honest supported-environment result, not infinite repeats or a blanket performance claim. Evidence: steps-review-20260929.md; E11 accepted with bounded Apple M5/ANGLE Metal results and historical/startup limits retained.
 
 ### Task 7 — Prove SDK, plugin and AI authoring workflows
 
