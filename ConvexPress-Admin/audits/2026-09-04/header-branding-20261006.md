@@ -1,6 +1,6 @@
 # Header branding controls — 2026-10-06
 
-Task 5 / E09 / E83. Consumer repair verified; native Customizer save/reopen acceptance remains open.
+Task 5 / E09 / E83. Branding repair accepted through actual component/browser checks and native four-pack publication. Full Task5 field matrix remains open.
 
 ## Reproduced failure and repair boundary
 
@@ -20,6 +20,20 @@ A shared resolver applies the existing five logo controls. Core passes the confi
 - Static fixture uses fallback fonts (the standalone server did not serve the compiled font URL), deliberately omits network/auth/cart behavior and does not claim hydrated Customizer delivery. Build test data never touches a site database.
 - Evidence:output/header-branding-20261006/browser-proof.json, desktop.png, render.jsx, index.html, tests.log, types.log, build.log. Screenshot predates the additional tagline-only cases; final JSON covers them.
 
-## Remaining acceptance
+## Native completion follow-up
 
-Run these controls through the native Customizer against the current Website build, prove immediate preview, Undo/reset, draft save/reopen and published output with original appearance preserved/restored. Do not close full E09 or the delivery goal from this consumer-only evidence. Remaining header layout/navigation/search fields are separate verification work. Existing E82 native promotion proof remains valid; no backend deployment changes in this batch.
+Used the existing isolated Acceptance.app with a new private profile and the existing synthetic operator, normal control-plane login and staging authority. Served the current production Website build on4322 against disposable source4860. Source appearance, general/reading settings, menu assignments and43pages were captured before any mutation; API fixture setup only added a local test logo URL. No backend deployment was needed.
+
+Actual native actions and observed outcomes:
+
+- Core: changed Medium to Large, hid title, enabled tagline; header immediately showed the image and tagline. Branding-off removed the entire brand; Undo restored it. Image-off produced the tagline-only link; Undo restored the image. Header Reset returned Medium/title-on/tagline-off; Undo/Redo and final Undo restored the chosen three settings.
+- Saved the Core draft; the accepted appearance snapshot stayed exactly unchanged. Reloaded the actual native window, saw the saved-draft offer and default published preview, loaded the draft and observed Large/title-off/tagline-on restored. Reviewed the sole changed path header.logo and published. Native UI reported Everything published and cleared its saved-draft offer.
+- Used native Templates activation and native Customize controls for each remaining pack. Journal published Small/title-off/tagline-on. Depot published image-off/title-off/tagline-on. Aster House published Large/title-off/tagline-on. All reported Everything published.
+- Actual Website at1440px and335px (8checks): Core logo40px plus tagline; Journal logo20px with separate homepage tagline; Depot visible tagline-only home link including mobile; Aster logo36px with homepage tagline. Images loaded and no horizontal header overflow. Real Website assets/fonts were served, unlike the earlier standalone CSS fixture.
+- API readback matched the exact expected four-pack values: only active-pack selection and the four header.logo groups changed; all other appearance fields,43pages,menu assignments and reading settings remained equal to baseline. The test logo was the only general-setting change.
+
+Restoration published the exact original appearance values (Core active) with expected revision, cleared the test logo and verified preservation again. General settings are semantically identical; the formerly absent logoUrl key is now the canonical empty string, and normal settings revision/audit metadata advanced. No media records were created. Restored the operator's original Live scope, signed out in the native UI, revoked the owned API session (refresh401), removed the private profile/local fixture file, stopped owned native47102 and Website47141, and verified7protected processes remained alive.
+
+Evidence in output/header-branding-20261006: before-publish.json, native-published-snapshot.json, four-pack-published-snapshot.json, native-public-proof.json, native-core-disabled.txt, native-{core-large,core-published,journal-published,depot-published,aster-published}.png, restoration.json and cleanup.json. Baseline snapshots remain private. Native draft/history/reset lifecycle was exercised on Core through the shared Customizer; it was not repeated separately on every pack. Four-pack publication and resulting real Website rendering were each exercised directly.
+
+E83 is closed within this branding boundary. Full E09, remaining header layout/navigation/search/menu fields, hosted E05 and the overall delivery goal remain open. Existing E82 promotion evidence remains valid.
