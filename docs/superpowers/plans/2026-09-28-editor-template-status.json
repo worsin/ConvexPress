@@ -7,7 +7,7 @@
     "In progress": 5
   },
   "goal": "Complete block editor and template delivery plus all demonstrated blockers; defer unrelated whole-app audit campaigns.",
-  "currentTask": "132Verified/5In progress. Native pattern insertion, history restore/recovery, move/undo/redo, unsaved recovery/save and publication passed on current artifacts. Live target draft-function absence disproved; next diagnose current target Clerk provider/provisioning failure under E18 and finish pending signed-in Recently Viewed acceptance. Retain full Task8, final capture/dependency reconciliation, Task7 actual AI/docs, E05 and other provider prerequisites explicitly.",
+  "currentTask": "132Verified/5In progress. Native recovery/publication accepted at bounded scope. Target development issuer repair deployed with real Clerk token acceptance and exact installed source/data preservation. Next complete target connection metadata/provisioning and the pending actual signed-in Recently Viewed browser switch. Full Task8, final capture/dependency reconciliation, Task7 AI/docs, E05 and other provider prerequisites remain explicit.",
   "tasks": [
     {
       "id": 1,
@@ -332,12 +332,12 @@
     },
     {
       "id": "E18",
-      "status": "Open integrated-artifact and target customer-identity requirement. Live October6 target function-spec confirms all four draft functions present; September29 absence is historical. Matching Clerk provider/provisioning and final candidate/main/target parity remain unaccepted.",
+      "status": "Open integrated-artifact requirement. October6 target has all four draft functions; development Clerk issuer/key environment configured and exact target snapshot redeployed. Actual Clerk token now accepted. Native connection metadata, actual target customer provisioning and signed-in Recently Viewed browser switch remain unaccepted, plus final candidate/main/target parity.",
       "classification": "missing evidence",
       "initialFinding": "Current source/main/deployed artifacts and historical screenshots can diverge.",
       "closureBoundary": "Record exact source and deployment identity; reuse only relevant current evidence. Run a final integrated gate on the deliverable, not a collection of unrelated historical green logs.",
-      "currentEvidence": "September29 target remains on its own older extension checkpoint. Four canonical draft functions absent; native editor autosave unavailable and separate document-settings warning observed. Website iframe correct. Final integrated artifact parity remains open; see locale-promotion-20260929.md. September29 actual signed-in Website switch also proves target has no matching Clerk auth provider; customer provisioning reports clerk_secret_key_missing. Guest switch and exact source restoration pass, signed-in target document remains loading. See recent-site-switch-20260929.md. October6 read-only live function-spec confirms drafts get/save/discard and draftMaintenance cleanup all present; see native-integration-20261006.md. This supersedes only the current missing-function claim, not the customer identity failure.",
-      "nextCheck": "Task8: reconcile the exact source/main and installed extension snapshots plus target customer identity configuration, preserving separate databases. Verify matching customer auth provider/provisioning, then repeat the pending signed-in Recently Viewed site switch. Freeze candidate/backend/Website hashes and run the integrated native/public gate. Preserve dirty owner checkout; no push. The target auth failure was observed live in this batch; older draft-function divergence remains recorded historical evidence.",
+      "currentEvidence": "September29 target remains on its own older extension checkpoint. Four canonical draft functions absent; native editor autosave unavailable and separate document-settings warning observed. Website iframe correct. Final integrated artifact parity remains open; see locale-promotion-20260929.md. September29 actual signed-in Website switch also proves target has no matching Clerk auth provider; customer provisioning reports clerk_secret_key_missing. Guest switch and exact source restoration pass, signed-in target document remains loading. See recent-site-switch-20260929.md. October6 read-only live function-spec confirms drafts get/save/discard and draftMaintenance cleanup all present; see native-integration-20261006.md. This supersedes only the current missing-function claim, not the customer identity failure. October6 environment-only target repair: full backup, exact unchanged1620-file installed snapshot, strict redeploy, registered contracts unchanged, real development Clerk token accepted by target; owned identity/session cleaned and28 original target pages/settings exact. See target-customer-auth-20261006.md. Stored setup metadata remains absent; browser/profile acceptance not inferred.",
+      "nextCheck": "Complete target native connection metadata/provisioning through the normal workflow, then actual signed-in source\u2192target\u2192source Recently Viewed acceptance with separate databases. Do not redo the now-passing provider-token probe or treat historical missing draft functions as current. Continue final candidate/backend/Website parity and integrated gates; no push.",
       "deliveryTask": 8,
       "triagedAt": "2026-09-29",
       "triageEvidence": "ConvexPress-Admin/audits/2026-09-04/delivery-blocker-triage-20260929.md"
@@ -5131,7 +5131,8 @@
     "output/customizer-palette-shop-20261006/source-source-installed.json",
     "output/customizer-palette-shop-20261006/preservation.json",
     "output/customizer-palette-shop-20261006/cleanup.json",
-    "ConvexPress-Admin/audits/2026-09-04/native-integration-20261006.md"
+    "ConvexPress-Admin/audits/2026-09-04/native-integration-20261006.md",
+    "ConvexPress-Admin/audits/2026-09-04/target-customer-auth-20261006.md"
   ],
   "trackerRefresh": {
     "source": "output/field-guide-legacy-final-20261006/mt-accept-after.json",
