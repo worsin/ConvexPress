@@ -1,13 +1,13 @@
 {
   "plan": "2026-09-28-editor-template-delivery.md",
   "baselineCommit": "d0fee8acceb408fd306a15f3c054322cb73ac8bc",
-  "checkpointSource": "output/lead-customer-20260929/mt-accept-after.json",
+  "checkpointSource": "output/events-final-20261006/mt-accept-after.json",
   "checkpointCounts": {
-    "Verified": 117,
-    "In progress": 20
+    "Verified": 120,
+    "In progress": 17
   },
   "goal": "Complete block editor and template delivery plus all demonstrated blockers; defer unrelated whole-app audit campaigns.",
-  "currentTask": "Task3 event display batch: Calendar authored-view defect repaired; native three-block author/save/reopen and actual public keyboard/month/DST/cancel/restore accepted. Original71pages and both appearance/settings preserved; temporary sessions/runtimes cleaned. Next finish remaining event family four-pack responsive/time-boundary/access evidence and reconcile rows. E05 HTTPS awaits existing staging URL/configured host; independent work continues. Full goal active117/20.",
+  "currentTask": "Task3 events/calendar, events/upcoming and events/next-event accepted: native exact authoring/view Undo, public cancellation/DST/keyboard, real-clock rollover, private access and withdrawn category, four-pack responsive evidence. Original71pages/appearance/settings preserved; sessions/runtime/tabs cleaned. Next membership plans/gated teaser/account teaser bounded reconciliation. E05 HTTPS awaits existing staging URL/configured host; independent work continues. Full goal active120/17.",
   "tasks": [
     {
       "id": 1,
@@ -3767,9 +3767,9 @@
       "name": "events/calendar",
       "title": "Event calendar",
       "category": "Plugin",
-      "checkpointStatus": "In progress",
-      "nextClassification": "Reviewed against live Notes and current canonical specification; Native view/category/limit; actual month/range/time-zone boundaries, cancelled/private/empty events and keyboard navigation.",
-      "classification": "missing evidence",
+      "checkpointStatus": "Verified",
+      "nextClassification": "Accepted: native exact author/save/reopen and Calendar authored-view Undo repair; actual Website target/date/DST, cancellation/restoration, real time rollover, private event exclusion and missing category refusal; current four-pack desktop/phone layouts plus existing constrained-container and Agenda evidence.",
+      "classification": "accepted",
       "source": "blocks/events/calendar/block.json",
       "requirements": "view (select), category (reference), limit (number)",
       "evidenceReferences": [
@@ -3778,12 +3778,13 @@
         "output/calendar-foundation-20260906.",
         "output/derived-restore-20260906.",
         "output/events-categories-20260906",
-        "ConvexPress-Admin/audits/2026-09-04/events-display-20261006.md"
+        "ConvexPress-Admin/audits/2026-09-04/events-display-20261006.md",
+        "ConvexPress-Admin/audits/2026-09-04/events-final-20261006.md"
       ],
-      "remainingReview": "Reuse October6 native author/save/reopen, exact public fields/links, cancellation/restoration and Calendar DST/keyboard evidence. Finish current four-pack responsive acceptance, time-boundary refresh and any remaining live private-access/withdrawn-category clause; then reconcile tracker.",
+      "remainingReview": "None for the current block-specific contract. Reuse events-display-20261006.md and events-final-20261006.md; full integrated editor/template delivery remains separate.",
       "deliveryTask": 3,
       "acceptanceBatch": "events",
-      "reviewedAtCommit": "d8a0ea2c",
+      "reviewedAtCommit": "6fc1e5fa",
       "notesSha256": "ce230f7d38145e5cebe9788860703fbfffb736463283cd051f74a26d8e1750c9",
       "specSha256": "40642786c705b5b7cbbd60efefb38118cd6b3db5623ffb021a0de48c4c3b7959",
       "rendererSha256": "6ff38412c84af1202b41dfd6421ff018aef55d3a4a40d30943e54a6da256df1d",
@@ -3798,9 +3799,9 @@
       "name": "events/upcoming",
       "title": "Upcoming Events",
       "category": "Site",
-      "checkpointStatus": "In progress",
-      "nextClassification": "Reviewed against live Notes and current canonical specification; Reuse actual publish/cancel/reappear flow; count/heading/intro/show-description/empty copy and final pack/time-boundary review.",
-      "classification": "missing evidence",
+      "checkpointStatus": "Verified",
+      "nextClassification": "Accepted: native exact author/save/reopen and Calendar authored-view Undo repair; actual Website target/date/DST, cancellation/restoration, real time rollover, private event exclusion and missing category refusal; current four-pack desktop/phone layouts plus existing constrained-container and Agenda evidence.",
+      "classification": "accepted",
       "source": "blocks/events/upcoming/block.json",
       "requirements": "heading (text max160), intro (text max1000), count (integer1..12), showDescription (boolean), emptyText (text max240)",
       "evidenceReferences": [
@@ -3810,12 +3811,13 @@
         "output/events-upcoming-20260906",
         "output/playwright/events-upcoming-20260906.",
         "ConvexPress-Admin/audits/2026-09-04/search-library-prose-20260928.md",
-        "ConvexPress-Admin/audits/2026-09-04/events-display-20261006.md"
+        "ConvexPress-Admin/audits/2026-09-04/events-display-20261006.md",
+        "ConvexPress-Admin/audits/2026-09-04/events-final-20261006.md"
       ],
-      "remainingReview": "Reuse October6 native author/save/reopen, exact public fields/links, cancellation/restoration and Calendar DST/keyboard evidence. Finish current four-pack responsive acceptance, time-boundary refresh and any remaining live private-access/withdrawn-category clause; then reconcile tracker.",
+      "remainingReview": "None for the current block-specific contract. Reuse events-display-20261006.md and events-final-20261006.md; full integrated editor/template delivery remains separate.",
       "deliveryTask": 3,
       "acceptanceBatch": "events",
-      "reviewedAtCommit": "d8a0ea2c",
+      "reviewedAtCommit": "6fc1e5fa",
       "notesSha256": "865db11c04c781135dc7facd9fac3cd23f33057d3f7ba2cda8db512e6b132a10",
       "specSha256": "92ae238b679fd69ed94e9d4afae4493a84f4f089194a145647f6fd8eb0beb15b",
       "rendererSha256": "c748f2b62c15550d827e228471b32986ed4bb13985a169019a22dc30ec52016a",
@@ -3831,9 +3833,9 @@
       "name": "events/next-event",
       "title": "Next event",
       "category": "Plugin",
-      "checkpointStatus": "In progress",
-      "nextClassification": "Reviewed against live Notes and current canonical specification; Reuse actual category rename/filter/empty proof; current source bounds, missing/withdrawn category and final all-pack exact target/date.",
-      "classification": "missing evidence",
+      "checkpointStatus": "Verified",
+      "nextClassification": "Accepted: native exact author/save/reopen and Calendar authored-view Undo repair; actual Website target/date/DST, cancellation/restoration, real time rollover, private event exclusion and missing category refusal; current four-pack desktop/phone layouts plus existing constrained-container and Agenda evidence.",
+      "classification": "accepted",
       "source": "blocks/events/next-event/block.json",
       "requirements": "category (reference)",
       "evidenceReferences": [
@@ -3842,12 +3844,13 @@
         "output/events-categories-20260906",
         "output/next-event-20260906",
         "output/playwright/next-event-20260906.",
-        "ConvexPress-Admin/audits/2026-09-04/events-display-20261006.md"
+        "ConvexPress-Admin/audits/2026-09-04/events-display-20261006.md",
+        "ConvexPress-Admin/audits/2026-09-04/events-final-20261006.md"
       ],
-      "remainingReview": "Reuse October6 native author/save/reopen, exact public fields/links, cancellation/restoration and Calendar DST/keyboard evidence. Finish current four-pack responsive acceptance, time-boundary refresh and any remaining live private-access/withdrawn-category clause; then reconcile tracker.",
+      "remainingReview": "None for the current block-specific contract. Reuse events-display-20261006.md and events-final-20261006.md; full integrated editor/template delivery remains separate.",
       "deliveryTask": 3,
       "acceptanceBatch": "events",
-      "reviewedAtCommit": "d8a0ea2c",
+      "reviewedAtCommit": "6fc1e5fa",
       "notesSha256": "6345a67d2b171980e46f5268717571343c9dcdc08d16855e4093d44374f8807e",
       "specSha256": "6e967aa72fe87e1b5fbce071575418982a59e12f86fb3853ab8e9e0a6f36e9b8",
       "rendererSha256": "35edc2a1263b0b2328f8b816b891d994134c362cb788b0329c7896b5aece2aa5",
@@ -4975,21 +4978,25 @@
     "ConvexPress-Admin/audits/2026-09-04/header-controls-20261006.md",
     "ConvexPress-Admin/audits/2026-09-04/account-menu-20261006.md",
     "ConvexPress-Admin/audits/2026-09-04/footer-row-controls-20261006.md",
-    "ConvexPress-Admin/audits/2026-09-04/footer-native-20261006.md"
+    "ConvexPress-Admin/audits/2026-09-04/footer-native-20261006.md",
+    "ConvexPress-Admin/audits/2026-09-04/events-final-20261006.md",
+    "output/events-final-20261006/mt-accept-verified.json"
   ],
   "trackerRefresh": {
-    "source": "output/lead-customer-20260929/mt-accept-after.json",
+    "source": "output/events-final-20261006/mt-accept-after.json",
     "schema": "output/lead-customer-20260929/mt-schema.json",
     "rows": 137,
     "counts": {
-      "Verified": 117,
-      "In progress": 20
+      "Verified": 120,
+      "In progress": 17
     },
     "otherCellsUnchangedFromPreviousRead": true,
     "pendingNotesReconciled": 77,
     "classificationScope": "Block-specific missing gates; historical whole-app audit conditions retained in Notes but not automatic prerequisites.",
     "lastAcceptedNames": [
-      "core/lead-magnet"
+      "events/calendar",
+      "events/upcoming",
+      "events/next-event"
     ],
     "allNotesExact": true
   },
@@ -5031,7 +5038,8 @@
     "audit37": "Read/responded: accepted bounded E07 scope and resolved prior target failures; on-track is not completion. WordPress canonical import and cleanup now accepted. Nine orphan page metadata rows exposed a real cascade gap; bounded fix deployed/tested. Deep audit remains advisory; exact caller/evidence requested, no waiting or scope expansion. Latest available audit37. Subsequent native closure retirement cddfab37 and16 old block/AI endpoint removal accepted. Latest audit remains37; no new feedback awaited. Next concrete caller is Quick Edit canonical title/metadata transaction.",
     "audit41": "Read and accepted bounded in-scope progress/no-new-findings at9d78674a; adapted with subsequent E76 contrast repair. Codex continues Task6; final goal remains active and broad findings deferred.",
     "audit48": "ACCEPT register-state consistency finding; normalize E86\u2013E89 classification from issue titles to repaired and verified, retaining issueType/status/closure boundaries. Audit snapshot predates07b08732. No scope change; Codex continues E09.",
-    "audit49": "ACCEPT no-new-findings/no-drift assessment as advisory, verified against39b4803b and native footer follow-up. No scope change or wait; Codex remains in charge."
+    "audit49": "ACCEPT no-new-findings/no-drift assessment as advisory, verified against39b4803b and native footer follow-up. No scope change or wait; Codex remains in charge.",
+    "audit51": "ACCEPT footer newsletter closure and no-new-findings assessment at a9b9b754 as advisory; verified against local commits and subsequent Calendar repair. Current event acceptance advances120/17. No automatic scope change or waiting; Codex retains decision authority."
   },
   "sessionBaseCommit": "9824d9605e50c4b0ebd711c13715b506f8ef5bd3"
 }
