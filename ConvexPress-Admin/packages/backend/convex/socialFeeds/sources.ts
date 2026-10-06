@@ -1,9 +1,11 @@
+import {encryptInstagram,approvedStoredInstagram,type InstagramInput} from "./credentials";
+import {socialAccount} from "../canonicalDocuments/foundation/socialFeedContracts";
 import type { RegisteredMutation, RegisteredQuery } from "convex/server";
 import { v } from "convex/values";
 import { mutation, query } from "../_generated/server";
 import type { Doc, Id } from "../_generated/dataModel";
 import { requireCan } from "../helpers/permissions";
-import { socialProvider } from "../schema/socialFeeds";
+import { socialProvider, instagramInput, instagramAuthorization } from "../schema/socialFeeds";
 import {
 	approvedAccount,
 	mastodonOrigins,
@@ -20,6 +22,7 @@ type View = {
 	status: "pending" | "ready" | "failed" | "disabled";
 	refreshedAt: number | null;
 	expiresAt: number | null;
+	instagramAuthorization: {userId:string;apiVersion:string;mediaOrigins:string[]}|null;
 };
 const viewValidator = v.object({
 	id: v.id("socialFeedSources"),
@@ -35,10 +38,11 @@ const viewValidator = v.object({
 	),
 	refreshedAt: v.union(v.number(), v.null()),
 	expiresAt: v.union(v.number(), v.null()),
+	instagramAuthorization:v.union(instagramAuthorization,v.null()),
 });
 const sourceApproved = (source: Doc<"socialFeedSources">): boolean => {
 	try {
-		approvedAccount(source.provider, source.handle);
+		approvedAccount(source.provider, source.handle, source.instagram);
 		return true;
 	} catch {
 		return false;
@@ -61,18 +65,24 @@ const view = (source: Doc<"socialFeedSources">): View => ({
 					: "pending",
 	refreshedAt: source.cache?.refreshedAt ?? null,
 	expiresAt: source.cache?.expiresAt ?? null,
+	instagramAuthorization:source.instagram?{userId:source.instagram.userId,apiVersion:source.instagram.apiVersion,mediaOrigins:source.instagram.mediaOrigins}:null,
 });
 export const create: RegisteredMutation<
 	"public",
-	{ provider: "instagram" | "mastodon"; handle: string; enabled: boolean },
+	{ provider: "instagram" | "mastodon"; handle: string; enabled: boolean; instagram?:InstagramInput },
 	Promise<Id<"socialFeedSources">>
 > = mutation({
-	args: { provider: socialProvider, handle: v.string(), enabled: v.boolean() },
+	args: { provider: socialProvider, handle: v.string(), enabled: v.boolean(),instagram:v.optional(instagramInput) },
 	returns: v.id("socialFeedSources"),
 	handler: async (ctx, args) => {
 		const user = await requireCan(ctx, "manage_options"),
-			scope = await socialInstallation(ctx),
-			handle = approvedAccount(args.provider, args.handle);
+			scope = await socialInstallation(ctx);
+		if(args.instagram&&args.provider!=="instagram")socialFailure("Authorization is only supported for Instagram sources");
+		const normalized=socialAccount(args.provider,args.handle);
+		if(!normalized)socialFailure("Enter a valid social account handle");
+		let instagram;
+		try{instagram=args.instagram?await encryptInstagram(normalized!.handle,args.instagram):undefined;}catch{socialFailure("Instagram authorization requires valid account details and configured server encryption");}
+		const handle = approvedAccount(args.provider, args.handle, instagram);
 		const existing = await ctx.db
 			.query("socialFeedSources")
 			.withIndex("by_scope_account", (q) =>
@@ -99,6 +109,7 @@ export const create: RegisteredMutation<
 		const now = Date.now();
 		return ctx.db.insert("socialFeedSources", {
 			...scope,
+			...(instagram?{instagram}:{}),
 			provider: args.provider,
 			handle,
 			enabled: args.enabled,
@@ -136,7 +147,7 @@ export const setEnabled: RegisteredMutation<
 			!Number.isSafeInteger(source!.revision + 1)
 		)
 			socialFailure("The source changed. Reload it before saving");
-		if (args.enabled) approvedAccount(source!.provider, source!.handle);
+		if (args.enabled) approvedAccount(source!.provider, source!.handle, source!.instagram);
 		await ctx.db.patch("socialFeedSources", source!._id, {
 			enabled: args.enabled,
 			revision: source!.revision + 1,
@@ -196,7 +207,7 @@ export const updateAccount: RegisteredMutation<
   const user=await requireCan(ctx,"manage_options"),source=await ownedSource(ctx,args.sourceId);
   if(!source)socialFailure("This source is not available in this website");
   if(source!.revision!==args.expectedRevision||!Number.isSafeInteger(source!.revision+1))socialFailure("The source changed. Reload it before saving");
-  const handle=approvedAccount(source!.provider,args.handle);
+  const handle=approvedAccount(source!.provider,args.handle,source!.instagram);
   const duplicate=await ctx.db.query("socialFeedSources").withIndex("by_scope_account",q=>q.eq("websiteKey",source!.websiteKey).eq("instanceKey",source!.instanceKey).eq("provider",source!.provider).eq("handle",handle)).unique();
   if(duplicate&&duplicate._id!==source!._id)socialFailure("This account is already connected");
   if(handle===source!.handle)return null;
@@ -217,5 +228,23 @@ export const remove: RegisteredMutation<
   if(source!.revision!==args.expectedRevision)socialFailure("The source changed. Reload it before removing");
   if(source!.enabled)socialFailure("Disable this source before removing it");
   await ctx.db.delete("socialFeedSources",source!._id);return null;
+ }
+});
+
+/** Replacing site authorization withdraws cached posts and fences every old refresh. */
+export const configureInstagram: RegisteredMutation<"public",{sourceId:Id<"socialFeedSources">;expectedRevision:number}&Omit<InstagramInput,"accessToken">&{accessToken?:string},Promise<null>>=mutation({
+ args:{sourceId:v.id("socialFeedSources"),expectedRevision:v.number(),userId:v.string(),apiVersion:v.string(),accessToken:v.optional(v.string()),mediaOrigins:v.array(v.string())},returns:v.null(),
+ handler:async(ctx,args)=>{
+  const user=await requireCan(ctx,"manage_options"),source=await ownedSource(ctx,args.sourceId);
+  if(!source||source.provider!=="instagram")socialFailure("This Instagram source is not available in this website");
+  if(source!.revision!==args.expectedRevision||!Number.isSafeInteger(source!.revision+1))socialFailure("The source changed. Reload it before saving");
+  let instagram;
+  try{
+   if(args.accessToken!==undefined)instagram=await encryptInstagram(source!.handle,{...args,accessToken:args.accessToken});
+   else if(source!.instagram){instagram={...source!.instagram,userId:args.userId,apiVersion:args.apiVersion,mediaOrigins:args.mediaOrigins};approvedStoredInstagram(source!.handle,instagram);}
+   else socialFailure("Enter the account access token");
+  }catch{socialFailure("Instagram authorization requires valid account details and configured server encryption");}
+  await ctx.db.patch("socialFeedSources",source!._id,{instagram,revision:source!.revision+1,cache:undefined,refreshLeaseUntil:undefined,lastAttemptAt:undefined,lastError:undefined,nextRefreshAt:Date.now(),updatedAt:Date.now(),updatedBy:user._id});
+  return null;
  }
 });

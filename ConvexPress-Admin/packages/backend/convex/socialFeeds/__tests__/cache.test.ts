@@ -475,3 +475,49 @@ test("authorized Instagram refresh publishes bounded posts and honors media, acc
   if(oldMedia===undefined)delete process.env.CONVEXPRESS_INSTAGRAM_MEDIA_ORIGINS;else process.env.CONVEXPRESS_INSTAGRAM_MEDIA_ORIGINS=oldMedia;
  }
 });
+
+test("native Instagram authorization encrypts secrets and fences replacement, scope and public disclosure",async()=>{
+ const oldKey=process.env.SHIPPING_PROVIDER_ENCRYPTION_KEY,oldAccounts=process.env.CONVEXPRESS_INSTAGRAM_ACCOUNTS;
+ process.env.SHIPPING_PROVIDER_ENCRYPTION_KEY="12".repeat(32);delete process.env.CONVEXPRESS_INSTAGRAM_ACCOUNTS;
+ const credential={userId:"123456",apiVersion:"v25.0",accessToken:"synthetic-private-instagram-token",mediaOrigins:["https://images.example.com"]};
+ try{
+  const {t,operator,customer,ids}=await fixture();
+  const request={provider:"instagram",handle:"studio.name",enabled:true,instagram:credential};
+  for(const actor of [t,customer])await expect(actor.mutation(create,request)).rejects.toThrow();
+  const sourceId=await operator.mutation(create,request);
+  const stored=await t.run(ctx=>ctx.db.get("socialFeedSources",sourceId));
+  expect(JSON.stringify(stored)).not.toContain(credential.accessToken);
+  expect(stored!.instagram!.accessTokenEncrypted).toMatch(/^enc:/);
+  const inventory=await operator.query(list,{});expect(JSON.stringify(inventory)).not.toContain("enc:");expect(JSON.stringify(inventory)).not.toContain(credential.accessToken);
+  expect(inventory.sources[0].instagramAuthorization).toEqual({userId:"123456",apiVersion:"v25.0",mediaOrigins:credential.mediaOrigins});
+  let expectedToken=credential.accessToken;
+  const fetchMock=spyOn(globalThis,"fetch").mockImplementation(async(input,init)=>{
+   expect(new Headers(init?.headers).get("Authorization")).toBe(`Bearer ${expectedToken}`);
+   const url=new URL(String(input));expect(url.origin).toBe("https://graph.facebook.com");
+   const body=url.pathname.endsWith("/media")?{data:[{id:"321",username:"studio.name",caption:"Encrypted source",media_type:"IMAGE",media_url:"https://images.example.com/321.jpg",permalink:"https://www.instagram.com/p/Test321/",timestamp:"2026-09-01T00:00:00Z"}]}:{id:"123456",username:"studio.name"};
+   return new Response(JSON.stringify(body),{headers:{"Content-Type":"application/json"}});
+  });
+  try{
+   expect(await operator.action(ref<"action">("socialFeeds/actions:refreshSource"),{sourceId})).toEqual({status:"refreshed"});
+   const visible=await t.run(ctx=>readSocialFeed(ctx,{provider:"instagram",handle:"studio.name",limit:6}));
+   expect(visible.status).toBe("ready");expect(visible.items[0].image?.url).toBe("https://images.example.com/321.jpg");expect(JSON.stringify(visible)).not.toContain(credential.accessToken);
+  }finally{fetchMock.mockRestore();}
+  await t.run(ctx=>ctx.db.patch("socialFeedSources",sourceId,{lastAttemptAt:0}));
+  const job=await operator.mutation(reserve,{sourceId,manual:true});
+  const configure=ref<"mutation">("socialFeeds/sources:configureInstagram"),change={sourceId,expectedRevision:1,...credential,accessToken:"synthetic-replacement-token"};
+  for(const actor of [t,customer])await expect(actor.mutation(configure,change)).rejects.toThrow();
+  await expect(operator.mutation(configure,{...change,expectedRevision:0})).rejects.toThrow();
+  await t.run(ctx=>ctx.db.patch("convexpress_siteIdentity",ids.site,{deploymentOrigin:"https://other.convex.cloud"}));await expect(operator.mutation(configure,change)).rejects.toThrow();
+  await t.run(ctx=>ctx.db.patch("convexpress_siteIdentity",ids.site,{deploymentOrigin:"https://social.convex.cloud"}));
+  await operator.mutation(configure,change);
+  expect(await operator.mutation(finish,{job,snapshot:null,error:"network"})).toBe(false);
+  const updated=await t.run(ctx=>ctx.db.get("socialFeedSources",sourceId));expect(updated!.revision).toBe(2);expect(updated!.cache).toBeUndefined();expect(updated!.instagram!.accessTokenEncrypted).not.toBe(stored!.instagram!.accessTokenEncrypted);
+  await operator.mutation(configure,{sourceId,expectedRevision:2,userId:credential.userId,apiVersion:"v24.0",mediaOrigins:[]});
+  const retained=await t.run(ctx=>ctx.db.get("socialFeedSources",sourceId));expect(retained!.instagram!.accessTokenEncrypted).toBe(updated!.instagram!.accessTokenEncrypted);expect(retained!.instagram!.apiVersion).toBe("v24.0");
+  await expect(operator.mutation(configure,{sourceId,expectedRevision:3,userId:credential.userId,apiVersion:"v24.0",mediaOrigins:["http://localhost"]})).rejects.toThrow();
+  await expect(operator.mutation(ref<"mutation">("socialFeeds/sources:updateAccount"),{sourceId,expectedRevision:3,handle:"another"})).rejects.toThrow();
+  delete process.env.SHIPPING_PROVIDER_ENCRYPTION_KEY;
+  await expect(operator.mutation(create,{...request,handle:"new.name"})).rejects.toThrow();
+  expect((await operator.query(list,{})).sources).toHaveLength(1);
+ }finally{if(oldKey===undefined)delete process.env.SHIPPING_PROVIDER_ENCRYPTION_KEY;else process.env.SHIPPING_PROVIDER_ENCRYPTION_KEY=oldKey;if(oldAccounts===undefined)delete process.env.CONVEXPRESS_INSTAGRAM_ACCOUNTS;else process.env.CONVEXPRESS_INSTAGRAM_ACCOUNTS=oldAccounts;}
+});

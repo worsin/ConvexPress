@@ -1,3 +1,4 @@
+import {approvedStoredInstagram,type StoredInstagram} from "./credentials";
 import { instagramAccount } from "./instagram";
 import type {RequestReadLedger} from "../helpers/requestReadLedger";
 import { ConvexError } from "convex/values";
@@ -49,11 +50,12 @@ export function instagramMediaOrigins() {
 export function approvedAccount(
 	provider: SocialProvider,
 	handle: string,
+	stored?: StoredInstagram,
 ): string {
 	const account = socialAccount(provider, handle);
 	if (!account) socialFailure("Enter a valid social account handle");
 	if (provider === "instagram") {
-		try { return instagramAccount(account!.handle).handle; }
+		try { if(stored){approvedStoredInstagram(account!.handle,stored);return account!.handle;} return instagramAccount(account!.handle).handle; }
 		catch { return socialFailure("Ask your site operator to authorize this Instagram professional account for this environment"); }
 	}
 	if (!mastodonOrigins().has(`https://${account!.host}`))

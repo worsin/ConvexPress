@@ -1,3 +1,4 @@
+import {decryptInstagram} from "./credentials";
 import type { RegisteredAction } from "convex/server";
 import { makeFunctionReference as ref } from "convex/server";
 import { v } from "convex/values";
@@ -53,7 +54,7 @@ async function refresh(
 	try {
 		if (job.provider === "instagram") {
 			snapshot = await fetchInstagramFeed(
-				{ ...instagramAccount(job.handle), limit: 48, approvedMediaOrigins: instagramMediaOrigins() },
+				{ ...(job.instagram?await decryptInstagram(job.handle,job.instagram):instagramAccount(job.handle)), limit: 48, approvedMediaOrigins: job.instagram?new Set(job.instagram.mediaOrigins):instagramMediaOrigins() },
 				createSocialTransport(new Set([INSTAGRAM_API_ORIGIN])),
 			);
 		} else {

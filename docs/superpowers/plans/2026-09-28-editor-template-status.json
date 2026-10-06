@@ -7,7 +7,7 @@
     "In progress": 7
   },
   "goal": "Complete block editor and template delivery plus all demonstrated blockers; defer unrelated whole-app audit campaigns.",
-  "currentTask": "130 Verified / 7 In progress. E98 Instagram adapter, provider-aware cache and native selector implemented locally; private operator configuration and real provider acceptance remain. E99 not reproduced in three bounded native restore checks; retain final integration watch. Continue remaining synced, migration and integrated gates without waiting for audits.",
+  "currentTask": "130 Verified / 7 In progress. E98 private Instagram native authorization, encrypted source-owned storage and isolated staging deployment verified; real authorized provider acceptance remains. Continue synced content, live legacy migration and integrated gates without waiting for audits or provider credentials.",
   "tasks": [
     {
       "id": 1,
@@ -1225,7 +1225,7 @@
     },
     {
       "id": "E98",
-      "status": "Implementation checkpoint: configured Instagram adapter, private server configuration, native provider selector and provider-specific media projection tested locally. Native credential administration, deployment and real authorized Instagram feed acceptance remain open.",
+      "status": "Private native authorization and isolated staging deployment verified: encrypted source-owned token, masked reopen, native metadata save/retention, conflict and refresh fences. Real authorized Instagram provider/public-feed and revocation acceptance remain open.",
       "classification": "demonstrated implementation gap",
       "requiredWorkflow": "Author a Social Feed for either declared provider using a configured authorized source.",
       "initialFinding": "socialFeeds/policy.ts rejects Instagram source setup; only mastodon.ts implements fetching. Canonical provider enum still includes Instagram.",
@@ -1234,7 +1234,8 @@
       "deliveryTask": 3,
       "currentEvidence": [
         "ConvexPress-Admin/audits/2026-09-04/social-ugc-20261006.md",
-        "ConvexPress-Admin/audits/2026-09-04/instagram-adapter-20261006.md"
+        "ConvexPress-Admin/audits/2026-09-04/instagram-adapter-20261006.md",
+        "ConvexPress-Admin/audits/2026-09-04/instagram-authorization-20261006.md"
       ]
     },
     {
@@ -2655,7 +2656,7 @@
         "output/social-feed-controls-20260915.",
         "ConvexPress-Admin/audits/2026-09-04/social-ugc-20261006.md"
       ],
-      "remainingReview": "E98: local authorized Instagram adapter/cache/native selector implemented; private native credential administration and live authorized provider acceptance remain. Mastodon native/public acceptance retained.",
+      "remainingReview": "E98: adapter, private native authorization, encrypted persistence and isolated staging deployment verified. Real authorized professional-account feed/public rendering and provider expiry/revocation acceptance remain. Mastodon acceptance retained.",
       "deliveryTask": 3,
       "acceptanceBatch": "social-data",
       "reviewedAtCommit": "d8a0ea2c",
