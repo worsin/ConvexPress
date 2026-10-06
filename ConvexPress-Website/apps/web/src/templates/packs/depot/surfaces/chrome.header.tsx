@@ -1,3 +1,5 @@
+import { HeaderMainRow } from "@/components/layout/HeaderMainRow";
+import { headerAppearance, headerHeight } from "@/lib/layout/headerAppearance";
 import { resolveHeaderBrand } from "@/lib/layout/headerBrand";
 import { MenuItemTarget } from "@/components/menus/MenuItemTarget";
 import { useStickyHeaderOffset } from "@/hooks/layout/useStickyHeaderOffset";
@@ -37,63 +39,28 @@ import { Container, Label, buttonClasses } from "../parts";
 
 export default function DepotHeader({ data }: SurfaceProps<HeaderSurfaceData>) {
   const { siteIdentity, menu, layoutConfig, headerConfig } = data;
-  const { isScrolled, toggleMobileNav } = useLayoutShell();
+  const { toggleMobileNav } = useLayoutShell();
 
   const stickyHeader = layoutConfig?.stickyHeader !== false;
   const stickyMode = headerConfig.layout.sticky;
   const isSticky = stickyMode === "always" || (stickyMode === "scroll-up" && stickyHeader);
   const headerRef = useStickyHeaderOffset(isSticky);
-  const backgroundClass =
-    headerConfig.layout.background === "transparent" ? "bg-transparent" : headerConfig.layout.background === "glass" ? "bg-background/85 backdrop-blur-md" : "bg-background";
-  const borderClass =
-    headerConfig.layout.bottomBorder === "bold"
-      ? "border-b-2 border-border"
-      : headerConfig.layout.bottomBorder === "none"
-        ? ""
-        : headerConfig.layout.bottomBorder === "shadow"
-          ? "shadow-sm"
-          : "border-b border-border";
+  const appearance = headerAppearance(headerConfig.layout);
 
   const visibleItems = menu?.items.filter((item) => !item.isOrphaned) ?? [];
   const showNav = headerConfig.navigation.enabled && visibleItems.length > 0;
   const showSearch = headerConfig.search.enabled;
 
-  return (
-    <header
-      ref={headerRef}
-      data-slot="site-header" data-customize="header.layout.sticky"
-      data-pack="depot"
-      role="banner"
-      className={cn("z-40 w-full transition-shadow", backgroundClass, borderClass, isSticky && "sticky top-0", isScrolled && headerConfig.layout.background !== "glass" && "bg-background/95 shadow-sm backdrop-blur-sm")}
-    >
-      {headerConfig.topBar.enabled && <TopBar config={headerConfig.topBar} />}
-
-      {/* Row one */}
-      <Container className="flex h-14 items-center gap-3 md:gap-4">
-        <button
+  const mobileToggle = (<button
           type="button"
           onClick={toggleMobileNav}
           className="flex size-10 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground lg:hidden"
           aria-label="Open navigation menu"
         >
           <Menu className="size-5" aria-hidden="true" />
-        </button>
-        <Wordmark siteIdentity={siteIdentity} logo={headerConfig.logo} />
-        {showSearch && <SearchBar placeholder={headerConfig.search.placeholder} className="hidden min-w-0 flex-1 md:flex" />}
-        <HeaderCluster headerConfig={headerConfig} className="ml-auto" />
-      </Container>
-
-      {/* Mobile search row: the search bar stays on phones */}
-      {showSearch && (
-        <Container className="pb-2 md:hidden">
-          <SearchBar placeholder={headerConfig.search.placeholder} className="flex" />
-        </Container>
-      )}
-
-      {/* Row two: departments */}
-      {showNav && (
-        <nav aria-label="Primary navigation" className="hidden border-t border-border lg:block">
-          <Container className="flex h-10 items-center gap-1">
+        </button>);
+  const navigation = showNav ? (<nav aria-label="Primary navigation" className="hidden border-t border-border lg:block">
+          <Container padded={headerConfig.layout.style === "standard"} className="flex min-h-10 items-center gap-1">
             {visibleItems.some((item) => item.children.length > 0) && <AllDepartments items={visibleItems} />}
             <ul role="list" className="flex min-w-0 items-center gap-0.5 overflow-x-auto">
               {visibleItems.map((item) => (
@@ -103,8 +70,38 @@ export default function DepotHeader({ data }: SurfaceProps<HeaderSurfaceData>) {
               ))}
             </ul>
           </Container>
-        </nav>
+        </nav>) : null;
+
+  return (
+    <header
+      ref={headerRef}
+      data-slot="site-header" data-customize="header.layout.sticky"
+      data-pack="depot"
+      role="banner"
+      className={cn("z-40 w-full transition-shadow", appearance.background, appearance.border, isSticky && "sticky top-0")}
+    >
+      {headerConfig.topBar.enabled && <TopBar config={headerConfig.topBar} />}
+
+      <Container>
+        <HeaderMainRow
+          style={headerConfig.layout.style}
+          heightClass={headerHeight(headerConfig.layout.height, "depot")}
+          brand={<Wordmark siteIdentity={siteIdentity} logo={headerConfig.logo} />}
+          mobileToggle={mobileToggle}
+          navigation={headerConfig.layout.style === "standard" ? undefined : navigation}
+          search={showSearch && <SearchBar placeholder={headerConfig.search.placeholder} className="hidden min-w-0 flex-1 md:flex" />}
+          actions={<HeaderCluster headerConfig={headerConfig} className="ml-auto" />}
+        />
+      </Container>
+
+      {/* Mobile search row: the search bar stays on phones */}
+      {showSearch && (
+        <Container className="pb-2 md:hidden">
+          <SearchBar placeholder={headerConfig.search.placeholder} className="flex" />
+        </Container>
       )}
+
+      {headerConfig.layout.style === "standard" && navigation}
     </header>
   );
 }
@@ -117,7 +114,7 @@ function Wordmark({ siteIdentity, logo }: { siteIdentity: SiteIdentity | undefin
   const { showImage, showTitle, showTagline, imageSize } = resolveHeaderBrand(siteIdentity, logo);
   if (!showImage && !showTitle && !showTagline) return null;
   return (
-    <Link to="/" data-slot="site-brand" data-customize="header.logo.showTitle" className="flex min-w-0 items-center gap-2 text-foreground no-underline md:max-w-[35%]">
+    <Link to="/" data-slot="site-brand" data-customize="header.logo.showTitle" className="flex min-w-0 items-center gap-2 text-foreground no-underline">
       {showImage && <img src={siteIdentity.logoUrl} alt={siteIdentity.logoAlt || siteIdentity.title} className="w-auto min-w-0 max-w-32 object-contain" style={{ height: imageSize }} width={imageSize} height={imageSize} />}
       {showTitle && <span className="min-w-0 truncate text-base font-bold tracking-tight">{siteIdentity.title}</span>}
       {showTagline ? <span className={cn("min-w-0 truncate text-[13px] text-muted-foreground", (showImage || showTitle) && "hidden xl:inline")}>{siteIdentity.tagline}</span> : null}

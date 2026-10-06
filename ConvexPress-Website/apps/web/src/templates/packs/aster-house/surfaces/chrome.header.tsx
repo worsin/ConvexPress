@@ -1,3 +1,5 @@
+import { HeaderMainRow } from "@/components/layout/HeaderMainRow";
+import { headerAppearance, headerHeight } from "@/lib/layout/headerAppearance";
 import { resolveHeaderBrand } from "@/lib/layout/headerBrand";
 import { MenuItemTarget, dismissMenuOnEscape } from "@/components/menus/MenuItemTarget";
 import { useStickyHeaderOffset } from "@/hooks/layout/useStickyHeaderOffset";
@@ -42,40 +44,20 @@ export default function AsterChromeHeader({ data }: SurfaceProps<HeaderSurfaceDa
   const stickyMode = headerConfig.layout.sticky;
   const isSticky = stickyMode === "always" || (stickyMode === "scroll-up" && layoutConfig?.stickyHeader !== false);
   const headerRef = useStickyHeaderOffset(isSticky);
-  const showBorder = headerConfig.layout.bottomBorder !== "none";
+  const appearance = headerAppearance(headerConfig.layout);
   const isHome = pathname === "/";
   const tagline = resolveHeaderBrand(siteIdentity, headerConfig.logo).showTagline ? siteIdentity?.tagline?.trim() : undefined;
   const visibleItems = menu?.items.filter((item) => !item.isOrphaned) ?? [];
 
-  return (
-    <header
-      ref={headerRef}
-      data-pack="aster-house" data-slot="site-header" data-customize="header.layout.sticky"
-      role="banner"
-      className={cn(
-        "z-40 w-full bg-background/95 backdrop-blur-sm",
-        showBorder && "border-b border-border",
-        isSticky && "sticky top-0",
-      )}
-    >
-      {headerConfig.topBar.enabled ? <TopBar config={headerConfig.topBar} /> : null}
-
-      <Container className="grid h-24 grid-cols-[minmax(0,1fr)_auto] items-center gap-2 sm:gap-4 lg:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)]">
-        {/* Left: hamburger (mobile) + wordmark */}
-        <div className="flex min-w-0 items-center gap-2 sm:gap-3">
-          <button
+  const mobileToggle = (<button
             type="button"
             onClick={toggleMobileNav}
             className="-ml-2 flex size-10 items-center justify-center text-muted-foreground transition-colors hover:text-foreground lg:hidden"
             aria-label="Open navigation menu"
           >
             <Menu className="size-5" aria-hidden="true" />
-          </button>
-          <Wordmark siteIdentity={siteIdentity} logo={headerConfig.logo} />
-        </div>
-
-        {/* Centre: primary menu */}
-        {headerConfig.navigation.enabled ? (
+          </button>);
+  const navigation = (headerConfig.navigation.enabled ? (
           <nav data-slot="desktop-nav" data-customize="menuLayout.primary" aria-label="Primary navigation" className="hidden justify-center lg:flex">
             {visibleItems.length > 0 ? (
               <ul role="list" className="flex items-center gap-1">
@@ -85,12 +67,8 @@ export default function AsterChromeHeader({ data }: SurfaceProps<HeaderSurfaceDa
               </ul>
             ) : null}
           </nav>
-        ) : (
-          <div className="hidden lg:block" />
-        )}
-
-        {/* Right: search · account · cart */}
-        <div data-slot="header-actions" className="flex shrink-0 items-center justify-end gap-0 sm:gap-1">
+        ) : null);
+  const actions = (<div data-slot="header-actions" className="flex shrink-0 items-center justify-end gap-0 sm:gap-1">
           {headerConfig.search.enabled ? (
             <button
               type="button"
@@ -120,7 +98,30 @@ export default function AsterChromeHeader({ data }: SurfaceProps<HeaderSurfaceDa
           {headerConfig.darkModeToggle.enabled ? <ThemeToggle /> : null}
           <AccountCluster userMenu={headerConfig.userMenu} />
           <CartButton />
-        </div>
+        </div>);
+
+  return (
+    <header
+      ref={headerRef}
+      data-pack="aster-house" data-slot="site-header" data-customize="header.layout.sticky"
+      role="banner"
+      className={cn(
+        "z-40 w-full",
+        appearance.background, appearance.border,
+        isSticky && "sticky top-0",
+      )}
+    >
+      {headerConfig.topBar.enabled ? <TopBar config={headerConfig.topBar} /> : null}
+
+      <Container>
+        <HeaderMainRow
+          style={headerConfig.layout.style}
+          heightClass={headerHeight(headerConfig.layout.height, "aster-house")}
+          brand={<Wordmark siteIdentity={siteIdentity} logo={headerConfig.logo} />}
+          mobileToggle={mobileToggle}
+          navigation={navigation}
+          actions={actions}
+        />
       </Container>
 
       {isHome && tagline ? (

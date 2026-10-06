@@ -1,28 +1,8 @@
-import { mock } from 'bun:test';
 import assert from 'node:assert/strict';
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { JSDOM } from 'jsdom';
-mock.module('@/templates/sdk/Surface', () => ({ Surface: () => null }));
-mock.module('@/templates/packs/core/surfaces/chrome.searchOverlay', () => ({ default: () => null }));
-mock.module('@/templates/packs/core/surfaces/chrome.cartDrawer', () => ({ default: () => null }));
-// Vite discovers packs through import.meta.glob; this SSR fixture imports each real header explicitly.
-mock.module('@/templates/sdk/registry', () => ({ DEFAULT_TEMPLATE_CONFIG:{active:'core',overrides:{},variants:{},settings:{}},TEMPLATE_PACKS:new Map(),getTemplatePack:()=>undefined,listTemplatePacks:()=>[],resolveSurface:()=>({packId:'core',component:null}),resolveVariant:()=>undefined,prepareTemplateHydration:async()=>{} }));
-const identity = { title:'Brand title fixture', tagline:'Brand tagline fixture', logoUrl:'https://example.org/logo.svg', logoAlt:'Brand logo fixture' };
-const noop = () => {};
-mock.module('@/hooks/layout/useLayoutShell', () => ({ useLayoutShell: () => ({ isScrolled:false,toggleMobileNav:noop,searchOpen:false,closeSearch:noop,toggleSearch:noop }) }));
-mock.module('@/hooks/layout/useHeaderConfig', () => ({ useHeaderConfig: () => undefined }));
-mock.module('@/hooks/useCart', () => ({ useCart: () => ({ enabled:false,cart:null }) }));
-mock.module('@/hooks/useCommerceSessionToken', () => ({ useCommerceSessionToken: () => ({sessionToken:null,isReady:false}) }));
-const auth = await import('@/lib/auth/clerk');
-mock.module('@/lib/auth/clerk', () => ({ ...auth,useAuth: () => ({ isLoaded:true,isSignedIn:false }) }));
-const settings = await import('@/contexts/SettingsContext');
-mock.module('@/contexts/SettingsContext', () => ({ ...settings,useSettings: () => ({ plugins:{} }) }));
-const convex = await import('convex/react');
-mock.module('convex/react', () => ({ ...convex,useQuery: () => undefined }));
-const router = await import('@tanstack/react-router');
-mock.module('@tanstack/react-router', () => ({ ...router,Link: ({to,children,...props}) => createElement('a',{href:to,...props},children),useRouterState: ({select}) => select({location:{pathname:'/'}}),useNavigate: () => noop }));
-const { HEADER_DEFAULTS } = await import('@/templates/sdk/chromeDefinitions');
+import { identity, HEADER_DEFAULTS } from './header-render.fixture-support.jsx';
 export const renderedCases = [];
 const failures = []; let cases = 0;
 for (const pack of ['core','journal','depot','aster-house']) {
