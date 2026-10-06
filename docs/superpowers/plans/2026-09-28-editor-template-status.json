@@ -7,7 +7,7 @@
     "In progress": 20
   },
   "goal": "Complete block editor and template delivery plus all demonstrated blockers; defer unrelated whole-app audit campaigns.",
-  "currentTask": "Task5: E93 footer row presentation repaired and verified after E92 account menus. Next native row lifecycle and remaining global/footer cell controls per the E93 acceptance map. Reuse E82\u2013E93. Goal active117/20.",
+  "currentTask": "Task5: E93 native footer row lifecycle accepted across all4packs with actual Website1440/390 checks; Core saved-draft recovery and Depot preset history verified. Next remaining exposed footer section/cell controls, beginning with layout/background/border/padding. Goal active117/20.",
   "tasks": [
     {
       "id": 1,
@@ -181,7 +181,7 @@
       "classification": "missing evidence",
       "initialFinding": "Customizer contextual fields, all packs/surfaces, header/footer/menu integration and operator authority are not fully accepted.",
       "closureBoundary": "Verify the field group controls the actual surface, click-to-edit focus, draft/publish/reset/history/conflicts, pack switches, session continuity, customer denial and revocation.",
-      "nextCheck": "Use E93 remaining-footer map: native row edit/save/reopen/publication/restore, global section fields and cell presentation fields. Reuse accepted E82\u2013E93; reproduce each exposed-value mismatch before repair.",
+      "nextCheck": "Reproduce and repair remaining exposed footer section/cell fields, starting with global Column Layout, Background/Image, Top Border and Padding. Reuse E93 consumer and native4pack row lifecycle; do not repeat accepted matrices.",
       "deliveryTask": 5,
       "triagedAt": "2026-09-29",
       "triageEvidence": "ConvexPress-Admin/audits/2026-09-04/delivery-blocker-triage-20260929.md",
@@ -201,7 +201,8 @@
         "ConvexPress-Admin/audits/2026-09-04/customizer-targets-20261006.md",
         "ConvexPress-Admin/audits/2026-09-04/customizer-frame-pick-20261006.md",
         "ConvexPress-Admin/audits/2026-09-04/account-menu-20261006.md",
-        "ConvexPress-Admin/audits/2026-09-04/footer-row-controls-20261006.md"
+        "ConvexPress-Admin/audits/2026-09-04/footer-row-controls-20261006.md",
+        "ConvexPress-Admin/audits/2026-09-04/footer-native-20261006.md"
       ]
     },
     {
@@ -1144,7 +1145,7 @@
     },
     {
       "id": "E93",
-      "status": "Journal/Aster authored row background, padding, container and border consumers repaired;80four-pack value cases and8desktop/mobile computed-style cases pass. Native lifecycle remains E09.",
+      "status": "Footer row presentation repaired and verified; native4pack row creation/publication plus8actual Website desktop/mobile checks now accepted. Core saved-draft recovery and Depot Minimal preset undo/redo/undo pass. Other footer controls remain E09.",
       "classification": "repaired and verified",
       "requiredWorkflow": "Exposed footer row presentation controls affect the authored row in each template.",
       "initialFinding": "Journal/Aster ignore background/padding/container and collapse distinct border choices.",
@@ -1153,7 +1154,8 @@
       "deliveryTask": 5,
       "currentEvidence": [
         "ConvexPress-Admin/audits/2026-09-04/footer-row-controls-20261006.md",
-        "output/footer-row-controls-20261006/browser-receipts.json"
+        "output/footer-row-controls-20261006/browser-receipts.json",
+        "ConvexPress-Admin/audits/2026-09-04/footer-native-20261006.md"
       ]
     }
   ],
@@ -4904,7 +4906,8 @@
     "ConvexPress-Admin/audits/2026-09-04/header-menu-source-20261006.md",
     "ConvexPress-Admin/audits/2026-09-04/header-controls-20261006.md",
     "ConvexPress-Admin/audits/2026-09-04/account-menu-20261006.md",
-    "ConvexPress-Admin/audits/2026-09-04/footer-row-controls-20261006.md"
+    "ConvexPress-Admin/audits/2026-09-04/footer-row-controls-20261006.md",
+    "ConvexPress-Admin/audits/2026-09-04/footer-native-20261006.md"
   ],
   "trackerRefresh": {
     "source": "output/lead-customer-20260929/mt-accept-after.json",
@@ -4925,7 +4928,7 @@
   "coordination": {
     "folder": "/Users/worsin/Development/ConvexPress/Opus Audits/",
     "authority": "Codex leads; Claude audits are advisory and independently verified",
-    "lastAudit": "2026-10-06T0506-audit-47-header-controls.md",
+    "lastAudit": "2026-10-06T0706-audit-49-customize-picker-footers.md",
     "pendingAdvisory": {
       "F19": "Accepted shared public document href contract. Historical encoded-slug fixture reproduced discrepancy; ordinary authoring slugifies safely. Legacy menu root/prefix behavior and membership aliases preserved. See locale-destinations-20260928.md.",
       "F20": "Source-verified enterprise commerce backfill truncation recorded in current-acceptance.md deferred register. No live reproduction or repair; promote only if catalog/customer-commerce delivery demonstrates a dependency.",
@@ -4958,7 +4961,8 @@
     "audit33": "Accepted E07 status parity and Website-before-backend nested-list rollout requirement. Direct HTML converter probe preserves _blank and refuses unsupported target. D3 adapted/deferred pending bounded reproduction without authoring reload; D5/O3/O5 deferred, D4 remains rejected under E39, O4 informational. Source now79canonical/37legacy, five published pages preserved and republished; continue two raw-text posts without waiting for audit.",
     "audit37": "Read/responded: accepted bounded E07 scope and resolved prior target failures; on-track is not completion. WordPress canonical import and cleanup now accepted. Nine orphan page metadata rows exposed a real cascade gap; bounded fix deployed/tested. Deep audit remains advisory; exact caller/evidence requested, no waiting or scope expansion. Latest available audit37. Subsequent native closure retirement cddfab37 and16 old block/AI endpoint removal accepted. Latest audit remains37; no new feedback awaited. Next concrete caller is Quick Edit canonical title/metadata transaction.",
     "audit41": "Read and accepted bounded in-scope progress/no-new-findings at9d78674a; adapted with subsequent E76 contrast repair. Codex continues Task6; final goal remains active and broad findings deferred.",
-    "audit48": "ACCEPT register-state consistency finding; normalize E86\u2013E89 classification from issue titles to repaired and verified, retaining issueType/status/closure boundaries. Audit snapshot predates07b08732. No scope change; Codex continues E09."
+    "audit48": "ACCEPT register-state consistency finding; normalize E86\u2013E89 classification from issue titles to repaired and verified, retaining issueType/status/closure boundaries. Audit snapshot predates07b08732. No scope change; Codex continues E09.",
+    "audit49": "ACCEPT no-new-findings/no-drift assessment as advisory, verified against39b4803b and native footer follow-up. No scope change or wait; Codex remains in charge."
   },
   "sessionBaseCommit": "9824d9605e50c4b0ebd711c13715b506f8ef5bd3"
 }

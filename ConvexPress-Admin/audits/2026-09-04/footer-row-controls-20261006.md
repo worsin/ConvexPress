@@ -32,3 +32,6 @@ This is consumer/layout proof using real components and built CSS. It is not fre
 Goal remains active117Verified/20In progress. No push. Evidence directory: output/footer-row-controls-20261006/ (red.log,green.log,types.log,build.log,lint.log,rendered.json,browser-receipts.json and screenshots).
 
 Cleanup: owned local evidence server61185 stopped, tab30 closed and viewport reset; all seven protected processes remain alive. First server60979 was intentionally replaced after the final build so captures use fresh markup/CSS. No user runtime was restarted.
+
+
+Native follow-up: footer-native-20261006.md now records actual4pack row creation/reviewed publication, Core saved-draft recovery and Depot Minimal preset undo/redo, eight live Website checks and restoration. The earlier consumer-only boundary remains accurate for that original batch; native row lifecycle is no longer pending. Global section/cell controls remain open.
