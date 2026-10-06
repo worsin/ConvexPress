@@ -7,7 +7,7 @@
     "In progress": 20
   },
   "goal": "Complete block editor and template delivery plus all demonstrated blockers; defer unrelated whole-app audit campaigns.",
-  "currentTask": "Task5: E84 header arrangement/height/background/border repair implemented; 52 actual-component cases verified at1440/335px, focused tests/types/build pass. Next: scroll-up behavior and Core scrolled appearance, then native Customizer save/reopen/public acceptance. E84 remains open; goal active117/20.",
+  "currentTask": "Task5: E84 header layout controls and scroll-up behavior repaired and accepted through native four-pack publication, Core saved-draft reload and actual desktop/mobile Website checks; original staging appearance restored. Continue navigation/search/mobile-menu field coverage and hosted E05. Goal active117/20; full delivery open.",
   "tasks": [
     {
       "id": 1,
@@ -993,12 +993,13 @@
     },
     {
       "id": "E84",
-      "status": "Implemented and browser-fixture verified; native acceptance and sticky/scrolled behavior remain open.",
-      "classification": "demonstrated Customizer delivery blocker",
+      "status": "Repaired and verified: layout fields, directional sticky behavior and appearance preservation; native4pack publication/Core draft reload/actual Website checks with exact restoration.",
+      "classification": "repaired and verified",
       "initialFinding": "Journal/Aster ignore background, border and height; Journal/Aster/Depot ignore arrangement and Depot height. Actual browser geometry also shows Core centered branding at110.5 versus714.5px header center and navigation3px outside header.",
       "closureBoundary": "Honor header layout fields across four packs; prove responsive geometry, scroll-up semantics, native control preview/save/reopen/public output and unchanged unrelated appearance.",
       "currentEvidence": [
-        "ConvexPress-Admin/audits/2026-09-04/header-layout-20261006.md"
+        "ConvexPress-Admin/audits/2026-09-04/header-layout-20261006.md",
+        "ConvexPress-Admin/audits/2026-09-04/header-scroll-20261006.md"
       ],
       "deliveryTask": 5
     }
@@ -4742,7 +4743,8 @@
     "ConvexPress-Admin/audits/2026-09-04/customizer-chrome-retirement-20261006.md",
     "ConvexPress-Admin/audits/2026-09-04/footer-menu-descendants-20261006.md",
     "ConvexPress-Admin/audits/2026-09-04/appearance-promotion-media-20261006.md",
-    "ConvexPress-Admin/audits/2026-09-04/header-layout-20261006.md"
+    "ConvexPress-Admin/audits/2026-09-04/header-layout-20261006.md",
+    "ConvexPress-Admin/audits/2026-09-04/header-scroll-20261006.md"
   ],
   "trackerRefresh": {
     "source": "output/lead-customer-20260929/mt-accept-after.json",

@@ -21,3 +21,7 @@ The focused regression initially recorded15 failures (`output/header-layout-2026
 ## Explicit remaining work
 
 `scroll-up` currently follows the same sticky positioning as Always; Core also overrides selected background/border decoration after scroll. Repair and verify these before closing E84. Then exercise native Customizer layout changes, preview/history/save/reopen and actual Website output with scoped settings restoration. Search/dropdown/long-menu and all-action combinations are not covered by this controlled matrix. No block statuses were advanced;117Verified/20In progress remains unchanged. No backend/data mutations or deployment in this batch. No push.
+
+## Closure update
+
+The remaining scroll/native acceptance above was completed in `header-scroll-20261006.md`:shared directional behavior and Core scrolled appearance repaired; native4pack control publication, Core saved-draft reload and actual desktop/mobile Website output accepted with exact restoration. Refer to that report for final scope and limitations.

@@ -44,7 +44,7 @@ export default function DepotHeader({ data }: SurfaceProps<HeaderSurfaceData>) {
   const stickyHeader = layoutConfig?.stickyHeader !== false;
   const stickyMode = headerConfig.layout.sticky;
   const isSticky = stickyMode === "always" || (stickyMode === "scroll-up" && stickyHeader);
-  const headerRef = useStickyHeaderOffset(isSticky);
+  const headerRef = useStickyHeaderOffset(isSticky, stickyMode);
   const appearance = headerAppearance(headerConfig.layout);
 
   const visibleItems = menu?.items.filter((item) => !item.isOrphaned) ?? [];

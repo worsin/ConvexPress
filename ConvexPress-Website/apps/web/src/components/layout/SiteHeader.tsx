@@ -29,14 +29,14 @@ interface SiteHeaderProps {
  * Falls back to standard layout when no config is stored.
  */
 export function SiteHeader({ siteIdentity, menu, layoutConfig, headerConfig: headerConfigProp }: SiteHeaderProps) {
-  const { isScrolled, toggleMobileNav, searchOpen, closeSearch } = useLayoutShell();
+  const { toggleMobileNav, searchOpen, closeSearch } = useLayoutShell();
   const storedHeaderConfig = useHeaderConfig();
   const headerConfig = headerConfigProp ?? storedHeaderConfig;
 
   const stickyHeader = layoutConfig?.stickyHeader !== false;
   const stickyMode = headerConfig.layout.sticky;
   const isSticky = stickyMode === "always" || (stickyMode === "scroll-up" && stickyHeader);
-  const headerRef = useStickyHeaderOffset(isSticky);
+  const headerRef = useStickyHeaderOffset(isSticky, stickyMode);
   const layoutStyle = headerConfig.layout.style;
   const heightClass = headerConfig.layout.height === "compact"
     ? "min-h-12 lg:min-h-12"
@@ -68,7 +68,6 @@ export function SiteHeader({ siteIdentity, menu, layoutConfig, headerConfig: hea
         backgroundClass,
         borderClass,
         isSticky && "sticky top-0",
-        isScrolled && headerConfig.layout.background !== "glass" && "bg-background/95 shadow-sm backdrop-blur-sm",
       )}
     >
       {/* Top bar - show/hide based on config */}

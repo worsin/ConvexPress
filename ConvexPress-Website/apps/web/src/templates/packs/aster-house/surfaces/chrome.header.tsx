@@ -43,7 +43,7 @@ export default function AsterChromeHeader({ data }: SurfaceProps<HeaderSurfaceDa
 
   const stickyMode = headerConfig.layout.sticky;
   const isSticky = stickyMode === "always" || (stickyMode === "scroll-up" && layoutConfig?.stickyHeader !== false);
-  const headerRef = useStickyHeaderOffset(isSticky);
+  const headerRef = useStickyHeaderOffset(isSticky, stickyMode);
   const appearance = headerAppearance(headerConfig.layout);
   const isHome = pathname === "/";
   const tagline = resolveHeaderBrand(siteIdentity, headerConfig.logo).showTagline ? siteIdentity?.tagline?.trim() : undefined;
