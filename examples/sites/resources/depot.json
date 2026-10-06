@@ -1,0 +1,9 @@
+{
+  "pack": "depot",
+  "fictional": true,
+  "products": [
+    {"title":"Everyday stoneware cup","slug":"everyday-stoneware-cup","description":"A gently tapered, 300 ml stoneware cup with a comfortable handle and warm chalk glaze. Dishwasher safe; allow hot ceramics to cool before rinsing. Fictional demonstration product: no fulfillment or real purchase is offered.","excerpt":"A comfortable cup for the first quiet minutes of the day.","sku":"EXAMPLE-CUP-CHALK","basePrice":{"amount":2400,"currencyCode":"USD"},"trackInventory":true,"stockQuantity":18,"allowBackorders":false,"shippingWeightOz":12,"status":"publish"},
+    {"title":"Linen kitchen cloth","slug":"linen-kitchen-cloth","description":"A generous 50 × 70 cm flax linen cloth in a natural oat tone. Wash cool, reshape while damp and hang to dry. The weave softens with use. Fictional demonstration product: no fulfillment or real purchase is offered.","excerpt":"An absorbent everyday cloth, made to soften with use.","sku":"EXAMPLE-LINEN-OAT","basePrice":{"amount":1800,"currencyCode":"USD"},"trackInventory":true,"stockQuantity":24,"allowBackorders":false,"shippingWeightOz":4,"status":"publish"},
+    {"title":"Oak desk tray","slug":"oak-desk-tray","description":"A shallow 24 × 16 cm oak tray for the small things that otherwise drift across a desk. Wipe clean with a barely damp cloth and dry promptly. Re-oil when the surface looks dry. Fictional demonstration product: no fulfillment or real purchase is offered.","excerpt":"A simple place for a notebook, keys and the day's loose ends.","sku":"EXAMPLE-TRAY-OAK","basePrice":{"amount":4200,"currencyCode":"USD"},"trackInventory":true,"stockQuantity":9,"allowBackorders":false,"shippingWeightOz":18,"status":"publish"}
+  ]
+}

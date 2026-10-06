@@ -46,3 +46,9 @@ bun test author-documents.test.ts recipes.test.ts handlers.test.ts
 ```
 
 These cover canonical schema validation, link destinations, all 21 documents through actual Convex handlers, unchanged original fixture content, idempotent reruns, identity/ownership conflicts, and interrupted writes. They do not substitute for live site deployment or rendered acceptance.
+
+## Live staging checkpoint
+
+Four dedicated, Admin-connected staging examples now serve the authored content at localhost ports 4325 (Core), 4326 (Journal), 4327 (Depot) and 4328 (Aster House). All 21 documents are published with homepage/navigation/appearance configuration. Depot has three actual products; Aster has two actual demonstration Events records. The authored resource inputs are in `resources/`; these files are not a replay-safe resource importer.
+
+See `ConvexPress-Admin/audits/2026-09-04/example-sites-live-20261005.md` for evidence and remaining acceptance. Owned media, forms, full native/preview/responsive verification and complete commerce workflows remain open. After publication changes a document revision/status, the draft-authoring receipt correctly refuses a draft rerun; continue editing through normal canonical APIs with the current revision.
