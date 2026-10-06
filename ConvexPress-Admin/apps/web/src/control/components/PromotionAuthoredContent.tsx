@@ -59,7 +59,7 @@ export function PromotionAuthoredContent({ data, kind, planLabels = {}, document
     ["Currency", data.currency],
   ].filter((entry): entry is [string, string] => typeof entry[1] === "string" && entry[1].length > 0);
   const article = parseReviewArticle(data.content);
-  const needsWebsitePreview = data.contentMode === "blocks" || Array.isArray(data.blocks) || (!!data.content && !article) || article?.requiresPreview;
+  const needsWebsitePreview = data.blocksVersion === 2 || data.contentMode === "blocks" || Array.isArray(data.blocks) || (!!data.content && !article) || article?.requiresPreview;
   return <div className="mt-3 space-y-3 text-sm">
     {routing?.success && <section aria-label="Site languages" className="space-y-2 rounded border border-border p-3">
       <p className="font-medium">{routing.data.enabled?'Language links are enabled':'Language links are disabled'}</p>
