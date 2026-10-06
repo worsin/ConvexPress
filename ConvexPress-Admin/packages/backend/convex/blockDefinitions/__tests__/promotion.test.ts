@@ -1,4 +1,5 @@
 import { expect, test } from "bun:test";
+import resourceComposition from "./fixtures/resource-composition.json";
 import { convexTest } from "convex-test";
 import { makeFunctionReference as ref } from "convex/server";
 import schema from "../../schema";
@@ -26,7 +27,7 @@ function definition(version = 1) {
     composition: { version: 1, root: { el: "Heading", bind: "attrs.headline" } } };
 }
 const tree = [{ id: "services", name: "composed/promotion-test", version: 1, attrs: {} }];
-async function fixture() {
+async function fixture(source: unknown = definition()) {
   const t = convexTest({ schema, modules });
   const ids = await t.run(async ctx => {
     const role = await ctx.db.insert("roles", { name: "Publisher", slug: "publisher", description: "Fixture", level: 10, type: "internal", isDefault: false, isProtected: false, capabilities, pageAccess: [], status: "active", createdAt: 1, updatedAt: 1 });
@@ -38,7 +39,7 @@ async function fixture() {
   });
   const as = (id: string) => t.withIdentity({ subject: id, tokenIdentifier: `https://convexpress-admin.local|${id}` });
   const author = as(ids.author), other = as(ids.other);
-  const first = await author.mutation(create, { definitionJson: JSON.stringify(definition()) });
+  const first = await author.mutation(create, { definitionJson: JSON.stringify(source) });
   const args = { id: first.id, version: 1, expectedGeneration: 1, expectedDigest: first.digest, targetName: "blocks/promotion-test" };
   const approve = () => author.mutation(review, { id: first.id, version: 1, expectedGeneration: 1, expectedDigest: first.digest, enabled: true });
   return { t, ids, author, other, first, args, approve };
@@ -171,4 +172,27 @@ test("inspection reports exact installation and recovers confirmation without re
     await f.t.run(ctx => ctx.db.patch("roles", f.ids.role, { capabilities: capabilities.filter(value => value !== "blocks.promote") }));
     await expect(f.author.query(inspect, args)).rejects.toThrow();
   });
+});
+
+
+test("resource-backed export preserves portable selectors, treatment and slot through confirmation", async () => {
+  const f = await fixture(resourceComposition);
+  await f.approve();
+  const args = { ...f.args, expectedGeneration: 2 };
+  const before = await f.t.run(async ctx => ({ head: await ctx.db.get("blockDefinitions", f.first.id), versions: await ctx.db.query("blockDefinitionVersions").collect(), approvals: await ctx.db.query("blockDefinitionApprovals").collect() }));
+  const output = await f.author.query(exportPackage, args);
+  const promotion = decodeBlockPromotion(output.packageJson);
+  expect(promotion.definition.spec.data).toEqual(resourceComposition.spec.data);
+  expect(promotion.definition.packTreatments).toEqual(resourceComposition.packTreatments);
+  expect(promotion.definition.spec.supports.children).toBe(true);
+  for (const field of ["page", "media"]) expect(promotion.definition.spec.fields.find(item => item.id === field)?.default).toBe("");
+  expect(output.packageJson).not.toContain("promotion-resource");
+  expect(await f.t.run(ctx => ctx.db.get("blockDefinitions", f.first.id))).toEqual(before.head);
+  await withInstalled(output.packageJson, async () => {
+    const reviewed = { ...args, expectedPackageDigest: output.packageDigest };
+    expect((await f.author.mutation(confirm, reviewed)).changed).toBe(true);
+    expect((await f.author.query(ref<"query">("blockDefinitions/promotion:inspect"), reviewed)).state).toBe("promoted");
+  });
+  expect(await f.t.run(ctx => ctx.db.query("blockDefinitionVersions").collect())).toEqual(before.versions);
+  expect(await f.t.run(ctx => ctx.db.query("blockDefinitionApprovals").collect())).toEqual(before.approvals);
 });

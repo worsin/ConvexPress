@@ -10,7 +10,7 @@ function valuesAt(value: unknown, path: readonly string[]): unknown[] {
 
 /** Derive resolver reference paths from installed contracts, not model-authored
  * field types. Labeling a product selector as text must not bypass selection. */
-function referencePaths(resolver: string): ReferencePath[] {
+export function resolverReferencePaths(resolver: string): ReferencePath[] {
   const result: ReferencePath[] = [];
   for (const descriptor of Object.values(dependencyDescriptors)) {
     if (descriptor.data?.resolver !== resolver) continue;
@@ -32,5 +32,5 @@ function referencePaths(resolver: string): ReferencePath[] {
 }
 
 export function resolverReferenceValues(jobs: readonly { resolver: string; args: unknown }[]) {
-  return jobs.flatMap(job => referencePaths(job.resolver).flatMap(field => valuesAt(job.args, field.path).map(value => ({ kind: field.kind, storage: field.storage, value }))));
+  return jobs.flatMap(job => resolverReferencePaths(job.resolver).flatMap(field => valuesAt(job.args, field.path).map(value => ({ kind: field.kind, storage: field.storage, value }))));
 }

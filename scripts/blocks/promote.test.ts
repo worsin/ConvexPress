@@ -1,4 +1,5 @@
 import { afterEach, expect, test } from "bun:test";
+import resourceComposition from "../../ConvexPress-Admin/packages/backend/convex/blockDefinitions/__tests__/fixtures/resource-composition.json";
 import { mkdtemp, mkdir, readFile, writeFile, readdir, rm, symlink } from "node:fs/promises";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import path from "node:path";
@@ -79,4 +80,23 @@ test("competing promotions reserve one folder and never overwrite the winner", a
   expect(outcomes.filter(result => result.status === "fulfilled")).toHaveLength(1);
   expect(outcomes.filter(result => result.status === "rejected")).toHaveLength(1);
   expect((await discoverBlocks(root)).blocks[0].promotion.sourceDigest).toBe(source.digest);
+});
+
+
+test("an exported resource composition installs with its exact resolver, media fields and child slot", async () => {
+  const root = await fixture();
+  await mkdir(path.join(root, "packs/aster-house"), { recursive: true });
+  await writeFile(path.join(root, "packs/aster-house/template.json"), JSON.stringify({ id: "aster-house", title: "Aster House", blocks: { treatments: {} } }));
+  const encoded = encodeComposedDefinition(resourceComposition);
+  const reviewed = prepareBlockPromotion(encoded.json, encoded.digest, "blocks/resource-feature");
+  expect((await promoteBlock({ root, packageJson: reviewed.json })).write).toBe(false);
+  await promoteBlock({ root, packageJson: reviewed.json, write: true });
+  const found = (await discoverBlocks(root)).blocks[0];
+  expect(found.spec.data).toEqual(resourceComposition.spec.data);
+  expect(found.spec.supports.children).toBe(true);
+  expect(found.promotion?.sourceDigest).toBe(encoded.digest);
+  await syncBlocks({ root });
+  const metadata = await import(pathToFileURL(path.join(root, "blocks/.generated/promotions.ts")).href);
+  expect(metadata.installedPromotions["blocks/resource-feature"].definitionJson).toBe(encoded.json);
+  expect((await syncBlocks({ root, check: true })).changed).toEqual([]);
 });

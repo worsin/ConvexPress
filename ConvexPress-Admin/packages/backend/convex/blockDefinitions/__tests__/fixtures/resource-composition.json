@@ -1,0 +1,192 @@
+{
+  "spec": {
+    "name": "composed/acceptance-garden-feature",
+    "title": "Acceptance garden feature",
+    "description": "Editable media, authorized page data and a canonical child slot.",
+    "category": "site",
+    "role": "content",
+    "version": 1,
+    "keywords": [
+      "garden"
+    ],
+    "ai": {
+      "useFor": "Fictional garden story with selected site resources",
+      "avoid": "Inventing records"
+    },
+    "fields": [
+      {
+        "id": "heading",
+        "title": "Heading",
+        "default": "A closer look at the garden",
+        "type": "text",
+        "max": 160
+      },
+      {
+        "id": "body",
+        "title": "Body",
+        "default": "A manually authored feature using this site’s own content.",
+        "type": "text",
+        "max": 1000,
+        "multiline": true
+      },
+      {
+        "id": "showMedia",
+        "title": "Show media",
+        "default": false,
+        "type": "boolean"
+      },
+      {
+        "id": "media",
+        "title": "Garden image",
+        "default": "",
+        "type": "media",
+        "storage": "id",
+        "allowEmpty": true,
+        "max": 256
+      },
+      {
+        "id": "showPage",
+        "title": "Show selected page",
+        "default": false,
+        "type": "boolean"
+      },
+      {
+        "id": "page",
+        "title": "Related page",
+        "default": "",
+        "type": "reference",
+        "of": "page",
+        "allowEmpty": true,
+        "max": 256
+      }
+    ],
+    "searchText": [
+      [
+        "heading"
+      ],
+      [
+        "body"
+      ]
+    ],
+    "supports": {
+      "children": true,
+      "styles": false,
+      "layout": [],
+      "anchor": true,
+      "visibility": true
+    },
+    "data": {
+      "resolver": "content.page",
+      "args": {
+        "page": "attrs.page"
+      }
+    },
+    "preview": "{heading}",
+    "examples": [
+      {}
+    ]
+  },
+  "composition": {
+    "version": 1,
+    "root": {
+      "el": "Stack",
+      "props": {
+        "gap": "md"
+      },
+      "children": [
+        {
+          "el": "Heading",
+          "props": {
+            "level": 2
+          },
+          "bind": "attrs.heading"
+        },
+        {
+          "el": "Text",
+          "bind": "attrs.body"
+        },
+        {
+          "el": "Image",
+          "if": "attrs.showMedia",
+          "bind": {
+            "media": "attrs.media"
+          },
+          "props": {
+            "aspect": "3/2",
+            "fit": "cover"
+          }
+        },
+        {
+          "el": "Text",
+          "if": "attrs.showPage",
+          "bind": "data.page.title"
+        },
+        {
+          "el": "Slot",
+          "props": {
+            "name": "children"
+          }
+        }
+      ]
+    }
+  },
+  "packTreatments": {
+    "aster-house": {
+      "version": 1,
+      "root": {
+        "el": "Section",
+        "props": {
+          "tone": "muted",
+          "spacing": "compact"
+        },
+        "children": [
+          {
+            "el": "Stack",
+            "props": {
+              "gap": "md"
+            },
+            "children": [
+              {
+                "el": "Eyebrow",
+                "bind": "'Aster field notes'"
+              },
+              {
+                "el": "Heading",
+                "props": {
+                  "level": 2
+                },
+                "bind": "attrs.heading"
+              },
+              {
+                "el": "Text",
+                "bind": "attrs.body"
+              },
+              {
+                "el": "Image",
+                "if": "attrs.showMedia",
+                "bind": {
+                  "media": "attrs.media"
+                },
+                "props": {
+                  "aspect": "3/2",
+                  "fit": "cover"
+                }
+              },
+              {
+                "el": "Text",
+                "if": "attrs.showPage",
+                "bind": "data.page.title"
+              },
+              {
+                "el": "Slot",
+                "props": {
+                  "name": "children"
+                }
+              }
+            ]
+          }
+        ]
+      }
+    }
+  }
+}
