@@ -9,6 +9,7 @@ import * as pageHttp from "../../pages/httpInternals";
 import { getFunctionName } from "convex/server";
 import * as policyReads from "../../membership/policyReads";
 import * as profiles from "../../profiles/queries";
+import * as canonicalDocuments from "../../canonicalDocuments";
 
 type Row = Record<string, any>;
 const SECRET = "UNRELEASED_BODY_MARKER";
@@ -278,7 +279,6 @@ describe("public content endpoints", () => {
 			tables.users.push({ _id: "author", slug: "internal-person", displayName: "INTERNAL_AUTHOR_MARKER", email: "private@example.invalid", ...author });
 			for (const [fn, args] of [
 				[posts.getPublished, { slug: "public-title" }],
-				[postHttp.getInternal, { postId: "post1" }],
 			] as const) {
 				const result = await invoke(fn, ctx, args);
 				expect(result.title).toBe("Public title");
@@ -430,10 +430,11 @@ describe("public content endpoints", () => {
 			}),
 		).toEqual([]);
 	});
-	test("customer cannot use editorial preview to read unpublished autosaves", async () => {
+	test("customer cannot open canonical authoring or use the retired editorial preview", async () => {
+		expect(posts).not.toHaveProperty("preview");
 		const { ctx } = fixture([document()], { actor: "subscriber" });
 		await expect(
-			invoke(posts.preview, ctx, { postId: "post1" }),
+			invoke(canonicalDocuments.get, ctx, { postId: "post1" }),
 		).rejects.toThrow();
 	});
 	test("customer cannot enumerate full draft pages in the admin list", async () => {
@@ -455,15 +456,15 @@ describe("REST content projections", () => {
     ["post", postHttp, { postId: "post1" }],
     ["page", pageHttp, { pageId: "post1" }],
   ] as const) {
-    test(`${type} REST get cannot bypass a password`, async () => {
-      safe(await invoke(module.getInternal, fixture([document({ type, visibility: "password" })]).ctx, args), false);
-    });
-    test(`${type} REST get omits draft content without editorial identity`, async () => {
-      expect(await invoke(module.getInternal, fixture([document({ type, status: "draft" })]).ctx, args)).toBeNull();
-    });
-    test(`${type} REST get applies membership to every content representation`, async () => {
-      safe(await invoke(module.getInternal, fixture([document({ type })], { restricted: true }).ctx, args), false);
-    });
+    // Canonical REST readers now require a live API key even for public
+    // documents. Authenticated round-trip/policy checks live with the registered
+    // canonicalDocuments tests; these direct calls must fail at authority.
+    for (const state of [{ visibility: "password" }, { status: "draft" }, { restricted: true }]) {
+      test(`${type} REST get refuses missing key authority: ${JSON.stringify(state)}`, async () => {
+        const { ctx } = fixture([document({ type, ...state })], { restricted: "restricted" in state });
+        await expect(invoke(module.getInternal, ctx, args)).rejects.toMatchObject({ data: { code: "FORBIDDEN" } });
+      });
+    }
     test(`${type} REST list does not include membership-only bodies`, async () => {
       const result = await invoke(module.listPublishedInternal, fixture([document({ type })], { restricted: true }).ctx);
       expect(JSON.stringify(result)).not.toContain(SECRET);

@@ -330,7 +330,7 @@ test("one authoritative discovery check preserves detail summary and featured-im
       return builder;
     };
     const result = (await resolveCanonicalPageData(ctx, [featured("a", "page")], scope, policy)).dataByBlock.a.data.page;
-    expect(result).toEqual({ id: "page", title: oldSummary!.title, href: oldSummary!.path, excerpt: oldSummary!.excerpt, image: oldImage.featuredImageUrl ? { src: oldImage.featuredImageUrl, alt: oldImage.featuredImageAlt } : null });
+    expect(result).toEqual({ id: "page", title: oldSummary!.title, href: "/page/public", excerpt: oldSummary!.excerpt, image: oldImage.featuredImageUrl ? { src: oldImage.featuredImageUrl, alt: oldImage.featuredImageAlt } : null });
     // Current page policy covers the resource, stored /public route and served
     // /page/public alias once each. A second detail projection would repeat them.
     expect(pluginReads).toBe(3);
