@@ -23,11 +23,12 @@ import { Label } from "@/components/ui/label";
 import { modulesFor, type SettingsModule, type TemplateSettingsField } from "@/lib/templates/settingsModules";
 import { getTemplatePack } from "@/lib/templates/packs";
 import { useControlShell, useControlClient } from "@/control/ControlShellContext";
+import { TemplatePromotionPanel } from "@/components/appearance/TemplatePromotionPanel";
 import { HeaderSettingsEditor } from "@/components/appearance/HeaderComposer";
 import { FooterSettingsEditor } from "@/components/appearance/FooterComposer";
 import { FooterRowsBuilder } from "@/components/appearance/FooterRowsBuilder";
 import { createDraftHistory, applyDraftChange, setDraftField, readDraftField, resetDraftModule, resetDraftBrand, applyColorPreset, undoDraft, redoDraft, draftChanges, type DraftSnapshot, type Values } from "@/lib/templates/draftModel";
-import { prepareTemplatePromotion, type TemplateSnapshot, type PromotionReview } from "@/lib/templates/templatePublishing";
+import { type TemplateSnapshot } from "@/lib/templates/templatePublishing";
 import { cn, getErrorMessage } from "@/lib/utils";
 import { getElectronBridge } from "@/lib/electron";
 import { createWebsiteOperatorLink } from "@/lib/templates/websiteOperatorLink";
@@ -87,8 +88,7 @@ function CustomizePage() {
   const [saving, setSaving] = useState(false);
   const [reviewing, setReviewing] = useState(false);
   const [confirmLive, setConfirmLive] = useState(false);
-  const [promotion, setPromotion] = useState<PromotionReview | null>(null);
-  const [confirmPromotion, setConfirmPromotion] = useState(false);
+  const [promotionOpen, setPromotionOpen] = useState(false);
   const frameRef = useRef<HTMLIFrameElement>(null);
   const scope = server?.identity?.instanceKey ?? "single-site";
   const scopeRef = useRef(scope);
@@ -103,8 +103,7 @@ function CustomizePage() {
       seed(server); setOpenGroup(modules[0]?.id ?? null);
     }
   }, [server, base, scope, seed, modules]);
-  useEffect(() => () => promotion?.dispose(), [promotion]);
-  useEffect(() => { setPromotion(null); setConfirmPromotion(false); }, [scope]);
+  useEffect(() => { setPromotionOpen(false); }, [scope]);
   const baseline: DraftSnapshot = { values: stored?.settings[activeId] ?? {}, variants: stored?.variants ?? {} };
   const changes = draftChanges(baseline, history.present);
   const dirty = changes.length > 0;
@@ -184,23 +183,6 @@ function CustomizePage() {
     } catch (error) { if (scopeRef.current === requestScope) toast.error(getErrorMessage(error, "Could not publish.")); }
     finally { if (scopeRef.current === requestScope) setSaving(false); }
   };
-  const reviewPromotion = async () => {
-    if (!server || !live || !control || dirty || conflict) return;
-    setSaving(true); const requestScope = scope;
-    try {
-      const review = await prepareTemplatePromotion(server, live, control);
-      if (scopeRef.current !== requestScope) { review.dispose(); return; }
-      setPromotion(review); setConfirmPromotion(false);
-    } catch (error) { if (scopeRef.current === requestScope) toast.error(getErrorMessage(error, "Could not prepare promotion.")); }
-    finally { if (scopeRef.current === requestScope) setSaving(false); }
-  };
-  const promote = async () => {
-    if (!promotion || !confirmPromotion) return;
-    setSaving(true); const requestScope = scope;
-    try { await promotion.publish(); if (scopeRef.current === requestScope) toast.success("Staging template settings promoted to live."); }
-    catch (error) { if (scopeRef.current === requestScope) toast.error(getErrorMessage(error, "Promotion failed. Prepare a fresh live review before retrying.")); }
-    finally { promotion.dispose(); if (scopeRef.current === requestScope) { setPromotion(null); setSaving(false); } }
-  };
 
   if (!stored) {
     return (
@@ -233,7 +215,7 @@ function CustomizePage() {
             <Button variant="outline" aria-label="Redo draft change" disabled={!history.future.length || saving} onClick={() => { setHistory(redoDraft); setReviewing(false); }}><Redo2 className="size-4" /></Button>
             <Button variant="outline" onClick={() => change(resetDraftBrand(history.present, modules))} disabled={saving}>Use brand values</Button>
             <Button variant="outline" onClick={() => void saveDraft()} disabled={saving || !dirty}>Save draft</Button>
-            {server?.identity?.environmentKind === "staging" && live && control && <Button variant="outline" onClick={() => void reviewPromotion()} disabled={saving || dirty || conflict}>Promote to live</Button>}
+            {server?.identity?.environmentKind === "staging" && live && control && <Button variant="outline" onClick={() => setPromotionOpen(true)} disabled={saving || dirty || conflict}>Promote to live</Button>}
             <Button onClick={() => { setReviewing(true); setConfirmLive(false); }} disabled={saving || !dirty || conflict}>
               {saving ? <Loader2 data-icon="inline-start" className="animate-spin" /> : <Save data-icon="inline-start" />} Review changes
             </Button>
@@ -251,13 +233,7 @@ function CustomizePage() {
         {isLive && <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={confirmLive} onChange={(event) => setConfirmLive(event.target.checked)} /> Publish these changes to the live site.</label>}
         <Button onClick={() => void publish()} disabled={saving || conflict || (isLive && !confirmLive)}>Publish settings</Button>
       </section>}
-      {promotion && <section className="space-y-3 rounded-lg border p-4" aria-label="Review staging promotion">
-        <p className="font-medium">Promote to {promotion.targetLabel}</p>
-        <p className="text-sm">Replace the live template “{promotion.target.values.active}” settings with the reviewed staging template “{promotion.source.values.active}” settings.</p>
-        <details className="text-sm"><summary>Review settings to copy</summary><pre className="mt-2 max-h-64 overflow-auto whitespace-pre-wrap text-xs">{JSON.stringify(promotion.source.values, null, 2)}</pre></details>
-        <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={confirmPromotion} onChange={(event) => setConfirmPromotion(event.target.checked)} /> Apply this staging snapshot to the live environment.</label>
-        <div className="flex gap-2"><Button onClick={() => void promote()} disabled={!confirmPromotion || saving}>Promote settings</Button><Button variant="outline" onClick={() => setPromotion(null)} disabled={saving}>Cancel</Button></div>
-      </section>}
+      {promotionOpen && <TemplatePromotionPanel key={scope} />}
 
       <div className="grid gap-[18px] xl:grid-cols-[360px_minmax(0,1fr)]">
         {/* Groups */}

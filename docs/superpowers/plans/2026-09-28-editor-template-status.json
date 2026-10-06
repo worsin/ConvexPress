@@ -7,7 +7,7 @@
     "In progress": 20
   },
   "goal": "Complete block editor and template delivery plus all demonstrated blockers; defer unrelated whole-app audit campaigns.",
-  "currentTask": "Task5/E82: finish media-bearing appearance promotion. Raw Customizer snapshot copy reproduced MEDIA_UNAVAILABLE; additive appearance-only verified-transfer protocol implemented/tested. NEXT wire existing broker review/media/apply UI into Customize, deploy matched contracts and complete native two-database acceptance; do not mark E82 closed yet. Goal active117/20.",
+  "currentTask": "Task5: E82 appearance-only promotion now verified through native media transfer, conflict refusal/fresh review, target-owned Website image and preservation. Continue remaining Customizer/header/footer/menu and four-pack acceptance; hosted E05 and final integration remain open. Goal active117/20.",
   "tasks": [
     {
       "id": 1,
@@ -970,8 +970,8 @@
     },
     {
       "id": "E82",
-      "status": "Open: raw Customizer staging promotion rejects source-local footer media. Appearance-only export/remap protocol implemented and handler-tested; UI integration and native acceptance still required.",
-      "classification": "direct dependency under repair",
+      "status": "Repaired and verified: Customizer uses controller-reviewed appearance-only promotion with explicit media transfer and live confirmation; native target drift refusal/fresh apply, target-owned rendered image and preservation accepted.",
+      "classification": "repaired and verified",
       "initialFinding": "prepareTemplatePromotion copies site-local media IDs into another database; registered publish rejects MEDIA_UNAVAILABLE with unchanged target snapshot. Prior no-media native receipts do not cover this workflow.",
       "closureBoundary": "Use reviewed verified media transfer/remapping for appearance-only promotion; preserve unrelated live settings/content, retain confirmations/conflict recovery, and verify native staging-to-live image output on separate databases.",
       "currentEvidence": [
