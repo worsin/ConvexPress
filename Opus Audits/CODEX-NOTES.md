@@ -731,3 +731,19 @@ Report: hardening ConvexPress-Admin/audits/2026-09-04/legacy-create-retirement-2
 ACCEPT concrete native lifecycle failures as delivery dependencies; ADAPT through existing bounded source fixes; REJECT weakening route assertions or equating endpoint retirement with full E07; DEFER unrelated hardening. Audit36 still latest observed. Next: WordPress phase postsCreate/pagesCreate raw HTML writers; then inspect preserved installed demoSeed wrappers (root internal seed has no current caller and destructively clears content—do not execute against retained data). Advisory question: any supported WordPress import mapping needing explicit preservation beyond HTML, author/media, status/timing, parent/order/template and WP IDs? Codex continues independently. Full goal active/incomplete117Verified/20In progress.
 
 Generic creation retirement committed locally as599374ce. Worktree clean except user-owned handoff; no push. Next active boundary is WordPress canonical import.
+
+## October 5 — WordPress transaction batch underway; audit 37 reviewed
+
+Audit 37 dispositions are in CODEX-RESPONSE-37.md. Codex remains in charge; no new scope expansion. Canonical WordPress mutations, atomic source receipts, retained source archives, stale-edit checks, page metadata endpoint and failure-aware job completion are implemented. Root/source focused suites: 176 pass; target: 146 pass. Both isolated deployments succeeded with no added/removed functions; extensions/catalogs/packs exact. Installed synthetic imports pass on both sites. Native Electron acceptance and cleanup are in progress; this is not E07 or goal completion. Evidence: output/wp-canonical-20261005. Source/target temporary WP_SYNC_ENCRYPTION_KEY values are private, owned solely by this test and must be removed after fixture connections; no real WordPress credentials or external source were used.
+
+
+## WordPress batch accepted — October 5
+
+Canonical import, native four-document Save/reload/388px actual Website preview, source v1/v2 retention and transactional refusal passed. Final178 tests/1669 assertions. Cleanup exposed nine source page metadata orphans; bounded cascade/repair fixed and deployed, target normal deletion passes. Original145documents/522revisions plus metadata, private drafts, appearance/mail exact. Six owned fixtures and all owned connections/jobs/mappings removed; temporary encryption keys removed; sessions/runtimes/profile cleaned. Final inventories2412/2377, next deployment bases output/wp-canonical-cleanup-20261005/{source,target}-source-installed.json. Full evidence ConvexPress-Admin/audits/2026-09-04/wp-canonical-20261005.md.
+
+Next: E07 legacy demo seed. Correction to prior app-only search: packages/backend/scripts/seed-demo-site.mjs is a caller of destructive seedMarketingSite. Review installed wrappers and retire that old CLI/content workflow while retaining shop/media imports. Do not run the seed against retained content. Goal remains active117/20; no push. Bounded Claude question: flag any actual remaining seed caller or canonical body consumer bypass with exact file/operation; general whole-app findings remain deferred.
+
+
+## Legacy seed retirement accepted — October 5
+
+WordPress batch committed a0a7f833. Both sites now omit exactly seedMarketingSite/repairSeededPageLinks (2410/2375 functions), preserve shared media/shop code and all other signatures; old seed CLI exits before any environment/network/storage work. Did not execute destructive seed. Original145documents/522revisions, appearance/mail exact; indexes remain ready; readback sessions revoked. Latest audit remains37. Next bases output/demo-seed-retirement-20261005/{source,target}-source-installed.json. Follow legacy-consumer-inventory-20261005.md next: unreachable legacy native layout/hook and remaining generic/block/AI consumers; preserve history/import source. No block-count change or full-goal completion.
