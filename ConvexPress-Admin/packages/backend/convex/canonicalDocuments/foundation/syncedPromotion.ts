@@ -16,16 +16,16 @@ const key=z.string().min(1).max(512).regex(/^[^\u0000-\u001f\u007f]+$/u);
 const id=z.string().min(1).max(256);
 const revision=z.number().int().min(1).max(1_000_000);
 const title=z.string().min(1).max(512);
-const headSchema=z.strictObject({id,generation:z.number().int().positive().max(Number.MAX_SAFE_INTEGER),publishedRevision:revision,scope:syncedScopeSchema});
+const headSchema=z.strictObject({id,generation:z.number().int().positive().max(Number.MAX_SAFE_INTEGER),publishedRevision:revision,isLocked:z.boolean().optional(),scope:syncedScopeSchema});
 type Head=z.infer<typeof headSchema>;
 const sourceKey=(value:string)=>`@promotion:synced:${value}`;
 const revisionKey=(value:string,number:number)=>JSON.stringify([value,number]);
 const documentSchema=z.strictObject({key,blocks:z.unknown()});
 const portableVersionSchema=z.strictObject({revision,title,tree:z.unknown()});
-const portableSourceSchema=z.strictObject({key,generation:z.number().int().positive().max(Number.MAX_SAFE_INTEGER),publishedRevision:revision,revisions:z.array(portableVersionSchema).min(1).max(100)});
+const portableSourceSchema=z.strictObject({key,generation:z.number().int().positive().max(Number.MAX_SAFE_INTEGER),publishedRevision:revision,isLocked:z.boolean().optional(),revisions:z.array(portableVersionSchema).min(1).max(100)});
 const portableSchema=z.strictObject({contract:z.literal('synced-promotion-closure-v1'),scope:syncedScopeSchema,documents:z.array(z.strictObject({key,tree:z.unknown()})).min(1).max(100),sources:z.array(portableSourceSchema).max(100)});
 type PortableVersion={revision:number;title:string;tree:PortableCanonicalTree};
-export type SyncedPromotionClosure={contract:'synced-promotion-closure-v1';scope:SyncedScope;documents:Array<{key:string;tree:PortableCanonicalTree}>;sources:Array<{key:string;generation:number;publishedRevision:number;revisions:PortableVersion[]}>};
+export type SyncedPromotionClosure={contract:'synced-promotion-closure-v1';scope:SyncedScope;documents:Array<{key:string;tree:PortableCanonicalTree}>;sources:Array<{key:string;generation:number;publishedRevision:number;isLocked?:boolean;revisions:PortableVersion[]}>};
 function bytes(value:unknown):number{
   let text:string|undefined;try{text=JSON.stringify(value);}catch{fail('SYNCED_PROMOTION_INVALID','Expected serializable authored content.');}
   if(text===undefined)fail('SYNCED_PROMOTION_INVALID','Expected serializable authored content.');
@@ -97,7 +97,7 @@ export async function exportSyncedPromotionClosure(
   for(const head of [...heads.values()].sort((a,b)=>a.id.localeCompare(b.id))){
     const revisions:PortableVersion[]=[];
     for(const version of [...versions.values()].filter(v=>v.id===head.id).sort((a,b)=>a.revision-b.revision))revisions.push({revision:version.revision,title:version.title,tree:await exportCanonicalPromotionTree(version.blocks,referenceKey)});
-    sources.push({key:sourceKey(head.id),generation:head.generation,publishedRevision:head.publishedRevision,revisions});
+    sources.push({key:sourceKey(head.id),generation:head.generation,publishedRevision:head.publishedRevision,isLocked:head.isLocked===true,revisions});
   }
   return parseSyncedPromotionClosure({contract:'synced-promotion-closure-v1',scope,documents:exportedDocuments,sources});
 }
@@ -156,7 +156,7 @@ function validatePortableGraph(closure:SyncedPromotionClosure):void{
 
 const targetBindingSchema=z.strictObject({key,id,revisions:z.array(z.strictObject({source:revision,target:revision})).min(1).max(100)});
 export type SyncedPromotionTargetBinding=z.infer<typeof targetBindingSchema>;
-type ImportedSource={key:string;id:string;publishedRevision:number;revisions:Array<{revision:number;title:string;blocks:CanonicalTree;digest:string}>};
+type ImportedSource={key:string;id:string;publishedRevision:number;isLocked?:boolean;revisions:Array<{revision:number;title:string;blocks:CanonicalTree;digest:string}>};
 /** Import is a pure rewrite using reviewed target-owned identities. It does not
  * choose destination records, reuse revision numbers or copy source authority. */
 export async function importSyncedPromotionClosure(input:unknown,installation:SyncedScope,rawBindings:unknown,resolve:(reference:PromotionReference)=>Promise<string>):Promise<{documents:Array<{key:string;blocks:CanonicalTree}>;sources:ImportedSource[];digest:string}>{
@@ -191,7 +191,7 @@ export async function importSyncedPromotionClosure(input:unknown,installation:Sy
   for(const source of closure.sources){
     const revisions:ImportedSource['revisions']=[];
     for(const version of source.revisions){const blocks=await importTree(version.tree);revisions.push({revision:targetVersion(source.key,version.revision),title:version.title,blocks,digest:syncedContentDigest(version.title,blocks)});}
-    sources.push({key:source.key,id:mapped.get(source.key)!.id,publishedRevision:targetVersion(source.key,source.publishedRevision),revisions});
+    sources.push({key:source.key,id:mapped.get(source.key)!.id,publishedRevision:targetVersion(source.key,source.publishedRevision),isLocked:source.isLocked===true,revisions});
   }
   const read=(request:SyncedRequest)=>{const source=sources.find(s=>s.id===request.id),value=source?.revisions.find(v=>v.revision===(request.revisionPolicy==='latest'?source.publishedRevision:request.revision));return source&&value?{...value,id:source.id,scope,published:true}:null;};
   for(const document of documents)resolveSyncedContentSnapshot(document.blocks,scope,read,{requireAvailable:true});

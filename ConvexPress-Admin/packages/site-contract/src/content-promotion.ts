@@ -32,7 +32,7 @@ const canonicalPromotionTransport: z.ZodType<PromotionCanonicalTree> = z.object(
 const syncedPromotionSourcesSchema: z.ZodType<PromotionSyncedSources> = z.object({
  contract:z.literal("synced-promotion-closure-v1"),
  scope:z.object({websiteKey:z.string().min(1).max(128),instanceKey:z.string().min(1).max(128),deploymentOrigin:z.string().url().max(2048)}).strict(),
- sources:z.array(z.object({key:short.min(1),generation:z.number().int().positive().max(Number.MAX_SAFE_INTEGER),publishedRevision:z.number().int().min(1).max(1_000_000),revisions:z.array(z.object({revision:z.number().int().min(1).max(1_000_000),title:z.string().min(1).max(512),tree:canonicalPromotionTransport}).strict()).min(1).max(100)}).strict()).min(1).max(100),
+ sources:z.array(z.object({key:short.min(1),generation:z.number().int().positive().max(Number.MAX_SAFE_INTEGER),publishedRevision:z.number().int().min(1).max(1_000_000),isLocked:z.boolean().optional(),revisions:z.array(z.object({revision:z.number().int().min(1).max(1_000_000),title:z.string().min(1).max(512),tree:canonicalPromotionTransport}).strict()).min(1).max(100)}).strict()).min(1).max(100),
 }).strict();
 const authoredContent = {
  blocksVersion:z.union([z.literal(1),z.literal(2)]).optional(),
@@ -320,7 +320,7 @@ export const promotionRecordSchema: z.ZodType<PromotionRecord> = z
 	});
 export const promotionChangeKindSchema = z.union([z.enum(Object.keys(promotionDataSchemas) as [PromotionKind, ...PromotionKind[]]), z.literal('syncedBlock')]);
 export const promotionSyncedReviewDataSchema = z.object({
-  title: z.string().min(1).max(512), publishedRevision: z.number().int().min(1).max(1_000_000),
+  title: z.string().min(1).max(512), publishedRevision: z.number().int().min(1).max(1_000_000), isLocked: z.boolean().optional(),
   revisions: z.array(z.object({revision:z.number().int().min(1).max(1_000_000),title:z.string().min(1).max(512),tree:canonicalPromotionTransport}).strict()).min(1).max(100),
 }).strict();
 export const promotionReviewedRecordSchema = z.union([promotionRecordSchema, z.object({key:short.min(1),kind:z.literal('syncedBlock'),sourceRevision:short.min(1),data:promotionSyncedReviewDataSchema}).strict()]);
@@ -329,7 +329,7 @@ export const promotionReviewedRecordSchema = z.union([promotionRecordSchema, z.o
 export function promotionReviewedRecords(manifest: ContentPromotionManifest) {
   return [...manifest.records, ...(manifest.synced?.sources ?? []).map(source => ({
     key: source.key.slice(PROMOTION_REFERENCE_PREFIX.length), kind: 'syncedBlock' as const, sourceRevision: String(source.generation),
-    data: promotionSyncedReviewDataSchema.parse({ title: source.revisions.find(v=>v.revision===source.publishedRevision)?.title, publishedRevision: source.publishedRevision, revisions: source.revisions }),
+    data: promotionSyncedReviewDataSchema.parse({ title: source.revisions.find(v=>v.revision===source.publishedRevision)?.title, publishedRevision: source.publishedRevision, isLocked: source.isLocked === true, revisions: source.revisions }),
   }))];
 }
 export const promotionIssueSchema: z.ZodType<PromotionIssue> = z
@@ -413,7 +413,7 @@ export interface PromotionCanonicalTree {
 export interface PromotionSyncedSources {
  contract:"synced-promotion-closure-v1";
  scope:{websiteKey:string;instanceKey:string;deploymentOrigin:string};
- sources:Array<{key:string;generation:number;publishedRevision:number;revisions:Array<{revision:number;title:string;tree:PromotionCanonicalTree}>}>;
+ sources:Array<{key:string;generation:number;publishedRevision:number;isLocked?:boolean;revisions:Array<{revision:number;title:string;tree:PromotionCanonicalTree}>}>;
 }
 export interface PromotionIssue {
   code: string;

@@ -38,3 +38,9 @@ test('installation and author ownership are enforced for every reusable dependen
  await f.t.run(ctx=>ctx.db.patch('convexpress_siteIdentity',f.ids.site,{environmentKind:'live'}));
  await expect(f.operator.run(ctx=>captureSyncedPromotionClosure(ctx,f.documents,unused))).rejects.toBeDefined();
 });
+
+test('export preserves imported source editing locks without copying legacy database identities',async()=>{
+ const f=await setup();await f.t.run(ctx=>ctx.db.patch('syncedBlocks',f.source.id,{isLocked:true}));
+ const result=await f.operator.run(ctx=>captureSyncedPromotionClosure(ctx,f.documents,unused));
+ expect(result.sources[0].isLocked).toBe(true);expect(JSON.stringify(result)).not.toContain('legacySourceId');
+});

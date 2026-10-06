@@ -74,6 +74,7 @@ export function PromotionAuthoredContent({ data, kind, planLabels = {}, document
     </section>}
     {synced.success && <section aria-label="Reusable content revisions" className="space-y-2 rounded border border-border p-3">
       <p className="font-medium">Reusable content · {synced.data.revisions.length} published {synced.data.revisions.length === 1 ? 'revision' : 'revisions'} included</p>
+      <p>{synced.data.isLocked ? "The editing lock will be preserved. Unlock imported content before editing in production." : "Editing is unlocked."}</p>
       <ul className="space-y-1">{synced.data.revisions.map(version => <li key={version.revision}>Revision {version.revision}: {version.title}{version.revision === synced.data.publishedRevision ? ' · Current publication' : ' · Required by a pinned placement'}</li>)}</ul>
       <p className="text-ink-2">Production receives new revision numbers. Pinned placements are remapped, shared placements follow the imported publication, and existing production history is retained.</p>
       <p className="text-ink-2">Preview the destination website to verify nested blocks and forms.</p>

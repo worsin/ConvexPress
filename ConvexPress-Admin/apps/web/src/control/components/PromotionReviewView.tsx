@@ -148,6 +148,7 @@ export function PromotionReviewView({
           {review.failureCode === "ROUTE_POLICY_SELECTION_REQUIRED"
             ? "This staging site has URL access rules. Select “Include site access rules” and create a new preview to review those rules and their membership plans before promotion."
             : review.failureCode === "LOCALIZATION_SELECTION_REQUIRED" ? "Select “Include site languages and selected translation groups” and create a new preview to review configured language destinations."
+            : review.failureCode === "SYNCED_LOCKED" ? "Open Synced content in the destination environment, explicitly unlock the imported content you intend to replace, then create a new preview."
             : <>The review could not finish ({review.failureCode}). Check the environment connections and content compatibility before starting another review.</>}
 				</p>
 			)}

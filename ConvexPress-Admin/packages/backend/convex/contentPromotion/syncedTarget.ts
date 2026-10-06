@@ -88,6 +88,7 @@ export async function planSyncedTargets(ctx: QueryCtx, input: unknown, packId?: 
       const id = ctx.db.normalizeId('syncedBlocks', mapping.targetId);
       if (!id || targets.has(id)) return syncedFailure('PROMOTION_MAPPING_CONFLICT', 'Reusable sources must map to distinct destination sources.');
       current = (await owned(ctx, id, actor._id, budget)).source;
+      if (current.isLocked) return syncedFailure('SYNCED_LOCKED', 'Unlock the destination reusable content explicitly before promoting changes.');
       targets.add(id);
       await requireCan(ctx, 'post.update', budget);
       const draft = await storedRevision(ctx, id, current.lastRevision, budget);
@@ -137,7 +138,7 @@ export async function applySyncedTargets(ctx: MutationCtx, input: unknown, expec
       await insertWithMediaReferences(ctx, 'syncedBlockRevisions', { syncedBlockId: backup.targetId, ...version, createdBy: actor._id, createdAt: now, publishedAt: now }, undefined, budget, collectCanonicalMediaIds(version.blocks));
     }
     const published = source.revisions.find(v => v.revision === source.publishedRevision)!;
-    await ctx.db.patch('syncedBlocks', backup.targetId, { title: published.title, generation: (backup.before?.generation ?? 0) + 1, lastRevision: source.publishedRevision, publishedRevision: source.publishedRevision, updatedBy: actor._id, updatedAt: now });
+    await ctx.db.patch('syncedBlocks', backup.targetId, { title: published.title, generation: (backup.before?.generation ?? 0) + 1, lastRevision: source.publishedRevision, publishedRevision: source.publishedRevision, isLocked: source.isLocked === true, updatedBy: actor._id, updatedAt: now });
   }
   for (const backup of backups) {
     budget.beforeRead();
@@ -174,7 +175,7 @@ export async function restoreSyncedTargets(ctx: MutationCtx, backups: SyncedTarg
     if (revision > 1_000_000 || !Number.isSafeInteger(generation)) return syncedFailure('SYNCED_REVISION_LIMIT', 'The destination reusable revision limit was reached.');
     const now = Date.now(), value = content(draft.title, draft.blocks);
     await insertWithMediaReferences(ctx, 'syncedBlockRevisions', { syncedBlockId: source._id, revision, ...value, createdBy: actor._id, createdAt: now }, undefined, budget, collectCanonicalMediaIds(value.blocks));
-    await ctx.db.patch('syncedBlocks', source._id, { title: draft.title, lastRevision: revision, generation, publishedRevision: before.publishedRevision, updatedBy: actor._id, updatedAt: now });
+    await ctx.db.patch('syncedBlocks', source._id, { title: draft.title, lastRevision: revision, generation, publishedRevision: before.publishedRevision, isLocked: before.isLocked, updatedBy: actor._id, updatedAt: now });
     restored.push({ source, generation, capability, publishedRevision: before.publishedRevision });
   }
   for (const item of restored) {

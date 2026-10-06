@@ -3,11 +3,11 @@
   "baselineCommit": "d0fee8acceb408fd306a15f3c054322cb73ac8bc",
   "checkpointSource": "output/field-studio-final-20261006/mt-accept-after.json",
   "checkpointCounts": {
-    "Verified": 130,
-    "In progress": 7
+    "Verified": 131,
+    "In progress": 6
   },
   "goal": "Complete block editor and template delivery plus all demonstrated blockers; defer unrelated whole-app audit campaigns.",
-  "currentTask": "130 Verified / 7 In progress. E100 legacy reusable graph/reference migration implemented and verified through actual native import, publication, live shared update and exact historical recovery. Next: live cross-environment synced promotion, then remaining corpus/retirement and integrated gates; do not wait for external-provider prerequisites.",
+  "currentTask": "131 Verified / 6 In progress. Synced content accepted after native cross-environment lock-preserving promotion, outside-selection live refresh/pin retention and rollback/history verification. Next: reference/field-guide live legacy conversion and remaining corpus/retirement/integration gates; continue independent work while external-provider prerequisites remain.",
   "tasks": [
     {
       "id": 1,
@@ -1262,6 +1262,22 @@
         "ConvexPress-Admin/audits/2026-09-04/synced-nested-20261006.md",
         "output/synced-nested-20261006/migration-probe.json",
         "ConvexPress-Admin/audits/2026-09-04/synced-legacy-20261006.md"
+      ]
+    },
+    {
+      "id": "E101",
+      "classification": "reproduced defect repaired and verified",
+      "status": "Locked imported content survives export/review/promotion; locked targets refuse overwrite until explicit unlock; rollback restores prior lock/publication and retains history. Native broker and actual Website outside-selection refresh verified.",
+      "requiredWorkflow": "Promote imported reusable content across isolated environments without losing editing locks, shared references, pins or recovery history.",
+      "initialFinding": "Export omitted isLocked and strict portable parser rejected it; promoted imported content could not be unlocked without a local legacySourceId. SDK owner also lacked the deployed E100 legacy conversion mapping.",
+      "repairBoundary": "Optional lock flag through pure/site/controller codecs, registered export, target planner/writer/rollback, explicit authorized unlock and native review/refusal guidance; synchronize canonical SDK converter owner.",
+      "closureBoundary": "Registered regressions, native broker lock review/apply, target edit/promotion refusal/unlock, unselected target latest/pinned refresh and rollback with exact authored document and preserved history.",
+      "deliveryTask": 4,
+      "currentEvidence": [
+        "ConvexPress-Admin/audits/2026-09-04/synced-promotion-final-20261006.md",
+        "output/synced-promotion-final-20261006/locks-red.log",
+        "output/synced-promotion-final-20261006/first-apply-proof.json",
+        "output/synced-promotion-final-20261006/rollback-proof.json"
       ]
     }
   ],
@@ -4393,9 +4409,9 @@
       "name": "core/synced",
       "title": "Synced content",
       "category": "Layout",
-      "checkpointStatus": "In progress",
-      "nextClassification": "Legacy reusable migration and nested lifecycle/recovery accepted; exact live cross-environment promotion remains.",
-      "classification": "missing evidence",
+      "checkpointStatus": "Verified",
+      "nextClassification": "reuse valid evidence",
+      "classification": "accepted/reusable evidence",
       "source": "blocks/core/synced/block.json",
       "requirements": "syncedBlock (reference), revisionPolicy (select), revision (number)",
       "evidenceReferences": [
@@ -4405,12 +4421,16 @@
         "output/synced-snapshot-20260915.",
         "output/synced-visibility-20260915.",
         "ConvexPress-Admin/audits/2026-09-04/synced-nested-20261006.md",
-        "ConvexPress-Admin/audits/2026-09-04/synced-legacy-20261006.md"
+        "ConvexPress-Admin/audits/2026-09-04/synced-legacy-20261006.md",
+        "ConvexPress-Admin/audits/2026-09-04/synced-promotion-final-20261006.md",
+        "output/synced-promotion-final-20261006/outside-after.json",
+        "output/synced-promotion-final-20261006/rollback-proof.json",
+        "output/synced-promotion-final-20261006/mt-accept-verified.json"
       ],
-      "remainingReview": "Exact live cross-environment promotion remains before row acceptance. Reuse native source import/document conversion/history recovery, nested lifecycle and four-pack receipts. Legacy corpus accounting/retirement remains Task 4.",
+      "remainingReview": "Retain scoped native, nested lifecycle, authority, legacy import/recovery and live promotion acceptance. Legacy corpus accounting/retirement remains Task 4; integrated editor/template/site acceptance remains Task 8.",
       "deliveryTask": 4,
       "acceptanceBatch": "reusable-migration",
-      "reviewedAtCommit": "d8a0ea2c",
+      "reviewedAtCommit": "4cc0cc4f plus E101 local repair",
       "notesSha256": "e39c907bbb669061aab836454414d20116c2872eb6ef2001d4b49f3876ceae27",
       "specSha256": "d9b2e0ee6a65db92a50447b387d5cc13e0fce20ad325cc1f503c1eb2ba24d401",
       "rendererSha256": "4338287504b81eb9d94a8936082cf7e4c7b52c423ba4f2604ef7318954a0cac3",
@@ -5050,23 +5070,24 @@
     "output/membership-final-20261006/cleanup.json",
     "output/membership-final-20261006/mt-accept-verified.json",
     "ConvexPress-Admin/audits/2026-09-04/synced-legacy-20261006.md",
-    "output/synced-legacy-20261006/cleanup.json"
+    "output/synced-legacy-20261006/cleanup.json",
+    "ConvexPress-Admin/audits/2026-09-04/synced-promotion-final-20261006.md",
+    "output/synced-promotion-final-20261006/cleanup.json",
+    "output/synced-promotion-final-20261006/mt-accept-verified.json"
   ],
   "trackerRefresh": {
-    "source": "output/membership-final-20261006/mt-accept-after.json",
+    "source": "output/synced-promotion-final-20261006/mt-accept-after.json",
     "schema": "output/lead-customer-20260929/mt-schema.json",
     "rows": 137,
     "counts": {
-      "Verified": 123,
-      "In progress": 14
+      "Verified": 131,
+      "In progress": 6
     },
     "otherCellsUnchangedFromPreviousRead": true,
     "pendingNotesReconciled": 77,
     "classificationScope": "Block-specific missing gates; historical whole-app audit conditions retained in Notes but not automatic prerequisites.",
     "lastAcceptedNames": [
-      "membership/plans",
-      "membership/gated-teaser",
-      "core/account-teaser"
+      "core/synced"
     ],
     "allNotesExact": true
   },
@@ -5110,7 +5131,8 @@
     "audit48": "ACCEPT register-state consistency finding; normalize E86\u2013E89 classification from issue titles to repaired and verified, retaining issueType/status/closure boundaries. Audit snapshot predates07b08732. No scope change; Codex continues E09.",
     "audit49": "ACCEPT no-new-findings/no-drift assessment as advisory, verified against39b4803b and native footer follow-up. No scope change or wait; Codex remains in charge.",
     "audit51": "ACCEPT footer newsletter closure and no-new-findings assessment at a9b9b754 as advisory; verified against local commits and subsequent Calendar repair. Current event acceptance advances120/17. No automatic scope change or waiting; Codex retains decision authority.",
-    "audit54": "ACCEPT scope/count/no-drift assessment at c290ca0f. ADAPT E99: three prior native reproductions plus current migration recovery render automatically; retain intermittent Task 8 watch without speculative fix. E100 adapter now implemented and verified in native/stored workflows. No waiting for deep audit or automatic scope expansion."
+    "audit54": "ACCEPT scope/count/no-drift assessment at c290ca0f. ADAPT E99: three prior native reproductions plus current migration recovery render automatically; retain intermittent Task 8 watch without speculative fix. E100 adapter now implemented and verified in native/stored workflows. No waiting for deep audit or automatic scope expansion.",
+    "syncedPromotion": "Audit54 remains latest and already adjudicated. Codex independently verified and repaired E101 promotion lock gap; 131/6 verified tracker. No waiting for upcoming deep audit; keep corpus retirement and final integration distinct from block acceptance."
   },
   "sessionBaseCommit": "9824d9605e50c4b0ebd711c13715b506f8ef5bd3"
 }

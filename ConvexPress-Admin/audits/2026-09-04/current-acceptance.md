@@ -486,3 +486,8 @@ Native post/page title/metadata/parent transaction fixed; stale open form refuse
 ## October6 Instructor profile variants
 
 Instructor accepted:129Verified/8In progress, full tracker readback and all Notes preserved. Added fictional portrait/initials/minimal/unavailable BlockDemo specimens; all four packs pass1440/390 portrait/state checks and desktop paging/focus.13demo tests/170assertions, Website and BlockDemo types, canonical/generated/kit checks pass. Reused actual native picker/save/preview, independent databases and current live course withdrawal. No backend or site-data changes; owned tab closed, protected processes preserved. [Evidence](instructor-final-20261006.md). Shared editor/migration/Customizer/SDK and final integration remain open.
+
+
+## October6 Synced content promotion completion
+
+Synced content accepted:131Verified/6In progress; one tracker row changed and all Notes preserved. E101 transports imported editing locks through review/apply/rollback, refuses locked target overwrite, supports explicit target unlock and native guidance; canonical SDK owner synchronized with deployed E100 conversion. Native broker applied nested closure once; unselected live Website updates latest while preserving pin and exact authored document, rollback restores publication and retains imported history. Original71pages/settings/appearance/access policies and language configuration restored;3ownedpagestrashed,4sourceswithdrawn,originallegacy/historyretained,APIrefresh401,native/profile/Website/tabclean,protected7alive. [Evidence](synced-promotion-final-20261006.md). Next reference/field-guide live conversion; corpus retirement and Tasks4–8 delivery gates remain open.

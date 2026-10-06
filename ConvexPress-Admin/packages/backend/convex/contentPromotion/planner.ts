@@ -660,6 +660,6 @@ export async function planPromotion(
 				"Target navigation locations outside the source selection need explicit review before replacing the presentation.",
 			);
 	}
-  for (const source of plan.synced?.sources ?? []) plan.changes.push({ key: referencedKey(source.key)!, kind: 'syncedBlock', targetId: source.targetId, beforeRevision: source.beforeRevision, fields: ['title', 'publishedRevision', 'revisions'] });
+  for (const source of plan.synced?.sources ?? []) plan.changes.push({ key: referencedKey(source.key)!, kind: 'syncedBlock', targetId: source.targetId, beforeRevision: source.beforeRevision, fields: ['title', 'publishedRevision', 'isLocked', 'revisions'] });
 	return { plan, issues };
 }

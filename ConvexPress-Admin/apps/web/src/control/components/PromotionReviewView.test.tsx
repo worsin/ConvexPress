@@ -9,10 +9,10 @@ test('missing route-policy selection explains the required control and fresh pre
 });
 test('reusable source review explains imported publication and retained history with escaped titles',()=>{
  const review=fixture();review.recordCount=2;
- review.authoredRecords.push({key:'synced:studio',kind:'syncedBlock',sourceRevision:'3',dataJson:JSON.stringify({title:'Shared studio',publishedRevision:2,revisions:[{revision:1,title:'Original <script>',tree:{contract:'canonical-promotion-tree-v1',blocks:[],references:[]}},{revision:2,title:'Current studio',tree:{contract:'canonical-promotion-tree-v1',blocks:[],references:[]}}]})});
+ review.authoredRecords.push({key:'synced:studio',kind:'syncedBlock',sourceRevision:'3',dataJson:JSON.stringify({title:'Shared studio',publishedRevision:2,isLocked:true,revisions:[{revision:1,title:'Original <script>',tree:{contract:'canonical-promotion-tree-v1',blocks:[],references:[]}},{revision:2,title:'Current studio',tree:{contract:'canonical-promotion-tree-v1',blocks:[],references:[]}}]})});
  review.changes.push({key:'synced:studio',kind:'syncedBlock',targetId:'target-studio',beforeRevision:'previous',fields:['title','publishedRevision','revisions']});
  const html=renderToStaticMarkup(<PromotionReviewView review={review} now={100} expanded />);
- expect(html).toContain('Reusable content revisions');expect(html).toContain('Current publication');expect(html).toContain('Required by a pinned placement');expect(html).toContain('existing production history is retained');expect(html).toContain('Original &lt;script&gt;');expect(html).not.toContain('<script>');expect(html).not.toContain('could not be validated');
+ expect(html).toContain('The editing lock will be preserved. Unlock imported content before editing in production.');expect(html).toContain('Reusable content revisions');expect(html).toContain('Current publication');expect(html).toContain('Required by a pinned placement');expect(html).toContain('existing production history is retained');expect(html).toContain('Original &lt;script&gt;');expect(html).not.toContain('<script>');expect(html).not.toContain('could not be validated');
 });
 
 test("blocked review shows incoming values, blockers, hashes and explicit absence of apply", () => {
@@ -53,4 +53,9 @@ test('language review shows readable destinations and group replacement rather t
  const html=renderToStaticMarkup(<PromotionReviewView review={review} now={100} expanded/>);
  expect(html).toContain('Site languages');expect(html).toContain('Language links are disabled');expect(html).toContain('English (en)');expect(html).toContain('Left to right');expect(html).toContain('Remove all translations from this group');expect(html.match(/<section aria-label="Site languages"[\s\S]*?<\/section>/)?.[0]).not.toContain('@promotion:page:one');expect(html).not.toContain('<script>');
  const failure=renderToStaticMarkup(<PromotionReviewView review={{...review,status:'failed',failureCode:'LOCALIZATION_SELECTION_REQUIRED'}} now={100}/>);expect(failure).toContain('Include site languages');
+});
+
+test('locked reusable destinations identify the explicit unlock and fresh review step',()=>{
+ const review=fixture();const html=renderToStaticMarkup(<PromotionReviewView review={{...review,status:'failed',failureCode:'SYNCED_LOCKED'}} now={100}/>);
+ expect(html).toContain('Open Synced content in the destination environment');expect(html).toContain('unlock');expect(html).toContain('create a new preview');
 });

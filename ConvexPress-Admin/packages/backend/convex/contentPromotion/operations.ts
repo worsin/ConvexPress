@@ -134,7 +134,7 @@ const manifestResult = v.object({
   synced:v.optional(v.object({
     contract:v.literal("synced-promotion-closure-v1"),
     scope:v.object({websiteKey:v.string(),instanceKey:v.string(),deploymentOrigin:v.string()}),
-    sources:v.array(v.object({key:v.string(),generation:v.number(),publishedRevision:v.number(),revisions:v.array(v.object({revision:v.number(),title:v.string(),tree:canonicalTransportResult}))})),
+    sources:v.array(v.object({key:v.string(),generation:v.number(),publishedRevision:v.number(),isLocked:v.optional(v.boolean()),revisions:v.array(v.object({revision:v.number(),title:v.string(),tree:canonicalTransportResult}))})),
   })),
 	records: v.array(
 		v.object({

@@ -9,10 +9,10 @@ import { hash } from "../policy";
 import type { ContentPromotionManifest } from "@convexpress/site-contract/content-promotion";
 import { fixture, modules, addReusableTransfer } from "./harness";
 test('controller review includes reusable source revisions as authored content',async()=>{
- const f=await fixture();addReusableTransfer(f);
+ const f=await fixture();addReusableTransfer(f);const exportContent=f.remote.export;f.remote.export=async(...args)=>{const result=await exportContent(...args) as {manifest:ContentPromotionManifest;downloadUrls:Array<{key:string;url:string}>};result.manifest.synced!.sources[0].isLocked=true;return result;};
  const result=await runReview(f.context,f.args,f.remote);
  expect(result.status).toBe('reviewed');expect(result.canApply).toBe(true);expect(result.recordCount).toBe(2);
- const shared=result.authoredRecords.find(r=>r.kind==='syncedBlock');expect(shared?.key).toBe('synced:source-shared');expect(JSON.parse(shared!.dataJson).revisions[0].title).toBe('Shared studio section');expect(result.changes).toHaveLength(2);
+ const shared=result.authoredRecords.find(r=>r.kind==='syncedBlock');expect(shared?.key).toBe('synced:source-shared');expect(JSON.parse(shared!.dataJson).revisions[0].title).toBe('Shared studio section');expect(result.changes).toHaveLength(2);expect(JSON.parse(shared!.dataJson).isLocked).toBe(true);
 });
 test("broker review stores authored hashes and sanitized readiness; duplicate request does not exchange sessions again",async()=>{
   const f=await fixture();const result=await runReview(f.context,f.args,f.remote);
@@ -195,4 +195,9 @@ test("appearance-only reviews bind the selection and require the requested appea
   expect(result.status).toBe(scenario === "valid" ? "reviewed" : "failed");
   expect(result.reviewReady).toBe(scenario === "valid");
  }
+});
+
+test('a locked destination returns actionable safe guidance without exposing server detail',async()=>{
+ const f=await fixture();f.remote.dryRun=async()=>{throw {data:{code:'SYNCED_LOCKED',message:'private destination detail'}};};
+ const result=await runReview(f.context,f.args,f.remote);expect(result.status).toBe('failed');expect(result.canApply).toBe(false);expect(result.failureCode).toBe('SYNCED_LOCKED');expect(JSON.stringify(result)).not.toContain('private destination detail');
 });

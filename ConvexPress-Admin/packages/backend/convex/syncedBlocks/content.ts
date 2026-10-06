@@ -122,7 +122,6 @@ export const restore = mutation({
 export const unlockImported = mutation({
  args: selection, returns: v.object({id,generation:v.number()}),
  handler: async(ctx,args)=>{const budget=new RequestReadLedger(),actor=await requireCan(ctx,"post.update",budget),{source}=await owned(ctx,args.id,actor._id,budget);checkGeneration(source,args.expectedGeneration);
- if(!source.legacySourceId)return syncedFailure("SYNCED_LOCKED","Only imported legacy locks can be released here.");
  if(!source.isLocked)return {id:source._id,generation:source.generation};
  const generation=source.generation+1;await ctx.db.patch("syncedBlocks",source._id,{isLocked:false,generation,updatedAt:Date.now(),updatedBy:actor._id});return {id:source._id,generation};}
 });
