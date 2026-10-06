@@ -7,7 +7,7 @@
     "In progress": 20
   },
   "goal": "Complete block editor and template delivery plus all demonstrated blockers; defer unrelated whole-app audit campaigns.",
-  "currentTask": "Task5: E94 footer section layout/image controls repaired across all4packs;136responsive cases and native Core image publication/on-site Undo verified. Next section branding enablement, legal-link/menu-source choices and remaining cell controls; reuse E81/E90-E94. Goal active117/20.",
+  "currentTask": "Task5: E95 footer branding/legal/menu sources and conversion repaired across all four packs;63 cases and native Core conversion/publication/reopen plus actual Website38public destinations at1440/390 verified. Next remaining cell controls: contact icons, alignment, image sizing and newsletter audience semantics. Reuse E81/E90-E95. Goal active117/20.",
   "tasks": [
     {
       "id": 1,
@@ -181,7 +181,7 @@
       "classification": "missing evidence",
       "initialFinding": "Customizer contextual fields, all packs/surfaces, header/footer/menu integration and operator authority are not fully accepted.",
       "closureBoundary": "Verify the field group controls the actual surface, click-to-edit focus, draft/publish/reset/history/conflicts, pack switches, session continuity, customer denial and revocation.",
-      "nextCheck": "Reproduce and repair remaining exposed footer section/cell fields, starting with global Column Layout, Background/Image, Top Border and Padding. Reuse E93 consumer and native4pack row lifecycle; do not repeat accepted matrices.",
+      "nextCheck": "Finish remaining footer cell controls: contact icons, cell alignment, image sizing and newsletter audience semantics; then reconcile Task5 against reusable lifecycle evidence. E94 section presentation and E95 section content accepted; do not repeat their matrices.",
       "deliveryTask": 5,
       "triagedAt": "2026-09-29",
       "triageEvidence": "ConvexPress-Admin/audits/2026-09-04/delivery-blocker-triage-20260929.md",
@@ -202,7 +202,9 @@
         "ConvexPress-Admin/audits/2026-09-04/customizer-frame-pick-20261006.md",
         "ConvexPress-Admin/audits/2026-09-04/account-menu-20261006.md",
         "ConvexPress-Admin/audits/2026-09-04/footer-row-controls-20261006.md",
-        "ConvexPress-Admin/audits/2026-09-04/footer-native-20261006.md"
+        "ConvexPress-Admin/audits/2026-09-04/footer-native-20261006.md",
+        "ConvexPress-Admin/audits/2026-09-04/footer-section-controls-20261006.md",
+        "ConvexPress-Admin/audits/2026-09-04/footer-content-controls-20261006.md"
       ]
     },
     {
@@ -1172,6 +1174,22 @@
         "output/footer-section-controls-20261006/browser-receipts.json",
         "output/footer-section-controls-20261006/native-receipts.json",
         "output/footer-section-controls-20261006/cleanup.json"
+      ]
+    },
+    {
+      "id": "E95",
+      "status": "Footer section content choices and source conversion repaired and verified; remaining cell fields stay E09.",
+      "classification": "repaired and verified",
+      "requiredWorkflow": "Branding, legal and navigation source choices render and survive conversion to editable rows.",
+      "initialFinding": "38 component groups failed: legal choices ignored, Auto Pages used menus, Journal/Aster ignored branding disabled, conversion rewrote sources.",
+      "repairBoundary": "Four footer pack consumers, shared published-page/legal components, mirrored pure conversion helpers and native menu source option.",
+      "closureBoundary": "63 component cases, existing footer regressions, native Core conversion/publication/reopen,38 anonymous page destinations matched at1440/390; exact site restoration.",
+      "deliveryTask": 5,
+      "currentEvidence": [
+        "ConvexPress-Admin/audits/2026-09-04/footer-content-controls-20261006.md",
+        "output/footer-content-controls-20261006/browser-receipts.json",
+        "output/footer-content-controls-20261006/restoration.json",
+        "output/footer-content-controls-20261006/cleanup.json"
       ]
     }
   ],

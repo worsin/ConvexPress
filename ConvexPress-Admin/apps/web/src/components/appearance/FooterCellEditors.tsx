@@ -124,7 +124,7 @@ function MenuLocationSelect({
       <Input
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        placeholder="footer, footer-1, social"
+        placeholder="footer, footer-1, auto-pages, social"
       />
     );
   }
@@ -135,7 +135,9 @@ function MenuLocationSelect({
       onChange={(e) => onChange(e.target.value)}
       className="h-9 rounded-none border border-border bg-background px-2.5 text-sm text-foreground outline-hidden focus:border-primary"
     >
-      {locations.map((location) => (
+      <option value="auto-pages">Auto Pages</option>
+      {value !== "auto-pages" && !locations.some(location => location.slug === value) && <option value={value}>{value}</option>}
+      {locations.filter(location => location.slug !== "auto-pages").map((location) => (
         <option key={location.slug} value={location.slug}>
           {location.name}
         </option>

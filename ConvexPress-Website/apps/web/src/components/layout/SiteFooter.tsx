@@ -176,7 +176,7 @@ function FooterContent({ footerConfig, siteIdentity, siteTitle }: FooterContentP
       {showNavColumns && footerConfig.navColumns.columns.map((column, index) => (
         <FooterNav
           key={`${column.menuSource}-${index}`}
-          location={column.menuSource === "footer-1" || column.menuSource === "footer-2" || column.menuSource === "footer-3" ? column.menuSource : "footer"}
+          location={column.menuSource === "custom" ? "footer" : column.menuSource}
           heading={column.heading}
           column
           fallback={index === 0}

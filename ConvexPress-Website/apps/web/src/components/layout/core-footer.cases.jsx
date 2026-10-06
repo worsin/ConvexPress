@@ -63,7 +63,7 @@ test('unassigned first column falls back to the old footer menu', async () => {
 test('disabled columns remain hidden', async () => {
   menus = { 'footer-1': menu('Work', '/page/work') };
   await render({ config: { navColumns: { enabled: false, columns: [{ heading: 'Explore', menuSource: 'footer-1' }] } } }, footer => {
-    expect(footer.querySelector('nav')).toBeNull();
+    expect(footer.querySelector('[data-slot="footer-nav"]')).toBeNull();
     expect(footer.querySelector('h3')).toBeNull();
   });
 });

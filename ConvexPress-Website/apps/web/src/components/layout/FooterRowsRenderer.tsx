@@ -1,3 +1,4 @@
+import { FooterAutoPages } from "./FooterAutoPages";
 import { FooterRowFrame } from "./FooterRowFrame";
 import { footerMenuItems } from "@/components/menus/footerMenuItems";
 import { FooterCopyright } from "./FooterCopyright";
@@ -186,6 +187,10 @@ function LinksCellRenderer({ cell }: { cell: FooterLinksCell }) {
 }
 
 function NavCellRenderer({ cell }: { cell: FooterNavCell }) {
+  return cell.menuLocation === "auto-pages" ? <FooterAutoPages heading={cell.heading} /> : <AssignedNavCell cell={cell} />;
+}
+
+function AssignedNavCell({ cell }: { cell: FooterNavCell }) {
   const menu = useMenuForLocation(cell.menuLocation);
   if (!menu) return null;
   return (

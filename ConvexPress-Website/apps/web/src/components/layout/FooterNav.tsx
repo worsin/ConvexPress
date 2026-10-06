@@ -1,3 +1,4 @@
+import { FooterAutoPages } from "./FooterAutoPages";
 import { footerMenuItems } from "@/components/menus/footerMenuItems";
 import { MenuItemTarget } from "@/components/menus/MenuItemTarget";
 
@@ -7,12 +8,18 @@ import { useMenuForLocation } from "@/hooks/layout/useMenuForLocation";
  * Horizontal footer navigation links from the "footer" menu location.
  * All resolved descendants remain reachable without dropdowns.
  */
-export function FooterNav({ location = "footer", heading, column = false, fallback = false }: {
+interface FooterNavProps {
   location?: string;
   heading?: string;
   column?: boolean;
   fallback?: boolean;
-} = {}) {
+}
+
+export function FooterNav(props: FooterNavProps = {}) {
+  return props.location === "auto-pages" ? <FooterAutoPages heading={props.heading} /> : <AssignedFooterNav {...props} />;
+}
+
+function AssignedFooterNav({ location = "footer", heading, column = false, fallback = false }: FooterNavProps) {
   const located = useMenuForLocation(location);
   const legacy = useMenuForLocation("footer");
   const footerMenu = located?.items.some((item) => !item.isOrphaned) ? located : fallback ? legacy : located;

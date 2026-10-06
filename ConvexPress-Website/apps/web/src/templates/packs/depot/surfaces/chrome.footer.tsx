@@ -1,3 +1,5 @@
+import { FooterAutoPages } from "@/components/layout/FooterAutoPages";
+import { FooterLegalLinks } from "@/components/layout/FooterLegalLinks";
 import { FooterSectionFrame, footerColumnsClass } from "@/components/layout/FooterSectionFrame";
 import { footerMenuItems } from "@/components/menus/footerMenuItems";
 import { MenuItemTarget } from "@/components/menus/MenuItemTarget";
@@ -24,7 +26,7 @@ import type { SurfaceProps } from "@/templates/sdk/types";
 
 import { Container, Label, buttonClasses } from "../parts";
 
-type MenuLocation = "footer" | "footer-1" | "footer-2" | "footer-3";
+type MenuLocation = "footer" | "footer-1" | "footer-2" | "footer-3" | "auto-pages";
 
 export default function DepotFooter({ data }: SurfaceProps<FooterSurfaceData>) {
   const { variant, siteIdentity, footerConfig } = data;
@@ -34,7 +36,7 @@ export default function DepotFooter({ data }: SurfaceProps<FooterSurfaceData>) {
     return (
       <footer data-slot="site-footer" data-customize="footer.layout.background" data-pack="depot" role="contentinfo" className="border-t border-border bg-background">
         <Container className="py-4">
-          <BottomRow siteTitle={siteTitle} footerConfig={footerConfig} showFooterMenu />
+          <BottomRow siteTitle={siteTitle} footerConfig={footerConfig} />
         </Container>
       </footer>
     );
@@ -53,7 +55,7 @@ export default function DepotFooter({ data }: SurfaceProps<FooterSurfaceData>) {
       {footerConfig.bottomBar.enabled && (
         <div className="border-t border-border">
           <Container className="py-3">
-            <BottomRow siteTitle={siteTitle} footerConfig={footerConfig} showFooterMenu={!usesFooterLocation(footerConfig)} />
+            <BottomRow siteTitle={siteTitle} footerConfig={footerConfig} />
           </Container>
         </div>
       )}
@@ -82,17 +84,13 @@ function BackToTopBar() {
 
 /** Which menu location a legacy nav column reads; unknown sources fall back to the flat "footer" menu Core renders. */
 function locationFor(source: FooterConfig["navColumns"]["columns"][number]["menuSource"]): MenuLocation {
-  return source === "footer-1" || source === "footer-2" || source === "footer-3" ? source : "footer";
+  return source === "custom" ? "footer" : source;
 }
 
 function navColumns(footerConfig: FooterConfig): Array<{ heading: string; location: MenuLocation }> {
   if (!footerConfig.navColumns.enabled) return [];
   const configured = footerConfig.navColumns.columns.map((column) => ({ heading: column.heading, location: locationFor(column.menuSource) }));
   return configured.length > 0 ? configured : [{ heading: "Links", location: "footer" }];
-}
-
-function usesFooterLocation(footerConfig: FooterConfig) {
-  return navColumns(footerConfig).some((column) => column.location === "footer");
 }
 
 function LinkColumns({ siteIdentity, siteTitle, footerConfig }: { siteIdentity: SiteIdentity | undefined; siteTitle: string; footerConfig: FooterConfig }) {
@@ -138,7 +136,11 @@ function LinkColumns({ siteIdentity, siteTitle, footerConfig }: { siteIdentity: 
   );
 }
 
-function MenuColumn({ heading, location }: { heading: string; location: MenuLocation }) {
+function MenuColumn(props: { heading: string; location: MenuLocation }) {
+  return props.location === "auto-pages" ? <FooterAutoPages heading={props.heading} /> : <AssignedMenuColumn {...props} />;
+}
+
+function AssignedMenuColumn({ heading, location }: { heading: string; location: MenuLocation }) {
   const menu = useMenuForLocation(location);
   const items = footerMenuItems(menu?.items ?? []);
   if (items.length === 0) return null;
@@ -230,7 +232,7 @@ function ContactColumn({ config }: { config: FooterConfig["contactInfo"] }) {
 
 /* ───────────────────────── bottom row ───────────────────────── */
 
-function BottomRow({ siteTitle, footerConfig, showFooterMenu }: { siteTitle: string; footerConfig: FooterConfig; showFooterMenu: boolean }) {
+function BottomRow({ siteTitle, footerConfig }: { siteTitle: string; footerConfig: FooterConfig }) {
   const year = new Date().getFullYear();
   const copyrightText = footerConfig.bottomBar.copyrightText
     ? footerConfig.bottomBar.copyrightText.replace(/\{year\}/g, () => String(year)).replace(/\{(?:site|siteName)\}/g, () => siteTitle)
@@ -244,31 +246,9 @@ function BottomRow({ siteTitle, footerConfig, showFooterMenu }: { siteTitle: str
         {showPoweredBy && <p className="text-muted-foreground/60">Powered by ConvexPress</p>}
       </div>
       <div className="flex flex-wrap items-center gap-3">
-        {showFooterMenu && <LegalLinks />}
+        <FooterLegalLinks choice={footerConfig.bottomBar.legalLinks} />
         <SocialLinks iconSize="sm" />
       </div>
     </div>
-  );
-}
-
-/** The flat "footer" menu as the legal-links row. */
-function LegalLinks() {
-  const menu = useMenuForLocation("footer");
-  const items = footerMenuItems(menu?.items ?? []);
-  if (items.length === 0) return null;
-  return (
-    <nav aria-label="Footer navigation">
-      <ul role="list" className="flex flex-wrap items-center gap-x-3 gap-y-1">
-        {items.map((item) => {
-          const linkProps = { ...(item.target ? { target: item.target } : {}), ...(item.rel ? { rel: item.rel } : {}) };
-          const className = "transition-colors hover:text-foreground";
-          return (
-            <li key={item.id}>
-              <MenuItemTarget item={item} separatorOrientation="vertical" className={className} {...linkProps} />
-            </li>
-          );
-        })}
-      </ul>
-    </nav>
   );
 }

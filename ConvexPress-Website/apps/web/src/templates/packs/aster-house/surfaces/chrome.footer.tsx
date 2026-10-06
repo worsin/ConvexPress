@@ -1,3 +1,5 @@
+import { FooterAutoPages } from "@/components/layout/FooterAutoPages";
+import { FooterLegalLinks } from "@/components/layout/FooterLegalLinks";
 import { FooterSectionFrame, footerColumnsClass } from "@/components/layout/FooterSectionFrame";
 import { FooterRowFrame } from "@/components/layout/FooterRowFrame";
 import { footerMenuItems } from "@/components/menus/footerMenuItems";
@@ -55,7 +57,7 @@ export default function AsterChromeFooter({ data }: SurfaceProps<FooterSurfaceDa
   return (
     <FooterSectionFrame layout={footerConfig.layout} pack="aster-house">
       <Container className={cn("flex flex-col gap-16", padding)}>
-        <Masthead siteIdentity={siteIdentity} footerConfig={footerConfig} />
+        {footerConfig.branding.enabled && <Masthead siteIdentity={siteIdentity} footerConfig={footerConfig} />}
         <LegacyColumns footerConfig={footerConfig} />
         {footerConfig.bottomBar.enabled ? (
           <div className="flex flex-col gap-6">
@@ -209,7 +211,11 @@ function Cell({ cell }: { cell: FooterCell }) {
   }
 }
 
-function NavCell({ heading, location }: { heading?: string; location: string }) {
+function NavCell(props: { heading?: string; location: string }) {
+  return props.location === "auto-pages" ? <FooterAutoPages heading={props.heading} /> : <AssignedNavCell {...props} />;
+}
+
+function AssignedNavCell({ heading, location }: { heading?: string; location: string }) {
   const menu = useMenuForLocation(location);
   if (!menu) return null;
   return (
@@ -301,7 +307,7 @@ function LegacyColumns({ footerConfig }: { footerConfig: FooterConfig }) {
         <FooterColumn
           key={`${column.menuSource}-${index}`}
           heading={column.heading}
-          location={column.menuSource === "footer-1" || column.menuSource === "footer-2" || column.menuSource === "footer-3" ? column.menuSource : "footer"}
+          location={column.menuSource === "custom" ? "footer" : column.menuSource}
           first={index === 0}
         />
       ))}
@@ -333,7 +339,11 @@ function LegacyColumns({ footerConfig }: { footerConfig: FooterConfig }) {
 }
 
 /** A heading + links column; renders nothing when its menu location has no links (the first column falls back to the Footer menu). */
-function FooterColumn({ heading, location, first }: { heading: string; location: string; first: boolean }) {
+function FooterColumn(props: { heading: string; location: string; first: boolean }) {
+  return props.location === "auto-pages" ? <FooterAutoPages heading={props.heading} /> : <AssignedFooterColumn {...props} />;
+}
+
+function AssignedFooterColumn({ heading, location, first }: { heading: string; location: string; first: boolean }) {
   const located = useMenuForLocation(location);
   const fallback = useMenuForLocation("footer");
   const menu = located && located.items.some((item) => !item.isOrphaned) ? located : first ? fallback : null;
@@ -435,6 +445,7 @@ function Copyright({ siteTitle, footerConfig }: { siteTitle: string; footerConfi
         <p className="text-xs text-muted-foreground">{text}</p>
         {poweredBy ? <p className="text-xs text-muted-foreground/60">Powered by ConvexPress</p> : null}
       </div>
+      {!(footerConfig.rows?.length) && <FooterLegalLinks choice={footerConfig.bottomBar.legalLinks} />}
       <SocialLinks iconSize="sm" />
     </div>
   );
