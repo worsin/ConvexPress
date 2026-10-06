@@ -88,43 +88,6 @@ export const TRASH_PURGE_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
 // ─── Mutation Args ──────────────────────────────────────────────────────────
 
 /**
- * Arguments for creating a new post.
- *
- * Status defaults to "auto-draft" if not specified.
- * The slug is auto-generated from the title.
- */
-export const createPostArgs = {
-  title: v.optional(v.string()),
-  content: v.optional(v.string()),
-  excerpt: v.optional(v.string()),
-  status: v.optional(postStatusValidator),
-  visibility: v.optional(postVisibilityValidator),
-  password: v.optional(v.string()),
-  commentStatus: v.optional(commentStatusValidator),
-  featuredImageId: v.optional(v.id("media")),
-  isSticky: v.optional(v.boolean()),
-  scheduledAt: v.optional(v.number()),
-  layoutId: v.optional(v.string()),
-  hideHeader: v.optional(v.boolean()),
-  hideFooter: v.optional(v.boolean()),
-  // Taxonomy IDs - passed to Taxonomy System after creation
-  categoryIds: v.optional(v.array(v.id("terms"))),
-  tagIds: v.optional(v.array(v.id("terms"))),
-  // Structured content fields
-  hero: heroValidator,
-  topics: topicsValidator,
-  summary: summaryValidator,
-  sources: v.optional(v.string()),
-  tableOfContents: v.optional(v.string()),
-  pagePrompt: v.optional(v.string()),
-  // Composition block fields (posts default to article mode, but can opt in)
-  contentMode: v.optional(contentModeValidator),
-  blocks: v.optional(blocksValidator),
-  blocksVersion: v.optional(v.number()),
-  blocksRevision: v.optional(v.number()),
-};
-
-/**
  * Arguments for updating an existing post.
  *
  * All fields except postId are optional - only provided fields are updated.

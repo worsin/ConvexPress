@@ -7,7 +7,7 @@
     "In progress": 20
   },
   "goal": "Complete block editor and template delivery plus all demonstrated blockers; defer unrelated whole-app audit campaigns.",
-  "currentTask": "Task 4 / E07: HTTP post/page create/read/update now canonical, revision guarded and API-key authorized; four actual API/native/Website round trips verified on both isolated sites, fixtures cleaned and original content/settings preserved. Next: caller-aware generic public create, WordPress/demo producers and remaining legacy schema consumers. Full goal active/incomplete; 117 Verified / 20 In progress unchanged.",
+  "currentTask": "Task 4 / E07: unused generic post/page creation endpoints retired on both sites; native and HTTP creation remain canonical. Route tests moved to supported creation; reserved-route suffix bypass repaired; source page-depth/deletion fixes backported to target. Both live hierarchy/lifecycle checks and exact preservation pass. Next: WordPress import writers and old demo seed, then remaining stored-schema consumers. Full goal active/incomplete; 117 Verified / 20 In progress unchanged.",
   "tasks": [
     {
       "id": 1,
@@ -100,11 +100,11 @@
     },
     {
       "id": "E07",
-      "status": "All current source116/116 and target29/29 documents canonical; historical format/reference reconciliation complete within its documented scope. Downgrade API/permit/control retired; exact downloads and deliberate saved/unsaved canonical import/undo verified. Normal native edit routes and all four packs use canonical dispatch. New post/page and Dashboard Quick Draft create canonical revision1 directly on both sites; Quick Draft native literal text/line breaks/save/reload/335px Website accepted (quick-draft-20261005.md). Original rows, appearance/mail and other private drafts exact after cleanup. HTTP create/read/update now canonical with live API/native/Website acceptance on both sites; API revocation, stale revision and invalid CTA refusal verified. Generic legacy create/import/demo entry points and remaining schema consumers still require bounded retirement. E07 remains open.",
+      "status": "All current source116/116 and target29/29 documents canonical; historical format/reference reconciliation complete within its documented scope. Downgrade API/permit/control retired; exact downloads and deliberate saved/unsaved canonical import/undo verified. Normal native edit routes and all four packs use canonical dispatch. New post/page and Dashboard Quick Draft create canonical revision1 directly on both sites; Quick Draft native literal text/line breaks/save/reload/335px Website accepted (quick-draft-20261005.md). Original rows, appearance/mail and other private drafts exact after cleanup. HTTP create/read/update now canonical with live API/native/Website acceptance on both sites; API revocation, stale revision and invalid CTA refusal verified. Unused generic public create endpoints are retired; installed inventories remove exactly those two functions. Canonical creation and hierarchy/lifecycle acceptance pass on both sites. WordPress import/demo writers and remaining schema consumers still require bounded retirement. E07 remains open.",
       "classification": "missing evidence",
       "initialFinding": "One-content-model migration and legacy retirement remain incomplete.",
       "closureBoundary": "Complete lossless conversion/recovery for actual retained content, source snapshots and installed-site receipts; then remove active legacy editor/renderer/schema dispatch as specified. Keep historical recovery data and a deliberate import converter. Do not delete old fields before proving preservation or claim migration complete while silently relying on legacy rendering.",
-      "nextCheck": "Trace remaining generic create, WordPress/demo and legacy schema consumers. Source base output/http-canonical-gates-20261005/source-source-installed.json; target base output/http-canonical-error-20261005/target-source-installed.json. Preserve site-owned catalogs/extensions; no whole-source overlay or wait on Claude.",
+      "nextCheck": "Repair WordPress postsCreate/pagesCreate canonical import and inspect installed demoSeed wrappers before retiring unused destructive legacy seed. Deployment bases: output/legacy-create-retirement-20261005/{source,target}-source-installed.json. Preserve each site catalog/extension set and archived import recovery.",
       "deliveryTask": 4,
       "triagedAt": "2026-09-29",
       "triageEvidence": "ConvexPress-Admin/audits/2026-09-04/delivery-blocker-triage-20260929.md",
@@ -140,7 +140,8 @@
         "output/history-retirement-20261005/history-review.json",
         "output/history-retirement-20261005/reference-reconciliation.json",
         "output/history-retirement-20261005/preservation.json",
-        "ConvexPress-Admin/audits/2026-09-04/http-canonical-20261005.md"
+        "ConvexPress-Admin/audits/2026-09-04/http-canonical-20261005.md",
+        "ConvexPress-Admin/audits/2026-09-04/legacy-create-retirement-20261005.md"
       ]
     },
     {
@@ -4517,7 +4518,11 @@
     "ConvexPress-Admin/audits/2026-09-04/http-canonical-20261005.md",
     "output/http-canonical-20261005/roundtrip.json",
     "output/http-canonical-20261005/preservation.json",
-    "output/http-canonical-20261005/fixture-cleanup.json"
+    "output/http-canonical-20261005/fixture-cleanup.json",
+    "ConvexPress-Admin/audits/2026-09-04/legacy-create-retirement-20261005.md",
+    "output/legacy-create-retirement-20261005/source-lifecycle.json",
+    "output/legacy-create-retirement-20261005/target-lifecycle.json",
+    "output/legacy-create-retirement-20261005/preservation.json"
   ],
   "trackerRefresh": {
     "source": "output/lead-customer-20260929/mt-accept-after.json",

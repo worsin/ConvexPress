@@ -1417,6 +1417,10 @@ export async function createApiDocument(
 		}
 		if (input.parentId)
 			await requireApiCapability(ctx, user, "page.set_parent");
+		// Check the requested route before accepting a generated collision suffix.
+		// An old conflicting row must not turn a reserved URL into a renamed page.
+		const requestedPath = path.slice(0, -slug.length) + apiSlugify(input.slug ?? title);
+		await assertPagePathAvailable(ctx, requestedPath, undefined, budget);
 		await assertPagePathAvailable(ctx, path, undefined, budget);
 	}
 	const value: WithoutSystemFields<Doc<"posts">> = {

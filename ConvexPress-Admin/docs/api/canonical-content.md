@@ -21,3 +21,5 @@ An accepted PUT returns `id`, `updated`, `blocks_version`, the accepted `blocks_
 Publication states are `draft`, `publish`, `private` and `future`; `future` requires a future integer `scheduled_at` timestamp in milliseconds. Publication, access-policy changes and edits to published documents require publishing authority. The existing canonical resource, installed-template, block-action and plugin-specific authorization checks still apply; API-key possession does not bypass them or supply custom definition registries.
 
 This replaces legacy HTTP body writes. Clients that previously PUT raw content without a revision must adopt the read/revision/write flow. Historical imports and archived source recovery remain separate deliberate workflows in the native editor.
+
+The old Convex `posts/mutations:create` and `pages/mutations:create` functions are retired. Native/authenticated tooling creates through `canonicalDocuments.create({type, title})` and then uses the returned ID/revision for canonical Save, settings and publication. API-key integrations use the HTTP endpoints described here. Do not write legacy `contentMode`, version or revision fields directly.

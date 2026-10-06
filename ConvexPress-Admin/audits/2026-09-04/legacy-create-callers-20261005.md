@@ -15,3 +15,11 @@ Validation: Admin `bun run check-types` passed. Existing canonical route test pa
 Generic public create APIs, deliberate WordPress import, demo seeding and remaining stored legacy schema fields still require separate caller-aware retirement. No schema deletion is justified by this hook cleanup.
 
 The coordinated HTTP boundary above is accepted in [http-canonical-20261005.md](http-canonical-20261005.md), including its native/Website exit check on both sites. The generic create/import/demo/schema follow-up remains open.
+
+## Generic creation retirement follow-up
+
+1. Required workflow: every supported new post/page opens as canonical; normal page moves and deletion retain correct descendant paths and references.
+2. Evidence: the generic public create endpoints still insert unversioned/v1 bodies, but repository-wide searches find no current application callers; only route tests and old authoring guidance reference them.
+3. Dependency: leaving these registered endpoints active permits new legacy content after native/HTTP migration. Moving route coverage to canonical HTTP creation exposed reserved-route suffix bypass and older target page lifecycle differences.
+4. Repair boundary: remove the two unused public create exports/validators, retain canonical/native/HTTP creation, update caller guidance and use supported creation in route tests. Repair the reserved route check. Backport only the four source depth corrections, page relationship deletion cascade and orphan/default-category handling demonstrated by target test failures; preserve all other target code/catalogs/extensions.
+5. Exit check: generated and installed function inventories omit exactly the two retired exports; native/HTTP endpoints remain. Canonical post/page create/read plus page reparent/reorder/deletion paths pass on both sites with cleanup and exact original-data preservation.

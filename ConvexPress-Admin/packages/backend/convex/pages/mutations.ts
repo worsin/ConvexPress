@@ -8,7 +8,6 @@ import { AUTHORING_FIELDS } from "../helpers/authoringSnapshot";
  * Page System - Mutations
  *
  * All write operations for the page lifecycle:
- *   create           - Create a new page
  *   update           - Update an existing page (partial patch)
  *   publish          - Publish a draft/pending page
  *   trash            - Soft-delete (move to trash)
@@ -21,7 +20,6 @@ import { AUTHORING_FIELDS } from "../helpers/authoringSnapshot";
  *   Pages are Administrator/Editor-only content. Authors, Contributors,
  *   and Subscribers have NO page management capabilities.
  *
- *   - `page.create`     required to create pages
  *   - `page.update`     required to update pages
  *   - `page.delete`     required to trash/delete pages
  *   - `page.publish`    required to publish pages
@@ -45,7 +43,6 @@ import { emitEvent } from "../helpers/events";
 import { setMediaAttachment, setMediaAttachmentBatch } from "../media/helpers";
 import { PAGE_EVENTS, SYSTEM } from "../events/constants";
 import {
-  createPageArgs,
   updatePageArgs,
   trashPageArgs,
   restorePageArgs,
@@ -66,165 +63,9 @@ import {
   MAX_PAGE_DEPTH,
 } from "./internals";
 import { validateBlocks, validateBlocksAgainstCatalog, getStoredBlocks, type StoredBlock } from "../blocks/helpers";
-import { deleteWithMediaReferences, insertWithMediaReferences, patchWithMediaReferences } from "../media/attachmentGuard";
+import { deleteWithMediaReferences, patchWithMediaReferences } from "../media/attachmentGuard";
 
-// ─── Create ──────────────────────────────────────────────────────────────────
-
-/**
- * Create a new page.
- *
- * Flow:
- *   1. Auth check: require `page.create` capability
- *   2. If publishing directly, additionally require `page.publish`
- *   3. Generate or validate slug (unique within type "page")
- *   4. Validate parent if provided (exists, is page, not trashed)
- *   5. Compute path and depth from parent chain
- *   6. Enforce max depth limit (5 levels)
- *   7. Insert page record
- *   8. Emit `page.created` event
- *
- * @returns The new page's ID
- */
-export const create = mutation({
-  args: createPageArgs,
-  handler: async (ctx, args) => {
-    // ── Auth & capability checks ──────────────────────────────────────────
-    const user = await requireCan(ctx, "page.create");
-
-    const status = args.status ?? "draft";
-    const visibility = args.visibility ?? "public";
-
-    // Publishing requires additional capability
-    if (status === "publish") {
-      await requireCan(ctx, "page.publish");
-    }
-
-    // ── Title validation ──────────────────────────────────────────────────
-    // Auto-drafts are allowed to have empty titles (they're created on mount
-    // before the user types anything). All other statuses require a title.
-    const title = args.title.trim();
-    if (!title && status !== "auto-draft") {
-      throw new ConvexError({
-        code: "VALIDATION_ERROR",
-        message: "Page title cannot be empty",
-      });
-    }
-
-    // ── Slug generation ───────────────────────────────────────────────────
-    // For auto-drafts with no title, generate a temporary slug
-    const slugSource = title || `auto-draft-${Date.now()}`;
-    const baseSlug = args.slug ? slugify(args.slug) : slugify(slugSource);
-    await assertPagePathAvailable(ctx, await computePagePath(ctx, baseSlug, args.parentId));
-    const slug = await generateUniqueSlug(ctx, baseSlug);
-
-    // ── Parent validation & hierarchy ─────────────────────────────────────
-    let parentId: Id<"posts"> | undefined = args.parentId;
-    let depth = 0;
-    let path = `/${slug}`;
-
-    if (parentId) {
-      await validateParent(ctx, parentId);
-
-      depth = await computePageDepth(ctx, parentId);
-
-      if (depth > MAX_PAGE_DEPTH) {
-        throw new ConvexError({
-          code: "VALIDATION_ERROR",
-          message: `Maximum page nesting depth is ${MAX_PAGE_DEPTH + 1} levels`,
-        });
-      }
-
-      path = await computePagePath(ctx, slug, parentId);
-    }
-
-    await assertPagePathAvailable(ctx, path);
-
-    // ── Build the page record ─────────────────────────────────────────────
-    const now = Date.now();
-    const pageData: Record<string, unknown> = {
-      type: "page" as const,
-      title,
-      slug,
-      content: sanitizeTipTapContent(args.content) || "",
-      excerpt: args.excerpt,
-      status,
-      visibility,
-      password: visibility === "password" ? args.password : undefined,
-      authorId: user._id,
-      commentStatus: "closed" as const,
-      parentId,
-      menuOrder: args.menuOrder ?? 0,
-      pageTemplate: args.pageTemplate ?? "default",
-      featuredImageId: args.featuredImageId,
-      path,
-      depth,
-      publishedAt: status === "publish" ? (args.publishedAt ?? now) : undefined,
-      scheduledAt: status === "future" ? args.scheduledAt : undefined,
-      // Structured content fields
-      hero: args.hero,
-      topics: args.topics,
-      summary: args.summary,
-      sources: args.sources,
-      tableOfContents: args.tableOfContents,
-      pagePrompt: args.pagePrompt,
-      contentMode: args.contentMode ?? "blocks",
-      blocks: args.blocks,
-      blocksVersion: args.blocksVersion ?? (args.blocks ? 1 : undefined),
-      blocksRevision: args.blocksRevision ?? (args.blocks ? 1 : undefined),
-      layoutId: args.layoutId || undefined,
-      hideHeader: args.hideHeader,
-      hideFooter: args.hideFooter,
-      createdAt: now,
-      updatedAt: now,
-    };
-
-    if (args.blocks) {
-      validateBlocks(args.blocks as StoredBlock[]);
-      const blocks = validateBlocksAgainstCatalog(args.blocks as StoredBlock[]);
-      await assertNoNewDisabledBlocks(ctx, [], blocks);
-      pageData.blocks = blocks;
-    }
-
-    // ── Insert record ─────────────────────────────────────────────────────
-    // NOTE: The `as any` cast is required because pageData is built dynamically
-    // as Record<string, unknown>. This is a known Convex pattern during
-    // incremental development where the TypeScript types may not fully match
-    // the runtime schema. The validator in createPageArgs ensures type safety
-    // at the argument level.
-    const pageId: import("../_generated/dataModel").Id<"posts"> = await insertWithMediaReferences<"posts">(ctx, "posts", pageData as any);
-
-    // ── Auto-attach media to this page (WP-style first-use wins) ─────────
-    await setMediaAttachment(ctx, args.featuredImageId, pageId);
-    if (args.hero?.imageId) {
-      await setMediaAttachment(ctx, args.hero.imageId, pageId);
-    }
-    if (Array.isArray(args.topics)) {
-      await setMediaAttachmentBatch(
-        ctx,
-        args.topics.map((t: any) => t?.imageId).filter(Boolean),
-        pageId,
-      );
-    }
-
-    // ── Schedule auto-publish for future-dated pages ──────────────────────
-    if (status === "future" && args.scheduledAt) {
-      await requireCan(ctx, "page.publish");
-      await replacePublicationSchedule(ctx, pageId, args.scheduledAt);
-    }
-
-    // NOTE: childCount is NOT stored on the schema. Child counts are derived
-    // at query time using the by_type_parent index. No childCount update needed.
-
-    // ── Emit event ────────────────────────────────────────────────────────
-    await emitEvent(ctx, PAGE_EVENTS.CREATED, SYSTEM.PAGE, {
-      pageId,
-      title,
-      authorId: user._id,
-    });
-
-    return pageId;
-  },
-});
+// New documents are created through canonicalDocuments.create or the canonical HTTP API.
 
 // ─── Update ──────────────────────────────────────────────────────────────────
 

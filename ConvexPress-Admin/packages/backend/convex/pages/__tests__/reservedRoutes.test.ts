@@ -1,4 +1,6 @@
-import { expect, test } from 'bun:test';
+import { expect, test as bunTest } from 'bun:test';
+import type { Id } from '../../_generated/dataModel';
+const test=(name:string,run:()=>unknown)=>bunTest(name,async()=>{const previous=process.env.AUTH_ISSUER_URL;process.env.AUTH_ISSUER_URL='https://route-fixture.convex.site';try{await run();}finally{if(previous===undefined)delete process.env.AUTH_ISSUER_URL;else process.env.AUTH_ISSUER_URL=previous;}});
 import { convexTest } from 'convex-test';
 import { api, internal } from '../../_generated/api';
 import schema from '../../schema';
@@ -7,6 +9,7 @@ const modules = {
   './convex/_generated/server.js': () => import('../../_generated/server.js'),
   './convex/pages/mutations.ts': () => import('../mutations'),
   './convex/pages/httpInternals.ts': () => import('../httpInternals'),
+  './convex/taxonomies/counts.ts': () => import('../../taxonomies/counts'),
   './convex/taxonomies/internals.ts': () => import('../../taxonomies/internals'),
   './convex/taxonomies/mutations.ts': () => import('../../taxonomies/mutations'),
   './convex/revisions/internals.ts': () => import('../../revisions/internals'),
@@ -18,25 +21,32 @@ async function fixture() {
     return ctx.db.insert('users',{email:'editor@example.test',emailVerified:true,status:'active',authSource:'local',internalRole:'administrator',roleId,createdAt:1,updatedAt:1});
   });
   const editor = t.withIdentity({subject:authorId,issuer:'https://convexpress-admin.local'});
-  return {t,editor,authorId};
+  const keyId=await t.run(async ctx=>{
+    await ctx.db.insert('convexpress_siteIdentity',{identityKey:'site-identity',websiteKey:'fixture',instanceKey:'fixture-stage',environmentKind:'staging',deploymentOrigin:'https://fixture.convex.cloud',managementOrigin:'https://fixture.convex.site',siteOrigin:'https://fixture.example.invalid',siteContractVersion:'1',schemaVersion:'1',engineVersion:'1',managementCapabilities:[],initializedAt:1,updatedAt:1});
+    await ctx.db.insert('settings',{section:'plugins',values:{membershipEnabled:false},updatedAt:1,updatedBy:authorId});
+    await ctx.db.insert('settings',{section:'appearance.template',values:{active:'core',overrides:{},variants:{},settings:{}},legacyAppearanceMigration:{version:2,migratedAt:1},updatedAt:1,updatedBy:authorId});
+    return ctx.db.insert('apiKeys',{name:'Canonical route fixture',keyPrefix:'fixture',keyHash:'fixture',userId:authorId,environmentBinding:process.env.AUTH_ISSUER_URL,scopes:['write:posts'],status:'active',rateLimitPerMinute:60,rateLimitPerHour:1000,requestCount:0,createdAt:1,updatedAt:1});
+  });
+  const createPage=(args:{title:string;slug?:string;parentId?:Id<'posts'>})=>t.mutation(internal.pages.httpInternals.createInternal,{...args,keyId});
+  return {t,editor,authorId,createPage};
 }
 test('page creation permits four descendant levels with exact depths and rejects a fifth', async () => {
-  const {t,editor}=await fixture();
+  const {t,editor,createPage}=await fixture();
   let parentId;
   for(let depth=0;depth<=4;depth++) {
-    const pageId=await editor.mutation(api.pages.mutations.create,{title:`Level ${depth}`,slug:`level-${depth}`,parentId});
+    const pageId=await createPage({title:`Level ${depth}`,slug:`level-${depth}`,parentId});
     expect((await t.run(ctx=>ctx.db.get('posts',pageId)))?.depth).toBe(depth);
     parentId=pageId;
   }
-  await expect(editor.mutation(api.pages.mutations.create,{title:'Too deep',slug:'too-deep',parentId})).rejects.toThrow('Maximum page nesting depth');
+  await expect(createPage({title:'Too deep',slug:'too-deep',parentId})).rejects.toThrow('hierarchy exceeds');
   expect((await t.run(ctx=>ctx.db.query('posts').collect())).length).toBe(5);
 });
 
 test('page parent changes keep depths consistent with recomputation and retain the subtree limit', async () => {
-  const {t,editor}=await fixture();
-  const root=await editor.mutation(api.pages.mutations.create,{title:'Root',slug:'root'});
-  const child=await editor.mutation(api.pages.mutations.create,{title:'Child',slug:'child'});
-  const leaf=await editor.mutation(api.pages.mutations.create,{title:'Leaf',slug:'leaf',parentId:child});
+  const {t,editor,createPage}=await fixture();
+  const root=await createPage({title:'Root',slug:'root'});
+  const child=await createPage({title:'Child',slug:'child'});
+  const leaf=await createPage({title:'Leaf',slug:'leaf',parentId:child});
   await editor.mutation(api.pages.mutations.setParent,{pageId:child,parentId:root});
   expect((await t.run(ctx=>ctx.db.get('posts',child)))?.depth).toBe(1);
   expect((await t.run(ctx=>ctx.db.get('posts',leaf)))?.depth).toBe(2);
@@ -46,16 +56,16 @@ test('page parent changes keep depths consistent with recomputation and retain t
   expect((await t.run(ctx=>ctx.db.get('posts',child)))?.depth).toBe(1);
   expect((await t.run(ctx=>ctx.db.get('posts',leaf)))?.path).toBe('/root/child/leaf');
   let deepParent=root;
-  for(let depth=1;depth<=3;depth++) deepParent=await editor.mutation(api.pages.mutations.create,{title:`Branch ${depth}`,slug:`branch-${depth}`,parentId:deepParent});
+  for(let depth=1;depth<=3;depth++) deepParent=await createPage({title:`Branch ${depth}`,slug:`branch-${depth}`,parentId:deepParent});
   await expect(editor.mutation(api.pages.mutations.setParent,{pageId:child,parentId:deepParent})).rejects.toThrow('Maximum page nesting depth');
   expect((await t.run(ctx=>ctx.db.get('posts',leaf)))?.path).toBe('/root/child/leaf');
 });
 
 test('drag reorder and deletion reparenting store the actual child depth', async () => {
-  const {t,editor}=await fixture();
-  const root=await editor.mutation(api.pages.mutations.create,{title:'Root',slug:'root'});
-  const child=await editor.mutation(api.pages.mutations.create,{title:'Child',slug:'child'});
-  const leaf=await editor.mutation(api.pages.mutations.create,{title:'Leaf',slug:'leaf',parentId:child});
+  const {t,editor,createPage}=await fixture();
+  const root=await createPage({title:'Root',slug:'root'});
+  const child=await createPage({title:'Child',slug:'child'});
+  const leaf=await createPage({title:'Leaf',slug:'leaf',parentId:child});
   await editor.mutation(api.pages.mutations.reorder,{items:[{pageId:child,parentId:root,menuOrder:0}]});
   expect((await t.run(ctx=>ctx.db.get('posts',child)))?.depth).toBe(1);
   expect((await t.run(ctx=>ctx.db.get('posts',leaf)))?.depth).toBe(2);
@@ -81,28 +91,28 @@ test('route policy distinguishes exact URLs, dynamic segments, splats and config
   expect(reservedPageRoute('/members/events','/members')).toBe('/members');
   expect(reservedPageRoute('/page/about/team')).toBe('/page/$');
 });
-test('real create rejects a reserved page slug instead of renaming it', async () => {
-  const {t,editor,authorId}=await fixture();
+test('canonical HTTP create rejects reserved routes', async () => {
+  const {t,editor,authorId,createPage}=await fixture();
   await t.run(ctx=>ctx.db.insert('posts',{type:'page',title:'Legacy',slug:'products',path:'/products',content:'',status:'draft',visibility:'public',authorId,commentStatus:'closed',createdAt:1,updatedAt:1}));
-  await expect(editor.mutation(api.pages.mutations.create,{title:'Products',slug:'products'})).rejects.toThrow('built-in website route');
-  await expect(editor.mutation(api.pages.mutations.create,{title:'Private preview collision',slug:'document-preview'})).rejects.toThrow('built-in website route');
+  await expect(createPage({title:'Products',slug:'products'})).rejects.toThrow('built-in website route');
+  await expect(createPage({title:'Private preview collision',slug:'document-preview'})).rejects.toThrow('built-in website route');
   expect((await t.run(ctx=>ctx.db.query('posts').collect())).length).toBe(1);
 });
 test('legacy collision permits content-only edits but a rename into a reserved route is rejected', async () => {
-  const {t,editor,authorId}=await fixture();
+  const {t,editor,authorId,createPage}=await fixture();
   const pageId=await t.run(ctx=>ctx.db.insert('posts',{type:'page',title:'Legacy',slug:'events',path:'/events',content:'',status:'auto-draft',visibility:'public',authorId,commentStatus:'closed',createdAt:1,updatedAt:1}));
   await editor.mutation(api.pages.mutations.update,{pageId,title:'Edited legacy title'});
   expect((await t.run(ctx=>ctx.db.get(pageId)))?.title).toBe('Edited legacy title');
   await expect(editor.mutation(api.pages.mutations.update,{pageId,slug:'products'})).rejects.toThrow('built-in website route');
 });
 test('configured dashboard namespace blocks new page creation', async () => {
-  const {t,editor,authorId}=await fixture();
+  const {t,editor,authorId,createPage}=await fixture();
   await t.run(ctx=>ctx.db.insert('settings',{section:'dashboard',values:{basePath:'/members'},updatedAt:1,updatedBy:authorId}));
-  await expect(editor.mutation(api.pages.mutations.create,{title:'Members'})).rejects.toThrow('built-in website route');
+  await expect(createPage({title:'Members'})).rejects.toThrow('built-in website route');
 });
 
 test('reparenting cannot move a descendant into a configured dashboard and leaves the tree intact', async () => {
- const {t,editor,authorId}=await fixture();
+ const {t,editor,authorId,createPage}=await fixture();
  const {parentId,childId}=await t.run(async ctx=>{
   await ctx.db.insert('settings',{section:'dashboard',values:{basePath:'/new/portal'},updatedAt:1,updatedBy:authorId});
   const common={type:'page' as const,content:'',status:'auto-draft' as const,visibility:'public' as const,authorId,commentStatus:'closed' as const,createdAt:1,updatedAt:1};
@@ -123,7 +133,7 @@ test('REST internal create follows the same reserved route policy', async () => 
  } finally { if(previous===undefined)delete process.env.AUTH_ISSUER_URL;else process.env.AUTH_ISSUER_URL=previous; }
 });
 test('both explicit reparent and drag reorder reject a new root collision', async () => {
- const {t,editor,authorId}=await fixture();
+ const {t,editor,authorId,createPage}=await fixture();
  const {childId,reservedParentId}=await t.run(async ctx=>{
   const common={type:'page' as const,content:'',status:'auto-draft' as const,visibility:'public' as const,authorId,commentStatus:'closed' as const,createdAt:1,updatedAt:1};
   const parentId=await ctx.db.insert('posts',{...common,title:'Story',slug:'story',path:'/story',depth:0});
@@ -138,9 +148,9 @@ test('both explicit reparent and drag reorder reject a new root collision', asyn
 
 
 test('permanent page deletion removes its topic relationships and preserves other pages', async () => {
- const {t,editor}=await fixture();
- const pageId=await editor.mutation(api.pages.mutations.create,{title:'Related page',slug:'related-page'});
- const sibling=await editor.mutation(api.pages.mutations.create,{title:'Other page',slug:'other-page'});
+ const {t,editor,createPage}=await fixture();
+ const pageId=await createPage({title:'Related page',slug:'related-page'});
+ const sibling=await createPage({title:'Other page',slug:'other-page'});
  const {category,tag,remaining}=await t.run(async ctx=>{
   const category=await ctx.db.insert('terms',{name:'Studio',slug:'studio',taxonomy:'category',count:0,countReady:true,isDefault:false,createdAt:1,updatedAt:1});
   const tag=await ctx.db.insert('terms',{name:'Materials',slug:'materials',taxonomy:'post_tag',count:0,countReady:true,isDefault:false,createdAt:1,updatedAt:1});
@@ -158,9 +168,9 @@ test('permanent page deletion removes its topic relationships and preserves othe
 });
 
 test('category deletion discards orphan relationships while reassigning existing documents', async () => {
- const {t,editor}=await fixture();
- const missing=await editor.mutation(api.pages.mutations.create,{title:'Missing',slug:'missing'});
- const surviving=await editor.mutation(api.pages.mutations.create,{title:'Surviving',slug:'surviving'});
+ const {t,editor,createPage}=await fixture();
+ const missing=await createPage({title:'Missing',slug:'missing'});
+ const surviving=await createPage({title:'Surviving',slug:'surviving'});
  const category=await t.run(async ctx=>{
   const id=await ctx.db.insert('terms',{name:'Studio',slug:'studio',taxonomy:'category',count:0,countReady:true,isDefault:false,createdAt:1,updatedAt:1});
   await ctx.db.insert('termRelationships',{postId:missing,termId:id});
@@ -177,9 +187,9 @@ test('category deletion discards orphan relationships while reassigning existing
 });
 
 test('deleting an empty or orphan-only category does not create an unrelated default category', async () => {
- const {t,editor}=await fixture();
+ const {t,editor,createPage}=await fixture();
  for(const orphan of [false,true]) {
-  const pageId=await editor.mutation(api.pages.mutations.create,{title:'Gone',slug:'gone'});
+  const pageId=await createPage({title:'Gone',slug:'gone'});
   const category=await t.run(async ctx=>{
    const id=await ctx.db.insert('terms',{name:'Temporary',slug:'temporary',taxonomy:'category',count:0,countReady:true,isDefault:false,createdAt:1,updatedAt:1});
    if(orphan)await ctx.db.insert('termRelationships',{postId:pageId,termId:id});
