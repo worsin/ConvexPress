@@ -1077,3 +1077,14 @@ E86 repaired: exposed Inline/Icon/Expandable and placeholder now work across all
 Original appearance,43pages/general/reading/menu locations/drafts restored or unchanged. Native Live scope restored and signed out; API revoked/refresh401; owned52199/52344 stopped/profile removed;7protected processes alive. No backend deployment or push. Report: ConvexPress-Admin/audits/2026-09-04/header-search-20261006.md.
 
 NEXT:E87 mobile-menu variants, then remaining menu-source/location matrix. Bounded question: any concrete mobile field/value mismatch beyond known Drawer/Fullscreen/Dropdown/side gaps, with pack and rendered repro? Full goal active117/20; Tasks3–7/8 not declared complete.
+
+
+## 2026-10-06 — E87 mobile-menu acceptance
+
+Previous E86 turn made implementation/native acceptance progress; this batch completed E87 without waiting for feedback. Audit47 still latest; prior ACCEPT/ADAPT stands, no new findings or scope changes.
+
+Four packs now honor Drawer/Fullscreen/Dropdown, side-specific drawers and visible-header dropdown anchoring. Actual tests found and repaired Depot's closed layers intercepting quick reopen clicks, Core's same-homepage brand failing to close, and desktop resizing hiding a still-modal menu.12focused tests pass, final types/build and changed-file lint pass.16native-published variant/side cases verify geometry, Tab/Escape/focus and nested navigation;4long-menu cases reach the24th owned item;4final-build desktop resize checks release inert/scroll lock and stay closed on return. Core brand final-build proof accepted.
+
+Original appearance/menu inventory/locations restored;43pages/general/reading/drafts exact. Owned24-item menu removed through registered API. Native Live scope restored/signed out, API revoked/refresh401, final53307/54302 stopped/profile removed; earlier owned Website53449/53952 stopped;7protected processes alive. No backend deployment or push. Report: ConvexPress-Admin/audits/2026-09-04/mobile-menu-20261006.md.
+
+NEXT:E09 primary/secondary/custom menu-source/location and remaining header-control integration; reuse E82–E87 instead of redoing accepted matrices. Bounded Claude question: concrete remaining field/value mismatch with actual consumer and rendered repro, especially menu-source mapping. Codex remains in charge; full goal active117/20.
