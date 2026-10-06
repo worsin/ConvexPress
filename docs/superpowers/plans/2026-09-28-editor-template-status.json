@@ -7,7 +7,7 @@
     "In progress": 5
   },
   "goal": "Complete block editor and template delivery plus all demonstrated blockers; defer unrelated whole-app audit campaigns.",
-  "currentTask": "132Verified/5In progress. Task4 complete. Task6 BlockDemo organization/navigation and bounded E11 profile accepted; all16 Journal/Depot mobile pattern viewports reviewed. Finish final all-block capture/dependency reconciliation, Task7 actual AI and docs, then frozen native integration including E99/mobile overlays and E18 artifact parity. E05 hosted HTTPS and five block acceptance prerequisites remain separate.",
+  "currentTask": "132Verified/5In progress. Native pattern insertion, history restore/recovery, move/undo/redo, unsaved recovery/save and publication passed on current artifacts. Live target draft-function absence disproved; next diagnose current target Clerk provider/provisioning failure under E18 and finish pending signed-in Recently Viewed acceptance. Retain full Task8, final capture/dependency reconciliation, Task7 actual AI/docs, E05 and other provider prerequisites explicitly.",
   "tasks": [
     {
       "id": 1,
@@ -332,11 +332,11 @@
     },
     {
       "id": "E18",
-      "status": "Open integrated-artifact requirement: older target lacks four draft functions and showed a document-settings warning; actual signed-in Website switch additionally proved missing matching Clerk auth provider and clerk_secret_key_missing provisioning. Current source/Website family evidence is identity-bound but not final candidate/main/target parity.",
+      "status": "Open integrated-artifact and target customer-identity requirement. Live October6 target function-spec confirms all four draft functions present; September29 absence is historical. Matching Clerk provider/provisioning and final candidate/main/target parity remain unaccepted.",
       "classification": "missing evidence",
       "initialFinding": "Current source/main/deployed artifacts and historical screenshots can diverge.",
       "closureBoundary": "Record exact source and deployment identity; reuse only relevant current evidence. Run a final integrated gate on the deliverable, not a collection of unrelated historical green logs.",
-      "currentEvidence": "September29 target remains on its own older extension checkpoint. Four canonical draft functions absent; native editor autosave unavailable and separate document-settings warning observed. Website iframe correct. Final integrated artifact parity remains open; see locale-promotion-20260929.md. September29 actual signed-in Website switch also proves target has no matching Clerk auth provider; customer provisioning reports clerk_secret_key_missing. Guest switch and exact source restoration pass, signed-in target document remains loading. See recent-site-switch-20260929.md.",
+      "currentEvidence": "September29 target remains on its own older extension checkpoint. Four canonical draft functions absent; native editor autosave unavailable and separate document-settings warning observed. Website iframe correct. Final integrated artifact parity remains open; see locale-promotion-20260929.md. September29 actual signed-in Website switch also proves target has no matching Clerk auth provider; customer provisioning reports clerk_secret_key_missing. Guest switch and exact source restoration pass, signed-in target document remains loading. See recent-site-switch-20260929.md. October6 read-only live function-spec confirms drafts get/save/discard and draftMaintenance cleanup all present; see native-integration-20261006.md. This supersedes only the current missing-function claim, not the customer identity failure.",
       "nextCheck": "Task8: reconcile the exact source/main and installed extension snapshots plus target customer identity configuration, preserving separate databases. Verify matching customer auth provider/provisioning, then repeat the pending signed-in Recently Viewed site switch. Freeze candidate/backend/Website hashes and run the integrated native/public gate. Preserve dirty owner checkout; no push. The target auth failure was observed live in this batch; older draft-function divergence remains recorded historical evidence.",
       "deliveryTask": 8,
       "triagedAt": "2026-09-29",
@@ -1257,10 +1257,11 @@
       "classification": "demonstrated workflow symptom; causal investigation pending",
       "initialFinding": "After native revision restore, the panel said Live draft rendered while the actual Website iframe showed Open this saved preview from your authorized native editor. Reconnect restored the document. Observed on owned Field/Studio fixture; no automatic continuity acceptance inferred.",
       "closureBoundary": "Reproduce on exact current Admin/Website artifacts, trace revision remount/ready/session messages, repair the demonstrated lifecycle cause and verify native restore automatically renders the recovered revision without manual reconnect or lost authored data.",
-      "status": "Intermittent original symptom; three current native restore cases automatically rendered without Reconnect. No causal patch justified; retain Task 8 integrated preview watch.",
+      "status": "Intermittent original symptom remains a final integration watch. Three earlier restore cases and two current native pattern restores automatically rendered without Reconnect; unsaved move recovery, save and public publication also passed. No causal patch justified; do not repeat identical successful reproductions.",
       "deliveryTask": 5,
       "currentEvidence": [
-        "ConvexPress-Admin/audits/2026-09-04/preview-history-recheck-20261006.md"
+        "ConvexPress-Admin/audits/2026-09-04/preview-history-recheck-20261006.md",
+        "ConvexPress-Admin/audits/2026-09-04/native-integration-20261006.md"
       ]
     },
     {
@@ -5129,7 +5130,8 @@
     "ConvexPress-Admin/audits/2026-09-04/customizer-palette-shop-20261006.md",
     "output/customizer-palette-shop-20261006/source-source-installed.json",
     "output/customizer-palette-shop-20261006/preservation.json",
-    "output/customizer-palette-shop-20261006/cleanup.json"
+    "output/customizer-palette-shop-20261006/cleanup.json",
+    "ConvexPress-Admin/audits/2026-09-04/native-integration-20261006.md"
   ],
   "trackerRefresh": {
     "source": "output/field-guide-legacy-final-20261006/mt-accept-after.json",
