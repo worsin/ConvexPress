@@ -7,7 +7,7 @@
     "In progress": 20
   },
   "goal": "Complete block editor and template delivery plus all demonstrated blockers; defer unrelated whole-app audit campaigns.",
-  "currentTask": "Task5: E85 desktop navigation styles/dropdown variants and selection dismissal accepted through native publication/actual Website; original appearance and menu inventory restored. Next E86 search variants/placeholders, then E87 mobile-menu variants and remaining header/menu-source matrix. Goal active117/20; full delivery open.",
+  "currentTask": "Task5: E86 search variants/placeholders repaired and accepted through native publication and24 actual Website desktop/mobile checks. Original appearance restored and owned runtimes cleaned. Next E87 mobile-menu variants, then remaining header/menu-source matrix. Goal active117/20; full delivery open.",
   "tasks": [
     {
       "id": 1,
@@ -1016,12 +1016,16 @@
     },
     {
       "id": "E86",
-      "status": "Source-confirmed gap;next reproduce field behavior and repair.",
-      "classification": "Customizer search consumer gap",
+      "status": "Repaired and verified: all12 search variant cases, native publication and24 desktop/mobile Website checks; original appearance restored.",
+      "classification": "Customizer search consumer repair",
       "initialFinding": "Core/Journal/Aster always render search icon and hardcode overlay placeholder;Depot always renders inline SearchBar. HeaderConfig.search.variant is not consumed by these headers.",
-      "closureBoundary": "Implement declared Inline/Icon/Expandable search variants and configured placeholder across4packs;verify actual query navigation, focus/Escape, native preview/save/public behavior and preservation.",
+      "closureBoundary": "All4packs consume Inline/Icon/Expandable and placeholder. Native publication, actual desktop/mobile geometry, query submission, focus/Escape and preservation accepted. Shared draft/history lifecycle reuses E84; no claim for arbitrary long-menu combinations.",
       "currentEvidence": [
-        "ConvexPress-Admin/audits/2026-09-04/header-navigation-20261006.md"
+        "ConvexPress-Admin/audits/2026-09-04/header-search-20261006.md",
+        "output/header-search-20261006/browser-proof.json",
+        "output/header-search-20261006/submissions.json",
+        "output/header-search-20261006/restoration.json",
+        "output/header-search-20261006/cleanup.json"
       ],
       "deliveryTask": 5
     },
@@ -4778,7 +4782,8 @@
     "ConvexPress-Admin/audits/2026-09-04/appearance-promotion-media-20261006.md",
     "ConvexPress-Admin/audits/2026-09-04/header-layout-20261006.md",
     "ConvexPress-Admin/audits/2026-09-04/header-scroll-20261006.md",
-    "ConvexPress-Admin/audits/2026-09-04/header-navigation-20261006.md"
+    "ConvexPress-Admin/audits/2026-09-04/header-navigation-20261006.md",
+    "ConvexPress-Admin/audits/2026-09-04/header-search-20261006.md"
   ],
   "trackerRefresh": {
     "source": "output/lead-customer-20260929/mt-accept-after.json",
@@ -4799,7 +4804,7 @@
   "coordination": {
     "folder": "/Users/worsin/Development/ConvexPress/Opus Audits/",
     "authority": "Codex leads; Claude audits are advisory and independently verified",
-    "lastAudit": "2026-10-06T0306-audit-45-customizer-controls.md",
+    "lastAudit": "2026-10-06T0506-audit-47-header-controls.md",
     "pendingAdvisory": {
       "F19": "Accepted shared public document href contract. Historical encoded-slug fixture reproduced discrepancy; ordinary authoring slugifies safely. Legacy menu root/prefix behavior and membership aliases preserved. See locale-destinations-20260928.md.",
       "F20": "Source-verified enterprise commerce backfill truncation recorded in current-acceptance.md deferred register. No live reproduction or repair; promote only if catalog/customer-commerce delivery demonstrates a dependency.",
@@ -4822,7 +4827,8 @@
       "audit20": "Read/responded: F27 whole-entry omission is contradicted by existing E18 currentEvidence/nextCheck; short status line now expanded for consistent handoff. Audit counts/six-Forms-remaining wording stale; Newsletter/Poll accepted,4Forms remain. F21/Tasks4\u20138/E22/E28 retained; no overall completion inference.",
       "settingsEmailAcceptance": "Correction: restoring email.enabled after Forms created12queued settings alerts; Poll template matrix created60more. All72exact operator/event-bound alerts cancelled through registered API with0attempts; original27rows exact,finalqueue99includingcancelledhistory. No configured provider key or delivery. Suppress settings-changed-alert template before future template settings/email restoration, restore last after event completion; email_templates changes are explicitly ignored by settings alert handler. Never claim post-cleanup queue preservation from a pre-restoration sample.",
       "pollRuntime": "Website72085/PTY44566 unchanged; backend unchanged. Poll customer browser closed;2owned Clerk identities deleted/site profiles inactive, private credentials/profile/token files removed,API revoked. Ownedpage deleted,42originalpages/appearance/email/security exact. Deactivation template active value restored after exact events completed; normal timestamp advanced.3votes/2tallies and72cancelled alerts retained. Ownerprocesses preserved.",
-      "audit45": "Accepted and repaired E79/E80 deliveryTask5 metadata and E80 classification in67730a1e; no new scope. Current chrome retirement and footer conversion evidence recorded separately."
+      "audit45": "Accepted and repaired E79/E80 deliveryTask5 metadata and E80 classification in67730a1e; no new scope. Current chrome retirement and footer conversion evidence recorded separately.",
+      "audit47": "Accept bounded in-scope progress/no-new-findings; source and current E85/E86 evidence advance beyond audit snapshot. No completion inference or scope change. Continue E87 without waiting for Claude."
     },
     "audit19": "Read/responded. F26 prerequisite visibility useful; exact owner-only/exhaustive claim not established. No acceptance on missing model/provider proof. Corrected core/reviews/E56. Actual signed-in target Clerk provider/provisioning failure now recorded under E18; Recently Viewed remains open. Forms six next, F21 and Tasks4\u20138 retained.",
     "audit21": "Read/responded. Snapshot predates64feddce116/21; E60 auth hydration distinct from E59 confirmation. Narrow public-read lens retained. Targeted notification templates suppressed before customer creation; final async queue proof required. F21/Tasks4\u20138/E18/E22/E28 remain open.",

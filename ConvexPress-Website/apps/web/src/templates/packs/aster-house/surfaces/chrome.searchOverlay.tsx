@@ -70,7 +70,7 @@ export default function AsterChromeSearchOverlay({ data }: SurfaceProps<SearchOv
             <UnderlineInput
               ref={inputRef}
               type="search"
-              placeholder="Search…"
+              placeholder={data.placeholder ?? "Search…"}
               value={query}
               onChange={onChange}
               onFocus={() => {

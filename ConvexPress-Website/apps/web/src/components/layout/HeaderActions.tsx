@@ -2,11 +2,11 @@ import { Link } from "@tanstack/react-router";
 import { useAuth } from "@/lib/auth/clerk";
 import { useQuery } from "convex/react";
 import { api } from "@convexpress-website/backend/generated/api";
-import { LogIn, Search, ShoppingCart, UserPlus } from "lucide-react";
+import { LogIn, ShoppingCart, UserPlus } from "lucide-react";
 import { useState } from "react";
 
 import { cn } from "@/lib/utils";
-import { useLayoutShell } from "@/hooks/layout/useLayoutShell";
+import { HeaderSearchTrigger } from "./HeaderSearch";
 import { useCommerceSessionToken } from "@/hooks/useCommerceSessionToken";
 import { useSettings } from "@/contexts/SettingsContext";
 import type { HeaderConfig } from "@/lib/layout/types";
@@ -28,7 +28,6 @@ interface HeaderActionsProps {
  */
 export function HeaderActions({ className, headerConfig }: HeaderActionsProps) {
   const { isSignedIn, isLoaded } = useAuth();
-  const { toggleSearch } = useLayoutShell();
   const [cartOpen, setCartOpen] = useState(false);
   const settings = useSettings();
   const commerceEnabled = settings?.plugins?.commerceEnabled === true;
@@ -39,7 +38,6 @@ export function HeaderActions({ className, headerConfig }: HeaderActionsProps) {
   ) as { itemCount?: number } | null | undefined;
 
   // Config-driven visibility (defaults to showing everything if no config)
-  const showSearch = headerConfig?.search?.enabled !== false;
   const showDarkMode = headerConfig?.darkModeToggle?.enabled !== false;
   const showCta = headerConfig?.cta?.enabled === true;
   const showUserMenu = headerConfig?.userMenu?.enabled !== false;
@@ -50,17 +48,7 @@ export function HeaderActions({ className, headerConfig }: HeaderActionsProps) {
       data-slot="header-actions"
       className={cn("flex shrink-0 items-center gap-2", className)}
     >
-      {/* Search toggle */}
-      {showSearch && (
-        <button
-          type="button"
-          onClick={toggleSearch}
-          className="flex size-8 items-center justify-center text-muted-foreground transition-colors hover:text-foreground"
-          aria-label="Toggle search"
-        >
-          <Search className="size-4" aria-hidden="true" />
-        </button>
-      )}
+      <HeaderSearchTrigger config={headerConfig?.search} />
 
       {commerceEnabled && (
         <>

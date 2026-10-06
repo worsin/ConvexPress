@@ -1,3 +1,4 @@
+import { HeaderSearchInline, HeaderSearchExpansion, HeaderSearchTrigger } from "@/components/layout/HeaderSearch";
 import { HeaderMainRow } from "@/components/layout/HeaderMainRow";
 import { headerAppearance, headerHeight } from "@/lib/layout/headerAppearance";
 import { resolveHeaderBrand } from "@/lib/layout/headerBrand";
@@ -14,7 +15,7 @@ import { useStickyHeaderOffset } from "@/hooks/layout/useStickyHeaderOffset";
  * header's user-menu settings.
  */
 import { Link, useRouterState } from "@tanstack/react-router";
-import { ChevronDown, Menu, Search, ShoppingBag, UserRound } from "lucide-react";
+import { ChevronDown, Menu, ShoppingBag, UserRound } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { NavDropdown } from "@/components/layout/NavDropdown";
@@ -38,7 +39,7 @@ import { Container } from "../parts";
 
 export default function AsterChromeHeader({ data }: SurfaceProps<HeaderSurfaceData>) {
   const { siteIdentity, menu, layoutConfig, headerConfig } = data;
-  const { toggleMobileNav, searchOpen, closeSearch, toggleSearch } = useLayoutShell();
+  const { toggleMobileNav, searchOpen, closeSearch } = useLayoutShell();
   const pathname = useRouterState({ select: (state) => state.location.pathname });
 
   const stickyMode = headerConfig.layout.sticky;
@@ -69,17 +70,7 @@ export default function AsterChromeHeader({ data }: SurfaceProps<HeaderSurfaceDa
           </nav>
         ) : null);
   const actions = (<div data-slot="header-actions" className="flex shrink-0 items-center justify-end gap-0 sm:gap-1">
-          {headerConfig.search.enabled ? (
-            <button
-              type="button"
-              onClick={toggleSearch}
-              className="flex size-10 items-center justify-center text-muted-foreground transition-colors hover:text-foreground"
-              aria-label="Toggle search"
-              aria-expanded={searchOpen}
-            >
-              <Search className="size-[18px]" aria-hidden="true" />
-            </button>
-          ) : null}
+          <HeaderSearchTrigger config={headerConfig.search} />
           {headerConfig.cta.enabled ? (
             <Link
               to={headerConfig.cta.url as any}
@@ -120,8 +111,11 @@ export default function AsterChromeHeader({ data }: SurfaceProps<HeaderSurfaceDa
           brand={<Wordmark siteIdentity={siteIdentity} logo={headerConfig.logo} />}
           mobileToggle={mobileToggle}
           navigation={navigation}
+          search={headerConfig.search.enabled && headerConfig.search.variant === "inline" && <HeaderSearchInline config={headerConfig.search} pack="aster-house" />}
           actions={actions}
         />
+        <HeaderSearchInline config={headerConfig.search} pack="aster-house" mobile />
+        <HeaderSearchExpansion config={headerConfig.search} pack="aster-house" />
       </Container>
 
       {isHome && tagline ? (
@@ -132,8 +126,8 @@ export default function AsterChromeHeader({ data }: SurfaceProps<HeaderSurfaceDa
         </div>
       ) : null}
 
-      {headerConfig.search.enabled ? (
-        <Surface name="chrome.searchOverlay" data={{ open: searchOpen, onClose: closeSearch }} fallback={CoreSearchOverlay} />
+      {headerConfig.search.enabled && headerConfig.search.variant === "icon" ? (
+        <Surface name="chrome.searchOverlay" data={{ open: searchOpen, onClose: closeSearch, placeholder: headerConfig.search.placeholder }} fallback={CoreSearchOverlay} />
       ) : null}
     </header>
   );

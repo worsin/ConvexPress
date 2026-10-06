@@ -1,3 +1,4 @@
+import { HeaderSearchInline, HeaderSearchExpansion } from "@/components/layout/HeaderSearch";
 import { useStickyHeaderOffset } from "@/hooks/layout/useStickyHeaderOffset";
 import { Mail, Menu, Phone } from "lucide-react";
 
@@ -93,15 +94,18 @@ export function SiteHeader({ siteIdentity, menu, layoutConfig, headerConfig: hea
           navigation={headerConfig.navigation.enabled && (
             <DesktopNav menu={menu} linkStyle={headerConfig.navigation.style} dropdownStyle={headerConfig.navigation.dropdownStyle} />
           )}
+          search={headerConfig.search.enabled && headerConfig.search.variant === "inline" && <HeaderSearchInline config={headerConfig.search} pack="core" />}
           actions={<HeaderActions headerConfig={headerConfig} />}
         />
+        <HeaderSearchInline config={headerConfig.search} pack="core" mobile />
+        <HeaderSearchExpansion config={headerConfig.search} pack="core" />
       </div>
 
       {/* Search overlay - renders below header bar when open */}
-      {headerConfig.search.enabled && (
+      {headerConfig.search.enabled && headerConfig.search.variant === "icon" && (
         <Surface
           name="chrome.searchOverlay"
-          data={{ open: searchOpen, onClose: closeSearch }}
+          data={{ open: searchOpen, onClose: closeSearch, placeholder: headerConfig.search.placeholder }}
           fallback={CoreSearchOverlay}
         />
       )}

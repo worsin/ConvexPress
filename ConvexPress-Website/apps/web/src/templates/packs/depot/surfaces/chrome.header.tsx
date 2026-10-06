@@ -1,3 +1,5 @@
+import { HeaderSearchInline, HeaderSearchExpansion, HeaderSearchTrigger } from "@/components/layout/HeaderSearch";
+import CoreSearchOverlay from "@/templates/packs/core/surfaces/chrome.searchOverlay";
 import { DesktopNav } from "@/components/layout/DesktopNav";
 import { HeaderMainRow } from "@/components/layout/HeaderMainRow";
 import { headerAppearance, headerHeight } from "@/lib/layout/headerAppearance";
@@ -14,9 +16,9 @@ import { useStickyHeaderOffset } from "@/hooks/layout/useStickyHeaderOffset";
  * commerce) — only the arrangement changes.
  */
 import { Popover as PopoverPrimitive } from "@base-ui/react/popover";
-import { Link, useNavigate } from "@tanstack/react-router";
-import { ChevronDown, Heart, Mail, Menu, Phone, Search, ShoppingCart, User } from "lucide-react";
-import { useState, type FormEvent } from "react";
+import { Link } from "@tanstack/react-router";
+import { ChevronDown, Heart, Mail, Menu, Phone, ShoppingCart, User } from "lucide-react";
+import { useState } from "react";
 
 import { SocialLinks } from "@/components/layout/SocialLinks";
 import { ThemeToggle } from "@/components/layout/ThemeToggle";
@@ -40,7 +42,7 @@ import { Container, Label, buttonClasses } from "../parts";
 
 export default function DepotHeader({ data }: SurfaceProps<HeaderSurfaceData>) {
   const { siteIdentity, menu, layoutConfig, headerConfig } = data;
-  const { toggleMobileNav } = useLayoutShell();
+  const { toggleMobileNav, searchOpen, closeSearch } = useLayoutShell();
 
   const stickyHeader = layoutConfig?.stickyHeader !== false;
   const stickyMode = headerConfig.layout.sticky;
@@ -50,7 +52,6 @@ export default function DepotHeader({ data }: SurfaceProps<HeaderSurfaceData>) {
 
   const visibleItems = menu?.items.filter((item) => !item.isOrphaned) ?? [];
   const showNav = headerConfig.navigation.enabled && visibleItems.length > 0;
-  const showSearch = headerConfig.search.enabled;
 
   const mobileToggle = (<button
           type="button"
@@ -96,16 +97,15 @@ export default function DepotHeader({ data }: SurfaceProps<HeaderSurfaceData>) {
           brand={<Wordmark siteIdentity={siteIdentity} logo={headerConfig.logo} />}
           mobileToggle={mobileToggle}
           navigation={headerConfig.layout.style === "standard" ? undefined : navigation}
-          search={showSearch && <SearchBar placeholder={headerConfig.search.placeholder} className="hidden min-w-0 flex-1 md:flex" />}
+          search={headerConfig.search.enabled && headerConfig.search.variant === "inline" && <HeaderSearchInline config={headerConfig.search} pack="depot" />}
           actions={<HeaderCluster headerConfig={headerConfig} className="ml-auto" />}
         />
+        <HeaderSearchInline config={headerConfig.search} pack="depot" mobile />
+        <HeaderSearchExpansion config={headerConfig.search} pack="depot" />
       </Container>
 
-      {/* Mobile search row: the search bar stays on phones */}
-      {showSearch && (
-        <Container className="pb-2 md:hidden">
-          <SearchBar placeholder={headerConfig.search.placeholder} className="flex" />
-        </Container>
+      {headerConfig.search.enabled && headerConfig.search.variant === "icon" && (
+        <Surface name="chrome.searchOverlay" data={{ open: searchOpen, onClose: closeSearch, placeholder: headerConfig.search.placeholder }} fallback={CoreSearchOverlay} />
       )}
 
       {headerConfig.layout.style === "standard" && navigation}
@@ -129,43 +129,6 @@ function Wordmark({ siteIdentity, logo }: { siteIdentity: SiteIdentity | undefin
   );
 }
 
-function SearchBar({ placeholder, className }: { placeholder: string; className?: string }) {
-  const navigate = useNavigate();
-  const settings = useSettings();
-  const [draft, setDraft] = useState("");
-  // Shops search the catalog first; the site-wide search stays a click away (same as Core's overlay).
-  const target = settings?.plugins?.commerceEnabled === true ? "/products" : "/search";
-
-  const submit = (event: FormEvent) => {
-    event.preventDefault();
-    const q = draft.trim();
-    if (!q) return;
-    void navigate({ to: target, search: { q } } as any);
-  };
-
-  return (
-    <form role="search" onSubmit={submit} className={cn("items-center", className)}>
-      <label className="relative min-w-0 flex-1">
-        <span className="sr-only">Search</span>
-        <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
-        <input
-          type="search"
-          name="q"
-          value={draft}
-          onChange={(event) => setDraft(event.target.value)}
-          placeholder={placeholder || "Search…"}
-          autoComplete="off"
-          className="h-10 w-full rounded-l-md border border-r-0 border-border bg-background pl-9 pr-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary/60 focus:outline-none focus:ring-2 focus:ring-primary/20"
-        />
-      </label>
-      <button type="submit" className={buttonClasses("primary", "md", "rounded-l-none px-3")} aria-label="Search">
-        <Search className="size-4 md:hidden" aria-hidden="true" />
-        <span className="hidden md:inline">Search</span>
-      </button>
-    </form>
-  );
-}
-
 function HeaderCluster({ headerConfig, className }: { headerConfig: HeaderConfig; className?: string }) {
   const { isSignedIn, isLoaded } = useAuth();
   const settings = useSettings();
@@ -182,6 +145,7 @@ function HeaderCluster({ headerConfig, className }: { headerConfig: HeaderConfig
 
   return (
     <div data-slot="header-actions" className={cn("flex shrink-0 items-center gap-1", className)}>
+      <HeaderSearchTrigger config={headerConfig.search} />
       {showCta && (
         <Link
           to={headerConfig.cta.url}

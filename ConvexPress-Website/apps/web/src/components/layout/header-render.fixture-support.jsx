@@ -1,7 +1,7 @@
 import { mock } from 'bun:test';
 import { createElement } from 'react';
-mock.module('@/templates/sdk/Surface', () => ({ Surface: () => null }));
-mock.module('@/templates/packs/core/surfaces/chrome.searchOverlay', () => ({ default: () => null }));
+export const surfaceState = { render: () => null };
+mock.module('@/templates/sdk/Surface', () => ({ Surface: props => surfaceState.render(props) }));
 mock.module('@/templates/packs/core/surfaces/chrome.cartDrawer', () => ({ default: () => null }));
 // Vite discovers packs through import.meta.glob; this SSR fixture imports each real header explicitly.
 mock.module('@/templates/sdk/registry', () => ({ DEFAULT_TEMPLATE_CONFIG:{active:'core',overrides:{},variants:{},settings:{}},TEMPLATE_PACKS:new Map(),getTemplatePack:()=>undefined,listTemplatePacks:()=>[],resolveSurface:()=>({packId:'core',component:null}),resolveVariant:()=>undefined,prepareTemplateHydration:async()=>{} }));
@@ -14,10 +14,12 @@ mock.module('@/hooks/useCart', () => ({ useCart: () => ({ enabled:false,cart:nul
 mock.module('@/hooks/useCommerceSessionToken', () => ({ useCommerceSessionToken: () => ({sessionToken:null,isReady:false}) }));
 const auth = await import('@/lib/auth/clerk');
 mock.module('@/lib/auth/clerk', () => ({ ...auth,useAuth: () => ({ isLoaded:true,isSignedIn:false }) }));
+export const settingsState = { plugins:{} };
+export const navigationEvents = [];
 const settings = await import('@/contexts/SettingsContext');
-mock.module('@/contexts/SettingsContext', () => ({ ...settings,useSettings: () => ({ plugins:{} }) }));
+mock.module('@/contexts/SettingsContext', () => ({ ...settings,useSettings: () => settingsState }));
 const convex = await import('convex/react');
 mock.module('convex/react', () => ({ ...convex,useQuery: () => undefined }));
 const router = await import('@tanstack/react-router');
-mock.module('@tanstack/react-router', () => ({ ...router,Link: ({to,children,activeProps:_activeProps,...props}) => createElement('a',{href:to,...props},children),useRouterState: ({select}) => select({location:{pathname:'/'}}),useNavigate: () => noop }));
+mock.module('@tanstack/react-router', () => ({ ...router,Link: ({to,children,activeProps:_activeProps,...props}) => createElement('a',{href:to,...props},children),useRouterState: ({select}) => select({location:{pathname:'/'}}),useNavigate: () => options => navigationEvents.push(options) }));
 export const { HEADER_DEFAULTS } = await import('@/templates/sdk/chromeDefinitions');
