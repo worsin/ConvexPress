@@ -362,10 +362,10 @@
     },
     {
       "id": "E22",
-      "classification": "reproduced defect",
-      "status": "Progress:468source/image-hashed desktop BlockDemo captures for117Verified blocks; executed centralized renderer receipt covers137current versions/1148pack-example cases,317tests/5493assertions. Snapshot and live tracker gates pass with explicit receipt;7negative/parity tests pass38assertions. Still open for final screenshot provenance validation and complete delivery evidence; this is not live/native/mobile/motion acceptance. The former core/heading error was the first failing row under the same block-local convention affecting115Verified rows, not an isolated Heading defect.",
-      "currentEvidence": "ConvexPress-Admin/audits/2026-09-04/block-evidence-mapping-20260929.md; output/block-evidence-20260929/installed-manifest.json and tracker-gate.log",
-      "nextCheck": "Map centralized test ownership to each accepted block with validated path/source identity, then rerun the full tracker gate; retain separate native/live/mobile acceptance evidence."
+      "classification": "accepted/reusable evidence",
+      "status": "Final desktop provenance and tracker gate accepted:548 reviewed block/pack identities,699 pixel-equivalent PNG segments,all current specification/renderer hashes and six shared visual deltas reconciled. Central renderer322pass/1148cases; tooling188pass; negative gates7pass; live137rows/133Verified and status parity pass. No tracker promotion or mobile/native/provider/motion acceptance inferred.",
+      "currentEvidence": "ConvexPress-Admin/audits/2026-09-04/tracker-evidence-final-20261006.md; output/final-tracker-evidence-20261006/installed-manifest.json; renderer-evidence-final.json; tracker-live-final.log",
+      "nextCheck": "Reuse accepted captures while matching source/dependency hashes remain unchanged. Complete separate final artifact integration and explicit provider/HTTPS requirements."
     },
     {
       "id": "E23",
