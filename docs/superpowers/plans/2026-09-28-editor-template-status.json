@@ -7,7 +7,7 @@
     "In progress": 7
   },
   "goal": "Complete block editor and template delivery plus all demonstrated blockers; defer unrelated whole-app audit campaigns.",
-  "currentTask": "130 Verified / 7 In progress. E98 private Instagram native authorization, encrypted source-owned storage and isolated staging deployment verified; real authorized provider acceptance remains. Continue synced content, live legacy migration and integrated gates without waiting for audits or provider credentials.",
+  "currentTask": "130 Verified / 7 In progress. Nested synced latest/pinned publication, withdrawal, exact revision recovery and actual Website four-pack rendering passed. E100 reproduced: legacy reusableBlock reference migration has no lossless adapter. Implement reviewed reusable-source graph/reference migration, then live promotion; continue integrated gates independently of external provider prerequisites.",
   "tasks": [
     {
       "id": 1,
@@ -1247,6 +1247,20 @@
       "deliveryTask": 5,
       "currentEvidence": [
         "ConvexPress-Admin/audits/2026-09-04/preview-history-recheck-20261006.md"
+      ]
+    },
+    {
+      "id": "E100",
+      "classification": "demonstrated implementation gap",
+      "status": "Reproduced: current legacy document converter rejects reusableBlock references without returning a partial candidate. Canonical sources and nested live lifecycle work; reviewed legacy source/reference migration remains.",
+      "requiredWorkflow": "Migrate retained legacy reusable content and referencing documents to canonical synced content while preserving authored values, shared-reference semantics, original records/history and site/operator authority.",
+      "initialFinding": "migrateLegacyDocument on a mixed TipTap document returns LEGACY_CONVERSION_REQUIRED at content[1], A lossless reusableBlock adapter is required. Legacy reusableBlocks stores serialized TipTap; current canonical source APIs accept canonical trees without legacy source mapping.",
+      "repairBoundary": "Reviewed/idempotent legacy-source graph conversion and old-to-new reference mapping; retain originals, bind candidate/source/dependencies, enforce authority/cycle/size budgets, preserve publication/lock intent explicitly. No flattening or premature legacy deletion.",
+      "closureBoundary": "Registered refusal/replay/conflict/isolation coverage plus actual stored/native conversion, exact source/history/reference readback, publication and recovery. Full corpus accounting before retirement.",
+      "deliveryTask": 4,
+      "currentEvidence": [
+        "ConvexPress-Admin/audits/2026-09-04/synced-nested-20261006.md",
+        "output/synced-nested-20261006/migration-probe.json"
       ]
     }
   ],
@@ -4379,7 +4393,7 @@
       "title": "Synced content",
       "category": "Layout",
       "checkpointStatus": "In progress",
-      "nextClassification": "Reviewed against live Notes and current canonical specification; Reuse source/pinned/latest/Forms history; reconcile full nested source graph, permissions/revocation, migration of reusableBlocks and exact recovery/promotion across packs.",
+      "nextClassification": "Nested latest/pinned graph live lifecycle and exact recovery accepted; E100 legacy reusable migration and live cross-environment promotion remain.",
       "classification": "missing evidence",
       "source": "blocks/core/synced/block.json",
       "requirements": "syncedBlock (reference), revisionPolicy (select), revision (number)",
@@ -4388,9 +4402,10 @@
         "output/synced-refresh-authority-20260915.",
         "output/synced-renderer-20260915.",
         "output/synced-snapshot-20260915.",
-        "output/synced-visibility-20260915."
+        "output/synced-visibility-20260915.",
+        "ConvexPress-Admin/audits/2026-09-04/synced-nested-20261006.md"
       ],
-      "remainingReview": "Reuse source/pinned/latest/Forms history; reconcile full nested source graph, permissions/revocation, migration of reusableBlocks and exact recovery/promotion across packs.",
+      "remainingReview": "E100 reviewed legacy reusable source/reference migration and exact live cross-environment promotion remain. Reuse native source creation/insertion, current nested update/withdraw/recovery/four-pack evidence and earlier snapshot/Forms authority evidence.",
       "deliveryTask": 4,
       "acceptanceBatch": "reusable-migration",
       "reviewedAtCommit": "d8a0ea2c",
