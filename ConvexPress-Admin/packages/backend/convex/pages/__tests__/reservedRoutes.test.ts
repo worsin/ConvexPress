@@ -1,11 +1,13 @@
 import { expect, test as bunTest } from 'bun:test';
 import type { Id } from '../../_generated/dataModel';
 const test=(name:string,run:()=>unknown)=>bunTest(name,async()=>{const previous=process.env.AUTH_ISSUER_URL;process.env.AUTH_ISSUER_URL='https://route-fixture.convex.site';try{await run();}finally{if(previous===undefined)delete process.env.AUTH_ISSUER_URL;else process.env.AUTH_ISSUER_URL=previous;}});
+import { makeFunctionReference } from 'convex/server';
 import { convexTest } from 'convex-test';
 import { api, internal } from '../../_generated/api';
 import schema from '../../schema';
 import { reservedPageRoute } from '../../helpers/pageRoutePolicy';
 const modules = {
+  './convex/pages/internals.ts': () => import('../internals'),
   './convex/_generated/server.js': () => import('../../_generated/server.js'),
   './convex/pages/mutations.ts': () => import('../mutations'),
   './convex/pages/httpInternals.ts': () => import('../httpInternals'),
@@ -198,4 +200,24 @@ test('deleting an empty or orphan-only category does not create an unrelated def
   expect(await editor.mutation(api.taxonomies.mutations.deleteCategory,{termId:category})).toMatchObject({reassignedPosts:0});
   expect(await t.run(ctx=>ctx.db.query('terms').collect())).toEqual([]);
  }
+});
+
+test('permanent page deletion removes imported metadata and preserves another document metadata',async()=>{
+ const {t,editor,createPage}=await fixture();const pageId=await createPage({title:'Imported',slug:'imported'}),other=await createPage({title:'Retained',slug:'retained'});
+ const retained=await t.run(async ctx=>{for(const key of ['_wp_content_rendered','_convexpress_wp_import:accepted'])await ctx.db.insert('postMeta',{postId:pageId,key,value:'Recoverable source'});return ctx.db.insert('postMeta',{postId:other,key:'_wp_content_rendered',value:'Keep this'});});
+ await editor.mutation(api.pages.mutations.trash,{pageId});await editor.mutation(api.pages.mutations.permanentDelete,{pageId});
+ expect(await t.run(ctx=>ctx.db.query('postMeta').withIndex('by_post',q=>q.eq('postId',pageId)).collect())).toEqual([]);
+ expect(await t.run(ctx=>ctx.db.get(retained))).not.toBeNull();
+});
+
+test('orphan metadata repair refuses live documents and is bounded and repeatable',async()=>{
+ const {t,createPage}=await fixture();const pageId=await createPage({title:'Owned orphan',slug:'owned-orphan'});
+ await t.run(async ctx=>{for(let i=0;i<101;i++)await ctx.db.insert('postMeta',{postId:pageId,key:`source-${i}`,value:'retained'});});
+ const ref=makeFunctionReference<any,any,any>('pages/internals:deleteOrphanedMetadata');
+ await expect(t.mutation(ref,{pageId})).rejects.toMatchObject({data:{code:'DOCUMENT_STILL_EXISTS'}});
+ expect(await t.run(ctx=>ctx.db.query('postMeta').withIndex('by_post',q=>q.eq('postId',pageId)).collect())).toHaveLength(101);
+ await t.run(ctx=>ctx.db.delete(pageId));
+ expect(await t.mutation(ref,{pageId})).toEqual({deleted:100,hasMore:true});
+ expect(await t.mutation(ref,{pageId})).toEqual({deleted:1,hasMore:false});
+ expect(await t.mutation(ref,{pageId})).toEqual({deleted:0,hasMore:false});
 });

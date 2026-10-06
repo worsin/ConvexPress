@@ -1291,8 +1291,12 @@ export type ApiDocumentInput = {
 	password?: string;
 	commentStatus?: "open" | "closed";
 };
+type DocumentInput = Omit<ApiDocumentInput, "keyId">;
+// Only server-resolved import metadata can enter these private write primitives.
+type ImportMetadata = Pick<Partial<WithoutSystemFields<Doc<"posts">>>,
+ "authorId" | "featuredImageId" | "isSticky" | "wpPostId" | "wpGuid" | "wpSourceSiteId" | "publishedAt">;
 function apiBody(
-	input: ApiDocumentInput,
+	input: DocumentInput,
 	identity: string,
 	fallback: unknown = [],
 ) {
@@ -1309,7 +1313,7 @@ function apiBody(
 					.blocks)
 	);
 }
-function apiMetadata(input: ApiDocumentInput, previous?: Doc<"posts">) {
+function apiMetadata(input: DocumentInput, previous?: Doc<"posts">) {
 	if (input.excerpt !== undefined && input.excerpt.length > 1000)
 		refuse(
 			"INVALID_DOCUMENT_EXCERPT",
@@ -1345,7 +1349,7 @@ function apiMetadata(input: ApiDocumentInput, previous?: Doc<"posts">) {
 	return patch;
 }
 function apiPublication(
-	input: ApiDocumentInput,
+	input: DocumentInput,
 	post: Doc<"posts">,
 	context?: Awaited<ReturnType<typeof loadDocumentWriteContext>>,
 ) {
@@ -1364,13 +1368,11 @@ function apiPublication(
 			: prepareCanonicalPublication(post, args, Date.now())
 	).publication;
 }
-export async function createApiDocument(
-	ctx: MutationCtx,
-	type: "post" | "page",
-	input: ApiDocumentInput,
-): Promise<Id<"posts">> {
-	const budget = new RequestReadLedger(),
-		user = await apiContentActor(ctx, input.keyId, "write:posts");
+export async function createApiDocument(ctx: MutationCtx, type: "post" | "page", input: ApiDocumentInput): Promise<Id<"posts">> {
+ return createForActor(ctx, type, input, await apiContentActor(ctx, input.keyId, "write:posts"));
+}
+async function createForActor(ctx: MutationCtx, type: "post" | "page", input: DocumentInput, user: Doc<"users">, imported: ImportMetadata = {}): Promise<Id<"posts">> {
+ const budget = new RequestReadLedger();
 	await requireApiCapability(
 		ctx,
 		user,
@@ -1448,6 +1450,7 @@ export async function createApiDocument(
 				}
 			: {}),
 		...apiMetadata(input),
+    ...imported,
 		createdAt: now,
 		updatedAt: now,
 	};
@@ -1543,7 +1546,7 @@ export async function createApiDocument(
 			postId: id,
 			...(type === "page" ? { pageId: id } : {}),
 			title,
-			authorId: user._id,
+			authorId: ready.authorId,
 			postType: type,
 			status: publication.status,
 		},
@@ -1554,13 +1557,11 @@ export async function createApiDocument(
 		await publishedEvent(ctx, ready, publication.publishedAt!, false, budget);
 	return id;
 }
-export async function updateApiDocument(
-	ctx: MutationCtx,
-	type: "post" | "page",
-	input: ApiDocumentInput & { postId: Id<"posts">; expectedRevision: number },
-): Promise<CanonicalWriteReceipt & { postId: Id<"posts"> }> {
-	const budget = new RequestReadLedger(),
-		user = await apiContentActor(ctx, input.keyId, "write:posts");
+export async function updateApiDocument(ctx: MutationCtx, type: "post" | "page", input: ApiDocumentInput & { postId: Id<"posts">; expectedRevision: number }): Promise<CanonicalWriteReceipt & { postId: Id<"posts"> }> {
+ return updateForActor(ctx, type, input, await apiContentActor(ctx, input.keyId, "write:posts"));
+}
+async function updateForActor(ctx: MutationCtx, type: "post" | "page", input: DocumentInput & { postId: Id<"posts">; expectedRevision: number }, user: Doc<"users">, imported: ImportMetadata = {}): Promise<CanonicalWriteReceipt & { postId: Id<"posts"> }> {
+ const budget = new RequestReadLedger();
 	budget.beforeRead();
 	const post = budget.record(await ctx.db.get("posts", input.postId));
 	if (!post || post.type !== type) refuse("NOT_FOUND", "Document not found.");
@@ -1588,7 +1589,7 @@ export async function updateApiDocument(
 				title: input.title ?? post.title,
 				blocks,
 			});
-	const metadata = apiMetadata(input, post);
+	const metadata = { ...apiMetadata(input, post), ...imported };
 	if (
 		post.status !== "draft" ||
 		(input.status !== undefined && input.status !== post.status) ||
@@ -1763,4 +1764,103 @@ export async function readApiDocument(
 		updatedAt: post.updatedAt,
 		publishedAt: post.publishedAt,
 	};
+}
+
+// WordPress has a durable job owner, not an HTTP key or interactive session.
+// Authority and the import receipt are rechecked in the same mutation as all
+// document writes. A failed conversion must leave the old hash retryable.
+import { userCan as importUserCan } from "../helpers/permissions";
+import { normalizeImportConfig } from "../wordpressSync/validators";
+export type WordPressDocumentInput = {
+ jobId: Id<"wordpressSyncJobs">;
+ siteId: Id<"wordpressSites">;
+ existingId?: string;
+ expectedRevision?: number;
+ expectedUpdatedAt?: number;
+ sourceHash: string;
+ authorId?: string;
+ featuredImageId?: string;
+ parentId?: string;
+ meta: Array<{key:string;value:string}>;
+ termIds?: string[];
+ document: {id:number;title:string;slug:string;content:string;excerpt:string;status:string;commentStatus:"open"|"closed";publishedAt?:number;guid?:string;isSticky?:boolean;menuOrder?:number;template?:string};
+};
+export async function importWordPressDocument(ctx: MutationCtx, type: "post" | "page", args: WordPressDocumentInput): Promise<Id<"posts">> {
+ const job = await ctx.db.get("wordpressSyncJobs", args.jobId);
+ const site = await ctx.db.get("wordpressSites", args.siteId);
+ if (!job || !site || site.status !== "active" || job.siteId !== args.siteId || job.status !== "running" || job.currentPhase !== (type === "post" ? "posts" : "pages"))
+  refuse("IMPORT_JOB_INACTIVE", "This import job no longer authorizes document writes.");
+ const user = await ctx.db.get("users", job.createdBy);
+ if (!user || user.status !== "active" || user.authSource === "management" || !(await importUserCan(ctx,user._id,"manage_options")))
+  refuse("FORBIDDEN", "The import job owner no longer has site import authority.");
+ const config = normalizeImportConfig(job.importConfig);
+ if (config.behavior.dryRun) refuse("IMPORT_DRY_RUN", "A dry run cannot write documents.");
+ const wp = args.document;
+ if (!["draft","publish","future","private"].includes(wp.status))
+  refuse("IMPORT_STATUS_REVIEW_REQUIRED", `WordPress status ${wp.status} requires an explicit lifecycle review before import.`);
+ if (args.meta.length > 128 || (args.termIds?.length ?? 0) > 100)
+  refuse("IMPORT_RECORD_TOO_LARGE", "Import metadata or taxonomy count exceeds the bounded record limit.");
+ for (const item of args.meta) {
+  if (!item.key || item.key.length > 256 || new TextEncoder().encode(item.value).length > 262144)
+   refuse("IMPORT_RECORD_TOO_LARGE", "An import metadata entry exceeds the bounded record limit.");
+ }
+ const mapping = await ctx.db.query("wpIdMappings").withIndex("by_wp_id",q=>q.eq("siteId",args.siteId).eq("objectType",type).eq("wpId",wp.id)).unique();
+ if ((mapping?.convexId ?? undefined) !== args.existingId)
+  refuse("CONFLICT", "The import mapping changed; reload the record before retrying.");
+ const existingId = args.existingId ? ctx.db.normalizeId("posts",args.existingId) : null;
+ const previous = existingId ? await ctx.db.get("posts",existingId) : null;
+ if (args.existingId && (!previous || previous.type !== type || previous.wpSourceSiteId !== args.siteId || previous.wpPostId !== wp.id))
+  refuse("CONFLICT", "The mapped document no longer belongs to this source record.");
+ if (previous) {
+  if (!config.behavior.updateExisting) refuse("IMPORT_UPDATE_DISABLED", "Updating existing documents is disabled for this job.");
+  if (args.expectedRevision !== authoringRevision(previous) || args.expectedUpdatedAt !== previous.updatedAt)
+   refuse("CONFLICT", "The document changed while the import was being prepared.");
+  if (config.behavior.preserveLocalEdits && (mapping?.acceptedRevision !== undefined
+    ? mapping.acceptedRevision !== authoringRevision(previous) || mapping.acceptedUpdatedAt !== previous.updatedAt
+    : previous.updatedAt > mapping!.createdAt))
+   refuse("IMPORT_LOCAL_EDIT_CONFLICT", "The mapped document has local edits which this import must preserve.");
+ }
+ const authorId = args.authorId ? ctx.db.normalizeId("users",args.authorId) : user._id;
+ const author = authorId ? await ctx.db.get("users",authorId) : null;
+ if (!author || author.authSource === "management") refuse("IMPORT_AUTHOR_INVALID", "The mapped WordPress author is unavailable.");
+ const featuredImageId = args.featuredImageId ? ctx.db.normalizeId("media",args.featuredImageId) : undefined;
+ if (args.featuredImageId && !featuredImageId) refuse("IMPORT_MEDIA_INVALID", "The mapped featured image is invalid.");
+ const parentId = args.parentId ? ctx.db.normalizeId("posts",args.parentId) : null;
+ if (args.parentId && !parentId) refuse("DOCUMENT_ROUTE_INVALID", "The mapped parent page is invalid.");
+ const input: DocumentInput = {
+  title:wp.title,slug:wp.slug,content:wp.content,excerpt:wp.excerpt,status:wp.status,
+  visibility:wp.status === "private" ? "private" : "public",commentStatus:wp.commentStatus,
+  ...(wp.status === "future" ? {scheduledAt:wp.publishedAt} : {}),
+  ...(type === "page" ? {parentId,menuOrder:wp.menuOrder,pageTemplate:wp.template || "default"} : {}),
+ };
+ const metadata: ImportMetadata = {authorId:author._id,featuredImageId:featuredImageId ?? undefined,isSticky:wp.isSticky ?? false,wpPostId:wp.id,wpGuid:wp.guid,wpSourceSiteId:args.siteId,...(!previous && wp.publishedAt !== undefined ? {publishedAt:wp.publishedAt} : {})};
+ const id = previous
+  ? (await updateForActor(ctx,type,{...input,postId:previous._id,expectedRevision:args.expectedRevision!},user,metadata)).postId
+  : await createForActor(ctx,type,input,user,metadata);
+ // Keep source separate from the active canonical body. The transaction cannot
+ // advertise success until all recoverable source and relationships are stored.
+ const archive = JSON.stringify({document:wp,meta:args.meta});
+ if (new TextEncoder().encode(archive).length > 768 * 1024 || args.sourceHash.length > 128)
+  refuse("IMPORT_RECORD_TOO_LARGE", "The recoverable import source exceeds the bounded record limit.");
+ const entries = new Map(args.meta.map(item=>[item.key,item.value]));
+ // Retain each accepted source, including metadata-only imports whose canonical
+ // body revision is unchanged. Later imports may replace only the latest view.
+ entries.set(`_convexpress_wp_import:${args.sourceHash}`,archive);
+ entries.set("_convexpress_wp_source",JSON.stringify(wp));
+ for (const [key,value] of entries) {
+  const old = await ctx.db.query("postMeta").withIndex("by_post_key",q=>q.eq("postId",id).eq("key",key)).unique();
+  if (old) await patchWithMediaReferences(ctx,"postMeta",old._id,{value});
+  else await insertWithMediaReferences(ctx,"postMeta",{postId:id,key,value});
+ }
+ for (const rawId of new Set(args.termIds ?? [])) {
+  const termId = ctx.db.normalizeId("terms",rawId);
+  if (!termId || !await ctx.db.get("terms",termId)) refuse("IMPORT_TERM_INVALID", "An imported taxonomy mapping is unavailable.");
+  const old = await ctx.db.query("termRelationships").withIndex("by_post_term",q=>q.eq("postId",id).eq("termId",termId)).unique();
+  if (!old) await insertTermRelationship(ctx,{postId:id,termId,order:0});
+ }
+ const accepted = (await ctx.db.get("posts",id))!;
+ const receipt = {convexId:id,sourceHash:args.sourceHash,lastSeenJobId:args.jobId,lastSeenAt:Date.now(),acceptedRevision:authoringRevision(accepted),acceptedUpdatedAt:accepted.updatedAt};
+ if (mapping) await ctx.db.patch("wpIdMappings",mapping._id,receipt);
+ else await ctx.db.insert("wpIdMappings",{siteId:args.siteId,objectType:type,wpId:wp.id,...receipt,createdAt:Date.now()});
+ return id;
 }

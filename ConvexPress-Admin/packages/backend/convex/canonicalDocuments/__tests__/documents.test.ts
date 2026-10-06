@@ -376,6 +376,10 @@ test("legacy block migration refuses unknown fields and stale settings reviews w
   }
 });
 const modules = {
+ "./convex/wordpressSync/internals.ts":()=>import("../../wordpressSync/internals"),
+ "./convex/wordpressSync/helpers/idMapping.ts":()=>import("../../wordpressSync/helpers/idMapping"),
+ "./convex/wordpressSync/phases/posts.ts":()=>import("../../wordpressSync/phases/posts"),
+ "./convex/wordpressSync/phases/pages.ts":()=>import("../../wordpressSync/phases/pages"),
  "./convex/api/internals.ts":()=>import("../../api/internals"),
  "./convex/posts/httpInternals.ts": () => import("../../posts/httpInternals"),
  "./convex/pages/httpInternals.ts": () => import("../../pages/httpInternals"),
@@ -3402,4 +3406,119 @@ for(const type of ["post","page"] as const) httpTest(`HTTP ${type} new draft enf
  const f=await apiFixture();const before=await f.t.run(ctx=>ctx.db.query("posts").collect());
  await expect(f.t.mutation(httpRef(type,"createInternal"),{keyId:f.keyId,title:"Invalid action",blocks:[{id:"unsafe-cta",name:"blocks/promo-band",version:1,attrs:{primaryCtaUrl:"javascript:alert(1)",primaryCtaLabel:"Open"}}]})).rejects.toMatchObject({data:{code:"INVALID_CANONICAL_DOCUMENT"}});
  expect(await f.t.run(ctx=>ctx.db.query("posts").collect())).toEqual(before);
+});
+
+async function wordpressFixture(type: "post" | "page") {
+ const f = await fixture();
+ const ids = await f.t.run(async ctx => {
+  const user = (await ctx.db.get("users", f.ids.user))!;
+  await ctx.db.patch("roles", user.roleId!, {capabilities:["manage_options","post.create","page.create","post.update","page.update","post.publish","page.publish","page.set_parent"]});
+  const siteId = await ctx.db.insert("wordpressSites", {name:"Disposable import",siteUrl:"https://wordpress.invalid",username:"fixture",applicationPassword:"unused",status:"active",createdBy:f.ids.user,createdAt:1,updatedAt:1});
+  const progress = Object.fromEntries(["users","media","posts","pages","comments","menus","commerceCatalog","commerceTransactions","reconciliation","cleanup"].map(key => [key,{total:0,imported:0,failed:0}]));
+  const jobId = await ctx.db.insert("wordpressSyncJobs", {siteId,status:"running",currentPhase:type === "post" ? "posts" : "pages",progress:progress as any,errors:[],createdBy:f.ids.user,createdAt:1,updatedAt:1});
+  return {siteId,jobId};
+ });
+ const wp = {id:71,title:"Imported document",slug:"imported-document",content:"<p>Imported <strong>bold</strong> body.</p>",excerpt:"Excerpt",status:"draft",commentStatus:"closed",...(type === "post" ? {isSticky:true} : {menuOrder:3,template:"default"})};
+ const args = {...ids,sourceHash:"source-v1",meta:[{key:"_wp_content_rendered",value:wp.content}],...(type === "post" ? {wpPost:wp,termIds:[]} : {wpPage:wp})};
+ const write = (patch:Record<string,unknown> = {}) => f.t.mutation(makeFunctionReference<any,any,any>(`wordpressSync/phases/${type === "post" ? "posts:postsCreate" : "pages:pagesCreate"}`), {...args,...patch});
+ const state = () => f.t.run(async ctx => ({posts:await ctx.db.query("posts").collect(),meta:await ctx.db.query("postMeta").collect(),mappings:await ctx.db.query("wpIdMappings").collect(),history:await ctx.db.query("revisions").collect(),events:await ctx.db.query("events").collect()}));
+ return {...f,...ids,wp,args,write,state};
+}
+for (const type of ["post","page"] as const) {
+ test(`WordPress ${type} commits canonical content and receipt atomically, retaining history and source`, async () => {
+  const f = await wordpressFixture(type);
+  const id = await f.write();
+  const initial = await f.state(), post = initial.posts.find(p => p._id === id)!;
+  expect(post).toMatchObject({type,content:"",contentMode:"blocks",blocksVersion:2,blocksRevision:1,wpPostId:71,wpSourceSiteId:f.siteId});
+  expect(JSON.stringify(post.blocks)).toContain("bold");
+  expect(initial.meta.find(m => m.key === "_wp_content_rendered")?.value).toBe(f.wp.content);
+  expect(initial.mappings[0]).toMatchObject({convexId:id,sourceHash:"source-v1",acceptedRevision:1});
+  expect((await f.client.query(reference("get"),{postId:id})).document.revision).toBe(1);
+  await f.write({existingId:id,expectedRevision:1,expectedUpdatedAt:post.updatedAt,sourceHash:"source-v2",[type === "post" ? "wpPost" : "wpPage"]:{...f.wp,content:"<p>Updated body.</p>"}});
+  const next = await f.state();
+  expect(next.posts.find(p => p._id === id)?.blocksRevision).toBe(2);
+  expect(next.mappings[0]).toMatchObject({sourceHash:"source-v2",acceptedRevision:2});
+  expect(next.history.find(r => r.parentId === id)?.blocks).toEqual(post.blocks);
+  await expect(f.write({existingId:id,expectedRevision:1,sourceHash:"stale"})).rejects.toThrow();
+  expect(await f.state()).toEqual(next);
+ });
+ test(`WordPress ${type} refuses unsupported content, inactive job and oversized metadata without partial writes`,async()=>{
+  const f = await wordpressFixture(type), before = await f.state();
+  await expect(f.write({[type === "post" ? "wpPost" : "wpPage"]:{...f.wp,content:'<iframe src="https://unreviewed.invalid"></iframe>'}})).rejects.toThrow();
+  expect(await f.state()).toEqual(before);
+  await expect(f.write({meta:[{key:"_wp_content_rendered",value:"x".repeat(1_100_000)}]})).rejects.toMatchObject({data:{code:"IMPORT_RECORD_TOO_LARGE"}});
+  expect(await f.state()).toEqual(before);
+  await f.t.run(ctx=>ctx.db.patch("wordpressSyncJobs",f.jobId,{status:"cancelled"}));
+  await expect(f.write()).rejects.toMatchObject({data:{code:"IMPORT_JOB_INACTIVE"}});
+  expect(await f.state()).toEqual(before);
+ });
+}
+
+test("WordPress late relationship failure rolls back document, metadata, events and receipt",async()=>{
+ const f=await wordpressFixture("post");const id=await f.write();const before=await f.state(),post=before.posts.find(p=>p._id===id)!;
+ await expect(f.write({existingId:id,expectedRevision:1,expectedUpdatedAt:post.updatedAt,sourceHash:"must-not-advance",wpPost:{...f.wp,content:"<p>Must roll back.</p>"},meta:[{key:"_yoast_wpseo_title",value:"Must roll back"}],termIds:["missing-term"]})).rejects.toMatchObject({data:{code:"IMPORT_TERM_INVALID"}});
+ expect(await f.state()).toEqual(before);
+});
+
+test("WordPress nested page import preserves route, publishing date and public canonical body",async()=>{
+ const f=await wordpressFixture("page");const parent=await f.write();
+ const id=await f.write({parentId:parent,sourceHash:"child-v1",wpPage:{...f.wp,id:72,slug:"child",status:"publish",publishedAt:1700000000000}});
+ const post=await f.t.run(ctx=>ctx.db.get("posts",id));
+ expect(post).toMatchObject({parentId:parent,path:"/imported-document/child",depth:1,status:"publish",publishedAt:1700000000000});
+ expect((await f.t.query(reference("getForRender"),{postId:id})).document.blocks).toEqual(post!.blocks);
+ const before=await f.state();
+ await expect(f.write({wpPage:{...f.wp,id:73,slug:"products"}})).rejects.toThrow();expect(await f.state()).toEqual(before);
+});
+
+test("WordPress local edits and revoked owner authority are rechecked in the write transaction",async()=>{
+ const f=await wordpressFixture("post"),id=await f.write();
+ await f.t.run(async ctx=>{const {normalizeImportConfig}=await import("../../wordpressSync/validators");const config=normalizeImportConfig(undefined);config.behavior.preserveLocalEdits=true;await ctx.db.patch("wordpressSyncJobs",f.jobId,{importConfig:config});});
+ await f.client.mutation(reference("save","mutation"),{postId:id,expectedRevision:1,title:"Local edit",blocks:tree});
+ const before=await f.state(),post=before.posts.find(p=>p._id===id)!;
+ await expect(f.write({existingId:id,expectedRevision:post.blocksRevision,expectedUpdatedAt:post.updatedAt,sourceHash:"changed-source"})).rejects.toMatchObject({data:{code:"IMPORT_LOCAL_EDIT_CONFLICT"}});
+ expect(await f.state()).toEqual(before);
+ await f.t.run(ctx=>ctx.db.patch("users",f.ids.user,{status:"inactive"}));
+ await expect(f.write({wpPost:{...f.wp,id:72,slug:"next"}})).rejects.toMatchObject({data:{code:"FORBIDDEN"}});
+ expect(await f.state()).toEqual(before);
+});
+
+for (const failure of ["errors","counts","cancelled","none"] as const) test(`WordPress job completion reports ${failure} honestly`,async()=>{
+ const f=await wordpressFixture("post");
+ await f.t.run(async ctx=>{
+  const job=(await ctx.db.get("wordpressSyncJobs",f.jobId))!;
+  await ctx.db.patch("wordpressSites",f.siteId,{lastSyncAt:123});
+  await ctx.db.patch("wordpressSyncJobs",f.jobId,{currentPhase:"cleanup",...(failure==="errors"?{errors:[{phase:"posts",wpId:71,message:"Failed conversion",timestamp:1}]}:failure==="counts"?{progress:{...job.progress,posts:{total:1,imported:0,failed:1}}}:failure==="cancelled"?{status:"cancelled"}:{})});
+ });
+ await f.t.mutation(makeFunctionReference<any,any,any>("wordpressSync/internals:completeJob"),{jobId:f.jobId});
+ const state=await f.t.run(async ctx=>({job:await ctx.db.get("wordpressSyncJobs",f.jobId),site:await ctx.db.get("wordpressSites",f.siteId)}));
+ expect(state.job!.status).toBe(failure==="none"?"completed":failure==="cancelled"?"cancelled":"failed");
+ if(failure!=="none")expect(state.site!.lastSyncAt).toBe(123);else expect(state.site!.lastSyncAt).toBeGreaterThan(123);
+});
+
+for(const type of ["post","page"] as const) test(`WordPress ${type} batch retries refused content and sees metadata-only changes`,async()=>{
+ const f=await wordpressFixture(type), originalFetch=globalThis.fetch;
+ let content="<p>Imported batch <strong>body</strong>.</p>",seo="SEO one";
+ const source=()=>({id:71,title:{rendered:"Batch document"},slug:"batch-document",content:{rendered:content},excerpt:{rendered:"Excerpt"},status:"draft",comment_status:"closed",author:0,featured_media:0,parent:0,menu_order:0,template:"default",categories:[],tags:[],meta:{_yoast_wpseo_title:seo}});
+ const endpoint=type==="post"?"posts":"pages";
+ const run=()=>f.t.action(makeFunctionReference<any,any,any>(`wordpressSync/phases/${endpoint}:importBatch`),{jobId:f.jobId,siteId:f.siteId,credentials:{siteUrl:"https://wordpress.invalid",username:"fixture",applicationPassword:"synthetic"}});
+ globalThis.fetch=(async(input)=>{const url=new URL(String(input));if(url.pathname.endsWith(`/${endpoint}/71`))return new Response(JSON.stringify(source()));if(url.pathname.endsWith(`/${endpoint}`))return new Response(JSON.stringify([source()]),{headers:{"X-WP-Total":"1"}});throw new Error(`Unexpected fixture URL ${url.pathname}`);}) as typeof fetch;
+ try {
+  const first=await run();expect(first.errors).toEqual([]);expect(first.progress).toMatchObject({imported:1,failed:0,created:1});
+  const before=await f.state(),mapping=before.mappings[0];
+  expect(before.meta.find(m=>m.key==="_wp_source_record")?.value).toBe(JSON.stringify(source()));
+  content='<iframe src="https://unreviewed.invalid"></iframe>';
+  expect((await run()).progress).toMatchObject({imported:0,failed:1});
+  const refused=await f.state();expect(refused.posts).toEqual(before.posts);expect(refused.meta).toEqual(before.meta);expect(refused.mappings[0].sourceHash).toBe(mapping.sourceHash);
+  // Repeating the refused source must attempt the write again, not skip it.
+  expect((await run()).progress).toMatchObject({imported:0,failed:1});
+  content="<p>Imported batch <strong>body</strong>.</p>";seo="SEO two";
+  expect((await run()).progress).toMatchObject({imported:1,failed:0,updated:1,skipped:0});
+  const updated=await f.state();expect(updated.meta.find(m=>m.key==="_yoast_wpseo_title")?.value).toBe("SEO two");expect(updated.mappings[0].sourceHash).not.toBe(mapping.sourceHash);
+  expect((await run()).progress).toMatchObject({imported:1,failed:0,skipped:1});
+ }finally{globalThis.fetch=originalFetch;}
+});
+
+for(const status of ["pending","auto-draft","trash"] as const) test(`WordPress ${status} requires lifecycle review without publishing or replacing source`,async()=>{
+ const f=await wordpressFixture("post"),before=await f.state();
+ await expect(f.write({wpPost:{...f.wp,status}})).rejects.toMatchObject({data:{code:"IMPORT_STATUS_REVIEW_REQUIRED"}});expect(await f.state()).toEqual(before);
 });

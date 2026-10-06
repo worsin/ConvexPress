@@ -1,3 +1,7 @@
+## October 5 — WordPress canonical import accepted
+
+Both sites import posts/pages through canonical transactions with current owner/job authority, compare-and-swap, retained source archives and atomic mapping receipts. Four actual native edit/reload/388px Website journeys pass. Final178 focused tests; page metadata cascade regression repaired and live cleanup exact. Six owned documents removed; original145documents/522revisions, metadata/private drafts/appearance/mail exact; temporary keys/sessions/runtimes cleaned. E07 and full goal remain open117Verified/20In progress. [Evidence, limits and next deployment bases](wp-canonical-20261005.md).
+
 ## October 5 — Generic legacy creation retired
 
 Both sites now omit exactly the unused posts/pages generic create endpoints; canonical/native/HTTP creation remains. Reserved-route suffix bypass fixed. Target receives bounded existing source depth/deletion/orphan-category fixes demonstrated by five failing tests. Working/source168 focused tests, target138, types/contracts/deploy gates pass. Live canonical create/read/reparent/reorder/deletion and exact cleanup pass on both sites; eight owned documents removed, original145documents/522revisions and appearance/mail exact. Goal active/incomplete117Verified/20In progress. [Evidence and next deployment bases](legacy-create-retirement-20261005.md).

@@ -17,7 +17,7 @@
  *   - Slug uniqueness is scoped to `type: "page"` (pages and posts can share slugs)
  */
 
-import { patchWithMediaReferences } from "../media/attachmentGuard";
+import { deleteWithMediaReferences, patchWithMediaReferences } from "../media/attachmentGuard";
 import { ConvexError } from "convex/values";
 import type { Id } from "../_generated/dataModel";
 import { internalMutation, internalQuery } from "../_generated/server";
@@ -422,5 +422,25 @@ export const getAncestorChain = internalQuery({
     });
 
     return ancestors;
+  },
+});
+
+/** Delete only metadata owned by this page; oversized cascades fail atomically. */
+export async function deletePageMetadata(ctx: MutationCtx, pageId: Id<"posts">) {
+  const rows = await ctx.db.query("postMeta").withIndex("by_post", q => q.eq("postId", pageId)).take(1001);
+  if (rows.length > 1000) throw new ConvexError({code:"PAGE_METADATA_LIMIT",message:"This page requires a batched metadata cleanup before permanent deletion."});
+  for (const row of rows) await deleteWithMediaReferences(ctx,"postMeta",row._id);
+  return rows.length;
+}
+
+/** Repair a prior incomplete deletion. Never removes metadata from a live row. */
+export const deleteOrphanedMetadata = internalMutation({
+  args: {pageId:v.id("posts")},
+  returns: v.object({deleted:v.number(),hasMore:v.boolean()}),
+  handler: async (ctx,{pageId}) => {
+    if (await ctx.db.get("posts",pageId)) throw new ConvexError({code:"DOCUMENT_STILL_EXISTS",message:"Only metadata of an already deleted document can be cleaned up."});
+    const rows = await ctx.db.query("postMeta").withIndex("by_post",q=>q.eq("postId",pageId)).take(100);
+    for (const row of rows) await deleteWithMediaReferences(ctx,"postMeta",row._id);
+    return {deleted:rows.length,hasMore:rows.length===100};
   },
 });

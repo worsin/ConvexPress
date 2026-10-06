@@ -61,6 +61,7 @@ import {
   recomputeDescendantPaths,
   getMaxSubtreeDepth,
   MAX_PAGE_DEPTH,
+  deletePageMetadata,
 } from "./internals";
 import { validateBlocks, validateBlocksAgainstCatalog, getStoredBlocks, type StoredBlock } from "../blocks/helpers";
 import { deleteWithMediaReferences, patchWithMediaReferences } from "../media/attachmentGuard";
@@ -714,6 +715,8 @@ export const permanentDelete = mutation({
       const childParentPath = newPath.substring(0, newPath.lastIndexOf("/")) || "";
       await recomputeDescendantPaths(ctx, child._id, childParentPath, newDepth);
     }
+
+    await deletePageMetadata(ctx, args.pageId);
 
     // ── Clear front page references ───────────────────────────────────────
     await clearFrontPageReferences(ctx, args.pageId);

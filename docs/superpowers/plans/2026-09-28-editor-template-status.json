@@ -7,7 +7,7 @@
     "In progress": 20
   },
   "goal": "Complete block editor and template delivery plus all demonstrated blockers; defer unrelated whole-app audit campaigns.",
-  "currentTask": "Task 4 / E07: unused generic post/page creation endpoints retired on both sites; native and HTTP creation remain canonical. Route tests moved to supported creation; reserved-route suffix bypass repaired; source page-depth/deletion fixes backported to target. Both live hierarchy/lifecycle checks and exact preservation pass. Next: WordPress import writers and old demo seed, then remaining stored-schema consumers. Full goal active/incomplete; 117 Verified / 20 In progress unchanged.",
+  "currentTask": "Task 4 / E07: WordPress post/page writers now canonical and transactional on both sites; native Save/reload/388px actual Website preview, refusal rollback, retained source archives and exact cleanup accepted. Page metadata cascade repaired after live cleanup exposed orphan rows. Next: retire destructive legacy demo-site CLI/seed after installed-wrapper review, then remaining stored-schema consumers. Full goal active/incomplete; 117 Verified / 20 In progress unchanged.",
   "tasks": [
     {
       "id": 1,
@@ -100,11 +100,11 @@
     },
     {
       "id": "E07",
-      "status": "All current source116/116 and target29/29 documents canonical; historical format/reference reconciliation complete within its documented scope. Downgrade API/permit/control retired; exact downloads and deliberate saved/unsaved canonical import/undo verified. Normal native edit routes and all four packs use canonical dispatch. New post/page and Dashboard Quick Draft create canonical revision1 directly on both sites; Quick Draft native literal text/line breaks/save/reload/335px Website accepted (quick-draft-20261005.md). Original rows, appearance/mail and other private drafts exact after cleanup. HTTP create/read/update now canonical with live API/native/Website acceptance on both sites; API revocation, stale revision and invalid CTA refusal verified. Unused generic public create endpoints are retired; installed inventories remove exactly those two functions. Canonical creation and hierarchy/lifecycle acceptance pass on both sites. WordPress import/demo writers and remaining schema consumers still require bounded retirement. E07 remains open.",
+      "status": "All current source116/116 and target29/29 documents canonical; historical format/reference reconciliation complete within its documented scope. Downgrade API/permit/control retired; exact downloads and deliberate saved/unsaved canonical import/undo verified. Normal native edit routes and all four packs use canonical dispatch. New post/page and Dashboard Quick Draft create canonical revision1 directly on both sites; Quick Draft native literal text/line breaks/save/reload/335px Website accepted (quick-draft-20261005.md). Original rows, appearance/mail and other private drafts exact after cleanup. HTTP create/read/update now canonical with live API/native/Website acceptance on both sites; API revocation, stale revision and invalid CTA refusal verified. Unused generic public create endpoints are retired; installed inventories remove exactly those two functions. Canonical creation and hierarchy/lifecycle acceptance pass on both sites. WordPress import now uses canonical document transactions, retained source archives and accepted mapping receipts; native/Website round trips and exact cleanup pass on both sites. Unsupported conversion/lifecycle states explicitly require review. Demo writers and remaining schema consumers still require bounded retirement. E07 remains open.",
       "classification": "missing evidence",
       "initialFinding": "One-content-model migration and legacy retirement remain incomplete.",
       "closureBoundary": "Complete lossless conversion/recovery for actual retained content, source snapshots and installed-site receipts; then remove active legacy editor/renderer/schema dispatch as specified. Keep historical recovery data and a deliberate import converter. Do not delete old fields before proving preservation or claim migration complete while silently relying on legacy rendering.",
-      "nextCheck": "Repair WordPress postsCreate/pagesCreate canonical import and inspect installed demoSeed wrappers before retiring unused destructive legacy seed. Deployment bases: output/legacy-create-retirement-20261005/{source,target}-source-installed.json. Preserve each site catalog/extension set and archived import recovery.",
+      "nextCheck": "Inspect installed demoSeed wrappers and retire old destructive seedMarketingSite/repairSeededPageLinks and its seed-demo-site CLI caller while preserving media/shop workflows. Then remaining stored-schema consumers. Deployment bases: output/wp-canonical-cleanup-20261005/{source,target}-source-installed.json; preserve site catalogs/extensions and archived import recovery.",
       "deliveryTask": 4,
       "triagedAt": "2026-09-29",
       "triageEvidence": "ConvexPress-Admin/audits/2026-09-04/delivery-blocker-triage-20260929.md",
@@ -141,7 +141,12 @@
         "output/history-retirement-20261005/reference-reconciliation.json",
         "output/history-retirement-20261005/preservation.json",
         "ConvexPress-Admin/audits/2026-09-04/http-canonical-20261005.md",
-        "ConvexPress-Admin/audits/2026-09-04/legacy-create-retirement-20261005.md"
+        "ConvexPress-Admin/audits/2026-09-04/legacy-create-retirement-20261005.md",
+        "ConvexPress-Admin/audits/2026-09-04/wp-canonical-20261005.md",
+        "output/wp-canonical-20261005/roundtrip.json",
+        "output/wp-canonical-20261005/fixture-cleanup.json",
+        "output/wp-canonical-20261005/preservation.json",
+        "output/wp-canonical-cleanup-20261005/installed-preservation.json"
       ]
     },
     {
@@ -4522,7 +4527,12 @@
     "ConvexPress-Admin/audits/2026-09-04/legacy-create-retirement-20261005.md",
     "output/legacy-create-retirement-20261005/source-lifecycle.json",
     "output/legacy-create-retirement-20261005/target-lifecycle.json",
-    "output/legacy-create-retirement-20261005/preservation.json"
+    "output/legacy-create-retirement-20261005/preservation.json",
+    "ConvexPress-Admin/audits/2026-09-04/wp-canonical-20261005.md",
+    "output/wp-canonical-20261005/roundtrip.json",
+    "output/wp-canonical-20261005/fixture-cleanup.json",
+    "output/wp-canonical-20261005/preservation.json",
+    "output/wp-canonical-cleanup-20261005/installed-preservation.json"
   ],
   "trackerRefresh": {
     "source": "output/lead-customer-20260929/mt-accept-after.json",
@@ -4571,7 +4581,8 @@
     "audit21": "Read/responded. Snapshot predates64feddce116/21; E60 auth hydration distinct from E59 confirmation. Narrow public-read lens retained. Targeted notification templates suppressed before customer creation; final async queue proof required. F21/Tasks4\u20138/E18/E22/E28 remain open.",
     "audit22": "Read/responded: F28 clarified first-of115 shared test-location convention, not isolated Heading failure. Central receipt317tests/1148cases and live117Verified/137row gate pass. E22 stays open for screenshot provenance/final evidence; new E62 migration tooling remains Task4. Audit counts are historical snapshots, not guaranteed lower bounds; row ratio is not full delivery percentage. RSVP human CAPTCHA and cleanup pending.",
     "audit25": "Read/responded: authority workflow advanced without backend changes; customer fully cleaned. Actual parent revocation/recovery now accepted; newly demonstrated E69 banner mismatch source-fixed, refreshed runtime pending alongside E68. No new broad scope; Codex retains decision authority.",
-    "audit33": "Accepted E07 status parity and Website-before-backend nested-list rollout requirement. Direct HTML converter probe preserves _blank and refuses unsupported target. D3 adapted/deferred pending bounded reproduction without authoring reload; D5/O3/O5 deferred, D4 remains rejected under E39, O4 informational. Source now79canonical/37legacy, five published pages preserved and republished; continue two raw-text posts without waiting for audit."
+    "audit33": "Accepted E07 status parity and Website-before-backend nested-list rollout requirement. Direct HTML converter probe preserves _blank and refuses unsupported target. D3 adapted/deferred pending bounded reproduction without authoring reload; D5/O3/O5 deferred, D4 remains rejected under E39, O4 informational. Source now79canonical/37legacy, five published pages preserved and republished; continue two raw-text posts without waiting for audit.",
+    "audit37": "Read/responded: accepted bounded E07 scope and resolved prior target failures; on-track is not completion. WordPress canonical import and cleanup now accepted. Nine orphan page metadata rows exposed a real cascade gap; bounded fix deployed/tested. Deep audit remains advisory; exact caller/evidence requested, no waiting or scope expansion. Latest available audit37."
   },
   "sessionBaseCommit": "9824d9605e50c4b0ebd711c13715b506f8ef5bd3"
 }

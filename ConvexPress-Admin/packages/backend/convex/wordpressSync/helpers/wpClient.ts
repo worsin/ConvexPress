@@ -752,11 +752,11 @@ export async function fetchWPMenuItems(
  */
 export async function fetchWPPostMeta(
   config: WPClientConfig,
-  postId: number
+  postId: number,
+  postType: "posts" | "pages" = "posts"
 ): Promise<WPMeta[]> {
-  try {
     // Use the post endpoint with _fields to get meta
-    const result = await fetchWPEndpoint<WPPost>(config, `posts/${postId}`, {
+    const result = await fetchWPEndpoint<WPPost>(config, `${postType}/${postId}`, {
       context: "edit",
     });
 
@@ -774,9 +774,6 @@ export async function fetchWPPostMeta(
     }
 
     return metaArray;
-  } catch {
-    return [];
-  }
 }
 
 /**

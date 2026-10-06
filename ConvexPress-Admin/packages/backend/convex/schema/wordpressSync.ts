@@ -278,6 +278,9 @@ export const wordpressSyncTables = {
     sourceUrls: v.optional(v.array(v.string())),
     // Hash of the source content for change detection
     sourceHash: v.optional(v.string()),
+    // Canonical revision/timestamp accepted by the last atomic content import.
+    acceptedRevision: v.optional(v.number()),
+    acceptedUpdatedAt: v.optional(v.number()),
     // Last import job that fetched this source object. Used by tombstone
     // detection to distinguish deleted source objects from out-of-scope ones.
     lastSeenJobId: v.optional(v.id("wordpressSyncJobs")),
