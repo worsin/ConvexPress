@@ -7,7 +7,7 @@
     "In progress": 4
   },
   "goal": "Complete block editor and template delivery plus all demonstrated blockers; defer unrelated whole-app audit campaigns.",
-  "currentTask": "133 Verified / 4 In progress. Task8 active: all four packs x137 selected desktop examples visually reviewed (548 records /699 segments), hashes and coverage verified. E104 Business Menu and E105 Journal form/sidebar repaired with12+24 responsive cases. Continue final state/mobile/motion reconciliation, native integrated journey and candidate/installed artifact parity. Provider gaps block only their affected gates; no waiting for Claude.",
+  "currentTask": "133 Verified / 4 In progress. Task8 production native acceptance and all four authored example candidate backend/Website installations accepted;21documents/settings and35stored files preserved. E22 final desktop provenance and E106 bundle budget closed. Next: reconcile remaining final state/mobile/motion and flagship evidence, then safe local integration and concise delivery guide. Provider/HTTPS gaps affect only their gates; no waiting for Claude.",
   "tasks": [
     {
       "id": 1,
@@ -228,7 +228,7 @@
       "classification": "missing implementation",
       "initialFinding": "Full default websites, remaining flagship treatments and the complete BlockDemo visual review are unfinished.",
       "closureBoundary": "Deliver four complete simple sites and all-block demo coverage. Check realistic copy, optional assets, narrow placements, links, image crops, visible focus and template consistency. Provide a non-destructive, idempotent canonical example-site authoring/provisioning path; preserve existing documents, menus and revisions.",
-      "nextCheck": "Reconcile final137-block/four-pack capture index and changed shared dependencies. Reuse completed16-pattern mobile review, catalog/navigation and E11 profile. Final native journey must include E99, mobile editor/navigation overlays and template-switch interaction; do not repeat accepted demo provisioning.",
+      "nextCheck": "Reconcile remaining final state/mobile/motion and flagship evidence against current shared dependencies. All four installed example backend/Website candidates now accepted; reuse their21document/35file preservation and public UI receipts instead of repeating provisioning or deployments.",
       "deliveryTask": 6,
       "triagedAt": "2026-09-29",
       "triageEvidence": "ConvexPress-Admin/audits/2026-09-04/delivery-blocker-triage-20260929.md",
@@ -239,7 +239,8 @@
         "ConvexPress-Admin/audits/2026-09-04/example-native-20261005.md",
         "ConvexPress-Admin/audits/2026-09-04/example-responsive-20261005.md",
         "ConvexPress-Admin/audits/2026-09-04/pattern-tone-review-20261005.md",
-        "ConvexPress-Admin/audits/2026-09-04/demo-visible-review-20261006.md"
+        "ConvexPress-Admin/audits/2026-09-04/demo-visible-review-20261006.md",
+        "ConvexPress-Admin/audits/2026-09-04/example-candidate-20261006.md"
       ]
     },
     {
@@ -333,12 +334,12 @@
     },
     {
       "id": "E18",
-      "status": "Backend candidate/installed parity and target development connection metadata accepted. Both strict deployments and live canonical save/publish/readback pass; 2368 shared registered contracts match exactly and source Community Events extension is preserved. Final frontend/native artifact and local main-checkout integration remain.",
+      "status": "Source/target backend parity, production native custom-protocol authoring/preview, and four authored example final backend/Website installations accepted.21 example documents/settings and35 files preserved;2368 identical contracts per example. Safe local main-checkout integration and remaining full evidence/provider gates remain.",
       "classification": "missing evidence",
       "initialFinding": "Current source/main/deployed artifacts and historical screenshots can diverge.",
       "closureBoundary": "Record exact source and deployment identity; reuse only relevant current evidence. Run a final integrated gate on the deliverable, not a collection of unrelated historical green logs.",
-      "currentEvidence": "September29 target remains on its own older extension checkpoint. Four canonical draft functions absent; native editor autosave unavailable and separate document-settings warning observed. Website iframe correct. Final integrated artifact parity remains open; see locale-promotion-20260929.md. September29 actual signed-in Website switch also proves target has no matching Clerk auth provider; customer provisioning reports clerk_secret_key_missing. Guest switch and exact source restoration pass, signed-in target document remains loading. See recent-site-switch-20260929.md. October6 read-only live function-spec confirms drafts get/save/discard and draftMaintenance cleanup all present; see native-integration-20261006.md. This supersedes only the current missing-function claim, not the customer identity failure. October6 environment-only target repair: full backup, exact unchanged1620-file installed snapshot, strict redeploy, registered contracts unchanged, real development Clerk token accepted by target; owned identity/session cleaned and28 original target pages/settings exact. See target-customer-auth-20261006.md. Stored setup metadata remains absent; browser/profile acceptance not inferred. October6 actual normal customer sign-in and same-origin source\u2192target\u2192source Recently Viewed pass; both isolated profiles linked_existing/Clerk, target empty then target-only history and source history restored exactly. See recent-auth-final-20261006.md. October6 final backend candidate parity: target metadata reconciled via the normal operator settings, capability sync and verification APIs; working credentials and keyless/unclaimed status preserved. Full data/storage backups, strict compile/dry-run/deploy of each own candidate, 22 source extension files exact, 2368 shared contracts identical with no removed functions. Both live nested-page save/publish/anonymous readbacks and cleanup pass;71 original pages/settings and7 protected runtimes preserved. Full workspace backend suite3704 tests/25684 assertions passes after stale test contract reconciliation. See candidate-backend-parity-20261006.md.",
-      "nextCheck": "Finish frontend/native artifact and local main-checkout integration plus remaining evidence/provider gates. Reuse current backend manifests, identical shared contracts, native recovery and Website bundle receipts; no repeat of accepted metadata or backend deployment work. No push.",
+      "currentEvidence": "September29 target remains on its own older extension checkpoint. Four canonical draft functions absent; native editor autosave unavailable and separate document-settings warning observed. Website iframe correct. Final integrated artifact parity remains open; see locale-promotion-20260929.md. September29 actual signed-in Website switch also proves target has no matching Clerk auth provider; customer provisioning reports clerk_secret_key_missing. Guest switch and exact source restoration pass, signed-in target document remains loading. See recent-site-switch-20260929.md. October6 read-only live function-spec confirms drafts get/save/discard and draftMaintenance cleanup all present; see native-integration-20261006.md. This supersedes only the current missing-function claim, not the customer identity failure. October6 environment-only target repair: full backup, exact unchanged1620-file installed snapshot, strict redeploy, registered contracts unchanged, real development Clerk token accepted by target; owned identity/session cleaned and28 original target pages/settings exact. See target-customer-auth-20261006.md. Stored setup metadata remains absent; browser/profile acceptance not inferred. October6 actual normal customer sign-in and same-origin source\u2192target\u2192source Recently Viewed pass; both isolated profiles linked_existing/Clerk, target empty then target-only history and source history restored exactly. See recent-auth-final-20261006.md. October6 final backend candidate parity: target metadata reconciled via the normal operator settings, capability sync and verification APIs; working credentials and keyless/unclaimed status preserved. Full data/storage backups, strict compile/dry-run/deploy of each own candidate, 22 source extension files exact, 2368 shared contracts identical with no removed functions. Both live nested-page save/publish/anonymous readbacks and cleanup pass;71 original pages/settings and7 protected runtimes preserved. Full workspace backend suite3704 tests/25684 assertions passes after stale test contract reconciliation. See candidate-backend-parity-20261006.md. October6 production native acceptance: delivery-artifacts-20261006.md. Four example candidate installations and actual Website compatibility: example-candidate-20261006.md;21documents/settings exact,35stored files exact,21public routes200,4API sessions revoked,7protected processes alive.",
+      "nextCheck": "Safely integrate locally and reconcile remaining Task6 state/mobile/motion and flagship evidence. Reuse production native and installed-example receipts; do not redeploy or repeat accepted tests without a changed dependency. No push.",
       "deliveryTask": 8,
       "triagedAt": "2026-09-29",
       "triageEvidence": "ConvexPress-Admin/audits/2026-09-04/delivery-blocker-triage-20260929.md"
@@ -1369,7 +1370,7 @@
     },
     {
       "id": "E106",
-      "classification": "reproduced delivery gate failure",
+      "classification": "accepted/reusable evidence",
       "status": "Closed: stable compiled template registry separated from application entry. Fresh complete production artifact passes unchanged300000main/550000largest budgets; main221047bytes, registry107632bytes. Types, four-pack/90-surface contract check and template SSR pass; actual four-pack public/search hydration and Aster390px mobile navigation inspected. No total-first-load-byte reduction claimed.",
       "requiredWorkflow": "Deliver a production Website artifact passing the existing main/chunk bundle budgets while retaining synchronous pack metadata and selective lazy surface hydration.",
       "evidence": "output/candidate-native-20261006/bundle-budget.log; bundle-inventory.json; bundle-diagnostic.log",
@@ -5220,7 +5221,10 @@
     "ConvexPress-Admin/audits/2026-09-04/field-events-final-20261006.md",
     "ConvexPress-Admin/audits/2026-09-04/layout-wrapper-final-20261006.md",
     "ConvexPress-Admin/audits/2026-09-04/candidate-native-20261006.md",
-    "ConvexPress-Admin/audits/2026-09-04/template-registry-bundle-20261006.md"
+    "ConvexPress-Admin/audits/2026-09-04/template-registry-bundle-20261006.md",
+    "ConvexPress-Admin/audits/2026-09-04/delivery-artifacts-20261006.md",
+    "ConvexPress-Admin/audits/2026-09-04/example-candidate-20261006.md",
+    "output/example-candidate-20261006/final-receipt.json"
   ],
   "trackerRefresh": {
     "source": "output/field-guide-legacy-final-20261006/mt-accept-after.json",
@@ -5286,7 +5290,8 @@
     "paletteShop": "Audit55 remains latest and already adjudicated. Independently repaired E102 operator canonical reads and completed palette/Shop field mapping; no new Claude scope directive. Next bounded work: Task6 demo/motion and Task7 actual AI, retain E05 external staging requirement and Task8 overlay/artifact integration.",
     "audit57": "ACCEPT bounded scope/progress/133-4 counts against local receipts. ADAPT E99: retain intermittent final-integration watch; successful later restores are not a causal fix and do not justify repeating identical passing checks or stopping independent work. Independently reproduced/repaired E103; no new broad audit scope and no waiting for Claude.",
     "audit58": "ACCEPT bounded scope/progress/count assessment against current source and133/4 checkpoint. ADAPT E99 reminder into final integrated native watch, without inferring a causal repair from successful later restores. E104/E105 independently reproduced and repaired; no new scope or audit wait.",
-    "candidateNative": "Accepted integrated native template switching, Customize draft/conflict/publication, document conflict/restore, actual sign-out/sign-in recovery and cleanup on d9a03347.71original pages/settings preserved; seven protected processes alive. No E99 reproduction or speculative patch. Existing main-bundle gate still fails; bounded module-inventory diagnosis next. Audit58 remains latest; no audit wait. E106 now repaired and accepted: fresh production bundle, types/template SSR, four-pack interactive hydration. Source settings/pages restored and API revoked; owned preview stopped. Next final installed-artifact parity, tracker/evidence reconciliation and local integration; preserve four provider prerequisites and HTTPS gap."
+    "candidateNative": "Accepted integrated native template switching, Customize draft/conflict/publication, document conflict/restore, actual sign-out/sign-in recovery and cleanup on d9a03347.71original pages/settings preserved; seven protected processes alive. No E99 reproduction or speculative patch. Existing main-bundle gate still fails; bounded module-inventory diagnosis next. Audit58 remains latest; no audit wait. E106 now repaired and accepted: fresh production bundle, types/template SSR, four-pack interactive hydration. Source settings/pages restored and API revoked; owned preview stopped. Next final installed-artifact parity, tracker/evidence reconciliation and local integration; preserve four provider prerequisites and HTTPS gap.",
+    "audit59": "ACCEPT E106 closed classification correction. ADAPT E99 unchanged-time reminder: preserve original causal uncertainty, reuse accepted automatic native restore and continue independent work. Upcoming deep audit advisory; no automatic scope change or wait."
   },
   "sessionBaseCommit": "9824d9605e50c4b0ebd711c13715b506f8ef5bd3"
 }
