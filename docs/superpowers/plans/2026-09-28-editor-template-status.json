@@ -7,7 +7,7 @@
     "In progress": 20
   },
   "goal": "Complete block editor and template delivery plus all demonstrated blockers; defer unrelated whole-app audit campaigns.",
-  "currentTask": "Task5: E89 top-bar and theme variant repaired;4pack native/public acceptance and preservation complete. Next E09 signed-in account display/presets and contextual click-to-edit. Goal active117/20; full delivery open.",
+  "currentTask": "Task5: E92 signed-in account menus repaired and verified after E90/E91 contextual picking. Next reconcile remaining per-field/surface Customizer acceptance, prioritizing unaccepted footer controls. Reuse E82\u2013E92. Goal active117/20; full delivery open.",
   "tasks": [
     {
       "id": 1,
@@ -181,7 +181,7 @@
       "classification": "missing evidence",
       "initialFinding": "Customizer contextual fields, all packs/surfaces, header/footer/menu integration and operator authority are not fully accepted.",
       "closureBoundary": "Verify the field group controls the actual surface, click-to-edit focus, draft/publish/reset/history/conflicts, pack switches, session continuity, customer denial and revocation.",
-      "nextCheck": "Verify remaining signed-in account display/preset controls and reconcile the remaining per-field/surface Customizer acceptance map. Reuse E82\u2013E91 and existing native history/authority evidence.",
+      "nextCheck": "Reconcile declared Customizer fields/surfaces against E82\u2013E92 and prior native history/authority evidence. Verify remaining unaccepted footer controls/contextual targets; do not repeat accepted header or account-menu matrices.",
       "deliveryTask": 5,
       "triagedAt": "2026-09-29",
       "triageEvidence": "ConvexPress-Admin/audits/2026-09-04/delivery-blocker-triage-20260929.md",
@@ -199,7 +199,8 @@
         "ConvexPress-Admin/audits/2026-09-04/header-menu-source-20261006.md",
         "ConvexPress-Admin/audits/2026-09-04/header-controls-20261006.md",
         "ConvexPress-Admin/audits/2026-09-04/customizer-targets-20261006.md",
-        "ConvexPress-Admin/audits/2026-09-04/customizer-frame-pick-20261006.md"
+        "ConvexPress-Admin/audits/2026-09-04/customizer-frame-pick-20261006.md",
+        "ConvexPress-Admin/audits/2026-09-04/account-menu-20261006.md"
       ]
     },
     {
@@ -1123,6 +1124,21 @@
         "output/customizer-frame-pick-20261006/browser-receipts.json",
         "output/customizer-frame-pick-20261006/preservation.json",
         "output/customizer-frame-pick-20261006/cleanup.json"
+      ]
+    },
+    {
+      "id": "E92",
+      "status": "Assigned account-menu descendants repaired; signed-in display/preset choices and real customer navigation/sign-out verified with cleanup.",
+      "classification": "repaired and verified",
+      "requiredWorkflow": "Render every assigned account menu destination in public headers and customer dashboard, preserving display/preset choices and sign-out.",
+      "initialFinding": "menuToNav drops heading children; UserMenu and ProfileMenu render root items only.",
+      "repairBoundary": "Preserve heading children and share recursive account-menu rendering.",
+      "closureBoundary": "Red/green actual component tests plus signed-in four-pack desktop/mobile menus, navigation and both sign-out paths.",
+      "deliveryTask": 5,
+      "currentEvidence": [
+        "ConvexPress-Admin/audits/2026-09-04/account-menu-20261006.md",
+        "output/account-menu-20261006/browser-receipts.json",
+        "output/account-menu-20261006/cleanup.json"
       ]
     }
   ],
@@ -4871,7 +4887,8 @@
     "ConvexPress-Admin/audits/2026-09-04/header-search-20261006.md",
     "ConvexPress-Admin/audits/2026-09-04/mobile-menu-20261006.md",
     "ConvexPress-Admin/audits/2026-09-04/header-menu-source-20261006.md",
-    "ConvexPress-Admin/audits/2026-09-04/header-controls-20261006.md"
+    "ConvexPress-Admin/audits/2026-09-04/header-controls-20261006.md",
+    "ConvexPress-Admin/audits/2026-09-04/account-menu-20261006.md"
   ],
   "trackerRefresh": {
     "source": "output/lead-customer-20260929/mt-accept-after.json",

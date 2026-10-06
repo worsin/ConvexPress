@@ -1,4 +1,3 @@
-import { Link } from "@tanstack/react-router";
 import { useUser, useClerk } from "@/lib/auth/clerk";
 import { LogOut } from "lucide-react";
 
@@ -6,15 +5,13 @@ import { cn } from "@/lib/utils";
 import {
   DropdownMenu,
   DropdownMenuContent,
-  DropdownMenuGroup,
   DropdownMenuItem,
-  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useHeaderConfig } from "@/hooks/layout/useHeaderConfig";
 import { useDashboardConfig, useDashboardPath } from "@/hooks/useDashboardConfig";
-import { resolveIcon } from "@/dashboard/icons";
+import { AccountMenuItems } from "@/dashboard/shell/AccountMenuItems";
 import { useDashboardMenu } from "@/dashboard/shell/useDashboardMenu";
 import type { NavItem } from "@/dashboard/nav";
 
@@ -79,32 +76,7 @@ export function UserMenu() {
         )}
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" sideOffset={8}>
-        {items.map((item) => {
-          if (item.kind === "separator") return <DropdownMenuSeparator key={item.id} />;
-          if (item.kind === "heading") {
-            return (
-              <DropdownMenuGroup key={item.id}>
-                <DropdownMenuLabel>{item.label}</DropdownMenuLabel>
-              </DropdownMenuGroup>
-            );
-          }
-          const Icon = resolveIcon(item.icon);
-          return (
-            <DropdownMenuItem
-              key={item.id}
-              render={
-                item.external ? (
-                  <a href={item.href} target={item.target} rel={item.rel} />
-                ) : (
-                  <Link to={item.href} />
-                )
-              }
-            >
-              <Icon className="size-4" />
-              {item.label}
-            </DropdownMenuItem>
-          );
-        })}
+        <AccountMenuItems items={items} />
         {items.length > 0 && <DropdownMenuSeparator />}
         <DropdownMenuItem onClick={() => signOut()}>
           <LogOut className="size-4" />

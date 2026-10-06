@@ -35,6 +35,10 @@ describe("menuToNav", () => {
     expect(nav[3]).toMatchObject({ external: true, target: "_blank", rel: "noopener" });
     expect(nav[4]).toMatchObject({ exact: true, pageId: "home" });
   });
+  test("preserves heading descendants", () => {
+    const nav = menuToNav([{_id:"heading",itemType:"heading",label:"Account",children:[{_id:"profile",itemType:"custom",label:"Profile",url:"/members/profile"}]}], "/members");
+    expect(nav[0].children[0]?.href).toBe("/members/profile");
+  });
   test("nests children", () => {
     const nav = menuToNav([
       { _id: "p", itemType: "custom", label: "Parent", url: "/x", children: [{ _id: "c", itemType: "custom", label: "Child", url: "/x/y" }] },
