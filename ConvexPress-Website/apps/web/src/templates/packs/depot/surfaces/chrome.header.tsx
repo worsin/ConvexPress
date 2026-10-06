@@ -1,3 +1,4 @@
+import { DesktopNav } from "@/components/layout/DesktopNav";
 import { HeaderMainRow } from "@/components/layout/HeaderMainRow";
 import { headerAppearance, headerHeight } from "@/lib/layout/headerAppearance";
 import { resolveHeaderBrand } from "@/lib/layout/headerBrand";
@@ -59,18 +60,24 @@ export default function DepotHeader({ data }: SurfaceProps<HeaderSurfaceData>) {
         >
           <Menu className="size-5" aria-hidden="true" />
         </button>);
-  const navigation = showNav ? (<nav aria-label="Primary navigation" className="hidden border-t border-border lg:block">
+  const navigation = !showNav ? null : headerConfig.navigation.dropdownStyle === "flyout" ? (
+    <div className="hidden border-t border-border lg:block">
+      <Container padded={headerConfig.layout.style === "standard"} className="flex min-h-10 items-center">
+        <DesktopNav menu={menu} linkStyle={headerConfig.navigation.style} dropdownStyle="flyout" />
+      </Container>
+    </div>
+  ) : (<nav aria-label="Primary navigation" className="hidden border-t border-border lg:block">
           <Container padded={headerConfig.layout.style === "standard"} className="flex min-h-10 items-center gap-1">
             {visibleItems.some((item) => item.children.length > 0) && <AllDepartments items={visibleItems} />}
             <ul role="list" className="flex min-w-0 items-center gap-0.5 overflow-x-auto">
               {visibleItems.map((item) => (
                 <li key={item.id} className="shrink-0">
-                  <DepartmentLink item={item} />
+                  <DepartmentLink item={item} style={headerConfig.navigation.style} />
                 </li>
               ))}
             </ul>
           </Container>
-        </nav>) : null;
+        </nav>);
 
   return (
     <header
@@ -244,20 +251,22 @@ function HeaderCluster({ headerConfig, className }: { headerConfig: HeaderConfig
   );
 }
 
-function DepartmentLink({ item }: { item: ResolvedMenuItem }) {
-  return <MenuItemTarget item={item} separatorOrientation="vertical" className={cn("inline-flex h-8 items-center gap-1 rounded-md px-2.5 text-[13px] font-medium text-foreground transition-colors hover:bg-muted", item.cssClasses)} activeProps={{ className: "bg-muted text-primary", "aria-current": "page" }} />;
+function DepartmentLink({ item, style }: { item: ResolvedMenuItem; style: HeaderConfig["navigation"]["style"] }) {
+  return <MenuItemTarget item={item} separatorOrientation="vertical" className={cn("inline-flex h-8 items-center gap-1 rounded-md px-2.5 text-[13px] font-medium text-foreground transition-colors hover:bg-muted", style === "pills" && "rounded-full border border-transparent hover:border-border", style === "underline" && "rounded-none border-b border-transparent hover:border-foreground hover:bg-transparent", item.cssClasses)} activeProps={{ className: "bg-muted text-primary", "aria-current": "page" }} />;
 }
 
-function MenuLink({ item, className }: { item: ResolvedMenuItem; className?: string }) {
-  return <MenuItemTarget item={item} className={className} />;
+function MenuLink({ item, className, onNavigate }: { item: ResolvedMenuItem; className?: string; onNavigate?: () => void }) {
+  return <MenuItemTarget item={item} className={className} onClick={onNavigate} />;
 }
 
 /** "All" mega dropdown: every department with its children, in columns. */
 function AllDepartments({ items }: { items: ResolvedMenuItem[] }) {
+  const [open, setOpen] = useState(false);
+  const close = () => setOpen(false);
   const groups = items.filter((item) => item.children.length > 0);
   const singles = items.filter((item) => item.children.length === 0);
   return (
-    <PopoverPrimitive.Root>
+    <PopoverPrimitive.Root open={open} onOpenChange={setOpen}>
       <PopoverPrimitive.Trigger className="inline-flex h-8 items-center gap-1 rounded-md bg-muted px-2.5 text-[13px] font-semibold text-foreground transition-colors hover:bg-muted/70 aria-expanded:bg-primary aria-expanded:text-primary-foreground">
         <Menu className="size-4" aria-hidden="true" />
         All
@@ -272,20 +281,20 @@ function AllDepartments({ items }: { items: ResolvedMenuItem[] }) {
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
               {groups.map((group) => (
                 <div key={group.id} className="flex flex-col gap-1">
-                  <MenuLink item={group} className="text-[13px] font-semibold text-foreground hover:text-primary" />
+                  <MenuLink onNavigate={close} item={group} className="text-[13px] font-semibold text-foreground hover:text-primary" />
                   <ul role="list" className="flex flex-col">
                     {group.children
                       .filter((child) => !child.isOrphaned)
                       .map((child) => (
                         <li key={child.id}>
-                          <MenuLink item={child} className="block py-1 text-[13px] text-muted-foreground hover:text-foreground" />
+                          <MenuLink onNavigate={close} item={child} className="block py-1 text-[13px] text-muted-foreground hover:text-foreground" />
                           {child.children.length > 0 && (
                             <ul role="list" className="ml-3 border-l border-border pl-2">
                               {child.children
                                 .filter((leaf) => !leaf.isOrphaned)
                                 .map((leaf) => (
                                   <li key={leaf.id}>
-                                    <MenuLink item={leaf} className="block py-0.5 text-xs text-muted-foreground hover:text-foreground" />
+                                    <MenuLink onNavigate={close} item={leaf} className="block py-0.5 text-xs text-muted-foreground hover:text-foreground" />
                                   </li>
                                 ))}
                             </ul>
@@ -301,7 +310,7 @@ function AllDepartments({ items }: { items: ResolvedMenuItem[] }) {
                   <ul role="list" className="flex flex-col">
                     {singles.map((item) => (
                       <li key={item.id}>
-                        <MenuLink item={item} className="block py-1 text-[13px] text-muted-foreground hover:text-foreground" />
+                        <MenuLink onNavigate={close} item={item} className="block py-1 text-[13px] text-muted-foreground hover:text-foreground" />
                       </li>
                     ))}
                   </ul>

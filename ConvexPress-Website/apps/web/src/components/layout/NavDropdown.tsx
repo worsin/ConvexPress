@@ -10,13 +10,14 @@ interface NavDropdownProps {
   items: ResolvedMenuItem[];
   depth: number;
   className?: string;
+  onNavigate?: () => void;
 }
 
 /**
  * Recursive dropdown submenu component for nested menu items.
  * Maximum 5 levels of nesting supported.
  */
-export function NavDropdown({ items, depth, className }: NavDropdownProps) {
+export function NavDropdown({ items, depth, className, onNavigate }: NavDropdownProps) {
   if (depth > 5 || items.length === 0) return null;
 
   return (
@@ -33,18 +34,19 @@ export function NavDropdown({ items, depth, className }: NavDropdownProps) {
       {items
         .filter((item) => !item.isOrphaned)
         .map((item) => (
-          <NavDropdownItem key={item.id} item={item} depth={depth} />
+          <NavDropdownItem key={item.id} item={item} depth={depth} onNavigate={onNavigate} />
         ))}
     </ul>
   );
 }
 
 interface NavDropdownItemProps {
+  onNavigate?: () => void;
   item: ResolvedMenuItem;
   depth: number;
 }
 
-function NavDropdownItem({ item, depth }: NavDropdownItemProps) {
+function NavDropdownItem({ item, depth, onNavigate }: NavDropdownItemProps) {
   const [isOpen, setIsOpen] = React.useState(false);
   const closeTimeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(
     null,
@@ -131,6 +133,7 @@ function NavDropdownItem({ item, depth }: NavDropdownItemProps) {
     >
       <MenuItemTarget
           item={item}
+          onClick={onNavigate}
           onToggle={hasChildren ? () => setIsOpen(value => !value) : undefined}
           aria-expanded={hasChildren ? isOpen : undefined}
           className={linkClassName}
@@ -144,6 +147,7 @@ function NavDropdownItem({ item, depth }: NavDropdownItemProps) {
           items={item.children}
           className={item.type === "separator" ? "static shadow-none ring-0" : undefined}
           depth={depth + 1}
+          onNavigate={onNavigate}
         />
       )}
     </li>

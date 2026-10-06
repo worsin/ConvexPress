@@ -181,6 +181,10 @@ function DesktopNavItem({ item, linkStyle, dropdownStyle }: DesktopNavItemProps)
       {hasChildren && (isOpen || item.type === "separator") && (
         <NavDropdown
           items={item.children}
+          onNavigate={() => {
+            if (openTimeoutRef.current) clearTimeout(openTimeoutRef.current);
+            setIsOpen(false);
+          }}
           depth={0}
           className={item.type === "separator" ? "static shadow-none ring-0" : dropdownStyle === "mega" ? "grid min-w-72 grid-cols-2" : undefined}
         />

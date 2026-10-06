@@ -62,7 +62,7 @@ export default function JournalChromeHeader({ data }: SurfaceProps<HeaderSurface
             {visibleItems.length > 0 ? (
               <ul role="list" className="flex items-center gap-1">
                 {visibleItems.map((item) => (
-                  <NavItem key={item.id} item={item} />
+                  <NavItem key={item.id} item={item} config={headerConfig.navigation} />
                 ))}
               </ul>
             ) : null}
@@ -190,7 +190,7 @@ function TopBar({ config }: { config: HeaderConfig["topBar"] }) {
 
 /* ───────────────────────── menu items ───────────────────────── */
 
-function NavItem({ item }: { item: ResolvedMenuItem }) {
+function NavItem({ item, config }: { item: ResolvedMenuItem; config: HeaderConfig["navigation"] }) {
   const [open, setOpen] = useState(false);
   const openTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -236,6 +236,8 @@ function NavItem({ item }: { item: ResolvedMenuItem }) {
   const linkProps = { ...(item.target ? { target: item.target } : {}), ...(item.rel ? { rel: item.rel } : {}) };
   const linkClass = cn(
     "flex items-center gap-1 px-3 py-2 text-sm tracking-wide text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+    config.style === "pills" && "rounded-full border border-transparent hover:border-border hover:bg-muted",
+    config.style === "underline" && "border-b border-transparent px-2 hover:border-foreground",
     item.cssClasses,
   );
   const content = (
@@ -264,7 +266,7 @@ function NavItem({ item }: { item: ResolvedMenuItem }) {
         >
           {content}
         </MenuItemTarget>
-      {hasChildren && (open || item.type === "separator") ? <NavDropdown items={item.children} depth={0} className={item.type === "separator" ? "static shadow-none ring-0" : "rounded-xl"} /> : null}
+      {hasChildren && (open || item.type === "separator") ? <NavDropdown items={item.children} onNavigate={() => { if (openTimer.current) clearTimeout(openTimer.current); setOpen(false); }} depth={0} className={item.type === "separator" ? "static shadow-none ring-0" : cn("rounded-xl", config.dropdownStyle === "mega" && "grid min-w-72 grid-cols-2")} /> : null}
     </li>
   );
 }

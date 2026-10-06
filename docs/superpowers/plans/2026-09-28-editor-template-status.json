@@ -7,7 +7,7 @@
     "In progress": 20
   },
   "goal": "Complete block editor and template delivery plus all demonstrated blockers; defer unrelated whole-app audit campaigns.",
-  "currentTask": "Task5: E84 header layout controls and scroll-up behavior repaired and accepted through native four-pack publication, Core saved-draft reload and actual desktop/mobile Website checks; original staging appearance restored. Continue navigation/search/mobile-menu field coverage and hosted E05. Goal active117/20; full delivery open.",
+  "currentTask": "Task5: E85 desktop navigation styles/dropdown variants and selection dismissal accepted through native publication/actual Website; original appearance and menu inventory restored. Next E86 search variants/placeholders, then E87 mobile-menu variants and remaining header/menu-source matrix. Goal active117/20; full delivery open.",
   "tasks": [
     {
       "id": 1,
@@ -1000,6 +1000,39 @@
       "currentEvidence": [
         "ConvexPress-Admin/audits/2026-09-04/header-layout-20261006.md",
         "ConvexPress-Admin/audits/2026-09-04/header-scroll-20261006.md"
+      ],
+      "deliveryTask": 5
+    },
+    {
+      "id": "E85",
+      "status": "Repaired and verified:three non-Core pack navigation styles/dropdown wiring;all-pack selection dismissal including nested callback propagation. Native publication and5actual Website destination/closure checks pass;baseline restored.",
+      "classification": "repaired and verified",
+      "initialFinding": "6real-header failures for ignored navigation style/dropdown settings and inaccessible Depot Flyout heading children;actual Website destination selection left popup open, reproduced in7component cases.",
+      "closureBoundary": "Honor desktop link/dropdown controls, retain pack treatments and heading/child semantics, close on Escape/selection, verify native publication and actual destinations with restoration.",
+      "currentEvidence": [
+        "ConvexPress-Admin/audits/2026-09-04/header-navigation-20261006.md"
+      ],
+      "deliveryTask": 5
+    },
+    {
+      "id": "E86",
+      "status": "Source-confirmed gap;next reproduce field behavior and repair.",
+      "classification": "Customizer search consumer gap",
+      "initialFinding": "Core/Journal/Aster always render search icon and hardcode overlay placeholder;Depot always renders inline SearchBar. HeaderConfig.search.variant is not consumed by these headers.",
+      "closureBoundary": "Implement declared Inline/Icon/Expandable search variants and configured placeholder across4packs;verify actual query navigation, focus/Escape, native preview/save/public behavior and preservation.",
+      "currentEvidence": [
+        "ConvexPress-Admin/audits/2026-09-04/header-navigation-20261006.md"
+      ],
+      "deliveryTask": 5
+    },
+    {
+      "id": "E87",
+      "status": "Source-confirmed gap;queued after E86.",
+      "classification": "Customizer mobile navigation consumer gap",
+      "initialFinding": "Core/Depot distinguish fullscreen but treat dropdown as drawer;Journal/Aster consume drawerSide but not variant.",
+      "closureBoundary": "Honor Drawer/Fullscreen/Dropdown and applicable side choices across4packs;verify native saved controls and mobile geometry, opening/closing, keyboard and navigation behavior.",
+      "currentEvidence": [
+        "ConvexPress-Admin/audits/2026-09-04/header-navigation-20261006.md"
       ],
       "deliveryTask": 5
     }
@@ -4744,7 +4777,8 @@
     "ConvexPress-Admin/audits/2026-09-04/footer-menu-descendants-20261006.md",
     "ConvexPress-Admin/audits/2026-09-04/appearance-promotion-media-20261006.md",
     "ConvexPress-Admin/audits/2026-09-04/header-layout-20261006.md",
-    "ConvexPress-Admin/audits/2026-09-04/header-scroll-20261006.md"
+    "ConvexPress-Admin/audits/2026-09-04/header-scroll-20261006.md",
+    "ConvexPress-Admin/audits/2026-09-04/header-navigation-20261006.md"
   ],
   "trackerRefresh": {
     "source": "output/lead-customer-20260929/mt-accept-after.json",
