@@ -3,6 +3,8 @@ import { makeFunctionReference as ref } from "convex/server";
 import schema from "../../schema";
 import { installation, publishedReader } from "../model";
 const modules = {
+  "./convex/syncedBlocks/legacy.ts": () => import("../legacy"),
+  "./convex/editor/mutations.ts": () => import("../../editor/mutations"),
   "./convex/search/internals.ts": () => import("../../search/internals"),
   "./convex/search/candidates.ts": () => import("../../search/candidates"),
   "./convex/syncedBlocks/picker.ts": () => import("../picker"),

@@ -37,7 +37,7 @@ function paragraph(value: unknown, path: Path): JsonObject {
 const inlineDoc = (content: unknown[]) => ({ type: "doc", content: [{ type: "paragraph", content }] });
 /** A separate import review prevents previously undisplayed text from becoming
  * visible through an ordinary migration. Unsupported HTML/JSON still refuse. */
-export function reviewLegacyDocumentSource(args: { postId: string; content: string }): { blocks: CanonicalTree; importedContent?: "plain-text" | "html" } {
+export function reviewLegacyDocumentSource(args: { postId: string; content: string; reusableSources?: ReadonlyMap<string, string> }): { blocks: CanonicalTree; importedContent?: "plain-text" | "html" } {
   if (typeof args.content !== "string" || new TextEncoder().encode(args.content).byteLength > CANONICAL_TREE_LIMITS.bytes) fail(["content"], "The source document exceeds the canonical migration byte limit");
   let isJson = true;
   try { JSON.parse(args.content); } catch { isJson = false; }
@@ -56,7 +56,7 @@ export function reviewLegacyDocumentSource(args: { postId: string; content: stri
   }
   return { importedContent: "plain-text", blocks: migrateLegacyDocument({ ...args, content: JSON.stringify(inlineDoc(content)) }) };
 }
-export function migrateLegacyDocument(args: { postId: string; content: string }): CanonicalTree {
+export function migrateLegacyDocument(args: { postId: string; content: string; reusableSources?: ReadonlyMap<string, string> }): CanonicalTree {
   if (typeof args.postId !== "string" || !args.postId) fail([], "A persisted document identity is required");
   if (typeof args.content !== "string" || new TextEncoder().encode(args.content).byteLength > CANONICAL_TREE_LIMITS.bytes) fail(["content"], "The source document exceeds the canonical migration byte limit");
   let source: unknown;
@@ -82,6 +82,13 @@ export function migrateLegacyDocument(args: { postId: string; content: string })
     const path: Path = [...parent, index];
     const node = object(nodes[index], ["type", "attrs", "content"], path);
     switch (node.type) {
+      case "reusableBlock": {
+        const attrs = object(node.attrs, ["blockId"], [...path, "attrs"]);
+        if (typeof attrs.blockId !== "string" || !attrs.blockId || children(node.content, [...path, "content"]).length) fail(path, "A reusable reference must contain only its source identity");
+        const mapped = args.reusableSources?.get(attrs.blockId);
+        if (!mapped) fail(path, "Import and review this legacy reusable source before converting its references");
+        append("core/synced", { syncedBlock: mapped, revisionPolicy: "latest" }, path); break;
+      }
       case "paragraph": append("core/paragraph", { body: { type: "doc", content: [paragraph(node, path)] } }, path); break;
       case "heading": {
         const attrs = object(node.attrs, ["level"], [...path, "attrs"]);

@@ -420,6 +420,7 @@ test("legacy block migration refuses unknown fields and stale settings reviews w
   }
 });
 const modules = {
+ "./convex/syncedBlocks/legacy.ts":()=>import("../../syncedBlocks/legacy"),
  "./convex/wordpressSync/internals.ts":()=>import("../../wordpressSync/internals"),
  "./convex/wordpressSync/helpers/idMapping.ts":()=>import("../../wordpressSync/helpers/idMapping"),
  "./convex/wordpressSync/phases/posts.ts":()=>import("../../wordpressSync/phases/posts"),
@@ -3674,4 +3675,25 @@ test("retired generic post/page updates have no registered export", async () => 
     ["pages/mutations:update", {pageId:f.ids.post, title:"Old writer", content:"Old body"}],
   ] as const) await expect(f.client.mutation(makeFunctionReference<any, any, any>(name), args)).rejects.toThrow();
   expect(await read()).toEqual(before);
+});
+
+
+test("legacy reusable import maps document and archive references without flattening or rewriting originals",async()=>{
+ const {MEDIA_INDEX_EPOCH_NAME}=await import("@convexpress/site-contract/media-index-epoch");
+ const {consumerIndexGeneration}=await import("../../syncedBlocks/consumerIndexState");
+ const prior=process.env[MEDIA_INDEX_EPOCH_NAME];process.env[MEDIA_INDEX_EPOCH_NAME]="legacy-migration-fixture-20261006";
+ try {
+ const f=await fixture();
+ await f.t.run(ctx=>ctx.db.insert("syncedBlockConsumerIndex",{key:"active",generation:consumerIndexGeneration()!,websiteKey:"fixture",instanceKey:"fixture-stage",deploymentOrigin:"https://fixture.convex.cloud",phase:"ready",cursor:null,sequence:0,documents:0,updatedAt:1}));
+ const legacy=await f.t.run(async ctx=>{const user=(await ctx.db.get("users",f.ids.user))!;await ctx.db.patch("roles",user.roleId!,{capabilities:["page.update","post.update","revision.restore","post.read","post.create","post.publish"]});return ctx.db.insert("reusableBlocks",{title:"Shared legacy",content:JSON.stringify({type:"doc",content:[{type:"paragraph",content:[{type:"text",text:"Shared original"}]}]}),isPublished:true,usageCount:1,createdBy:f.ids.user,createdAt:1,updatedAt:1});});
+ const source=JSON.stringify({type:"doc",content:[{type:"reusableBlock",attrs:{blockId:legacy}}]});await f.t.run(ctx=>ctx.db.patch("posts",f.ids.post,{contentMode:"article",content:source}));
+ await expect(f.client.query(reference("prepareMigration"),{postId:f.ids.post})).rejects.toThrow("Import");
+ const sourcePlan=await f.client.query(makeFunctionReference<"query">("syncedBlocks/legacy:review"),{legacyId:legacy});const imported=await f.client.mutation(makeFunctionReference<"mutation">("syncedBlocks/legacy:apply"),{legacyId:legacy,expectedDigest:sourcePlan.digest});
+ await f.t.run(ctx=>ctx.db.patch("posts",f.ids.post,{type:"post",contentMode:"blocks",blocks:[]}));
+ const plan=await f.client.query(reference("prepareMigration"),{postId:f.ids.post});expect(plan.candidate.document.blocks[0]).toMatchObject({name:"core/synced",attrs:{syncedBlock:imported.id,revisionPolicy:"latest"}});
+ await f.client.mutation(reference("migrate","mutation"),{postId:f.ids.post,expectedRevision:plan.source.revision,expectedAuthoringDigest:plan.source.authoringDigest,expectedCandidateDigest:plan.candidate.document.digest,expectedPresentationRevision:plan.candidate.presentation.revision});
+ const state=await f.t.run(async ctx=>({post:await ctx.db.get("posts",f.ids.post),revisions:await ctx.db.query("revisions").collect(),legacy:await ctx.db.get("reusableBlocks",legacy)}));expect(state.post!.blocks).toEqual(plan.candidate.document.blocks);expect(state.revisions[0].content).toBe(source);expect(state.legacy!.content).toContain("Shared original");
+ const history=await f.client.query(reference("pageRevisions"),{postId:f.ids.post,paginationOpts:{numItems:10,cursor:null}});expect(history.page.find((r:any)=>r.id===state.revisions[0]._id)?.action).toBe("import-legacy");
+ const archive=await f.client.query(reference("prepareRevisionImport"),{postId:f.ids.post,revisionId:state.revisions[0]._id,sourceKind:"saved"});expect(archive.candidate.document.blocks).toEqual(plan.candidate.document.blocks);
+ } finally {if(prior===undefined)delete process.env[MEDIA_INDEX_EPOCH_NAME];else process.env[MEDIA_INDEX_EPOCH_NAME]=prior;}
 });

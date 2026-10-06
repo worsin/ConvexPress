@@ -28,6 +28,7 @@ export const save = mutation({
   handler: async (ctx, args) => {
     const budget = new RequestReadLedger(), actor = await requireCan(ctx, "post.update", budget), { source } = await owned(ctx, args.id, actor._id, budget);
     checkGeneration(source, args.expectedGeneration);
+    if (source.isLocked) return syncedFailure("SYNCED_LOCKED", "This imported source is locked. Unlock it explicitly before editing.");
     const value = content(args.title, args.blocks), current = await storedRevision(ctx, source._id, source.lastRevision, budget);
     assertAuthoredActions(value);
     if (!current) return syncedFailure("SYNCED_REVISION", "The current revision is unavailable. Recover it before editing.");
@@ -96,6 +97,7 @@ export const restore = mutation({
     const budget = new RequestReadLedger(), actor = await requireCan(ctx, "post.restore", budget);
     await requireCan(ctx, "post.update", budget);
     const { source, version } = await selected(ctx, args.id, args.expectedGeneration, args.revision, actor._id, budget);
+    if (source.isLocked) return syncedFailure("SYNCED_LOCKED", "This imported source is locked. Unlock it explicitly before restoring.");
     const value = content(version.title, version.blocks);
     if (value.digest !== version.digest || value.digest !== args.expectedDigest) return syncedFailure("SYNCED_RESTORE_CHANGED", "Review the saved revision again before restoring it.");
     const current = await storedRevision(ctx, source._id, source.lastRevision, budget);
@@ -114,4 +116,13 @@ export const restore = mutation({
     await ctx.db.patch("syncedBlocks", source._id, { title: value.title, lastRevision: revision, generation, updatedBy: actor._id, updatedAt: now });
     return { id: source._id, generation, revision, digest: value.digest, changed: true };
   },
+});
+
+/** Preserve imported authoring locks until the authorized operator releases one. */
+export const unlockImported = mutation({
+ args: selection, returns: v.object({id,generation:v.number()}),
+ handler: async(ctx,args)=>{const budget=new RequestReadLedger(),actor=await requireCan(ctx,"post.update",budget),{source}=await owned(ctx,args.id,actor._id,budget);checkGeneration(source,args.expectedGeneration);
+ if(!source.legacySourceId)return syncedFailure("SYNCED_LOCKED","Only imported legacy locks can be released here.");
+ if(!source.isLocked)return {id:source._id,generation:source.generation};
+ const generation=source.generation+1;await ctx.db.patch("syncedBlocks",source._id,{isLocked:false,generation,updatedAt:Date.now(),updatedBy:actor._id});return {id:source._id,generation};}
 });

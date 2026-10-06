@@ -41,7 +41,7 @@ const reviewed = [
   "canonicalDocuments/foundation/syncedOccurrences.ts", "syncedBlocks/model.ts", "syncedBlocks/content.ts",
   "syncedBlocks/refresh.ts", "syncedBlocks/occurrences.ts", "syncedBlocks/consumers.ts",
   "syncedBlocks/consumerWrites.ts", "syncedBlocks/consumerIndex.ts", "syncedBlocks/consumerIndexState.ts",
-  "schema/syncedBlocks.ts",
+  "schema/syncedBlocks.ts", "syncedBlocks/legacy.ts",
   "canonicalDocuments/contactProjection.ts", "canonicalDocuments/contactDefinitions.ts",
   "canonicalDocuments/contactFields.ts", "canonicalDocuments/contactMessaging.ts",
   "canonicalDocuments/displayContext.ts",

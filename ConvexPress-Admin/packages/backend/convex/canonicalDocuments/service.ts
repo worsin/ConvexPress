@@ -1,3 +1,4 @@
+import { legacyReferenceMap } from "../syncedBlocks/legacy";
 import { readCanonicalResources as resources } from "./resources";
 import { owned as ownedDefinition, checkGeneration as checkDefinitionGeneration, readVersion as readDefinitionVersion } from "../blockDefinitions/model";
 import { decodeComposedDefinition, composedAttrsSchema } from "./foundation/composedDefinitions";
@@ -525,14 +526,14 @@ export async function pageRevisions(
 	);
 	return canonicalRevisionPageSchema.parse({
 		...result,
-		page: result.page.map((row) => {
+		page: await Promise.all(result.page.map(async (row) => {
       let action: "restore-canonical" | "import-legacy" | null = null;
       if (row.blocksVersion === 2) action = "restore-canonical";
-      else if (post.blocksVersion === 2) { try { prepareAuthoredMigration(historicalAuthoring(post, row, "saved")); action = "import-legacy"; } catch { /* Unsupported old format remains explicit, without returning partial source. */ } }
+      else if (post.blocksVersion === 2) { try { await prepareMigrationReferences(ctx,historicalAuthoring(post, row, "saved"),budget); action = "import-legacy"; } catch { /* Unsupported old format remains explicit, without returning partial source. */ } }
       return { id: row._id, revisionNumber: row.revisionNumber, createdAt: row.createdAt, type: row.type, title: row.title,
         blocksVersion: row.blocksVersion ?? null, action, hasRetainedAutosave: row.autosaveTitle !== undefined || row.autosaveContent !== undefined, restorable: action !== null,
         reason: action ? null : row.blocksVersion === undefined || row.blocksVersion === 1 ? "legacy-format" : "unsupported-format" };
-    }),
+    })),
 	});
 }
 export async function pageOptions(
@@ -565,7 +566,7 @@ export async function pageOptions(
 
 /** Select the same visible source as current public page/post surfaces. Hidden
  * source fields remain in the original revision; they are never chosen by guess. */
-function prepareAuthoredMigration(post: Doc<"posts">): PreparedCanonicalWrite & {inactiveSettings?: CanonicalMigrationDto["inactiveSettings"]; importedContent?: "plain-text" | "html"} {
+function prepareAuthoredMigration(post: Doc<"posts">, reusableSources?: ReadonlyMap<string,string>): PreparedCanonicalWrite & {inactiveSettings?: CanonicalMigrationDto["inactiveSettings"]; importedContent?: "plain-text" | "html"} {
   if (post.status !== "draft") refuse("CANONICAL_DRAFT_REQUIRED", "Migrate an editable draft before publishing it.");
   if (post.blocksVersion !== undefined && post.blocksVersion !== 1) refuse("UNSUPPORTED_AUTHORING_VERSION", "This is not a supported legacy authoring document.");
   if (post.contentMode !== undefined && post.contentMode !== "article" && post.contentMode !== "blocks") refuse("UNSUPPORTED_AUTHORING_VERSION", "The legacy content mode is unsupported.");
@@ -588,10 +589,16 @@ function prepareAuthoredMigration(post: Doc<"posts">): PreparedCanonicalWrite & 
      postId: post._id, path: `/blog/${post.slug}`, hero: post.hero, topics: post.topics,
      summary: post.summary, sources: post.sources, tableOfContents: post.tableOfContents,
    });
-   const reviewed = reviewLegacyDocumentSource({ postId: post._id, content: post.content ?? "" });
+   const reviewed = reviewLegacyDocumentSource({ postId: post._id, content: post.content ?? "", reusableSources });
    importedContent = reviewed.importedContent;
    return reviewed.blocks;
   }
+}
+async function prepareMigrationReferences(ctx: QueryCtx, post: Doc<"posts">, budget: RequestReadLedger) {
+ const usesDocument = !(post.contentMode === "blocks" && (post.blocks?.length || post.type === "page"))
+  && !(post.type === "post" && hasStructuredArticle(post));
+ const references = usesDocument ? await legacyReferenceMap(ctx,post.content ?? "",budget) : undefined;
+ return prepareAuthoredMigration(post,references);
 }
 /** Trash conversion is authoring-only: never restore, reschedule or publish.
  * Bind its lifecycle too, so restoring/retrashing after review invalidates it.
@@ -639,7 +646,7 @@ export async function prepareMigrationDocument(ctx: QueryCtx, args: { postId: Id
   const { post } = await authorized(ctx, args.postId, budget, args.preserveTrash === true);
   if (!post) refuse("NOT_FOUND", "Document not found.");
   const source = migrationSource(post, args.preserveTrash === true);
-  const prepared = prepareAuthoredMigration(source.preview);
+  const prepared = await prepareMigrationReferences(ctx,source.preview,budget);
   return parseCanonicalMigration({ contract: "canonical-migration-v1", source: { postId: post._id, revision: authoringRevision(post), authoringDigest: source.digest }, candidate: await project(ctx, source.preview, budget, prepared), ...(args.preserveTrash ? {preservesTrash:true} : {}), ...(retainedAutosave(post) ? {retainedAutosave:retainedAutosave(post)} : {}), ...(prepared.inactiveSettings ? {inactiveSettings:prepared.inactiveSettings} : {}), ...(prepared.importedContent ? {importedContent:prepared.importedContent} : {}) });
 }
 export type MigrateArgs = { postId: Id<"posts">; expectedRevision: number; expectedAuthoringDigest: string; expectedCandidateDigest: string; expectedPresentationRevision: string; preserveInactiveSettings?: boolean; acknowledgeTextImport?: boolean; acknowledgeHtmlImport?: boolean; preserveTrash?: boolean; preserveLegacyAutosave?: boolean };
@@ -650,7 +657,7 @@ export async function migrateDocument(ctx: MutationCtx, args: MigrateArgs): Prom
   const source = migrationSource(post, args.preserveTrash === true);
   // Check complete source CAS before converting or starting dependent reads.
   if (!Number.isSafeInteger(args.expectedRevision) || authoringRevision(post) !== args.expectedRevision || source.digest !== args.expectedAuthoringDigest) refuse("CONFLICT", "The authoring source changed after migration review.");
-  const prepared = prepareAuthoredMigration(source.preview);
+  const prepared = await prepareMigrationReferences(ctx,source.preview,budget);
   if (retainedAutosave(post) && args.preserveLegacyAutosave !== true) refuse("MIGRATION_INTENT_REVIEW_REQUIRED", "Confirm retaining the separate unsaved draft with the original revision before converting accepted content.");
   if (prepared.importedContent === "plain-text" && args.acknowledgeTextImport !== true) refuse("MIGRATION_INTENT_REVIEW_REQUIRED", "Review and acknowledge importing plain text that the original renderer may not have displayed.");
   if (prepared.importedContent === "html" && args.acknowledgeHtmlImport !== true) refuse("MIGRATION_INTENT_REVIEW_REQUIRED", "Review and acknowledge importing HTML that the original renderer may not have displayed.");
@@ -694,7 +701,7 @@ async function revisionImport(ctx: QueryCtx, post: Doc<"posts">, args: RevisionI
   if (post.blocksVersion !== 2) refuse("UNSUPPORTED_AUTHORING_VERSION", "Import history into the canonical editor.");
   if (post.status !== "draft") await requireCan(ctx,post.type === "page" ? "page.publish" : "post.publish",budget);
   const revision = await revisionSource(ctx,post,args.revisionId,budget);
-  const converted = prepareAuthoredMigration(historicalAuthoring(post,revision,args.sourceKind));
+  const converted = await prepareMigrationReferences(ctx,historicalAuthoring(post,revision,args.sourceKind),budget);
   const candidate = {...revision,title:converted.title,content:"",contentMode:undefined,blocksVersion:2 as const,blocks:converted.blocks,composedDefinitions:undefined};
   const context = await loadDocumentWriteContext(ctx,converted.blocks,budget,post.composedDefinitions);
   const restoreArgs = {postId:post._id,expectedRevision:authoringRevision(post)};

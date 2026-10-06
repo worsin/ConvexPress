@@ -420,6 +420,7 @@ export const opaqueMediaReferences = {
   "syncedBlockRevisions": [
     "blocks",
     "digest",
+    "legacySourceJson",
     "title"
   ],
   "themes": [

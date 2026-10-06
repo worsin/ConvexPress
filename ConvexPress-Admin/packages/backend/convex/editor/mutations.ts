@@ -1,3 +1,4 @@
+import { assertLegacyWritable } from "../syncedBlocks/legacy";
 import type { RegisteredMutation } from "convex/server";
 import { deleteWithMediaReferences, insertWithMediaReferences, patchWithMediaReferences } from "../media/attachmentGuard";
 import type { Id } from "../_generated/dataModel";
@@ -156,6 +157,8 @@ export const updateReusableBlock: import("convex/server").RegisteredMutation<"pu
       });
     }
 
+    await assertLegacyWritable(ctx,args.blockId);
+
     // ── Check if locked ─────────────────────────────────────────────────
     if (block.isLocked) {
       throw new ConvexError({
@@ -287,6 +290,8 @@ export const deleteReusableBlock = mutation({
         message: "Reusable block not found",
       });
     }
+
+    await assertLegacyWritable(ctx,args.blockId);
 
     // ── Check if locked ─────────────────────────────────────────────────
     if (block.isLocked) {
