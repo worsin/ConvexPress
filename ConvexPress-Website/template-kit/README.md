@@ -2,6 +2,8 @@
 
 Build a reusable visual pack; author the business in the CMS. The public route owns data, SEO, authorization and mutations. A pack receives the resulting SDK view model and controls composition.
 
+For everyday native page authoring and Customize publication, use the repository's `block-kit/AUTHORING.md`. The steps below are for developing a new pack.
+
 1. Read [CONTRACT.md](CONTRACT.md), the target Core surface's exported data type and the site's authorized brand brief.
 2. From Website root: `bun run create:template --id my-pack --name "My pack"`. Add `--from aster-house` (or another installed pack) for a complete editable starting point. Existing packs are never overwritten. `--dry-run` prints the destination without writing.
 3. Edit `apps/web/src/templates/packs/my-pack/surfaces/` and its own `parts/`. Record the design direction in `DESIGN.md`. Use manifest defaults/presets and Customize fields for variation.

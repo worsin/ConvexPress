@@ -2,6 +2,8 @@
 
 Extensions are source-installed features spanning the site backend, Admin, Website and Dashboard. They are enabled in Admin's Extensions screen; disabled features are rejected by backend handlers and public route loaders and hidden from navigation. There is no ZIP-upload marketplace.
 
+Follow [WORKFLOW.md](WORKFLOW.md) for the complete generate, adapt, verify and native installation sequence. The repository's `block-kit/AUTHORING.md` covers the short page and Customizer workflow.
+
 ## Create an extension
 
 From `ConvexPress-Admin`:

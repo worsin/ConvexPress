@@ -1,204 +1,125 @@
-# Workflow — building a new extension end-to-end (v2)
+# Build and verify a source-installed extension
 
-The execution order for `extension:build`. Follow these phases in
-order; each builds on the previous. Skipping ahead = an extension that
-half-works.
+Use the current Events implementation and [README.md](README.md) as the starting
+contract. The generator creates backend, Admin, Website and customer Dashboard
+contributions together. Older manual examples describe individual layers; they
+do not replace this installation workflow.
 
----
+## 1. Choose the domain and identity
 
-## Phase 0 — Prerequisites & inputs
+Establish the requested records, public fields, authoring actions and customer
+access rules. Use a unique lowercase slug such as `community-events`. Public
+IDs and routes keep the hyphen; backend modules use `community_events`, and the
+settings key is `communityEventsEnabled`. Keep those identities consistent in
+all consumers. Read the existing installation before extending one.
 
-Before generating any code, gather:
+The generator creates source under `extensions/`. Scanners also support
+`extensions.local/`, but the generator has no local-distribution flag. Do not
+promise a local-only install by moving two folders: backend, Admin, Website,
+routes, catalogs and imports must remain coordinated. A ZIP installer is not
+part of this workflow.
 
-1. **Extension id** (camelCase, e.g., `events`). Confirm uniqueness:
-   - Not already in `apps/web/src/lib/plugins/registry.ts`'s
-     `PLATFORM_PLUGINS` (platform-shipped)
-   - Not already a folder name under `apps/web/src/extensions/` or
-     `apps/web/src/extensions.local/`
-2. **Distribution scope:**
-   - **Official** (committed to upstream, maintainer-shipped) →
-     `extensions/<id>/`
-   - **Local** (user-installed, gitignored) → `extensions.local/<id>/`
-3. **Display title** (e.g., "Events")
-4. **One-line description** (for the `/plugins` toggle page)
-5. **Lucide icon name** (suggest one based on the domain)
-6. **Tables** the extension owns (names + main fields)
-7. **Whether it has a public Website surface**, and if so, what URL prefix
-8. **Whether it depends on another extension**
-9. **Capabilities the extension defines** (e.g., `event.create`,
-   `event.publish`)
-10. **Default-enabled state** (`true` / `false`)
+## 2. Inspect and generate
 
-Ask if anything is unclear. Don't fabricate.
+Install the existing Admin and Website dependencies first. From
+`ConvexPress-Admin`:
 
----
-
-## Phase 1 — Read the kit
-
-1. `extension-kit/README.md`
-2. `extension-kit/ARCHITECTURE.md` (especially the 5 v2 layers)
-3. `extension-kit/CONTRACTS.md`
-4. `extension-kit/DATA-API.md`
-5. Reference files:
-   - `references/schema.example.ts`
-   - `references/queries.example.ts`
-   - `references/mutations.example.ts`
-   - `references/manifest.example.ts`
-   - `references/nav.example.ts`
-   - `references/admin-list-route.example.tsx`
-
-Skip the reading you've genuinely done this session.
-
----
-
-## Phase 2 — Pick the root + create the folders
-
-Based on Phase 0's distribution scope, pick ONE of:
-
-- **Official:** `<root>` = `extensions`
-- **Local:** `<root>` = `extensions.local`
-
-Then create the two extension folders:
-
-- `packages/backend/convex/<root>/<id>/`
-- `apps/web/src/<root>/<id>/`
-
-Both are new — `mkdir -p` if your tooling doesn't auto-create.
-
----
-
-## Phase 3 — Backend (Layers 1-3)
-
-Create the four backend files:
-
-1. `packages/backend/convex/<root>/<id>/schema.ts` — exports `tables`
-2. `packages/backend/convex/<root>/<id>/queries.ts` — public + admin queries
-3. `packages/backend/convex/<root>/<id>/mutations.ts` — `requireCan` at top of every handler; `emitEvent` for state changes
-4. `packages/backend/convex/<root>/<id>/internals.ts` — optional
-
-Match the patterns in `references/schema.example.ts`,
-`queries.example.ts`, `mutations.example.ts`.
-
-If event constants need to be added for this extension's events (e.g.,
-`EVENT_EVENTS.CREATED`), add them to
-`packages/backend/convex/events/constants.ts` following the existing
-naming pattern.
-
----
-
-## Phase 4 — Frontend manifest + nav (Layer 4)
-
-Create:
-
-1. `apps/web/src/<root>/<id>/manifest.ts` — default-exports
-   `AdminPluginDefinition`
-2. `apps/web/src/<root>/<id>/nav.ts` — default-exports
-   `AdminNavSection` (skip this file if the extension has no sidebar
-   presence — set the manifest's `navSectionIds: []` instead)
-
-Match the patterns in `references/manifest.example.ts` and
-`references/nav.example.ts`.
-
----
-
-## Phase 5 — Admin routes (Layer 5)
-
-Create the admin routes at their CANONICAL TanStack Router path:
-
-- `apps/web/src/routes/_authenticated/_admin/<route-prefix>/index.tsx` — list
-- `apps/web/src/routes/_authenticated/_admin/<route-prefix>/new.tsx` — create
-- `apps/web/src/routes/_authenticated/_admin/<route-prefix>/$<id>/edit.tsx` — edit
-- `apps/web/src/routes/_authenticated/_admin/<route-prefix>/settings.tsx` — optional settings
-
-Each wraps with `<PluginGuard pluginId="<id>">` as shown in
-`references/admin-list-route.example.tsx`.
-
-Routes live under their canonical path because TanStack Router's vite
-plugin auto-discovers `src/routes/**`. Putting routes in
-`extensions[.local]/<id>/` would NOT work — the router doesn't scan
-there.
-
----
-
-## Phase 6 — Capabilities (Layer 6 — surface only)
-
-List every new capability the extension uses (via `requireCan` in your
-mutations and `useCan` / `<RoutePermissionGuard>` in your routes).
-
-Recommend role grants per capability. Default to administrator-only;
-surface in the report which roles the maintainer might want to grant
-broader access to.
-
-You do NOT add capabilities to the central role registry. Surface them
-in the report so `/experts:role-capability-system` can register them.
-
----
-
-## Phase 7 — Codegen + verify
-
-```bash
-cd ConvexPress-Admin/packages/backend
-bun run codegen:extensions
-# Verify: convex/schema/_extensionsIndex.generated.ts now references
-# your new extension's schema
-
-cd ..
-bun --filter web check-types
-# Must exit 0
+```sh
+bun run create:extension community-events --title "Community Events" --dry-run
+bun run create:extension community-events --title "Community Events"
 ```
 
-The codegen script imports + spreads your `schema.ts`'s `tables`
-export into the generated index. If typecheck fails on a missing field
-or type, fix it in your extension's files — never in the hubs.
+Review the dry-run file list before writing. Existing extension paths or catalog
+IDs are refused. The write copies the complete Events reference, adds public and
+Dashboard surfaces to the catalogs, then regenerates indexes, template mirrors,
+installed route trees and source-derived API declarations. It never deploys.
+If generation fails, inspect the partial output and repair that step; rerunning
+the scaffold over existing files is not a recovery mechanism.
 
-The `_generated/api` types for `api.extensions.<id>.queries.*` will be
-stale until the next Convex deploy. That's expected; surface it in the
-report. The Convex Deployment Expert handles the deploy.
+Read `extension-kit/generated/community-events.md` for the generated identities.
+The extension starts disabled. The source reference is an event-publishing
+feature, not a finished implementation of every possible requested domain.
 
----
+## 3. Adapt the owned implementation
 
-## Phase 8 — Report
+| Concern | Source to adapt |
+| --- | --- |
+| Records, validators, lifecycle, authorization and tests | `packages/backend/convex/extensions/community_events/` |
+| Native Admin manifest, navigation and editor | `apps/web/src/extensions/community-events/` and its canonical Admin routes |
+| Public DTOs, parts and manifest | `ConvexPress-Website/apps/web/src/extensions/community-events/` |
+| Public and customer routes | Website marketing routes, Dashboard page and route contributions |
+| Presentation | Generated Core surfaces and intentional pack-owned overrides |
 
-Cover:
+Website paths above are relative to the repository root; backend and Admin paths
+are relative to `ConvexPress-Admin`. Keep private fields out of public DTOs.
+Preserve plugin gates in handlers as well as routes, registered operator
+capabilities, customer authority, optimistic editing and soft archive behavior.
+The reference uses existing `manage_options` for operator edits. If the domain
+needs a new capability, register and verify it through the existing permission
+system before claiming usable access.
 
-- **Distribution scope** (official vs local) and which root the files
-  landed in
-- **Files created** (full paths, both backend and frontend)
-- **New capabilities** the Role expert needs to register, with
-  recommended role grants
-- **Public surface handoff** — if `routePrefixes` is non-empty, hand
-  off to `/design:custom-post-type` in
-  `ConvexPress-Website/.claude/skills/`
-- **Codegen + typecheck status**
-- **Deploy instructions** — explicit ask for
-  `/experts:convex-deployment` to run `bun run deploy` in
-  `packages/backend/` (which runs codegen + `convex deploy`)
-- **Deviations from kit standard**, with justification
+Public actions such as RSVP use their own customer/anonymous authority and abuse
+controls; they do not become operator mutations. Preserve extension-owned RSVP
+tables and providers. Search declarations must match only their own tables and
+recheck enablement and public visibility when returning records.
 
----
+Use scanner-owned declarations instead of hand-editing the central plugin union,
+navigation list or generated indexes. Catalog additions and canonical route files
+are real source inputs. Keep the generated Website and Dashboard integration.
 
-## When to invoke `extension:add-feature` instead
+## 4. Verify source and regenerate affected consumers
 
-Don't use `extension:build` to add functionality to an existing
-extension. Use `extension:add-feature` — it knows the extension's
-folder structure and only adds the new mutation / query / route /
-capability you specified.
+From `ConvexPress-Admin`:
 
----
+```sh
+bun test ./packages/backend/convex/extensions/community_events/__tests__
+bunx tsc --noEmit -p packages/backend/convex/tsconfig.json
+```
 
-## When to invoke `extension:audit` instead
+From `ConvexPress-Admin/apps/web`, run `bun run check-types` and `bun run build`.
+From `ConvexPress-Website/apps/web`, run `bun run check-types`, `bun run build`,
+`bun run lint` and `bun run check:templates`. Include focused tests for the new
+domain behavior; copied event tests alone do not prove the adaptation.
 
-If something feels off about an existing extension (codegen failing,
-nav not appearing, mutations not gated), use `extension:audit`. It
-walks the v2 5-layer contract and reports gaps without modifying
-anything.
+After declaration changes, regenerate affected indexes with the existing Admin
+`packages/backend/scripts/generate-extension-index.mjs` and Website
+`scripts/sync-extension-manifests.mjs`. After catalog or pack changes, run Website
+`bun run sync:templates`. Refresh source-derived API declarations from repository
+root with `node scripts/admin/generate-site-contracts.mjs`; verify with the same
+command plus `--check`. Regenerate canonical routes through each application's
+existing router tooling/build. A stale API type is a failed source check, not an
+expected condition to ignore until deployment.
 
----
+## 5. Install and exercise the actual application
 
-## Hand-edited platform extensions (v1)
+Use the site's normal source deployment workflow with matching backend, Admin
+and Website artifacts. Preserve its installed extensions and data; scaffolding
+does not install a feature into a running site. Use the existing authorized
+deployment scope and disposable content for acceptance.
 
-The extensions that ship with the platform today (commerce, kb,
-recipes, gallery, etc.) are v1 — hand-edited into the hub files. They
-coexist with v2 via the merged registries. **Don't migrate them as
-part of an `extension:build` run.** That's a separate migration
-concern not covered by this skill.
+1. In native Admin, select the intended website and environment, open
+   **Extensions**, and enable the generated feature.
+2. Create and edit a draft in its native editor. Confirm it is absent from the
+   public listing and detail route before publication.
+3. Publish, inspect the real Website listing/detail, and check its customer
+   Dashboard contribution with a normal customer session.
+4. Exercise a stale edit, cancellation and archive using owned records. Verify
+   public state follows the domain's rules without exposing private fields.
+5. Disable the extension. Verify native navigation, direct Admin/public/customer
+   routes and backend calls enforce the disabled state. Re-enable it and verify
+   the same records remain intact.
+
+Record actual results separately from source checks. Provider-dependent actions
+need their own live proof; enabling a plugin does not prove an external service.
+
+## 6. Finish and report
+
+Report source paths/identities, generated changes, domain behavior, permission
+and migration changes, exact checks, installed artifacts and live results. For a
+disposable SDK trial, preserve a recoverable source/evidence archive and remove
+only its owned scaffold, sessions, records and runtimes. For a requested
+deliverable, retain the implementation and user content.
+
+Use `extension-add-feature` for changes to an existing installation and
+`extension-audit` for a read-only assessment. An audit checks for stale generated
+output without running write-mode codegen in the user's checkout.

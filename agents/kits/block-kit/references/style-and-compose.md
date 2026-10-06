@@ -49,8 +49,14 @@ Source checks and the four-pack desktop/mobile composed-page proof are in
 acceptance on a disposable site in `output/customizer-layout-20260920`. Choosing
 Template default removes the field override; older saved null sentinels also
 inherit defaults. Explicit false, zero, empty strings and empty arrays remain
-authored values. Default labels follow the selected pack. Other packs, on-site
-authoring, staging promotion and full block visual/motion acceptance remain open.
+authored values. Default labels follow the selected pack. Current four-pack
+layout, palette and Shop coverage is recorded in the repository reports
+`ConvexPress-Admin/audits/2026-09-04/customizer-global-layout-20261006.md` and
+`customizer-palette-shop-20261006.md`. The delivery plan maps accepted native
+header/footer/menu and appearance-promotion evidence. Local on-site editing has
+separate operator-identity acceptance; public HTTPS/local-network launch and the
+final integrated block visual/motion gate remain open. Consult the current
+delivery status instead of treating the older Core-only checkpoint as current.
 
 ## Runtime creation and styling
 

@@ -24,8 +24,9 @@ for data, media, child-slot or deployment acceptance of another promoted block.
    ```sh
    bun run promote:block --file reviewed-promotion.json
    bun run promote:block --file reviewed-promotion.json --write
-   bun run sync:blocks
+   bun run sync:blocks:all
    bun run check:blocks
+   bun run sync:blocks:all --check
    ```
 
    The first command only shows the file plan. The write creates
