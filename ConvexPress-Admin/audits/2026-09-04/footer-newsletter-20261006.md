@@ -27,3 +27,19 @@ Original appearance values restored exactly with a concurrent-revision guard. Te
 ## Next
 
 Reconcile Task5 aggregate checks against E63–E97 and existing lifecycle reports. Reuse accepted footer/header matrices. Close only covered checklist clauses; carry the explicit hosted HTTPS editing and final integrated promotion requirements forward.
+
+
+## Native cross-environment promotion completed
+
+The earlier integrated-promotion limit above is now closed for E97. Matched source4860, target4870 and controller4720 snapshots were copied from their hash-verified installed checkpoints, overlaid only with this repair, backed up including storage, deployed with strict TypeScript checking and sealed again. All2394source,2359target and210controller functions remain; each site adds exactly3footer functions. Existing site exportManifest return validators change; controller signatures do not. Derived consumer/media indexes return ready without authored content changes.
+
+Actual isolated Electron on current Admin4105 exercised the Customizer's appearance-only promotion:
+
+1. Source footer refers to a newly created source-owned list with one synthetic subscriber. Native review refuses a missing destination list with actionable instructions. Target appearance remains exactly unchanged.
+2. A destination-owned list with the same name and different consent wording resolves normally. Changing destination consent after this ready review causes native final apply to reject: Production content or dependencies changed after review. Target appearance again remains exactly unchanged.
+3. A fresh native review and explicit confirmation succeeds. Durable controller receipt p9777fpq1ngqfbdmvebabtkde98fry9p reports applied with exactly1dispatch and1target item.
+4. Readback proves source snapshot unchanged, target appearance equal after exactly the destination list-ID remap, destination consent preserved and the foreign source list unavailable on target. Source still has1subscriber; destination has0. All71pre-existing pages and both general/reading/menu assignments remain exact. The actual production Website preview4331 shows destination consent in its required checkbox. Screenshot inspected; this empty target homepage is not a complete authored-site acceptance.
+
+Restoration returned both original appearance values using current revision guards. The first target restoration omitted its required confirmLive flag and was refused without a target write; the corrected resumable harness verified the already-restored source, explicitly confirmed target restoration and completed. Both test lists are archived, source test subscriber suppressed, consent/review history retained. Original native Live selection restored, control-plane sign-out observed, both API refresh sessions return401, owned70434/70919stopped and private profile removed,tab36closed,7protected processes preserved. Native source preview was unavailable at4322 in this promotion-only run; no native iframe-render acceptance is inferred. No push.
+
+Evidence: output/footer-newsletter-promotion-20261006/ — installed-source-proof.json, native-missing-list.txt, native-drift-refusal.txt, native-applied.txt, native-applied-receipt.json, applied-proof.json, destination-newsletter.png, restoration.json, cleanup.json and sealed per-environment source/deployment receipts.

@@ -7,7 +7,7 @@
     "In progress": 20
   },
   "goal": "Complete block editor and template delivery plus all demonstrated blockers; defer unrelated whole-app audit campaigns.",
-  "currentTask": "Task5: E97 footer mailing-list selection, published consent/source, public signup/opt-out and safe promotion dependency mapping repaired. Native selection/publication and actual Website signup/suppression accepted;137backend tests pass. Next reconcile Task5 aggregate coverage and finish hosted HTTPS/operator and integrated promotion gaps. Goal active117/20; reuse E63\u2013E97 evidence.",
+  "currentTask": "Task5: E97 committed51464992; actual native broker promotion now accepted: missing-list refusal, destination-consent drift rejection, fresh1dispatch apply, destination ID/consent retained and source1/target0subscribers preserved. Both databases restored, sessions/runtimes cleaned. Next finish Task5 aggregate coverage reconciliation and E05 hosted HTTPS editing. Goal active117/20; reuse accepted matrices.",
   "tasks": [
     {
       "id": 1,
@@ -181,7 +181,7 @@
       "classification": "missing evidence",
       "initialFinding": "Customizer contextual fields, all packs/surfaces, header/footer/menu integration and operator authority are not fully accepted.",
       "closureBoundary": "Verify the field group controls the actual surface, click-to-edit focus, draft/publish/reset/history/conflicts, pack switches, session continuity, customer denial and revocation.",
-      "nextCheck": "Reconcile Task5 aggregate clauses against E63\u2013E97 and existing native lifecycle reports; finish E05 hosted HTTPS editing and the final integrated promotion path. Do not repeat accepted header/footer matrices.",
+      "nextCheck": "Reconcile aggregate Task5 clauses against E63\u2013E97 and existing lifecycle reports. E97 native mailing-list promotion is now accepted; E05 hosted HTTPS/local-network editing remains explicit. Reuse all accepted header/footer/menu/promotion evidence.",
       "deliveryTask": 5,
       "triagedAt": "2026-09-29",
       "triageEvidence": "ConvexPress-Admin/audits/2026-09-04/delivery-blocker-triage-20260929.md",
@@ -1211,7 +1211,7 @@
     },
     {
       "id": "E97",
-      "status": "Repaired and verified at scoped boundary: native list selection/publication, actual Website consented signup/opt-out/suppression and registered two-database promotion remapping pass. Full native controller-broker integration remains E09/Task8.",
+      "status": "Repaired and verified: native list selection/publication, actual Website consented signup/opt-out/suppression, and actual native controller-broker promotion between independent databases. Missing destination refused; consent drift rejects apply; fresh1dispatch apply remaps list ID, preserves destination wording and does not copy the source subscriber. Exact appearance/unrelated settings/content restoration and cleanup pass.",
       "classification": "repaired and verified",
       "requiredWorkflow": "A configured footer audience receives consented public subscriptions in the correct isolated installation.",
       "initialFinding": "All footer consumers omit audienceId; generic subscribeNewsletter writes newsletterSubscribers, while mailingListSubscribers requires post/block source fields.",
