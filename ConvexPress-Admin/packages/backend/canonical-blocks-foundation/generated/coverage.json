@@ -10787,7 +10787,7 @@
         "design": "# Depot — design brief\n\n**Character.** A dense, fast marketplace: the whole width, tight rhythm, information first. Built for\nlarge catalogs, parts and comparison shopping (Ridgeline Cycles is the reference site). Everything is\nscannable: prices tabular, stock and sale as badges, filters always one click away.\n\n**Never.** Colour literals (tokens only), `@radix-ui`, direct backend imports, decorative whitespace,\ndisplay type below h2, rounded-full controls (Depot is `rounded-md`).\n\n## Rhythm and measure\n\n- Page container `Container` = `w-full px-4 md:px-6 xl:px-8` with `max-w-none` (edge to edge; a\n  `max-w-[1760px]` cap keeps ultra-wide screens sane). Reading measure `Prose` = `max-w-3xl`.\n- Sections: `py-6 md:py-8`, `gap-4`/`gap-6`. Grids are dense: products `grid-cols-2 md:grid-cols-3\n  xl:grid-cols-4 2xl:grid-cols-5 gap-3`.\n- Boxes, not rules: `Card` = `rounded-md border border-border bg-card`; panels stack with `gap-3`.\n- Radius `rounded-md` everywhere; controls `h-10`.\n\n## Type\n\n- h1 `font-display text-2xl md:text-3xl font-semibold tracking-tight`; h2 `text-lg font-semibold`;\n  everything else sans in `text-sm`/`text-[13px]`. Labels `text-[11px] font-semibold uppercase tracking-wide\n  text-muted-foreground`.\n- Prices `text-lg font-semibold tabular-nums`; big price in buy boxes `text-3xl`.\n- Badges (`Badge`): `sale` (primary tint), `stock` (muted), `new` (foreground on muted).\n\n## Parts (`parts/index.tsx`)\n\n`Container`, `Prose`, `Label`, `SectionHeading` (title left, optional \"See all\" link right, one row),\n`Card`, `Button` (`primary` = `rounded-md bg-primary text-primary-foreground h-10 px-4 font-semibold`,\n`secondary` = `border border-border bg-background`, `quiet` = text), `Badge`, `Price`, `Pagination`\n(numbered, compact), `EmptyState`, `Skeleton`, `PostCard` (16:9 thumbnail left, title + date right, list\nrow), `ProductCard` (square image, category label, two-line name, one-line excerpt, price + full-width\n\"Add to cart\" button, sale badge on the image), `Breadcrumbs` (small chevrons), `DataTable` (dense\n`table` styles for orders, specs, comparison), `Toolbar` (row of chips + select on the right),\n`StickyPanel` (sticky top-24 card for buy boxes and summaries).\n\n## Chrome\n\n- `chrome.header`: two rows. Row one `h-14`: wordmark left (sans, bold), a **prominent search bar**\n  across the middle (`h-10`, button on the right, placeholder from the site), right cluster: account,\n  wishlist, cart with count and subtotal. Row two `h-10`: department navigation as the primary menu\n  (`text-[13px] font-medium`), with an \"All\" mega dropdown when the menu has children. Sticky both rows.\n  Mobile: search bar stays; menu behind hamburger in `chrome.mobileNav` as a drawer with grouped links.\n- `chrome.footer`: a \"back to top\" bar, then four link columns on a muted band, then a compact bottom\n  row with copyright and legal links.\n- `system.*`: card centred on a muted band, plain heading, actions as buttons.\n\n## Surfaces, the important ones\n\n- `home`: blocks through `BlockList` inside `Container` with Depot rhythm; when the front page is the\n  latest-posts feed, render a \"news\" list of `PostCard` rows in a two-column grid.\n- `page`: `default`/`no-sidebar` = `Prose`; `full-width`/`landing`/`blank` = `Container`; `sidebar-*` = 9/3.\n- `blog.index`: two-column list of `PostCard` rows with a compact pagination.\n- `blog.post`: `Prose` with a small title, meta row of labels, inline 16:9 hero, related posts as a\n  four-up card row, comments in a `Card`.\n- `shop.catalog`: marketplace variant only (assistant column + dense grid + persistent cart are provided by\n  `ShopShell`; the surface renders a `Toolbar` of department chips, price caps and sort, then the grid and\n  numbered pagination). Boutique variant is not offered.\n- `shop.product`: default variant `marketplace` (square gallery with side thumbnails 5/12, details with a\n  `DataTable` of specs 4/12, `StickyPanel` buy box 3/12 with big price, stock badge, quantity, add to cart,\n  shipping line). Also offers `classic` and `showcase`.\n- `cart` / `checkout.*`: `DataTable` of lines with quantity steppers, `StickyPanel` summary; checkout as a\n  left form column and right sticky summary, steps as a numbered strip across the top.\n- `dashboard.shell`: top tab strip of sections (no left rail), content as `Card`s and `DataTable`s.\n- `auth.*`: `Card` centred on a muted band, compact fields, primary button full width.\n\nEverything else (help, support, gallery, recipes, courses, forms, bundles, wishlist, pricing) follows the\nsame vocabulary: `SectionHeading` rows, `Card` grids, `DataTable`s, dense rhythm, sans type.\n",
         "id": "depot",
         "name": "Depot",
-        "revision": "77ae025b945553d7730982387c4b54caff85aa2cca3a47a05020bae4302e22df",
+        "revision": "82abc91eef5a8941f4a3ef6713951bedebc2e7492005d3a25658d413a64ae6d7",
         "version": "1.0.0"
       },
       "hidden": [],
@@ -11612,10 +11612,20 @@
           "default",
           "outline"
         ],
+        "core/feature-grid": [
+          "default",
+          "cards",
+          "minimal"
+        ],
         "core/hero": [
           "default",
           "editorial",
           "poster"
+        ],
+        "core/testimonials": [
+          "default",
+          "editorial",
+          "wall"
         ]
       },
       "treatments": {
@@ -11639,7 +11649,7 @@
         "design": "# Journal — design brief\n\n**Character.** An editorial storefront: a magazine that happens to sell things. Calm, centred,\ntypographic. Whitespace does the work; rules and measure replace boxes and shadows. Built for\nsmall catalogs and content-led brands (Northstar Coffee is the reference site).\n\n**Never.** Colour literals (tokens only), `@radix-ui`, direct backend imports, cards for everything,\ndrop shadows heavier than `shadow-sm`, more than one accent element per viewport.\n\n## Rhythm and measure\n\n- Page container `Container` = `mx-auto w-full max-w-6xl px-5 sm:px-8`. Reading measure\n  `Prose` = `max-w-[68ch]`. Sections breathe: `py-14 md:py-20` between major sections, `gap-10`\n  inside.\n- Grid: content 12 columns; two-column layouts are `lg:grid-cols-[minmax(0,7fr)_minmax(0,5fr)]`.\n- Rules, not boxes: `<Rule />` (`border-t border-border`) separates sections; lists are\n  `divide-y divide-border` rows, not tiles.\n- Radius: images `rounded-2xl`, controls `rounded-full` (pills), panels `rounded-xl`.\n\n## Type\n\n- Headlines use `font-display` (the site's display face from Brand) with tight tracking:\n  h1 `text-4xl md:text-6xl leading-[1.02] tracking-tight`, h2 `text-3xl md:text-4xl`, h3 `text-xl`.\n- Eyebrows `<Eyebrow>`: `text-[11px] font-semibold uppercase tracking-[0.22em] text-primary`.\n- Body `text-base md:text-[17px] leading-8 text-muted-foreground`; captions `text-sm`.\n- Numbers `tabular-nums`. Prices set in `font-display text-2xl`.\n\n## Parts (`parts/index.tsx`)\n\n`Container`, `Prose`, `Eyebrow`, `SectionHeading` (eyebrow + title + optional lede, left aligned,\noptional `align=\"center\"`), `Rule`, `Button` (`primary` = `rounded-full bg-primary text-primary-foreground h-11 px-6`,\n`ghost` = `rounded-full border border-border`, `link` = underline offset), `Badge` (pill, muted),\n`Price` (display face, optional compare-at struck through), `Pagination` (Previous / page / Next as text links\nwith a rule above), `EmptyState` (eyebrow + line + one action), `Skeleton` blocks, `PostCard`\n(3:2 image, eyebrow date, display title, excerpt, rule below), `ProductCard` (4:5 image, name in display face,\none-line excerpt, price + quiet \"Add\" pill that fills on hover), `Breadcrumbs` (small caps with slashes).\n\n## Chrome\n\n- `chrome.header`: single row, `h-16`, sticky, `bg-background/90 backdrop-blur`, hairline bottom border.\n  Wordmark left in `font-display text-xl`; primary menu centred as text links with `tracking-wide`;\n  right cluster: search (icon), account, cart with count. Below the header on the home page only, an\n  optional tagline line from site identity. Mobile: hamburger opens `chrome.mobileNav` as a full-height\n  sheet with the menu in large display type.\n- `chrome.footer`: a masthead — big wordmark across the top (`font-display text-5xl`), then footer rows\n  as four narrow columns of small links, then a rule and the copyright line. Newsletter row uses a single\n  underline-style input.\n- `system.*`: centred, display headline, one sentence, one link.\n\n## Surfaces, the important ones\n\n- `home`: renders the page's blocks through `BlockList` inside `Container` with Journal rhythm; when\n  the front page is the latest-posts feed, the first post is a full-width feature (image left 7/12,\n  text right) followed by a rule and a two-column list.\n- `page`: variants map to measure: `default`/`no-sidebar` = `Prose` centred; `full-width` = `Container`;\n  `landing` = no padding top, blocks own the layout; `blank` = nothing but blocks; `sidebar-*` = 7/5 grid\n  with the children list in the narrow column.\n- `blog.index`: feature + list as above; author, date, reading time in small caps.\n- `blog.post`: centred `Prose`; title in display type at `text-5xl`; hero image 3:2 `rounded-2xl`;\n  author box as a rule-separated row; related posts as a three-up `PostCard` row; comments below a rule.\n- `shop.catalog`: boutique variant only (three-up, `gap-x-8 gap-y-12`); filters are a single row of\n  text links under the heading (categories) plus a sort select on the right; price caps as pills.\n  Marketplace variant is not offered by this pack.\n- `shop.product`: default variant `split` (sticky 4:5 image, right column with display-type title,\n  price, options as pills, add to cart pill, then description in `Prose` and specs as a rule-separated\n  dl). Also offers `classic` and `minimal`.\n- `cart` / `checkout.*`: receipt style — two columns, lines as rule-separated rows, summary in the right\n  column with the total in display type; checkout steps shown as a small-caps progress line.\n- `dashboard.shell`: quiet left rail of text links (no icons), content in `Prose`-width sections with rules.\n- `auth.*`: centred column, wordmark on top, one field per row, pill button.\n\nEverything else (help, support, gallery, recipes, courses, forms, bundles, wishlist, pricing) follows the\nsame vocabulary: `SectionHeading`, rule-separated lists, display-type titles, generous rhythm.\n",
         "id": "journal",
         "name": "Journal",
-        "revision": "9292b2cd95aa9c596bb2047843ec98275a4587d7684737e73db394ac5499fbc3",
+        "revision": "384f8a8f1074793a3ddf5d371d5d0e5463bf14c19dd6a5f3b774a61f13b9011e",
         "version": "1.0.0"
       },
       "hidden": [],
@@ -12464,10 +12474,20 @@
           "default",
           "inset"
         ],
+        "core/feature-grid": [
+          "default",
+          "cards",
+          "minimal"
+        ],
         "core/hero": [
           "default",
           "editorial",
           "poster"
+        ],
+        "core/testimonials": [
+          "default",
+          "editorial",
+          "wall"
         ]
       },
       "treatments": {

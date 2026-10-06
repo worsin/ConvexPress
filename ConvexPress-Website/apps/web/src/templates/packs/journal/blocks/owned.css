@@ -47,3 +47,19 @@
 
 .journal-hero-treatment { --hero-title-max: 7rem; --hero-poster-max: 10rem; --hero-image-radius: 0; --hero-treatment-gap: var(--stack-gap-lg, 2.5rem); }
 .journal-hero-treatment .cp-hero-composition-heading .cp-heading { font-style: italic; }
+
+/* Optional named treatments retain the rule-led default and all authored content. */
+.cp-owned-journal .journal-features[data-block-style="cards"] .journal-feature,
+.cp-owned-journal .journal-testimonials[data-block-style="wall"] .journal-testimonial {
+  border: 1px solid var(--border);
+  padding: var(--card-pad, 1.5rem);
+  background: var(--card, var(--background));
+  color: var(--card-foreground, var(--foreground));
+  --cp-inline-accent: var(--primary);
+  --cp-inline-muted: var(--muted-foreground);
+}
+.cp-owned-journal .journal-features[data-block-style="minimal"] .journal-feature { border: 0; padding: 0; }
+.cp-owned-journal .journal-features[data-block-style="minimal"] .journal-ordinal { display: none; }
+.cp-owned-journal .journal-testimonials[data-block-style="editorial"] .journal-testimonial { border-block-start: 1px solid var(--border); padding-block-start: var(--stack-gap-lg, 2rem); max-inline-size: 68ch; }
+.cp-owned-journal .journal-testimonials[data-block-style="editorial"] blockquote { font-size: clamp(1.25rem, 3cqi, 2rem); line-height: 1.5; }
+.cp-owned-journal .journal-testimonials[data-block-style="wall"] blockquote { font-size: clamp(1.125rem, 2cqi, 1.5rem); line-height: 1.5; }

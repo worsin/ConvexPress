@@ -5524,10 +5524,20 @@ export const packBlockPresentation = {
         "default",
         "outline"
       ],
+      "core/feature-grid": [
+        "default",
+        "cards",
+        "minimal"
+      ],
       "core/hero": [
         "default",
         "editorial",
         "poster"
+      ],
+      "core/testimonials": [
+        "default",
+        "editorial",
+        "wall"
       ]
     }
   },
@@ -5538,10 +5548,20 @@ export const packBlockPresentation = {
         "default",
         "inset"
       ],
+      "core/feature-grid": [
+        "default",
+        "cards",
+        "minimal"
+      ],
       "core/hero": [
         "default",
         "editorial",
         "poster"
+      ],
+      "core/testimonials": [
+        "default",
+        "editorial",
+        "wall"
       ]
     }
   }
