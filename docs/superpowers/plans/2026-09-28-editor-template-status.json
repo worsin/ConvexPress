@@ -7,7 +7,7 @@
     "In progress": 20
   },
   "goal": "Complete block editor and template delivery plus all demonstrated blockers; defer unrelated whole-app audit campaigns.",
-  "currentTask": "Task5: E82 appearance-only promotion now verified through native media transfer, conflict refusal/fresh review, target-owned Website image and preservation. Continue remaining Customizer/header/footer/menu and four-pack acceptance; hosted E05 and final integration remain open. Goal active117/20.",
+  "currentTask": "Task5: E83 header branding consumer repair passes66component/156browser cases across4packs; native Customizer preview/history/save/reopen acceptance next. E82 promotion remains verified; full field matrix, hosted E05 and final integration remain open. Goal active117/20.",
   "tasks": [
     {
       "id": 1,
@@ -177,11 +177,11 @@
     },
     {
       "id": "E09",
-      "status": "Open with reusable partial evidence: Core native chrome/menu publication; Journal/Depot customization, conflicts and promotion; four-pack primary/history/context; actual natural renewal; signed-in Clerk customer UI/API denial; real parent-operator revocation and same-tab recovery accepted. Full per-field/Aster native,22dashboard surfaces, hosted HTTPS permission and migration/runtime retirement remain. E68/E69 refreshed actual Website acceptance completed October5; repeated focus and correct denial notice/same-document recovery pass. October5 Aster native activation, palette/type/layout/CTA/footer draft-save-reload-publication and public desktop/phone accepted within recorded field scope; see customizer-aster-20261005.md. Full matrix remains open. E79 density now changes actual four-pack catalog grids; native unsaved/undo and16 populated390/1280 states pass with exact appearance preservation. E80 Type scale repaired and verified in 9aef73d7; see customizer-type-scale-20261006.md. See customizer-density-20261006.md. October6 original22 dashboard rendered surface coverage now recorded across4packs at390/1280 (160 pages plus8 return forms); author capability, Core return labels and Journal/Aster/Depot mobile overflow repaired. Return submit and subscription pause/resume exercised; live author revoke/restore accepted. Full interaction/Customizer acceptance remains open. Follow-up: unpublished dashboard post titles no longer advertise public404 routes across4packs; return enrichment defaults unrecorded approval/receipt by stage, actual retained4922 query1/1/1\u21921/0/0 verified. See dashboard-surfaces-20261006.md follow-up. October6 obsolete standalone chrome saves retired; Header presets and effective footer recovery verified natively. Converted row copyright now resolves site placeholders across4packs. Full per-field/menu/promotion acceptance remains open.",
+      "status": "Open with reusable partial evidence: Core native chrome/menu publication; Journal/Depot customization, conflicts and promotion; four-pack primary/history/context; actual natural renewal; signed-in Clerk customer UI/API denial; real parent-operator revocation and same-tab recovery accepted. Full per-field/Aster native,22dashboard surfaces, hosted HTTPS permission and migration/runtime retirement remain. E68/E69 refreshed actual Website acceptance completed October5; repeated focus and correct denial notice/same-document recovery pass. October5 Aster native activation, palette/type/layout/CTA/footer draft-save-reload-publication and public desktop/phone accepted within recorded field scope; see customizer-aster-20261005.md. Full matrix remains open. E79 density now changes actual four-pack catalog grids; native unsaved/undo and16 populated390/1280 states pass with exact appearance preservation. E80 Type scale repaired and verified in 9aef73d7; see customizer-type-scale-20261006.md. See customizer-density-20261006.md. October6 original22 dashboard rendered surface coverage now recorded across4packs at390/1280 (160 pages plus8 return forms); author capability, Core return labels and Journal/Aster/Depot mobile overflow repaired. Return submit and subscription pause/resume exercised; live author revoke/restore accepted. Full interaction/Customizer acceptance remains open. Follow-up: unpublished dashboard post titles no longer advertise public404 routes across4packs; return enrichment defaults unrecorded approval/receipt by stage, actual retained4922 query1/1/1\u21921/0/0 verified. See dashboard-surfaces-20261006.md follow-up. October6 obsolete standalone chrome saves retired; Header presets and effective footer recovery verified natively. Converted row copyright now resolves site placeholders across4packs. Full per-field/menu/promotion acceptance remains open. October6 E83 repairs logo enabled/image/title/tagline/size consumers across4packs;66component and156responsive browser cases pass. Native control lifecycle acceptance remains open.",
       "classification": "missing evidence",
       "initialFinding": "Customizer contextual fields, all packs/surfaces, header/footer/menu integration and operator authority are not fully accepted.",
       "closureBoundary": "Verify the field group controls the actual surface, click-to-edit focus, draft/publish/reset/history/conflicts, pack switches, session continuity, customer denial and revocation.",
-      "nextCheck": "Continue remaining per-field/header/footer/menu/promotion acceptance. Investigate draft public links and premature approved/received quantities observed on the populated return fixture before claiming complete dashboard interaction acceptance. Reuse recorded22surface render matrix; no broad rerun without affected changes.",
+      "nextCheck": "Finish E83 branding controls through actual native Customizer preview, history and save/reopen; then remaining header layout/navigation/search and menu field acceptance. Reuse E82 promotion and dashboard follow-up evidence.",
       "deliveryTask": 5,
       "triagedAt": "2026-09-29",
       "triageEvidence": "ConvexPress-Admin/audits/2026-09-04/delivery-blocker-triage-20260929.md",
@@ -190,7 +190,8 @@
         "ConvexPress-Admin/audits/2026-09-04/dashboard-surfaces-20261006.md",
         "ConvexPress-Admin/audits/2026-09-04/customizer-chrome-retirement-20261006.md",
         "ConvexPress-Admin/audits/2026-09-04/footer-menu-descendants-20261006.md",
-        "ConvexPress-Admin/audits/2026-09-04/appearance-promotion-media-20261006.md"
+        "ConvexPress-Admin/audits/2026-09-04/appearance-promotion-media-20261006.md",
+        "ConvexPress-Admin/audits/2026-09-04/header-branding-20261006.md"
       ]
     },
     {
@@ -976,6 +977,17 @@
       "closureBoundary": "Use reviewed verified media transfer/remapping for appearance-only promotion; preserve unrelated live settings/content, retain confirmations/conflict recovery, and verify native staging-to-live image output on separate databases.",
       "currentEvidence": [
         "ConvexPress-Admin/audits/2026-09-04/appearance-promotion-media-20261006.md"
+      ],
+      "deliveryTask": 5
+    },
+    {
+      "id": "E83",
+      "status": "Consumer repair verified; native Customizer lifecycle acceptance pending.",
+      "classification": "partial verification",
+      "initialFinding": "All4header packs ignore Logo Size; Core omits logo config; Journal/Aster tagline and all-pack title fallback ignore visibility controls.",
+      "closureBoundary": "Honor all5logo controls in actual4packheaders and verify native preview/history/save/reopen/public output without altering unrelated appearance.",
+      "currentEvidence": [
+        "ConvexPress-Admin/audits/2026-09-04/header-branding-20261006.md"
       ],
       "deliveryTask": 5
     }

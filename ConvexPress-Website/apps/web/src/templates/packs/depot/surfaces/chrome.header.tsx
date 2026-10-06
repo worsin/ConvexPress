@@ -1,3 +1,4 @@
+import { resolveHeaderBrand } from "@/lib/layout/headerBrand";
 import { MenuItemTarget } from "@/components/menus/MenuItemTarget";
 import { useStickyHeaderOffset } from "@/hooks/layout/useStickyHeaderOffset";
 /**
@@ -111,14 +112,15 @@ export default function DepotHeader({ data }: SurfaceProps<HeaderSurfaceData>) {
 /* ───────────────────────── pieces ───────────────────────── */
 
 function Wordmark({ siteIdentity, logo }: { siteIdentity: SiteIdentity | undefined; logo: HeaderConfig["logo"] }) {
+  if (!logo.enabled) return null;
   if (!siteIdentity) return <div className="h-5 w-24 animate-pulse rounded-md bg-muted" aria-hidden="true" />;
-  const showImage = logo.enabled && logo.showImage && !!siteIdentity.logoUrl;
-  const showTitle = !showImage || (logo.showTitle && siteIdentity.showTitleWithLogo !== false);
+  const { showImage, showTitle, showTagline, imageSize } = resolveHeaderBrand(siteIdentity, logo);
+  if (!showImage && !showTitle && !showTagline) return null;
   return (
     <Link to="/" data-slot="site-brand" data-customize="header.logo.showTitle" className="flex min-w-0 items-center gap-2 text-foreground no-underline md:max-w-[35%]">
-      {showImage && <img src={siteIdentity.logoUrl} alt={siteIdentity.logoAlt || siteIdentity.title} className="h-8 w-auto min-w-0 max-w-32 object-contain" width={32} height={32} />}
+      {showImage && <img src={siteIdentity.logoUrl} alt={siteIdentity.logoAlt || siteIdentity.title} className="w-auto min-w-0 max-w-32 object-contain" style={{ height: imageSize }} width={imageSize} height={imageSize} />}
       {showTitle && <span className="min-w-0 truncate text-base font-bold tracking-tight">{siteIdentity.title}</span>}
-      {logo.showTagline && siteIdentity.tagline ? <span className="hidden min-w-0 truncate text-[13px] text-muted-foreground xl:inline">{siteIdentity.tagline}</span> : null}
+      {showTagline ? <span className={cn("min-w-0 truncate text-[13px] text-muted-foreground", (showImage || showTitle) && "hidden xl:inline")}>{siteIdentity.tagline}</span> : null}
     </Link>
   );
 }

@@ -1,3 +1,4 @@
+import { resolveHeaderBrand } from "@/lib/layout/headerBrand";
 import { MenuItemTarget, dismissMenuOnEscape } from "@/components/menus/MenuItemTarget";
 import { useStickyHeaderOffset } from "@/hooks/layout/useStickyHeaderOffset";
 /**
@@ -43,7 +44,7 @@ export default function AsterChromeHeader({ data }: SurfaceProps<HeaderSurfaceDa
   const headerRef = useStickyHeaderOffset(isSticky);
   const showBorder = headerConfig.layout.bottomBorder !== "none";
   const isHome = pathname === "/";
-  const tagline = siteIdentity?.tagline?.trim();
+  const tagline = resolveHeaderBrand(siteIdentity, headerConfig.logo).showTagline ? siteIdentity?.tagline?.trim() : undefined;
   const visibleItems = menu?.items.filter((item) => !item.isOrphaned) ?? [];
 
   return (
@@ -140,6 +141,7 @@ export default function AsterChromeHeader({ data }: SurfaceProps<HeaderSurfaceDa
 /* ───────────────────────── wordmark ───────────────────────── */
 
 function Wordmark({ siteIdentity, logo }: { siteIdentity: SiteIdentity | undefined; logo: HeaderConfig["logo"] }) {
+  if (!logo.enabled) return null;
   if (!siteIdentity) {
     return (
       <div data-slot="site-brand" data-customize="header.logo.showTitle" className="flex items-center">
@@ -147,11 +149,11 @@ function Wordmark({ siteIdentity, logo }: { siteIdentity: SiteIdentity | undefin
       </div>
     );
   }
-  const showLogo = logo.enabled && logo.showImage && !!siteIdentity.logoUrl;
-  const showTitle = !showLogo || (logo.showTitle && siteIdentity.showTitleWithLogo !== false);
+  const { showImage: showLogo, showTitle, imageSize } = resolveHeaderBrand(siteIdentity, logo, 28);
+  if (!showLogo && !showTitle) return null;
   return (
     <Link to="/" data-slot="site-brand" data-customize="header.logo.showTitle" className="flex min-w-0 items-center gap-3 text-foreground no-underline">
-      {showLogo ? <img src={siteIdentity.logoUrl} alt={siteIdentity.logoAlt || siteIdentity.title} className="h-7 w-auto" width={28} height={28} /> : null}
+      {showLogo ? <img src={siteIdentity.logoUrl} alt={siteIdentity.logoAlt || siteIdentity.title} className="w-auto max-w-full shrink-0 object-contain" style={{ height: imageSize }} width={imageSize} height={imageSize} /> : null}
       {showTitle ? <span className="truncate font-display text-xl tracking-tight">{siteIdentity.title}</span> : null}
     </Link>
   );

@@ -200,7 +200,7 @@ function StandardLayout({ siteIdentity, menu, headerConfig, toggleMobileNav }: L
         >
           <Menu className="size-5" aria-hidden="true" />
         </button>
-        <SiteBrand siteIdentity={siteIdentity} />
+        <SiteBrand siteIdentity={siteIdentity} logo={headerConfig.logo} />
       </div>
 
       {/* Center: Desktop navigation */}
@@ -234,7 +234,7 @@ function CenteredLayout({ siteIdentity, menu, headerConfig, toggleMobileNav }: L
         >
           <Menu className="size-5" aria-hidden="true" />
         </button>
-        <SiteBrand siteIdentity={siteIdentity} />
+        <SiteBrand siteIdentity={siteIdentity} logo={headerConfig.logo} />
         <HeaderActions headerConfig={headerConfig} />
       </div>
       {/* Bottom row: navigation centered */}
@@ -275,7 +275,7 @@ function SplitLayout({ siteIdentity, menu, headerConfig, toggleMobileNav }: Layo
       </div>
 
       {/* Center: Brand */}
-      <SiteBrand siteIdentity={siteIdentity} />
+      <SiteBrand siteIdentity={siteIdentity} logo={headerConfig.logo} />
 
       {/* Right: Actions */}
       <HeaderActions headerConfig={headerConfig} />
