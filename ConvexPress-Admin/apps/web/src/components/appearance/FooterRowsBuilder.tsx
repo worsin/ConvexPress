@@ -5,26 +5,19 @@
  * them, drags cells within a row to reorder columns, picks a width per cell,
  * and edits each cell with its dedicated editor (FooterCellEditors).
  *
- * Reads + writes the `footer` settings section. When the user opts in by
- * clicking "Convert to Builder" on an empty rows config, we seed `rows` from
+ * Edits the Customizer draft only. When the user chooses conversion on an
+ * empty rows config, we seed `rows` from
  * the legacy section toggles so nothing visually disappears on the Website.
  */
 
-import { useState, useCallback, useEffect, useMemo, useRef, type SetStateAction } from "react";
-import { useMutation } from "convex/react";
-import { useQuery } from "convex-helpers/react/cache";
-import { api } from "@backend/convex/_generated/api";
+import { useState, useCallback, useMemo, useRef, type SetStateAction } from "react";
 import {
   ChevronDown,
   ChevronUp,
   GripVertical,
-  Loader2,
   Plus,
-  RotateCcw,
-  Save,
   Trash2,
 } from "lucide-react";
-import { toast } from "sonner";
 import {
   DndContext,
   KeyboardSensor,
@@ -138,39 +131,22 @@ function makeFooterPresetRows(preset: "classic" | "newsletter" | "minimal"): Foo
 
 // ─── Component ───────────────────────────────────────────────────────────────
 
-export function FooterRowsBuilder({ value, onChange }: { value?: Record<string, unknown>; onChange?: (value: Record<string, unknown>) => void } = {}) {
-  const serverStored = useQuery(api.settings.queries.getBySection, onChange ? "skip" : { section: "footer" });
-  const stored = onChange ? value : serverStored;
-  const updateSection = useMutation(api.settings.mutations.updateSection);
-
+export function FooterRowsBuilder({ value, onChange }: { value: Record<string, unknown>; onChange: (value: Record<string, unknown>) => void }) {
   const merged: FooterConfig = useMemo(
-    () => deepMerge(FOOTER_DEFAULTS, (stored as Partial<FooterConfig>) ?? null),
-    [stored],
+    () => deepMerge(FOOTER_DEFAULTS, value as Partial<FooterConfig>),
+    [value],
   );
-
-  const [localRows, setLocalRows] = useState<FooterRow[]>(merged.rows ?? []);
   const controlled = useRef({ merged, onChange });
   controlled.current = { merged, onChange };
-  const rows = onChange ? merged.rows ?? [] : localRows;
+  const rows = merged.rows ?? [];
   const setRows = useCallback((next: SetStateAction<FooterRow[]>) => {
     const current = controlled.current;
-    if (current.onChange) {
-      const nextRows = typeof next === "function" ? next(current.merged.rows ?? []) : next;
-      current.onChange({ ...current.merged, rows: nextRows });
-    } else setLocalRows(next);
+    const nextRows = typeof next === "function" ? next(current.merged.rows ?? []) : next;
+    current.onChange({ ...current.merged, rows: nextRows });
   }, []);
-  const [dirty, setDirty] = useState(false);
-  const [saving, setSaving] = useState(false);
   const [expandedRowIds, setExpandedRowIds] = useState<Set<string>>(new Set());
   const [expandedCellIds, setExpandedCellIds] = useState<Set<string>>(new Set());
   const [cellPickerForRow, setCellPickerForRow] = useState<string | null>(null);
-
-  // Resync from server when the cached settings change.
-  useEffect(() => {
-    setLocalRows(merged.rows ?? []);
-    setDirty(false);
-  }, [merged]);
-
 
   const dndSensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
@@ -184,7 +160,6 @@ export function FooterRowsBuilder({ value, onChange }: { value?: Record<string, 
       setRows((prev) =>
         prev.map((r) => (r.id === rowId ? { ...r, ...patch } : r)),
       );
-      setDirty(true);
     },
     [],
   );
@@ -203,7 +178,6 @@ export function FooterRowsBuilder({ value, onChange }: { value?: Record<string, 
               },
         ),
       );
-      setDirty(true);
     },
     [],
   );
@@ -220,12 +194,10 @@ export function FooterRowsBuilder({ value, onChange }: { value?: Record<string, 
       ...prev,
       makeRow([makeColumn(makeDefaultCell("text"))]),
     ]);
-    setDirty(true);
   }, []);
 
   const removeRow = useCallback((rowId: string) => {
     setRows((prev) => prev.filter((r) => r.id !== rowId));
-    setDirty(true);
   }, []);
 
   const addCellToRow = useCallback((rowId: string, type: FooterCellType) => {
@@ -240,7 +212,6 @@ export function FooterRowsBuilder({ value, onChange }: { value?: Record<string, 
       ),
     );
     setCellPickerForRow(null);
-    setDirty(true);
   }, []);
 
   const removeCell = useCallback((rowId: string, colId: string) => {
@@ -251,7 +222,6 @@ export function FooterRowsBuilder({ value, onChange }: { value?: Record<string, 
           : { ...r, columns: r.columns.filter((c) => c.id !== colId) },
       ),
     );
-    setDirty(true);
   }, []);
 
   const handleRowDragEnd = useCallback((evt: DragEndEvent) => {
@@ -263,7 +233,6 @@ export function FooterRowsBuilder({ value, onChange }: { value?: Record<string, 
       if (from < 0 || to < 0) return prev;
       return arrayMove(prev, from, to);
     });
-    setDirty(true);
   }, []);
 
   const handleColumnDragEnd = useCallback(
@@ -279,7 +248,6 @@ export function FooterRowsBuilder({ value, onChange }: { value?: Record<string, 
           return { ...r, columns: arrayMove(r.columns, from, to) };
         }),
       );
-      setDirty(true);
     },
     [],
   );
@@ -305,7 +273,6 @@ export function FooterRowsBuilder({ value, onChange }: { value?: Record<string, 
   const handleConvertFromLegacy = useCallback(() => {
     const fresh = convertLegacyFooterToRows(merged);
     setRows(fresh);
-    setDirty(true);
     // Auto-expand the new rows so the user immediately sees them.
     setExpandedRowIds(new Set(fresh.map((r) => r.id)));
   }, [merged]);
@@ -313,31 +280,8 @@ export function FooterRowsBuilder({ value, onChange }: { value?: Record<string, 
   const applyPreset = useCallback((preset: "classic" | "newsletter" | "minimal") => {
     const nextRows = makeFooterPresetRows(preset);
     setRows(nextRows);
-    setDirty(true);
     setExpandedRowIds(new Set(nextRows.map((row) => row.id)));
   }, []);
-
-  const handleSave = useCallback(async () => {
-    if (onChange) return;
-    setSaving(true);
-    try {
-      await updateSection({
-        section: "footer",
-        values: { ...merged, rows } as unknown as Record<string, unknown>,
-      });
-      toast.success("Footer saved");
-      setDirty(false);
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Save failed");
-    } finally {
-      setSaving(false);
-    }
-  }, [merged, rows, updateSection, onChange]);
-
-  const handleReset = useCallback(() => {
-    setRows(merged.rows ?? []);
-    setDirty(false);
-  }, [merged]);
 
   // ─── Empty state ──────────────────────────────────────────────────────────
   if (rows.length === 0) {
@@ -371,8 +315,7 @@ export function FooterRowsBuilder({ value, onChange }: { value?: Record<string, 
           </Button>
         </div>
         <p className="mt-4 text-xs text-muted-foreground">
-          Until you save at least one row, the Website renders the legacy
-          section-toggle footer.
+          The Website uses your footer sections until you publish a row layout.
         </p>
       </div>
     );
@@ -398,24 +341,6 @@ export function FooterRowsBuilder({ value, onChange }: { value?: Record<string, 
           <Button type="button" size="sm" variant="ghost" onClick={() => applyPreset("minimal")}>
             Minimal
           </Button>
-          <Button
-            type="button"
-            size="sm"
-            variant="outline"
-            onClick={handleReset}
-            disabled={!dirty}
-          >
-            <RotateCcw className="mr-1 h-3.5 w-3.5" />
-            Reset
-          </Button>
-          {!onChange && <Button type="button" size="sm" onClick={handleSave} disabled={!dirty || saving}>
-            {saving ? (
-              <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" />
-            ) : (
-              <Save className="mr-1 h-3.5 w-3.5" />
-            )}
-            Save footer
-          </Button>}
         </div>
       </div>
 

@@ -1,3 +1,4 @@
+import { FooterCopyright } from "@/components/layout/FooterCopyright";
 import { MenuItemTarget } from "@/components/menus/MenuItemTarget";
 /**
  * Aster · chrome.footer — a masthead: the wordmark set large across the top,
@@ -191,7 +192,7 @@ function Cell({ cell }: { cell: FooterCell }) {
     case "divider":
       return <Rule className={cn(cell.thickness === "medium" && "border-t-2", cell.thickness === "thick" && "border-t-4")} />;
     case "copyright":
-      return <p className="text-sm text-muted-foreground">{cell.insertYear ? cell.text.replace(/\{year\}/g, String(new Date().getFullYear())) : cell.text}</p>;
+      return <FooterCopyright cell={cell} className="text-sm text-muted-foreground" />;
     case "payments":
       return cell.methods.length ? (
         <div className="flex flex-wrap items-center gap-2">

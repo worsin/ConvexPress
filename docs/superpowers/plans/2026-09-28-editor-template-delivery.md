@@ -155,7 +155,7 @@ September29 closure: all20 assigned Task2 block rows are Verified on the linked 
 
 **Consumes:** completed canonical pages and four installed packs. **Produces:** template switching and customization without content loss or authority leakage.
 
-- [ ] Complete palette and commerce-layout migrations with idempotent receipts; retain explicit new settings over legacy defaults.
+- [x] Complete palette and commerce-layout migrations with idempotent receipts; retain explicit new settings over legacy defaults. Accepted six-site receipts, no-write replay and four-pack handler/consumer preservation: `appearance-rollout-20261006.md`.
 - [ ] Connect header/footer/menu builders fully to Customize, then retire duplicate screens and obsolete runtime consumers.
 - [ ] Exercise each pack's fields, presets, brand/group reset, undo/redo, context groups and click-to-edit. A visible control must change its declared rendered surface.
 - [ ] Verify draft versus published values, conflicting changes, pack switches, save/reopen and staging appearance promotion preserving unrelated live data.

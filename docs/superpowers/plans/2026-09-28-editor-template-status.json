@@ -7,7 +7,7 @@
     "In progress": 20
   },
   "goal": "Complete block editor and template delivery plus all demonstrated blockers; defer unrelated whole-app audit campaigns.",
-  "currentTask": "Task5: original22 dashboard rendered coverage and confirmed draft-link/return-quantity defects repaired. Continue remaining pack-field/preset/context, header/footer/menu migration and staging promotion acceptance; reuse prior runtime evidence. Goal active117/20; Tasks3\u20137 partial, Task8 pending.",
+  "currentTask": "Task5: migration gate reconciled complete; duplicate chrome save paths retired, Header presets restored to Customize and converted copyright repaired across4packs with native preview acceptance. Continue remaining pack-field/menu/promotion matrix; Tasks3\u20137 partial, Task8 pending, goal active117/20.",
   "tasks": [
     {
       "id": 1,
@@ -177,7 +177,7 @@
     },
     {
       "id": "E09",
-      "status": "Open with reusable partial evidence: Core native chrome/menu publication; Journal/Depot customization, conflicts and promotion; four-pack primary/history/context; actual natural renewal; signed-in Clerk customer UI/API denial; real parent-operator revocation and same-tab recovery accepted. Full per-field/Aster native,22dashboard surfaces, hosted HTTPS permission and migration/runtime retirement remain. E68/E69 refreshed actual Website acceptance completed October5; repeated focus and correct denial notice/same-document recovery pass. October5 Aster native activation, palette/type/layout/CTA/footer draft-save-reload-publication and public desktop/phone accepted within recorded field scope; see customizer-aster-20261005.md. Full matrix remains open. E79 density now changes actual four-pack catalog grids; native unsaved/undo and16 populated390/1280 states pass with exact appearance preservation. E80 Type scale repaired and verified in 9aef73d7; see customizer-type-scale-20261006.md. See customizer-density-20261006.md. October6 original22 dashboard rendered surface coverage now recorded across4packs at390/1280 (160 pages plus8 return forms); author capability, Core return labels and Journal/Aster/Depot mobile overflow repaired. Return submit and subscription pause/resume exercised; live author revoke/restore accepted. Full interaction/Customizer acceptance remains open. Follow-up: unpublished dashboard post titles no longer advertise public404 routes across4packs; return enrichment defaults unrecorded approval/receipt by stage, actual retained4922 query1/1/1\u21921/0/0 verified. See dashboard-surfaces-20261006.md follow-up.",
+      "status": "Open with reusable partial evidence: Core native chrome/menu publication; Journal/Depot customization, conflicts and promotion; four-pack primary/history/context; actual natural renewal; signed-in Clerk customer UI/API denial; real parent-operator revocation and same-tab recovery accepted. Full per-field/Aster native,22dashboard surfaces, hosted HTTPS permission and migration/runtime retirement remain. E68/E69 refreshed actual Website acceptance completed October5; repeated focus and correct denial notice/same-document recovery pass. October5 Aster native activation, palette/type/layout/CTA/footer draft-save-reload-publication and public desktop/phone accepted within recorded field scope; see customizer-aster-20261005.md. Full matrix remains open. E79 density now changes actual four-pack catalog grids; native unsaved/undo and16 populated390/1280 states pass with exact appearance preservation. E80 Type scale repaired and verified in 9aef73d7; see customizer-type-scale-20261006.md. See customizer-density-20261006.md. October6 original22 dashboard rendered surface coverage now recorded across4packs at390/1280 (160 pages plus8 return forms); author capability, Core return labels and Journal/Aster/Depot mobile overflow repaired. Return submit and subscription pause/resume exercised; live author revoke/restore accepted. Full interaction/Customizer acceptance remains open. Follow-up: unpublished dashboard post titles no longer advertise public404 routes across4packs; return enrichment defaults unrecorded approval/receipt by stage, actual retained4922 query1/1/1\u21921/0/0 verified. See dashboard-surfaces-20261006.md follow-up. October6 obsolete standalone chrome saves retired; Header presets and effective footer recovery verified natively. Converted row copyright now resolves site placeholders across4packs. Full per-field/menu/promotion acceptance remains open.",
       "classification": "missing evidence",
       "initialFinding": "Customizer contextual fields, all packs/surfaces, header/footer/menu integration and operator authority are not fully accepted.",
       "closureBoundary": "Verify the field group controls the actual surface, click-to-edit focus, draft/publish/reset/history/conflicts, pack switches, session continuity, customer denial and revocation.",
@@ -187,7 +187,8 @@
       "triageEvidence": "ConvexPress-Admin/audits/2026-09-04/delivery-blocker-triage-20260929.md",
       "currentEvidence": [
         "ConvexPress-Admin/audits/2026-09-04/template-validation-parity-20261005.md",
-        "ConvexPress-Admin/audits/2026-09-04/dashboard-surfaces-20261006.md"
+        "ConvexPress-Admin/audits/2026-09-04/dashboard-surfaces-20261006.md",
+        "ConvexPress-Admin/audits/2026-09-04/customizer-chrome-retirement-20261006.md"
       ]
     },
     {
@@ -4689,7 +4690,8 @@
     "ConvexPress-Admin/audits/2026-09-04/appearance-rollout-20261006.md",
     "ConvexPress-Admin/audits/2026-09-04/template-sdk-trial-20261006.md",
     "output/template-skill-trial-20261006",
-    "ConvexPress-Admin/audits/2026-09-04/dashboard-surfaces-20261006.md"
+    "ConvexPress-Admin/audits/2026-09-04/dashboard-surfaces-20261006.md",
+    "ConvexPress-Admin/audits/2026-09-04/customizer-chrome-retirement-20261006.md"
   ],
   "trackerRefresh": {
     "source": "output/lead-customer-20260929/mt-accept-after.json",
@@ -4710,7 +4712,7 @@
   "coordination": {
     "folder": "/Users/worsin/Development/ConvexPress/Opus Audits/",
     "authority": "Codex leads; Claude audits are advisory and independently verified",
-    "lastAudit": "2026-10-06T0206-audit-44-progress.md",
+    "lastAudit": "2026-10-06T0306-audit-45-customizer-controls.md",
     "pendingAdvisory": {
       "F19": "Accepted shared public document href contract. Historical encoded-slug fixture reproduced discrepancy; ordinary authoring slugifies safely. Legacy menu root/prefix behavior and membership aliases preserved. See locale-destinations-20260928.md.",
       "F20": "Source-verified enterprise commerce backfill truncation recorded in current-acceptance.md deferred register. No live reproduction or repair; promote only if catalog/customer-commerce delivery demonstrates a dependency.",
@@ -4732,7 +4734,8 @@
       "formsRuntime": "Owned Website72085/PTY44566 serves4322 after E57 CSS repair with exact six-field runtime. Native70560 signed out/closed and browser closed, API session revoked/profiles removed.4pages deleted,5forms archived,2sources withdrawn,list/event archived. Original42pages/11media/7activeforms/1list/1event exact; appearance/plugins/email/security restored. Three answers/submissions and normal source/consent/RSVP/poll history retained; one non-delivering synthetic newsletter subscriber remains because no product delete API, readonly REPL mutation rejected. No broad table replacement.",
       "audit20": "Read/responded: F27 whole-entry omission is contradicted by existing E18 currentEvidence/nextCheck; short status line now expanded for consistent handoff. Audit counts/six-Forms-remaining wording stale; Newsletter/Poll accepted,4Forms remain. F21/Tasks4\u20138/E22/E28 retained; no overall completion inference.",
       "settingsEmailAcceptance": "Correction: restoring email.enabled after Forms created12queued settings alerts; Poll template matrix created60more. All72exact operator/event-bound alerts cancelled through registered API with0attempts; original27rows exact,finalqueue99includingcancelledhistory. No configured provider key or delivery. Suppress settings-changed-alert template before future template settings/email restoration, restore last after event completion; email_templates changes are explicitly ignored by settings alert handler. Never claim post-cleanup queue preservation from a pre-restoration sample.",
-      "pollRuntime": "Website72085/PTY44566 unchanged; backend unchanged. Poll customer browser closed;2owned Clerk identities deleted/site profiles inactive, private credentials/profile/token files removed,API revoked. Ownedpage deleted,42originalpages/appearance/email/security exact. Deactivation template active value restored after exact events completed; normal timestamp advanced.3votes/2tallies and72cancelled alerts retained. Ownerprocesses preserved."
+      "pollRuntime": "Website72085/PTY44566 unchanged; backend unchanged. Poll customer browser closed;2owned Clerk identities deleted/site profiles inactive, private credentials/profile/token files removed,API revoked. Ownedpage deleted,42originalpages/appearance/email/security exact. Deactivation template active value restored after exact events completed; normal timestamp advanced.3votes/2tallies and72cancelled alerts retained. Ownerprocesses preserved.",
+      "audit45": "Accepted and repaired E79/E80 deliveryTask5 metadata and E80 classification in67730a1e; no new scope. Current chrome retirement and footer conversion evidence recorded separately."
     },
     "audit19": "Read/responded. F26 prerequisite visibility useful; exact owner-only/exhaustive claim not established. No acceptance on missing model/provider proof. Corrected core/reviews/E56. Actual signed-in target Clerk provider/provisioning failure now recorded under E18; Recently Viewed remains open. Forms six next, F21 and Tasks4\u20138 retained.",
     "audit21": "Read/responded. Snapshot predates64feddce116/21; E60 auth hydration distinct from E59 confirmation. Narrow public-read lens retained. Targeted notification templates suppressed before customer creation; final async queue proof required. F21/Tasks4\u20138/E18/E22/E28 remain open.",

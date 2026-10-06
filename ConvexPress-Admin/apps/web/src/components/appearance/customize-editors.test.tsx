@@ -4,8 +4,6 @@ import { anyApi } from "convex/server";
 // Bun follows the Admin type-only API shim; use the same generated runtime API proxy.
 mock.module("@backend/convex/_generated/api", () => ({ api: anyApi }));
 import { renderToStaticMarkup } from "react-dom/server";
-import { ConvexQueryCacheProvider } from "convex-helpers/react/cache";
-import { ConvexProvider, type ConvexReactClient } from "convex/react";
 const { HeaderSettingsEditor } = await import("./HeaderComposer");
 const { FooterSettingsEditor } = await import("./FooterComposer");
 const { FooterRowsBuilder } = await import("./FooterRowsBuilder");
@@ -17,22 +15,16 @@ test("Customizer reuses header/footer controls without separate publish buttons"
       <FooterSettingsEditor value={{}} onChange={() => {}} />
     </>,
   );
+  expect(markup).toContain("Marketing preset");
+  expect(markup).toContain("Publication preset");
+  expect(markup).toContain("Minimal preset");
   expect(markup).toContain("Layout");
   expect(markup).toContain("Newsletter");
   expect(markup).not.toContain("Save footer");
   expect(markup).not.toContain("Save Header");
 });
 test("controlled footer rows render their draft without querying or writing global settings", () => {
-  const unexpected = () => {
-    throw new Error("Controlled builder attempted backend access");
-  };
-  const client = {
-    mutation: unexpected,
-    watchQuery: unexpected,
-  } as unknown as ConvexReactClient;
   const markup = renderToStaticMarkup(
-    <ConvexProvider client={client}>
-      <ConvexQueryCacheProvider>
         <FooterRowsBuilder
           value={{
             rows: [
@@ -52,16 +44,14 @@ test("controlled footer rows render their draft without querying or writing glob
             ],
           }}
           onChange={() => {}}
-        />
-      </ConvexQueryCacheProvider>
-    </ConvexProvider>,
+        />,
   );
   expect(markup).toContain("Row 1");
   expect(markup).toContain("1 cell");
   expect(markup).not.toContain("Save footer");
 });
 
-test("native chrome editors expose section switches and visible field labels to assistive technology", async () => {
+test("native chrome controls preserve accessible fields and draft-only presets, conversion and external reset", async () => {
   const { createRequire } = await import("node:module");
   const require = createRequire(import.meta.url);
   const { JSDOM } = createRequire(require.resolve("isomorphic-dompurify"))("jsdom");
@@ -86,6 +76,34 @@ test("native chrome editors expose section switches and visible field labels to 
       expect(label.control).toBeTruthy();
       expect(label.control?.tagName).toBe("INPUT");
     }
+    let changed: Record<string, any> = {};
+    for (const [preset, style] of [["Marketing", "standard"], ["Publication", "centered"], ["Minimal", "split"]]) {
+      await act(async () => root.render(<HeaderSettingsEditor value={{}} onChange={next => { changed = next; }} />));
+      const button = [...container.querySelectorAll<HTMLButtonElement>("button")].find(item => item.textContent === `${preset} preset`)!;
+      await act(async () => button.click());
+      expect(changed.layout.style).toBe(style);
+    }
+    const baseline = { bottomBar: { copyrightText: "Retained copyright" }, rows: [] };
+    const renderRows = async (value: Record<string, unknown>) => act(async () => root.render(<FooterRowsBuilder value={value} onChange={next => { changed = next; }} />));
+    const clickButton = async (label: string) => {
+      const button = [...container.querySelectorAll<HTMLButtonElement>("button")].find(item => item.textContent === label)!;
+      expect(button).toBeTruthy();
+      await act(async () => button.click());
+    };
+    await renderRows(baseline);
+    await clickButton("Classic preset");
+    expect(changed.rows.length).toBe(2);
+    expect(changed.bottomBar.copyrightText).toBe("Retained copyright");
+    await renderRows(changed);
+    expect([...container.querySelectorAll("button")].some(item => item.textContent === "Reset")).toBe(false);
+    await clickButton("Minimal");
+    expect(changed.rows.length).toBe(1);
+    expect(changed.rows[0].columns.map((column: any) => column.cell.type)).toEqual(["copyright", "social"]);
+    await renderRows(baseline); // Customizer Undo/reset supplies the authoritative draft.
+    expect(container.textContent).toContain("The footer builder is empty");
+    await clickButton("Convert from current sections");
+    expect(changed.rows.length).toBeGreaterThan(0);
+    expect(changed.bottomBar.copyrightText).toBe("Retained copyright");
   } finally {
     await act(async () => root.unmount());
     dom.window.close();

@@ -1,3 +1,4 @@
+import { FooterCopyright } from "./FooterCopyright";
 import { MenuItemTarget } from "@/components/menus/MenuItemTarget";
 /**
  * FooterRowsRenderer — renders the v2 block-style footer.
@@ -22,7 +23,6 @@ import type {
   FooterCell,
   FooterColumn,
   FooterContactCell,
-  FooterCopyrightCell,
   FooterDividerCell,
   FooterHtmlCell,
   FooterImageCell,
@@ -183,7 +183,7 @@ function FooterCellRenderer({ cell }: { cell: FooterCell }) {
     case "divider":
       return <DividerCellRenderer cell={cell} />;
     case "copyright":
-      return <CopyrightCellRenderer cell={cell} />;
+      return <FooterCopyright cell={cell} className="text-xs text-muted-foreground" />;
     case "payments":
       return <PaymentsCellRenderer cell={cell} />;
   }
@@ -453,13 +453,6 @@ function DividerCellRenderer({ cell }: { cell: FooterDividerCell }) {
     thick: "border-t-4",
   }[cell.thickness];
   return <hr className={cn(heightClass, "border-border")} />;
-}
-
-function CopyrightCellRenderer({ cell }: { cell: FooterCopyrightCell }) {
-  const rendered = cell.insertYear
-    ? cell.text.replace(/\{year\}/g, String(new Date().getFullYear()))
-    : cell.text;
-  return <p className="text-xs text-muted-foreground">{rendered}</p>;
 }
 
 function PaymentsCellRenderer({ cell }: { cell: FooterPaymentsCell }) {
