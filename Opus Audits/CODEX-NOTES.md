@@ -1119,3 +1119,16 @@ ACCEPT audit48 register consistency finding: E86–E89 classifications now say r
 Published appearance,43pages,general/reading,menu locations and four drafts exact. No content/publish/backend writes. UI editing ended, API revoked/refresh401, Website57700 stopped, tab27 closed/viewport reset;7protected alive. No push.
 
 NEXT:E09 native/device iframe contextual picking and signed-in account display/presets; reuse E82–E90. Bounded Claude question: identify any remaining concrete selection/control mismatch with pack, source consumer and reproducible rendered action; separate missing evidence from broken behavior. Full goal active117Verified/20In progress.
+
+
+## 2026-10-06 — E91 native and responsive frame picking verified
+
+Previous turn progressed via d65b7b39/E90. Audit48 remains latest; accepted classification cleanup stands. No waiting or expanded audit.
+
+Native preview lacked a picker/selection response; Website responsive frames lacked the same channel. Added ephemeral picker after a valid actual-parent draft, exact parent/origin commands, and exact frame/origin/declared-field host responses. Native nested Header/Footer fields open/focus; groups remain collapsible. Website frame selection clears hidden-field search and retains unsaved edits.
+
+23focused tests, both app types/builds, changed-file lint pass. Actual Electron Core Desktop/Phone/Tablet selections and footer group focus, Escape and collapse accepted. Actual Website all4packs Phone/Tablet16cases plus unsaved-draft retention/Undo pass. Report: ConvexPress-Admin/audits/2026-09-04/customizer-frame-pick-20261006.md.
+
+Appearance/general/reading/menu locations/43pages/four drafts exact. UI editing ended; native Live/sign-out restored; API revoked401;58421/58538 stopped/profile removed;tab28closed/viewport reset;7protected alive. No push/backend deploy/publication.
+
+NEXT:E09 signed-in display/presets and remaining field/surface acceptance map. Reuse E82–E91. Bounded Claude question: any concrete remaining contextual target with no declared field or wrong rendered behavior? Provide the pack/control/action; do not infer a defect solely from missing acceptance. Codex remains in charge; goalactive117/20.
