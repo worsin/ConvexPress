@@ -293,7 +293,7 @@ export const promotionRecordSchema: z.ZodType<PromotionRecord> = z
 		const result = promotionDataSchemas[record.kind].safeParse(record.data);
     if(record.kind === "page" || record.kind === "post") {
       const canonical=record.data.blocksVersion===2;
-      if(canonical ? (!record.data.canonical || record.data.blocks!==undefined || record.data.contentMode!=="blocks" || Boolean(record.data.content) || !["draft","publish","private"].includes(String(record.data.status))) : record.data.canonical!==undefined)
+      if(canonical ? (!record.data.canonical || record.data.blocks!==undefined || Boolean(record.data.content) || !["draft","publish","private"].includes(String(record.data.status))) : record.data.canonical!==undefined)
         ctx.addIssue({code:"custom",path:["data","canonical"],message:"Canonical pages require an explicit v2 transport and no legacy body; legacy pages cannot include canonical transport."});
     }
 		if (record.kind === "presentation" && result.success) {

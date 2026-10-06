@@ -1366,7 +1366,7 @@ test("grouped membership policies survive export, apply, update, retry and rollb
 
 test("legacy promotion cannot erase the canonical source discriminator or plan over a canonical target",async()=>{
  const {t,authed,userId}=await fixture();
- const id=await t.run(ctx=>ctx.db.insert("posts",{type:"page",title:"Canonical draft",slug:"welcome",path:"/welcome",content:"",contentMode:"blocks",blocksVersion:2,blocksRevision:1,blocks:[],status:"draft",visibility:"public",authorId:userId,commentStatus:"closed",createdAt:1,updatedAt:1}));
+ const id=await t.run(ctx=>ctx.db.insert("posts",{type:"page",title:"Canonical draft",slug:"welcome",path:"/welcome",content:"",blocksVersion:2,blocksRevision:1,blocks:[],status:"draft",visibility:"public",authorId:userId,commentStatus:"closed",createdAt:1,updatedAt:1}));
  const original=await t.run(ctx=>ctx.db.get("posts",id));
  await t.run(async ctx=>{const identity=(await ctx.db.query("convexpress_siteIdentity").unique())!;await ctx.db.patch("convexpress_siteIdentity",identity._id,manifest().source);});
  const exported=await authed.query(makeFunctionReference<"query">("contentPromotion/operations:exportManifest"),{target,selection:{pageIds:[id],postIds:[],mediaIds:[],menuIds:[],eventIds:[],includePresentation:false}});

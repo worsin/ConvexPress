@@ -20,7 +20,7 @@ async function fixture() {
     const other = await ctx.db.insert("users", { authSource: "local", email: "draft-b@example.invalid", emailVerified: true, roleId: role, status: "active", createdAt: 1, updatedAt: 1 });
     const denied = await ctx.db.insert("users", { authSource: "local", email: "draft-denied@example.invalid", emailVerified: true, status: "active", createdAt: 1, updatedAt: 1 });
     await ctx.db.insert("convexpress_siteIdentity", { identityKey: "site-identity", ...scope, environmentKind: "staging", deploymentOrigin: "https://draft.convex.cloud", managementOrigin: "https://draft.convex.site", siteOrigin: "https://draft.example.invalid", siteContractVersion: "1", schemaVersion: "1", engineVersion: "1", managementCapabilities: [], initializedAt: 1, updatedAt: 1 });
-    const post = await ctx.db.insert("posts", { type: "page", title: "Published title", slug: "draft-specimen", path: "/draft-specimen", content: "", contentMode: "blocks", blocksVersion: 2, blocksRevision: 2, blocks: [], status: "publish", visibility: "public", authorId: user, commentStatus: "closed", createdAt: 1, updatedAt: 1 });
+    const post = await ctx.db.insert("posts", { type: "page", title: "Published title", slug: "draft-specimen", path: "/draft-specimen", content: "", blocksVersion: 2, blocksRevision: 2, blocks: [], status: "publish", visibility: "public", authorId: user, commentStatus: "closed", createdAt: 1, updatedAt: 1 });
     return { role, user, other, denied, post };
   });
   const as = (id: typeof ids.user) => t.withIdentity({ subject: id, tokenIdentifier: `https://convexpress-admin.local|${id}` });

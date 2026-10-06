@@ -45,7 +45,7 @@ export async function loadAiContext(ctx: QueryCtx, args: BaseArgs): Promise<Cont
   budget.beforeRead();
   const post = budget.record(await ctx.db.get("posts", args.postId));
   if (!post || !await canEditContent(ctx, post, budget)) fail("FORBIDDEN", "You cannot edit this document.");
-  if (post.blocksVersion !== 2 || post.contentMode !== "blocks" || !["page", "post"].includes(post.type) || !["draft", "publish", "private", "future"].includes(post.status))
+  if (post.blocksVersion !== 2 || !["page", "post"].includes(post.type) || !["draft", "publish", "private", "future"].includes(post.status))
     fail("AI_DOCUMENT_REQUIRED", "Open an editable canonical block document before generating content.");
   if (!Number.isSafeInteger(args.expectedRevision) || authoringRevision(post) !== args.expectedRevision)
     fail("AI_DOCUMENT_CHANGED", "The document changed. Generate a new proposal before applying it.");

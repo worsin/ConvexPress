@@ -121,13 +121,10 @@ export const postTables = {
     // populate this field.
     pageSections: v.optional(v.any()),
 
-    // ── Gutenberg-inspired Composition Blocks ────────────────────────────
-    // `contentMode` determines whether a document renders through the legacy
-    // article/editorial fields or the new page-composition block tree.
-    // Blocks use a typed envelope with attrs kept as v.any() because custom
-    // block attribute schemas are registered in TypeScript on the Admin and
-    // Website sides. Backend mutations validate the envelope, depth, count,
-    // and revision semantics before saving.
+    // Canonical authoring is identified by blocksVersion and validated by the
+    // canonical service. Retain the optional old mode only for lossless legacy
+    // import/history decoding; current writes clear it and public rendering
+    // never dispatches on it. Do not remove stored legacy source blindly.
     contentMode: v.optional(v.union(v.literal("article"), v.literal("blocks"))),
     blocks: v.optional(v.union(canonicalStoredTreeValidator, v.array(v.object({
       id: v.string(),

@@ -94,7 +94,7 @@
     "promotionTree.ts": "18dab3d682649c5e468ac99905264bf1b3bfd2c6b39febf1eb30f74bb5a45dcb",
     "syncedPromotion.ts": "a0b26c13aa07c267394bf172a7c54b2032757159c6958cc344c1a19b64b55a32",
     "eventIntervalIndex.ts": "555e9b03f202ceb9076dde9df727f234c95e9a7b95a4f2321311a6f188688806",
-    "documentState.ts": "c022480e869e7f3278273269a97e066eebc64f523d13ed3ab0698e2e5480a034",
+    "documentState.ts": "50ecfe4f40e1d546b253d903d974262358c0a488583787e4becc5481506d1be7",
     "draftRecovery.ts": "383e4046ec952a6850dd39f700315d0c592d6aa57fd3583793eb1c854855faaa",
     "legacyDocumentMigration.ts": "f8bd0047ed44abb925f7c4b8b523517efd13d0d7bbc7fa64dd40311b9ac2b5ff",
     "legacyHtmlMigration.ts": "07507c0bf9d32c72aa7b83242e52864b75d036a72d6f6d58b620424443aa6e96",

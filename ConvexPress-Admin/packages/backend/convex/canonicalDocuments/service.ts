@@ -333,7 +333,7 @@ async function commit(
 			...(restore ? restoredAuthoring(restore) : {}),
 			title: prepared.title,
 			content: "",
-			contentMode: "blocks",
+			contentMode: undefined,
 			blocksVersion: 2,
 			blocks: prepared.blocks,
       composedDefinitions: prepared.composedDefinitions,
@@ -695,7 +695,7 @@ async function revisionImport(ctx: QueryCtx, post: Doc<"posts">, args: RevisionI
   if (post.status !== "draft") await requireCan(ctx,post.type === "page" ? "page.publish" : "post.publish",budget);
   const revision = await revisionSource(ctx,post,args.revisionId,budget);
   const converted = prepareAuthoredMigration(historicalAuthoring(post,revision,args.sourceKind));
-  const candidate = {...revision,title:converted.title,content:"",contentMode:"blocks" as const,blocksVersion:2 as const,blocks:converted.blocks,composedDefinitions:undefined};
+  const candidate = {...revision,title:converted.title,content:"",contentMode:undefined,blocksVersion:2 as const,blocks:converted.blocks,composedDefinitions:undefined};
   const context = await loadDocumentWriteContext(ctx,converted.blocks,budget,post.composedDefinitions);
   const restoreArgs = {postId:post._id,expectedRevision:authoringRevision(post)};
   const prepared = context ? prepareCanonicalRestore(post,candidate,restoreArgs,context) : prepareCanonicalRestore(post,candidate,restoreArgs);
@@ -841,13 +841,13 @@ export async function createDocument(ctx: MutationCtx, args: { type: "post" | "p
   // syntax stays literal; arbitrary client trees still use the canonical save API.
   const text = options.plainText?.trim();
   const blocks = text ? [{id: "quick-draft-body", name: "core/paragraph", version: 2, attrs: {body: {type: "doc", content: [{type: "paragraph", content: text.split(/(\r\n|\n|\r)/u).filter(Boolean).map(part => /^(\r\n|\n|\r)$/u.test(part) ? {type: "hardBreak"} : {type: "text", text: part})}]}}}] : [];
-  const prepared = prepareCanonicalCurrent({title, blocks, blocksVersion: 2, blocksRevision: 1, contentMode: "blocks", status: "draft"}, 1);
+  const prepared = prepareCanonicalCurrent({title, blocks, blocksVersion: 2, blocksRevision: 1, contentMode: undefined, status: "draft"}, 1);
   const slug = await generateUniqueSlug(ctx, title, args.type, undefined, budget);
   if (args.type === "page") await assertPagePathAvailable(ctx, `/${slug}`, undefined, budget);
   const now = Date.now();
   const value: WithoutSystemFields<Doc<"posts">> = {
     type: args.type, title, slug, status: "draft", visibility: "public", authorId: user._id,
-    content: "", contentMode: "blocks", blocks: prepared.blocks, blocksVersion: 2, blocksRevision: 1,
+    content: "", contentMode: undefined, blocks: prepared.blocks, blocksVersion: 2, blocksRevision: 1,
     commentStatus: args.type === "page" ? "closed" : "open", commentCount: 0, isSticky: false,
     ...(args.type === "page" ? {path: `/${slug}`, depth: 0, menuOrder: 0, pageTemplate: "default"} : {}),
     createdAt: now, updatedAt: now,
@@ -900,7 +900,7 @@ export async function duplicateDocument(ctx: MutationCtx, args: DuplicateArgs): 
   if (post.type === "page") await assertPagePathAvailable(ctx, `/${slug}`, undefined, budget);
   const now = Date.now();
   const value: WithoutSystemFields<Doc<"posts">> = {
-    ...authoringSnapshot(post), title, content: "", contentMode: "blocks", blocksVersion: 2,
+    ...authoringSnapshot(post), title, content: "", contentMode: undefined, blocksVersion: 2,
     blocks: prepared.blocks, blocksRevision: 1, type: post.type, slug,
     status: "draft", visibility: post.status === "private" ? "private" : post.visibility,
     password: post.password, authorId: user._id,
@@ -1119,7 +1119,7 @@ export async function writePromotedCanonicalDocument(
   const budget = new RequestReadLedger();
   const user = await requireCan(ctx, "manage_options", budget);
   if (fields.type !== "page" && fields.type !== "post") refuse("PROMOTION_CONTENT_KIND", "Expected a page or post.");
-  if (fields.blocksVersion !== 2 || fields.contentMode !== "blocks" || fields.content !== "" || fields.canonical !== undefined)
+  if (fields.blocksVersion !== 2 || fields.content !== "" || fields.canonical !== undefined)
     refuse("PROMOTION_CANONICAL_INVALID", "Expected resolved canonical authoring fields.");
   if (!["draft", "publish", "private", ...(restoring ? ["future"] : [])].includes(String(fields.status)))
     refuse("PROMOTION_PUBLICATION_INVALID", "Unsupported publication transition.");
@@ -1151,7 +1151,7 @@ export async function writePromotedCanonicalDocument(
     // Allocate a target-local identity inside this atomic transaction. Any later
     // validation refusal rolls this draft back together with its derived rows.
     targetId = await insertWithMediaReferences(ctx, "posts", {
-      type, title:String(fields.title), slug:String(fields.slug), content:"", contentMode:"blocks",
+      type, title:String(fields.title), slug:String(fields.slug), content:"", contentMode:undefined,
       status:"draft", visibility:"public", commentStatus:"closed", authorId:user._id, createdAt:now, updatedAt:now,
     }, undefined, budget);
     budget.beforeRead(); previous = budget.record(await ctx.db.get("posts", targetId));
@@ -1161,7 +1161,7 @@ export async function writePromotedCanonicalDocument(
   if (priorRevision >= Number.MAX_SAFE_INTEGER - 1) refuse("AUTHORING_REVISION_EXHAUSTED", "Target revision cannot advance safely.");
   const absent = restoring ? Object.fromEntries(Object.keys(previous).filter(key=>key!=="_id" && key!=="_creationTime" && !(key in fields)).map(key=>[key,undefined])) : {};
   const value: Partial<WithoutSystemFields<Doc<"posts">>> = {
-    ...absent, ...fields, blocks, blocksVersion:2, contentMode:"blocks", content:"",
+    ...absent, ...fields, blocks, blocksVersion:2, contentMode:undefined, content:"",
     authorId:previous.authorId, createdAt:previous.createdAt, blocksRevision:priorRevision+1,
     autosaveTitle:undefined, autosaveContent:undefined, autosavedAt:undefined,
     scheduledAt:fields.status==="future" ? Number(fields.scheduledAt) : undefined,
@@ -1435,7 +1435,7 @@ async function createForActor(ctx: MutationCtx, type: "post" | "page", input: Do
 		visibility: "public",
 		authorId: user._id,
 		content: "",
-		contentMode: "blocks",
+		contentMode: undefined,
 		blocks: [],
 		blocksVersion: 2,
 		blocksRevision: 1,

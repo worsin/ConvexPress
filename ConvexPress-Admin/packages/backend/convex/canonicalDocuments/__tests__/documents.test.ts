@@ -73,7 +73,8 @@ test("historical imports review saved and unsaved sources separately and never d
     expect(await snapshot()).toEqual(before);
     await f.client.mutation(reference("importRevision","mutation"),args);
     const after=await snapshot();
-    expect(after.post).toMatchObject({blocksVersion:2,contentMode:"blocks",blocks:review.candidate.document.blocks,title:review.candidate.document.title,status:"draft"});
+    expect(after.post).toMatchObject({blocksVersion:2,blocks:review.candidate.document.blocks,title:review.candidate.document.title,status:"draft"});
+  expect((after.post)?.contentMode).toBeUndefined();
     expect(after.post!.autosaveContent).toBeUndefined();
     expect(after.history.find(row=>row._id===revision._id)).toEqual(revision);
     await expect(f.client.mutation(reference("importRevision","mutation"),args)).rejects.toMatchObject({data:{code:"CONFLICT"}});
@@ -1462,7 +1463,8 @@ test("canonical duplication copies complete authoring and grouped restrictions a
   expect(opened.document.digest).toBe(copied.digest);
   expect(opened.document.status).toBe("draft");
   const state = await f.t.run(async ctx => ({ post: await ctx.db.get("posts", copied.postId), meta: await ctx.db.query("postMeta").withIndex("by_post", q => q.eq("postId", copied.postId)).collect(), rules: await ctx.db.query("membership_restriction_rules").withIndex("by_resource", q => q.eq("resourceType", "page").eq("resourceIdOrKey", copied.postId)).collect(), fields: await ctx.db.query("fieldValues").withIndex("by_entity", q => q.eq("entityType", "page").eq("entityId", copied.postId)).collect() }));
-  expect(state.post).toMatchObject({ blocksVersion: 2, blocksRevision: 1, contentMode: "blocks", pagePrompt: "Keep this prompt", layoutId: "authored-layout", visibility: "private", password: "protected-copy", authorId: f.ids.user });
+  expect(state.post).toMatchObject({ blocksVersion: 2, blocksRevision: 1, pagePrompt: "Keep this prompt", layoutId: "authored-layout", visibility: "private", password: "protected-copy", authorId: f.ids.user });
+  expect((state.post)?.contentMode).toBeUndefined();
   expect(state.post!.scheduledAt).toBeUndefined();
   expect(state.post!.publishedAt).toBeUndefined();
   expect(state.meta.map(row => row.key)).toEqual(["seo"]);
@@ -1528,7 +1530,8 @@ test("historical import preserves original source, current access policy and can
   expect((await readOriginal(f,original.id)).content).toBe(originalContent);
   expect(recovered.revision).toBe(migrated.revision + 1);
   const post = await f.t.run(ctx => ctx.db.get("posts", f.ids.post));
-  expect(post).toMatchObject({ content: "", contentMode: "blocks", pagePrompt: "Original prompt", layoutId: "original-layout", hideFooter: true, excerpt: "Original excerpt", status: "private", password: "Current secret", path: "/current-route", blocksVersion: 2, blocksRevision: recovered.revision });
+  expect(post).toMatchObject({ content: "", pagePrompt: "Original prompt", layoutId: "original-layout", hideFooter: true, excerpt: "Original excerpt", status: "private", password: "Current secret", path: "/current-route", blocksVersion: 2, blocksRevision: recovered.revision });
+  expect((post)?.contentMode).toBeUndefined();
   const legacy = await f.client.query(reference("get"), { postId: f.ids.post });
   expect(legacy.contract).toBe("canonical-document-v1");
   expect(legacy.document.blocks).toEqual(review.candidate.document.blocks);
@@ -2954,7 +2957,8 @@ for(const type of ["post","page"] as const) test(`new ${type} is immediately can
  const receipt=await f.client.mutation(reference("create","mutation"),{type,title:"  Fresh canonical draft  "});
  expect(receipt).toMatchObject({revision:1,changed:true});
  const row=await f.t.run(ctx=>ctx.db.get("posts",receipt.postId));
- expect(row).toMatchObject({type,title:"Fresh canonical draft",status:"draft",authorId:f.ids.user,blocksVersion:2,blocksRevision:1,blocks:[],contentMode:"blocks",content:""});
+ expect(row).toMatchObject({type,title:"Fresh canonical draft",status:"draft",authorId:f.ids.user,blocksVersion:2,blocksRevision:1,blocks:[],content:""});
+  expect((row)?.contentMode).toBeUndefined();
  expect(row!.publishedAt).toBeUndefined();expect(row!.scheduledAt).toBeUndefined();
  const read=await f.client.query(reference("get"),{postId:receipt.postId});expect(read.document.blocks).toEqual([]);expect(read.document.revision).toBe(1);
  expect((await f.client.query(reference("pageRevisions"),{postId:receipt.postId,paginationOpts:{cursor:null,numItems:20}})).page).toEqual([]);
@@ -2984,7 +2988,8 @@ test("Quick Draft creates editable canonical text with unique slugs and one pair
  const quick=makeFunctionReference<"mutation">("dashboard/mutations:quickDraft");
  const content="<b>literal HTML</b> & **literal Markdown**\nSecond line\n\nLast line";
  const postId=await f.client.mutation(quick,{title:"  Quick canonical  ",content:"  "+content+"  "});
- const row=await f.t.run(ctx=>ctx.db.get("posts",postId));expect(row).toMatchObject({title:"Quick canonical",slug:"quick-canonical",blocksVersion:2,blocksRevision:1,contentMode:"blocks",content:"",status:"draft"});
+ const row=await f.t.run(ctx=>ctx.db.get("posts",postId));expect(row).toMatchObject({title:"Quick canonical",slug:"quick-canonical",blocksVersion:2,blocksRevision:1,content:"",status:"draft"});
+  expect((row)?.contentMode).toBeUndefined();
  const opened=await f.client.query(reference("get"),{postId});
  expect(opened.document.blocks).toEqual([{id:"quick-draft-body",name:"core/paragraph",version:2,attrs:{body:{type:"doc",content:[{type:"paragraph",content:[{type:"text",text:"<b>literal HTML</b> & **literal Markdown**"},{type:"hardBreak"},{type:"text",text:"Second line"},{type:"hardBreak"},{type:"hardBreak"},{type:"text",text:"Last line"}]}]}}}]);
  expect(await f.t.run(ctx=>ctx.db.query("revisions").collect())).toHaveLength(0);
@@ -3406,7 +3411,8 @@ for (const type of ["post","page"] as const) {
   const f = await wordpressFixture(type);
   const id = await f.write();
   const initial = await f.state(), post = initial.posts.find(p => p._id === id)!;
-  expect(post).toMatchObject({type,content:"",contentMode:"blocks",blocksVersion:2,blocksRevision:1,wpPostId:71,wpSourceSiteId:f.siteId});
+  expect(post).toMatchObject({type,content:"",blocksVersion:2,blocksRevision:1,wpPostId:71,wpSourceSiteId:f.siteId});
+  expect((post)?.contentMode).toBeUndefined();
   expect(JSON.stringify(post.blocks)).toContain("bold");
   expect(initial.meta.find(m => m.key === "_wp_content_rendered")?.value).toBe(f.wp.content);
   expect(initial.mappings[0]).toMatchObject({convexId:id,sourceHash:"source-v1",acceptedRevision:1});

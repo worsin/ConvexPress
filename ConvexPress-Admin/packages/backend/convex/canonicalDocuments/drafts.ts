@@ -38,7 +38,7 @@ async function current(ctx: QueryCtx, args: IdentityArgs): Promise<Current> {
   const scope = await installation(ctx, budget);
   if (scope.websiteKey !== args.expectedScope.websiteKey || scope.instanceKey !== args.expectedScope.instanceKey)
     refuse("WRONG_SITE_SCOPE", "The editor's Website environment changed. Reopen its current document.");
-  if (post.blocksVersion !== 2 || post.contentMode !== "blocks")
+  if (post.blocksVersion !== 2)
     refuse("UNSUPPORTED_AUTHORING_VERSION", "Open this document in the canonical editor before saving a private draft.");
   budget.beforeRead();
   const row = await ctx.db.query("canonicalDocumentDrafts").withIndex("by_postId_userId", q => q.eq("postId", post._id).eq("userId", user._id)).unique();

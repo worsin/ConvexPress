@@ -78,7 +78,7 @@ export function prepareCanonicalCurrent(row: StoredAuthoring, expectedRevision: 
 export function prepareCanonicalCurrent(row: StoredAuthoring, expectedRevision: number, context?: ComposedWriteContext): PreparedRuntimeCanonicalWrite {
   const revision = checkRevision(row, expectedRevision);
   if (row.composedDefinitions !== undefined && !context) fail("COMPOSED_AUTHORING_CONTEXT_REQUIRED", "Saving composed definitions requires the version-aware authoring service");
-  if (row.blocksVersion !== 2 || row.contentMode !== "blocks") fail("UNSUPPORTED_AUTHORING_VERSION", "The canonical editor requires a canonical document");
+  if (row.blocksVersion !== 2) fail("UNSUPPORTED_AUTHORING_VERSION", "The canonical editor requires a canonical document");
   if (!["draft", "publish", "future", "private"].includes(String(row.status))) fail("CANONICAL_DRAFT_REQUIRED", "Restore a supported editable publication state before changing this document");
   if (typeof row.title !== "string") fail("INVALID_DOCUMENT_TITLE", "The stored title is invalid");
   return { ...candidate(row.title, row.blocks, row.composedDefinitions, context), revision, changed: false };
@@ -102,7 +102,7 @@ export function prepareCanonicalRestore(row: StoredAuthoring, snapshot: StoredAu
   checkRevision(row, args.expectedRevision);
   if (!context && (row.composedDefinitions !== undefined || snapshot.composedDefinitions !== undefined)) fail("COMPOSED_AUTHORING_CONTEXT_REQUIRED", "Restoring composed definitions requires the version-aware authoring service");
   if (String(row._id) !== args.postId || snapshot.parentId !== args.postId) fail("REVISION_PARENT_MISMATCH", "The revision belongs to another document");
-  if (snapshot.blocksVersion !== 2 || snapshot.contentMode !== "blocks") fail("UNSUPPORTED_AUTHORING_VERSION", "This revision requires an explicit supported migration");
+  if (snapshot.blocksVersion !== 2) fail("UNSUPPORTED_AUTHORING_VERSION", "This revision requires an explicit supported migration");
   if (typeof snapshot.title !== "string") fail("INVALID_DOCUMENT_TITLE", "The revision title is invalid");
   let next: PreparedRuntimeCanonicalWrite;
   if (row.blocksVersion === undefined || row.blocksVersion === 1) {
@@ -129,7 +129,7 @@ export function prepareCanonicalPublication(row: StoredAuthoring, args: Publicat
 export function prepareCanonicalPublication(row: StoredAuthoring, args: PublicationArgs, now: number, context?: ComposedWriteContext): PreparedRuntimeCanonicalWrite & { publication: CanonicalPublicationPatch } {
   const revision = checkRevision(row, args.expectedRevision);
   if (row.composedDefinitions !== undefined && !context) fail("COMPOSED_AUTHORING_CONTEXT_REQUIRED", "Publishing composed definitions requires the version-aware authoring service");
-  if (row.blocksVersion !== 2 || row.contentMode !== "blocks") fail("UNSUPPORTED_AUTHORING_VERSION", "Publication requires a validated canonical document");
+  if (row.blocksVersion !== 2) fail("UNSUPPORTED_AUTHORING_VERSION", "Publication requires a validated canonical document");
   if (!["draft", "publish", "future", "private"].includes(String(row.status)) || !["draft", "publish", "future", "private"].includes(args.status)) fail("INVALID_PUBLICATION_STATUS", "The publication state is unsupported");
   if (!Number.isFinite(now)) fail("INVALID_PUBLICATION_TIME", "The publication clock is unavailable");
   if (args.status === "future" ? !Number.isFinite(args.scheduledAt) || args.scheduledAt! <= now : args.scheduledAt !== undefined) fail("INVALID_PUBLICATION_TIME", "Only a scheduled publication may supply a future deadline");

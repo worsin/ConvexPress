@@ -335,7 +335,7 @@ export async function exportAuthoredManifest(
 		await authorization.read(kind, row);
 		let data = pickData(kind, row);
     const canonicalSource=(kind==="page" || kind==="post") && row.blocksVersion===2;
-    if(canonicalSource){delete data.blocks;canonicalDocuments.set(key,row.blocks);}
+    if(canonicalSource){delete data.blocks;delete data.contentMode;canonicalDocuments.set(key,row.blocks);}
 		records.set(key, { key, kind, sourceRevision: recordRevision(kind, row), data });
     if(kind==='localeRouting'){
       const locales=[];
