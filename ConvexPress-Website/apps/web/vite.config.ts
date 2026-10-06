@@ -90,6 +90,12 @@ export default defineConfig(() => {
         output: {
           manualChunks(rawId) {
             const id = rawId.replaceAll("\\", "/");
+            // Discovery expands every installed surface loader and its preload
+            // table. Cache that stable registry separately from the app entry;
+            // metadata stays synchronous and surface implementations stay lazy.
+            if (id.endsWith("/src/templates/sdk/registry.ts")) {
+              return "template-registry";
+            }
             if (!id.includes("/node_modules/")) {
               return undefined;
             }

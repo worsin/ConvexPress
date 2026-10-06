@@ -353,7 +353,7 @@
     {
       "id": "E20",
       "classification": "accepted/reusable evidence",
-      "status": "Selective canonical loading accepted:137 Library/32owned dynamic entries, no static entry block imports; real native incremental insertion/save/reload and16 four-pack public viewport cases pass. Nested/reusable/custom SSR and BlockDemo pass. Suspense moved above grant installation plus selected SSR preloads resolve observed hydration failure without weakening revocation. Full main-bundle budget remains failing under Task8. See canonical-lazy-renderers-20260928.md."
+      "status": "Selective canonical loading accepted:137 Library/32owned dynamic entries, no static entry block imports; real native incremental insertion/save/reload and16 four-pack public viewport cases pass. Nested/reusable/custom SSR and BlockDemo pass. Suspense moved above grant installation plus selected SSR preloads resolve observed hydration failure without weakening revocation. Full main-bundle budget remains failing under Task8. See canonical-lazy-renderers-20260928.md. October6 full main/chunk bundle budget now passes after E106 registry boundary; see template-registry-bundle-20261006.md."
     },
     {
       "id": "E21",
@@ -1258,11 +1258,12 @@
       "classification": "demonstrated workflow symptom; causal investigation pending",
       "initialFinding": "After native revision restore, the panel said Live draft rendered while the actual Website iframe showed Open this saved preview from your authorized native editor. Reconnect restored the document. Observed on owned Field/Studio fixture; no automatic continuity acceptance inferred.",
       "closureBoundary": "Reproduce on exact current Admin/Website artifacts, trace revision remount/ready/session messages, repair the demonstrated lifecycle cause and verify native restore automatically renders the recovered revision without manual reconnect or lost authored data.",
-      "status": "Intermittent original symptom remains a final integration watch. Three earlier restore cases and two current native pattern restores automatically rendered without Reconnect; unsaved move recovery, save and public publication also passed. No causal patch justified; do not repeat identical successful reproductions.",
+      "status": "Intermittent original symptom remains recorded without a causal patch. Current d9a03347 native integrated template/Customizer/document-conflict journey restored exact revision2 blocks as revision6 and rendered automatically without Reconnect; subsequent real sign-out/sign-in recovered the private/device title draft and saved revision7. See candidate-native-20261006.md. Do not repeat identical successful cases.",
       "deliveryTask": 5,
       "currentEvidence": [
         "ConvexPress-Admin/audits/2026-09-04/preview-history-recheck-20261006.md",
-        "ConvexPress-Admin/audits/2026-09-04/native-integration-20261006.md"
+        "ConvexPress-Admin/audits/2026-09-04/native-integration-20261006.md",
+        "ConvexPress-Admin/audits/2026-09-04/candidate-native-20261006.md"
       ]
     },
     {
@@ -1365,6 +1366,18 @@
         "output/final-evidence-20261006/viewport-manifest.json",
         "output/final-evidence-20261006/review-integrity.json"
       ]
+    },
+    {
+      "id": "E106",
+      "classification": "reproduced delivery gate failure",
+      "status": "Closed: stable compiled template registry separated from application entry. Fresh complete production artifact passes unchanged300000main/550000largest budgets; main221047bytes, registry107632bytes. Types, four-pack/90-surface contract check and template SSR pass; actual four-pack public/search hydration and Aster390px mobile navigation inspected. No total-first-load-byte reduction claimed.",
+      "requiredWorkflow": "Deliver a production Website artifact passing the existing main/chunk bundle budgets while retaining synchronous pack metadata and selective lazy surface hydration.",
+      "evidence": "output/candidate-native-20261006/bundle-budget.log; bundle-inventory.json; bundle-diagnostic.log",
+      "dependency": "Static registry discovery expands every installed surface loader and dependency table into the main application chunk; actual surface implementations remain lazy.",
+      "repairBoundary": "Give the stable compiled template registry a cacheable chunk boundary in existing Vite configuration; keep synchronous metadata, lazy surface loaders and existing300000/550000limits. Do not claim this reduces total first-load bytes.",
+      "exitCheck": "Fresh production build passes unchanged budget; module inventory proves registry boundary and lazy surface loading; Website types/template SSR and actual four-pack public hydration pass.",
+      "deliveryTask": 8,
+      "currentEvidence": "ConvexPress-Admin/audits/2026-09-04/template-registry-bundle-20261006.md"
     }
   ],
   "blocks": [
@@ -5205,7 +5218,9 @@
     "ConvexPress-Admin/audits/2026-09-04/target-customer-auth-20261006.md",
     "ConvexPress-Admin/audits/2026-09-04/recent-auth-final-20261006.md",
     "ConvexPress-Admin/audits/2026-09-04/field-events-final-20261006.md",
-    "ConvexPress-Admin/audits/2026-09-04/layout-wrapper-final-20261006.md"
+    "ConvexPress-Admin/audits/2026-09-04/layout-wrapper-final-20261006.md",
+    "ConvexPress-Admin/audits/2026-09-04/candidate-native-20261006.md",
+    "ConvexPress-Admin/audits/2026-09-04/template-registry-bundle-20261006.md"
   ],
   "trackerRefresh": {
     "source": "output/field-guide-legacy-final-20261006/mt-accept-after.json",
@@ -5270,7 +5285,8 @@
     "reusableRetirement": "Audit55 remains latest/already adjudicated. Codex independently completed reusable corpus reconciliation and seven-function retirement. All three original sources map exactly; no new provider prerequisite or wait. Task4 now accepted; full goal remains active.",
     "paletteShop": "Audit55 remains latest and already adjudicated. Independently repaired E102 operator canonical reads and completed palette/Shop field mapping; no new Claude scope directive. Next bounded work: Task6 demo/motion and Task7 actual AI, retain E05 external staging requirement and Task8 overlay/artifact integration.",
     "audit57": "ACCEPT bounded scope/progress/133-4 counts against local receipts. ADAPT E99: retain intermittent final-integration watch; successful later restores are not a causal fix and do not justify repeating identical passing checks or stopping independent work. Independently reproduced/repaired E103; no new broad audit scope and no waiting for Claude.",
-    "audit58": "ACCEPT bounded scope/progress/count assessment against current source and133/4 checkpoint. ADAPT E99 reminder into final integrated native watch, without inferring a causal repair from successful later restores. E104/E105 independently reproduced and repaired; no new scope or audit wait."
+    "audit58": "ACCEPT bounded scope/progress/count assessment against current source and133/4 checkpoint. ADAPT E99 reminder into final integrated native watch, without inferring a causal repair from successful later restores. E104/E105 independently reproduced and repaired; no new scope or audit wait.",
+    "candidateNative": "Accepted integrated native template switching, Customize draft/conflict/publication, document conflict/restore, actual sign-out/sign-in recovery and cleanup on d9a03347.71original pages/settings preserved; seven protected processes alive. No E99 reproduction or speculative patch. Existing main-bundle gate still fails; bounded module-inventory diagnosis next. Audit58 remains latest; no audit wait. E106 now repaired and accepted: fresh production bundle, types/template SSR, four-pack interactive hydration. Source settings/pages restored and API revoked; owned preview stopped. Next final installed-artifact parity, tracker/evidence reconciliation and local integration; preserve four provider prerequisites and HTTPS gap."
   },
   "sessionBaseCommit": "9824d9605e50c4b0ebd711c13715b506f8ef5bd3"
 }
