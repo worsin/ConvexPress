@@ -1,0 +1,898 @@
+{
+  "contract": "convexpress-example-site-v1",
+  "id": "depot",
+  "name": "Common Supply",
+  "fictional": true,
+  "brief": "A fictional small store for durable everyday objects. Explain materials and care clearly; products, prices and stock must come from the real shop records.",
+  "homepage": "home",
+  "documents": [
+    {
+      "key": "home",
+      "type": "page",
+      "title": "Everyday things, chosen with care",
+      "slug": "common-supply-home",
+      "blocks": [
+        {
+          "id": "home-hero",
+          "name": "core/hero",
+          "version": 2,
+          "attrs": {
+            "eyebrow": "Common Supply",
+            "title": "Everyday things, chosen with care",
+            "body": "A small collection for the table, the desk and the routines in between."
+          },
+          "layout": {
+            "width": "wide",
+            "spacing": "spacious",
+            "tone": "muted",
+            "align": "start"
+          }
+        },
+        {
+          "id": "home-0",
+          "name": "core/section",
+          "version": 1,
+          "attrs": {},
+          "layout": {
+            "width": "contained",
+            "spacing": "spacious",
+            "tone": "default",
+            "align": "start"
+          },
+          "children": [
+            {
+              "id": "home-0-heading",
+              "name": "core/heading",
+              "version": 2,
+              "attrs": {
+                "text": {
+                  "type": "doc",
+                  "content": [
+                    {
+                      "type": "paragraph",
+                      "content": [
+                        {
+                          "type": "text",
+                          "text": "Buy with a little more context"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "id": "home-0-copy-0",
+              "name": "core/paragraph",
+              "version": 2,
+              "attrs": {
+                "body": {
+                  "type": "doc",
+                  "content": [
+                    {
+                      "type": "paragraph",
+                      "content": [
+                        {
+                          "type": "text",
+                          "text": "A useful product page explains what an object is made from, how it feels to use and what care it needs. Our collection is intentionally small enough to describe each piece properly."
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "home-1",
+          "name": "core/section",
+          "version": 1,
+          "attrs": {},
+          "layout": {
+            "width": "contained",
+            "spacing": "spacious",
+            "tone": "default",
+            "align": "start"
+          },
+          "children": [
+            {
+              "id": "home-1-heading",
+              "name": "core/heading",
+              "version": 2,
+              "attrs": {
+                "text": {
+                  "type": "doc",
+                  "content": [
+                    {
+                      "type": "paragraph",
+                      "content": [
+                        {
+                          "type": "text",
+                          "text": "Keep it in use"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "id": "home-1-copy-0",
+              "name": "core/paragraph",
+              "version": 2,
+              "attrs": {
+                "body": {
+                  "type": "doc",
+                  "content": [
+                    {
+                      "type": "paragraph",
+                      "content": [
+                        {
+                          "type": "text",
+                          "text": "The best part of a well-chosen object is the time you spend using it. Our care notes focus on ordinary habits that help everyday things last."
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "home-next",
+          "name": "core/cta-band",
+          "version": 2,
+          "attrs": {
+            "heading": "Find something useful",
+            "primaryCtaLabel": "Browse the collection",
+            "primaryCtaUrl": "/products"
+          },
+          "layout": {
+            "width": "contained",
+            "spacing": "spacious",
+            "tone": "accent",
+            "align": "start"
+          }
+        }
+      ]
+    },
+    {
+      "key": "story",
+      "type": "page",
+      "title": "Fewer things, better understood",
+      "slug": "our-story",
+      "blocks": [
+        {
+          "id": "story-hero",
+          "name": "core/hero",
+          "version": 2,
+          "attrs": {
+            "eyebrow": "About Common Supply",
+            "title": "Fewer things, better understood",
+            "body": "We choose simple objects that fit into everyday life without demanding attention."
+          },
+          "layout": {
+            "width": "wide",
+            "spacing": "spacious",
+            "tone": "muted",
+            "align": "start"
+          }
+        },
+        {
+          "id": "story-0",
+          "name": "core/section",
+          "version": 1,
+          "attrs": {},
+          "layout": {
+            "width": "contained",
+            "spacing": "spacious",
+            "tone": "default",
+            "align": "start"
+          },
+          "children": [
+            {
+              "id": "story-0-heading",
+              "name": "core/heading",
+              "version": 2,
+              "attrs": {
+                "text": {
+                  "type": "doc",
+                  "content": [
+                    {
+                      "type": "paragraph",
+                      "content": [
+                        {
+                          "type": "text",
+                          "text": "What belongs in the collection"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "id": "story-0-copy-0",
+              "name": "core/paragraph",
+              "version": 2,
+              "attrs": {
+                "body": {
+                  "type": "doc",
+                  "content": [
+                    {
+                      "type": "paragraph",
+                      "content": [
+                        {
+                          "type": "text",
+                          "text": "A piece should have a clear purpose, comfortable proportions and materials that suit its use. A good description includes its limitations as well as its strengths."
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "story-1",
+          "name": "core/section",
+          "version": 1,
+          "attrs": {},
+          "layout": {
+            "width": "contained",
+            "spacing": "spacious",
+            "tone": "default",
+            "align": "start"
+          },
+          "children": [
+            {
+              "id": "story-1-heading",
+              "name": "core/heading",
+              "version": 2,
+              "attrs": {
+                "text": {
+                  "type": "doc",
+                  "content": [
+                    {
+                      "type": "paragraph",
+                      "content": [
+                        {
+                          "type": "text",
+                          "text": "About this store"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "id": "story-1-copy-0",
+              "name": "core/paragraph",
+              "version": 2,
+              "attrs": {
+                "body": {
+                  "type": "doc",
+                  "content": [
+                    {
+                      "type": "paragraph",
+                      "content": [
+                        {
+                          "type": "text",
+                          "text": "Common Supply is a fictional demonstration store. Product and checkout acceptance uses synthetic records and configured test payments; no real purchase is offered by this example."
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "story-next",
+          "name": "core/cta-band",
+          "version": 2,
+          "attrs": {
+            "heading": "Read before you choose",
+            "primaryCtaLabel": "Materials and care",
+            "primaryCtaUrl": "/materials-and-care"
+          },
+          "layout": {
+            "width": "contained",
+            "spacing": "spacious",
+            "tone": "accent",
+            "align": "start"
+          }
+        }
+      ]
+    },
+    {
+      "key": "care",
+      "type": "page",
+      "title": "Materials and care",
+      "slug": "materials-and-care",
+      "blocks": [
+        {
+          "id": "care-hero",
+          "name": "core/hero",
+          "version": 2,
+          "attrs": {
+            "eyebrow": "Keep it useful",
+            "title": "Materials and care",
+            "body": "Small, regular acts of care are easier than rescuing a neglected object."
+          },
+          "layout": {
+            "width": "wide",
+            "spacing": "spacious",
+            "tone": "muted",
+            "align": "start"
+          }
+        },
+        {
+          "id": "care-0",
+          "name": "core/section",
+          "version": 1,
+          "attrs": {},
+          "layout": {
+            "width": "contained",
+            "spacing": "spacious",
+            "tone": "default",
+            "align": "start"
+          },
+          "children": [
+            {
+              "id": "care-0-heading",
+              "name": "core/heading",
+              "version": 2,
+              "attrs": {
+                "text": {
+                  "type": "doc",
+                  "content": [
+                    {
+                      "type": "paragraph",
+                      "content": [
+                        {
+                          "type": "text",
+                          "text": "Wood"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "id": "care-0-copy-0",
+              "name": "core/paragraph",
+              "version": 2,
+              "attrs": {
+                "body": {
+                  "type": "doc",
+                  "content": [
+                    {
+                      "type": "paragraph",
+                      "content": [
+                        {
+                          "type": "text",
+                          "text": "Wipe wooden surfaces with a damp cloth and dry them after cleaning. Avoid long soaks and follow the care instructions attached to the individual product."
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "care-1",
+          "name": "core/section",
+          "version": 1,
+          "attrs": {},
+          "layout": {
+            "width": "contained",
+            "spacing": "spacious",
+            "tone": "default",
+            "align": "start"
+          },
+          "children": [
+            {
+              "id": "care-1-heading",
+              "name": "core/heading",
+              "version": 2,
+              "attrs": {
+                "text": {
+                  "type": "doc",
+                  "content": [
+                    {
+                      "type": "paragraph",
+                      "content": [
+                        {
+                          "type": "text",
+                          "text": "Textiles"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "id": "care-1-copy-0",
+              "name": "core/paragraph",
+              "version": 2,
+              "attrs": {
+                "body": {
+                  "type": "doc",
+                  "content": [
+                    {
+                      "type": "paragraph",
+                      "content": [
+                        {
+                          "type": "text",
+                          "text": "Check the product label before washing. Air drying and gentle handling can help retain the shape of woven fabric."
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "care-2",
+          "name": "core/section",
+          "version": 1,
+          "attrs": {},
+          "layout": {
+            "width": "contained",
+            "spacing": "spacious",
+            "tone": "default",
+            "align": "start"
+          },
+          "children": [
+            {
+              "id": "care-2-heading",
+              "name": "core/heading",
+              "version": 2,
+              "attrs": {
+                "text": {
+                  "type": "doc",
+                  "content": [
+                    {
+                      "type": "paragraph",
+                      "content": [
+                        {
+                          "type": "text",
+                          "text": "Ceramics"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "id": "care-2-copy-0",
+              "name": "core/paragraph",
+              "version": 2,
+              "attrs": {
+                "body": {
+                  "type": "doc",
+                  "content": [
+                    {
+                      "type": "paragraph",
+                      "content": [
+                        {
+                          "type": "text",
+                          "text": "Check the individual product information for dishwasher and microwave suitability. A material name alone does not establish how a particular piece should be used."
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "care-next",
+          "name": "core/cta-band",
+          "version": 2,
+          "attrs": {
+            "heading": "Choose with context",
+            "primaryCtaLabel": "Browse products",
+            "primaryCtaUrl": "/products"
+          },
+          "layout": {
+            "width": "contained",
+            "spacing": "spacious",
+            "tone": "accent",
+            "align": "start"
+          }
+        }
+      ]
+    },
+    {
+      "key": "service",
+      "type": "page",
+      "title": "Delivery and returns in this example",
+      "slug": "delivery-and-returns",
+      "blocks": [
+        {
+          "id": "service-hero",
+          "name": "core/hero",
+          "version": 2,
+          "attrs": {
+            "eyebrow": "Store information",
+            "title": "Delivery and returns in this example",
+            "body": "This demonstration has no live fulfillment service. The checkout workflow is reviewed with test products and test payment outcomes."
+          },
+          "layout": {
+            "width": "wide",
+            "spacing": "spacious",
+            "tone": "muted",
+            "align": "start"
+          }
+        },
+        {
+          "id": "service-0",
+          "name": "core/section",
+          "version": 1,
+          "attrs": {},
+          "layout": {
+            "width": "contained",
+            "spacing": "spacious",
+            "tone": "default",
+            "align": "start"
+          },
+          "children": [
+            {
+              "id": "service-0-heading",
+              "name": "core/heading",
+              "version": 2,
+              "attrs": {
+                "text": {
+                  "type": "doc",
+                  "content": [
+                    {
+                      "type": "paragraph",
+                      "content": [
+                        {
+                          "type": "text",
+                          "text": "Before checkout"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "id": "service-0-copy-0",
+              "name": "core/paragraph",
+              "version": 2,
+              "attrs": {
+                "body": {
+                  "type": "doc",
+                  "content": [
+                    {
+                      "type": "paragraph",
+                      "content": [
+                        {
+                          "type": "text",
+                          "text": "Read the product details, selected quantity and displayed total. Shipping availability and payment requirements come from the configured shop, not from this page’s copy."
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "service-1",
+          "name": "core/section",
+          "version": 1,
+          "attrs": {},
+          "layout": {
+            "width": "contained",
+            "spacing": "spacious",
+            "tone": "default",
+            "align": "start"
+          },
+          "children": [
+            {
+              "id": "service-1-heading",
+              "name": "core/heading",
+              "version": 2,
+              "attrs": {
+                "text": {
+                  "type": "doc",
+                  "content": [
+                    {
+                      "type": "paragraph",
+                      "content": [
+                        {
+                          "type": "text",
+                          "text": "After an order"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "id": "service-1-copy-0",
+              "name": "core/paragraph",
+              "version": 2,
+              "attrs": {
+                "body": {
+                  "type": "doc",
+                  "content": [
+                    {
+                      "type": "paragraph",
+                      "content": [
+                        {
+                          "type": "text",
+                          "text": "A successful test payment must be matched to the actual order record. A confirmation screen alone is not a promise of shipment."
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "service-next",
+          "name": "core/cta-band",
+          "version": 2,
+          "attrs": {
+            "heading": "Return to the collection",
+            "primaryCtaLabel": "Browse products",
+            "primaryCtaUrl": "/products"
+          },
+          "layout": {
+            "width": "contained",
+            "spacing": "spacious",
+            "tone": "accent",
+            "align": "start"
+          }
+        }
+      ]
+    },
+    {
+      "key": "note",
+      "type": "post",
+      "title": "Choose for the routine you already have",
+      "slug": "choose-for-your-routine",
+      "blocks": [
+        {
+          "id": "note-intro",
+          "name": "core/section",
+          "version": 1,
+          "attrs": {},
+          "layout": {
+            "width": "contained",
+            "spacing": "spacious",
+            "tone": "default",
+            "align": "start"
+          },
+          "children": [
+            {
+              "id": "note-intro-heading",
+              "name": "core/heading",
+              "version": 2,
+              "attrs": {
+                "text": {
+                  "type": "doc",
+                  "content": [
+                    {
+                      "type": "paragraph",
+                      "content": [
+                        {
+                          "type": "text",
+                          "text": "Choose for the routine you already have"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "id": "note-intro-copy-0",
+              "name": "core/paragraph",
+              "version": 2,
+              "attrs": {
+                "body": {
+                  "type": "doc",
+                  "content": [
+                    {
+                      "type": "paragraph",
+                      "content": [
+                        {
+                          "type": "text",
+                          "text": "A useful object fits a real habit, not an imagined version of your day."
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "note-0",
+          "name": "core/section",
+          "version": 1,
+          "attrs": {},
+          "layout": {
+            "width": "contained",
+            "spacing": "spacious",
+            "tone": "default",
+            "align": "start"
+          },
+          "children": [
+            {
+              "id": "note-0-heading",
+              "name": "core/heading",
+              "version": 2,
+              "attrs": {
+                "text": {
+                  "type": "doc",
+                  "content": [
+                    {
+                      "type": "paragraph",
+                      "content": [
+                        {
+                          "type": "text",
+                          "text": "Begin with use"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "id": "note-0-copy-0",
+              "name": "core/paragraph",
+              "version": 2,
+              "attrs": {
+                "body": {
+                  "type": "doc",
+                  "content": [
+                    {
+                      "type": "paragraph",
+                      "content": [
+                        {
+                          "type": "text",
+                          "text": "Think about where an object will live and how often you will reach for it. Size, weight and cleaning matter more when considered in that ordinary setting."
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "note-1",
+          "name": "core/section",
+          "version": 1,
+          "attrs": {},
+          "layout": {
+            "width": "contained",
+            "spacing": "spacious",
+            "tone": "default",
+            "align": "start"
+          },
+          "children": [
+            {
+              "id": "note-1-heading",
+              "name": "core/heading",
+              "version": 2,
+              "attrs": {
+                "text": {
+                  "type": "doc",
+                  "content": [
+                    {
+                      "type": "paragraph",
+                      "content": [
+                        {
+                          "type": "text",
+                          "text": "Read the details"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "id": "note-1-copy-0",
+              "name": "core/paragraph",
+              "version": 2,
+              "attrs": {
+                "body": {
+                  "type": "doc",
+                  "content": [
+                    {
+                      "type": "paragraph",
+                      "content": [
+                        {
+                          "type": "text",
+                          "text": "Dimensions and care instructions make a purchase easier to judge. If the available information does not answer a practical question, leave room to ask before deciding."
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "note-next",
+          "name": "core/cta-band",
+          "version": 2,
+          "attrs": {
+            "heading": "Explore the collection",
+            "primaryCtaLabel": "Browse products",
+            "primaryCtaUrl": "/products"
+          },
+          "layout": {
+            "width": "contained",
+            "spacing": "spacious",
+            "tone": "accent",
+            "align": "start"
+          }
+        }
+      ]
+    }
+  ],
+  "navigation": [
+    {
+      "label": "Everyday things, chosen with care",
+      "documentKey": "home"
+    },
+    {
+      "label": "Fewer things, better understood",
+      "documentKey": "story"
+    },
+    {
+      "label": "Materials and care",
+      "documentKey": "care"
+    },
+    {
+      "label": "Delivery and returns in this example",
+      "documentKey": "service"
+    }
+  ],
+  "requiredPlugins": [
+    "commerce"
+  ],
+  "requiredResources": [
+    "Three real shop product records with prices, stock, variants and owned media",
+    "Configured test checkout and order acceptance"
+  ],
+  "acceptance": {
+    "authoredDocuments": false,
+    "menusAndAppearance": false,
+    "resourcesAndPluginRecords": false,
+    "desktopAndMobile": false,
+    "nativeEditAndPreview": false
+  }
+}

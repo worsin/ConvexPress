@@ -1,0 +1,1180 @@
+{
+  "contract": "convexpress-example-site-v1",
+  "id": "journal",
+  "name": "Slow Current",
+  "fictional": true,
+  "brief": "A fictional independent editorial publication about ordinary places, patient observation and making. Reading should be calm, legible and easy to continue.",
+  "homepage": "home",
+  "documents": [
+    {
+      "key": "home",
+      "type": "page",
+      "title": "Stories worth staying with",
+      "slug": "slow-current-home",
+      "blocks": [
+        {
+          "id": "home-hero",
+          "name": "core/hero",
+          "version": 2,
+          "attrs": {
+            "eyebrow": "Slow Current",
+            "title": "Stories worth staying with",
+            "body": "Notes on places, people and the details that reward a second look."
+          },
+          "layout": {
+            "width": "wide",
+            "spacing": "spacious",
+            "tone": "muted",
+            "align": "start"
+          }
+        },
+        {
+          "id": "home-0",
+          "name": "core/section",
+          "version": 1,
+          "attrs": {},
+          "layout": {
+            "width": "contained",
+            "spacing": "spacious",
+            "tone": "default",
+            "align": "start"
+          },
+          "children": [
+            {
+              "id": "home-0-heading",
+              "name": "core/heading",
+              "version": 2,
+              "attrs": {
+                "text": {
+                  "type": "doc",
+                  "content": [
+                    {
+                      "type": "paragraph",
+                      "content": [
+                        {
+                          "type": "text",
+                          "text": "The shape of an ordinary day"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "id": "home-0-copy-0",
+              "name": "core/paragraph",
+              "version": 2,
+              "attrs": {
+                "body": {
+                  "type": "doc",
+                  "content": [
+                    {
+                      "type": "paragraph",
+                      "content": [
+                        {
+                          "type": "text",
+                          "text": "Our first collection follows the public spaces and familiar routines that quietly hold a neighborhood together. Start with a walk, a workshop or the view from a shared table."
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "home-1",
+          "name": "core/section",
+          "version": 1,
+          "attrs": {},
+          "layout": {
+            "width": "contained",
+            "spacing": "spacious",
+            "tone": "default",
+            "align": "start"
+          },
+          "children": [
+            {
+              "id": "home-1-heading",
+              "name": "core/heading",
+              "version": 2,
+              "attrs": {
+                "text": {
+                  "type": "doc",
+                  "content": [
+                    {
+                      "type": "paragraph",
+                      "content": [
+                        {
+                          "type": "text",
+                          "text": "Read at your own pace"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "id": "home-1-copy-0",
+              "name": "core/paragraph",
+              "version": 2,
+              "attrs": {
+                "body": {
+                  "type": "doc",
+                  "content": [
+                    {
+                      "type": "paragraph",
+                      "content": [
+                        {
+                          "type": "text",
+                          "text": "Each story is a complete piece, with space for context and an ending that does not hurry you into the next headline."
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "home-next",
+          "name": "core/cta-band",
+          "version": 2,
+          "attrs": {
+            "heading": "Begin with a familiar place",
+            "primaryCtaLabel": "Read The public bench",
+            "primaryCtaUrl": "/blog/the-public-bench"
+          },
+          "layout": {
+            "width": "contained",
+            "spacing": "spacious",
+            "tone": "accent",
+            "align": "start"
+          }
+        }
+      ]
+    },
+    {
+      "key": "about",
+      "type": "page",
+      "title": "An independent point of view",
+      "slug": "about-slow-current",
+      "blocks": [
+        {
+          "id": "about-hero",
+          "name": "core/hero",
+          "version": 2,
+          "attrs": {
+            "eyebrow": "About the journal",
+            "title": "An independent point of view",
+            "body": "Slow Current is interested in the useful, the overlooked and the patiently made."
+          },
+          "layout": {
+            "width": "wide",
+            "spacing": "spacious",
+            "tone": "muted",
+            "align": "start"
+          }
+        },
+        {
+          "id": "about-0",
+          "name": "core/section",
+          "version": 1,
+          "attrs": {},
+          "layout": {
+            "width": "contained",
+            "spacing": "spacious",
+            "tone": "default",
+            "align": "start"
+          },
+          "children": [
+            {
+              "id": "about-0-heading",
+              "name": "core/heading",
+              "version": 2,
+              "attrs": {
+                "text": {
+                  "type": "doc",
+                  "content": [
+                    {
+                      "type": "paragraph",
+                      "content": [
+                        {
+                          "type": "text",
+                          "text": "Our editorial approach"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "id": "about-0-copy-0",
+              "name": "core/paragraph",
+              "version": 2,
+              "attrs": {
+                "body": {
+                  "type": "doc",
+                  "content": [
+                    {
+                      "type": "paragraph",
+                      "content": [
+                        {
+                          "type": "text",
+                          "text": "We prefer specific observations to sweeping claims. A story earns its length by giving the reader context, a distinctive perspective and room to form an opinion."
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "about-1",
+          "name": "core/section",
+          "version": 1,
+          "attrs": {},
+          "layout": {
+            "width": "contained",
+            "spacing": "spacious",
+            "tone": "default",
+            "align": "start"
+          },
+          "children": [
+            {
+              "id": "about-1-heading",
+              "name": "core/heading",
+              "version": 2,
+              "attrs": {
+                "text": {
+                  "type": "doc",
+                  "content": [
+                    {
+                      "type": "paragraph",
+                      "content": [
+                        {
+                          "type": "text",
+                          "text": "About this publication"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "id": "about-1-copy-0",
+              "name": "core/paragraph",
+              "version": 2,
+              "attrs": {
+                "body": {
+                  "type": "doc",
+                  "content": [
+                    {
+                      "type": "paragraph",
+                      "content": [
+                        {
+                          "type": "text",
+                          "text": "Slow Current is a fictional publication. The stories in this starter are original illustrative writing, not reporting about identifiable people or attributed interviews."
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "about-next",
+          "name": "core/cta-band",
+          "version": 2,
+          "attrs": {
+            "heading": "Explore the first collection",
+            "primaryCtaLabel": "Read our opening note",
+            "primaryCtaUrl": "/blog/notice-what-remains"
+          },
+          "layout": {
+            "width": "contained",
+            "spacing": "spacious",
+            "tone": "accent",
+            "align": "start"
+          }
+        }
+      ]
+    },
+    {
+      "key": "reading",
+      "type": "page",
+      "title": "A short reading path",
+      "slug": "reading-path",
+      "blocks": [
+        {
+          "id": "reading-hero",
+          "name": "core/hero",
+          "version": 2,
+          "attrs": {
+            "eyebrow": "Start here",
+            "title": "A short reading path",
+            "body": "Three ways into the journal: a place to pause, a material to understand and a habit of looking."
+          },
+          "layout": {
+            "width": "wide",
+            "spacing": "spacious",
+            "tone": "muted",
+            "align": "start"
+          }
+        },
+        {
+          "id": "reading-0",
+          "name": "core/section",
+          "version": 1,
+          "attrs": {},
+          "layout": {
+            "width": "contained",
+            "spacing": "spacious",
+            "tone": "default",
+            "align": "start"
+          },
+          "children": [
+            {
+              "id": "reading-0-heading",
+              "name": "core/heading",
+              "version": 2,
+              "attrs": {
+                "text": {
+                  "type": "doc",
+                  "content": [
+                    {
+                      "type": "paragraph",
+                      "content": [
+                        {
+                          "type": "text",
+                          "text": "Places we share"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "id": "reading-0-copy-0",
+              "name": "core/paragraph",
+              "version": 2,
+              "attrs": {
+                "body": {
+                  "type": "doc",
+                  "content": [
+                    {
+                      "type": "paragraph",
+                      "content": [
+                        {
+                          "type": "text",
+                          "text": "The public bench asks what a small piece of civic furniture makes possible. Read it slowly, then notice the places where your own neighborhood offers a pause."
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "reading-1",
+          "name": "core/section",
+          "version": 1,
+          "attrs": {},
+          "layout": {
+            "width": "contained",
+            "spacing": "spacious",
+            "tone": "default",
+            "align": "start"
+          },
+          "children": [
+            {
+              "id": "reading-1-heading",
+              "name": "core/heading",
+              "version": 2,
+              "attrs": {
+                "text": {
+                  "type": "doc",
+                  "content": [
+                    {
+                      "type": "paragraph",
+                      "content": [
+                        {
+                          "type": "text",
+                          "text": "Objects we keep"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "id": "reading-1-copy-0",
+              "name": "core/paragraph",
+              "version": 2,
+              "attrs": {
+                "body": {
+                  "type": "doc",
+                  "content": [
+                    {
+                      "type": "paragraph",
+                      "content": [
+                        {
+                          "type": "text",
+                          "text": "Repair begins with attention looks at the care involved in understanding an object before trying to improve it."
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "reading-2",
+          "name": "core/section",
+          "version": 1,
+          "attrs": {},
+          "layout": {
+            "width": "contained",
+            "spacing": "spacious",
+            "tone": "default",
+            "align": "start"
+          },
+          "children": [
+            {
+              "id": "reading-2-heading",
+              "name": "core/heading",
+              "version": 2,
+              "attrs": {
+                "text": {
+                  "type": "doc",
+                  "content": [
+                    {
+                      "type": "paragraph",
+                      "content": [
+                        {
+                          "type": "text",
+                          "text": "A way of looking"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "id": "reading-2-copy-0",
+              "name": "core/paragraph",
+              "version": 2,
+              "attrs": {
+                "body": {
+                  "type": "doc",
+                  "content": [
+                    {
+                      "type": "paragraph",
+                      "content": [
+                        {
+                          "type": "text",
+                          "text": "Notice what remains introduces the editorial idea behind this first collection: patient observation is a useful everyday practice."
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "reading-next",
+          "name": "core/cta-band",
+          "version": 2,
+          "attrs": {
+            "heading": "Start with a place",
+            "primaryCtaLabel": "The public bench",
+            "primaryCtaUrl": "/blog/the-public-bench"
+          },
+          "layout": {
+            "width": "contained",
+            "spacing": "spacious",
+            "tone": "accent",
+            "align": "start"
+          }
+        }
+      ]
+    },
+    {
+      "key": "bench",
+      "type": "post",
+      "title": "The public bench",
+      "slug": "the-public-bench",
+      "blocks": [
+        {
+          "id": "bench-intro",
+          "name": "core/section",
+          "version": 1,
+          "attrs": {},
+          "layout": {
+            "width": "contained",
+            "spacing": "spacious",
+            "tone": "default",
+            "align": "start"
+          },
+          "children": [
+            {
+              "id": "bench-intro-heading",
+              "name": "core/heading",
+              "version": 2,
+              "attrs": {
+                "text": {
+                  "type": "doc",
+                  "content": [
+                    {
+                      "type": "paragraph",
+                      "content": [
+                        {
+                          "type": "text",
+                          "text": "The public bench"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "id": "bench-intro-copy-0",
+              "name": "core/paragraph",
+              "version": 2,
+              "attrs": {
+                "body": {
+                  "type": "doc",
+                  "content": [
+                    {
+                      "type": "paragraph",
+                      "content": [
+                        {
+                          "type": "text",
+                          "text": "A bench changes a path from a route through a place into somewhere a person can remain."
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "bench-0",
+          "name": "core/section",
+          "version": 1,
+          "attrs": {},
+          "layout": {
+            "width": "contained",
+            "spacing": "spacious",
+            "tone": "default",
+            "align": "start"
+          },
+          "children": [
+            {
+              "id": "bench-0-heading",
+              "name": "core/heading",
+              "version": 2,
+              "attrs": {
+                "text": {
+                  "type": "doc",
+                  "content": [
+                    {
+                      "type": "paragraph",
+                      "content": [
+                        {
+                          "type": "text",
+                          "text": "An invitation without a purchase"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "id": "bench-0-copy-0",
+              "name": "core/paragraph",
+              "version": 2,
+              "attrs": {
+                "body": {
+                  "type": "doc",
+                  "content": [
+                    {
+                      "type": "paragraph",
+                      "content": [
+                        {
+                          "type": "text",
+                          "text": "A seat offers something unusually simple: permission to stop. There is no booking, no menu and no expectation that a pause must become productive."
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "bench-1",
+          "name": "core/section",
+          "version": 1,
+          "attrs": {},
+          "layout": {
+            "width": "contained",
+            "spacing": "spacious",
+            "tone": "default",
+            "align": "start"
+          },
+          "children": [
+            {
+              "id": "bench-1-heading",
+              "name": "core/heading",
+              "version": 2,
+              "attrs": {
+                "text": {
+                  "type": "doc",
+                  "content": [
+                    {
+                      "type": "paragraph",
+                      "content": [
+                        {
+                          "type": "text",
+                          "text": "Small choices matter"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "id": "bench-1-copy-0",
+              "name": "core/paragraph",
+              "version": 2,
+              "attrs": {
+                "body": {
+                  "type": "doc",
+                  "content": [
+                    {
+                      "type": "paragraph",
+                      "content": [
+                        {
+                          "type": "text",
+                          "text": "Shade, a backrest and a view of the path shape who can use a seat and for how long. These ordinary decisions reveal whose comfort a public space has considered."
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "bench-2",
+          "name": "core/section",
+          "version": 1,
+          "attrs": {},
+          "layout": {
+            "width": "contained",
+            "spacing": "spacious",
+            "tone": "default",
+            "align": "start"
+          },
+          "children": [
+            {
+              "id": "bench-2-heading",
+              "name": "core/heading",
+              "version": 2,
+              "attrs": {
+                "text": {
+                  "type": "doc",
+                  "content": [
+                    {
+                      "type": "paragraph",
+                      "content": [
+                        {
+                          "type": "text",
+                          "text": "Look again"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "id": "bench-2-copy-0",
+              "name": "core/paragraph",
+              "version": 2,
+              "attrs": {
+                "body": {
+                  "type": "doc",
+                  "content": [
+                    {
+                      "type": "paragraph",
+                      "content": [
+                        {
+                          "type": "text",
+                          "text": "On your next walk, notice where the seats face. A place designed only for passing through feels different from one that makes room for staying."
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "bench-next",
+          "name": "core/cta-band",
+          "version": 2,
+          "attrs": {
+            "heading": "Continue the collection",
+            "primaryCtaLabel": "Repair begins with attention",
+            "primaryCtaUrl": "/blog/repair-begins-with-attention"
+          },
+          "layout": {
+            "width": "contained",
+            "spacing": "spacious",
+            "tone": "accent",
+            "align": "start"
+          }
+        }
+      ]
+    },
+    {
+      "key": "repair",
+      "type": "post",
+      "title": "Repair begins with attention",
+      "slug": "repair-begins-with-attention",
+      "blocks": [
+        {
+          "id": "repair-intro",
+          "name": "core/section",
+          "version": 1,
+          "attrs": {},
+          "layout": {
+            "width": "contained",
+            "spacing": "spacious",
+            "tone": "default",
+            "align": "start"
+          },
+          "children": [
+            {
+              "id": "repair-intro-heading",
+              "name": "core/heading",
+              "version": 2,
+              "attrs": {
+                "text": {
+                  "type": "doc",
+                  "content": [
+                    {
+                      "type": "paragraph",
+                      "content": [
+                        {
+                          "type": "text",
+                          "text": "Repair begins with attention"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "id": "repair-intro-copy-0",
+              "name": "core/paragraph",
+              "version": 2,
+              "attrs": {
+                "body": {
+                  "type": "doc",
+                  "content": [
+                    {
+                      "type": "paragraph",
+                      "content": [
+                        {
+                          "type": "text",
+                          "text": "Before an object can be repaired, someone has to understand how it was put together."
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "repair-0",
+          "name": "core/section",
+          "version": 1,
+          "attrs": {},
+          "layout": {
+            "width": "contained",
+            "spacing": "spacious",
+            "tone": "default",
+            "align": "start"
+          },
+          "children": [
+            {
+              "id": "repair-0-heading",
+              "name": "core/heading",
+              "version": 2,
+              "attrs": {
+                "text": {
+                  "type": "doc",
+                  "content": [
+                    {
+                      "type": "paragraph",
+                      "content": [
+                        {
+                          "type": "text",
+                          "text": "Read the object"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "id": "repair-0-copy-0",
+              "name": "core/paragraph",
+              "version": 2,
+              "attrs": {
+                "body": {
+                  "type": "doc",
+                  "content": [
+                    {
+                      "type": "paragraph",
+                      "content": [
+                        {
+                          "type": "text",
+                          "text": "A worn edge, a loose joint or a replaced screw records use. Taking time to inspect those details can prevent an enthusiastic repair from becoming another source of damage."
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "repair-1",
+          "name": "core/section",
+          "version": 1,
+          "attrs": {},
+          "layout": {
+            "width": "contained",
+            "spacing": "spacious",
+            "tone": "default",
+            "align": "start"
+          },
+          "children": [
+            {
+              "id": "repair-1-heading",
+              "name": "core/heading",
+              "version": 2,
+              "attrs": {
+                "text": {
+                  "type": "doc",
+                  "content": [
+                    {
+                      "type": "paragraph",
+                      "content": [
+                        {
+                          "type": "text",
+                          "text": "Keep what still works"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "id": "repair-1-copy-0",
+              "name": "core/paragraph",
+              "version": 2,
+              "attrs": {
+                "body": {
+                  "type": "doc",
+                  "content": [
+                    {
+                      "type": "paragraph",
+                      "content": [
+                        {
+                          "type": "text",
+                          "text": "Repair is often an exercise in restraint. The useful question is not how much can be changed, but which change restores the object’s purpose."
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "repair-next",
+          "name": "core/cta-band",
+          "version": 2,
+          "attrs": {
+            "heading": "A note on looking",
+            "primaryCtaLabel": "Notice what remains",
+            "primaryCtaUrl": "/blog/notice-what-remains"
+          },
+          "layout": {
+            "width": "contained",
+            "spacing": "spacious",
+            "tone": "accent",
+            "align": "start"
+          }
+        }
+      ]
+    },
+    {
+      "key": "opening",
+      "type": "post",
+      "title": "Notice what remains",
+      "slug": "notice-what-remains",
+      "blocks": [
+        {
+          "id": "opening-intro",
+          "name": "core/section",
+          "version": 1,
+          "attrs": {},
+          "layout": {
+            "width": "contained",
+            "spacing": "spacious",
+            "tone": "default",
+            "align": "start"
+          },
+          "children": [
+            {
+              "id": "opening-intro-heading",
+              "name": "core/heading",
+              "version": 2,
+              "attrs": {
+                "text": {
+                  "type": "doc",
+                  "content": [
+                    {
+                      "type": "paragraph",
+                      "content": [
+                        {
+                          "type": "text",
+                          "text": "Notice what remains"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "id": "opening-intro-copy-0",
+              "name": "core/paragraph",
+              "version": 2,
+              "attrs": {
+                "body": {
+                  "type": "doc",
+                  "content": [
+                    {
+                      "type": "paragraph",
+                      "content": [
+                        {
+                          "type": "text",
+                          "text": "A journal can offer a different rhythm: enough time to see what a quick glance leaves behind."
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "opening-0",
+          "name": "core/section",
+          "version": 1,
+          "attrs": {},
+          "layout": {
+            "width": "contained",
+            "spacing": "spacious",
+            "tone": "default",
+            "align": "start"
+          },
+          "children": [
+            {
+              "id": "opening-0-heading",
+              "name": "core/heading",
+              "version": 2,
+              "attrs": {
+                "text": {
+                  "type": "doc",
+                  "content": [
+                    {
+                      "type": "paragraph",
+                      "content": [
+                        {
+                          "type": "text",
+                          "text": "A modest beginning"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "id": "opening-0-copy-0",
+              "name": "core/paragraph",
+              "version": 2,
+              "attrs": {
+                "body": {
+                  "type": "doc",
+                  "content": [
+                    {
+                      "type": "paragraph",
+                      "content": [
+                        {
+                          "type": "text",
+                          "text": "This collection begins with everyday things because they are available to everyone. Attention does not require a distant destination or a remarkable event."
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "opening-1",
+          "name": "core/section",
+          "version": 1,
+          "attrs": {},
+          "layout": {
+            "width": "contained",
+            "spacing": "spacious",
+            "tone": "default",
+            "align": "start"
+          },
+          "children": [
+            {
+              "id": "opening-1-heading",
+              "name": "core/heading",
+              "version": 2,
+              "attrs": {
+                "text": {
+                  "type": "doc",
+                  "content": [
+                    {
+                      "type": "paragraph",
+                      "content": [
+                        {
+                          "type": "text",
+                          "text": "An invitation"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "id": "opening-1-copy-0",
+              "name": "core/paragraph",
+              "version": 2,
+              "attrs": {
+                "body": {
+                  "type": "doc",
+                  "content": [
+                    {
+                      "type": "paragraph",
+                      "content": [
+                        {
+                          "type": "text",
+                          "text": "Read a piece, put it down and look around. The most useful result may be a better question about a place or object you already know."
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "opening-next",
+          "name": "core/cta-band",
+          "version": 2,
+          "attrs": {
+            "heading": "Choose your next story",
+            "primaryCtaLabel": "The reading path",
+            "primaryCtaUrl": "/reading-path"
+          },
+          "layout": {
+            "width": "contained",
+            "spacing": "spacious",
+            "tone": "accent",
+            "align": "start"
+          }
+        }
+      ]
+    }
+  ],
+  "navigation": [
+    {
+      "label": "Stories worth staying with",
+      "documentKey": "home"
+    },
+    {
+      "label": "An independent point of view",
+      "documentKey": "about"
+    },
+    {
+      "label": "A short reading path",
+      "documentKey": "reading"
+    }
+  ],
+  "requiredPlugins": [],
+  "requiredResources": [
+    "Editorial photography with provenance and meaningful captions",
+    "Publication masthead and article author profile"
+  ],
+  "acceptance": {
+    "authoredDocuments": false,
+    "menusAndAppearance": false,
+    "resourcesAndPluginRecords": false,
+    "desktopAndMobile": false,
+    "nativeEditAndPreview": false
+  }
+}

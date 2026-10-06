@@ -1,0 +1,1008 @@
+{
+  "contract": "convexpress-example-site-v1",
+  "id": "core",
+  "name": "Fieldwork Studio",
+  "fictional": true,
+  "brief": "A fictional independent design studio. Quiet typography, clear process and case studies help a small business assess a project without sales pressure.",
+  "homepage": "home",
+  "documents": [
+    {
+      "key": "home",
+      "type": "page",
+      "title": "Useful websites, thoughtfully made",
+      "slug": "fieldwork-home",
+      "blocks": [
+        {
+          "id": "home-hero",
+          "name": "core/hero",
+          "version": 2,
+          "attrs": {
+            "eyebrow": "Fieldwork Studio",
+            "title": "Useful websites, thoughtfully made",
+            "body": "An independent studio for businesses with something worth explaining. We turn a clear idea into a website people can use."
+          },
+          "layout": {
+            "width": "wide",
+            "spacing": "spacious",
+            "tone": "muted",
+            "align": "start"
+          }
+        },
+        {
+          "id": "home-0",
+          "name": "core/section",
+          "version": 1,
+          "attrs": {},
+          "layout": {
+            "width": "contained",
+            "spacing": "spacious",
+            "tone": "default",
+            "align": "start"
+          },
+          "children": [
+            {
+              "id": "home-0-heading",
+              "name": "core/heading",
+              "version": 2,
+              "attrs": {
+                "text": {
+                  "type": "doc",
+                  "content": [
+                    {
+                      "type": "paragraph",
+                      "content": [
+                        {
+                          "type": "text",
+                          "text": "Clarity before decoration"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "id": "home-0-copy-0",
+              "name": "core/paragraph",
+              "version": 2,
+              "attrs": {
+                "body": {
+                  "type": "doc",
+                  "content": [
+                    {
+                      "type": "paragraph",
+                      "content": [
+                        {
+                          "type": "text",
+                          "text": "We begin with the questions your customers bring. Content, navigation and visual design grow from those questions, so the finished site has a job beyond looking good."
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "home-1",
+          "name": "core/section",
+          "version": 1,
+          "attrs": {},
+          "layout": {
+            "width": "contained",
+            "spacing": "spacious",
+            "tone": "default",
+            "align": "start"
+          },
+          "children": [
+            {
+              "id": "home-1-heading",
+              "name": "core/heading",
+              "version": 2,
+              "attrs": {
+                "text": {
+                  "type": "doc",
+                  "content": [
+                    {
+                      "type": "paragraph",
+                      "content": [
+                        {
+                          "type": "text",
+                          "text": "Small team, shared decisions"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "id": "home-1-copy-0",
+              "name": "core/paragraph",
+              "version": 2,
+              "attrs": {
+                "body": {
+                  "type": "doc",
+                  "content": [
+                    {
+                      "type": "paragraph",
+                      "content": [
+                        {
+                          "type": "text",
+                          "text": "You work through a focused brief, a visible prototype and a careful launch. Each stage leaves room to review the actual work and make a considered decision."
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "home-next",
+          "name": "core/cta-band",
+          "version": 2,
+          "attrs": {
+            "heading": "See how a project takes shape",
+            "primaryCtaLabel": "Explore our approach",
+            "primaryCtaUrl": "/our-approach"
+          },
+          "layout": {
+            "width": "contained",
+            "spacing": "spacious",
+            "tone": "accent",
+            "align": "start"
+          }
+        }
+      ]
+    },
+    {
+      "key": "approach",
+      "type": "page",
+      "title": "A practical path from idea to launch",
+      "slug": "our-approach",
+      "blocks": [
+        {
+          "id": "approach-hero",
+          "name": "core/hero",
+          "version": 2,
+          "attrs": {
+            "eyebrow": "How we work",
+            "title": "A practical path from idea to launch",
+            "body": "A simple process gives good ideas space to develop without losing sight of the people using the site."
+          },
+          "layout": {
+            "width": "wide",
+            "spacing": "spacious",
+            "tone": "muted",
+            "align": "start"
+          }
+        },
+        {
+          "id": "approach-0",
+          "name": "core/section",
+          "version": 1,
+          "attrs": {},
+          "layout": {
+            "width": "contained",
+            "spacing": "spacious",
+            "tone": "default",
+            "align": "start"
+          },
+          "children": [
+            {
+              "id": "approach-0-heading",
+              "name": "core/heading",
+              "version": 2,
+              "attrs": {
+                "text": {
+                  "type": "doc",
+                  "content": [
+                    {
+                      "type": "paragraph",
+                      "content": [
+                        {
+                          "type": "text",
+                          "text": "Listen and map"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "id": "approach-0-copy-0",
+              "name": "core/paragraph",
+              "version": 2,
+              "attrs": {
+                "body": {
+                  "type": "doc",
+                  "content": [
+                    {
+                      "type": "paragraph",
+                      "content": [
+                        {
+                          "type": "text",
+                          "text": "We inventory the content you have, identify the decisions visitors need to make and agree which pages deserve a place. A short route map becomes the shared plan."
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "approach-1",
+          "name": "core/section",
+          "version": 1,
+          "attrs": {},
+          "layout": {
+            "width": "contained",
+            "spacing": "spacious",
+            "tone": "default",
+            "align": "start"
+          },
+          "children": [
+            {
+              "id": "approach-1-heading",
+              "name": "core/heading",
+              "version": 2,
+              "attrs": {
+                "text": {
+                  "type": "doc",
+                  "content": [
+                    {
+                      "type": "paragraph",
+                      "content": [
+                        {
+                          "type": "text",
+                          "text": "Make and test"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "id": "approach-1-copy-0",
+              "name": "core/paragraph",
+              "version": 2,
+              "attrs": {
+                "body": {
+                  "type": "doc",
+                  "content": [
+                    {
+                      "type": "paragraph",
+                      "content": [
+                        {
+                          "type": "text",
+                          "text": "We write and design together. A working prototype lets us test headings, links and forms with realistic copy rather than empty boxes."
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "approach-2",
+          "name": "core/section",
+          "version": 1,
+          "attrs": {},
+          "layout": {
+            "width": "contained",
+            "spacing": "spacious",
+            "tone": "default",
+            "align": "start"
+          },
+          "children": [
+            {
+              "id": "approach-2-heading",
+              "name": "core/heading",
+              "version": 2,
+              "attrs": {
+                "text": {
+                  "type": "doc",
+                  "content": [
+                    {
+                      "type": "paragraph",
+                      "content": [
+                        {
+                          "type": "text",
+                          "text": "Launch and learn"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "id": "approach-2-copy-0",
+              "name": "core/paragraph",
+              "version": 2,
+              "attrs": {
+                "body": {
+                  "type": "doc",
+                  "content": [
+                    {
+                      "type": "paragraph",
+                      "content": [
+                        {
+                          "type": "text",
+                          "text": "Before launch we check small screens, keyboard navigation, content ownership and the ordinary tasks that keep a site useful. The handover includes editable pages and a clear maintenance routine."
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "approach-next",
+          "name": "core/cta-band",
+          "version": 2,
+          "attrs": {
+            "heading": "A process is easier to see in practice",
+            "primaryCtaLabel": "Read the Northline story",
+            "primaryCtaUrl": "/northline-project"
+          },
+          "layout": {
+            "width": "contained",
+            "spacing": "spacious",
+            "tone": "accent",
+            "align": "start"
+          }
+        }
+      ]
+    },
+    {
+      "key": "project",
+      "type": "page",
+      "title": "A clearer home for Northline",
+      "slug": "northline-project",
+      "blocks": [
+        {
+          "id": "project-hero",
+          "name": "core/hero",
+          "version": 2,
+          "attrs": {
+            "eyebrow": "Project story",
+            "title": "A clearer home for Northline",
+            "body": "A fictional case study about making a small workshop easier to understand online."
+          },
+          "layout": {
+            "width": "wide",
+            "spacing": "spacious",
+            "tone": "muted",
+            "align": "start"
+          }
+        },
+        {
+          "id": "project-0",
+          "name": "core/section",
+          "version": 1,
+          "attrs": {},
+          "layout": {
+            "width": "contained",
+            "spacing": "spacious",
+            "tone": "default",
+            "align": "start"
+          },
+          "children": [
+            {
+              "id": "project-0-heading",
+              "name": "core/heading",
+              "version": 2,
+              "attrs": {
+                "text": {
+                  "type": "doc",
+                  "content": [
+                    {
+                      "type": "paragraph",
+                      "content": [
+                        {
+                          "type": "text",
+                          "text": "Start with the visitor"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "id": "project-0-copy-0",
+              "name": "core/paragraph",
+              "version": 2,
+              "attrs": {
+                "body": {
+                  "type": "doc",
+                  "content": [
+                    {
+                      "type": "paragraph",
+                      "content": [
+                        {
+                          "type": "text",
+                          "text": "Northline wanted to explain three services without making visitors learn the workshop’s internal terminology. We organized the pages around the work customers needed done."
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "project-1",
+          "name": "core/section",
+          "version": 1,
+          "attrs": {},
+          "layout": {
+            "width": "contained",
+            "spacing": "spacious",
+            "tone": "default",
+            "align": "start"
+          },
+          "children": [
+            {
+              "id": "project-1-heading",
+              "name": "core/heading",
+              "version": 2,
+              "attrs": {
+                "text": {
+                  "type": "doc",
+                  "content": [
+                    {
+                      "type": "paragraph",
+                      "content": [
+                        {
+                          "type": "text",
+                          "text": "Let the work lead"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "id": "project-1-copy-0",
+              "name": "core/paragraph",
+              "version": 2,
+              "attrs": {
+                "body": {
+                  "type": "doc",
+                  "content": [
+                    {
+                      "type": "paragraph",
+                      "content": [
+                        {
+                          "type": "text",
+                          "text": "A concise project narrative replaced a long list of capabilities. Short captions explained the problem, the choice and the finished result."
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "project-2",
+          "name": "core/section",
+          "version": 1,
+          "attrs": {},
+          "layout": {
+            "width": "contained",
+            "spacing": "spacious",
+            "tone": "default",
+            "align": "start"
+          },
+          "children": [
+            {
+              "id": "project-2-heading",
+              "name": "core/heading",
+              "version": 2,
+              "attrs": {
+                "text": {
+                  "type": "doc",
+                  "content": [
+                    {
+                      "type": "paragraph",
+                      "content": [
+                        {
+                          "type": "text",
+                          "text": "Make the next step obvious"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "id": "project-2-copy-0",
+              "name": "core/paragraph",
+              "version": 2,
+              "attrs": {
+                "body": {
+                  "type": "doc",
+                  "content": [
+                    {
+                      "type": "paragraph",
+                      "content": [
+                        {
+                          "type": "text",
+                          "text": "Every service page leads back to the process and the information a customer should prepare. The example demonstrates a content approach; it does not claim measured commercial results."
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "project-next",
+          "name": "core/cta-band",
+          "version": 2,
+          "attrs": {
+            "heading": "Meet the people behind the work",
+            "primaryCtaLabel": "Our studio",
+            "primaryCtaUrl": "/our-studio"
+          },
+          "layout": {
+            "width": "contained",
+            "spacing": "spacious",
+            "tone": "accent",
+            "align": "start"
+          }
+        }
+      ]
+    },
+    {
+      "key": "studio",
+      "type": "page",
+      "title": "A studio built around useful work",
+      "slug": "our-studio",
+      "blocks": [
+        {
+          "id": "studio-hero",
+          "name": "core/hero",
+          "version": 2,
+          "attrs": {
+            "eyebrow": "About Fieldwork",
+            "title": "A studio built around useful work",
+            "body": "Good collaboration combines clear opinions with the patience to ask another question."
+          },
+          "layout": {
+            "width": "wide",
+            "spacing": "spacious",
+            "tone": "muted",
+            "align": "start"
+          }
+        },
+        {
+          "id": "studio-0",
+          "name": "core/section",
+          "version": 1,
+          "attrs": {},
+          "layout": {
+            "width": "contained",
+            "spacing": "spacious",
+            "tone": "default",
+            "align": "start"
+          },
+          "children": [
+            {
+              "id": "studio-0-heading",
+              "name": "core/heading",
+              "version": 2,
+              "attrs": {
+                "text": {
+                  "type": "doc",
+                  "content": [
+                    {
+                      "type": "paragraph",
+                      "content": [
+                        {
+                          "type": "text",
+                          "text": "How we collaborate"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "id": "studio-0-copy-0",
+              "name": "core/paragraph",
+              "version": 2,
+              "attrs": {
+                "body": {
+                  "type": "doc",
+                  "content": [
+                    {
+                      "type": "paragraph",
+                      "content": [
+                        {
+                          "type": "text",
+                          "text": "We make decisions in the open. Drafts carry the reasoning behind them, and review sessions focus on the people who will use the result."
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "studio-1",
+          "name": "core/section",
+          "version": 1,
+          "attrs": {},
+          "layout": {
+            "width": "contained",
+            "spacing": "spacious",
+            "tone": "default",
+            "align": "start"
+          },
+          "children": [
+            {
+              "id": "studio-1-heading",
+              "name": "core/heading",
+              "version": 2,
+              "attrs": {
+                "text": {
+                  "type": "doc",
+                  "content": [
+                    {
+                      "type": "paragraph",
+                      "content": [
+                        {
+                          "type": "text",
+                          "text": "About this example"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "id": "studio-1-copy-0",
+              "name": "core/paragraph",
+              "version": 2,
+              "attrs": {
+                "body": {
+                  "type": "doc",
+                  "content": [
+                    {
+                      "type": "paragraph",
+                      "content": [
+                        {
+                          "type": "text",
+                          "text": "Fieldwork is a fictional studio used to demonstrate an editable business website. Its project stories are authored examples, not client testimonials or a live offer of services."
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "studio-next",
+          "name": "core/cta-band",
+          "version": 2,
+          "attrs": {
+            "heading": "Return to the work",
+            "primaryCtaLabel": "Visit the homepage",
+            "primaryCtaUrl": "/fieldwork-home"
+          },
+          "layout": {
+            "width": "contained",
+            "spacing": "spacious",
+            "tone": "accent",
+            "align": "start"
+          }
+        }
+      ]
+    },
+    {
+      "key": "note",
+      "type": "post",
+      "title": "Write the page before drawing the boxes",
+      "slug": "write-before-boxes",
+      "blocks": [
+        {
+          "id": "note-intro",
+          "name": "core/section",
+          "version": 1,
+          "attrs": {},
+          "layout": {
+            "width": "contained",
+            "spacing": "spacious",
+            "tone": "default",
+            "align": "start"
+          },
+          "children": [
+            {
+              "id": "note-intro-heading",
+              "name": "core/heading",
+              "version": 2,
+              "attrs": {
+                "text": {
+                  "type": "doc",
+                  "content": [
+                    {
+                      "type": "paragraph",
+                      "content": [
+                        {
+                          "type": "text",
+                          "text": "Write the page before drawing the boxes"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "id": "note-intro-copy-0",
+              "name": "core/paragraph",
+              "version": 2,
+              "attrs": {
+                "body": {
+                  "type": "doc",
+                  "content": [
+                    {
+                      "type": "paragraph",
+                      "content": [
+                        {
+                          "type": "text",
+                          "text": "A useful first draft often reveals more about a page than an early layout."
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "note-0",
+          "name": "core/section",
+          "version": 1,
+          "attrs": {},
+          "layout": {
+            "width": "contained",
+            "spacing": "spacious",
+            "tone": "default",
+            "align": "start"
+          },
+          "children": [
+            {
+              "id": "note-0-heading",
+              "name": "core/heading",
+              "version": 2,
+              "attrs": {
+                "text": {
+                  "type": "doc",
+                  "content": [
+                    {
+                      "type": "paragraph",
+                      "content": [
+                        {
+                          "type": "text",
+                          "text": "Begin with a question"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "id": "note-0-copy-0",
+              "name": "core/paragraph",
+              "version": 2,
+              "attrs": {
+                "body": {
+                  "type": "doc",
+                  "content": [
+                    {
+                      "type": "paragraph",
+                      "content": [
+                        {
+                          "type": "text",
+                          "text": "Write down what brought someone to the page. Then give them an answer in words you would use in conversation. A heading should help that person recognize the answer quickly."
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "note-1",
+          "name": "core/section",
+          "version": 1,
+          "attrs": {},
+          "layout": {
+            "width": "contained",
+            "spacing": "spacious",
+            "tone": "default",
+            "align": "start"
+          },
+          "children": [
+            {
+              "id": "note-1-heading",
+              "name": "core/heading",
+              "version": 2,
+              "attrs": {
+                "text": {
+                  "type": "doc",
+                  "content": [
+                    {
+                      "type": "paragraph",
+                      "content": [
+                        {
+                          "type": "text",
+                          "text": "Give each section a job"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "id": "note-1-copy-0",
+              "name": "core/paragraph",
+              "version": 2,
+              "attrs": {
+                "body": {
+                  "type": "doc",
+                  "content": [
+                    {
+                      "type": "paragraph",
+                      "content": [
+                        {
+                          "type": "text",
+                          "text": "If two sections make the same point, combine them. If a section has no useful next step or supporting detail, question whether it belongs."
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "note-2",
+          "name": "core/section",
+          "version": 1,
+          "attrs": {},
+          "layout": {
+            "width": "contained",
+            "spacing": "spacious",
+            "tone": "default",
+            "align": "start"
+          },
+          "children": [
+            {
+              "id": "note-2-heading",
+              "name": "core/heading",
+              "version": 2,
+              "attrs": {
+                "text": {
+                  "type": "doc",
+                  "content": [
+                    {
+                      "type": "paragraph",
+                      "content": [
+                        {
+                          "type": "text",
+                          "text": "Test the sequence"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "id": "note-2-copy-0",
+              "name": "core/paragraph",
+              "version": 2,
+              "attrs": {
+                "body": {
+                  "type": "doc",
+                  "content": [
+                    {
+                      "type": "paragraph",
+                      "content": [
+                        {
+                          "type": "text",
+                          "text": "Read only the headings in order. They should describe a coherent journey rather than a collection of slogans."
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "note-next",
+          "name": "core/cta-band",
+          "version": 2,
+          "attrs": {
+            "heading": "Put the idea into practice",
+            "primaryCtaLabel": "Our approach",
+            "primaryCtaUrl": "/our-approach"
+          },
+          "layout": {
+            "width": "contained",
+            "spacing": "spacious",
+            "tone": "accent",
+            "align": "start"
+          }
+        }
+      ]
+    }
+  ],
+  "navigation": [
+    {
+      "label": "Useful websites, thoughtfully made",
+      "documentKey": "home"
+    },
+    {
+      "label": "A practical path from idea to launch",
+      "documentKey": "approach"
+    },
+    {
+      "label": "A clearer home for Northline",
+      "documentKey": "project"
+    },
+    {
+      "label": "A studio built around useful work",
+      "documentKey": "studio"
+    }
+  ],
+  "requiredPlugins": [],
+  "requiredResources": [
+    "Studio project photography with descriptive alternatives",
+    "Contact workflow with a configured test recipient"
+  ],
+  "acceptance": {
+    "authoredDocuments": false,
+    "menusAndAppearance": false,
+    "resourcesAndPluginRecords": false,
+    "desktopAndMobile": false,
+    "nativeEditAndPreview": false
+  }
+}
