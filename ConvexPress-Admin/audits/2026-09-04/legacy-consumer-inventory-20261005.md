@@ -22,3 +22,7 @@ Original corpus: source116 documents/434revisions and target29/88; all current d
 ## Quick Edit closure
 
 The failure above was reproduced in native Electron, including partial parent application. Canonical Quick Edit now uses one expected-revision transaction; stale forms retain input and refuse all changes. Post/page save, parent removal/reassignment, template/order and native reopen pass. Body/history, original145documents/522revisions, appearance/mail and target private draft exact after cleanup. See quick-edit-canonical-20261005.md. Next is PostBulkEdit and other actual generic metadata consumers; noncanonical fallback and generic validators remain deliberately inventoried.
+
+## Bulk Edit closure and audit 38 parity gap
+
+Bulk Edit canonical revisions, stale/partial results and cross-page selection verified in native Electron; see bulk-edit-canonical-20261005.md. Generic metadata retirement remains open. Current post edit route mounts NativeCanonicalEditor without a metadata sidebar; CanonicalEditor/NativeCanonicalEditor have no excerpt/featured-image/discussion controls. Quick Edit supports comments and author but renders categories/tags read-only. Audit38 correctly identifies a parity gap requiring native reproduction and canonical metadata repair before removing further generic consumers. The old destructive marketing seed's replacement belongs to open E10 safe canonical example-site provisioning; restored legacy deletion is not the repair.

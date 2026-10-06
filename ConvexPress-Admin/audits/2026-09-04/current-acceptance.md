@@ -1,3 +1,7 @@
+# October 5 canonical Bulk Edit
+
+Revision-checked cross-page batches, explicit partial/stale results and sticky removal accepted in native Electron. Three helper tests and four Admin type tasks pass; all eleven fixtures and owned sessions/runtime cleaned. Original145 documents/522 revisions exact. No backend redeploy; Quick Edit installed bases remain current. [Evidence](bulk-edit-canonical-20261005.md). Audit38 metadata parity and E10 safe example-site provisioning remain open; full goal incomplete117/20.
+
 ## October 5 — V1 block/AI API retired
 
 Both sites remove exactly16 obsolete block/AI endpoints; all remaining signatures, canonical AI and usage diagnostics preserved. Working/source169tests and target139 pass; types/contracts/writer gates pass. Exact145documents/522revisions, appearance/mail and ready indexes verified; sessions revoked. E07 remains open for native Quick Edit canonical coordination and schema consumers. [Evidence and next deployment bases](legacy-block-api-retirement-20261005.md).117/20 unchanged.
