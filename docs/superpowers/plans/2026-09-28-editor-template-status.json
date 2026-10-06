@@ -7,7 +7,7 @@
     "In progress": 20
   },
   "goal": "Complete block editor and template delivery plus all demonstrated blockers; defer unrelated whole-app audit campaigns.",
-  "currentTask": "Task 4 / E07: obsolete native article/text/v1 composition editor closure retired (38 private files); current canonical route/editor/recovery tests, Admin types and build pass. Next: caller-aware retirement of old blocks read/write/AI endpoints, then generic authoring fields and schema consumers. Full goal active/incomplete; 117 Verified / 20 In progress unchanged.",
+  "currentTask": "Task 4 / E07:38-file obsolete native editor closure and16 old block/AI endpoints retired; canonical editor/AI and usage diagnostics preserved. Both installed inventories/data/indexes verified. Next: reproduce and repair native Quick Edit title/metadata updates through one revision-checked canonical transaction (page parent currently separate), classify bulk edit, then remaining generic fields/schema recovery. Full goal active/incomplete;117Verified/20In progress unchanged.",
   "tasks": [
     {
       "id": 1,
@@ -100,11 +100,11 @@
     },
     {
       "id": "E07",
-      "status": "All current source116/116 and target29/29 documents canonical; historical format/reference reconciliation complete within its documented scope. Downgrade API/permit/control retired; exact downloads and deliberate saved/unsaved canonical import/undo verified. Normal native edit routes and all four packs use canonical dispatch. New post/page and Dashboard Quick Draft create canonical revision1 directly on both sites; Quick Draft native literal text/line breaks/save/reload/335px Website accepted (quick-draft-20261005.md). Original rows, appearance/mail and other private drafts exact after cleanup. HTTP create/read/update now canonical with live API/native/Website acceptance on both sites; API revocation, stale revision and invalid CTA refusal verified. Unused generic public create endpoints are retired; installed inventories remove exactly those two functions. Canonical creation and hierarchy/lifecycle acceptance pass on both sites. WordPress import now uses canonical document transactions, retained source archives and accepted mapping receipts; native/Website round trips and exact cleanup pass on both sites. Unsupported conversion/lifecycle states explicitly require review. Obsolete seedMarketingSite/repairSeededPageLinks and their CLI are retired; media/shop workflows remain exact. Remaining native/backend/schema consumers still require bounded retirement. E07 remains open. Unreachable native EditorLayout/useEditorForm, original article/text widgets and v1 composition controls retired with current canonical/shared controls preserved.",
+      "status": "All current source116/116 and target29/29 documents canonical; historical format/reference reconciliation complete within its documented scope. Downgrade API/permit/control retired; exact downloads and deliberate saved/unsaved canonical import/undo verified. Normal native edit routes and all four packs use canonical dispatch. New post/page and Dashboard Quick Draft create canonical revision1 directly on both sites; Quick Draft native literal text/line breaks/save/reload/335px Website accepted (quick-draft-20261005.md). Original rows, appearance/mail and other private drafts exact after cleanup. HTTP create/read/update now canonical with live API/native/Website acceptance on both sites; API revocation, stale revision and invalid CTA refusal verified. Unused generic public create endpoints are retired; installed inventories remove exactly those two functions. Canonical creation and hierarchy/lifecycle acceptance pass on both sites. WordPress import now uses canonical document transactions, retained source archives and accepted mapping receipts; native/Website round trips and exact cleanup pass on both sites. Unsupported conversion/lifecycle states explicitly require review. Obsolete seedMarketingSite/repairSeededPageLinks and their CLI are retired; media/shop workflows remain exact. Remaining native/backend/schema consumers still require bounded retirement. E07 remains open. Unreachable native EditorLayout/useEditorForm, original article/text widgets and v1 composition controls retired with current canonical/shared controls preserved. The isolated16-endpoint v1 block/AI API is retired on both sites; current canonical AI and usage queries preserved, focused tests169source/139target and exact data/signature preservation pass. Quick Edit remains a concrete generic-update caller needing canonical coordination.",
       "classification": "missing evidence",
       "initialFinding": "One-content-model migration and legacy retirement remain incomplete.",
       "closureBoundary": "Complete lossless conversion/recovery for actual retained content, source snapshots and installed-site receipts; then remove active legacy editor/renderer/schema dispatch as specified. Keep historical recovery data and a deliberate import converter. Do not delete old fields before proving preservation or claim migration complete while silently relying on legacy rendering.",
-      "nextCheck": "Trace server/installed callers for blocks/queries getForDocument/getEditableDocumentForAi, blocks/mutations and blocks/ai; preserve canonicalDocuments.aiContext and composed AI. Then generic metadata update authoring fields and stored schema/history. Latest installed bases remain output/demo-seed-retirement-20261005/{source,target}-source-installed.json.",
+      "nextCheck": "Native Quick Edit: owned canonical post/page title edit currently reaches generic update and CANONICAL_AUTHORING_REQUIRED; parent movement is separate. Reproduce then provide one expected-revision canonical title/metadata/parent transaction, preserving body/history/publication and operator authority. Classify PostBulkEdit. Latest deployment bases output/legacy-block-api-retirement-20261005/{source,target}-source-installed.json.",
       "deliveryTask": 4,
       "triagedAt": "2026-09-29",
       "triageEvidence": "ConvexPress-Admin/audits/2026-09-04/delivery-blocker-triage-20260929.md",
@@ -150,7 +150,10 @@
         "ConvexPress-Admin/audits/2026-09-04/demo-seed-retirement-20261005.md",
         "ConvexPress-Admin/audits/2026-09-04/legacy-consumer-inventory-20261005.md",
         "output/demo-seed-retirement-20261005/preservation.json",
-        "ConvexPress-Admin/audits/2026-09-04/legacy-editor-retirement-20261005.md"
+        "ConvexPress-Admin/audits/2026-09-04/legacy-editor-retirement-20261005.md",
+        "ConvexPress-Admin/audits/2026-09-04/legacy-block-api-retirement-20261005.md",
+        "output/legacy-block-api-retirement-20261005/caller-review.json",
+        "output/legacy-block-api-retirement-20261005/preservation.json"
       ]
     },
     {
@@ -4540,7 +4543,10 @@
     "ConvexPress-Admin/audits/2026-09-04/demo-seed-retirement-20261005.md",
     "ConvexPress-Admin/audits/2026-09-04/legacy-consumer-inventory-20261005.md",
     "output/demo-seed-retirement-20261005/preservation.json",
-    "ConvexPress-Admin/audits/2026-09-04/legacy-editor-retirement-20261005.md"
+    "ConvexPress-Admin/audits/2026-09-04/legacy-editor-retirement-20261005.md",
+    "ConvexPress-Admin/audits/2026-09-04/legacy-block-api-retirement-20261005.md",
+    "output/legacy-block-api-retirement-20261005/caller-review.json",
+    "output/legacy-block-api-retirement-20261005/preservation.json"
   ],
   "trackerRefresh": {
     "source": "output/lead-customer-20260929/mt-accept-after.json",
@@ -4590,7 +4596,7 @@
     "audit22": "Read/responded: F28 clarified first-of115 shared test-location convention, not isolated Heading failure. Central receipt317tests/1148cases and live117Verified/137row gate pass. E22 stays open for screenshot provenance/final evidence; new E62 migration tooling remains Task4. Audit counts are historical snapshots, not guaranteed lower bounds; row ratio is not full delivery percentage. RSVP human CAPTCHA and cleanup pending.",
     "audit25": "Read/responded: authority workflow advanced without backend changes; customer fully cleaned. Actual parent revocation/recovery now accepted; newly demonstrated E69 banner mismatch source-fixed, refreshed runtime pending alongside E68. No new broad scope; Codex retains decision authority.",
     "audit33": "Accepted E07 status parity and Website-before-backend nested-list rollout requirement. Direct HTML converter probe preserves _blank and refuses unsupported target. D3 adapted/deferred pending bounded reproduction without authoring reload; D5/O3/O5 deferred, D4 remains rejected under E39, O4 informational. Source now79canonical/37legacy, five published pages preserved and republished; continue two raw-text posts without waiting for audit.",
-    "audit37": "Read/responded: accepted bounded E07 scope and resolved prior target failures; on-track is not completion. WordPress canonical import and cleanup now accepted. Nine orphan page metadata rows exposed a real cascade gap; bounded fix deployed/tested. Deep audit remains advisory; exact caller/evidence requested, no waiting or scope expansion. Latest available audit37."
+    "audit37": "Read/responded: accepted bounded E07 scope and resolved prior target failures; on-track is not completion. WordPress canonical import and cleanup now accepted. Nine orphan page metadata rows exposed a real cascade gap; bounded fix deployed/tested. Deep audit remains advisory; exact caller/evidence requested, no waiting or scope expansion. Latest available audit37. Subsequent native closure retirement cddfab37 and16 old block/AI endpoint removal accepted. Latest audit remains37; no new feedback awaited. Next concrete caller is Quick Edit canonical title/metadata transaction."
   },
   "sessionBaseCommit": "9824d9605e50c4b0ebd711c13715b506f8ef5bd3"
 }

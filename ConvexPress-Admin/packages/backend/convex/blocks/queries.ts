@@ -1,69 +1,8 @@
-import { internalQuery, query } from "../_generated/server";
+import { query } from "../_generated/server";
 import { requireCan } from "../helpers/permissions";
-import { canEditContent, readPublicContent } from "../helpers/publicContent";
-import { getStoredBlocks, getBlocksRevision } from "./helpers";
-import { migrateBlocks } from "./migrations";
-import { blocksValidator, contentModeValidator, postIdArgs } from "./validators";
 import { ConvexError, v } from "convex/values";
-import {paginationOptsValidator} from "convex/server";
-import {readUsagePage,readCompleteLegacyUsage,usagePageValidator} from "./usage";
-
-export const getForDocument = query({
-  args: postIdArgs,
-  returns: v.union(v.null(), v.object({
-    postId: v.id("posts"), contentMode: contentModeValidator,
-    blocks: blocksValidator, blocksVersion: v.number(), blocksRevision: v.number(),
-  })),
-  handler: async (ctx, args) => {
-    const doc = await ctx.db.get("posts", args.postId);
-    if (!doc || (doc.type !== "page" && doc.type !== "post")) {
-      return null;
-    }
-
-    if (!(await canEditContent(ctx, doc))) {
-      const publicContent = await readPublicContent(ctx, doc);
-      // This endpoint has no password exchange. Public block reads use the
-      // same resource, route and visibility policy as page/post body reads.
-      if (!publicContent || publicContent.isPasswordProtected || publicContent.isMembershipRestricted) return null;
-    }
-
-    return {
-      postId: doc._id,
-      contentMode: doc.contentMode ?? (doc.type === "page" ? "blocks" : "article"),
-      blocks: migrateBlocks(getStoredBlocks(doc)),
-      blocksVersion: doc.blocksVersion ?? 1,
-      blocksRevision: getBlocksRevision(doc),
-    };
-  },
-});
-
-export const getEditableDocumentForAi = internalQuery({
-  args: postIdArgs,
-  returns: v.union(v.null(), v.object({
-    postId: v.id("posts"), type: v.union(v.literal("page"), v.literal("post")),
-    title: v.string(), blocks: blocksValidator, blocksRevision: v.number(),
-  })),
-  handler: async (ctx, args) => {
-    await requireCan(ctx, "blocks.ai");
-    const doc = await ctx.db.get("posts", args.postId);
-    if (!doc || (doc.type !== "page" && doc.type !== "post")) {
-      return null;
-    }
-
-    await requireCan(ctx, doc.type === "page" ? "page.update" : "post.update");
-    if (!(await canEditContent(ctx, doc))) {
-      throw new ConvexError({ code: "FORBIDDEN", message: "Cannot edit this content document" });
-    }
-
-    return {
-      postId: doc._id,
-      type: doc.type,
-      title: doc.title,
-      blocks: migrateBlocks(getStoredBlocks(doc)),
-      blocksRevision: getBlocksRevision(doc),
-    };
-  },
-});
+import { paginationOptsValidator } from "convex/server";
+import { readUsagePage, readCompleteLegacyUsage, usagePageValidator } from "./usage";
 
 /** Bounded document projection. Accumulate unique documents until isDone. */
 export const usageDocuments = query({

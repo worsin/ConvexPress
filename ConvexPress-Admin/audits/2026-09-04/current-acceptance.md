@@ -1,3 +1,7 @@
+## October 5 — V1 block/AI API retired
+
+Both sites remove exactly16 obsolete block/AI endpoints; all remaining signatures, canonical AI and usage diagnostics preserved. Working/source169tests and target139 pass; types/contracts/writer gates pass. Exact145documents/522revisions, appearance/mail and ready indexes verified; sessions revoked. E07 remains open for native Quick Edit canonical coordination and schema consumers. [Evidence and next deployment bases](legacy-block-api-retirement-20261005.md).117/20 unchanged.
+
 ## October 5 — Obsolete native editor retired
 
 Removed38 private files comprising the unreachable original article/text and v1 composition editors. Canonical routes, shared controls and import/recovery remain.67 canonical tests/1147assertions, all Admin types and production build pass; no backend or site data change. [Evidence and next boundary](legacy-editor-retirement-20261005.md). E07/full goal remain open117/20.

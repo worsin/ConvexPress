@@ -42,3 +42,11 @@ WordPress exit-check dependency: actual source fixture cleanup left 9 metadata r
 3. Dependency: these registered content writers could reintroduce legacy documents or silently patch stale projections after canonical migration.
 4. Repair boundary: remove the two obsolete registered mutations and their private content helpers; replace their CLI with an explicit side-effect-free retirement message. Preserve the shared media importer byte-for-byte and all shop/catalog functions. Do not run a destructive seed or delete existing data.
 5. Exit check: source/target function inventories remove exactly these two endpoints; media/shop signatures and implementation remain exact, backend/contracts/writer checks pass, and original site documents/history/appearance/mail remain exact.
+
+## Legacy block API retirement
+
+1. Required workflow: one canonical editor/AI document contract, with current authority, revision, nested content and history preserved.
+2. Evidence: after the private native editor closure is removed, repository and both installed backend searches find no outside consumers of blocks/ai, blocks/mutations or the two old document queries. They are an isolated v1 editor path. Current native AI calls canonicalDocuments/ai.generateProposal and aiContext preview/apply.
+3. Dependency: keeping the isolated v1 surface leaves old content-model read/write APIs registered after the authoring model has moved. Shared catalog/usage diagnostics and canonical AI must remain.
+4. Repair boundary: remove 16 old action/mutation/query registrations; retain usage queries, shared catalog/helpers, canonical AI and all unrelated APIs. Remove tests exclusive to the retired surface; keep catalog/generic-update checks and canonical authority/provider-interval/history tests. Correct the pre-existing removed-create test caller. Source-only style expectation follows the unchanged installed Core Hero default/editorial/poster catalog; old snapshot reproduces its stale empty-style assertion.
+5. Exit check: 169 working/source and 139 target focused tests pass; types/contracts/writer gates pass. Separate installed inventories remove exactly16 functions, preserve every remaining signature/catalog/extension, current indexes and original data. No provider call or destructive legacy mutation is executed as acceptance.

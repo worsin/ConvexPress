@@ -914,7 +914,7 @@ test("actual canonical references resolve only public pages and react to current
 	expect(hidden.data.dataByBlock.featured.data.page).toBeNull();
 	expect(JSON.stringify(hidden)).not.toContain("Public summary");
 });
-test("canonical lock changes require canonical writes and legacy readers cannot flatten protected content", async () => {
+test("canonical lock changes require canonical writes and canonical reads preserve locks", async () => {
 	const f = await fixture();
 	await initialize(f);
 	const receipt = await f.client.mutation(reference("save", "mutation"), {
@@ -924,7 +924,7 @@ test("canonical lock changes require canonical writes and legacy readers cannot 
 	expect(await code(() => f.client.mutation(reference("save", "mutation"), {
 		postId: f.ids.post, expectedRevision: 2, title: "Protected content", blocks: [],
 	}))).toBe("BLOCK_REMOVE_LOCKED");
-	expect(await code(() => f.client.query(makeFunctionReference<any, any, any>("blocks/queries:getForDocument"), { postId: f.ids.post }))).toBe("CANONICAL_AUTHORING_REQUIRED");
+	expect((await f.client.query(reference("get"), { postId: f.ids.post })).document.blocks[0].lock?.remove).toBe(true);
 	expect((await f.t.run(ctx => ctx.db.get("posts", f.ids.post)))?.blocksRevision).toBe(2);
 });
 
