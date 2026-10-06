@@ -302,6 +302,49 @@ test("legacy utility variants migrate together, save and recover their exact ori
   const restored=await readOriginal(f,original.id);expect(restored.blocks).toEqual(blocks);expect(restored.blocksVersion).toBe(1);
 });
 
+test("Field Guide migration and historical import preserve authored data and editorial treatment", async () => {
+  const f = await fixture();
+  const attrs = {
+    heading: "A careful practice", body: "Keep **literal** notes.\nReturn tomorrow.",
+    count: 2, showDetails: false, mediaId: "", mediaAlt: "An intentionally empty image",
+    note: null, link: { label: "Read the guide", href: "https://example.org/guide", newTab: true },
+    items: [{ label: "Second", value: "Keep authored order." }, { label: "First", value: "Keep every value." }],
+    spacing: 8, alignment: "right", ink: "muted", font: "display",
+  };
+  const blocks = [{ id: "guide", name: "reference/field-guide", version: 1, attrs }];
+  await f.t.run(ctx => ctx.db.patch("posts", f.ids.post, { contentMode: "blocks", blocksVersion: 1, blocks }));
+  const review = await f.client.query(reference("prepareMigration"), { postId: f.ids.post });
+  const { spacing, alignment, ink, font, ...content } = attrs;
+  expect(review.candidate.document.blocks).toEqual([{
+    ...blocks[0], version: 2, attrs: content,
+    treatment: { name: "editorial", values: { spacing, alignment, ink, font } },
+    layout: { spacing: "none", width: "full" },
+  }]);
+  const receipt = await f.client.mutation(reference("migrate", "mutation"), {
+    postId: f.ids.post, expectedRevision: review.source.revision,
+    expectedAuthoringDigest: review.source.authoringDigest,
+    expectedCandidateDigest: review.candidate.document.digest,
+    expectedPresentationRevision: review.candidate.presentation.revision,
+  });
+  const reopened = (await f.client.query(reference("get"), { postId: f.ids.post })).document;
+  expect(reopened.blocks).toEqual(review.candidate.document.blocks);
+  const changed = structuredClone(reopened.blocks);
+  changed[0].attrs.note = "A later edit";
+  changed[0].attrs.showDetails = true;
+  const saved = await f.client.mutation(reference("save", "mutation"), {
+    postId: f.ids.post, expectedRevision: receipt.revision, title: reopened.title, blocks: changed,
+  });
+  const history = await f.client.query(reference("pageRevisions"), { postId: f.ids.post, paginationOpts: { cursor: null, numItems: 20 } });
+  const original = history.page.find((row: any) => row.action === "import-legacy");
+  expect(original).toBeDefined();
+  expect((await readOriginal(f, original.id)).blocks).toEqual(blocks);
+  await importOriginal(f, { postId: f.ids.post, revisionId: original.id, expectedRevision: saved.revision });
+  const recovered = (await f.client.query(reference("get"), { postId: f.ids.post })).document;
+  expect(recovered.blocksVersion).toBe(2);
+  expect(recovered.blocks).toEqual(review.candidate.document.blocks);
+  expect((await readOriginal(f, original.id)).blocks).toEqual(blocks);
+});
+
 test("structured article migration retains visible order, links, anchors and complete original recovery", async () => {
   const f = await fixture();
   const authored = {

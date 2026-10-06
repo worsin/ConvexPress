@@ -1,13 +1,13 @@
 {
   "plan": "2026-09-28-editor-template-delivery.md",
   "baselineCommit": "d0fee8acceb408fd306a15f3c054322cb73ac8bc",
-  "checkpointSource": "output/instructor-final-20261006/mt-accept-after.json",
+  "checkpointSource": "output/field-studio-final-20261006/mt-accept-after.json",
   "checkpointCounts": {
-    "Verified": 129,
-    "In progress": 8
+    "Verified": 130,
+    "In progress": 7
   },
   "goal": "Complete block editor and template delivery plus all demonstrated blockers; defer unrelated whole-app audit campaigns.",
-  "currentTask": "Instructor accepted: native/live evidence plus new selectable portrait/initials/minimal/unavailable BlockDemo specimens, four-pack1440/390 paging/focus/withdrawal checks.129/8 full goal active. Next Field Guide and Studio services exact field/editorial/migration/composition evidence, then synced/integration and remaining provider gates. E98 Instagram implementation and E05 hosted HTTPS remain explicit; independent work continues.",
+  "currentTask": "Studio Services accepted:130Verified/7In progress. Field Guide native fields/editorial/media/public and registered migration passed; live legacy conversion remains. Next reproduce E99 history-preview mismatch, then remaining synced/provider and Customizer/integrated gates. Full goal active.",
   "tasks": [
     {
       "id": 1,
@@ -1235,6 +1235,14 @@
       "currentEvidence": [
         "ConvexPress-Admin/audits/2026-09-04/social-ugc-20261006.md"
       ]
+    },
+    {
+      "id": "E99",
+      "classification": "demonstrated workflow symptom; causal investigation pending",
+      "initialFinding": "After native revision restore, the panel said Live draft rendered while the actual Website iframe showed Open this saved preview from your authorized native editor. Reconnect restored the document. Observed on owned Field/Studio fixture; no automatic continuity acceptance inferred.",
+      "closureBoundary": "Reproduce on exact current Admin/Website artifacts, trace revision remount/ready/session messages, repair the demonstrated lifecycle cause and verify native restore automatically renders the recovered revision without manual reconnect or lost authored data.",
+      "status": "Open; scoped to E05 integrated preview continuity. See field-studio-final-20261006.md.",
+      "deliveryTask": 5
     }
   ],
   "blocks": [
@@ -4630,7 +4638,7 @@
       "title": "Field Guide",
       "category": "Site",
       "checkpointStatus": "In progress",
-      "nextClassification": "Reviewed against live Notes and current canonical specification; Native all authored fields and closed editorial treatment axes, explicit lossless legacy conversion/restore, images/links and final four-pack treatment parity.",
+      "nextClassification": "Live reviewed legacy conversion/archive import remains; native all fields/editorial axes, selected media, links, public responsive rendering, exact canonical revision recovery and registered migration preservation now passed. Reuse retained four-pack geometry.",
       "classification": "missing evidence",
       "source": "blocks/reference/field-guide/block.json",
       "requirements": "Current schema fields preserved through explicit migration",
@@ -4639,9 +4647,10 @@
         "canonical-media66-renderer-outcome.md",
         "output/block-demo/browser-results-media66",
         "output/block-library-review-20260915/coverage-review.json.",
-        "ConvexPress-Admin/audits/2026-09-04/search-conditional-prose-20260928.md"
+        "ConvexPress-Admin/audits/2026-09-04/search-conditional-prose-20260928.md",
+        "ConvexPress-Admin/audits/2026-09-04/field-studio-final-20261006.md"
       ],
-      "remainingReview": "Native all authored fields and closed editorial treatment axes, explicit lossless legacy conversion/restore, images/links and final four-pack treatment parity.",
+      "remainingReview": "Live reviewed legacy conversion/archive import remains; native all fields/editorial axes, selected media, links, public responsive rendering, exact canonical revision recovery and registered migration preservation now passed. Reuse retained four-pack geometry.",
       "deliveryTask": 4,
       "acceptanceBatch": "text-migration",
       "reviewedAtCommit": "d8a0ea2c",
@@ -4697,17 +4706,18 @@
       "name": "blocks/studio-services",
       "title": "Studio services",
       "category": "Marketing",
-      "checkpointStatus": "In progress",
-      "nextClassification": "Reviewed against live Notes and current canonical specification; Reuse native exact promoted package/immutable history and pack refresh; final full field/variant review and one-line compose/style/promote workflow acceptance.",
-      "classification": "missing evidence",
+      "checkpointStatus": "Verified",
+      "nextClassification": "Accepted: native all-field edits/order and exact saved revision recovery, actual published responsive output, retained four-pack visuals and exact composition/promotion/SDK workflow evidence.",
+      "classification": "accepted/reusable evidence",
       "source": "blocks/blocks/studio-services/block.json",
       "requirements": "eyebrow, headline, introduction, services",
       "evidenceReferences": [
         "output/block-review-refresh-20260920/acceptance-review.md.",
         "output/definition-promotion-editor-20260916.",
-        "ConvexPress-Admin/audits/2026-09-04/search-presentation-prose-20260928.md"
+        "ConvexPress-Admin/audits/2026-09-04/search-presentation-prose-20260928.md",
+        "ConvexPress-Admin/audits/2026-09-04/field-studio-final-20261006.md"
       ],
-      "remainingReview": "Reuse native exact promoted package/immutable history and pack refresh; final full field/variant review and one-line compose/style/promote workflow acceptance.",
+      "remainingReview": "None for this static block; shared AI/provider and integrated SDK gates remain in Task7.",
       "deliveryTask": 7,
       "acceptanceBatch": "sdk-promotion",
       "reviewedAtCommit": "d8a0ea2c",
