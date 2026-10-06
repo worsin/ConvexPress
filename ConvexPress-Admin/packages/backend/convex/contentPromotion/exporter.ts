@@ -719,6 +719,10 @@ export async function exportAuthoredManifest(
 				data: { section, values: await transform(values, key) },
 			});
 		}
+	}
+  // Appearance can travel through verified media remapping without replacing
+  // general/reading settings or the destination menu assignments.
+  if (args.selection.includePresentation || args.selection.includeAppearance) {
 		const appearance = await readAppearance(ctx);
 		records.set("presentation:appearance.template", {
 			key: "presentation:appearance.template",
@@ -740,7 +744,11 @@ export async function exportAuthoredManifest(
   if (args.selection.includeRoutePolicies) {
     if (routeRules.length > 100) fail("PROMOTION_LIMIT", "Site access rules exceed the atomic promotion budget; no partial policy collection can be promoted.");
     for (const rule of routeRules) await add("restriction", rule._id, rule as Row);
-  } else if (routeRules.length)
+  } else if (routeRules.length && !(
+    args.selection.includeAppearance && !args.selection.includePresentation &&
+    [...records.values()].every(record => record.kind === "media" ||
+      (record.kind === "presentation" && record.data.section === "appearance.template"))
+  ))
 		fail(
 			"ROUTE_POLICY_SELECTION_REQUIRED",
 			"Include site access rules to review the source route policies and their membership plans with this promotion.",

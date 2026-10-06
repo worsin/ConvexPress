@@ -2384,3 +2384,40 @@ test("template generic partial updates preserve valid camelCase modules and othe
  const m=manifest();m.selection.includePresentation=true;m.records.push({key:"template",kind:"presentation",sourceRevision:"1",data:{section:"appearance.template",values:result.values}});
  const {validateManifest}=await import("../shared");expect(validateManifest(m).records).toHaveLength(2);
 });
+
+test("appearance-only promotion remaps footer media and preserves unrelated live settings", async () => {
+ const src = await canonicalMediaSource(), destination = await fixture();
+ const snapshotRef = makeFunctionReference<"query">("settings/templateDrafts:snapshot");
+ const publishRef = makeFunctionReference<"mutation">("settings/templateDrafts:publish");
+ await src.source.t.run(async ctx => {
+  await ctx.db.insert("settings", {section:"reading",values:{homepageDisplays:"latest_posts",postsPerPage:9},updatedAt:1,updatedBy:src.source.userId});
+  await ctx.db.insert("membership_restriction_rules",{resourceType:"route",resourceIdOrKey:"/members/*",ruleMode:"allow_only",planIds:[],teaserMode:"hide",loginRequired:true,createdAt:1,updatedAt:1});
+ });
+ const sourceBefore = await src.source.authed.query(snapshotRef, {});
+ const values = { ...sourceBefore.values, settings: { core: { footer: { rows: [{ id: "image-row", background: "default", padding: "normal", container: "default", columns: [{ id: "image-cell", cell: { type: "image", mediaId: src.ids.mediaId, alt: "Staging footer image", width: 120 } }] }] } } } };
+ const published = await src.source.authed.mutation(publishRef, {values, expectedRevision: sourceBefore.revision});
+ const liveBefore = await destination.authed.query(snapshotRef, {});
+ // The previous Customizer shortcut cannot copy site-local media IDs.
+ await expect(destination.authed.mutation(publishRef, {values, expectedRevision: liveBefore.revision, confirmLive: true, source: {...published.identity, revision: published.revision}})).rejects.toMatchObject({data:expect.objectContaining({code:"MEDIA_UNAVAILABLE"})});
+ expect(await destination.authed.query(snapshotRef, {})).toEqual(liveBefore);
+ const exported = await src.source.authed.query(makeFunctionReference<"query">("contentPromotion/operations:exportManifest"), {target, selection: {...manifest().selection, pageIds: [], includeAppearance: true}});
+ await expect(src.source.authed.query(makeFunctionReference<"query">("contentPromotion/operations:exportManifest"), {target, selection: {...manifest().selection, pageIds: [src.ids.pageId], includeAppearance: true}})).rejects.toMatchObject({data:expect.objectContaining({code:"ROUTE_POLICY_SELECTION_REQUIRED"})});
+ const full = await src.source.authed.query(makeFunctionReference<"query">("contentPromotion/operations:exportManifest"), {target, selection: {...manifest().selection, pageIds: [], includePresentation: true, includeAppearance: true, includeRoutePolicies: true}});
+ expect(full.manifest.records.filter((r:any)=>r.kind === "presentation").map((r:any)=>r.data.section).sort()).toEqual(["appearance.template","general","reading"]);
+ expect(exported.manifest.records.filter((r:any)=>r.kind === "presentation").map((r:any)=>r.data.section)).toEqual(["appearance.template"]);
+ expect(exported.manifest.records.map((r:any)=>r.kind).sort()).toEqual(["media","presentation"]);
+ const appearance = exported.manifest.records.find((r:any)=>r.kind === "presentation")!;
+ expect((appearance.data.values as any).settings.core.footer.rows[0].columns[0].cell.mediaId).toBe(`@promotion:${src.mediaKey}`);
+ const preserved = () => destination.t.run(async ctx=>({general:await ctx.db.query("settings").withIndex("by_section",q=>q.eq("section","general")).unique(),posts:await ctx.db.query("posts").collect(),menus:await ctx.db.query("menuLocations").collect()}));
+ const before = await preserved();
+ const storageId = await destination.t.run(ctx=>ctx.storage.store(src.bytes));
+ const review = await destination.authed.mutation(fn("dryRun"), {manifest:exported.manifest, mediaBindings:[{key:src.mediaKey,storageId}], dependencyBindings:[]});
+ expect(review.ready).toBe(true);
+ await destination.authed.mutation(fn("apply"), receiptArgs(review));
+ const live = await destination.authed.query(snapshotRef, {});
+ const media = await destination.t.run(ctx=>ctx.db.query("media").unique());
+ expect(live.values.settings.core.footer.rows[0].columns[0].cell.mediaId).toBe(media!._id);
+ expect(media!._id).not.toBe(src.ids.mediaId); expect(media!.storageId).toBe(storageId);
+ expect(await preserved()).toEqual(before);
+ expect(await src.source.authed.query(snapshotRef, {})).toEqual(published);
+});

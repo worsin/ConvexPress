@@ -178,3 +178,21 @@ test('broker transports selected language settings and empty groups and refuses 
   expect(result.reviewReady).toBe(included);if(included)expect(result.authoredRecords.map(r=>r.kind)).toEqual(['localeRouting','localeGroup']);else expect(result.status).toBe('failed');
  }
 });
+
+test("appearance-only reviews bind the selection and require the requested appearance record", async () => {
+ for (const scenario of ["valid", "omitted", "unrelated"] as const) {
+  const f = await fixture();
+  const request = {...f.request, selection:{...f.request.selection,pageIds:[],includeAppearance:true}};
+  f.args.requestJson = JSON.stringify(request);
+  const original = f.remote.export;
+  f.remote.export = async (...args) => {
+   const result = await original(...args) as any;
+   result.manifest.records = scenario === "omitted" ? [] : [{key:"presentation:appearance.template",kind:"presentation",sourceRevision:"appearance-v1",data:{section:"appearance.template",values:{active:"core",overrides:{},variants:{},settings:{}}}}];
+   if (scenario === "unrelated") result.manifest.records.push({key:"presentation:general",kind:"presentation",sourceRevision:"general-v1",data:{section:"general",values:{siteTitle:"Unrequested title"}}});
+   return result;
+  };
+  const result = await runReview(f.context,f.args,f.remote);
+  expect(result.status).toBe(scenario === "valid" ? "reviewed" : "failed");
+  expect(result.reviewReady).toBe(scenario === "valid");
+ }
+});

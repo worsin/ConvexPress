@@ -376,6 +376,7 @@ export const contentPromotionManifestSchema: z.ZodType<ContentPromotionManifest>
         productTagIds: z.array(short).max(100).optional(),
         productBrandIds: z.array(short).max(100).optional(),
 				includePresentation: z.boolean(),
+    includeAppearance: z.boolean().optional(),
         includeRoutePolicies: z.boolean().optional(),
         includeLocalization: z.boolean().optional(),
         localeGroupKeys: z.array(z.string().regex(/^[a-z0-9][a-z0-9-]{0,79}$/)).max(100).optional(),
@@ -443,6 +444,7 @@ export interface ContentPromotionManifest {
     productTagIds?: string[];
     productBrandIds?: string[];
     includePresentation: boolean;
+    includeAppearance?: boolean;
     includeRoutePolicies?: boolean;
     includeLocalization?: boolean;
     localeGroupKeys?: string[];

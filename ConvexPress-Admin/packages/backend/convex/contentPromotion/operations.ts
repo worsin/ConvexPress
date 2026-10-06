@@ -103,6 +103,7 @@ const selectionArgs = v.object({
 	productTagIds: v.optional(v.array(v.string())),
 	productBrandIds: v.optional(v.array(v.string())),
 	includePresentation: v.boolean(),
+  includeAppearance: v.optional(v.boolean()),
   includeRoutePolicies: v.optional(v.boolean()),
   includeLocalization: v.optional(v.boolean()),
   localeGroupKeys: v.optional(v.array(v.string())),

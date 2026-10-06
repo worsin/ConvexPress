@@ -31,6 +31,7 @@ export const selectionSchema = z
 		courseIds: z.array(z.string()).max(100).optional(),
 		planIds: z.array(z.string()).max(100).optional(),
 		includePresentation: z.boolean(),
+    includeAppearance: z.boolean().optional(),
     includeRoutePolicies: z.boolean().optional(),
     includeLocalization:z.boolean().optional(),
     localeGroupKeys:z.array(z.string().regex(/^[a-z0-9][a-z0-9-]{0,79}$/)).max(100).optional(),
@@ -206,6 +207,12 @@ export function validateExport(
 		] ?? [])
 			if (keys.get(`${kind}:${id}`) !== kind)
 				throw new Error("Source export omitted selected content");
+  if (result.manifest.selection.includeAppearance && !result.manifest.selection.includePresentation &&
+    result.manifest.records.some(record => record.kind === "presentation" && record.data.section !== "appearance.template"))
+    throw new Error("Appearance-only export included unrelated presentation settings");
+  if (result.manifest.selection.includeAppearance && result.manifest.records.filter(record =>
+    record.kind === "presentation" && record.data.section === "appearance.template").length !== 1)
+    throw new Error("Source export omitted selected appearance settings");
   if(result.manifest.selection.includeLocalization && result.manifest.records.filter(record=>record.kind==='localeRouting').length!==1)
     throw new Error('Source export omitted selected language settings');
   for(const key of result.manifest.selection.localeGroupKeys??[])if(!result.manifest.records.some(record=>record.kind==='localeGroup'&&record.data.key===key))
