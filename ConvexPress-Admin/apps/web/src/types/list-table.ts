@@ -115,6 +115,8 @@ export interface RowAction<TRow> {
   type: "link" | "button";
   /** For "link" type: generates the href from the row data. */
   href?: (row: TRow) => string;
+  /** Open a public Website outside the Admin router. */
+  external?: boolean;
   /** For "button" type: click handler. */
   onClick?: (row: TRow) => void;
   /** Whether this action is destructive (red text). */

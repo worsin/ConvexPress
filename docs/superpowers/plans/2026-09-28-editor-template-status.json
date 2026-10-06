@@ -7,7 +7,7 @@
     "In progress": 20
   },
   "goal": "Complete block editor and template delivery plus all demonstrated blockers; defer unrelated whole-app audit campaigns.",
-  "currentTask": "Task6/E10: Depot now has3 individual product images,3categories,2linen variants and a completed demo-only manual checkout. Repaired selected variant identity in all4packs cart/drawer/shared/review; actual rebuilt Depot cart/review accepted. Exactly1pending/unfulfilled synthetic order,no transactions; Pair11/Single24 stock; second review-only cart cleared. Next native editor/actual Website preview and responsive visual acceptance of the4authored sites, followed by remaining Task5/7/8 gates. See example-products-20261005.md. Goal active117/20; no full-site completion claim.",
+  "currentTask": "Task6/E10: four representative authored pages passed native edit/private Website draft/mobile preview/save/reload and exact canonical readback. Published page/post list links repaired (E72); first-origin site-switch reload ordering repaired and native verified (E73). Next full four-site responsive chrome/visual acceptance, then remaining Task5/7/8 gates. Goal active117/20; no full-site completion claim.",
   "tasks": [
     {
       "id": 1,
@@ -187,17 +187,19 @@
     },
     {
       "id": "E10",
-      "status": "Open: individual block/pack matrices and Steps motion are accepted within their boundaries; they do not constitute four complete authored example sites or a finished all-block BlockDemo review. Named flagship/pattern/site requirements still need explicit inventory reconciliation. Audit38: retired destructive marketing seed has no canonical replacement yet. Link its safe example-site provisioning capability to this open task; retirement alone is not delivery. Four fictional content recipes and canonical draft-authoring CLI now implemented;21 pages/articles pass actual-handler idempotency/preservation tests. Four separate live staging instances, media/plugin records, menus/appearance and rendered acceptance remain unfinished. Four dedicated staging sites now deployed/registered; all21 authored documents published with actual homepage/menu/appearance configuration. Three Depot products and two Aster events published. HTTP21routes and bounded actual-browser navigation/article/catalog/cart/event detail checks pass. Media/forms/native/responsive and remaining resource/copy polish stay open. Four original images processed active with4sizes each and bound to7documents. Core/Aster local inquiry flows passed actual browser validation/submission/confirmation plus3-answer Admin entry readback each. Individual product imagery and full native/responsive/commerce acceptance remain open. Depot catalog/checkout batch:3 individual active images,3categories,Single/Pair variants,one no-payment demo order. Resolved variant display repaired across4packs and verified in actual rebuilt Depot cart/review. See example-products-20261005.md; native/responsive/full-site polish still open.",
+      "status": "Open: four dedicated authored sites,21published canonical documents,original media,Core/Aster local inquiries,Depot catalog/variant/demo checkout and representative native editing across4packs accepted within documented boundaries. All13distinct authored CTA destinations resolve. Full responsive site/chrome/focus/visual review and remaining flagship/pattern/all-block BlockDemo requirements are unfinished.",
       "classification": "missing implementation",
       "initialFinding": "Full default websites, remaining flagship treatments and the complete BlockDemo visual review are unfinished.",
       "closureBoundary": "Deliver four complete simple sites and all-block demo coverage. Check realistic copy, optional assets, narrow placements, links, image crops, visible focus and template consistency. Provide a non-destructive, idempotent canonical example-site authoring/provisioning path; preserve existing documents, menus and revisions.",
-      "nextCheck": "Complete Depot individual product presentation/category/variant/test checkout workflow, then actual native editor/Website preview and responsive/visual acceptance across4examples. Preserve durable site/media/forms and synthetic review entries. See example-site-media-inquiries-20261005.md.",
+      "nextCheck": "Review complete four-site narrow/wide chrome, image crops and focus/navigation; verify reported Core mobile user-menu setting mismatch against its contract. Continue remaining Task5/7/8 gates.",
       "deliveryTask": 6,
       "triagedAt": "2026-09-29",
       "triageEvidence": "ConvexPress-Admin/audits/2026-09-04/delivery-blocker-triage-20260929.md",
       "currentEvidence": [
         "ConvexPress-Admin/audits/2026-09-04/example-sites-live-20261005.md",
-        "ConvexPress-Admin/audits/2026-09-04/example-site-media-inquiries-20261005.md"
+        "ConvexPress-Admin/audits/2026-09-04/example-site-media-inquiries-20261005.md",
+        "ConvexPress-Admin/audits/2026-09-04/example-products-20261005.md",
+        "ConvexPress-Admin/audits/2026-09-04/example-native-20261005.md"
       ]
     },
     {
@@ -826,6 +828,28 @@
         "ConvexPress-Admin/audits/2026-09-04/customizer-aster-20261005.md",
         "output/customizer-aster-20261005/breadcrumb-red.log",
         "output/customizer-aster-20261005/breadcrumb-green.log"
+      ]
+    },
+    {
+      "id": "E72",
+      "classification": "implemented and native verified",
+      "deliveryTask": 6,
+      "initialFinding": "Published native page/post list View actions route into Admin instead of the selected Website.",
+      "closureBoundary": "Resolve canonical public paths on the selected Website and open outside the Admin router, with invalid-origin isolation.",
+      "status": "Repaired and native verified: Aster page View opens actual Website4328 and saved copy; post View uses4328/blog. Rendered regression red\u2192green; URL isolation tests pass.",
+      "evidence": [
+        "ConvexPress-Admin/audits/2026-09-04/example-native-20261005.md"
+      ]
+    },
+    {
+      "id": "E73",
+      "classification": "implemented and native verified",
+      "deliveryTask": 6,
+      "initialFinding": "New-site CSP registration can reload before the pending scope is committed, restoring the previous per-window site.",
+      "closureBoundary": "Do not expose the new runtime until setActive succeeds and commitSelection stores the selected scope; retain route guards and authorization.",
+      "status": "Repaired and native verified: removed Journal origins only from owned profile, restarted acceptance app, one selection registers origins/reloads and stays on Journal Connected. Existing scope/persistence tests pass.",
+      "evidence": [
+        "ConvexPress-Admin/audits/2026-09-04/example-native-20261005.md"
       ]
     }
   ],
@@ -4556,7 +4580,8 @@
     "output/legacy-block-api-retirement-20261005/caller-review.json",
     "output/legacy-block-api-retirement-20261005/preservation.json",
     "ConvexPress-Admin/audits/2026-09-04/legacy-field-preservation-20261005.md",
-    "ConvexPress-Admin/audits/2026-09-04/example-site-authoring-20261005.md"
+    "ConvexPress-Admin/audits/2026-09-04/example-site-authoring-20261005.md",
+    "ConvexPress-Admin/audits/2026-09-04/example-native-20261005.md"
   ],
   "trackerRefresh": {
     "source": "output/lead-customer-20260929/mt-accept-after.json",

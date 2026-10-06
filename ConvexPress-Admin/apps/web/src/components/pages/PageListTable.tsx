@@ -1,3 +1,7 @@
+import { useControlShell } from "@/control/ControlShellContext";
+import { editorContentUrl, resolveEditorSiteUrl } from "@/components/editor/editor-site-url";
+import { useQuery } from "convex-helpers/react/cache";
+import { api } from "@backend/convex/_generated/api";
 /**
  * Page System - PageListTable
  *
@@ -285,6 +289,9 @@ const pageListConfig: ListTableConfig<PageRow> = {
 // --- Component ---
 
 export function PageListTable() {
+  const control = useControlShell();
+  const generalSettings = useQuery(api.settings.queries.get, control ? "skip" : { section: "general" });
+  const siteOrigin = resolveEditorSiteUrl(control ? control.selectedEnvironment?.siteOrigin ?? "" : undefined, generalSettings);
   const [quickEditId, setQuickEditId] = useState<string | null>(null);
   const [confirmDialog, setConfirmDialog] = useState<{
     open: boolean;
@@ -337,6 +344,11 @@ export function PageListTable() {
   const rowActionsWithHandlers = useMemo<RowAction<PageRow>[]>(
     () =>
       pageRowActions.map((action) => {
+        if (action.key === "view") {
+          const url = (row: PageRow) => editorContentUrl(siteOrigin, { ...row, type: "page" });
+          return { ...action, external: true, href: (row: PageRow) => url(row) ?? "",
+            visible: (row: PageRow) => row.status === "publish" && Boolean(url(row)) };
+        }
         if (action.key === "quick-edit") {
           return {
             ...action,
@@ -378,7 +390,7 @@ export function PageListTable() {
         }
         return action;
       }),
-    [trashPage, restorePage, permanentDeletePage],
+    [trashPage, restorePage, permanentDeletePage, siteOrigin],
   );
 
   const handleBulkAction = useCallback(

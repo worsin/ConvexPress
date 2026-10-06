@@ -58,9 +58,15 @@ export function InlineActions<TRow>({
               <span className="text-muted-foreground/50 px-1">|</span>
             )}
             {action.type === "link" && action.href ? (
-              <Link to={action.href(row)} className={actionClasses}>
-                {action.label}
-              </Link>
+              action.external ? (
+                <a href={action.href(row)} target="_blank" rel="noopener noreferrer" className={actionClasses}>
+                  {action.label}
+                </a>
+              ) : (
+                <Link to={action.href(row)} className={actionClasses}>
+                  {action.label}
+                </Link>
+              )
             ) : (
               <button
                 type="button"

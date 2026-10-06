@@ -1,3 +1,5 @@
+import { useControlShell } from "@/control/ControlShellContext";
+import { editorContentUrl, resolveEditorSiteUrl } from "@/components/editor/editor-site-url";
 import { useCallback, useMemo, useRef, useState, memo } from "react";
 import { Link } from "@tanstack/react-router";
 import { useQuery } from "convex-helpers/react/cache";
@@ -328,6 +330,10 @@ export function PostListTable() {
   return <ScopedPostListTable key={runtime?.generation ?? "local"} />;
 }
 function ScopedPostListTable() {
+  const control = useControlShell();
+  const generalSettings = useQuery(api.settings.queries.get, control ? "skip" : { section: "general" });
+  const siteOrigin = resolveEditorSiteUrl(control ? control.selectedEnvironment?.siteOrigin ?? "" : undefined, generalSettings);
+
   const { user, role, can } = useAuth();
   const duplicatingIds = useRef(new Set<string>());
   const [quickEditId, setQuickEditId] = useState<string | null>(null);
@@ -379,6 +385,11 @@ function ScopedPostListTable() {
   const rowActionsWithHandlers = useMemo<RowAction<PostWithAuthor>[]>(
     () =>
       postRowActions.map((action) => {
+        if (action.key === "view") {
+          const url = (row: PostWithAuthor) => editorContentUrl(siteOrigin, { ...row, type: "post" });
+          return { ...action, external: true, href: (row: PostWithAuthor) => url(row) ?? "",
+            visible: (row: PostWithAuthor) => row.status === "publish" && Boolean(url(row)) };
+        }
         if (action.key === "duplicate") {
           return {
             ...action,
@@ -443,7 +454,7 @@ function ScopedPostListTable() {
         }
         return action;
       }),
-    [trashPost, restorePost, permanentDeletePost, duplicatePost, can, user?._id, role?.level],
+    [trashPost, restorePost, permanentDeletePost, duplicatePost, can, user?._id, role?.level, siteOrigin],
   );
 
   // ─── Bulk Action Handler ───────────────────────────────────────────────
