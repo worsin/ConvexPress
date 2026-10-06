@@ -187,7 +187,6 @@ function AISettingsPage() {
       pageGenerationModel: string;
       blockEditingModel: string;
       researchModel: string;
-      legacyContentModel: string;
       imageApiKey: string | null;
       imageModel: string;
       tavilyApiKey: string | null;
@@ -212,10 +211,6 @@ function AISettingsPage() {
         (source.researchModel as string | undefined) ??
         (source.defaultModel as string | undefined) ??
         DEFAULT_OPENROUTER_MODEL,
-      legacyContentModel:
-        (source.legacyContentModel as string | undefined) ??
-        (source.defaultModel as string | undefined) ??
-        DEFAULT_OPENROUTER_MODEL,
       imageApiKey: (source.imageApiKey as string | null) ?? "",
       imageModel: (source.imageModel as string | undefined) ?? "gpt-image-1",
       tavilyApiKey: (source.tavilyApiKey as string | null) ?? "",
@@ -230,7 +225,6 @@ function AISettingsPage() {
           pageGenerationModel: nextDraft.pageGenerationModel,
           blockEditingModel: nextDraft.blockEditingModel,
           researchModel: nextDraft.researchModel,
-          legacyContentModel: nextDraft.legacyContentModel,
           imageApiKey: nextDraft.imageApiKey ?? SECRET_SENTINEL,
           imageModel: nextDraft.imageModel,
           tavilyApiKey: nextDraft.tavilyApiKey ?? SECRET_SENTINEL,
@@ -257,7 +251,6 @@ function AISettingsPage() {
   const pageGenerationModel = draft?.pageGenerationModel ?? defaultModel;
   const blockEditingModel = draft?.blockEditingModel ?? defaultModel;
   const researchModel = draft?.researchModel ?? defaultModel;
-  const legacyContentModel = draft?.legacyContentModel ?? defaultModel;
   const imageApiKey = draft?.imageApiKey ?? "";
   const imageModel = draft?.imageModel ?? "gpt-image-1";
   const tavilyApiKey = draft?.tavilyApiKey ?? "";
@@ -275,7 +268,6 @@ function AISettingsPage() {
               pageGenerationModel: defaultModelForProvider(newProvider),
               blockEditingModel: defaultModelForProvider(newProvider),
               researchModel: defaultModelForProvider(newProvider),
-              legacyContentModel: defaultModelForProvider(newProvider),
             }
           : current,
       );
@@ -391,12 +383,6 @@ function AISettingsPage() {
       label: "Research synthesis",
       value: researchModel,
       help: "Used when AI writes from researched source material.",
-    },
-    {
-      id: "legacyContentModel",
-      label: "Legacy structured content",
-      value: legacyContentModel,
-      help: "Used by the older hero/topic/summary generation workflow.",
     },
   ] as const;
 

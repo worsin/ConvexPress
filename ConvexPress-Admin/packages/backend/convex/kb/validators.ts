@@ -74,6 +74,7 @@ export const createArticleArgs = {
   // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   keywords: v.optional(v.array(v.string())),
   featuredImageId: v.optional(v.id("media")),
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   templateId: v.optional(v.id("kb_templates")),
 };
 
@@ -307,7 +308,6 @@ export const createTemplateArgs = {
 };
 
 export const updateTemplateArgs = {
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   templateId: v.id("kb_templates"),
   name: v.optional(v.string()),
   description: v.optional(v.string()),

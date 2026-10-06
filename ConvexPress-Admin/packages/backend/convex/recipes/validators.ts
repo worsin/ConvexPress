@@ -25,7 +25,6 @@ export const deleteCategoryArgs = {
 
 export const listRecipesArgs = {
   search: v.optional(v.string()),
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   status: v.optional(recipeStatusValidator),
 };
 
@@ -49,6 +48,7 @@ export const createRecipeArgs = {
   slug: v.optional(v.string()),
   excerpt: v.optional(v.string()),
   description: v.optional(v.string()),
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   status: v.optional(recipeStatusValidator),
   featuredImageId: v.optional(v.id("media")),
   scanMediaId: v.optional(v.id("media")),

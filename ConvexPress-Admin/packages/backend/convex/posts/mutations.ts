@@ -61,7 +61,6 @@ import {
   restorePostArgs,
   deletePostArgs,
   duplicatePostArgs,
-  autosavePostArgs,
   bulkTrashArgs,
   bulkRestoreArgs,
   bulkDeleteArgs,
@@ -678,59 +677,6 @@ export const duplicate = mutation({
     });
 
     return newPostId;
-  },
-});
-
-// ─── Autosave ───────────────────────────────────────────────────────────────
-
-/**
- * Autosave post content.
- *
- * Updates only autosave fields. Does NOT:
- *   - Update `updatedAt` (autosave is invisible to modification tracking)
- *   - Create a revision
- *   - Emit events
- */
-export const autosave = mutation({
-  args: autosavePostArgs,
-  handler: async (ctx, args) => {
-    const user = await getCurrentUser(ctx);
-    if (!user) {
-      throw new ConvexError({
-        code: "UNAUTHORIZED",
-        message: "Authentication required",
-      });
-    }
-
-    const post = await ctx.db.get("posts", args.postId);
-    if (!post) {
-      // Silently fail if post was deleted (per knowledge doc)
-      return { autosavedAt: 0 };
-    }
-
-    // Basic edit check - verify user can edit this post
-    if (!isPostOwner(user, post) && (await getUserRoleLevel(ctx, user as AuthUser)) < 80) {
-      throw new ConvexError({
-        code: "FORBIDDEN",
-        message: "Cannot edit this post",
-      });
-    }
-
-    const now = Date.now();
-    const patch: Record<string, unknown> = {
-      autosavedAt: now,
-    };
-
-    if (args.title !== undefined) {
-      patch.autosaveTitle = args.title;
-    }
-    if (args.content !== undefined) {
-      patch.autosaveContent = args.content;
-    }
-
-    await patchWithMediaReferences<"posts">(ctx, "posts", args.postId, patch);
-
-    return { autosavedAt: now };
   },
 });
 

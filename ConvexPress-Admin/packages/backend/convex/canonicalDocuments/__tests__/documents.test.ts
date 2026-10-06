@@ -1,3 +1,4 @@
+import { patchWithMediaReferences } from "../../media/attachmentGuard";
 import { expect, test, setSystemTime } from "bun:test";
 import { convexTest } from "convex-test";
 import { makeFunctionReference } from "convex/server";
@@ -973,7 +974,7 @@ test("canonical lock changes require canonical writes and canonical reads preser
 	expect((await f.t.run(ctx => ctx.db.get("posts", f.ids.post)))?.blocksRevision).toBe(2);
 });
 
-test("legacy autosave and revision restore cannot mutate canonical documents", async () => {
+test("guarded legacy autosave writes and revision restore cannot mutate canonical documents", async () => {
 	const f = await fixture();
 	await initialize(f);
 	const history = await f.client.query(reference("pageRevisions"), {
@@ -984,19 +985,14 @@ test("legacy autosave and revision restore cannot mutate canonical documents", a
 		post: await ctx.db.get("posts", f.ids.post),
 		revisions: await ctx.db.query("revisions").collect(),
 	}));
-	for (const [name, args] of [
-		[
-			"posts/mutations:autosave",
-			{ postId: f.ids.post, content: "Legacy autosave" },
-		],
-		["revisions/mutations:restore", { revisionId: history.page[0].id }],
-	] as const) {
-		expect(
-			await code(() =>
-				f.client.mutation(makeFunctionReference<any, any, any>(name), args),
-			),
-		).toBe("CANONICAL_AUTHORING_REQUIRED");
+	for (const patch of [{ autosaveContent: "Legacy autosave" }, { autosaveTitle: "Legacy title", autosavedAt: 123 }]) {
+		expect(await code(() => f.t.run(ctx => patchWithMediaReferences(ctx, "posts", f.ids.post, patch)))).toBe("CANONICAL_AUTHORING_REQUIRED");
 	}
+	expect(await code(() => f.client.mutation(
+		makeFunctionReference<any, any, any>("revisions/mutations:restore"),
+		{ revisionId: history.page[0].id },
+	))).toBe("CANONICAL_AUTHORING_REQUIRED");
+
 	expect(
 		await f.t.run(async (ctx) => ({
 			post: await ctx.db.get("posts", f.ids.post),

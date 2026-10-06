@@ -109,15 +109,6 @@ export const schedulePostArgs = {
 };
 
 /**
- * Arguments for autosaving post content.
- */
-export const autosavePostArgs = {
-  postId: v.id("posts"),
-  title: v.optional(v.string()),
-  content: v.optional(v.string()),
-};
-
-/**
  * Arguments for bulk trash operation.
  */
 export const bulkTrashArgs = {

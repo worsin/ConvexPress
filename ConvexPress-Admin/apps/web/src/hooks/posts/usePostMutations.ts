@@ -28,7 +28,6 @@ export function usePostMutations() {
   const permanentDeleteMutation = useMutation(api.posts.mutations.permanentDelete);
   const duplicateMutation = useMutation(api.posts.mutations.duplicate);
   const scheduleMutation = useMutation(api.posts.mutations.schedule);
-  const autosaveMutation = useMutation(api.posts.mutations.autosave);
   const bulkTrashMutation = useMutation(api.posts.mutations.bulkTrash);
   const bulkRestoreMutation = useMutation(api.posts.mutations.bulkRestore);
   const bulkDeleteMutation = useMutation(api.posts.mutations.bulkDelete);
@@ -160,21 +159,6 @@ export function usePostMutations() {
     }
   }
 
-  // ─── Autosave ───────────────────────────────────────────────────────────
-
-  async function autosavePost(args: {
-    postId: Id<"posts">;
-    title?: string;
-    content?: string;
-  }) {
-    try {
-      return await autosaveMutation(args);
-    } catch {
-      // Autosave failures are silent per the knowledge doc
-      return { autosavedAt: 0 };
-    }
-  }
-
   // ─── Bulk Trash ─────────────────────────────────────────────────────────
 
   async function bulkTrashPosts(postIds: Id<"posts">[]) {
@@ -301,7 +285,6 @@ export function usePostMutations() {
     restorePost,
     permanentDeletePost,
     duplicatePost,
-    autosavePost,
     bulkTrashPosts,
     bulkRestorePosts,
     bulkDeletePosts,
