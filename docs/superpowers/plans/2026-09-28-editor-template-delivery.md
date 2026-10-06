@@ -181,12 +181,12 @@ September29 closure: all20 assigned Task2 block rows are Verified on the linked 
 
 **Consumes:** finished contracts/presentation, configured legitimate provider where needed. **Produces:** usable documented extension workflows, not merely generated folders.
 
-- [ ] In disposable outputs, exercise `block-build`, `block-add-feature`, `block-audit`, `block-style`, `block-compose`, `block-promote`, `pattern-build`, `block-migrate-content`; each yields a valid authored/rendered result appropriate to its operation.
+- [x] In disposable outputs, exercise `block-build`, `block-add-feature`, `block-audit`, `block-style`, `block-compose`, `block-promote`, `pattern-build`, `block-migrate-content`; each yields a valid authored/rendered result appropriate to its operation. Evidence: block-sdk-workflows-20261006.md maps all eight operations, reusing accepted native migration/composition/promotion evidence. Actual AI generation remains separate.
 - [x] Scaffold one token-first template and verify baseline coverage; create/enable/disable/re-enable the reference Events extension while preserving source/data and denied access when disabled. Confirm Dashboard manifest integration required by the handoff. Evidence: template-sdk-trial-20261006.md, reference-extension-acceptance-20261006.md and extension-installed-20261006.md (generated live install, native lifecycle and actual Clerk customer Dashboard).
 - [ ] Exercise the all-field reference block and live Events block through authoring, pack switching and public data updates.
 - [ ] Prove actual structured AI generation with enabled core/portable/pack/plugin/composed vocabulary, permitted nesting and real selected resources; inspect/review before approval and one save. Reject invalid/disabled/hidden-by-pack/cross-site references. No provider call is a reason to expose credentials or invent data.
-- [ ] Prove runtime composition, per-pack styling and reviewed promotion into canonical source with field preservation and no arbitrary executable code.
-- [ ] Add and exercise `template-build`, `template-add-surface`, and `template-audit` skills, and retarget the required design skill to the delivered template SDK.
+- [x] Prove runtime composition, per-pack styling and reviewed promotion into canonical source with field preservation and no arbitrary executable code. Evidence: mixed-composition-20261006.md, promotion-resources-20261006.md and promotion-installed-20261006.md; manually authored definitions, actual AI still open.
+- [x] Add and exercise `template-build`, `template-add-surface`, and `template-audit` skills, and retarget the required design skill to the delivered template SDK. Evidence: template-sdk-trial-20261006.md; existing design-homepage already targets the SDK.
 - [ ] Refresh kit docs/skills from the working interfaces; remove owned scaffolds/fixtures and document the minimal user workflow.
 
 ### Task 8 — Final integrated acceptance and delivery

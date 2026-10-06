@@ -7,7 +7,7 @@
     "In progress": 20
   },
   "goal": "Complete block editor and template delivery plus all demonstrated blockers; defer unrelated whole-app audit campaigns.",
-  "currentTask": "Task7: generated extension live installation, native lifecycle and actual Clerk subscriber Dashboard accepted; disposable trial archived/stopped with original data preserved. See extension-installed-20261006.md. Continue remaining SDK/AI, E09/E05, visual and Task8 gates. Goal active117/20.",
+  "currentTask": "Task7: eight block SDK operation trials accepted through the consolidated evidence map; optional extension/pattern/native/four-pack trial cleaned. See block-sdk-workflows-20261006.md. Continue E09 remaining per-field/shop/promotion and Dashboard surface matrix; actual AI/E05/final visual/Task8 still open. Goal active117/20.",
   "tasks": [
     {
       "id": 1,
@@ -282,10 +282,19 @@
     },
     {
       "id": "E17",
-      "status": "Three template skills added and sequentially exercised; token-first fifth pack passes 2owned/88Core resolver coverage, loading/lazy/canonical SSR, types and actual responsive internal demo with keyboard. Stale Admin mirror read-only detection and undeclared-treatment demo crashes repaired. Existing design-homepage already SDK-targeted. See template-sdk-trial-20261006.md. Eight block workflows, actual AI/native composition/promotion and remaining extension acceptance remain; no full E17 closure. Reference completeness now enforced by check:blocks against actual displayContext:27blocks/34fields with all installed plugins enabled and structural index ready; negative metadata mutation proves unsupported fields fail. See reference-extension-acceptance-20261006.md. Native Field Guide/Events/pinned reusable mixture now accepted at revision5. Aster direct acceptance bootstrap omitted deployment epoch initialization: existing initializeDeploymentMediaIndex coordinator + native12-record index repaired setup. Production setup/deploy already calls initializer; no product-guard bypass. Remaining three example index readiness not yet rechecked. E77 native manual composition with exact media/page resolver and Aster treatment, sibling and nested pinned reusable, autosave recovery, save/reopen/history now accepted at revision9; see mixed-composition-20261006.md. Actual AI/canonical promotion and remaining workflow gates stay open. E78 portable resource export contradiction repaired and native export/download plus actual disposable CLI installation accepted; see promotion-resources-20261006.md. No new shipped block or live canonical confirmation claim. Installed resource promotion subsequently accepted: fresh isolated138-spec trial, native canonical insertion/media/page/child authoring/save/reopen/publication, four-pack390/1280 rendering, exact SDK confirmation and retained-page revocation. Original pinned document/immutable version exact; disposable source archived and removed, trial archived/stopped. See promotion-installed-20261006.md. Actual AI and other SDK workflows remain open. Generated extension installation/native lifecycle and actual customer Dashboard now accepted by extension-installed-20261006.md; this closes the extension trial subrequirement, not the remaining eight-operation/AI scope.",
+      "status": "Bounded manual SDK acceptance complete: eight block operations have authored/rendered evidence; three template skills and token-first fifth-pack trial pass; generated extension live installation, native lifecycle and actual Clerk subscriber Dashboard pass. Reference completeness is enforced against actual displayContext (27 blocks/34 fields). Native mixed composed/resource/reusable authoring, per-pack styling, canonical export/install/confirmation and post-promotion revocation pass. Optional-field extension preserves old content exactly; two pattern copies retain independent edits, IDs and keyboard anchors across all four packs. Owned trials are archived/stopped and source removed after recoverable archives; original inventory/content/runtimes preserved. Actual AI generation is still unaccepted (E13), and final integrated installed/source parity remains E18/Task8; no whole-delivery closure.",
       "classification": "partial acceptance / remaining workflow gates",
       "initialFinding": "SDK existence is proven more broadly than each workflow's end-to-end operation.",
-      "closureBoundary": "Exercise all eight block-kit operations plus template and extension scaffolds in disposable outputs. Verify generated source, authoring and rendered result; remove owned scaffolds afterward."
+      "closureBoundary": "Exercise all eight block-kit operations plus template and extension scaffolds in disposable outputs. Verify generated source, authoring and rendered result; remove owned scaffolds afterward.",
+      "currentEvidence": [
+        "ConvexPress-Admin/audits/2026-09-04/block-sdk-workflows-20261006.md",
+        "ConvexPress-Admin/audits/2026-09-04/template-sdk-trial-20261006.md",
+        "ConvexPress-Admin/audits/2026-09-04/reference-extension-acceptance-20261006.md",
+        "ConvexPress-Admin/audits/2026-09-04/mixed-composition-20261006.md",
+        "ConvexPress-Admin/audits/2026-09-04/promotion-resources-20261006.md",
+        "ConvexPress-Admin/audits/2026-09-04/promotion-installed-20261006.md",
+        "ConvexPress-Admin/audits/2026-09-04/extension-installed-20261006.md"
+      ]
     },
     {
       "id": "E18",

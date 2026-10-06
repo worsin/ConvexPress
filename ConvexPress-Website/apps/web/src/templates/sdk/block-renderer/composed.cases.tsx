@@ -172,7 +172,9 @@ test("custom child slots render published reusable occurrences with definition-b
   const tree = [{ ...fixture.node, children: [reference] }];
   const plan = resolveSyncedOccurrencesSnapshot(tree, installation, () => ({ id: "source", revision: 1, title: "Shared", blocks, digest: syncedContentDigest("Shared", blocks), scope: installation, published: true }), { composed: fixture.composed });
   const projected = projectSyncedDisplay(plan, new Set(plan.byId.keys()));
-  const envelope = await resolveCanonicalDataWithDefinitions(projected.resolverTree, scope, policy, {}, fixture.composed);
+  const envelope = await resolveCanonicalDataWithDefinitions(projected.resolverTree, scope, policy, {
+    readPage: async () => { throw Error("This static reusable-content fixture must not read a page"); },
+  }, fixture.composed);
   const current = { scope, documentKey: "mixed", revision: "1", viewerKey: "guest" };
   const store = createContentPageDisplayStore();
   const grant = store.install({tree:projected.resolverTree,policy,context:current,envelope,composed:fixture.composed});
