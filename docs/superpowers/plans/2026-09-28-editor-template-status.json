@@ -1,13 +1,13 @@
 {
   "plan": "2026-09-28-editor-template-delivery.md",
   "baselineCommit": "d0fee8acceb408fd306a15f3c054322cb73ac8bc",
-  "checkpointSource": "output/membership-final-20261006/mt-accept-after.json",
+  "checkpointSource": "output/social-final-20261006/mt-accept-after.json",
   "checkpointCounts": {
-    "Verified": 123,
-    "In progress": 14
+    "Verified": 124,
+    "In progress": 13
   },
   "goal": "Complete block editor and template delivery plus all demonstrated blockers; defer unrelated whole-app audit campaigns.",
-  "currentTask": "Task3 membership plans/gated teaser/account teaser accepted: actual customer login, grant/revocation/plan withdrawal without reload, customer dashboard and normal logout;56 four-pack responsive states. Reused native authoring/order/paging evidence. Original71 pages/settings/plans preserved; customer/session/runtime cleanup complete, one terminal failed unsent test notification retained explicitly. Next social/UGC bounded reconciliation. E05 HTTPS awaits existing staging URL/configured host; independent work continues. Full goal active123/14.",
+  "currentTask": "Task3 UGC accepted: native tag/count save/reopen, actual public paging/lightbox, consent expiry and revocation without reload, private-parent exclusion, responsive images and reused four-pack motion evidence. Original71pages/12media/settings/social configuration exact; owned fixtures recoverably trashed, sessions/runtime cleanup complete. Social Feed Mastodon works; E98 records unimplemented declared Instagram provider. Next bounded LMS acceptance/repair. E05 hosted HTTPS remains independent. Full goal active124/13.",
   "tasks": [
     {
       "id": 1,
@@ -1221,6 +1221,19 @@
       "currentEvidence": [
         "ConvexPress-Admin/audits/2026-09-04/footer-cell-controls-20261006.md",
         "ConvexPress-Admin/audits/2026-09-04/footer-newsletter-20261006.md"
+      ]
+    },
+    {
+      "id": "E98",
+      "status": "Open: Instagram provider is declared but setup is explicitly rejected and its adapter is absent. Mastodon native/public path accepted.",
+      "classification": "demonstrated implementation gap",
+      "requiredWorkflow": "Author a Social Feed for either declared provider using a configured authorized source.",
+      "initialFinding": "socialFeeds/policy.ts rejects Instagram source setup; only mastodon.ts implements fetching. Canonical provider enum still includes Instagram.",
+      "repairBoundary": "Implement authorized Instagram account adapter and private credential configuration through normal native administration; preserve cache fences, independent site ownership and Mastodon behavior.",
+      "closureBoundary": "Native provider/handle/count save/reopen; real authorized Instagram feed and safe cache expiry/revocation/unavailable behavior; no provider secret in block content.",
+      "deliveryTask": 3,
+      "currentEvidence": [
+        "ConvexPress-Admin/audits/2026-09-04/social-ugc-20261006.md"
       ]
     }
   ],
@@ -2618,8 +2631,8 @@
       "title": "Social feed",
       "category": "Social",
       "checkpointStatus": "In progress",
-      "nextClassification": "Reviewed against live Notes and current canonical specification; Reuse per-card entrance repair; actual configured provider/handle/limit, SSR, authorization and loading/empty/error/continuation states.",
-      "classification": "missing evidence",
+      "nextClassification": "Complete declared Instagram provider; preserve accepted Mastodon evidence.",
+      "classification": "demonstrated implementation gap",
       "source": "blocks/core/social-feed/block.json",
       "requirements": "provider (select), handle (text), limit (number)",
       "evidenceReferences": [
@@ -2627,9 +2640,10 @@
         "motion-review-20260921.md",
         "output/block-library-review-20260915/coverage-review.json.",
         "output/social-feed-block-20260915.",
-        "output/social-feed-controls-20260915."
+        "output/social-feed-controls-20260915.",
+        "ConvexPress-Admin/audits/2026-09-04/social-ugc-20261006.md"
       ],
-      "remainingReview": "Reuse per-card entrance repair; actual configured provider/handle/limit, SSR, authorization and loading/empty/error/continuation states.",
+      "remainingReview": "E98: implement configured authorized Instagram adapter and private credential/native setup; actual Mastodon provider/handle/count save/reopen and public rendering accepted.",
       "deliveryTask": 3,
       "acceptanceBatch": "social-data",
       "reviewedAtCommit": "d8a0ea2c",
@@ -2646,18 +2660,19 @@
       "name": "core/ugc-grid",
       "title": "UGC grid",
       "category": "Social",
-      "checkpointStatus": "In progress",
-      "nextClassification": "Reviewed against live Notes and current canonical specification; Native tag/limit picker and actual scoped media; empty/denied/withdrawn records, paging and observed entrance behavior.",
-      "classification": "missing evidence",
+      "checkpointStatus": "Verified",
+      "nextClassification": "reuse valid evidence",
+      "classification": "accepted/reusable evidence",
       "source": "blocks/core/ugc-grid/block.json",
       "requirements": "tag (reference), limit (number)",
       "evidenceReferences": [
         "block-review-20260921.md",
         "motion-review-20260921.md",
         "output/block-library-review-20260915/coverage-review.json.",
-        "output/ugc-grid-block-20260915."
+        "output/ugc-grid-block-20260915.",
+        "ConvexPress-Admin/audits/2026-09-04/social-ugc-20261006.md"
       ],
-      "remainingReview": "Native tag/limit picker and actual scoped media; empty/denied/withdrawn records, paging and observed entrance behavior.",
+      "remainingReview": "Block accepted on current native/public lifecycle checks and reused four-pack responsive/motion evidence.",
       "deliveryTask": 3,
       "acceptanceBatch": "social-data",
       "reviewedAtCommit": "d8a0ea2c",
@@ -2667,7 +2682,8 @@
       "canonicalFields": [
         "tag",
         "limit"
-      ]
+      ],
+      "acceptedEvidence": "ConvexPress-Admin/audits/2026-09-04/social-ugc-20261006.md"
     },
     {
       "name": "commerce/product-showcase",
