@@ -136,7 +136,7 @@ function CompactFrame({ data }: { data: DashboardShellSurfaceData }) {
 
   return (
     <>
-      <Surface name="chrome.mobileNav" data={{ menu: headerMenu, siteIdentity, config: headerConfig.mobileMenu, open: mobileNavOpen, onClose: closeMobileNav }} fallback={CoreMobileNav} />
+      <Surface name="chrome.mobileNav" data={{ menu: headerMenu, siteIdentity, config: headerConfig.mobileMenu, userMenu: headerConfig.userMenu, open: mobileNavOpen, onClose: closeMobileNav }} fallback={CoreMobileNav} />
       <div data-slot="dashboard-shell" data-pack="depot" data-layout="compact" className={cn("flex min-h-svh flex-col bg-background text-foreground", dashboardFrame)} {...getBackgroundInertProps(mobileNavOpen)}>
         <SkipToContent />
         <Surface name="chrome.header" data={{ siteIdentity, menu: headerMenu, layoutConfig, headerConfig }} fallback={CoreHeader} />

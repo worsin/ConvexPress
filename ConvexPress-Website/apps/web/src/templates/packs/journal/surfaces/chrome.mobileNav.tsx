@@ -21,7 +21,7 @@ const FOCUSABLE_SELECTOR =
   'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
 export default function JournalChromeMobileNav({ data }: SurfaceProps<MobileNavSurfaceData>) {
-  const { menu, siteIdentity, config, open, onClose } = data;
+  const { menu, siteIdentity, config, userMenu, open, onClose } = data;
   const { user } = useUser();
   const { isLoaded } = useAuth();
   const { signOut } = useClerk();
@@ -128,7 +128,7 @@ export default function JournalChromeMobileNav({ data }: SurfaceProps<MobileNavS
         </Container>
       </nav>
 
-      <div className="shrink-0 border-t border-border">
+      {userMenu?.enabled !== false && isLoaded && (user || userMenu?.guestDisplay !== "hidden") && <div className="shrink-0 border-t border-border">
         <Container className="flex flex-col gap-4 py-6">
           {isLoaded ? (
             user ? (
@@ -168,14 +168,14 @@ export default function JournalChromeMobileNav({ data }: SurfaceProps<MobileNavS
                 <Link to="/login" onClick={onClose} className="text-sm tracking-wide text-foreground underline decoration-border underline-offset-[6px] hover:decoration-foreground">
                   Sign in
                 </Link>
-                <Link to="/register" onClick={onClose} className="text-sm tracking-wide text-muted-foreground transition-colors hover:text-foreground">
+                {(userMenu?.guestDisplay ?? "login-register") === "login-register" && <Link to="/register" onClick={onClose} className="text-sm tracking-wide text-muted-foreground transition-colors hover:text-foreground">
                   Register
-                </Link>
+                </Link>}
               </div>
             )
           ) : null}
         </Container>
-      </div>
+      </div>}
     </div>
     </div>
   );

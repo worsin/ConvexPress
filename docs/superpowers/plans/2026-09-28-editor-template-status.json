@@ -7,7 +7,7 @@
     "In progress": 20
   },
   "goal": "Complete block editor and template delivery plus all demonstrated blockers; defer unrelated whole-app audit campaigns.",
-  "currentTask": "Task6/E10: four representative authored pages passed native edit/private Website draft/mobile preview/save/reload and exact canonical readback. Published page/post list links repaired (E72); first-origin site-switch reload ordering repaired and native verified (E73). Next full four-site responsive chrome/visual acceptance, then remaining Task5/7/8 gates. Goal active117/20; no full-site completion claim.",
+  "currentTask": "Task6/E10: E74 mobile account visibility repaired across four packs; 24 behavior cases/102 assertions, types/build, live390px drawers/focus and four1280px homepages accepted. Core footer configured columns/title fallback and repeated authored article headings are next bounded site-polish work. Goal active117/20; no full-site completion claim.",
   "tasks": [
     {
       "id": 1,
@@ -850,6 +850,17 @@
       "status": "Repaired and native verified: removed Journal origins only from owned profile, restarted acceptance app, one selection registers origins/reloads and stays on Journal Connected. Existing scope/persistence tests pass.",
       "evidence": [
         "ConvexPress-Admin/audits/2026-09-04/example-native-20261005.md"
+      ]
+    },
+    {
+      "id": "E74",
+      "classification": "implemented and runtime verified",
+      "deliveryTask": 6,
+      "initialFinding": "All four mobile surfaces ignore published header.userMenu configuration and show disabled account links.",
+      "closureBoundary": "Pass resolved settings through public/account callers; honor enabled and guestDisplay while preserving independent Depot cart.",
+      "status": "24 rendered cases fail before/pass after; live four-pack390px drawers hide disabled links, preserve cart and return focus. Types/build and changed-file lint pass; full lint has two unrelated existing warnings.",
+      "evidence": [
+        "ConvexPress-Admin/audits/2026-09-04/example-responsive-20261005.md"
       ]
     }
   ],
@@ -4581,7 +4592,8 @@
     "output/legacy-block-api-retirement-20261005/preservation.json",
     "ConvexPress-Admin/audits/2026-09-04/legacy-field-preservation-20261005.md",
     "ConvexPress-Admin/audits/2026-09-04/example-site-authoring-20261005.md",
-    "ConvexPress-Admin/audits/2026-09-04/example-native-20261005.md"
+    "ConvexPress-Admin/audits/2026-09-04/example-native-20261005.md",
+    "ConvexPress-Admin/audits/2026-09-04/example-responsive-20261005.md"
   ],
   "trackerRefresh": {
     "source": "output/lead-customer-20260929/mt-accept-after.json",
@@ -4602,7 +4614,7 @@
   "coordination": {
     "folder": "/Users/worsin/Development/ConvexPress/Opus Audits/",
     "authority": "Codex leads; Claude audits are advisory and independently verified",
-    "lastAudit": "2026-10-05T1609-audit-34-corpus-canonical.md",
+    "lastAudit": "2026-10-05T2207-audit-40-task6-example-sites.md",
     "pendingAdvisory": {
       "F19": "Accepted shared public document href contract. Historical encoded-slug fixture reproduced discrepancy; ordinary authoring slugifies safely. Legacy menu root/prefix behavior and membership aliases preserved. See locale-destinations-20260928.md.",
       "F20": "Source-verified enterprise commerce backfill truncation recorded in current-acceptance.md deferred register. No live reproduction or repair; promote only if catalog/customer-commerce delivery demonstrates a dependency.",

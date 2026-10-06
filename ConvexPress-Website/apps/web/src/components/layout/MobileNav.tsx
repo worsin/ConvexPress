@@ -20,6 +20,7 @@ interface MobileNavProps {
   menu: ResolvedMenu | undefined;
   siteIdentity: SiteIdentity | undefined;
   config?: HeaderConfig["mobileMenu"];
+  userMenu?: HeaderConfig["userMenu"];
   /** Open state; defaults to the layout shell's mobile nav state. */
   open?: boolean;
   /** Close callback; defaults to the layout shell's closeMobileNav. */
@@ -31,7 +32,7 @@ interface MobileNavProps {
  * Visible only on viewports smaller than lg.
  * Includes focus trap for WCAG 2.1 AA compliance.
  */
-export function MobileNav({ menu, siteIdentity, config, open, onClose }: MobileNavProps) {
+export function MobileNav({ menu, siteIdentity, config, userMenu, open, onClose }: MobileNavProps) {
   const shell = useLayoutShell();
   const mobileNavOpen = open ?? shell.mobileNavOpen;
   const closeMobileNav = onClose ?? shell.closeMobileNav;
@@ -196,7 +197,7 @@ export function MobileNav({ menu, siteIdentity, config, open, onClose }: MobileN
         </nav>
 
         {/* User actions at bottom */}
-        <div className="border-t border-border p-4">
+        {userMenu?.enabled !== false && isLoaded && (user || userMenu?.guestDisplay !== "hidden") && <div className="border-t border-border p-4">
           {isLoaded && (
             <>
               {user ? (
@@ -246,6 +247,7 @@ export function MobileNav({ menu, siteIdentity, config, open, onClose }: MobileN
                   </div>
                 </div>
               ) : (
+                <>
                 <Link
                   to="/login"
                   onClick={closeMobileNav}
@@ -253,10 +255,16 @@ export function MobileNav({ menu, siteIdentity, config, open, onClose }: MobileN
                 >
                   Sign In
                 </Link>
+                {(userMenu?.guestDisplay ?? "login-register") === "login-register" && <Link
+                  to="/register"
+                  onClick={closeMobileNav}
+                  className="mt-2 block w-full border border-border bg-background px-3 py-2 text-center text-xs font-medium text-foreground transition-colors hover:bg-muted"
+                >Register</Link>}
+                </>
               )}
             </>
           )}
-        </div>
+        </div>}
       </div>
       </div>
     </>

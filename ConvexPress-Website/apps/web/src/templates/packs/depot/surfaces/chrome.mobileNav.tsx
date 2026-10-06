@@ -13,7 +13,7 @@ import { useEffect, useRef, type ReactNode } from "react";
 
 import { useSettings } from "@/contexts/SettingsContext";
 import { useAuth, useClerk, useUser } from "@/lib/auth/clerk";
-import type { ResolvedMenuItem, SiteIdentity } from "@/lib/layout/types";
+import type { HeaderConfig, ResolvedMenuItem, SiteIdentity } from "@/lib/layout/types";
 import { cn } from "@/lib/utils";
 import type { MobileNavSurfaceData } from "@/templates/packs/core/surfaces/chrome.mobileNav";
 import type { SurfaceProps } from "@/templates/sdk/types";
@@ -95,7 +95,7 @@ export default function DepotMobileNav({ data }: SurfaceProps<MobileNavSurfaceDa
             )}
           </nav>
 
-          <AccountBlock onNavigate={onClose} />
+          <AccountBlock onNavigate={onClose} userMenu={data.userMenu} />
         </DialogPrimitive.Popup>
       </DialogPrimitive.Portal>
     </DialogPrimitive.Root>
@@ -182,7 +182,7 @@ function NavLink({
   );
 }
 
-function AccountBlock({ onNavigate }: { onNavigate: () => void }) {
+function AccountBlock({ onNavigate, userMenu }: { onNavigate: () => void; userMenu?: HeaderConfig["userMenu"] }) {
   const { user } = useUser();
   const { isLoaded } = useAuth();
   const { signOut } = useClerk();
@@ -197,7 +197,7 @@ function AccountBlock({ onNavigate }: { onNavigate: () => void }) {
           Cart
         </Link>
       )}
-      {isLoaded &&
+      {userMenu?.enabled !== false && isLoaded && (user || userMenu?.guestDisplay !== "hidden") &&
         (user ? (
           <div className="flex flex-col gap-2">
             <div className="flex items-center gap-2">
@@ -231,9 +231,12 @@ function AccountBlock({ onNavigate }: { onNavigate: () => void }) {
             </div>
           </div>
         ) : (
+          <>
           <Link to="/login" onClick={onNavigate} className={buttonClasses("primary", "md", "w-full")}>
             Sign in
           </Link>
+          {(userMenu?.guestDisplay ?? "login-register") === "login-register" && <Link to="/register" onClick={onNavigate} className={buttonClasses("secondary", "md", "w-full")}>Register</Link>}
+          </>
         ))}
     </div>
   );

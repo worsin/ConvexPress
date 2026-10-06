@@ -136,7 +136,7 @@ function MarketingLayoutInner({ routeAccess }: { routeAccess: RouteAccessResult 
           data={{
             menu: headerMenu,
             siteIdentity,
-            config: headerConfig.mobileMenu,
+            config: headerConfig.mobileMenu, userMenu: headerConfig.userMenu,
             open: mobileNavOpen,
             onClose: closeMobileNav,
           }}

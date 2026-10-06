@@ -178,7 +178,7 @@ function CompactShell({ data }: { data: DashboardShellSurfaceData }) {
 
   return (
     <>
-      <Surface name="chrome.mobileNav" data={{ menu: headerMenu, siteIdentity, config: headerConfig.mobileMenu, open: mobileNavOpen, onClose: closeMobileNav }} fallback={CoreMobileNav} />
+      <Surface name="chrome.mobileNav" data={{ menu: headerMenu, siteIdentity, config: headerConfig.mobileMenu, userMenu: headerConfig.userMenu, open: mobileNavOpen, onClose: closeMobileNav }} fallback={CoreMobileNav} />
       <div data-slot="dashboard-shell" data-layout="compact" className="flex min-h-svh flex-col bg-background text-foreground" {...getBackgroundInertProps(mobileNavOpen)}>
         <SkipToContent />
         <Surface name="chrome.header" data={{ siteIdentity, menu: headerMenu, layoutConfig, headerConfig }} fallback={CoreHeader} />

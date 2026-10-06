@@ -53,7 +53,7 @@ export function AccountLayout({ children }: { children: ReactNode }) {
 
   return (
     <>
-      <MobileNav menu={headerMenu} siteIdentity={siteIdentity} config={headerConfig.mobileMenu} />
+      <MobileNav menu={headerMenu} siteIdentity={siteIdentity} config={headerConfig.mobileMenu} userMenu={headerConfig.userMenu} />
       <SkipToContent />
       <SiteHeader siteIdentity={siteIdentity} menu={headerMenu} />
       <main id="main-content" role="main" className="mx-auto w-full max-w-5xl px-4 py-8 md:px-6 lg:px-8">
