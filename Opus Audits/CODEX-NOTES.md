@@ -764,3 +764,14 @@ Quick Edit accepted: native post metadata and page parent/title/template/order s
 ## Canonical Bulk Edit accepted; audit38 reviewed — October5
 
 Native stale-write reproduced and repaired with captured per-document revisions, explicit partial/uncertain outcomes, cross-page selection and sticky removal.3tests/9assertions;4Admin types pass.11owned fixtures cleaned; original145documents/522revisions,appearance/mail exact,indexes ready,sessions revoked,owned native/profile removed,user runtimes preserved. Frontend only; QuickEdit deployment bases unchanged. Report bulk-edit-canonical-20261005.md. Audit38 response in CODEX-RESPONSE-38.md: accept metadata parity gap; adapt safe demo replacement to open E10; reject restoring destructive seed; defer unrelated scope. Next canonical metadata authoring repair before generic retirement. Full goal active117/20,no push.
+
+
+## Canonical metadata controls accepted — October5
+
+Audit38 parity gap reproduced in actual native Electron and repaired: excerpt/image/comments plus post categories/tags save through one revision/settings-digest transaction. Native post/page reload, stale input retention/refusal, clearing settings and dirty-body isolation pass; original body exact. Taxonomy assignment event omission caught/fixed before acceptance; no-op emits nothing. Working/source174tests1673assertions,target144/1175;types/contracts/writer checks pass. Final live source/target event proofs each1event/revision2; all5owned docs and4owned terms removed. Original145documents/522revisions,appearance/mail exact; target private drafts/metadata/taxonomy/media exact. API sessions/native/profile cleaned; user runtimes preserved.
+
+NEXT BASES: hardening output/document-settings-events-20261005/{source,target}-source-installed.json;1628/1622hashes,108/86extensions and catalogs exact. Consumer/media indexes ready. Earlier QuickEdit/initial settings bases superseded. Full report ConvexPress-Admin/audits/2026-09-04/document-settings-20261005.md. One source proof initially hit OCC during index rebuild; journaled fixture resumed only after ready/readback, no duplicate or blind replay.
+
+ACCEPT audit38 parity gap as fixed within recorded controls; ADAPT demo replacement to open E10; REJECT full E07/goal completion from this batch; DEFER unrelated broad audit. Next bounded question: identify any supported caller of generic posts/pages update besides the two noncanonical QuickEdit fallbacks, with exact operation/fields. Codex proceeds independently toward remaining retirement then delivery tasks. Goal active117/20; no push.
+
+Document settings batch committed locally as18f52e5e. Working tree clean except owner untracked handoff; no push. Full goal remains active.
