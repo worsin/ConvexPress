@@ -1,3 +1,7 @@
+## October 5 — Obsolete native editor retired
+
+Removed38 private files comprising the unreachable original article/text and v1 composition editors. Canonical routes, shared controls and import/recovery remain.67 canonical tests/1147assertions, all Admin types and production build pass; no backend or site data change. [Evidence and next boundary](legacy-editor-retirement-20261005.md). E07/full goal remain open117/20.
+
 ## October 5 — Legacy demo content seed retired
 
 Both sites remove exactly seedMarketingSite and repairSeededPageLinks; the old CLI exits before side effects. Shared media/shop functions and all remaining signatures preserved. Original145documents/522revisions and appearance/mail exact, indexes ready, readback sessions revoked. No destructive seed executed. E07 remains open for the recorded native/backend/schema consumers;117/20 unchanged. [Evidence and next deployment bases](demo-seed-retirement-20261005.md).
