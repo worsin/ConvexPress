@@ -7,9 +7,10 @@
  *   - every listed surface has a surfaces/<id>.tsx file, and vice versa
  *   - variants are declared for implemented catalog surfaces only
  *   - surfaces do not reach the backend directly or use colour literals
- *   - the admin's mirrored catalog lists the same surface ids, when present
+ *   - every generated manifest and Admin mirror matches its authoritative source
  * Exit code is the verdict.
  */
+import { spawnSync } from "node:child_process";
 import { validateTemplateContract } from "./template-contract.mjs";
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
@@ -73,6 +74,12 @@ for (const module of ["draftModel", "chromeDefinitions", "templateActivation", "
   const source = join(root, `apps/web/src/templates/sdk/${module}.ts`);
   const mirror = resolve(root, `../ConvexPress-Admin/apps/web/src/lib/templates/${module}.ts`);
   if (existsSync(source) && (!existsSync(mirror) || readFileSync(source, "utf8") !== readFileSync(mirror, "utf8"))) throw new Error(`${module}: Admin mirror is stale; run sync:templates`);
+}
+
+const synchronization = spawnSync(process.execPath, [join(here, "sync-template-packs.mjs"), "--check"], { encoding: "utf8" });
+if (synchronization.error || synchronization.status !== 0) {
+  console.error(synchronization.error?.message ?? synchronization.stderr ?? "Template synchronization check failed");
+  process.exit(1);
 }
 
 console.log(`Template pack check passed (${packs.length} pack${packs.length === 1 ? "" : "s"}, ${catalog.size} catalog surfaces).`);

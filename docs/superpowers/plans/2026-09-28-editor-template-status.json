@@ -7,7 +7,7 @@
     "In progress": 20
   },
   "goal": "Complete block editor and template delivery plus all demonstrated blockers; defer unrelated whole-app audit campaigns.",
-  "currentTask": "Task5: E08 migration/retired-editor gate accepted for all six delivery environments. E09 remaining Customizer per-field/dashboard/promotion and E05 hosted preview remain; Task6 final visual review and Task7/8 unfinished. Goal active117/20.",
+  "currentTask": "Task7: template skills and token-first scaffold trial accepted; stale Admin mirror and unsupported BlockDemo treatment crashes repaired. Continue eight block workflows/reference completeness/plugin/AI/native composition gates. Task5 E09/E05,Task6 final visual and Task8 remain; goal active117/20.",
   "tasks": [
     {
       "id": 1,
@@ -36,7 +36,7 @@
     },
     {
       "id": 7,
-      "status": "pending"
+      "status": "in_progress"
     },
     {
       "id": 8,
@@ -276,8 +276,8 @@
     },
     {
       "id": "E17",
-      "status": "Opus F6 confirms missing template-build/template-add-surface/template-audit skills; add to Task 7 alongside design-skill retarget and existing workflow acceptance. Opus F17: add a reference-support completeness gate during Task 7 SDK acceptance, testing references with plugins enabled and explicit structural exceptions; no current additional unsupported reference demonstrated.",
-      "classification": "missing implementation",
+      "status": "Three template skills added and sequentially exercised; token-first fifth pack passes 2owned/88Core resolver coverage, loading/lazy/canonical SSR, types and actual responsive internal demo with keyboard. Stale Admin mirror read-only detection and undeclared-treatment demo crashes repaired. Existing design-homepage already SDK-targeted. See template-sdk-trial-20261006.md. Eight block workflows, enabled-plugin reference completeness, extension lifecycle and actual AI/native composition/promotion acceptance remain; no full E17 closure.",
+      "classification": "partial acceptance / remaining workflow gates",
       "initialFinding": "SDK existence is proven more broadly than each workflow's end-to-end operation.",
       "closureBoundary": "Exercise all eight block-kit operations plus template and extension scaffolds in disposable outputs. Verify generated source, authoring and rendered result; remove owned scaffolds afterward."
     },
@@ -4624,7 +4624,9 @@
     "ConvexPress-Admin/audits/2026-09-04/example-responsive-20261005.md",
     "output/example-responsive-20261005/flagship-pattern-reconciliation.json",
     "ConvexPress-Admin/audits/2026-09-04/pattern-tone-review-20261005.md",
-    "ConvexPress-Admin/audits/2026-09-04/appearance-rollout-20261006.md"
+    "ConvexPress-Admin/audits/2026-09-04/appearance-rollout-20261006.md",
+    "ConvexPress-Admin/audits/2026-09-04/template-sdk-trial-20261006.md",
+    "output/template-skill-trial-20261006"
   ],
   "trackerRefresh": {
     "source": "output/lead-customer-20260929/mt-accept-after.json",

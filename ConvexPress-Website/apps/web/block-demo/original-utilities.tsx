@@ -3,11 +3,13 @@ import { validateCanonicalTree } from "../src/templates/sdk/block-data/portable/
 import { getBlockDefinition } from "../src/lib/blocks/registry";
 import { prepareBlocks } from "../src/templates/sdk/block-renderer/model";
 import { stagedRenderers } from "../src/templates/sdk/block-renderer/discovery";
+import { packTreatmentSupport } from "../src/templates/sdk/block-data/portable/generated/metadata";
 const cases = [
   ...["small", "medium", "large", "xlarge"].map(value => ({name:"core/spacer" as const,field:"size",value})),
   ...["default", "section", "subtle"].map(value => ({name:"core/divider" as const,field:"variant",value})),
 ];
 export function OriginalUtilitiesStudy({packId}:{packId:string}) {
+  const supported: Readonly<Record<string, Readonly<Record<string, readonly string[]>>>> = packTreatmentSupport;
   return <details className="canonical-study" data-original-utilities>
     <summary>Original spacing and divider comparison</summary>
     <p className="specimen-note">The actual original renderer beside its canonical conversion. Saved choices stay intact when templates change.</p>
@@ -21,7 +23,9 @@ export function OriginalUtilitiesStudy({packId}:{packId:string}) {
         <h3>{name === "core/spacer" ? "Spacer" : "Divider"} · {value}</h3>
         <div className="grid gap-4 md:grid-cols-2">
           <div data-original-view><Original block={block} attrs={attrs}/></div>
-          <div data-converted-view>{prepareBlocks(tree,stagedRenderers,{enabledPlugins:[],capabilities:[],disabledBlocks:[]},{media:{}},undefined,packId)}</div>
+          <div data-converted-view>{supported[packId]?.[name]?.includes("original")
+            ? prepareBlocks(tree,stagedRenderers,{enabledPlugins:[],capabilities:[],disabledBlocks:[]},{media:{}},undefined,packId)
+            : <p data-treatment-unavailable>This pack does not declare the original {name === "core/spacer" ? "spacer" : "divider"} treatment.</p>}</div>
         </div>
       </section>;
     })}

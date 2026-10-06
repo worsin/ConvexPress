@@ -1,4 +1,4 @@
-import { createElement, Suspense } from "react";
+import { createElement, Suspense, type ComponentType } from "react";
 import { ConvexProviderWithAuth, ConvexReactClient } from "convex/react";
 import { renderToReadableStream, renderToStaticMarkup } from "react-dom/server";
 import type { SurfaceComponent } from "../src/templates/sdk/types";
@@ -80,6 +80,19 @@ for (const packId of ['core', 'journal', 'depot', 'aster-house']) {
   }
   console.log('BlockDemo utility comparison SSR passed: ' + packId + ' (7 pairs)');
 }
+
+// Token-first packs need not opt into legacy treatment compatibility. Internal
+// comparisons must explain unavailable treatments without crashing the gallery.
+// BlockDemo has its own TypeScript project for root canonical block imports.
+const treatmentStudies = import.meta.glob('../block-demo/field-guide-treatment.tsx', { eager: true, import: 'FieldGuideTreatmentStudy' }) as Record<string, ComponentType<{packId:string}>>;
+const FieldGuideTreatmentStudy = treatmentStudies['../block-demo/field-guide-treatment.tsx'];
+for (const Study of [OriginalUtilitiesStudy, FieldGuideTreatmentStudy]) {
+ const stream = await renderToReadableStream(createElement(Suspense,{fallback:null},createElement(Study,{packId:'unregistered-trial-pack'})));
+ await stream.allReady;
+ const html = await new Response(stream).text();
+ if (html.includes('Switched to client rendering') || !html.includes('data-treatment-unavailable')) throw Error('Unsupported treatment crashed internal comparison');
+}
+console.log('BlockDemo unsupported treatment comparisons remain usable');
 
 // Real lazy canonical discovery must stream complete nested, reusable and custom
 // trees. These are explicit offline fixtures, never public-data fallbacks.

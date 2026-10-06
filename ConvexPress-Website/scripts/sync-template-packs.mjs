@@ -5,14 +5,28 @@
  *   2. Every pack's `surfaces` list is checked against its files.
  *   3. ConvexPress-Admin/apps/web/src/lib/templates/packs.ts is regenerated from all manifests.
  *   4. Portable settings schemas, draft/activation models and chrome definitions are mirrored.
- * Run after adding or removing surfaces in any pack; `check:templates` then verifies.
+ * Run after adding or removing surfaces in any pack; --check verifies without writing.
  */
 import { existsSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
-import { dirname, join, resolve } from "node:path";
+import { dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const root = resolve(here, "..");
+const args = process.argv.slice(2);
+if (args.some(arg => arg !== "--check")) {
+  console.error("Usage: sync-template-packs.mjs [--check]");
+  process.exit(1);
+}
+const checkOnly = args.includes("--check");
+const drift = [];
+function writeGenerated(path, content) {
+  if (checkOnly) {
+    if (!existsSync(path) || readFileSync(path, "utf8") !== content) drift.push(relative(resolve(root, ".."), path));
+  } else {
+    writeFileSync(path, content);
+  }
+}
 const packsDir = join(root, "apps/web/src/templates/packs");
 const catalogFile = join(root, "apps/web/src/templates/sdk/catalog.ts");
 const adminPacks = resolve(root, "../ConvexPress-Admin/apps/web/src/lib/templates/packs.ts");
@@ -22,7 +36,7 @@ const adminCatalog = readFileSync(catalogFile, "utf8")
   .replace('import type { PublicPluginId } from "@/lib/plugins/public";', 'import type { AdminPluginId } from "@/lib/plugins/registry";')
   .replaceAll("PublicPluginId", "AdminPluginId")
   .replaceAll('plugin: "kb"', 'plugin: "knowledgeBase"');
-writeFileSync(resolve(root, "../ConvexPress-Admin/apps/web/src/lib/templates/catalog.ts"),
+writeGenerated(resolve(root, "../ConvexPress-Admin/apps/web/src/lib/templates/catalog.ts"),
   "// Generated from Website SDK catalog by sync:templates. Do not edit.\n" + adminCatalog);
 
 
@@ -40,7 +54,7 @@ for (const id of packs) {
   if (unknown.length) throw new Error(`${id}: surfaces not in catalog: ${unknown.join(", ")}`);
   manifest.surfaces = catalogOrder.filter((surface) => files.includes(surface));
   manifest.variants = Object.fromEntries(Object.entries(manifest.variants ?? {}).filter(([surface]) => manifest.surfaces.includes(surface)));
-  writeFileSync(manifestPath, JSON.stringify(manifest, null, 2) + "\n");
+  writeGenerated(manifestPath, JSON.stringify(manifest, null, 2) + "\n");
   manifests.push(manifest);
   console.log(`${id}: ${manifest.surfaces.length}/${catalogOrder.length} surfaces`);
 }
@@ -99,16 +113,22 @@ export function getTemplatePack(id: string): TemplatePackSummary | undefined {
   return TEMPLATE_PACKS.find((pack) => pack.id === id);
 }
 `;
-writeFileSync(adminPacks, file);
-console.log(`admin mirror written: ${manifests.length} packs`);
+writeGenerated(adminPacks, file);
+
 
 // One authoritative draft model; the Admin mirror is generated for its independent build.
 const draftModel = join(root, "apps/web/src/templates/sdk/draftModel.ts");
-writeFileSync(resolve(root, "../ConvexPress-Admin/apps/web/src/lib/templates/draftModel.ts"), readFileSync(draftModel, "utf8"));
-writeFileSync(resolve(root, "../ConvexPress-Admin/apps/web/src/lib/templates/templateActivation.ts"), readFileSync(join(root, "apps/web/src/templates/sdk/templateActivation.ts"), "utf8"));
+writeGenerated(resolve(root, "../ConvexPress-Admin/apps/web/src/lib/templates/draftModel.ts"), readFileSync(draftModel, "utf8"));
+writeGenerated(resolve(root, "../ConvexPress-Admin/apps/web/src/lib/templates/templateActivation.ts"), readFileSync(join(root, "apps/web/src/templates/sdk/templateActivation.ts"), "utf8"));
 
 const chromeDefinitions = join(root, "apps/web/src/templates/sdk/chromeDefinitions.ts");
-if (existsSync(chromeDefinitions)) writeFileSync(resolve(root, "../ConvexPress-Admin/apps/web/src/lib/templates/chromeDefinitions.ts"), readFileSync(chromeDefinitions, "utf8"));
+if (existsSync(chromeDefinitions)) writeGenerated(resolve(root, "../ConvexPress-Admin/apps/web/src/lib/templates/chromeDefinitions.ts"), readFileSync(chromeDefinitions, "utf8"));
 
 // Portable module fields and defaults have one source, including nested chrome.
-writeFileSync(resolve(root, "../ConvexPress-Admin/apps/web/src/lib/templates/settingsSchema.ts"), readFileSync(join(root, "apps/web/src/templates/sdk/settingsSchema.ts"), "utf8"));
+writeGenerated(resolve(root, "../ConvexPress-Admin/apps/web/src/lib/templates/settingsSchema.ts"), readFileSync(join(root, "apps/web/src/templates/sdk/settingsSchema.ts"), "utf8"));
+
+if (drift.length) {
+  console.error(`Template synchronization check failed; run sync:templates:\n${drift.map(path => `  - ${path}`).join("\n")}`);
+  process.exit(1);
+}
+console.log(`Template mirrors ${checkOnly ? "checked without writing" : "written"}: ${manifests.length} packs`);
