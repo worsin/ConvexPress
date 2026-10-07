@@ -29,7 +29,7 @@ mock.module("./useTemplateSettings", () => ({
   useTemplateSettings: () => { const { draft } = useContext(TemplateDraftContext); return { modules, values: draft.packId ? draft.values : snapshot?.values.settings.core ?? {} }; },
 }));
 mock.module("./registry", () => ({ listTemplatePacks: () => ["core", "journal"].map(id => ({ manifest: { id, name: id } })) }));
-mock.module("./FooterRowsSettings", () => ({ FooterRowsSettings: () => null, FooterMenuColumnsSettings: () => null }));
+mock.module("./FooterRowsSettings", () => ({ FooterRowsSettings: () => null, FooterMenuColumnsSettings: () => null, ImageSetting: () => null }));
 mock.module("sonner", () => ({ toast: { success() {}, info() {} } }));
 const { default: CustomizerPanel } = await import("./CustomizerPanel");
 const { OnSiteCustomizer } = await import("./OnSiteCustomizer");

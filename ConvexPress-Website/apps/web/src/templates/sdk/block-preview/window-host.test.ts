@@ -1,5 +1,6 @@
 import { expect, test } from "bun:test";
 import { bindNativePreview, bindWebsitePreview } from "./window-host";
+import { createPreviewRenewal } from "../../../../../../../ConvexPress-Admin/apps/web/src/components/blocks/canonical-editor/preview-renewal";
 import type { PreviewCodec, PreviewBinding } from "./channel";
 const expected: PreviewBinding = {
 	websiteKey: "site",
@@ -40,6 +41,80 @@ class Surface {
 	}
 }
 const pause = () => new Promise((resolve) => setTimeout(resolve, 15));
+test("receiver teardown revokes native rendered status without waiting for an iframe load", async () => {
+	const parent = new Surface(),
+		child = new Surface(),
+		frame = new Surface();
+	child.parent = parent;
+	Object.assign(frame, { contentWindow: child });
+	child.postMessage = (data, _target, ports = []) =>
+		queueMicrotask(() =>
+			child.emit("message", {
+				source: parent,
+				origin: "http://localhost:4000",
+				data,
+				ports,
+			}),
+		);
+	parent.postMessage = (data) =>
+		queueMicrotask(() =>
+			parent.emit("message", {
+				source: child,
+				origin: "https://site.test",
+				data,
+			}),
+		);
+	let visible: unknown = null;
+	const receiver = bindWebsitePreview({
+		window: child as unknown as Window,
+		parentOrigin: "http://localhost:4000",
+		expected,
+		codec,
+		clock: {
+			now: Date.now,
+			schedule: (run, ms) => setTimeout(run, ms),
+			cancel: (id) => clearTimeout(id as ReturnType<typeof setTimeout>),
+		},
+		onValue(value, receipt) {
+			visible = value;
+			receipt?.rendered();
+		},
+	});
+	const host = bindNativePreview({
+		window: parent as unknown as Window,
+		frame: frame as unknown as HTMLIFrameElement,
+		websiteOrigin: "https://site.test",
+		challenge: "random_challenge_1234",
+		generation: "channel_generation_1234",
+		expected,
+		codec,
+		now: Date.now,
+	});
+	try {
+		host.publish(
+			{ binding: expected, digest: "restored-tree" },
+			{
+				binding: expected,
+				authReady: true,
+				connectionReady: true,
+				queryReady: true,
+				freshUntil: Date.now() + 5000,
+			},
+		);
+		await pause();
+		expect(host.deliveryState()).toBe("rendered");
+		expect(visible).toEqual({ binding: expected, digest: "restored-tree" });
+		// React receiver cleanup/remount does not navigate the owning iframe.
+		receiver.close();
+		await pause();
+		expect(visible).toBeNull();
+		expect(host.deliveryState()).toBe("closed");
+		expect(host.connectionState()).toBe("closed");
+	} finally {
+		host.close();
+		receiver.close();
+	}
+});
 test("queued preview content is not a connected Website and spoofed readiness cannot promote it", () => {
   const parent = new Surface(), child = new Surface(), frame = new Surface();
   Object.assign(frame, { contentWindow: child });
@@ -204,4 +279,115 @@ test("top-level Website receiver never listens or renders supplied document stat
 	expect(self.listeners.size).toBe(0);
 	expect(seen).toEqual([null]);
 	receiver.close();
+});
+
+test("native renewal automatically renders a remounted Website receiver after a fresh read", async () => {
+	const parent = new Surface(),
+		child = new Surface(),
+		frame = new Surface();
+	child.parent = parent;
+	Object.assign(frame, { contentWindow: child });
+	child.postMessage = (data, _target, ports = []) =>
+		queueMicrotask(() =>
+			child.emit("message", {
+				source: parent,
+				origin: "http://localhost:4000",
+				data,
+				ports,
+			}),
+		);
+	parent.postMessage = (data) =>
+		queueMicrotask(() =>
+			parent.emit("message", {
+				source: child,
+				origin: "https://site.test",
+				data,
+			}),
+		);
+	let now = 0,
+		taskId = 0,
+		connections = 0,
+		reads = 0;
+	const tasks = new Map<number, { at: number; run: () => void }>();
+	const schedule = (run: () => void, ms: number) => {
+		tasks.set(++taskId, { at: now + ms, run });
+		return taskId;
+	};
+	const cancel = (id: unknown) => {
+		tasks.delete(id as number);
+	};
+	let visible: unknown = null;
+	const states: string[] = [];
+	const mount = () =>
+		bindWebsitePreview({
+			window: child as unknown as Window,
+			parentOrigin: "http://localhost:4000",
+			expected,
+			codec,
+			clock: { now: () => now, schedule, cancel },
+			onValue(value, receipt) {
+				visible = value;
+				receipt?.rendered();
+			},
+		});
+	let receiver = mount();
+	const loop = createPreviewRenewal({
+		clock: { now: () => now, set: schedule, clear: cancel },
+		read: async () => {
+			reads++;
+			return { binding: expected, digest: "restored-tree" };
+		},
+		connect: (onDeliveryChange) => {
+			const host = bindNativePreview({
+				window: parent as unknown as Window,
+				frame: frame as unknown as HTMLIFrameElement,
+				websiteOrigin: "https://site.test",
+				challenge: `challenge_number_${++connections}`,
+				generation: `generation_number_${connections}`,
+				expected,
+				codec,
+				now: () => now,
+				onDeliveryChange,
+			});
+			return {
+				...host,
+				publish(document, deadline) {
+					host.requestConnection();
+					return host.publish(document, {
+						binding: expected,
+						authReady: true,
+						connectionReady: true,
+						queryReady: true,
+						freshUntil: deadline,
+					});
+				},
+			};
+		},
+		onState: (state) => states.push(state),
+	});
+	try {
+		loop.start();
+		await pause();
+		expect(states.at(-1)).toBe("connected");
+		expect(reads).toBe(1);
+		receiver.close();
+		receiver = mount();
+		await pause();
+		expect(states.at(-1)).toBe("paused");
+		expect(visible).toBeNull();
+		now = 2000;
+		for (const [id, task] of [...tasks])
+			if (task.at <= now) {
+				tasks.delete(id);
+				task.run();
+			}
+		await pause();
+		expect(reads).toBe(2);
+		expect(connections).toBe(2);
+		expect(states.at(-1)).toBe("connected");
+		expect(visible).toEqual({ binding: expected, digest: "restored-tree" });
+	} finally {
+		loop.close();
+		receiver.close();
+	}
 });

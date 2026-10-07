@@ -1259,12 +1259,13 @@
       "classification": "demonstrated workflow symptom; causal investigation pending",
       "initialFinding": "After native revision restore, the panel said Live draft rendered while the actual Website iframe showed Open this saved preview from your authorized native editor. Reconnect restored the document. Observed on owned Field/Studio fixture; no automatic continuity acceptance inferred.",
       "closureBoundary": "Reproduce on exact current Admin/Website artifacts, trace revision remount/ready/session messages, repair the demonstrated lifecycle cause and verify native restore automatically renders the recovered revision without manual reconnect or lost authored data.",
-      "status": "Intermittent original symptom remains recorded without a causal patch. Current d9a03347 native integrated template/Customizer/document-conflict journey restored exact revision2 blocks as revision6 and rendered automatically without Reconnect; subsequent real sign-out/sign-in recovered the private/device title draft and saved revision7. See candidate-native-20261006.md. Do not repeat identical successful cases.",
+      "status": "A concrete receiver teardown/remount defect is now reproduced and repaired: real MessagePorts previously retained rendered status after Website cleanup; the receiver now sends a channel-bound closure notice and native renewal reconnects after a fresh read. Automated integration and an isolated Electron transport fixture recover without Reconnect. Original Field/Studio history-restore trigger remains unproven; do not equate this bounded repair with full E99 closure. See preview-receiver-20261006.md. Installed production Website/native artifacts still require this frontend delta and actual editor-history verification.",
       "deliveryTask": 5,
       "currentEvidence": [
         "ConvexPress-Admin/audits/2026-09-04/preview-history-recheck-20261006.md",
         "ConvexPress-Admin/audits/2026-09-04/native-integration-20261006.md",
-        "ConvexPress-Admin/audits/2026-09-04/candidate-native-20261006.md"
+        "ConvexPress-Admin/audits/2026-09-04/candidate-native-20261006.md",
+        "ConvexPress-Admin/audits/2026-09-04/preview-receiver-20261006.md"
       ]
     },
     {

@@ -118,7 +118,11 @@ export function bindNativePreview<T>(options: {
 				? ("closed" as const)
 				: (sender?.deliveryState() ?? ("waiting" as const)),
 		connectionState(): "waiting" | "connected" | "closed" {
-			return ended ? "closed" : sender ? "connected" : "waiting";
+			return ended || sender?.deliveryState() === "closed"
+				? "closed"
+				: sender
+					? "connected"
+					: "waiting";
 		},
 		publish(
 			document: unknown,

@@ -150,6 +150,16 @@ export function receivePreview<T>(options: {
 	const close = () => {
 		if (ended) return;
 		ended = true;
+		// Receiver unmount need not navigate the iframe. Revoke its rendered
+		// receipt so the next authorized read can establish a fresh channel.
+		try {
+			options.port.postMessage({
+				type: "receiver-closed",
+				generation: options.generation,
+			});
+		} catch {
+			// A detached port must not prevent local display/lease cleanup.
+		}
 		clear();
 		options.port.removeEventListener("message", message);
 		options.port.close();
@@ -300,6 +310,17 @@ export function sendPreview<T>(options: {
 		options.onDeliveryChange?.();
 	};
 	const acknowledge = ({ data }: { data: unknown }) => {
+		if (
+			!ended &&
+			object(data) &&
+			closed(data, ["type", "generation"]) &&
+			data.type === "receiver-closed" &&
+			data.generation === options.generation
+		) {
+			// Rejection precedes close on this port and remains terminal.
+			if (delivery !== "rejected") close();
+			return;
+		}
 		if (object(data) && (data.type === "select" || data.type === "hover")) {
 			if (
 				!ended &&
