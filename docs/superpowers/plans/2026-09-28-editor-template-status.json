@@ -1498,6 +1498,38 @@
         "output/assistant-memory-brief-final-20261007/install-session.json",
         "output/assistant-memory-brief-20261007/commerce-final.log"
       ]
+    },
+    {
+      "id": "E113",
+      "classification": "reproduced defect repaired and verified",
+      "deliveryTask": 7,
+      "requiredWorkflow": "Retrying one Assistant request must not repeat a provider turn or cart action, including unknown acknowledgements, clearing and guest-to-customer adoption.",
+      "evidence": "ConvexPress-Admin/audits/2026-09-04/assistant-replay-20261007.md",
+      "dependency": "respond has no request identity or durable receipt; its frontend pending guard covers only current UI dispatch.",
+      "repairBoundary": "Stable client request IDs, atomic authenticated claim/user turn, durable completion reference, protected replay and interrupted requests that never rerun uncertain tools; preserve clearing and adoption.",
+      "exitCheck": "Actual duplicate and concurrent requests execute one cart effect/provider sequence, receipts remain owner-bound and cannot resurrect cleared history; focused client/backend tests and installed replay acceptance.",
+      "status": "Closed for request replay on original Alpha: acb12699 backend +8556eaf7 composer.427commerce tests;13hook +1composer tests; strict types/build/deployment pass. Actual duplicate/concurrent/cleared replay checks pass. Full Assistant remains unaccepted because third original provider execution exposed separate E114.",
+      "nextCheck": "Reuse E113; fix E114 cart-action authority before final Assistant acceptance. Catalog bounds and other delivery gates remain.",
+      "currentEvidence": [
+        "ConvexPress-Admin/audits/2026-09-04/assistant-replay-20261007.md",
+        "output/assistant-replay-20261007/desktop-replay.json",
+        "output/assistant-replay-20261007/mobile-concurrent.json",
+        "output/assistant-replay-20261007/mobile-final.json",
+        "output/assistant-replay-20261007/cleanup.json",
+        "output/assistant-replay-20261007/preservation.json"
+      ]
+    },
+    {
+      "id": "E114",
+      "classification": "reproduced defect",
+      "deliveryTask": 7,
+      "requiredWorkflow": "Assistant answers a cart quantity question without changing the cart; cart changes require current concrete shopper authorization.",
+      "evidence": "output/assistant-replay-20261007/mobile-final.json",
+      "dependency": "add_to_cart trusts provider intent, checking only known product/public availability. Actual configured provider invoked it despite the current message explicitly prohibiting cart changes.",
+      "repairBoundary": "Enforce shopper-authorized product/quantity changes at the tool/mutation boundary using a concrete user action; model/history/catalog text alone cannot grant write authority. Preserve existing public cart controls and request replay protection.",
+      "exitCheck": "Regression forcing unauthorized provider cart tools leaves quantity unchanged; current user-authorized add works once; actual original provider read-only question after prior add remains nonmutating; preserve original data.",
+      "status": "Open: live mobile read-only question increased owned cart quantity2to3 while prose claimed no change. Evidence retained and owned data cleaned. Duplicate request itself did not mutate again.",
+      "nextCheck": "Implement explicit cart-action authority through existing product controls or a bounded reviewed action, then rerun real provider acceptance. Do not treat a prompt-only change as the boundary."
     }
   ],
   "blocks": [
@@ -5374,7 +5406,8 @@
     "ConvexPress-Admin/audits/2026-09-04/original-assistant-customer-20261007.md",
     "output/original-assistant-customer-20261007/live-after.json",
     "output/original-assistant-customer-20261007/cleanup-data.json",
-    "output/original-assistant-customer-20261007/runtime-cleanup.json"
+    "output/original-assistant-customer-20261007/runtime-cleanup.json",
+    "ConvexPress-Admin/audits/2026-09-04/assistant-replay-20261007.md"
   ],
   "trackerRefresh": {
     "source": "output/field-guide-legacy-final-20261006/mt-accept-after.json",
