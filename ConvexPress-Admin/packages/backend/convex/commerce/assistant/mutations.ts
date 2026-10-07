@@ -209,6 +209,13 @@ export async function rememberFactInternal(
   ctx: any,
   input: { subjectKey: string; fact: string; kind?: string; source: "stated" | "inferred"; retentionDays: number; consented: boolean },
 ) {
+  // Read the setting in the write transaction, including for a provider turn
+  // that started while memory was enabled.
+  const settings = await getSettingsDoc(ctx, "commerce.assistant");
+  const assistant = mergeWithDefaults("commerce.assistant", settings?.values ?? null);
+  if (assistant.memoryEnabled === false) {
+    throw new ConvexError({ code: "MEMORY_DISABLED", message: "Shopper memory is disabled." });
+  }
   const fact = input.fact.trim().slice(0, 240);
   if (!fact) return null;
   const rows = await ctx.db

@@ -21,6 +21,7 @@ import { assistantScope } from "./assistant/scope";
 import { v } from "convex/values";
 import { query } from "../_generated/server";
 import { requireCommerceEnabled } from "./helpers";
+import { getSettingsDoc } from "../settings/helpers";
 import { RELATION_GROUP, RELATION_GROUP_LABEL, type RelationType } from "./relations";
 import { productRelationTypeValidator } from "../schema/commerceAssistant";
 
@@ -511,6 +512,8 @@ export const facetsForQuery = query({
       .withIndex("by_session_query", (q: any) => q.eq("sessionToken", args.sessionToken).eq("kind", "query").eq("query", args.q.trim().slice(0, 200)))
       .order("desc").first();
     if (!brief || brief.expiresAt <= Date.now()) return null;
+    const assistant = (await getSettingsDoc(ctx, "commerce.assistant"))?.values ?? {};
+    if (assistant.enabled === false || (assistant.memoryEnabled === false && brief.payload?.memoryEnabled !== false)) return null;
     const blocks = Array.isArray(brief.payload?.blocks) ? brief.payload.blocks : [];
     const facets = blocks.find((block: any) => block?.type === "facets");
     const chips = Array.isArray(facets?.items) ? facets.items.filter((item: any) => typeof item?.label === "string").slice(0, 12).map((item: any) => ({

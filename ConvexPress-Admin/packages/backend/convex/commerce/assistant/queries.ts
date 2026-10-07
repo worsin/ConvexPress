@@ -82,6 +82,8 @@ export const getBrief = query({
       .withIndex("by_cache_key", (q: any) => q.eq("cacheKey", args.cacheKey))
       .unique();
     if (!doc || doc.sessionToken !== args.sessionToken || doc.expiresAt <= Date.now()) return null;
+    const assistant = await getMergedSettingsSection(ctx, "commerce.assistant");
+    if (assistant.enabled === false || (assistant.memoryEnabled === false && doc.payload?.memoryEnabled !== false)) return null;
     return { blocks: doc.payload?.blocks ?? [], generatedAt: doc.generatedAt, model: doc.model ?? null };
   },
 });
@@ -119,6 +121,7 @@ export const contextBundle = internalQuery({
         const variant = item.variantId ? await ctx.db.get(item.variantId) : null;
         lines.push({
           productId: String(product._id),
+          variantId: item.variantId ? String(item.variantId) : null,
           title: product.title,
           variantTitle: variant?.title ?? null,
           quantity: item.quantity,
@@ -139,7 +142,11 @@ export const contextBundle = internalQuery({
       ? await relatedGroups(ctx, [...new Set(cartIds)], { perGroup: Math.max(2, Number((assistant as any).cardsPerGroup ?? 2)) })
       : [];
 
-    const memory = (await Promise.all(scope.memoryKeys.map(key => memoryFor(ctx, key)))).flat();
+    // Disabling retention must also stop grounding from previously retained facts.
+    // listMemory deliberately remains available for the shopper's Forget controls.
+    const memory = assistant.memoryEnabled === false
+      ? []
+      : (await Promise.all(scope.memoryKeys.map(key => memoryFor(ctx, key)))).flat();
     const categories = await ctx.db.query("commerce_product_categories").take(60);
 
     const windowStart = Date.now() - 60_000;

@@ -1,5 +1,6 @@
 import { test, expect } from "bun:test";
 import { getFunctionName } from "convex/server";
+import { ConvexError } from "convex/values";
 import { respond } from "../assistant/actions";
 import { assistantChat, resolveAssistantProvider, ASSISTANT_UNAVAILABLE, type AssistantProvider, type ChatMessage } from "../assistant/provider";
 
@@ -135,4 +136,38 @@ test("tool budget exhaustion retains definitions but refuses further tool calls"
     expect(fixture.calls[0]!.body.tools).toHaveLength(1);
     expect(fixture.calls[0]!.body.tool_choice).toEqual(kind === "anthropic" ? { type: "none" } : "none");
   }
+});
+
+
+test("memory switched off during a provider turn preserves the answer without saving its fact", async () => {
+  const writes: string[] = [];
+  const ctx = {
+    runQuery: async (fn: any) => {
+      const name = getFunctionName(fn);
+      if (name.endsWith(":contextBundle")) return {
+        assistant: { enabled: true, memoryEnabled: true },
+        store: { storeName: "Test shop", tagline: "", currencyCode: "USD", currencySymbol: "$" },
+        cart: { itemCount: 0, subtotalAmount: 0, lines: [] },
+        recent: [], categories: [], related: [], memory: [], cartCards: [],
+      };
+      if (name.endsWith(":getBySectionInternal")) return { provider: "anthropic", apiKey: "synthetic-only" };
+      throw new Error(`Unexpected query ${name}`);
+    },
+    runMutation: async (fn: any, args: any) => {
+      if (getFunctionName(fn).endsWith(":rememberFactFromAssistant")) {
+        throw new ConvexError({ code: "MEMORY_DISABLED", message: "Shopper memory is disabled." });
+      }
+      if (args.role) writes.push(args.role);
+      return "synthetic-message";
+    },
+  };
+  const original = globalThis.fetch;
+  globalThis.fetch = (async () => Response.json({ content: [{ type: "text", text: JSON.stringify({
+    blocks: [{ type: "text", markdown: "Here is the answer." }], memory: [{ fact: "Narrow cabinet" }],
+  }) }] })) as typeof fetch;
+  try {
+    const result = await (respond as any)._handler(ctx, { sessionToken: "synthetic-session", message: "Help with a narrow cabinet" });
+    expect(result.blocks).toEqual([{ type: "text", markdown: "Here is the answer." }]);
+    expect(writes).toEqual(["user", "assistant"]);
+  } finally { globalThis.fetch = original; }
 });

@@ -16,7 +16,6 @@ import { ConvexError, v } from "convex/values";
 import { action } from "../../_generated/server";
 import { api, internal } from "../../_generated/api";
 import { assistantChat, resolveAssistantProvider, ASSISTANT_UNAVAILABLE, type ChatMessage } from "./provider";
-import { hashQuery } from "../storefront";
 import {
   extractJsonObject,
   normalizeBlocks,
@@ -123,6 +122,14 @@ function storeContextFrom(bundle: any): StoreContext {
   };
 }
 
+function briefCardContext(card: any) {
+  // pricedAt records when the reader observed the price, not a catalog change.
+  // Keep resolved price and sale schedules so crossing a sale boundary still
+  // invalidates the brief while repeated reads can reuse unchanged grounding.
+  const { pricedAt: _observedAt, ...pricing } = card.pricing ?? {};
+  return { ...card, pricing };
+}
+
 function relatedGroupsText(groups: any[], store: StoreContext): string {
   if (!groups?.length) return "";
   return groups
@@ -217,7 +224,9 @@ export const respond = action({
       `Live cart (${bundle.cart.itemCount} items, subtotal ${formatMoney(bundle.cart.subtotalAmount, store.currencyCode, store.currencySymbol)}):\n${describeCart(bundle.cart.lines, store)}`,
       bundle.cartCards.length ? `Cart product details:\n${describeProducts(bundle.cartCards, store)}` : "",
       bundle.related.length ? `Relation graph for the cart:\n${relatedGroupsText(bundle.related, store)}` : "",
-      `Remembered about this shopper:\n${describeMemory(bundle.memory)}`,
+      bundle.assistant?.memoryEnabled === false
+        ? "Saved shopper memory is disabled. Do not claim to remember or save preferences."
+        : `Remembered about this shopper:\n${describeMemory(bundle.memory)}`,
       bundle.session?.lastQuery ? `Most recent search: "${bundle.session.lastQuery}"` : "",
       bundle.categories.length ? `Categories: ${bundle.categories.map((c: any) => c.name).join(", ")}` : "",
     ]
@@ -294,12 +303,18 @@ export const respond = action({
     if (bundle.assistant?.memoryEnabled !== false && Array.isArray(parsed?.memory)) {
       for (const entry of parsed.memory.slice(0, 3)) {
         if (entry && typeof entry.fact === "string" && entry.fact.trim()) {
-          await ctx.runMutation(anyInternal.commerce.assistant.mutations.rememberFactFromAssistant, {
-            sessionToken: args.sessionToken,
-            fact: entry.fact,
-            kind: typeof entry.kind === "string" ? entry.kind : undefined,
-            retentionDays: Number(bundle.assistant?.memoryRetentionDays ?? 90),
-          });
+          try {
+            await ctx.runMutation(anyInternal.commerce.assistant.mutations.rememberFactFromAssistant, {
+              sessionToken: args.sessionToken,
+              fact: entry.fact,
+              kind: typeof entry.kind === "string" ? entry.kind : undefined,
+              retentionDays: Number(bundle.assistant?.memoryRetentionDays ?? 90),
+            });
+          } catch (error) {
+            // A setting change during generation must not discard the answer or
+            // a completed cart action. Other failures remain visible.
+            if ((error as any)?.data?.code !== "MEMORY_DISABLED") throw error;
+          }
         }
       }
     }
@@ -429,19 +444,12 @@ export const brief = action({
       sessionToken: args.sessionToken,
       query: args.query,
     });
+    if (bundle.assistant?.enabled === false) {
+      throw new ConvexError({ code: "DISABLED", message: "The shop assistant is turned off." });
+    }
     const store = storeContextFrom(bundle);
     const query = (args.query ?? "").trim().slice(0, 200);
     const cartIds = [...new Set(bundle.cart.lines.map((line: any) => line.productId))].sort();
-    const memoryKey = bundle.memory.map((m: any) => m.fact).sort().join("|");
-    const cacheKey = `${args.sessionToken}:${args.kind}:${hashQuery(`${query}|${args.productId ?? ""}|${cartIds.join(",")}|${memoryKey}`)}`;
-
-    if (!args.force) {
-      const cached = await ctx.runQuery(anyApi.commerce.assistant.queries.getBrief, { cacheKey, sessionToken: args.sessionToken });
-      if (cached) return { cacheKey, blocks: cached.blocks, cached: true, productIds: productIdsInBlocks(cached.blocks) };
-    }
-    if (query) {
-      await ctx.runMutation(anyApi.commerce.assistant.mutations.ensureSession, { sessionToken: args.sessionToken, query });
-    }
 
     // Deterministic groundwork.
     const known = new Set<string>(cartIds as string[]);
@@ -477,6 +485,26 @@ export const brief = action({
     }
 
     const provider = await resolveProvider(ctx, String(bundle.assistant?.model ?? ""));
+    // Read current catalog data before checking the cache: IDs alone cannot
+    // detect changed variants, quantities, prices or unpublished products.
+    const grounding = JSON.stringify({
+      version: 2, query, productId: args.productId ?? null, kind: args.kind,
+      assistant: bundle.assistant, store, cart: bundle.cart,
+      memory: bundle.memory, categories: bundle.categories,
+      candidates: candidates.map(briefCardContext),
+      related: related.map((group: any) => ({ ...group, items: group.items.map((item: any) => ({ ...item, card: briefCardContext(item.card) })) })),
+      provider: { kind: provider.kind, model: provider.model, available: Boolean(provider.apiKey) },
+    });
+    const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(grounding));
+    const fingerprint = Array.from(new Uint8Array(digest), byte => byte.toString(16).padStart(2, "0")).join("");
+    const cacheKey = `${args.sessionToken}:${args.kind}:v2:${fingerprint}`;
+    if (!args.force) {
+      const cached = await ctx.runQuery(anyApi.commerce.assistant.queries.getBrief, { cacheKey, sessionToken: args.sessionToken });
+      if (cached) return { cacheKey, blocks: cached.blocks, cached: true, productIds: productIdsInBlocks(cached.blocks) };
+    }
+    if (query) {
+      await ctx.runMutation(anyApi.commerce.assistant.mutations.ensureSession, { sessionToken: args.sessionToken, query });
+    }
     let blocks: AssistantBlock[] = fallback;
     let model: string | undefined;
     if (provider.apiKey && (candidates.length || related.length || bundle.cart.lines.length)) {
@@ -519,7 +547,7 @@ export const brief = action({
       cacheKey,
       sessionToken: args.sessionToken,
       query: query || undefined,
-      payload: { blocks },
+      payload: { blocks, memoryEnabled: bundle.assistant?.memoryEnabled !== false },
       model,
       ttlMs: BRIEF_TTL_MS,
     });
