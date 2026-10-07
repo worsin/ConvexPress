@@ -7,7 +7,7 @@
     "In progress": 2
   },
   "goal": "Complete block editor and template delivery plus all demonstrated blockers; defer unrelated whole-app audit campaigns.",
-  "currentTask": "135/137 blocks verified. Task7 selected-resource AI/native composition, three AI pack treatments, reviewed portable SDK export/CLI and AI reuse of the approved custom library now pass with original preservation. E116 closed at source6e23d609 on Alpha. Next: remaining Instagram/real human Turnstile and public HTTPS gates, then final candidate parity; no audit wait.",
+  "currentTask": "135/137 verified. Task7 complete. Candidate3a3f58a3 now installed across six delivery backends with2,375 shared contracts, preserved Events extension, broad passing suites and current four-pack previews4340\u20134343. Final original-fleet delta/requirement review remains. Instagram account and human Turnstile are external prerequisites; registered Aster HTTPS staging is disabled by Convex free-plan limits. No audit wait.",
   "tasks": [
     {
       "id": 1,
@@ -80,11 +80,11 @@
     },
     {
       "id": "E05",
-      "status": "Local native actual Website preview, natural renewal/expiry/reconnect and retained unsaved DOM accepted. Signed-in customer UI/API denial and actual parent-operator revocation/same-document recovery are accepted in customizer-authority-20260929.md and refreshed customizer-runtime-20261005.md. Remaining distinct gate: public HTTPS/local-network launch with matching artifact/target identity. Existing acceptance-site hosting inventory contains no account and only a .test domain; staging URL request remains outstanding. Frozen cross-pack integrated journey stays Task8.",
+      "status": "Local native preview/renewal/reconnect and customer/operator authority evidence accepted. October7 current controller inventory locates registered Aster House HTTPS staging, but direct backend health/settings calls report deployments disabled by Convex free-plan limits; Website returns500 and normal broker exchange fails. Existing host restoration or another authorized staging target is needed. No protection bypass or cloud mutation performed. Final candidate refresh continues independently.",
       "classification": "external prerequisite for public HTTPS acceptance; local evidence accepted",
       "initialFinding": "Preview has historically failed at protocol, origin, session renewal, hydration and readiness boundaries. Several fixes are accepted, but remaining cross-pack/cloud paths are open.",
       "closureBoundary": "Verify installed matching contracts, unsaved DOM continuity, reconnect/expiry, site switching and readable failure. Preserve draft and selected target; no stale frames or unintended saves.",
-      "nextCheck": "Use the owner-authorized public staging URL when available, verify exact Website/backend identity, and exercise native launch, local-network permission and renewal/authority withdrawal without weakening browser protections. Reuse accepted local customer/revocation/renewal evidence. Continue independent Task5 field mapping and Task6/7 work.",
+      "nextCheck": "Restore existing Aster HTTPS staging or use another owner-authorized HTTPS environment, then verify loaded candidate and native launch/local-network/renewal/authority behavior. Current evidence: output/final-candidate-20261007/https-public-backend.json and https-backend-check.json. Prior no-host observations are superseded.",
       "deliveryTask": 5,
       "triagedAt": "2026-09-29",
       "triageEvidence": "ConvexPress-Admin/audits/2026-09-04/delivery-blocker-triage-20260929.md",
@@ -1553,7 +1553,7 @@
     },
     {
       "id": "E116",
-      "classification": "reproduced delivery failure",
+      "classification": "accepted/reusable evidence",
       "deliveryTask": 7,
       "requiredWorkflow": "Actual configured AI produces a reviewable editable custom definition using selected resources and supported SDK grammar.",
       "evidence": "ConvexPress-Admin/audits/2026-09-04/ai-resources-20261007.md; output/ai-resources-20261007/acceptance.json and output/ai-compose-bindings-20261007 installed-source.json.",
