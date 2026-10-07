@@ -211,6 +211,8 @@ Task6 final review checkpoint: `desktop-matrix-final-20261006.md` records all fo
 - [ ] Verify preservation/cleanup and locally integrate the final commit to the user's checkout safely. No push or remote publication beyond already authorized acceptance.
 - [ ] Deliver exact launch/open instructions, four example websites, BlockDemo, editor/Customizer usage, SDK examples and residual broader-app audit list. Mark the new goal complete only when this scoped deliverable is actually complete.
 
+October6 installed-artifact checkpoint: `e107-installed-20261006.md` records the E107 metadata delta across six preserved backends, refreshed four candidate Website previews, rebuilt production Admin renderer and isolated custom-protocol startup. Completed source/guide merged locally as `0ebeaae5`;105main-only audit/handoff files preserved and main generated-block parity passes. This completes the current integration checkpoint, not the remaining E99/provider/HTTPS/state/mobile/motion requirements. `docs/EDITOR-TEMPLATE-DELIVERY.md` is the operator/developer entry point.
+
 ## 7. Verification strategy and command map
 
 **During a repair:** run the smallest meaningful failing test and affected boundary suite. Do not write tests that merely mirror static code or test filenames.
