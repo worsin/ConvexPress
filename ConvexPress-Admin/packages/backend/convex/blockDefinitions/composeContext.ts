@@ -20,6 +20,8 @@ import { createDefinitionDraft } from "./createDraft";
 import { fail } from "./model";
 import { composeArgs, composeProposalValidator, composeCheckValidator, definitionReceipt, type ComposeArgs, type ComposeProposal, type ComposeCheck } from "./composeContracts";
 import { composeDiagnostics } from "./composeDiagnostics";
+import { composedPresentationAttrs } from "../canonicalDocuments/foundation/composedPresentation";
+import { resolveComposition } from "../canonicalDocuments/foundation/composition";
 
 async function load(ctx: QueryCtx, args: ComposeArgs) {
   const budget = new RequestReadLedger();
@@ -68,6 +70,12 @@ function validateDefinition(json: string, args: ComposeArgs, context: Awaited<Re
   const registry = createComposedRegistry(snapshot, context.scope);
   for (const example of spec.examples) {
     const attrs = attrsSchema.parse(example);
+    // A resolver defers data-dependent execution, not authored-field validation.
+    // This placeholder only exercises media primitive contracts; actual resource
+    // availability and selection remain checked below and by load().
+    const presentation = composedPresentationAttrs(spec.fields, attrs, () => ({ src: "/__definition-validation__/media", alt: "" }));
+    for (const composition of [value.definition.composition, ...Object.values(value.definition.packTreatments ?? {})])
+      resolveComposition(composition, { attrs: presentation }, { omitDataDependentNodes: true, allowedSlots: spec.supports.children ? ["children"] : [] });
     const tree = registry.validateTree([{ id: "compose-example", name: spec.name, version: 1, attrs }]);
     const plan = planCanonicalData(tree, context.display.scope, context.display.policy, {}, { scope: context.scope, definitions: snapshot });
     assertAiResolverReferences(plan.jobs, context.resources);

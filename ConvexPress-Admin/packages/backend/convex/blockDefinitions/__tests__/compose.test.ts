@@ -245,3 +245,17 @@ test("feedback includes independent media and grammar failures and oversized out
   await expect(f.author.action(compose,{...f.base,prompt:"A block"})).rejects.toThrow();expect(calls).toBe(1);
   expect(await f.counts()).toEqual({heads:0,versions:0,approvals:0,pages:0});
 });
+
+test("resolver-backed proposals still execute authored bindings before review", async () => {
+  const f = await fixture(), trusted = await f.author.query(get, f.base);
+  const value = definition().definition;
+  value.spec.data = { resolver: "content.posts", args: resolverArgs["content.posts"].parse({}) };
+  value.composition.root = { el: "Section", bind: { anchor: "attrs.anchor" }, children: [{ el: "Heading", bind: "attrs.title" }] };
+  const checked = await f.author.query(ref("blockDefinitions/composeContext:checkResult"), { ...f.base, expectedFingerprint: trusted.fingerprint, resultJson: JSON.stringify(value) });
+  expect(checked.valid).toBe(false);
+  expect(checked.issues.join(" ")).toContain("attrs.anchor");
+  await expect(f.author.mutation(create, { ...f.base, expectedFingerprint: trusted.fingerprint, definitionJson: JSON.stringify(value) })).rejects.toThrow();
+  delete value.composition.root.bind;
+  expect((await f.author.query(ref("blockDefinitions/composeContext:checkResult"), { ...f.base, expectedFingerprint: trusted.fingerprint, resultJson: JSON.stringify(value) })).valid).toBe(true);
+  expect(await f.counts()).toEqual({ heads: 0, versions: 0, approvals: 0, pages: 0 });
+});
