@@ -92,7 +92,7 @@ test('old send completion cannot clear or block the next shopper pending message
   const f=await fixture();try{
     await act(async()=>{void current.send('First shopper');});expect(sends).toHaveLength(1);
     await f.changeAccount();expect(current.pendingText).toBeNull();expect(current.sending).toBe(false);
-    await act(async()=>{void current.send('Second shopper');});expect(sends).toHaveLength(2);
+    await act(async()=>{void current.send('Second shopper');});expect(sends).toHaveLength(2);expect(sends[1].args.requestId).not.toBe(sends[0].args.requestId);
     await act(async()=>sends[0].reject(Error('Old shopper failure')));
     expect(errors).toEqual([]);expect(current.sending).toBe(true);expect(current.pendingText).toBe('Second shopper');
     await act(async()=>sends[1].resolve({}));expect(current.sending).toBe(false);expect(current.pendingText).toBeNull();
@@ -111,6 +111,11 @@ test('current send failure remains visible and permits a successful retry withou
     await act(async()=>{void current.send('Current question');void current.send('Duplicate');});expect(sends).toHaveLength(1);
     await act(async()=>sends[0].reject(Error('Please try again')));expect(errors).toEqual(['Please try again']);expect(current.sending).toBe(false);
     await act(async()=>{void current.send('Current question');});expect(sends).toHaveLength(2);
+    expect(sends[0].args.requestId).toMatch(/^[0-9a-f-]{36}$/);
+    expect(sends[1].args.requestId).toBe(sends[0].args.requestId);
     await act(async()=>sends[1].resolve({}));expect(current.sending).toBe(false);
+    await act(async()=>{void current.send('Current question');});
+    expect(sends[2].args.requestId).not.toBe(sends[0].args.requestId);
+    await act(async()=>sends[2].resolve({}));
   }finally{await f.cleanup();}
 });

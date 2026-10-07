@@ -22,7 +22,7 @@ import {
 import { patchDynamicWithMediaReferences, deleteDynamicWithMediaReferences } from "../../media/attachmentGuard";
 
 
-async function ensureSessionDoc(ctx: any, sessionToken: string) {
+export async function ensureSessionDoc(ctx: any, sessionToken: string) {
   const { session: existing, user } = await assistantScope(ctx, sessionToken);
   const userId = user?._id;
   const now = Date.now();
@@ -101,6 +101,39 @@ export const ensureSession = mutation({
   },
 });
 
+export async function appendMessageToSession(ctx: any, session: any, args: any) {
+  const now = Math.max(Date.now(), session.updatedAt, (session.clearedBefore ?? 0) + 1);
+  let recentUserTurnTimes: number[] | undefined;
+  if (args.role === "user") {
+    const doc = await getSettingsDoc(ctx, "commerce.assistant");
+    const settings = mergeWithDefaults("commerce.assistant", doc?.values ?? null);
+    if (settings.enabled === false) throw new ConvexError({ code: "DISABLED", message: "The shop assistant is turned off." });
+    const configured = Number(settings.rateLimitPerMinute ?? 12);
+    const limit = Number.isFinite(configured) ? Math.min(120, Math.max(1, Math.floor(configured))) : 12;
+    const windowStart = Date.now() - 60_000;
+    const times = session.recentUserTurnTimes ?? (await ctx.db.query("commerce_assistant_messages")
+      .withIndex("by_session_role", (q: any) => q.eq("sessionId", session._id).eq("role", "user").gte("createdAt", windowStart)).take(120)).map((row: any) => row.createdAt);
+    recentUserTurnTimes = times.filter((time: number) => time >= windowStart);
+    if (recentUserTurnTimes!.length >= limit) throw new ConvexError({ code: "RATE_LIMITED", message: "Please try again in a minute." });
+    recentUserTurnTimes!.push(now);
+  }
+  const id = await ctx.db.insert("commerce_assistant_messages", {
+    sessionId: session._id,
+    role: args.role,
+    text: args.text,
+    blocks: args.blocks,
+    toolCalls: args.toolCalls,
+    model: args.model,
+    latencyMs: args.latencyMs,
+    tokensIn: args.tokensIn,
+    tokensOut: args.tokensOut,
+    error: args.error,
+    createdAt: now,
+  });
+  await patchDynamicWithMediaReferences(ctx, session._id, { messageCount: session.messageCount + 1, updatedAt: now, ...(recentUserTurnTimes ? { recentUserTurnTimes } : {}) });
+  return String(id);
+}
+
 export const appendMessage = internalMutation({
   args: {
     sessionToken: v.string(),
@@ -116,36 +149,7 @@ export const appendMessage = internalMutation({
   },
   handler: async (ctx: any, args: any) => {
     const session = await ensureSessionDoc(ctx, args.sessionToken);
-    const now = Math.max(Date.now(), session.updatedAt, (session.clearedBefore ?? 0) + 1);
-    let recentUserTurnTimes: number[] | undefined;
-    if (args.role === "user") {
-      const doc = await getSettingsDoc(ctx, "commerce.assistant");
-      const settings = mergeWithDefaults("commerce.assistant", doc?.values ?? null);
-      if (settings.enabled === false) throw new ConvexError({ code: "DISABLED", message: "The shop assistant is turned off." });
-      const configured = Number(settings.rateLimitPerMinute ?? 12);
-      const limit = Number.isFinite(configured) ? Math.min(120, Math.max(1, Math.floor(configured))) : 12;
-      const windowStart = Date.now() - 60_000;
-      const times = session.recentUserTurnTimes ?? (await ctx.db.query("commerce_assistant_messages")
-        .withIndex("by_session_role", (q: any) => q.eq("sessionId", session._id).eq("role", "user").gte("createdAt", windowStart)).take(120)).map((row: any) => row.createdAt);
-      recentUserTurnTimes = times.filter((time: number) => time >= windowStart);
-      if (recentUserTurnTimes!.length >= limit) throw new ConvexError({ code: "RATE_LIMITED", message: "Please try again in a minute." });
-      recentUserTurnTimes!.push(now);
-    }
-    const id = await ctx.db.insert("commerce_assistant_messages", {
-      sessionId: session._id,
-      role: args.role,
-      text: args.text,
-      blocks: args.blocks,
-      toolCalls: args.toolCalls,
-      model: args.model,
-      latencyMs: args.latencyMs,
-      tokensIn: args.tokensIn,
-      tokensOut: args.tokensOut,
-      error: args.error,
-      createdAt: now,
-    });
-    await patchDynamicWithMediaReferences(ctx, session._id, { messageCount: session.messageCount + 1, updatedAt: now, ...(recentUserTurnTimes ? { recentUserTurnTimes } : {}) });
-    return String(id);
+    return appendMessageToSession(ctx, session, args);
   },
 });
 
