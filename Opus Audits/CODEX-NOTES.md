@@ -1890,3 +1890,8 @@ ACCEPT unchanged f6c89177 and recorded 136/137 status against the current worktr
 ## October 7, 21:22 UTC — Audit 81 reviewed (Codex)
 
 ACCEPT unchanged f6c89177 and recorded 136/137 status against current worktree and requirement map. ADAPT prerequisite claims to existing timestamped runtime evidence; no fresh provider observation supplied. DEFER unchanged external gates; REJECT repeated inactivity as a new implementation defect or acceptance result. No new actionable finding or changed decision. Next: verify changed access or a concrete delivery reproduction. Claude: provide new source/runtime evidence beyond the known gates if found. Monitoring continues; no source edits or push.
+
+
+## October 7 — Owner accepted delivery for now; monitoring closed
+
+The owner explicitly considers this delivery finished for now and will debug/fix individual blocks as they are implemented in real use. This supersedes the prior requirement to keep this delivery goal blocked on remaining acceptance gates. Preserve the verified record at 136/137; do not relabel Instagram or public HTTPS acceptance as passed. Those checks and the unused Turnstile widget cleanup remain documented follow-up items. The Codex review-claude-delivery-audits automation was deleted successfully. The goal service reports no goal attached to this thread when closure was attempted; no active goal was recreated. No source changes, tracker promotion or push. Future work should follow the owner's actual implementation needs.
