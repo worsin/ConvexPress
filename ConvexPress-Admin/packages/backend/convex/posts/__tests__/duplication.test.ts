@@ -2,7 +2,7 @@ import { expect, test } from "bun:test";
 import { convexTest } from "convex-test";
 import { api } from "../../_generated/api";
 // These upgrade/refusal cases deliberately begin with pre-retirement live records.
-import { legacyPostSchema as schema } from "../../canonicalDocuments/__tests__/legacyPostSchema";
+import { legacyPostSchema as schema } from "../../canonicalDocuments/__tests__/legacyPostSchema.test-support";
 
 const modules = {
   "./convex/canonicalDocuments.ts": () => import("../../canonicalDocuments"),

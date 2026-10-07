@@ -25,7 +25,7 @@
     {
       "id": 4,
       "status": "in_progress",
-      "scope": "Six-site corpus conversion and physical retirement accepted and preserved. Reopened for the original alpha/gamma11-record corpus omitted from that closure; E109 tracks remaining original-fleet migration and acceptance."
+      "scope": "Six newer sites and four original sites have completed canonical migration and physical retirement with preservation receipts. E109 retains matching original native/Website and configured AI acceptance."
     },
     {
       "id": 5,
@@ -1424,20 +1424,21 @@
     },
     {
       "id": "E109",
-      "classification": "reproduced defect and missing installed acceptance",
+      "classification": "missing evidence",
       "deliveryTask": 4,
       "requiredWorkflow": "Complete original named-fleet canonical migration/retirement and matching native/public template acceptance required by the handoff.",
-      "evidence": "Six missing original treatment mappings repaired across four packs. All11 original records pass pure conversion;326 renderer tests and112 desktop/mobile specimens pass. Full original backups preserve120 files. Installed lifecycle/reference acceptance remains open.",
-      "dependency": "Treatment conversion and explicit lifecycle-preserving API are implemented. Original installed transition must preserve compatible storage/public reads, exact references/media/history and independent site contracts before contraction.",
+      "evidence": "Report original-fleet-rollout-20261007.md and output/original-fleet-20261007 final export/schema/source/index/session/public receipts. Fixture packaging repair 8da561ea passes 196 tests and 1,837 assertions plus fresh strict codegen/deployment. All 2,020 checked candidate source files match 8da561ea. No preexisting rows deleted; original AI settings exact.",
+      "dependency": "Backend treatment/lifecycle migration, original reference initialization and physical contraction are installed and preserved. Remaining proof is matching native editor, actual Website and original configured AI workflows.",
       "repairBoundary": "Implement and verify exact canonical/rendered treatment mapping; review all remaining nodes and lifecycle preservation; reconcile actual installed source/contracts; install safely with original content/history/media and sessions intact.",
       "exitCheck": "Complete original corpus migration and schema contraction with preservation receipts, actual native edit/reopen and Website parity on named sites, then current configured AI workflows.",
-      "status": "Open installed acceptance; local adapters and lifecycle preservation verified. No original deployment or authored record changed.",
+      "status": "Original migration and physical contraction installed on alpha/beta/gamma/delta. All 11 original posts, 11 exact source archives and 120 byte-identical original files preserved; lifecycle, ownership, routes and timestamps exact. All four deployed sets match 1,780 modules, schemas reject retired live fields, media/synced indexes are ready, and predeployment operator sessions survived. Eight published canonical bodies are ready; three auto-drafts remain nonpublic. Matching native/Website and configured AI acceptance remain open.",
       "currentEvidence": [
         "ConvexPress-Admin/audits/2026-09-04/original-fleet-reconciliation-20261007.md",
         "ConvexPress-Admin/audits/2026-09-04/original-fleet-treatments-20261007.md",
-        "ConvexPress-Admin/audits/2026-09-04/original-fleet-lifecycle-20261007.md"
+        "ConvexPress-Admin/audits/2026-09-04/original-fleet-lifecycle-20261007.md",
+        "ConvexPress-Admin/audits/2026-09-04/original-fleet-rollout-20261007.md"
       ],
-      "nextCheck": "Compare original captured compiled code with an isolated transition candidate; historical checkpoint manifest is stale. Keep old readers/storage valid through migration, then verify exact original corpus, native/public behavior and contraction."
+      "nextCheck": "Build or identify matching current native/Website artifacts and exercise original-site authoring/reopen/preview. Then actual structured AI generation, review/save and Assistant history/cart/composition with the preserved original provider. Do not repeat accepted migration writes or historical baseline reconstruction."
     }
   ],
   "blocks": [
