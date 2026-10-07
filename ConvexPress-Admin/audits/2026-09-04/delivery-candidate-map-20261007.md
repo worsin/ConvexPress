@@ -1,5 +1,7 @@
 # Delivery candidate map — October 7
 
+Subsequent acceptance: [Script Embed Vimeo and refreshed packaged native](script-vimeo-final-20261007.md) closes the build-only native boundary and Vimeo requirement below; tracker now134/3. Remaining entries retain their original checkpoint context.
+
 Installed backend source 11942647 and evidence commit f7df57f9 form the current local checkpoint. This map replaces stale installed-base pointers; it does not declare all delivery gates complete.
 
 - Rechecked all 10,121 source-file hashes across the six installed contraction snapshots. Each retains its distinct site identity; Source retains its installed Events extension. Receipts: `output/schema-contraction-20261007/*-installed.json`.
