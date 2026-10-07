@@ -150,7 +150,7 @@ export function useAssistant(input: { kind: BriefKind | "catalog" | "checkout" |
   const send = useCallback(
     async (message: string) => {
       const text = message.trim();
-      if (!text || !sessionToken || !active || !lifetime.current.mounted || lifetime.current.scope !== scope || sendingRef.current) return;
+      if (!text || !sessionToken || !active || !lifetime.current.mounted || lifetime.current.scope !== scope || sendingRef.current) return false;
       const owner = { scope, generation: lifetime.current.generation };
       const isCurrent = () => lifetime.current.mounted && lifetime.current.scope === scope && lifetime.current.generation === owner.generation && sendingRef.current === owner;
       sendingRef.current = owner;
@@ -163,9 +163,11 @@ export function useAssistant(input: { kind: BriefKind | "catalog" | "checkout" |
       try {
         await respond({ sessionToken, requestId: request.requestId, message: text, route: input.kind, query: input.query });
         if (isCurrent() && retryRef.current === request) retryRef.current = null;
+        return isCurrent();
       } catch (error) {
         const detail = (error as { data?: { message?: string } })?.data?.message ?? (error as Error)?.message;
         if (isCurrent()) toast.error(detail && detail.length < 160 ? detail : "The assistant could not answer just now.");
+        return false;
       } finally {
         if (isCurrent()) {
           sendingRef.current = null;

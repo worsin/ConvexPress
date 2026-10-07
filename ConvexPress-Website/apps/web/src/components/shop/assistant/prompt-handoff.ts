@@ -19,7 +19,7 @@ export function usePendingAssistantPrompt({ active, ready, sending, prompt, send
   ready: boolean;
   sending: boolean;
   prompt?: string | null;
-  send(prompt: string): Promise<void>;
+  send(prompt: string): Promise<unknown>;
   consumed?: () => void;
 }) {
   const claimed = useRef<string | null>(null);

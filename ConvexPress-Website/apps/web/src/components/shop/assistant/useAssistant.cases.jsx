@@ -119,3 +119,14 @@ test('current send failure remains visible and permits a successful retry withou
     await act(async()=>sends[2].resolve({}));
   }finally{await f.cleanup();}
 });
+
+ test('send reports whether the current draft completed, including unavailable and failed requests',async()=>{
+  const f=await fixture();try{
+    await f.render(false);expect(await current.send('Keep this draft')).toBe(false);expect(sends).toHaveLength(0);
+    await f.render();let result;await act(async()=>{result=current.send('Keep this draft');});
+    expect(await current.send('Busy draft')).toBe(false);
+    await act(async()=>sends[0].reject(Error('Unavailable')));expect(await result).toBe(false);
+    await act(async()=>{result=current.send('Keep this draft');});
+    await act(async()=>sends[1].resolve({}));expect(await result).toBe(true);
+  }finally{await f.cleanup();}
+});
