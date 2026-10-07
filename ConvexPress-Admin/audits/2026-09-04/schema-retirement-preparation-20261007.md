@@ -1,5 +1,7 @@
 # Candidate gates and legacy live-field retirement preparation
 
+This is the preparatory checkpoint. Installed cleanup is subsequently verified in [schema-retirement-stage-a-20261007.md](./schema-retirement-stage-a-20261007.md); schema contraction remains open.
+
 The completion audit found a real gap in the earlier Task4 acceptance. The block handoff §3.8/Phase2 requires removal of the obsolete live `posts.content`, `contentMode` and `pageSections` columns after conversion. They remain declared, and canonical writers re-created empty `content`. Existing corpus conversion, immutable original snapshots and native/public evidence remain valid; they do not establish physical schema retirement. E108 reopens only that missing boundary.
 
 ## Verified candidate gates and thumbnail correction

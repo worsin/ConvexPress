@@ -7,7 +7,7 @@
     "In progress": 4
   },
   "goal": "Complete block editor and template delivery plus all demonstrated blockers; defer unrelated whole-app audit campaigns.",
-  "currentTask": "E108: complete physical retirement of live posts.content/contentMode/pageSections, preserving original history. Compatibility-stage writer/atomic archival code is locally tested, not deployed. Next: staged installed snapshots and corpus cleanup, then schema contraction and affected native/public/promotion checks. Candidate final gate remains open; four providers and public HTTPS remain separate prerequisites.",
+  "currentTask": "E108: all six live corpora archived and cleared (203records), with724original revisions and81stored files preserved. Finish schema contraction gates and strict installed rollout, then affected native/public/promotion acceptance. Task4 and final candidate freeze remain open.",
   "tasks": [
     {
       "id": 1,
@@ -1407,10 +1407,11 @@
       "dependency": "Historical revisions share validators with live posts and preserve original imports; deleting schema fields before archiving retained values would risk data or deployment failure.",
       "repairBoundary": "Separate immutable historical validation from live schema. Stop canonical writers reintroducing legacy columns; archive retained values atomically using exact source CAS; enumerate every current site to completion and verify original bodies/media/history before schema contraction. Preserve explicit legacy import decoding.",
       "closureBoundary": "All six current site corpora verified and migrated without changing canonical trees/publication/ownership/history; strict deployments reject obsolete live columns; native save/reopen/history and public/promotion checks pass on the final installed candidate. Physical schema contraction is required, not merely a compatibility comment.",
-      "status": "Local preparatory implementation passes: internal per-record retirement snapshots original fields, validates canonical tree and full-record CAS, then clears only three obsolete columns; no-op repeats and archive failure rollback tested. Canonical create/save/duplicate/import/restore stop repopulating old fields; promotion rollback accepts absent or exactly empty compatibility content and rejects nonempty. Full backend3712/25741, focused282/2430, final retirement6/39, strict backend types and writer coverage pass. No live deployment or data cleanup performed yet.",
-      "nextCheck": "Deploy the compatibility-stage writer/retirement implementation from each sealed installed snapshot, with backup and exact contract delta; clean reviewed canonical rows with archive/media equality and complete pagination; then remove live schema fields and update actual remaining callers. Reuse unaffected prior block/native evidence.",
+      "status": "Compatibility candidate ad2e3701 deployed on all six scoped sites. Complete cleanup verified203canonical records,203new original archives,724unchanged prior revisions and81unchanged storage files. Source/target reusable indexes ready. Local schema contraction passes strict backend types and168canonical/history tests; generated gates refreshed. Wider contracted suite3434passed/276failed (obsolete-field fixture and compatibility-expectation failures); contracted source remains uncommitted. Contracted schema not deployed.",
+      "nextCheck": "Finish contracted-source regression/generation gates, then deploy strict contracted schema from preserved installed snapshots and verify affected native authoring/history, public and promotion workflows. Preserve original archives; do not close E108 on cleanup alone.",
       "currentEvidence": [
-        "ConvexPress-Admin/audits/2026-09-04/schema-retirement-preparation-20261007.md"
+        "ConvexPress-Admin/audits/2026-09-04/schema-retirement-preparation-20261007.md",
+        "ConvexPress-Admin/audits/2026-09-04/schema-retirement-stage-a-20261007.md"
       ]
     }
   ],
@@ -5267,7 +5268,8 @@
     "output/task6-final-20261007/block-evidence-crosswalk.json",
     "output/task6-final-20261007/motion-provenance.json",
     "ConvexPress-Admin/audits/2026-09-04/nested-consumers-20261007.md",
-    "ConvexPress-Admin/audits/2026-09-04/schema-retirement-preparation-20261007.md"
+    "ConvexPress-Admin/audits/2026-09-04/schema-retirement-preparation-20261007.md",
+    "ConvexPress-Admin/audits/2026-09-04/schema-retirement-stage-a-20261007.md"
   ],
   "trackerRefresh": {
     "source": "output/field-guide-legacy-final-20261006/mt-accept-after.json",
@@ -5288,7 +5290,7 @@
   "coordination": {
     "folder": "/Users/worsin/Development/ConvexPress/Opus Audits/",
     "authority": "Codex leads; Claude audits are advisory and independently verified",
-    "lastAudit": "2026-10-06T1206-audit-54-130-verified-seven-left.md",
+    "lastAudit": "2026-10-06T1906-audit-61-e99-repaired.md",
     "pendingAdvisory": {
       "F19": "Accepted shared public document href contract. Historical encoded-slug fixture reproduced discrepancy; ordinary authoring slugifies safely. Legacy menu root/prefix behavior and membership aliases preserved. See locale-destinations-20260928.md.",
       "F20": "Source-verified enterprise commerce backfill truncation recorded in current-acceptance.md deferred register. No live reproduction or repair; promote only if catalog/customer-commerce delivery demonstrates a dependency.",
@@ -5334,7 +5336,8 @@
     "audit57": "ACCEPT bounded scope/progress/133-4 counts against local receipts. ADAPT E99: retain intermittent final-integration watch; successful later restores are not a causal fix and do not justify repeating identical passing checks or stopping independent work. Independently reproduced/repaired E103; no new broad audit scope and no waiting for Claude.",
     "audit58": "ACCEPT bounded scope/progress/count assessment against current source and133/4 checkpoint. ADAPT E99 reminder into final integrated native watch, without inferring a causal repair from successful later restores. E104/E105 independently reproduced and repaired; no new scope or audit wait.",
     "candidateNative": "Accepted integrated native template switching, Customize draft/conflict/publication, document conflict/restore, actual sign-out/sign-in recovery and cleanup on d9a03347.71original pages/settings preserved; seven protected processes alive. No E99 reproduction or speculative patch. Existing main-bundle gate still fails; bounded module-inventory diagnosis next. Audit58 remains latest; no audit wait. E106 now repaired and accepted: fresh production bundle, types/template SSR, four-pack interactive hydration. Source settings/pages restored and API revoked; owned preview stopped. Next final installed-artifact parity, tracker/evidence reconciliation and local integration; preserve four provider prerequisites and HTTPS gap.",
-    "audit59": "ACCEPT E106 closed classification correction. ADAPT E99 unchanged-time reminder: preserve original causal uncertainty, reuse accepted automatic native restore and continue independent work. Upcoming deep audit advisory; no automatic scope change or wait."
+    "audit59": "ACCEPT E106 closed classification correction. ADAPT E99 unchanged-time reminder: preserve original causal uncertainty, reuse accepted automatic native restore and continue independent work. Upcoming deep audit advisory; no automatic scope change or wait.",
+    "audit61": "Accepted scoped E99 repair/E18 integration and recurrence-on-new-trace advice. Task4 completion superseded by newly confirmed E108 live-schema-column retirement; source ad2e3701 prepares preserved cleanup with3712backend tests passing. Source strict dry run in flight; current installed candidate remains cd587c50. External provider requirements unchanged. See shared Codex notes."
   },
   "sessionBaseCommit": "9824d9605e50c4b0ebd711c13715b506f8ef5bd3"
 }
