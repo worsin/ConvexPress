@@ -254,3 +254,27 @@ test("hover reports require current rendered authority and never select content"
 	h.receipts[1]!.hover!("expired");
 	expect(h.hovers.at(-1)).toBe("second");
 });
+
+test("receiver closure is channel-bound, rejects extra fields and revokes even an expired lease", () => {
+	const h = setup();
+	try {
+		h.publish();
+		h.receipts[0]!.rendered();
+		for (const extra of [{ generation: "other" }, { authority: true }]) {
+			h.child.postMessage({
+				type: "receiver-closed",
+				generation: "channel",
+				...extra,
+			});
+			expect(h.sender.deliveryState()).toBe("rendered");
+		}
+		h.expire();
+		h.receiver.close();
+		expect(h.sender.deliveryState()).toBe("closed");
+		expect(h.values.at(-1)).toBeNull();
+		expect(h.publish()).toBe(false);
+	} finally {
+		h.sender.close();
+		h.receiver.close();
+	}
+});
