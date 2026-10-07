@@ -75,6 +75,7 @@ export function ShopShell({
   query,
   productId,
   initialPrompt,
+  onInitialPromptConsumed,
   cart = true,
   children,
   className,
@@ -84,6 +85,8 @@ export function ShopShell({
   productId?: string;
   /** Question to open the assistant with on arrival (e.g. from a homepage block). */
   initialPrompt?: string;
+  /** Remove a claimed URL question so a reload restores history without resending it. */
+  onInitialPromptConsumed?: (prompt: string) => void;
   /** Show the persistent cart column (off on the cart page itself). */
   cart?: boolean;
   children: ReactNode;
@@ -143,6 +146,7 @@ export function ShopShell({
   // A question handed in through the URL opens the assistant once.
   const askedInitial = useRef<string | null>(null);
   useEffect(() => {
+    if (!initialPrompt) { askedInitial.current = null; return; }
     if (!hydrated || !routeEnabled || !initialPrompt || askedInitial.current === initialPrompt) return;
     askedInitial.current = initialPrompt;
     openRail(initialPrompt);
@@ -177,7 +181,10 @@ export function ShopShell({
     query,
     productId,
     pendingPrompt,
-    onPromptConsumed: () => setPendingPrompt(null),
+    onPromptConsumed: () => {
+      setPendingPrompt(null);
+      if (pendingPrompt && pendingPrompt === initialPrompt) onInitialPromptConsumed?.(pendingPrompt);
+    },
   } as const;
 
   const assistantColumn = routeEnabled ? (
