@@ -122,6 +122,14 @@ function storeContextFrom(bundle: any): StoreContext {
   };
 }
 
+function briefCardContext(card: any) {
+  // pricedAt records when the reader observed the price, not a catalog change.
+  // Keep resolved price and sale schedules so crossing a sale boundary still
+  // invalidates the brief while repeated reads can reuse unchanged grounding.
+  const { pricedAt: _observedAt, ...pricing } = card.pricing ?? {};
+  return { ...card, pricing };
+}
+
 function relatedGroupsText(groups: any[], store: StoreContext): string {
   if (!groups?.length) return "";
   return groups
@@ -482,7 +490,9 @@ export const brief = action({
     const grounding = JSON.stringify({
       version: 2, query, productId: args.productId ?? null, kind: args.kind,
       assistant: bundle.assistant, store, cart: bundle.cart,
-      memory: bundle.memory, categories: bundle.categories, candidates, related,
+      memory: bundle.memory, categories: bundle.categories,
+      candidates: candidates.map(briefCardContext),
+      related: related.map((group: any) => ({ ...group, items: group.items.map((item: any) => ({ ...item, card: briefCardContext(item.card) })) })),
       provider: { kind: provider.kind, model: provider.model, available: Boolean(provider.apiKey) },
     });
     const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(grounding));

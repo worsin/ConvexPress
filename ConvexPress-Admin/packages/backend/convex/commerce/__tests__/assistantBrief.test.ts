@@ -77,3 +77,19 @@ test("disabled assistant refuses a brief even when a previous result is cached",
     expect(f.requests()).toBe(1);
   } finally { globalThis.fetch = original; }
 });
+
+
+test("fresh price-observation timestamps do not invalidate otherwise identical grounding", async () => {
+  const f = fixture();
+  f.cards[0].pricing = { price: { amount: 2400, currencyCode: "USD" }, pricedAt: 1 };
+  const original = globalThis.fetch;
+  globalThis.fetch = f.fetcher;
+  try {
+    const first = await f.run();
+    f.cards[0].pricing.pricedAt = 2;
+    const next = await f.run();
+    expect(next.cached).toBe(true);
+    expect(next.cacheKey).toBe(first.cacheKey);
+    expect(f.requests()).toBe(1);
+  } finally { globalThis.fetch = original; }
+});
