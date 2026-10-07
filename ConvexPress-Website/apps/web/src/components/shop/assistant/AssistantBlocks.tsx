@@ -3,6 +3,7 @@
  * to live cards (price, stock, in-cart state) through the shared card map.
  */
 
+import { AssistantCartAction } from "./AssistantCartAction";
 import { Link } from "@tanstack/react-router";
 import { Check, Lightbulb, Info, TriangleAlert, ArrowRight } from "lucide-react";
 import type { ReactNode } from "react";
@@ -60,6 +61,7 @@ export function AssistantBlocks({
   blocks,
   cardById,
   onAsk,
+  onConfirmCart,
   onNavigate,
   onTrack,
   compact = false,
@@ -67,6 +69,7 @@ export function AssistantBlocks({
   blocks: AssistantBlock[];
   cardById: Map<string, ProductCardData>;
   onAsk: (prompt: string) => void;
+  onConfirmCart?: (proposalId: string) => Promise<boolean>;
   onNavigate?: () => void;
   onTrack?: (event: "click" | "add", productIds: string[], groupKey?: string) => void;
   compact?: boolean;
@@ -75,6 +78,8 @@ export function AssistantBlocks({
     <div className="space-y-3">
       {blocks.map((block, index) => {
         switch (block.type) {
+          case "cart_proposal":
+            return <AssistantCartAction key={block.id} block={block} product={cardById.get(block.productId)} onConfirm={onConfirmCart} />;
           case "text":
             return <MarkdownLite key={index} text={block.markdown} />;
           case "callout": {

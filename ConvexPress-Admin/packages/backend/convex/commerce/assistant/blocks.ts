@@ -7,6 +7,7 @@
  */
 
 export type AssistantBlock =
+  | { type: "cart_proposal"; id: string; productId: string; variantId?: string; quantity: number; title: string; added: boolean }
   | { type: "text"; markdown: string }
   | {
       type: "product_group";
@@ -117,18 +118,8 @@ export function normalizeBlocks(raw: unknown, known: Set<string> | null): Assist
         if (markdown) blocks.push({ type: "callout", tone, markdown });
         break;
       }
-      case "action_result": {
-        const summary = str(block.summary, 240);
-        const action =
-          block.action === "remember" || block.action === "forget" ? block.action : "cart_add";
-        if (summary) {
-          const result: AssistantBlock = { type: "action_result", action, ok: block.ok !== false, summary };
-          const productId = str(block.productId, 64);
-          if (productId) result.productId = productId;
-          blocks.push(result);
-        }
-        break;
-      }
+      // Action receipts and proposals are produced by server tools only. A
+      // provider JSON block must never fabricate executable or completed work.
       case "chips": {
         const items = Array.isArray(block.items)
           ? block.items.map((c) => str(c, 90)).filter((c): c is string => Boolean(c)).slice(0, 6)
@@ -187,7 +178,7 @@ export function productIdsInBlocks(blocks: AssistantBlock[]): string[] {
   for (const block of blocks) {
     if (block.type === "product_group") block.items.forEach((item) => ids.add(item.productId));
     if (block.type === "compare_table") block.rows.forEach((row) => ids.add(row.productId));
-    if (block.type === "action_result" && block.productId) ids.add(block.productId);
+    if ((block.type === "action_result" || block.type === "cart_proposal") && block.productId) ids.add(block.productId);
   }
   return [...ids];
 }

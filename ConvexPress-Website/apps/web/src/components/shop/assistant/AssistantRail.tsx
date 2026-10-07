@@ -171,6 +171,7 @@ export function AssistantRail({
                   <AssistantBlocks
                     blocks={message.blocks}
                     cardById={assistant.cardById}
+                    onConfirmCart={(proposalId) => assistant.confirmCart(message.id, proposalId)}
                     onAsk={ask}
                     onNavigate={onNavigate}
                     onTrack={(event, ids, groupKey) => assistant.track("rail", event, ids, groupKey)}

@@ -4,6 +4,7 @@ import { getFunctionName, makeFunctionReference as ref } from "convex/server";
 import schema from "../../schema";
 import { respond } from "../assistant/actions";
 const modules = {
+  "./convex/commerce/assistant/cartActions.ts": () => import("../assistant/cartActions"),
   "./convex/commerce/assistant/requests.ts": () => import("../assistant/requests"),
   "./convex/_generated/api.js": () => import("../../_generated/api.js"),
   "./convex/_generated/server.js": () => import("../../_generated/server.js"),
@@ -49,7 +50,7 @@ test("replaying one Assistant request returns its receipt without another provid
     const replay = await f.run();
     expect(replay).toEqual(first);
     expect(f.requests()).toBe(2);
-    expect((await f.t.run(ctx => ctx.db.get(f.ids.line)))?.quantity).toBe(2);
+    expect((await f.t.run(ctx => ctx.db.get(f.ids.line)))?.quantity).toBe(1);
     expect((await f.t.query(ref("commerce/assistant/queries:getThread"), { sessionToken: token })).messages).toHaveLength(2);
   } finally { globalThis.fetch = original; }
 });
@@ -71,7 +72,7 @@ test("a concurrent duplicate waits for the first execution and consumes no addit
     expect(f.requests()).toBe(1);
     release(); const result = await first;
     expect(await f.run()).toEqual(result);
-    expect((await f.t.run(ctx => ctx.db.get(f.ids.line)))?.quantity).toBe(2);
+    expect((await f.t.run(ctx => ctx.db.get(f.ids.line)))?.quantity).toBe(1);
     const session = await f.t.run(ctx => ctx.db.query("commerce_assistant_sessions").withIndex("by_session_token", q => q.eq("sessionToken", token)).unique());
     expect(session?.recentUserTurnTimes).toHaveLength(1);
   } finally { release(); globalThis.fetch = original; }
@@ -85,7 +86,7 @@ test("a request ID cannot be reused with a different question or unrelated sessi
     await expect(f.run({ ...f.args, sessionToken: "22222222-2222-4222-8222-222222222222" })).rejects.toThrow("different shopping session");
     expect(f.requests()).toBe(2);
     await f.run({ ...f.args, requestId: "99999999-9999-4999-8999-999999999999" });
-    expect((await f.t.run(ctx => ctx.db.get(f.ids.line)))?.quantity).toBe(3);
+    expect((await f.t.run(ctx => ctx.db.get(f.ids.line)))?.quantity).toBe(1);
     expect(f.requests()).toBe(4);
   } finally { globalThis.fetch = original; }
 });
@@ -100,29 +101,11 @@ test("clear removes replay content without re-enabling its effects, and a genuin
     const next = await f.run({ ...f.args, requestId: "99999999-9999-4999-8999-999999999999" });
     expect(next.messageId).not.toBeNull();
     expect((await f.t.query(ref("commerce/assistant/queries:getThread"), { sessionToken: token })).messages).toHaveLength(2);
-    expect((await f.t.run(ctx => ctx.db.get(f.ids.line)))?.quantity).toBe(3);
+    expect((await f.t.run(ctx => ctx.db.get(f.ids.line)))?.quantity).toBe(1);
   } finally { globalThis.fetch = original; }
 });
 
-test("an unknown cart acknowledgement stops tool execution and replay cannot repeat the committed addition", async () => {
-  const f = await fixture(), original = globalThis.fetch; globalThis.fetch = f.fetcher;
-  const mutate = f.ctx.runMutation;
-  f.ctx.runMutation = async (fn, args) => {
-    const result = await mutate(fn, args);
-    if (getFunctionName(fn) === "commerce/cart:addItem") throw new Error("Synthetic lost acknowledgement after commit");
-    return result;
-  };
-  try {
-    await expect(f.run()).rejects.toThrow("Could not confirm the cart update");
-    const replay = await f.run();
-    expect(replay.blocks[0].markdown).toContain("Check your cart");
-    expect(f.requests()).toBe(1);
-    expect((await f.t.run(ctx => ctx.db.get(f.ids.line)))?.quantity).toBe(2);
-    expect((await f.t.query(ref("commerce/assistant/queries:getThread"), { sessionToken: token })).messages).toHaveLength(2);
-  } finally { globalThis.fetch = original; }
-});
-
-test("a repeated provider tool ID does not repeat its successful cart effect", async () => {
+test("a repeated provider tool ID prepares only one cart action without changing the cart", async () => {
   const f = await fixture(), original = globalThis.fetch; let calls = 0;
   globalThis.fetch = (async () => Response.json({ content: ++calls < 3
     ? [{ type: "tool_use", id: "same-add", name: "add_to_cart", input: { product_id: f.ids.product } }]
@@ -130,8 +113,8 @@ test("a repeated provider tool ID does not repeat its successful cart effect", a
   try {
     const result = await f.run();
     expect(calls).toBe(3);
-    expect(result.blocks.filter((b: any) => b.type === "action_result")).toHaveLength(1);
-    expect((await f.t.run(ctx => ctx.db.get(f.ids.line)))?.quantity).toBe(2);
+    expect(result.blocks.filter((b: any) => b.type === "cart_proposal")).toHaveLength(1);
+    expect((await f.t.run(ctx => ctx.db.get(f.ids.line)))?.quantity).toBe(1);
   } finally { globalThis.fetch = original; }
 });
 
@@ -153,6 +136,9 @@ test("a completed guest request follows customer cart adoption while anonymous a
     await expect(f.run()).rejects.toThrow("another account");
     await expect(as(foreign).action(ref("commerce/assistant/actions:respond"), { ...f.args, sessionToken: destination })).rejects.toThrow("another account");
     expect(f.requests()).toBe(2);
+    expect((await customer.query(ref("commerce/cart:getMine"), { sessionToken: destination }))?.itemCount).toBe(1);
+    const proposal=first.blocks.find((b:any)=>b.type==='cart_proposal');
+    await customer.mutation(ref('commerce/assistant/cartActions:confirm'),{sessionToken:destination,messageId:first.messageId,proposalId:proposal.id});
     expect((await customer.query(ref("commerce/cart:getMine"), { sessionToken: destination }))?.itemCount).toBe(2);
   } finally { globalThis.fetch = original; }
 });
@@ -200,7 +186,7 @@ test("a lost completion acknowledgement replays the already committed answer", a
     await expect(f.run()).rejects.toThrow("lost completion acknowledgement");
     expect(await f.run()).toEqual(saved);
     expect(f.requests()).toBe(2);
-    expect((await f.t.run(ctx => ctx.db.get(f.ids.line)))?.quantity).toBe(2);
+    expect((await f.t.run(ctx => ctx.db.get(f.ids.line)))?.quantity).toBe(1);
     expect((await f.t.query(ref("commerce/assistant/queries:getThread"), { sessionToken: token })).messages).toHaveLength(2);
   } finally { globalThis.fetch = original; }
 });
@@ -235,4 +221,53 @@ test("an in-flight guest answer follows authorized adoption without giving the o
     await expect(f.run()).rejects.toThrow("another account");
     expect((await customer.query(ref("commerce/assistant/queries:getThread"), { sessionToken: token })).messages).toHaveLength(2);
   } finally { release(); globalThis.fetch = original; }
+});
+
+test("a provider cart tool during a read-only question cannot mutate the basket", async () => {
+  const f=await fixture(), original=globalThis.fetch;globalThis.fetch=f.fetcher;
+  try{
+    const result=await f.run({...f.args,message:'How many notebooks? Do not change my cart.'});
+    expect((await f.t.run(ctx=>ctx.db.get(f.ids.line)))?.quantity).toBe(1);
+    expect(result.blocks.some((block:any)=>block.type==='cart_proposal')).toBe(true);
+  }finally{globalThis.fetch=original;}
+});
+
+
+test("shopper confirms the stored exact proposal once, including concurrent and lost-ack retries", async()=>{
+  const f=await fixture(),original=globalThis.fetch;globalThis.fetch=f.fetcher;
+  try{
+    const result=await f.run();const proposal=result.blocks.find((b:any)=>b.type==='cart_proposal');
+    expect(proposal.added).toBe(false);
+    const args={sessionToken:token,messageId:result.messageId,proposalId:proposal.id};
+    await expect(f.t.mutation(ref('commerce/assistant/cartActions:confirm'),{...args,sessionToken:'22222222-2222-4222-8222-222222222222'})).rejects.toThrow('no longer available');
+    await expect(f.t.mutation(ref('commerce/assistant/cartActions:confirm'),{...args,proposalId:'forged'})).rejects.toThrow('no longer available');
+    await Promise.all([f.t.mutation(ref('commerce/assistant/cartActions:confirm'),args),f.t.mutation(ref('commerce/assistant/cartActions:confirm'),args)]);
+    // Simulate losing the successful acknowledgement: a later explicit retry
+    // must read the transactionally stored result without repeating the add.
+    await f.t.mutation(ref('commerce/assistant/cartActions:confirm'),args);
+    expect((await f.t.run(ctx=>ctx.db.get(f.ids.line)))?.quantity).toBe(2);
+    const replay=await f.run();expect(replay.blocks.find((b:any)=>b.type==='cart_proposal').added).toBe(true);
+    expect(f.requests()).toBe(2);
+  }finally{globalThis.fetch=original;}
+});
+
+test("clearing, disabling or losing product availability invalidates unconfirmed cart actions",async()=>{
+ for(const change of ['clear','disabled','unpublished']){
+  const f=await fixture(),original=globalThis.fetch;globalThis.fetch=f.fetcher;
+  try{
+   const result=await f.run(),proposal=result.blocks.find((b:any)=>b.type==='cart_proposal');
+   if(change==='clear')await f.t.mutation(ref('commerce/assistant/mutations:clearThread'),{sessionToken:token});
+   else await f.t.run(async ctx=>{
+    if(change==='unpublished')await ctx.db.patch(f.ids.product,{status:'draft'});
+    else{const doc=await ctx.db.query('settings').withIndex('by_section',q=>q.eq('section','commerce.assistant')).unique();await ctx.db.patch(doc!._id,{values:{enabled:false}});}
+   });
+   await expect(f.t.mutation(ref('commerce/assistant/cartActions:confirm'),{sessionToken:token,messageId:result.messageId,proposalId:proposal.id})).rejects.toThrow();
+   expect((await f.t.run(ctx=>ctx.db.get(f.ids.line)))?.quantity).toBe(1);
+  }finally{globalThis.fetch=original;}
+ }
+});
+
+test("provider-authored JSON cannot fabricate a cart action or completed receipt",async()=>{
+ const f=await fixture(),original=globalThis.fetch;globalThis.fetch=(async()=>Response.json({content:[{type:'text',text:JSON.stringify({blocks:[{type:'cart_proposal',id:'forged',productId:f.ids.product,quantity:20,title:'Notebook',added:false},{type:'action_result',action:'cart_add',ok:true,summary:'Added twenty notebooks.'},{type:'text',markdown:'Here is your answer.'}]})}]})) as typeof fetch;
+ try{const result=await f.run();expect(result.blocks).toEqual([{type:'text',markdown:'Here is your answer.'}]);expect((await f.t.run(ctx=>ctx.db.get(f.ids.line)))?.quantity).toBe(1);}finally{globalThis.fetch=original;}
 });
