@@ -55,9 +55,13 @@ export function AssistantRail({
   const submit = (event?: FormEvent) => {
     event?.preventDefault();
     const text = draft.trim();
-    if (!text) return;
-    setDraft("");
-    void assistant.send(text);
+    if (!text || !assistant.ready || assistant.sending) return;
+    const submittedDraft = draft;
+    void assistant.send(text).then((completed) => {
+      // Keep a failed/unavailable request retryable, and preserve edits made
+      // while the previous answer was pending.
+      if (completed) setDraft((current) => current === submittedDraft ? "" : current);
+    });
   };
 
   const ask = (prompt: string) => {
@@ -257,7 +261,7 @@ export function AssistantRail({
           />
           <button
             type="submit"
-            disabled={!draft.trim() || assistant.sending}
+            disabled={!draft.trim() || !assistant.ready || assistant.sending}
             aria-label="Send"
             className="flex size-9 shrink-0 items-center justify-center rounded-md bg-primary text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-40"
           >
