@@ -1,5 +1,7 @@
 # Contracted live authoring schema: local verification
 
+Subsequent installed acceptance: [six-site retirement and native verification](schema-retirement-installed-20261007.md). The following records the earlier local-only checkpoint.
+
 E108 remains open until the contracted candidate is installed and verified on all six sites. Stage A has already archived and cleared the three obsolete fields from 203 original live records, preserving 724 prior revisions and 81 storage files. This checkpoint completes the local contraction regression gate; it does not claim deployment or native acceptance.
 
 ## Changes
