@@ -1,9 +1,9 @@
 # Editor and template delivery
 
 This is the working delivery entry point, not a declaration that every acceptance
-gate is complete. The block tracker has **135 Verified rows and two In progress**.
-Candidate `3a3f58a3` is installed on the six delivery environments with the accepted
-Assistant and AI authoring fixes; original Alpha, Beta, Gamma and Delta now have the same implementation.
+gate is complete. The block tracker has **136 Verified rows and one In progress**.
+Candidate `012255f2` is installed on all ten local environments, including the
+accepted Assistant/AI fixes and completed legacy theme/layout retirement.
 See [original fleet evidence](../ConvexPress-Admin/audits/2026-09-04/original-candidate-20261007.md) and [current candidate evidence](../ConvexPress-Admin/audits/2026-09-04/final-candidate-20261007.md).
 
 ## Open the examples
@@ -47,6 +47,10 @@ after closing your own previous instance:
 cd /Users/worsin/.codex/worktrees/convexpress-hardening/ConvexPress-Admin
 CONVEXPRESS_DESKTOP_DEV_URL=http://127.0.0.1:4105 bun run dev:native
 ```
+
+The existing acceptance window also depends on the Worker SOCKS tunnel at
+`127.0.0.1:17890`; it was restored after a missing listener prevented login. Keep
+that tunnel running while using that window. This is specific to its launch configuration.
 
 This command reuses the existing renderer on4105 and opens the actual Electron
 app. If the renderer is also stopped, omit `CONVEXPRESS_DESKTOP_DEV_URL` so the
@@ -122,15 +126,15 @@ their option label and use current cart pricing and stock checks when added. See
 [Assistant cart authority](../ConvexPress-Admin/audits/2026-09-04/assistant-cart-authority-20261007.md).
 
 Actual AI generation, selected-resource composition/style/SDK workflows and Assistant
-Band are accepted. The two remaining block requirements are authorized Instagram
-for Social Feed and human Turnstile completion for Event RSVP. Public HTTPS editing
+Band are accepted. The remaining block requirement is authorized Instagram success for Social Feed.
+Event RSVP now passes actual real Turnstile registration, reload and cancellation
+for original and generated providers; see [RSVP acceptance](../ConvexPress-Admin/audits/2026-09-04/rsvp-provider-final-20261007.md). Public HTTPS editing
 still needs a working authorized target: the registered Aster House staging backend
 is currently disabled by Convex for exceeding free-plan limits. Restore that deployment
-or use another authorized staging environment. Final requirement reconciliation remains
-open; no real checkout or booking is implied by an example site.
+or use another authorized staging environment. The requirement map is current; final acceptance remains open; no real checkout or booking is implied by an example site.
 
 The current native artifact is a local acceptance assembly with external local
 dependencies, not a signed installer. Existing unrelated whole-application audit
 items remain outside this delivery unless they reproduce as a necessary blocker.
 
-The current [requirement map](../ConvexPress-Admin/audits/2026-09-04/delivery-requirements-20261007.md) identifies one remaining implementation item: archive/preserve and retire legacy themes/layouts (E117). Completed canonical posts migration and AI/SDK acceptance remain valid. Instagram, human Turnstile and public HTTPS acceptance retain their external prerequisites.
+The current [requirement map](../ConvexPress-Admin/audits/2026-09-04/delivery-requirements-20261007.md) records completed [legacy theme/layout retirement](../ConvexPress-Admin/audits/2026-09-04/theme-retirement-20261007.md). Instagram and public HTTPS acceptance retain their external prerequisites. The unused localhost-only RSVP Cloudflare widget remains recorded for provider-side removal; its backend secret and temporary policy have already been removed/restored.
