@@ -101,15 +101,17 @@ from signed/self-contained distribution.
 | New collection styles and fallback | [E107](../ConvexPress-Admin/audits/2026-09-04/collection-styles-20261006.md) |
 | E107 installed metadata, refreshed artifacts and local integration | [Installed E107](../ConvexPress-Admin/audits/2026-09-04/e107-installed-20261006.md) |
 | All137 blocks across four desktop packs | [Tracker evidence](../ConvexPress-Admin/audits/2026-09-04/tracker-evidence-final-20261006.md) |
+| Installed nested-list consumer compatibility | [Six consumers](../ConvexPress-Admin/audits/2026-09-04/nested-consumers-20261007.md) |
+| Presentation/state map and motion acceptance | [Task6 reconciliation](../ConvexPress-Admin/audits/2026-09-04/task6-state-motion-20261007.md) |
 | Demo navigation and complete mobile patterns | [BlockDemo review](../ConvexPress-Admin/audits/2026-09-04/demo-visible-review-20261006.md) |
 | SDK workflows and cleanup | [Kit workflows](../ConvexPress-Admin/audits/2026-09-04/kit-workflow-refresh-20261006.md) |
 
 The remaining provider requirements are actual AI generation/Assistant Band,
 authorized Instagram data for Social Feed, human Turnstile completion for Event
 RSVP, and the Vimeo refusal affecting Script Embed. Public HTTPS/local-network
-editing still needs an authorized public staging host. General state/mobile/
-motion reconciliation and final acceptance remain separately tracked;
-the desktop matrix alone does not close them. No real checkout or booking is
+editing still needs an authorized public staging host. Presentation/state evidence is mapped for all 137 blocks and the motion
+implementation gate is accepted. The four actual provider interactions and
+final integrated acceptance remain open; desktop images do not prove them. No real checkout or booking is
 implied by an example site.
 
 The current native artifact is a local acceptance assembly with external local
