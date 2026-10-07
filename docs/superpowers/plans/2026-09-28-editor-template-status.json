@@ -1383,14 +1383,18 @@
     {
       "id": "E107",
       "classification": "accepted/reusable evidence",
-      "status": "Closed implementation and scoped runtime acceptance: all four required choices in Journal/Depot;323renderer tests, native save/reopen/publication, exact public data, Core fallback preservation, normal/empty/maximum layouts. Final installed-artifact refresh remains Task8.",
+      "status": "Closed implementation and scoped runtime acceptance: all four required choices in Journal/Depot;323renderer tests, native save/reopen/publication, exact public data, Core fallback preservation, normal/empty/maximum layouts. Installed follow-through accepted: nine metadata files refreshed across six backends with81stored files and original non-maintenance records exact; four retained candidate Website previews use the E107artifact. Production Admin renderer rebuilt and actual custom-protocol startup checked. Completed source locally integrated; see e107-installed-20261006.md.",
       "requiredWorkflow": "Select the tracker-required named styles in Journal and Depot, save/reopen, render on Website and preserve saved content when switching packs.",
       "evidence": "Tracker readback output/recent-auth-final-20261006/mt-accept-after.json; current Journal/Depot manifests and four owned renderers.",
       "dependency": "Root specs already support styles, but finite pack choices and effective-style rendering are absent.",
       "repairBoundary": "Add the four required choices to Journal/Depot manifests and owned presentation; preserve attrs, media references, versions, default treatment and Core/Aster fallback.",
       "exitCheck": "Red/green declaration and render tests; desktop/mobile empty/maximum/focus/contrast review; native selection persistence and pack fallback; generated parity.",
       "deliveryTask": 6,
-      "currentEvidence": "ConvexPress-Admin/audits/2026-09-04/collection-styles-20261006.md"
+      "currentEvidence": [
+        "ConvexPress-Admin/audits/2026-09-04/collection-styles-20261006.md",
+        "ConvexPress-Admin/audits/2026-09-04/e107-installed-20261006.md"
+      ],
+      "nextCheck": "Reuse the accepted style/source/deployment evidence unless those dependencies change. Continue E99 causal investigation and remaining final state/mobile/motion/provider/HTTPS requirements; do not repeat unaffected six-site deployment checks."
     }
   ],
   "blocks": [
@@ -4908,6 +4912,7 @@
     }
   ],
   "latestEvidence": [
+    "ConvexPress-Admin/audits/2026-09-04/e107-installed-20261006.md",
     "ConvexPress-Admin/audits/2026-09-04/customizer-global-layout-20261006.md",
     "output/customizer-global-layout-20261006/verified.json",
     "output/customizer-global-layout-20261006/artifact-proof.json",
