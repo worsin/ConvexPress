@@ -7,7 +7,7 @@
     "In progress": 3
   },
   "goal": "Complete block editor and template delivery plus all demonstrated blockers; defer unrelated whole-app audit campaigns.",
-  "currentTask": "134/137 blocks verified. Task4 migration/native/public acceptance complete. E111 customer Assistant history/memory adoption repaired in b4c31a85 and accepted on original Alpha through real Clerk/provider desktop/mobile workflows with exact original preservation. Next bounded Assistant gates: disabled-memory grounding, request idempotency, catalog visibility/read bounds; then Task7 selected-resource AI composition/style/promotion and final candidate parity. No audit wait or repeated migration.",
+  "currentTask": "134/137 blocks verified. E112 disabled-memory and brief-context repair is installed/accepted on original Alpha (715c0f09), with415commerce tests and actual configured-provider quantity/cache acceptance; originals preserved. Next: backend Assistant request idempotency and catalog visibility/read bounds, then Task7 selected-resource AI composition/style/promotion and final installed candidate parity. Reuse accepted Task4/E110/E111 evidence; no audit wait.",
   "tasks": [
     {
       "id": 1,
@@ -1479,6 +1479,24 @@
         "output/original-assistant-customer-20261007/live-before.json",
         "output/original-assistant-customer-20261007/live-after.json",
         "output/original-assistant-customer-20261007/cleanup-data.json"
+      ]
+    },
+    {
+      "id": "E112",
+      "classification": "reproduced defect repaired and verified",
+      "deliveryTask": 7,
+      "requiredWorkflow": "Assistant disabled-memory policy applies to grounding, late writes and personalized caches; brief follows current cart, catalog and store/provider configuration.",
+      "evidence": "ConvexPress-Admin/audits/2026-09-04/assistant-memory-brief-20261007.md",
+      "dependency": "contextBundle always loads retained facts; rememberFact writes ignore current policy; brief cache hashes only product IDs and facts, omitting quantities, variants, prices, current visibility and configuration.",
+      "repairBoundary": "Filter memory grounding at the shared query, enforce policy in memory writes, reject old personalized cached results under disabled policy, and fingerprint current brief grounding after catalog reads. Preserve memory viewing/forgetting and original data.",
+      "exitCheck": "Regression fail-before/pass-after, scoped commerce tests, strict types/deployment; installed unchanged/changed-quantity cache with real provider plus exact original preservation.",
+      "status": "Closed for source and original Alpha acceptance. 9948e604 plus715c0f09 correct disabled memory and complete brief grounding;415commerce tests, strict types/deployment and real provider quantity/cache acceptance pass. Original selected rows/settings exact; owned test data cleared. Other sites receive final candidate parity later.",
+      "nextCheck": "Reuse accepted E112 evidence; continue separate backend request idempotency and catalog visibility/read bounds, then selected-resource AI composition/style/promotion.",
+      "currentEvidence": [
+        "ConvexPress-Admin/audits/2026-09-04/assistant-memory-brief-20261007.md",
+        "output/assistant-memory-brief-final-20261007/live.json",
+        "output/assistant-memory-brief-final-20261007/install-session.json",
+        "output/assistant-memory-brief-20261007/commerce-final.log"
       ]
     }
   ],
@@ -5000,6 +5018,8 @@
     }
   ],
   "latestEvidence": [
+    "ConvexPress-Admin/audits/2026-09-04/assistant-memory-brief-20261007.md",
+    "output/assistant-memory-brief-final-20261007/live.json",
     "ConvexPress-Admin/audits/2026-09-04/original-preview-assistant-20261007.md",
     "output/original-preview-repair-20261007/live-edit-recovery.json",
     "output/original-preview-repair-20261007/assistant-clean-reload.json",
