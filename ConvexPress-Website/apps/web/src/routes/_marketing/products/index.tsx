@@ -54,9 +54,16 @@ export const Route = createFileRoute("/_marketing/products/")({
 
 function ShopPage() {
   const search = Route.useSearch();
+  const navigate = Route.useNavigate();
   const q = search.q?.trim() || "";
   return (
-    <ShopShell kind={q ? "search" : "catalog"} query={q || undefined} initialPrompt={search.ask}>
+    <ShopShell kind={q ? "search" : "catalog"} query={q || undefined} initialPrompt={search.ask}
+      onInitialPromptConsumed={prompt => {
+        const url = new URL(window.location.href);
+        if (url.searchParams.get("ask") !== prompt) return;
+        url.searchParams.delete("ask");
+        void navigate({ href: `${url.pathname}${url.search}${url.hash}`, search: true, replace: true, resetScroll: false });
+      }}>
       <Surface name="shop.catalog" data={{}} fallback={CoreCatalog} />
     </ShopShell>
   );
