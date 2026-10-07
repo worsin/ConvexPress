@@ -7,7 +7,7 @@
     "In progress": 3
   },
   "goal": "Complete block editor and template delivery plus all demonstrated blockers; defer unrelated whole-app audit campaigns.",
-  "currentTask": "134/137 blocks verified. E109 treatment adapters and explicit lifecycle-preserving migration now implemented/tested; original11-record installed transition remains open. Exact original compiled source captured; historical checkpoint manifest is stale. Establish matching transitional deployment, native/public/reference preservation, then real configured AI workflows. No original site mutation or push.",
+  "currentTask": "134/137 blocks verified. Original four-site migration/contraction installed and preserved. Alpha native reopen and actual configured AI generation/review/save/reopen/publication accepted; fresh actual Website renders original pages and AI guide desktop/mobile. Correct original registered Website startup binding without discarding user runtime/sessions; finish Gamma native/Website and provider Assistant/history/cart/composition acceptance. No repeat migrations or historical source reconstruction.",
   "tasks": [
     {
       "id": 1,
@@ -25,7 +25,7 @@
     {
       "id": 4,
       "status": "in_progress",
-      "scope": "Six newer sites and four original sites have completed canonical migration and physical retirement with preservation receipts. E109 retains matching original native/Website and configured AI acceptance."
+      "scope": "Six newer sites and four original sites have completed canonical migration and physical retirement with preservation receipts. Alpha native original reopen and fresh public renderer accepted; exact registered native Website binding and Gamma acceptance remain."
     },
     {
       "id": 5,
@@ -37,7 +37,8 @@
     },
     {
       "id": 7,
-      "status": "in_progress"
+      "status": "in_progress",
+      "scope": "Alpha real configured-provider canonical AI generation, native review/edit/apply/reopen/publication and actual public desktop/mobile rendering accepted. Full Assistant/history/cart/composition and original native proposal-preview transport remain open."
     },
     {
       "id": 8,
@@ -1428,17 +1429,18 @@
       "deliveryTask": 4,
       "requiredWorkflow": "Complete original named-fleet canonical migration/retirement and matching native/public template acceptance required by the handoff.",
       "evidence": "Report original-fleet-rollout-20261007.md and output/original-fleet-20261007 final export/schema/source/index/session/public receipts. Fixture packaging repair 8da561ea passes 196 tests and 1,837 assertions plus fresh strict codegen/deployment. All 2,020 checked candidate source files match 8da561ea. No preexisting rows deleted; original AI settings exact.",
-      "dependency": "Backend treatment/lifecycle migration, original reference initialization and physical contraction are installed and preserved. Remaining proof is matching native editor, actual Website and original configured AI workflows.",
+      "dependency": "Original backend migration/contraction accepted. Remaining native preview depends on correcting original registered Website startup configuration while preserving running user sessions. Gamma acceptance and full configured-provider Assistant workflows remain.",
       "repairBoundary": "Implement and verify exact canonical/rendered treatment mapping; review all remaining nodes and lifecycle preservation; reconcile actual installed source/contracts; install safely with original content/history/media and sessions intact.",
       "exitCheck": "Complete original corpus migration and schema contraction with preservation receipts, actual native edit/reopen and Website parity on named sites, then current configured AI workflows.",
-      "status": "Original migration and physical contraction installed on alpha/beta/gamma/delta. All 11 original posts, 11 exact source archives and 120 byte-identical original files preserved; lifecycle, ownership, routes and timestamps exact. All four deployed sets match 1,780 modules, schemas reject retired live fields, media/synced indexes are ready, and predeployment operator sessions survived. Eight published canonical bodies are ready; three auto-drafts remain nonpublic. Matching native/Website and configured AI acceptance remain open.",
+      "status": "Original migration and physical contraction installed on alpha/beta/gamma/delta. All 11 original posts, 11 exact source archives and 120 byte-identical original files preserved; lifecycle, ownership, routes and timestamps exact. All four deployed sets match 1,780 modules, schemas reject retired live fields, media/synced indexes are ready, and predeployment operator sessions survived. Eight published canonical bodies are ready; three auto-drafts remain nonpublic. Matching native/Website and configured AI acceptance remain open. Alpha native original page reopen and real AI proposal workflow now accepted through native reviewed publication and fresh public desktop/mobile rendering; original posts/archives/storage/AI settings preserved. Registered4201 native preview cannot bind: existing runtime lacks instanceKey and trusts localhost while native uses127.0.0.1. Temporary4331 rendering does not close that preview requirement.",
       "currentEvidence": [
         "ConvexPress-Admin/audits/2026-09-04/original-fleet-reconciliation-20261007.md",
         "ConvexPress-Admin/audits/2026-09-04/original-fleet-treatments-20261007.md",
         "ConvexPress-Admin/audits/2026-09-04/original-fleet-lifecycle-20261007.md",
-        "ConvexPress-Admin/audits/2026-09-04/original-fleet-rollout-20261007.md"
+        "ConvexPress-Admin/audits/2026-09-04/original-fleet-rollout-20261007.md",
+        "ConvexPress-Admin/audits/2026-09-04/original-native-ai-20261007.md"
       ],
-      "nextCheck": "Build or identify matching current native/Website artifacts and exercise original-site authoring/reopen/preview. Then actual structured AI generation, review/save and Assistant history/cart/composition with the preserved original provider. Do not repeat accepted migration writes or historical baseline reconstruction."
+      "nextCheck": "Correct original registered Website runtime binding safely; verify actual native draft/proposal preview and selection. Complete Gamma native/Website and Assistant/history/cart/composition using original configured provider. Do not redo accepted migration or generation evidence."
     }
   ],
   "blocks": [
@@ -5297,7 +5299,10 @@
     "output/task6-final-20261007/motion-provenance.json",
     "ConvexPress-Admin/audits/2026-09-04/nested-consumers-20261007.md",
     "ConvexPress-Admin/audits/2026-09-04/schema-retirement-preparation-20261007.md",
-    "ConvexPress-Admin/audits/2026-09-04/schema-retirement-stage-a-20261007.md"
+    "ConvexPress-Admin/audits/2026-09-04/schema-retirement-stage-a-20261007.md",
+    "ConvexPress-Admin/audits/2026-09-04/original-native-ai-20261007.md",
+    "output/original-native-ai-20261007/ai-guards.json",
+    "output/original-native-ai-20261007/cleanup-data.json"
   ],
   "trackerRefresh": {
     "source": "output/field-guide-legacy-final-20261006/mt-accept-after.json",
