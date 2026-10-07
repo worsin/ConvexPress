@@ -1,13 +1,13 @@
 {
   "plan": "2026-09-28-editor-template-delivery.md",
   "baselineCommit": "d0fee8acceb408fd306a15f3c054322cb73ac8bc",
-  "checkpointSource": "output/recent-auth-final-20261006/mt-accept-after.json",
+  "checkpointSource": "output/delivery-candidate-20261007/mt-accept-after.json",
   "checkpointCounts": {
-    "Verified": 133,
-    "In progress": 4
+    "Verified": 134,
+    "In progress": 3
   },
   "goal": "Complete block editor and template delivery plus all demonstrated blockers; defer unrelated whole-app audit campaigns.",
-  "currentTask": "E108/Task4 complete: contracted schema 11942647 installed on all six sites; 203 original posts,927 revisions and81 stored files preserved. Native save/history/reload, actual Website/public output and scoped canonical SDK promotion passed. Reconcile final candidate artifacts and remaining provider/HTTPS requirements; no push.",
+  "currentTask": "134/137 blocks verified: Script Embed real Vimeo desktop/mobile playback accepted; refreshed packaged native save/reload and actual Website preview pass against contracted Target. AI/Assistant, Instagram, Turnstile and public HTTPS assertions remain, followed by final delivery closure. Task4 complete; no push.",
   "tasks": [
     {
       "id": 1,
@@ -258,18 +258,19 @@
     },
     {
       "id": "E12",
-      "status": "Embed Vimeo playback verified in actual Website/installed Chrome using official sample19231868. Subsequent provider connection-security refusal leaves Script Embed Vimeo playback unproved; no bypass or sandbox change. Iframe approved real-map gate passes; no Iframe Vimeo playback claim.",
-      "classification": "external prerequisite",
+      "status": "Accepted: actual Script Embed Vimeo player now loads and plays in the current Website at desktop and390px. Progress advances, pause/unload/focus pass; iframe sandbox and referrer policy unchanged. Earlier provider refusal remains historical, not current failure. Reuse earlier Embed/YouTube/map evidence.",
+      "classification": "accepted/reusable evidence",
       "initialFinding": "Vimeo playback remains unverified; YouTube proof does not cover it.",
       "closureBoundary": "Verify supported provider consent/load/play/failure behavior using legitimate fixtures, or explicitly identify an external prerequisite. Keep intended supported providers; do not quietly remove capability to pass.",
       "currentEvidence": [
         "ConvexPress-Admin/audits/2026-09-04/external-embeds-20260929.md",
-        "output/external-embeds-20260929/vimeo-acceptance.json"
+        "output/external-embeds-20260929/vimeo-acceptance.json",
+        "ConvexPress-Admin/audits/2026-09-04/script-vimeo-final-20261007.md"
       ]
     },
     {
       "id": "E13",
-      "status": "Current customer-commerce Assistant Band prompt returns unavailable; own real customer thread confirms missing_api_key. No actual model response accepted. This does not block other customer blocks. Task7 AI workflow remains open. October6 normal Aster blockDefinitions/ai:compose also returns CONFIGURATION_ERROR requiring provider/API key; no live proposal accepted. Static/native authoring remains independent.",
+      "status": "Current normal operator integrations overview across all six sites confirms AI configured=false and API key state empty, including environment fallback. Six owned sessions revoked; no secrets retrieved or provider calls made. Existing CONFIGURATION_ERROR/missing_api_key action evidence remains valid. Owner asked to configure an authorized provider through one site Settings > AI and identify that site; actual structured generation and Assistant Band still required.",
       "classification": "external prerequisite",
       "initialFinding": "Some isolated AI exercises returned missing_api_key; earlier provider success does not establish current end-to-end editor generation.",
       "closureBoundary": "Inspect authorized configured connections without exposing secrets; use the existing provider if available. Prove one live structured generation, resource selection, review, insert/save and Website output, plus composition/style/promotion. Do not substitute mocked success.",
@@ -277,7 +278,8 @@
         "ConvexPress-Admin/audits/2026-09-04/customer-commerce-20260929.md",
         "output/customer-commerce-20260929/assistant-provider-proof.json",
         "ConvexPress-Admin/audits/2026-09-04/reference-extension-acceptance-20261006.md",
-        "output/extension-lifecycle-20261006/ai-probe.json"
+        "output/extension-lifecycle-20261006/ai-probe.json",
+        "output/delivery-candidate-20261007/provider-readiness.json"
       ]
     },
     {
@@ -4449,9 +4451,9 @@
       "name": "core/script-embed",
       "title": "Script embed",
       "category": "Site",
-      "checkpointStatus": "In progress",
-      "nextClassification": "Native YouTube/Vimeo fields and exact restore, actual YouTube playback, four-pack maximum/empty, failure/reset and cleanup pass. Actual Vimeo playback in Script Embed remains missing.",
-      "classification": "external prerequisite",
+      "checkpointStatus": "Verified",
+      "nextClassification": "reuse valid evidence",
+      "classification": "accepted/reusable evidence",
       "source": "blocks/core/script-embed/block.json",
       "requirements": "provider, resourceId",
       "evidenceReferences": [
@@ -4460,9 +4462,10 @@
         "output/block-demo/browser-results-conversion83",
         "output/block-library-review-20260915/coverage-review.json.",
         "ConvexPress-Admin/audits/2026-09-04/external-embeds-20260929.md",
-        "output/external-embeds-20260929/source-provenance.json"
+        "output/external-embeds-20260929/source-provenance.json",
+        "ConvexPress-Admin/audits/2026-09-04/script-vimeo-final-20261007.md"
       ],
-      "remainingReview": "Verify actual Vimeo playback in Script Embed using a legitimate public fixture when provider access permits. Repeated connection-security refusal on adjacent Vimeo frame attempts is recorded; no bypass or mocked substitute. Keep both supported providers.",
+      "remainingReview": "Actual Vimeo playback now accepted at desktop and390px with keyboard consent, pause, unload/focus and unchanged frame policy. Reuse prior native/YouTube/four-pack/failure evidence; reopen only on changed dependencies.",
       "deliveryTask": 3,
       "acceptanceBatch": "external-embeds",
       "reviewedAtCommit": "99a0c8f8 + external embed contracts/layout repairs",

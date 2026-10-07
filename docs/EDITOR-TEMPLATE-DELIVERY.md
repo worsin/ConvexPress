@@ -1,7 +1,7 @@
 # Editor and template delivery
 
 This is the working delivery entry point, not a declaration that every acceptance
-gate is complete. The block tracker currently has 133 Verified rows and four
+gate is complete. The block tracker currently has 134 Verified rows and three
 provider-dependent rows still In progress. Backend candidate `11942647` is installed on all six sites. It includes physical
 live-schema retirement, canonical promotion refusal for unmigrated sources,
 and the previously accepted styles, preview recovery and media-route policy.
@@ -105,6 +105,7 @@ from signed/self-contained distribution.
 | Installed nested-list consumer compatibility | [Six consumers](../ConvexPress-Admin/audits/2026-09-04/nested-consumers-20261007.md) |
 | Presentation/state map and motion acceptance | [Task6 reconciliation](../ConvexPress-Admin/audits/2026-09-04/task6-state-motion-20261007.md) |
 | Demo navigation and complete mobile patterns | [BlockDemo review](../ConvexPress-Admin/audits/2026-09-04/demo-visible-review-20261006.md) |
+| Script Embed Vimeo and refreshed packaged-native save/reload | [Current provider/native acceptance](../ConvexPress-Admin/audits/2026-09-04/script-vimeo-final-20261007.md) |
 | Current installed sources, artifacts and remaining gates | [Candidate map](../ConvexPress-Admin/audits/2026-09-04/delivery-candidate-map-20261007.md) |
 | SDK workflows and cleanup | [Kit workflows](../ConvexPress-Admin/audits/2026-09-04/kit-workflow-refresh-20261006.md) |
 
@@ -115,9 +116,9 @@ save/history/reload and actual Website output passed. See
 
 The remaining provider requirements are actual AI generation/Assistant Band,
 authorized Instagram data for Social Feed, human Turnstile completion for Event
-RSVP, and the Vimeo refusal affecting Script Embed. Public HTTPS/local-network
+RSVP. Script Embed Vimeo playback is now accepted at desktop and mobile widths. Public HTTPS/local-network
 editing still needs an authorized public staging host. Presentation/state evidence is mapped for all 137 blocks and the motion
-implementation gate is accepted. The four actual provider interactions and
+implementation gate is accepted. The three remaining actual provider interactions and
 final integrated acceptance remain open; desktop images do not prove them. No real checkout or booking is
 implied by an example site.
 
