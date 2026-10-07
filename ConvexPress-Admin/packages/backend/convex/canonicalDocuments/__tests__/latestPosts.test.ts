@@ -1,3 +1,4 @@
+import { canonicalPostBody } from "../../__tests__/canonicalPostFixture";
 import { test, expect } from 'bun:test';
 import { convexTest } from 'convex-test';
 import schema from '../../schema';
@@ -15,7 +16,7 @@ async function fixture() {
     await ctx.db.insert('settings',{section:'plugins',values:{membershipEnabled:false},updatedAt:1,updatedBy:user});
     const add = (title:string, publishedAt:number, visibility:'public'|'private'='public', status:'publish'|'draft'='publish') => ctx.db.insert('posts', {
       type:'post',title,slug:title.toLowerCase(),publishedAt,visibility,status,authorId:user,commentStatus:'closed',
-      content:'private source body',excerpt:'Public summary',createdAt:1,updatedAt:1,
+      ...canonicalPostBody('private source body'),excerpt:'Public summary',createdAt:1,updatedAt:1,
     });
     const old = await add('Old',10), recent = await add('Recent',20);
     await add('Hidden',30,'private'); await add('Draft',40,'public','draft'); await add('Future',Date.now()+3600000);
@@ -63,7 +64,7 @@ test('invalid request data is rejected before reads, and full source bodies cons
   const budget=new RequestReadLedger();
   await expect(t.run(ctx=>readLatestPosts(ctx,{count:1.5},budget))).rejects.toThrow();
   expect(budget.queries).toBe(0);
-  await t.run(ctx=>ctx.db.patch('posts',ids.recent,{content:'x'.repeat(513*1024)}));
+  await t.run(ctx=>ctx.db.patch('posts',ids.recent,{...canonicalPostBody('x'.repeat(513*1024))}));
   await expect(t.run(ctx=>readLatestPosts(ctx,{count:1}))).rejects.toThrow();
 });
 

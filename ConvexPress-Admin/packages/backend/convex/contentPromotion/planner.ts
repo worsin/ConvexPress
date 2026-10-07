@@ -389,6 +389,9 @@ export async function planPromotion(
 	for (const record of orderedRecords(manifest)) {
 		const current = await lookupTarget(ctx, manifest, record, known);
 		await authorization.write(record, current);
+    if ((record.kind === "page" || record.kind === "post") && record.data.blocksVersion !== 2) {
+      issue("CANONICAL_SOURCE_MIGRATION_REQUIRED", record.key, "Import and review this legacy document in the source editor, migrate it to canonical blocks, then export a new promotion manifest.");
+    }
     if(record.kind==="event"){
       try{
         const fields=await validatePromotedEvent(ctx,current?._id??null,record.data);

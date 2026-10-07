@@ -147,9 +147,9 @@ September29 closure: all20 assigned Task2 block rows are Verified on the linked 
 - [x] Prove each supported conversion preserves editorial text, inline structure, media identity, layout intent, anchors, links, visibility/locks and revision source. Mixed/oversized unsupported inputs must be refused without loss, then receive a complete supported conversion before claiming closure.
 - [x] Run native conversion/reopen/publication/recovery and before/after rendered comparison on representative owned copies of actual content.
 - [x] Migrate known installed/demo content with backups, explicit receipts and exact readback. Preserve original user data and rollback until success is established.
-- [ ] Remove obsolete live editor/renderer/contentMode paths and fields only after preservation and import/recovery requirements pass; no premature destructive schema cleanup.
+- [x] Remove obsolete live editor/renderer/contentMode paths and fields only after preservation and import/recovery requirements pass; no premature destructive schema cleanup.
 
-Accepted corpus/API evidence: `ConvexPress-Admin/audits/2026-09-04/legacy-reusable-retirement-20261006.md`. October7 E108 corrects its overbroad fifth-clause closure: obsolete live posts schema columns still exist and must be retired after preservation. Immutable revision archives and explicit import decoding remain supported. `schema-retirement-preparation-20261007.md` records the tested local first stage; deployment, cleanup and schema contraction remain unfinished.
+Accepted corpus/API evidence: `ConvexPress-Admin/audits/2026-09-04/legacy-reusable-retirement-20261006.md`. October7 E108 corrects its overbroad fifth-clause closure: obsolete live posts schema columns still existed and required retirement after preservation. Immutable revision archives and explicit import decoding remain supported. `schema-retirement-stage-a-20261007.md` records installed cleanup and exact archival preservation across all six sites. `schema-retirement-contraction-20261007.md` records the contracted schema with 3,711 passing tests and strict backend/Admin/Website types. `schema-retirement-installed-20261007.md` closes E108: all six sites run the contracted schema, 203 original posts/927 revisions/81 stored files remain exact, actual native save/history/reload and Website/public output pass, and explicit content-only SDK promotion passes. Full-site localization/route-policy exporter refusals were honored; historical imports and prior broader promotion evidence remain separately supported.
 
 ### Task 5 — Finish Templates and Customizer as one workflow
 
@@ -241,7 +241,7 @@ Do not rebuild source contracts merely to refresh screenshots. Do not deploy bac
 
 - Admin acceptance is native Electron. Browser control is for public Website/BlockDemo and external provider sessions.
 - Revalidate process executable/path/port/environment before reuse; old PIDs and tool handles are not proof of a live process. Do not kill or restart the user's app to clear a test harness problem.
-- Last accepted installed backend checkpoint: `ConvexPress-Admin/output/production-checkpoints/hero-video-20260921`; verify its manifest and current live identity before deriving a new snapshot. It preserved 22 installed Events files. A generic checkout overlay previously removed installed plugin handlers/indexes; do not repeat it.
+- Current installed backend receipts: `output/schema-contraction-20261007/*-installed.json`, candidate `11942647`, with a separate sealed snapshot per environment. Verify the receipt and live identity before deriving a new snapshot. Preserve source-specific Events files. A generic checkout overlay previously removed installed plugin handlers/indexes; do not repeat it.
 - Use owned disposable pages/resources and minimum necessary identities. Preserve unrelated content/settings/plugin rows with scoped baselines; take full export before deployment/migration where recovery warrants it, not for every CSS test.
 - Existing personal Convex/Cloudflare/UploadThing authorization permits use as already requested. Inspect configured APIs/CLIs before asking the owner to log in again. Missing key/quota is an explicit prerequisite, not evidence that an unrelated system must be rewritten.
 - Never print secrets, full process arguments containing environment credentials, private tokens or raw credential files. Resolve provider uncertainty against receipts and exact target identity before retrying mutations.
@@ -265,7 +265,7 @@ No arbitrary implementation/token cap is imposed by this guide; a cap must not f
 
 - [ ] 137/137 tracked blocks meet their defined contracts, have relevant tests and reviewed four-pack captures; no placeholders masquerade as functioning actions.
 - [ ] Native editor workflows, field types, nesting/history/recovery, preview and saved/public consistency pass.
-- [ ] Canonical content/migration and required legacy retirement are complete with preserved history/data.
+- [x] Canonical content/migration and required legacy retirement are complete with preserved history/data.
 - [ ] Four finished default templates and authored example sites are available and switch safely.
 - [ ] Full template/Customizer and required dashboard/surface coverage passes; authorized operator editing remains separate from customers.
 - [ ] Internal BlockDemo makes every block, relevant state and template treatment reviewable; visual and motion quality meets the owner's requirements on the recorded environment.

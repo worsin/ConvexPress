@@ -1,11 +1,12 @@
+import { canonicalPostBody } from "../../__tests__/canonicalPostFixture";
 import { expect, test } from "bun:test";
 import { convexTest } from "convex-test";
 import schema from "../../schema";
 import { readPostGrid } from "../postGrid";
 import { insertTermRelationship, refreshTermDiscovery } from "../../helpers/postDiscovery";
-import { patchWithMediaReferences } from "../../media/attachmentGuard";
+import { makeFunctionReference } from "convex/server";
 import { RequestReadLedger } from "../../helpers/requestReadLedger";
-const modules = { "./convex/_generated/api.js": () => import("../../_generated/api.js"), "./convex/_generated/server.js": () => import("../../_generated/server.js"), "./convex/membership/policyReads.ts": () => import("../../membership/policyReads") };
+const modules = { "./convex/canonicalDocuments.ts": () => import("../../canonicalDocuments"), "./convex/_generated/api.js": () => import("../../_generated/api.js"), "./convex/_generated/server.js": () => import("../../_generated/server.js"), "./convex/membership/policyReads.ts": () => import("../../membership/policyReads") };
 const scope = { websiteKey: "site", instanceKey: "stage" };
 async function fixture() {
   const t = convexTest({ schema, modules });
@@ -16,7 +17,7 @@ async function fixture() {
     const tag = await ctx.db.insert("terms", { name: "Design", slug: "design", taxonomy: "post_tag", count: 0, isDefault: false, createdAt: 1, updatedAt: 1 });
     const posts = [];
     for (let i = 0; i < 7; i++) {
-      const post = await ctx.db.insert("posts", { type: "post", title: `Story ${i}`, slug: `story-${i}`, publishedAt: i < 4 ? 100 : 200 + i, visibility: "public", status: "publish", authorId: user, commentStatus: "closed", content: "Private source body", excerpt: "Public excerpt", createdAt: 1, updatedAt: 1 });
+      const post = await ctx.db.insert("posts", { type: "post", title: `Story ${i}`, slug: `story-${i}`, publishedAt: i < 4 ? 100 : 200 + i, visibility: "public", status: "publish", authorId: user, commentStatus: "closed", ...canonicalPostBody("Private source body"), excerpt: "Public excerpt", createdAt: 1, updatedAt: 1 });
       await insertTermRelationship(ctx, { postId: post, termId: category });
       if (i % 2 === 0) await insertTermRelationship(ctx, { postId: post, termId: tag });
       posts.push(post);
@@ -89,8 +90,16 @@ test("unprepared taxonomy indexes refuse partial results and current private/dra
   const read = () => t.run(ctx => readPostGrid(ctx, { query: { category: ids.category }, limit: 20 }, scope, "document"));
   await expect(read()).rejects.toThrow("still being prepared");
   await t.run(ctx => refreshTermDiscovery(ctx, legacy));
-  await t.run(ctx => patchWithMediaReferences(ctx, "posts", ids.posts[6], { visibility: "private" }));
-  await t.run(ctx => patchWithMediaReferences(ctx, "posts", ids.posts[5], { status: "draft" }));
+  await t.run(async ctx => {
+    const roleId = await ctx.db.insert("roles", {name:"Editor",slug:"editor",description:"Fixture",level:80,type:"internal",status:"active",isDefault:false,isProtected:false,capabilities:["post.update","post.publish"],pageAccess:[],createdAt:1,updatedAt:1});
+    await ctx.db.patch(ids.user,{roleId});
+    await ctx.db.insert("convexpress_siteIdentity",{identityKey:"site-identity",websiteKey:"site",instanceKey:"stage",environmentKind:"staging",deploymentOrigin:"https://fixture.convex.cloud",managementOrigin:"https://fixture.convex.site",siteOrigin:"https://fixture.example.invalid",siteContractVersion:"1",schemaVersion:"1",engineVersion:"1",managementCapabilities:[],initializedAt:1,updatedAt:1});
+    await ctx.db.insert("settings",{section:"appearance.template",values:{active:"core",overrides:{},variants:{},settings:{}},legacyAppearanceMigration:{version:2,migratedAt:1},updatedAt:1,updatedBy:ids.user});
+  });
+  const editor=t.withIdentity({subject:ids.user,tokenIdentifier:`https://convexpress-admin.local|${ids.user}`});
+  const publish=makeFunctionReference<"mutation">("canonicalDocuments:setPublication");
+  await editor.mutation(publish,{postId:ids.posts[6],expectedRevision:1,status:"private"});
+  await editor.mutation(publish,{postId:ids.posts[5],expectedRevision:1,status:"draft"});
   // Even an external write that bypasses source maintenance cannot expose private content.
   await t.run(ctx => ctx.db.patch("posts", ids.posts[4], { visibility: "private" }));
   const result = await read();

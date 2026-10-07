@@ -155,7 +155,7 @@ export const resolvePostSeoInternal = internalQuery({
       title: post.title,
       slug: post.slug,
       type: postType,
-      content: post.content,
+      content: undefined,
       excerpt: post.excerpt,
       featuredImageUrl,
       publishedAt: post.publishedAt,

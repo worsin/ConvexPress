@@ -1,3 +1,4 @@
+import { canonicalPostBody } from "../../__tests__/canonicalPostFixture";
 import { test, expect } from "bun:test";
 import { convexTest } from "convex-test";
 import { makeFunctionReference } from "convex/server";
@@ -17,7 +18,7 @@ async function fixture() {
   await ctx.db.insert("convexpress_siteIdentity",{identityKey:"site-identity",websiteKey:"locale",instanceKey:"locale-stage",environmentKind:"staging",deploymentOrigin:"https://locale.convex.cloud",managementOrigin:"https://locale.convex.site",siteOrigin:"https://locale.example.invalid",siteContractVersion:"1",schemaVersion:"1",engineVersion:"1",managementCapabilities:[],initializedAt:1,updatedAt:1});
   const documents=[];
   for(const slug of ["home-en","home-es","home-ar","story-en","story-es","story-ar","untranslated"])
-   documents.push(await ctx.db.insert("posts",{type:"page",title:slug,slug,path:`/${slug}`,content:"PRIVATE BODY MUST NEVER LEAVE SOURCE",status:"publish",visibility:"public",authorId:user,publishedAt:1,commentStatus:"closed",createdAt:1,updatedAt:1}));
+   documents.push(await ctx.db.insert("posts",{type:"page",title:slug,slug,path:`/${slug}`,...canonicalPostBody("PRIVATE BODY MUST NEVER LEAVE SOURCE"),status:"publish",visibility:"public",authorId:user,publishedAt:1,commentStatus:"closed",createdAt:1,updatedAt:1}));
   return {user,denied,role,plugins,documents};
  });
  const client=t.withIdentity({subject:ids.user,tokenIdentifier:`https://convexpress-admin.local|${ids.user}`});

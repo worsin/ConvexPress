@@ -321,7 +321,7 @@ export const getQuickDrafts = query({
       title: draft.title || "(no title)",
       excerpt: (draft.excerpt || (draft.blocksVersion === 2
         ? canonicalDraftExcerpt(draft.blocks)
-        : draft.content) || "").substring(0, 100),
+        : "") || "").substring(0, 100),
       createdAt: draft.createdAt,
     }));
   },

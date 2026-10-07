@@ -22,7 +22,7 @@ async function fixture() {
     await ctx.db.insert("convexpress_siteIdentity", { ...scope, identityKey: "site-identity", environmentKind: "staging", deploymentOrigin: "https://search.convex.cloud", managementOrigin: "https://controller.convex.cloud", siteOrigin: "https://search.convex.site", siteContractVersion: "1", schemaVersion: "1", engineVersion: "1", managementCapabilities: [], initializedAt: 1, updatedAt: 1 });
     const plugins = await ctx.db.insert("settings", { section: "plugins", values: { membershipEnabled: false }, updatedAt: 1, updatedBy: user });
     await ctx.db.insert("settings", { section: "appearance.template", values: { active: "core", overrides: {}, variants: {}, settings: {} }, legacyAppearanceMigration: { version: 2, migratedAt: 1 }, updatedAt: 1, updatedBy: user });
-    const post = await ctx.db.insert("posts", { type: "page", title: "A garden", slug: "garden", path: "/garden", status: "publish", visibility: "public", authorId: user, commentStatus: "closed", content: "Hiddenlegacyneedle", blocksVersion: 2, blocks: [paragraph("intro", "Sunflowerneedle garden")], createdAt: 1, updatedAt: 1 });
+    const post = await ctx.db.insert("posts", { type: "page", title: "A garden", slug: "garden", path: "/garden", status: "publish", visibility: "public", authorId: user, commentStatus: "closed", autosaveContent: "Hiddenlegacyneedle", blocksVersion: 2, blocks: [paragraph("intro", "Sunflowerneedle garden")], createdAt: 1, updatedAt: 1 });
     return { user, plugins, post };
   });
   await t.mutation(upsert, { contentType: "page", contentId: ids.post, action: "upsert" });

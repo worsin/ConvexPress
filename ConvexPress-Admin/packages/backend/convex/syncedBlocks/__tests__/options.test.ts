@@ -20,7 +20,7 @@ async function setup() {
   const postId = await f.t.run(async ctx => {
     await ctx.db.patch("roles", f.ids.role, { capabilities: ["post.create", "post.read", "post.update", "post.publish", "post.unpublish", "page.update"] });
     await ctx.db.insert("settings", { section: "plugins", values: Object.fromEntries(Object.values(PLUGIN_SETTINGS_KEY).map(key => [key, true])), updatedBy: f.ids.user, updatedAt: 1 });
-    const fields = { type: "page" as const, title: "Editor", slug: "editor", path: "/editor", content: "", status: "draft" as const, visibility: "public" as const, authorId: f.ids.user, commentStatus: "closed" as const, createdAt: 1, updatedAt: 1 };
+    const fields = { type: "page" as const, title: "Editor", slug: "editor", path: "/editor",  status: "draft" as const, visibility: "public" as const, authorId: f.ids.user, commentStatus: "closed" as const, createdAt: 1, updatedAt: 1 };
     await ctx.db.insert("settings", { section: "appearance.template", values: { active: "core", overrides: {}, variants: {}, settings: {} }, legacyAppearanceMigration: { version: 2, migratedAt: 1 }, updatedBy: f.ids.user, updatedAt: 1 });
     const post = await ctx.db.insert("posts", fields);
     await ctx.db.insert("posts", { ...fields, title: "Public page", slug: "public", path: "/public", status: "publish" });

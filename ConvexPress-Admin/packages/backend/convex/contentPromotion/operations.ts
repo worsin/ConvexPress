@@ -571,7 +571,7 @@ export const apply: RegisteredMutation<
         // Pre-RSVP manifests cannot express an instruction to disable existing registrations.
         if(data.rsvp===undefined)delete fields.rsvp;
       }
-			const targetId = data.blocksVersion===2 && (record.kind==="page" || record.kind==="post")
+			const targetId = (record.kind==="page" || record.kind==="post")
         ? await writePromotedCanonicalDocument(ctx,reserved.get(record.key) ?? (planned.targetId ? ctx.db.normalizeId("posts",planned.targetId) : null),fields,false,reserved.has(record.key)?{receiptId:receipt._id,key:record.key}:undefined)
         : await write(ctx, record.kind, planned.targetId, fields);
 			ids.set(record.key, targetId);

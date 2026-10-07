@@ -76,7 +76,7 @@ async function fixture() {
 			title: "Disposable draft",
 			slug: "draft",
 			path: "/draft",
-			content: "",
+
 			status: "draft",
 			visibility: "public",
 			authorId: user,

@@ -25,7 +25,7 @@ async function fixture() {
     const data = { authSource: "local" as const, emailVerified: true, status: "active" as const, roleId: role, createdAt: 1, updatedAt: 1 };
     const author = await ctx.db.insert("users", { ...data, email: "definition@example.invalid" });
     const editor = await ctx.db.insert("users", { ...data, email: "editor@example.invalid" });
-    const post = await ctx.db.insert("posts", { type: "page", title: "Picker document", slug: "picker", content: "", status: "draft", visibility: "public", authorId: editor, commentStatus: "closed", blocksVersion: 2, blocksRevision: 7, blocks: [], createdAt: 1, updatedAt: 1 });
+    const post = await ctx.db.insert("posts", { type: "page", title: "Picker document", slug: "picker",  status: "draft", visibility: "public", authorId: editor, commentStatus: "closed", blocksVersion: 2, blocksRevision: 7, blocks: [], createdAt: 1, updatedAt: 1 });
     const site = await ctx.db.insert("convexpress_siteIdentity", { ...scope, identityKey: "site-identity", environmentKind: "staging", managementOrigin: "https://controller.convex.cloud", siteOrigin: "https://picker-test.convex.site", siteContractVersion: "1", schemaVersion: "1", engineVersion: "1", managementCapabilities: [], initializedAt: 1, updatedAt: 1 });
     return { author, editor, role, post, site };
   });

@@ -14,7 +14,7 @@ async function fixture() {
   const ids = await t.run(async ctx => {
     const roleId = await ctx.db.insert("roles", { name: "Editor", slug: "editor", description: "Fixture", level: 80, type: "internal", status: "active", isDefault: false, isProtected: false, capabilities: ["post.update"], pageAccess: [], createdAt: 1, updatedAt: 1 });
     const userId = await ctx.db.insert("users", { email: "list@example.test", emailVerified: true, status: "active", authSource: "local", roleId, createdAt: 1, updatedAt: 1 });
-    const shared = { type: "post" as const, title: "Acceptance entry", content: "", authorId: userId, visibility: "private" as const, commentStatus: "closed" as const, createdAt: 1, updatedAt: 1 };
+    const shared = { type: "post" as const, title: "Acceptance entry",  authorId: userId, visibility: "private" as const, commentStatus: "closed" as const, createdAt: 1, updatedAt: 1 };
     const draftId = await ctx.db.insert("posts", { ...shared, slug: "draft", status: "draft" });
     const trashId = await ctx.db.insert("posts", { ...shared, slug: "trash", status: "trash", previousStatus: "draft", trashedAt: 2 });
     return { userId, draftId, trashId };

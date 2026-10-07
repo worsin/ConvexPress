@@ -1,3 +1,4 @@
+import { canonicalPostBody } from "../../__tests__/canonicalPostFixture";
 import { expect, test } from "bun:test";
 import { convexTest } from "convex-test";
 import schema from "../../schema";
@@ -65,7 +66,7 @@ test("bounded repair ignores duplicate pages and restarts after concurrent reass
     const a = await ctx.db.insert("users", { ...account("legacy"), postCount: 999 });
     const b = await insertWithMediaReferences(ctx, "users", account("other"));
     const posts = [];
-    for (let i = 0; i < 70; i++) posts.push(await ctx.db.insert("posts", { ...article(a, `post-${i}`), content: "x".repeat(30_000) }));
+    for (let i = 0; i < 70; i++) posts.push(await ctx.db.insert("posts", { ...article(a, `post-${i}`), ...canonicalPostBody("x".repeat(30_000)) }));
     await ctx.db.insert("posts", { ...article(a, "page"), type: "page" });
     await ctx.db.insert("posts", { ...article(a, "draft"), status: "draft" });
     return { a, b, posts };

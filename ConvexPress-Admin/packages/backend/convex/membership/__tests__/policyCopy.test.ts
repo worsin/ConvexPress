@@ -1,3 +1,4 @@
+import { canonicalPostBody } from "../../__tests__/canonicalPostFixture";
 import { expect, test } from "bun:test";
 import { convexTest } from "convex-test";
 import { api } from "../../_generated/api";
@@ -5,6 +6,7 @@ import schema from "../../schema";
 import { prepareContentRestrictionCopy } from "../policyCopy";
 
 const modules = {
+  "./convex/canonicalDocuments.ts": () => import("../../canonicalDocuments"),
   "./convex/_generated/server.js": () => import("../../_generated/server.js"),
   "./convex/posts/mutations.ts": () => import("../../posts/mutations"),
   "./convex/pages/queries.ts": () => import("../../pages/queries"),
@@ -50,12 +52,14 @@ async function fixture(home = false) {
       updatedAt: 1,
       updatedBy: editorId,
     });
+    await ctx.db.insert("convexpress_siteIdentity", { identityKey:"site-identity",websiteKey:"fixture",instanceKey:"fixture-stage",environmentKind:"staging",deploymentOrigin:"https://fixture.convex.cloud",managementOrigin:"https://fixture.convex.site",siteOrigin:"https://fixture.example.invalid",siteContractVersion:"1",schemaVersion:"1",engineVersion:"1",managementCapabilities:[],initializedAt:1,updatedAt:1 });
+    await ctx.db.insert("settings", {section:"appearance.template",values:{active:"core",overrides:{},variants:{},settings:{}},legacyAppearanceMigration:{version:2,migratedAt:1},updatedAt:1,updatedBy:editorId});
     const postId = await ctx.db.insert("posts", {
       type: "page",
       title: "Private lesson",
       slug: "lesson",
       path: "/premium/lesson",
-      content: "Protected authored body",
+      ...canonicalPostBody("Protected authored body"),
       status: "publish",
       visibility: "public",
       authorId: editorId,
@@ -126,45 +130,45 @@ async function fixture(home = false) {
   return { t, editor, reader, grant, ...ids };
 }
 
+async function visibleBody(client: ReturnType<typeof convexTest>, postId: any) {
+  const result = await client.query(api.canonicalDocuments.getForRender, {postId});
+  if (result?.state !== "ready") return undefined;
+  const body = result.document.blocks[0]?.attrs.body as {content?: Array<{content?: Array<{text?:string}>}>} | undefined;
+  return body?.content?.[0]?.content?.[0]?.text;
+}
+
 test("real duplicate and public reads preserve direct AND (exact OR wildcard) route plans", async () => {
   const f = await fixture();
   const copyId = await f.editor.mutation(api.posts.mutations.duplicate, {
-    postId: f.postId,
+    postId: f.postId, expectedRevision: 1,
   });
   const copy = await f.t.run(async (ctx) => {
     await ctx.db.patch(copyId, { status: "publish" });
     return (await ctx.db.get(copyId))!;
   });
   expect(
-    (await f.t.query(api.pages.queries.getByPath, { path: copy.path! }))
-      ?.content,
+    await visibleBody(f.t, copyId),
   ).toBeUndefined();
   await f.grant(0);
   expect(
-    (await f.reader.query(api.pages.queries.getByPath, { path: copy.path! }))
-      ?.content,
+    await visibleBody(f.reader, copyId),
   ).toBeUndefined();
   await f.grant(2);
   expect(
-    (await f.reader.query(api.pages.queries.getByPath, { path: copy.path! }))
-      ?.content,
+    await visibleBody(f.reader, copyId),
   ).toBe("Protected authored body");
   expect(
-    (
-      await f.reader.query(api.pages.queries.getByPath, {
-        path: "/premium/lesson",
-      })
-    )?.content,
+    await visibleBody(f.reader, f.postId),
   ).toBe("Protected authored body");
 });
 
 test("homepage alias adds an independent group and repeated duplication keeps all source groups", async () => {
   const f = await fixture(true);
   const first = await f.editor.mutation(api.posts.mutations.duplicate, {
-    postId: f.postId,
+    postId: f.postId, expectedRevision: 1,
   });
   const second = await f.editor.mutation(api.posts.mutations.duplicate, {
-    postId: first,
+    postId: first, expectedRevision: 1,
   });
   const copy = await f.t.run(async (ctx) => {
     await ctx.db.patch(second, { status: "publish" });
@@ -173,13 +177,11 @@ test("homepage alias adds an independent group and repeated duplication keeps al
   await f.grant(0);
   await f.grant(1);
   expect(
-    (await f.reader.query(api.pages.queries.getByPath, { path: copy.path! }))
-      ?.content,
+    await visibleBody(f.reader, second),
   ).toBeUndefined();
   await f.grant(3);
   expect(
-    (await f.reader.query(api.pages.queries.getByPath, { path: copy.path! }))
-      ?.content,
+    await visibleBody(f.reader, second),
   ).toBe("Protected authored body");
   const rows = await f.t.run((ctx) =>
     ctx.db
@@ -229,7 +231,7 @@ test("incomplete source route policy pages refuse duplication without a partial 
       });
   });
   await expect(
-    f.editor.mutation(api.posts.mutations.duplicate, { postId: f.postId }),
+    f.editor.mutation(api.posts.mutations.duplicate, { postId: f.postId, expectedRevision: 1 }),
   ).rejects.toMatchObject({ data: { code: "MEMBERSHIP_POLICY_BUDGET" } });
   expect(await f.t.run((ctx) => ctx.db.query("posts").collect())).toHaveLength(
     1,

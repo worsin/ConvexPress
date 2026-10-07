@@ -25,7 +25,7 @@ test("schema roundtrip retains exact revision definitions after the current page
   const ids = await t.run(async ctx => {
     const user = await ctx.db.insert("users", { email: "snapshot@example.invalid", emailVerified: true, status: "active", createdAt: 1, updatedAt: 1 });
     const post = await ctx.db.insert("posts", { type: "page", title: one.title, slug: "snapshot", status: "draft", visibility: "public",
-      authorId: user, commentStatus: "closed", contentMode: "blocks", blocksVersion: 2, blocksRevision: 1,
+      authorId: user, commentStatus: "closed",  blocksVersion: 2, blocksRevision: 1,
       blocks: one.blocks, composedDefinitions: one.composedDefinitions, createdAt: 1, updatedAt: 1 });
     const row = (await ctx.db.get("posts", post))!;
     const revision = await ctx.db.insert("revisions", { ...authoringSnapshot(row), content: row.content ?? "", parentId: post,

@@ -1,3 +1,6 @@
+import { exportCanonicalPromotionTree } from "../../canonicalDocuments/foundation/promotionTree";
+import { canonicalPostBody } from "../../__tests__/canonicalPostFixture";
+const defaultPortableBody = await exportCanonicalPromotionTree(canonicalPostBody("Hello target").blocks, async () => { throw new Error("Unexpected reference"); });
 import { beginCategoryDeletion } from "../../kb/categoryDeletion";
 import { beginTermCountRepair, advanceTermCountRepair } from "../../helpers/termCounts";
 import {eventIntervalBucket} from "../../canonicalDocuments/foundation/eventIntervalIndex";
@@ -93,21 +96,22 @@ function manifest(): ContentPromotionManifest {
 					status: "publish",
 					visibility: "public",
 					commentStatus: "closed",
-					contentMode: "blocks",
-					blocks: [
-						{
-							id: "block-one",
-							name: "core/paragraph",
-							version: 1,
-							attrs: { text: "Hello target" },
-						},
-					],
+					blocksVersion: 2,
+					canonical: structuredClone(defaultPortableBody),
 				},
 			},
 		],
 		dependencies: [],
 		issues: [],
 	};
+}
+function legacyManifest(): ContentPromotionManifest {
+ const m=manifest();delete m.records[0].data.blocksVersion;delete m.records[0].data.canonical;
+ Object.assign(m.records[0].data,{contentMode:"blocks",blocks:[{id:"block-one",name:"core/paragraph",version:1,attrs:{text:"Hello target"}}]});
+ return m;
+}
+async function allowRevisionRestore(f: Awaited<ReturnType<typeof fixture>>) {
+ await f.t.run(async ctx => {const user=await ctx.db.get(f.userId);const role=await ctx.db.get(user!.roleId!);await ctx.db.patch(role!._id,{capabilities:[...role!.capabilities,"revision.restore"]});});
 }
 async function fixture() {
 	const t = convexTest({ schema, modules });
@@ -211,7 +215,7 @@ async function reusableExportFixture(){
    for(let i=0;i<bodies.length;i++)await ctx.db.insert('syncedBlockRevisions',{syncedBlockId:id,revision:i+1,title,blocks:bodies[i],digest:syncedContentDigest(title,bodies[i]),createdBy:source.userId,createdAt:1,publishedAt:1});
    return id;
   };
-  const page=async(slug:string,blocks:any[])=>ctx.db.insert('posts',{type:'page',title:slug,slug,path:'/'+slug,status:'publish',visibility:'public',content:'',contentMode:'blocks',blocksVersion:2,blocksRevision:1,blocks,authorId:source.userId,commentStatus:'closed',createdAt:1,updatedAt:1});
+  const page=async(slug:string,blocks:any[])=>ctx.db.insert('posts',{type:'page',title:slug,slug,path:'/'+slug,status:'publish',visibility:'public',blocksVersion:2,blocksRevision:1,blocks,authorId:source.userId,commentStatus:'closed',createdAt:1,updatedAt:1});
   const third=await makeSource('Third source',[[{id:'text',name:'core/paragraph',version:2,attrs:{}}]]);
   const featured=await page('featured-reusable',[shared('third',third,'latest')]);
   const inner=await makeSource('Inner source',[[{id:'featured',name:'core/featured-page',version:1,attrs:{page:featured}}],[{id:'text',name:'core/paragraph',version:2,attrs:{}}]]);
@@ -494,18 +498,7 @@ test("media bytes, block attrs, homepage and menu links map only to target IDs",
 	const storage = await t.run((ctx) => ctx.db.system.get(storageId));
 	const m = manifest();
 	m.records[0].data.featuredImageId = "@promotion:media:source-image";
-	m.records[0].data.blocks = [
-		{
-			id: "picture",
-			name: "core/image",
-			version: 1,
-			attrs: {
-				mediaId: "@promotion:media:source-image",
-				href: "@promotion-url:media:source-image",
-				alt: "Retreat",
-			},
-		},
-	];
+	m.records[0].data.canonical = await exportCanonicalPromotionTree([{id:"picture",name:"core/image",version:2,attrs:{mediaId:"source-image",alt:"Retreat"}}], async () => "@promotion:media:source-image");
 	m.records.push(
 		{
 			key: "media:source-image",
@@ -578,7 +571,8 @@ test("media bytes, block attrs, homepage and menu links map only to target IDs",
 	expect(state.page.featuredImageId).toBe(state.media!._id);
 	expect(state.item!.objectId).toBe(pageId);
 	expect(state.reading!.values.homepageId).toBe(pageId);
-	expect(state.page.blocks[0].attrs.href).toBe(state.media!.url);
+	expect(state.page.blocks[0].attrs.mediaId).toBe(state.media!._id);
+ expect(state.page.blocks[0].attrs.alt).toBe("Retreat");
 	expect(state.media!.storageId).toBe(storageId);
 });
 test("unverified media and duplicate target dependency bindings never become ready", async () => {
@@ -696,7 +690,7 @@ test("source export discovers page/media/event dependencies without users or tar
 			commentStatus: "closed",
 			authorId: userId,
 			featuredImageId: mediaId,
-			contentMode: "blocks",
+			blocksVersion: 2, blocksRevision: 1,
 			blocks: [
 				{ id: "source-events", name: "events/upcoming", version: 1, attrs: {} },
 			],
@@ -730,7 +724,7 @@ test("source export discovers page/media/event dependencies without users or tar
 				postIds: [],
 				menuIds: [],
 				mediaIds: [],
-				eventIds: [],
+				eventIds: [selected.eventId],
 				includePresentation: false,
 			},
 		},
@@ -748,7 +742,8 @@ test("source export discovers page/media/event dependencies without users or tar
 	expect(page.data.featuredImageId).toBe(
 		`@promotion:media:${selected.mediaId}`,
 	);
-	expect(page.data.blocks[0].id).not.toBe("source-events");
+	expect(page.data.blocks).toBeUndefined();
+ expect(page.data.canonical.blocks[0].id).toBe("source-events");
 	expect(exported.downloadUrls[0].url).toContain("/api/storage/");
 	expect(JSON.stringify(exported.manifest.records)).not.toContain(
 		"/api/storage/",
@@ -758,13 +753,13 @@ test("source export discovers page/media/event dependencies without users or tar
 	).toBe("source-events");
 });
 test("promotion and rollback update the author's published-post total with the source transaction", async () => {
-  const { t, authed, userId } = await fixture();
+  const f = await fixture(); await allowRevisionRestore(f); const {t,authed,userId}=f;
   await t.run(async ctx => {
+    const postId = await ctx.db.insert("posts", { ...canonicalPostBody("Original published body"), type: "post", title: "Live post", slug: "welcome", status: "publish",
+      visibility: "public", commentStatus: "closed", authorId: userId, publishedAt: 100, createdAt: 1, updatedAt: 1 });
     const initial = await beginAuthorPostCountRepair(ctx, userId);
     const complete = await advanceAuthorPostCountRepair(ctx, initial.next!);
     await patchWithMediaReferences(ctx, "users", userId, { postCount: complete.update!.count, postCountReady: true });
-    const postId = await insertWithMediaReferences(ctx, "posts", { type: "post", title: "Live post", slug: "welcome", status: "publish",
-      visibility: "public", commentStatus: "closed", authorId: userId, publishedAt: 100, createdAt: 1, updatedAt: 1 });
     const termId = await ctx.db.insert("terms", { name: "Field", slug: "field", taxonomy: "category", count: 1, isDefault: false, createdAt: 1, updatedAt: 1 });
     await insertTermRelationship(ctx, { postId, termId });
   });
@@ -778,7 +773,7 @@ test("promotion and rollback update the author's published-post total with the s
   const draft = manifest();
   draft.selection.pageIds = []; draft.selection.postIds = ["source-post"];
   draft.records = [{ key: "post:source-post", kind: "post", sourceRevision: "source-revision",
-    data: { title: "Updated post", slug: "welcome", status: "draft", visibility: "public", commentStatus: "closed" } }];
+    data: { blocksVersion:2,canonical:structuredClone(defaultPortableBody),title: "Updated post", slug: "welcome", status: "draft", visibility: "public", commentStatus: "closed" } }];
   draft.records.push(
     { key: "term:field", kind: "term", sourceRevision: "1", data: { name: "Field", slug: "field", taxonomy: "category" } },
     { key: "termRelationship:field", kind: "termRelationship", sourceRevision: "1", data: { postId: "@promotion:post:source-post", termId: "@promotion:term:field" } },
@@ -803,11 +798,11 @@ test("promotion and rollback update the author's published-post total with the s
   expect(await discovery()).toBe(true);
 });
 
-test("update-only rollback restores the exact backed-up target and refuses later edits", async () => {
-	const { t, authed, userId } = await fixture();
+test("update-only rollback restores the backed-up authoring with a fresh canonical revision and refuses later edits", async () => {
+	const f = await fixture(); await allowRevisionRestore(f); const {t,authed,userId}=f;
 	const id = await t.run((ctx) =>
 		ctx.db.insert("posts", {
-			type: "page",
+			...canonicalPostBody("Original live body"),type: "page",
 			title: "Original live",
 			slug: "welcome",
 			path: "/welcome",
@@ -831,7 +826,9 @@ test("update-only rollback restores the exact backed-up target and refuses later
 	};
 	await authed.mutation(fn("apply"), args);
 	await authed.mutation(fn("rollback"), args);
-	expect(await t.run((ctx) => ctx.db.get(id))).toEqual(before);
+	const restored = await t.run(ctx => ctx.db.get(id));
+ expect(restored!.blocksRevision).toBe(before!.blocksRevision! + 2);
+ expect({...restored,blocksRevision:before!.blocksRevision,updatedAt:before!.updatedAt}).toEqual(before);
 	expect(await authed.mutation(fn("rollback"), args)).toEqual({
 		receiptId: review.receiptId,
 		status: "rolled-back",
@@ -954,7 +951,7 @@ test("canonical activation preserves schema-version and future block-contract re
   const mixed = manifest();
   mixed.source.schemaVersion = "future-content-model";
   await expect(authed.mutation(fn("dryRun"), { manifest: mixed, ...bindings })).rejects.toThrow("Source and target schema versions differ");
-  const future = manifest();
+  const future = legacyManifest();
   future.records[0].data.blocks = [{ id: "future", name: "core/paragraph", version: 1, attrs: { text: "Future" }, children: [] }];
   await expect(authed.mutation(fn("dryRun"), { manifest: future, ...bindings })).rejects.toThrow("unified children tree");
   expect(await t.run((ctx) => ctx.db.query("contentPromotion_receipts").collect())).toHaveLength(0);
@@ -1087,7 +1084,7 @@ test("product-showcase source export discovers physical catalog and target-only 
     const product=(await ctx.db.query("commerce_products").unique())!;const variant=(await ctx.db.query("commerce_product_variants").unique())!;
     await ctx.db.patch(product._id,{stockQuantity:47,featuredMediaId:mediaId,galleryMediaIds:[mediaId],rawSourceMeta:"source provider-only metadata"});
     await ctx.db.patch(variant._id,{stockQuantity:36,featuredMediaId:mediaId,globalUniqueId:"source-global-id"});
-    const pageId=await ctx.db.insert("posts",{type:"page",title:"Aster House",slug:"aster-house",status:"publish",visibility:"public",commentStatus:"closed",authorId:source.userId,contentMode:"blocks",blocks:[{id:"showcase",name:"commerce/product-showcase",version:1,attrs:{source:"newest",count:4}}],createdAt:1,updatedAt:1});
+    const pageId=await ctx.db.insert("posts",{type:"page",title:"Aster House",slug:"aster-house",status:"publish",visibility:"public",commentStatus:"closed",authorId:source.userId,blocksVersion:2,blocksRevision:1,blocks:[{id:"showcase",name:"commerce/product-showcase",version:2,attrs:{source:"slugs",productSlugs:[product.slug],count:4}}],createdAt:1,updatedAt:1});
     return {pageId,productId:product._id,variantId:variant._id};
   });
   const before=await source.t.run(async ctx=>({product:await ctx.db.get(selected.productId),variant:await ctx.db.get(selected.variantId)}));
@@ -1103,7 +1100,7 @@ test("product-showcase source export discovers physical catalog and target-only 
   await live.authed.mutation(fn("apply"),{receiptId:review.receiptId,expectedDigest:review.digest,confirmLive:true});
   const result=await live.t.run(async ctx=>({product:(await ctx.db.query("commerce_products").unique())!,variant:(await ctx.db.query("commerce_product_variants").unique())!,media:(await ctx.db.query("media").unique())!,scheduled:await ctx.db.system.query("_scheduled_functions").collect()}));
   expect(result.product.featuredMediaId).toBe(result.media._id);expect(result.product.galleryMediaIds).toEqual([result.media._id]);expect(result.variant.featuredMediaId).toBe(result.media._id);expect(result.variant.productId).toBe(result.product._id);
-  expect(result.media.storageId).toBe(storageId);expect(result.product.stockQuantity).toBe(0);expect(result.variant.stockQuantity).toBe(0);expect(result.variant.globalUniqueId).toBeUndefined();expect(result.scheduled).toHaveLength(0);
+  expect(result.media.storageId).toBe(storageId);expect(result.product.stockQuantity).toBe(0);expect(result.variant.stockQuantity).toBe(0);expect(result.variant.globalUniqueId).toBeUndefined();expect(result.scheduled).toHaveLength(1);expect(result.scheduled[0].name).toBe("posts/internals:updatePostCount");
 });
 
 test("catalog validation blocks duplicate selections/defaults, mismatched currency and wrong reference kinds",async()=>{
@@ -1366,7 +1363,7 @@ test("grouped membership policies survive export, apply, update, retry and rollb
 
 test("legacy promotion cannot erase the canonical source discriminator or plan over a canonical target",async()=>{
  const {t,authed,userId}=await fixture();
- const id=await t.run(ctx=>ctx.db.insert("posts",{type:"page",title:"Canonical draft",slug:"welcome",path:"/welcome",content:"",blocksVersion:2,blocksRevision:1,blocks:[],status:"draft",visibility:"public",authorId:userId,commentStatus:"closed",createdAt:1,updatedAt:1}));
+ const id=await t.run(ctx=>ctx.db.insert("posts",{type:"page",title:"Canonical draft",slug:"welcome",path:"/welcome",blocksVersion:2,blocksRevision:1,blocks:[],status:"draft",visibility:"public",authorId:userId,commentStatus:"closed",createdAt:1,updatedAt:1}));
  const original=await t.run(ctx=>ctx.db.get("posts",id));
  await t.run(async ctx=>{const identity=(await ctx.db.query("convexpress_siteIdentity").unique())!;await ctx.db.patch("convexpress_siteIdentity",identity._id,manifest().source);});
  const exported=await authed.query(makeFunctionReference<"query">("contentPromotion/operations:exportManifest"),{target,selection:{pageIds:[id],postIds:[],mediaIds:[],menuIds:[],eventIds:[],includePresentation:false}});
@@ -1379,7 +1376,7 @@ test("legacy promotion cannot erase the canonical source discriminator or plan o
  await destination.authed.mutation(fn("apply"),{receiptId:review.receiptId,expectedDigest:review.digest,confirmLive:true});
  expect(await destination.t.run(ctx=>ctx.db.query("posts").unique())).toMatchObject({blocksVersion:2,blocksRevision:1,title:"Canonical draft",blocks:[]});
  await t.run(async ctx=>{const identity=(await ctx.db.query("convexpress_siteIdentity").unique())!;await ctx.db.patch("convexpress_siteIdentity",identity._id,target);});
- await expect(authed.mutation(fn("dryRun"),{manifest:manifest(),...bindings})).rejects.toThrow("canonical");
+ await expect(authed.mutation(fn("dryRun"),{manifest:legacyManifest(),...bindings})).rejects.toThrow("canonical");
  expect(await t.run(ctx=>ctx.db.get("posts",id))).toEqual(original);
  expect(await t.run(ctx=>ctx.db.query("contentPromotion_receipts").collect())).toHaveLength(0);
 });
@@ -1633,7 +1630,7 @@ test("registered canonical export follows nested metadata references without rew
  const source=await fixture();
  const {parentId,childId}=await source.t.run(async ctx=>{
   const identity=(await ctx.db.query("convexpress_siteIdentity").unique())!;await ctx.db.patch(identity._id,manifest().source);
-  const common={type:"page" as const,content:"",contentMode:"blocks" as const,status:"draft" as const,visibility:"public" as const,authorId:source.userId,commentStatus:"closed" as const,createdAt:1,updatedAt:1};
+  const common={type:"page" as const,blocksVersion:2 as const,blocksRevision:1,status:"draft" as const,visibility:"public" as const,authorId:source.userId,commentStatus:"closed" as const,createdAt:1,updatedAt:1};
   const childId=await ctx.db.insert("posts",{...common,title:"Referenced page",slug:"referenced",path:"/referenced",blocks:[]});
   const parentId=await ctx.db.insert("posts",{...common,title:"Canonical parent",slug:"canonical-parent",path:"/canonical-parent",blocksVersion:2,blocksRevision:9,blocks:[{id:"group",name:"core/group",version:1,attrs:{},children:[{id:"image",name:"core/image",version:2,attrs:{mediaId:"",alt:"@promotion:page:literal-not-a-reference"}},{id:"featured",name:"core/featured-page",version:1,attrs:{page:childId,ctaLabel:"Keep this label"}}]}]});
   return {parentId,childId};
@@ -1667,7 +1664,7 @@ test("canonical export includes one product record for its ID and slug reference
  const {pageId,productId}=await source.t.run(async ctx=>{
   const identity=(await ctx.db.query("convexpress_siteIdentity").unique())!;await ctx.db.patch(identity._id,manifest().source);
   const productId=await ctx.db.insert("commerce_products",{title:"Notebook",slug:"notebook",authorId:source.userId,productType:"simple",status:"publish",galleryMediaIds:[],categoryIds:[],basePrice:{amount:2400,currencyCode:"USD"},trackInventory:true,stockQuantity:12,allowBackorders:false,isVirtual:false,isDownloadable:false,createdAt:1,updatedAt:1});
-  const pageId=await ctx.db.insert("posts",{type:"page",title:"Our objects",slug:"objects",path:"/objects",status:"draft",visibility:"public",content:"",contentMode:"blocks",blocksVersion:2,blocksRevision:1,blocks:[{id:"hero",name:"commerce/product-hero",version:1,attrs:{product:productId}},{id:"list",name:"commerce/product-showcase",version:2,attrs:{source:"slugs",productSlugs:["notebook"]}}],authorId:source.userId,commentStatus:"closed",createdAt:1,updatedAt:1});
+  const pageId=await ctx.db.insert("posts",{type:"page",title:"Our objects",slug:"objects",path:"/objects",status:"draft",visibility:"public",blocksVersion:2,blocksRevision:1,blocks:[{id:"hero",name:"commerce/product-hero",version:1,attrs:{product:productId}},{id:"list",name:"commerce/product-showcase",version:2,attrs:{source:"slugs",productSlugs:["notebook"]}}],authorId:source.userId,commentStatus:"closed",createdAt:1,updatedAt:1});
   return {pageId,productId};
  });
  const exported=await source.authed.query(makeFunctionReference<"query">("contentPromotion/operations:exportManifest"),{target,selection:{...manifest().selection,pageIds:[pageId]}});
@@ -1762,7 +1759,7 @@ test("site route policies remap membership plans without transferring customer g
 async function existingCanonicalTarget(f:Awaited<ReturnType<typeof fixture>>) {
  return f.t.run(async ctx=>{
   const user=await ctx.db.get(f.userId);const role=await ctx.db.get(user!.roleId!);await ctx.db.patch(role!._id,{capabilities:[...role!.capabilities,"revision.restore"]});
-  return ctx.db.insert("posts",{type:"page",title:"Original target",slug:"welcome",path:"/welcome",content:"",contentMode:"blocks",blocksVersion:2,blocksRevision:7,blocks:[],status:"draft",visibility:"public",authorId:f.userId,commentStatus:"closed",createdAt:1,updatedAt:1});
+  return ctx.db.insert("posts",{type:"page",title:"Original target",slug:"welcome",path:"/welcome",blocksVersion:2,blocksRevision:7,blocks:[],status:"draft",visibility:"public",authorId:f.userId,commentStatus:"closed",createdAt:1,updatedAt:1});
  });
 }
 const receiptArgs=(review:{receiptId:string|null;digest:string})=>({receiptId:review.receiptId!,expectedDigest:review.digest,confirmLive:true});
@@ -1866,7 +1863,7 @@ async function canonicalMediaSource() {
   const identity=(await ctx.db.query("convexpress_siteIdentity").unique())!;await ctx.db.patch(identity._id,manifest().source);
   const storageId=await ctx.storage.store(bytes),stored=(await ctx.db.system.get(storageId))!;
   const mediaId=await ctx.db.insert("media",{title:"Source image",fileName:"pixel.png",slug:"promotion-image",mimeType:"image/png",mediaType:"image",fileSize:stored.size,storageId,url:(await ctx.storage.getUrl(storageId))!,width:1,height:1,altText:"Original pixel",status:"active",uploadedBy:source.userId,createdAt:1,updatedAt:1});
-  const pageId=await ctx.db.insert("posts",{type:"page",title:"Media page",slug:"welcome",path:"/welcome",content:"",contentMode:"blocks",blocksVersion:2,blocksRevision:3,blocks:[{id:"group",name:"core/group",version:1,attrs:{},children:[{id:"first",name:"core/image",version:2,attrs:{mediaId,alt:"First image"}},{id:"second",name:"core/media-text",version:2,attrs:{mediaId,heading:"A second occurrence"}}]}],status:"draft",visibility:"public",authorId:source.userId,commentStatus:"closed",createdAt:1,updatedAt:1});
+  const pageId=await ctx.db.insert("posts",{type:"page",title:"Media page",slug:"welcome",path:"/welcome",blocksVersion:2,blocksRevision:3,blocks:[{id:"group",name:"core/group",version:1,attrs:{},children:[{id:"first",name:"core/image",version:2,attrs:{mediaId,alt:"First image"}},{id:"second",name:"core/media-text",version:2,attrs:{mediaId,heading:"A second occurrence"}}]}],status:"draft",visibility:"public",authorId:source.userId,commentStatus:"closed",createdAt:1,updatedAt:1});
   return {pageId,mediaId,storageId};
  });
  const original=await source.t.run(async ctx=>({page:await ctx.db.get(ids.pageId),media:await ctx.db.get(ids.mediaId)}));
@@ -1970,7 +1967,7 @@ test("document-local identity support still rejects duplicates inside a canonica
  const {validateManifest}=await import("../shared");const canonical=await canonicalManifest();
  const tree=canonical.records[0].data.canonical as {blocks:Array<{id:string}>};
  tree.blocks.push(structuredClone(tree.blocks[0]));expect(()=>validateManifest(canonical)).toThrow();
- const legacy=manifest(),copy=structuredClone(legacy.records[0]);copy.key="page:copy";
+ const legacy=legacyManifest(),copy=structuredClone(legacy.records[0]);copy.key="page:copy";
  Object.assign(copy.data,{slug:"copy",path:"/copy"});legacy.records.push(copy);legacy.selection.pageIds.push("copy");
  expect(()=>validateManifest(legacy)).toThrow("The selection contains repeated block IDs.");
 });
@@ -2055,7 +2052,7 @@ async function kbPromotionSource() {
   const ids = await f.t.run(async ctx => {
     const parent = await ctx.db.insert("kb_categories", { name: "Help library", slug: "library", order: 0, isActive: true, isPublished: true, articleCount: 9, createdAt: 1, updatedAt: 1 });
     const category = await ctx.db.insert("kb_categories", { name: "Workshop guides", slug: "workshop", parentId: parent, description: "Practical help", order: 1, isActive: true, isPublished: true, articleCount: 7, createdAt: 1, updatedAt: 1 });
-    const page = await ctx.db.insert("posts", { type: "page", title: "Help", slug: "help-study", path: "/help-study", status: "publish", visibility: "public", content: "", contentMode: "blocks", blocksVersion: 2, blocksRevision: 1, blocks: [{ id: "help", name: "support/kb-search", version: 1, attrs: { category } }], authorId: f.userId, commentStatus: "closed", createdAt: 1, updatedAt: 1 });
+    const page = await ctx.db.insert("posts", { type: "page", title: "Help", slug: "help-study", path: "/help-study", status: "publish", visibility: "public",   blocksVersion: 2, blocksRevision: 1, blocks: [{ id: "help", name: "support/kb-search", version: 1, attrs: { category } }], authorId: f.userId, commentStatus: "closed", createdAt: 1, updatedAt: 1 });
     return { parent, category, page };
   });
   const exported = await f.authed.query(makeFunctionReference<"query">("contentPromotion/operations:exportManifest"), { target, selection: { ...manifest().selection, pageIds: [ids.page] } });
@@ -2172,7 +2169,7 @@ async function rsvpPromotionFixture(){
   const plugins=(await ctx.db.query('settings').withIndex('by_section',q=>q.eq('section','plugins')).unique())!;await ctx.db.patch(plugins._id,{values:{eventsEnabled:true,formsEnabled:true}});
   const startsAt=Date.now()+86400000;
   const event=await ctx.db.insert('extension_events',{title:'RSVP workshop',slug:'rsvp-workshop',description:'An invitation.',startsAt,endsAt:startsAt+3600000,timeZone:'America/Denver',venue:'Studio',venueAddress:'',status:'published',rsvp:{mode:'guests',capacity:3,closesAt:startsAt-3600000},createdBy:source.userId,createdAt:1,updatedAt:1});
-  const page=await ctx.db.insert('posts',{type:'page',title:'Join the workshop',contentMode:'blocks',slug:'join-workshop',path:'/join-workshop',status:'publish',visibility:'public',authorId:source.userId,commentStatus:'closed',publishedAt:1,blocksVersion:2,blocksRevision:1,blocks:[{id:'rsvp-block',name:'core/event-rsvp',version:1,attrs:{event}}],createdAt:1,updatedAt:1});
+  const page=await ctx.db.insert('posts',{type:'page',title:'Join the workshop',slug:'join-workshop',path:'/join-workshop',status:'publish',visibility:'public',authorId:source.userId,commentStatus:'closed',publishedAt:1,blocksVersion:2,blocksRevision:1,blocks:[{id:'rsvp-block',name:'core/event-rsvp',version:1,attrs:{event}}],createdAt:1,updatedAt:1});
   await ctx.db.insert('event_rsvp_entries',{eventId:event,actorHash:'source-private-actor',name:'Source private guest',email:'source-private@example.invalid',status:'confirmed',revision:1,createdAt:1,updatedAt:1});
   await ctx.db.insert('event_rsvp_totals',{eventId:event,confirmed:1,updatedAt:1});
   await ctx.db.insert('event_rsvp_operations',{eventId:event,actorHash:'source-private-actor',requestKey:'private-source-operation',fingerprint:'private-source-fingerprint',receipt:{status:'confirmed',revision:1},createdAt:1});
@@ -2243,14 +2240,14 @@ test('RSVP promotion rejects invalid event settings and preserves target setting
 });
 
 async function localeFixture() {
- const f=await fixture();
+ const f=await fixture(); await allowRevisionRestore(f);
  await f.t.run(async ctx=>{const user=await ctx.db.get(f.userId);const role=await ctx.db.get(user!.roleId!);await ctx.db.patch(role!._id,{capabilities:[...role!.capabilities,'settings.update_general']});});
  return f;
 }
 function localeManifest():ContentPromotionManifest {
  const m=manifest();m.selection={...m.selection,includeLocalization:true};
  const first=m.records[0]!;
- m.records=['en','es'].map(code=>({...structuredClone(first),key:`page:${code}`,data:{...structuredClone(first.data),title:code,slug:code,path:`/${code}`,blocks:[]}}));
+ m.records=['en','es'].map(code=>({...structuredClone(first),key:`page:${code}`,data:{...structuredClone(first.data),title:code,slug:code,path:`/${code}`}}));
  m.records.push({key:'localeRouting:site',kind:'localeRouting',sourceRevision:'routing-1',data:{key:'site',enabled:true,locales:[{code:'en',label:'English',direction:'ltr',landingPageId:'@promotion:page:en'},{code:'es',label:'Español',direction:'ltr',landingPageId:'@promotion:page:es'}]}},
  {key:'localeGroup:guide',kind:'localeGroup',sourceRevision:'group-1',data:{key:'guide',translations:[{code:'en',documentId:'@promotion:page:en'},{code:'es',documentId:'@promotion:page:es'}]}});
  return m;
@@ -2288,7 +2285,7 @@ test('locale export requires explicit selection and carries configured landings 
  const f=await localeFixture();
  const ids=await f.t.run(async ctx=>{
   const identity=await ctx.db.query('convexpress_siteIdentity').unique();await ctx.db.patch(identity!._id,manifest().source);
-  const pages=[];for(const code of ['en','es','ar'])pages.push(await ctx.db.insert('posts',{type:'page',title:code,slug:code,path:`/${code}`,status:'publish',visibility:'public',content:'',contentMode:'blocks',blocksVersion:2,blocksRevision:1,blocks:[{id:'language',name:'core/language-switcher',version:1,attrs:{}}],authorId:f.userId,commentStatus:'closed',createdAt:1,updatedAt:1}));
+  const pages=[];for(const code of ['en','es','ar'])pages.push(await ctx.db.insert('posts',{type:'page',title:code,slug:code,path:`/${code}`,status:'publish',visibility:'public',blocksVersion:2,blocksRevision:1,blocks:[{id:'language',name:'core/language-switcher',version:1,attrs:{}}],authorId:f.userId,commentStatus:'closed',createdAt:1,updatedAt:1}));
   await ctx.db.insert('locale_routing',{key:'site',enabled:true,locales:['en','es','ar'].map((code,i)=>({code,label:code,direction:code==='ar'?'rtl' as const:'ltr' as const,landingPageId:pages[i]!})),revision:1,updatedBy:f.userId,updatedAt:1});
   const group=await ctx.db.insert('locale_translation_groups',{key:'guide',revision:1,updatedBy:f.userId,updatedAt:1});
   for(const [i,code] of ['en','es'].entries())await ctx.db.insert('locale_translations',{groupId:group,code,documentId:pages[i]!});
@@ -2311,7 +2308,7 @@ test('locale promotion requires normal language authority and binds configuratio
 test('locale promotion preserves unrelated groups and detects new assignments or incompatible language settings',async()=>{
  const f=await localeFixture(),m=localeManifest();let a=await f.authed.mutation(fn('dryRun'),{manifest:m,...bindings});await f.authed.mutation(fn('apply'),{receiptId:a.receiptId,expectedDigest:a.digest,confirmLive:true});
  const unrelated=await f.t.run(async ctx=>{
-  const page=await ctx.db.insert('posts',{type:'page',title:'Independent',slug:'independent',status:'publish',visibility:'public',content:'',authorId:f.userId,commentStatus:'closed',createdAt:1,updatedAt:1});
+  const page=await ctx.db.insert('posts',{type:'page',title:'Independent',slug:'independent',status:'publish',visibility:'public',authorId:f.userId,commentStatus:'closed',createdAt:1,updatedAt:1});
   const group=await ctx.db.insert('locale_translation_groups',{key:'independent',revision:1,updatedBy:f.userId,updatedAt:1});
   await ctx.db.insert('locale_translations',{groupId:group,documentId:page,code:'en'});return {page,group};
  });
@@ -2437,4 +2434,22 @@ test("footer audience promotion resolves only one active target-owned list and c
  const saved=await destination.t.run(ctx=>ctx.db.query("settings").withIndex("by_section",q=>q.eq("section","appearance.template")).unique());expect((saved!.values as any).settings.journal.footer.rows[0].columns[0].cell.audienceId).toBe(targetList);
  expect((await destination.t.run(ctx=>ctx.db.get("mailingLists",targetList)))!.consentText).toBe("Target wording");for(const table of ["mailingListSubscribers","mailingListConsentEvents"] as const)expect(await destination.t.run(ctx=>ctx.db.query(table).take(1))).toEqual([]);
  await destination.t.run(ctx=>ctx.db.insert("mailingLists",{...fields,websiteKey:"site",instanceKey:"site:live",createdBy:destination.userId,updatedBy:destination.userId}));expect((await destination.authed.mutation(fn("dryRun"),{manifest:m,...bindings})).ready).toBe(false);
+});
+
+// Legacy decoding remains an explicit authoring migration, not a promotion write path.
+test("legacy promotion requires migration before a ready receipt or content write", async () => {
+ const f = await fixture();
+ for (const kind of ["page", "post"] as const) {
+  const m = manifest();
+  m.records[0].kind = kind;
+  delete m.records[0].data.blocksVersion; delete m.records[0].data.canonical;
+  m.records[0].data.contentMode = "blocks";
+  m.records[0].data.blocks = [{id:"old",name:"core/paragraph",version:1,attrs:{text:"Legacy text"}}];
+  const result = await f.authed.mutation(fn("dryRun"), { manifest: m, ...bindings });
+  expect(result.ready).toBe(false);
+  expect(result.issues.some((issue: any) => issue.code === "CANONICAL_SOURCE_MIGRATION_REQUIRED")).toBe(true);
+ }
+ expect(await f.t.run(ctx => ctx.db.query("contentPromotion_receipts").collect())).toHaveLength(0);
+ expect(await f.t.run(ctx => ctx.db.query("posts").collect())).toHaveLength(0);
+ expect(await f.t.run(ctx => ctx.db.query("contentPromotion_backups").collect())).toHaveLength(0);
 });

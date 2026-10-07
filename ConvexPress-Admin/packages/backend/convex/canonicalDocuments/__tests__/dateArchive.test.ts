@@ -1,3 +1,4 @@
+import { canonicalPostBody } from "../../__tests__/canonicalPostFixture";
 import {test,expect} from "bun:test";
 import {convexTest} from "convex-test";
 import {makeFunctionReference} from "convex/server";
@@ -13,7 +14,7 @@ async function fixture(times:number[],zone="UTC") {
   const general=await ctx.db.insert("settings",{section:"general",values:{timezone:zone},updatedAt:1,updatedBy:user});
   const plugins=await ctx.db.insert("settings",{section:"plugins",values:{membershipEnabled:false},updatedAt:1,updatedBy:user});
   await ctx.db.insert("convexpress_siteIdentity",{identityKey:"site-identity",...scope,environmentKind:"staging",deploymentOrigin:"https://archive.convex.cloud",managementOrigin:"https://archive.convex.site",siteOrigin:"https://archive.example.invalid",siteContractVersion:"1",schemaVersion:"1",engineVersion:"1",managementCapabilities:[],initializedAt:1,updatedAt:1});
-  const posts=[];for(const [i,publishedAt] of times.entries())posts.push(await ctx.db.insert("posts",{type:"post",title:`Story ${i}`,slug:`story-${i}`,content:"PRIVATE SOURCE BODY",status:"publish",visibility:"public",authorId:user,commentStatus:"closed",publishedAt,createdAt:1,updatedAt:1}));return {user,general,plugins,posts};
+  const posts=[];for(const [i,publishedAt] of times.entries())posts.push(await ctx.db.insert("posts",{type:"post",title:`Story ${i}`,slug:`story-${i}`,...canonicalPostBody("PRIVATE SOURCE BODY"),status:"publish",visibility:"public",authorId:user,commentStatus:"closed",publishedAt,createdAt:1,updatedAt:1}));return {user,general,plugins,posts};
  });return {t,ids,groups:(args:unknown={})=>t.run(ctx=>readDateArchiveGroups(ctx,args,scope,"current-page")),posts:(year:number,month:number|null,cursor:string|null=null,limit=2)=>t.run(ctx=>readDateArchivePosts(ctx,{year,month,cursor,limit},scope))};
 }
 const at=(date:string)=>Date.parse(date);

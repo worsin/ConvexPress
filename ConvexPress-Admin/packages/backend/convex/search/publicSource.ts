@@ -70,7 +70,7 @@ export function createPublicSearchSourceReader(ctx: QueryCtx, now = Date.now(), 
         if (term?.taxonomy === "category") categoryNames.push(term.name);
         if (term?.taxonomy === "post_tag") tagNames.push(term.name);
       }
-      return {...base, title: post.title, content: options.includePostBody === false ? "" : post.blocksVersion === 2 ? await canonicalText(post) : stripContentForSearch(post.content ?? ""),
+      return {...base, title: post.title, content: options.includePostBody === false ? "" : post.blocksVersion === 2 ? await canonicalText(post) : "",
         excerpt: post.excerpt ?? "", url: publicDocumentHref(post), authorName: await authorName(post.authorId), publishedAt: post.publishedAt, categoryNames, tagNames};
     }
     if (row.contentType === "product") {

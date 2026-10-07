@@ -3,9 +3,11 @@ import type { Doc } from "../_generated/dataModel";
 // Publishing status, ownership, passwords and URLs are deliberately not revisioned.
 import { AUTHORING_FIELDS, type AuthoringField } from "./authoringFields";
 export { AUTHORING_FIELDS, type AuthoringField } from "./authoringFields";
-export type AuthoringSnapshot = Pick<Doc<"posts">, AuthoringField>;
+export type AuthoringSnapshot = Pick<Doc<"revisions">, AuthoringField>;
+/** Archived/imported sources may retain retired fields; current live posts do not. */
+export type HistoricalAuthoringSource = Doc<"posts"> & Partial<Pick<Doc<"revisions">, "content" | "contentMode" | "pageSections">>;
 
-export function authoringSnapshot(post: Doc<"posts">): AuthoringSnapshot {
+export function authoringSnapshot(post: HistoricalAuthoringSource): AuthoringSnapshot {
   const snapshot = Object.fromEntries(AUTHORING_FIELDS.map((field: AuthoringField) => [field, post[field]]));
   return { ...snapshot, title: post.title, content: post.content ?? "" } as AuthoringSnapshot;
 }
@@ -50,4 +52,20 @@ export function authoringDetails(revision: Doc<"revisions">): string {
   return JSON.stringify(Object.fromEntries(AUTHORING_FIELDS
     .filter((field) => !["title", "content", "excerpt", "blocksRevision"].includes(field))
     .map((field) => [field, revision[field]])), null, 2);
+}
+
+/** Copy an archived authoring snapshot into current storage without legacy columns. */
+export function liveAuthoringSnapshot(snapshot: AuthoringSnapshot) {
+  const {content, contentMode, pageSections, ...current} = snapshot;
+  return current;
+}
+
+/** Only transitional records can own these keys. Do not send unknown patch keys
+ * to the contracted schema when restoring an archive onto a current document. */
+export function retiredLiveFieldPatch(source: HistoricalAuthoringSource) {
+  const patch: {content?: undefined; contentMode?: undefined; pageSections?: undefined} = {};
+  for (const key of ["content", "contentMode", "pageSections"] as const) {
+    if (Object.prototype.hasOwnProperty.call(source, key)) patch[key] = undefined;
+  }
+  return patch;
 }

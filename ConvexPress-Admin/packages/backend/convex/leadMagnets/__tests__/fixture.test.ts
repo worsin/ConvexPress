@@ -11,7 +11,7 @@ export async function fixture(){
   const list=await ctx.db.insert("mailingLists",{websiteKey:"guide",instanceKey:"guide-staging",name:"Field notes",description:"PRIVATE_LIST_DESCRIPTION",consentText:"I would also like occasional updates. I can unsubscribe at any time.",privacyUrl:"/privacy",status:"active",revision:1,createdBy:user,updatedBy:user,createdAt:1,updatedAt:1});
   const storage=await ctx.storage.store(new Blob(["REAL GUIDE BYTES"],{type:"application/pdf"}));
   const media=await ctx.db.insert("media",{title:"Field guide",fileName:"field-guide.pdf",slug:"field-guide",mimeType:"application/pdf",fileSize:99999,mediaType:"document",storageId:storage,url:"https://private.example.invalid/NEVER_PROJECT_THIS_URL",status:"active",uploadedBy:user,createdAt:1,updatedAt:1});
-  const post=await ctx.db.insert("posts",{type:"page",title:"Guide",slug:"guide",path:"/guide",status:"publish",visibility:"public",authorId:user,commentStatus:"closed",blocksVersion:2,blocksRevision:1,blocks:[{id:"guide",name:"core/lead-magnet",version:1,attrs:{title:"Field guide",file:{id:media},list}}],contentMode:"blocks",createdAt:1,updatedAt:1});
+  const post=await ctx.db.insert("posts",{type:"page",title:"Guide",slug:"guide",path:"/guide",status:"publish",visibility:"public",authorId:user,commentStatus:"closed",blocksVersion:2,blocksRevision:1,blocks:[{id:"guide",name:"core/lead-magnet",version:1,attrs:{title:"Field guide",file:{id:media},list}}],createdAt:1,updatedAt:1});
   return {user,settings,site,list,storage,media,post};
  });
  const query=()=>t.query(offer,{postId:ids.post,blockId:"guide"});return {t,ids,query};

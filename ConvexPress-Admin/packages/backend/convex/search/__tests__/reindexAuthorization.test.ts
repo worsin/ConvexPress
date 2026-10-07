@@ -1,3 +1,4 @@
+import { canonicalPostBody } from "../../__tests__/canonicalPostFixture";
 import { expect, test } from "bun:test";
 import { convexTest } from "convex-test";
 import { makeFunctionReference } from "convex/server";
@@ -16,7 +17,7 @@ async function fixture(capabilities: string[] = [], status: "active" | "inactive
   const ids = await t.run(async ctx => {
     const roleId = await ctx.db.insert("roles", { name: "Fixture", slug: "fixture", description: "Test fixture", level: 80, type: "internal", status: "active", isDefault: false, isProtected: false, capabilities, pageAccess: [], createdAt: 1, updatedAt: 1 });
     const userId = await ctx.db.insert("users", { email: "reindex@example.test", emailVerified: true, authSource: "local", roleId, status, createdAt: 1, updatedAt: 1 });
-    const postId = await ctx.db.insert("posts", { type: "post", title: "Index me", slug: "index-me", content: "Current content", status: "publish", visibility: "public", commentStatus: "closed", authorId: userId, createdAt: 1, updatedAt: 1 });
+    const postId = await ctx.db.insert("posts", { type: "post", title: "Index me", slug: "index-me", ...canonicalPostBody("Current content"), status: "publish", visibility: "public", commentStatus: "closed", authorId: userId, createdAt: 1, updatedAt: 1 });
     return { userId, postId };
   });
   return { t, ids, client: t.withIdentity({ subject: ids.userId, issuer: "https://convexpress-admin.local" }) };

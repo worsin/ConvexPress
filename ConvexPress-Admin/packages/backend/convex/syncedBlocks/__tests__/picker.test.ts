@@ -12,7 +12,7 @@ async function setup() {
   const owner = await f.operator.mutation(create, { title: "Owner", blocks: text });
   const page = await f.t.run(async ctx => {
     await ctx.db.patch("roles", f.ids.role, { capabilities: ["post.create", "post.read", "post.update", "post.publish", "post.unpublish", "page.update"] });
-    const id = await ctx.db.insert("posts", { type: "page", title: "Page", slug: "page", path: "/page", content: "", status: "draft", visibility: "public", authorId: f.ids.user, commentStatus: "closed", blocksVersion: 2, blocks: text, createdAt: 1, updatedAt: 1 });
+    const id = await ctx.db.insert("posts", { type: "page", title: "Page", slug: "page", path: "/page",  status: "draft", visibility: "public", authorId: f.ids.user, commentStatus: "closed", blocksVersion: 2, blocks: text, createdAt: 1, updatedAt: 1 });
     return { postId: id, expectedRevision: authoringRevision((await ctx.db.get("posts", id))!) };
   });
   const base = { owner: { syncedBlockId: owner.id, expectedGeneration: 1 }, expectedScope };
