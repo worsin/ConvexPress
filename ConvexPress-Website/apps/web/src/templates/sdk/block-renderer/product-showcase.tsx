@@ -6,9 +6,9 @@ import { safeLinkSchema } from "../block-data/portable/generated/field-runtime.m
 import "../../../../../../../blocks/commerce/product-showcase/render.css";
 const stockLabels={instock:"In stock",outofstock:"Out of stock",onbackorder:"Available on backorder",options:"Availability varies by option",external:"Sold by a partner"};
 const link=safeLinkSchema(z,["http","https","relative","anchor"]);
-export default defineDataBlock("commerce/product-showcase","commerce.productShowcase",({attrs,data})=>{
+export default defineDataBlock("commerce/product-showcase","commerce.productShowcase",({attrs,data,treatment})=>{
  const cta=link.safeParse(attrs.ctaUrl),href=cta.success&&cta.data?cta.data:null;
- return <div className="cp-product-showcase cp-product-collection" data-columns={data.items.length >= 4 ? 4 : data.items.length === 3 ? 3 : 2} data-showcase-state={data.items.length?"ready":"empty"}>
+ return <div className="cp-product-showcase cp-product-collection" data-columns={treatment?.values.columns ?? (data.items.length >= 4 ? 4 : data.items.length === 3 ? 3 : 2)} data-showcase-state={data.items.length?"ready":"empty"}>
   <div className="cp-showcase-intro"><div>{attrs.eyebrow&&<P.Eyebrow>{attrs.eyebrow}</P.Eyebrow>}{attrs.heading&&<P.Heading>{attrs.heading}</P.Heading>}{attrs.intro&&<P.Text tone="muted">{attrs.intro}</P.Text>}</div>
    {href&&attrs.ctaLabel&&<a className="cp-showcase-more" href={href}>{attrs.ctaLabel}<span aria-hidden="true">↗</span></a>}
   </div>

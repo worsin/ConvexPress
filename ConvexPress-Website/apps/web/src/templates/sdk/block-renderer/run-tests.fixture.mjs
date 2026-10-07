@@ -62,6 +62,7 @@ try {
 	const cases = fileURLToPath(new URL("./model.cases.tsx", import.meta.url));
 const sampleFile = join(directory, "executed-examples.json");
 const source = [
+`import ${JSON.stringify(fileURLToPath(new URL("./original-fleet.cases.tsx", import.meta.url)))};`,
 `import ${JSON.stringify(fileURLToPath(new URL("./list.cases.tsx", import.meta.url)))};`,
 `import {writeFileSync as writeExecutedExamples} from "node:fs";`,
 `import {afterAll as afterRendererTests} from "bun:test";`,

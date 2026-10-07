@@ -3180,7 +3180,22 @@
       "visibility": true
     },
     "title": "Category Tiles",
-    "treatments": [],
+    "treatments": [
+      {
+        "axes": [
+          {
+            "default": 3,
+            "id": "columns",
+            "max": 4,
+            "min": 2,
+            "title": "Columns",
+            "type": "number"
+          }
+        ],
+        "name": "original",
+        "title": "Original presentation"
+      }
+    ],
     "version": 2
   },
   {
@@ -3630,7 +3645,22 @@
       "visibility": true
     },
     "title": "Product Showcase",
-    "treatments": [],
+    "treatments": [
+      {
+        "axes": [
+          {
+            "default": 4,
+            "id": "columns",
+            "max": 4,
+            "min": 2,
+            "title": "Columns",
+            "type": "number"
+          }
+        ],
+        "name": "original",
+        "title": "Original presentation"
+      }
+    ],
     "version": 2
   },
   {
@@ -8159,7 +8189,24 @@
       "visibility": true
     },
     "title": "Hero (split)",
-    "treatments": [],
+    "treatments": [
+      {
+        "axes": [
+          {
+            "default": "right",
+            "id": "mediaSide",
+            "options": [
+              "left",
+              "right"
+            ],
+            "title": "Media side",
+            "type": "select"
+          }
+        ],
+        "name": "original",
+        "title": "Original Hero presentation"
+      }
+    ],
     "version": 2
   },
   {
@@ -8277,7 +8324,24 @@
       "visibility": true
     },
     "title": "Hero (text only)",
-    "treatments": [],
+    "treatments": [
+      {
+        "axes": [
+          {
+            "default": "center",
+            "id": "alignment",
+            "options": [
+              "left",
+              "center"
+            ],
+            "title": "Alignment",
+            "type": "select"
+          }
+        ],
+        "name": "original",
+        "title": "Original Hero presentation"
+      }
+    ],
     "version": 2
   },
   {
@@ -9532,7 +9596,24 @@
       "visibility": true
     },
     "title": "Media + Text",
-    "treatments": [],
+    "treatments": [
+      {
+        "axes": [
+          {
+            "default": "right",
+            "id": "mediaPosition",
+            "options": [
+              "left",
+              "right"
+            ],
+            "title": "Media position",
+            "type": "select"
+          }
+        ],
+        "name": "original",
+        "title": "Original presentation"
+      }
+    ],
     "version": 2
   },
   {
@@ -9713,7 +9794,24 @@
       "visibility": true
     },
     "title": "Newsletter signup",
-    "treatments": [],
+    "treatments": [
+      {
+        "axes": [
+          {
+            "default": "inline",
+            "id": "variant",
+            "options": [
+              "inline",
+              "large"
+            ],
+            "title": "Presentation",
+            "type": "select"
+          }
+        ],
+        "name": "original",
+        "title": "Original presentation"
+      }
+    ],
     "version": 2
   },
   {

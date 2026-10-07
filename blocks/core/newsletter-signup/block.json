@@ -1,7 +1,7 @@
 {
   "name": "core/newsletter-signup",
   "title": "Newsletter signup",
-  "description": "Email signup — inline or large card variant.",
+  "description": "Email signup \u2014 inline or large card variant.",
   "category": "forms",
   "role": "cta",
   "version": 2,
@@ -85,7 +85,7 @@
       "body": "Notes on making, mountain paths and objects worth keeping. Fictional publication copy for this studio study.",
       "placeholder": "you@example.com",
       "submitLabel": "Join the field notes",
-      "successMessage": "You’re on the list. Thank you for joining the field notes."
+      "successMessage": "You\u2019re on the list. Thank you for joining the field notes."
     }
   ],
   "migration": {
@@ -118,6 +118,24 @@
         "body"
       ],
       "format": "prose"
+    }
+  ],
+  "treatments": [
+    {
+      "name": "original",
+      "title": "Original presentation",
+      "axes": [
+        {
+          "id": "variant",
+          "title": "Presentation",
+          "type": "select",
+          "default": "inline",
+          "options": [
+            "inline",
+            "large"
+          ]
+        }
+      ]
     }
   ]
 }

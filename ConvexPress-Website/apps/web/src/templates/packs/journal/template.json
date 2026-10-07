@@ -224,6 +224,24 @@
       ],
       "core/spacer": [
         "original"
+      ],
+      "core/hero-split": [
+        "original"
+      ],
+      "core/hero-text-only": [
+        "original"
+      ],
+      "core/media-text": [
+        "original"
+      ],
+      "commerce/category-tiles": [
+        "original"
+      ],
+      "commerce/product-showcase": [
+        "original"
+      ],
+      "core/newsletter-signup": [
+        "original"
       ]
     },
     "patterns": "./patterns/*.json",

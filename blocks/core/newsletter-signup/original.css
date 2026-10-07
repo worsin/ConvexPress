@@ -1,0 +1,5 @@
+.cp-library-signup[data-original-variant="large"] {
+ border:1px solid var(--border); background:var(--card); color:var(--card-foreground); padding:clamp(1rem,4cqi,2rem); text-align:center;
+}
+.cp-library-signup[data-original-variant="large"] > :first-child { margin-block-end:1.5rem; }
+.cp-library-signup[data-original-variant="large"] form { justify-content:center; }

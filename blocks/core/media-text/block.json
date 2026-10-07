@@ -131,5 +131,23 @@
       "href": "ctaUrl",
       "label": "ctaLabel"
     }
+  ],
+  "treatments": [
+    {
+      "name": "original",
+      "title": "Original presentation",
+      "axes": [
+        {
+          "id": "mediaPosition",
+          "title": "Media position",
+          "type": "select",
+          "default": "right",
+          "options": [
+            "left",
+            "right"
+          ]
+        }
+      ]
+    }
   ]
 }

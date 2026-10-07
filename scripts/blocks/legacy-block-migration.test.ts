@@ -52,3 +52,44 @@ test('legacy Divider and Spacer preserve every original visual choice in a close
   expect(migrateLegacyBlocks([{id:'s',name:'core/spacer',version:1,attrs:{}}])[0].treatment).toEqual({name:'original',values:{size:'medium'}});
   expect(migrateLegacyBlocks([{id:'d',name:'core/divider',version:1,attrs:{}}])[0].treatment).toEqual({name:'original',values:{variant:'default'}});
 });
+
+test('original Hero alignment and media side survive conversion without inventing new content attrs',()=>{
+  for(const [name,axis,values] of [
+    ['core/hero-split','mediaSide',['left','right']],
+    ['core/hero-text-only','alignment',['left','center']],
+  ] as const){
+    for(const value of values){
+      const source={id:'original-hero',name,version:1,attrs:{title:'Retained original heading',body:'Retained body',primaryCtaLabel:'Read',primaryCtaUrl:'/about',[axis]:value}};
+      const before=structuredClone(source), converted=migrateLegacyBlocks([source])[0];
+      expect(source).toEqual(before);
+      expect(converted.treatment).toEqual({name:'original',values:{[axis]:value}});
+      expect(converted.attrs.title).toBe(source.attrs.title);
+      expect(converted.attrs.body).toBe(source.attrs.body);
+      expect(converted.attrs.primaryCtaUrl).toBe('/about');
+      expect(axis in converted.attrs).toBe(false);
+      expect(converted.version).toBe(2);
+    }
+    expect(()=>migrateLegacyBlocks([{id:'bad',name,version:1,attrs:{title:'Keep', [axis]:'arbitrary'}}])).toThrow();
+    expect(()=>migrateLegacyBlocks([{id:'bad',name,version:1,attrs:{title:'Keep', unknown:'must not disappear'}}])).toThrow();
+  }
+  expect(migrateLegacyBlocks([{id:'s',name:'core/hero-split',version:1,attrs:{}}])[0].treatment).toEqual({name:'original',values:{mediaSide:'right'}});
+  expect(migrateLegacyBlocks([{id:'t',name:'core/hero-text-only',version:1,attrs:{}}])[0].treatment).toEqual({name:'original',values:{alignment:'center'}});
+});
+
+test('original fleet media, commerce columns and newsletter presentation migrate as closed treatments',()=>{
+ for(const [name,axis,values,defaultValue] of [
+  ['core/media-text','mediaPosition',['left','right'],'right'],
+  ['commerce/category-tiles','columns',[2,3,4],3],
+  ['commerce/product-showcase','columns',[2,3,4],4],
+  ['core/newsletter-signup','variant',['inline','large'],'inline'],
+ ] as const){
+  for(const value of values){
+   const source={id:'original',name,version:1,attrs:{heading:'Retained heading',[axis]:value}};
+   const before=structuredClone(source),converted=migrateLegacyBlocks([source])[0];
+   expect(source).toEqual(before);expect(converted.attrs.heading).toBe('Retained heading');
+   expect(converted.treatment).toEqual({name:'original',values:{[axis]:value}});expect(axis in converted.attrs).toBe(false);
+  }
+  expect(migrateLegacyBlocks([{id:'default',name,version:1,attrs:{}}])[0].treatment).toEqual({name:'original',values:{[axis]:defaultValue}});
+  expect(()=>migrateLegacyBlocks([{id:'bad',name,version:1,attrs:{[axis]:'unknown'}}])).toThrow();
+ }
+});

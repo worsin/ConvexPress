@@ -1,0 +1,5 @@
+.cp-original-text-hero[data-alignment="center"] {
+ width:100%; max-width:48rem; margin-inline:auto; text-align:center;
+}
+.cp-original-text-hero[data-alignment="center"] > .cp-stack { align-items:stretch; }
+.cp-original-text-hero[data-alignment="center"] > .cp-stack > .cp-stack[data-direction="horizontal"] { justify-content:center; }

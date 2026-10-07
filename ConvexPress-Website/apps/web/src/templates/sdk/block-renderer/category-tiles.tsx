@@ -1,8 +1,8 @@
 import { defineDataBlock } from "./model";
 import * as P from "../primitives";
 import "../../../../../../../blocks/commerce/category-tiles/render.css";
-export default defineDataBlock("commerce/category-tiles", "commerce.categoryTiles", ({ attrs, data }) => (
-  <div className="cp-category-tiles" data-category-state={data.state !== "ready" ? data.state : data.items.length ? "ready" : "empty"} aria-busy={data.state !== "ready"}>
+export default defineDataBlock("commerce/category-tiles", "commerce.categoryTiles", ({ attrs, data, treatment }) => (
+  <div className="cp-category-tiles" data-original-columns={treatment?.values.columns} data-category-state={data.state !== "ready" ? data.state : data.items.length ? "ready" : "empty"} aria-busy={data.state !== "ready"}>
     {(attrs.eyebrow || attrs.heading || attrs.intro) && <header className="cp-category-intro">
       <div>{attrs.eyebrow && <P.Eyebrow>{attrs.eyebrow}</P.Eyebrow>}{attrs.heading && <P.Heading>{attrs.heading}</P.Heading>}</div>
       {attrs.intro && <P.Text tone="muted">{attrs.intro}</P.Text>}

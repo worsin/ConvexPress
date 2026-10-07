@@ -868,7 +868,22 @@ export const dependencyDescriptors = {
       "visibility": true
     },
     "supportsChildren": false,
-    "treatments": [],
+    "treatments": [
+      {
+        "axes": [
+          {
+            "default": 3,
+            "id": "columns",
+            "max": 4,
+            "min": 2,
+            "title": "Columns",
+            "type": "number"
+          }
+        ],
+        "name": "original",
+        "title": "Original presentation"
+      }
+    ],
     "version": 2
   },
   "commerce/download-library": {
@@ -1077,7 +1092,22 @@ export const dependencyDescriptors = {
       "visibility": true
     },
     "supportsChildren": false,
-    "treatments": [],
+    "treatments": [
+      {
+        "axes": [
+          {
+            "default": 4,
+            "id": "columns",
+            "max": 4,
+            "min": 2,
+            "title": "Columns",
+            "type": "number"
+          }
+        ],
+        "name": "original",
+        "title": "Original presentation"
+      }
+    ],
     "version": 2
   },
   "commerce/recently-viewed": {
@@ -2739,7 +2769,24 @@ export const dependencyDescriptors = {
       "visibility": true
     },
     "supportsChildren": false,
-    "treatments": [],
+    "treatments": [
+      {
+        "axes": [
+          {
+            "default": "right",
+            "id": "mediaSide",
+            "options": [
+              "left",
+              "right"
+            ],
+            "title": "Media side",
+            "type": "select"
+          }
+        ],
+        "name": "original",
+        "title": "Original Hero presentation"
+      }
+    ],
     "version": 2
   },
   "core/hero-text-only": {
@@ -2767,7 +2814,24 @@ export const dependencyDescriptors = {
       "visibility": true
     },
     "supportsChildren": false,
-    "treatments": [],
+    "treatments": [
+      {
+        "axes": [
+          {
+            "default": "center",
+            "id": "alignment",
+            "options": [
+              "left",
+              "center"
+            ],
+            "title": "Alignment",
+            "type": "select"
+          }
+        ],
+        "name": "original",
+        "title": "Original Hero presentation"
+      }
+    ],
     "version": 2
   },
   "core/hero-video": {
@@ -3261,7 +3325,24 @@ export const dependencyDescriptors = {
       "visibility": true
     },
     "supportsChildren": false,
-    "treatments": [],
+    "treatments": [
+      {
+        "axes": [
+          {
+            "default": "right",
+            "id": "mediaPosition",
+            "options": [
+              "left",
+              "right"
+            ],
+            "title": "Media position",
+            "type": "select"
+          }
+        ],
+        "name": "original",
+        "title": "Original presentation"
+      }
+    ],
     "version": 2
   },
   "core/menu": {
@@ -3336,7 +3417,24 @@ export const dependencyDescriptors = {
       "visibility": true
     },
     "supportsChildren": false,
-    "treatments": [],
+    "treatments": [
+      {
+        "axes": [
+          {
+            "default": "inline",
+            "id": "variant",
+            "options": [
+              "inline",
+              "large"
+            ],
+            "title": "Presentation",
+            "type": "select"
+          }
+        ],
+        "name": "original",
+        "title": "Original presentation"
+      }
+    ],
     "version": 2
   },
   "core/paragraph": {
@@ -5442,7 +5540,25 @@ export const packTreatmentSupport = {
     "blocks/product-collection": [
       "gallery"
     ],
+    "commerce/category-tiles": [
+      "original"
+    ],
+    "commerce/product-showcase": [
+      "original"
+    ],
     "core/divider": [
+      "original"
+    ],
+    "core/hero-split": [
+      "original"
+    ],
+    "core/hero-text-only": [
+      "original"
+    ],
+    "core/media-text": [
+      "original"
+    ],
+    "core/newsletter-signup": [
       "original"
     ],
     "core/spacer": [
@@ -5456,7 +5572,25 @@ export const packTreatmentSupport = {
     "blocks/product-collection": [
       "gallery"
     ],
+    "commerce/category-tiles": [
+      "original"
+    ],
+    "commerce/product-showcase": [
+      "original"
+    ],
     "core/divider": [
+      "original"
+    ],
+    "core/hero-split": [
+      "original"
+    ],
+    "core/hero-text-only": [
+      "original"
+    ],
+    "core/media-text": [
+      "original"
+    ],
+    "core/newsletter-signup": [
       "original"
     ],
     "core/spacer": [
@@ -5470,7 +5604,25 @@ export const packTreatmentSupport = {
     "blocks/product-collection": [
       "gallery"
     ],
+    "commerce/category-tiles": [
+      "original"
+    ],
+    "commerce/product-showcase": [
+      "original"
+    ],
     "core/divider": [
+      "original"
+    ],
+    "core/hero-split": [
+      "original"
+    ],
+    "core/hero-text-only": [
+      "original"
+    ],
+    "core/media-text": [
+      "original"
+    ],
+    "core/newsletter-signup": [
       "original"
     ],
     "core/spacer": [
@@ -5484,7 +5636,25 @@ export const packTreatmentSupport = {
     "blocks/product-collection": [
       "gallery"
     ],
+    "commerce/category-tiles": [
+      "original"
+    ],
+    "commerce/product-showcase": [
+      "original"
+    ],
     "core/divider": [
+      "original"
+    ],
+    "core/hero-split": [
+      "original"
+    ],
+    "core/hero-text-only": [
+      "original"
+    ],
+    "core/media-text": [
+      "original"
+    ],
+    "core/newsletter-signup": [
       "original"
     ],
     "core/spacer": [
