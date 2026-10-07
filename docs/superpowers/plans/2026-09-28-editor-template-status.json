@@ -7,7 +7,7 @@
     "In progress": 3
   },
   "goal": "Complete block editor and template delivery plus all demonstrated blockers; defer unrelated whole-app audit campaigns.",
-  "currentTask": "134/137 blocks verified. Task4 original and newer-site migration/native/public acceptance complete, with original content/history/media preserved. Continue actual customer Assistant transition/history/memory and Task7 selected-resource AI composition/style/promotion; then remaining integrated delivery gates. No repeat migrations or provider-key request.",
+  "currentTask": "134/137 blocks verified. Task4 migration/native/public acceptance complete. E111 customer Assistant history/memory adoption repaired in b4c31a85 and accepted on original Alpha through real Clerk/provider desktop/mobile workflows with exact original preservation. Next bounded Assistant gates: disabled-memory grounding, request idempotency, catalog visibility/read bounds; then Task7 selected-resource AI composition/style/promotion and final candidate parity. No audit wait or repeated migration.",
   "tasks": [
     {
       "id": 1,
@@ -38,7 +38,7 @@
     {
       "id": 7,
       "status": "in_progress",
-      "scope": "Alpha real configured-provider canonical AI generation/review/apply/reopen/publication and registered native proposal preview accepted. Real guest Assistant answer, grounded catalog cards, cart action and scoped history accepted; URL replay repaired. Actual customer transition/history consolidation and remaining composition/style/promotion stay open."
+      "scope": "Original Alpha real configured-provider native canonical generation/review/apply/reopen/publication and proposal preview accepted. Guest/customer Assistant answers/cart/history/account-wide memory and isolation accepted with E110/E111 repairs. Remaining Assistant backend gates and actual selected-resource AI composition/style/promotion stay open."
     },
     {
       "id": 8,
@@ -272,7 +272,7 @@
     },
     {
       "id": "E13",
-      "status": "Configured original provider available and exercised: Alpha actual native structured generation/review/apply/reopen/publication and registered Website proposal preview passed. Real guest Assistant grounded answer/cart action and isolated history passed; URL reload replay repaired. Selected-resource generation, AI composition/style/promotion and actual customer Assistant transition/history/memory remain.",
+      "status": "Configured original provider available and exercised: Alpha actual native structured generation/review/apply/reopen/publication and registered Website proposal preview passed. Real guest/customer Assistant answers, cart action, adopted history, account-wide memory and isolation passed after E110/E111. Selected-resource generation and AI composition/style/promotion remain; remaining Assistant backend gates stay explicit.",
       "classification": "missing evidence; configured provider available",
       "initialFinding": "Some isolated AI exercises returned missing_api_key; earlier provider success does not establish current end-to-end editor generation.",
       "closureBoundary": "Inspect authorized configured connections without exposing secrets; use the existing provider if available. Prove one live structured generation, resource selection, review, insert/save and Website output, plus composition/style/promotion. Do not substitute mocked success.",
@@ -285,9 +285,10 @@
         "ConvexPress-Admin/audits/2026-09-04/original-fleet-reconciliation-20261007.md",
         "output/original-fleet-20261007/ai-probe.json",
         "ConvexPress-Admin/audits/2026-09-04/original-native-ai-20261007.md",
-        "ConvexPress-Admin/audits/2026-09-04/original-preview-assistant-20261007.md"
+        "ConvexPress-Admin/audits/2026-09-04/original-preview-assistant-20261007.md",
+        "ConvexPress-Admin/audits/2026-09-04/original-assistant-customer-20261007.md"
       ],
-      "nextCheck": "Use original Alpha configuration for actual customer Assistant history/memory transitions, then real selected-resource AI composition/style/promotion. Reuse accepted text-only generation and native preview; no new key request."
+      "nextCheck": "Complete bounded Assistant disabled-memory grounding/request idempotency/catalog checks, then real selected-resource AI composition/style/promotion using existing Alpha provider. No new key request or repeated accepted customer flow."
     },
     {
       "id": "E14",
@@ -1460,6 +1461,24 @@
       "currentEvidence": [
         "ConvexPress-Admin/audits/2026-09-04/original-preview-assistant-20261007.md",
         "output/original-preview-repair-20261007/assistant-clean-reload.json"
+      ]
+    },
+    {
+      "id": "E111",
+      "classification": "reproduced defect repaired and verified",
+      "deliveryTask": 7,
+      "requiredWorkflow": "Customer Assistant retains guest conversation and consented preferences when sign-in recovers an existing customer cart; foreign identities cannot read adopted history.",
+      "evidence": "ConvexPress-Admin/audits/2026-09-04/original-assistant-customer-20261007.md",
+      "dependency": "resolveSession chooses the recovered cart token without adopting source Assistant ownership, thread or guest memory.",
+      "repairBoundary": "Adopt authenticated source session and guest memory; transfer visible history immediately and older history in bounded batches; preserve message fields, clear semantics, ownership and existing cart transactions.",
+      "exitCheck": "Actual original-site customer sign-in with owned cart and guest history/memory, repeat settlement, foreign/anonymous denial, cross-session memory, clear during transfer and large history regression; focused cart suites, strict types/deployment and preservation.",
+      "status": "Closed for source and original Alpha acceptance. b4c31a85; full real customer login preserves six messages, three preferences and existing cart. Repeat settlement, second-customer/anonymous denial, same-customer cross-session memory, reload and mobile controls pass. Original selected data exact; owned identities/data cleaned. Other sites receive this source at final candidate rollout.",
+      "nextCheck": "Reuse accepted E111 evidence; include repair in final installed candidate parity. Continue separately recorded Assistant disabled-memory grounding/request idempotency/catalog-reader requirements.",
+      "currentEvidence": [
+        "ConvexPress-Admin/audits/2026-09-04/original-assistant-customer-20261007.md",
+        "output/original-assistant-customer-20261007/live-before.json",
+        "output/original-assistant-customer-20261007/live-after.json",
+        "output/original-assistant-customer-20261007/cleanup-data.json"
       ]
     }
   ],
@@ -3012,7 +3031,7 @@
       "title": "Assistant band",
       "category": "Commerce",
       "checkpointStatus": "In progress",
-      "nextClassification": "Real configured original provider answer, catalog attributes/prices, cart tool and separate guest history accepted. URL reload replay repaired; existing native fields and four-pack evidence retained.",
+      "nextClassification": "Real configured original provider, catalog answer/cart action, actual customer sign-in history adoption, account-wide memory, foreign/anonymous denial, reload and desktop/mobile accepted. E110/E111 repairs verified.",
       "classification": "missing evidence",
       "source": "blocks/commerce/assistant-band/block.json",
       "requirements": "eyebrow, heading, body, prompts, ctaLabel, ctaUrl",
@@ -3024,9 +3043,10 @@
         "output/cta-family-20260921.",
         "ConvexPress-Admin/audits/2026-09-04/customer-commerce-20260929.md",
         "output/customer-commerce-20260929/source-provenance.json",
-        "ConvexPress-Admin/audits/2026-09-04/original-preview-assistant-20261007.md"
+        "ConvexPress-Admin/audits/2026-09-04/original-preview-assistant-20261007.md",
+        "ConvexPress-Admin/audits/2026-09-04/original-assistant-customer-20261007.md"
       ],
-      "remainingReview": "Complete actual customer Assistant transition/history consolidation and reconcile backend/memory/lifecycle requirements; no missing API key remains. Preserve existing field/four-pack/customer-commerce evidence.",
+      "remainingReview": "Disabled-memory grounding, robust Assistant request idempotency and bounded/visible catalog readers remain from the original Assistant scope notes. Reuse completed real customer/provider and field/four-pack evidence; no missing API key.",
       "deliveryTask": 3,
       "acceptanceBatch": "customer-commerce",
       "reviewedAtCommit": "ca7cb390 + Purchased Downloads flex-shrink repair",
@@ -5330,7 +5350,11 @@
     "output/original-native-ai-20261007/cleanup-data.json",
     "ConvexPress-Admin/audits/2026-09-04/original-gamma-acceptance-20261007.md",
     "output/original-gamma-20261007/cleanup-data.json",
-    "output/original-gamma-20261007/runtime-cleanup.json"
+    "output/original-gamma-20261007/runtime-cleanup.json",
+    "ConvexPress-Admin/audits/2026-09-04/original-assistant-customer-20261007.md",
+    "output/original-assistant-customer-20261007/live-after.json",
+    "output/original-assistant-customer-20261007/cleanup-data.json",
+    "output/original-assistant-customer-20261007/runtime-cleanup.json"
   ],
   "trackerRefresh": {
     "source": "output/field-guide-legacy-final-20261006/mt-accept-after.json",
@@ -5399,7 +5423,8 @@
     "candidateNative": "Accepted integrated native template switching, Customize draft/conflict/publication, document conflict/restore, actual sign-out/sign-in recovery and cleanup on d9a03347.71original pages/settings preserved; seven protected processes alive. No E99 reproduction or speculative patch. Existing main-bundle gate still fails; bounded module-inventory diagnosis next. Audit58 remains latest; no audit wait. E106 now repaired and accepted: fresh production bundle, types/template SSR, four-pack interactive hydration. Source settings/pages restored and API revoked; owned preview stopped. Next final installed-artifact parity, tracker/evidence reconciliation and local integration; preserve four provider prerequisites and HTTPS gap.",
     "audit59": "ACCEPT E106 closed classification correction. ADAPT E99 unchanged-time reminder: preserve original causal uncertainty, reuse accepted automatic native restore and continue independent work. Upcoming deep audit advisory; no automatic scope change or wait.",
     "audit61": "Accepted scoped E99 repair/E18 integration and recurrence-on-new-trace advice. Task4 completion superseded by newly confirmed E108 live-schema-column retirement; source ad2e3701 prepares preserved cleanup with3712backend tests passing. Source strict dry run in flight; current installed candidate remains cd587c50. External provider requirements unchanged. See shared Codex notes.",
-    "originalGamma": "Audit64 already reviewed; no newer audit. Gamma actual native/public and owned save/reopen passed with exact preservation; Task4 closed. Continue E13 independently; no audit wait."
+    "originalGamma": "Audit64 already reviewed; no newer audit. Gamma actual native/public and owned save/reopen passed with exact preservation; Task4 closed. Continue E13 independently; no audit wait.",
+    "assistantCustomer": "Audit64 remains latest/already reviewed. Independently reproduced/repaired E111, real original customer/provider acceptance and preservation complete. No automatic scope expansion; remaining Assistant gates are explicit original requirements. Codex leads and continues without waiting for deep audit."
   },
   "sessionBaseCommit": "9824d9605e50c4b0ebd711c13715b506f8ef5bd3"
 }
