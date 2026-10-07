@@ -7,7 +7,7 @@
     "In progress": 4
   },
   "goal": "Complete block editor and template delivery plus all demonstrated blockers; defer unrelated whole-app audit campaigns.",
-  "currentTask": "E107 flagship named collection styles accepted, restoring71original pages/settings and preserving runtimes. Next: final state/mobile/motion reconciliation, refresh E107 installed candidate metadata/artifacts, safe local integration and delivery guide. Four provider gates and public HTTPS remain explicit; no waiting for Claude.",
+  "currentTask": "Production native history restore and six-site reserved media-route rollout accepted; all81storage files and original non-maintenance records preserved. Next: finish Task6 state/mobile/motion reconciliation using valid family evidence and scoped shared-style deltas, then final acceptance. Four provider-dependent block rows and public HTTPS remain explicit; do not wait for Claude or repeat accepted restores.",
   "tasks": [
     {
       "id": 1,
@@ -1256,16 +1256,17 @@
     },
     {
       "id": "E99",
-      "classification": "demonstrated workflow symptom; causal investigation pending",
+      "classification": "receiver-remount defect repaired; current production native restore verified; original trigger uncertain",
       "initialFinding": "After native revision restore, the panel said Live draft rendered while the actual Website iframe showed Open this saved preview from your authorized native editor. Reconnect restored the document. Observed on owned Field/Studio fixture; no automatic continuity acceptance inferred.",
       "closureBoundary": "Reproduce on exact current Admin/Website artifacts, trace revision remount/ready/session messages, repair the demonstrated lifecycle cause and verify native restore automatically renders the recovered revision without manual reconnect or lost authored data.",
-      "status": "A concrete receiver teardown/remount defect is now reproduced and repaired: real MessagePorts previously retained rendered status after Website cleanup; the receiver now sends a channel-bound closure notice and native renewal reconnects after a fresh read. Automated integration and an isolated Electron transport fixture recover without Reconnect. Original Field/Studio history-restore trigger remains unproven; do not equate this bounded repair with full E99 closure. See preview-receiver-20261006.md. Installed production Website/native artifacts still require this frontend delta and actual editor-history verification.",
+      "status": "Receiver cleanup without iframe navigation demonstrably left native rendered status stale.7f6d3365 adds an exact-shape generation-bound close notice; real-port native renewal and an actual Electron two-origin remount fixture recover automatically after a fresh read. Fresh production Admin/Website artifacts also restored native revision2 as4 with exact content, desktop/mobile iframe rendering and no Reconnect;71original pages/settings preserved. Original Field/Studio incident lacks a trace proving its trigger. Retain that historical uncertainty as an integration watch, not a reason to repeat identical successful restores or block independent delivery. See preview-history-fixed-20261006.md.",
       "deliveryTask": 5,
       "currentEvidence": [
         "ConvexPress-Admin/audits/2026-09-04/preview-history-recheck-20261006.md",
         "ConvexPress-Admin/audits/2026-09-04/native-integration-20261006.md",
         "ConvexPress-Admin/audits/2026-09-04/candidate-native-20261006.md",
-        "ConvexPress-Admin/audits/2026-09-04/preview-receiver-20261006.md"
+        "ConvexPress-Admin/audits/2026-09-04/preview-receiver-20261006.md",
+        "ConvexPress-Admin/audits/2026-09-04/preview-history-fixed-20261006.md"
       ]
     },
     {
@@ -5242,7 +5243,11 @@
     "ConvexPress-Admin/audits/2026-09-04/template-registry-bundle-20261006.md",
     "ConvexPress-Admin/audits/2026-09-04/delivery-artifacts-20261006.md",
     "ConvexPress-Admin/audits/2026-09-04/example-candidate-20261006.md",
-    "output/example-candidate-20261006/final-receipt.json"
+    "output/example-candidate-20261006/final-receipt.json",
+    "ConvexPress-Admin/audits/2026-09-04/preview-history-fixed-20261006.md",
+    "output/preview-history-fixed-20261006/cleanup.json",
+    "output/preview-history-fixed-20261006/live-route-guard.json",
+    "output/preview-history-fixed-20261006/final-receipt.json"
   ],
   "trackerRefresh": {
     "source": "output/field-guide-legacy-final-20261006/mt-accept-after.json",
