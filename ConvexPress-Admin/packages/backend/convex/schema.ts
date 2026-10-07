@@ -54,8 +54,6 @@ import { ga4Tables } from "./schema/ga4";
 import { kbTables } from "./schema/kb";
 import { ticketTables } from "./schema/tickets";
 import { supportTables } from "./schema/support";
-import { themesTables } from "./schema/themes";
-import { layoutTables } from "./schema/layouts";
 import { recipeTables } from "./schema/recipes";
 import { commerceAssistantTables } from "./schema/commerceAssistant";
 import { galleryTables } from "./schema/gallery";
@@ -121,8 +119,6 @@ export default defineSchema(withMediaReferenceIndexes({
   ...kbTables,
   ...ticketTables,
   ...supportTables,
-  ...themesTables,
-  ...layoutTables,
   ...recipeTables,
   ...galleryTables,
   ...purchaseTables,

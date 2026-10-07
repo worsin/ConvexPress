@@ -5,7 +5,7 @@
 export const opaqueAuthoringOwners = [
   "canonicalDocumentDrafts",
   "posts", "revisions", "postMeta", "reusableBlocks", "syncedBlockRevisions", "blockDefinitionVersions", "fieldValues", "fieldDefinitions",
-  "settings", "appearance_drafts", "layouts", "themes", "legacyAppearanceArchives",
+  "settings", "appearance_drafts", "legacyAppearanceArchives",
   "commerce_products", "commerce_product_variants", "commerce_product_categories",
   "lms_courses", "lms_nodes", "lms_lessonVersions", "lms_certificates",
   "kb_articles", "kb_articleVersions", "kb_templates", "recipes",

@@ -56,7 +56,7 @@ test("single oversized document, split metadata, aggregate bytes and unknown dee
   for (const mode of ["large", "split", "aggregate", "deep"]) {
     const { ctx, writes } = fixture();
     if (mode === "large") ctx.tables.posts = [{ _id: "p", content: "x".repeat(512 * 1024) }];
-    if (mode === "aggregate") for (const table of ["posts", "revisions", "settings", "appearance_drafts", "layouts", "themes", "lms_courses", "lms_nodes", "lms_lessonVersions"]) ctx.tables[table] = [{ _id: table, payload: "x".repeat(480 * 1024) }];
+    if (mode === "aggregate") for (const table of ["posts", "revisions", "settings", "appearance_drafts", "legacyAppearanceArchives", "blockDefinitionVersions", "lms_courses", "lms_nodes", "lms_lessonVersions"]) ctx.tables[table] = [{ _id: table, payload: "x".repeat(480 * 1024) }];
     if (mode === "deep") { let tree: any = "none"; for (let i = 0; i < 66; i++) tree = { child: tree }; ctx.tables.posts = [{ _id: "p", blocks: tree }]; }
     if (mode === "split") { const base = ctx.db.query; ctx.db.query = (table: string) => { const q = base(table); if (table === "posts") q.paginate = async () => ({ page: [], isDone: true, continueCursor: "c", pageStatus: "SplitRecommended", splitCursor: "s" }); return q; }; }
     expect(await code(() => (mutations.remove as any)._handler(ctx, { mediaId: "m1" }))).toBe("MEDIA_REFERENCE_BUDGET");
