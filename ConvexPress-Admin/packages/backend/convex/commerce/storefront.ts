@@ -18,7 +18,8 @@ import { assistantScope } from "./assistant/scope";
  *   - facetsForQuery        cached AI "narrow your search" chips
  */
 
-import { v } from "convex/values";
+import { ConvexError, v } from "convex/values";
+import { resolveStockPolicy, canOrderQuantity } from "./stockPolicy";
 import { query } from "../_generated/server";
 import { requireCommerceEnabled } from "./helpers";
 import { getSettingsDoc } from "../settings/helpers";
@@ -26,6 +27,47 @@ import { RELATION_GROUP, RELATION_GROUP_LABEL, type RelationType } from "./relat
 import { productRelationTypeValidator } from "../schema/commerceAssistant";
 
 const CARD_FIELDS_LIMIT = 48;
+
+// Keep a complete result or fail explicitly before Convex's transaction limit;
+// never present the first arbitrary slice as a complete recommendation ranking.
+const MAX_CART_LINES = 160;
+const MAX_RELATION_EDGES = 1000;
+
+export async function visibleCategories(ctx: any, limit = 60) {
+  const batches = await Promise.all([true, undefined].map(visible => ctx.db.query("commerce_product_categories")
+    .withIndex("by_visible", (q: any) => q.eq("isVisible", visible)).take(limit)));
+  return batches.flat().sort((a: any, b: any) => a._creationTime - b._creationTime || String(a._id).localeCompare(String(b._id))).slice(0, limit);
+}
+
+async function publicDefaultVariant(ctx: any, productId: string) {
+  const choose = (rows: any[]) => rows.filter(Boolean).sort((a, b) => a._creationTime - b._creationTime || String(a._id).localeCompare(String(b._id)))[0];
+  const defaults = await Promise.all(["publish", undefined].map(status => ctx.db.query("commerce_product_variants")
+    .withIndex("by_product_status_default", (q: any) => q.eq("productId", productId).eq("status", status).eq("isDefault", true)).first()));
+  const preferred = choose(defaults);
+  if (preferred) return preferred;
+  return choose(await Promise.all(["publish", undefined].map(status => ctx.db.query("commerce_product_variants")
+    .withIndex("by_product_status", (q: any) => q.eq("productId", productId).eq("status", status)).first())));
+}
+
+export async function publicCartLines(ctx: any, cart: any) {
+  if (!cart || isClosedCart(cart)) return [];
+  const items = await ctx.db.query("commerce_cart_items").withIndex("by_cart", (q: any) => q.eq("cartId", cart._id)).take(MAX_CART_LINES + 1);
+  if (items.length > MAX_CART_LINES) throw new ConvexError({ code: "CART_LIMIT", message: "This cart is too large for the shopping assistant." });
+  const lines = [];
+  for (const item of items) {
+    const product = await ctx.db.get("commerce_products", item.productId);
+    const variant = item.variantId ? await ctx.db.get("commerce_product_variants", item.variantId) : null;
+    const unavailable = !product || product.status !== "publish" || !!item.variantId && (!variant || variant.productId !== item.productId || !isPublicVariant(variant));
+    lines.push({ productId: String(item.productId), variantId: item.variantId ? String(item.variantId) : null,
+      title: unavailable ? "Unavailable product" : product.title, variantTitle: unavailable ? null : variant?.title ?? null,
+      slug: unavailable ? "" : product.slug, quantity: item.quantity, unitPriceAmount: item.unitPriceAmount, lineTotalAmount: item.lineTotalAmount,
+      featuredMediaId: !unavailable && product.featuredMediaId ? String(product.featuredMediaId) : null,
+      attributes: unavailable ? null : product.conversationalAttributes ?? null, summary: unavailable ? null : product.assistantSummary ?? null,
+      ...(unavailable ? { unavailable: true } : {}),
+    });
+  }
+  return lines;
+}
 
 // Validators hoisted out of the registrations (TS2589 guard, see relations.ts).
 const searchProductsArgs = {
@@ -80,20 +122,16 @@ export async function toProductCard(ctx: any, product: any): Promise<ProductCard
   const categories = (
     await Promise.all((product.categoryIds ?? []).map((id: any) => ctx.db.get(id)))
   )
-    .filter(Boolean)
+    .filter((category: any) => category && category.isVisible !== false)
     .map((category: any) => ({ id: String(category._id), name: category.name, slug: category.slug }));
 
   let pricing = { price: product.basePrice, salePrice: product.salePrice, salePriceFrom: product.salePriceFrom, salePriceTo: product.salePriceTo, pricedAt: now };
   let price = product.basePrice;
   let compareAtPrice: { amount: number; currencyCode: string } | null = null;
   let defaultVariantId: string | null = null;
+  let chosen: any = null;
   if (product.productType === "variable") {
-    const variants = await ctx.db
-      .query("commerce_product_variants")
-      .withIndex("by_product", (q: any) => q.eq("productId", product._id))
-      .collect();
-    const publicVariants = variants.filter(isPublicVariant);
-    const chosen = publicVariants.find((variant: any) => variant.isDefault) ?? publicVariants[0];
+    chosen = await publicDefaultVariant(ctx, product._id);
     if (chosen) {
       defaultVariantId = String(chosen._id);
       pricing = { price: chosen.price, salePrice: chosen.salePrice, salePriceFrom: chosen.salePriceFrom, salePriceTo: chosen.salePriceTo, pricedAt: now };
@@ -106,9 +144,9 @@ export async function toProductCard(ctx: any, product: any): Promise<ProductCard
     compareAtPrice = price.amount < product.basePrice.amount ? product.basePrice : null;
   }
 
-  const tracked = product.trackInventory !== false;
-  const stockQuantity = tracked ? (product.stockQuantity ?? 0) : null;
-  const inStock = (product.productType !== "variable" || defaultVariantId !== null) && (!tracked || (stockQuantity ?? 0) > 0 || product.allowBackorders === true);
+  const stock = resolveStockPolicy(product, chosen);
+  const stockQuantity = stock.tracked ? stock.available : null;
+  const inStock = (product.productType !== "variable" || defaultVariantId !== null) && canOrderQuantity(stock, 1);
 
   return {
     productId: String(product._id),
@@ -130,7 +168,7 @@ export async function toProductCard(ctx: any, product: any): Promise<ProductCard
 }
 
 async function loadPublishedByIds(ctx: any, ids: string[]): Promise<any[]> {
-  const docs = await Promise.all(ids.slice(0, CARD_FIELDS_LIMIT).map((id) => ctx.db.get(id as any).catch(() => null)));
+  const docs = await Promise.all(ids.slice(0, CARD_FIELDS_LIMIT).map((id) => ctx.db.get("commerce_products", id as any).catch(() => null)));
   return docs.filter((doc: any) => doc && doc.status === "publish");
 }
 
@@ -233,7 +271,7 @@ export const searchProducts = query({
     const facetCategories = (
       await Promise.all([...categoryCounts.entries()].map(async ([id, count]) => {
         const category = await ctx.db.get(id as any);
-        return category ? { id, name: category.name, slug: category.slug, count } : null;
+        return category && category.isVisible !== false ? { id, name: category.name, slug: category.slug, count } : null;
       }))
     ).filter(Boolean);
 
@@ -306,7 +344,7 @@ export const categoryTiles = query({
   args: categoryTilesArgs,
   handler: async (ctx: any, args: any) => {
     await requireCommerceEnabled(ctx);
-    let categories = await ctx.db.query("commerce_product_categories").take(200);
+    let categories = await visibleCategories(ctx, 200);
     categories = categories.filter((category: any) => category.isVisible !== false);
     if (args.slugs?.length) {
       const wanted = new Map(args.slugs.map((slug: string, index: number) => [slug, index]));
@@ -358,15 +396,23 @@ export async function relatedGroups(
   seedProductIds: string[],
   options: { perGroup: number; types?: RelationType[]; excludeIds?: Set<string> },
 ): Promise<RelatedGroup[]> {
+  seedProductIds = [...new Set(seedProductIds)];
+  if (seedProductIds.length > MAX_CART_LINES) throw new ConvexError({ code: "RELATION_LIMIT", message: "Too many products for recommendations. Choose fewer products." });
   const exclude = new Set(options.excludeIds ?? []);
+  let edgeCount = 0;
+  const perGroup = Number.isFinite(options.perGroup) ? Math.min(6, Math.max(1, Math.floor(options.perGroup))) : 2;
   for (const id of seedProductIds) exclude.add(id);
   const grouped = new Map<string, Map<string, { weight: number; reason: string | null; forProductId: string; type: RelationType }>>();
 
   for (const seedId of seedProductIds) {
+    const seed = await ctx.db.get("commerce_products", seedId).catch(() => null);
+    if (!seed || seed.status !== "publish") continue;
     const edges = await ctx.db
       .query("commerce_product_relations")
       .withIndex("by_from_status", (q: any) => q.eq("fromProductId", seedId).eq("status", "active"))
-      .collect();
+      .take(MAX_RELATION_EDGES - edgeCount + 1);
+    edgeCount += edges.length;
+    if (edgeCount > MAX_RELATION_EDGES) throw new ConvexError({ code: "RELATION_LIMIT", message: "Too many recommendations to rank safely. Please narrow the selected products." });
     for (const edge of edges) {
       if (options.types && !options.types.includes(edge.type)) continue;
       const targetId = String(edge.toProductId);
@@ -388,14 +434,13 @@ export async function relatedGroups(
 
   const groups: RelatedGroup[] = [];
   for (const [key, bucket] of grouped) {
-    const ranked = [...bucket.entries()].sort((a, b) => b[1].weight - a[1].weight).slice(0, options.perGroup);
-    const products = await loadPublishedByIds(ctx, ranked.map(([id]) => id));
-    const byId = new Map(products.map((product: any) => [String(product._id), product]));
+    const ranked = [...bucket.entries()].sort((a, b) => b[1].weight - a[1].weight);
     const items = [];
     for (const [id, meta] of ranked) {
-      const product = byId.get(id);
-      if (!product) continue;
+      const product = await ctx.db.get("commerce_products", id);
+      if (!product || product.status !== "publish") continue;
       items.push({ card: await toProductCard(ctx, product), reason: meta.reason, weight: meta.weight, forProductId: meta.forProductId, type: meta.type });
+      if (items.length >= perGroup) break;
     }
     if (items.length) groups.push({ key, label: RELATION_GROUP_LABEL[key] ?? key, items });
   }
@@ -422,11 +467,7 @@ async function cartProductIds(ctx: any, sessionToken: string): Promise<string[]>
     .unique();
   if (cart) assertCartAccess(cart, sessionToken, (await getCurrentShopper(ctx))?._id);
   if (!cart || isClosedCart(cart)) return [];
-  const items = await ctx.db
-    .query("commerce_cart_items")
-    .withIndex("by_cart", (q: any) => q.eq("cartId", cart._id))
-    .collect();
-  return [...new Set(items.map((item: any) => String(item.productId)))] as string[];
+  return [...new Set((await publicCartLines(ctx, cart)).filter((line: any) => !line.unavailable).map((line: any) => line.productId))] as string[];
 }
 
 export const relatedForCart = query({
@@ -451,29 +492,7 @@ export const cartContext = query({
       .unique();
     if (cart) assertCartAccess(cart, args.sessionToken, (await getCurrentShopper(ctx))?._id);
     if (!cart || isClosedCart(cart)) return { itemCount: 0, subtotalAmount: 0, currencyCode: "USD", lines: [] as any[] };
-    const items = await ctx.db
-      .query("commerce_cart_items")
-      .withIndex("by_cart", (q: any) => q.eq("cartId", cart._id))
-      .collect();
-    const lines = [];
-    for (const item of items) {
-      const product = await ctx.db.get(item.productId);
-      if (!product) continue;
-      const variant = item.variantId ? await ctx.db.get(item.variantId) : null;
-      lines.push({
-        productId: String(product._id),
-        variantId: variant ? String(variant._id) : null,
-        title: product.title,
-        variantTitle: variant?.title ?? null,
-        slug: product.slug,
-        quantity: item.quantity,
-        unitPriceAmount: item.unitPriceAmount,
-        lineTotalAmount: item.lineTotalAmount,
-        featuredMediaId: product.featuredMediaId ? String(product.featuredMediaId) : null,
-        attributes: product.conversationalAttributes ?? null,
-        summary: product.assistantSummary ?? null,
-      });
-    }
+    const lines = await publicCartLines(ctx, cart);
     return {
       itemCount: cart.itemCount,
       subtotalAmount: cart.subtotalAmount,

@@ -1,6 +1,5 @@
 import { visibleMessages } from "./history";
 import { assistantScope } from "./scope";
-import { isClosedCart } from "../cartLifecycle";
 /**
  * Shopping assistant - queries.
  *
@@ -11,7 +10,7 @@ import { isClosedCart } from "../cartLifecycle";
 import { ConvexError, v } from "convex/values";
 import { internalQuery, query } from "../../_generated/server";
 import { getSettingsDoc, mergeWithDefaults } from "../../settings/helpers";
-import { relatedGroups, toProductCard } from "../storefront";
+import { relatedGroups, toProductCard, publicCartLines, visibleCategories } from "../storefront";
 
 async function getMergedSettingsSection(ctx: any, section: string): Promise<Record<string, unknown>> {
   const doc = await getSettingsDoc(ctx, section as any);
@@ -108,31 +107,9 @@ export const contextBundle = internalQuery({
     const recent = session ? await visibleMessages(ctx, session, 10) : [];
     recent.reverse();
 
-    const lines: any[] = [];
-    if (cart && !isClosedCart(cart)) {
-      const items = await ctx.db
-        .query("commerce_cart_items")
-        .withIndex("by_cart", (q: any) => q.eq("cartId", cart._id))
-        .take(161);
-      if (items.length > 160) throw new ConvexError({ code: "CART_LIMIT", message: "This cart is too large for the shopping assistant." });
-      for (const item of items) {
-        const product = await ctx.db.get(item.productId);
-        if (!product) continue;
-        const variant = item.variantId ? await ctx.db.get(item.variantId) : null;
-        lines.push({
-          productId: String(product._id),
-          variantId: item.variantId ? String(item.variantId) : null,
-          title: product.title,
-          variantTitle: variant?.title ?? null,
-          quantity: item.quantity,
-          unitPriceAmount: item.unitPriceAmount,
-          attributes: product.conversationalAttributes ?? null,
-          summary: product.assistantSummary ?? null,
-        });
-      }
-    }
+    const lines = await publicCartLines(ctx, cart);
 
-    const cartIds = lines.map((line) => line.productId);
+    const cartIds = lines.filter((line: any) => !line.unavailable).map((line: any) => line.productId);
     const cartCards = [];
     for (const id of [...new Set(cartIds)]) {
       const product = await ctx.db.get(id as any);
@@ -147,7 +124,7 @@ export const contextBundle = internalQuery({
     const memory = assistant.memoryEnabled === false
       ? []
       : (await Promise.all(scope.memoryKeys.map(key => memoryFor(ctx, key)))).flat();
-    const categories = await ctx.db.query("commerce_product_categories").take(60);
+    const categories = await visibleCategories(ctx);
 
     const windowStart = Date.now() - 60_000;
     const recentUserTurns = recent.filter((m: any) => m.role === "user" && m.createdAt >= windowStart).length;
