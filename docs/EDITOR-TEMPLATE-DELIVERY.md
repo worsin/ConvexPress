@@ -2,8 +2,9 @@
 
 This is the working delivery entry point, not a declaration that every acceptance
 gate is complete. The block tracker currently has 133 Verified rows and four
-provider-dependent rows still In progress. Source candidate `cd587c50` includes
-the Journal/Depot collection styles, preview receiver recovery and reserved media-route policy.
+provider-dependent rows still In progress. Backend candidate `11942647` is installed on all six sites. It includes physical
+live-schema retirement, canonical promotion refusal for unmigrated sources,
+and the previously accepted styles, preview recovery and media-route policy.
 
 ## Open the examples
 
@@ -104,11 +105,13 @@ from signed/self-contained distribution.
 | Installed nested-list consumer compatibility | [Six consumers](../ConvexPress-Admin/audits/2026-09-04/nested-consumers-20261007.md) |
 | Presentation/state map and motion acceptance | [Task6 reconciliation](../ConvexPress-Admin/audits/2026-09-04/task6-state-motion-20261007.md) |
 | Demo navigation and complete mobile patterns | [BlockDemo review](../ConvexPress-Admin/audits/2026-09-04/demo-visible-review-20261006.md) |
+| Current installed sources, artifacts and remaining gates | [Candidate map](../ConvexPress-Admin/audits/2026-09-04/delivery-candidate-map-20261007.md) |
 | SDK workflows and cleanup | [Kit workflows](../ConvexPress-Admin/audits/2026-09-04/kit-workflow-refresh-20261006.md) |
 
-The completion audit also reopened removal of three obsolete live post columns.
-The preservation-first migration and writer changes are tested locally; deployment,
-corpus cleanup and schema removal remain unfinished. See [schema retirement](../ConvexPress-Admin/audits/2026-09-04/schema-retirement-preparation-20261007.md).
+The three obsolete live post columns are now removed across all six sites.
+All 203 original posts, 927 revisions and 81 stored files were preserved; native
+save/history/reload and actual Website output passed. See
+[installed schema retirement](../ConvexPress-Admin/audits/2026-09-04/schema-retirement-installed-20261007.md).
 
 The remaining provider requirements are actual AI generation/Assistant Band,
 authorized Instagram data for Social Feed, human Turnstile completion for Event
