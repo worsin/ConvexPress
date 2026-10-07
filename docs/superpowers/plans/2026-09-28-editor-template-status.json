@@ -7,7 +7,7 @@
     "In progress": 3
   },
   "goal": "Complete block editor and template delivery plus all demonstrated blockers; defer unrelated whole-app audit campaigns.",
-  "currentTask": "134/137 blocks verified: Script Embed real Vimeo desktop/mobile playback accepted; refreshed packaged native save/reload and actual Website preview pass against contracted Target. AI/Assistant, Instagram, Turnstile and public HTTPS assertions remain, followed by final delivery closure. Task4 complete; no push.",
+  "currentTask": "134/137 blocks verified. E109: finish omitted original alpha/beta/gamma/delta fleet;11legacy records and120files backed up. Hero treatment migration refusal reproduced. Configured original AI provider works; E13 is now missing end-to-end evidence, not missing credentials. Preserve six-site accepted results; no push.",
   "tasks": [
     {
       "id": 1,
@@ -24,8 +24,8 @@
     },
     {
       "id": 4,
-      "status": "complete",
-      "scope": "Known corpus conversion, immutable archives, obsolete UI/API and physical live schema retirement accepted across all six sites. Original posts/history/storage preserved; installed native/public/canonical SDK regression checks pass. Explicit legacy import remains supported."
+      "status": "in_progress",
+      "scope": "Six-site corpus conversion and physical retirement accepted and preserved. Reopened for the original alpha/gamma11-record corpus omitted from that closure; E109 tracks remaining original-fleet migration and acceptance."
     },
     {
       "id": 5,
@@ -270,8 +270,8 @@
     },
     {
       "id": "E13",
-      "status": "Current normal operator integrations overview across all six sites confirms AI configured=false and API key state empty, including environment fallback. Six owned sessions revoked; no secrets retrieved or provider calls made. Existing CONFIGURATION_ERROR/missing_api_key action evidence remains valid. Owner asked to configure an authorized provider through one site Settings > AI and identify that site; actual structured generation and Assistant Band still required.",
-      "classification": "external prerequisite",
+      "status": "Original alpha/beta/gamma stored OpenRouter credentials accepted with HTTP200. Alpha installed internal generation returned ok without saving content. Earlier six-site empty-key evidence remains true only for that subset. Complete normal current native/SDK/Assistant acceptance using the authorized original configuration after matching deployment contracts.",
+      "classification": "missing evidence; configured provider available",
       "initialFinding": "Some isolated AI exercises returned missing_api_key; earlier provider success does not establish current end-to-end editor generation.",
       "closureBoundary": "Inspect authorized configured connections without exposing secrets; use the existing provider if available. Prove one live structured generation, resource selection, review, insert/save and Website output, plus composition/style/promotion. Do not substitute mocked success.",
       "currentEvidence": [
@@ -279,8 +279,11 @@
         "output/customer-commerce-20260929/assistant-provider-proof.json",
         "ConvexPress-Admin/audits/2026-09-04/reference-extension-acceptance-20261006.md",
         "output/extension-lifecycle-20261006/ai-probe.json",
-        "output/delivery-candidate-20261007/provider-readiness.json"
-      ]
+        "output/delivery-candidate-20261007/provider-readiness.json",
+        "ConvexPress-Admin/audits/2026-09-04/original-fleet-reconciliation-20261007.md",
+        "output/original-fleet-20261007/ai-probe.json"
+      ],
+      "nextCheck": "Resolve E109 original-fleet compatibility, then actual structured generation, review/save, Website, Assistant history/cart and composition/style/promotion. No new key request is necessary on current evidence."
     },
     {
       "id": "E14",
@@ -1410,7 +1413,7 @@
       "dependency": "Historical revisions share validators with live posts and preserve original imports; deleting schema fields before archiving retained values would risk data or deployment failure.",
       "repairBoundary": "Separate immutable historical validation from live schema. Stop canonical writers reintroducing legacy columns; archive retained values atomically using exact source CAS; enumerate every current site to completion and verify original bodies/media/history before schema contraction. Preserve explicit legacy import decoding.",
       "closureBoundary": "All six current site corpora verified and migrated without changing canonical trees/publication/ownership/history; strict deployments reject obsolete live columns; native save/reopen/history and public/promotion checks pass on the final installed candidate. Physical schema contraction is required, not merely a compatibility comment.",
-      "status": "Accepted: contracted source11942647 installed on all six sites. Exact final preservation:203 original posts,927 revisions (724 previous plus203 StageA archives),81 stored files.3711backend tests and strict backend/Admin/Website types pass. Actual native save/history/reload and Website/public body agree; explicit content-only SDK promotion passes. Full-site localization/route-policy export refusals were honored, not waived.",
+      "status": "Accepted: contracted source11942647 installed on all six sites. Exact final preservation:203 original posts,927 revisions (724 previous plus203 StageA archives),81 stored files.3711backend tests and strict backend/Admin/Website types pass. Actual native save/history/reload and Website/public body agree; explicit content-only SDK promotion passes. Full-site localization/route-policy export refusals were honored, not waived. Scope correction: this acceptance covers the newer six sites only; original fleet omission and its remaining retirement are separately open under E109.",
       "nextCheck": "Reuse installed receipts and accepted historical import/recovery evidence. Reopen only for a demonstrated changed dependency or failing live writer. Continue final candidate/requirements reconciliation; external provider and public HTTPS gates remain.",
       "currentEvidence": [
         "ConvexPress-Admin/audits/2026-09-04/schema-retirement-preparation-20261007.md",
@@ -1418,6 +1421,21 @@
         "ConvexPress-Admin/audits/2026-09-04/schema-retirement-contraction-20261007.md",
         "ConvexPress-Admin/audits/2026-09-04/schema-retirement-installed-20261007.md"
       ]
+    },
+    {
+      "id": "E109",
+      "classification": "reproduced defect and missing installed acceptance",
+      "deliveryTask": 4,
+      "requiredWorkflow": "Complete original named-fleet canonical migration/retirement and matching native/public template acceptance required by the handoff.",
+      "evidence": "Original controller inventory and full backups show11legacy records on alpha/gamma and120files across four original sites. Current pure migration refuses first Hero treatment mapping on all11. Original AI configuration succeeds.",
+      "dependency": "Hero alignment/mediaSide have generated legacy pack-treatment transforms but no declared exact target treatments; published/auto-draft lifecycle also needs a preservation-safe migration path before contracted deployment.",
+      "repairBoundary": "Implement and verify exact canonical/rendered treatment mapping; review all remaining nodes and lifecycle preservation; reconcile actual installed source/contracts; install safely with original content/history/media and sessions intact.",
+      "exitCheck": "Complete original corpus migration and schema contraction with preservation receipts, actual native edit/reopen and Website parity on named sites, then current configured AI workflows.",
+      "status": "Open. All four original full backups and read-only migration review complete; no original deployment or authored record changed.",
+      "currentEvidence": [
+        "ConvexPress-Admin/audits/2026-09-04/original-fleet-reconciliation-20261007.md"
+      ],
+      "nextCheck": "Prove original source/contract provenance and add focused regression for saved Hero treatment values. Preserve original publication/auto-draft state and never bypass the migration refusal."
     }
   ],
   "blocks": [
@@ -4936,6 +4954,7 @@
     }
   ],
   "latestEvidence": [
+    "ConvexPress-Admin/audits/2026-09-04/original-fleet-reconciliation-20261007.md",
     "ConvexPress-Admin/audits/2026-09-04/e107-installed-20261006.md",
     "ConvexPress-Admin/audits/2026-09-04/customizer-global-layout-20261006.md",
     "output/customizer-global-layout-20261006/verified.json",
@@ -5296,7 +5315,7 @@
   "coordination": {
     "folder": "/Users/worsin/Development/ConvexPress/Opus Audits/",
     "authority": "Codex leads; Claude audits are advisory and independently verified",
-    "lastAudit": "2026-10-06T1906-audit-61-e99-repaired.md",
+    "lastAudit": "2026-10-06T2006-audit-62-task4-reopened.md",
     "pendingAdvisory": {
       "F19": "Accepted shared public document href contract. Historical encoded-slug fixture reproduced discrepancy; ordinary authoring slugifies safely. Legacy menu root/prefix behavior and membership aliases preserved. See locale-destinations-20260928.md.",
       "F20": "Source-verified enterprise commerce backfill truncation recorded in current-acceptance.md deferred register. No live reproduction or repair; promote only if catalog/customer-commerce delivery demonstrates a dependency.",
