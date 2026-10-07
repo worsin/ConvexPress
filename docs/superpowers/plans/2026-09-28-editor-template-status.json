@@ -7,7 +7,7 @@
     "In progress": 2
   },
   "goal": "Complete block editor and template delivery plus all demonstrated blockers; defer unrelated whole-app audit campaigns.",
-  "currentTask": "135/137 verified. Accepted candidate now refreshed on original Beta/Gamma/Delta:2375 exact contracts,1787 equivalent modules,4408 original rows/70files preserved and three real nested-page publication/cleanup checks.45-clause reconciliation found E117: required legacy themes/layouts retirement remains despite completed posts schema retirement. Implement E117 next while Instagram, human Turnstile and quota-disabled HTTPS prerequisites await owner input. Task7 remains complete; no audit wait.",
+  "currentTask": "135/137 verified. E117 closed: archived three original themes, removed old theme/layout schema and active dependencies, installed012255f2 on all10local environments;85749original rows/201files, public appearance and operator sessions preserved.3572backend tests and strict types pass. Actual native Customizer/Website checks pass after restoring the original Electron missing SOCKS tunnel. Task4 complete. Continue final delivery reconciliation and remaining Instagram/human Turnstile/quota-disabled HTTPS prerequisites; no audit wait.",
   "tasks": [
     {
       "id": 1,
@@ -24,8 +24,8 @@
     },
     {
       "id": 4,
-      "status": "in_progress",
-      "scope": "Canonical posts/reusable corpus migration and physical retirement are accepted. Separate handoff Phase A2 legacy themes/layouts retirement remains E117; preserve original data and current appearance."
+      "status": "complete",
+      "scope": "Canonical posts/reusable migration, physical field retirement and separate E117 theme/layout retirement accepted. Three exact recovery archives, ten installed final candidates, preserved originals/public appearance and actual native Customizer/Website output. See theme-retirement-20261007.md."
     },
     {
       "id": 5,
@@ -1572,14 +1572,15 @@
     },
     {
       "id": "E117",
-      "classification": "missing required implementation",
+      "classification": "accepted/reusable evidence",
       "deliveryTask": 4,
       "requiredWorkflow": "Template handoff Phase A2 requires retirement of legacy themes/layouts after active palette migration, preserving authored settings and recovery.",
-      "evidence": "Current schema/themes.ts and schema/layouts.ts still define both tables. settings/appearanceMigration.ts reads active themes; demoSeed/shops.ts still inserts and patches themes. appearance-rollout-20261006.md explicitly retained legacy schema/source data.",
+      "evidence": "ConvexPress-Admin/audits/2026-09-04/theme-retirement-20261007.md; output/theme-retirement-20261007. Bridge70db6501 archives originals before contraction012255f2. Final3572backend tests/20761assertions, strict types, frozen writer checks pass.",
       "dependency": "Completed canonical posts-field retirement does not satisfy the separate theme/layout retirement requirement. Treating the migration receipt alone as deletion would be false completion.",
       "repairBoundary": "Inventory and preserve original legacy rows/appearance; finish bounded idempotent migration/archive and remove active legacy tables/read/write dependencies with current media-reference handling. Retain supported recovery/import and saved-route redirects where they are compatibility, not duplicate editors. No unrelated platform cleanup.",
       "exitCheck": "Complete corpus preservation receipts, no active themes/layouts schema/read/write dependencies, explicit recovery archive, strict types and focused migration/media/demo regressions, unchanged current appearance and actual native/Website output on affected sites.",
-      "status": "Confirmed from current source during45-clause reconciliation. Current candidate deployment finishes first; this is next implementation work, not an external blocker."
+      "status": "Accepted: bridge70db6501 preserves three exact original themes; contraction012255f2 installed on all10local environments.85749original rows/201stored files and Source22extension files preserved; all public appearance/settings/content/revisions and preexisting operator sessions exact.3572tests/20761assertions and strict types pass. Actual native Customizer and Website desktop/mobile accepted after restoring original Electron missing SOCKS proxy; original selection restored and signed out.18protected processes preserved; restored proxy25642 retained.",
+      "nextCheck": "Reuse accepted E117 evidence. Remaining provider/HTTPS prerequisites and final delivery reconciliation are separate; do not reopen retirement or repeat unchanged matrices."
     }
   ],
   "blocks": [
