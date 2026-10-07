@@ -97,6 +97,16 @@ describe("commerce returns migrations helpers", () => {
     expect(inserts.every((template) => template.updatedAt === 123)).toBe(true);
   });
 
+  test("backfills pending legacy items without inventing approval or receipt", () => {
+    const [item] = buildLegacyReturnItemInserts({
+      _id: "return_1", status: "requested", createdAt: 1, updatedAt: 1,
+      items: [{ orderItemId: "item_1", quantity: 2 }],
+    }, { item_1: { _id: "item_1", productId: "product_1" } });
+    expect(item.quantityRequested).toBe(2);
+    expect(item.quantityApproved).toBe(0);
+    expect(item.quantityReceived).toBe(0);
+  });
+
   test("builds ordered history entries for a fully processed legacy return", () => {
     const entries = buildLegacyReturnHistoryEntries({
       status: "completed",

@@ -3,6 +3,24 @@ import { expect, test, afterAll } from "bun:test";
 import { loadStaged } from "./test-harness";
 const loaded = await loadStaged("./model.ts");
 afterAll(loaded.cleanup);
+test("embed provider errors stay attached to the authored field without discarding the draft", () => {
+  for (const [name, attrs, field] of [
+    ["core/booking-cta", { ctaUrl: "/contact", ctaLabel: "" }, "ctaLabel"],
+    ["blocks/contact-stack", { items: [{ href: "/details", label: "", value: "" }] }, "items.0.value"],
+    ["core/embed", { url: "https://example.invalid/video" }, "url"],
+    ["core/booking-cta", { embedUrl: "https://www.youtube.com/watch?v=M7lc1UVf-VE" }, "embedUrl"],
+    ["blocks/contact-stack", { mapEmbedUrl: "https://example.invalid/map" }, "mapEmbedUrl"],
+    ["blocks/contact-stack", { items: [{ href: "javascript:void(0)" }] }, "items.0.href"],
+    ["core/iframe", { url: { label: "Example", href: "https://example.invalid/frame" } }, "url.href"],
+    ["core/script-embed", { provider: "youtube", resourceId: "too-short" }, "resourceId"],
+  ] as const) {
+    const before = JSON.stringify(attrs);
+    const result = loaded.module.validateDraft(name, attrs);
+    expect(result.ok).toBe(false);
+    expect(result.issues.some((issue: {path: (string | number)[]}) => issue.path.join(".") === field)).toBe(true);
+    expect(JSON.stringify(attrs)).toBe(before);
+  }
+});
 test("commerce source requirements and whole-product counts fail at the edited field without altering the draft", () => {
   const cases = [
     ["blocks/product-collection", { count: 1.5 }, "count"],

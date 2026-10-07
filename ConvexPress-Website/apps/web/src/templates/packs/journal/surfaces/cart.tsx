@@ -158,8 +158,8 @@ function Line({
 }) {
   const mediaId = item.variant?.featuredMediaId ?? item.product?.featuredMediaId;
   const title = getCartLineTitle(item.product, item.metadata);
-  const subtitle = getCartLineSubtitle(item.metadata);
-  const sku = getCartLineSku(item.product, item.metadata);
+  const subtitle = getCartLineSubtitle(item.metadata, item.variant);
+  const sku = getCartLineSku(item.product, item.metadata, item.variant);
   const isBundle = item.metadata?.lineType === "bundle";
   return (
     <li className="grid grid-cols-[5rem_minmax(0,1fr)] gap-5 py-6 sm:grid-cols-[6rem_minmax(0,1fr)_auto] sm:gap-6">

@@ -5,244 +5,6 @@
  * archive pages, and search results.
  */
 
-import type { PageSection } from "@/lib/page-builder/types";
-import type { ConvexPressBlock, BlockContentMode } from "@/lib/blocks/types";
-
-// ---------------------------------------------------------------------------
-// Block Content Types (TipTap JSON)
-// ---------------------------------------------------------------------------
-
-export type BlockType =
-  | "paragraph"
-  | "heading"
-  | "image"
-  | "gallery"
-  | "blockquote"
-  | "code"
-  | "orderedList"
-  | "bulletList"
-  | "table"
-  | "embed"
-  | "horizontalRule"
-  | "html"
-  | "callout"
-  | "button"
-  | "spacer"
-  | "divider"
-  | "columns"
-  | "column"
-  | "taskList"
-  | "taskItem";
-
-export interface BlockMark {
-  type: "bold" | "italic" | "underline" | "strike" | "code" | "link" | "highlight";
-  attrs?: {
-    href?: string;
-    target?: string;
-    rel?: string;
-    /** Highlight mark background color */
-    color?: string;
-  };
-}
-
-export interface InlineContent {
-  type: "text";
-  text: string;
-  marks?: BlockMark[];
-}
-
-export interface HeadingBlock {
-  type: "heading";
-  attrs: { level: 1 | 2 | 3 | 4 | 5 | 6 };
-  content?: InlineContent[];
-}
-
-export interface ParagraphBlock {
-  type: "paragraph";
-  content?: InlineContent[];
-}
-
-export interface ImageBlock {
-  type: "image";
-  attrs: {
-    /** Legacy / fallback URL. Optional when `mediaId` is provided. */
-    src?: string;
-    /** Media library reference. When present, render via MediaImage. */
-    mediaId?: string;
-    alt?: string;
-    title?: string;
-    width?: number;
-    height?: number;
-    caption?: string;
-    /** WP-style alignment. Default "none". */
-    align?: "none" | "left" | "center" | "right" | "wide" | "full";
-    /** WP-style link target. Default "none". */
-    linkTo?: "none" | "media" | "attachment" | "custom";
-    /** Custom URL when `linkTo === "custom"`. */
-    linkUrl?: string;
-    /** Which registered size variant to render. Default "large". */
-    sizeSlug?: "thumbnail" | "medium" | "medium_large" | "large" | "full";
-  };
-}
-
-export interface GalleryBlock {
-  type: "gallery";
-  attrs: {
-    columns?: number;
-  };
-  content: ImageBlock[];
-}
-
-export interface BlockquoteBlock {
-  type: "blockquote";
-  content?: (ParagraphBlock | HeadingBlock)[];
-}
-
-export interface CodeBlock {
-  type: "code";
-  attrs?: {
-    language?: string;
-  };
-  content?: InlineContent[];
-}
-
-export interface ListItemBlock {
-  type: "listItem";
-  content?: ParagraphBlock[];
-}
-
-export interface OrderedListBlock {
-  type: "orderedList";
-  attrs?: { start?: number };
-  content: ListItemBlock[];
-}
-
-export interface BulletListBlock {
-  type: "bulletList";
-  content: ListItemBlock[];
-}
-
-export interface TableCellBlock {
-  type: "tableCell" | "tableHeader";
-  attrs?: { colspan?: number; rowspan?: number };
-  content?: ParagraphBlock[];
-}
-
-export interface TableRowBlock {
-  type: "tableRow";
-  content: TableCellBlock[];
-}
-
-export interface TableBlock {
-  type: "table";
-  content: TableRowBlock[];
-}
-
-export interface EmbedBlock {
-  type: "embed";
-  attrs: {
-    src: string;
-    provider?: "youtube" | "vimeo" | "twitter" | "generic";
-    width?: number;
-    height?: number;
-  };
-}
-
-export interface HorizontalRuleBlock {
-  type: "horizontalRule";
-}
-
-export interface HtmlBlock {
-  type: "html";
-  attrs: {
-    content: string;
-  };
-}
-
-export interface CalloutBlock {
-  type: "callout";
-  attrs: {
-    type?: "info" | "warning" | "error" | "success";
-  };
-  content?: (ParagraphBlock | HeadingBlock)[];
-}
-
-export interface ButtonBlock {
-  type: "button";
-  attrs: {
-    text?: string;
-    url?: string;
-    variant?: "primary" | "secondary" | "outline" | string;
-    alignment?: "left" | "center" | "right";
-  };
-}
-
-export interface SpacerBlock {
-  type: "spacer";
-  attrs: {
-    height?: number;
-  };
-}
-
-export interface DividerBlock {
-  type: "divider";
-  attrs: {
-    style?: "solid" | "dashed" | "dotted" | "double";
-  };
-}
-
-export interface ColumnBlock {
-  type: "column";
-  content?: BlockContent[];
-}
-
-export interface ColumnsBlock {
-  type: "columns";
-  attrs: {
-    count?: number;
-  };
-  content?: ColumnBlock[];
-}
-
-export interface TaskItemBlock {
-  type: "taskItem";
-  attrs: {
-    checked?: boolean;
-  };
-  content?: ParagraphBlock[];
-}
-
-export interface TaskListBlock {
-  type: "taskList";
-  content?: TaskItemBlock[];
-}
-
-export type BlockContent =
-  | HeadingBlock
-  | ParagraphBlock
-  | ImageBlock
-  | GalleryBlock
-  | BlockquoteBlock
-  | CodeBlock
-  | OrderedListBlock
-  | BulletListBlock
-  | TableBlock
-  | EmbedBlock
-  | HorizontalRuleBlock
-  | HtmlBlock
-  | CalloutBlock
-  | ButtonBlock
-  | SpacerBlock
-  | DividerBlock
-  | ColumnsBlock
-  | ColumnBlock
-  | TaskListBlock
-  | TaskItemBlock;
-
-export interface BlockDocument {
-  type: "doc";
-  content: BlockContent[];
-}
 
 // ---------------------------------------------------------------------------
 // Taxonomy Types
@@ -313,11 +75,6 @@ export interface PostCard {
 }
 
 export interface PostDetail extends PostCard {
-  content: BlockDocument | null;
-  contentMode?: BlockContentMode;
-  blocks?: ConvexPressBlock[];
-  blocksVersion?: number;
-  blocksRevision?: number;
   categories: PostCategory[];
   tags: PostTag[];
   seoTitle?: string;
@@ -339,7 +96,6 @@ export interface PageDetail {
   title: string;
   slug: string;
   path: string;
-  content: BlockDocument | null;
   featuredImageUrl?: string;
   featuredImageAlt?: string;
   template?: "default" | "full-width" | "sidebar-left" | "sidebar-right" | "no-sidebar" | "landing" | "blank";
@@ -351,11 +107,6 @@ export interface PageDetail {
   ogImageUrl?: string;
   canonicalUrl?: string;
   isPasswordProtected?: boolean;
-  pageSections?: PageSection[];
-  contentMode?: BlockContentMode;
-  blocks?: ConvexPressBlock[];
-  blocksVersion?: number;
-  blocksRevision?: number;
   /** Breadcrumbs for hierarchical navigation */
   breadcrumbs?: Array<{
     _id: string;
@@ -433,7 +184,7 @@ export interface SearchResult {
   slug: string;
   excerpt: string;
   highlightedExcerpt?: string;
-  contentType: "post" | "page" | "media" | "comment" | "course" | "product";
+  contentType: "post" | "page" | "media" | "comment" | "course" | "product" | "event";
   publishedAt?: string;
   author?: {
     displayName: string;

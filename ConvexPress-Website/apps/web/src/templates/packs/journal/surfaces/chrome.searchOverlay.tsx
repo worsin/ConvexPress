@@ -70,7 +70,7 @@ export default function JournalChromeSearchOverlay({ data }: SurfaceProps<Search
             <UnderlineInput
               ref={inputRef}
               type="search"
-              placeholder="Search…"
+              placeholder={data.placeholder ?? "Search…"}
               value={query}
               onChange={onChange}
               onFocus={() => {

@@ -12,15 +12,6 @@
  */
 
 import { v } from "convex/values";
-import {
-  heroValidator,
-  topicsValidator,
-  summaryValidator,
-} from "../posts/validators";
-import {
-  blocksValidator,
-  contentModeValidator,
-} from "../blocks/validators";
 
 // ─── Shared Validators ───────────────────────────────────────────────────────
 
@@ -73,104 +64,6 @@ export const commentStatusValidator = v.union(
 );
 
 // ─── Mutation Args ──────────────────────────────────────────────────────────
-
-/**
- * Arguments for creating a new page.
- *
- * Only `title` is required. All other fields have sensible defaults:
- *   - status defaults to "draft"
- *   - visibility defaults to "public"
- *   - menuOrder defaults to 0
- *   - pageTemplate defaults to "default"
- *   - parentId defaults to undefined (top-level page)
- */
-export const createPageArgs = {
-  title: v.string(),
-  content: v.optional(v.string()),
-  excerpt: v.optional(v.string()),
-  status: v.optional(v.union(
-    v.literal("auto-draft"),
-    v.literal("draft"),
-    v.literal("pending"),
-    v.literal("publish"),
-    v.literal("private"),
-    v.literal("future"),
-  )),
-  parentId: v.optional(v.id("posts")),
-  menuOrder: v.optional(v.number()),
-  pageTemplate: v.optional(v.string()),
-  featuredImageId: v.optional(v.id("media")),
-  commentStatus: v.optional(commentStatusValidator),
-  visibility: v.optional(pageVisibilityValidator),
-  password: v.optional(v.string()),
-  slug: v.optional(v.string()),
-  publishedAt: v.optional(v.number()),
-  scheduledAt: v.optional(v.number()),
-  layoutId: v.optional(v.string()),
-  hideHeader: v.optional(v.boolean()),
-  hideFooter: v.optional(v.boolean()),
-  // Structured content fields
-  hero: heroValidator,
-  topics: topicsValidator,
-  summary: summaryValidator,
-  sources: v.optional(v.string()),
-  tableOfContents: v.optional(v.string()),
-  pagePrompt: v.optional(v.string()),
-  // Composition block fields
-  contentMode: v.optional(contentModeValidator),
-  blocks: v.optional(blocksValidator),
-  blocksVersion: v.optional(v.number()),
-  blocksRevision: v.optional(v.number()),
-};
-
-// Note: createPageArgs already includes "auto-draft" in the status union.
-// The create mutation must allow empty titles when status is "auto-draft".
-
-/**
- * Arguments for updating an existing page.
- *
- * All fields except pageId are optional -- only provided fields are updated.
- * The mutation handler builds a partial patch object from provided fields.
- */
-export const updatePageArgs = {
-  pageId: v.id("posts"),
-  title: v.optional(v.string()),
-  content: v.optional(v.string()),
-  excerpt: v.optional(v.string()),
-  status: v.optional(v.union(
-    v.literal("auto-draft"),
-    v.literal("draft"),
-    v.literal("pending"),
-    v.literal("publish"),
-    v.literal("private"),
-    v.literal("trash"),
-    v.literal("future"),
-  )),
-  parentId: v.optional(v.union(v.id("posts"), v.null())),
-  menuOrder: v.optional(v.number()),
-  pageTemplate: v.optional(v.string()),
-  featuredImageId: v.optional(v.id("media")),
-  commentStatus: v.optional(commentStatusValidator),
-  visibility: v.optional(pageVisibilityValidator),
-  password: v.optional(v.string()),
-  slug: v.optional(v.string()),
-  scheduledAt: v.optional(v.number()),
-  layoutId: v.optional(v.string()),
-  hideHeader: v.optional(v.boolean()),
-  hideFooter: v.optional(v.boolean()),
-  // Structured content fields
-  hero: heroValidator,
-  topics: topicsValidator,
-  summary: summaryValidator,
-  sources: v.optional(v.string()),
-  tableOfContents: v.optional(v.string()),
-  pagePrompt: v.optional(v.string()),
-  // Composition block fields
-  contentMode: v.optional(contentModeValidator),
-  blocks: v.optional(blocksValidator),
-  blocksVersion: v.optional(v.number()),
-  blocksRevision: v.optional(v.number()),
-};
 
 /**
  * Arguments for trashing a page (soft delete).

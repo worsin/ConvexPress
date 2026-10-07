@@ -1,3 +1,4 @@
+import { typeScale } from "./type-scale.mjs";
 import { canonicalBlockWatch } from "./canonical-block-watch.mjs";
 import fs from "node:fs";
 import path from "node:path";
@@ -54,6 +55,7 @@ export default defineConfig(() => {
       // bundle a second hook dispatcher beside external react-dom/server.
       dedupe: ["react", "react-dom", "zod"],
     },
+    css: { postcss: { plugins: [typeScale()] } },
     plugins: [
       canonicalBlockWatch({root:canonicalBlocksDir,discoveryId:path.join(appDir,"src/templates/sdk/block-renderer/discovery.ts")}),
       tsconfigPaths(),
@@ -88,6 +90,12 @@ export default defineConfig(() => {
         output: {
           manualChunks(rawId) {
             const id = rawId.replaceAll("\\", "/");
+            // Discovery expands every installed surface loader and its preload
+            // table. Cache that stable registry separately from the app entry;
+            // metadata stays synchronous and surface implementations stay lazy.
+            if (id.endsWith("/src/templates/sdk/registry.ts")) {
+              return "template-registry";
+            }
             if (!id.includes("/node_modules/")) {
               return undefined;
             }

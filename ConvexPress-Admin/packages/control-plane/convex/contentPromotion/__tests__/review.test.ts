@@ -9,10 +9,10 @@ import { hash } from "../policy";
 import type { ContentPromotionManifest } from "@convexpress/site-contract/content-promotion";
 import { fixture, modules, addReusableTransfer } from "./harness";
 test('controller review includes reusable source revisions as authored content',async()=>{
- const f=await fixture();addReusableTransfer(f);
+ const f=await fixture();addReusableTransfer(f);const exportContent=f.remote.export;f.remote.export=async(...args)=>{const result=await exportContent(...args) as {manifest:ContentPromotionManifest;downloadUrls:Array<{key:string;url:string}>};result.manifest.synced!.sources[0].isLocked=true;return result;};
  const result=await runReview(f.context,f.args,f.remote);
  expect(result.status).toBe('reviewed');expect(result.canApply).toBe(true);expect(result.recordCount).toBe(2);
- const shared=result.authoredRecords.find(r=>r.kind==='syncedBlock');expect(shared?.key).toBe('synced:source-shared');expect(JSON.parse(shared!.dataJson).revisions[0].title).toBe('Shared studio section');expect(result.changes).toHaveLength(2);
+ const shared=result.authoredRecords.find(r=>r.kind==='syncedBlock');expect(shared?.key).toBe('synced:source-shared');expect(JSON.parse(shared!.dataJson).revisions[0].title).toBe('Shared studio section');expect(result.changes).toHaveLength(2);expect(JSON.parse(shared!.dataJson).isLocked).toBe(true);
 });
 test("broker review stores authored hashes and sanitized readiness; duplicate request does not exchange sessions again",async()=>{
   const f=await fixture();const result=await runReview(f.context,f.args,f.remote);
@@ -164,4 +164,40 @@ test("broker transports explicitly selected product tags and refuses an omitted 
     expect(result.reviewReady).toBe(included);
     if (!included) expect(result.status).toBe("failed");
   }
+});
+
+test('broker transports selected language settings and empty groups and refuses an omitted language aggregate',async()=>{
+ for(const included of [true,false]){
+  const f=await fixture();const request={...f.request,selection:{...f.request.selection,pageIds:[],includeLocalization:true,localeGroupKeys:['removed-guide']}};
+  const original=f.remote.export;
+  f.remote.export=async(...args)=>{const result=await original(...args);result.manifest.records=included?[
+   {key:'localeRouting:site',kind:'localeRouting',sourceRevision:'r1',data:{key:'site',enabled:false,locales:[]}},
+   {key:'localeGroup:removed',kind:'localeGroup',sourceRevision:'g1',data:{key:'removed-guide',translations:[]}},
+  ]:[];return result;};
+  const result=await runReview(f.context,{...f.args,requestJson:JSON.stringify(request)},f.remote);
+  expect(result.reviewReady).toBe(included);if(included)expect(result.authoredRecords.map(r=>r.kind)).toEqual(['localeRouting','localeGroup']);else expect(result.status).toBe('failed');
+ }
+});
+
+test("appearance-only reviews bind the selection and require the requested appearance record", async () => {
+ for (const scenario of ["valid", "omitted", "unrelated"] as const) {
+  const f = await fixture();
+  const request = {...f.request, selection:{...f.request.selection,pageIds:[],includeAppearance:true}};
+  f.args.requestJson = JSON.stringify(request);
+  const original = f.remote.export;
+  f.remote.export = async (...args) => {
+   const result = await original(...args) as any;
+   result.manifest.records = scenario === "omitted" ? [] : [{key:"presentation:appearance.template",kind:"presentation",sourceRevision:"appearance-v1",data:{section:"appearance.template",values:{active:"core",overrides:{},variants:{},settings:{}}}}];
+   if (scenario === "unrelated") result.manifest.records.push({key:"presentation:general",kind:"presentation",sourceRevision:"general-v1",data:{section:"general",values:{siteTitle:"Unrequested title"}}});
+   return result;
+  };
+  const result = await runReview(f.context,f.args,f.remote);
+  expect(result.status).toBe(scenario === "valid" ? "reviewed" : "failed");
+  expect(result.reviewReady).toBe(scenario === "valid");
+ }
+});
+
+test('a locked destination returns actionable safe guidance without exposing server detail',async()=>{
+ const f=await fixture();f.remote.dryRun=async()=>{throw {data:{code:'SYNCED_LOCKED',message:'private destination detail'}};};
+ const result=await runReview(f.context,f.args,f.remote);expect(result.status).toBe('failed');expect(result.canApply).toBe(false);expect(result.failureCode).toBe('SYNCED_LOCKED');expect(JSON.stringify(result)).not.toContain('private destination detail');
 });

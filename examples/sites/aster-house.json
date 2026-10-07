@@ -1,0 +1,878 @@
+{
+  "contract": "convexpress-example-site-v1",
+  "id": "aster-house",
+  "name": "Aster House",
+  "fictional": true,
+  "brief": "A fictional small hospitality house centered on quiet stays, shared tables and walks. Rooms and local experiences should feel specific without inventing availability or reservations.",
+  "homepage": "home",
+  "documents": [
+    {
+      "key": "home",
+      "type": "page",
+      "title": "Make room for a slower stay",
+      "slug": "aster-house-home",
+      "blocks": [
+        {
+          "id": "home-hero",
+          "name": "core/hero",
+          "version": 2,
+          "attrs": {
+            "eyebrow": "Aster House",
+            "title": "Make room for a slower stay",
+            "body": "A quiet house, a shared table and time to notice the landscape around you."
+          },
+          "layout": {
+            "width": "wide",
+            "spacing": "spacious",
+            "tone": "muted",
+            "align": "start"
+          }
+        },
+        {
+          "id": "home-0",
+          "name": "core/section",
+          "version": 1,
+          "attrs": {},
+          "layout": {
+            "width": "contained",
+            "spacing": "spacious",
+            "tone": "default",
+            "align": "start"
+          },
+          "children": [
+            {
+              "id": "home-0-heading",
+              "name": "core/heading",
+              "version": 2,
+              "attrs": {
+                "text": {
+                  "type": "doc",
+                  "content": [
+                    {
+                      "type": "paragraph",
+                      "content": [
+                        {
+                          "type": "text",
+                          "text": "A place to settle in"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "id": "home-0-copy-0",
+              "name": "core/paragraph",
+              "version": 2,
+              "attrs": {
+                "body": {
+                  "type": "doc",
+                  "content": [
+                    {
+                      "type": "paragraph",
+                      "content": [
+                        {
+                          "type": "text",
+                          "text": "Begin the day without a crowded itinerary. Read by a window, take a short walk or spend an unhurried hour over breakfast."
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "home-1",
+          "name": "core/section",
+          "version": 1,
+          "attrs": {},
+          "layout": {
+            "width": "contained",
+            "spacing": "spacious",
+            "tone": "default",
+            "align": "start"
+          },
+          "children": [
+            {
+              "id": "home-1-heading",
+              "name": "core/heading",
+              "version": 2,
+              "attrs": {
+                "text": {
+                  "type": "doc",
+                  "content": [
+                    {
+                      "type": "paragraph",
+                      "content": [
+                        {
+                          "type": "text",
+                          "text": "Stay curious"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "id": "home-1-copy-0",
+              "name": "core/paragraph",
+              "version": 2,
+              "attrs": {
+                "body": {
+                  "type": "doc",
+                  "content": [
+                    {
+                      "type": "paragraph",
+                      "content": [
+                        {
+                          "type": "text",
+                          "text": "Our experience calendar brings together small gatherings and guided activities. Dates, availability and registration details belong to the actual event listing."
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "home-next",
+          "name": "core/cta-band",
+          "version": 2,
+          "attrs": {
+            "heading": "Find your own pace",
+            "primaryCtaLabel": "Explore the house",
+            "primaryCtaUrl": "/the-house"
+          },
+          "layout": {
+            "width": "contained",
+            "spacing": "spacious",
+            "tone": "accent",
+            "align": "start"
+          }
+        }
+      ]
+    },
+    {
+      "key": "house",
+      "type": "page",
+      "title": "A house for time together",
+      "slug": "the-house",
+      "blocks": [
+        {
+          "id": "house-hero",
+          "name": "core/hero",
+          "version": 2,
+          "attrs": {
+            "eyebrow": "Your stay",
+            "title": "A house for time together",
+            "body": "Quiet rooms, a shared table and a sheltered terrace give you space to settle into the day."
+          },
+          "layout": {
+            "width": "wide",
+            "spacing": "spacious",
+            "tone": "muted",
+            "align": "start"
+          }
+        },
+        {
+          "id": "house-0",
+          "name": "core/section",
+          "version": 1,
+          "attrs": {},
+          "layout": {
+            "width": "contained",
+            "spacing": "spacious",
+            "tone": "default",
+            "align": "start"
+          },
+          "children": [
+            {
+              "id": "house-0-heading",
+              "name": "core/heading",
+              "version": 2,
+              "attrs": {
+                "text": {
+                  "type": "doc",
+                  "content": [
+                    {
+                      "type": "paragraph",
+                      "content": [
+                        {
+                          "type": "text",
+                          "text": "Private corners"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "id": "house-0-copy-0",
+              "name": "core/paragraph",
+              "version": 2,
+              "attrs": {
+                "body": {
+                  "type": "doc",
+                  "content": [
+                    {
+                      "type": "paragraph",
+                      "content": [
+                        {
+                          "type": "text",
+                          "text": "The room collection is designed around reading, resting and getting ready for the day. Photographs and individual room descriptions will show the actual layout and amenities."
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "house-1",
+          "name": "core/section",
+          "version": 1,
+          "attrs": {},
+          "layout": {
+            "width": "contained",
+            "spacing": "spacious",
+            "tone": "default",
+            "align": "start"
+          },
+          "children": [
+            {
+              "id": "house-1-heading",
+              "name": "core/heading",
+              "version": 2,
+              "attrs": {
+                "text": {
+                  "type": "doc",
+                  "content": [
+                    {
+                      "type": "paragraph",
+                      "content": [
+                        {
+                          "type": "text",
+                          "text": "Shared spaces"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "id": "house-1-copy-0",
+              "name": "core/paragraph",
+              "version": 2,
+              "attrs": {
+                "body": {
+                  "type": "doc",
+                  "content": [
+                    {
+                      "type": "paragraph",
+                      "content": [
+                        {
+                          "type": "text",
+                          "text": "A communal table and quiet sitting areas make it easy to spend time together without turning every hour into an activity."
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "house-2",
+          "name": "core/section",
+          "version": 1,
+          "attrs": {},
+          "layout": {
+            "width": "contained",
+            "spacing": "spacious",
+            "tone": "default",
+            "align": "start"
+          },
+          "children": [
+            {
+              "id": "house-2-heading",
+              "name": "core/heading",
+              "version": 2,
+              "attrs": {
+                "text": {
+                  "type": "doc",
+                  "content": [
+                    {
+                      "type": "paragraph",
+                      "content": [
+                        {
+                          "type": "text",
+                          "text": "About this house"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "id": "house-2-copy-0",
+              "name": "core/paragraph",
+              "version": 2,
+              "attrs": {
+                "body": {
+                  "type": "doc",
+                  "content": [
+                    {
+                      "type": "paragraph",
+                      "content": [
+                        {
+                          "type": "text",
+                          "text": "Aster House is a fictional hospitality example. It does not offer live room availability or take real reservations. Experience records are clearly identified demonstration events."
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "house-next",
+          "name": "core/cta-band",
+          "version": 2,
+          "attrs": {
+            "heading": "Step outside",
+            "primaryCtaLabel": "Walks and gatherings",
+            "primaryCtaUrl": "/around-the-house"
+          },
+          "layout": {
+            "width": "contained",
+            "spacing": "spacious",
+            "tone": "accent",
+            "align": "start"
+          }
+        }
+      ]
+    },
+    {
+      "key": "around",
+      "type": "page",
+      "title": "Walks, conversations and shared meals",
+      "slug": "around-the-house",
+      "blocks": [
+        {
+          "id": "around-hero",
+          "name": "core/hero",
+          "version": 2,
+          "attrs": {
+            "eyebrow": "Experiences",
+            "title": "Walks, conversations and shared meals",
+            "body": "An experience begins with a useful invitation: where to meet, what to expect and who it is for."
+          },
+          "layout": {
+            "width": "wide",
+            "spacing": "spacious",
+            "tone": "muted",
+            "align": "start"
+          }
+        },
+        {
+          "id": "around-0",
+          "name": "core/section",
+          "version": 1,
+          "attrs": {},
+          "layout": {
+            "width": "contained",
+            "spacing": "spacious",
+            "tone": "default",
+            "align": "start"
+          },
+          "children": [
+            {
+              "id": "around-0-heading",
+              "name": "core/heading",
+              "version": 2,
+              "attrs": {
+                "text": {
+                  "type": "doc",
+                  "content": [
+                    {
+                      "type": "paragraph",
+                      "content": [
+                        {
+                          "type": "text",
+                          "text": "A short walk"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "id": "around-0-copy-0",
+              "name": "core/paragraph",
+              "version": 2,
+              "attrs": {
+                "body": {
+                  "type": "doc",
+                  "content": [
+                    {
+                      "type": "paragraph",
+                      "content": [
+                        {
+                          "type": "text",
+                          "text": "Choose a pace that leaves room to notice changes in light, weather and the ground underfoot. Published event details should explain terrain, duration and accessibility before registration."
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "around-1",
+          "name": "core/section",
+          "version": 1,
+          "attrs": {},
+          "layout": {
+            "width": "contained",
+            "spacing": "spacious",
+            "tone": "default",
+            "align": "start"
+          },
+          "children": [
+            {
+              "id": "around-1-heading",
+              "name": "core/heading",
+              "version": 2,
+              "attrs": {
+                "text": {
+                  "type": "doc",
+                  "content": [
+                    {
+                      "type": "paragraph",
+                      "content": [
+                        {
+                          "type": "text",
+                          "text": "At the table"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "id": "around-1-copy-0",
+              "name": "core/paragraph",
+              "version": 2,
+              "attrs": {
+                "body": {
+                  "type": "doc",
+                  "content": [
+                    {
+                      "type": "paragraph",
+                      "content": [
+                        {
+                          "type": "text",
+                          "text": "Small gatherings work best when guests know the format and dietary arrangements in advance. Read the individual listing for the current details."
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "around-next",
+          "name": "core/cta-band",
+          "version": 2,
+          "attrs": {
+            "heading": "See what is planned",
+            "primaryCtaLabel": "Experience calendar",
+            "primaryCtaUrl": "/events"
+          },
+          "layout": {
+            "width": "contained",
+            "spacing": "spacious",
+            "tone": "accent",
+            "align": "start"
+          }
+        }
+      ]
+    },
+    {
+      "key": "visit",
+      "type": "page",
+      "title": "Plan a thoughtful visit",
+      "slug": "plan-a-visit",
+      "blocks": [
+        {
+          "id": "visit-hero",
+          "name": "core/hero",
+          "version": 2,
+          "attrs": {
+            "eyebrow": "Before you arrive",
+            "title": "Plan a thoughtful visit",
+            "body": "A good visit starts with practical information, clear expectations and space to ask questions."
+          },
+          "layout": {
+            "width": "wide",
+            "spacing": "spacious",
+            "tone": "muted",
+            "align": "start"
+          }
+        },
+        {
+          "id": "visit-0",
+          "name": "core/section",
+          "version": 1,
+          "attrs": {},
+          "layout": {
+            "width": "contained",
+            "spacing": "spacious",
+            "tone": "default",
+            "align": "start"
+          },
+          "children": [
+            {
+              "id": "visit-0-heading",
+              "name": "core/heading",
+              "version": 2,
+              "attrs": {
+                "text": {
+                  "type": "doc",
+                  "content": [
+                    {
+                      "type": "paragraph",
+                      "content": [
+                        {
+                          "type": "text",
+                          "text": "Check the listing"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "id": "visit-0-copy-0",
+              "name": "core/paragraph",
+              "version": 2,
+              "attrs": {
+                "body": {
+                  "type": "doc",
+                  "content": [
+                    {
+                      "type": "paragraph",
+                      "content": [
+                        {
+                          "type": "text",
+                          "text": "Use the current experience page for its date, timezone, location and registration arrangements. This starter does not invent a street address or transport directions for a fictional house."
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "visit-1",
+          "name": "core/section",
+          "version": 1,
+          "attrs": {},
+          "layout": {
+            "width": "contained",
+            "spacing": "spacious",
+            "tone": "default",
+            "align": "start"
+          },
+          "children": [
+            {
+              "id": "visit-1-heading",
+              "name": "core/heading",
+              "version": 2,
+              "attrs": {
+                "text": {
+                  "type": "doc",
+                  "content": [
+                    {
+                      "type": "paragraph",
+                      "content": [
+                        {
+                          "type": "text",
+                          "text": "Bring the questions that matter"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "id": "visit-1-copy-0",
+              "name": "core/paragraph",
+              "version": 2,
+              "attrs": {
+                "body": {
+                  "type": "doc",
+                  "content": [
+                    {
+                      "type": "paragraph",
+                      "content": [
+                        {
+                          "type": "text",
+                          "text": "Accessibility, dietary needs and the pace of an activity deserve a specific answer. Use the inquiry below to try asking a question; this fictional example saves your message for review without sending email or making a reservation."
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "visit-next",
+          "name": "core/cta-band",
+          "version": 2,
+          "attrs": {
+            "heading": "Get to know the space",
+            "primaryCtaLabel": "The house",
+            "primaryCtaUrl": "/the-house"
+          },
+          "layout": {
+            "width": "contained",
+            "spacing": "spacious",
+            "tone": "accent",
+            "align": "start"
+          }
+        }
+      ]
+    },
+    {
+      "key": "note",
+      "type": "post",
+      "title": "Leave a little of the day unplanned",
+      "slug": "an-unplanned-hour",
+      "blocks": [
+        {
+          "id": "note-intro",
+          "name": "core/section",
+          "version": 1,
+          "attrs": {},
+          "layout": {
+            "width": "contained",
+            "spacing": "spacious",
+            "tone": "default",
+            "align": "start"
+          },
+          "children": [
+            {
+              "id": "note-intro-copy-0",
+              "name": "core/paragraph",
+              "version": 2,
+              "attrs": {
+                "body": {
+                  "type": "doc",
+                  "content": [
+                    {
+                      "type": "paragraph",
+                      "content": [
+                        {
+                          "type": "text",
+                          "text": "An open hour can change how a place feels. It gives you time to choose in response to the day rather than a schedule."
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "note-0",
+          "name": "core/section",
+          "version": 1,
+          "attrs": {},
+          "layout": {
+            "width": "contained",
+            "spacing": "spacious",
+            "tone": "default",
+            "align": "start"
+          },
+          "children": [
+            {
+              "id": "note-0-heading",
+              "name": "core/heading",
+              "version": 2,
+              "attrs": {
+                "text": {
+                  "type": "doc",
+                  "content": [
+                    {
+                      "type": "paragraph",
+                      "content": [
+                        {
+                          "type": "text",
+                          "text": "Make one small plan"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "id": "note-0-copy-0",
+              "name": "core/paragraph",
+              "version": 2,
+              "attrs": {
+                "body": {
+                  "type": "doc",
+                  "content": [
+                    {
+                      "type": "paragraph",
+                      "content": [
+                        {
+                          "type": "text",
+                          "text": "Pick a walk or a place to sit, then leave room around it. A simple anchor can offer direction without deciding every detail."
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "note-1",
+          "name": "core/section",
+          "version": 1,
+          "attrs": {},
+          "layout": {
+            "width": "contained",
+            "spacing": "spacious",
+            "tone": "default",
+            "align": "start"
+          },
+          "children": [
+            {
+              "id": "note-1-heading",
+              "name": "core/heading",
+              "version": 2,
+              "attrs": {
+                "text": {
+                  "type": "doc",
+                  "content": [
+                    {
+                      "type": "paragraph",
+                      "content": [
+                        {
+                          "type": "text",
+                          "text": "Notice the weather"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "id": "note-1-copy-0",
+              "name": "core/paragraph",
+              "version": 2,
+              "attrs": {
+                "body": {
+                  "type": "doc",
+                  "content": [
+                    {
+                      "type": "paragraph",
+                      "content": [
+                        {
+                          "type": "text",
+                          "text": "Light and weather are part of a place. A rainy afternoon might invite reading by a window rather than treating the day as an itinerary that went wrong."
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "note-next",
+          "name": "core/cta-band",
+          "version": 2,
+          "attrs": {
+            "heading": "Explore the setting",
+            "primaryCtaLabel": "Around the house",
+            "primaryCtaUrl": "/around-the-house"
+          },
+          "layout": {
+            "width": "contained",
+            "spacing": "spacious",
+            "tone": "accent",
+            "align": "start"
+          }
+        }
+      ]
+    }
+  ],
+  "navigation": [
+    {
+      "label": "Make room for a slower stay",
+      "documentKey": "home"
+    },
+    {
+      "label": "A house for time together",
+      "documentKey": "house"
+    },
+    {
+      "label": "Walks, conversations and shared meals",
+      "documentKey": "around"
+    },
+    {
+      "label": "Plan a thoughtful visit",
+      "documentKey": "visit"
+    }
+  ],
+  "requiredPlugins": [
+    "events"
+  ],
+  "requiredResources": [
+    "House and room photography with owned rights and alt text",
+    "Published demonstration event records with honest registration destinations",
+    "Configured hospitality inquiry test recipient"
+  ],
+  "acceptance": {
+    "authoredDocuments": false,
+    "menusAndAppearance": false,
+    "resourcesAndPluginRecords": false,
+    "desktopAndMobile": false,
+    "nativeEditAndPreview": false
+  }
+}

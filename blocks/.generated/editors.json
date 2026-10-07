@@ -61,6 +61,7 @@
             "type": "text"
           },
           {
+            "authoringSafeLink": true,
             "default": "",
             "id": "href",
             "max": 500,
@@ -158,7 +159,9 @@
             "type": "text"
           },
           {
+            "authoringSafeLink": true,
             "default": "",
+            "description": "An HTTP(S), site-relative, anchor, email or telephone destination; leave empty for no link.",
             "id": "url",
             "max": 500,
             "type": "text"
@@ -877,7 +880,9 @@
         "type": "select"
       },
       {
+        "authoringWebUrl": true,
         "default": "",
+        "description": "Complete HTTP or HTTPS address without embedded credentials. Leave empty to configure later.",
         "id": "customUrl",
         "max": 500,
         "type": "text"
@@ -2597,6 +2602,13 @@
         "type": "boolean"
       },
       {
+        "authoringConstraints": [
+          {
+            "kind": "ordered",
+            "lower": "startsAt",
+            "upper": "endsAt"
+          }
+        ],
         "fields": [
           {
             "id": "startsAt",
@@ -2726,6 +2738,11 @@
     "category": "site",
     "constraints": [],
     "fields": [
+      {
+        "default": false,
+        "id": "useCurrentAuthor",
+        "type": "boolean"
+      },
       {
         "allowEmpty": true,
         "default": "",
@@ -5262,7 +5279,7 @@
     "role": "content",
     "supports": {
       "anchor": true,
-      "children": false,
+      "children": true,
       "layout": [
         "width",
         "tone",
@@ -5536,7 +5553,7 @@
         "type": "select"
       },
       {
-        "default": "primary",
+        "default": "header",
         "id": "location",
         "max": 80,
         "type": "text"

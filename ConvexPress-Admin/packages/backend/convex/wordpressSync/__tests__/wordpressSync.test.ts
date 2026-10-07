@@ -416,3 +416,16 @@ describe("WordPress user credential migration", () => {
     });
   });
 });
+
+describe("WordPress document metadata acceptance",()=>{
+ test("reads page metadata from pages and propagates source failure for retry",async()=>{
+  const {fetchWPPostMeta}=await import("../helpers/wpClient");
+  let requestUrl="";
+  globalThis.fetch=(async input=>{requestUrl=String(input);return new Response(JSON.stringify({meta:{_elementor_data:"retained"}}),{status:200});}) as typeof fetch;
+  const credentials={siteUrl:"https://example.test",username:"fixture",applicationPassword:"synthetic"};
+  expect(await fetchWPPostMeta(credentials,71,"pages")).toEqual([{id:0,key:"_elementor_data",value:"retained"}]);
+  expect(new URL(requestUrl).pathname).toBe("/wp-json/wp/v2/pages/71");
+  globalThis.fetch=(async()=>new Response("denied",{status:403})) as typeof fetch;
+  await expect(fetchWPPostMeta(credentials,71,"pages")).rejects.toThrow();
+ });
+});

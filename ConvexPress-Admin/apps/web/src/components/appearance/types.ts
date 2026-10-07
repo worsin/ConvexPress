@@ -252,7 +252,7 @@ export interface ComposerSectionDef {
 export interface ComposerField {
   id: string;
   label: string;
-  type: "select" | "toggle" | "text" | "variant-grid";
+  type: "select" | "toggle" | "text" | "image" | "variant-grid";
   options?: { value: string; label: string }[];
   columns?: 2 | 3;
 }

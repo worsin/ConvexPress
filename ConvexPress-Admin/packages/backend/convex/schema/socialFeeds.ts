@@ -30,6 +30,9 @@ export const socialCache = v.object({
 	refreshedAt: v.number(),
 	expiresAt: v.number(),
 });
+export const instagramInput = v.object({userId:v.string(),apiVersion:v.string(),accessToken:v.string(),mediaOrigins:v.array(v.string())});
+export const storedInstagram = v.object({handle:v.string(),userId:v.string(),apiVersion:v.string(),accessTokenEncrypted:v.string(),mediaOrigins:v.array(v.string())});
+export const instagramAuthorization = v.object({userId:v.string(),apiVersion:v.string(),mediaOrigins:v.array(v.string())});
 export const socialFeedTables = {
 	socialFeedSources: defineTable({
 		websiteKey: v.string(),
@@ -57,6 +60,7 @@ export const socialFeedTables = {
 			),
 		),
 		cache: v.optional(socialCache),
+		instagram: v.optional(storedInstagram),
 	})
 		.index("by_scope_account", [
 			"websiteKey",

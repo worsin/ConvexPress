@@ -23,6 +23,11 @@ import {
 } from "./canonicalDocuments/validators";
 import {
 	canonicalBoundary,
+	createDocument,
+ updateDocumentMetadata,
+ getDocumentMetadata,
+ type DocumentMetadata,
+ type MetadataArgs,
 	getDocument,
 	previewDocument,
 	initializeDocument,
@@ -50,6 +55,26 @@ const writeArgs = {
 	title: v.string(),
 	blocks: canonicalStoredTreeValidator,
 };
+export const create: RegisteredMutation<"public", { type: "post" | "page"; title: string }, Promise<CanonicalWriteReceipt>> = mutation({
+  args: { type: v.union(v.literal("post"), v.literal("page")), title: v.string() },
+  returns: receiptValidator,
+  handler: (ctx, args) => canonicalBoundary(() => createDocument(ctx, args)),
+});
+/** Atomic native Quick Edit; the form's original revision is required. */
+export const updateMetadata: RegisteredMutation<"public", MetadataArgs, Promise<CanonicalWriteReceipt>> = mutation({
+ args: {postId:v.id("posts"),expectedRevision:v.number(),title:v.optional(v.string()),slug:v.optional(v.string()),
+  status:v.optional(v.union(v.literal("draft"),v.literal("publish"),v.literal("future"),v.literal("private"))),scheduledAt:v.optional(v.number()),
+  parentId:v.optional(v.union(v.id("posts"),v.null())),menuOrder:v.optional(v.number()),pageTemplate:v.optional(v.string()),
+  expectedSettingsDigest:v.optional(v.string()),excerpt:v.optional(v.string()),featuredImageId:v.optional(v.union(v.id("media"),v.null())),termIds:v.optional(v.array(v.id("terms"))),
+  commentStatus:v.optional(v.union(v.literal("open"),v.literal("closed"))),authorId:v.optional(v.id("users")),isSticky:v.optional(v.boolean())},
+ returns:receiptValidator,
+ handler:(ctx,args:MetadataArgs)=>canonicalBoundary(()=>updateDocumentMetadata(ctx,args)),
+});
+export const getMetadata:RegisteredQuery<"public",ReadArgs,Promise<DocumentMetadata>> = query({
+ args:{postId:v.id("posts")},
+ returns:v.object({postId:v.id("posts"),type:v.union(v.literal("post"),v.literal("page")),revision:v.number(),settingsDigest:v.string(),excerpt:v.string(),featuredImageId:v.union(v.id("media"),v.null()),commentStatus:v.union(v.literal("open"),v.literal("closed")),terms:v.array(v.object({id:v.id("terms"),name:v.string(),taxonomy:v.union(v.literal("category"),v.literal("post_tag"))}))}),
+ handler:(ctx,args)=>canonicalBoundary(()=>getDocumentMetadata(ctx,args.postId)),
+});
 export const get: RegisteredQuery<
 	"public",
 	GetArgs,
@@ -124,12 +149,12 @@ export const pageOptions: RegisteredQuery<
 });
 
 import type { CanonicalMigrationDto } from "./canonicalDocuments/foundation/migrationContracts";
-export const prepareMigration: RegisteredQuery<"public", ReadArgs, Promise<CanonicalMigrationDto>> = query({
-  args: { postId: v.id("posts") }, returns: migrationValidator,
+export const prepareMigration: RegisteredQuery<"public", ReadArgs & { preserveTrash?: boolean }, Promise<CanonicalMigrationDto>> = query({
+  args: { postId: v.id("posts"), preserveTrash: v.optional(v.boolean()) }, returns: migrationValidator,
   handler: (ctx, args) => canonicalBoundary(() => prepareMigrationDocument(ctx, args)),
 });
 export const migrate: RegisteredMutation<"public", MigrateArgs, Promise<CanonicalWriteReceipt>> = mutation({
-  args: { postId: v.id("posts"), expectedRevision: v.number(), expectedAuthoringDigest: v.string(), expectedCandidateDigest: v.string(), expectedPresentationRevision: v.string(), preserveInactiveSettings: v.optional(v.boolean()) }, returns: receiptValidator,
+  args: { postId: v.id("posts"), expectedRevision: v.number(), expectedAuthoringDigest: v.string(), expectedCandidateDigest: v.string(), expectedPresentationRevision: v.string(), preserveInactiveSettings: v.optional(v.boolean()), acknowledgeTextImport: v.optional(v.boolean()), acknowledgeHtmlImport: v.optional(v.boolean()), preserveTrash: v.optional(v.boolean()), preserveLegacyAutosave: v.optional(v.boolean()) }, returns: receiptValidator,
   handler: (ctx, args) => canonicalBoundary(() => migrateDocument(ctx, args)),
 });
 
@@ -153,15 +178,6 @@ export const duplicate: RegisteredMutation<"public", DuplicateArgs, Promise<Cano
   args: { postId: v.id("posts"), expectedRevision: v.number() },
   returns: receiptValidator,
   handler: (ctx, args) => canonicalBoundary(() => duplicateDocument(ctx, args)),
-});
-
-import { recoverLegacyDocument, type LegacyRecoveryArgs } from "./canonicalDocuments/service";
-import { recoveryReceiptValidator } from "./canonicalDocuments/validators";
-import type { CanonicalRecoveryReceipt } from "./canonicalDocuments/foundation/documentContracts";
-export const recoverLegacy: RegisteredMutation<"public", LegacyRecoveryArgs, Promise<CanonicalRecoveryReceipt>> = mutation({
-  args: { postId: v.id("posts"), revisionId: v.id("revisions"), expectedRevision: v.number() },
-  returns: recoveryReceiptValidator,
-  handler: (ctx, args) => canonicalBoundary(() => recoverLegacyDocument(ctx, args)),
 });
 
 import {menuOptions as menuChoices} from './canonicalDocuments/service';
@@ -305,3 +321,12 @@ export const mailingListOptions:RegisteredQuery<"public",PageArgs,Promise<Canoni
  args:{postId:v.id("posts"),paginationOpts:paginationOptsValidator},returns:mailingListOptionsValidator,
  handler:(ctx,args)=>canonicalBoundary(()=>mailingListChoices(ctx,args)),
 });
+
+import {prepareRevisionImport as prepareHistory, importRevision as importHistory, getRevisionSource as archiveSource, type RevisionImportArgs, type ImportRevisionArgs} from "./canonicalDocuments/service";
+import {revisionSourceValidator} from "./canonicalDocuments/validators";
+import type {RevisionSourceDto} from "./canonicalDocuments/foundation/migrationContracts";
+const historySourceArgs = {postId:v.id("posts"),revisionId:v.id("revisions")};
+const historyImportArgs = {...historySourceArgs,sourceKind:v.union(v.literal("saved"),v.literal("autosave"))};
+export const getRevisionSource: RegisteredQuery<"public",{postId:Id<"posts">;revisionId:Id<"revisions">},Promise<RevisionSourceDto>> = query({args:historySourceArgs,returns:revisionSourceValidator,handler:(ctx,args)=>canonicalBoundary(()=>archiveSource(ctx,args))});
+export const prepareRevisionImport: RegisteredQuery<"public",RevisionImportArgs & {request?: Record<string,string>},Promise<CanonicalMigrationDto>> = query({args:{...historyImportArgs,request:v.optional(v.record(v.string(),v.string()))},returns:migrationValidator,handler:(ctx,args)=>canonicalBoundary(()=>prepareHistory(ctx,args))});
+export const importRevision: RegisteredMutation<"public",ImportRevisionArgs,Promise<CanonicalWriteReceipt>> = mutation({args:{...historyImportArgs,expectedRevision:v.number(),expectedAuthoringDigest:v.string(),expectedArchiveDigest:v.string(),expectedCandidateDigest:v.string(),expectedPresentationRevision:v.string(),acknowledgeTextImport:v.optional(v.boolean()),acknowledgeHtmlImport:v.optional(v.boolean()),preserveInactiveSettings:v.optional(v.boolean())},returns:receiptValidator,handler:(ctx,args)=>canonicalBoundary(()=>importHistory(ctx,args))});

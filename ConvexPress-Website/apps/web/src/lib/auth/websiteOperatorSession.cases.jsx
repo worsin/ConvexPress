@@ -4,9 +4,12 @@ import { JSDOM } from "jsdom";
 
 const customer = { isLoaded: true, isSignedIn: true, userId: "customer", sessionId: "customer-session", orgId: null };
 let lastOperatorAuth, childMounts = 0;
+let capabilityAccess = "allowed";
+const backendAuth = { isLoading: false, isAuthenticated: true };
+mock.module("@/hooks/useCan", () => ({ useCapabilityAccess: () => capabilityAccess }));
 mock.module("./clerk", () => ({ useAuth: () => customer }));
 mock.module("convex/react-clerk", () => ({ ConvexProviderWithClerk: ({ children, useAuth }) => <div data-customer={useAuth().sessionId}>{children}</div> }));
-mock.module("convex/react", () => ({ ConvexProviderWithAuth: ({ children, useAuth }) => { lastOperatorAuth = useAuth(); return <div data-operator="true">{children}</div>; } }));
+mock.module("convex/react", () => ({ useConvexAuth: () => backendAuth, ConvexProviderWithAuth: ({ children, useAuth }) => { lastOperatorAuth = useAuth(); return <div data-operator="true">{children}</div>; } }));
 const { SessionBoundConvexProvider } = await import("./SessionBoundConvexProvider");
 const { WebsiteOperatorNotice, useWebsiteOperator } = await import("./WebsiteOperatorContext");
 let operatorControls;
@@ -39,8 +42,43 @@ async function environment(run) {
   const root = createRoot(document.getElementById("root"));
   const render = () => act(async () => root.render(<StrictMode><SessionBoundConvexProvider client={{}}><Child /></SessionBoundConvexProvider></StrictMode>));
   try { await run({ root, render }); }
-  finally { await act(async () => root.unmount()); showEditor = false; editorOwner = "one:staging:alice"; globalThis.fetch = oldFetch; dom.window.close(); for (const [key, desc] of Object.entries(prior)) { if (desc) Object.defineProperty(globalThis, key, desc); else delete globalThis[key]; } }
+  finally { await act(async () => root.unmount()); showEditor = false; capabilityAccess = "allowed"; backendAuth.isLoading = false; backendAuth.isAuthenticated = true; editorOwner = "one:staging:alice"; globalThis.fetch = oldFetch; dom.window.close(); for (const [key, desc] of Object.entries(prior)) { if (desc) Object.defineProperty(globalThis, key, desc); else delete globalThis[key]; } }
 }
+
+test("anonymous auth readiness preserves focused content; authority changes still replace it", async () => environment(async ({ root }) => {
+  window.history.replaceState(null, "", "/");
+  const original = { ...customer }, client = {};
+  const render = () => act(async () => root.render(<StrictMode><SessionBoundConvexProvider client={client}>
+    <a href="#details">Read the guide</a><details><summary>Details</summary>Content</details>
+  </SessionBoundConvexProvider></StrictMode>));
+  try {
+    Object.assign(customer, { isLoaded: false, isSignedIn: undefined, userId: undefined, sessionId: undefined, orgId: undefined });
+    await render();
+    const link = document.querySelector("a"), disclosure = document.querySelector("details");
+    link.focus(); disclosure.open = true;
+    Object.assign(customer, { isLoaded: true, isSignedIn: false, userId: null, sessionId: null, orgId: null });
+    await render();
+    expect(document.querySelector("a") === link).toBe(true);
+    expect(document.activeElement === link).toBe(true);
+    expect(disclosure.open).toBe(true);
+    let previous = link;
+    for (const changed of [
+      { isSignedIn: true, userId: "first", sessionId: "first-session" },
+      { sessionId: "second-session" },
+      { orgId: "other-organization" },
+      { userId: "second", sessionId: "third-session" },
+      // Unresolved authority cannot retain a previously authenticated subtree,
+      // even if the provider temporarily keeps its old identity fields.
+      { isLoaded: false },
+      { isLoaded: true },
+      { isSignedIn: false, userId: null, sessionId: null, orgId: null },
+    ]) {
+      Object.assign(customer, changed); await render();
+      expect(previous.isConnected).toBe(false);
+      previous = document.querySelector("a");
+    }
+  } finally { Object.assign(customer, original); }
+}));
 
 test("StrictMode redeems once, removes the secret, separates customer authority and remounts on explicit end", async () => environment(async ({ render }) => {
   let resolve, calls = 0;
@@ -49,7 +87,10 @@ test("StrictMode redeems once, removes the secret, separates customer authority 
   expect(calls).toBe(1);
   expect(document.body.textContent).toContain("Opening website editing");
   const before = childMounts;
-  await act(async () => resolve(Response.json({ token: "operator-token", expiresAt: Date.now() + 60000, instanceKey: "one:staging" })));
+  await act(async () => resolve(Response.json({ token: "operator-token", expiresAt: Date.now() + 60000, instanceKey: "one:staging", viewerSubject: "management-session" })));
+  expect(operatorControls.viewerSubject).toBe("management-session");
+  expect(operatorControls.instanceKey).toBe("one:staging");
+
   expect(document.querySelector("[data-operator]")).not.toBeNull();
   expect(document.querySelector("[data-customer]")).toBeNull();
   expect(await lastOperatorAuth.fetchAccessToken()).toBe("operator-token");
@@ -222,4 +263,33 @@ test("renewal refuses a different backend principal instead of preserving the ol
   expect(document.body.textContent).not.toContain("#123456");
   expect(document.body.textContent).toContain("editing account changed");
   expect(operatorControls.canReconnect).toBe(false);
+}));
+
+
+test("editing notice distinguishes verified authority, loading and revoked access without losing the session draft", async () => environment(async ({ render }) => {
+  showEditor = true;
+  globalThis.fetch = async () => Response.json({ token: "operator-token", expiresAt: Date.now() + 60000, instanceKey: "one:staging", userId: "alice" });
+  await render();
+  await act(async () => editDraft());
+  expect(document.body.textContent).toContain("Website editing is active for this tab.");
+  capabilityAccess = "pending"; await render();
+  expect(document.body.textContent).not.toContain("Website editing is active for this tab.");
+  expect(document.body.textContent).toContain("Checking website editing access");
+  capabilityAccess = "denied"; await render();
+  expect(document.body.textContent).toContain("Website editing access is no longer authorized");
+  expect(document.body.textContent).not.toContain("Save a private draft");
+  expect(document.body.textContent).not.toContain("Website editing is active for this tab.");
+  expect(document.querySelector('[role="alert"]')).not.toBeNull();
+  expect(document.querySelector("[data-editor]").textContent).toBe("#123456");
+  expect(operatorControls.active).toBe(true);
+  capabilityAccess = "allowed"; backendAuth.isAuthenticated = false; await render();
+  expect(document.body.textContent).toContain("Website editing access is no longer authorized");
+  capabilityAccess = "pending"; await render();
+  expect(document.body.textContent).toContain("Website editing access is no longer authorized");
+  backendAuth.isLoading = true; await render();
+  expect(document.body.textContent).toContain("Checking website editing access");
+  expect(document.querySelector('[role="alert"]')).toBeNull();
+  capabilityAccess = "allowed"; backendAuth.isLoading = false;
+  backendAuth.isAuthenticated = true; await render();
+  expect(document.body.textContent).toContain("Website editing is active for this tab.");
 }));

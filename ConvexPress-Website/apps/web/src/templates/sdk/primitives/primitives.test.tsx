@@ -294,3 +294,16 @@ test("canonical rich text preserves underline, line breaks and safe link targets
 		),
 	).toThrow();
 });
+
+test("canonical rich text renders authored markup literally and refuses active links", () => {
+  const text = '<img src=x onerror="alert(1)"> <script>alert(2)</script>';
+  const content = {type:"doc",content:[{type:"paragraph",content:[{type:"text",text}]}]};
+  const props = validatePrimitiveProps("RichText", {content});
+  const html = renderToStaticMarkup(<RichText {...props} />);
+  expect(html).toContain("&lt;img");
+  expect(html).toContain("&lt;script&gt;");
+  expect(html).not.toContain("<img");
+  expect(html).not.toContain("<script");
+  for (const href of ["javascript:alert(1)","java\nscript:alert(1)","data:text/html,test","/\\example.com","//example.com"])
+    expect(() => validatePrimitiveProps("RichText", {content:{type:"doc",content:[{type:"paragraph",content:[{type:"text",text:"Kept text",marks:[{type:"link",attrs:{href}}]}]}]}})).toThrow();
+});

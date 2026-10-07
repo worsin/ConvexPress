@@ -91,16 +91,27 @@ export function validateComposition(input: unknown): Composition { return compil
 
 /** Caller must supply attrs validated against the definition and data from an
  * authorized resolver. This pure evaluator grants no access and performs no IO. */
-export function resolveComposition(input: unknown, inputScope: { attrs: unknown; data?: unknown }, options: { allowedSlots?: readonly string[] } = {}): ResolvedCompositionNode | null {
+export function resolveComposition(input: unknown, inputScope: { attrs: unknown; data?: unknown }, options: { allowedSlots?: readonly string[]; omitDataDependentNodes?: boolean } = {}): ResolvedCompositionNode | null {
   const compiled = compile(input);
   const scope = copyCompositionJson({ attrs: inputScope.attrs, data: inputScope.data ?? null }) as Record<string, unknown>;
   const anchors = new Set<string>();
   const allowedSlots = new Set(options.allowedSlots ?? []);
   let nodes = 0, work = 0, outputBytes = 0;
   const encoder = new TextEncoder();
+  function dependsOnData(expression: Expression | undefined): boolean {
+    if (!expression) return false;
+    if (expression.kind === "path") return expression.parts[0] === "data";
+    if (expression.kind === "concat") return expression.items.some(dependsOnData);
+    if (expression.kind === "format") return expression.args.some(dependsOnData);
+    return false;
+  }
   function visit(item: CompiledNode, context: Record<string, unknown>, at: string): ResolvedCompositionNode | null {
     try {
       if (++work > 5000) throw Error("Composition evaluation work limit exceeded");
+      // Internal search projection only: never invent an empty resolver result.
+      // A data-dependent container prunes its descendants and loop aliases;
+      // independent authored siblings continue through the ordinary evaluator.
+      if (options.omitDataDependentNodes && [item.condition, item.collection, item.text, ...Object.values(item.bindings)].some(dependsOnData)) return null;
       if (item.condition) {
         const condition = evaluateExpression(item.condition, context);
         if (typeof condition !== "boolean") throw Error("if requires a boolean");

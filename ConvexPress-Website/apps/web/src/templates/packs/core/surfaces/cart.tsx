@@ -3,6 +3,7 @@ import type { Id } from "@convexpress-website/backend/generated/dataModel";
 import { Link } from "@tanstack/react-router";
 
 import {
+  type CartLineVariant,
   getCartLineBundleSelections,
   getCartLineSku,
   getCartLineSubtitle,
@@ -37,7 +38,7 @@ export interface CartSurfaceItem {
     stockQuantity?: number;
     sku?: string;
   } | null;
-  variant?: {
+  variant?: CartLineVariant & {
     _id: string;
     featuredMediaId?: string;
   } | null;
@@ -155,14 +156,14 @@ export default function CoreCart({ data }: SurfaceProps<CartSurfaceData>) {
                         >
                           {getCartLineTitle(item.product, item.metadata)}
                         </Link>
-                        {getCartLineSubtitle(item.metadata) ? (
+                        {getCartLineSubtitle(item.metadata, item.variant) ? (
                           <p className="mt-1 text-sm text-muted-foreground">
-                            {getCartLineSubtitle(item.metadata)}
+                            {getCartLineSubtitle(item.metadata, item.variant)}
                           </p>
                         ) : null}
-                        {getCartLineSku(item.product, item.metadata) ? (
+                        {getCartLineSku(item.product, item.metadata, item.variant) ? (
                           <p className="mt-1 text-xs text-muted-foreground">
-                            SKU {getCartLineSku(item.product, item.metadata)}
+                            SKU {getCartLineSku(item.product, item.metadata, item.variant)}
                           </p>
                         ) : null}
                       </div>

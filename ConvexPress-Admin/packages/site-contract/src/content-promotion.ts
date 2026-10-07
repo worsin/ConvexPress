@@ -32,7 +32,7 @@ const canonicalPromotionTransport: z.ZodType<PromotionCanonicalTree> = z.object(
 const syncedPromotionSourcesSchema: z.ZodType<PromotionSyncedSources> = z.object({
  contract:z.literal("synced-promotion-closure-v1"),
  scope:z.object({websiteKey:z.string().min(1).max(128),instanceKey:z.string().min(1).max(128),deploymentOrigin:z.string().url().max(2048)}).strict(),
- sources:z.array(z.object({key:short.min(1),generation:z.number().int().positive().max(Number.MAX_SAFE_INTEGER),publishedRevision:z.number().int().min(1).max(1_000_000),revisions:z.array(z.object({revision:z.number().int().min(1).max(1_000_000),title:z.string().min(1).max(512),tree:canonicalPromotionTransport}).strict()).min(1).max(100)}).strict()).min(1).max(100),
+ sources:z.array(z.object({key:short.min(1),generation:z.number().int().positive().max(Number.MAX_SAFE_INTEGER),publishedRevision:z.number().int().min(1).max(1_000_000),isLocked:z.boolean().optional(),revisions:z.array(z.object({revision:z.number().int().min(1).max(1_000_000),title:z.string().min(1).max(512),tree:canonicalPromotionTransport}).strict()).min(1).max(100)}).strict()).min(1).max(100),
 }).strict();
 const authoredContent = {
  blocksVersion:z.union([z.literal(1),z.literal(2)]).optional(),
@@ -93,6 +93,8 @@ const catalogMoney = z.object({ amount: z.number().int().nonnegative(), currency
 const catalogOption = z.object({ name: short.min(1), values: z.array(short.min(1)).min(1).max(100) }).strict();
 const variantOption = z.object({ name: short.min(1), value: short.min(1) }).strict();
 export const promotionDataSchemas = {
+  localeRouting: z.object({key:z.literal("site"),enabled:z.boolean(),locales:z.array(z.object({code:short.min(1),label:short.min(1),direction:z.enum(["ltr","rtl"]),landingPageId:short.min(1)}).strict()).max(24)}).strict(),
+  localeGroup: z.object({key:z.string().regex(/^[a-z0-9][a-z0-9-]{0,79}$/),translations:z.array(z.object({code:short.min(1),documentId:short.min(1)}).strict()).max(24)}).strict(),
   course: z.object({ title: short.min(1), slug: short.min(1), descriptionDoc: z.unknown().optional(), excerpt: text.optional(), status: z.enum(["draft","published","archived"]), featuredImageId: short.optional(), promoVideoUrl: short.optional(), categoryIds: z.array(short).max(20).optional(), tagIds: z.array(short).max(20).optional(), accessMode: z.enum(["open","free","members","closed"]), progressionMode: z.enum(["linear","free_form"]).optional(), pointsAwarded: z.number().int().nonnegative().optional(), pointsRequired: z.number().int().nonnegative().optional(), prereqMode: z.enum(["any","all"]).optional(), accessDurationDays: z.number().int().nonnegative().optional(), startDate: z.number().optional(), endDate: z.number().optional(), seatLimit: z.number().int().nonnegative().optional(), contentVisibility: z.enum(["always","enrollees_only"]).optional(), completionRedirectUrl: short.optional(), materialsDoc: z.unknown().optional() }).strict(),
   courseNode: z.object({ courseId: short, parentId: short.optional(), kind: z.enum(["topic","lesson","section_heading"]), title: short.min(1), position: z.number(), description: text.optional(), topicDripMode: z.enum(["immediately","enrollment_based","specific_date"]).optional(), topicDripOffsetDays: z.number().int().nonnegative().optional(), topicDripDate: z.number().optional(), bodyDoc: z.unknown().optional(), materialsDoc: z.unknown().optional(), videoUrl: short.optional(), videoProvider: short.optional(), videoMediaId: short.optional(), requireVideoWatch: z.boolean().optional(), autoComplete: z.boolean().optional(), completionDelaySec: z.number().nonnegative().optional(), minTimeSeconds: z.number().nonnegative().optional(), showMarkComplete: z.boolean().optional(), isPreview: z.boolean().optional(), lessonDripMode: z.enum(["immediately","enrollment_based","specific_date"]).optional(), lessonDripOffsetDays: z.number().int().nonnegative().optional(), lessonDripDate: z.number().optional(), audioMediaId: short.optional(), captionsMediaId: short.optional(), transcriptText: text.optional(), aiVideoMediaId: short.optional() }).strict(),
   coursePrerequisite: z.object({ courseId: short, prereqCourseId: short }).strict(),
@@ -245,7 +247,7 @@ export const promotionDataSchemas = {
 } as const;
 export type PromotionKind =
   | "page" | "post" | "media" | "menu" | "menuItem" | "menuLocation"
-  | "term" | "termRelationship" | "restriction" | "event" | "eventCategory" | "kbCategory" | "presentation" | "postMeta" | "product" | "productCategory" | "productTag" | "productBrand" | "productVariant" | "course" | "courseNode" | "coursePrerequisite" | "plan" | "planBenefit";
+  | "term" | "termRelationship" | "restriction" | "event" | "eventCategory" | "kbCategory" | "presentation" | "postMeta" | "product" | "productCategory" | "productTag" | "productBrand" | "productVariant" | "course" | "courseNode" | "coursePrerequisite" | "plan" | "planBenefit" | "localeRouting" | "localeGroup";
 export const promotionPresentationSchemas = {
 	general: z
 		.object({
@@ -291,7 +293,7 @@ export const promotionRecordSchema: z.ZodType<PromotionRecord> = z
 		const result = promotionDataSchemas[record.kind].safeParse(record.data);
     if(record.kind === "page" || record.kind === "post") {
       const canonical=record.data.blocksVersion===2;
-      if(canonical ? (!record.data.canonical || record.data.blocks!==undefined || record.data.contentMode!=="blocks" || Boolean(record.data.content) || !["draft","publish","private"].includes(String(record.data.status))) : record.data.canonical!==undefined)
+      if(canonical ? (!record.data.canonical || record.data.blocks!==undefined || Boolean(record.data.content) || !["draft","publish","private"].includes(String(record.data.status))) : record.data.canonical!==undefined)
         ctx.addIssue({code:"custom",path:["data","canonical"],message:"Canonical pages require an explicit v2 transport and no legacy body; legacy pages cannot include canonical transport."});
     }
 		if (record.kind === "presentation" && result.success) {
@@ -318,7 +320,7 @@ export const promotionRecordSchema: z.ZodType<PromotionRecord> = z
 	});
 export const promotionChangeKindSchema = z.union([z.enum(Object.keys(promotionDataSchemas) as [PromotionKind, ...PromotionKind[]]), z.literal('syncedBlock')]);
 export const promotionSyncedReviewDataSchema = z.object({
-  title: z.string().min(1).max(512), publishedRevision: z.number().int().min(1).max(1_000_000),
+  title: z.string().min(1).max(512), publishedRevision: z.number().int().min(1).max(1_000_000), isLocked: z.boolean().optional(),
   revisions: z.array(z.object({revision:z.number().int().min(1).max(1_000_000),title:z.string().min(1).max(512),tree:canonicalPromotionTransport}).strict()).min(1).max(100),
 }).strict();
 export const promotionReviewedRecordSchema = z.union([promotionRecordSchema, z.object({key:short.min(1),kind:z.literal('syncedBlock'),sourceRevision:short.min(1),data:promotionSyncedReviewDataSchema}).strict()]);
@@ -327,7 +329,7 @@ export const promotionReviewedRecordSchema = z.union([promotionRecordSchema, z.o
 export function promotionReviewedRecords(manifest: ContentPromotionManifest) {
   return [...manifest.records, ...(manifest.synced?.sources ?? []).map(source => ({
     key: source.key.slice(PROMOTION_REFERENCE_PREFIX.length), kind: 'syncedBlock' as const, sourceRevision: String(source.generation),
-    data: promotionSyncedReviewDataSchema.parse({ title: source.revisions.find(v=>v.revision===source.publishedRevision)?.title, publishedRevision: source.publishedRevision, revisions: source.revisions }),
+    data: promotionSyncedReviewDataSchema.parse({ title: source.revisions.find(v=>v.revision===source.publishedRevision)?.title, publishedRevision: source.publishedRevision, isLocked: source.isLocked === true, revisions: source.revisions }),
   }))];
 }
 export const promotionIssueSchema: z.ZodType<PromotionIssue> = z
@@ -346,6 +348,7 @@ export const promotionDependencySchema: z.ZodType<PromotionDependency> = z
 			"course",
 			"plan",
 			"form",
+      "mailingList",
 			"role",
 			"plugin",
 			"catalog",
@@ -374,7 +377,10 @@ export const contentPromotionManifestSchema: z.ZodType<ContentPromotionManifest>
         productTagIds: z.array(short).max(100).optional(),
         productBrandIds: z.array(short).max(100).optional(),
 				includePresentation: z.boolean(),
+    includeAppearance: z.boolean().optional(),
         includeRoutePolicies: z.boolean().optional(),
+        includeLocalization: z.boolean().optional(),
+        localeGroupKeys: z.array(z.string().regex(/^[a-z0-9][a-z0-9-]{0,79}$/)).max(100).optional(),
 			})
 			.strict(),
 		records: z.array(promotionRecordSchema).max(MAX_PROMOTION_RECORDS),
@@ -407,7 +413,7 @@ export interface PromotionCanonicalTree {
 export interface PromotionSyncedSources {
  contract:"synced-promotion-closure-v1";
  scope:{websiteKey:string;instanceKey:string;deploymentOrigin:string};
- sources:Array<{key:string;generation:number;publishedRevision:number;revisions:Array<{revision:number;title:string;tree:PromotionCanonicalTree}>}>;
+ sources:Array<{key:string;generation:number;publishedRevision:number;isLocked?:boolean;revisions:Array<{revision:number;title:string;tree:PromotionCanonicalTree}>}>;
 }
 export interface PromotionIssue {
   code: string;
@@ -417,7 +423,7 @@ export interface PromotionIssue {
 }
 export interface PromotionDependency {
   key: string;
-  kind: "product" | "course" | "plan" | "form" | "role" | "plugin" | "catalog";
+  kind: "product" | "course" | "plan" | "form" | "mailingList" | "role" | "plugin" | "catalog";
   sourceId?: string;
   slug?: string;
   requiredBy: string[];
@@ -439,7 +445,10 @@ export interface ContentPromotionManifest {
     productTagIds?: string[];
     productBrandIds?: string[];
     includePresentation: boolean;
+    includeAppearance?: boolean;
     includeRoutePolicies?: boolean;
+    includeLocalization?: boolean;
+    localeGroupKeys?: string[];
   };
   records: PromotionRecord[];
   synced?: PromotionSyncedSources;

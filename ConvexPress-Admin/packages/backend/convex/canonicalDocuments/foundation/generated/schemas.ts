@@ -41,7 +41,7 @@ const schemaFactories = {
 "core/announcement-bar":once(()=>z.object({"text":z.string().max(500).prefault(""),"link":z.object({label:z.string().max(160),href:safeLinkSchema(z,undefined),newTab:z.boolean().optional()}).strict().optional(),"dismissible":z.boolean().prefault(true),"schedule":z.object({"startsAt":dateSchema(z).optional(),"endsAt":dateSchema(z).optional()}).strict().optional()}).strict()),
 "core/archive-list":once(()=>z.object({"groupBy":z.union([z.literal("month"),z.literal("year")]).prefault("month"),"limit":z.number().int().min(1).max(48).prefault(12)}).strict()),
 "core/audio":once(()=>z.object({"media":z.object({id:z.string().min(1).max(256),alt:z.string().max(1000).optional(),focalPoint:z.object({x:z.number().min(0).max(1),y:z.number().min(0).max(1)}).strict().optional()}).strict().optional(),"title":z.string().max(160).prefault(""),"transcript":z.object({label:z.string().max(160),href:safeLinkSchema(z,["https","http","relative"]),newTab:z.boolean().optional()}).strict().optional()}).strict()),
-"core/author-bio":once(()=>z.object({"userId":z.string().prefault(""),"name":z.string().max(80).prefault(""),"role":z.string().max(80).prefault(""),"bio":z.string().max(500).prefault(""),"mediaId":z.string().prefault(""),"links":z.array(z.object({"label":z.string().max(40).prefault(""),"href":safeLinkSchema(z,undefined).or(z.literal("")).prefault("")}).strict()).max(6).prefault([])}).strict()),
+"core/author-bio":once(()=>z.object({"useCurrentAuthor":z.boolean().prefault(false),"userId":z.string().prefault(""),"name":z.string().max(80).prefault(""),"role":z.string().max(80).prefault(""),"bio":z.string().max(500).prefault(""),"mediaId":z.string().prefault(""),"links":z.array(z.object({"label":z.string().max(40).prefault(""),"href":safeLinkSchema(z,undefined).or(z.literal("")).prefault("")}).strict()).max(6).prefault([])}).strict()),
 "core/before-after":once(()=>z.object({"before":z.object({id:z.string().min(1).max(256),alt:z.string().max(1000).optional(),focalPoint:z.object({x:z.number().min(0).max(1),y:z.number().min(0).max(1)}).strict().optional()}).strict().optional(),"after":z.object({id:z.string().min(1).max(256),alt:z.string().max(1000).optional(),focalPoint:z.object({x:z.number().min(0).max(1),y:z.number().min(0).max(1)}).strict().optional()}).strict().optional(),"beforeLabel":z.string().max(80).prefault("Before"),"afterLabel":z.string().max(80).prefault("After")}).strict()),
 "core/bento-grid":once(()=>z.object({"eyebrow":z.string().max(80).prefault(""),"heading":z.string().max(120).prefault(""),"body":z.string().max(300).prefault(""),"items":z.array(z.object({"size":z.union([z.literal("auto"),z.literal("standard"),z.literal("wide")]).optional(),"title":z.string().max(80).prefault(""),"body":z.string().max(400).prefault(""),"mediaId":z.string().prefault(""),"ctaLabel":z.string().max(40).prefault(""),"ctaUrl":safeLinkSchema(z,undefined).or(z.literal("")).prefault("")}).strict()).max(12).prefault([])}).strict()),
 "core/booking-cta":once(()=>z.object({"eyebrow":z.string().max(80).prefault(""),"heading":z.string().max(120).min(1).nullable().prefault(null),"body":z.string().max(400).prefault(""),"ctaLabel":z.string().max(40).prefault("Book a time"),"ctaUrl":safeLinkSchema(z,undefined).or(z.literal("")).prefault(""),"embedUrl":safeLinkSchema(z,undefined).or(z.literal("")).prefault("")}).strict()),
@@ -89,7 +89,7 @@ const schemaFactories = {
 "core/map":once(()=>z.object({"address":z.string().max(500).prefault(""),"latitude":z.number().min(-90).max(90).optional(),"longitude":z.number().min(-180).max(180).optional(),"provider":z.literal("openstreetmap").prefault("openstreetmap"),"directions":z.object({label:z.string().max(160),href:safeLinkSchema(z,undefined),newTab:z.boolean().optional()}).strict().optional()}).strict()),
 "core/marquee":once(()=>z.object({"items":z.array(z.object({"text":z.string().max(160).min(1),"media":z.object({id:z.string().min(1).max(256),alt:z.string().max(1000).optional(),focalPoint:z.object({x:z.number().min(0).max(1),y:z.number().min(0).max(1)}).strict().optional()}).strict().optional(),"link":z.object({label:z.string().max(160),href:safeLinkSchema(z,undefined),newTab:z.boolean().optional()}).strict().optional()}).strict()).max(30).prefault([])}).strict()),
 "core/media-text":once(()=>z.object({"eyebrow":z.string().max(80).prefault(""),"heading":z.string().max(120).prefault(""),"body":z.string().max(600).prefault(""),"mediaId":z.string().prefault(""),"mediaAlt":z.string().max(200).prefault(""),"ctaLabel":z.string().max(40).prefault(""),"ctaUrl":safeLinkSchema(z,undefined).or(z.literal("")).prefault("")}).strict()),
-"core/menu":once(()=>z.object({"source":z.union([z.literal("location"),z.literal("menu")]).prefault("location"),"location":z.string().max(80).prefault("primary"),"menu":z.string().min(1).max(256).optional()}).strict()),
+"core/menu":once(()=>z.object({"source":z.union([z.literal("location"),z.literal("menu")]).prefault("location"),"location":z.string().max(80).prefault("header"),"menu":z.string().min(1).max(256).optional()}).strict()),
 "core/newsletter-signup":once(()=>z.object({"eyebrow":z.string().max(80).prefault(""),"heading":z.string().max(120).prefault(""),"body":z.string().max(300).prefault(""),"placeholder":z.string().max(80).prefault("Your email"),"submitLabel":z.string().max(40).prefault("Subscribe"),"successMessage":z.string().max(200).prefault("You're subscribed.")}).strict()),
 "core/paragraph":once(()=>z.object({"body":createRichTextSchema(z,20000,false).prefault({"content":[],"type":"doc"})}).strict()),
 "core/poll":once(()=>z.object({"question":z.string().max(500).prefault(""),"options":z.array(z.object({"key":z.string().max(80).min(1),"label":z.string().max(240).min(1)}).strict()).max(12).prefault([]),"showResults":z.boolean().prefault(true),"responsePolicy":z.union([z.literal("visitor"),z.literal("signedIn")]).prefault("visitor")}).strict()),
@@ -416,6 +416,13 @@ const authoringActions: Readonly<Record<string, readonly AuthoringAction[]>> = {
       ]
     }
   ],
+  "core/booking-cta": [
+    {
+      "href": "ctaUrl",
+      "label": "ctaLabel",
+      "path": []
+    }
+  ],
   "core/cta-band": [
     {
       "href": "primaryCtaUrl",
@@ -524,6 +531,49 @@ const authoringActions: Readonly<Record<string, readonly AuthoringAction[]>> = {
 }
 ;
 const fieldRules: Readonly<Record<string, readonly AuthoringFieldRule[]>> = {
+  "blocks/contact-stack": [
+    {
+      "kind": "safe-link",
+      "path": [
+        "items",
+        "*",
+        "href"
+      ]
+    }
+  ],
+  "blocks/customer-showcase": [
+    {
+      "kind": "safe-link",
+      "path": [
+        "items",
+        "*",
+        "url"
+      ]
+    }
+  ],
+  "blocks/social-share": [
+    {
+      "kind": "web-url",
+      "path": [
+        "customUrl"
+      ]
+    }
+  ],
+  "core/announcement-bar": [
+    {
+      "constraints": [
+        {
+          "kind": "ordered",
+          "lower": "startsAt",
+          "upper": "endsAt"
+        }
+      ],
+      "kind": "constraints",
+      "path": [
+        "schedule"
+      ]
+    }
+  ],
   "core/cta-with-form": [
     {
       "kind": "nonblank",

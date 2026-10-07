@@ -8,16 +8,10 @@ import { validateSectionValues } from "./validation";
 import { deleteWithMediaReferences, insertWithMediaReferences, patchWithMediaReferences } from "../media/attachmentGuard";
 
 const plain = (value: unknown): value is Record<string, unknown> => !!value && typeof value === "object" && !Array.isArray(value);
-const slug = /^[a-z0-9][a-z0-9-]{0,63}$/;
 function validateValues(value: unknown): asserts value is AppearanceValues {
   if (!plain(value) || typeof value.active !== "string" || !plain(value.overrides) || !plain(value.variants) || !plain(value.settings)) throw new ConvexError({ code: "INVALID_TEMPLATE", message: "A complete template configuration is required." });
   const errors = validateSectionValues("appearance.template", value);
-  for (const [pack, modules] of Object.entries(value.settings)) {
-    if (!slug.test(pack) || !plain(modules)) errors.push({ field: `settings.${pack}`, message: "Invalid pack settings." });
-    else for (const [module, fields] of Object.entries(modules)) if (!slug.test(module) || !plain(fields)) errors.push({ field: `settings.${pack}.${module}`, message: "Invalid module settings." });
-  }
   if (errors.length) throw new ConvexError({ code: "INVALID_TEMPLATE", message: errors[0].message });
-  if (JSON.stringify(value).length > 250_000) throw new ConvexError({ code: "INVALID_TEMPLATE", message: "Template settings are too large." });
 }
 const revision = (value: unknown) => sha256Hex(canonicalJson(value));
 async function currentSnapshot(ctx: Pick<QueryCtx, "db">) {

@@ -3,8 +3,6 @@ import type { ZodType } from "zod";
 // Re-export to avoid relying on the `React` namespace name in jsx-runtime mode.
 export type { ReactNode };
 
-export type BlockContentMode = "article" | "blocks";
-
 export type CoreBlockName =
   // Wave A — content blocks
   | "core/paragraph"
@@ -68,8 +66,8 @@ export interface BlockRendererProps<TAttrs extends Record<string, unknown>> {
    * Recursively rendered innerBlocks. Container blocks (columns, accordion,
    * tabs, etc.) drop this into their layout. Leaf blocks ignore it.
    *
-   * BlockListRenderer always passes a value (either a node or null) so the
-   * type is non-undefined when accessed.
+   * Original utility specimens may omit children. Production documents use
+   * the canonical renderer and its validated child slots.
    */
   children?: ReactNode;
 }

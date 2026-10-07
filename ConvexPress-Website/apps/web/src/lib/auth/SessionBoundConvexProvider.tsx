@@ -138,9 +138,13 @@ export function SessionBoundConvexProvider(props: Props) {
     window.addEventListener("online", resume); window.addEventListener("focus", resume);
     return () => { window.removeEventListener("online", resume); window.removeEventListener("focus", resume); };
   }, [reconnect]);
-  const key = JSON.stringify([auth.isLoaded, auth.userId ?? null, auth.sessionId ?? null, auth.orgId ?? null]);
+  // Loading an anonymous session does not change its authority. Preserve SSR
+  // links, focus and disclosures across that handoff. Unresolved auth still
+  // clears any previously authenticated subtree, even if stale IDs linger.
+  const identity = auth.isLoaded ? auth : null;
+  const key = JSON.stringify([identity?.userId ?? null, identity?.sessionId ?? null, identity?.orgId ?? null]);
   const canReconnect = !!desktop.current && !!owner.current;
-  const operator = useMemo(() => ({ active: !!session, expiresAt: session?.expiresAt ?? null, pending, error, end, dismiss, reconnect, canReconnect }), [session, pending, error, end, dismiss, reconnect, canReconnect]);
+  const operator = useMemo(() => ({ active: !!session, viewerSubject: session?.viewerSubject ?? null, instanceKey: session?.instanceKey ?? null, expiresAt: session?.expiresAt ?? null, pending, error, end, dismiss, reconnect, canReconnect }), [session, pending, error, end, dismiss, reconnect, canReconnect]);
   const draftAccess = useMemo(() => session ? recovery.access(session) : null, [session, recovery]);
   return <WebsiteOperatorContext.Provider value={operator}>
     <OperatorDraftContext.Provider value={draftAccess}>

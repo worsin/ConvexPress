@@ -112,8 +112,8 @@ export function convertLegacyFooterToRows(legacy: FooterConfig): FooterRow[] {
           type: "nav",
           heading: col.heading,
           menuLocation:
-            col.menuSource === "custom" || col.menuSource === "auto-pages"
-              ? "footer-1"
+            col.menuSource === "custom"
+              ? "footer"
               : col.menuSource,
         }),
       );
@@ -163,7 +163,9 @@ export function convertLegacyFooterToRows(legacy: FooterConfig): FooterRow[] {
         makeColumn(
           legacy.bottomBar.legalLinks === "none"
             ? makeDefaultCell("links")
-            : {
+            : legacy.bottomBar.legalLinks === "custom"
+              ? { type: "nav", menuLocation: "footer", alignment: "right" }
+              : {
                 type: "links",
                 items: [
                   {

@@ -65,3 +65,15 @@ test("canonical publication revision CAS preserves body and rejects conflicting 
   expect(prepareCanonicalPublication(current, { expectedRevision: 9, status: "future", scheduledAt: 200 }, 100)).toMatchObject({ revision: 10, publication: { status: "future", scheduledAt: 200 } });
   for (const args of [{ expectedRevision: 8, status: "publish" }, { expectedRevision: 9, status: "future", scheduledAt: 90 }, { expectedRevision: 9, status: "publish", scheduledAt: 200 }]) expect(() => prepareCanonicalPublication(current, args as any, 100)).toThrow();
 });
+
+
+test("canonical version and validated tree govern current editing, publication and recovery without legacy mode", () => {
+  for (const contentMode of [undefined, "article", "blocks"]) {
+    const row = {...current, contentMode};
+    expect(prepareCanonicalSave(row, {expectedRevision:9,title:"Changed",blocks:[]})).toMatchObject({changed:true,revision:10});
+    expect(prepareCanonicalPublication(row, {expectedRevision:9,status:"publish"},100)).toMatchObject({changed:true,revision:10});
+    expect(prepareCanonicalRestore(row, {...row,parentId:"post"}, {postId:"post",expectedRevision:9})).toMatchObject({changed:true,revision:10});
+    expect(code(()=>prepareCanonicalSave({...row,blocksVersion:1},{expectedRevision:9,title:"Changed",blocks:[]}))).toBe("UNSUPPORTED_AUTHORING_VERSION");
+    expect(code(()=>prepareCanonicalSave({...row,blocks:[{id:"unknown",name:"invalid",version:1,attrs:{}}]},{expectedRevision:9,title:"Changed",blocks:[]}))).toBe("UNKNOWN_BLOCK");
+  }
+});

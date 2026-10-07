@@ -62,7 +62,7 @@
     {
       "mediaId": "",
       "alt": "Diagram of the architecture",
-      "caption": "Figure 1 \u2014 system overview",
+      "caption": "Figure 1 — system overview",
       "href": ""
     },
     {
@@ -76,5 +76,10 @@
     "fromVersion": 1,
     "preserveLegacyRender": true,
     "transforms": []
-  }
+  },
+  "searchText": [
+    [
+      "caption"
+    ]
+  ]
 }

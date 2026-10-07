@@ -32,8 +32,7 @@ import { useEffect, useState } from "react";
 import type { RestrictedTeaserMode } from "@/components/membership/RestrictedContent";
 import { Skeleton } from "@/components/ui/skeleton";
 import { usePageOverrides } from "@/contexts/PageOverridesContext";
-import type { BlockContent, PageDetail } from "@/lib/blog/types";
-import { parseTipTapDocument } from "@/lib/schemas/content";
+import type { PageDetail } from "@/lib/blog/types";
 import { buildSeoHead, humanizeSlug, siteTitled } from "@/lib/seo/head";
 import CorePage from "@/templates/packs/core/surfaces/page";
 import CoreNotFound from "@/templates/packs/core/surfaces/system.notFound";
@@ -61,7 +60,7 @@ export const Route = createFileRoute("/_marketing/page/$")({
 		const canonical = await loadAnonymousCanonical(page, deps.request);
 		// Metadata and canonical policy are separate reads. Do not return a
 		// successful page if publication/access was revoked between them.
-		if (page.blocksVersion === 2 && canonical === null) throw notFound();
+		if (canonical === null) throw notFound();
 
 		// Prefetch the membership access decision. Same pattern as blog/$slug.
 		if (page && typeof page === "object" && "_id" in page && page._id) {
@@ -258,25 +257,12 @@ function SinglePage() {
 			path: c.path ?? `/${c.slug}`,
 		})) ?? [];
 
-	// Parse content from JSON string to BlockDocument object using Zod validation
-	const rawParsed = resolvedPage.content
-		? parseTipTapDocument(resolvedPage.content)
-		: null;
-	// Coerce TipTapDocument (optional content) to BlockDocument (required content)
-	const parsedContent = rawParsed
-		? {
-				type: rawParsed.type as "doc",
-				content: (rawParsed.content ?? []) as BlockContent[],
-			}
-		: null;
-
 	// Map Convex document to PageDetail shape
 	const page: PageDetail = {
 		_id: resolvedPage._id,
 		title: resolvedPage.title,
 		slug: resolvedPage.slug,
 		path: resolvedPage.path ?? pagePath,
-		content: parsedContent,
 		featuredImageUrl:
 			(resolvedPage as { featuredImageUrl?: string }).featuredImageUrl ??
 			undefined,
@@ -285,15 +271,6 @@ function SinglePage() {
 			undefined,
 		template:
 			(resolvedPage.pageTemplate as PageDetail["template"]) ?? "default",
-		contentMode:
-			((resolvedPage as { contentMode?: PageDetail["contentMode"] }).contentMode ??
-				undefined),
-		blocks:
-			((resolvedPage as { blocks?: PageDetail["blocks"] }).blocks ?? undefined),
-		blocksVersion:
-			(resolvedPage as { blocksVersion?: number }).blocksVersion ?? undefined,
-		blocksRevision:
-			(resolvedPage as { blocksRevision?: number }).blocksRevision ?? undefined,
 		parentId: resolvedPage.parentId as string | undefined,
 		menuOrder: ("menuOrder" in resolvedPage
 			? resolvedPage.menuOrder

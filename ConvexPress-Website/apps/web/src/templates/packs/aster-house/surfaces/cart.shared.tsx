@@ -5,7 +5,7 @@
  * Core: loading, expired link, and the copy action waiting on the viewer's
  * session.
  */
-import { getCartLineBundleSelections, getCartLineTitle } from "@/components/commerce/cartLine";
+import { getCartLineBundleSelections, getCartLineTitle, getCartLineSubtitle, getCartLineSku } from "@/components/commerce/cartLine";
 import { formatMoney } from "@/lib/commerce/format";
 import type { SharedCartSurfaceData } from "@/templates/packs/core/surfaces/cart.shared";
 import type { SurfaceProps } from "@/templates/sdk/types";
@@ -51,6 +51,8 @@ export default function AsterSharedCart({ data }: SurfaceProps<SharedCartSurface
               <li key={item._id} className="flex items-start justify-between gap-6 py-6">
                 <div className="flex min-w-0 flex-col gap-2">
                   <p className="font-display text-xl leading-snug text-foreground">{getCartLineTitle(item.product, item.metadata)}</p>
+                    {getCartLineSubtitle(item.metadata, item.variant) ? <p className="text-sm text-muted-foreground">{getCartLineSubtitle(item.metadata, item.variant)}</p> : null}
+                    {getCartLineSku(item.product, item.metadata, item.variant) ? <p className="text-xs text-muted-foreground">SKU {getCartLineSku(item.product, item.metadata, item.variant)}</p> : null}
                   {item.metadata?.lineType === "bundle" ? (
                     <div className="flex flex-wrap gap-1.5">
                       {getCartLineBundleSelections(item.metadata).map((selection) => (

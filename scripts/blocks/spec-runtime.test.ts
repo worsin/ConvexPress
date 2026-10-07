@@ -6,9 +6,43 @@ import { createBlockSpecCompiler, validateAuthoringActions, validateAuthoringFie
 import tabbedSpec from "../../blocks/blocks/tabbed-content/block.json";
 import { blockSchemas, validateBlockAuthoringAttrs } from "../../ConvexPress-Admin/packages/backend/canonical-blocks-foundation/generated/schemas";
 import type { BlockName } from "../../ConvexPress-Admin/packages/backend/canonical-blocks-foundation/generated/types";
+import { DEFAULT_MENU_LOCATIONS } from "../../ConvexPress-Admin/packages/backend/convex/menus/validators";
 
 const root = fileURLToPath(new URL("../../", import.meta.url));
 const runtime = createBlockSpecCompiler(z);
+
+test("a newly authored Menu resolves a registered location while old location values remain valid", () => {
+  const attrs = validateBlockAuthoringAttrs("core/menu", {});
+  expect(DEFAULT_MENU_LOCATIONS.map(location => location.slug)).toContain(attrs.location);
+  expect(attrs.location).toBe("header");
+  expect(validateBlockAuthoringAttrs("core/menu", { location: "primary" }).location).toBe("primary");
+});
+
+test("announcement authoring rejects equal and reversed dates without invalidating historical drafts", () => {
+  for (const endsAt of ["2040-06-01T09:00:00Z", "2040-06-01T08:59:59Z"]) {
+    const old = { text: "Historical notice", schedule: { startsAt: "2040-06-01T09:00:00Z", endsAt } };
+    expect(blockSchemas["core/announcement-bar"].parse(old).schedule).toEqual(old.schedule);
+    expect(() => validateBlockAuthoringAttrs("core/announcement-bar", old)).toThrow();
+  }
+  for (const schedule of [undefined, {}, { startsAt: "2040-06-01T09:00:00Z" }, { endsAt: "2040-06-01T10:00:00Z" }, { startsAt: "2040-06-01T09:00:00Z", endsAt: "2040-06-01T10:00:00Z" }]) {
+    expect(validateBlockAuthoringAttrs("core/announcement-bar", { text: "Notice", ...(schedule ? { schedule } : {}) }).schedule).toEqual(schedule);
+  }
+});
+
+test("shared authoring constraints validate nested dates and preserve read shape and error paths", () => {
+  const fields = [{ id: "rows", type: "repeater", fields: [{ id: "schedule", type: "object", nullable: true, fields: [{ id: "startsAt", type: "date" }, { id: "endsAt", type: "date" }], authoringConstraints: [{ kind: "ordered", lower: "startsAt", upper: "endsAt" }] }] }];
+  const spec = runtime.parseBlockSpec({ ...tabbedSpec, fields, authoringActions: [], examples: [{ rows: [{ schedule: null }] }], preview: "", searchText: [] });
+  const schema = runtime.attrsSchema(spec.fields), rules = authoringFieldRules(spec.fields);
+  const old = { rows: [{ schedule: { startsAt: "2040-06-01T09:00:00Z", endsAt: "2040-06-01T08:00:00Z" } }] };
+  expect(schema.parse(old)).toEqual(old);
+  try { validateAuthoringFields(z, old, rules); throw Error("Expected date order rejection"); } catch (error: any) {
+    expect(error.issues[0].path).toEqual(["rows", 0, "schedule", "endsAt"]);
+  }
+  for (const value of [{}, { rows: [{}, { schedule: null }, { schedule: {} }] }]) expect(validateAuthoringFields(z, schema.parse(value), rules)).toEqual(value);
+  expect(() => runtime.parseBlockSpec({ ...spec, examples: [old] })).toThrow();
+  expect(() => runtime.parseBlockSpec({ ...spec, fields: [{ ...fields[0], default: old.rows }] })).toThrow();
+  expect(() => runtime.parseBlockSpec({ ...spec, fields: [{ id: "value", type: "object", fields: [{ id: "title", type: "text" }], authoringConstraints: [{ kind: "ordered", lower: "title", upper: "missing" }] }] })).toThrow();
+});
 
 test("hero actions require visible labels and preserve existing content", () => {
   for (const name of ["core/hero", "core/hero-split", "core/hero-text-only"] as const) {
@@ -102,7 +136,7 @@ test("write-only icon choices cover nested and scalar rows without rewriting leg
   const original = (await discoverBlocks(root)).blocks.find(b => b.spec.name === "core/trust-badges")!.spec;
   const icon = { id: "icon", type: "icon", options: ["heart", "check"], optionsMode: "authoring", nullable: true };
   const fields = [{ id: "panel", type: "object", fields: [{ id: "rows", type: "repeater", fields: [icon] }, { id: "symbols", type: "repeater", item: { ...icon, required: true } }] }];
-  const spec = runtime.parseBlockSpec({ ...original, fields, examples: [{}] });
+  const spec = runtime.parseBlockSpec({ ...original, fields, searchText: [], examples: [{}] });
   const schema = runtime.attrsSchema(spec.fields), choices = authoringFieldRules(spec.fields);
   expect(validateAuthoringFields(z, schema.parse({}), choices)).toEqual({});
   const valid = schema.parse({ panel: { rows: [{}, { icon: null }, { icon: "check" }], symbols: ["heart"] } });
@@ -122,14 +156,14 @@ test("nonblank rules validate nested defaults and examples while preserving opti
   const original = (await discoverBlocks(root)).blocks.find(b => b.spec.name === "core/trust-badges")!.spec;
   const label = { id: "label", type: "text", authoringNonblank: true, nullable: true };
   const fields = [{ id: "panel", type: "object", fields: [{ id: "labels", type: "repeater", item: { ...label, required: true } }] }];
-  const spec = runtime.parseBlockSpec({ ...original, fields, examples: [{}] });
+  const spec = runtime.parseBlockSpec({ ...original, fields, searchText: [], examples: [{}] });
   const schema = runtime.attrsSchema(spec.fields), rules = authoringFieldRules(spec.fields);
   const valid = schema.parse({ panel: { labels: [null, "  Visible  "] } });
   expect(validateAuthoringFields(z, valid, rules)).toBe(valid);
   expect(validateAuthoringFields(z, schema.parse({}), rules)).toEqual({});
   expect(() => validateAuthoringFields(z, schema.parse({ panel: { labels: ["\u200b"] } }), rules)).toThrow("Enter visible text");
-  expect(() => runtime.parseBlockSpec({ ...original, fields: [{ ...label, default: " " }], examples: [{}] })).toThrow();
-  expect(() => runtime.parseBlockSpec({ ...original, fields: [label], examples: [{ label: " " }] })).toThrow();
+  expect(() => runtime.parseBlockSpec({ ...original, fields: [{ ...label, default: " " }], searchText: [], examples: [{}] })).toThrow();
+  expect(() => runtime.parseBlockSpec({ ...original, fields: [label], searchText: [], examples: [{ label: " " }] })).toThrow();
 });
 
 test("social-proof additions retain absent historical fields and validate new content", async () => {
@@ -259,7 +293,7 @@ test("runtime compilation matches shipped generated validators for every example
 		}
 		expect(JSON.stringify(spec)).toBe(before);
 	}
-	expect(examples).toBe(285);
+	expect(examples).toBe(287);
 });
 
 test("Media + Text refuses unlabeled actions before writes without invalidating saved content", async () => {
@@ -308,4 +342,52 @@ test("required media-step headings preserve history but reject invisible new aut
   }
   const value = { steps: [{ title: "  手作り  " }] };
   expect(validateBlockAuthoringAttrs("core/steps-with-media", value)).toEqual(value);
+});
+
+
+test("social share refuses unsupported custom URLs at authoring while historical strings remain readable", () => {
+  for (const customUrl of ["javascript:alert(1)", "mailto:person@example.test", "/relative", "https://name:secret@example.test/path", "not a URL"]) {
+    const attrs = {shareUrlMode:"custom",customUrl};
+    expect(blockSchemas["blocks/social-share"].parse(attrs).customUrl).toBe(customUrl);
+    expect(() => validateBlockAuthoringAttrs("blocks/social-share",attrs)).toThrow();
+  }
+  for (const customUrl of ["", "https://example.test/story?q=clay&lang=es#notes", "http://example.test/story"]) {
+    expect(validateBlockAuthoringAttrs("blocks/social-share",{shareUrlMode:"custom",customUrl}).customUrl).toBe(customUrl);
+  }
+});
+
+
+test("write-only web URL validation retains full nested paths and checks defaults and examples", async () => {
+  const original=(await discoverBlocks(root)).blocks.find(b=>b.spec.name==="blocks/social-share")!.spec;
+  const field={id:"url",type:"text",authoringWebUrl:true,nullable:true};
+  const fields=[{id:"items",type:"repeater",fields:[field]}];
+  const spec=runtime.parseBlockSpec({...original,fields,searchText:[],preview:"URL example",examples:[{}]});
+  const schema=runtime.attrsSchema(spec.fields),rules=authoringFieldRules(spec.fields);
+  const old=schema.parse({items:[{url:null},{url:"/historical"}]});
+  try {validateAuthoringFields(z,old,rules);throw Error("Expected rejection");}catch(error:any){expect(error.issues[0].path).toEqual(["items",1,"url"]);}
+  expect(validateAuthoringFields(z,schema.parse({items:[{url:null},{url:""},{url:"https://example.test/guide"}]}),rules).items).toHaveLength(3);
+  expect(()=>runtime.parseBlockSpec({...original,fields:[{...field,default:"bad"}],searchText:[],preview:"URL example",examples:[{}]})).toThrow("complete HTTP");
+  expect(()=>runtime.parseBlockSpec({...original,fields:[field],searchText:[],preview:"URL example",examples:[{url:"/bad"}]})).toThrow("complete HTTP");
+});
+
+test("Showcase new links follow the primitive policy while historical text remains readable", () => {
+  for(const url of ['javascript:alert(1)','//untrusted.test','https://example.test/with space','data:text/html,hello','broken']) {
+    const attrs={items:[{url}]};
+    expect(blockSchemas['blocks/customer-showcase'].parse(attrs).items[0].url).toBe(url);
+    expect(()=>validateBlockAuthoringAttrs('blocks/customer-showcase',attrs)).toThrow();
+  }
+  for(const url of ['', '/projects/clay?view=all#notes','#notes','https://example.test/project','mailto:studio@example.test','tel:+18005550100']) {
+    expect(validateBlockAuthoringAttrs('blocks/customer-showcase',{items:[{url}]}).items[0].url).toBe(url);
+  }
+});
+
+test("write-only safe links validate nested paths, defaults and examples without rewriting history", () => {
+  const field={id:'url',type:'text',authoringSafeLink:true,nullable:true};
+  const base={...tabbedSpec,fields:[{id:'items',type:'repeater',fields:[field]}],authoringActions:[],searchText:[],preview:'',examples:[{}]};
+  const spec=runtime.parseBlockSpec(base),schema=runtime.attrsSchema(spec.fields),rules=authoringFieldRules(spec.fields);
+  const historical=schema.parse({items:[{url:null},{url:'javascript:alert(1)'}]});
+  try{validateAuthoringFields(z,historical,rules);throw Error('Expected refusal');}catch(e:any){expect(e.issues[0].path).toEqual(['items',1,'url']);}
+  for(const url of [null,'','#notes','/projects','mailto:studio@example.test','tel:+15555555555'])expect(validateAuthoringFields(z,schema.parse({items:[{url}]}),rules).items[0].url).toBe(url);
+  expect(()=>runtime.parseBlockSpec({...base,fields:[{...field,default:'javascript:alert(1)'}]})).toThrow('HTTP(S)');
+  expect(()=>runtime.parseBlockSpec({...base,examples:[{items:[{url:'broken'}]}]})).toThrow('HTTP(S)');
 });

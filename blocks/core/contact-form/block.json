@@ -208,5 +208,19 @@
     "capabilities": [
       "contact.submission"
     ]
-  }
+  },
+  "searchText": [
+    [
+      "eyebrow"
+    ],
+    [
+      "heading"
+    ],
+    {
+      "path": [
+        "body"
+      ],
+      "format": "prose"
+    }
+  ]
 }

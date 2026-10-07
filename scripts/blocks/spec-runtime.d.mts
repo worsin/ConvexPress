@@ -9,7 +9,7 @@ export type FieldConstraint =
   | { kind: "at-most-one"; fields: string[] };
 export type ReferenceKind = "product" | "productCategory" | "productTag" | "post" | "page" | "category" | "course" | "event" | "eventCategory" | "tag" | "user" | "bundle" | "membershipPlan" | "recipe" | "album" | "syncedBlock" | "mailingList" | "poll" | "instructor" | "kbCategory";
 export type BlockField = CommonField & (
-  | { type: "text"; min?: number; max?: number; multiline?: true; authoringNonblank?: true; format?: "timezone" | "anchor" | "resource-id"; domId?: true }
+  | { type: "text"; min?: number; max?: number; multiline?: true; authoringNonblank?: true; authoringWebUrl?: true; authoringSafeLink?: true; format?: "timezone" | "anchor" | "resource-id"; domId?: true }
   | { type: "richtext"; max?: number; inline?: boolean }
   | { type: "number"; integer?: boolean; min?: number; max?: number }
   | { type: "select"; options: (string | number)[] }
@@ -18,8 +18,8 @@ export type BlockField = CommonField & (
   | { type: "link"; protocols?: ("http" | "https" | "relative" | "anchor" | "mailto" | "tel")[]; storage?: "href"; allowEmpty?: boolean; max?: number }
   | { type: "icon"; options?: string[]; optionsMode?: "authoring" }
   | { type: "boolean" | "color-role" | "date" | "menu" | "form" }
-  | { type: "repeater"; constraints?: FieldConstraint[]; min?: number; max?: number; fields?: BlockField[]; item?: BlockField }
-  | { type: "object"; constraints?: FieldConstraint[]; fields: BlockField[] }
+  | { type: "repeater"; constraints?: FieldConstraint[]; authoringConstraints?: FieldConstraint[]; min?: number; max?: number; fields?: BlockField[]; item?: BlockField }
+  | { type: "object"; constraints?: FieldConstraint[]; authoringConstraints?: FieldConstraint[]; fields: BlockField[] }
 );
 export type TreatmentAxis = { id: string; title: string } & (
   | { type: "select"; options: string[]; default: string }
@@ -64,6 +64,6 @@ export function dependencyFields(fields: readonly BlockField[], parent?: string[
 export function anchorFields(fields: readonly BlockField[], parent?: string[]): { path: string[] }[];
 export function searchableFields(fields: readonly BlockField[], paths: readonly (readonly string[] | { path: readonly string[]; format: "prose" })[]): { path: readonly string[]; type: "text" | "richtext" | "prose" }[];
 
-export type AuthoringFieldRule = { path: readonly string[] } & ({ kind: "icon"; options: readonly string[] } | { kind: "nonblank" });
+export type AuthoringFieldRule = { path: readonly string[] } & ({ kind: "icon"; options: readonly string[] } | { kind: "nonblank" | "web-url" | "safe-link" } | { kind: "constraints"; constraints: readonly FieldConstraint[] });
 export function authoringFieldRules(fields: readonly BlockField[], parent?: string[]): AuthoringFieldRule[];
 export function validateAuthoringFields<T>(zod: typeof z, attrs: T, choices?: readonly AuthoringFieldRule[]): T;

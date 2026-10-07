@@ -1,21 +1,17 @@
 /**
  * Edit Post - Lazy-loaded component
  *
- * The heavy EditorLayout component is lazy-loaded to reduce initial bundle size.
+ * Existing content opens the canonical editor or its deliberate import review.
  */
 
-import { usesOriginalArticleEditor } from "@/components/editor/legacy-article";
 
 import { createLazyFileRoute, Link, useParams } from "@tanstack/react-router";
 import { useQuery } from "convex-helpers/react/cache";
 import { api } from "@backend/convex/_generated/api";
-import { EditorLayout } from "@/components/editor/EditorLayout";
-import { CanonicalEditorEntry } from "@/components/blocks/canonical-editor/NativeCanonicalEditor";
+import { NativeCanonicalEditor } from "@/components/blocks/canonical-editor/NativeCanonicalEditor";
 import { Skeleton } from "@/components/ui/skeleton";
 import { usePostMutations } from "@/hooks/posts/usePostMutations";
-import { usesOriginalTextEditor } from "@/components/editor/original-text";
 import type { Id } from "@backend/convex/_generated/dataModel";
-import type { EditorFormValues, PostStatus, PostVisibility, CommentStatus } from "@/types/editor";
 
 export const Route = createLazyFileRoute(
   "/_authenticated/_admin/posts/$postId/edit",
@@ -24,7 +20,6 @@ export const Route = createLazyFileRoute(
 });
 
 function EditPostPage() {
-  const { editor } = Route.useSearch();
   const { postId } = useParams({
     from: "/_authenticated/_admin/posts/$postId/edit",
   });
@@ -36,14 +31,7 @@ function EditPostPage() {
     postId: postId as Id<"posts">,
   });
 
-  // ─── Load existing taxonomy assignments ──────────────────────────────
-  const postTaxonomies = useQuery(
-    api.taxonomies.queries.getByPost,
-    post ? { postId: postId as Id<"posts"> } : "skip",
-  );
-
-  // post === undefined means still loading; also wait for taxonomies
-  if (post === undefined || (post && postTaxonomies === undefined)) {
+  if (post === undefined) {
     return (
       <div className="space-y-4">
         <Skeleton className="h-10 w-64" />
@@ -114,73 +102,5 @@ function EditPostPage() {
     );
   }
 
-  const originalArticle = usesOriginalArticleEditor(post);
-  const originalText = usesOriginalTextEditor(post);
-
-  // ─── Map Convex post data to EditorFormValues ──────────────────────────
-  const initialData: Partial<EditorFormValues> = {
-    title: post.title,
-    slug: post.slug,
-    content: post.content ?? "",
-    excerpt: post.excerpt ?? "",
-    status: post.status as PostStatus,
-    visibility: post.visibility as PostVisibility,
-    password: ("password" in post ? post.password : undefined) ?? "",
-    commentStatus: post.commentStatus as CommentStatus,
-    isSticky: post.isSticky,
-    featuredImageId: post.featuredImageId ?? null,
-    authorId: post.authorId as string,
-    scheduledFor: "scheduledAt" in post && typeof post.scheduledAt === "number" ? new Date(post.scheduledAt) : null,
-    categoryIds: postTaxonomies?.categories?.map((c: { _id: string }) => c._id) ?? [],
-    tagIds: postTaxonomies?.tags?.map((t: { _id: string }) => t._id) ?? [],
-    menuOrder: post.menuOrder ?? 0,
-    layoutId: (post as { layoutId?: string }).layoutId ?? "",
-    hideHeader: (post as { hideHeader?: boolean }).hideHeader ?? false,
-    hideFooter: (post as { hideFooter?: boolean }).hideFooter ?? false,
-    // Structured content fields
-    hero: post.hero
-      ? {
-          title: post.hero.title ?? "",
-          subtitle: post.hero.subtitle ?? "",
-          content: post.hero.content ?? "",
-          imageId: post.hero.imageId ?? null,
-          videoUrl: post.hero.videoUrl ?? "",
-          ctaText: post.hero.ctaText ?? "",
-          ctaUrl: post.hero.ctaUrl ?? "",
-        }
-      : { title: "", subtitle: "", content: "", imageId: null, videoUrl: "", ctaText: "", ctaUrl: "" },
-    topics: (post.topics ?? []).map((t: any) => ({
-      title: t.title ?? "",
-      subtitle: t.subtitle ?? "",
-      content: t.content ?? "",
-      imageId: t.imageId ?? null,
-      videoUrl: t.videoUrl ?? "",
-    })),
-    summary: post.summary
-      ? { title: post.summary.title ?? "", content: post.summary.content ?? "" }
-      : { title: "", content: "" },
-    sources: post.sources ?? "",
-    tableOfContents: post.tableOfContents ?? "",
-    pagePrompt: ("pagePrompt" in post ? post.pagePrompt : undefined) ?? "",
-    // A recovered article keeps its original authoring format. Conversion to
-    // canonical blocks belongs to the explicit review above this editor.
-    contentMode: originalText ? post.contentMode ?? "article" : originalArticle ? "article" as const : "blocks" as const,
-    blocks: (post.blocks ?? []) as [],
-    blocksVersion: (post as any).blocksVersion ?? 1,
-    blocksRevision: (post as any).blocksRevision ?? 0,
-  };
-
-  return (
-    <CanonicalEditorEntry key={postId} initialOpen={editor === "blocks"} postId={postId as Id<"posts">} canonical={"blocksVersion" in post && post.blocksVersion === 2} draft={post.status === "draft"}>
-    <EditorLayout
-      contentType="post"
-      originalArticle={originalArticle}
-      originalText={originalText}
-      mode="edit"
-      postId={postId}
-      initialData={initialData}
-      publishedAt={post.publishedAt ?? null}
-    />
-    </CanonicalEditorEntry>
-  );
+  return <NativeCanonicalEditor key={postId} postId={postId as Id<"posts">} />;
 }

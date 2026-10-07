@@ -182,5 +182,18 @@
     "fromVersion": 1,
     "preserveLegacyRender": true,
     "transforms": []
-  }
+  },
+  "searchText": [
+    [
+      "eyebrow"
+    ],
+    [
+      "heading"
+    ],
+    [
+      "logos",
+      "*",
+      "name"
+    ]
+  ]
 }

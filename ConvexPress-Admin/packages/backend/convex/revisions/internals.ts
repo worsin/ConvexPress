@@ -14,8 +14,9 @@
  */
 
 import { deleteWithMediaReferences, insertWithMediaReferences, patchWithMediaReferences } from "../media/attachmentGuard";
+import { removeDraftsForPost } from "../canonicalDocuments/draftMaintenance";
 import { internalMutation, type MutationCtx } from "../_generated/server";
-import type { Id } from "../_generated/dataModel";
+import type { Doc, Id } from "../_generated/dataModel";
 import { v } from "convex/values";
 import type { RegisteredMutation } from "convex/server";
 import { AUTHORING_FIELDS, authoringSnapshot } from "../helpers/authoringSnapshot";
@@ -30,6 +31,12 @@ import {
   pruneArgs,
   DEFAULT_MAX_REVISIONS,
 } from "./validators";
+
+/** Retained legacy autosaves are recovery sources, not disposable save history.
+ * Explicit document/revision deletion remains the owner's discard operation. */
+function prunableRevision(row: Doc<"revisions">) {
+  return row.autosaveTitle === undefined && row.autosaveContent === undefined && row.autosavedAt === undefined;
+}
 
 // ─── Create Revision on Save ────────────────────────────────────────────────
 
@@ -114,12 +121,12 @@ export const createOnSave: RegisteredMutation<"internal", CreateOnSaveArgs, Prom
     // ── Prune excess manual revisions ───────────────────────────────────
     if (maxRevisions > 0) {
       // maxRevisions === -1 means unlimited, skip pruning
-      const manualRevisions = await ctx.db
+      const manualRevisions = (await ctx.db
         .query("revisions")
         .withIndex("by_parent_type", (q) =>
           q.eq("parentId", args.parentId).eq("type", "manual"),
         )
-        .collect();
+        .collect()).filter(prunableRevision);
 
       if (manualRevisions.length > maxRevisions) {
         // Sort by revisionNumber ascending (oldest first)
@@ -247,6 +254,7 @@ export const deleteByParent = internalMutation({
   args: deleteByParentArgs,
   // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
+    await removeDraftsForPost(ctx, args.parentId);
     const revisions = await ctx.db
       .query("revisions")
       .withIndex("by_parent", (q: ConvexQueryBuilder) => q.eq("parentId", args.parentId))
@@ -269,7 +277,8 @@ export const deleteByParent = internalMutation({
  *   - With parentId: prunes only that post's revisions
  *   - Without parentId: prunes all posts with excess revisions (for daily cron)
  *
- * Only deletes "manual" type revisions. Autosave revisions are never pruned.
+ * Only deletes ordinary "manual" revisions. Autosave revisions and retained
+ * legacy autosave sources are never pruned.
  * When max_revisions is -1 (unlimited), no pruning occurs.
  *
  * @returns Count of pruned revisions and posts affected
@@ -301,12 +310,12 @@ export const prune = internalMutation({
 
     if (args.parentId) {
       // ── Prune a single post ───────────────────────────────────────────
-      const manualRevisions = await ctx.db
+      const manualRevisions = (await ctx.db
         .query("revisions")
         .withIndex("by_parent_type", (q: ConvexQueryBuilder) =>
           q.eq("parentId", args.parentId!).eq("type", "manual"),
         )
-        .collect();
+        .collect()).filter(prunableRevision);
 
       if (manualRevisions.length > maxRevisions) {
         // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
@@ -332,7 +341,7 @@ export const prune = internalMutation({
       // Group by parentId
       const parentRevisionCounts = new Map<string, number>();
       for (const rev of allManualRevisions) {
-        if (rev.type === "manual") {
+        if (rev.type === "manual" && prunableRevision(rev)) {
           const parentIdStr = rev.parentId as string;
           parentRevisionCounts.set(parentIdStr, (parentRevisionCounts.get(parentIdStr) ?? 0) + 1);
         }
@@ -342,12 +351,12 @@ export const prune = internalMutation({
       for (const [parentIdStr, count] of parentRevisionCounts) {
         if (count <= maxRevisions) continue;
 
-        const manualRevisions = await ctx.db
+        const manualRevisions = (await ctx.db
           .query("revisions")
           .withIndex("by_parent_type", (q: ConvexQueryBuilder) =>
             q.eq("parentId", asId<"posts">(parentIdStr)).eq("type", "manual"),
           )
-          .collect();
+          .collect()).filter(prunableRevision);
 
         if (manualRevisions.length > maxRevisions) {
           manualRevisions.sort(

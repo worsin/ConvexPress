@@ -1,3 +1,5 @@
+import { canonicalJson, sha256Hex } from "../../canonicalDocuments/foundation/shared/fingerprints";
+import { canonicalBoundary, importWordPressDocument } from "../../canonicalDocuments/service";
 import { insertTermRelationship } from "../../helpers/postDiscovery";
 /**
  * WordPress Sync - Posts Import Phase
@@ -17,7 +19,7 @@ import { v } from "convex/values";
 import { internal } from "../../_generated/api";
 import type { Id } from "../../_generated/dataModel";
 import { fetchWPPosts, fetchWPPostMeta, type WPPost, type WPMeta } from "../helpers/wpClient";
-import { parseElementorData, extractTextFromElementor, isElementorData } from "../helpers/elementor";
+import { parseElementorData, isElementorData } from "../helpers/elementor";
 import { parseACFFields, hasACFFields, acfToPostMeta } from "../helpers/acfParser";
 import { parseYoastMeta, hasYoastMeta, yoastToSEOMeta } from "../helpers/yoastParser";
 import { selectWpPostMetaForPreservation } from "../fieldPolicy";
@@ -29,9 +31,7 @@ import { createFinding } from "../helpers/idMapping";
 
 // ─── Source Hash Helper ───────────────────────────────────────────────────
 
-function computeSourceHash(fields: Record<string, unknown>): string {
-  const str = JSON.stringify(fields); let h = 0; for (let i = 0; i < str.length; i++) { h = ((h << 5) - h + str.charCodeAt(i)) | 0; } return h.toString(36);
-}
+
 
 // ─── Posts Import Action ───────────────────────────────────────────────────
 
@@ -101,12 +101,10 @@ export const importBatch = internalAction({
     for (const wpPost of posts) {
       try {
         // Compute source hash for change detection
-        const sourceHash = computeSourceHash({
-          title: wpPost.title?.rendered,
-          content: wpPost.content?.rendered,
-          status: wpPost.status,
-          slug: wpPost.slug,
-        });
+        // Include metadata and settings; unavailable requested source fails the record.
+        const postMeta: WPMeta[] = importConfig.scope.elementor
+          ? await fetchWPPostMeta(credentials, wpPost.id) : [];
+        const sourceHash = sha256Hex(canonicalJson({record:wpPost,meta:postMeta}));
 
         // Check if already imported (get full mapping for sourceHash comparison)
         const existingMapping = await ctx.runQuery(
@@ -114,6 +112,9 @@ export const importBatch = internalAction({
           { siteId, objectType: "post", wpId: wpPost.id }
         );
         const existingPostId = existingMapping?.convexId;
+        const localDocument = existingMapping ? await ctx.runQuery(
+          internal.wordpressSync.internals.getEntityById, {table:"posts",id:existingMapping.convexId}
+        ) : null;
 
         if (existingMapping) {
           if (!isDryRun) {
@@ -134,11 +135,9 @@ export const importBatch = internalAction({
 
           // Local edit detection
           if (importConfig.behavior.preserveLocalEdits) {
-            const localPost = await ctx.runQuery(
-              internal.wordpressSync.internals.getEntityById,
-              { table: "posts", id: existingMapping.convexId }
-            );
-            if (localPost && localPost.updatedAt > existingMapping.createdAt) {
+            if (localDocument && (existingMapping.acceptedRevision !== undefined
+              ? localDocument.blocksRevision !== existingMapping.acceptedRevision || localDocument.updatedAt !== existingMapping.acceptedUpdatedAt
+              : localDocument.updatedAt > existingMapping.createdAt)) {
               await createFinding(ctx, {
                 siteId, jobId, severity: "warning", phase: "posts",
                 code: FINDING_CODES.LOCAL_EDIT_CONFLICT,
@@ -153,13 +152,6 @@ export const importBatch = internalAction({
             }
           }
 
-          // Update the sourceHash on the existing mapping
-          if (!isDryRun) {
-            await ctx.runMutation(
-              internal.wordpressSync.helpers.idMapping.updateSourceHash,
-              { siteId, objectType: "post", wpId: wpPost.id, sourceHash }
-            );
-          }
 
           // Existing mapping with changed hash - if updateExisting is false, skip
           if (!importConfig.behavior.updateExisting) {
@@ -196,16 +188,6 @@ export const importBatch = internalAction({
         }
 
         if (!isDryRun) {
-          // Fetch post meta (for Elementor, ACF, Yoast)
-          let postMeta: WPMeta[] = [];
-          if (importConfig.scope.elementor) {
-            try {
-              postMeta = await fetchWPPostMeta(credentials, wpPost.id);
-            } catch {
-              // Continue without meta if fetch fails
-            }
-          }
-
           // Process content and meta
           const processedContent = await processPostContent(wpPost, postMeta);
 
@@ -228,8 +210,16 @@ export const importBatch = internalAction({
           const categoryIds = await resolveTermIds(ctx, siteId, wpPost.categories || [], "category");
           const tagIds = await resolveTermIds(ctx, siteId, wpPost.tags || [], "tag");
 
+          const meta = [
+            {key:"_wp_source_record",value:JSON.stringify(wpPost)},
+            {key:"_wp_source_meta",value:JSON.stringify(postMeta)},
+            {key:"_wp_content_rendered",value:wpPost.content?.rendered ?? ""},
+            ...processedContent.acfMeta, ...processedContent.seoMeta,
+            ...(processedContent.elementorData ? [{key:"_elementor_data",value:processedContent.elementorData}] : []),
+          ];
+          meta.push(...selectWpPostMetaForPreservation(postMeta,new Set(meta.map(item=>item.key))));
           // Create the post
-          const postId = await ctx.runMutation(internal.wordpressSync.phases.posts.postsCreate, {
+          await ctx.runMutation(internal.wordpressSync.phases.posts.postsCreate, {
             existingId: existingPostId,
             wpPost: {
               id: wpPost.id,
@@ -245,79 +235,13 @@ export const importBatch = internalAction({
             },
             authorId: authorId ?? undefined,
             featuredImageId,
-            siteId,
+            siteId, jobId, sourceHash,
+            expectedRevision: localDocument?.blocksRevision,
+            expectedUpdatedAt: localDocument?.updatedAt,
+            meta,
+            termIds: [...categoryIds,...tagIds],
+
           });
-
-          // Store Elementor data if present
-          if (processedContent.elementorData) {
-            await ctx.runMutation(internal.wordpressSync.phases.posts.postsCreateMeta, {
-              postId,
-              key: "_elementor_data",
-              value: processedContent.elementorData,
-            });
-          }
-
-          // Store original rendered HTML for reference and future re-rendering.
-          if (wpPost.content?.rendered) {
-            await ctx.runMutation(internal.wordpressSync.phases.posts.postsCreateMeta, {
-              postId,
-              key: "_wp_content_rendered",
-              value: wpPost.content.rendered,
-            });
-          }
-
-          // Store ACF data
-          for (const acfMeta of processedContent.acfMeta) {
-            await ctx.runMutation(internal.wordpressSync.phases.posts.postsCreateMeta, {
-              postId,
-              key: acfMeta.key,
-              value: acfMeta.value,
-            });
-          }
-
-          // Store Yoast SEO data
-          for (const seoMeta of processedContent.seoMeta) {
-            await ctx.runMutation(internal.wordpressSync.phases.posts.postsCreateMeta, {
-              postId,
-              key: seoMeta.key,
-              value: seoMeta.value,
-            });
-          }
-
-          const storedMetaKeys = new Set([
-            "_elementor_data",
-            "_wp_content_rendered",
-            ...processedContent.acfMeta.map((item) => item.key),
-            ...processedContent.seoMeta.map((item) => item.key),
-          ]);
-
-          for (const sourceMeta of selectWpPostMetaForPreservation(postMeta, storedMetaKeys)) {
-            await ctx.runMutation(internal.wordpressSync.phases.posts.postsCreateMeta, {
-              postId,
-              key: sourceMeta.key,
-              value: sourceMeta.value,
-            });
-          }
-
-          // Create term relationships
-          for (const termId of [...categoryIds, ...tagIds]) {
-            await ctx.runMutation(internal.wordpressSync.phases.posts.postsCreateTermRelationship, {
-              postId,
-              termId,
-            });
-          }
-
-          if (!existingPostId) {
-            // Create ID mapping with sourceHash
-            await ctx.runMutation(internal.wordpressSync.helpers.idMapping.create, {
-              siteId,
-              objectType: "post",
-              wpId: wpPost.id,
-              convexId: postId,
-              sourceHash,
-              jobId,
-            });
-          }
         }
 
         if (existingPostId) {
@@ -383,15 +307,14 @@ async function processPostContent(
       // Store the raw Elementor JSON
       result.elementorData = elementorValue;
       // Prefer rendered HTML for display; Elementor JSON remains in postMeta.
-      result.content = wpPost.content?.rendered
-        ? createHtmlBlockDocument(wpPost.content.rendered)
-        : createParagraphDocument(extractTextFromElementor(parsed));
+      if (!wpPost.content?.rendered) throw new Error("Elementor content requires rendered HTML for a reviewed canonical import.");
+      result.content = wpPost.content.rendered;
     }
   }
 
-  // If no Elementor content, preserve rendered WordPress HTML as an HTML block.
+  // If no Elementor content, pass rendered WordPress HTML to the reviewed canonical converter.
   if (!result.content && wpPost.content?.rendered) {
-    result.content = createHtmlBlockDocument(wpPost.content.rendered);
+    result.content = wpPost.content.rendered;
   }
 
   // Process ACF fields
@@ -474,36 +397,17 @@ function stripHtml(html: string): string {
     .trim();
 }
 
-function createHtmlBlockDocument(html: string): string {
-  return JSON.stringify({
-    type: "doc",
-    content: [
-      {
-        type: "html",
-        attrs: { content: html },
-      },
-    ],
-  });
-}
-
-function createParagraphDocument(text: string): string {
-  return JSON.stringify({
-    type: "doc",
-    content: text
-      ? [
-          {
-            type: "paragraph",
-            content: [{ type: "text", text }],
-          },
-        ]
-      : [],
-  });
-}
-
 // ─── Post Creation Mutations ───────────────────────────────────────────────
 
 export const postsCreate = internalMutation({
   args: {
+    jobId: v.id("wordpressSyncJobs"),
+    sourceHash: v.string(),
+    expectedRevision: v.optional(v.number()),
+    expectedUpdatedAt: v.optional(v.number()),
+    meta: v.array(v.object({key:v.string(),value:v.string()})),
+    termIds: v.array(v.string()),
+
     existingId: v.optional(v.string()),
     wpPost: v.object({
       id: v.number(),
@@ -529,73 +433,8 @@ export const postsCreate = internalMutation({
     featuredImageId: v.optional(v.string()),
     siteId: v.id("wordpressSites"),
   },
-  handler: async (ctx, { existingId, wpPost, authorId, featuredImageId, siteId }) => {
-    const now = Date.now();
-
-    // Get a fallback author if needed
-    let finalAuthorId: Id<"users">;
-    if (authorId) {
-      finalAuthorId = authorId as Id<"users">;
-    } else {
-      // Use first admin as fallback
-      const adminRole = await ctx.db
-        .query("roles")
-        .withIndex("by_slug", (q) => q.eq("slug", "administrator"))
-        .first();
-
-      if (adminRole) {
-        const admin = await ctx.db
-          .query("users")
-          .withIndex("by_roleId", (q) => q.eq("roleId", adminRole._id))
-          .first();
-
-        if (admin) {
-          finalAuthorId = admin._id;
-        }
-      }
-
-      if (!finalAuthorId!) {
-        const firstUser = await ctx.db.query("users").first();
-        if (firstUser) {
-          finalAuthorId = firstUser._id;
-        } else {
-          throw new Error("No users exist to assign as author");
-        }
-      }
-    }
-
-    const fields = {
-      type: "post" as const,
-      title: stripHtml(wpPost.title),
-      slug: wpPost.slug,
-      content: wpPost.content,
-      excerpt: stripHtml(wpPost.excerpt) || undefined,
-      status: wpPost.status,
-      visibility: (wpPost.status === "private" ? "private" : "public") as "private" | "public",
-      authorId: finalAuthorId,
-      featuredImageId: featuredImageId ? (featuredImageId as Id<"media">) : undefined,
-      commentStatus: wpPost.commentStatus,
-      isSticky: wpPost.isSticky,
-      publishedAt: wpPost.publishedAt,
-      wpPostId: wpPost.id,
-      wpGuid: wpPost.guid,
-      wpSourceSiteId: siteId,
-      updatedAt: now,
-    };
-
-    if (existingId) {
-      await patchWithMediaReferences<"posts">(ctx, "posts", existingId as Id<"posts">, fields);
-      return existingId;
-    }
-
-    // Create post
-    const postId: import("../../_generated/dataModel").Id<"posts"> = await insertWithMediaReferences<"posts">(ctx, "posts", {
-      ...fields,
-      createdAt: now,
-    });
-
-    return postId;
-  },
+  returns: v.id("posts"),
+  handler: async (ctx, { wpPost, ...args }) => canonicalBoundary(() => importWordPressDocument(ctx, "post", {...args,document:{...wpPost,title:stripHtml(wpPost.title),excerpt:stripHtml(wpPost.excerpt)}})),
 });
 
 export const postsCreateMeta = internalMutation({

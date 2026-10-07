@@ -79,5 +79,10 @@
     "fromVersion": 1,
     "preserveLegacyRender": true,
     "transforms": []
-  }
+  },
+  "searchText": [
+    [
+      "heading"
+    ]
+  ]
 }

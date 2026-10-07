@@ -1,3 +1,5 @@
+import { publicDocumentHref as documentHref } from "../helpers/publicDocumentHref";
+export { publicDocumentHref as documentHref } from "../helpers/publicDocumentHref";
 import { ConvexError } from "convex/values";
 import type { Doc, Id } from "../_generated/dataModel";
 import type { QueryCtx } from "../_generated/server";
@@ -35,9 +37,6 @@ export async function readDocument(ctx: QueryCtx, id: Id<"posts">, budget: Reque
   const post = budget.record(await ctx.db.get("posts", id));
   if (post) sources.record("post", post);
   return post;
-}
-export function documentHref(post: NavigationSource["document"]) {
-  return post.type === "post" ? `/blog/${encodeURIComponent(post.slug)}` : `/page${post.path ?? `/${encodeURIComponent(post.slug)}`}`;
 }
 export async function groupEntries(ctx: QueryCtx, id: Id<"locale_translation_groups">, budget = new RequestReadLedger()) {
   budget.beforeRead();

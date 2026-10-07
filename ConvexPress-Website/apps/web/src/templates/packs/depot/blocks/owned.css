@@ -54,5 +54,33 @@
 @container (max-width: 30rem) { .cp-owned-depot .depot-categories .cp-category-grid { grid-template-columns: minmax(0,1fr); } }
 
 .cp-owned-depot .depot-cta[data-block-style="outline"] { background: transparent; border: 2px solid var(--primary); padding: clamp(1.25rem, 4vw, 3rem); }
+/* A painted panel owns its ink even inside an inverted or accent section. */
+.cp-owned-depot :is(.depot-story, .depot-feature, .depot-plan, .depot-testimonial, .depot-form-fields, .depot-products .cp-collection-card) {
+  color: var(--card-foreground, var(--foreground));
+  --cp-inline-accent: var(--primary);
+  --cp-inline-muted: var(--muted-foreground);
+}
+.cp-owned-depot .depot-cta:not([data-block-style="outline"]) {
+  color: var(--foreground);
+  --cp-inline-accent: var(--primary);
+  --cp-inline-muted: var(--muted-foreground);
+}
 
 .depot-hero-treatment { --hero-title-scale: 5cqi; --hero-title-max: 4rem; --hero-poster-scale: 7cqi; --hero-poster-max: 6rem; --hero-treatment-gap: var(--stack-gap-md, 1rem); --hero-editorial-ratio: 1; }
+
+.cp-owned-depot .depot-features[data-block-style="cards"] .depot-feature { border-block-start: 3px solid var(--primary); }
+.cp-owned-depot .depot-features[data-block-style="minimal"] .depot-feature,
+.cp-owned-depot .depot-testimonials[data-block-style="editorial"] .depot-testimonial {
+  border: 0;
+  border-block-start: 1px solid var(--border);
+  border-radius: 0;
+  padding: var(--stack-gap-md, 1rem) 0 0;
+  background: transparent;
+  color: inherit;
+  --cp-inline-accent: inherit;
+  --cp-inline-muted: inherit;
+}
+.cp-owned-depot .depot-features[data-block-style="minimal"] .depot-ordinal { display: none; }
+.cp-owned-depot .depot-testimonials[data-block-style="editorial"] .depot-testimonial { max-inline-size: 68ch; }
+.cp-owned-depot .depot-testimonials[data-block-style="editorial"] blockquote { font-size: clamp(1.25rem, 2cqi, 1.75rem); line-height: 1.5; }
+.cp-owned-depot .depot-testimonials[data-block-style="wall"] .depot-testimonial { padding: var(--stack-gap-md, 1rem); }

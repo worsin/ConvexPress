@@ -1,3 +1,4 @@
+import { PublicFileDownloadProvider } from "@/templates/sdk/block-renderer/public-file-download";
 import { convexQuery, type ConvexQueryClient } from "@convex-dev/react-query";
 import type { QueryClient } from "@tanstack/react-query";
 
@@ -33,7 +34,9 @@ import { getSiteRuntime, siteRuntimeBootstrapScript } from "@/lib/site-runtime";
 // One route-owned import lets Start include global CSS in its SSR asset manifest
 // and lets Vite update it without a second, independently timestamped head link.
 import "../index.css";
+import "../templates/sdk/block-renderer/critical-styles";
 import { resolveSiteName, rememberSiteName } from "@/lib/seo/head";
+import { SiteNameBootstrap } from "@/components/layout/SiteNameBootstrap";
 
 export interface RouterAppContext {
   queryClient: QueryClient;
@@ -199,9 +202,7 @@ function RootDocument() {
                 dangerouslySetInnerHTML={{ __html: siteRuntimeBootstrapScript(siteRuntime) }}
               />
               {/* The client evaluates route heads before settings load; give it the name the server used. */}
-              <script
-                dangerouslySetInnerHTML={{ __html: `window.__CONVEXPRESS_SITE_NAME__=${JSON.stringify(resolveSiteName())};` }}
-              />
+              <SiteNameBootstrap />
               <script dangerouslySetInnerHTML={{ __html: `(function(){var t=localStorage.getItem('theme');if(t==='dark'||(!t&&window.matchMedia('(prefers-color-scheme:dark)').matches)){document.documentElement.classList.add('dark')}else{document.documentElement.classList.remove('dark')}})()` }} />
               <HeadContent />
             </head>
@@ -209,6 +210,7 @@ function RootDocument() {
               <WebsiteOperatorNotice />
               <SettingsProvider>
               <TemplateSettingsDraftProvider>
+              <PublicFileDownloadProvider backendOrigin={siteRuntime.convexUrl}>
               {/* Site palette, brand type and template settings apply to every route, not just the marketing layout. */}
               <ThemeStyleInjector />
               <TemplateSettingsInjector />
@@ -217,6 +219,7 @@ function RootDocument() {
                   <SupportWidget />
                   <OnSiteCustomizer />
                 </>}
+              </PublicFileDownloadProvider>
               </TemplateSettingsDraftProvider>
               </SettingsProvider>
               {!documentPreview && <Toaster richColors />}

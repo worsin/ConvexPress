@@ -7,10 +7,10 @@ import {
 	Prose,
 } from "../../../../sdk/block-renderer/presentation";
 import "../owned.css";
-export default defineBlock("core/feature-grid", ({ attrs }) => (
+export default defineBlock("core/feature-grid", ({ attrs, style }) => (
 	<P.Stack gap="lg">
 		<Intro {...attrs} />
-		<div className="journal-features">
+		<div className="journal-features" data-block-style={style}>
 			<P.Grid columns={cardColumns(attrs.items.length, 2)} gap="lg">
 				{attrs.items.map((item, index) => (
 					<article key={index} className="journal-feature">

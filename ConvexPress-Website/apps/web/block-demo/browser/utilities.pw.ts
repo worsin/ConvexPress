@@ -244,8 +244,13 @@ for (const viewport of [
 						),
 					).toHaveCount(0);
 				}
-				if (name === "core/trust-badges")
-					await expect(canvas.locator("svg")).toHaveCount(3);
+				if (name === "core/trust-badges") {
+					const badges = canvas.locator(".cp-library-trust-badges > li");
+					await expect(badges).toHaveCount(4);
+					await expect(badges.locator("svg")).toHaveCount(4);
+					await expect(badges.last()).toContainText("Fictional studio mark");
+					await expect(badges.last().getByRole("img", { name: "Fictional Aster House studio mark" })).toBeVisible();
+				}
 				if (name === "core/author-bio") {
 					await expect(
 						canvas.getByRole("heading", { name: "Rowan Vale" }),

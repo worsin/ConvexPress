@@ -9,7 +9,8 @@ import { NativeCanonicalEditor } from "@/components/blocks/canonical-editor/Nati
 import type { Id } from "@backend/convex/_generated/dataModel";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useState, useEffect, useRef } from "react";
-import { usePostMutations } from "@/hooks/posts/usePostMutations";
+import { useMutation } from "convex/react";
+import { api } from "@backend/convex/_generated/api";
 
 export const Route = createLazyFileRoute("/_authenticated/_admin/posts/new")({
   component: AddNewPostPage,
@@ -21,7 +22,7 @@ function AddNewPostPage() {
   const [error, setError] = useState<string | null>(null);
   const createdRef = useRef(false);
 
-  const { createPost } = usePostMutations();
+  const createDocument = useMutation(api.canonicalDocuments.create);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -31,9 +32,9 @@ function AddNewPostPage() {
 
     const createAutoDraft = async () => {
       try {
-        const newPostId = await createPost({ title: "Untitled post", status: "draft" });
+        const {postId: newPostId} = await createDocument({type: "post", title: "Untitled post"});
         setPostId(newPostId as string);
-        await navigate({to:"/posts/$postId/edit",params:{postId:newPostId as string},search:{editor:"blocks"},replace:true});
+        await navigate({to:"/posts/$postId/edit",params:{postId:newPostId as string},search:{},replace:true});
         setIsCreating(false);
       } catch (err: unknown) {
         const e = err as { data?: { message?: string }; message?: string };
@@ -43,7 +44,7 @@ function AddNewPostPage() {
     };
 
     createAutoDraft();
-  }, [createPost, navigate]);
+  }, [createDocument, navigate]);
 
   if (error) {
     return (

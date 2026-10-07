@@ -30,7 +30,7 @@ import { ConvexError } from "convex/values";
 import { evaluateMembershipAccess } from "../../membership/access";
 import { internal } from "../../_generated/api";
 import type { Id } from "../../_generated/dataModel";
-import { requireCan, getUserIdentifier } from "../../helpers/permissions";
+import { requireCan, getUserIdentifier, getCurrentUser } from "../../helpers/permissions";
 import { requirePluginEnabled } from "../../helpers/plugins";
 import { emitEvent } from "../../helpers/events";
 import { validateFieldValue } from "../../helpers/customFieldValidation";
@@ -66,7 +66,7 @@ import {
 // `submit` rejects an oversized/abusive payload BEFORE any DB work. A
 // within-bounds submission (every legitimate form) is unaffected.
 import { checkSubmissionPayload } from "./submitGuards";
-import { generateResumeToken, isGeneratedResumeToken } from "./tokens";
+import { generateResumeToken, isGeneratedResumeToken, computeResumeExpiry } from "./tokens";
 // Builder pure core (slug/settings/status/duplicate-remap). Extracted from this
 // file so the admin CRUD logic is unit-testable without a Convex ctx. The
 // mutations compose these; behavior is unchanged. `remapFieldReferences` is the
@@ -254,7 +254,8 @@ async function assertFormAcceptsSubmission(
     identity = null;
   }
 
-  if (formRequiresLogin(settings) && !identity) {
+  const loginUser = formRequiresLogin(settings) && identity ? await getCurrentUser(ctx) : null;
+  if (formRequiresLogin(settings) && (!loginUser || loginUser.status !== "active")) {
     throw new ConvexError({
       code: "LOGIN_REQUIRED",
       message: "Please sign in to submit this form.",
@@ -1357,7 +1358,8 @@ async function submitForm(
       args.resumeToken !== undefined &&
       (!existing ||
         existing.formId !== args.formId ||
-        existing.status !== "partial")
+        existing.status !== "partial" ||
+        now > computeResumeExpiry(existing))
     ) {
       throw new ConvexError({ code: "REJECTED", message: "Submission rejected" });
     }

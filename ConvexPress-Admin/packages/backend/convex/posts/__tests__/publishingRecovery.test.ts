@@ -138,12 +138,16 @@ describe("publishing recovery", () => {
 });
 
 for (const type of ["post", "page"] as const) {
-  test(`${type} prompt-only edits snapshot prompt and layout and restore both`, async () => {
+  test(`${type} historical prompt/layout snapshots remain restorable with a complete undo`, async () => {
     const { t, postId, authorId } = await fixture(Date.now() + 60_000);
     await t.run(ctx => ctx.db.patch(postId, { type, status: "draft", pagePrompt: "Original prompt", layoutId: "original-layout" }));
     const editor = t.withIdentity({ subject: authorId, issuer: "https://convexpress-admin.local" });
-    if (type === "post") await editor.mutation(api.posts.mutations.update, { postId, pagePrompt: "Changed prompt" });
-    else await editor.mutation(api.pages.mutations.update, { pageId: postId, pagePrompt: "Changed prompt" });
+    // Build an archived revision through the retained snapshot writer, not a retired editor endpoint.
+    await t.mutation(internal.revisions.internals.createOnSave, {
+      parentId: postId, parentType: type, title: "Original", content: "Legacy",
+      authorId, changedFields: ["pagePrompt"],
+    });
+    await t.run(ctx => ctx.db.patch(postId, { pagePrompt: "Changed prompt" }));
     const revision = await t.run(ctx => ctx.db.query("revisions").withIndex("by_parent", q => q.eq("parentId", postId)).first());
     expect(revision).not.toBeNull();
     expect(revision).toMatchObject({ pagePrompt: "Original prompt", layoutId: "original-layout", changedFields: ["pagePrompt"] });

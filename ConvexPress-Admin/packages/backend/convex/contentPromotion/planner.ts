@@ -1,3 +1,6 @@
+import {listFieldsSchema} from "../audiences/policy";
+import type { RuntimeCanonicalTree } from "../canonicalDocuments/foundation/composedRegistry";
+import {readLocaleGroup,reviewLocalization} from "./localization";
 import { reviewCanonicalPromotionPolicy } from "../canonicalDocuments/displayContext";
 import { syncedClosureFromManifest } from './syncedClosure';
 import { planSyncedTargets, previewSyncedTargetDocuments, type SyncedTargetPlan } from './syncedTarget';
@@ -95,6 +98,8 @@ export async function lookupTarget(
 			? known.get(referencedKey(value) ?? "")
 			: undefined;
 	switch (record.kind) {
+    case 'localeRouting': return await ctx.db.query('locale_routing').withIndex('by_key',q=>q.eq('key','site')).unique();
+    case 'localeGroup': {const row=await ctx.db.query('locale_translation_groups').withIndex('by_key',q=>q.eq('key',String(d.key))).unique();return row?readLocaleGroup(ctx,row):null;}
     case "course": case "courseNode": case "coursePrerequisite": case "plan": case "planBenefit": return lookupLearningTarget(ctx, record, known);
     case "product":
     case "productCategory":
@@ -311,16 +316,23 @@ export async function planPromotion(
 			course: "lms_courses",
 			plan: "membership_plans",
 			form: "forms",
+      mailingList: "mailingLists",
 			role: "roles",
 		}[dep.kind];
-		const binding = bindings.dependencyBindings.find(
+		let binding = bindings.dependencyBindings.find(
 			(item) => item.key === dep.key,
 		);
+    // Lists remain installation-local. Match a unique active name on the
+    // target, pin its entire current revision, and never copy members/consent.
+    if (dep.kind === "mailingList" && !binding && dep.slug) {
+      const candidates = await ctx.db.query("mailingLists").withIndex("by_installation_name", q => q.eq("websiteKey", manifest.target.websiteKey).eq("instanceKey", manifest.target.instanceKey).eq("name", dep.slug!)).take(2);
+      if (candidates.length === 1) binding = {key: dep.key, targetId: candidates[0]._id};
+    }
 		if (!binding) {
 			issue(
 				"TARGET_DEPENDENCY_REQUIRED",
 				dep.key,
-				`Map ${dep.kind} ${dep.slug ?? dep.sourceId ?? dep.key} to an explicitly reviewed existing target record. Its catalog/learning structure is not copied by this adapter.`,
+				dep.kind === "mailingList" ? `Create one active mailing list named "${dep.slug}" on the destination before reviewing this footer. Subscribers and consent records are never copied.` : `Map ${dep.kind} ${dep.slug ?? dep.sourceId ?? dep.key} to an explicitly reviewed existing target record. Its catalog/learning structure is not copied by this adapter.`,
 			);
 			continue;
 		}
@@ -328,11 +340,11 @@ export async function planPromotion(
 		const row = normalized
 			? ((await ctx.db.get(normalized)) as Row | null)
 			: null;
-		if (!row || (dep.slug && row.slug !== dep.slug)) {
+		if (!row || (dep.slug && (dep.kind === "mailingList" ? row.name : row.slug) !== dep.slug) || (dep.kind === "mailingList" && (row.websiteKey !== manifest.target.websiteKey || row.instanceKey !== manifest.target.instanceKey || row.status !== "active" || !listFieldsSchema.safeParse({name: row.name, description: row.description, consentText: row.consentText, privacyUrl: row.privacyUrl, status: row.status}).success))) {
 			issue(
 				"TARGET_DEPENDENCY_MISMATCH",
 				dep.key,
-				"The selected target record is missing or does not match the required stable slug.",
+				"The selected target record is missing, inactive, foreign, or does not match the required name or slug.",
 			);
 			continue;
 		}
@@ -507,7 +519,7 @@ export async function planPromotion(
         plan.dependencies.push({key:`canonical-policy:${record.key}`,table:"settings",targetId:"canonical-policy",revision});
         const targetPostId = current ? ctx.db.normalizeId("posts", String(current._id)) : null;
         if (current && !targetPostId) fail("INVALID_PROMOTION_TARGET", "The contact form source is not a valid document.");
-        const reviewContacts = async (nodes: CanonicalTree): Promise<void> => {
+        const reviewContacts = async (nodes: RuntimeCanonicalTree): Promise<void> => {
           for (const node of nodes) {
             if (node.name === "core/contact-form") {
               const newSource = expanded?.byId.get(node.id)?.sourceChain.some(source => source.id.startsWith('new:'));
@@ -557,6 +569,9 @@ export async function planPromotion(
 	}
 	await reviewCatalogCollections(ctx, plan.changes, issue);
   await reviewLearningCollections(ctx, plan.changes, issue);
+  try {await reviewLocalization(ctx,manifest,plan,known);} catch(error) {
+    if(error instanceof ConvexError&&error.data&&typeof error.data==='object'&&'code' in error.data&&'message' in error.data)issue(String(error.data.code),'localization',String(error.data.message));else throw error;
+  }
   // Replacing an adopted menu's collection must be explicitly modelled, never append
 	// source items beside unrelated live navigation or silently delete target records.
 	for (const change of plan.changes.filter(
@@ -645,6 +660,6 @@ export async function planPromotion(
 				"Target navigation locations outside the source selection need explicit review before replacing the presentation.",
 			);
 	}
-  for (const source of plan.synced?.sources ?? []) plan.changes.push({ key: referencedKey(source.key)!, kind: 'syncedBlock', targetId: source.targetId, beforeRevision: source.beforeRevision, fields: ['title', 'publishedRevision', 'revisions'] });
+  for (const source of plan.synced?.sources ?? []) plan.changes.push({ key: referencedKey(source.key)!, kind: 'syncedBlock', targetId: source.targetId, beforeRevision: source.beforeRevision, fields: ['title', 'publishedRevision', 'isLocked', 'revisions'] });
 	return { plan, issues };
 }

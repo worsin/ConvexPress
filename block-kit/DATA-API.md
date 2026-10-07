@@ -18,3 +18,20 @@ Renderer factories and host contracts live in Website `src/templates/sdk/block-r
 All writes use the selected site's authenticated runtime. On uncertain acknowledgement, inspect the saved revision/receipt before retrying. Mutation authorization does not imply permission to publish, buy, send messages or change unrelated customer content.
 
 Runtime custom definitions have registered draft, AI proposal, approval and SDK-promotion APIs under `convex/blockDefinitions/`. Use `references/style-and-compose.md` for the current entry points and exact review identities, `references/composition-runtime.md` for the restricted expression vocabulary, and `references/promotion.md` for reviewed SDK export. Draft creation, version approval, page insertion and publication are separate operations; a proposal does not save or approve content. Read the current validators before calling any operation, and preserve the selected website/environment and pinned definition versions.
+
+## Author profiles
+
+`core/author-bio` uses `content.author`. A nonempty `userId` selects one active public site profile; an empty ID preserves the authored card. `useCurrentAuthor: true` instead selects the authorized host document's current author, including inside reused content. Its default is false so existing version-2 manual/selected cards retain their behavior. The server supplies the current document identity; block attributes cannot choose another host document.
+
+Authored name, bio and media override the chosen profile; role and links remain authored. A missing/inactive/management or route-denied profile produces an explicit unavailable state even when authored overrides exist. Public results contain only ID, display name, biography, optional public portrait and a real author archive path when the profile has a slug. Search rechecks profile availability before disclosing authored text from profile-bound cards.
+
+## Reference support gate
+
+`bun run check:blocks` includes a reference-support completeness gate against the
+actual display policy and generated field inventory. It enables every installed
+plugin and supplies a ready synced-content index; every reference-bearing block
+must then be available. An unsupported field fails with its block and field path.
+Synced references expand before ordinary resolver planning and still require
+runtime index readiness. Plugin disablement and incomplete indexes remain real
+runtime denials, not exemptions from SDK support. This gate proves policy wiring;
+resource authorization, native pickers and loaded rendering need their own tests.

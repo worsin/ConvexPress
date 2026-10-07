@@ -70,5 +70,10 @@
     "capabilities": [
       "viewer.authorization"
     ]
-  }
+  },
+  "searchText": [
+    [
+      "title"
+    ]
+  ]
 }

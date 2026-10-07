@@ -105,6 +105,7 @@
             "type": "text"
           },
           {
+            "authoringSafeLink": true,
             "default": "",
             "id": "href",
             "max": 500,
@@ -259,7 +260,9 @@
             "type": "text"
           },
           {
+            "authoringSafeLink": true,
             "default": "",
+            "description": "An HTTP(S), site-relative, anchor, email or telephone destination; leave empty for no link.",
             "id": "url",
             "max": 500,
             "type": "text"
@@ -1486,7 +1489,9 @@
         "type": "select"
       },
       {
+        "authoringWebUrl": true,
         "default": "",
+        "description": "Complete HTTP or HTTPS address without embedded credentials. Leave empty to configure later.",
         "id": "customUrl",
         "max": 500,
         "type": "text"
@@ -4358,6 +4363,13 @@
         "type": "boolean"
       },
       {
+        "authoringConstraints": [
+          {
+            "kind": "ordered",
+            "lower": "startsAt",
+            "upper": "endsAt"
+          }
+        ],
         "fields": [
           {
             "id": "startsAt",
@@ -4558,7 +4570,13 @@
     },
     "category": "site",
     "constraints": [],
-    "data": null,
+    "data": {
+      "args": {
+        "useCurrentAuthor": "attrs.useCurrentAuthor",
+        "userId": "attrs.userId"
+      },
+      "resolver": "content.author"
+    },
     "description": "Author card with photo, role, bio, and links.",
     "examples": [
       {
@@ -4567,6 +4585,7 @@
         "mediaId": "",
         "name": "",
         "role": "",
+        "useCurrentAuthor": false,
         "userId": ""
       },
       {
@@ -4575,6 +4594,7 @@
         "mediaId": "",
         "name": "Jane Doe",
         "role": "Author",
+        "useCurrentAuthor": false,
         "userId": ""
       },
       {
@@ -4588,10 +4608,34 @@
         "mediaId": "",
         "name": "Rowan Vale",
         "role": "Fictional field journal editor",
+        "useCurrentAuthor": false,
+        "userId": ""
+      },
+      {
+        "bio": "",
+        "links": [],
+        "mediaId": "",
+        "name": "",
+        "role": "Fictional contributor",
+        "useCurrentAuthor": false,
+        "userId": "demo-author"
+      },
+      {
+        "bio": "",
+        "links": [],
+        "mediaId": "",
+        "name": "",
+        "role": "Current page contributor",
+        "useCurrentAuthor": true,
         "userId": ""
       }
     ],
     "fields": [
+      {
+        "default": false,
+        "id": "useCurrentAuthor",
+        "type": "boolean"
+      },
       {
         "allowEmpty": true,
         "default": "",
@@ -4928,6 +4972,13 @@
       "avoid": "",
       "useFor": "demo or consultation booking"
     },
+    "authoringActions": [
+      {
+        "href": "ctaUrl",
+        "label": "ctaLabel",
+        "path": []
+      }
+    ],
     "category": "forms",
     "constraints": [],
     "data": null,
@@ -8836,7 +8887,7 @@
     "category": "text",
     "constraints": [],
     "data": null,
-    "description": "Bulleted, numbered, or task list.",
+    "description": "Bulleted, numbered, or task list. Each child block is an additional list item after the text items; use a Group for paragraphs and nested lists within one item. Child items in task lists are uncompleted; use text items for editable completion states.",
     "examples": [
       {
         "items": [
@@ -8955,7 +9006,7 @@
     "source": "blocks/core/list/block.json",
     "supports": {
       "anchor": true,
-      "children": false,
+      "children": true,
       "layout": [
         "width",
         "tone",
@@ -9502,11 +9553,11 @@
     "description": "Renders a menu location inline.",
     "examples": [
       {
-        "location": "primary",
+        "location": "header",
         "source": "location"
       },
       {
-        "location": "primary",
+        "location": "header",
         "menu": "demo-menu",
         "source": "menu"
       }
@@ -9522,7 +9573,7 @@
         "type": "select"
       },
       {
-        "default": "primary",
+        "default": "header",
         "id": "location",
         "max": 80,
         "type": "text"

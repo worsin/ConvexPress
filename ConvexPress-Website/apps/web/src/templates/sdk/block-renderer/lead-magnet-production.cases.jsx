@@ -12,8 +12,9 @@ const offer = { postId: "owned-page", blockId: "owned-block", digest: "a".repeat
 const input = { email: "synthetic@example.test", marketingConsent: false, startedAt: 0, honeypot: "", captchaToken: "" };
 const lease = () => ({ leaseId: "owned-lease", fileName: "guide.txt", fileSize: 12, expiresAt: Date.now() + 60000 });
 const deferred = () => { let resolve, reject; const promise = new Promise((yes, no) => { resolve = yes; reject = no; }); return { promise, resolve, reject }; };
-async function fixture(run) {
+async function fixture(run, anonymous = false) {
   user = { userId: "alice", sessionId: "one", isSignedIn: true }; auth = { isLoading: false, isAuthenticated: true }; runtime = { convexUrl: "https://site.convex.cloud", instanceKey: "staging" }; online = true;
+  if (anonymous) { user = { isSignedIn: undefined }; auth = { isLoading: true, isAuthenticated: false }; }
   const dom = new JSDOM("<div id='root'></div>", { url: "https://site.example" });
   const saved = new Map();
   for (const key of ["window", "document", "navigator", "HTMLElement", "IS_REACT_ACT_ENVIRONMENT", "fetch"]) {
@@ -26,7 +27,7 @@ async function fixture(run) {
   unsubscribe = args => { const pending = deferred(); optouts.push({ args, ...pending }); return pending.promise; };
   globalThis.fetch = (...args) => { const pending = deferred(); handoffs.push({ args, ...pending }); return pending.promise; };
   const { createRoot } = await import("react-dom/client"); const root = createRoot(document.getElementById("root"));
-  const render = () => act(async () => root.render(<StrictMode><ProductionLeadMagnetProvider><span>Owned page</span></ProductionLeadMagnetProvider></StrictMode>));
+  const render = () => act(async () => root.render(<StrictMode><ProductionLeadMagnetProvider><a href="#details">Owned page</a><details id="details"><summary>Details</summary>Public content</details></ProductionLeadMagnetProvider></StrictMode>));
   await render();
   const capture = promise => promise.then(value => ({ ok: true, value }), error => ({ ok: false, message: error.message }));
   const submit = () => capture(host.submit(offer, input));
@@ -67,8 +68,47 @@ test("old host callbacks stay invalid after an account round trip", () => fixtur
   expect((await result).ok).toBe(false);
   expect(f.calls).toHaveLength(0);
 }));
+test("a known expired receipt starts a fresh request without losing uncertain retry identity", () => fixture(async f => {
+  const receipt = await f.ready();
+  const originalNow = Date.now;
+  Date.now = () => receipt.expiresAt;
+  try {
+    const pending = f.submit();
+    expect(f.calls[1].args.requestId).not.toBe(f.calls[0].args.requestId);
+    expect(f.calls[1].args.secret).not.toBe(f.calls[0].args.secret);
+    await act(async () => f.calls[1].resolve(lease()));
+    expect((await pending).ok).toBe(true);
+  } finally { Date.now = originalNow; }
+}));
 test("unsubscribe acknowledgement is rejected after authority changes", () => fixture(async f => {
   const receipt = await f.ready(); const result = f.capture(host.unsubscribe(receipt));
   user = { ...user, sessionId: "two" }; await f.render(); user = { ...user, sessionId: "one" }; await f.render();
   await act(async () => f.optouts[0].resolve(null)); expect((await result).ok).toBe(false);
+}));
+
+test("anonymous auth readiness preserves focused public children and open disclosures", () => fixture(async f => {
+  const link = document.querySelector("a"), details = document.querySelector("details");
+  link.focus(); details.open = true;
+  user = { userId: null, sessionId: null, isSignedIn: false }; await f.render();
+  expect(document.querySelector("a") === link).toBe(true);
+  auth = { isLoading: false, isAuthenticated: false }; await f.render();
+  expect(document.querySelector("a") === link).toBe(true);
+  expect(document.activeElement === link).toBe(true);
+  expect(details.isConnected && details.open).toBe(true);
+  const pending = f.submit(), previous = host;
+  auth = { ...auth, isLoading: true }; await f.render();
+  auth = { ...auth, isLoading: false }; await f.render();
+  await act(async () => f.calls[0].resolve(lease()));
+  expect((await pending).ok).toBe(false);
+  expect((await f.capture(previous.submit(offer, input))).ok).toBe(false);
+  expect(f.calls).toHaveLength(1);
+  expect(document.activeElement === link).toBe(true);
+  user = { userId: "alice", sessionId: "one", isSignedIn: true }; await f.render();
+  expect(link.isConnected).toBe(false);
+}, true));
+test("authenticated readiness and identity changes still clear rendered state", () => fixture(async f => {
+  for (const change of [() => { auth = { ...auth, isLoading: true }; }, () => { auth = { ...auth, isLoading: false }; }, () => { user = { ...user, sessionId: "two" }; }, () => { runtime = { ...runtime, instanceKey: "live" }; }]) {
+    const link = document.querySelector("a"); change(); await f.render();
+    expect(link.isConnected).toBe(false);
+  }
 }));

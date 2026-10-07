@@ -18,7 +18,7 @@ mock.module("convex/react", () => ({
     discardCalls.push(args); return null;
   },
 }));
-mock.module("@/hooks/useCan", () => ({ useCan: () => allowed }));
+mock.module("@/hooks/useCan", () => ({ useCan: () => allowed, useCapabilityAccess: () => allowed ? "allowed" : "denied" }));
 mock.module("@/hooks/useCurrentUser", () => ({ useCurrentUser: () => ({ user: profile }) }));
 mock.module("@/lib/site-runtime", () => ({ getSiteRuntime: () => ({ convexUrl: "https://test.convex.cloud", instanceKey: "staging" }) }));
 const modules = [{ id: "colors", title: "Colors", fields: [{ id: "primary", label: "Primary", type: "color" }], presets: [{ id: "ink", name: "Ink preset", colors: { primary: "#445566" } }] }];
@@ -131,4 +131,29 @@ test("the actual on-site gate refuses cached profile authority until backend aut
   allowed = false;
   await render();
   expect(document.querySelector("[aria-label='Customize template']")).toBeNull();
+}));
+
+test("picking the same surface again restores its field focus and opens its group", () => environment(async ({ click }) => {
+  const oldCss = Object.getOwnPropertyDescriptor(globalThis, "CSS");
+  Object.defineProperty(globalThis, "CSS", { configurable: true, value: { escape: value => value } });
+  const field = document.querySelector('[data-customize-field="colors.primary"]');
+  field.scrollIntoView = () => {};
+  const surface = document.createElement("button");
+  surface.dataset.customize = "colors.primary";
+  surface.textContent = "Rendered primary surface";
+  document.body.append(surface);
+  try {
+    for (let attempt = 0; attempt < 2; attempt++) {
+      field.closest("details").open = false;
+      surface.focus();
+      await click("Select a setting on the page");
+      await act(async () => surface.click());
+      expect(document.activeElement).toBe(field);
+      expect(field.closest("details").open).toBe(true);
+      expect(document.body.textContent).not.toContain("Cancel selecting");
+    }
+  } finally {
+    surface.remove();
+    if (oldCss) Object.defineProperty(globalThis, "CSS", oldCss); else delete globalThis.CSS;
+  }
 }));

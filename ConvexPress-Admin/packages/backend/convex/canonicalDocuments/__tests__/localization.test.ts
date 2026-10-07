@@ -92,3 +92,21 @@ test("native picker separates public discovery from private editorial authority"
  await f.t.run(ctx=>ctx.db.patch(f.ids.role,{capabilities:["settings.update_general","page.update"]}));expect((await f.client.query(query("document"),args)).id).toBe(f.ids.documents[4]!);
  await f.t.run(ctx=>ctx.db.patch(f.ids.user,{status:"inactive"}));await expect(f.client.query(query("document"),args)).rejects.toThrow();
 });
+
+test('historical slug fallback has the same served destination in locales and breadcrumbs',async()=>{
+ const f=await fixture();await f.configure();await f.save();
+ await f.t.run(ctx=>ctx.db.patch(f.ids.documents[3]!,{slug:'guide été',path:undefined}));
+ const locales=await f.read();
+ const navigation=await f.t.run(async ctx=>{const document=await ctx.db.get(f.ids.documents[3]!);const{createNavigationReader}=await import('../navigation');return createNavigationReader(ctx,{document:document!,tree:[]})('content.breadcrumbs',{source:'auto'});});
+ expect(locales.items.find(i=>i.current)?.href).toBe('/page/guide%20%C3%A9t%C3%A9');
+ expect(navigation.currentPath).toBe(locales.items.find(i=>i.current)?.href);
+});
+test('fallback destinations retain legacy and corrected membership aliases',async()=>{
+ const f=await fixture();await f.configure();await f.save();
+ await f.t.run(async ctx=>{await ctx.db.patch(f.ids.plugins,{values:{membershipEnabled:true}});await ctx.db.patch(f.ids.documents[4]!,{path:'/bad\\path',slug:'safe-translation'});});
+ for(const path of ['/bad\\path','/page/bad\\path','/page/safe-translation']){
+  const rule=await f.t.run(ctx=>ctx.db.insert('membership_restriction_rules',{resourceType:'route',resourceIdOrKey:path,ruleMode:'allow_only',planIds:[],loginRequired:true,teaserMode:'hide',createdAt:1,updatedAt:1}));
+  expect((await f.read()).items.map(i=>i.code)).toEqual(['en','ar']);await f.t.run(ctx=>ctx.db.delete(rule));
+ }
+ expect((await f.read()).items.find(i=>i.code==='es')?.href).toBe('/page/safe-translation');
+});

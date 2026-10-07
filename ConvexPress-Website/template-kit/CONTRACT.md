@@ -19,6 +19,12 @@ A pack may share its own `parts/`. Changes to another pack or shared platform co
 
 `useTemplateSettings().get(module,field)` reads nested dotted fields and reports usage. `Surface` registers the current surface. Stamp a meaningful element with `data-customize="module.field"` for selection. Draft snapshots replace saved override groups before defaults merge; do not layer old saved values beneath a reset.
 
+## Typography scale
+
+The Website and internal BlockDemo compile imported CSS through `apps/web/type-scale.mjs` after Tailwind. Customize selects a finite factor: compact `0.94`, comfortable `1`, spacious `1.06`. Explicit font sizes (including responsive `clamp()` and the size in `font` shorthands) consume that factor. Root font metrics, widths, padding and gaps remain unchanged. Body starts at `1rem` so inherited text participates.
+
+Use imported CSS or Tailwind for scalable typography. `em`, `%` and other font-relative sizes inherit the scaled parent and are left alone; do not multiply them again. Size custom properties should resolve to absolute, viewport/container or `rem` lengths. Mixed parent-relative expressions and ambiguous whole-font/weight variables are preserved; if needed, express the size separately with a `font-size` declaration. Runtime inline/style-element CSS bypasses the build transform and must consume the scale explicitly for absolute sizes. Keep `html`/`:root` sizing separate from text rules; never change root sizing to implement this control.
+
 ## Verification layers
 
 Static contract checks recursively inspect surfaces and parts, manifest/field declarations, duplicate ids and SDK compatibility. Typechecking establishes compile-time contracts. Offline SSR renders loading-home fixtures through Vite's actual module graph. Supplied fixture routes plus browser screenshots prove loaded surfaces; auth/member/payment workflows require their own authorized staging acceptance. None of these layers alone means production acceptance.

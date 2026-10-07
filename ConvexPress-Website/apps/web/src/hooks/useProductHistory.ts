@@ -1,13 +1,13 @@
 import { useConvex, useConvexAuth } from "convex/react";
-import { useAuth } from "../lib/auth/clerk";
+import { usePublicViewer } from "../lib/auth/usePublicViewer";
 import { getSiteRuntime } from "../lib/site-runtime";
 import { productHistoryScope } from "../lib/commerce/product-history";
 import { useStoredProductHistory, useRecordStoredProductView } from "./product-history-state";
 /** Wait for the same authenticated Convex identity that owns storefront reads. */
 function useHistoryScope() {
-  const client = useConvex(), auth = useAuth(), convexAuth = useConvexAuth();
+  const client = useConvex(), auth = usePublicViewer(), convexAuth = useConvexAuth();
   return productHistoryScope({backendUrl:client.url,instanceKey:getSiteRuntime().instanceKey ?? "",
-    loaded:auth.isLoaded,signedIn:Boolean(auth.isSignedIn),userId:auth.userId,
+    viewerKind:auth.kind,loaded:auth.isLoaded && !auth.unavailable,signedIn:Boolean(auth.isSignedIn),userId:auth.userId,
     backendLoading:convexAuth.isLoading,backendAuthenticated:convexAuth.isAuthenticated});
 }
 /** SSR never reads storage. A changed account/site immediately masks old state. */

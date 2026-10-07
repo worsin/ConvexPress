@@ -1,4 +1,63 @@
+# October5 canonical document settings
+
+Excerpt/image/comments and post categories/tags restored in canonical native editor. Atomic save/reopen/stale refusal and body isolation pass; taxonomy assignment event preserved. Working/source174 tests,target144,types/contracts/writer checks pass. Final live event proofs and exact original145documents/522revisions preservation pass; fixtures and owned sessions/runtime cleaned. [Evidence and deployment bases](document-settings-20261005.md). E07/full goal remain open117/20.
+
+# October 5 canonical Bulk Edit
+
+Revision-checked cross-page batches, explicit partial/stale results and sticky removal accepted in native Electron. Three helper tests and four Admin type tasks pass; all eleven fixtures and owned sessions/runtime cleaned. Original145 documents/522 revisions exact. No backend redeploy; Quick Edit installed bases remain current. [Evidence](bulk-edit-canonical-20261005.md). Audit38 metadata parity and E10 safe example-site provisioning remain open; full goal incomplete117/20.
+
+## October 5 — V1 block/AI API retired
+
+Both sites remove exactly16 obsolete block/AI endpoints; all remaining signatures, canonical AI and usage diagnostics preserved. Working/source169tests and target139 pass; types/contracts/writer gates pass. Exact145documents/522revisions, appearance/mail and ready indexes verified; sessions revoked. E07 remains open for native Quick Edit canonical coordination and schema consumers. [Evidence and next deployment bases](legacy-block-api-retirement-20261005.md).117/20 unchanged.
+
+## October 5 — Obsolete native editor retired
+
+Removed38 private files comprising the unreachable original article/text and v1 composition editors. Canonical routes, shared controls and import/recovery remain.67 canonical tests/1147assertions, all Admin types and production build pass; no backend or site data change. [Evidence and next boundary](legacy-editor-retirement-20261005.md). E07/full goal remain open117/20.
+
+## October 5 — Legacy demo content seed retired
+
+Both sites remove exactly seedMarketingSite and repairSeededPageLinks; the old CLI exits before side effects. Shared media/shop functions and all remaining signatures preserved. Original145documents/522revisions and appearance/mail exact, indexes ready, readback sessions revoked. No destructive seed executed. E07 remains open for the recorded native/backend/schema consumers;117/20 unchanged. [Evidence and next deployment bases](demo-seed-retirement-20261005.md).
+
+## October 5 — WordPress canonical import accepted
+
+Both sites import posts/pages through canonical transactions with current owner/job authority, compare-and-swap, retained source archives and atomic mapping receipts. Four actual native edit/reload/388px Website journeys pass. Final178 focused tests; page metadata cascade regression repaired and live cleanup exact. Six owned documents removed; original145documents/522revisions, metadata/private drafts/appearance/mail exact; temporary keys/sessions/runtimes cleaned. E07 and full goal remain open117Verified/20In progress. [Evidence, limits and next deployment bases](wp-canonical-20261005.md).
+
+## October 5 — Generic legacy creation retired
+
+Both sites now omit exactly the unused posts/pages generic create endpoints; canonical/native/HTTP creation remains. Reserved-route suffix bypass fixed. Target receives bounded existing source depth/deletion/orphan-category fixes demonstrated by five failing tests. Working/source168 focused tests, target138, types/contracts/deploy gates pass. Live canonical create/read/reparent/reorder/deletion and exact cleanup pass on both sites; eight owned documents removed, original145documents/522revisions and appearance/mail exact. Goal active/incomplete117Verified/20In progress. [Evidence and next deployment bases](legacy-create-retirement-20261005.md).
+
+## October 5 — HTTP canonical authoring accepted
+
+Both isolated sites pass API create/read/update, revision conflict refusal, native post/page Save/reload, actual Website 335px preview and API readback at revision3. Working168 focused tests; preserved source162/target132; types/deploy/contracts/writer checks pass. Target missing20 CTA rules and structured-error boundary corrected with bounded backports. Six owned documents/history/private drafts cleaned; original145 documents/522 revisions, appearance/mail and original keys exact; owned keys/sessions revoked and runtimes stopped. E07 and full delivery remain open,117Verified/20In progress unchanged. [Evidence and next deployment bases](http-canonical-20261005.md).
+
+## September29 Lead Magnet customer lifecycle accepted
+
+Tracker117Verified/20In progress, all137Notes/unrelated cells exact. Two real Clerk customers, cross-account retry refusal, deactivated-account delivery refusal, same-cookie/explicit-proof target refusal and exact308-byte downloads pass. E61 repairs known-expired request reuse: natural15-minute expiry followed by one-click fresh lease succeeds; uncertain retries retain identity.11lifecycle cases/33assertions, Website types/build/lint pass. Owned fixtures/identities cleaned; original42source/28target pages and99queue exact. [Evidence and limits](lead-customer-20260929.md). E22 screenshot mapping progressed separately; centralized-test mapping/Tasks4–8/E18/E28 remain open.
+
+## September29 Contact Form and Form Embed accepted
+
+Tracker116Verified/21In progress, all137Notes/unrelated cells exact. Actual Clerk customer grant/revocation/natural expiry/recovery, stale write refusal, saved-draft preservation, one-entry completion and sign-out pass. E60 repairs Forms-only anonymous SSR denial recovery after authentication; initial protected HTTP404 remains, customer hydration recovers.8Website tests/types/build pass; prior native/nested/24pack and596backend/eight resume cases reused. Owned fixtures/identities cleaned; original42pages/7forms/settings/99queue exact. [Evidence and limits](forms-customer-20260929.md). Tasks4–8/E18/E22/E28 remain open.
+
 # Current production acceptance index — September 21
+
+September29 Forms resume repair: **114/137 Verified;23 In progress unchanged.** E58 fixes draft expiry and current form-route/login authority. E59 fixes blank resume routing, token breadcrumbs and confirmation lost on token consumption.596backend tests,7Website tests,8real four-pack/width resume journeys and exact cleanup pass. Remaining actual customer gates stay open. [Evidence](forms-authority-20260929.md).
+
+September29 Recently Viewed environment check: **112/137 Verified;25 In progress unchanged.** Actual guest source→target→source switch passes in one browser origin. Signed-in target rejects the Clerk token and lacks the provisioning secret, so Recently Viewed remains open under E18 target-readiness. Both attempts cleaned, source runtime restored exactly, original42/28 pages and settings values preserved. Next Task3 forms. [Evidence](recent-site-switch-20260929.md).
+
+September29 Moving Media: **93/137 Verified;44 In progress.** Carousel, Marquee and Customer Showcase accepted with native exact recovery, opt-in accessible playback, live links/motion and normal/maximum four-pack1440/390 cases. E47 unsafe new/historical link mismatch, E48 missing playback and E49 combined attribution capacity/overflow repaired. F24 local status rows reconciled with a new per-row parity gate. Owned fixture/session/profile cleaned;42 original pages/media/appearance and all tracker Notes exact. [Evidence](moving-media-20260929.md). Full delivery remains active.
+
+September29 social utilities: **79/137 Verified;58 In progress.** Social Share, Social Links and Local Sample Alert pass native field/save/reopen/exact history recovery and final four-pack desktop/mobile action, maximum and empty states. E42 URL validation, stale clipboard feedback, long-link wrapping and platform icons repaired. Owned fixture/sessions cleaned; all42 original pages/appearance and tracker Notes/other cells exact. [Evidence](social-utilities-20260929.md). Task3 plugin gating is next; overall goal remains active.
+
+September29 Language Switcher completion: **76/137 Verified;61 In progress.** E41 explicit reviewed localization promotion, complete group closure, identity remapping, conflict/authority checks and monotonic recovery pass. Native controller apply, eight target pack/width cases,260 focused tests and exact original-page preservation verified. Target language semantics restored; revision metadata retained through normal APIs. Older target editor readiness remains E18. All tracker Notes/other cells preserved. [Evidence](locale-promotion-20260929.md).
+
+September28 locale destinations: shared served-document contract verified by497 backend tests, eight public pack/width cases and read-only native Website preview. F19 historical encoding mismatch repaired with legacy menu/access compatibility retained. E41 confirmed: authored export silently omits localization host configuration/groups. **75/137 Verified;62 In progress**, Language Switcher stays open for promotion. [Evidence](locale-destinations-20260928.md).
+
+September28 Search Results completion: **75/137 blocks verified;62 pending.** Bounded E39 host/poll/embed/media copy acceptance completes the accumulated search block gates. Native save/reload/actual Website preview, eight final pack/width cases,52 backend decisions, live poll visibility withdrawal/restoration,562 backend/310 renderer tests and exact cleanup pass. Only Search Results Status/Tests/Screenshots changed in MagicTables; all Notes and other cells preserved. [Evidence](search-host-prose-20260928.md). Language Switcher/F19 is next; overall delivery remains active.
+
+September 28 Search controls completion: **74/137 blocks verified; 63 pending.** Search Box/Band native controls, exact history recovery, actual Website navigation and long/empty four-pack layouts pass. E32–E35 close search/editor page destinations, reusable-source search refresh and suggestion overflow. Search Results and localization promotion remain open. [Evidence](search-discovery-completion-20260928.md).
+
+September 28 Menu/Child Pages completion: **65/137 blocks verified; 72 pending.** E27 read/publication budget repair passes brokered native save/reopen/restore/publication, actual Website preview and eight public pack/width cases. Original content/settings preserved; owned fixtures and sessions cleaned, reusable-consumer index ready. [Evidence](menu-directory-completion-20260928.md). Header separator E28 remains Task 5; delivery goal remains open.
+
 
 **September 28 owner scope correction:** The active delivery is the complete block editor, 137-block library, template/Customizer system, four default template websites, BlockDemo and SDK workflows, including all demonstrated dependencies. The former whole-application production audit below remains an accurate historical/deferred register; it is not the active execution queue unless a finding blocks that delivery. Follow [the focused execution guide](../../../docs/superpowers/plans/2026-09-28-editor-template-delivery.md) and its 137-block status file. No additional block or production acceptance is claimed by this planning change.
 
@@ -369,3 +428,71 @@ September21 native block layout: Heading/Paragraph/Divider/Spacer authored and s
 ## September 21 utility migration and treatment editing
 
 Legacy Spacer size and Divider variant conversion now preserve all seven original choices. Added native treatment selectors backed by generated metadata/validation, with actual preview, undo/redo, reset, save/reopen and exact original-authoring recovery. All four packs passed public desktop/mobile measurements; original42 pages and appearance values are unchanged. Backend, Admin, Website/demo types, builds and focused checks pass. Seven editor wrapper tests/743 assertions,91 document tests and292 renderer cases pass. Settled native control and selected public screenshots inspected. Second native close reported a Playwright dialog protocol rejection; its process exited, but that session's logout acknowledgement is not separately retained. See [complete scoped evidence](utility-migration-20260921.md). Full block and original production counts remain unchanged; next finite block work must address remaining shared visibility/lock behavior and authored Heading/Paragraph states, not repeat this accepted utility specimen.
+
+
+## Deferred finding F20 — enterprise commerce backfill truncation (2026-09-28)
+
+Claude Opus audit10 identified and Codex source-verified `commerce/migrations.ts:backfillEnterpriseCommerceRecords`: carts, checkout sessions, orders and payment transactions each use `take(limit)` (default200, maximum1000) with no continuation. Repeated calls inspect the same leading records; returned patch counts do not prove corpus completion. No live reproduction or repair is claimed. This belongs to deferred commerce migration work. Promote it into the active editor/template delivery only if a catalog/customer-commerce acceptance workflow demonstrates dependency on enterprise records beyond that bound. Search E37 does not require this migration.
+
+
+## September 28 Library prose search — first accepted pass
+
+Added36 explicit authored-text declarations without changing saved fields/versions, applied current public resource availability to canonical body search, and removed the ordinary Core search-card0 artifact.539 backend tests/310 renderer tests, explicit-project types/build and generated checks pass. Native caption save/reopen/actual Website draft,88 current matches and eight four-pack desktop/mobile cases pass. Two disposable pages removed; original42pages/2posts/1term, menus/locations/appearance/reindex state exact; owned sessions cleaned up. Source4860 snapshot search-library-20260928 has1611exact hashes and2410unchanged signatures; target4870 untouched. [Evidence and remaining E39 scope](search-library-prose-20260928.md). Search Results remains In progress, tracker74/63 unchanged; conditional/promotion/HTML coverage, Language Switcher and the broader goal remain open.
+
+
+## September28 conditional prose and timed search
+
+See [conditional prose acceptance](search-conditional-prose-20260928.md). Thirteen conditional declarations and E40 scheduled refresh accepted:549 backend tests,12 client tests,310 renderer tests, native detail save/reload/Website iframe, eight four-pack/width cases and four no-reload time transitions. All3 owned pages/session/profile cleaned; original42 pages/2 posts/1 term and appearance exact. Source4860 deployed, target4870 retained. E39 and overall delivery remain open;74 Verified/63 In progress unchanged.
+
+
+## September28 promoted and sanitized HTML search
+
+See [presentation prose acceptance](search-presentation-prose-20260928.md). Installed Studio Services and Custom HTML search accepted:556 backend/16 generator/310 renderer/4 sanitizer tests; native promoted headline save/reload and real Website iframe; eight four-pack/width cases and56 backend decisions. Both owned pages/session/profile cleaned; original42 pages/2 posts/1 term and appearance exact. Source4860 has1,619 exact source hashes and unchanged2,410 function signatures; target4870 retained. E39 and the overall goal remain open;74 Verified/63 In progress unchanged.
+
+## September29 plugin content acceptance
+
+Recipe Card and Album complete their block-specific native, published Website, four-pack/width and recovery gates. Tracker81 Verified/56 In progress, all137 Notes preserved. E43 Gallery public detail/embed/archive access and real404 repair passes21 focused tests, strict types/build and installed checks; source snapshot retains1,622 exact hashes,22 Events files and2,410 unchanged functions. Original42pages, album/media and settings exact. One owned page permanently deleted; two recipes and one empty album remain explicitly in trash because normal APIs expose no permanent deletion. Sessions/profile cleaned. [Full evidence and limits](plugin-content-20260929.md). Full goal and E18 integration remain open.
+
+## September29 business content acceptance
+
+Opening Hours, Locations, Services and Menu accepted: tracker85 Verified/52 In progress. E44 valid long exception-note overflow fixed in shared List grid/wrapping. Native field/repeater edits, exact revision3→5 recovery, nine installed refusal checks, eight normal/eight maximum four-pack cases, types/build/312renderer tests pass. Studio Services also passes fresh field/render/minimum/maximum checks but its row retains the compose/style/promote workflow gate. Owned page/session/profile cleaned;42original pages/media/appearance exact. [Evidence and limits](business-content-20260929.md). Full goal remains open.
+
+
+## September29 external embeds acceptance
+
+Five rows accepted, tracker108 Verified/29 In progress; Script Embed Vimeo playback remains pending provider access. E53 write-time embed/action validation, E54 valid300-character Contact Link crash and E55 maximum text wrapping repaired. Native all-field edits/exact revision4→14 recovery, eight normal/eight maximum pack/width cases, twelve live provider cases, one actual Embed Vimeo playback and six controlled failure cases pass. Two pages/session/profile removed; original42pages/11media/appearance values exact. Strict source snapshot1624files preserves22Events/2410signatures. [Evidence and provider limits](external-embeds-20260929.md). Tasks4–8 and E18/E22/E28 remain open; next customer-commerce.
+
+
+## September29 customer commerce acceptance
+
+Reviews, Cart CTA, Wishlist and Purchased Downloads accepted: tracker112/25, Notes preserved. E56 one-property help-link shrink repair passes16normal/maximum four-pack cases. Real customer actions/isolation, native exact4→6 recovery,13download pages12+1,30,409,237-byte verified ZIP and live revocation pass. Original42pages/11media and product/category values preserved; normal audit metadata and materialized email-default record disclosed. Cancelled zero-value purchase/history retained, owned content removed and identities closed. [Evidence and limits](customer-commerce-20260929.md). Recently Viewed still needs real site switching; Assistant Band confirmed missing_api_key. Goal remains open.
+
+
+## September29 Forms checkpoint — Newsletter accepted
+
+Newsletter Signup accepted:113Verified/24In progress, all Notes preserved. E57 fixes proved shared form-label/submit and newsletter-submit overflow;24final four-pack/width/state cases pass. All six native blocks have exact4→6 recovery; actual submissions, guide bytes/opt-out, poll repeat and RSVP cancel pass. A true two-source Contact graph now updates/withdraws/restores with stable form/field IDs and unchanged consumer document. Five Forms rows retain precise authority/customer/provider gates. Original content/settings restored; scoped history plus one synthetic newsletter subscriber retained explicitly. [Evidence and limits](forms-acceptance-20260929.md). Tasks4–8 and E18/E22/E28 remain open.
+
+
+## September29 Poll policy completion
+
+Poll accepted:114Verified/23In progress; all Notes/unrelated cells exact. Two real customer accounts, guest refusal, stable reordered/hidden-results ballots, question/choice revision separation, exact original ballot recovery, stale-version refusal, settled404/source refusal and republish pass.16current customer/guest pack cases plus14backend tests; prior native/maximum evidence reused. Cleanup corrects a settings-alert side effect:12Forms-restoration+60Poll-pack jobs queued, all72cancelled at0attempts; original27queue rows exact,99total including cancelled history. No provider key/delivery. [Evidence](poll-policy-20260929.md). Opus20 F27 short summary aligned; E18 already held target-auth evidence and nextCheck. Goal remains open.
+
+
+## October5 canonical Quick Edit
+
+Native post/page title/metadata/parent transaction fixed; stale open form refuses atomically and preserves input. Both installed sites, focused source167/target137tests, scoped backend/Admin types and contracts pass. Exact original145documents/522revisions,appearance/mail,target private draft after cleanup. Owned sessions/Electron/profile removed. [Evidence](quick-edit-canonical-20261005.md). E07 and full goal remain open; bulk/generic consumers next.
+
+
+## October6 Instructor profile variants
+
+Instructor accepted:129Verified/8In progress, full tracker readback and all Notes preserved. Added fictional portrait/initials/minimal/unavailable BlockDemo specimens; all four packs pass1440/390 portrait/state checks and desktop paging/focus.13demo tests/170assertions, Website and BlockDemo types, canonical/generated/kit checks pass. Reused actual native picker/save/preview, independent databases and current live course withdrawal. No backend or site-data changes; owned tab closed, protected processes preserved. [Evidence](instructor-final-20261006.md). Shared editor/migration/Customizer/SDK and final integration remain open.
+
+
+## October6 Synced content promotion completion
+
+Synced content accepted:131Verified/6In progress; one tracker row changed and all Notes preserved. E101 transports imported editing locks through review/apply/rollback, refuses locked target overwrite, supports explicit target unlock and native guidance; canonical SDK owner synchronized with deployed E100 conversion. Native broker applied nested closure once; unselected live Website updates latest while preserving pin and exact authored document, rollback restores publication and retains imported history. Original71pages/settings/appearance/access policies and language configuration restored;3ownedpagestrashed,4sourceswithdrawn,originallegacy/historyretained,APIrefresh401,native/profile/Website/tabclean,protected7alive. [Evidence](synced-promotion-final-20261006.md). Next reference/field-guide live conversion; corpus retirement and Tasks4–8 delivery gates remain open.
+
+
+## October6 Field Guide legacy acceptance
+
+Field Guide accepted:132Verified/5In progress. Native reviewed version-one conversion, selected-media preservation, distinct saved edit and exact original archive import to canonical revision3 pass; native publication and actual Website output verified. Original71pages/settings/appearance unchanged, ownedpage recoverablytrashed with exactarchive/historyretained, APIrefresh401 and ownedruntime/profile/tab cleanup verified. Prior native/mobile/four-pack geometry reused. [Evidence](field-guide-legacy-final-20261006.md). Next E07 remaining compatibility caller retirement and corpus reconciliation; whole goal remains active.

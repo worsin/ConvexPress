@@ -309,4 +309,4 @@ function App() {
 }
 const root = document.getElementById("root");
 if (!root) throw new Error("BlockDemo root is missing");
-createRoot(root).render(<App />);
+createRoot(root).render(<Suspense fallback={<p role="status" className="canonical-loading">Loading block studies…</p>}><App /></Suspense>);

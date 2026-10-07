@@ -43,7 +43,7 @@ export function downloadInterval(header: string | null, size: number): { offset:
   if (!Number.isSafeInteger(offset) || !Number.isSafeInteger(end) || offset >= size || end < offset) return null;
   return { offset, length: Math.min(end, size - 1) - offset + 1, partial: true };
 }
-function attachment(name: string): string {
+export function attachment(name: string): string {
   const safe = Array.from(name.replace(/[\u0000-\u001f\u007f/\\]/g, "_")).slice(0, 240).join("") || "download";
   const encoded = encodeURIComponent(new TextDecoder().decode(new TextEncoder().encode(safe))).replace(/['()*]/g, character => `%${character.charCodeAt(0).toString(16).toUpperCase()}`);
   return `attachment; filename="download"; filename*=UTF-8''${encoded}`;

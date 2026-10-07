@@ -6,6 +6,7 @@ import { validateCanonicalTree } from "../../canonicalDocuments/foundation/gener
 import { contactSourceAllowed } from "../../canonicalDocuments/contactSource";
 import { capturePublicationAuthority, requireCapturedPublicationAuthority } from "../../helpers/permissions";
 import { RequestReadLedger } from "../../helpers/requestReadLedger";
+import { readSearch } from "../../canonicalDocuments/search";
 
 const step = ref<"mutation">("syncedBlocks/refresh:step"), retry = ref<"mutation">("syncedBlocks/refresh:retry"), status = ref<"query">("syncedBlocks/refresh:status");
 const start = ref<"mutation">("syncedBlocks/refresh:start");
@@ -79,6 +80,60 @@ test("source-only refresh processes one page per durable step and preserves late
   await f.release(f.source.id, head.generation, 1); await f.drain();
   expect((await f.t.run(ctx => ctx.db.get("fieldDefinitions", oldMessage._id)))?.groupId).toBe(oldMessage.groupId);
   expect((await f.forms()).filter(form => form.contactPostId === second)).toHaveLength(2);
+});
+
+test("source publication refreshes searchable consumer copy while pinned revisions remain searchable", async () => {
+  const f = await setup();
+  const copy = (text: string) => [{ id: "copy", name: "core/paragraph", version: 2, attrs: {
+    body: { type: "doc", content: [{ type: "paragraph", content: [{ type: "text", text }] }] },
+  } }];
+  async function publishCopy(text: string) {
+    const head = (await f.t.run(ctx => ctx.db.get("syncedBlocks", f.source.id)))!;
+    const saved = await f.operator.mutation(save, { id: head._id, expectedGeneration: head.generation, title: "Reusable editorial copy", blocks: copy(text) });
+    await f.release(head._id, saved.generation, saved.revision);
+    return saved.revision;
+  }
+  await f.drain();
+  const oldRevision = await publishCopy("Oldorchidword");
+  const latest = await f.addPage(validateCanonicalTree(reference(f.source.id)));
+  const pinned = await f.addPage(validateCanonicalTree(reference(f.source.id, oldRevision)));
+  const before = await f.t.run(async ctx => Promise.all([ctx.db.get("posts", latest), ctx.db.get("posts", pinned)]));
+  for (const contentId of [latest, pinned]) await f.t.mutation(ref<"mutation">("search/internals:onContentChanged"), { contentType: "page", contentId, action: "upsert" });
+  const search = (query: string) => f.t.run(ctx => readSearch(ctx, { query }, { websiteKey: "synced", instanceKey: "staging" }, "host"));
+  expect(new Set((await search("Oldorchidword")).items.map(item => item.id))).toEqual(new Set([latest, pinned]));
+  await f.drain();
+  await publishCopy("Neworchidword");
+  await f.drain();
+  expect(await f.inspect()).toMatchObject({ status: "completed", processed: 2, failed: 0 });
+  expect((await search("Neworchidword")).items.map(item => item.id)).toEqual([latest]);
+  expect((await search("Oldorchidword")).items.map(item => item.id)).toEqual([pinned]);
+  expect(await f.t.run(async ctx => Promise.all([ctx.db.get("posts", latest), ctx.db.get("posts", pinned)]))).toEqual(before);
+  const head = (await f.t.run(ctx => ctx.db.get("syncedBlocks", f.source.id)))!;
+  await f.operator.mutation(withdraw, { id: head._id, expectedGeneration: head.generation });
+  await f.drain();
+  expect((await search("Neworchidword")).items).toEqual([]);
+  expect((await search("Oldorchidword")).items).toEqual([]);
+});
+
+test("search refresh failure rolls back consumer projections and an authorized retry repairs both", async () => {
+  const f = await setup(); const postId = await f.addPage(); await f.drain();
+  const duplicateId = await f.t.run(async ctx => {
+    const row = (await ctx.db.query("searchIndex").withIndex("by_content", q => q.eq("contentType", "page").eq("contentId", postId)).unique())!;
+    const { _id, _creationTime, ...value } = row;
+    return ctx.db.insert("searchIndex", value);
+  });
+  const forms = await f.forms();
+  const fields = await f.t.run(ctx => ctx.db.query("fieldDefinitions").take(30));
+  await f.update(); await f.drain();
+  const failed = (await f.inspect())!;
+  expect(failed).toMatchObject({ status: "failed", processed: 1, failed: 1 });
+  expect(await f.forms()).toEqual(forms);
+  expect(await f.t.run(ctx => ctx.db.query("fieldDefinitions").take(30))).toEqual(fields);
+  await f.t.run(ctx => ctx.db.delete("searchIndex", duplicateId));
+  await f.operator.mutation(retry, { id: f.source.id, jobId: failed.jobId, expectedAttempt: failed.attempt });
+  await f.drain();
+  expect(await f.inspect()).toMatchObject({ status: "completed", processed: 1, failed: 0 });
+  expect(await f.t.run(ctx => ctx.db.query("fieldDefinitions").take(30))).not.toEqual(fields);
 });
 
 test("recovery preserves a live callback regardless of job age and tracks each continuation", async () => {

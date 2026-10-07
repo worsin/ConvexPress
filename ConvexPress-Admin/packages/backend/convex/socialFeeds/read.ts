@@ -5,6 +5,7 @@ import {
 	socialInstallation,
 	approvedAccount,
 	mastodonMediaOrigins,
+	instagramMediaOrigins,
 } from "./policy";
 import {
 	socialAccount,
@@ -33,11 +34,7 @@ export async function readSocialFeed(
 		};
 	const account = socialAccount(args.provider, args.handle);
 	if (!account) return missing;
-	try {
-		approvedAccount(args.provider, args.handle);
-	} catch {
-		return missing;
-	}
+
 	const scope = await socialInstallation(ctx,budget);
  budget.beforeRead();
 	const source = await ctx.db
@@ -60,8 +57,9 @@ export async function readSocialFeed(
 		source.cache.expiresAt <= Date.now()
 	)
 		return missing;
+	try { approvedAccount(args.provider,args.handle,source.instagram); } catch { return missing; }
 	budget.noteAuthorizationBoundary(source.cache.expiresAt);
- const mediaOrigins = mastodonMediaOrigins();
+ const mediaOrigins = args.provider === "instagram" ? (source.instagram?new Set(source.instagram.mediaOrigins):instagramMediaOrigins()) : mastodonMediaOrigins();
 	const items = source.cache.items.slice(0, args.limit).map((item) => ({
 		...item,
 		image:

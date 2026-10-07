@@ -9,10 +9,8 @@ import { PublicCanonicalBody } from "@/templates/sdk/block-public/PublicCanonica
  * decides (`sidebar-right` counts as a sidebar layout with the column right).
  */
 import { Link } from "@tanstack/react-router";
+import type { ReactNode } from "react";
 
-import { BlockContentRenderer } from "@/components/blog/BlockContentRenderer";
-import { BlockListRenderer } from "@/components/blocks/BlockListRenderer";
-import { pageSectionsToBlocks } from "@/lib/blocks/page-sections";
 import type { PageDetail } from "@/lib/blog/types";
 import { cn } from "@/lib/utils";
 import type { PageSurfaceData } from "@/templates/packs/core/surfaces/page";
@@ -23,14 +21,6 @@ import { Breadcrumbs, Container, Prose, SmallCaps } from "../parts";
 type Layout = "default" | "sidebar-left" | "sidebar-right" | "full-width" | "no-sidebar" | "landing" | "blank";
 
 const LAYOUTS = new Set<Layout>(["default", "sidebar-left", "sidebar-right", "full-width", "no-sidebar", "landing", "blank"]);
-
-const HERO_BLOCKS = new Set(["core/hero", "core/hero-split", "core/hero-text-only", "blocks/page-banner"]);
-
-function opensWithHero(page: PageDetail): boolean {
-  if (page.contentMode !== "blocks") return false;
-  const first = page.blocks?.[0];
-  return !!first && HERO_BLOCKS.has(first.name);
-}
 
 export default function AsterPage({ data, variant }: SurfaceProps<PageSurfaceData>) {
   const { page, className } = data;
@@ -108,7 +98,10 @@ function PageBreadcrumbs({ page }: { page: PageDetail }) {
 }
 
 function Body({ page }: { page: PageDetail }) {
-  const showTitle = !opensWithHero(page);
+  const layout = (body: ReactNode, hasHero: boolean) => <>
+    {!hasHero && <h1 className="font-display text-4xl leading-[1.02] tracking-tight text-foreground text-balance md:text-7xl">{page.title}</h1>}
+    <div className="text-base leading-8 text-muted-foreground md:text-[17px]">{body}</div>
+  </>;
   return (
     <article data-slot="page-content" className="flex flex-col gap-8">
       {page.featuredImageUrl ? (
@@ -116,21 +109,13 @@ function Body({ page }: { page: PageDetail }) {
           <img src={page.featuredImageUrl} alt={page.featuredImageAlt ?? page.title} className="aspect-[3/2] w-full object-cover" loading="eager" />
         </figure>
       ) : null}
-      {showTitle ? <h1 className="font-display text-4xl leading-[1.02] tracking-tight text-foreground text-balance md:text-7xl">{page.title}</h1> : null}
-      <div className="text-base leading-8 text-muted-foreground md:text-[17px]">
-        <Blocks page={page} />
-      </div>
+      <PublicCanonicalBody documentId={page._id} renderLayout={layout} />
     </article>
   );
 }
 
 export function Blocks({ page }: { page: PageDetail }) {
-  if (page.blocksVersion === 2) return <PublicCanonicalBody documentId={page._id} />;
-  if (page.contentMode === "blocks") {
-    return <BlockListRenderer blocks={page.blocks && page.blocks.length > 0 ? page.blocks : pageSectionsToBlocks(page.pageSections)} />;
-  }
-  if (page.content) return <BlockContentRenderer content={page.content} />;
-  return <p className="py-8 text-center text-sm text-muted-foreground">This page has no content yet.</p>;
+  return <PublicCanonicalBody documentId={page._id} />;
 }
 
 function ChildPages({ pages }: { pages: NonNullable<PageDetail["children"]> }) {

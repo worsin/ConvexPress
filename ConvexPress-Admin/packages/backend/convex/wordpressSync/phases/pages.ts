@@ -1,3 +1,5 @@
+import { canonicalJson, sha256Hex } from "../../canonicalDocuments/foundation/shared/fingerprints";
+import { canonicalBoundary, importWordPressDocument } from "../../canonicalDocuments/service";
 /**
  * WordPress Sync - Pages Import Phase
  *
@@ -16,7 +18,7 @@ import { v } from "convex/values";
 import { internal } from "../../_generated/api";
 import type { Id } from "../../_generated/dataModel";
 import { fetchWPPages, fetchWPPostMeta, type WPPage, type WPMeta } from "../helpers/wpClient";
-import { parseElementorData, extractTextFromElementor, isElementorData } from "../helpers/elementor";
+import { parseElementorData, isElementorData } from "../helpers/elementor";
 import { parseACFFields, hasACFFields, acfToPostMeta } from "../helpers/acfParser";
 import { parseYoastMeta, hasYoastMeta, yoastToSEOMeta } from "../helpers/yoastParser";
 import { selectWpPostMetaForPreservation } from "../fieldPolicy";
@@ -28,9 +30,7 @@ import { createFinding } from "../helpers/idMapping";
 
 // ─── Source Hash Helper ───────────────────────────────────────────────────
 
-function computeSourceHash(fields: Record<string, unknown>): string {
-  const str = JSON.stringify(fields); let h = 0; for (let i = 0; i < str.length; i++) { h = ((h << 5) - h + str.charCodeAt(i)) | 0; } return h.toString(36);
-}
+
 
 // ─── Pages Import Action ───────────────────────────────────────────────────
 
@@ -107,12 +107,9 @@ export const importBatch = internalAction({
     for (const wpPage of sorted) {
       try {
         // Compute source hash for change detection
-        const sourceHash = computeSourceHash({
-          title: wpPage.title?.rendered,
-          content: wpPage.content?.rendered,
-          status: wpPage.status,
-          slug: wpPage.slug,
-        });
+        const pageMeta: WPMeta[] = importConfig.scope.elementor
+          ? await fetchWPPostMeta(credentials, wpPage.id, "pages") : [];
+        const sourceHash = sha256Hex(canonicalJson({record:wpPage,meta:pageMeta}));
 
         // Check if already imported (full mapping for sourceHash)
         const existingMapping = await ctx.runQuery(
@@ -120,6 +117,9 @@ export const importBatch = internalAction({
           { siteId, objectType: "page", wpId: wpPage.id }
         );
         const existingPageId = existingMapping?.convexId;
+        const localDocument = existingMapping ? await ctx.runQuery(
+          internal.wordpressSync.internals.getEntityById, {table:"posts",id:existingMapping.convexId}
+        ) : null;
 
         if (existingMapping) {
           if (!isDryRun) {
@@ -140,11 +140,9 @@ export const importBatch = internalAction({
 
           // Local edit detection
           if (importConfig.behavior.preserveLocalEdits) {
-            const localPage = await ctx.runQuery(
-              internal.wordpressSync.internals.getEntityById,
-              { table: "posts", id: existingMapping.convexId }
-            );
-            if (localPage && localPage.updatedAt > existingMapping.createdAt) {
+            if (localDocument && (existingMapping.acceptedRevision !== undefined
+              ? localDocument.blocksRevision !== existingMapping.acceptedRevision || localDocument.updatedAt !== existingMapping.acceptedUpdatedAt
+              : localDocument.updatedAt > existingMapping.createdAt)) {
               await createFinding(ctx, {
                 siteId, jobId, severity: "warning", phase: "pages",
                 code: FINDING_CODES.LOCAL_EDIT_CONFLICT,
@@ -159,13 +157,6 @@ export const importBatch = internalAction({
             }
           }
 
-          // Update sourceHash on existing mapping
-          if (!isDryRun) {
-            await ctx.runMutation(
-              internal.wordpressSync.helpers.idMapping.updateSourceHash,
-              { siteId, objectType: "page", wpId: wpPage.id, sourceHash }
-            );
-          }
 
           if (!importConfig.behavior.updateExisting) {
             skipped++;
@@ -201,16 +192,6 @@ export const importBatch = internalAction({
         }
 
         if (!isDryRun) {
-          // Fetch post meta (for Elementor - very important for pages!)
-          let pageMeta: WPMeta[] = [];
-          if (importConfig.scope.elementor) {
-            try {
-              pageMeta = await fetchWPPostMeta(credentials, wpPage.id);
-            } catch {
-              // Continue without meta if fetch fails
-            }
-          }
-
           // Process content and meta
           const processedContent = await processPageContent(wpPage, pageMeta);
 
@@ -236,10 +217,19 @@ export const importBatch = internalAction({
               internal.wordpressSync.helpers.idMapping.getByWpId,
               { siteId, objectType: "page", wpId: wpPage.parent }
             ) ?? undefined;
+            if (!parentId) throw new Error("Import the WordPress parent page before this child.");
           }
 
+          const meta = [
+            {key:"_wp_source_record",value:JSON.stringify(wpPage)},
+            {key:"_wp_source_meta",value:JSON.stringify(pageMeta)},
+            {key:"_wp_content_rendered",value:wpPage.content?.rendered ?? ""},
+            ...processedContent.acfMeta, ...processedContent.seoMeta,
+            ...(processedContent.elementorData ? [{key:"_elementor_data",value:processedContent.elementorData},{key:"_elementor_edit_mode",value:"builder"}] : []),
+          ];
+          meta.push(...selectWpPostMetaForPreservation(pageMeta,new Set(meta.map(item=>item.key))));
           // Create the page
-          const pageId = await ctx.runMutation(internal.wordpressSync.phases.pages.pagesCreate, {
+          await ctx.runMutation(internal.wordpressSync.phases.pages.pagesCreate, {
             existingId: existingPageId,
             wpPage: {
               id: wpPage.id,
@@ -257,79 +247,11 @@ export const importBatch = internalAction({
             authorId: authorId ?? undefined,
             featuredImageId,
             parentId,
-            siteId,
+            siteId, jobId, sourceHash,
+            expectedRevision: localDocument?.blocksRevision,
+            expectedUpdatedAt: localDocument?.updatedAt,
+            meta,
           });
-
-          // Store Elementor data if present (this is critical for pages!)
-          if (processedContent.elementorData) {
-            await ctx.runMutation(internal.wordpressSync.phases.posts.postsCreateMeta, {
-              postId: pageId,
-              key: "_elementor_data",
-              value: processedContent.elementorData,
-            });
-
-            // Mark this page as using Elementor
-            await ctx.runMutation(internal.wordpressSync.phases.posts.postsCreateMeta, {
-              postId: pageId,
-              key: "_elementor_edit_mode",
-              value: "builder",
-            });
-          }
-
-          // Store original rendered HTML for reference and future re-rendering.
-          if (wpPage.content?.rendered) {
-            await ctx.runMutation(internal.wordpressSync.phases.posts.postsCreateMeta, {
-              postId: pageId,
-              key: "_wp_content_rendered",
-              value: wpPage.content.rendered,
-            });
-          }
-
-          // Store ACF data
-          for (const acfMeta of processedContent.acfMeta) {
-            await ctx.runMutation(internal.wordpressSync.phases.posts.postsCreateMeta, {
-              postId: pageId,
-              key: acfMeta.key,
-              value: acfMeta.value,
-            });
-          }
-
-          // Store Yoast SEO data
-          for (const seoMeta of processedContent.seoMeta) {
-            await ctx.runMutation(internal.wordpressSync.phases.posts.postsCreateMeta, {
-              postId: pageId,
-              key: seoMeta.key,
-              value: seoMeta.value,
-            });
-          }
-
-          const storedMetaKeys = new Set([
-            "_elementor_data",
-            "_elementor_edit_mode",
-            "_wp_content_rendered",
-            ...processedContent.acfMeta.map((item) => item.key),
-            ...processedContent.seoMeta.map((item) => item.key),
-          ]);
-
-          for (const sourceMeta of selectWpPostMetaForPreservation(pageMeta, storedMetaKeys)) {
-            await ctx.runMutation(internal.wordpressSync.phases.posts.postsCreateMeta, {
-              postId: pageId,
-              key: sourceMeta.key,
-              value: sourceMeta.value,
-            });
-          }
-
-          if (!existingPageId) {
-            // Create ID mapping with sourceHash
-            await ctx.runMutation(internal.wordpressSync.helpers.idMapping.create, {
-              siteId,
-              objectType: "page",
-              wpId: wpPage.id,
-              convexId: pageId,
-              sourceHash,
-              jobId,
-            });
-          }
         }
 
         if (existingPageId) {
@@ -395,15 +317,14 @@ async function processPageContent(
       // Store the raw Elementor JSON (preserves all layout/design)
       result.elementorData = elementorValue;
       // Prefer rendered HTML for display; Elementor JSON remains in postMeta.
-      result.content = wpPage.content?.rendered
-        ? createHtmlBlockDocument(wpPage.content.rendered)
-        : createParagraphDocument(extractTextFromElementor(parsed));
+      if (!wpPage.content?.rendered) throw new Error("Elementor content requires rendered HTML for a reviewed canonical import.");
+      result.content = wpPage.content.rendered;
     }
   }
 
-  // If no Elementor content, preserve rendered WordPress HTML as an HTML block.
+  // If no Elementor content, pass rendered WordPress HTML to the reviewed canonical converter.
   if (!result.content && wpPage.content?.rendered) {
-    result.content = createHtmlBlockDocument(wpPage.content.rendered);
+    result.content = wpPage.content.rendered;
   }
 
   // Process ACF fields
@@ -465,49 +386,16 @@ function stripHtml(html: string): string {
     .trim();
 }
 
-function createHtmlBlockDocument(html: string): string {
-  return JSON.stringify({
-    type: "doc",
-    content: [
-      {
-        type: "html",
-        attrs: { content: html },
-      },
-    ],
-  });
-}
-
-function createParagraphDocument(text: string): string {
-  return JSON.stringify({
-    type: "doc",
-    content: text
-      ? [
-          {
-            type: "paragraph",
-            content: [{ type: "text", text }],
-          },
-        ]
-      : [],
-  });
-}
-
-function calculatePagePath(slug: string, parentPath?: string): string {
-  if (!parentPath) {
-    return `/${slug}`;
-  }
-  return `${parentPath}/${slug}`;
-}
-
-function calculateDepth(parentId?: string): number {
-  // In a real implementation, we'd look up the parent's depth
-  // For now, assume 0 for top-level pages
-  return parentId ? 1 : 0;
-}
-
 // ─── Page Creation Mutation ────────────────────────────────────────────────
 
 export const pagesCreate = internalMutation({
   args: {
+    jobId: v.id("wordpressSyncJobs"),
+    sourceHash: v.string(),
+    expectedRevision: v.optional(v.number()),
+    expectedUpdatedAt: v.optional(v.number()),
+    meta: v.array(v.object({key:v.string(),value:v.string()})),
+
     existingId: v.optional(v.string()),
     wpPage: v.object({
       id: v.number(),
@@ -535,86 +423,6 @@ export const pagesCreate = internalMutation({
     parentId: v.optional(v.string()),
     siteId: v.id("wordpressSites"),
   },
-  handler: async (ctx, { existingId, wpPage, authorId, featuredImageId, parentId, siteId }) => {
-    const now = Date.now();
-
-    // Get a fallback author if needed
-    let finalAuthorId: Id<"users">;
-    if (authorId) {
-      finalAuthorId = authorId as Id<"users">;
-    } else {
-      const adminRole = await ctx.db
-        .query("roles")
-        .withIndex("by_slug", (q) => q.eq("slug", "administrator"))
-        .first();
-
-      if (adminRole) {
-        const admin = await ctx.db
-          .query("users")
-          .withIndex("by_roleId", (q) => q.eq("roleId", adminRole._id))
-          .first();
-
-        if (admin) {
-          finalAuthorId = admin._id;
-        }
-      }
-
-      if (!finalAuthorId!) {
-        const firstUser = await ctx.db.query("users").first();
-        if (firstUser) {
-          finalAuthorId = firstUser._id;
-        } else {
-          throw new Error("No users exist to assign as author");
-        }
-      }
-    }
-
-    // Calculate path and depth
-    let path = `/${wpPage.slug}`;
-    let depth = 0;
-
-    if (parentId) {
-      const parent = await ctx.db.get(parentId as Id<"posts">);
-      if (parent && parent.path) {
-        path = `${parent.path}/${wpPage.slug}`;
-        depth = (parent.depth || 0) + 1;
-      }
-    }
-
-    const fields = {
-      type: "page" as const,
-      title: stripHtml(wpPage.title),
-      slug: wpPage.slug,
-      content: wpPage.content,
-      excerpt: stripHtml(wpPage.excerpt) || undefined,
-      status: wpPage.status,
-      visibility: (wpPage.status === "private" ? "private" : "public") as "private" | "public",
-      authorId: finalAuthorId,
-      featuredImageId: featuredImageId ? (featuredImageId as Id<"media">) : undefined,
-      commentStatus: wpPage.commentStatus,
-      parentId: parentId ? (parentId as Id<"posts">) : undefined,
-      menuOrder: wpPage.menuOrder,
-      pageTemplate: wpPage.template !== "default" ? wpPage.template : undefined,
-      path,
-      depth,
-      publishedAt: wpPage.publishedAt,
-      wpPostId: wpPage.id,
-      wpGuid: wpPage.guid,
-      wpSourceSiteId: siteId,
-      updatedAt: now,
-    };
-
-    if (existingId) {
-      await patchWithMediaReferences<"posts">(ctx, "posts", existingId as Id<"posts">, fields);
-      return existingId;
-    }
-
-    // Create page
-    const pageId: import("../../_generated/dataModel").Id<"posts"> = await insertWithMediaReferences<"posts">(ctx, "posts", {
-      ...fields,
-      createdAt: now,
-    });
-
-    return pageId;
-  },
+  returns: v.id("posts"),
+  handler: async (ctx, { wpPage, ...args }) => canonicalBoundary(() => importWordPressDocument(ctx, "page", {...args,document:{...wpPage,title:stripHtml(wpPage.title),excerpt:stripHtml(wpPage.excerpt)}})),
 });

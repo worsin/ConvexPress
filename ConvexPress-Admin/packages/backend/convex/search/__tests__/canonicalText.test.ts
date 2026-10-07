@@ -41,6 +41,24 @@ test("canonical body indexing finds current editorial text through public and bl
   await t.run(ctx => ctx.db.patch("posts", ids.post, { blocks: [paragraph("intro", "Different garden")] }));
   expect((await t.run(ctx => readSearch(ctx, { query: "Sunflowerneedle" }, scope, "host"))).items).toEqual([]);
 });
+test("page search results use the Website page route for stored and fallback paths", async () => {
+  const { t, ids } = await fixture();
+  for (const [path, expected] of [
+    ["/garden", "/page/garden"],
+    ["/guides/garden", "/page/guides/garden"],
+    [undefined, "/page/garden"],
+    ["//outside.invalid", "/page/garden"],
+    ["/bad\\path", "/page/garden"],
+  ] as const) {
+    await t.run(ctx => ctx.db.patch("posts", ids.post, { path }));
+    const source = await t.run(ctx => createPublicSearchSourceReader(ctx)({ contentType: "page", contentId: ids.post }));
+    expect(source?.url).toBe(expected);
+    const block = await t.run(ctx => readSearch(ctx, { query: "Sunflowerneedle" }, scope, "host"));
+    expect(block.items[0]?.href).toBe(expected);
+    const ordinary = await t.query(ref<"query">("search/queries:search"), { q: "Sunflowerneedle" });
+    expect(ordinary.results[0]?.url).toBe(expected);
+  }
+});
 test("membership-restricted ancestors prune whole subtrees while entitled readers retain the body", async () => {
   const { t, ids } = await fixture();
   await t.run(ctx => ctx.db.patch("posts", ids.post, { blocks: [
@@ -169,4 +187,168 @@ test("denied ancestors do not preload overflowing child policies and batches cha
   });
   const budget = new RequestReadLedger({ queries: 256, documents: 2048, bytes: 25_000, documentBytes: 512 * 1024 });
   await expect(t.run(ctx => createPublicSearchSourceReader(ctx, Date.now(), budget)({ contentType: "page", contentId: ids.post }))).rejects.toThrow("CANONICAL_READ_BUDGET");
+});
+
+test('referenced author withdrawal removes authored bio matches from stale search candidates', async () => {
+  const {t,ids}=await fixture();
+  await t.run(ctx=>ctx.db.patch('posts',ids.post,{blocks:[{id:'author',name:'core/author-bio',version:2,attrs:{userId:ids.user,name:'Authoredauthorneedle',bio:'Visible authored profile'}}]}));
+  await t.mutation(upsert,{contentType:'page',contentId:ids.post,action:'upsert'});
+  const read=()=>t.run(ctx=>readSearch(ctx,{query:'Authoredauthorneedle'},scope,'host'));
+  expect((await read()).items.map(row=>row.id)).toEqual([ids.post]);
+  await t.run(ctx=>ctx.db.patch('users',ids.user,{status:'inactive'}));
+  expect((await read()).items).toEqual([]);
+});
+
+test('current-author search visibility follows the host author and withdraws stale authored matches',async()=>{
+ const {t,ids}=await fixture();await t.run(ctx=>ctx.db.patch('posts',ids.post,{authorId:ids.user,blocks:[{id:'current',name:'core/author-bio',version:2,attrs:{useCurrentAuthor:true,name:'Currentauthorneedle'}}]}));
+ await t.mutation(upsert,{contentType:'page',contentId:ids.post,action:'upsert'});const read=()=>t.run(ctx=>readSearch(ctx,{query:'Currentauthorneedle'},scope,'host'));
+ expect((await read()).items.map(row=>row.id)).toEqual([ids.post]);await t.run(ctx=>ctx.db.patch('users',ids.user,{status:'inactive'}));expect((await read()).items).toEqual([]);
+});
+
+test("authored utility copy is searchable without private form settings or interactive status alternatives", async () => {
+  const {t,ids}=await fixture();
+  await t.run(ctx=>ctx.db.patch('settings',ids.plugins,{values:{membershipEnabled:false,formsEnabled:true}}));
+  await t.run(ctx=>ctx.db.patch('posts',ids.post,{blocks:[
+    {id:'contact',name:'core/contact-form',version:2,attrs:{eyebrow:'',heading:'Contactneedle',body:'Write about the [garden](https://example.invalid/Privatehrefneedle).',recipientEmail:'Privaterecipientneedle@example.invalid',successMessage:'Privatesuccessneedle'}},
+    {id:'video',name:'core/hero-video',version:1,attrs:{title:'Filmneedle',subtitle:'A **studio** story.'}},
+    {id:'clock',name:'core/countdown',version:1,attrs:{title:'Dateneedle',expiredText:'Notexpiredneedle'}},
+  ]}));
+  await t.mutation(upsert,{contentType:'page',contentId:ids.post,action:'upsert'});
+  for(const query of ['Contactneedle','Filmneedle','Dateneedle'])expect((await t.run(ctx=>readSearch(ctx,{query},scope,'host'))).items.map(item=>item.id)).toEqual([ids.post]);
+  for(const query of ['Privaterecipientneedle','Privatesuccessneedle','Privatehrefneedle','Notexpiredneedle'])expect((await t.run(ctx=>readSearch(ctx,{query},scope,'host'))).items).toEqual([]);
+  await t.run(ctx=>ctx.db.patch('settings',ids.plugins,{values:{membershipEnabled:false,formsEnabled:false}}));
+  expect((await t.run(ctx=>readSearch(ctx,{query:'Contactneedle'},scope,'host'))).items).toEqual([]);
+  expect((await t.run(ctx=>readSearch(ctx,{query:'Filmneedle'},scope,'host'))).items.map(item=>item.id)).toEqual([ids.post]);
+});
+
+test("unavailable selected media cannot leave searchable prose for a document that refuses public rendering", async () => {
+  const {t,ids}=await fixture();
+  await t.run(ctx=>ctx.db.patch('posts',ids.post,{blocks:[{id:'hero',name:'core/hero',version:2,attrs:{title:'Unavailablemedianeedle',mediaId:'missing-media-id'}}]}));
+  await t.mutation(upsert,{contentType:'page',contentId:ids.post,action:'upsert'});
+  expect((await t.run(ctx=>readSearch(ctx,{query:'Unavailablemedianeedle'},scope,'host'))).items).toEqual([]);
+});
+
+test('scheduled announcements and expiry text follow the current clock without a new index write', async () => {
+ const {t,ids}=await fixture();
+ const now=Date.now();
+ await t.run(ctx=>ctx.db.patch('posts',ids.post,{blocks:[
+  {id:'live',name:'core/announcement-bar',version:1,attrs:{text:'Announcementneedle',schedule:{startsAt:new Date(now-60000).toISOString(),endsAt:new Date(now+60000).toISOString()}}},
+  {id:'future',name:'core/announcement-bar',version:1,attrs:{text:'Futureneedle',schedule:{startsAt:new Date(now+60000).toISOString()}}},
+  {id:'past',name:'core/countdown',version:1,attrs:{title:'Clockneedle',target:new Date(now-60000).toISOString(),expiredText:'Expiredneedle'}},
+  {id:'unset',name:'core/countdown',version:1,attrs:{expiredText:'Unsetneedle'}},
+ ]}));
+ await t.mutation(upsert,{contentType:'page',contentId:ids.post,action:'upsert'});
+ const find=(query:string)=>t.run(ctx=>readSearch(ctx,{query},scope,'host'));
+ for(const q of ['Announcementneedle','Expiredneedle'])expect((await find(q)).items.map(x=>x.id)).toEqual([ids.post]);
+ for(const q of ['Futureneedle','Unsetneedle'])expect((await find(q)).items).toEqual([]);
+ await t.run(async ctx=>{const p=await ctx.db.get('posts',ids.post);const blocks=p!.blocks! as any[];blocks[0].attrs.schedule.endsAt=new Date(now-1000).toISOString();await ctx.db.patch('posts',ids.post,{blocks});});
+ expect((await find('Announcementneedle')).items).toEqual([]);
+});
+
+test('account copy resolves the current visitor and hides the opposite authored alternative', async () => {
+ const {t,ids}=await fixture();
+ await t.run(ctx=>ctx.db.patch('posts',ids.post,{blocks:[{id:'account',name:'core/account-teaser',version:1,attrs:{signedOutText:'Guestaccountneedle',signedInText:'Memberaccountneedle'}}]}));
+ await t.mutation(upsert,{contentType:'page',contentId:ids.post,action:'upsert'});
+ const signed=t.withIdentity({subject:ids.user,issuer:'https://convexpress-admin.local'});
+ expect((await t.run(ctx=>readSearch(ctx,{query:'Guestaccountneedle'},scope,'host'))).items.map(x=>x.id)).toEqual([ids.post]);
+ expect((await t.run(ctx=>readSearch(ctx,{query:'Memberaccountneedle'},scope,'host'))).items).toEqual([]);
+ expect((await signed.run(ctx=>readSearch(ctx,{query:'Memberaccountneedle'},scope,'host'))).items.map(x=>x.id)).toEqual([ids.post]);
+ expect((await signed.run(ctx=>readSearch(ctx,{query:'Guestaccountneedle'},scope,'host'))).items).toEqual([]);
+});
+
+test('field guide search follows details, bounded items and the selected prose treatment', async () => {
+ const {t,ids}=await fixture();
+ const attrs={heading:'Guideneedle',body:'Read [Labelneedle](https://example.invalid/Hiddenhrefneedle).',showDetails:true,count:1,note:'Noteneedle',items:[{label:'Firstneedle',value:'Shownneedle'},{label:'Secondneedle',value:'Hiddenneedle'}]};
+ await t.run(ctx=>ctx.db.patch('posts',ids.post,{blocks:[{id:'guide',name:'reference/field-guide',version:2,attrs}]}));
+ await t.mutation(upsert,{contentType:'page',contentId:ids.post,action:'upsert'});
+ const find=(query:string)=>t.run(ctx=>readSearch(ctx,{query},scope,'host'));
+ for(const q of ['Guideneedle','Firstneedle','Shownneedle','Noteneedle'])expect((await find(q)).items.map(x=>x.id)).toEqual([ids.post]);
+ // convex-test tokenizes only whitespace, unlike the real search index; inspect
+ // exact current prose here and verify the Markdown label in installed acceptance.
+ const current=await t.run(ctx=>createPublicSearchSourceReader(ctx)({contentType:'page',contentId:ids.post}));
+ expect(current?.content).toContain('Labelneedle');expect(current?.content).not.toContain('Hiddenhrefneedle');
+ for(const q of ['Secondneedle','Hiddenneedle','Hiddenhrefneedle'])expect((await find(q)).items).toEqual([]);
+ await t.run(ctx=>ctx.db.patch('posts',ids.post,{blocks:[{id:'guide',name:'reference/field-guide',version:2,attrs:{...attrs,showDetails:false}}]}));
+ expect((await find('Noteneedle')).items).toEqual([]);expect((await find('Guideneedle')).items.map(x=>x.id)).toEqual([ids.post]);
+});
+
+test('manual collection bodies follow mode, per-panel count and current price disclosure',async()=>{
+ const {t,ids}=await fixture();await t.run(ctx=>ctx.db.patch('settings',ids.plugins,{values:{commerceEnabled:true,membershipEnabled:false}}));
+ const attrs={heading:'Collectionneedle',count:1,showPrice:false,products:[{title:'Firstcardneedle',price:'Privatepriceneedle'},{title:'Overflowcardneedle'}],groups:[{label:'Group',products:[{title:'Groupcardneedle'},{title:'Groupoverflowneedle'}]}]};
+ const write=(patch:Record<string,unknown>)=>t.run(ctx=>ctx.db.patch('posts',ids.post,{blocks:[{id:'collection',name:'blocks/product-collection',version:2,attrs:{...attrs,...patch}}]}));
+ await write({});await t.mutation(upsert,{contentType:'page',contentId:ids.post,action:'upsert'});
+ const find=(query:string)=>t.run(ctx=>readSearch(ctx,{query},scope,'host'));
+ for(const q of ['Collectionneedle','Firstcardneedle','Groupcardneedle'])expect((await find(q)).items.map(x=>x.id)).toEqual([ids.post]);
+ for(const q of ['Overflowcardneedle','Groupoverflowneedle','Privatepriceneedle'])expect((await find(q)).items).toEqual([]);
+ await write({showPrice:true});expect((await find('Privatepriceneedle')).items.map(x=>x.id)).toEqual([ids.post]);
+ await write({productIds:['missing-product']});expect((await find('Firstcardneedle')).items).toEqual([]);expect((await find('Groupcardneedle')).items.map(x=>x.id)).toEqual([ids.post]);
+ await write({mode:'featured',groups:[]});expect((await find('Firstcardneedle')).items).toEqual([]);expect((await find('Groupcardneedle')).items).toEqual([]);
+});
+
+test('audio body matches require a currently supported selected recording',async()=>{
+ const {t,ids}=await fixture();
+ const media=await t.run(ctx=>ctx.db.insert('media',{fileName:'recording.wav',slug:'recording',mediaType:'audio',mimeType:'audio/wav',fileSize:12,url:'https://example.invalid/recording.wav',title:'Recording',status:'active',uploadedBy:ids.user,createdAt:1,updatedAt:1}));
+ const write=(selected:boolean)=>t.run(ctx=>ctx.db.patch('posts',ids.post,{blocks:[{id:'audio',name:'core/audio',version:1,attrs:{title:'Audioneedle',...(selected?{media:{id:media}}:{})}}]}));
+ await write(true);await t.mutation(upsert,{contentType:'page',contentId:ids.post,action:'upsert'});
+ const find=()=>t.run(ctx=>readSearch(ctx,{query:'Audioneedle'},scope,'host'));
+ expect((await find()).items.map(x=>x.id)).toEqual([ids.post]);
+ await write(false);expect((await find()).items).toEqual([]);await write(true);
+ await t.run(ctx=>ctx.db.patch('media',media,{mimeType:'image/png'}));expect((await find()).items).toEqual([]);
+});
+
+test('timed matches and hidden future alternatives carry bounded refresh leases on both search surfaces',async()=>{
+ const{t,ids}=await fixture(),boundary=Date.now()+15000;
+ await t.run(ctx=>ctx.db.patch('posts',ids.post,{blocks:[{id:'timed',name:'core/announcement-bar',version:1,attrs:{text:'Timedleaseneedle',schedule:{endsAt:new Date(boundary).toISOString()}}},{id:'future',name:'core/countdown',version:1,attrs:{target:new Date(boundary).toISOString(),expiredText:'Futureleaseneedle'}}]}));
+ await t.mutation(upsert,{contentType:'page',contentId:ids.post,action:'upsert'});
+ for(const q of ['Timedleaseneedle','Futureleaseneedle']){
+  const result=await t.query(ref<'query'>('search/queries:search'),{q,refreshKey:'owned-test'});
+  expect(result.displayLease.expiresAt).toBe(boundary);expect(result.displayLease.evaluatedAt).toBeLessThan(boundary);expect(result.results.length).toBe(q==='Timedleaseneedle'?1:0);
+  const budget=new RequestReadLedger();await t.run(ctx=>readSearch(ctx,{query:q},scope,'host',budget));expect(budget.authorizationRecheckAt).toBe(boundary);
+ }
+ await expect(t.query(ref<'query'>('search/queries:search'),{q:'Timedleaseneedle',refreshKey:'../bad'})).rejects.toThrow();
+});
+
+test('promoted Library composition keeps its visible authored prose searchable', async () => {
+  const {t,ids}=await fixture();
+  await t.run(ctx=>ctx.db.patch('posts',ids.post,{blocks:[{id:'studio',name:'blocks/studio-services',version:1,attrs:{headline:'Promotedheadingneedle',services:[{title:'Promotedserviceneedle',description:'Promoteddescriptionneedle'}]}}]}));
+  await t.mutation(upsert,{contentType:'page',contentId:ids.post,action:'upsert'});
+  for(const query of ['Promotedheadingneedle','Promotedserviceneedle','Promoteddescriptionneedle']){
+    expect((await t.query(ref<'query'>('search/queries:search'),{q:query})).results.map(r=>r.contentId)).toEqual([ids.post]);
+    expect((await t.run(ctx=>readSearch(ctx,{query},scope,'host'))).items.map(r=>r.id)).toEqual([ids.post]);
+  }
+});
+test('custom HTML searches sanitized visible text with decoded entities and excludes removed content',async()=>{
+  const {t,ids}=await fixture();
+  const html='<h2>Htmlheadingneedle</h2><p>Visible<strong>joinedneedle</strong> &amp; &#x45;ntityneedle <a href="https://example.invalid/Hiddenhrefneedle" title="Hiddenattributeneedle">Htmllabelneedle</a></p><script>Hiddenscriptneedle</script><style>Hiddenstylename</style><textarea>Hiddentextareaneedle</textarea><p hidden>Unhiddenneedle</p>';
+  await t.run(ctx=>ctx.db.patch('posts',ids.post,{blocks:[{id:'html',name:'core/custom-html',version:1,attrs:{html}}]}));await t.mutation(upsert,{contentType:'page',contentId:ids.post,action:'upsert'});
+  for(const query of ['Htmlheadingneedle','Visiblejoinedneedle','Entityneedle','Htmllabelneedle','Unhiddenneedle'])expect((await t.query(ref<'query'>('search/queries:search'),{q:query})).results.map(r=>r.contentId)).toEqual([ids.post]);
+  for(const query of ['Hiddenhrefneedle','Hiddenattributeneedle','Hiddenscriptneedle','Hiddenstylename','Hiddentextareaneedle'])expect((await t.query(ref<'query'>('search/queries:search'),{q:query})).results).toEqual([]);
+});
+
+test('assistant authored copy follows current public host settings without indexing private controls',async()=>{
+ const{t,ids}=await fixture();await t.run(async ctx=>{await ctx.db.patch('settings',ids.plugins,{values:{commerceEnabled:true}});await ctx.db.patch('posts',ids.post,{blocks:[{id:'assistant',name:'commerce/assistant-band',version:1,attrs:{eyebrow:'Assistantbrowneedle',heading:'Assistantheadingneedle',body:'A [story](https://example.invalid/Assistanthrefneedle)',prompts:['Assistantquestionneedle'],ctaLabel:'Assistantcontrolneedle',ctaUrl:'/products'}}]});});
+ await t.mutation(upsert,{contentType:'page',contentId:ids.post,action:'upsert'});
+ const query=(q:string)=>t.query(ref<'query'>('search/queries:search'),{q});
+ expect((await query('Assistantheadingneedle')).results.map(x=>x.contentId)).toEqual([ids.post]);expect((await query('Assistantquestionneedle')).results.map(x=>x.contentId)).toEqual([ids.post]);
+ for(const q of ['Assistanthrefneedle','Assistantcontrolneedle'])expect((await query(q)).results).toEqual([]);
+ const setting=await t.run(ctx=>ctx.db.insert('settings',{section:'commerce.assistant',values:{enabled:false},updatedAt:1,updatedBy:ids.user}));expect((await query('Assistantheadingneedle')).results).toEqual([]);
+ await t.run(ctx=>ctx.db.patch('settings',setting,{values:{enabled:true,routes:{catalog:false}}}));expect((await query('Assistantquestionneedle')).results).toEqual([]);
+ await t.run(ctx=>ctx.db.patch('settings',setting,{values:{enabled:true,routes:{catalog:true}}}));expect((await query('Assistantheadingneedle')).results.map(x=>x.contentId)).toEqual([ids.post]);
+});
+test('iframe fallback headings and map addresses are searchable without link destinations',async()=>{
+ const{t,ids}=await fixture();await t.run(ctx=>ctx.db.patch('posts',ids.post,{blocks:[{id:'embed',name:'core/iframe',version:1,attrs:{url:{label:'Framefallbackneedle',href:'https://www.youtube.com/watch?v=dQw4w9WgXcQ'}}},{id:'map',name:'core/map',version:1,attrs:{address:'Mapaddressneedle'}}]}));await t.mutation(upsert,{contentType:'page',contentId:ids.post,action:'upsert'});
+ for(const q of ['Framefallbackneedle','Mapaddressneedle'])expect((await t.query(ref<'query'>('search/queries:search'),{q})).results.map(x=>x.contentId)).toEqual([ids.post]);
+ await t.run(ctx=>ctx.db.patch('posts',ids.post,{blocks:[{id:'embed',name:'core/iframe',version:1,attrs:{title:'Missingframeneedle'}}]}));await t.mutation(upsert,{contentType:'page',contentId:ids.post,action:'upsert'});expect((await t.query(ref<'query'>('search/queries:search'),{q:'Missingframeneedle'})).results).toEqual([]);
+});
+test('unsupported embed and direct video sources cannot leave other body matches from an unrenderable document',async()=>{
+ const{t,ids}=await fixture();for(const [name,attrs]of [['core/embed',{url:'https://unapproved.invalid/player',caption:'Embedcaptionneedle'}],['core/iframe',{url:{href:'https://unapproved.invalid/player',label:'Frameheadingneedle'}}],['core/script-embed',{provider:'youtube',resourceId:'invalid'}],['core/video',{url:{href:'https://example.invalid/player',label:'Videoariaonlyneedle'}}]] as const){
+  await t.run(ctx=>ctx.db.patch('posts',ids.post,{blocks:[paragraph('copy','Visiblebodyneedle'),{id:'invalid',name,version:name==='core/embed'?2:1,attrs}]}));await t.mutation(upsert,{contentType:'page',contentId:ids.post,action:'upsert'});expect((await t.query(ref<'query'>('search/queries:search'),{q:'Visiblebodyneedle'})).results).toEqual([]);
+ }
+});
+test('poll question and options use the current published ballot, not invalid or disabled alternatives',async()=>{
+ const{t,ids}=await fixture();const attrs={question:'Pollquestionneedle',options:[{key:'one',label:'Pollfirstneedle'},{key:'two',label:'Pollsecondneedle'}],showResults:false,responsePolicy:'signedIn'};
+ await t.run(async ctx=>{await ctx.db.patch('settings',ids.plugins,{values:{formsEnabled:true}});await ctx.db.patch('posts',ids.post,{blocks:[{id:'poll',name:'core/poll',version:1,attrs}]});});await t.mutation(upsert,{contentType:'page',contentId:ids.post,action:'upsert'});
+ for(const q of ['Pollquestionneedle','Pollfirstneedle']){expect((await t.query(ref<'query'>('search/queries:search'),{q})).results.map(x=>x.contentId)).toEqual([ids.post]);expect((await t.run(ctx=>readSearch(ctx,{query:q},scope,'host'))).items.map(x=>x.id)).toEqual([ids.post]);}
+ await t.run(ctx=>ctx.db.patch('posts',ids.post,{blocks:[{id:'poll',name:'core/poll',version:1,attrs:{...attrs,question:''}}]}));expect((await t.query(ref<'query'>('search/queries:search'),{q:'Pollfirstneedle'})).results).toEqual([]);
+ await t.run(async ctx=>{await ctx.db.patch('posts',ids.post,{blocks:[{id:'poll',name:'core/poll',version:1,attrs}]});await ctx.db.patch('settings',ids.plugins,{values:{formsEnabled:false}});});expect((await t.query(ref<'query'>('search/queries:search'),{q:'Pollquestionneedle'})).results).toEqual([]);
 });

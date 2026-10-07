@@ -140,7 +140,7 @@ export function SearchResultCard({
         </div>
 
         {/* Category/Tag badges (if provided from search index) */}
-        {(result.categoryNames?.length || result.tagNames?.length) && (
+        {(!!result.categoryNames?.length || !!result.tagNames?.length) && (
           <div className="flex flex-wrap gap-1 pt-0.5">
             {result.categoryNames?.map((name) => (
               <span

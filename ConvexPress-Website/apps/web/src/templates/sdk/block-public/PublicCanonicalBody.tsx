@@ -1,3 +1,5 @@
+import { Suspense } from "react";
+import { opensWithHero } from "@/lib/blog/page-opening";
 import {ProductionLeadMagnetProvider} from "../block-renderer/lead-magnet-production";
 import { ProductionDownloadLibraryProvider } from "../block-renderer/download-library-production";
 import { ProductionBundleProvider } from "../block-renderer/bundle-production";
@@ -27,7 +29,7 @@ import {
 import { useConvex, useConvexAuth } from "convex/react";
 import { api } from "@convexpress-website/backend/generated/api";
 import type { Id } from "@convexpress-website/backend/generated/dataModel";
-import { useAuth } from "@/lib/auth/clerk";
+import { usePublicViewer } from "@/lib/auth/usePublicViewer";
 import { getSiteRuntime } from "@/lib/site-runtime";
 import { useTemplateSettings } from "../useTemplateSettings";
 import { CanonicalDocumentView } from "../block-preview/CanonicalDocumentView";
@@ -70,10 +72,12 @@ export function PublicCanonicalScope({
 		</Context.Provider>
 	);
 }
-/** The surrounding template owns page chrome. Only this body switches formats. */
-export function PublicCanonicalBody({ documentId }: { documentId: string }) {
+/** Templates place their own title around the current authorized body. */
+export type PublicBodyLayout = (body: ReactNode, opensWithHero: boolean) => ReactNode;
+const defaultLayout: PublicBodyLayout = body => body;
+export function PublicCanonicalBody({ documentId, renderLayout = defaultLayout }: { documentId: string; renderLayout?: PublicBodyLayout }) {
 	const scope = useContext(Context),
-		auth = useAuth(),
+		auth = usePublicViewer(),
 		convexAuth = useConvexAuth(),
 		convex = useConvex();
 	const [mounted, setMounted] = useState(false);
@@ -91,6 +95,7 @@ export function PublicCanonicalBody({ documentId }: { documentId: string }) {
 			convex,
 			instanceKey,
 			documentId,
+			auth.kind,
 			Boolean(auth.isSignedIn),
 			auth.userId ?? null,
 			auth.sessionId ?? null,
@@ -100,16 +105,17 @@ export function PublicCanonicalBody({ documentId }: { documentId: string }) {
 		],
 	);
 	const firstGeneration = useRef(generation);
-	if (!scope || scope.documentId !== documentId || !instanceKey)
-		return <Unavailable />;
+	if (!scope || scope.documentId !== documentId || !instanceKey || auth.unavailable)
+		return renderLayout(<Unavailable />, false);
 	const enabled = mounted && auth.isLoaded && !convexAuth.isLoading &&
 		Boolean(auth.isSignedIn) === convexAuth.isAuthenticated &&
 		(!auth.isSignedIn || Boolean(auth.userId)) && (!supportsHistory || history.ready);
 	// Keep one component tree during the anonymous SSR -> live handoff. Identity,
 	// client, site, password, history and pagination changes still remount it.
 	return (
-		<PublicBoundary key={generation}>
+		<PublicBoundary key={generation} renderLayout={renderLayout}>
 			<ReactivePublicBody
+        renderLayout={renderLayout}
 				binding={{documentId, instanceKey, viewerSubject:auth.isSignedIn ? auth.userId ?? null : null,
 					generation, request:scope.request,
 					...(supportsHistory ? {recentlyViewedIds:history.ids} : {})}}
@@ -123,6 +129,7 @@ export function PublicCanonicalBody({ documentId }: { documentId: string }) {
 	);
 }
 function ReactivePublicBody({
+  renderLayout,
 	binding,
 	password,
 	enabled,
@@ -130,6 +137,7 @@ function ReactivePublicBody({
 	initial,
 	allowAnonymousSeed,
 }: {
+  renderLayout: PublicBodyLayout;
 	binding: PublicDisplayBinding;
 	password?: string;
 	enabled: boolean;
@@ -177,10 +185,13 @@ function ReactivePublicBody({
 	const bootstrap = !consumedSeed.current && !seedExpired &&
 		(!mounted || (allowAnonymousSeed && !seed?.accessLease));
 	const visible = enabled && state ? state : bootstrap && seed ? {value:seed} : null;
-	return <PollDraftScope key={binding.generation}><RsvpDraftScope>
-		{!visible ? <Loading /> : "error" in visible ? <Unavailable /> :
-			<PublicResult value={visible.value} generation={binding.generation} password={password} />}
-	</RsvpDraftScope></PollDraftScope>;
+  const body = !visible ? <Loading /> : "error" in visible ? <Unavailable /> :
+    <PublicResult value={visible.value} generation={binding.generation} password={password} />;
+  const hasHero = !!visible && "value" in visible && visible.value?.state === "ready" &&
+    opensWithHero(visible.value.document.blocks);
+  return <PollDraftScope key={binding.generation}><RsvpDraftScope>
+    {renderLayout(body, hasHero)}
+  </RsvpDraftScope></PollDraftScope>;
 }
 function PublicResult({
 	value,
@@ -204,12 +215,14 @@ function PublicResult({
 			</section>
 		);
 	return (
+    <Suspense fallback={<Loading />}>
 		<InstalledPublicDocument
 			key={`${generation}:${canonicalDisplayDigest(value)}`}
 			value={value}
 			generation={generation}
       password={password}
 		/>
+    </Suspense>
 	);
 }
 function InstalledPublicDocument({
@@ -221,9 +234,11 @@ function InstalledPublicDocument({
 	generation: string;
   password?: string;
 }) {
-	const { packId } = useTemplateSettings();
+	const { packId, savedPackId } = useTemplateSettings();
 	const installed = useDisplayInstallation(value, generation);
-	if (packId !== value.presentation.packId) return <Loading />;
+	// Keep the saved activation synchronized with the authorized DTO. A validated
+	// temporary pack preview changes paint only, never the document or its grant.
+	if (savedPackId !== value.presentation.packId) return <Loading />;
 	return (
 		<ProductionNewsletterProvider installationKey={`${value.scope.websiteKey}:${value.scope.instanceKey}:${generation}`}>
 		<ProductionLeadMagnetProvider password={password}><ProductionFormEmbedProvider password={password}>
@@ -270,7 +285,7 @@ function Unavailable() {
 	);
 }
 class PublicBoundary extends Component<
-	{ children: ReactNode },
+	{ children: ReactNode; renderLayout: PublicBodyLayout },
 	{ failed: boolean }
 > {
 	state = { failed: false };
@@ -278,6 +293,6 @@ class PublicBoundary extends Component<
 		return { failed: true };
 	}
 	render() {
-		return this.state.failed ? <Unavailable /> : this.props.children;
+		return this.state.failed ? this.props.renderLayout(<Unavailable />, false) : this.props.children;
 	}
 }

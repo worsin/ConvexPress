@@ -11,8 +11,24 @@ import {
 } from "../registry";
 import { PLUGIN_DEFAULTS, PLUGIN_PARENT, PLUGIN_SETTINGS_KEY } from "../../../plugins/registry";
 import { ANONYMOUS_VIEWER, menuItemVisibleFor } from "../visibility";
+import { BUILT_IN_ROLES } from "../../../seed/roles";
 
 describe("dashboard registry", () => {
+  test("content pages and widgets recognize seeded author permissions without granting subscriber access", () => {
+    const content = [
+      ...DASHBOARD_PAGES.filter((page) => page.id === "posts"),
+      ...DASHBOARD_WIDGETS.filter((widget) => ["my-content", "content-performance"].includes(widget.id)),
+    ];
+    expect(content).toHaveLength(3);
+    for (const slug of ["author", "contributor", "subscriber"]) {
+      const role = BUILT_IN_ROLES.find((candidate) => candidate.slug === slug)!;
+      for (const entry of content) {
+        expect(menuItemVisibleFor(entry, {
+          signedIn: true, roleSlug: slug, planSlugs: [], capabilities: role.capabilities,
+        })).toBe(slug !== "subscriber");
+      }
+    }
+  });
   test("page and widget ids are unique and kebab-case", () => {
     const ids = [...DASHBOARD_PAGES.map((p) => p.id), ...DASHBOARD_WIDGETS.map((w) => w.id)];
     for (const id of ids) expect(/^[a-z0-9-]+$/u.test(id)).toBe(true);

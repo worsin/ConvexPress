@@ -1,3 +1,4 @@
+import { canonicalHttpInput, canonicalHttpRevision, canonicalHttpError } from "./canonicalInput";
 /**
  * Pages API Endpoints
  *
@@ -31,6 +32,9 @@ type ApiPageRecord = {
   status?: string;
   path?: string;
   content?: string;
+  blocks?: unknown;
+  blocksVersion?: number;
+  blocksRevision?: number;
   excerpt?: string;
   depth?: number;
   menuOrder?: number;
@@ -97,6 +101,7 @@ export const pagesGetHandler = httpAction(async (ctx, request) => {
   try {
     const page = (await ctx.runQuery(internal.pages.httpInternals.getInternal, {
       pageId: asId<"posts">(id),
+      keyId: asId<"apiKeys">(auth.keyId),
     })) as ApiPageRecord | null;
 
     if (!page) {
@@ -109,7 +114,7 @@ export const pagesGetHandler = httpAction(async (ctx, request) => {
       slug: page.slug ?? "",
       status: page.status ?? "draft",
       path: page.path ?? null,
-      content: page.content ?? "",
+      ...(page.blocksVersion===2 ? {blocks:page.blocks,blocks_version:2,blocks_revision:page.blocksRevision} : {content:page.content??""}),
       excerpt: page.excerpt ?? "",
       depth: page.depth ?? 0,
       menu_order: page.menuOrder ?? 0,
@@ -121,8 +126,8 @@ export const pagesGetHandler = httpAction(async (ctx, request) => {
       updated_at: page.updatedAt ? toISOString(page.updatedAt) : null,
       published_at: page.publishedAt ? toISOString(page.publishedAt) : null,
     });
-  } catch {
-    return errorResponse("Page not found", "NOT_FOUND", 404);
+  } catch (error) {
+    return canonicalHttpError(error,"Failed to read page");
   }
 });
 
@@ -140,22 +145,12 @@ export const pagesCreateHandler = httpAction(async (ctx, request) => {
   }
 
   try {
-    const pageId = await ctx.runMutation(internal.pages.httpInternals.createInternal, {
-      title: body.title,
-      content: body.content,
-      excerpt: body.excerpt,
-      status: body.status ?? "draft",
-      parentId: body.parent_id,
-      menuOrder: body.menu_order,
-      pageTemplate: body.page_template,
-      slug: body.slug,
-      authorId: asId<"users">(auth.userId), // H-17: Pass authenticated user ID
-    });
+    const input=canonicalHttpInput(body,auth.keyId,true);
+    const pageId = await ctx.runMutation(internal.pages.httpInternals.createInternal, {...input,title:body.title});
 
-    return jsonResponse({ id: pageId }, 201);
+    return jsonResponse({ id: pageId, blocks_version:2, blocks_revision:1 }, 201);
   } catch (error: unknown) {
-    const message = getHttpErrorMessage(error, "Failed to create page");
-    return errorResponse(message, "SERVER_ERROR", 500);
+    return canonicalHttpError(error,"Failed to create page");
   }
 });
 
@@ -175,39 +170,12 @@ export const pagesUpdateHandler = httpAction(async (ctx, request) => {
   }
 
   try {
-    // Build args, only including fields that were provided
-    const args: {
-      pageId: Id<"posts">;
-      title?: string;
-      content?: string;
-      excerpt?: string;
-      status?: string;
-      slug?: string;
-      parentId?: Id<"posts">;
-      menuOrder?: number;
-      pageTemplate?: string;
-      visibility?: string;
-      password?: string;
-      commentStatus?: string;
-    } = { pageId: asId<"posts">(id) };
-    if (body.title !== undefined) args.title = body.title as string;
-    if (body.content !== undefined) args.content = body.content as string;
-    if (body.excerpt !== undefined) args.excerpt = body.excerpt as string;
-    if (body.status !== undefined) args.status = body.status as string;
-    if (body.slug !== undefined) args.slug = body.slug as string;
-    if (body.parent_id !== undefined) args.parentId = asId<"posts">(body.parent_id as string);
-    if (body.menu_order !== undefined) args.menuOrder = body.menu_order as number;
-    if (body.page_template !== undefined) args.pageTemplate = body.page_template as string;
-    if (body.visibility !== undefined) args.visibility = body.visibility as string;
-    if (body.password !== undefined) args.password = body.password as string;
-    if (body.comment_status !== undefined) args.commentStatus = body.comment_status as string;
+    const args = {...canonicalHttpInput(body,auth.keyId,true),pageId:asId<"posts">(id),expectedRevision:canonicalHttpRevision(body)};
+    const receipt=await ctx.runMutation(internal.pages.httpInternals.updateInternal, args);
 
-    await ctx.runMutation(internal.pages.httpInternals.updateInternal, args);
-
-    return jsonResponse({ id, updated: true });
+    return jsonResponse({ id, updated: receipt.changed, blocks_version:2, blocks_revision:receipt.revision, digest:receipt.digest });
   } catch (error: unknown) {
-    const message = getHttpErrorMessage(error, "Failed to update page");
-    return errorResponse(message, "SERVER_ERROR", 500);
+    return canonicalHttpError(error,"Failed to update page");
   }
 });
 

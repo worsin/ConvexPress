@@ -76,5 +76,10 @@
     "capabilities": [
       "reference.targetResolution"
     ]
-  }
+  },
+  "searchText": [
+    [
+      "title"
+    ]
+  ]
 }

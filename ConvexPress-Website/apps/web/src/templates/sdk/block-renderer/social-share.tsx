@@ -1,4 +1,4 @@
-import { useEffect, useId, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import * as P from "../primitives";
 import { BlockRenderError, type BlockProps } from "./model";
 import { Intro } from "./presentation";
@@ -58,6 +58,7 @@ export function SocialShare({ attrs }: BlockProps<"blocks/social-share">) {
 	const [status, setStatus] = useState("");
 	const [manual, setManual] = useState<string | null>(null);
 	const id = useId();
+	const copyRequest = useRef(0);
 	useEffect(() => {
 		const update = () => setCurrent(window.location.href);
 		update();
@@ -74,15 +75,27 @@ export function SocialShare({ attrs }: BlockProps<"blocks/social-share">) {
 			? publicShareUrl(attrs.customUrl)
 			: null
 		: current;
+	useEffect(() => {
+		copyRequest.current++;
+		setStatus("");
+		setManual(null);
+		return () => { copyRequest.current++; };
+	}, [chosen, custom]);
 	const actual = () =>
 		publicShareUrl(custom ? attrs.customUrl : window.location.href);
 	async function copy() {
 		const url = actual();
+		const request = ++copyRequest.current;
+		const stillCurrent = () => request === copyRequest.current && (custom || window.location.href === url);
+		setStatus("");
+		setManual(null);
 		try {
 			await navigator.clipboard.writeText(url);
+			if (!stillCurrent()) return;
 			setManual(null);
 			setStatus("Link copied.");
 		} catch {
+			if (!stillCurrent()) return;
 			setManual(url);
 			setStatus("Copy is unavailable. Select and copy the link below.");
 		}

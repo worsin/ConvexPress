@@ -1,6 +1,6 @@
 import type { SiteRuntimeConfig } from "../site-runtime";
 
-export type WebsiteOperatorSession = { token: string; expiresAt: number; instanceKey: string; userId?: string };
+export type WebsiteOperatorSession = { token: string; expiresAt: number; instanceKey: string; viewerSubject?: string; userId?: string };
 export type WebsiteEditingBridge = { endpoint: string; key: string; expiresAt: number };
 export const operatorLinkFailure = "This website editing link expired or is no longer authorized. Open a new link from ConvexPress.";
 export const operatorNetworkFailure = "Could not reach this website's authentication service. Check the connection, then open a new editing link from ConvexPress.";
@@ -60,6 +60,7 @@ export async function exchangeOperatorCode(code: string, runtime: SiteRuntimeCon
   if (typeof session.token !== "string" || !session.token || session.token.length > 16384 ||
     typeof session.expiresAt !== "number" || !Number.isFinite(session.expiresAt) || session.expiresAt <= now || session.expiresAt > now + 5 * 60_000 ||
     typeof session.instanceKey !== "string" || !session.instanceKey || (runtime.instanceKey && session.instanceKey !== runtime.instanceKey) ||
+    (session.viewerSubject !== undefined && (typeof session.viewerSubject !== "string" || !session.viewerSubject || session.viewerSubject.length > 200)) ||
     (session.userId !== undefined && (typeof session.userId !== "string" || !session.userId || session.userId.length > 200))) throw new Error(operatorLinkFailure);
   return session as WebsiteOperatorSession;
 }

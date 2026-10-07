@@ -14,6 +14,8 @@ The catalog exposes a Block style selector when the selected template declares n
 
 The separate `/wishlist-surfaces.html` study renders the actual account/shared wishlist surfaces under all four packs with synthetic actions. Both HTML entries and their local styles are included in the production demo build; neither requires a second development server.
 
+The Instructor study includes selectable portrait, initials, minimal-profile and unavailable specimens. Its fictional course list retains independent pagination through these state changes.
+
 ## Assets and isolation
 
 The ten generated sample images are checked into `assets/`; imports do not depend on ignored repository output folders. Their promotion preserved the original image bytes. `public/media` contains explicitly labeled synthetic video/audio/download fixtures. The silent still-image workshop video tests native controls and captions, not real footage. These files are demo assets, not customer uploads.

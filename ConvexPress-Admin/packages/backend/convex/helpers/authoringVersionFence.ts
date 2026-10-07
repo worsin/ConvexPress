@@ -18,7 +18,7 @@ declare const canonicalPermit: unique symbol;
 export type CanonicalAuthoringWritePermit = { readonly [canonicalPermit]: true };
 const protectedFields = new Set<string>([...AUTHORING_FIELDS, "autosaveTitle", "autosaveContent", "autosavedAt"]);
 const publicationFields = new Set(["visibility", "password", "scheduledAt", "publishedAt"]);
-const permits = new WeakMap<object, { table: string; operation: string; id?: string; value: object; encodedValue: string; previous: string; legacyRecovery?: boolean }>();
+const permits = new WeakMap<object, { table: string; operation: string; id?: string; value: object; encodedValue: string; previous: string }>();
 function refusal(code = "CANONICAL_AUTHORING_REQUIRED"): never {
   throw new ConvexError({ code, message: code === "UNSUPPORTED_AUTHORING_VERSION" ? "This authoring format is unsupported. It cannot be converted by a legacy writer." : code === "CANONICAL_PUBLICATION_UNAVAILABLE" ? "Canonical publication is not available at this implementation checkpoint." : "This document requires the canonical authoring service. Reload it in the supported editor." });
 }
@@ -77,14 +77,6 @@ export function permitValidatedCanonicalAuthoringWrite(write: AuthoringWrite): C
   permits.set(permit, { table: write.table, operation: write.operation, id: write.id, value: write.value, encodedValue: encode(write.value), previous: priorBinding(write) });
   return permit;
 }
-/** Only the reviewed recovery service may mint this exact v2-to-v1 receipt. */
-export function permitValidatedLegacyRecoveryWrite(write: AuthoringWrite): CanonicalAuthoringWritePermit {
-  const { from, to } = transition(write);
-  if (write.table !== "posts" || write.operation !== "patch" || from !== 2 || to !== 1) refusal();
-  const permit = Object.freeze({}) as CanonicalAuthoringWritePermit;
-  permits.set(permit, { table: write.table, operation: write.operation, id: write.id, value: write.value, encodedValue: encode(write.value), previous: priorBinding(write), legacyRecovery: true });
-  return permit;
-}
 export function assertAuthoringWrite(write: AuthoringWrite, permit?: CanonicalAuthoringWritePermit): void {
   if (!owns(write.table)) return;
   if (write.operation === "patch" && !authoringWriteNeedsPrevious(write.table, write.operation, write.value)) return;
@@ -92,15 +84,11 @@ export function assertAuthoringWrite(write: AuthoringWrite, permit?: CanonicalAu
   if (!body || (from === 1 && to === 1)) return;
   const receipt = permit && permits.get(permit);
   if (permit) permits.delete(permit);
-  if (!receipt || (to !== 2 && !(receipt.legacyRecovery && from === 2 && to === 1)) || receipt.table !== write.table || receipt.operation !== write.operation || receipt.id !== write.id || receipt.value !== write.value || receipt.encodedValue !== encode(write.value) || receipt.previous !== priorBinding(write)) refusal();
+  if (!receipt || to !== 2 || receipt.table !== write.table || receipt.operation !== write.operation || receipt.id !== write.id || receipt.value !== write.value || receipt.encodedValue !== encode(write.value) || receipt.previous !== priorBinding(write)) refusal();
   if (write.table === "posts" && from === 2) {
     const candidate = write.operation === "patch" ? { ...write.previous, ...write.value } : write.value;
     try {
-      // Returning to a legacy editor cannot erase live canonical safeguards.
-      if (to !== 2) {
-        const visit = (nodes: unknown): boolean => Array.isArray(nodes) && nodes.some(node => node && typeof node === "object" && (Object.values(node.lock ?? {}).some(Boolean) || visit(node.children)));
-        if (visit(write.previous?.blocks)) throw new ConvexError({ code: "BLOCK_LOCKED", message: "Unlock blocks and save before returning to the original editor." });
-      } else assertCanonicalBlockLocks(write.previous?.blocks, candidate.blocks);
+      assertCanonicalBlockLocks(write.previous?.blocks, candidate.blocks);
     } catch (error) {
       if (error instanceof CanonicalTreeError) throw new ConvexError({ code: error.code, message: error.message });
       throw error;

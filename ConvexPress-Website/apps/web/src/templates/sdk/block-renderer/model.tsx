@@ -25,9 +25,9 @@ import {
 import { collectCanonicalAnchors } from "../block-data/portable/generated/instance-runtime.mjs";
 import { layoutSchema, type PrimitiveData } from "../primitives/contracts";
 import { Section } from "../primitives";
-import { createComposedRegistry } from "../block-data/portable/composedRegistry";
+import { createComposedRegistry, type RuntimeCanonicalBlock } from "../block-data/portable/composedRegistry";
 import { planCanonicalData, type ComposedDataContext } from "../block-data/portable/planner";
-import { resolveComposedPresentation, COMPOSED_PRESENTATION_LIMITS } from "../block-data/portable/composedPresentation";
+import { resolveComposedPresentation, assertComposedReferenceBindings, COMPOSED_PRESENTATION_LIMITS } from "../block-data/portable/composedPresentation";
 import type { ComposedDefinition } from "../block-data/portable/composedDefinitions";
 import { bindResolverArguments } from "../block-data/portable/planner";
 import { resolverReferenceValues } from "../block-data/portable/resolverReferences";
@@ -52,7 +52,6 @@ import {
 import { navigationTreeIndex } from "../block-data/portable/navigationTree";
 import { resolveSyncedDisplay, type SyncedDisplay } from "../block-data/portable/syncedDisplay";
 import { planSyncedOccurrenceData, type SyncedOccurrence } from "../block-data/portable/syncedOccurrences";
-import { validateCanonicalTree } from "../block-data/portable/generated/instances";
 import type { DataScope } from "../block-data/portable/contracts";
 const HeadingAnchorsContext = createContext<Readonly<Record<string, string>>>(
 	{},
@@ -313,19 +312,18 @@ export function prepareBlocks(
   const composedRegistry = composed ? createComposedRegistry(composed.definitions, composed.scope) : undefined;
   let composedTree;
   if (composedRegistry) {
-    if (display && composed!.definitions.definitions.length) throw new BlockRenderError("COMPOSED_SYNCED_UNAVAILABLE", "tree", "Reusable-source composition requires a definition-aware occurrence adapter");
     composedTree = composedRegistry.validateTree(input);
   }
-  const composedPlan = composed ? planCanonicalData(input, { websiteKey: composed.scope.websiteKey, instanceKey: composed.scope.instanceKey }, policy, pageData?.current.request, composed) : undefined;
 	// Reconstruct from the closed server display, not a caller-supplied expanded
 	// tree. The canonical root remains immutable. Wrappers participate in layout
 	// and policy; only their resolved descendants enter the shared data grant.
 	const occurrences = display
-		? resolveSyncedDisplay(display.source, validateCanonicalTree(input), display.scope)
+		? resolveSyncedDisplay(display.source, input, display.scope, composed)
 		: undefined;
 	if (occurrences) planSyncedOccurrenceData(occurrences, display!.scope, policy);
 	const dataTree = occurrences?.resolverTree ?? input;
-	const renderNode = (node: SyncedOccurrence): BlockInstance => ({
+  const composedPlan = composed ? planCanonicalData(dataTree, { websiteKey: composed.scope.websiteKey, instanceKey: composed.scope.instanceKey }, policy, pageData?.current.request, composed) : undefined;
+	const renderNode = (node: SyncedOccurrence): RuntimeCanonicalBlock => ({
 		...node.node, id: node.id,
 		...(node.children.length ? { children: node.children.map(renderNode) } : {}),
 	});
@@ -369,20 +367,8 @@ export function prepareBlocks(
       const entry = installedData?.dataByBlock[id];
       if (definition.spec.data && !entry) return fail("UNSUPPORTED_RESOLVER", "Custom dynamic blocks need an installed data grant");
       const binding = composedPlan?.bindings.find(item => item.blockId === id);
-      const boundValues = new Set<string>();
-      const collectValues = (value: unknown) => {
-        if (typeof value === "string") boundValues.add(value);
-        else if (Array.isArray(value)) value.forEach(collectValues);
-        else if (value && typeof value === "object") Object.values(value).forEach(collectValues);
-      };
-      if (binding) collectValues(binding.args);
-      for (const field of composedRegistry.dependencies(name, node.version as number)) {
-        if (field.type === "media") continue;
-        for (const value of valuesAt(node.attrs, field.path).flatMap(item => valuesAt(item, field.valuePath))) {
-          if (value === undefined || value === null || (value === "" && field.allowEmpty)) continue;
-          if (!entry || typeof value !== "string" || !boundValues.has(value)) return fail("UNRESOLVED_REFERENCE", "Custom reference must belong to the installed resolver binding");
-        }
-      }
+      try { assertComposedReferenceBindings(definition, node.attrs, binding?.args, Boolean(entry)); }
+      catch { return fail("UNRESOLVED_REFERENCE", "Custom reference must belong to the installed resolver binding"); }
       const presentation = resolveComposedPresentation(definition, node.attrs, { packId, data: entry?.data, childCount: children.length,
         readMedia: id => Object.hasOwn(resources.media, id) ? resources.media[id] : undefined });
       composedNodes += presentation.nodes; composedBytes += presentation.bytes;
@@ -601,6 +587,7 @@ export function prepareBlocks(
         if (name === "support/kb-search" && resolvedData?.resolver === "support.search" && field.type === "reference" && "of" in field && field.of === "kbCategory" && "storage" in field && field.storage === "id" && field.path.join(".") === "category" && field.valuePath.length === 0) continue;
         if (name === "lms/curriculum" && resolvedData?.resolver === "lms.curriculum" && field.type === "reference" && "of" in field && field.of === "course" && "storage" in field && field.storage === "id" && field.path.join(".") === "course" && field.valuePath.length === 0) continue;
         if (name === "lms/progress" && resolvedData?.resolver === "lms.progress" && field.type === "reference" && "of" in field && field.of === "course" && "storage" in field && field.storage === "id" && field.path.join(".") === "course" && field.valuePath.length === 0) continue;
+        if (name === "core/author-bio" && resolvedData?.resolver === "content.author" && field.type === "reference" && "of" in field && field.of === "user" && "storage" in field && field.storage === "id" && field.path.join(".") === "userId" && field.valuePath.length === 0) continue;
         if (name === "lms/instructor" && resolvedData?.resolver === "lms.instructor" && field.type === "reference" && "of" in field && field.of === "instructor" && "storage" in field && field.storage === "id" && field.path.join(".") === "instructor" && field.valuePath.length === 0) continue;
         if (name === "membership/plans" && resolvedData?.resolver === "membership.plans" && field.type === "reference" && "of" in field && field.of === "membershipPlan" && "storage" in field && field.storage === "id" && field.path.join(".") === "plans.*" && field.valuePath.length === 0) continue;
         if (name === "membership/gated-teaser" && resolvedData?.resolver === "membership.access" && field.type === "reference" && "of" in field && field.of === "membershipPlan" && "storage" in field && field.storage === "id" && field.path.join(".") === "requiredPlan" && field.valuePath.length === 0) continue;

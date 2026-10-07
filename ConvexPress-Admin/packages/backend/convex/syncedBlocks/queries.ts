@@ -50,10 +50,10 @@ export const revision = query({
 });
 /** Keep recovery navigation usable even when the current body is damaged. */
 export const head = query({
-  args: { id }, returns: v.object({ id, title: v.string(), generation: v.number(), revision: v.number(), publishedRevision: v.union(v.number(), v.null()) }),
+  args: { id }, returns: v.object({ id, title: v.string(), generation: v.number(), revision: v.number(), publishedRevision: v.union(v.number(), v.null()), isLocked: v.boolean() }),
   handler: async (ctx, args) => {
     const actor = await requireCan(ctx, "post.read"), { source } = await owned(ctx, args.id, actor._id);
-    return { id: source._id, title: source.title, generation: source.generation, revision: source.lastRevision, publishedRevision: source.publishedRevision ?? null };
+    return { id: source._id, title: source.title, generation: source.generation, revision: source.lastRevision, publishedRevision: source.publishedRevision ?? null, isLocked:source.isLocked===true };
   },
 });
 /** Reuse is available to authors, but only explicitly published revisions are

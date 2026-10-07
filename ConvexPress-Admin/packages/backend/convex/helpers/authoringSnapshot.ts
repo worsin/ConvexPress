@@ -31,7 +31,7 @@ export function restoredAuthoring(revision: Doc<"revisions">): AuthoringSnapshot
     ...snapshot,
     title: revision.title,
     content: revision.content,
-    contentMode: revision.contentMode ?? "article",
+    contentMode: revision.blocksVersion === 2 ? revision.contentMode : revision.contentMode ?? "article",
   } as AuthoringSnapshot;
 }
 

@@ -1,0 +1,84 @@
+{
+  "pack": "depot",
+  "fictional": true,
+  "products": [
+    {
+      "slug": "everyday-stoneware-cup",
+      "assetKey": "cup",
+      "category": {
+        "name": "Tableware",
+        "slug": "tableware",
+        "description": "Quiet essentials for the table and the first cup of the day.",
+        "sortOrder": 0
+      }
+    },
+    {
+      "slug": "linen-kitchen-cloth",
+      "assetKey": "linen",
+      "category": {
+        "name": "Linens",
+        "slug": "linens",
+        "description": "Natural cloths for everyday kitchen rituals.",
+        "sortOrder": 1
+      }
+    },
+    {
+      "slug": "oak-desk-tray",
+      "assetKey": "tray",
+      "category": {
+        "name": "Workspace",
+        "slug": "workspace",
+        "description": "Simple objects that give the small things a place.",
+        "sortOrder": 2
+      }
+    }
+  ],
+  "linenOptions": {
+    "name": "Set size",
+    "values": [
+      "Single",
+      "Pair"
+    ]
+  },
+  "linenVariants": [
+    {
+      "label": "Single",
+      "title": "Linen kitchen cloth \u2014 Single",
+      "sku": "EXAMPLE-LINEN-OAT-SINGLE",
+      "priceAmount": 1800,
+      "stockQuantity": 24,
+      "weight": "4",
+      "isDefault": true,
+      "description": "One 50 \u00d7 70 cm oat linen cloth. Fictional demonstration product; no fulfillment."
+    },
+    {
+      "label": "Pair",
+      "title": "Linen kitchen cloth \u2014 Pair",
+      "sku": "EXAMPLE-LINEN-OAT-PAIR",
+      "priceAmount": 3400,
+      "stockQuantity": 12,
+      "weight": "8",
+      "isDefault": false,
+      "description": "Two 50 \u00d7 70 cm oat linen cloths. The photograph shows one cloth. Fictional demonstration product; no fulfillment."
+    }
+  ],
+  "checkoutSettings": {
+    "storeName": "Common Supply \u2014 demonstration shop",
+    "storeEmail": "",
+    "allowGuestCheckout": true,
+    "shippingEnabled": true,
+    "shippingMethods": [
+      {
+        "code": "demo_delivery",
+        "label": "Demonstration delivery \u2014 no shipment"
+      }
+    ],
+    "paymentMethods": [
+      {
+        "code": "manual_invoice",
+        "label": "Demo order \u2014 no payment collected",
+        "enabled": true
+      }
+    ]
+  }
+}

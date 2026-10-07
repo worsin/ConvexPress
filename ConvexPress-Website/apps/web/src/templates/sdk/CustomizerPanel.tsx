@@ -1,3 +1,4 @@
+import { ImageSetting } from "./FooterRowsSettings";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useOperatorDraftRecovery } from "@/lib/auth/OperatorDraftContext";
 import { useWebsiteOperator } from "@/lib/auth/WebsiteOperatorContext";
@@ -107,32 +108,38 @@ export default function CustomizerPanel({ recoveryOwner }: { recoveryOwner: stri
   useEffect(() => {
     if (base) controller.setDraft({ packId, ...history.present });
   }, [base, packId, history.present, controller.setDraft]);
-  const sendFrame = () =>
+  const sendFrame = () => {
     frame.current?.contentWindow?.postMessage(
       { type: CUSTOMIZE_MESSAGE, packId, ...history.present },
       window.location.origin,
     );
+    frame.current?.contentWindow?.postMessage({ type: `${CUSTOMIZE_MESSAGE}:pick`, enabled: picking }, window.location.origin);
+  };
   useEffect(() => {
     sendFrame();
-  }, [history.present, packId, device]);
+  }, [history.present, packId, device, picking]);
   useEffect(() => {
     const listener = (event: MessageEvent) => {
-      if (
-        event.source === frame.current?.contentWindow &&
-        event.origin === window.location.origin &&
-        event.data?.type === `${CUSTOMIZE_MESSAGE}:ready`
-      )
-        sendFrame();
+      if (event.source !== frame.current?.contentWindow || event.origin !== window.location.origin) return;
+      if (event.data?.type === `${CUSTOMIZE_MESSAGE}:ready`) sendFrame();
+      if (!picking || device === "desktop") return;
+      if (event.data?.type === `${CUSTOMIZE_MESSAGE}:cancelled`) setPicking(false);
+      if (event.data?.type === `${CUSTOMIZE_MESSAGE}:selected` && modules.some(module => module.fields.some(field => `${module.id}.${field.id}` === event.data.field))) {
+        setQuery("");
+        setSelected(event.data.field);
+        setPicking(false);
+      }
     };
     window.addEventListener("message", listener);
     return () => window.removeEventListener("message", listener);
-  }, [history.present, packId]);
+  }, [history.present, packId, picking, device, modules]);
   useEffect(() => {
     if (!picking) {
       setHovered(null);
       return;
     }
     const pick = (event: MouseEvent) => {
+      if (device !== "desktop") return;
       const element =
         event.target instanceof Element
           ? event.target.closest<HTMLElement>("[data-customize]")
@@ -140,6 +147,7 @@ export default function CustomizerPanel({ recoveryOwner }: { recoveryOwner: stri
       if (!element || panel.current?.contains(element)) return;
       event.preventDefault();
       event.stopPropagation();
+      setQuery("");
       setSelected(element.dataset.customize ?? null);
       setPicking(false);
     };
@@ -154,13 +162,21 @@ export default function CustomizerPanel({ recoveryOwner }: { recoveryOwner: stri
           : null,
       );
     };
+    const cancel = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      event.preventDefault();
+      setPicking(false);
+      window.requestAnimationFrame(() => panel.current?.focus());
+    };
+    document.addEventListener("keydown", cancel);
     document.addEventListener("click", pick, true);
     document.addEventListener("mouseover", hover);
     return () => {
+      document.removeEventListener("keydown", cancel);
       document.removeEventListener("click", pick, true);
       document.removeEventListener("mouseover", hover);
     };
-  }, [picking]);
+  }, [picking, device]);
   useEffect(() => {
     if (!selected) return;
     const target = panel.current?.querySelector<HTMLElement>(
@@ -317,10 +333,24 @@ export default function CustomizerPanel({ recoveryOwner }: { recoveryOwner: stri
         </div>
       )}
       {picking && (
-        <style>{`[data-customize]:hover { outline: 2px solid var(--primary); outline-offset: 3px; cursor: crosshair; }`}</style>
+        <>
+          <style>{`[data-customize]:hover { outline: 2px solid var(--primary); outline-offset: 3px; cursor: crosshair; }`}</style>
+          <button
+            type="button"
+            autoFocus
+            className="fixed bottom-4 right-4 z-[110] rounded bg-background px-4 py-2 text-sm text-foreground shadow-xl ring-1 ring-border"
+            onClick={() => {
+              setPicking(false);
+              window.requestAnimationFrame(() => panel.current?.focus());
+            }}
+          >
+            Cancel selecting
+          </button>
+        </>
       )}
       <aside
         ref={panel}
+        style={{ visibility: picking ? "hidden" : undefined }}
         tabIndex={-1}
         role="region"
         aria-label="Customize template"
@@ -360,7 +390,10 @@ export default function CustomizerPanel({ recoveryOwner }: { recoveryOwner: stri
             type="button"
             aria-pressed={picking}
             className="text-xs underline"
-            onClick={() => setPicking(!picking)}
+            onClick={() => {
+              setSelected(null);
+              setPicking(!picking);
+            }}
           >
             {picking ? "Cancel selecting" : "Select a setting on the page"}
           </button>
@@ -624,6 +657,12 @@ function SettingField({
     "data-customize-field": `${module}.${field.id}`,
     className: controlClass,
   };
+  if (field.type === "image") return (
+    <fieldset data-customize-field={`${module}.${field.id}`} className="space-y-1 text-xs">
+      <legend>{field.label}</legend>
+      <ImageSetting id={id} label={field.label} value={String(value ?? "")} onChange={onChange} />
+    </fieldset>
+  );
   return (
     <label htmlFor={id} className="block space-y-1 text-xs">
       <span>{field.label}</span>

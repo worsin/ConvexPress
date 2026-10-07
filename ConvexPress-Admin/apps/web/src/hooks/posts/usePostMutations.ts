@@ -11,17 +11,16 @@ import { toast } from "sonner";
 import type { Id } from "@backend/convex/_generated/dataModel";
 
 /**
- * Hook providing all post mutation functions with toast feedback.
+ * Existing-post lifecycle and metadata mutations with toast feedback.
+ * New documents use canonicalDocuments.create in the native creation route.
  *
  * Usage:
  * ```tsx
- * const { createPost, updatePost, trashPost, ... } = usePostMutations();
- * await createPost({ status: "auto-draft" });
+ * const { trashPost } = usePostMutations();
+ * await trashPost(postId);
  * ```
  */
 export function usePostMutations() {
-  const createMutation = useMutation(api.posts.mutations.create);
-  const updateMutation = useMutation(api.posts.mutations.update);
   const publishMutation = useMutation(api.posts.mutations.publish);
   const unpublishMutation = useMutation(api.posts.mutations.unpublish);
   const trashMutation = useMutation(api.posts.mutations.trash);
@@ -29,7 +28,6 @@ export function usePostMutations() {
   const permanentDeleteMutation = useMutation(api.posts.mutations.permanentDelete);
   const duplicateMutation = useMutation(api.posts.mutations.duplicate);
   const scheduleMutation = useMutation(api.posts.mutations.schedule);
-  const autosaveMutation = useMutation(api.posts.mutations.autosave);
   const bulkTrashMutation = useMutation(api.posts.mutations.bulkTrash);
   const bulkRestoreMutation = useMutation(api.posts.mutations.bulkRestore);
   const bulkDeleteMutation = useMutation(api.posts.mutations.bulkDelete);
@@ -37,72 +35,6 @@ export function usePostMutations() {
   const setMetaMutation = useMutation(api.posts.mutations.setMeta);
   const deleteMetaMutation = useMutation(api.posts.mutations.deleteMeta);
   const bulkSetMetaMutation = useMutation(api.posts.mutations.bulkSetMeta);
-
-  // ─── Create ─────────────────────────────────────────────────────────────
-
-  async function createPost(args: {
-    title?: string;
-    content?: string;
-    excerpt?: string;
-    status?: string;
-    visibility?: string;
-    password?: string;
-    commentStatus?: string;
-    featuredImageId?: Id<"media">;
-    isSticky?: boolean;
-    scheduledAt?: number;
-    categoryIds?: Id<"terms">[];
-    tagIds?: Id<"terms">[];
-  }) {
-    try {
-      // Build properly typed args for the Convex mutation
-      const mutationArgs: Record<string, unknown> = { ...args };
-      const postId = await createMutation(mutationArgs as Parameters<typeof createMutation>[0]);
-      if (args.status && args.status !== "auto-draft") {
-        toast.success("Post created.");
-      }
-      return postId;
-    } catch (error: unknown) {
-      const err = error as { data?: { message?: string }; message?: string };
-      const message = err?.data?.message ?? err?.message ?? "Failed to create post";
-      toast.error(message);
-      throw error;
-    }
-  }
-
-  // ─── Update ─────────────────────────────────────────────────────────────
-
-  async function updatePost(args: {
-    postId: Id<"posts">;
-    title?: string;
-    content?: string;
-    excerpt?: string;
-    status?: string;
-    visibility?: string;
-    password?: string;
-    commentStatus?: string;
-    featuredImageId?: Id<"media">;
-    isSticky?: boolean;
-    slug?: string;
-    menuOrder?: number;
-    authorId?: Id<"users">;
-    scheduledAt?: number;
-    categoryIds?: Id<"terms">[];
-    tagIds?: Id<"terms">[];
-  }) {
-    try {
-      // Build properly typed args for the Convex mutation
-      const mutationArgs: Record<string, unknown> = { ...args };
-      const result = await updateMutation(mutationArgs as Parameters<typeof updateMutation>[0]);
-      toast.success("Post updated.");
-      return result;
-    } catch (error: unknown) {
-      const err = error as { data?: { message?: string }; message?: string };
-      const message = err?.data?.message ?? err?.message ?? "Failed to update post";
-      toast.error(message);
-      throw error;
-    }
-  }
 
   // ─── Publish ────────────────────────────────────────────────────────────
 
@@ -227,21 +159,6 @@ export function usePostMutations() {
     }
   }
 
-  // ─── Autosave ───────────────────────────────────────────────────────────
-
-  async function autosavePost(args: {
-    postId: Id<"posts">;
-    title?: string;
-    content?: string;
-  }) {
-    try {
-      return await autosaveMutation(args);
-    } catch {
-      // Autosave failures are silent per the knowledge doc
-      return { autosavedAt: 0 };
-    }
-  }
-
   // ─── Bulk Trash ─────────────────────────────────────────────────────────
 
   async function bulkTrashPosts(postIds: Id<"posts">[]) {
@@ -361,8 +278,6 @@ export function usePostMutations() {
   }
 
   return {
-    createPost,
-    updatePost,
     publishPost,
     unpublishPost,
     schedulePost,
@@ -370,7 +285,6 @@ export function usePostMutations() {
     restorePost,
     permanentDeletePost,
     duplicatePost,
-    autosavePost,
     bulkTrashPosts,
     bulkRestorePosts,
     bulkDeletePosts,

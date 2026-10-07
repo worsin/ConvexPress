@@ -1,0 +1,2 @@
+import{expect,test}from'bun:test';import{spawnSync}from'node:child_process';import{fileURLToPath}from'node:url';
+test('actual account menus preserve display, presets, nested assigned links and sign-out',()=>{const r=spawnSync(process.execPath,[fileURLToPath(new URL('./account-menu.fixture.jsx',import.meta.url))],{encoding:'utf8'});if(r.status!==0)throw Error(r.stderr||r.stdout);expect(r.stdout).toContain('"checks":11');});

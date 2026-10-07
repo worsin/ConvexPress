@@ -56,5 +56,10 @@
     "capabilities": [
       "embed.sandbox"
     ]
-  }
+  },
+  "searchText": [
+    [
+      "title"
+    ]
+  ]
 }

@@ -144,10 +144,15 @@ export const search = query({
   args: searchQueryArgs,
   returns: publicSearchResultValidator,
   handler: async (ctx, args) => {
+    const evaluatedAt = Date.now();
+    const viewerSubject = (await ctx.auth.getUserIdentity())?.subject ?? null;
+    if (args.refreshKey !== undefined && !/^[A-Za-z0-9_-]{1,64}$/.test(args.refreshKey)) throw new ConvexError("Invalid search refresh key");
     // ── Validate query ──────────────────────────────────────────────────
     const rawQuery = sanitizeQuery(args.q);
     if (rawQuery.length < MIN_QUERY_LENGTH) {
       return {
+        viewerSubject,
+        displayLease: null,
         results: [],
         query: args.q.trim(),
         total: 0,
@@ -247,7 +252,7 @@ export const search = query({
     }
 
     // ── Apply post-query filters ────────────────────────────────────────
-    const readSource = createPublicSearchSourceReader(ctx);
+    const readSource = createPublicSearchSourceReader(ctx, evaluatedAt);
     let results: Array<{doc: PublicSearchSource; relevanceScore: number}> = [];
     for (const candidate of resultMap.values()) {
       const doc = await readSource(candidate.doc);
@@ -332,6 +337,8 @@ export const search = query({
     }));
 
     return {
+      viewerSubject,
+      displayLease: viewerSubject === null && readSource.nextRecheckAt() === null ? null : { evaluatedAt, expiresAt: Math.min(evaluatedAt + 60000, readSource.nextRecheckAt() ?? Infinity) },
       results: formattedResults,
       query: args.q.trim(),
       total,

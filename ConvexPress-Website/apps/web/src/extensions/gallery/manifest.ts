@@ -3,7 +3,7 @@ export default defineExtension({
   "id": "gallery",
   "title": "Gallery",
   "settingsKey": "galleryEnabled",
-  "defaultEnabled": false,
+  "defaultEnabled": true,
   "routePrefixes": [
     "/gallery"
   ]

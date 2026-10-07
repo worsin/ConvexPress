@@ -12,6 +12,31 @@ import {
 } from "../itemState";
 
 describe("return item state helpers", () => {
+  for (const [status, approved, received] of [
+    ["requested", 0, 0], ["rejected", 0, 0], ["approved", 3, 0],
+    ["received", 3, 3], ["refund_pending", 3, 3], ["refunded", 3, 3], ["completed", 3, 3],
+  ] as const) {
+    test(`missing item quantities follow the ${status} return stage`, () => {
+      const request = { status, items: [{ orderItemId: "item_1", quantity: 3 }] };
+      for (const rows of [undefined, [{ orderItemId: "item_1", quantityRequested: 3 }]]) {
+        const [item] = normalizeStoredReturnItems(request, rows);
+        expect(item.quantityRequested).toBe(3);
+        expect(item.quantityApproved).toBe(approved);
+        expect(item.quantityReceived).toBe(received);
+        expect(getRemainingRestockQuantity(item)).toBe(received);
+      }
+    });
+  }
+
+  test("recorded partial and zero quantities take precedence over stage defaults", () => {
+    const [item] = normalizeStoredReturnItems({ status: "completed" }, [{
+      orderItemId: "item_1", quantityRequested: 3, quantityApproved: 1,
+      quantityReceived: 0, quantityRestocked: 0,
+    }]);
+    expect(item.quantityApproved).toBe(1);
+    expect(item.quantityReceived).toBe(0);
+  });
+
   test("defaults approved and received quantities from requested quantity", () => {
     const item = {
       orderItemId: "item_1",

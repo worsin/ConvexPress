@@ -1,3 +1,4 @@
+import {FooterAudienceSelect} from "./FooterAudienceSelect";
 import { Component, useState, type ReactNode } from "react";
 import { usePaginatedQuery } from "convex/react";
 import { api } from "@convexpress-website/backend/generated/api";
@@ -116,7 +117,7 @@ function ColumnFields({
   return (
     <div className="mt-3 space-y-2">
       {list.map((column, index) => {
-        const cell =
+        const cell: Item =
           column.cell && typeof column.cell === "object"
             ? (column.cell as Item)
             : newCell();
@@ -172,11 +173,23 @@ function ColumnFields({
                 ))}
               </select>
             </label>
+            <label className="mb-2 block text-xs">
+              Content alignment
+              <select className={input} value={String(cell.alignment ?? "inherit")} onChange={event => {
+                const next = { ...cell };
+                if (event.target.value === "inherit") delete next.alignment;
+                else next.alignment = event.target.value;
+                patch(index, { ...column, cell: next });
+              }}>
+                {["inherit", "left", "center", "right"].map(value => <option key={value} value={value}>{label(value)}</option>)}
+              </select>
+            </label>
             <ObjectFields
               value={cell}
-              omit={["type"]}
+              omit={["type", "alignment", "audienceId"]}
               onChange={(value) => patch(index, { ...column, cell: value })}
             />
+            {cell.type === "newsletter" && <FooterAudienceSelect value={String(cell.audienceId ?? "")} onChange={audienceId => { const next = { ...cell }; if (audienceId) next.audienceId = audienceId; else delete next.audienceId; patch(index, { ...column, cell: next }); }} />}
             <div className="mt-2 flex gap-3 text-xs">
               <button
                 type="button"
@@ -357,16 +370,20 @@ class ImageSettingBoundary extends Component<{ children: ReactNode }, { failed: 
   }
 }
 
-function ImageSetting(props: { value: string; onChange: (value: unknown) => void }) {
+export function ImageSetting(props: { value: string; onChange: (value: unknown) => void; label?: string; id?: string }) {
   return <ImageSettingBoundary><ImageSettingContent {...props} /></ImageSettingBoundary>;
 }
 
 function ImageSettingContent({
   value,
   onChange,
+  label = "Image",
+  id,
 }: {
   value: string;
   onChange: (value: unknown) => void;
+  label?: string;
+  id?: string;
 }) {
   const [search, setSearch] = useState("");
   const images = usePaginatedQuery(api.media.queries.list, {
@@ -385,7 +402,8 @@ function ImageSettingContent({
         />
       </label>
       <select
-        aria-label="Image"
+        aria-label={label}
+        id={id}
         className={input}
         value={value}
         onChange={(event) => onChange(event.target.value || null)}

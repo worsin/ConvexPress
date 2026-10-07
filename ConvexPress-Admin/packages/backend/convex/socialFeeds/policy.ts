@@ -1,3 +1,5 @@
+import {approvedStoredInstagram,type StoredInstagram} from "./credentials";
+import { instagramAccount } from "./instagram";
 import type {RequestReadLedger} from "../helpers/requestReadLedger";
 import { ConvexError } from "convex/values";
 import type { Doc, Id } from "../_generated/dataModel";
@@ -42,16 +44,20 @@ export function mastodonMediaOrigins() {
 		"https://files.mastodon.social",
 	]);
 }
+export function instagramMediaOrigins() {
+	return originSet(process.env.CONVEXPRESS_INSTAGRAM_MEDIA_ORIGINS, []);
+}
 export function approvedAccount(
 	provider: SocialProvider,
 	handle: string,
+	stored?: StoredInstagram,
 ): string {
 	const account = socialAccount(provider, handle);
 	if (!account) socialFailure("Enter a valid social account handle");
-	if (provider !== "mastodon")
-		socialFailure(
-			"Instagram source setup is not available until its account adapter is configured",
-		);
+	if (provider === "instagram") {
+		try { if(stored){approvedStoredInstagram(account!.handle,stored);return account!.handle;} return instagramAccount(account!.handle).handle; }
+		catch { return socialFailure("Ask your site operator to authorize this Instagram professional account for this environment"); }
+	}
 	if (!mastodonOrigins().has(`https://${account!.host}`))
 		socialFailure(
 			"This Mastodon server has not been approved for this deployment",

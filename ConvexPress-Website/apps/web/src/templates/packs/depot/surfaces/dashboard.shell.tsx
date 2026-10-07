@@ -26,7 +26,7 @@ import { useFooterConfig } from "@/hooks/layout/useFooterConfig";
 import { useHeaderConfig } from "@/hooks/layout/useHeaderConfig";
 import { useLayoutConfig } from "@/hooks/layout/useLayoutConfig";
 import { useLayoutShell } from "@/hooks/layout/useLayoutShell";
-import { useMenuForLocation } from "@/hooks/layout/useMenuForLocation";
+import { useHeaderMenu } from "@/hooks/layout/useHeaderMenu";
 import { useSiteIdentity } from "@/hooks/layout/useSiteIdentity";
 import type { DashboardConfig } from "@/lib/layout/types";
 import { cn } from "@/lib/utils";
@@ -120,7 +120,7 @@ function CompactFrame({ data }: { data: DashboardShellSurfaceData }) {
   const headerConfig = useHeaderConfig();
   const layoutConfig = useLayoutConfig();
   const footerConfig = useFooterConfig();
-  const headerMenu = useMenuForLocation("header");
+  const headerMenu = useHeaderMenu(headerConfig.navigation);
 
   const tabs: NavItem[] = ACCOUNT_TABS.filter((tab) => getPageModule(tab.id)).map((tab) => ({
     id: tab.id,
@@ -136,7 +136,7 @@ function CompactFrame({ data }: { data: DashboardShellSurfaceData }) {
 
   return (
     <>
-      <Surface name="chrome.mobileNav" data={{ menu: headerMenu, siteIdentity, config: headerConfig.mobileMenu, open: mobileNavOpen, onClose: closeMobileNav }} fallback={CoreMobileNav} />
+      <Surface name="chrome.mobileNav" data={{ menu: headerMenu, siteIdentity, config: headerConfig.mobileMenu, userMenu: headerConfig.userMenu, open: mobileNavOpen, onClose: closeMobileNav }} fallback={CoreMobileNav} />
       <div data-slot="dashboard-shell" data-pack="depot" data-layout="compact" className={cn("flex min-h-svh flex-col bg-background text-foreground", dashboardFrame)} {...getBackgroundInertProps(mobileNavOpen)}>
         <SkipToContent />
         <Surface name="chrome.header" data={{ siteIdentity, menu: headerMenu, layoutConfig, headerConfig }} fallback={CoreHeader} />

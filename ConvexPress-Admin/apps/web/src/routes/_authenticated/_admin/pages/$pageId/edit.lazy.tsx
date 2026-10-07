@@ -2,18 +2,14 @@
  * Edit Page - Lazy-loaded component
  *
  * Loads an existing page by ID via Convex query and initializes
- * the EditorLayout with the page data.
+ * the canonical editor with the current site-scoped document.
  */
 
 import { createLazyFileRoute, Link, useParams } from "@tanstack/react-router";
-import { EditorLayout } from "@/components/editor/EditorLayout";
-import { CanonicalEditorEntry } from "@/components/blocks/canonical-editor/NativeCanonicalEditor";
+import { NativeCanonicalEditor } from "@/components/blocks/canonical-editor/NativeCanonicalEditor";
 import { Skeleton } from "@/components/ui/skeleton";
 import { usePage } from "@/hooks/pages/usePage";
 import { usePageMutations } from "@/hooks/pages/usePageMutations";
-import { pageSectionsToBlocks } from "@/lib/blocks/page-sections";
-import { usesOriginalTextEditor } from "@/components/editor/original-text";
-import { usesOriginalArticleEditor } from "@/components/editor/legacy-article";
 import type { Id } from "@backend/convex/_generated/dataModel";
 
 export const Route = createLazyFileRoute(
@@ -23,7 +19,6 @@ export const Route = createLazyFileRoute(
 });
 
 function EditPagePage() {
-  const { editor } = Route.useSearch();
   const { pageId } = useParams({
     from: "/_authenticated/_admin/pages/$pageId/edit",
   });
@@ -102,74 +97,5 @@ function EditPagePage() {
     );
   }
 
-  // Map Convex page data to EditorFormValues shape
-  const legacyBlocks = pageSectionsToBlocks((page as any).pageSections);
-  const originalArticle = usesOriginalArticleEditor(page);
-  const originalText = legacyBlocks.length === 0 && usesOriginalTextEditor(page);
-  const initialData = {
-    title: page.title ?? "",
-    slug: page.slug ?? "",
-    content: page.content ?? "",
-    excerpt: page.excerpt ?? "",
-    status: page.status ?? "draft",
-    visibility: page.visibility ?? "public",
-    password: ("password" in page ? page.password : undefined) ?? "",
-    commentStatus: (page.commentStatus as "open" | "closed") ?? "closed",
-    isSticky: false, // Pages don't support sticky (post-only feature)
-    featuredImageId: page.featuredImageId ?? null,
-    authorId: page.authorId ?? "",
-    scheduledFor: "scheduledAt" in page && typeof page.scheduledAt === "number" ? new Date(page.scheduledAt) : null,
-    categoryIds: [] as string[],
-    tagIds: [] as string[],
-    menuOrder: page.menuOrder ?? 0,
-    parentId: (page as { parentId?: string }).parentId ?? "",
-    pageTemplate: (page as { pageTemplate?: string }).pageTemplate ?? "default",
-    layoutId: (page as { layoutId?: string }).layoutId ?? "",
-    hideHeader: (page as { hideHeader?: boolean }).hideHeader ?? false,
-    hideFooter: (page as { hideFooter?: boolean }).hideFooter ?? false,
-    // Structured content fields
-    hero: (page as any).hero
-      ? {
-          title: (page as any).hero.title ?? "",
-          subtitle: (page as any).hero.subtitle ?? "",
-          content: (page as any).hero.content ?? "",
-          imageId: (page as any).hero.imageId ?? null,
-          videoUrl: (page as any).hero.videoUrl ?? "",
-          ctaText: (page as any).hero.ctaText ?? "",
-          ctaUrl: (page as any).hero.ctaUrl ?? "",
-        }
-      : { title: "", subtitle: "", content: "", imageId: null, videoUrl: "", ctaText: "", ctaUrl: "" },
-    topics: ((page as any).topics ?? []).map((t: any) => ({
-      title: t.title ?? "",
-      subtitle: t.subtitle ?? "",
-      content: t.content ?? "",
-      imageId: t.imageId ?? null,
-      videoUrl: t.videoUrl ?? "",
-    })),
-    summary: (page as any).summary
-      ? { title: (page as any).summary.title ?? "", content: (page as any).summary.content ?? "" }
-      : { title: "", content: "" },
-    sources: (page as any).sources ?? "",
-    tableOfContents: (page as any).tableOfContents ?? "",
-    pagePrompt: (page as any).pagePrompt ?? "",
-    // Existing text stays in its source format until reviewed conversion.
-    contentMode: originalText ? page.contentMode ?? "article" : originalArticle ? "article" as const : "blocks" as const,
-    blocks: (Array.isArray(page.blocks) && page.blocks.length > 0 ? page.blocks : legacyBlocks) as [],
-    blocksVersion: (page as any).blocksVersion ?? 1,
-    blocksRevision: (page as any).blocksRevision ?? 0,
-  };
-
-  return (
-    <CanonicalEditorEntry key={pageId} initialOpen={editor === "blocks"} postId={pageId as Id<"posts">} canonical={"blocksVersion" in page && page.blocksVersion === 2} draft={page.status === "draft"}>
-    <EditorLayout
-      contentType="page"
-      originalArticle={originalArticle}
-      originalText={originalText}
-      mode="edit"
-      postId={pageId}
-      initialData={initialData}
-      publishedAt={(page as { publishedAt?: number }).publishedAt ?? null}
-    />
-    </CanonicalEditorEntry>
-  );
+  return <NativeCanonicalEditor key={pageId} postId={pageId as Id<"posts">} />;
 }

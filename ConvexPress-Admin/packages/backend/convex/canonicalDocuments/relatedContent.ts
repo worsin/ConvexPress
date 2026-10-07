@@ -1,3 +1,4 @@
+import { publicDocumentHref } from "../helpers/publicDocumentHref";
 /** Related content uses the authorized current document, never an authored ID. */
 import { z } from "zod";
 import { streamQuery } from "convex-helpers/server/pagination";
@@ -79,7 +80,7 @@ export async function readRelatedContent(ctx:QueryCtx,input:unknown,scope:DataSc
         }
       }
       items.push({id:post._id,title:post.title || (args.type==="post"?"Untitled post":"Untitled page"),
-        href:args.type==="post"?`/blog/${encodeURIComponent(post.slug)}`:`/page${post.path??`/${encodeURIComponent(post.slug)}`}`,
+        href:publicDocumentHref(post),
         excerpt:post.excerpt ? post.excerpt.slice(0,316).replace(/[\uD800-\uDBFF]$/,"")+(post.excerpt.length>316?"…":"") : null,
         publishedAt:post.publishedAt,image});
     }

@@ -1,26 +1,10 @@
-/**
- * FooterComposer - Two-column composer for configuring the site footer.
- *
- * Left panel: collapsible section controls with toggle, select, text, and variant-grid fields.
- * Right panel: real-time FooterPreview with device size toolbar.
- * Special handling for navColumns section (dynamic add/remove columns).
- *
- * Reads/writes the "footer" settings section via Convex.
- */
+import { MediaField } from "@/components/media/MediaField";
+import { focusCustomizeField } from "@/lib/templates/customizeSelection";
+/** Footer section controls owned by the Customizer draft. */
 
-import { useState, useCallback, useEffect } from "react";
-import { useMutation } from "convex/react";
-import { useQuery } from "convex-helpers/react/cache";
-import { api } from "@backend/convex/_generated/api";
+import { useState, useId, useEffect, useRef } from "react";
 import {
   ChevronDown,
-  RotateCcw,
-  Monitor,
-  Tablet,
-  Smartphone,
-  Loader2,
-  Save,
-  ExternalLink,
   Plus,
   Trash2,
 } from "lucide-react";
@@ -31,18 +15,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { FOOTER_DEFAULTS, FOOTER_SECTIONS } from "./constants";
-import { FooterPreview } from "./FooterPreview";
 import type { FooterConfig, ComposerField, ComposerSectionDef } from "./types";
-
-// ─── Device Preview Sizes ───────────────────────────
-
-type DeviceSize = "desktop" | "tablet" | "mobile";
-
-const DEVICE_WIDTHS: Record<DeviceSize, string> = {
-  desktop: "w-full",
-  tablet: "max-w-[768px]",
-  mobile: "max-w-[375px]",
-};
 
 // ─── Deep Merge Helper ──────────────────────────────
 
@@ -101,6 +74,7 @@ function VariantGrid({
       {field.options?.map((opt) => (
         <button
           key={opt.value}
+          aria-pressed={value === opt.value}
           type="button"
           onClick={() => onChange(opt.value)}
           className={cn(
@@ -118,16 +92,19 @@ function VariantGrid({
 }
 
 function SelectField({
+  id,
   field,
   value,
   onChange,
 }: {
+  id: string;
   field: ComposerField;
   value: string;
   onChange: (val: string) => void;
 }) {
   return (
     <select
+      id={id}
       value={value}
       onChange={(e) => onChange(e.target.value)}
       className="w-full h-8 rounded-md border border-border bg-card px-2 text-xs text-foreground outline-hidden focus:border-ring"
@@ -145,13 +122,16 @@ function ToggleSwitch({
   checked,
   onChange,
   id,
+  label,
 }: {
   checked: boolean;
   onChange: (val: boolean) => void;
   id: string;
+  label: string;
 }) {
   return (
     <SwitchPrimitive.Root
+      aria-label={label}
       checked={checked}
       onCheckedChange={onChange}
       id={id}
@@ -187,22 +167,25 @@ function ToggleField({
       <label htmlFor={fieldId} className="text-xs text-foreground cursor-pointer">
         {field.label}
       </label>
-      <ToggleSwitch checked={value} onChange={onChange} id={fieldId} />
+      <ToggleSwitch checked={value} onChange={onChange} id={fieldId} label={field.label} />
     </div>
   );
 }
 
 function TextField({
+  id,
   field,
   value,
   onChange,
 }: {
+  id: string;
   field: ComposerField;
   value: string;
   onChange: (val: string) => void;
 }) {
   return (
     <Input
+      id={id}
       value={value}
       onChange={(e) => onChange(e.target.value)}
       placeholder={field.label}
@@ -307,18 +290,28 @@ function NavColumnsEditor({
 
 function SectionPanel({
   section,
+  focusField,
   config,
   onToggle,
   onFieldChange,
   onNavColumnsChange,
 }: {
   section: ComposerSectionDef;
+  focusField?: string | null;
   config: FooterConfig;
   onToggle: (sectionId: string, enabled: boolean) => void;
   onFieldChange: (sectionId: string, fieldId: string, value: unknown) => void;
   onNavColumnsChange: (columns: FooterConfig["navColumns"]["columns"]) => void;
 }) {
   const [isOpen, setIsOpen] = useState(false);
+  const fieldPrefix = useId();
+  const sectionRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (focusField?.startsWith(`footer.${section.id}.`)) setIsOpen(true);
+  }, [focusField, section.id]);
+  useEffect(() => {
+    if (isOpen && focusField?.startsWith(`footer.${section.id}.`)) focusCustomizeField(sectionRef.current, focusField);
+  }, [focusField, isOpen, section.id]);
   const sectionConfig = config[section.id as keyof FooterConfig] as Record<
     string,
     unknown
@@ -331,19 +324,20 @@ function SectionPanel({
 
   return (
     <Collapsible open={isOpen} onOpenChange={setIsOpen}>
-      <div
+      <div ref={sectionRef}
         className={cn(
           "border border-border rounded-lg overflow-hidden",
           !isEnabled && section.hasToggle && "opacity-60",
         )}
       >
         {/* Section header */}
-        <div className="flex items-center gap-2 px-3 py-2.5 bg-card">
+        <div data-customize-field={`footer.${section.id}.enabled`} className="flex items-center gap-2 px-3 py-2.5 bg-card">
           {section.hasToggle && (
             <ToggleSwitch
               checked={isEnabled}
               onChange={(val) => onToggle(section.id, val)}
               id={`section-toggle-${section.id}`}
+              label={section.label}
             />
           )}
           <CollapsibleTrigger className="flex-1 flex items-center justify-between cursor-pointer min-w-0">
@@ -370,11 +364,12 @@ function SectionPanel({
             {/* Standard fields */}
             {section.fields.map((field) => {
               const fieldValue = sectionConfig?.[field.id];
+              const fieldId = `${fieldPrefix}-${field.id}`;
 
               return (
-                <div key={field.id} className="space-y-1">
-                  {field.type !== "toggle" && (
-                    <label className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
+                <div key={field.id} data-customize-field={`footer.${section.id}.${field.id}`} className="space-y-1">
+                  {field.type !== "toggle" && field.type !== "image" && (
+                    <label htmlFor={field.type === "text" || field.type === "select" ? fieldId : undefined} className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
                       {field.label}
                     </label>
                   )}
@@ -391,6 +386,7 @@ function SectionPanel({
 
                   {field.type === "select" && (
                     <SelectField
+                      id={fieldId}
                       field={field}
                       value={(fieldValue as string) ?? ""}
                       onChange={(val) =>
@@ -409,8 +405,13 @@ function SectionPanel({
                     />
                   )}
 
+                  {field.type === "image" && (
+                    <MediaField label={field.label} value={(fieldValue as string) ?? ""} onChange={val => onFieldChange(section.id, field.id, val || null)} />
+                  )}
+
                   {field.type === "text" && (
                     <TextField
+                      id={fieldId}
                       field={field}
                       value={(fieldValue as string) ?? ""}
                       onChange={(val) =>
@@ -436,250 +437,9 @@ function SectionPanel({
   );
 }
 
-// ─── Main Composer ───────────────────────────────────
-
-export function FooterComposer() {
-  const settingsData = useQuery(api.settings.queries.getBySection, {
-    section: "footer",
-  });
-  const updateSection = useMutation(api.settings.mutations.updateSection);
-
-  const [config, setConfig] = useState<FooterConfig>(FOOTER_DEFAULTS);
-  const [initialConfig, setInitialConfig] = useState<FooterConfig | null>(null);
-  const [isSaving, setIsSaving] = useState(false);
-  const [device, setDevice] = useState<DeviceSize>("desktop");
-  const [initialized, setInitialized] = useState(false);
-
-  // Merge fetched data with defaults
-  useEffect(() => {
-    if (settingsData !== undefined && !initialized) {
-      const stored = settingsData as Record<string, unknown> | null;
-      let merged = FOOTER_DEFAULTS;
-      if (stored) {
-        // Deep merge but keep arrays (navColumns.columns) from stored data
-        merged = deepMerge(
-          FOOTER_DEFAULTS,
-          stored as unknown as Partial<FooterConfig>,
-        );
-        // Override columns array directly from stored if present
-        const storedNavColumns = (stored as unknown as Partial<FooterConfig>)?.navColumns;
-        if (storedNavColumns?.columns) {
-          merged = {
-            ...merged,
-            navColumns: {
-              ...merged.navColumns,
-              columns: storedNavColumns.columns,
-            },
-          };
-        }
-      }
-      setConfig(merged);
-      setInitialConfig(merged);
-      setInitialized(true);
-    }
-  }, [settingsData, initialized]);
-
-  const hasChanges = initialConfig !== null && JSON.stringify(config) !== JSON.stringify(initialConfig);
-
-  const handleToggle = useCallback(
-    (sectionId: string, enabled: boolean) => {
-      setConfig((prev) => ({
-        ...prev,
-        [sectionId]: {
-          ...(prev[sectionId as keyof FooterConfig] as Record<string, unknown>),
-          enabled,
-        },
-      }));
-    },
-    [],
-  );
-
-  const handleFieldChange = useCallback(
-    (sectionId: string, fieldId: string, value: unknown) => {
-      setConfig((prev) => ({
-        ...prev,
-        [sectionId]: {
-          ...(prev[sectionId as keyof FooterConfig] as Record<string, unknown>),
-          [fieldId]: value,
-        },
-      }));
-    },
-    [],
-  );
-
-  const handleNavColumnsChange = useCallback(
-    (columns: FooterConfig["navColumns"]["columns"]) => {
-      setConfig((prev) => ({
-        ...prev,
-        navColumns: {
-          ...prev.navColumns,
-          columns,
-        },
-      }));
-    },
-    [],
-  );
-
-  const handleReset = useCallback(() => {
-    setConfig(FOOTER_DEFAULTS);
-    toast.success("Reset to defaults");
-  }, []);
-
-  const handleSave = useCallback(async () => {
-    setIsSaving(true);
-    try {
-      await updateSection({ section: "footer", values: config });
-      setInitialConfig(config);
-      toast.success("Footer saved successfully");
-    } catch (err: unknown) {
-      const message =
-        err instanceof Error ? err.message : "Failed to save footer";
-      toast.error(message);
-    } finally {
-      setIsSaving(false);
-    }
-  }, [updateSection, config]);
-
-  // Loading state
-  if (settingsData === undefined) {
-    return (
-      <div className="flex flex-col gap-6 pb-8">
-        <div>
-          <h1 className="text-xl font-semibold text-foreground">
-            Footer Builder
-          </h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Configure your website's footer layout and components.
-          </p>
-        </div>
-        <div className="flex items-center justify-center py-20">
-          <Loader2 className="size-6 animate-spin text-muted-foreground" />
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="flex flex-col gap-4 pb-8">
-      {/* Page header */}
-      <div>
-        <h1 className="text-xl font-semibold text-foreground">
-          Footer Builder
-        </h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Configure your website's footer layout and components. Changes preview
-          in real-time.
-        </p>
-      </div>
-
-      {/* Two-column layout */}
-      <div className="flex gap-6 items-start">
-        {/* Left sidebar - section controls */}
-        <div className="w-[360px] shrink-0 flex flex-col gap-3">
-          {/* Sidebar header */}
-          <div className="flex items-center justify-between">
-            <span className="text-sm font-medium text-foreground">
-              Footer Sections
-            </span>
-            <Button variant="ghost" size="xs" onClick={handleReset}>
-              <RotateCcw className="size-3" />
-              Reset
-            </Button>
-          </div>
-
-          {/* Section panels */}
-          <div className="flex flex-col gap-2">
-            {FOOTER_SECTIONS.map((section) => (
-              <SectionPanel
-                key={section.id}
-                section={section}
-                config={config}
-                onToggle={handleToggle}
-                onFieldChange={handleFieldChange}
-                onNavColumnsChange={handleNavColumnsChange}
-              />
-            ))}
-          </div>
-
-          {/* Save bar */}
-          <div className="flex items-center gap-2 pt-2 border-t border-border">
-            <Button variant="ghost" size="sm" className="flex-1 gap-1.5">
-              <ExternalLink className="size-3" />
-              Preview on Site
-            </Button>
-            <Button
-              size="sm"
-              className="flex-1 gap-1.5"
-              onClick={handleSave}
-              disabled={!hasChanges || isSaving}
-            >
-              {isSaving ? (
-                <Loader2 className="size-3 animate-spin" />
-              ) : (
-                <Save className="size-3" />
-              )}
-              {isSaving ? "Saving..." : "Save Footer"}
-            </Button>
-          </div>
-        </div>
-
-        {/* Right panel - preview */}
-        <div className="flex-1 min-w-0 flex flex-col gap-3">
-          {/* Device toolbar */}
-          <div className="flex items-center gap-1 self-end">
-            {(
-              [
-                { size: "desktop", icon: Monitor, label: "Desktop" },
-                { size: "tablet", icon: Tablet, label: "Tablet" },
-                { size: "mobile", icon: Smartphone, label: "Mobile" },
-              ] as const
-            ).map(({ size, icon: Icon, label }) => (
-              <Button
-                key={size}
-                variant={device === size ? "outline" : "ghost"}
-                size="icon-xs"
-                onClick={() => setDevice(size)}
-                title={label}
-              >
-                <Icon className="size-3" />
-              </Button>
-            ))}
-          </div>
-
-          {/* Placeholder page content above footer */}
-          <div
-            className={cn(
-              "mx-auto transition-all duration-300",
-              DEVICE_WIDTHS[device],
-            )}
-          >
-            <div className="rounded-lg border border-border/50 bg-muted/20 p-6 space-y-3">
-              <div className="h-3 w-2/3 rounded bg-foreground/5" />
-              <div className="h-2 w-full rounded bg-foreground/5" />
-              <div className="h-2 w-5/6 rounded bg-foreground/5" />
-              <div className="h-2 w-4/5 rounded bg-foreground/5" />
-              <div className="h-20 w-full rounded bg-foreground/5 mt-4" />
-            </div>
-          </div>
-
-          {/* Preview container */}
-          <div
-            className={cn(
-              "mx-auto transition-all duration-300",
-              DEVICE_WIDTHS[device],
-            )}
-          >
-            <FooterPreview config={config} />
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 /** Existing footer section/column controls reuse the active template draft. */
-export function FooterSettingsEditor({ value, onChange }: { value: Record<string, unknown>; onChange: (value: Record<string, unknown>) => void }) {
+export function FooterSettingsEditor({ value, onChange, focusField }: { value: Record<string, unknown>; onChange: (value: Record<string, unknown>) => void; focusField?: string | null }) {
   const config = deepMerge(FOOTER_DEFAULTS, value as unknown as Partial<FooterConfig>);
   const setField = (sectionId: string, fieldId: string, next: unknown) => onChange({ ...value, [sectionId]: { ...(config[sectionId as keyof FooterConfig] as Record<string, unknown>), [fieldId]: next } });
-  return <div className="space-y-2">{FOOTER_SECTIONS.map(section => <SectionPanel key={section.id} section={section} config={config} onToggle={(id, enabled) => setField(id, "enabled", enabled)} onFieldChange={setField} onNavColumnsChange={columns => setField("navColumns", "columns", columns)} />)}</div>;
+  return <div className="space-y-2">{FOOTER_SECTIONS.map(section => <SectionPanel key={section.id} section={section} focusField={focusField} config={config} onToggle={(id, enabled) => setField(id, "enabled", enabled)} onFieldChange={setField} onNavColumnsChange={columns => setField("navColumns", "columns", columns)} />)}</div>;
 }

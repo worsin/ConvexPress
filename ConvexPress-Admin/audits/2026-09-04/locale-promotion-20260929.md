@@ -1,0 +1,34 @@
+# Language Switcher and reviewed localization promotion — September 29
+
+E41 is accepted within the required language-routing/translation promotion boundary. Language Switcher is **Verified** on accumulated block-specific evidence; tracker readback is **76 Verified /61 In progress /137**. This does not close the overall delivery or E18 final installed-artifact integration.
+
+## Failure and repair
+
+The preceding live source export returned the three Language Switcher pages with no language routing or translation group records and no issue. A target could receive the blocks while losing their configured destinations. The repair adds explicit operator selection of site languages and complete selected translation groups to the existing promotion pipeline. Configuration includes all landing pages; included documents close their translation groups recursively. Empty groups can be selected by key to review removals. The normal review displays language labels, direction and named document destinations before approval.
+
+Routing and group records carry portable references, remap to target document IDs, require settings authority, and are applied atomically with the documents. Source fingerprints include translation children. Target review binds the complete current routing/group context so changed children, new groups and incompatible unselected groups force a new review. Unselected groups are preserved. Bounded reads reject oversized context instead of reporting partial success. Recovery restores the prior semantic aggregate while increasing revisions, preventing stale authoring resurrection. Existing refusal to roll back newly created records is unchanged; the live recovery drill deliberately used updates only.
+
+## Verification and installed identity
+
+Evidence directory: `output/locale-promotion-20260929/`.
+
+- 141 backend tests /864 assertions across five files; 94 controller/broker tests /634 assertions across eight files; 25 review/model tests /121 assertions across four files. Source-export selection and dependency closure, authority, missing/malformed locale references, duplicate and mixed groups, source/target drift, child-only changes, preservation, explicit empty groups and rollback are covered. Backend, controller and Admin TypeScript checks pass.
+- Source, target and controller each deployed a reviewed overlay on their own installed checkpoint, preserving installed extensions. Sealed source counts: 1,623 /1,609 /229 files, zero drift. Function counts: 2,410 /2,371 /210; no functions added or removed. Site signature change is export selection; controller promotion signatures carry the new selection/kinds. Generated worktree API also refreshes imports for previously added source modules; these are not new registered endpoints.
+- Both site reference indexes rebuilt to ready after normal source-fingerprint generation. Their generations deliberately changed. Private full backup exports contain the existing locale tables: source one routing row, one group and two entries; target originally empty. This proves ordinary backup inclusion, not a whole-database restore drill.
+- Native owned Electron reviewed and applied eight records through the controller: three pages, site routing, one complete group, two existing access rules and one membership plan. Existing policy authored values matched before application. Receipt `p979tkhfa7t30jd0hs4em1zkmd8fa6ge` is applied with dispatch count one. Three target page IDs replace all source page references; source data is unchanged.
+- Core, Journal, Depot and Aster House at 1440/390 each pass actual target Website headings, exact en/es/ar destinations, English/Spanish current state, Arabic RTL, keyboard Spanish and reverse English navigation, no overflow and no runtime errors. Screenshots were inspected. Native target Website iframe shows the remapped destinations and current state.
+- The live update-only recovery applied the source English label, restored the prior target label and complete group, then restored the promoted label through normal authoring. Configuration revisions 1→2→3→4→5 and group 1→3 prove monotonic recovery. Receipt `kn7zrrk3mvdjssn5yefj0ngqsh8fa5a4` is rolled back.
+
+## Full-block reconciliation
+
+The context-only canonical block has no independent authored language fields. September 14 evidence covers native insertion/save/reopen, settings authoring and concurrent revision recovery, real Spanish/reverse English/Arabic navigation, access-denied/unpublished/deleted destinations, current-state and RTL behavior. September 28 refreshed actual destinations in all four packs and repaired the historical encoding divergence (F19). This batch closes normal portable export/promotion, remapping, conflicts, recovery and backup-table inclusion. Shared editor recovery/visibility/layout evidence remains valid within its existing boundary. Automatic translation and a site-wide multilingual SEO engine are not requirements of this block.
+
+Only this row's Status, Tests and Screenshots were changed after a live schema/137-row read and exact dry run. Full readback preserved every Note and all other cells. Historical Notes remain dated evidence, including their then-pending gates.
+
+## Cleanup and limits
+
+All 42 source pages and all 28 original target pages are exact; both appearance values are restored. The three owned target pages were permanently deleted through normal APIs and their routes return 404. Source routing/groups are exact. Target language semantics return to disabled/empty, but normal APIs intentionally retain a routing revision 6 and an empty translation-group revision 4. These two metadata rows are retained, not an exact restoration of row absence. Both API sessions were revoked. Native logout is confirmed, owned Electron 33548 closed, its exact profile removed, and owned target Website 33868 stopped. Source Website 29505 and owner processes 39198/62672/65092/68390 were preserved.
+
+The older target checkpoint still lacks four newer canonical draft functions. Native target editor reports autosave and document settings unavailable; its actual Website iframe renders correctly. Autosave absence is tied to the function-spec difference; the separate settings warning is not fully diagnosed here. This remains E18 final integration work, not evidence that the target editor is ready. No generic source deployment replaced its installed baseline.
+
+Initial setup failures are retained: root Bun EMFILE (rerun from backend cwd), source fingerprint preflight refusals before deployment, a source shell request during deployment (stable reload passed), and a matrix live-confirmation refusal before mutation. Logout succeeded; a stale Sign in locator timed out because the UI button is Continue. Stable native acceptance errors are empty. No new provider activity, push or whole-platform readiness claim.

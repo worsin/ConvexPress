@@ -326,3 +326,57 @@ test("bounded reusable-index rebuild accepts ordinary custom pages without chang
     if (oldEpoch === undefined) delete process.env[MEDIA_REVERSE_EPOCH_VARIABLE]; else process.env[MEDIA_REVERSE_EPOCH_VARIABLE] = oldEpoch;
   }
 });
+
+test("registered mixed custom/reusable save, reopen and restore retain pinned source and definition versions", async () => {
+  const oldEpoch = process.env[MEDIA_REVERSE_EPOCH_VARIABLE];
+  process.env[MEDIA_REVERSE_EPOCH_VARIABLE] = "mixed-editor-index-fixture";
+  try {
+  const f = await fixture();
+  await f.initialize();
+  await f.t.run(async ctx => { const role = (await ctx.db.get("roles",f.ids.role))!; await ctx.db.patch("roles",f.ids.role,{capabilities:[...role.capabilities,"manage_options"]}); });
+  let progress = await f.author.mutation(ref("syncedBlocks/consumerIndex:begin"), {});
+  for(let i=0;i<20 && progress.status==="building";i++) progress=await f.author.mutation(ref("syncedBlocks/consumerIndex:step"),{generation:progress.generation,expectedSequence:progress.sequence});
+  expect(progress.status).toBe("ready");
+  const { syncedContentDigest } = await import("../foundation/syncedContent");
+  const body = [{ id: "shared", name: "core/contact-form", version: 2, attrs: { fields: [{ name: "email", label: "Email", type: "email", required: true }] } }];
+  const source = await f.t.run(async ctx => {
+    const id = await ctx.db.insert("syncedBlocks", { ...scope, title:"Shared", generation:2, lastRevision:1, publishedRevision:1, createdBy:f.ids.user, updatedBy:f.ids.user, createdAt:1, updatedAt:1 });
+    await ctx.db.insert("syncedBlockRevisions", {syncedBlockId:id, revision:1, title:"Shared", blocks:body, digest:syncedContentDigest("Shared",body), createdBy:f.ids.user, createdAt:1, publishedAt:1});
+    return id;
+  });
+  const reference = {id:"reusable",name:"core/synced",version:1,attrs:{syncedBlock:source,revisionPolicy:"pinned",revision:1}};
+  const tree = [{...f.blocks()[0],children:[reference]}];
+  await f.author.mutation(save,{postId:f.ids.post,expectedRevision:1,title:"Studio",blocks:tree});
+  const first=await f.read();
+  expect(first.document.blocks[0].children[0].attrs.revision).toBe(1);
+  expect(first.document.composedDefinitions.definitions[0].version).toBe(1);
+  expect(first.synced.revisions).toHaveLength(1);
+  const second=await f.author.mutation(save,{postId:f.ids.post,expectedRevision:2,title:"Mixed edited",blocks:tree});
+  expect(second.revision).toBe(3);
+  const revision=(await f.revisions()).find(row=>row.blocksRevision===2)!;
+  await f.author.mutation(restore,{postId:f.ids.post,expectedRevision:3,revisionId:revision._id});
+  const restored=await f.read();
+  expect(restored.document.revision).toBe(4);
+  expect(restored.document.blocks).toEqual(first.document.blocks);
+  expect(restored.document.composedDefinitions).toEqual(first.document.composedDefinitions);
+  expect(restored.synced).toEqual(first.synced);
+  // Rebuilding after the mixed page is persisted must retain its dependencies.
+  process.env[MEDIA_REVERSE_EPOCH_VARIABLE] = "mixed-editor-index-rebuild";
+  progress = await f.author.mutation(ref("syncedBlocks/consumerIndex:begin"), {});
+  for (let i = 0; i < 30 && progress.status === "building"; i++) progress = await f.author.mutation(ref("syncedBlocks/consumerIndex:step"), { generation: progress.generation, expectedSequence: progress.sequence });
+  expect(progress.status).toBe("ready");
+  const form = await f.t.run(ctx => ctx.db.query("forms").withIndex("by_contact_source", q => q.eq("contactPostId", f.ids.post)).unique());
+  expect(form).not.toBeNull();
+  expect(await f.t.run(ctx => contactSourceAllowed(ctx, form!))).toBe(false);
+  const approval = ref("blockDefinitions/publication:setVersionState");
+  await f.author.mutation(approval, { id: f.created.id, version: 1, expectedGeneration: 1, expectedDigest: f.created.digest, enabled: true });
+  await f.author.mutation(ref("canonicalDocuments:setPublication"), { postId: f.ids.post, expectedRevision: 4, status: "publish" });
+  const publicPage = await f.t.query(ref("canonicalDocuments:getForRender"), { postId: f.ids.post });
+  expect(publicPage.state).toBe("ready");
+  expect(publicPage.synced.revisions).toHaveLength(1);
+  expect(await f.t.run(ctx => contactSourceAllowed(ctx, form!))).toBe(true);
+  await f.author.mutation(approval, { id: f.created.id, version: 1, expectedGeneration: 2, expectedDigest: f.created.digest, enabled: false });
+  expect(await f.t.run(ctx => contactSourceAllowed(ctx, form!))).toBe(false);
+
+  } finally { if(oldEpoch===undefined) delete process.env[MEDIA_REVERSE_EPOCH_VARIABLE]; else process.env[MEDIA_REVERSE_EPOCH_VARIABLE]=oldEpoch; }
+});

@@ -209,3 +209,19 @@ test("both editorial tabs preserve hidden panel content and validate every decla
 		}),
 	).toThrow();
 });
+
+test("historical Showcase unsafe destinations omit only the link and preserve the authored story", () => {
+  for(const url of ['javascript:alert(1)','//untrusted.test','broken']) {
+    const html=contentHtml(showcase,{items:[{quote:'A fictional observation',name:'Sample maker',url}]});
+    expect(html).toContain('A fictional observation');
+    expect(html).toContain('Sample maker');
+    expect(html).not.toContain('href=');
+    expect(html).not.toContain(url);
+  }
+});
+
+test("Showcase preserves maximum role and company together without exceeding Quote source capacity",()=>{
+ const role='r'.repeat(120),company='c'.repeat(140);
+ const html=contentHtml(showcase,{items:[{quote:'A fictional observation',name:'Sample maker',role,company}]});
+ expect(html).toContain(role+' · '+company);
+});

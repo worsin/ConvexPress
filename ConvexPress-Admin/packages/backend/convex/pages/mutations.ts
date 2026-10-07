@@ -1,14 +1,11 @@
-import { reconcileManualSaveAutosave } from "../helpers/autosaveReconciliation";
-import { assertNoNewDisabledBlocks } from "../blocks/policy";
-import { assertPagePathAvailable, assertPageTreePathAvailable } from "../helpers/pageRouteGuard";
-import { replacePublicationSchedule } from "../helpers/publicationSchedule";
-import { AUTHORING_FIELDS } from "../helpers/authoringSnapshot";
+import { canonicalTrashRestorePermit } from "../canonicalDocuments/service";
+
+import { assertPageTreePathAvailable } from "../helpers/pageRouteGuard";
+
 /**
  * Page System - Mutations
  *
  * All write operations for the page lifecycle:
- *   create           - Create a new page
- *   update           - Update an existing page (partial patch)
  *   publish          - Publish a draft/pending page
  *   trash            - Soft-delete (move to trash)
  *   restore          - Restore from trash
@@ -20,7 +17,6 @@ import { AUTHORING_FIELDS } from "../helpers/authoringSnapshot";
  *   Pages are Administrator/Editor-only content. Authors, Contributors,
  *   and Subscribers have NO page management capabilities.
  *
- *   - `page.create`     required to create pages
  *   - `page.update`     required to update pages
  *   - `page.delete`     required to trash/delete pages
  *   - `page.publish`    required to publish pages
@@ -38,14 +34,12 @@ import { mutation } from "../_generated/server";
 import type { MutationCtx } from "../_generated/server";
 import { internal } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
-import { requireCan , getUserIdentifier } from "../helpers/permissions";
-import { sanitizeTipTapContent } from "../helpers/sanitize";
+import { requireCan } from "../helpers/permissions";
+
 import { emitEvent } from "../helpers/events";
-import { setMediaAttachment, setMediaAttachmentBatch } from "../media/helpers";
+
 import { PAGE_EVENTS, SYSTEM } from "../events/constants";
 import {
-  createPageArgs,
-  updatePageArgs,
   trashPageArgs,
   restorePageArgs,
   deletePageArgs,
@@ -54,7 +48,6 @@ import {
   setPageParentArgs,
 } from "./validators";
 import {
-  slugify,
   generateUniqueSlug,
   computePagePath,
   computePageDepth,
@@ -63,525 +56,14 @@ import {
   recomputeDescendantPaths,
   getMaxSubtreeDepth,
   MAX_PAGE_DEPTH,
+  deletePageMetadata,
 } from "./internals";
-import { validateBlocks, validateBlocksAgainstCatalog, getStoredBlocks, type StoredBlock } from "../blocks/helpers";
-import { deleteWithMediaReferences, insertWithMediaReferences, patchWithMediaReferences } from "../media/attachmentGuard";
 
-// ─── Create ──────────────────────────────────────────────────────────────────
+import { deleteWithMediaReferences, patchWithMediaReferences } from "../media/attachmentGuard";
 
-/**
- * Create a new page.
- *
- * Flow:
- *   1. Auth check: require `page.create` capability
- *   2. If publishing directly, additionally require `page.publish`
- *   3. Generate or validate slug (unique within type "page")
- *   4. Validate parent if provided (exists, is page, not trashed)
- *   5. Compute path and depth from parent chain
- *   6. Enforce max depth limit (5 levels)
- *   7. Insert page record
- *   8. Emit `page.created` event
- *
- * @returns The new page's ID
- */
-export const create = mutation({
-  args: createPageArgs,
-  handler: async (ctx, args) => {
-    // ── Auth & capability checks ──────────────────────────────────────────
-    const user = await requireCan(ctx, "page.create");
+// New documents are created through canonicalDocuments.create or the canonical HTTP API.
 
-    const status = args.status ?? "draft";
-    const visibility = args.visibility ?? "public";
-
-    // Publishing requires additional capability
-    if (status === "publish") {
-      await requireCan(ctx, "page.publish");
-    }
-
-    // ── Title validation ──────────────────────────────────────────────────
-    // Auto-drafts are allowed to have empty titles (they're created on mount
-    // before the user types anything). All other statuses require a title.
-    const title = args.title.trim();
-    if (!title && status !== "auto-draft") {
-      throw new ConvexError({
-        code: "VALIDATION_ERROR",
-        message: "Page title cannot be empty",
-      });
-    }
-
-    // ── Slug generation ───────────────────────────────────────────────────
-    // For auto-drafts with no title, generate a temporary slug
-    const slugSource = title || `auto-draft-${Date.now()}`;
-    const baseSlug = args.slug ? slugify(args.slug) : slugify(slugSource);
-    await assertPagePathAvailable(ctx, await computePagePath(ctx, baseSlug, args.parentId));
-    const slug = await generateUniqueSlug(ctx, baseSlug);
-
-    // ── Parent validation & hierarchy ─────────────────────────────────────
-    let parentId: Id<"posts"> | undefined = args.parentId;
-    let depth = 0;
-    let path = `/${slug}`;
-
-    if (parentId) {
-      await validateParent(ctx, parentId);
-
-      depth = await computePageDepth(ctx, parentId) + 1;
-
-      if (depth > MAX_PAGE_DEPTH) {
-        throw new ConvexError({
-          code: "VALIDATION_ERROR",
-          message: `Maximum page nesting depth is ${MAX_PAGE_DEPTH + 1} levels`,
-        });
-      }
-
-      path = await computePagePath(ctx, slug, parentId);
-    }
-
-    await assertPagePathAvailable(ctx, path);
-
-    // ── Build the page record ─────────────────────────────────────────────
-    const now = Date.now();
-    const pageData: Record<string, unknown> = {
-      type: "page" as const,
-      title,
-      slug,
-      content: sanitizeTipTapContent(args.content) || "",
-      excerpt: args.excerpt,
-      status,
-      visibility,
-      password: visibility === "password" ? args.password : undefined,
-      authorId: user._id,
-      commentStatus: "closed" as const,
-      parentId,
-      menuOrder: args.menuOrder ?? 0,
-      pageTemplate: args.pageTemplate ?? "default",
-      featuredImageId: args.featuredImageId,
-      path,
-      depth,
-      publishedAt: status === "publish" ? (args.publishedAt ?? now) : undefined,
-      scheduledAt: status === "future" ? args.scheduledAt : undefined,
-      // Structured content fields
-      hero: args.hero,
-      topics: args.topics,
-      summary: args.summary,
-      sources: args.sources,
-      tableOfContents: args.tableOfContents,
-      pagePrompt: args.pagePrompt,
-      contentMode: args.contentMode ?? "blocks",
-      blocks: args.blocks,
-      blocksVersion: args.blocksVersion ?? (args.blocks ? 1 : undefined),
-      blocksRevision: args.blocksRevision ?? (args.blocks ? 1 : undefined),
-      layoutId: args.layoutId || undefined,
-      hideHeader: args.hideHeader,
-      hideFooter: args.hideFooter,
-      createdAt: now,
-      updatedAt: now,
-    };
-
-    if (args.blocks) {
-      validateBlocks(args.blocks as StoredBlock[]);
-      const blocks = validateBlocksAgainstCatalog(args.blocks as StoredBlock[]);
-      await assertNoNewDisabledBlocks(ctx, [], blocks);
-      pageData.blocks = blocks;
-    }
-
-    // ── Insert record ─────────────────────────────────────────────────────
-    // NOTE: The `as any` cast is required because pageData is built dynamically
-    // as Record<string, unknown>. This is a known Convex pattern during
-    // incremental development where the TypeScript types may not fully match
-    // the runtime schema. The validator in createPageArgs ensures type safety
-    // at the argument level.
-    const pageId: import("../_generated/dataModel").Id<"posts"> = await insertWithMediaReferences<"posts">(ctx, "posts", pageData as any);
-
-    // ── Auto-attach media to this page (WP-style first-use wins) ─────────
-    await setMediaAttachment(ctx, args.featuredImageId, pageId);
-    if (args.hero?.imageId) {
-      await setMediaAttachment(ctx, args.hero.imageId, pageId);
-    }
-    if (Array.isArray(args.topics)) {
-      await setMediaAttachmentBatch(
-        ctx,
-        args.topics.map((t: any) => t?.imageId).filter(Boolean),
-        pageId,
-      );
-    }
-
-    // ── Schedule auto-publish for future-dated pages ──────────────────────
-    if (status === "future" && args.scheduledAt) {
-      await requireCan(ctx, "page.publish");
-      await replacePublicationSchedule(ctx, pageId, args.scheduledAt);
-    }
-
-    // NOTE: childCount is NOT stored on the schema. Child counts are derived
-    // at query time using the by_type_parent index. No childCount update needed.
-
-    // ── Emit event ────────────────────────────────────────────────────────
-    await emitEvent(ctx, PAGE_EVENTS.CREATED, SYSTEM.PAGE, {
-      pageId,
-      title,
-      authorId: user._id,
-    });
-
-    return pageId;
-  },
-});
-
-// ─── Update ──────────────────────────────────────────────────────────────────
-
-/**
- * Update an existing page.
- *
- * Supports partial updates -- only provided fields are changed.
- *
- * Special behaviors:
- *   - If slug changes, path is recomputed for this page AND all descendants
- *   - If status changes to "publish", publishedAt is set (if not already)
- *   - If status changes to "trash", trashedAt is set
- *   - Only emits event if actual changes were made
- *
- * @returns The page ID
- */
-export const update = mutation({
-  args: updatePageArgs,
-  handler: async (ctx, args) => {
-    // ── Auth check ────────────────────────────────────────────────────────
-    const user = await requireCan(ctx, "page.update");
-
-    // ── Fetch existing page ───────────────────────────────────────────────
-    const page = await ctx.db.get("posts", args.pageId);
-    if (!page || page.type !== "page") {
-      throw new ConvexError({
-        code: "NOT_FOUND",
-        message: "Page not found",
-      });
-    }
-
-    // Ownership check note: In WordPress, edit_pages (own) and edit_others_pages
-    // (others) are distinct capabilities. In ConvexPress, page management is
-    // restricted to Administrator and Editor roles only (both have page.update),
-    // so the requireCan("page.update") check above is sufficient for all users
-    // who can reach this mutation. No additional non-owner check is needed.
-
-    // ── Additional capability checks ──────────────────────────────────────
-    // If publishing, require page.publish
-    if (args.status === "publish" && page.status !== "publish") {
-      await requireCan(ctx, "page.publish");
-    }
-
-    // ── Title validation ──────────────────────────────────────────────────
-    if (args.title !== undefined) {
-      const title = args.title.trim();
-      if (!title) {
-        throw new ConvexError({
-          code: "VALIDATION_ERROR",
-          message: "Page title cannot be empty",
-        });
-      }
-    }
-
-    // ── Slug uniqueness check ─────────────────────────────────────────────
-    let newSlug: string | undefined;
-    if (args.slug !== undefined && args.slug !== page.slug) {
-      const baseSlug = slugify(args.slug);
-      const targetParent = args.parentId === null ? undefined : args.parentId ?? page.parentId;
-      await assertPagePathAvailable(ctx, await computePagePath(ctx, baseSlug, targetParent), page.path ?? `/${page.slug}`);
-      newSlug = await generateUniqueSlug(ctx, baseSlug, args.pageId);
-    }
-
-    // ── Build patch object ────────────────────────────────────────────────
-    const now = Date.now();
-    const patch: Record<string, unknown> = { updatedAt: now };
-    const changes: string[] = [];
-
-    if (args.title !== undefined && args.title.trim() !== page.title) {
-      patch.title = args.title.trim();
-      changes.push("title");
-    }
-
-    if (newSlug) {
-      patch.slug = newSlug;
-      changes.push("slug");
-    }
-
-    if (args.content !== undefined && args.content !== page.content) {
-      patch.content = sanitizeTipTapContent(args.content);
-      changes.push("content");
-    }
-
-    if (args.excerpt !== undefined && args.excerpt !== page.excerpt) {
-      patch.excerpt = args.excerpt;
-      changes.push("excerpt");
-    }
-
-    if (args.status !== undefined && args.status !== page.status) {
-      patch.status = args.status;
-      changes.push("status");
-
-      // Set publishedAt when first publishing
-      if (args.status === "publish" && !page.publishedAt) {
-        patch.publishedAt = now;
-      }
-
-      // Set trashedAt when trashing
-      if (args.status === "trash") {
-        patch.trashedAt = now;
-      }
-    }
-
-    if (args.visibility !== undefined && args.visibility !== page.visibility) {
-      patch.visibility = args.visibility;
-      changes.push("visibility");
-
-      // Handle password for password-protected pages
-      if (args.visibility === "password") {
-        patch.password = args.password;
-      } else {
-        patch.password = undefined;
-      }
-    } else if (args.password !== undefined && args.visibility === "password") {
-      patch.password = args.password;
-    }
-
-    if (args.menuOrder !== undefined && args.menuOrder !== page.menuOrder) {
-      patch.menuOrder = args.menuOrder;
-      changes.push("menuOrder");
-    }
-
-    if (args.pageTemplate !== undefined && args.pageTemplate !== page.pageTemplate) {
-      patch.pageTemplate = args.pageTemplate;
-      changes.push("template");
-    }
-
-    if (args.layoutId !== undefined && args.layoutId !== page.layoutId) {
-      patch.layoutId = args.layoutId || undefined;
-      changes.push("layoutId");
-    }
-    if (args.hideHeader !== undefined && args.hideHeader !== page.hideHeader) {
-      patch.hideHeader = args.hideHeader;
-      changes.push("hideHeader");
-    }
-    if (args.hideFooter !== undefined && args.hideFooter !== page.hideFooter) {
-      patch.hideFooter = args.hideFooter;
-      changes.push("hideFooter");
-    }
-
-    if (args.featuredImageId !== undefined && args.featuredImageId !== page.featuredImageId) {
-      patch.featuredImageId = args.featuredImageId;
-      changes.push("featuredImage");
-    }
-
-    if (args.commentStatus !== undefined) {
-      patch.commentStatus = args.commentStatus;
-      changes.push("commentStatus");
-    }
-
-    if (args.scheduledAt !== undefined && args.scheduledAt !== page.scheduledAt) {
-      patch.scheduledAt = args.scheduledAt;
-      changes.push("scheduledAt");
-    }
-
-    // ── Structured content fields ──────────────────────────────────────
-    if (args.hero !== undefined) {
-      patch.hero = args.hero;
-      changes.push("hero");
-    }
-    if (args.topics !== undefined) {
-      if (args.topics && args.topics.length > 5) {
-        throw new ConvexError({
-          code: "VALIDATION_ERROR",
-          message: "Maximum 5 topics allowed",
-        });
-      }
-      patch.topics = args.topics;
-      changes.push("topics");
-    }
-    if (args.summary !== undefined) {
-      patch.summary = args.summary;
-      changes.push("summary");
-    }
-    if (args.sources !== undefined) {
-      patch.sources = args.sources;
-      changes.push("sources");
-    }
-    if (args.tableOfContents !== undefined) {
-      patch.tableOfContents = args.tableOfContents;
-      changes.push("tableOfContents");
-    }
-    if (args.pagePrompt !== undefined && args.pagePrompt !== page.pagePrompt) {
-      patch.pagePrompt = args.pagePrompt;
-      changes.push("pagePrompt");
-    }
-    if (args.contentMode !== undefined && args.contentMode !== page.contentMode) {
-      patch.contentMode = args.contentMode;
-      changes.push("contentMode");
-    }
-    if (args.blocks !== undefined) {
-      validateBlocks(args.blocks as StoredBlock[]);
-      const blocks = validateBlocksAgainstCatalog(args.blocks as StoredBlock[]);
-      await assertNoNewDisabledBlocks(ctx, getStoredBlocks(page), blocks);
-      patch.blocks = blocks;
-      patch.blocksVersion = args.blocksVersion ?? page.blocksVersion ?? 1;
-      patch.blocksRevision =
-        args.blocksRevision ?? ((page.blocksRevision as number | undefined) ?? 0) + 1;
-      changes.push("blocks");
-    }
-    if (args.blocksVersion !== undefined && args.blocks === undefined) {
-      patch.blocksVersion = args.blocksVersion;
-      changes.push("blocksVersion");
-    }
-    if (args.blocksRevision !== undefined && args.blocks === undefined) {
-      patch.blocksRevision = args.blocksRevision;
-      changes.push("blocksRevision");
-    }
-
-    // ── Schedule auto-publish for future-dated pages ──────────────────────
-    // If status is changing to "future" or staying "future" with a new scheduledAt,
-    // schedule the auto-publish. The publishScheduled function is a no-op if the
-    // page's status has changed by the time it fires.
-    const effectiveStatus = (patch.status as string) ?? page.status;
-    const effectiveScheduledAt = (patch.scheduledAt as number | undefined) ?? page.scheduledAt;
-    if (
-      effectiveStatus === "future" &&
-      effectiveScheduledAt &&
-      (args.status === "future" || args.scheduledAt !== undefined)
-    ) {
-      await requireCan(ctx, "page.publish");
-      await replacePublicationSchedule(ctx, args.pageId, effectiveScheduledAt);
-    }
-
-    // ── Handle parentId change (reparenting via update) ───────────────────
-    let parentChanged = false;
-    if (args.parentId !== undefined && args.parentId !== page.parentId) {
-      const oldParentId = page.parentId as Id<"posts"> | undefined;
-      const newParentId = args.parentId;
-
-      // Validate new parent if not making top-level
-      if (newParentId) {
-        await validateParent(ctx, newParentId);
-
-        // Check for circular reference
-        if (await wouldCreateCircle(ctx, args.pageId, newParentId)) {
-          throw new ConvexError({
-            code: "VALIDATION_ERROR",
-            message: "Circular parent-child relationship detected",
-          });
-        }
-
-        const newDepth = await computePageDepth(ctx, newParentId) + 1;
-        const subtreeDepth = await getMaxSubtreeDepth(ctx, args.pageId);
-        if (newDepth + subtreeDepth > MAX_PAGE_DEPTH) {
-          throw new ConvexError({
-            code: "VALIDATION_ERROR",
-            message: `Maximum page nesting depth is ${MAX_PAGE_DEPTH + 1} levels`,
-          });
-        }
-
-        patch.parentId = newParentId;
-        patch.depth = newDepth;
-        patch.path = await computePagePath(ctx, newSlug ?? page.slug, newParentId);
-      } else {
-        // Making top-level
-        patch.parentId = undefined;
-        patch.depth = 0;
-        patch.path = `/${newSlug ?? page.slug}`;
-      }
-
-      changes.push("parent");
-      parentChanged = true;
-
-      // NOTE: childCount is NOT stored on the schema. Child counts are derived
-      // at query time using the by_type_parent index. No childCount update needed.
-    }
-
-    if (newSlug || parentChanged) {
-      const candidatePath = typeof patch.path === "string" ? patch.path : await computePagePath(ctx, newSlug ?? page.slug, page.parentId);
-      await assertPageTreePathAvailable(ctx, args.pageId, candidatePath, page.path ?? `/${page.slug}`);
-    }
-
-    // ── Create revision snapshot BEFORE applying patch ─────────────────────
-    // Mirrors Post System behavior: snapshot the current state before changes.
-    // Must be synchronous to guarantee snapshot captures pre-update state.
-    if (page.status !== "auto-draft" && changes.length > 0) {
-      const contentFields: readonly string[] = AUTHORING_FIELDS;
-      const hasContentChange = changes.some((f) => contentFields.includes(f));
-      if (hasContentChange) {
-        await ctx.runMutation(
-          internal.revisions.internals.createOnSave,
-          {
-            parentId: args.pageId,
-            parentType: "page" as const,
-            title: page.title ?? "",
-            content: (page.content as string) ?? "",
-            excerpt: page.excerpt as string | undefined,
-            authorId: getUserIdentifier(user),
-            changedFields: changes.filter((f) => contentFields.includes(f)),
-          },
-        );
-      }
-    }
-
-    // Retire only an autosave pair represented by this transaction's saved body.
-    Object.assign(patch, reconcileManualSaveAutosave(page, patch, args));
-
-    // ── Apply patch ───────────────────────────────────────────────────────
-    if (changes.length > 0 || Object.keys(patch).length > 1) {
-      await patchWithMediaReferences<"posts">(ctx, "posts", args.pageId, patch);
-    }
-
-    // ── Auto-attach newly-assigned media (first-use wins) ────────────────
-    if (args.featuredImageId !== undefined && args.featuredImageId) {
-      await setMediaAttachment(ctx, args.featuredImageId, args.pageId);
-    }
-    if (args.hero?.imageId) {
-      await setMediaAttachment(ctx, args.hero.imageId, args.pageId);
-    }
-    if (Array.isArray(args.topics)) {
-      await setMediaAttachmentBatch(
-        ctx,
-        args.topics.map((t: any) => t?.imageId).filter(Boolean),
-        args.pageId,
-      );
-    }
-
-    // ── Recompute paths if slug changed (and parent didn't already handle it)
-    if (newSlug && !parentChanged) {
-      const updatedPath = await computePagePath(
-        ctx,
-        newSlug,
-        page.parentId as Id<"posts"> | undefined,
-      );
-      await patchWithMediaReferences<"posts">(ctx, "posts", args.pageId, { path: updatedPath });
-
-      // Cascade path updates to all descendants
-      const parentPath = updatedPath.substring(0, updatedPath.lastIndexOf("/")) || "";
-      await recomputeDescendantPaths(
-        ctx,
-        args.pageId,
-        parentPath,
-        (page.depth as number) ?? 0,
-      );
-    }
-
-    // ── Recompute descendant paths if parent changed ──────────────────────
-    if (parentChanged) {
-      const newPath = (patch.path as string) ?? page.path ?? `/${page.slug}`;
-      const newDepth = (patch.depth as number) ?? page.depth ?? 0;
-      const computedParentPath = newPath.substring(0, newPath.lastIndexOf("/")) || "";
-      await recomputeDescendantPaths(ctx, args.pageId, computedParentPath, newDepth);
-    }
-
-    // ── Emit event (only if there were actual changes) ────────────────────
-    if (changes.length > 0) {
-      await emitEvent(ctx, PAGE_EVENTS.UPDATED, SYSTEM.PAGE, {
-        pageId: args.pageId,
-        title: (patch.title as string) ?? page.title,
-        authorId: user._id,
-        changes,
-      });
-    }
-
-    return args.pageId;
-  },
-});
+// Metadata and authoring use revision-checked canonicalDocuments mutations.
 
 // ─── Publish ─────────────────────────────────────────────────────────────────
 
@@ -786,7 +268,8 @@ export const restore = mutation({
       patch.path = await computePagePath(ctx, newSlug, parentId);
     }
 
-    await patchWithMediaReferences<"posts">(ctx, "posts", args.pageId, patch);
+    const restorePermit = await canonicalTrashRestorePermit(ctx, page, patch);
+    await patchWithMediaReferences<"posts">(ctx, "posts", args.pageId, patch, restorePermit);
 
     // Emit restored event
     await emitEvent(ctx, PAGE_EVENTS.RESTORED, SYSTEM.PAGE, {
@@ -856,7 +339,7 @@ export const permanentDelete = mutation({
 
     for (const child of children) {
       const newDepth = pageParentId
-        ? await computePageDepth(ctx, pageParentId) + 1
+        ? await computePageDepth(ctx, pageParentId)
         : 0;
       const newPath = await computePagePath(ctx, child.slug, pageParentId);
 
@@ -872,8 +355,16 @@ export const permanentDelete = mutation({
       await recomputeDescendantPaths(ctx, child._id, childParentPath, newDepth);
     }
 
+    await deletePageMetadata(ctx, args.pageId);
+
     // ── Clear front page references ───────────────────────────────────────
     await clearFrontPageReferences(ctx, args.pageId);
+
+    // Pages can carry topics for related-content discovery. Remove those
+    // relationships before deleting their source, using the bounded cascade.
+    await ctx.runMutation(internal.taxonomies.internals.deleteRelationshipsForPost, {
+      postId: args.pageId,
+    });
 
     // ── Delete all revisions (synchronous to ensure cleanup before page deletion)
     await ctx.runMutation(
@@ -942,7 +433,7 @@ export const reorder = mutation({
           }
 
           // Check depth limit
-          const newDepth = await computePageDepth(ctx, item.parentId) + 1;
+          const newDepth = await computePageDepth(ctx, item.parentId);
           const subtreeDepth = await getMaxSubtreeDepth(ctx, item.pageId);
           if (newDepth + subtreeDepth > MAX_PAGE_DEPTH) {
             continue; // Skip: would exceed depth limit
@@ -1044,7 +535,7 @@ export const setParent = mutation({
     if (newParentId) {
       await validateParent(ctx, newParentId);
 
-      newDepth = await computePageDepth(ctx, newParentId) + 1;
+      newDepth = await computePageDepth(ctx, newParentId);
 
       // Check depth limit including subtree
       const subtreeDepth = await getMaxSubtreeDepth(ctx, args.pageId);

@@ -2,7 +2,7 @@
  * Admin Editor Layout UI - TypeScript Types
  *
  * All editor-related types and constants for the post/page editor system.
- * Used by EditorLayout, metabox components, hooks, and route files.
+ * Shared editor field types used by canonical controls and metadata consumers.
  */
 
 /** The content type being edited */
@@ -445,5 +445,5 @@ export interface AuthorItem {
 // Legacy TipTap editor types (BlockDefinition, SlashCommandItem,
 // EditorContextValue, CalloutType, ButtonVariant, DividerStyle,
 // EmbedProvider, EditorSaveStatus, BlockCategory) were removed when the
-// TipTap chain was deleted in favor of the BlockOutline editor.
+// TipTap editor commands are retired; canonical authoring owns document editing.
 // See packages/backend/convex/blocks/ and apps/web/src/components/blocks/.

@@ -1,9 +1,9 @@
 .cp-membership-plans { width:100%; min-width:0; color:var(--foreground); }
 .cp-membership-plans-intro { max-width:46rem; margin-block-end:var(--stack-gap-lg,2rem); }
 .cp-membership-plans-grid { container-type:inline-size; }
-.cp-membership-plans-grid > .cp-grid { grid-template-columns:minmax(0,1fr); align-items:stretch; }
-@container (min-width:40rem) { .cp-membership-plans-grid > .cp-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } }
-@container (min-width:64rem) { .cp-membership-plans-grid > .cp-grid { grid-template-columns:repeat(3,minmax(0,1fr)); } }
+.cp-membership-plans-grid > .cp-layout-query > .cp-grid { grid-template-columns:minmax(0,1fr); align-items:stretch; }
+@container (min-width:40rem) { .cp-membership-plans-grid > .cp-layout-query > .cp-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+@container (min-width:64rem) { .cp-membership-plans-grid > .cp-layout-query > .cp-grid { grid-template-columns:repeat(3,minmax(0,1fr)); } }
 .cp-membership-plan { min-width:0; }
 .cp-membership-plan > .cp-card { height:100%; border-block-start:3px solid var(--primary,currentColor); }
 .cp-membership-plan .cp-heading { overflow-wrap:anywhere; }

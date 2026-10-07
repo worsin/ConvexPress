@@ -3,6 +3,7 @@
  * not a registry of block names, guessed field names, or arbitrary tables.
  * See audits/2026-09-04/media-opaque-authoring-inventory.md for writer boundaries. */
 export const opaqueAuthoringOwners = [
+  "canonicalDocumentDrafts",
   "posts", "revisions", "postMeta", "reusableBlocks", "syncedBlockRevisions", "blockDefinitionVersions", "fieldValues", "fieldDefinitions",
   "settings", "appearance_drafts", "layouts", "themes",
   "commerce_products", "commerce_product_variants", "commerce_product_categories",

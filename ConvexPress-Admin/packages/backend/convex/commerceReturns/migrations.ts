@@ -187,6 +187,7 @@ export function buildLegacyReturnHistoryInserts(returnRequest: {
 export function buildLegacyReturnItemInserts(
   returnRequest: {
     _id: string;
+    status?: string;
     createdAt: number;
     updatedAt: number;
     items?: Array<{

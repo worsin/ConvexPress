@@ -25,7 +25,7 @@ export async function allocateCanonicalPromotionTarget(ctx: MutationCtx, allocat
   const backups = await ctx.db.query('contentPromotion_backups').withIndex('by_receipt', q => q.eq('receiptId', allocation.receiptId)).take(101);
   if (backups.some(b => b.key === allocation.key)) return fail('PROMOTION_ALLOCATION_INVALID', 'This document already has a receipt allocation.');
   const now = Date.now();
-  const id = await insertWithMediaReferences(ctx, 'posts', { type: record.kind as 'page' | 'post', title: String(record.data.title), slug: String(record.data.slug), content: '', contentMode: 'blocks', status: 'draft', visibility: 'public', commentStatus: 'closed', authorId: actor._id, createdAt: now, updatedAt: now });
+  const id = await insertWithMediaReferences(ctx, 'posts', { type: record.kind as 'page' | 'post', title: String(record.data.title), slug: String(record.data.slug), content: '', status: 'draft', visibility: 'public', commentStatus: 'closed', authorId: actor._id, createdAt: now, updatedAt: now });
   const row = (await ctx.db.get('posts', id))!;
   await ctx.db.insert('contentPromotion_backups', { receiptId: allocation.receiptId, key: allocation.key, kind: 'canonicalAllocation', targetId: id, beforeJson: null, afterRevision: hash(row) });
   return id;

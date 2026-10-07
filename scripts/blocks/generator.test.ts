@@ -44,6 +44,18 @@ describe("schema-first generation", () => {
     found.packs[0].renderers[s.name] = "./blocks/events/upcoming.tsx";
     expect(await read("owned")).toMatchObject({ renderer: "owned", hidden: true });
   });
+  test("presentation roles come from every discovered spec without importing renderers or validators", async () => {
+    const root = await fixture(), s = await spec();
+    await put(root, "blocks/events/upcoming", {...s, role: "hero"});
+    await put(root, "blocks/core/upcoming", {...s, name: "core/upcoming", role: "content"});
+    const generated = await syncBlocks({root});
+    expect(generated.changed).toContain("roles.ts");
+    const file = path.join(root, "blocks/.generated/roles.ts");
+    const source = await readFile(file, "utf8");
+    expect(source).not.toMatch(/import\s/);
+    const {blockRoles} = await import(pathToFileURL(file).href);
+    expect(blockRoles).toEqual({"events/upcoming": "hero", "core/upcoming": "content"});
+  });
   test("generated validators initialize only on first use and retain defaults, field access and schema identity", async () => {
     const root=await fixture(),s=await spec();await put(root,"blocks/events/upcoming",s);await put(root,"blocks/core/upcoming",{...s,name:"core/upcoming"});await syncBlocks({root});
     const file=path.join(root,"blocks/.generated/schemas.ts"),source=await readFile(file,"utf8");
@@ -76,7 +88,7 @@ describe("schema-first generation", () => {
     const root = await fixture(), s = await spec();
     await put(root, "blocks/events/upcoming", s);
     const generated = await syncBlocks({ root });
-    expect(generated.changed.length).toBe(26);
+    expect(generated.changed.length).toBe(27);
     expect(generated.changed).toContain("spec-runtime.mjs");
     expect(generated.changed).toContain("spec-runtime.d.mts");
     expect(generated.changed).toContain("patterns.ts");
@@ -105,7 +117,7 @@ describe("schema-first generation", () => {
   test("generated dependency paths and coverage feed promotion and BlockDemo without guessed fields", async () => {
     const s = await spec();
     s.fields = [{ id: "items", type: "repeater", fields: [{ id: "card", type: "object", fields: [{ id: "image", type: "media" }, { id: "post", type: "reference", of: "post" }, { id: "menu", type: "menu" }, { id: "form", type: "form" }] }] }];
-    s.examples = [{}]; s.preview = "{items.length}"; s.data = null;
+    s.examples = [{}]; s.preview = "{items.length}"; s.data = null; s.searchText = [];
     const parsed = parseBlockSpec(s), fields = dependencyFields(parsed.fields);
     expect(fields).toEqual([
       { path: ["items", "*", "card", "image"], type: "media", valuePath: ["id"] },
@@ -130,7 +142,7 @@ describe("schema-first generation", () => {
       { id: "ref", type: "reference", of: "event" }, { id: "menu", type: "menu" }, { id: "form", type: "form" },
       { id: "choice", type: "select", options: ["a"] }, { id: "note", type: "text", nullable: true, default: null },
       { id: "rows", type: "repeater", fields: [{ id: "nested", type: "object", fields: [{ id: "enabled", type: "boolean" }, { id: "count", type: "number", integer: true, min: 1 }] }] },
-    ]; s.preview = "{note}"; s.data = null; s.examples = [{}];
+    ]; s.preview = "{note}"; s.data = null; s.examples = [{}]; s.searchText = [];
     const input = { rich: { type: "doc", content: [{ type: "paragraph", content: [{ type: "text", text: "Aster", marks: [{ type: "bold" }, { type: "link", attrs: { href: "/events" } }] }] }] }, link: { label: "Read", href: "/read", newTab: false }, media: { id: "media-id", focalPoint: { x: 0.3, y: 0.6 } }, icon: "calendar", tone: "muted", date: "2026-09-05", ref: "event-id", menu: "menu-id", form: "form-id", choice: "a", rows: [{ nested: { enabled: true, count: 1 } }] };
     s.examples.push(input);
     await put(root, "blocks/events/upcoming", s); await syncBlocks({ root });

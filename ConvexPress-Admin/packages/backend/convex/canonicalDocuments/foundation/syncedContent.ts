@@ -1,6 +1,8 @@
 import { z } from "zod";
 import { anchorDescriptors } from "./generated/metadata";
 import { CANONICAL_TREE_LIMITS, collectCanonicalAnchors, validateCanonicalTree } from "./generated/instances";
+import type { ComposedRegistry, RuntimeCanonicalTree } from "./composedRegistry";
+import { anchorFields } from "./generated/spec_runtime.mjs";
 import type { CanonicalTree } from "./generated/types";
 import { canonicalJson, sha256Hex } from "./shared/fingerprints";
 
@@ -37,7 +39,7 @@ export type SyncedRevision = Omit<z.infer<typeof sourceSchema>, "blocks"> & { bl
 export type SyncedTarget = Pick<SyncedRevision, "id" | "revision" | "digest">;
 export type SyncedBinding = { path: string[]; target: SyncedTarget | null };
 export type SyncedResolution = {
-  blocks: CanonicalTree;
+  blocks: RuntimeCanonicalTree;
   revisions: SyncedRevision[];
   bindings: SyncedBinding[];
   expandedNodes: number;
@@ -68,9 +70,9 @@ export function syncedContentDigest(title: string, input: unknown): string {
 function* syncedContentSteps(
   input: unknown,
   installation: SyncedScope,
-  options: { requireAvailable?: boolean } = {},
+  options: { requireAvailable?: boolean; rootRegistry?: ComposedRegistry } = {},
 ): Generator<SyncedRequest, SyncedResolution, unknown> {
-  const scope = syncedScopeSchema.parse(installation), blocks = validateCanonicalTree(input);
+  const scope = syncedScopeSchema.parse(installation), blocks = options.rootRegistry ? options.rootRegistry.validateTree(input) : validateCanonicalTree(input);
   const cached = new Map<string, SyncedRevision | null>();
   const versions = new Map<string, SyncedRevision>();
   const bindings: SyncedBinding[] = [];
@@ -105,7 +107,7 @@ function* syncedContentSteps(
     return stable;
   }
 
-  function* visit(nodes: CanonicalTree, parentPath: string[], active: ReadonlySet<string>): Generator<SyncedRequest, void, unknown> {
+  function* visit(nodes: RuntimeCanonicalTree, parentPath: string[], active: ReadonlySet<string>): Generator<SyncedRequest, void, unknown> {
     for (const node of nodes) {
       const path = [...parentPath, node.id];
       if (path.length > SYNCED_CONTENT_LIMITS.depth) refuse("SYNCED_DEPTH_BUDGET", "Expanded content exceeds the document depth budget.");
@@ -113,7 +115,8 @@ function* syncedContentSteps(
       const { children, ...own } = node;
       expandedBytes += bytes(own);
       if (expandedBytes > SYNCED_CONTENT_LIMITS.bytes) refuse("SYNCED_EXPANSION_BUDGET", "Expanded content exceeds the document byte budget.");
-      const declaredAnchors = collectCanonicalAnchors(node.attrs, anchorDescriptors[node.name] ?? []);
+      const custom = node.name.startsWith("composed/") ? options.rootRegistry?.definition(node.name, node.version) : null;
+      const declaredAnchors = collectCanonicalAnchors(node.attrs, custom ? anchorFields(custom.spec.fields) : anchorDescriptors[node.name as keyof typeof anchorDescriptors] ?? []);
       if (node.anchor !== undefined) declaredAnchors.push({ value: node.anchor, path: "anchor" });
       for (const anchor of declaredAnchors) {
         if (anchors.has(anchor.value)) refuse("SYNCED_ANCHOR_CONFLICT", "Reused content creates duplicate page-wide anchors. Remove or rename the conflicting anchors before publishing.");
@@ -152,7 +155,7 @@ function* syncedContentSteps(
 
 /** Async server reads and synchronous display decoding use the same walker,
  * cache, binding validation and aggregate limits. Neither driver grants access. */
-export async function resolveSyncedContent(input: unknown, installation: SyncedScope, read: (request: SyncedRequest) => Promise<unknown>, options: { requireAvailable?: boolean } = {}): Promise<SyncedResolution> {
+export async function resolveSyncedContent(input: unknown, installation: SyncedScope, read: (request: SyncedRequest) => Promise<unknown>, options: { requireAvailable?: boolean; rootRegistry?: ComposedRegistry } = {}): Promise<SyncedResolution> {
   const steps = syncedContentSteps(input, installation, options);
   try {
     let next = steps.next();
@@ -160,7 +163,7 @@ export async function resolveSyncedContent(input: unknown, installation: SyncedS
     return next.value;
   } finally { steps.return(undefined as never); }
 }
-export function resolveSyncedContentSnapshot(input: unknown, installation: SyncedScope, read: (request: SyncedRequest) => unknown, options: { requireAvailable?: boolean } = {}): SyncedResolution {
+export function resolveSyncedContentSnapshot(input: unknown, installation: SyncedScope, read: (request: SyncedRequest) => unknown, options: { requireAvailable?: boolean; rootRegistry?: ComposedRegistry } = {}): SyncedResolution {
   const steps = syncedContentSteps(input, installation, options);
   try {
     let next = steps.next();

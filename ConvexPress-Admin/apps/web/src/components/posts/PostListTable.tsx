@@ -1,7 +1,10 @@
+import { useControlShell } from "@/control/ControlShellContext";
+import { editorContentUrl, resolveEditorSiteUrl } from "@/components/editor/editor-site-url";
 import { useCallback, useMemo, useRef, useState, memo } from "react";
 import { Link } from "@tanstack/react-router";
 import { useQuery } from "convex-helpers/react/cache";
 import { api } from "@backend/convex/_generated/api";
+import { toast } from "sonner";
 import { MessageSquareIcon } from "lucide-react";
 import type { Id } from "@backend/convex/_generated/dataModel";
 
@@ -15,6 +18,8 @@ import { ScreenOptions } from "@/components/shared/ScreenOptions";
 import { SearchBox } from "@/components/shared/SearchBox";
 import { StatusTabs } from "@/components/shared/StatusTabs";
 import { PostFilterBar } from "@/components/posts/PostFilterBar";
+import { useVerifiedSiteRuntime } from "@/control/SiteRuntimeProvider";
+import {captureBulkPost,type BulkPost} from "./bulk-edit";
 import { PostBulkEdit } from "@/components/posts/PostBulkEdit";
 import { PostQuickEdit } from "@/components/posts/PostQuickEdit";
 import { Button } from "@/components/ui/button";
@@ -321,10 +326,19 @@ const postListConfig: ListTableConfig<PostWithAuthor> = {
 // --- Component ---
 
 export function PostListTable() {
+  const runtime=useVerifiedSiteRuntime();
+  return <ScopedPostListTable key={runtime?.generation ?? "local"} />;
+}
+function ScopedPostListTable() {
+  const control = useControlShell();
+  const generalSettings = useQuery(api.settings.queries.get, control ? "skip" : { section: "general" });
+  const siteOrigin = resolveEditorSiteUrl(control ? control.selectedEnvironment?.siteOrigin ?? "" : undefined, generalSettings);
+
   const { user, role, can } = useAuth();
   const duplicatingIds = useRef(new Set<string>());
   const [quickEditId, setQuickEditId] = useState<string | null>(null);
-  const [showBulkEdit, setShowBulkEdit] = useState(false);
+  const [bulkPosts, setBulkPosts] = useState<readonly BulkPost[]|null>(null);
+  const selectedBases = useRef(new Map<string,BulkPost>());
   const [confirmDialog, setConfirmDialog] = useState<{
     open: boolean;
     title: string;
@@ -371,6 +385,11 @@ export function PostListTable() {
   const rowActionsWithHandlers = useMemo<RowAction<PostWithAuthor>[]>(
     () =>
       postRowActions.map((action) => {
+        if (action.key === "view") {
+          const url = (row: PostWithAuthor) => editorContentUrl(siteOrigin, { ...row, type: "post" });
+          return { ...action, external: true, href: (row: PostWithAuthor) => url(row) ?? "",
+            visible: (row: PostWithAuthor) => row.status === "publish" && Boolean(url(row)) };
+        }
         if (action.key === "duplicate") {
           return {
             ...action,
@@ -435,7 +454,7 @@ export function PostListTable() {
         }
         return action;
       }),
-    [trashPost, restorePost, permanentDeletePost, duplicatePost, can, user?._id, role?.level],
+    [trashPost, restorePost, permanentDeletePost, duplicatePost, can, user?._id, role?.level, siteOrigin],
   );
 
   // ─── Bulk Action Handler ───────────────────────────────────────────────
@@ -449,7 +468,9 @@ export function PostListTable() {
 
       // Handle "edit" action - show bulk edit panel (H7 fix)
       if (actionKey === "edit") {
-        setShowBulkEdit(true);
+        const bases=selectedIds.map(id=>selectedBases.current.get(id));
+        if(bases.some(row=>!row)){toast.error("Reselect the posts to load their current revisions.");return;}
+        setBulkPosts(bases as BulkPost[]);
         return;
       }
 
@@ -544,13 +565,13 @@ export function PostListTable() {
       />
 
       {/* Bulk Edit Panel (H7 fix) */}
-      {showBulkEdit && table.selection.count > 0 && (
+      {bulkPosts && bulkPosts.length > 0 && (
         <PostBulkEdit
-          selectedIds={Array.from(table.selection.selectedIds)}
-          onClose={() => setShowBulkEdit(false)}
+          posts={bulkPosts}
+          onClose={() => setBulkPosts(null)}
           onClearSelection={() => {
             table.clearSelection();
-            setShowBulkEdit(false);
+            setBulkPosts(null);
           }}
         />
       )}
@@ -563,8 +584,19 @@ export function PostListTable() {
         onSortChange={table.setSort}
         getRowId={postListConfig.getRowId}
         selection={table.selection}
-        onToggleRow={table.toggleRow}
-        onToggleAll={table.toggleAll}
+        onToggleRow={(id)=>{
+          const row=table.rows.find(row=>row._id===id);
+          if(table.selection.selectedIds.has(id)) selectedBases.current.delete(id);
+          else if(row) selectedBases.current.set(id,captureBulkPost(row));
+          table.toggleRow(id);
+        }}
+        onToggleAll={()=>{
+          for(const row of table.rows){
+            if(table.selection.isAllSelected)selectedBases.current.delete(row._id);
+            else if(!table.selection.selectedIds.has(row._id))selectedBases.current.set(row._id,captureBulkPost(row));
+          }
+          table.toggleAll();
+        }}
         rowActions={rowActionsWithHandlers}
         primaryColumn="title"
         showCheckboxes

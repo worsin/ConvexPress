@@ -1,3 +1,4 @@
+import {AuthorDemo} from "./author-preview";
 import { CatalogBrowser } from "./catalog-browser";
 import {SocialFeedDemo} from "./social-feed-preview";
 import {SyncedDemo} from "./synced-preview";
@@ -151,6 +152,7 @@ function RenderExample({ instance, packId }: { instance: BlockInstance; packId: 
 	);
 }
 function StaticRenderExample({ instance, packId }: { instance: BlockInstance; packId: string }) {
+ if(instance.name === "core/author-bio") return <AuthorDemo instance={instance} registry={stagedRenderers} packId={packId} portrait={studioPortrait} resources={{media:{"demo-image-studio-portrait":{src:studioPortrait,alt:"Fictional author portrait",mimeType:"image/png"}}}}/>;
  if(instance.name === "core/synced") return <SyncedDemo registry={stagedRenderers} packId={packId}/>;
  if(instance.name === "core/social-feed") return <SocialFeedDemo instance={instance} registry={stagedRenderers} packId={packId}/>;
  if(instance.name === "core/lead-magnet") return <LeadMagnetDemo instance={instance} registry={stagedRenderers} packId={packId}/>;
@@ -178,7 +180,7 @@ function StaticRenderExample({ instance, packId }: { instance: BlockInstance; pa
  if(instance.name === "core/post-grid") return <PostGridDemo instance={instance} registry={stagedRenderers}/>;
  if(instance.name==="lms/curriculum")return <CurriculumDemo instance={instance} registry={stagedRenderers} packId={packId}/>;
  if(instance.name==="lms/progress")return <ProgressDemo instance={instance} registry={stagedRenderers} packId={packId}/>;
- if(instance.name==="lms/instructor")return <InstructorDemo instance={instance} registry={stagedRenderers} packId={packId}/>;
+ if(instance.name==="lms/instructor")return <InstructorDemo instance={instance} registry={stagedRenderers} packId={packId} portrait={studioPortrait}/>;
  if(instance.name==="lms/course-grid")return <CoursesDemo instance={instance} registry={stagedRenderers} packId={packId}/>;
  if(instance.name==="membership/plans")return <MembershipPlansDemo instance={instance} registry={stagedRenderers} packId={packId}/>;
  if(instance.name==="membership/gated-teaser")return <MembershipDemo instance={instance} registry={stagedRenderers} packId={packId}/>;

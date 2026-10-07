@@ -21,8 +21,11 @@ import { Button, Container, EmptyState, Pagination, ProductCard, SectionHeading,
 const PRICE_CAPS = [25, 50, 100, 250, 1000];
 
 export default function JournalShopCatalog(_props: SurfaceProps<Record<string, never>>) {
-  const { search, q, data, facetChips, commerceEnabled, currency, siteTitle, assistant, shell, hasFilters, activeCategory, update } = useShopCatalogData("boutique");
+  const { search, q, data, facetChips, commerceEnabled, currency, siteTitle, assistant, shell, layout, hasFilters, activeCategory, update } = useShopCatalogData("boutique");
   const [draft, setDraft] = useState(q);
+  const gridClass = layout.gridDensity === "dense"
+    ? "grid grid-cols-2 gap-x-4 gap-y-6 md:grid-cols-3 xl:grid-cols-4"
+    : "grid grid-cols-1 gap-x-8 gap-y-12 sm:grid-cols-2 lg:grid-cols-3";
 
   if (!commerceEnabled) {
     return (
@@ -174,7 +177,7 @@ export default function JournalShopCatalog(_props: SurfaceProps<Record<string, n
 
       {/* Results */}
       {!data ? (
-        <div className="grid grid-cols-1 gap-x-8 gap-y-12 sm:grid-cols-2 lg:grid-cols-3" aria-hidden="true">
+        <div className={gridClass} aria-hidden="true">
           {Array.from({ length: 6 }).map((_, index) => (
             <div key={index} className="flex flex-col gap-4">
               <SkeletonBlock className="aspect-[4/5] rounded-2xl" />
@@ -201,7 +204,7 @@ export default function JournalShopCatalog(_props: SurfaceProps<Record<string, n
         />
       ) : (
         <div className="flex flex-col gap-12">
-          <div className="grid grid-cols-1 gap-x-8 gap-y-12 sm:grid-cols-2 lg:grid-cols-3">
+          <div className={gridClass}>
             {data.items.map((product) => (
               <ProductCard key={product.productId} product={product} />
             ))}

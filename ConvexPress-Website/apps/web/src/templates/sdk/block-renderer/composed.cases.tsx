@@ -160,3 +160,31 @@ test("the production document installer supplies exact definitions to the actual
   expect(html).toContain("Installed custom document");
   expect(html).toContain('data-block-id="custom1"');
 });
+
+test("custom child slots render published reusable occurrences with definition-bound data", async () => {
+  const { resolveSyncedOccurrencesSnapshot } = await import("../block-data/portable/syncedOccurrences");
+  const { projectSyncedDisplay } = await import("../block-data/portable/syncedDisplay");
+  const { syncedContentDigest } = await import("../block-data/portable/syncedContent");
+  const { default: synced } = await import("../../../../../../../blocks/core/synced/render");
+  const fixture = composedRenderFixture();
+  const blocks = [{ id: "shared-heading", name: "core/heading", version: 2, attrs: { text: { type: "doc", content: [{ type: "paragraph", content: [{ type: "text", text: "Shared heading" }] }] } } }];
+  const reference = { id: "reuse", name: "core/synced", version: 1, attrs: { syncedBlock: "source", revisionPolicy: "pinned", revision: 1 } };
+  const tree = [{ ...fixture.node, children: [reference] }];
+  const plan = resolveSyncedOccurrencesSnapshot(tree, installation, () => ({ id: "source", revision: 1, title: "Shared", blocks, digest: syncedContentDigest("Shared", blocks), scope: installation, published: true }), { composed: fixture.composed });
+  const projected = projectSyncedDisplay(plan, new Set(plan.byId.keys()));
+  const envelope = await resolveCanonicalDataWithDefinitions(projected.resolverTree, scope, policy, {
+    readPage: async () => { throw Error("This static reusable-content fixture must not read a page"); },
+  }, fixture.composed);
+  const current = { scope, documentKey: "mixed", revision: "1", viewerKey: "guest" };
+  const store = createContentPageDisplayStore();
+  const grant = store.install({tree:projected.resolverTree,policy,context:current,envelope,composed:fixture.composed});
+  const draw = (packId: string) => renderToStaticMarkup(<PrimitiveProvider packId={packId}>{prepareBlocks(projected.blocks, { ...library, "core/synced":synced }, policy, {media:{}}, {grant,current}, packId, {source:projected.synced,scope}, fixture.composed)}</PrimitiveProvider>);
+  for (const pack of ["core","journal","depot","aster-house"]) {
+    const html = draw(pack);
+    expect(html).toContain("Version 1");expect(html.match(/Shared heading/g)).toHaveLength(1);
+    expect(html).toContain(`data-block-id="${plan.resolverTree[0]!.children![0]!.id}"`);
+  }
+  const dto = {contract:"canonical-document-v1",scope,policy,document:{id:"mixed",type:"page",title:"Mixed",status:"draft",path:"/mixed",blocksVersion:2,revision:1,blocks:plan.resolution.blocks,composedDefinitions:fixture.composed.definitions,digest:canonicalContentDigest("Mixed",plan.resolution.blocks,fixture.composed)},presentation:{packId:"core",revision:"b".repeat(64)},data:envelope,resources:{media:{}},synced:projected.synced};
+  expect(parseCanonicalDocumentRead(dto)?.contract).toBe("canonical-document-v1");
+  store.invalidate();expect(()=>draw("core")).toThrow();
+});

@@ -60,7 +60,6 @@ export const failureReasonValidator = v.union(
  */
 export const recordLoginArgs = {
   method: v.optional(authMethodValidator),
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   app: v.optional(appIdentifierValidator),
   ip: v.optional(v.string()),
   userAgent: v.optional(v.string()),

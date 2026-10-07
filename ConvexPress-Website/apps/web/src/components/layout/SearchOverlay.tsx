@@ -15,11 +15,12 @@ import { useSettings } from "@/contexts/SettingsContext";
 interface SearchOverlayProps {
   /** Open state; defaults to the layout shell's search state. */
   open?: boolean;
+  placeholder?: string;
   /** Close callback; defaults to the layout shell's closeSearch. */
   onClose?: () => void;
 }
 
-export function SearchOverlay({ open, onClose }: SearchOverlayProps = {}) {
+export function SearchOverlay({ open, onClose, placeholder = "Search..." }: SearchOverlayProps = {}) {
   const shell = useLayoutShell();
   const searchOpen = open ?? shell.searchOpen;
   const closeSearch = onClose ?? shell.closeSearch;
@@ -95,7 +96,7 @@ export function SearchOverlay({ open, onClose }: SearchOverlayProps = {}) {
             <Input
               ref={inputRef}
               type="search"
-              placeholder="Search..."
+              placeholder={placeholder}
               value={query}
               onChange={handleInputChange}
               onFocus={() => {

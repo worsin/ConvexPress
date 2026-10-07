@@ -47,6 +47,8 @@ type Props = {
 	businessId: string;
 	environments: Environment[];
 	connections: Connections;
+	/** Open the reviewed appearance flow for the current Customizer environment. */
+	appearanceSourceInstanceId?: string;
 };
 type Check = FunctionArgs<
 	typeof controlApi.rbac.queries.checkManyAccess
@@ -75,7 +77,7 @@ export function PromotionReviewPanel(props: Props) {
 	const shell = useControlShell();
 	return (
 		<ReviewBoundary
-			key={`${shell?.operator.id ?? "anonymous"}:${props.websiteId}`}
+			key={`${shell?.operator.id ?? "anonymous"}:${props.websiteId}:${props.appearanceSourceInstanceId ?? "content"}`}
 		>
 			<PromotionReviewPanelContent {...props} />
 		</ReviewBoundary>
@@ -83,7 +85,9 @@ export function PromotionReviewPanel(props: Props) {
 }
 function PromotionReviewPanelContent(props: Props) {
 	const shell = useControlShell();
-	const [open, setOpen] = useState(false);
+	const appearanceMode = !!props.appearanceSourceInstanceId;
+	const initialSelection = () => ({ ...emptySelection(), ...(appearanceMode ? { includeAppearance: true } : {}) });
+	const [open, setOpen] = useState(appearanceMode);
 	const [sourceId, setSourceId] = useState("");
 	const [targetId, setTargetId] = useState("");
 	const options = props.environments.flatMap((environment) =>
@@ -103,7 +107,9 @@ function PromotionReviewPanelContent(props: Props) {
 	const targets = options.filter((row) => row.environment.kind === "live");
 	const source =
 		sources.find((row) => row.connection.connectionId === sourceId) ??
-		(sourceId === "" && sources.length === 1 ? sources[0] : undefined);
+		(sourceId === "" ? (props.appearanceSourceInstanceId
+			? sources.find(row => row.environment.instanceId === props.appearanceSourceInstanceId)
+			: sources.length === 1 ? sources[0] : undefined) : undefined);
 	const target =
 		targets.find((row) => row.connection.connectionId === targetId) ??
 		(targetId === "" && targets.length === 1 ? targets[0] : undefined);
@@ -150,7 +156,7 @@ function PromotionReviewPanelContent(props: Props) {
 	const loadCatalog = useAction(controlApi.contentPromotion.catalog.list);
 	const preview = useAction(controlApi.contentPromotion.review.preview);
 	const control = useConvex();
-	const [selection, setSelection] = useState(emptySelection);
+	const [selection, setSelection] = useState(initialSelection);
 	const [kind, setKind] = useState<ContentKind>("pageIds");
 	const [catalog, setCatalog] = useState<
 		Partial<
@@ -202,14 +208,14 @@ function PromotionReviewPanelContent(props: Props) {
 	);
 	useEffect(() => {
 		generation.current++;
-		setSelection(emptySelection());
+		setSelection({ ...emptySelection(), ...(appearanceMode ? { includeAppearance: true } : {}) });
 		setCatalog({});
 		setReview(null);
 		setError(null);
 		request.current = null;
 		setConfirmation(null);
 		setAcknowledged(false);
-	}, [scopeKey]);
+	}, [scopeKey, appearanceMode]);
 	useEffect(() => {
 		try {
 			setSavedId(localStorage.getItem(storageKey));
@@ -365,7 +371,7 @@ function PromotionReviewPanelContent(props: Props) {
 				current.current.scopeKey === scopeKey
 			) {
 				saveReceipt(result);
-				setSelection(emptySelection());
+				setSelection({ ...emptySelection(), ...(appearanceMode ? { includeAppearance: true } : {}) });
 				setConfirmation(null);
 				setAcknowledged(false);
 			}
@@ -451,15 +457,14 @@ function PromotionReviewPanelContent(props: Props) {
 	}
 	return (
 		<section
-			aria-label="Content promotion"
+			aria-label={appearanceMode ? "Appearance promotion" : "Content promotion"}
 			className="space-y-4 rounded-xl border border-border bg-card p-5"
 		>
 			<div className="flex items-center justify-between gap-4">
 				<div>
-					<h2 className="text-base font-semibold">Content promotion</h2>
+					<h2 className="text-base font-semibold">{appearanceMode ? "Appearance promotion" : "Content promotion"}</h2>
 					<p className="text-sm text-ink-2">
-						Review staging content before moving it to production. Users,
-						orders, and other activity stay in their own environment.
+						{appearanceMode ? "Review published staging appearance and its media before applying it to live. Unsaved Customizer edits are not included." : "Review staging content before moving it to production. Users, orders, and other activity stay in their own environment."}
 					</p>
 				</div>
 				<Button
@@ -605,6 +610,13 @@ function PromotionReviewPanelContent(props: Props) {
 									Load more
 								</Button>
 							)}
+              <label className="flex items-center gap-2 text-sm">
+                <input type="checkbox" disabled={locked || !!pendingReceipt || selection.includePresentation}
+                  checked={!!selection.includeAppearance || selection.includePresentation}
+                  onChange={event => changeSelection({ ...selection, includeAppearance: event.target.checked || undefined })} />
+                Include template appearance
+              </label>
+              {selection.includeAppearance && !selection.includePresentation && <p className="text-sm text-ink-2">Includes the active template, settings, variants and referenced media. General site settings and homepage presentation are preserved.</p>}
 							<label className="flex items-center gap-2 text-sm">
 								<input
 									type="checkbox"
@@ -625,11 +637,28 @@ function PromotionReviewPanelContent(props: Props) {
                   onChange={event => changeSelection({...selection, includeRoutePolicies: event.target.checked || undefined})} />
                 Include site access rules
               </label>
+              <label className="flex items-center gap-2 text-sm">
+                <input type="checkbox" disabled={locked || !!pendingReceipt}
+                  checked={!!selection.includeLocalization}
+                  onChange={event => changeSelection({...selection, includeLocalization: event.target.checked || undefined, localeGroupKeys: event.target.checked ? selection.localeGroupKeys : undefined})} />
+                Include site languages and selected translation groups
+              </label>
+              {selection.includeLocalization && <div className="space-y-2 text-sm">
+                <p className="text-ink-2">Review all language settings and landing pages, plus complete translation groups for included pages and posts. This can change language links across the website. Other target groups are preserved and checked for conflicts.</p>
+                <label className="block">Additional translation group keys
+                  <input className="mt-1 block w-full rounded border bg-transparent p-2" disabled={locked || !!pendingReceipt}
+                    placeholder="For example: guide, support"
+                    defaultValue={(selection.localeGroupKeys ?? []).join(", ")}
+                    onBlur={event => changeSelection({...selection, localeGroupKeys:event.target.value.split(",").map(value=>value.trim()).filter(Boolean)})} />
+                </label>
+                <p className="text-ink-2">Optional: include named groups that no longer contain pages, so their removed translations can be reviewed too.</p>
+              </div>}
               {selection.includeRoutePolicies && <p className="text-sm text-ink-2">Review all source URL access rules and their membership plans. These rules can affect pages beyond your selection.</p>}
 							<p className="text-sm">
 								{selectionCount(selection)} selected items
-								{selection.includePresentation ? " plus presentation" : ""}
+								{selection.includePresentation ? " plus presentation" : selection.includeAppearance ? " plus appearance" : ""}
                 {selection.includeRoutePolicies ? " plus site access rules" : ""}
+                {selection.includeLocalization ? " plus site languages" : ""}
 							</p>
 							<div className="flex flex-wrap gap-2">
 								<Button
@@ -637,7 +666,7 @@ function PromotionReviewPanelContent(props: Props) {
 										locked ||
 										!!pendingReceipt ||
 										(selectionCount(selection) === 0 &&
-											!selection.includePresentation && !selection.includeRoutePolicies)
+											!selection.includePresentation && !selection.includeAppearance && !selection.includeRoutePolicies && !selection.includeLocalization)
 									}
 									onClick={createReview}
 								>
@@ -653,7 +682,7 @@ function PromotionReviewPanelContent(props: Props) {
 									disabled={locked || !!pendingReceipt}
 									onClick={() => {
 										request.current = null;
-										changeSelection(emptySelection());
+										changeSelection(initialSelection());
 									}}
 								>
 									Start new review
@@ -710,7 +739,7 @@ function PromotionReviewPanelContent(props: Props) {
 									matchesReviewScope(value, current.current.scope)
 								) {
 									saveReceipt(value);
-									setSelection(emptySelection());
+									setSelection({ ...emptySelection(), ...(appearanceMode ? { includeAppearance: true } : {}) });
 									request.current = null;
 									setConfirmation(null);
 									setAcknowledged(false);

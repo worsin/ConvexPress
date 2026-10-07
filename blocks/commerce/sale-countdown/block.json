@@ -77,5 +77,10 @@
       "commerce"
     ],
     "capabilities": []
-  }
+  },
+  "searchText": [
+    [
+      "title"
+    ]
+  ]
 }

@@ -1,5 +1,8 @@
 import { expect, test } from "bun:test";
 import { fileURLToPath } from "node:url";
+import { cp, mkdtemp, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import path from "node:path";
 import { discoverBlocks } from "./discovery.mjs";
 import { collectTracker, parseTrackerRows, readTrackerFile, reconcileTracker, TRACKER } from "./tracker.mjs";
 const root = fileURLToPath(new URL("../../", import.meta.url));
@@ -29,6 +32,14 @@ test("offline verified snapshot crosschecks current spec; absent, mismatched or 
   expect((await reconcileTracker({ root, discovered, rows })).specifications).toBe(discovered.blocks.length);
   await expect(reconcileTracker({ root, discovered, rows: [] })).rejects.toThrow("missing");
   await expect(reconcileTracker({ root, discovered, rows: rows.map((r: any) => r.Name === "events/upcoming" ? { ...r, "Spec Path": "blocks/wrong/block.json" } : r) })).rejects.toThrow("Spec Path");
-  await expect(reconcileTracker({ root, discovered, rows: rows.map((r: any) => r.Name === "events/upcoming" ? { ...r, Status: "Verified" } : r) })).rejects.toThrow("lacks a PNG screenshot");
+  // A completed capture run must not invalidate the missing-evidence regression.
+  // Keep the real local test files, but give this case its own empty output tree.
+  const isolated = await mkdtemp(path.join(tmpdir(), "convexpress-tracker-missing-"));
+  try {
+    await cp(path.join(root, "blocks/events/upcoming"), path.join(isolated, "blocks/events/upcoming"), { recursive: true });
+    await expect(reconcileTracker({ root: isolated, discovered, rows: rows.map((r: any) => ({ ...r, Status: r.Name === "events/upcoming" ? "Verified" : "In progress" })) })).rejects.toThrow("lacks a PNG screenshot");
+  } finally {
+    await rm(isolated, { recursive: true, force: true });
+  }
   await expect(reconcileTracker({ root, discovered, rows: [...rows, { ...row("core/missing"), Status: "Verified" }] })).rejects.toThrow("no discovered specification");
 });

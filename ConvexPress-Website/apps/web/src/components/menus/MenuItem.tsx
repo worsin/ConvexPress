@@ -1,4 +1,4 @@
-import { Link } from "@tanstack/react-router";
+import { MenuItemTarget } from "./MenuItemTarget";
 
 import { cn } from "@/lib/utils";
 import type { ResolvedMenuItem } from "@/lib/layout/types";
@@ -25,47 +25,8 @@ interface MenuItemProps {
 export function MenuItem({ item, className, onClick }: MenuItemProps) {
   if (item.isOrphaned) return null;
 
-  const isExternal =
-    item.url.startsWith("http://") || item.url.startsWith("https://");
-
-  const linkProps = {
-    ...(item.target ? { target: item.target } : {}),
-    ...(item.rel ? { rel: item.rel } : {}),
-  };
-
-  if (isExternal) {
-    return (
-      <a
-        href={item.url}
-        className={cn(
-          "text-xs text-muted-foreground transition-colors hover:text-foreground",
-          item.cssClasses,
-          className,
-        )}
-        onClick={onClick}
-        {...linkProps}
-      >
-        {item.label}
-      </a>
-    );
-  }
-
-  return (
-    <Link
-      to={item.url}
-      className={cn(
-        "text-xs text-muted-foreground transition-colors hover:text-foreground",
-        item.cssClasses,
-        className,
-      )}
-      activeProps={{
-        className: "text-foreground font-medium",
-        "aria-current": "page",
-      }}
-      onClick={onClick}
-      {...linkProps}
-    >
-      {item.label}
-    </Link>
-  );
+  return <MenuItemTarget item={item} className={cn(
+    "text-xs text-muted-foreground transition-colors hover:text-foreground",
+    item.cssClasses, className,
+  )} activeProps={{ className: "text-foreground font-medium", "aria-current": "page" }} onClick={onClick} />;
 }

@@ -137,3 +137,46 @@ test("named styles reach owned renderers and template switches fall back without
   expect(html("journal")).toContain("A new chapter");
   expect(JSON.stringify(tree)).toBe(before);
 });
+
+import journalFeatures from "../../packs/journal/blocks/core/feature-grid";
+import depotFeatures from "../../packs/depot/blocks/core/feature-grid";
+import journalTestimonials from "../../packs/journal/blocks/core/testimonials";
+import depotTestimonials from "../../packs/depot/blocks/core/testimonials";
+import baselineFeatures from "../../../../../../../blocks/core/feature-grid/render";
+import baselineTestimonials from "../../../../../../../blocks/core/testimonials/render";
+
+test("flagship collection styles preserve all items and references across styles and pack fallback", () => {
+  const modules = {
+    "/packs/journal/blocks/core/feature-grid.tsx": journalFeatures,
+    "/packs/depot/blocks/core/feature-grid.tsx": depotFeatures,
+    "/packs/journal/blocks/core/testimonials.tsx": journalTestimonials,
+    "/packs/depot/blocks/core/testimonials.tsx": depotTestimonials,
+  };
+  const registry = installPackRenderers({ "core/feature-grid": baselineFeatures, "core/testimonials": baselineTestimonials }, ["journal", "depot"].map(id => ({id, blocks: {renderers: {"core/feature-grid":"./blocks/core/feature-grid.tsx", "core/testimonials":"./blocks/core/testimonials.tsx"}}})), modules);
+  const cases = [
+    { name: "core/feature-grid", styles: ["cards", "minimal"], max: 12, item: {title:"Distinct feature",description:"Preserved description",icon:"star",link:{label:"Explore details",href:"#details"}} },
+    { name: "core/testimonials", styles: ["editorial", "wall"], max: 20, item: {quote:"Preserved quotation",name:"Fictional guest",role:"Workshop",portrait:{id:"portrait",alt:"Preserved portrait",focalPoint:{x:0.4,y:0.3}}} },
+  ];
+  for (const entry of cases) for (const count of [0, 1, entry.max]) for (const style of entry.styles) {
+    const tree = [{id:"collection",name:entry.name,version:2,style,attrs:{heading:"Preserved heading",items:Array.from({length:count},()=>structuredClone(entry.item))}}];
+    const before = JSON.stringify(tree);
+    const html = (pack: string) => renderToStaticMarkup(<PrimitiveProvider packId={pack}>{prepareBlocks(tree,registry,{enabledPlugins:[],capabilities:[],disabledBlocks:[]},{media:{portrait:{src:"/portrait.png",alt:"Resource fallback",mimeType:"image/png"}}},undefined,pack)}</PrimitiveProvider>);
+    for (const pack of ["journal","depot"]) {
+      const output = html(pack);
+      expect(output).toContain(`data-block-style="${style}"`);
+      expect(output).toContain("Preserved heading");
+      if (entry.name === "core/feature-grid") {
+        expect((output.match(/href="#details"/g) ?? []).length).toBe(count);
+        expect((output.match(/Distinct feature/g) ?? []).length).toBe(count);
+      } else {
+        expect((output.match(/Preserved quotation/g) ?? []).length).toBe(count);
+        expect((output.match(/alt="Preserved portrait"/g) ?? []).length).toBe(count);
+      }
+    }
+    for (const pack of ["core","aster-house"]) {
+      expect(html(pack)).not.toContain(`data-block-style="${style}"`);
+      expect(html(pack)).toContain("Preserved heading");
+    }
+    expect(JSON.stringify(tree)).toBe(before);
+  }
+});

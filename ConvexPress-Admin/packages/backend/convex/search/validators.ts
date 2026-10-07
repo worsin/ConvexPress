@@ -136,6 +136,7 @@ export const searchOrderDirValidator = v.union(
  */
 export const searchQueryArgs = {
   q: v.string(),
+  refreshKey: v.optional(v.string()),
   contentType: v.optional(searchableContentTypeValidator),
   category: v.optional(v.string()),
   tag: v.optional(v.string()),
@@ -267,6 +268,8 @@ export const logSearchQueryArgs = {
 
 /** Closed website result contract. Cached source records never cross this DTO. */
 export const publicSearchResultValidator = v.object({
+  viewerSubject: v.union(v.null(), v.string()),
+  displayLease: v.union(v.null(), v.object({evaluatedAt: v.number(), expiresAt: v.number()})),
   results: v.array(v.object({
     contentType: searchableContentTypeValidator, contentId: v.string(), title: v.string(), excerpt: v.string(),
     url: v.string(), authorName: v.string(), publishedAt: v.union(v.number(), v.null()),

@@ -13,7 +13,6 @@ import productSearch from "../../../../../../../blocks/commerce/search-band/rend
 import share from "../../../../../../../blocks/blocks/social-share/render";
 import htmlBlock from "../../../../../../../blocks/core/custom-html/render";
 import badges from "../../../../../../../blocks/core/trust-badges/render";
-import author from "../../../../../../../blocks/core/author-bio/render";
 import heading from "../../../../../../../blocks/core/heading/render";
 import group from "../../../../../../../blocks/core/group/render";
 import mediaText from "../../../../../../../blocks/core/media-text/render";
@@ -232,29 +231,6 @@ test("trust badges render supported real icons/media and refuse unknown glyphs w
 	expect(() =>
 		html(badges, { items: [{ icon: "unknown-not-a-glyph", label: "Sample" }] }),
 	).toThrow("does not provide");
-});
-test("author bio preserves authored fields/media/links and refuses unresolved user identity", () => {
-	expect(
-		html(author, { name: "No authored image", mediaId: "" }),
-	).not.toContain("<img");
-	const markup = html(author, {
-		name: "Fictional Person",
-		role: "Sample editor",
-		bio: "An authored bio",
-		mediaId: "photo",
-		links: [{ label: "Read", href: "/journal" }],
-	});
-	for (const text of [
-		"Fictional Person",
-		"Sample editor",
-		"An authored bio",
-		'src="/photo.png"',
-		'href="/journal"',
-	])
-		expect(markup).toContain(text);
-	expect(() =>
-		html(author, { userId: "source-user", name: "Must not silently fallback" }),
-	).toThrow("requires an authorized reference adapter");
 });
 test("carousel demo is ordinary nested canonical composition with two distinct resolved editorial panels", () => {
 	const children = carouselSpecimenChildren("sample-carousel");

@@ -9,7 +9,8 @@ import { NativeCanonicalEditor } from "@/components/blocks/canonical-editor/Nati
 import type { Id } from "@backend/convex/_generated/dataModel";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useState, useEffect, useRef } from "react";
-import { usePageMutations } from "@/hooks/pages/usePageMutations";
+import { useMutation } from "convex/react";
+import { api } from "@backend/convex/_generated/api";
 
 export const Route = createLazyFileRoute("/_authenticated/_admin/pages/new")({
   component: AddNewPagePage,
@@ -20,7 +21,7 @@ function AddNewPagePage() {
   const [isCreating, setIsCreating] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const createdRef = useRef(false);
-  const { createPage } = usePageMutations();
+  const createDocument = useMutation(api.canonicalDocuments.create);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -30,13 +31,10 @@ function AddNewPagePage() {
 
     async function createAutoDraft() {
       try {
-        const newPageId = await createPage({
-          title: "Untitled page",
-          status: "draft",
-        });
+        const {postId: newPageId} = await createDocument({type: "page", title: "Untitled page"});
         if (newPageId) {
           setPageId(newPageId);
-          await navigate({to:"/pages/$pageId/edit",params:{pageId:newPageId},search:{editor:"blocks"},replace:true});
+          await navigate({to:"/pages/$pageId/edit",params:{pageId:newPageId},search:{},replace:true});
           setIsCreating(false);
         }
       } catch (err: unknown) {
@@ -47,7 +45,7 @@ function AddNewPagePage() {
     }
 
     createAutoDraft();
-  }, [createPage, navigate]);
+  }, [createDocument, navigate]);
 
   if (isCreating) {
     return (

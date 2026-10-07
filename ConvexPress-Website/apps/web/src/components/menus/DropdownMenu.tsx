@@ -1,4 +1,4 @@
-import { Link } from "@tanstack/react-router";
+import { MenuItemTarget, dismissMenuOnEscape } from "./MenuItemTarget";
 import { ChevronRight } from "lucide-react";
 import * as React from "react";
 
@@ -125,9 +125,15 @@ function DropdownMenuItem({ item, depth }: DropdownMenuItemProps) {
       className="relative"
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
+      onKeyDown={(event) => dismissMenuOnEscape(event, isOpen, () => {
+        if (openTimeoutRef.current) clearTimeout(openTimeoutRef.current);
+        setIsOpen(false);
+      })}
     >
-      <Link
-        to={item.url}
+      <MenuItemTarget
+        item={item}
+        onToggle={hasChildren ? () => setIsOpen(value => !value) : undefined}
+          aria-expanded={hasChildren ? isOpen : undefined}
         className={cn(
           "flex items-center justify-between gap-2 px-3 py-2 text-xs text-popover-foreground transition-colors hover:bg-accent hover:text-accent-foreground",
           item.cssClasses,
@@ -137,9 +143,9 @@ function DropdownMenuItem({ item, depth }: DropdownMenuItemProps) {
       >
         <span>{item.label}</span>
         {hasChildren && <ChevronRight className="size-3 opacity-60" />}
-      </Link>
-      {hasChildren && isOpen && (
-        <DropdownMenu items={item.children} depth={depth + 1} />
+      </MenuItemTarget>
+      {hasChildren && (isOpen || item.type === "separator") && (
+        <DropdownMenu className={item.type === "separator" ? "static shadow-none ring-0" : undefined} items={item.children} depth={depth + 1} />
       )}
     </li>
   );

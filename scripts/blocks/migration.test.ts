@@ -95,3 +95,15 @@ test("every current definition is accounted for; migrated save contracts preserv
     expect({ code, output: stdout + stderr }).toEqual({ code: 0, output: "" });
   } finally { for (const name of await readdir(dir)) await unlink(path.join(dir, name)); await rmdir(dir); }
 });
+
+test('repeatable migration planning retains installed canonical fields, nested action rules and authored examples', async () => {
+  const names = ['core/feature-grid', 'core/team-grid'];
+  const before = new Map(await Promise.all(names.map(async name => [name, await readFile(path.join(ROOT, `blocks/${name}/block.json`), 'utf8')] as const)));
+  const plans = await stagedMigrationPlan();
+  for (const name of names) {
+    const plan = plans.find(plan => plan.name === name)!;
+    expect(plan.candidate).toEqual(JSON.parse(before.get(name)!));
+    expect(plan.issues).toEqual([]);
+    expect(await readFile(path.join(ROOT, `blocks/${name}/block.json`), 'utf8')).toBe(before.get(name)!);
+  }
+});

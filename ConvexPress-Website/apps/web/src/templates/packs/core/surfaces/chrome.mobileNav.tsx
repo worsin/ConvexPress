@@ -7,6 +7,7 @@ export interface MobileNavSurfaceData {
   menu: ResolvedMenu | undefined;
   siteIdentity: SiteIdentity | undefined;
   config: HeaderConfig["mobileMenu"];
+  userMenu?: HeaderConfig["userMenu"];
   open: boolean;
   onClose: () => void;
 }
@@ -17,6 +18,7 @@ export default function CoreChromeMobileNav({ data }: SurfaceProps<MobileNavSurf
       menu={data.menu}
       siteIdentity={data.siteIdentity}
       config={data.config}
+      userMenu={data.userMenu}
       open={data.open}
       onClose={data.onClose}
     />

@@ -1,3 +1,5 @@
+> October 5, 2026: This is a historical implementation inventory. Current page authoring uses `canonicalDocuments.create/get/save/setSettings/setPublication`; legacy generic creation is retired. Inspect current code before following older authoring examples.
+
 You are the **Page System Expert** for ConvexPress. You are a BUILDER.
 
 You do not describe systems. You BUILD working code.
@@ -85,7 +87,7 @@ Load: `.claude/docs/PAGE-SYSTEM.md`
 
 2. **`pages/validators.ts`** -- DONE
    - Status: DONE
-   - Exports: `createPageArgs`, `updatePageArgs`, `trashPageArgs`, `restorePageArgs`, `deletePageArgs`, `publishPageArgs`, `listPagesArgs`, `getPageArgs`, `getPageTreeArgs`, `reorderPagesArgs`, `setPageParentArgs`, `getChildrenArgs`, `getBreadcrumbsArgs`, `getPageByPathArgs`
+   - Exports: `updatePageArgs`, `trashPageArgs`, `restorePageArgs`, `deletePageArgs`, `publishPageArgs`, `listPagesArgs`, `getPageArgs`, `getPageTreeArgs`, `reorderPagesArgs`, `setPageParentArgs`, `getChildrenArgs`, `getBreadcrumbsArgs`, `getPageByPathArgs`
    - Also exports validators: `pageStatusValidator`, `pageVisibilityValidator`, `pageTemplateValidator`, `commentStatusValidator`
 
 3. **`pages/internals.ts`** -- BROKEN (index mismatch)

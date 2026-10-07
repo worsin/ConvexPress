@@ -1,4 +1,4 @@
-import { Link } from "@tanstack/react-router";
+import { MenuItemTarget, dismissMenuOnEscape } from "@/components/menus/MenuItemTarget";
 import { ChevronRight } from "lucide-react";
 import * as React from "react";
 
@@ -10,13 +10,14 @@ interface NavDropdownProps {
   items: ResolvedMenuItem[];
   depth: number;
   className?: string;
+  onNavigate?: () => void;
 }
 
 /**
  * Recursive dropdown submenu component for nested menu items.
  * Maximum 5 levels of nesting supported.
  */
-export function NavDropdown({ items, depth, className }: NavDropdownProps) {
+export function NavDropdown({ items, depth, className, onNavigate }: NavDropdownProps) {
   if (depth > 5 || items.length === 0) return null;
 
   return (
@@ -33,18 +34,19 @@ export function NavDropdown({ items, depth, className }: NavDropdownProps) {
       {items
         .filter((item) => !item.isOrphaned)
         .map((item) => (
-          <NavDropdownItem key={item.id} item={item} depth={depth} />
+          <NavDropdownItem key={item.id} item={item} depth={depth} onNavigate={onNavigate} />
         ))}
     </ul>
   );
 }
 
 interface NavDropdownItemProps {
+  onNavigate?: () => void;
   item: ResolvedMenuItem;
   depth: number;
 }
 
-function NavDropdownItem({ item, depth }: NavDropdownItemProps) {
+function NavDropdownItem({ item, depth, onNavigate }: NavDropdownItemProps) {
   const [isOpen, setIsOpen] = React.useState(false);
   const closeTimeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(
     null,
@@ -107,8 +109,6 @@ function NavDropdownItem({ item, depth }: NavDropdownItemProps) {
     ...(item.target ? { target: item.target } : {}),
     ...(item.rel ? { rel: item.rel } : {}),
   };
-  const isExternal =
-    item.url.startsWith("http://") || item.url.startsWith("https://");
   const linkClassName = cn(
     "flex items-center justify-between gap-2 px-3 py-2 text-xs text-popover-foreground transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
     item.cssClasses,
@@ -126,30 +126,28 @@ function NavDropdownItem({ item, depth }: NavDropdownItemProps) {
       className="relative"
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
+      onKeyDown={(event) => dismissMenuOnEscape(event, isOpen, () => {
+        if (openTimeoutRef.current) clearTimeout(openTimeoutRef.current);
+        setIsOpen(false);
+      })}
     >
-      {isExternal ? (
-        <a
-          href={item.url}
+      <MenuItemTarget
+          item={item}
+          onClick={onNavigate}
+          onToggle={hasChildren ? () => setIsOpen(value => !value) : undefined}
+          aria-expanded={hasChildren ? isOpen : undefined}
           className={linkClassName}
           onKeyDown={handleKeyDown}
           {...linkProps}
         >
           {content}
-        </a>
-      ) : (
-        <Link
-          to={item.url}
-          className={linkClassName}
-          onKeyDown={handleKeyDown}
-          {...linkProps}
-        >
-          {content}
-        </Link>
-      )}
-      {hasChildren && isOpen && (
+        </MenuItemTarget>
+      {hasChildren && (isOpen || item.type === "separator") && (
         <NavDropdown
           items={item.children}
+          className={item.type === "separator" ? "static shadow-none ring-0" : undefined}
           depth={depth + 1}
+          onNavigate={onNavigate}
         />
       )}
     </li>

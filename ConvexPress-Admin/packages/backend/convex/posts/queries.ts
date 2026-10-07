@@ -13,7 +13,6 @@ import { evaluateMembershipAccess } from "../membership/access";
  *   counts             - Post counts by status for admin sidebar badges
  *   getSticky          - Get sticky posts for blog homepage
  *   getSlugs           - All published slugs for sitemap generation
- *   preview            - Post data merged with autosave content
  *   getMetaByPost      - All meta records for a post
  *   getMetaByKey       - Specific meta value for a post
  *   getRelatedPosts    - Posts sharing categories/tags with a given post (public)
@@ -737,60 +736,6 @@ export const getSlugs = query({
 				publishedAt: p.publishedAt,
 				updatedAt: p.updatedAt,
 			}));
-	},
-});
-
-// ─── Preview ────────────────────────────────────────────────────────────────
-
-/**
- * Get post data merged with autosave content for preview.
- * Requires authentication and edit capability.
- */
-export const preview = query({
-	args: {
-		postId: v.id("posts"),
-	},
-	handler: async (ctx, args) => {
-		const user = await getCurrentUser(ctx);
-		if (!user) {
-			throw new ConvexError({
-				code: "UNAUTHORIZED",
-				message: "Authentication required",
-			});
-		}
-
-		const post = await ctx.db.get("posts", args.postId);
-		if (!post) return null;
-
-		if (!(await canEditContent(ctx, post))) {
-			throw new ConvexError({
-				code: "FORBIDDEN",
-				message: "Editorial access required",
-			});
-		}
-
-		// Merge autosave content if newer
-		const previewData = { ...post };
-		if (post.autosavedAt) {
-			if (post.autosaveTitle !== undefined) {
-				previewData.title = post.autosaveTitle;
-			}
-			if (post.autosaveContent !== undefined) {
-				previewData.content = post.autosaveContent;
-			}
-		}
-
-		const author = await ctx.db.get("users", post.authorId);
-		return {
-			...previewData,
-			author: author
-				? {
-						_id: author._id,
-						displayName: author.displayName ?? author.email,
-						email: author.email,
-					}
-				: null,
-		};
 	},
 });
 

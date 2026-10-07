@@ -1,0 +1,36 @@
+{
+  "pack": "aster-house",
+  "fictional": true,
+  "events": [
+    {
+      "title": "A slow morning in the garden",
+      "slug": "garden-morning-example",
+      "description": "An imagined seasonal walk through the kitchen garden, followed by a conversation about what is growing. This is a fictional demonstration event, not an available booking. The date shows how an experience appears in the site's calendar.",
+      "startsAt": 1809187200000,
+      "endsAt": 1809192600000,
+      "timeZone": "America/Denver",
+      "venue": "Aster House kitchen garden — fictional venue",
+      "venueAddress": "Demonstration location; no real visitor address",
+      "rsvp": {
+        "mode": "closed",
+        "capacity": null,
+        "closesAt": null
+      }
+    },
+    {
+      "title": "The long-table supper",
+      "slug": "long-table-supper-example",
+      "description": "An imagined evening centered on seasonal vegetables, shared plates and unhurried conversation. This fictional demonstration event illustrates a hosted experience. It is not a real reservation or ticket offer.",
+      "startsAt": 1809820800000,
+      "endsAt": 1809831600000,
+      "timeZone": "America/Denver",
+      "venue": "Aster House dining room — fictional venue",
+      "venueAddress": "Demonstration location; no real visitor address",
+      "rsvp": {
+        "mode": "closed",
+        "capacity": null,
+        "closesAt": null
+      }
+    }
+  ]
+}

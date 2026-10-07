@@ -24,8 +24,9 @@ for data, media, child-slot or deployment acceptance of another promoted block.
    ```sh
    bun run promote:block --file reviewed-promotion.json
    bun run promote:block --file reviewed-promotion.json --write
-   bun run sync:blocks
+   bun run sync:blocks:all
    bun run check:blocks
+   bun run sync:blocks:all --check
    ```
 
    The first command only shows the file plan. The write creates
@@ -74,3 +75,11 @@ Confirmation marks only the custom definition head as promoted. Immutable versio
 and their approvals remain available to pinned pages and revisions. Approval
 revocation remains effective after promotion. Existing pages are not automatically
 migrated to the new canonical name; such a migration requires its own reviewed plan.
+
+The resource composition trial in
+`ConvexPress-Admin/audits/2026-09-04/promotion-installed-20261006.md` exercised this
+flow with actual native insertion, media/page pickers, nested paragraph authoring,
+save/reopen/publication, four-pack Website rendering, confirmation and revocation.
+Use a disposable installation for SDK trials; do not add demonstration blocks to
+the shipped catalog merely to test the tool. Real Library additions still require
+the normal block inventory registration and acceptance.

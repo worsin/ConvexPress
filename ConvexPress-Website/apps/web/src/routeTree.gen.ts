@@ -77,6 +77,7 @@ import { Route as DashboardOrdersOrderIdRouteImport } from './routes/dashboard/o
 import { Route as ApiSitemapXmlRouteImport } from './routes/api/sitemap.xml'
 import { Route as ApiSitemapStyleXslRouteImport } from './routes/api/sitemap-style.xsl'
 import { Route as ApiSitemapTypePageXmlRouteImport } from './routes/api/sitemap-$type-$page.xml'
+import { Route as ApiPublicFilesStorageIdRouteImport } from './routes/api/public-files/$storageId'
 import { Route as ApiLeadMagnetsLeaseIdRouteImport } from './routes/api/lead-magnets/$leaseId'
 import { Route as ApiFeedRss2RouteImport } from './routes/api/feed/rss2'
 import { Route as ApiFeedAtomRouteImport } from './routes/api/feed/atom'
@@ -477,6 +478,11 @@ const ApiSitemapTypePageXmlRoute = ApiSitemapTypePageXmlRouteImport.update({
   path: '/api/sitemap-$type-$page/xml',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicFilesStorageIdRoute = ApiPublicFilesStorageIdRouteImport.update({
+  id: '/api/public-files/$storageId',
+  path: '/api/public-files/$storageId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiLeadMagnetsLeaseIdRoute = ApiLeadMagnetsLeaseIdRouteImport.update({
   id: '/api/lead-magnets/$leaseId',
   path: '/api/lead-magnets/$leaseId',
@@ -864,6 +870,7 @@ export interface FileRoutesByFullPath {
   '/api/feed/atom': typeof ApiFeedAtomRoute
   '/api/feed/rss2': typeof ApiFeedRss2Route
   '/api/lead-magnets/$leaseId': typeof ApiLeadMagnetsLeaseIdRoute
+  '/api/public-files/$storageId': typeof ApiPublicFilesStorageIdRoute
   '/api/sitemap-$type-$page/xml': typeof ApiSitemapTypePageXmlRoute
   '/api/sitemap-style/xsl': typeof ApiSitemapStyleXslRoute
   '/api/sitemap/xml': typeof ApiSitemapXmlRoute
@@ -978,6 +985,7 @@ export interface FileRoutesByTo {
   '/api/feed/atom': typeof ApiFeedAtomRoute
   '/api/feed/rss2': typeof ApiFeedRss2Route
   '/api/lead-magnets/$leaseId': typeof ApiLeadMagnetsLeaseIdRoute
+  '/api/public-files/$storageId': typeof ApiPublicFilesStorageIdRoute
   '/api/sitemap-$type-$page/xml': typeof ApiSitemapTypePageXmlRoute
   '/api/sitemap-style/xsl': typeof ApiSitemapStyleXslRoute
   '/api/sitemap/xml': typeof ApiSitemapXmlRoute
@@ -1106,6 +1114,7 @@ export interface FileRoutesById {
   '/api/feed/atom': typeof ApiFeedAtomRoute
   '/api/feed/rss2': typeof ApiFeedRss2Route
   '/api/lead-magnets/$leaseId': typeof ApiLeadMagnetsLeaseIdRoute
+  '/api/public-files/$storageId': typeof ApiPublicFilesStorageIdRoute
   '/api/sitemap-$type-$page/xml': typeof ApiSitemapTypePageXmlRoute
   '/api/sitemap-style/xsl': typeof ApiSitemapStyleXslRoute
   '/api/sitemap/xml': typeof ApiSitemapXmlRoute
@@ -1234,6 +1243,7 @@ export interface FileRouteTypes {
     | '/api/feed/atom'
     | '/api/feed/rss2'
     | '/api/lead-magnets/$leaseId'
+    | '/api/public-files/$storageId'
     | '/api/sitemap-$type-$page/xml'
     | '/api/sitemap-style/xsl'
     | '/api/sitemap/xml'
@@ -1348,6 +1358,7 @@ export interface FileRouteTypes {
     | '/api/feed/atom'
     | '/api/feed/rss2'
     | '/api/lead-magnets/$leaseId'
+    | '/api/public-files/$storageId'
     | '/api/sitemap-$type-$page/xml'
     | '/api/sitemap-style/xsl'
     | '/api/sitemap/xml'
@@ -1475,6 +1486,7 @@ export interface FileRouteTypes {
     | '/api/feed/atom'
     | '/api/feed/rss2'
     | '/api/lead-magnets/$leaseId'
+    | '/api/public-files/$storageId'
     | '/api/sitemap-$type-$page/xml'
     | '/api/sitemap-style/xsl'
     | '/api/sitemap/xml'
@@ -1542,6 +1554,7 @@ export interface RootRouteChildren {
   ApiFeedAtomRoute: typeof ApiFeedAtomRoute
   ApiFeedRss2Route: typeof ApiFeedRss2Route
   ApiLeadMagnetsLeaseIdRoute: typeof ApiLeadMagnetsLeaseIdRoute
+  ApiPublicFilesStorageIdRoute: typeof ApiPublicFilesStorageIdRoute
   ApiSitemapTypePageXmlRoute: typeof ApiSitemapTypePageXmlRoute
   ApiSitemapStyleXslRoute: typeof ApiSitemapStyleXslRoute
   ApiSitemapXmlRoute: typeof ApiSitemapXmlRoute
@@ -2035,6 +2048,13 @@ declare module '@tanstack/react-router' {
       path: '/api/sitemap-$type-$page/xml'
       fullPath: '/api/sitemap-$type-$page/xml'
       preLoaderRoute: typeof ApiSitemapTypePageXmlRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public-files/$storageId': {
+      id: '/api/public-files/$storageId'
+      path: '/api/public-files/$storageId'
+      fullPath: '/api/public-files/$storageId'
+      preLoaderRoute: typeof ApiPublicFilesStorageIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/lead-magnets/$leaseId': {
@@ -2799,6 +2819,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiFeedAtomRoute: ApiFeedAtomRoute,
   ApiFeedRss2Route: ApiFeedRss2Route,
   ApiLeadMagnetsLeaseIdRoute: ApiLeadMagnetsLeaseIdRoute,
+  ApiPublicFilesStorageIdRoute: ApiPublicFilesStorageIdRoute,
   ApiSitemapTypePageXmlRoute: ApiSitemapTypePageXmlRoute,
   ApiSitemapStyleXslRoute: ApiSitemapStyleXslRoute,
   ApiSitemapXmlRoute: ApiSitemapXmlRoute,

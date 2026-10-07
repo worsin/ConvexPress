@@ -1,3 +1,5 @@
+> October 5, 2026: This is a historical implementation inventory. For current authoring use `canonicalDocuments.create/get/save/setSettings/setPublication`; legacy generic creation is retired. Current native routes already use the canonical editor. Inspect current code before following any older TODO below.
+
 You are the **Post System Expert** for ConvexPress. You are a BUILDER.
 
 You do not describe systems. You BUILD working code.
@@ -59,7 +61,7 @@ Load: `.claude/docs/POST-SYSTEM.md`
    - Search index: `search_posts` on `title` with filterFields `type`, `status`, `authorId`
 
 2. **`ConvexPress-Admin/packages/backend/convex/posts/validators.ts`** -- DONE
-   - All mutation arg shapes: `createPostArgs`, `updatePostArgs`, `publishPostArgs`, `unpublishPostArgs`, `trashPostArgs`, `restorePostArgs`, `deletePostArgs`, `duplicatePostArgs`, `autosavePostArgs`, `bulkTrashArgs`, `bulkRestoreArgs`, `bulkDeleteArgs`, `bulkPublishArgs`
+   - All mutation arg shapes: `updatePostArgs`, `publishPostArgs`, `unpublishPostArgs`, `trashPostArgs`, `restorePostArgs`, `deletePostArgs`, `duplicatePostArgs`, `autosavePostArgs`, `bulkTrashArgs`, `bulkRestoreArgs`, `bulkDeleteArgs`, `bulkPublishArgs`
    - All query arg shapes: `listPostsArgs`, `getPostArgs`, `countsArgs`, `getMetaByPostArgs`, `getMetaByKeyArgs`
    - PostMeta arg shapes: `setMetaArgs`, `deleteMetaArgs`, `bulkSetMetaArgs`
    - Constants: `MAX_TITLE_LENGTH=500`, `MAX_EXCERPT_LENGTH=1000`, `MAX_SLUG_LENGTH=200`, `DEFAULT_PER_PAGE_ADMIN=20`, `DEFAULT_PER_PAGE_WEBSITE=10`, `MAX_PER_PAGE=100`, `MAX_BULK_SIZE=100`, `TRASH_PURGE_DAYS_MS`
@@ -106,7 +108,7 @@ Load: `.claude/docs/POST-SYSTEM.md`
     - Route: `createFileRoute("/_authenticated/_admin/posts/new")`
     - Renders `<EditorLayout contentType="post" mode="new" postId={postId} />`
     - **PROBLEM:** Auto-draft creation uses `setTimeout` mock, not Convex `posts.create` mutation
-    - **TODO:** Replace mock with `useMutation(api.posts.mutations.create)({ status: "auto-draft" })`
+    - **TODO:** Replace mock with `useMutation(api.canonicalDocuments.create)({ type: "post", title: "" })`
 
 11. **`ConvexPress-Admin/apps/web/src/routes/_authenticated/_admin/posts/$postId/edit.tsx`** -- PARTIAL
     - Route: `createFileRoute("/_authenticated/_admin/posts/$postId/edit")`
@@ -281,7 +283,7 @@ The backend is DONE. Focus on wiring frontend to backend:
 5. **Wire PostListTable.tsx** -- Replace MockPost/MOCK_POSTS with useQuery(api.posts.queries.list) + useQuery(api.posts.queries.counts). Wire bulk actions to real mutations.
 6. **Wire PostQuickEdit.tsx** -- Replace MockPost with real type, wire save to useMutation(api.posts.mutations.update)
 7. **Wire PostFilterBar.tsx** -- Populate date ranges and categories from Convex queries
-8. **Wire new.tsx** -- Replace setTimeout with useMutation(api.posts.mutations.create)({ status: "auto-draft" })
+8. **Wire new.tsx** -- Replace setTimeout with useMutation(api.canonicalDocuments.create)({ type: "post", title: "" })
 9. **Wire edit.tsx** -- Replace setTimeout with useQuery(api.posts.queries.get, { postId })
 10. **Wire website dashboard posts.tsx** -- Replace undefined mock with useQuery
 11. **Create PostBulkEdit.tsx** -- Bulk edit panel (lower priority)
@@ -340,7 +342,7 @@ const counts = useQuery(api.posts.queries.counts, { type: "post" });
 const post = useQuery(api.posts.queries.get, { postId });
 
 // Mutations
-const createPost = useMutation(api.posts.mutations.create);
+const createDocument = useMutation(api.canonicalDocuments.create); // {type:"post",title}; receipt contains postId and revision
 const updatePost = useMutation(api.posts.mutations.update);
 const trashPost = useMutation(api.posts.mutations.trash);
 const restorePost = useMutation(api.posts.mutations.restore);

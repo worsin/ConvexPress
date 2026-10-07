@@ -63,5 +63,10 @@
     "capabilities": [
       "embed.sandbox"
     ]
-  }
+  },
+  "searchText": [
+    [
+      "caption"
+    ]
+  ]
 }

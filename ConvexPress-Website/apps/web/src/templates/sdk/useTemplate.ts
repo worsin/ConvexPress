@@ -16,6 +16,8 @@ const SLUG = /^[a-z0-9][a-z0-9-]{0,63}$/;
 
 export interface ActiveTemplate {
   config: TemplateConfig;
+  /** Saved activation, independent of temporary pack/variant previews. */
+  savedPackId: string;
   pack: TemplatePack | undefined;
   previewing: boolean;
   resolve: (surfaceId: string) => ReturnType<typeof resolveSurface> & { variant?: string };
@@ -34,6 +36,7 @@ export function useTemplate(): ActiveTemplate {
       variants: { ...stored?.variants },
       settings: stored?.settings ?? {},
     };
+    const savedPackId = base.active;
     let previewing = false;
     const previewPack = draft.packId ?? search.template;
     if (typeof previewPack === "string" && SLUG.test(previewPack) && getTemplatePack(previewPack) && previewPack !== base.active) {
@@ -49,6 +52,7 @@ export function useTemplate(): ActiveTemplate {
     }
     return {
       config: base,
+      savedPackId,
       pack: getTemplatePack(base.active),
       previewing,
       resolve: (surfaceId: string) => {

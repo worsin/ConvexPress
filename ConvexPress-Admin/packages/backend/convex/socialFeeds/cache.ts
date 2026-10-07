@@ -1,3 +1,5 @@
+import {storedInstagram} from "../schema/socialFeeds";
+import type {StoredInstagram} from "./credentials";
 import type { RegisteredMutation, RegisteredQuery } from "convex/server";
 import { v } from "convex/values";
 import { internalMutation, internalQuery } from "../_generated/server";
@@ -17,6 +19,7 @@ import {
 } from "../canonicalDocuments/foundation/socialFeedContracts";
 export type RefreshJob = {
 	manual: boolean;
+	instagram?:StoredInstagram;
 	sourceId: Id<"socialFeedSources">;
 	revision: number;
 	attempt: number;
@@ -28,6 +31,7 @@ export type RefreshJob = {
 };
 const jobValidator = v.object({
 	manual: v.boolean(),
+	instagram:v.optional(storedInstagram),
 	sourceId: v.id("socialFeedSources"),
 	revision: v.number(),
 	attempt: v.number(),
@@ -57,7 +61,7 @@ export const reserve: RegisteredMutation<
 				: source.nextRefreshAt > now)
 		)
 			return null;
-		approvedAccount(source.provider, source.handle);
+		approvedAccount(source.provider, source.handle, source.instagram);
 		const attempt = source.refreshAttempt + 1;
 		if (!Number.isSafeInteger(attempt)) return null;
 		await ctx.db.patch("socialFeedSources", source._id, {
@@ -68,6 +72,7 @@ export const reserve: RegisteredMutation<
 		});
 		return {
 			manual: args.manual,
+			...(source.instagram?{instagram:source.instagram}:{}),
 			sourceId: source._id,
 			revision: source.revision,
 			attempt,
@@ -129,7 +134,7 @@ export const finish: RegisteredMutation<
 			source.deploymentOrigin !== job.deploymentOrigin
 		)
 			return false;
-		approvedAccount(source.provider, source.handle);
+		approvedAccount(source.provider, source.handle, source.instagram);
 		if (args.snapshot && args.error === null) {
 			if (
 				new TextEncoder().encode(JSON.stringify(args.snapshot)).length > 524288

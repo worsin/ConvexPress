@@ -1,3 +1,4 @@
+// Normalize ICU date-range spacing so server and browser text hydrate identically.
 import {defineDataBlock} from '../../../ConvexPress-Website/apps/web/src/templates/sdk/block-renderer/model';
 import * as P from '../../../ConvexPress-Website/apps/web/src/templates/sdk/primitives';
 import {Intro} from '../../../ConvexPress-Website/apps/web/src/templates/sdk/block-renderer/presentation';
@@ -13,7 +14,7 @@ export default defineDataBlock('events/upcoming','events.upcoming',({attrs,data}
      <P.Text size="sm" tone="muted"><time dateTime={new Date(event.startsAt).toISOString()}>{format(event.startsAt,event.timeZone,{weekday:'long',year:'numeric',month:'long',day:'numeric'})}</time></P.Text>
      <P.Heading level={3} size="md"><P.Link href={event.href} label={event.title}/></P.Heading>
      <div className="cp-event-details"><P.Text size="sm" tone="muted">
-      {new Intl.DateTimeFormat('en',{month:'short',day:'numeric',hour:'numeric',minute:'2-digit',timeZoneName:'short',timeZone:event.timeZone}).formatRange(event.startsAt,event.endsAt)}
+      {new Intl.DateTimeFormat('en',{month:'short',day:'numeric',hour:'numeric',minute:'2-digit',timeZoneName:'short',timeZone:event.timeZone}).formatRange(event.startsAt,event.endsAt).replace(/[\u00a0\u2009\u202f]/gu,' ')}
      </P.Text>{event.venue&&<P.Text size="sm" tone="muted">{event.venue}</P.Text>}</div>
      {attrs.showDescription&&event.description&&<P.Text>{event.description}</P.Text>}
     </P.Stack>

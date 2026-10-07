@@ -1,5 +1,5 @@
 import { ConvexError } from "convex/values";
-import type { Doc } from "../_generated/dataModel";
+import type { Doc, Id } from "../_generated/dataModel";
 import type { MutationCtx } from "../_generated/server";
 import { RequestReadLedger } from "../helpers/requestReadLedger";
 import { assertPagePathAvailable } from "../helpers/pageRouteGuard";
@@ -11,8 +11,9 @@ function refuse(message: string): never { throw new ConvexError({code:"DOCUMENT_
 export type RouteChange = {post: Doc<"posts">; path: string; depth: number};
 /** Plan every affected URL before any write. No silent truncation or partial
  * hierarchy moves, and no caller-supplied parent/path authority. */
-export async function planDocumentSlug(ctx: MutationCtx, post: Doc<"posts">, slug: string, budget: RequestReadLedger): Promise<RouteChange[]> {
-  if (slug === post.slug) return [];
+export async function planDocumentSlug(ctx: MutationCtx, post: Doc<"posts">, slug: string, budget: RequestReadLedger, options: {parentId?: Id<"posts"> | null; canEdit?: (post: Doc<"posts">) => Promise<boolean>} = {}): Promise<RouteChange[]> {
+  const nextParent = options.parentId === undefined ? post.parentId : options.parentId ?? undefined;
+  if (slug === post.slug && nextParent === post.parentId) return [];
   if (slug.length > 200 || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug))
     refuse("Use lowercase letters, numbers and hyphens for the permalink, up to 200 characters.");
   budget.beforeRead();
@@ -21,12 +22,12 @@ export async function planDocumentSlug(ctx: MutationCtx, post: Doc<"posts">, slu
   if (conflicts.some(row=>row._id!==post._id)) refuse("That permalink is already used. Choose another URL.");
   if (post.type === "post") return [{post,path:`/blog/${slug}`,depth:0}];
   const seen = new Set<string>([post._id]), segments = [slug];
-  let parentId = post.parentId;
+  let parentId = nextParent;
   while (parentId) {
     if (seen.has(parentId) || segments.length > MAX_PAGE_DEPTH) refuse("The page hierarchy needs repair before changing its URL.");
     seen.add(parentId); budget.beforeRead();
     const parent = budget.record(await ctx.db.get("posts",parentId));
-    if (!parent || parent.type !== "page") refuse("The parent page is unavailable.");
+    if (!parent || parent.type !== "page" || parent.status === "trash") refuse("The parent page is unavailable.");
     segments.unshift(parent.slug); parentId = parent.parentId;
   }
   const plan: RouteChange[] = [{post,path:`/${segments.join("/")}`,depth:segments.length-1}];
@@ -39,7 +40,7 @@ export async function planDocumentSlug(ctx: MutationCtx, post: Doc<"posts">, slu
     const collisions = await ctx.db.query("posts").withIndex("by_path",q=>q.eq("path",current.path)).take(2);
     for (const row of collisions) budget.record(row);
     if (collisions.some(row=>row._id!==current.post._id)) refuse("A page already uses a URL in this hierarchy.");
-    if (!(await canEditContent(ctx,current.post,budget))) refuse("You cannot change a page in this hierarchy.");
+    if (!(await (options.canEdit ? options.canEdit(current.post) : canEditContent(ctx,current.post,budget)))) refuse("You cannot change a page in this hierarchy.");
     budget.beforeRead();
     const children = await ctx.db.query("posts").withIndex("by_type_parent",q=>q.eq("type","page").eq("parentId",current.post._id)).take(MAX_ROUTE_TREE-plan.length+1);
     for (const child of children) {

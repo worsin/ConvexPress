@@ -1,3 +1,4 @@
+import { makeFunctionReference as ref } from 'convex/server';
 import { afterAll, beforeAll, expect, test } from 'bun:test';
 import { fixture, create, save, text, reference } from '../../syncedBlocks/__tests__/fixture.test-support';
 import { exportSyncedPromotionClosure } from '../../canonicalDocuments/foundation/syncedPromotion';
@@ -159,4 +160,19 @@ test('rollback restores an unpublished destination without reusing revision numb
   expect(restored.publishedRevision).toBeUndefined(); expect(restored.lastRevision).toBeGreaterThan(target.lastRevision);
   expect(await f.read(target._id)).toBeNull();
   expect(after.jobs.find(j => j._id === restored.refreshJobId)?.capability).toBe('post.unpublish');
+});
+
+test('promoted editing locks survive import, require explicit unlock, and roll back with the prior head',async()=>{
+ const f=await setup();await f.apply();
+ f.input.sources.find(s=>s.key.endsWith(':child'))!.isLocked=true;
+ const second=await f.apply(),child=second.bindings.find(b=>b.key.endsWith(':child'))!;
+ expect((await f.rows()).sources.find(s=>s._id===child.id)!.isLocked).toBe(true);
+ await expect(f.operator.mutation(save,{id:child.id,expectedGeneration:2,title:'Must remain locked',blocks:text})).rejects.toThrow('locked');
+ await expect(f.review()).rejects.toThrow('SYNCED_LOCKED');
+ await f.operator.run(ctx=>restoreSyncedTargets(ctx,second.backups));
+ expect((await f.rows()).sources.find(s=>s._id===child.id)!.isLocked===true).toBe(false);
+ const third=await f.apply(),head=(await f.rows()).sources.find(s=>s._id===child.id)!;
+ await f.operator.mutation(ref<'mutation'>('syncedBlocks/content:unlockImported'),{id:child.id,expectedGeneration:head.generation});
+ expect((await f.rows()).sources.find(s=>s._id===child.id)!.isLocked).toBe(false);
+ expect(third.bindings.find(b=>b.key.endsWith(':child'))!.id).toBe(child.id);
 });

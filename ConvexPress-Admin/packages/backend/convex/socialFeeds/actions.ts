@@ -1,3 +1,4 @@
+import {decryptInstagram} from "./credentials";
 import type { RegisteredAction } from "convex/server";
 import { makeFunctionReference as ref } from "convex/server";
 import { v } from "convex/values";
@@ -8,7 +9,8 @@ import type { RefreshJob } from "./cache";
 import type { MastodonSnapshot } from "./mastodon";
 import { fetchMastodonFeed } from "./mastodon";
 import { createSocialTransport, SocialProviderError } from "./transport";
-import { mastodonOrigins, mastodonMediaOrigins } from "./policy";
+import { fetchInstagramFeed, instagramAccount, INSTAGRAM_API_ORIGIN } from "./instagram";
+import { mastodonOrigins, mastodonMediaOrigins, instagramMediaOrigins } from "./policy";
 type Outcome = { status: "refreshed" | "failed" | "skipped" | "superseded" };
 const outcome = v.object({
 	status: v.union(
@@ -50,18 +52,18 @@ async function refresh(
 	if (!job) return { status: "skipped" };
 	let snapshot: MastodonSnapshot;
 	try {
-		if (job.provider !== "mastodon")
-			throw new SocialProviderError("configuration");
-		const approvedOrigins = mastodonOrigins();
-		snapshot = await fetchMastodonFeed(
-			{
-				handle: job.handle,
-				limit: 48,
-				approvedOrigins,
-				approvedMediaOrigins: mastodonMediaOrigins(),
-			},
-			createSocialTransport(approvedOrigins),
-		);
+		if (job.provider === "instagram") {
+			snapshot = await fetchInstagramFeed(
+				{ ...(job.instagram?await decryptInstagram(job.handle,job.instagram):instagramAccount(job.handle)), limit: 48, approvedMediaOrigins: job.instagram?new Set(job.instagram.mediaOrigins):instagramMediaOrigins() },
+				createSocialTransport(new Set([INSTAGRAM_API_ORIGIN])),
+			);
+		} else {
+			const approvedOrigins = mastodonOrigins();
+			snapshot = await fetchMastodonFeed(
+				{ handle: job.handle, limit: 48, approvedOrigins, approvedMediaOrigins: mastodonMediaOrigins() },
+				createSocialTransport(approvedOrigins),
+			);
+		}
 	} catch (error) {
 		const committed = await ctx.runMutation(finish, {
 			job,

@@ -2,6 +2,8 @@
 
 Extensions are source-installed features spanning the site backend, Admin, Website and Dashboard. They are enabled in Admin's Extensions screen; disabled features are rejected by backend handlers and public route loaders and hidden from navigation. There is no ZIP-upload marketplace.
 
+Follow [WORKFLOW.md](WORKFLOW.md) for the complete generate, adapt, verify and native installation sequence. The repository's `block-kit/AUTHORING.md` covers the short page and Customizer workflow.
+
 ## Create an extension
 
 From `ConvexPress-Admin`:
@@ -43,3 +45,5 @@ cd apps/web && bun run check-types
 Run Website type checks, lint and `check:templates` as well. Root deployment and browser acceptance must verify enabled and disabled routes, a draft hidden publicly, publication, stale edits, cancellation, archive and the Dashboard contribution. Source checks alone do not prove deployed UI behavior.
 
 `ARCHITECTURE.md`, `CONTRACTS.md`, `DATA-API.md` and the reference directory retain details of existing core modules. For new source-installed extensions, this layout and the current Events files are authoritative; manual edits to the core plugin union or navigation registry are unnecessary.
+
+The current installed trial is recorded in [generated extension acceptance](../audits/2026-09-04/extension-installed-20261006.md): native enablement and event lifecycle, real subscriber Dashboard, disable/re-enable and record preservation. Run Website `check-types`, `build`, `lint` and `check:templates` from `ConvexPress-Website/apps/web`. The trial records two pre-existing full-Website lint warnings separately from passing generated-file checks.

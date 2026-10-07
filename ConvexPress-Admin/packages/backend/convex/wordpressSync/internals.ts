@@ -442,18 +442,19 @@ export const completeJob: RegisteredMutation<"internal", ObjectType<typeof compl
   args: completeJobArgs,
   handler: async (ctx, { jobId }) => {
     const job = await ctx.db.get(jobId);
-    if (!job) return;
+    if (!job || job.status !== "running") return;
 
     const now = Date.now();
+    const failed = job.errors.length > 0 || Object.values(job.progress).some(phase => phase && phase.failed > 0);
 
     await ctx.db.patch("wordpressSyncJobs", jobId, {
-      status: "completed",
+      status: failed ? "failed" : "completed",
       completedAt: now,
       updatedAt: now,
     });
 
     // Update site's lastSyncAt
-    await ctx.db.patch("wordpressSites", job.siteId, {
+    if (!failed) await ctx.db.patch("wordpressSites", job.siteId, {
       lastSyncAt: now,
       updatedAt: now,
     });

@@ -4,7 +4,6 @@
  * list so a menu can never strand a member.
  */
 
-import { Link } from "@tanstack/react-router";
 import { useClerk } from "@/lib/auth/clerk";
 import { ChevronDown, LogOut } from "lucide-react";
 
@@ -20,8 +19,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { cn } from "@/lib/utils";
-import { resolveIcon } from "../icons";
-import { badgeCountFor, formatBadge, type NavItem } from "../nav";
+import { AccountMenuItems } from "./AccountMenuItems";
+import { type NavItem } from "../nav";
 
 interface ProfileMenuProps {
   items: NavItem[];
@@ -65,43 +64,7 @@ export function ProfileMenu({ items, badges, className }: ProfileMenuProps) {
           </DropdownMenuLabel>
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
-        {items.map((item) => {
-          if (item.kind === "separator") return <DropdownMenuSeparator key={item.id} />;
-          if (item.kind === "heading") {
-            return (
-              <DropdownMenuGroup key={item.id}>
-                <DropdownMenuLabel>{item.label}</DropdownMenuLabel>
-              </DropdownMenuGroup>
-            );
-          }
-          const Icon = resolveIcon(item.icon);
-          const count = badgeCountFor(item, badges);
-          const content = (
-            <>
-              <Icon className="size-4" aria-hidden="true" />
-              <span className="flex-1">{item.label}</span>
-              {count > 0 && (
-                <span className="rounded-full bg-primary px-1.5 text-[10px] font-semibold text-primary-foreground">
-                  {formatBadge(count)}
-                </span>
-              )}
-            </>
-          );
-          return (
-            <DropdownMenuItem
-              key={item.id}
-              render={
-                item.external ? (
-                  <a href={item.href} target={item.target} rel={item.rel} />
-                ) : (
-                  <Link to={item.href} />
-                )
-              }
-            >
-              {content}
-            </DropdownMenuItem>
-          );
-        })}
+        <AccountMenuItems items={items} badges={badges} />
         {items.length > 0 && <DropdownMenuSeparator />}
         <DropdownMenuItem onClick={() => signOut({ redirectUrl: "/" })}>
           <LogOut className="size-4" aria-hidden="true" />

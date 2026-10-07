@@ -50,10 +50,32 @@ export function encodeComposedDefinition(input: unknown) {
   return { definition, json, digest: sha256Hex(json) };
 }
 
+// A document can validate the same definition repeatedly during restore and
+// publication. Retain only immutable results of exact-input validation, never
+// approvals, authority, or caller-owned objects. Bound both entries and bytes.
+const decodedDefinitions = new Map<string, { json: string; digest: string; bytes: number }>();
+const DECODE_CACHE_BYTES = 1024 * 1024;
+let decodedDefinitionBytes = 0;
+
 export function decodeComposedDefinition(json: string, expectedDigest?: string) {
   if (json.length > COMPOSED_DEFINITION_BYTES || new TextEncoder().encode(json).length > COMPOSED_DEFINITION_BYTES) throw Error("Composed definition exceeds 480KiB");
+  const cached = decodedDefinitions.get(json);
+  if (cached) {
+    if (expectedDigest !== undefined && cached.digest !== expectedDigest) throw Error("Composed definition failed its integrity check");
+    return { definition: JSON.parse(cached.json) as ComposedDefinition, json: cached.json, digest: cached.digest };
+  }
   const result = encodeComposedDefinition(JSON.parse(json));
   if (expectedDigest !== undefined && result.digest !== expectedDigest) throw Error("Composed definition failed its integrity check");
+  const bytes = new TextEncoder().encode(json).length + new TextEncoder().encode(result.json).length;
+  if (bytes <= DECODE_CACHE_BYTES) {
+    while (decodedDefinitions.size >= 32 || decodedDefinitionBytes + bytes > DECODE_CACHE_BYTES) {
+      const oldest = decodedDefinitions.keys().next().value!;
+      decodedDefinitionBytes -= decodedDefinitions.get(oldest)!.bytes;
+      decodedDefinitions.delete(oldest);
+    }
+    decodedDefinitions.set(json, { json: result.json, digest: result.digest, bytes });
+    decodedDefinitionBytes += bytes;
+  }
   return result;
 }
 

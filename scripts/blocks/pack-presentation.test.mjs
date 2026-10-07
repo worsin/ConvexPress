@@ -23,3 +23,13 @@ test("starter patterns cannot offer a hidden block or unavailable style, includi
   expect(() => parsePattern({ ...pattern, blocks: [{ ...pattern.blocks[0], style: "outline" }] }, blocks, pack)).toThrow("style");
   expect(() => parsePattern({ ...pattern, blocks: [{ id: "section", name: "core/section", version: 1, attrs: {}, children: [{ id: "heading", name: "core/heading", version: 2, attrs: {} }] }] }, blocks, pack)).toThrow("hidden");
 });
+
+// These are delivery-contract choices, not a reflection of whatever a manifest happens to offer.
+test("flagship packs expose the required Feature Grid and Testimonials styles", async () => {
+  for (const id of ["journal", "depot"]) {
+    const manifest = await Bun.file(new URL(`../../ConvexPress-Website/apps/web/src/templates/packs/${id}/template.json`, import.meta.url)).json();
+    const presentation = parsePackPresentation(manifest, blocks, id);
+    expect(presentation.styles["core/feature-grid"]).toEqual(["default", "cards", "minimal"]);
+    expect(presentation.styles["core/testimonials"]).toEqual(["default", "editorial", "wall"]);
+  }
+});

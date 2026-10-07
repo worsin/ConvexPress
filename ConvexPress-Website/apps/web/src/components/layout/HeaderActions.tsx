@@ -2,11 +2,11 @@ import { Link } from "@tanstack/react-router";
 import { useAuth } from "@/lib/auth/clerk";
 import { useQuery } from "convex/react";
 import { api } from "@convexpress-website/backend/generated/api";
-import { LogIn, Search, ShoppingCart, UserPlus } from "lucide-react";
+import { LogIn, ShoppingCart, UserPlus } from "lucide-react";
 import { useState } from "react";
 
 import { cn } from "@/lib/utils";
-import { useLayoutShell } from "@/hooks/layout/useLayoutShell";
+import { HeaderSearchTrigger } from "./HeaderSearch";
 import { useCommerceSessionToken } from "@/hooks/useCommerceSessionToken";
 import { useSettings } from "@/contexts/SettingsContext";
 import type { HeaderConfig } from "@/lib/layout/types";
@@ -28,7 +28,6 @@ interface HeaderActionsProps {
  */
 export function HeaderActions({ className, headerConfig }: HeaderActionsProps) {
   const { isSignedIn, isLoaded } = useAuth();
-  const { toggleSearch } = useLayoutShell();
   const [cartOpen, setCartOpen] = useState(false);
   const settings = useSettings();
   const commerceEnabled = settings?.plugins?.commerceEnabled === true;
@@ -39,7 +38,6 @@ export function HeaderActions({ className, headerConfig }: HeaderActionsProps) {
   ) as { itemCount?: number } | null | undefined;
 
   // Config-driven visibility (defaults to showing everything if no config)
-  const showSearch = headerConfig?.search?.enabled !== false;
   const showDarkMode = headerConfig?.darkModeToggle?.enabled !== false;
   const showCta = headerConfig?.cta?.enabled === true;
   const showUserMenu = headerConfig?.userMenu?.enabled !== false;
@@ -50,17 +48,7 @@ export function HeaderActions({ className, headerConfig }: HeaderActionsProps) {
       data-slot="header-actions"
       className={cn("flex shrink-0 items-center gap-2", className)}
     >
-      {/* Search toggle */}
-      {showSearch && (
-        <button
-          type="button"
-          onClick={toggleSearch}
-          className="flex size-8 items-center justify-center text-muted-foreground transition-colors hover:text-foreground"
-          aria-label="Toggle search"
-        >
-          <Search className="size-4" aria-hidden="true" />
-        </button>
-      )}
+      <HeaderSearchTrigger config={headerConfig?.search} />
 
       {commerceEnabled && (
         <>
@@ -95,7 +83,7 @@ export function HeaderActions({ className, headerConfig }: HeaderActionsProps) {
       )}
 
       {/* Theme toggle */}
-      {showDarkMode && <ThemeToggle />}
+      {showDarkMode && <ThemeToggle customize="header.darkModeToggle.variant" variant={headerConfig?.darkModeToggle?.variant} />}
 
       {/* User menu or login link */}
       {showUserMenu && isLoaded && (
@@ -109,7 +97,7 @@ export function HeaderActions({ className, headerConfig }: HeaderActionsProps) {
             guestDisplay !== "hidden" && (
               <div className="flex items-center gap-2">
                 <Link
-                  to="/login"
+                  data-customize="header.userMenu.guestDisplay" to="/login"
                   className="inline-flex size-8 shrink-0 items-center justify-center border border-border bg-background text-xs font-medium text-foreground transition-colors hover:bg-muted sm:h-auto sm:w-auto sm:px-3 sm:py-1.5"
                 >
                   <LogIn className="size-4 sm:hidden" aria-hidden="true" />
@@ -117,7 +105,7 @@ export function HeaderActions({ className, headerConfig }: HeaderActionsProps) {
                 </Link>
                 {guestDisplay === "login-register" && (
                   <Link
-                    to="/register"
+                    data-customize="header.userMenu.guestDisplay" to="/register"
                     className="inline-flex size-8 shrink-0 items-center justify-center bg-foreground text-xs font-medium text-background transition-colors hover:bg-foreground/90 sm:h-auto sm:w-auto sm:px-3 sm:py-1.5"
                   >
                     <UserPlus className="size-4 sm:hidden" aria-hidden="true" />
@@ -151,7 +139,7 @@ function CtaButton({ label, url, style }: CtaButtonProps) {
 
   return (
     <Link
-      to={url}
+      data-customize="header.cta.label" to={url}
       className={cn(
         "hidden items-center justify-center px-4 py-1.5 text-xs font-medium transition-colors md:inline-flex",
         styleClasses,

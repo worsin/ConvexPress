@@ -24,6 +24,7 @@
  *   const publicSettings = useQuery(api.settings.queries.getPublic);
  */
 
+import { readMergedSettingsSection as getMergedSettingsSection } from "./read";
 import { ConvexError } from "convex/values";
 import { query, type QueryCtx } from "../_generated/server";
 import { requireCan, getCurrentUser } from "../helpers/permissions";
@@ -86,19 +87,6 @@ async function requireSettingsReadAccess(ctx: QueryCtx, section: SettingsSection
     throw new ConvexError({ code: "FORBIDDEN", message: "Insufficient permissions" });
   }
   return user;
-}
-
-async function getMergedSettingsSection(
-  ctx: QueryCtx,
-  section: SettingsSection,
-) {
-  const defaults = getDefaults(section);
-  const doc = await ctx.db
-    .query("settings")
-    .withIndex("by_section", (q) => q.eq("section", section))
-    .unique();
-
-  return doc ? { ...defaults, ...(doc.values as Record<string, unknown>) } : { ...defaults };
 }
 
 // ─── get ─────────────────────────────────────────────────────────────────────

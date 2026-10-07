@@ -3,7 +3,7 @@ export default defineExtension({
   "id": "knowledgeBase",
   "title": "Knowledge base",
   "settingsKey": "knowledgeBaseEnabled",
-  "defaultEnabled": false,
+  "defaultEnabled": true,
   "routePrefixes": [
     "/help"
   ],

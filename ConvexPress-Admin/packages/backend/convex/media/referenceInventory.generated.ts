@@ -224,6 +224,9 @@ export const opaqueMediaReferences = {
     "definitionJson",
     "digest"
   ],
+  "canonicalDocumentDrafts": [
+    "draft"
+  ],
   "commerce_product_categories": [
     "description",
     "icon",
@@ -393,6 +396,8 @@ export const opaqueMediaReferences = {
   ],
   "revisions": [
     "authorId",
+    "autosaveContent",
+    "autosaveTitle",
     "blocks",
     "changedFields",
     "composedDefinitions",
@@ -415,6 +420,7 @@ export const opaqueMediaReferences = {
   "syncedBlockRevisions": [
     "blocks",
     "digest",
+    "legacySourceJson",
     "title"
   ],
   "themes": [

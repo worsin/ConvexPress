@@ -1053,6 +1053,9 @@ export function validateSectionValues(
 function validateAppearanceTemplate(values: Record<string, unknown>): ValidationError[] {
   const errors: ValidationError[] = [];
   const slug = /^[a-z0-9][a-z0-9-]{0,63}$/;
+  const moduleId = /^[a-z][a-zA-Z0-9-]{0,63}$/;
+  const object = (value: unknown): value is Record<string, unknown> =>
+    !!value && typeof value === "object" && !Array.isArray(value);
   if (values.active !== undefined && (typeof values.active !== "string" || !slug.test(values.active))) {
     errors.push({ field: "active", message: "active must be a template pack id (lowercase slug)." });
   }
@@ -1071,8 +1074,22 @@ function validateAppearanceTemplate(values: Record<string, unknown>): Validation
   };
   stringMap("overrides");
   stringMap("variants");
-  if (values.settings !== undefined && (!values.settings || typeof values.settings !== "object" || Array.isArray(values.settings))) {
-    errors.push({ field: "settings", message: "settings must be an object keyed by pack id." });
+  if (values.settings !== undefined) {
+    if (!object(values.settings)) {
+      errors.push({ field: "settings", message: "settings must be an object keyed by pack id." });
+    } else for (const [pack, modules] of Object.entries(values.settings)) {
+      if (!slug.test(pack) || !object(modules)) {
+        errors.push({ field: `settings.${pack}`, message: "Invalid pack settings." });
+      } else for (const [module, fields] of Object.entries(modules)) {
+        if (!moduleId.test(module) || !object(fields)) {
+          errors.push({ field: `settings.${pack}.${module}`, message: "Invalid module settings." });
+        }
+      }
+    }
+  }
+  // Apply the same serialized-size limit to every writer, including promotion.
+  if (JSON.stringify(values).length > 250_000) {
+    errors.push({ field: "settings", message: "Template settings are too large." });
   }
   return errors;
 }

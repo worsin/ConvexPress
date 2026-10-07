@@ -9,6 +9,16 @@
 export const RESUME_TOKEN_BYTES = 32;
 export const RESUME_TOKEN_PREFIX = "resume_";
 
+/** Draft authority lasts 30 days from its original start, on reads and writes. */
+export const DEFAULT_RESUME_TTL_MS = 30 * 24 * 60 * 60 * 1000;
+
+export function computeResumeExpiry(
+  sub: { submittedAt?: number; createdAt: number },
+  ttlMs: number = DEFAULT_RESUME_TTL_MS,
+): number {
+  return (sub.submittedAt ?? sub.createdAt) + ttlMs;
+}
+
 export function randomHex(byteLength: number): string {
   const bytes = new Uint8Array(byteLength);
   crypto.getRandomValues(bytes);

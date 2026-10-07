@@ -254,6 +254,16 @@
         "default",
         "editorial",
         "poster"
+      ],
+      "core/feature-grid": [
+        "default",
+        "cards",
+        "minimal"
+      ],
+      "core/testimonials": [
+        "default",
+        "editorial",
+        "wall"
       ]
     }
   }

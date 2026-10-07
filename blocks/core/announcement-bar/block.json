@@ -31,6 +31,13 @@
     {
       "id": "schedule",
       "type": "object",
+      "authoringConstraints": [
+        {
+          "kind": "ordered",
+          "lower": "startsAt",
+          "upper": "endsAt"
+        }
+      ],
       "fields": [
         {
           "id": "startsAt",
@@ -74,5 +81,10 @@
   "requires": {
     "plugins": [],
     "capabilities": []
-  }
+  },
+  "searchText": [
+    [
+      "text"
+    ]
+  ]
 }

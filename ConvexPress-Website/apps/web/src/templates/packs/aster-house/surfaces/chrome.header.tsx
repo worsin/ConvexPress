@@ -1,3 +1,8 @@
+import { HeaderSearchInline, HeaderSearchExpansion, HeaderSearchTrigger } from "@/components/layout/HeaderSearch";
+import { HeaderMainRow } from "@/components/layout/HeaderMainRow";
+import { headerAppearance, headerHeight } from "@/lib/layout/headerAppearance";
+import { resolveHeaderBrand } from "@/lib/layout/headerBrand";
+import { MenuItemTarget, dismissMenuOnEscape } from "@/components/menus/MenuItemTarget";
 import { useStickyHeaderOffset } from "@/hooks/layout/useStickyHeaderOffset";
 /**
  * Aster · chrome.header — one calm row: wordmark left, primary menu centred
@@ -10,11 +15,11 @@ import { useStickyHeaderOffset } from "@/hooks/layout/useStickyHeaderOffset";
  * header's user-menu settings.
  */
 import { Link, useRouterState } from "@tanstack/react-router";
-import { ChevronDown, Menu, Search, ShoppingBag, UserRound } from "lucide-react";
+import { ChevronDown, Menu, ShoppingBag, UserRound } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { NavDropdown } from "@/components/layout/NavDropdown";
-import { SocialLinks } from "@/components/layout/SocialLinks";
+import { HeaderTopBar } from "@/components/layout/HeaderTopBar";
 import { ThemeToggle } from "@/components/layout/ThemeToggle";
 import { UserMenu } from "@/components/layout/UserMenu";
 import { WebsiteNotificationBell } from "@/components/layout/WebsiteNotificationBell";
@@ -34,75 +39,41 @@ import { Container } from "../parts";
 
 export default function AsterChromeHeader({ data }: SurfaceProps<HeaderSurfaceData>) {
   const { siteIdentity, menu, layoutConfig, headerConfig } = data;
-  const { toggleMobileNav, searchOpen, closeSearch, toggleSearch } = useLayoutShell();
+  const { toggleMobileNav, searchOpen, closeSearch } = useLayoutShell();
   const pathname = useRouterState({ select: (state) => state.location.pathname });
 
   const stickyMode = headerConfig.layout.sticky;
   const isSticky = stickyMode === "always" || (stickyMode === "scroll-up" && layoutConfig?.stickyHeader !== false);
-  const headerRef = useStickyHeaderOffset(isSticky);
-  const showBorder = headerConfig.layout.bottomBorder !== "none";
+  const headerRef = useStickyHeaderOffset(isSticky, stickyMode);
+  const appearance = headerAppearance(headerConfig.layout);
   const isHome = pathname === "/";
-  const tagline = siteIdentity?.tagline?.trim();
+  const tagline = resolveHeaderBrand(siteIdentity, headerConfig.logo).showTagline ? siteIdentity?.tagline?.trim() : undefined;
   const visibleItems = menu?.items.filter((item) => !item.isOrphaned) ?? [];
 
-  return (
-    <header
-      ref={headerRef}
-      data-pack="aster-house" data-slot="site-header" data-customize="header.layout.sticky"
-      role="banner"
-      className={cn(
-        "z-40 w-full bg-background/95 backdrop-blur-sm",
-        showBorder && "border-b border-border",
-        isSticky && "sticky top-0",
-      )}
-    >
-      {headerConfig.topBar.enabled ? <TopBar config={headerConfig.topBar} /> : null}
-
-      <Container className="grid h-24 grid-cols-[minmax(0,1fr)_auto] items-center gap-2 sm:gap-4 lg:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)]">
-        {/* Left: hamburger (mobile) + wordmark */}
-        <div className="flex min-w-0 items-center gap-2 sm:gap-3">
-          <button
+  const mobileToggle = (<button
             type="button"
             onClick={toggleMobileNav}
             className="-ml-2 flex size-10 items-center justify-center text-muted-foreground transition-colors hover:text-foreground lg:hidden"
-            aria-label="Open navigation menu"
+            data-customize="header.mobileMenu.variant" aria-label="Open navigation menu"
           >
             <Menu className="size-5" aria-hidden="true" />
-          </button>
-          <Wordmark siteIdentity={siteIdentity} logo={headerConfig.logo} />
-        </div>
-
-        {/* Centre: primary menu */}
-        {headerConfig.navigation.enabled ? (
+          </button>);
+  const navigation = (headerConfig.navigation.enabled ? (
           <nav data-slot="desktop-nav" data-customize="menuLayout.primary" aria-label="Primary navigation" className="hidden justify-center lg:flex">
             {visibleItems.length > 0 ? (
               <ul role="list" className="flex items-center gap-1">
                 {visibleItems.map((item) => (
-                  <NavItem key={item.id} item={item} />
+                  <NavItem key={item.id} item={item} config={headerConfig.navigation} />
                 ))}
               </ul>
             ) : null}
           </nav>
-        ) : (
-          <div className="hidden lg:block" />
-        )}
-
-        {/* Right: search · account · cart */}
-        <div data-slot="header-actions" className="flex shrink-0 items-center justify-end gap-0 sm:gap-1">
-          {headerConfig.search.enabled ? (
-            <button
-              type="button"
-              onClick={toggleSearch}
-              className="flex size-10 items-center justify-center text-muted-foreground transition-colors hover:text-foreground"
-              aria-label="Toggle search"
-              aria-expanded={searchOpen}
-            >
-              <Search className="size-[18px]" aria-hidden="true" />
-            </button>
-          ) : null}
+        ) : null);
+  const actions = (<div data-slot="header-actions" className="flex shrink-0 items-center justify-end gap-0 sm:gap-1">
+          <HeaderSearchTrigger config={headerConfig.search} />
           {headerConfig.cta.enabled ? (
             <Link
-              to={headerConfig.cta.url as any}
+              data-customize="header.cta.label" to={headerConfig.cta.url as any}
               className={cn(
                 "mx-1 hidden h-9 items-center rounded-full px-4 text-sm font-medium transition-colors md:inline-flex",
                 headerConfig.cta.style === "outline"
@@ -115,10 +86,36 @@ export default function AsterChromeHeader({ data }: SurfaceProps<HeaderSurfaceDa
               {headerConfig.cta.label}
             </Link>
           ) : null}
-          {headerConfig.darkModeToggle.enabled ? <ThemeToggle /> : null}
+          {headerConfig.darkModeToggle.enabled ? <ThemeToggle customize="header.darkModeToggle.variant" variant={headerConfig.darkModeToggle.variant} /> : null}
           <AccountCluster userMenu={headerConfig.userMenu} />
           <CartButton />
-        </div>
+        </div>);
+
+  return (
+    <header
+      ref={headerRef}
+      data-pack="aster-house" data-slot="site-header" data-customize="header.layout.sticky"
+      role="banner"
+      className={cn(
+        "z-40 w-full",
+        appearance.background, appearance.border,
+        isSticky && "sticky top-0",
+      )}
+    >
+      {headerConfig.topBar.enabled ? <TopBar config={headerConfig.topBar} /> : null}
+
+      <Container>
+        <HeaderMainRow
+          style={headerConfig.layout.style}
+          heightClass={headerHeight(headerConfig.layout.height, "aster-house")}
+          brand={<Wordmark siteIdentity={siteIdentity} logo={headerConfig.logo} />}
+          mobileToggle={mobileToggle}
+          navigation={navigation}
+          search={headerConfig.search.enabled && headerConfig.search.variant === "inline" && <HeaderSearchInline config={headerConfig.search} pack="aster-house" />}
+          actions={actions}
+        />
+        <HeaderSearchInline config={headerConfig.search} pack="aster-house" mobile />
+        <HeaderSearchExpansion config={headerConfig.search} pack="aster-house" />
       </Container>
 
       {isHome && tagline ? (
@@ -129,8 +126,8 @@ export default function AsterChromeHeader({ data }: SurfaceProps<HeaderSurfaceDa
         </div>
       ) : null}
 
-      {headerConfig.search.enabled ? (
-        <Surface name="chrome.searchOverlay" data={{ open: searchOpen, onClose: closeSearch }} fallback={CoreSearchOverlay} />
+      {headerConfig.search.enabled && headerConfig.search.variant === "icon" ? (
+        <Surface name="chrome.searchOverlay" data={{ open: searchOpen, onClose: closeSearch, placeholder: headerConfig.search.placeholder }} fallback={CoreSearchOverlay} />
       ) : null}
     </header>
   );
@@ -139,6 +136,7 @@ export default function AsterChromeHeader({ data }: SurfaceProps<HeaderSurfaceDa
 /* ───────────────────────── wordmark ───────────────────────── */
 
 function Wordmark({ siteIdentity, logo }: { siteIdentity: SiteIdentity | undefined; logo: HeaderConfig["logo"] }) {
+  if (!logo.enabled) return null;
   if (!siteIdentity) {
     return (
       <div data-slot="site-brand" data-customize="header.logo.showTitle" className="flex items-center">
@@ -146,11 +144,11 @@ function Wordmark({ siteIdentity, logo }: { siteIdentity: SiteIdentity | undefin
       </div>
     );
   }
-  const showLogo = logo.enabled && logo.showImage && !!siteIdentity.logoUrl;
-  const showTitle = !showLogo || (logo.showTitle && siteIdentity.showTitleWithLogo !== false);
+  const { showImage: showLogo, showTitle, imageSize } = resolveHeaderBrand(siteIdentity, logo, 28);
+  if (!showLogo && !showTitle) return null;
   return (
     <Link to="/" data-slot="site-brand" data-customize="header.logo.showTitle" className="flex min-w-0 items-center gap-3 text-foreground no-underline">
-      {showLogo ? <img src={siteIdentity.logoUrl} alt={siteIdentity.logoAlt || siteIdentity.title} className="h-7 w-auto" width={28} height={28} /> : null}
+      {showLogo ? <img src={siteIdentity.logoUrl} alt={siteIdentity.logoAlt || siteIdentity.title} className="w-auto max-w-full shrink-0 object-contain" style={{ height: imageSize }} width={imageSize} height={imageSize} /> : null}
       {showTitle ? <span className="truncate font-display text-xl tracking-tight">{siteIdentity.title}</span> : null}
     </Link>
   );
@@ -159,26 +157,10 @@ function Wordmark({ siteIdentity, logo }: { siteIdentity: SiteIdentity | undefin
 /* ───────────────────────── announcement row ───────────────────────── */
 
 function TopBar({ config }: { config: HeaderConfig["topBar"] }) {
-  const parts = [config.leftContent, config.rightContent];
-  const announcement = parts.includes("announcement") && config.announcementText ? config.announcementText : null;
-  const contact = parts.includes("contact") ? [config.email, config.phone].filter(Boolean) : [];
-  const social = parts.includes("social");
-  if (!announcement && contact.length === 0 && !social) return null;
   return (
     <div className="border-b border-border">
-      <Container className="flex min-h-8 flex-wrap items-center justify-center gap-x-5 gap-y-1 py-1 text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
-        {announcement ? <p className="truncate">{announcement}</p> : null}
-        {config.email && contact.includes(config.email) ? (
-          <a href={`mailto:${config.email}`} className="normal-case tracking-normal transition-colors hover:text-foreground">
-            {config.email}
-          </a>
-        ) : null}
-        {config.phone && contact.includes(config.phone) ? (
-          <a href={`tel:${config.phone}`} className="normal-case tracking-normal transition-colors hover:text-foreground">
-            {config.phone}
-          </a>
-        ) : null}
-        {social ? <SocialLinks iconSize="sm" /> : null}
+      <Container>
+        <HeaderTopBar config={config} icons={false} className="min-h-8 text-[11px] uppercase tracking-[0.18em] text-muted-foreground" />
       </Container>
     </div>
   );
@@ -186,7 +168,7 @@ function TopBar({ config }: { config: HeaderConfig["topBar"] }) {
 
 /* ───────────────────────── menu items ───────────────────────── */
 
-function NavItem({ item }: { item: ResolvedMenuItem }) {
+function NavItem({ item, config }: { item: ResolvedMenuItem; config: HeaderConfig["navigation"] }) {
   const [open, setOpen] = useState(false);
   const openTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -229,10 +211,11 @@ function NavItem({ item }: { item: ResolvedMenuItem }) {
     [],
   );
 
-  const isExternal = item.url.startsWith("http://") || item.url.startsWith("https://");
   const linkProps = { ...(item.target ? { target: item.target } : {}), ...(item.rel ? { rel: item.rel } : {}) };
   const linkClass = cn(
     "flex items-center gap-1 px-3 py-2 text-sm tracking-wide text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+    config.style === "pills" && "rounded-full border border-transparent hover:border-border hover:bg-muted",
+    config.style === "underline" && "border-b border-transparent px-2 hover:border-foreground",
     item.cssClasses,
   );
   const content = (
@@ -243,14 +226,15 @@ function NavItem({ item }: { item: ResolvedMenuItem }) {
   );
 
   return (
-    <li data-slot="desktop-nav-item" className="relative" onMouseEnter={onEnter} onMouseLeave={onLeave}>
-      {isExternal ? (
-        <a href={item.url} className={linkClass} onKeyDown={onKeyDown} aria-expanded={hasChildren ? open : undefined} aria-haspopup={hasChildren ? "true" : undefined} {...linkProps}>
-          {content}
-        </a>
-      ) : (
-        <Link
-          to={item.url as any}
+    <li data-slot="desktop-nav-item" className="relative" onMouseEnter={onEnter} onMouseLeave={onLeave}
+      onKeyDown={(event) => dismissMenuOnEscape(event, open, () => {
+        if (openTimer.current) clearTimeout(openTimer.current);
+        setOpen(false);
+      })}>
+      <MenuItemTarget
+          item={item}
+          separatorOrientation="vertical"
+          onToggle={hasChildren ? () => setOpen(value => !value) : undefined}
           className={linkClass}
           activeProps={{ className: "text-foreground", "aria-current": "page" as const }}
           onKeyDown={onKeyDown}
@@ -259,9 +243,8 @@ function NavItem({ item }: { item: ResolvedMenuItem }) {
           {...linkProps}
         >
           {content}
-        </Link>
-      )}
-      {hasChildren && open ? <NavDropdown items={item.children} depth={0} className="rounded-xl" /> : null}
+        </MenuItemTarget>
+      {hasChildren && (open || item.type === "separator") ? <NavDropdown items={item.children} onNavigate={() => { if (openTimer.current) clearTimeout(openTimer.current); setOpen(false); }} depth={0} className={item.type === "separator" ? "static shadow-none ring-0" : cn("rounded-xl", config.dropdownStyle === "mega" && "grid min-w-72 grid-cols-2")} /> : null}
     </li>
   );
 }
@@ -282,12 +265,12 @@ function AccountCluster({ userMenu }: { userMenu: HeaderConfig["userMenu"] }) {
   if (userMenu.guestDisplay === "hidden") return null;
   return (
     <div className="flex shrink-0 items-center gap-3 sm:px-2">
-      <Link to="/login" aria-label="Sign in" className="flex size-10 shrink-0 items-center justify-center whitespace-nowrap text-sm tracking-wide text-muted-foreground transition-colors hover:text-foreground sm:w-auto">
+      <Link data-customize="header.userMenu.guestDisplay" to="/login" aria-label="Sign in" className="flex size-10 shrink-0 items-center justify-center whitespace-nowrap text-sm tracking-wide text-muted-foreground transition-colors hover:text-foreground sm:w-auto">
         <UserRound className="size-[18px] sm:hidden" aria-hidden="true" />
         <span className="hidden sm:inline">Sign in</span>
       </Link>
       {userMenu.guestDisplay === "login-register" ? (
-        <Link to="/register" className="hidden text-sm tracking-wide text-muted-foreground transition-colors hover:text-foreground sm:inline">
+        <Link data-customize="header.userMenu.guestDisplay" to="/register" className="hidden text-sm tracking-wide text-muted-foreground transition-colors hover:text-foreground sm:inline">
           Register
         </Link>
       ) : null}

@@ -1,0 +1,33 @@
+# Canonical document settings — October 5, 2026
+
+Canonical post/page authoring now exposes excerpt, featured image and discussion controls; posts also support category/tag assignment and removal. These controls use a single revision-checked metadata transaction, preserve the body, and retain input after a stale refusal. This closes the metadata-controls gap raised by Claude audit38 within Task4/E07. Generic caller/schema retirement and full delivery remain open.
+
+## Failure, repair and authority
+
+Actual native Electron post editor had no Excerpt control or Document settings entry point: output/document-settings-20261005/native-before.json and native-before.png. Quick Edit's categories/tags were read-only. New backend tests first failed because updateMetadata rejected excerpt as an unexpected argument.
+
+Added a bounded, authorized getMetadata projection with the opened revision and settings digest. updateMetadata now accepts excerpt, nullable featured image and bounded taxonomy IDs. Active images require media.read; additions/removals separately require taxonomy.assign/taxonomy.unassign plus current document authority. Post-only taxonomy, missing terms, invalid images, oversized excerpts, stale revisions and stale settings are refused transactionally. The digest also catches generic metadata writers that do not yet advance canonical revisions. Taxonomy-only edits advance the revision; unchanged saves do not. Existing discovery/count/media-reference helpers remain the write boundaries. Assignment emits the existing taxonomy.term_assigned event exactly once for each new relation; removal preserves the existing unassign helper behavior.
+
+Document settings open only when the body has no unsaved edits. The body workspace remains mounted and inaccessible while settings are open; settings warn on navigation. Media uses the existing library picker; category/tag choices paginate. Per-field patches preserve fields the author did not change. Unknown acknowledgements require reopening/readback before another attempt; there is no automatic retry. Category/tag creation remains available through Posts navigation. Author/sticky remain available through canonical Quick Edit. Existing route/publication controls are preserved.
+
+## Verified behavior
+
+- Native post: summary, image, comments, category and tag saved together, revision2→3; reload reopened exact values. Concurrent excerpt save advanced to4; stale form retained its entered summary and refused the entire update, leaving both saved terms intact. Reopen then clear excerpt/image/terms saved revision5. Original paragraph body exact throughout.
+- Native page: summary, image and comments saved revision2→3 and reopened exactly; no post taxonomy controls exposed. Changing the body title disabled Document settings, and Undo restored the original title. Native page errors:0.
+- Screenshots native-settings-reopened.png and native-stale.png visually inspected. Evidence includes native-post-reopened.json, native-page-reopened.json, native-stale.json, native-isolation.json, native-first-readback.json, stale-readback.json and final-readback.json. The selected-term checkbox disappears when removed; Playwright uncheck initially waited for that removed node, so subsequent removal used click plus resulting state. The application removal succeeded; the stale save remained refused.
+- Final working/source174 tests,1673 assertions; target144 tests,1175 assertions. Five new cases cover both document types, exact no-op/stale/denied behavior, taxonomy-only changes, generic-writer conflicts, and assignment event/no-op parity. Event omission was caught by a failing-first regression and fixed before final acceptance.
+- Scoped backend types and both isolated deployment typechecks pass. All4 Admin type tasks pass. Initial frontend type import accidentally pulled the backend implementation graph into the web check; it was replaced with the generated function return type and contracts regenerated. Site contracts2285 functions/3059 terminal DTOs/374 existing unknown boundaries;39 compiler fixtures per Admin/Website consumer pass. Media/consumer writer checks and git diff --check pass. This is focused verification, not repository-wide acceptance.
+
+## Deployment and live evidence
+
+Initial isolated updates add only canonicalDocuments.getMetadata and extend only updateMetadata: source2395→2396 functions; target2360→2361. Final event correction changes no exported signatures. Both live final sites accepted an owned metadata/taxonomy update at revision2 with exactly one assignment event, then normal cleanup removed the fixture and tag. See output/document-settings-events-20261005/{source,target}-live-proof.json.
+
+One earlier source proof overlapped the consumer-index rebuild and the save was refused with an optimistic-concurrency error. The created fixture was journaled; after the existing rebuild completed, readback confirmed revision1 before a deliberate retry. It was then verified and deleted. No duplicate fixture or blind replay.
+
+NEXT DEPLOYMENT BASES: output/document-settings-events-20261005/{source,target}-source-installed.json. Snapshots: ConvexPress-Admin/output/production-checkpoints/{source,target}-document-settings-events-20261005. Source1628/target1622 file hashes,108/86 extension files and catalogs/packs preserved; private full backups retained. Earlier Quick Edit and initial document-settings bases are superseded. Consumer/media indexes ready after final deployment; index rebuilds performed no authored-content writes.
+
+## Cleanup and limits
+
+All five owned documents (two native, one earlier source proof, two final event proofs) and four owned taxonomy terms were removed normally. Original source116documents/434revisions and target29/88 exact after final checks. Appearance/mail exact on both; target private draft, post metadata, taxonomy relationships/terms and all6 media records exact. API sessions revoked, native signed out, owned Electron PIDs88161/88227 exited, private profile removed; user runtimes39198/62672/65092 preserved. See preservation.json, target-cleanup.json, final-indexes.json, api-cleanup.json, runtime-cleanup.json and final event resource-preservation.json.
+
+No new full Website or metadata-history-restore acceptance is inferred from the settings UI/readbacks; earlier rendering/history evidence remains scoped to its recorded fields. No Git push. Audit38 remains latest. E07/full goal active and incomplete,117Verified/20In progress. Next actual generic native callers are only post/page Quick Edit's noncanonical fallbacks via mutation hooks; classify their supported operations before removing generic updates or archived fields. Safe canonical example-site provisioning remains open E10.

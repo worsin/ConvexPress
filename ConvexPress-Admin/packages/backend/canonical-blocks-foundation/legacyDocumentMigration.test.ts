@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { migrateLegacyDocument } from "./legacyDocumentMigration";
+import { migrateLegacyDocument, reviewLegacyDocumentSource } from "./legacyDocumentMigration";
 const text = (value: string) => ({ type: "text", text: value });
 const paragraph = (...content: unknown[]) => ({ type: "paragraph", content });
 const doc = (...content: unknown[]) => ({ type: "doc", content });
@@ -28,8 +28,7 @@ test("headings, flat ordered/task lists, code and horizontal rules retain exact 
 test("unrepresented semantics fail at an exact path without returning a partial converted tree", () => {
   for (const node of [
     { type: "orderedList", attrs: { start: 7 }, content: [] },
-    { type: "bulletList", content: [{ type: "listItem", content: [paragraph(text("a")), paragraph(text("b"))] }] },
-    { type: "bulletList", content: [{ type: "listItem", content: [paragraph(text("a")), { type: "bulletList", content: [] }] }] },
+    { type: "taskList", content: [{ type: "taskItem", attrs: { checked: true }, content: [paragraph(text("a")), paragraph(text("b"))] }] },
     { type: "paragraph", attrs: { textAlign: "center" }, content: [text("Aligned")] },
     { type: "image", attrs: { src: "https://example.org/photo.png" } },
     { type: "table", content: [] },
@@ -42,4 +41,48 @@ test("unrepresented semantics fail at an exact path without returning a partial 
   expect(() => migrate(doc(paragraph(text("x".repeat(20001)))))).toThrow();
   expect(() => migrate(doc(...Array.from({ length: 81 }, () => paragraph(text("x")))))).toThrow();
   expect(() => migrateLegacyDocument({ postId: "post", content: "<p>HTML</p>" })).toThrow();
+});
+
+test("nested and multi-paragraph list items retain hierarchy, marks, blank paragraphs and stable identities", () => {
+  const marked = { type: "text", text: "Parent", marks: [{ type: "italic" }] };
+  const nested = { type: "orderedList", attrs: { start: 1 }, content: [{ type: "listItem", content: [paragraph(text("Nested"))] }] };
+  const original = doc({ type: "bulletList", content: [
+    { type: "listItem", content: [paragraph(marked), nested, paragraph(), paragraph(text("After"))] },
+    { type: "listItem", content: [paragraph(text("Sibling"))] },
+  ] });
+  const before = JSON.stringify(original);
+  const result = migrate(original);
+  expect(result[0].attrs).toEqual({ style: "bullet", items: [] });
+  expect(result[0].children?.map(item => item.name)).toEqual(["core/group", "core/group"]);
+  const body = result[0].children![0].children!;
+  expect(body.map(node => node.name)).toEqual(["core/paragraph", "core/list", "core/paragraph", "core/paragraph"]);
+  expect(body[0].attrs).toEqual({ body: doc(paragraph(marked)) });
+  expect(body[1].attrs).toEqual({ style: "ordered", items: [{ text: doc(paragraph(text("Nested"))) }] });
+  expect(body[2].attrs).toEqual({ body: doc(paragraph()) });
+  expect(body[3].attrs).toEqual({ body: doc(paragraph(text("After"))) });
+  expect(result[0].children![1].children![0].attrs).toEqual({ body: doc(paragraph(text("Sibling"))) });
+  expect(migrate(original)).toEqual(result);
+  expect(JSON.stringify(original)).toBe(before);
+});
+
+test("nested conversion refuses unknown descendants and expanded canonical budgets before any write", () => {
+  const item = (...content: unknown[]) => ({ type: "listItem", content });
+  const list = (...content: unknown[]) => ({ type: "bulletList", content });
+  expect(() => migrate(doc(list(item(paragraph(text("Keep")), { type: "image", attrs: { src: "/unrepresented.png" } }))))).toThrow();
+  expect(() => migrate(doc(list(item(paragraph(text("Keep")), { type: "orderedList", attrs: { start: 9 }, content: [] }))))).toThrow();
+  expect(() => migrate(doc(list(...Array.from({ length: 27 }, () => item(paragraph(text("First")), paragraph(text("Second")))))))).toThrow();
+  let nested: unknown = list(item(paragraph(text("Leaf"))));
+  for (let i = 0; i < 100; i++) nested = list(item(paragraph(text("Parent")), nested));
+  expect(() => migrate(doc(nested))).toThrow("budget");
+});
+
+
+test("literal plain-text imports require a distinct review and preserve line breaks without parsing formatting", () => {
+ const content="First **literal** & text\r\n\r\nLast < 3";
+ const result=reviewLegacyDocumentSource({postId:"text-import",content});
+ expect(result.importedContent).toBe("plain-text");
+ expect(result.blocks[0].attrs).toEqual({body:doc(paragraph(text("First **literal** & text"),{type:"hardBreak"},{type:"hardBreak"},text("Last < 3")))});
+ expect(reviewLegacyDocumentSource({postId:"text-import",content})).toEqual(result);
+ expect(reviewLegacyDocumentSource({postId:"json",content:JSON.stringify(doc(paragraph(text("JSON"))))}).importedContent).toBeUndefined();
+ for(const content of ["<p class=\"unknown\">HTML</p>","Before <strong>HTML</strong>","{broken json", "[broken", "x".repeat(20001)]) expect(()=>reviewLegacyDocumentSource({postId:"refused",content})).toThrow();
 });

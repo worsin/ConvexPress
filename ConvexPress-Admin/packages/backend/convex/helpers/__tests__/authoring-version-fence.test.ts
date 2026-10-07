@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { assertAuthoringWrite, authoringWriteNeedsPrevious, assertLegacyAuthoring, permitValidatedCanonicalAuthoringWrite, permitValidatedLegacyRecoveryWrite } from "../authoringVersionFence";
+import { assertAuthoringWrite, authoringWriteNeedsPrevious, assertLegacyAuthoring, permitValidatedCanonicalAuthoringWrite } from "../authoringVersionFence";
 const previous = { _id: "post", title: "Draft", status: "draft", contentMode: "blocks", blocksVersion: 2, blocksRevision: 4, blocks: [] };
 const errorCode = (run: () => unknown) => { try { run(); return null; } catch (error: any) { return error.data?.code ?? error.message; } };
 
@@ -74,17 +74,14 @@ test("publication confidentiality and deadline fields cannot bypass canonical pe
 });
 
 
-test("explicit legacy recovery permit is exact, one-use and cannot authorize ordinary downgrade writers", () => {
-  const write = { table: "posts", operation: "patch" as const, id: "post", previous, value: { title: "Recovered", contentMode: "article", content: "Original", blocksVersion: 1, blocksRevision: 5, blocks: undefined } };
-  expect(() => permitValidatedCanonicalAuthoringWrite(write)).toThrow();
-  expect(() => assertAuthoringWrite(write)).toThrow();
-  const permit = permitValidatedLegacyRecoveryWrite(write);
-  assertAuthoringWrite(write, permit);
-  expect(() => assertAuthoringWrite(write, permit)).toThrow();
-  const altered = permitValidatedLegacyRecoveryWrite(write);
-  expect(() => assertAuthoringWrite({ ...write, value: { ...write.value, content: "Other" } }, altered)).toThrow();
-  expect(() => permitValidatedLegacyRecoveryWrite({ ...write, table: "revisions" })).toThrow();
-  expect(() => permitValidatedLegacyRecoveryWrite({ ...write, previous: { ...previous, blocksVersion: 1 } })).toThrow();
+test("no permit or metadata-clearing variant can downgrade canonical authoring", () => {
+  for (const value of [{blocksVersion:1},{blocksVersion:undefined},{blocksVersion:1,blocks:undefined,contentMode:"article",content:"Original"}]) {
+    const write={table:"posts",operation:"patch" as const,id:"post",previous,value};
+    expect(() => permitValidatedCanonicalAuthoringWrite(write)).toThrow();
+    expect(() => assertAuthoringWrite(write)).toThrow();
+    const valid={...write,value:{title:"Canonical edit"}};
+    expect(() => assertAuthoringWrite(write,permitValidatedCanonicalAuthoringWrite(valid))).toThrow();
+  }
 });
 
 test("definition snapshots cannot enter legacy rows or bypass canonical write permits", () => {
@@ -110,9 +107,10 @@ test("definition snapshots cannot enter legacy rows or bypass canonical write pe
   prior.composedDefinitions.scope.instanceKey = "concurrent";
   expect(() => assertAuthoringWrite(write, changedPrior)).toThrow();
   const downgrade = { ...write, value: { blocksVersion: 1 } };
-  expect(() => permitValidatedLegacyRecoveryWrite(downgrade)).toThrow();
+  expect(() => permitValidatedCanonicalAuthoringWrite(downgrade)).toThrow();
   const cleared = { ...write, value: { blocksVersion: 1, composedDefinitions: undefined } };
-  assertAuthoringWrite(cleared, permitValidatedLegacyRecoveryWrite(cleared));
+  expect(() => assertAuthoringWrite(cleared)).toThrow();
+  expect(() => permitValidatedCanonicalAuthoringWrite(cleared)).toThrow();
 });
 
 test("exact canonical permits cannot bypass stored block locks or downgrade around them", () => {
@@ -123,7 +121,7 @@ test("exact canonical permits cannot bypass stored block locks or downgrade arou
     expect(errorCode(() => assertAuthoringWrite(write, permitValidatedCanonicalAuthoringWrite(write)))).toBe(expected);
   }
   const recovery = { table: "posts", operation: "patch" as const, id: "post", previous: saved, value: { blocksVersion: 1, blocks: [] } };
-  expect(errorCode(() => assertAuthoringWrite(recovery, permitValidatedLegacyRecoveryWrite(recovery)))).toBe("BLOCK_LOCKED");
+  expect(errorCode(() => assertAuthoringWrite(recovery))).toBe("CANONICAL_AUTHORING_REQUIRED");
   const unlock = { table: "posts", operation: "patch" as const, id: "post", previous: saved, value: { blocks: [{ ...node, lock: {} }] } };
   expect(() => assertAuthoringWrite(unlock, permitValidatedCanonicalAuthoringWrite(unlock))).not.toThrow();
 });

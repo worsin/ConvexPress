@@ -42,7 +42,6 @@ export const getAlbumEmbedArgs = {
   albumId: v.optional(v.id("gallery_albums")),
   slug: v.optional(v.string()),
   limit: v.optional(v.number()),
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   layoutPreset: v.optional(galleryLayoutValidator),
   columns: v.optional(v.number()),
   showTitle: v.optional(v.boolean()),
@@ -75,6 +74,7 @@ export const createAlbumArgs = {
   coverMediaId: v.optional(v.id("media")),
   // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   categoryIds: v.optional(v.array(v.id("gallery_categories"))),
+  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   layoutPreset: v.optional(galleryLayoutValidator),
   columnsDesktop: v.optional(v.number()),
   columnsTablet: v.optional(v.number()),

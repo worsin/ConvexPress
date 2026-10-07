@@ -1,3 +1,4 @@
+import { publicMenuDocumentHref } from "../helpers/publicDocumentHref";
 /**
  * Menu System - Internal Functions
  *
@@ -215,15 +216,7 @@ export async function resolveMenuItemUrl(
     const post = await ctx.db.get("posts", objectId as Id<"posts">);
     if (!post || post.status === "trash") return undefined;
 
-    if (itemType === "page") {
-      const rawPath = post.path ?? `/${post.slug}`;
-      const normalizedPath = rawPath.startsWith("/") ? rawPath : `/${rawPath}`;
-      // Website page routes resolve through /page/$ (except explicit homepage "/").
-      if (normalizedPath === "/") return "/";
-      if (normalizedPath.startsWith("/page/")) return normalizedPath;
-      return `/page${normalizedPath}`;
-    }
-    return `/blog/${post.slug}`;
+    return publicMenuDocumentHref({...post,type:itemType});
   }
 
   if (itemType === "category" || itemType === "tag") {

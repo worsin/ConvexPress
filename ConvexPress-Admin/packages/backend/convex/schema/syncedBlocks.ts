@@ -38,15 +38,20 @@ export const syncedBlockTables = {
     websiteKey: v.string(), instanceKey: v.string(), deploymentOrigin: v.string(),
     title: v.string(), generation: v.number(), lastRevision: v.number(),
     publishedRevision: v.optional(v.number()),
+    isLocked: v.optional(v.boolean()),
+    legacySourceId: v.optional(v.id("reusableBlocks")),
+    legacySourceDigest: v.optional(v.string()),
     refreshJobId: v.optional(v.id("syncedBlockRefreshJobs")),
     createdBy: v.id("users"), updatedBy: v.id("users"), createdAt: v.number(), updatedAt: v.number(),
-  }).index("by_scope_updated", ["websiteKey", "instanceKey", "deploymentOrigin", "updatedAt"])
+  }).index("by_legacy_source", ["legacySourceId"])
+    .index("by_scope_updated", ["websiteKey", "instanceKey", "deploymentOrigin", "updatedAt"])
     .index("by_scope_author_updated", ["websiteKey", "instanceKey", "deploymentOrigin", "createdBy", "updatedAt"])
     .index("by_scope_published", ["websiteKey", "instanceKey", "deploymentOrigin", "publishedRevision"]),
   syncedBlockRevisions: defineTable({
     syncedBlockId: v.id("syncedBlocks"), revision: v.number(), title: v.string(),
     blocks: canonicalStoredTreeValidator, digest: v.string(),
     createdBy: v.id("users"), createdAt: v.number(),
+    legacySourceJson: v.optional(v.string()),
     // Publication metadata can be set once. Authored content is never patched.
     publishedAt: v.optional(v.number()),
   }).index("by_source_revision", ["syncedBlockId", "revision"]),

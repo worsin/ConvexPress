@@ -84,5 +84,16 @@
     "capabilities": [
       "reference.targetResolution"
     ]
-  }
+  },
+  "searchText": [
+    [
+      "title"
+    ],
+    {
+      "path": [
+        "subtitle"
+      ],
+      "format": "prose"
+    }
+  ]
 }

@@ -36,7 +36,7 @@ legacy block trees, page sections, and bounded structured articles, following th
 Website's visible-source precedence. Structured conversion preserves visible hero,
 manual table-of-contents links, topic anchors, summary, sources, media references
 and consent-gated video. Hidden sources stay in the original revision. It refuses
-unsupported structured fields, duplicate anchors, capacity overflow, distinct unsaved autosaves,
+unsupported structured fields, duplicate anchors, capacity overflow, unacknowledged distinct unsaved autosaves,
 unknown authoring versions and unknown layout/lock fields. Do not bypass those refusals.
 
 Known saved layout and lock settings that the old renderer/editor ignored are now
@@ -44,7 +44,8 @@ listed in `prepareMigration.inactiveSettings`. Review them in Electron and expli
 acknowledge leaving them inactive before conversion. The write requires
 `preserveInactiveSettings: true` when this list is nonempty; source/candidate/presentation
 bindings still apply. The canonical candidate does not activate those settings; the
-complete original revision retains them and supports exact original-editor recovery.
+complete original revision retains them for exact source download and reviewed
+import into the canonical editor.
 Refreshing a review clears the acknowledgement. This is not permission to drop unknown
 fields or to activate old settings by copying them onto the canonical envelope.
 
@@ -70,9 +71,26 @@ legacy styling or complete structured-article migration. See
    Include `preserveInactiveSettings: true` only after the explicit inactive-settings
    review described above; a pure conversion does not provide that acknowledgement.
 4. Read `canonicalDocuments:get` and `canonicalDocuments:pageRevisions` to verify
-   the committed revision and original recovery source. Test
-   `canonicalDocuments:recoverLegacy` in a disposable target using its selected
-   `revisionId` and current `expectedRevision`; recovery is a new checked write.
+   the committed revision and retained original source. Use the historical import
+   path below to recover content while keeping canonical authoring.
+
+### Historical source recovery without an authoring downgrade
+
+`canonicalDocuments:recoverLegacy` is retired. Canonical documents cannot return
+to version 1, including by clearing canonical metadata or borrowing a write permit.
+The September acceptance reports below record historical behavior before retirement.
+
+Use `getRevisionSource` to download the exact retained original. For an editable
+canonical document, `prepareRevisionImport` accepts `revisionId` and an explicit
+`sourceKind` of `saved` or `autosave`. Review the candidate on the actual Website.
+`importRevision` binds the current revision, source/candidate digests and presentation
+revision to that review, with independent acknowledgements for text, HTML and
+inactive settings when required. Refreshing review clears acknowledgements.
+Existing publication/access settings are preserved; editing a non-draft also
+requires the document's publishing capability.
+Read back the committed canonical document and test canonical history undo.
+Unsupported source remains downloadable without a lossy import. Trashed parents
+remain inaccessible to editing until a separate authorized normal restore.
 
 Do not replay an uncertain mutation blindly. Compare the current revision, digest
 and revision history with the reviewed operation. Never delete retained legacy
@@ -105,3 +123,64 @@ existing migration API. Unknown fields, unsafe links and the document byte/node
 limits still refuse conversion; no truncation or artificial paragraph splitting
 is permitted. Native conversion/edit/save/publish/withdraw/original recovery on
 isolated4860 is recorded in `ConvexPress-Admin/audits/2026-09-04/paragraph-migration-20260921.md`.
+
+October5 plain-text import is an explicit review path, not ordinary migration.
+`prepareMigration.importedContent: "plain-text"` warns that the original renderer
+may not have displayed the stored text. Review the literal candidate and acknowledge
+import into the draft; `migrate` requires `acknowledgeTextImport: true`. Refresh
+clears the acknowledgement, independently of inactive-settings review. Words and
+line breaks are retained without Markdown/HTML interpretation; CRLF/CR normalize
+to canonical line breaks while the exact original remains recoverable in history.
+Ambiguous malformed JSON still requires its own lossless adapter. The supported
+HTML import subset and its independent acknowledgement are described below.
+Source4860 native conversion/desktop-phone preview/exact original recovery and
+installed refusal evidence: `ConvexPress-Admin/audits/2026-09-04/plain-text-import-20261005.md`.
+This proves one owned draft copy, not bulk conversion or legacy retirement.
+
+HTML review now returns `importedContent: "html"` for supported paragraphs,
+headings, inline marks, line breaks and links. Review the editable candidate and
+explicitly acknowledge `acknowledgeHtmlImport: true`; plain-text acknowledgement
+does not authorize HTML. Refresh resets it. Unknown authored tags/attributes,
+parser repairs, unsafe links and limits refuse the complete operation without
+stripping content. The exact original remains in recovery history.
+
+October5 captured corpus conversion reaches source42/42 legacy documents and
+119/119 legacy revisions; target2/2 and21/21. These are candidates from the
+September29 snapshot, not installed migration receipts or reference acceptance.
+Native owned-copy HTML review/conversion/reload/desktop-phone semantic rendering
+and exact original recovery: `ConvexPress-Admin/audits/2026-09-04/html-import-20261005.md`.
+Refresh the installed inventory and prove dependencies/per-record migration before
+retiring legacy dispatch; never silently activate hidden published bodies.
+
+### In-place Trash conversion
+
+For retained trash, call `prepareMigration({postId, preserveTrash: true})` and
+require `preservesTrash: true` in the response. The candidate's draft status is a
+preview only. Commit with the same `preserveTrash: true`, source/candidate/template
+bindings and any explicit text/HTML/inactive-settings acknowledgements. The source
+digest additionally binds trash status, previous status and trash timestamp.
+A concurrent restore/retrash invalidates the review. Ordinary editing/public reads
+still refuse trashed content; this mode neither restores nor publishes it.
+
+Read back the actual row and retained original snapshot. Status, previousStatus,
+trashedAt, publication metadata and non-authoring relationships must remain exact.
+A later owner-requested normal restore validates canonical content/resources and
+requires publish authority for a non-draft result before obtaining its guarded
+write permit. Do not bulk-restore old records merely to make migration eligible.
+
+### Retained legacy autosaves
+
+Migration review now identifies a distinct unsaved title/body as
+`retainedAutosave`. Conversion still uses the accepted source. After reviewing
+that separation, acknowledge `preserveLegacyAutosave: true`; otherwise the server
+refuses without writes. Refresh clears this independent acknowledgement. The full
+source digest binds each autosave value, its absence and its original timestamp.
+
+The original revision retains `autosaveTitle`, `autosaveContent` and `autosavedAt`
+verbatim, including empty strings. Download preserves them exactly; historical
+import explicitly selects saved or unsaved content for a new canonical revision.
+Unsupported unsaved content stays opaque and recoverable; it is
+not silently imported, activated, published or attributed to the current operator.
+These retained sources survive routine revision pruning. Explicit authorized
+revision/document deletion remains a deliberate discard operation. Media referenced
+only by the retained autosave continues to block unsafe deletion.

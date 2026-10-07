@@ -72,3 +72,39 @@ test("absent optional parents and overridden text defaults cannot conceal site-o
   const value = encodeComposedDefinition(source);
   expect(() => prepareBlockPromotion(value.json, value.digest, "blocks/services")).toThrow("resolver selections");
 });
+
+test("promotion keeps empty destination resource selectors without treating them as executable queries", () => {
+  for (const value of ["", null, undefined]) {
+    const source = definition();
+    source.spec.fields.push({ id: "page", type: "reference", of: "page", allowEmpty: true, nullable: true, ...(value === undefined ? {} : { default: value }) } as never);
+    source.spec.fields.push({ id: "image", type: "media", storage: "id", allowEmpty: true, default: "" } as never);
+    source.spec.data = { resolver: "content.page", args: { page: "attrs.page" } } as never;
+    source.spec.supports.children = true;
+    source.composition = { version: 1, root: { el: "Stack", children: [{ el: "Heading", bind: "attrs.headline" }, { el: "Text", bind: "data.page.title" }, { el: "Slot", props: { name: "children" } }] } } as never;
+    const encoded = encodeComposedDefinition(source);
+    const promoted = prepareBlockPromotion(encoded.json, encoded.digest, "blocks/page-feature");
+    expect(promoted.definition).toEqual(encoded.definition);
+    expect(promoted.targetSpec.data).toEqual(source.spec.data);
+    expect(promoted.targetSpec.supports.children).toBe(true);
+    expect(decodeBlockPromotion(promoted.json)).toEqual(promoted);
+  }
+});
+
+test("portable resource placeholders preserve other resolver validation and reject actual selections", () => {
+  const source = definition();
+  source.spec.fields.push({ id: "product", type: "text", default: "" } as never);
+  source.spec.data = { resolver: "commerce.productCompare", args: { products: ["attrs.product"], attributes: [] } } as never;
+  const encode = () => encodeComposedDefinition(source);
+  let value = encode();
+  expect(prepareBlockPromotion(value.json, value.digest, "blocks/comparison").definition).toEqual(value.definition);
+  for (const args of [
+    { products: ["attrs.product"], attributes: [""] },
+    { products: ["attrs.product"], invented: true },
+    { products: ["attrs.product"], attributes: [], count: 0 },
+    { products: ["site-product"], attributes: [] },
+  ]) {
+    source.spec.data = { resolver: "commerce.productCompare", args } as never;
+    value = encode();
+    expect(() => prepareBlockPromotion(value.json, value.digest, "blocks/comparison")).toThrow();
+  }
+});

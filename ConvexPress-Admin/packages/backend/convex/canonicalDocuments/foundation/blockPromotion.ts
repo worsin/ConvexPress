@@ -3,7 +3,7 @@ import { createBlockSpecCompiler, type BlockField } from "./generated/spec_runti
 import { decodeComposedDefinition, composedAttrsSchema } from "./composedDefinitions";
 import { canonicalJson, sha256Hex } from "./shared/fingerprints";
 import { resolverArgs, type ResolverName } from "./contracts";
-import { resolverReferenceValues } from "./resolverReferences";
+import { resolverReferencePaths, resolverReferenceValues } from "./resolverReferences";
 import { bindResolverArguments } from "./planner";
 
 export const PROMOTION_PACKAGE_BYTES = 768 * 1024;
@@ -51,6 +51,22 @@ function portableResolver(resolver: string, args: unknown) {
     throw Error("Clear site-owned resolver selections from defaults and examples before promotion.");
 }
 
+/** Portable examples cannot select a destination site's records yet. Validate
+ * their other arguments using temporary reference witnesses at trusted contract
+ * paths only. These values never enter the package, authored attrs or a query. */
+function resolverValidationArgs(resolver: string, args: unknown) {
+  function witness(value: unknown, path: readonly string[]): unknown {
+    if (!path.length) return value === "" || value === null || value === undefined ? "promotion-resource" : value;
+    const [part, ...rest] = path;
+    if (part === "*") return Array.isArray(value) ? value.map(item => witness(item, rest)) : value;
+    if (!value || typeof value !== "object") return value;
+    if (Array.isArray(value)) return value.map((item, index) => String(index) === part ? witness(item, rest) : item);
+    const record = value as Record<string, unknown>;
+    return { ...record, [part]: witness(record[part], rest) };
+  }
+  return resolverReferencePaths(resolver).reduce((value, field) => witness(value, field.path), args);
+}
+
 export function prepareBlockPromotion(definitionJson: string, sourceDigest: string, targetName: string) {
   promotionName.parse(targetName);
   const source = decodeComposedDefinition(definitionJson, sourceDigest), { spec } = source.definition;
@@ -65,8 +81,9 @@ export function prepareBlockPromotion(definitionJson: string, sourceDigest: stri
     portableFields(spec.fields, parsed);
     if (spec.data) {
       if (!Object.prototype.hasOwnProperty.call(resolverArgs, spec.data.resolver)) throw Error("The composition uses an unavailable resolver.");
-      const args = resolverArgs[spec.data.resolver as ResolverName].parse(bindResolverArguments(spec.data.args, parsed, "promotion-example", "promotion"));
+      const args = bindResolverArguments(spec.data.args, parsed, "promotion-example", "promotion");
       portableResolver(spec.data.resolver, args);
+      resolverArgs[spec.data.resolver as ResolverName].parse(resolverValidationArgs(spec.data.resolver, args));
     }
   }
   const targetSpec = createBlockSpecCompiler(z).parseBlockSpec({ ...spec, name: targetName, version: 1 });

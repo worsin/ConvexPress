@@ -1,3 +1,5 @@
+import { publicDocumentHref } from "../helpers/publicDocumentHref";
+import { readAuthor } from "./author";
 import {readSocialFeed} from "../socialFeeds/read";
 import {readLeadMagnet} from "./leadMagnet";
 import {readTaggedMedia} from "./taggedMedia";
@@ -85,7 +87,7 @@ async function contentPage(
 		page: {
 			id: String(document._id),
 			title: document.title,
-			href: document.path ?? `/${document.slug}`,
+			href: publicDocumentHref(document),
 			excerpt: document.excerpt ?? null,
 			image: null,
 		},
@@ -162,6 +164,9 @@ export async function resolveCanonicalPageData(
 			"scope",
 			"The expected environment is not this installation",
 		);
+	// A selected resolver plan can be narrower than its trusted host document.
+  // Navigation and submission readers must retain the full approved tree context.
+  const hostComposed = navigation?.composed ?? composed;
 	const sources = new SourceByteLedger();
 	const mediaCache = new Map<
 		Id<"media">,
@@ -170,7 +175,7 @@ export async function resolveCanonicalPageData(
 	return await resolveCanonicalDataWithDefinitions(tree, expectedScope, policy, {
     readPage: (args) =>
 		registry["content.page"](ctx, args, sources, mediaCache, budget),
-    readNavigation: navigation ? createNavigationReader(ctx,navigation,budget,sources,composed) : undefined,
+    readNavigation: navigation ? createNavigationReader(ctx,navigation,budget,sources,hostComposed) : undefined,
     readPosts: args => readLatestPosts(ctx,args,budget,sources),
     readPostGrid: navigation ? args => readPostGrid(ctx,args,expectedScope,String(navigation.document._id),budget,sources) : undefined,
     readUpcomingEvents: args => readUpcomingEvents(ctx,args,budget,sources),
@@ -178,8 +183,8 @@ export async function resolveCanonicalPageData(
     readCalendar: navigation ? args => readCalendar(ctx,args,expectedScope,String(navigation.document._id),budget,sources) : undefined,
     readTags: navigation ? args => readTagCloud(ctx,args,expectedScope,String(navigation.document._id),budget,sources) : undefined,
     readForm: navigation ? args => readForm(ctx,args,budget,sourcePassword) : undefined,
-    readContact: navigation ? args => readContact(ctx,args,navigation,budget,sourcePassword,composed) : undefined,
-    readPoll: navigation ? args => readPoll(ctx,args,navigation,budget,sourcePassword,composed) : undefined,
+    readContact: navigation ? args => readContact(ctx,args,navigation,budget,sourcePassword,hostComposed) : undefined,
+    readPoll: navigation ? args => readPoll(ctx,args,navigation,budget,sourcePassword,hostComposed) : undefined,
     readProducts: navigation ? args => readFeaturedProducts(ctx,args,budget,sources) : undefined,
     readCollection: navigation ? args => readProductCollection(ctx,args,budget,sources,{recentlyViewedIds}) : undefined,
     readCategories: navigation ? args => readCategoryTiles(ctx,args,budget,sources,Date.now(),{scope:expectedScope,documentId:String(navigation.document._id)}) : undefined,
@@ -200,14 +205,15 @@ export async function resolveCanonicalPageData(
     readRelated: navigation ? args=>readRelatedContent(ctx,args,expectedScope,navigation.document,budget,sources) : undefined,
     readArchive: navigation ? args=>readDateArchiveGroups(ctx,args,expectedScope,String(navigation.document._id),budget,sources) : undefined,
     readLocales: navigation ? ()=>readLocaleDestinations(ctx,navigation.document,budget,sources) : undefined,
-    readRsvp: navigation ? args=>readEventRsvp(ctx,args,expectedScope,navigation,budget,sourcePassword,composed) : undefined,
+    readRsvp: navigation ? args=>readEventRsvp(ctx,args,expectedScope,navigation,budget,sourcePassword,hostComposed) : undefined,
     readProductOptions: navigation ? args=>readProductOptions(ctx,args,budget,sources) : undefined,
     readReviews: navigation ? args=>readReviews(ctx,args,expectedScope,String(navigation.document._id),budget,sources) : undefined,
     readProductCompare: navigation ? args=>readProductCompare(ctx,args,budget,sources) : undefined,
     readBundleOffer: navigation ? args=>readBundleOffer(ctx,args,budget) : undefined,
     readSearch: navigation ? args=>readSearch(ctx,args,expectedScope,String(navigation.document._id),budget) : undefined,
     readTaggedMedia: navigation ? args=>readTaggedMedia(ctx,args,expectedScope,String(navigation.document._id),budget) : undefined,
-    readLeadMagnet: navigation ? args=>readLeadMagnet(ctx,args,navigation,budget,sourcePassword,composed) : undefined,
+    readLeadMagnet: navigation ? args=>readLeadMagnet(ctx,args,navigation,budget,sourcePassword,hostComposed) : undefined,
+    readAuthor: args => readAuthor(ctx,args,budget,navigation ? String(navigation.document._id) : undefined),
     readSocialFeed: navigation ? args=>readSocialFeed(ctx,args,budget) : undefined,
   }, composed, request);
 }

@@ -106,7 +106,7 @@ export default function JournalDashboardSubscription({ data }: SurfaceProps<Dash
           <RowList>
             {sub.entitlements.map((entitlement: any) => (
               <Row key={entitlement._id} className="flex-row items-center justify-between gap-4 py-3">
-                <span className="font-mono text-sm text-foreground">{entitlement.entitlementCode}</span>
+                <span className="min-w-0 flex-1 break-all font-mono text-sm text-foreground">{entitlement.entitlementCode}</span>
                 <StatusPill status={entitlement.status} />
               </Row>
             ))}

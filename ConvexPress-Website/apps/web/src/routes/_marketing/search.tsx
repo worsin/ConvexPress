@@ -9,6 +9,7 @@ import { api } from "@convexpress-website/backend/generated/api";
 import { useSetting } from "@/contexts/SettingsContext";
 import type { PaginationData, SearchResult } from "@/lib/blog/types";
 import { buildSeoHead, siteTitled } from "@/lib/seo/head";
+import { useLiveSearchResults } from "@/lib/blog/useLiveSearchResults";
 import CoreSearch from "@/templates/packs/core/surfaces/search";
 import { Surface } from "@/templates/sdk/Surface";
 
@@ -69,17 +70,15 @@ function SearchPage() {
   // Connect to Convex search query
   // API uses `orderBy` (not `sort`) and returns `total` (not `totalCount`)
   // Same cache the loader filled, so SSR and the hydrating client render the same tree.
-  const { data: searchData } = useTanStackQuery(
-    convexQuery(api.search.queries.search, hasQuery
-      ? {
-          q: query!.trim(),
-          page: page ?? 1,
-          perPage: postsPerPage,
-          contentType: isSearchContentType(type) ? type : undefined,
-          orderBy: (sort as SearchOrderBy) ?? "relevance",
-        }
-      : "skip",) as any,
+  const searchArgs = hasQuery ? {
+    q: query!.trim(), page: page ?? 1, perPage: postsPerPage,
+    contentType: isSearchContentType(type) ? type : undefined,
+    orderBy: (sort as SearchOrderBy) ?? "relevance",
+  } : null;
+  const { data: seed } = useTanStackQuery(
+    convexQuery(api.search.queries.search, searchArgs ?? "skip") as any,
   ) as { data: any };
+  const searchData = useLiveSearchResults(searchArgs, seed);
 
   // ── Analytics: Log search query after results return (#23) ──────────
   const logSearch = useMutation(api.search.mutations.logSearch);
@@ -159,7 +158,7 @@ function SearchPage() {
   const totalPages = searchData?.totalPages ?? 0;
 
   const pagination: PaginationData | undefined =
-    results && totalPages > 1
+    searchData && results && totalPages > 1
       ? {
           currentPage: searchData.page,
           totalPages,

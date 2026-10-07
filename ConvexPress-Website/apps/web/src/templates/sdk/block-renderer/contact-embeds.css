@@ -61,7 +61,7 @@
 	font-size: clamp(1.35rem, 3cqi, 2.1rem);
 	line-height: 1.12;
 	word-break: normal;
-	overflow-wrap: normal;
+	overflow-wrap: anywhere;
 	text-wrap: balance;
 }
 .cp-library-embed-consent .cp-text {
@@ -149,6 +149,7 @@
 	border-block-start: 1px solid var(--border);
 }
 .cp-library-contact-stack dt {
+	overflow-wrap: anywhere;
 	color: var(--muted-foreground);
 	font: 600 0.7rem / 1.6 var(--font-sans);
 	letter-spacing: 0.08em;

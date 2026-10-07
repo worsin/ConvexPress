@@ -1,7 +1,7 @@
 import { dependencyDescriptors } from "./generated/metadata";
 import { validateCanonicalTree } from "./generated/instances";
-import type { CanonicalBlockInstance, CanonicalTree } from "./generated/types";
-import { planCanonicalData } from "./planner";
+import { createComposedRegistry, type RuntimeCanonicalBlock, type RuntimeCanonicalTree } from "./composedRegistry";
+import { planCanonicalData, type ComposedDataContext } from "./planner";
 import type { CanonicalDataPlan, DataScope, ResolverPolicy } from "./contracts";
 import type { BlockPageRequest } from "./postGridContracts";
 import { canonicalJson, sha256Hex } from "./shared/fingerprints";
@@ -12,7 +12,7 @@ export interface SyncedOccurrence {
    * placement-specific ID; this does not change the saved source document. */
   id: string;
   path: string[];
-  node: CanonicalBlockInstance;
+  node: RuntimeCanonicalBlock;
   owner: SyncedTarget | null;
   /** Every surrounding source, outermost first. Revisions identify this read;
    * source IDs participate in stable identity across edits/restores. */
@@ -29,7 +29,8 @@ export interface SyncedOccurrencePlan {
   /** Canonical resolver/navigation input. Transparent reusable wrappers are
    * replaced by their children; their full presentation remains in roots.
    * This is never a replacement authored document or a public transport. */
-  resolverTree: CanonicalTree;
+  resolverTree: RuntimeCanonicalTree;
+  composed?: ComposedDataContext;
   digest: string;
 }
 function fail(code: string, message: string): never { throw new SyncedContentError(code, message); }
@@ -46,26 +47,28 @@ export async function resolveSyncedOccurrences(
   input: unknown,
   scope: SyncedScope,
   read: (request: SyncedRequest) => Promise<unknown>,
-  options: { requireAvailable?: boolean } = {},
+  options: { requireAvailable?: boolean; composed?: ComposedDataContext } = {},
 ): Promise<SyncedOccurrencePlan> {
   const checkedScope = syncedScopeSchema.parse(scope);
-  const resolution = await resolveSyncedContent(input, checkedScope, read, options);
-  return buildOccurrencePlan(checkedScope, resolution);
+  const registry = options.composed ? createComposedRegistry(options.composed.definitions, checkedScope) : undefined;
+  const resolution = await resolveSyncedContent(input, checkedScope, read, { ...options, rootRegistry: registry });
+  return buildOccurrencePlan(checkedScope, resolution, options.composed);
 }
-export function resolveSyncedOccurrencesSnapshot(input: unknown, scope: SyncedScope, read: (request: SyncedRequest) => unknown, options: { requireAvailable?: boolean } = {}): SyncedOccurrencePlan {
+export function resolveSyncedOccurrencesSnapshot(input: unknown, scope: SyncedScope, read: (request: SyncedRequest) => unknown, options: { requireAvailable?: boolean; composed?: ComposedDataContext } = {}): SyncedOccurrencePlan {
   const checkedScope = syncedScopeSchema.parse(scope);
-  return buildOccurrencePlan(checkedScope, resolveSyncedContentSnapshot(input, checkedScope, read, options));
+  const registry = options.composed ? createComposedRegistry(options.composed.definitions, checkedScope) : undefined;
+  return buildOccurrencePlan(checkedScope, resolveSyncedContentSnapshot(input, checkedScope, read, { ...options, rootRegistry: registry }), options.composed);
 }
-function buildOccurrencePlan(checkedScope: SyncedScope, resolution: SyncedResolution): SyncedOccurrencePlan {
+function buildOccurrencePlan(checkedScope: SyncedScope, resolution: SyncedResolution, composed?: ComposedDataContext): SyncedOccurrencePlan {
   const bindings = new Map(resolution.bindings.map(binding => [JSON.stringify(binding.path), binding.target]));
   const revisions = new Map(resolution.revisions.map(source => [JSON.stringify([source.id, source.revision, source.digest]), source]));
   const byId = new Map<string, SyncedOccurrence>();
-  function visit(nodes: CanonicalTree, parent: string[], sourceChain: SyncedTarget[]): SyncedOccurrence[] {
+  function visit(nodes: RuntimeCanonicalTree, parent: string[], sourceChain: SyncedTarget[]): SyncedOccurrence[] {
     return nodes.map(node => {
       const path = [...parent, node.id], id = placementId(path, sourceChain);
       if (byId.has(id)) fail("SYNCED_OCCURRENCE_COLLISION", "An authored ID conflicts with a reusable placement. Rename the authored block ID.");
       const { children, ...own } = node;
-      const occurrence: SyncedOccurrence = { id, path, node: own as CanonicalBlockInstance, owner: sourceChain[sourceChain.length - 1] ?? null, sourceChain: [...sourceChain], children: [] };
+      const occurrence: SyncedOccurrence = { id, path, node: own as RuntimeCanonicalBlock, owner: sourceChain[sourceChain.length - 1] ?? null, sourceChain: [...sourceChain], children: [] };
       byId.set(id, occurrence);
       if (node.name === "core/synced") {
         const pathKey = JSON.stringify(path);
@@ -82,9 +85,11 @@ function buildOccurrencePlan(checkedScope: SyncedScope, resolution: SyncedResolu
     });
   }
   const roots = visit(resolution.blocks, [], []);
-  const resolverTree = validateCanonicalTree(occurrenceResolverTree(roots));
+  const rawTree = occurrenceResolverTree(roots);
+  const registry = composed ? createComposedRegistry(composed.definitions, checkedScope) : undefined;
+  const resolverTree = registry ? registry.validateTree(rawTree) : validateCanonicalTree(rawTree);
   const digest = sha256Hex(canonicalJson({ contract: "synced-occurrences-v1", scope: checkedScope, roots }));
-  return { scope: checkedScope, resolution, roots, byId, resolverTree, digest };
+  return { scope: checkedScope, resolution, roots, byId, resolverTree, digest, ...(composed ? { composed } : {}) };
 }
 /** Preflight the entire expanded page before any dynamic resolver runs. The
  * ordinary planner owns its aggregate job/binding limits and visitor cursors;
@@ -99,13 +104,13 @@ export function planSyncedOccurrenceData(plan: SyncedOccurrencePlan, scope: Data
     if (descriptor.requires.plugins.some(plugin => !policy.enabledPlugins.includes(plugin)) || descriptor.requires.capabilities.some(capability => !policy.capabilities.includes(capability)))
       fail("MISSING_RUNTIME_POLICY", "Synced content requires the current website's runtime capabilities.");
   }
-  return planCanonicalData(plan.resolverTree, scope, policy, request);
+  return planCanonicalData(plan.resolverTree, scope, policy, request, plan.composed);
 }
 
-export function occurrenceResolverTree(occurrences: SyncedOccurrence[]): CanonicalTree {
+export function occurrenceResolverTree(occurrences: SyncedOccurrence[]): RuntimeCanonicalTree {
   return occurrences.flatMap(occurrence => {
     const children = occurrenceResolverTree(occurrence.children);
     if (occurrence.node.name === "core/synced") return children;
-    return [{ ...occurrence.node, id: occurrence.id, ...(children.length ? { children } : {}) } as CanonicalBlockInstance];
+    return [{ ...occurrence.node, id: occurrence.id, ...(children.length ? { children } : {}) } as RuntimeCanonicalBlock];
   });
 }

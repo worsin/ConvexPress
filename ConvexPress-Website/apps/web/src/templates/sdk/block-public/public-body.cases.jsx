@@ -1,3 +1,4 @@
+import {dependencyDescriptors} from "../block-data/portable/generated/metadata";
 import {productHistoryDigest} from "../block-data/portable/productCollectionContracts";
 import {resolveCanonicalData} from "../block-data/portable/resolve";
 import {validateCanonicalTree} from "../block-data/portable/generated/instances";
@@ -16,10 +17,14 @@ let auth = {
 		sessionId: "session_a",
 	},
 	convexAuth = { isLoading: false, isAuthenticated: true };
+let operator = {active:false};
+mock.module("@/lib/auth/WebsiteOperatorContext", () => ({useWebsiteOperator:()=>operator}));
+let templateSettings = { packId: "core", savedPackId: "core" };
 let siteInstance = "stage", history = {ids:[],ready:true};
 const watches = [];
 let lastInstallation;
 let transport = {
+  url: "https://public-test.convex.cloud",
 	watchQuery(_name, args) {
 		const watch = {
 			args,
@@ -42,25 +47,31 @@ let transport = {
 	},
 };
 mock.module("@/lib/auth/clerk", () => ({ useAuth: () => auth }));
-mock.module("@tanstack/react-router",()=>({useLocation:({select})=>select({href:"/page/page"})}));
+const actualRouter = await import("@tanstack/react-router");
+mock.module("@tanstack/react-router",()=>({...actualRouter,useLocation:({select})=>select({href:"/page/page"})}));
+const actualConvexReact = await import("convex/react");
 mock.module("convex/react", () => ({
+  ...actualConvexReact,
 	useConvex: () => transport,
 	useConvexAuth: () => convexAuth,
+  useQuery: () => { throw Error("Unexpected direct page query"); },
+  useMutation: () => { throw Error("Unexpected page mutation hook"); },
+  useAction: () => { throw Error("Unexpected page action hook"); },
 }));
 mock.module("@/lib/site-runtime", () => ({
 	getSiteRuntime: () => ({ instanceKey: siteInstance }),
 }));
 mock.module("../useTemplateSettings", () => ({
-	useTemplateSettings: () => ({ packId: "core" }),
+	useTemplateSettings: () => templateSettings,
 }));
 // View paint alone is isolated. The exact parser, data installer and component
 // lifecycle remain real; workerd separately renders all four actual packs.
 mock.module("../block-preview/CanonicalDocumentView", () => ({
-	CanonicalDocumentView: ({tree,policy,data,synced,scope,composed}) => {
+	CanonicalDocumentView: ({tree,policy,data,synced,scope,composed,packId}) => {
     const displayTree=synced?resolveSyncedDisplay(synced,validateCanonicalTree(tree),scope).resolverTree:tree;
     const subscription=pageDataSubscription(data.grant);
     useSyncExternalStore(subscription.subscribe,subscription.getSnapshot,subscription.getSnapshot);
-    try { readInstalledPageData(data,displayTree,policy,composed);lastInstallation={data,tree:displayTree,policy,composed};return <article>Authorized body<details><summary>Course module</summary><p>Lesson outline</p></details><a href="?next=1">Continue outline</a></article>; }
+    try { readInstalledPageData(data,displayTree,policy,composed);lastInstallation={data,tree:displayTree,policy,composed};return <article data-pack={packId}>Authorized body<details><summary>Course module</summary><p>Lesson outline</p></details><a href="?next=1">Continue outline</a></article>; }
     catch { return <p>Installed data unavailable</p>; }
   },
 }));
@@ -78,7 +89,10 @@ mock.module("../block-renderer/shopping-assistant-production", () => ({ Producti
 mock.module("../block-renderer/collection-cart-production", () => ({ ProductionCollectionCartProvider: ({children}) => children }));
 mock.module("../block-renderer/rsvp-production", () => ({ ProductionRsvpProvider: ({children}) => children, RsvpDraftScope: ({children}) => children }));
 mock.module("../block-renderer/poll-production", () => ({ ProductionPollProvider: ({children}) => children, PollDraftScope: ({children}) => children }));
-mock.module("../../../hooks/useProductHistory",()=>({useProductHistory:()=>history}));
+const actualHistory = await import("../../../hooks/useProductHistory");
+const realUseProductHistory = actualHistory.useProductHistory;
+let realHistory = false;
+mock.module("../../../hooks/useProductHistory",()=>({useProductHistory:(enabled)=>realHistory ? realUseProductHistory(enabled) : history}));
 const { PublicCanonicalBody, PublicCanonicalScope } = await import(
 	"./PublicCanonicalBody"
 );
@@ -142,6 +156,23 @@ test("real public body clears on viewer/session/client change, refuses mismatche
 		const first = watches.at(-1);
 		await deliver(ready("reader_a"));
 		expect(document.body.textContent.includes("Authorized body")).toBe(true);
+    // A temporary installed-pack preview uses the authorized saved presentation.
+    // A real saved activation mismatch still hides the body until its DTO catches up.
+    templateSettings = { packId: "journal", savedPackId: "core" };
+    await act(async () => render());
+    expect(document.querySelector("article")?.dataset.pack).toBe("journal");
+    templateSettings = { packId: "journal", savedPackId: "depot" };
+    await act(async () => render());
+    expect(document.body.textContent.includes("Authorized body")).toBe(false);
+    const activated = ready("reader_a");
+    activated.presentation.packId = "depot";
+    await deliver(activated);
+    expect(document.querySelector("article")?.dataset.pack).toBe("journal");
+    await deliver(ready("reader_b"));
+    expect(document.body.textContent.includes("Authorized body")).toBe(false);
+    templateSettings = { packId: "core", savedPackId: "core" };
+    await act(async () => render());
+    await deliver(ready("reader_a"));
     const firstInstallation=lastInstallation;
     const expiring = ready("reader_a");
     expiring.accessLease.expiresAt = expiring.accessLease.evaluatedAt + 200;
@@ -220,6 +251,7 @@ test("real public body clears on viewer/session/client change, refuses mismatche
     expect(()=>readInstalledPageData(finalInstallation.data,finalInstallation.tree,finalInstallation.policy)).toThrow("invalidated");
 		expect(watches.at(-1).stopped).toBe(true);
 	} finally {
+    templateSettings = { packId: "core", savedPackId: "core" };
 		dom.window.close();
 		for (const [name, value] of Object.entries(previous)) {
 			if (value) Object.defineProperty(globalThis, name, value);
@@ -254,13 +286,13 @@ test("anonymous SSR handoff preserves the disclosure DOM and an in-flight pointe
 });
 
 
-async function withSeededBody(initial,check){
+async function withSeededBody(initial,check,bodyProps={},pageView){
  auth={isLoaded:true,isSignedIn:false,userId:null,sessionId:null};convexAuth={isLoading:false,isAuthenticated:false};siteInstance='stage';history={ids:[],ready:true};
  const dom=new JSDOM('<div id="app"></div>',{url:'https://site.example.invalid'}),previous={};
  for(const name of ['window','document','navigator','HTMLElement','Event','IS_REACT_ACT_ENVIRONMENT']){previous[name]=Object.getOwnPropertyDescriptor(globalThis,name);Object.defineProperty(globalThis,name,{configurable:true,writable:true,value:name==='IS_REACT_ACT_ENVIRONMENT'?true:dom.window[name]});}
  const {createRoot}=await import('react-dom/client'),root=createRoot(document.getElementById('app'));
  const props={documentId:'page',initial};
- const render=()=>act(async()=>root.render(<PublicCanonicalScope {...props}><PublicCanonicalBody documentId={props.documentId}/></PublicCanonicalScope>));
+ const render=()=>act(async()=>root.render(<PublicCanonicalScope {...props}>{pageView ? pageView() : <PublicCanonicalBody documentId={props.documentId} {...bodyProps}/>}</PublicCanonicalScope>));
  try{await render();await check({props,render});}finally{await act(async()=>root.unmount());dom.window.close();siteInstance='stage';history={ids:[],ready:true};for(const [name,value] of Object.entries(previous)){if(value)Object.defineProperty(globalThis,name,value);else delete globalThis[name];}}
 }
 test('public reusable source-only updates reach the display and revoke the previous installation without a page revision change',async()=>{
@@ -325,4 +357,138 @@ test('the real public document lifecycle binds custom definitions and clears the
   expect(document.querySelector('article')).toBeNull();
   expect(()=>readInstalledPageData(installed.data,installed.tree,installed.policy,installed.composed)).toThrow('invalidated');
  });
+});
+
+
+test('template layout uses the current validated public opening role and restores the title on access loss', async()=>{
+ const layout=(body,opensWithHero)=><>{!opensWithHero&&<h1>Page heading</h1>}<div data-slot="body-wrapper">{body}</div></>;
+ await withSeededBody(ready(null),async()=>{
+  expect(document.querySelector('h1')?.textContent).toBe('Page heading');
+  const w=watches.at(-1), count=watches.length;
+  const deliver=async value=>{w.value=value;await act(async()=>w.listener());};
+  for(const name of ['core/hero-text-only','core/hero-video']){
+   const value=ready(null);
+   value.policy.capabilities=['reference.targetResolution'];
+   value.document.blocks=validateCanonicalTree([{id:'opening',name,version:dependencyDescriptors[name].version,attrs:{title:'Hero heading'}}]);
+   value.document.digest=canonicalContentDigest(value.document.title,value.document.blocks);
+   value.data=await resolveCanonicalData(value.document.blocks,scope,value.policy,async()=>null);
+   await deliver(value);
+   expect(document.querySelector('h1')).toBeNull();
+   expect(document.querySelector('[data-slot="body-wrapper"]')?.textContent).toContain('Authorized body');
+  }
+  await deliver(ready(null));
+  expect(document.querySelector('h1')?.textContent).toBe('Page heading');
+  await deliver(new Error('access revoked'));
+  expect(document.querySelector('h1')?.textContent).toBe('Page heading');
+  expect(document.body.textContent).not.toContain('Authorized body');
+  expect(watches.length).toBe(count);
+ },{renderLayout:layout});
+});
+
+
+test('all four actual page surfaces suppress their title only for the current canonical hero',async()=>{
+ const {PageContent}=await import('../../../components/blog/PageContent');
+ const {default:Journal}=await import('../../packs/journal/surfaces/page');
+ const {default:Depot}=await import('../../packs/depot/surfaces/page');
+ const {default:Aster}=await import('../../packs/aster-house/surfaces/page');
+ const page={_id:'page',title:'Template page title',slug:'page',path:'/page',content:null,blocksVersion:2,contentMode:'blocks',children:[],breadcrumbs:[]};
+ const views=[()=> <PageContent page={page}/>, ...[Journal,Depot,Aster].map(Surface=>()=> <Surface data={{page}} variant="no-sidebar"/>)];
+ for(const view of views){
+  await withSeededBody(ready(null),async()=>{
+   expect(document.querySelector('h1')?.textContent).toBe(page.title);
+   const value=ready(null), name='core/hero-video';
+   value.policy.capabilities=['reference.targetResolution'];
+   value.document.blocks=validateCanonicalTree([{id:'opening',name,version:dependencyDescriptors[name].version,attrs:{title:'Hero heading'}}]);
+   value.document.digest=canonicalContentDigest(value.document.title,value.document.blocks);
+   value.data=await resolveCanonicalData(value.document.blocks,scope,value.policy,async()=>null);
+   const {renderToStaticMarkup}=await import('react-dom/server');
+   const ssr=renderToStaticMarkup(<PublicCanonicalScope documentId="page" initial={value}>{view()}</PublicCanonicalScope>);
+   expect(ssr).not.toContain('<h1');
+   expect(ssr).toContain('Authorized body');
+   const w=watches.at(-1);w.value=value;await act(async()=>w.listener());
+   expect(document.querySelector('h1')).toBeNull();
+   expect(document.body.textContent).toContain('Authorized body');
+   w.value=ready(null);await act(async()=>w.listener());
+   expect(document.querySelectorAll('h1')).toHaveLength(1);
+  },{},view);
+ }
+});
+
+mock.module('@/hooks/layout/useSiteIdentity',()=>({useSiteIdentity:()=>({title:'Aster fixture',tagline:'A considered stay'})}));
+test('Aster home follows the authorized current hero and ignores archived route body/mode, including access loss',async()=>{
+ const {default:AsterHome}=await import('../../packs/aster-house/surfaces/home');
+ const frontPage={_id:'page',title:'Fallback cover title',slug:'home',path:'/',excerpt:'Cover description',children:[],contentMode:'article',blocks:[{name:'core/paragraph'}],blocksVersion:1};
+ const view=()=> <AsterHome data={{frontPage,latestPosts:[]}}/>;
+ const hero=ready(null),name='core/hero-video';
+ hero.policy.capabilities=['reference.targetResolution'];
+ hero.document.blocks=validateCanonicalTree([{id:'opening',name,version:dependencyDescriptors[name].version,attrs:{title:'Canonical hero heading'}}]);
+ hero.document.digest=canonicalContentDigest(hero.document.title,hero.document.blocks);
+ hero.data=await resolveCanonicalData(hero.document.blocks,scope,hero.policy,async()=>null);
+ await withSeededBody(hero,async()=>{
+  expect(document.querySelector('h1')).toBeNull();
+  expect(document.querySelector('#aster-story article')).not.toBeNull();
+  const {renderToStaticMarkup}=await import('react-dom/server');
+  expect(renderToStaticMarkup(<PublicCanonicalScope documentId="page" initial={hero}>{view()}</PublicCanonicalScope>)).not.toContain('>Fallback cover title</h1>');
+  const w=watches.at(-1);w.value=ready(null);await act(async()=>w.listener());
+  expect(document.querySelectorAll('h1')).toHaveLength(1);
+  expect(document.querySelector('h1').textContent).toBe(frontPage.title);
+  frontPage.contentMode='blocks';frontPage.blocks=[{name:'core/hero'}];
+  w.value=new Error('access revoked');await act(async()=>w.listener());
+  expect(document.querySelector('h1').textContent).toBe(frontPage.title);
+  expect(document.querySelector('#aster-story')?.textContent).not.toContain('Authorized body');
+ },{},view);
+});
+
+
+test('operator canonical reads bind the backend subject independently of Clerk and clear on renewal identity changes or exit',async()=>{
+ await withSeededBody({...ready(null),historyDigest:productHistoryDigest([])},async({render})=>{
+  try {
+   operator={active:true,userId:'operator_a',viewerSubject:'management_session_a',instanceKey:'stage',expiresAt:Date.now()+60000};
+   convexAuth={isLoading:false,isAuthenticated:true};
+   const before=watches.length;await render();
+   expect(watches.length).toBeGreaterThan(before);
+   expect(document.querySelector('article')).toBeNull();
+   const deliver=async(value)=>{const w=watches.at(-1);w.value={...value,historyDigest:productHistoryDigest([])};await act(async()=>w.listener());};
+   await deliver(ready('reader_a'));expect(document.querySelector('article')).toBeNull();
+   await deliver(ready('management_session_a'));expect(document.body.textContent).toContain('Authorized body');
+   const watch=watches.at(-1),article=document.querySelector('article');
+   operator={...operator,expiresAt:Date.now()+120000};await render();
+   expect(watches.at(-1)).toBe(watch);expect(document.querySelector('article')).toBe(article);
+   auth={isLoaded:true,isSignedIn:true,userId:'reader_a',sessionId:'clerk_a'};await render();
+   expect(watches.at(-1)).toBe(watch);expect(document.querySelector('article')).toBe(article);
+   operator={...operator,viewerSubject:'management_session_b'};await render();
+   expect(watch.stopped).toBe(true);expect(document.querySelector('article')).toBeNull();
+   await act(async()=>watch.listener());expect(document.querySelector('article')).toBeNull();
+   await deliver(ready('management_session_b'));expect(document.querySelector('article')).not.toBeNull();
+   convexAuth={isLoading:false,isAuthenticated:false};await render();expect(document.querySelector('article')).toBeNull();
+   operator={active:false};convexAuth={isLoading:false,isAuthenticated:true};await render();
+   await deliver(ready('management_session_b'));expect(document.querySelector('article')).toBeNull();
+   await deliver(ready('reader_a'));expect(document.querySelector('article')).not.toBeNull();
+   for(const invalid of [{active:true,instanceKey:'stage'},{active:true,viewerSubject:'operator_a',instanceKey:'other'}]){
+    const count=watches.length;operator=invalid;await render();
+    expect(watches.length).toBe(count);expect(document.querySelector('article')).toBeNull();
+    expect(document.body.textContent).toContain('This document is not currently available.');
+   }
+  } finally {operator={active:false};}
+ });
+});
+
+
+test('operator canonical bodies settle with actual history storage without borrowing anonymous or customer visits',async()=>{
+ realHistory=true;
+ try {await withSeededBody({...ready(null),historyDigest:productHistoryDigest([])},async({render})=>{
+  const {productHistoryKey,recordProductVisit}=await import('../../../lib/commerce/product-history');
+  const key=viewerKey=>productHistoryKey({backendUrl:transport.url,instanceKey:'stage',viewerKey});
+  recordProductVisit(window.localStorage,key('anonymous'),'anonymous-product');
+  recordProductVisit(window.localStorage,key('user:reader_a'),'customer-product');
+  recordProductVisit(window.localStorage,key('operator:operator_a'),'operator-product');
+  operator={active:true,viewerSubject:'operator_a',instanceKey:'stage'};convexAuth={isLoading:false,isAuthenticated:true};
+  await render();const w=watches.at(-1);
+  expect(w.args.recentlyViewedIds).toEqual(['operator-product']);
+  w.value={...ready('operator_a'),historyDigest:productHistoryDigest(['operator-product'])};await act(async()=>w.listener());
+  expect(document.querySelector('article')).not.toBeNull();
+  operator={active:false};auth={isLoaded:true,isSignedIn:true,userId:'reader_a',sessionId:'reader-session'};
+  await render();expect(document.querySelector('article')).toBeNull();expect(w.stopped).toBe(true);
+  expect(watches.at(-1).args.recentlyViewedIds).toEqual(['customer-product']);
+ });}finally{realHistory=false;operator={active:false};}
 });

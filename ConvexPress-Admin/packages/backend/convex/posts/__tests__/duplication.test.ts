@@ -4,6 +4,7 @@ import { api } from "../../_generated/api";
 import schema from "../../schema";
 
 const modules = {
+  "./convex/canonicalDocuments.ts": () => import("../../canonicalDocuments"),
   "./convex/posts/authorCounts.ts": () => import("../authorCounts"),
   "./convex/_generated/server.js": () => import("../../_generated/server.js"),
   "./convex/_generated/api.js": () => import("../../_generated/api.js"),
@@ -49,6 +50,13 @@ async function fixture(level = 80) {
 
 test("author reassignment requires an active site user and leaves authority unchanged", async () => {
   const { t, editor, postId, editorId, authorId } = await fixture();
+  await t.run(async ctx => {
+    await ctx.db.patch(postId, { type: "post", status: "draft", visibility: "public", password: undefined,
+      content: "", blocks: [], blocksVersion: 2, blocksRevision: 1, scheduledAt: undefined });
+    await ctx.db.insert("convexpress_siteIdentity", { identityKey: "site-identity", websiteKey: "fixture", instanceKey: "fixture-stage", environmentKind: "staging", deploymentOrigin: "https://fixture.convex.cloud", managementOrigin: "https://fixture.convex.site", siteOrigin: "https://fixture.example.invalid", siteContractVersion: "1", schemaVersion: "1", engineVersion: "1", managementCapabilities: [], initializedAt: 1, updatedAt: 1 });
+    await ctx.db.insert("settings", { section: "plugins", values: {membershipEnabled:false}, updatedAt: 1, updatedBy: editorId });
+    await ctx.db.insert("settings", { section: "appearance.template", values: {active:"core",overrides:{},variants:{},settings:{}}, legacyAppearanceMigration:{version:2,migratedAt:1}, updatedAt: 1, updatedBy: editorId });
+  });
   for (const state of ["management", "inactive", "deleted"] as const) {
     const targetId = await t.run(async ctx => {
       const id = await ctx.db.insert("users", {
@@ -60,12 +68,12 @@ test("author reassignment requires an active site user and leaves authority unch
       if (state === "deleted") await ctx.db.delete(id);
       return id;
     });
-    await expect(editor.mutation(api.posts.mutations.update, { postId, authorId: targetId }))
+    await expect(editor.mutation(api.canonicalDocuments.updateMetadata, { postId, expectedRevision: 1, authorId: targetId }))
       .rejects.toMatchObject({ data: { code: "VALIDATION_ERROR" } });
     expect((await t.run(ctx => ctx.db.get(postId)))?.authorId).toBe(authorId);
   }
   const userBefore = await t.run(ctx => ctx.db.get(editorId));
-  await editor.mutation(api.posts.mutations.update, { postId, authorId: editorId });
+  await editor.mutation(api.canonicalDocuments.updateMetadata, { postId, expectedRevision: 1, authorId: editorId });
   expect((await t.run(ctx => ctx.db.get(postId)))?.authorId).toBe(editorId);
   expect(await t.run(ctx => ctx.db.get(editorId))).toEqual(userBefore);
 });

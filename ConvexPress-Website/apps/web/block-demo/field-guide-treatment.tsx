@@ -4,6 +4,7 @@ import { FieldGuideView } from "../src/blocks/field-guide/View";
 import { fieldGuideAttrsSchema } from "../src/blocks/field-guide/schema";
 import fieldGuide from "../../../../blocks/reference/field-guide/render";
 import { prepareBlocks } from "../src/templates/sdk/block-renderer/model";
+import { packTreatmentSupport } from "../src/templates/sdk/block-data/portable/generated/metadata";
 const sample = {
 	heading: "A field guide to everyday objects",
 	body: "Authored **literal text**.\nA second line with space to breathe.",
@@ -15,6 +16,7 @@ const sample = {
 	link: { href: "/page/journal", label: "Read the field notes", newTab: false },
 };
 export function FieldGuideTreatmentStudy({ packId }: { packId: string }) {
+	const supported: Readonly<Record<string, Readonly<Record<string, readonly string[]>>>> = packTreatmentSupport;
 	const [spacing, setSpacing] = useState(4);
 	const [alignment, setAlignment] = useState("left");
 	const [ink, setInk] = useState("foreground");
@@ -95,14 +97,14 @@ export function FieldGuideTreatmentStudy({ packId }: { packId: string }) {
 					</section>
 				</div>
 				<div data-treatment-canonical>
-					{prepareBlocks(
+					{supported[packId]?.["reference/field-guide"]?.includes("editorial") ? prepareBlocks(
 						tree,
 						{ "reference/field-guide": fieldGuide },
 						{ enabledPlugins: [], capabilities: [], disabledBlocks: [] },
 						{ media: {} },
 						undefined,
 						packId,
-					)}
+					) : <p data-treatment-unavailable>This pack does not declare the editorial field-guide treatment.</p>}
 				</div>
 			</div>
 		</details>

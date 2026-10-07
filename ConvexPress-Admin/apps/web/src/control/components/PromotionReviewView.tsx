@@ -46,6 +46,7 @@ export function PromotionReviewView({
     const record = parseReviewedRecord(incoming);
     return record?.kind === "plan" && typeof record.data.title === "string" ? [[`@promotion:${record.key}`, record.data.title]] : [];
   }));
+  const documentLabels=Object.fromEntries(review.authoredRecords.flatMap(incoming=>{const record=parseReviewedRecord(incoming);return record && (record.kind==='page'||record.kind==='post') && typeof record.data.title==='string'?[[`@promotion:${record.key}`,record.data.title]]:[];}));
 	const outcome = review.applyState;
 	const heading = unknownOutcome
 		? "Apply outcome is unconfirmed"
@@ -146,6 +147,8 @@ export function PromotionReviewView({
 				<p role="alert">
           {review.failureCode === "ROUTE_POLICY_SELECTION_REQUIRED"
             ? "This staging site has URL access rules. Select “Include site access rules” and create a new preview to review those rules and their membership plans before promotion."
+            : review.failureCode === "LOCALIZATION_SELECTION_REQUIRED" ? "Select “Include site languages and selected translation groups” and create a new preview to review configured language destinations."
+            : review.failureCode === "SYNCED_LOCKED" ? "Open Synced content in the destination environment, explicitly unlock the imported content you intend to replace, then create a new preview."
             : <>The review could not finish ({review.failureCode}). Check the environment connections and content compatibility before starting another review.</>}
 				</p>
 			)}
@@ -196,7 +199,7 @@ export function PromotionReviewView({
 							</p>
 						);
 					const change = review.changes.find((item) => item.key === record.key);
-					const title = record.kind === "restriction" && record.data.resourceType === "route"
+					const title = record.kind === "localeRouting" ? "Site languages" : record.kind === "localeGroup" ? `Translations: ${String(record.data.key)}` : record.kind === "restriction" && record.data.resourceType === "route"
             ? `Site access: ${String(record.data.resourceIdOrKey)}`
             : "title" in record.data
 							? record.data.title
@@ -207,7 +210,7 @@ export function PromotionReviewView({
 						<>
 							{typeof title === "string" ? title : record.key}{" "}
 							<span className="font-normal text-muted-foreground">
-								· {record.kind} ·{" "}
+								· {record.kind === "localeRouting" ? "Languages" : record.kind === "localeGroup" ? "Translation group" : record.kind} ·{" "}
 								{change
 									? change.targetId
 										? "Update"
@@ -226,7 +229,7 @@ export function PromotionReviewView({
 										: "Creates a new item"}
 								</p>
 							)}
-							<PromotionAuthoredContent data={record.data} planLabels={planLabels} />
+							<PromotionAuthoredContent data={record.data} kind={record.kind} planLabels={planLabels} documentLabels={documentLabels} />
 							<details className="mt-3 text-xs text-muted-foreground">
 								<summary className="cursor-pointer">Raw authored data</summary>
 								{change && (

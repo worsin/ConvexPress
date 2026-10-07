@@ -50,7 +50,7 @@ test("exchange uses the selected backend without cookies, redirect or cache and 
   const fetcher = (async (url: URL | RequestInfo, init?: RequestInit) => { captured = { url: String(url), init }; return Response.json(valid); }) as typeof fetch;
   expect(await exchangeOperatorCode(code, runtime, fetcher)).toEqual(valid);
   expect(captured).toEqual({ url: "https://db.convex.site/auth/operator-handoff", init: { method: "POST", credentials: "omit", cache: "no-store", redirect: "error", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ code }) } });
-  for (const invalid of [{ ...valid, instanceKey: "other:live" }, { ...valid, expiresAt: Date.now() - 1 }, { ...valid, expiresAt: Date.now() + 600000 }, { ...valid, token: "" }, null]) {
+  for (const invalid of [{ ...valid, instanceKey: "other:live" }, { ...valid, expiresAt: Date.now() - 1 }, { ...valid, expiresAt: Date.now() + 600000 }, { ...valid, token: "" }, { ...valid, viewerSubject: "" }, { ...valid, viewerSubject: 42 }, { ...valid, viewerSubject: "x".repeat(201) }, null]) {
     await expect(exchangeOperatorCode(code, runtime, (async () => Response.json(invalid)) as typeof fetch)).rejects.toThrow();
   }
   await expect(exchangeOperatorCode(code, runtime, (async () => new Response(null, { status: 403 })) as typeof fetch)).rejects.toThrow();

@@ -1,3 +1,5 @@
+import { useMobileMenuGeometry } from "@/hooks/layout/useMobileMenuGeometry";
+import { MenuItemTarget } from "@/components/menus/MenuItemTarget";
 /**
  * Aster · chrome.mobileNav — a full-height sheet with the menu set in large
  * display type. Same behaviour as Core: closes on route change and Escape,
@@ -20,7 +22,7 @@ const FOCUSABLE_SELECTOR =
   'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
 export default function AsterChromeMobileNav({ data }: SurfaceProps<MobileNavSurfaceData>) {
-  const { menu, siteIdentity, config, open, onClose } = data;
+  const { menu, siteIdentity, config, userMenu, open, onClose } = data;
   const { user } = useUser();
   const { isLoaded } = useAuth();
   const { signOut } = useClerk();
@@ -79,21 +81,24 @@ export default function AsterChromeMobileNav({ data }: SurfaceProps<MobileNavSur
   }, [open]);
 
   const items = menu?.items.filter((item) => !item.isOrphaned) ?? [];
-  const fromRight = config?.drawerSide === "right";
+  const geometry = useMobileMenuGeometry(config, open, "w-96");
 
   return (
     <div className="pointer-events-none fixed inset-0 z-50 overflow-hidden lg:hidden">
+    {open && <div data-slot="mobile-nav-backdrop" className="pointer-events-auto absolute inset-0 bg-black/40" onClick={onClose} aria-hidden="true" />}
     <div
       ref={panelRef}
       data-slot="mobile-nav"
+      data-variant={geometry.variant}
+      style={geometry.style}
       role="dialog"
       aria-modal={open}
       aria-label="Navigation menu"
       {...(open ? {} : { inert: true })}
       className={cn(
-        "absolute inset-0 flex flex-col bg-background transition-transform duration-300 ease-out motion-reduce:transition-none",
+        "absolute flex flex-col bg-background transition-transform duration-300 ease-out motion-reduce:transition-none",
         open && "pointer-events-auto",
-        open ? "translate-x-0" : fromRight ? "translate-x-full" : "-translate-x-full",
+        geometry.className,
       )}
     >
       <Container className="flex h-16 shrink-0 items-center justify-between border-b border-border">
@@ -127,7 +132,7 @@ export default function AsterChromeMobileNav({ data }: SurfaceProps<MobileNavSur
         </Container>
       </nav>
 
-      <div className="shrink-0 border-t border-border">
+      {userMenu?.enabled !== false && isLoaded && (user || userMenu?.guestDisplay !== "hidden") && <div className="shrink-0 border-t border-border">
         <Container className="flex flex-col gap-4 py-6">
           {isLoaded ? (
             user ? (
@@ -167,14 +172,14 @@ export default function AsterChromeMobileNav({ data }: SurfaceProps<MobileNavSur
                 <Link to="/login" onClick={onClose} className="text-sm tracking-wide text-foreground underline decoration-border underline-offset-[6px] hover:decoration-foreground">
                   Sign in
                 </Link>
-                <Link to="/register" onClick={onClose} className="text-sm tracking-wide text-muted-foreground transition-colors hover:text-foreground">
+                {(userMenu?.guestDisplay ?? "login-register") === "login-register" && <Link to="/register" onClick={onClose} className="text-sm tracking-wide text-muted-foreground transition-colors hover:text-foreground">
                   Register
-                </Link>
+                </Link>}
               </div>
             )
           ) : null}
         </Container>
-      </div>
+      </div>}
     </div>
     </div>
   );
@@ -184,7 +189,6 @@ function SheetItem({ item, depth, onNavigate }: { item: ResolvedMenuItem; depth:
   const [expanded, setExpanded] = useState(false);
   if (item.isOrphaned) return null;
   const hasChildren = item.children.length > 0;
-  const isExternal = item.url.startsWith("http://") || item.url.startsWith("https://");
   const linkProps = { ...(item.target ? { target: item.target } : {}), ...(item.rel ? { rel: item.rel } : {}) };
   const linkClass = cn(
     "block flex-1 py-4 tracking-tight text-foreground transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
@@ -195,16 +199,10 @@ function SheetItem({ item, depth, onNavigate }: { item: ResolvedMenuItem; depth:
   return (
     <li data-slot="mobile-nav-item" style={depth > 0 ? { paddingLeft: `${depth * 1.25}rem` } : undefined}>
       <div className="flex items-center gap-3">
-        {isExternal ? (
-          <a href={item.url} className={linkClass} onClick={onNavigate} {...linkProps}>
+        <MenuItemTarget item={item} className={linkClass} activeProps={{ className: "text-primary", "aria-current": "page" as const }} onClick={onNavigate} {...linkProps}>
             {item.label}
-          </a>
-        ) : (
-          <Link to={item.url as any} className={linkClass} activeProps={{ className: "text-primary", "aria-current": "page" as const }} onClick={onNavigate} {...linkProps}>
-            {item.label}
-          </Link>
-        )}
-        {hasChildren ? (
+          </MenuItemTarget>
+        {hasChildren && item.type !== "separator" ? (
           <button
             type="button"
             onClick={() => setExpanded((value) => !value)}
@@ -216,7 +214,7 @@ function SheetItem({ item, depth, onNavigate }: { item: ResolvedMenuItem; depth:
           </button>
         ) : null}
       </div>
-      {hasChildren && expanded ? (
+      {hasChildren && (expanded || item.type === "separator") ? (
         <ul role="list" className="mb-2 flex flex-col border-t border-border">
           {item.children
             .filter((child) => !child.isOrphaned)

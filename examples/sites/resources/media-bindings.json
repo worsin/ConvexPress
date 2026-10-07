@@ -1,0 +1,6 @@
+[
+ {"pack":"core","asset":"fieldwork-studio.png","heroDocuments":["home","studio"],"imageDocuments":[]},
+ {"pack":"journal","asset":"slow-current-bench.png","heroDocuments":["home"],"imageDocuments":["bench"]},
+ {"pack":"depot","asset":"common-supply-collection.png","heroDocuments":["home"],"imageDocuments":[]},
+ {"pack":"aster-house","asset":"aster-house-terrace.png","heroDocuments":["home","house"],"imageDocuments":[]}
+]

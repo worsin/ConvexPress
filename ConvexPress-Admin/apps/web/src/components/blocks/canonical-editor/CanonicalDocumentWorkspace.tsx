@@ -1,3 +1,5 @@
+import { CanonicalHistoryImport, type HistoryImportClient } from "./CanonicalHistoryImport";
+import { revisionSourceSchema } from "@backend/canonical-blocks-foundation/migrationContracts";
 import { getErrorMessage } from "../../../lib/utils";
 import { ElementCreator, type ElementCreation } from "./ElementCreator";
 import { SavedContentInserter } from "./SavedContentInserter";
@@ -23,7 +25,6 @@ import {
 import {
 	canonicalRevisionPageSchema,
 	canonicalWriteReceiptSchema,
-	canonicalRecoveryReceiptSchema,
 	type CanonicalDocumentRead,
 	type CanonicalRevisionPage,
 } from "@backend/canonical-blocks-foundation/documentContracts";
@@ -44,13 +45,16 @@ import { CustomBlockPicker } from "./CustomBlockPicker";
 import type { CustomBlockClient } from "./composed-picker";
 import { CanonicalAiComposer } from "./CanonicalAiComposer";
 import type { AiProposalClient, AiProposalRequest } from "./ai-proposal";
+import type { SiteDraftClient } from "./site-draft";
 
 export interface CanonicalDocumentClient
 	extends Partial<MigrationClient>,
+		Partial<HistoryImportClient>,
 		Partial<DocumentSettingsClient>,
 		Partial<CustomBlockClient>,
 		Partial<AiProposalClient> {
 	get(request?: Record<string, string>): Promise<unknown>;
+	privateDraft?: SiteDraftClient<CanonicalDraft>;
 	previewDraft?(args: {
 		expectedRevision: number;
 		title: string;
@@ -73,10 +77,6 @@ export interface CanonicalDocumentClient
 		expectedAuthoringDigest?: string;
 		revisionId: string;
 	}): Promise<unknown>;
-	recoverLegacy?(args: {
-		expectedRevision: number;
-		revisionId: string;
-	}): Promise<unknown>;
 	pageRevisions(cursor: string | null): Promise<unknown>;
 	setPublication?(args: PublicationRequest): Promise<unknown>;
 }
@@ -95,7 +95,6 @@ export interface CanonicalDocumentWorkspaceProps {
 		document: import("@backend/canonical-blocks-foundation/documentContracts").CanonicalDocumentDto,
 		request: AiProposalRequest,
 	) => void;
-	onRecovered?: () => void;
 	onDirtyChange?: (dirty: boolean) => void;
 	onPreview?: (
 		document: import("@backend/canonical-blocks-foundation/documentContracts").CanonicalDocumentDto,
@@ -118,7 +117,6 @@ function WorkspaceBody({
 	canAi = false,
 	elementCreation,
 	onAiPreview,
-	onRecovered,
 	onDirtyChange,
 }: CanonicalDocumentWorkspaceProps) {
 	const value = useMemo(
@@ -267,7 +265,7 @@ function WorkspaceBody({
 					authoringDigest={latest.document.authoringDigest}
 					onRestored={refresh}
 					documentKey={documentKey}
-					onRecovered={onRecovered}
+					siteOrigin={siteOrigin}
 				/>
 			</section>
 		);
@@ -300,6 +298,7 @@ function WorkspaceBody({
 	return (
 		<div className="space-y-5">
 			<CanonicalEditor
+				siteDraft={client.privateDraft}
 				livePreview={
 					siteOrigin && client.previewDraft
 						? ({
@@ -483,7 +482,7 @@ function WorkspaceBody({
 					client={client}
 					revision={latest.document.revision}
 					onRestored={refresh}
-					onRecovered={onRecovered}
+					siteOrigin={siteOrigin}
 					documentKey={documentKey}
 				/>
 			)}
@@ -496,14 +495,14 @@ function RevisionHistory({
 	onRestored,
 	documentKey,
 	authoringDigest,
-	onRecovered,
+	siteOrigin,
 }: {
 	client: CanonicalDocumentClient;
 	revision: number;
 	onRestored: () => Promise<CanonicalDocumentRead>;
 	documentKey: DocumentKey;
 	authoringDigest?: string;
-	onRecovered?: () => void;
+	siteOrigin?: string;
 }) {
 	const [page, setPage] = useState<CanonicalRevisionPage | null>(null),
 		[rows, setRows] = useState<CanonicalRevisionPage["page"]>([]),
@@ -584,31 +583,47 @@ function RevisionHistory({
 						<button
 							type="button"
 							disabled={
-								!row.restorable ||
+								(!row.restorable && !row.hasRetainedAutosave) ||
 								busy ||
-								(row.action === "recover-legacy" && !client.recoverLegacy)
+								(row.blocksVersion !== 2 && (!client.prepareRevisionImport || !client.importRevision || !client.getRevisionSource))
 							}
 							onClick={() => setSelected(row.id)}
 							className="min-h-11 rounded border px-3 text-sm disabled:opacity-50"
 						>
-							{row.action === "recover-legacy"
-								? "Review original editor restore"
+							{row.blocksVersion !== 2
+								? "Review historical import"
 								: "Review restore"}
 						</button>
+
+            {client.getRevisionSource && row.hasRetainedAutosave !== undefined && <button type="button" disabled={busy} className="min-h-11 rounded border px-3 text-sm"
+              onClick={() => void (async () => {
+                if (pending.current) return;
+                pending.current = true; setBusy(true); setError(null);
+                try {
+                  const archive = revisionSourceSchema.parse(await client.getRevisionSource!({revisionId:row.id}));
+                  if (!mounted.current) return;
+                  if (archive.revisionId !== row.id) throw new Error("Historical source mismatch");
+                  const url = URL.createObjectURL(new Blob([archive.sourceJson], {type:"application/json"}));
+                  const link = document.createElement("a"); link.href=url; link.download=`revision-${row.revisionNumber}.json`;
+                  document.body.appendChild(link); link.click(); link.remove();
+                  setTimeout(() => URL.revokeObjectURL(url), 1000);
+                } catch { if (mounted.current) setError("The original source could not be downloaded. Reload history and try again."); }
+                finally { pending.current=false; if (mounted.current) setBusy(false); }
+              })()}>Download original source</button>}
 					</li>
 				))}
 			</ul>
-			{selected && (
+			{selected && rows.find(row => row.id === selected)?.blocksVersion !== 2 && client.prepareRevisionImport && client.importRevision && client.getRevisionSource && (
+        <CanonicalHistoryImport key={selected} client={{prepareRevisionImport:client.prepareRevisionImport,importRevision:client.importRevision,getRevisionSource:client.getRevisionSource}} documentKey={documentKey} revision={revision} revisionId={selected} hasRetainedAutosave={!!rows.find(row => row.id === selected)?.hasRetainedAutosave} siteOrigin={siteOrigin} onImported={onRestored} />
+      )}
+			{selected && rows.find(row => row.id === selected)?.blocksVersion === 2 && (
 				<div
 					role="group"
 					aria-label="Confirm revision restore"
 					className="space-y-3 rounded border border-primary/40 p-4"
 				>
 					<p>
-						{rows.find((row) => row.id === selected)?.action ===
-						"recover-legacy"
-							? "Restore the full authored content from this original version and return to its original editor? Your current block version will remain in history so you can return to it. Current publication, URL and access settings remain unchanged. Unsaved edits will be discarded."
-							: authoringDigest
+						{authoringDigest
 								? "Restore this saved block version and switch to the block editor? The current original-editor version will remain in history. Unsaved edits will be discarded."
 								: "Replace the saved document with this revision? Current saved content remains in history. Unsaved edits will be discarded."}
 					</p>
@@ -624,32 +639,6 @@ function RevisionHistory({
 								try {
 									const row = rows.find((row) => row.id === selected);
 									if (!row?.restorable) throw new Error("Unavailable revision");
-									if (row.action === "recover-legacy") {
-										if (!client.recoverLegacy)
-											throw new Error("Recovery unavailable");
-										const receipt = canonicalRecoveryReceiptSchema.parse(
-											await client.recoverLegacy({
-												expectedRevision: revision,
-												revisionId: selected,
-											}),
-										);
-										if (!mounted.current) return;
-										if (
-											receipt.postId !== documentKey.documentId ||
-											receipt.revision !== revision + 1
-										)
-											throw new Error("Recovery receipt mismatch");
-										const next = await onRestored();
-										// Reopening a legacy document deliberately unmounts this history.
-										// The workspace refresh itself rejects an expired environment.
-										if (
-											next?.contract !== "canonical-initialization-v1" ||
-											next.document.revision !== receipt.revision ||
-											next.document.authoringDigest !== receipt.authoringDigest
-										)
-											throw new Error("Recovery reopen mismatch");
-										onRecovered?.();
-									} else {
 										const receipt = canonicalWriteReceiptSchema.parse(
 											await client.restore({
 												expectedRevision: revision,
@@ -672,7 +661,6 @@ function RevisionHistory({
 											next.document.digest !== receipt.digest
 										)
 											throw new Error("Restore reopen mismatch");
-									}
 									if (mounted.current) setSelected(null);
 								} catch (error) {
 									if (mounted.current)

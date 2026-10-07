@@ -58,13 +58,16 @@ export async function discoverBlocks(root) {
     if (names.has(spec.name)) throw new Error(`Duplicate block name ${spec.name}`);
     names.add(spec.name);
     let promotion;
+    let promotedDefinition;
     if (files.some(file => file.name === "promotion.json" && file.isFile())) {
       const body = await readFile(path.join(root, candidate.folder, "promotion.json"), "utf8");
       if (Buffer.byteLength(body) > 768 * 1024) throw Error("Oversized promotion package");
       if (candidate.provenance.kind !== "library") throw Error("Promoted blocks belong in the Library.");
-      promotion = inspectPromotionSource(JSON.parse(body), spec, await readFile(path.join(root, candidate.folder, "render.tsx"), "utf8"));
+      const bundle = JSON.parse(body);
+      promotedDefinition = bundle.definitionJson;
+      promotion = inspectPromotionSource(bundle, spec, await readFile(path.join(root, candidate.folder, "render.tsx"), "utf8"));
     }
-    blocks.push({ spec, source, ...(promotion ? { promotion } : {}), provenance: candidate.provenance, hasRenderer: files.some(file => file.name === "render.tsx" && file.isFile()) });
+    blocks.push({ spec, source, ...(promotion ? { promotion, promotedDefinition } : {}), provenance: candidate.provenance, hasRenderer: files.some(file => file.name === "render.tsx" && file.isFile()) });
   }
   blocks.sort((a, b) => a.spec.name < b.spec.name ? -1 : a.spec.name > b.spec.name ? 1 : 0);
   const packIds = new Set();

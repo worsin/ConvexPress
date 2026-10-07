@@ -659,6 +659,11 @@ export const FOOTER_SECTIONS = [
         ]
       },
       {
+        "id": "backgroundImageId",
+        "label": "Background Image",
+        "type": "image"
+      },
+      {
         "id": "topBorder",
         "label": "Top Border",
         "type": "select",

@@ -1,3 +1,4 @@
+import {FooterAudienceSelect} from "./FooterAudienceSelect";
 /**
  * Per-type editors for footer cells. One small component per cell type so
  * the cell dispatcher can render the right form without a giant switch
@@ -8,7 +9,7 @@
  * ONLY the fields, no surrounding card.
  */
 
-import { useCallback } from "react";
+import { useCallback, useState } from "react";
 import { Plus, Trash2 } from "lucide-react";
 import { useQuery } from "convex-helpers/react/cache";
 import { api } from "@backend/convex/_generated/api";
@@ -124,7 +125,7 @@ function MenuLocationSelect({
       <Input
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        placeholder="footer, footer-1, social"
+        placeholder="footer, footer-1, auto-pages, social"
       />
     );
   }
@@ -135,7 +136,9 @@ function MenuLocationSelect({
       onChange={(e) => onChange(e.target.value)}
       className="h-9 rounded-none border border-border bg-background px-2.5 text-sm text-foreground outline-hidden focus:border-primary"
     >
-      {locations.map((location) => (
+      <option value="auto-pages">Auto Pages</option>
+      {value !== "auto-pages" && !locations.some(location => location.slug === value) && <option value={value}>{value}</option>}
+      {locations.filter(location => location.slug !== "auto-pages").map((location) => (
         <option key={location.slug} value={location.slug}>
           {location.name}
         </option>
@@ -299,14 +302,21 @@ export function NavCellEditor({ cell, onChange }: CellEditorProps<FooterNavCell>
 // ─── Image ───────────────────────────────────────────────────────────────────
 
 export function ImageCellEditor({ cell, onChange }: CellEditorProps<FooterImageCell>) {
+  const isUrl = /^https?:\/\//.test(cell.mediaId ?? "");
+  const [editingUrl, setEditingUrl] = useState(isUrl);
   return (
     <div className="flex flex-col gap-3">
-      <MediaField
+      {isUrl || editingUrl ? <>
+        <FieldRow label="Image URL">
+          <Input type="url" value={cell.mediaId ?? ""} onChange={event => onChange({ ...cell, mediaId: event.target.value || null })} />
+        </FieldRow>
+        <Button type="button" variant="outline" onClick={() => { setEditingUrl(false); onChange({ ...cell, mediaId: null }); }}>Choose from media library</Button>
+      </> : <MediaField
         label="Image"
         value={cell.mediaId ?? ""}
         onChange={(mediaId) => onChange({ ...cell, mediaId: mediaId || null })}
         promptSeed={cell.alt}
-      />
+      />}
       <FieldRow label="Alt text">
         <Input value={cell.alt} onChange={(e) => onChange({ ...cell, alt: e.target.value })} />
       </FieldRow>
@@ -334,7 +344,7 @@ export function SocialCellEditor({ cell, onChange }: CellEditorProps<FooterSocia
   return (
     <div className="flex flex-col gap-3">
       <HeadingField value={cell.heading} onChange={(v) => onChange({ ...cell, heading: v })} />
-      <FieldRow label="Style" hint="Links come from Settings → General → Social profiles.">
+      <FieldRow label="Style" hint="Links come from the Social menu assignment under Appearance → Menu Locations.">
         <Select
           value={cell.style}
           onChange={(v) => onChange({ ...cell, style: v })}
@@ -368,12 +378,7 @@ export function NewsletterCellEditor({ cell, onChange }: CellEditorProps<FooterN
           onChange={(e) => onChange({ ...cell, buttonText: e.target.value })}
         />
       </FieldRow>
-      <FieldRow label="Audience ID (optional)" hint="Connect to an email provider list.">
-        <Input
-          value={cell.audienceId ?? ""}
-          onChange={(e) => onChange({ ...cell, audienceId: e.target.value })}
-        />
-      </FieldRow>
+      <FooterAudienceSelect value={cell.audienceId ?? ""} onChange={audienceId => { const next = { ...cell }; if (audienceId) next.audienceId = audienceId; else delete next.audienceId; onChange(next); }} />
     </div>
   );
 }
@@ -542,7 +547,7 @@ export function PaymentsCellEditor({ cell, onChange }: CellEditorProps<FooterPay
 
 // ─── Dispatcher ──────────────────────────────────────────────────────────────
 
-export function FooterCellEditor({
+function FooterCellContentEditor({
   cell,
   onChange,
 }: {
@@ -575,4 +580,22 @@ export function FooterCellEditor({
     case "payments":
       return <PaymentsCellEditor cell={cell} onChange={onChange} />;
   }
+}
+
+/** Shared presentation control for every cell type; no value inherits the column. */
+export function FooterCellEditor({ cell, onChange }: { cell: FooterCell; onChange: (next: FooterCell) => void }) {
+  return <div className="flex flex-col gap-3">
+    <FieldRow label="Content alignment">
+      <Select value={cell.alignment ?? "inherit"} options={[
+        { value: "inherit", label: "Inherit" }, { value: "left", label: "Left" },
+        { value: "center", label: "Center" }, { value: "right", label: "Right" },
+      ]} onChange={value => {
+        const next = { ...cell };
+        if (value === "inherit") delete next.alignment;
+        else next.alignment = value as "left" | "center" | "right";
+        onChange(next);
+      }} />
+    </FieldRow>
+    <FooterCellContentEditor cell={cell} onChange={onChange} />
+  </div>;
 }

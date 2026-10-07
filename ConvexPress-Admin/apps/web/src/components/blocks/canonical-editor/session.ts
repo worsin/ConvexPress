@@ -275,3 +275,12 @@ export function rejectSave<T>(
 export function reloadDocument<T>(state: EditorSession<T>): EditorSession<T> {
 	return openDocument(state.conflict ?? state.base);
 }
+/** Explicit conflict choice: keep input against the last authorized snapshot.
+ * This performs no write. A subsequent Save still needs the backend's CAS and
+ * current field, resource, block-lock and publication authority checks. */
+export function keepDraftAgainstCurrent<T>(state: EditorSession<T>): EditorSession<T> {
+	if (!state.conflict || state.pending || !sameDocument(state.base.key, state.conflict.key)) return state;
+	return { ...openDocument(state.conflict), operation: state.operation + 1,
+		draft: state.draft, dirty: !equal(state.draft, state.conflict.value),
+		recoveryNotice: "Your edits are kept against the current saved revision. Review them, then save changes." };
+}

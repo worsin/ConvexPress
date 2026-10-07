@@ -4,9 +4,9 @@ export const fieldTypes = ["text","richtext","number","select","reference","medi
 export type FieldType = (typeof fieldTypes)[number];
 export interface EditorField {
   id: string; type: FieldType; title?: string; description?: string; required?: boolean; nullable?: boolean; default?: unknown;
-  min?: number; max?: number; integer?: boolean; inline?: boolean; multiline?: true; authoringNonblank?: true; format?: string; domId?: true;
+  min?: number; max?: number; integer?: boolean; inline?: boolean; multiline?: true; authoringNonblank?: true; authoringWebUrl?: true; authoringSafeLink?: true; format?: string; domId?: true;
   options?: readonly (string | number)[]; optionsMode?: "authoring"; of?: string; storage?: string; allowEmpty?: boolean; protocols?: readonly string[];
-  fields?: readonly EditorField[]; item?: EditorField; constraints?: readonly unknown[];
+  fields?: readonly EditorField[]; item?: EditorField; constraints?: readonly unknown[]; authoringConstraints?: readonly unknown[];
 }
 export interface EditorDefinition { version: number; requires: { plugins: readonly string[]; capabilities: readonly string[] }; fields: readonly EditorField[]; constraints: readonly unknown[]; preview: string; category: string; title: string; role: string; supports: { children: boolean; styles: boolean; layout: readonly string[]; anchor: boolean; visibility: boolean } }
 export const editorDefinitions: Record<BlockName, EditorDefinition> = {
@@ -72,6 +72,7 @@ export const editorDefinitions: Record<BlockName, EditorDefinition> = {
             "type": "text"
           },
           {
+            "authoringSafeLink": true,
             "default": "",
             "id": "href",
             "max": 500,
@@ -169,7 +170,9 @@ export const editorDefinitions: Record<BlockName, EditorDefinition> = {
             "type": "text"
           },
           {
+            "authoringSafeLink": true,
             "default": "",
+            "description": "An HTTP(S), site-relative, anchor, email or telephone destination; leave empty for no link.",
             "id": "url",
             "max": 500,
             "type": "text"
@@ -888,7 +891,9 @@ export const editorDefinitions: Record<BlockName, EditorDefinition> = {
         "type": "select"
       },
       {
+        "authoringWebUrl": true,
         "default": "",
+        "description": "Complete HTTP or HTTPS address without embedded credentials. Leave empty to configure later.",
         "id": "customUrl",
         "max": 500,
         "type": "text"
@@ -2608,6 +2613,13 @@ export const editorDefinitions: Record<BlockName, EditorDefinition> = {
         "type": "boolean"
       },
       {
+        "authoringConstraints": [
+          {
+            "kind": "ordered",
+            "lower": "startsAt",
+            "upper": "endsAt"
+          }
+        ],
         "fields": [
           {
             "id": "startsAt",
@@ -2737,6 +2749,11 @@ export const editorDefinitions: Record<BlockName, EditorDefinition> = {
     "category": "site",
     "constraints": [],
     "fields": [
+      {
+        "default": false,
+        "id": "useCurrentAuthor",
+        "type": "boolean"
+      },
       {
         "allowEmpty": true,
         "default": "",
@@ -5273,7 +5290,7 @@ export const editorDefinitions: Record<BlockName, EditorDefinition> = {
     "role": "content",
     "supports": {
       "anchor": true,
-      "children": false,
+      "children": true,
       "layout": [
         "width",
         "tone",
@@ -5547,7 +5564,7 @@ export const editorDefinitions: Record<BlockName, EditorDefinition> = {
         "type": "select"
       },
       {
-        "default": "primary",
+        "default": "header",
         "id": "location",
         "max": 80,
         "type": "text"

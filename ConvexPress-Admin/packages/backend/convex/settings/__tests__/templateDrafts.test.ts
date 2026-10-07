@@ -57,3 +57,17 @@ test("draft reads and updates are isolated by authenticated user", async () => {
  await run(saveDraft, other, { packId: "core", sourceRevision: first.revision, expectedDraftRevision: null, values: {}, variants: {} });
  expect(other.tables.appearance_drafts).toHaveLength(2);
 });
+
+test("installed camelCase modules save, recover and publish without relaxing pack or field-object validation", async () => {
+ const ctx = site(); const first = await run(snapshot, ctx);
+ const values = { menuLayout: { primary: "footer-1" }, header: { cta: { enabled: true, label: "Studio", url: "/studio" } } };
+ await run(saveDraft, ctx, { packId: "core", sourceRevision: first.revision, expectedDraftRevision: null, values, variants: {} });
+ expect((await run(getDraft, ctx, { packId: "core" })).values).toEqual(values);
+ expect((await run(snapshot, ctx)).revision).toBe(first.revision);
+ const published = await run(publish, ctx, { values: { ...first.values, settings: { core: values } }, expectedRevision: first.revision });
+ expect(published.values.settings.core).toEqual(values);
+ for (const bad of [{ settings: { Core: values } }, { settings: { core: { "menu.layout": {} } } }, { settings: { core: { menuLayout: [] } } }]) {
+  await expect(run(publish, ctx, { values: { ...published.values, ...bad }, expectedRevision: published.revision })).rejects.toMatchObject({ data: expect.objectContaining({ code: "INVALID_TEMPLATE" }) });
+  expect((await run(snapshot, ctx)).revision).toBe(published.revision);
+ }
+});

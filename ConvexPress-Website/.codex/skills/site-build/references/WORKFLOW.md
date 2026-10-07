@@ -34,8 +34,8 @@ Read each current validator before building a call. The normal authenticated sit
 | Work | Current entry points / source |
 | --- | --- |
 | Media | `media.mutations.generateUploadUrl`, `create`, `update`; follow `components/media/MediaField.tsx` for the actual upload/library flow |
-| Pages | `pages.mutations.create`, `update`; write validated block envelopes and `contentMode` through supported args |
-| Posts | `posts.mutations` and its current validators; preserve draft/publish scheduling rules |
+| Pages | `canonicalDocuments.create({type:"page",title})`, then `save` with returned `postId`/revision and canonical blocks; use `setSettings`/`setPublication` for their separate revision-checked operations |
+| Posts | `canonicalDocuments.create({type:"post",title})`, `save`, `setSettings`, `setPublication`; generic legacy create endpoints are retired. Preserve revision and draft/publish scheduling rules |
 | Events | `extensions.events.mutations.create`, `update`; backend enforces plugin and capability checks |
 | Menus | `menus.mutations.createMenu`, `addMenuItem`, `updateMenuItem`, `assignMenuToLocation` |
 | General/plugin/homepage settings | `settings.mutations.updateSection`; inspect current section defaults and validators |

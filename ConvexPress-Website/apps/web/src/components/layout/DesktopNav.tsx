@@ -1,4 +1,4 @@
-import { Link } from "@tanstack/react-router";
+import { MenuItemTarget, dismissMenuOnEscape } from "@/components/menus/MenuItemTarget";
 import { ChevronDown } from "lucide-react";
 import * as React from "react";
 
@@ -130,8 +130,6 @@ function DesktopNavItem({ item, linkStyle, dropdownStyle }: DesktopNavItemProps)
     ...(item.rel ? { rel: item.rel } : {}),
   };
 
-  const isExternal =
-    item.url.startsWith("http://") || item.url.startsWith("https://");
   const linkClassName = cn(
     "flex items-center gap-1 px-3 py-2 text-xs text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
     linkStyle === "pills" && "rounded-full border border-transparent hover:border-border hover:bg-muted",
@@ -159,21 +157,15 @@ function DesktopNavItem({ item, linkStyle, dropdownStyle }: DesktopNavItemProps)
       className="relative"
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
+      onKeyDown={(event) => dismissMenuOnEscape(event, isOpen, () => {
+        if (openTimeoutRef.current) clearTimeout(openTimeoutRef.current);
+        setIsOpen(false);
+      })}
     >
-      {isExternal ? (
-        <a
-          href={item.url}
-          className={linkClassName}
-          onKeyDown={handleKeyDown}
-          aria-expanded={hasChildren ? isOpen : undefined}
-          aria-haspopup={hasChildren ? "true" : undefined}
-          {...linkProps}
-        >
-          {linkContent}
-        </a>
-      ) : (
-        <Link
-          to={item.url}
+      <MenuItemTarget
+          item={item}
+          separatorOrientation="vertical"
+          onToggle={hasChildren ? () => setIsOpen(value => !value) : undefined}
           className={linkClassName}
           activeProps={{
             className: "text-foreground font-medium",
@@ -185,13 +177,16 @@ function DesktopNavItem({ item, linkStyle, dropdownStyle }: DesktopNavItemProps)
           {...linkProps}
         >
           {linkContent}
-        </Link>
-      )}
-      {hasChildren && isOpen && (
+        </MenuItemTarget>
+      {hasChildren && (isOpen || item.type === "separator") && (
         <NavDropdown
           items={item.children}
+          onNavigate={() => {
+            if (openTimeoutRef.current) clearTimeout(openTimeoutRef.current);
+            setIsOpen(false);
+          }}
           depth={0}
-          className={dropdownStyle === "mega" ? "grid min-w-72 grid-cols-2" : undefined}
+          className={item.type === "separator" ? "static shadow-none ring-0" : dropdownStyle === "mega" ? "grid min-w-72 grid-cols-2" : undefined}
         />
       )}
     </li>

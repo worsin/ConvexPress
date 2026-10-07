@@ -77,7 +77,7 @@ export default function DepotSearchOverlay({ data }: SurfaceProps<SearchOverlayS
                 onFocus={() => {
                   if (query.trim().length >= 2) setSuggestionsVisible(true);
                 }}
-                placeholder="Search…"
+                placeholder={data.placeholder ?? "Search…"}
                 autoComplete="off"
                 aria-label="Search query"
                 aria-autocomplete="list"

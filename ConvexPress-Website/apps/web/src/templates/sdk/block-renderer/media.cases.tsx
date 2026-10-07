@@ -1,3 +1,4 @@
+import { PublicFileDownloadProvider } from "./public-file-download";
 import { test, expect } from "bun:test";
 import { renderToStaticMarkup } from "react-dom/server";
 import { JSDOM } from "jsdom";
@@ -275,4 +276,22 @@ test("resolved image resources retain a self-hosted HTTP source through the temp
  expect(markup).toContain(`src="${src}"`);
  expect(markup).toContain('alt="Authored local image"');
  expect(()=>html(image,{mediaId:"photo"},{media:{photo:{...owned.media.photo,src:"http://user:secret@192.168.1.246/image.png"}}})).toThrow();
+});
+
+
+test("social profiles use existing platform artwork decoratively without replacing accessible names", () => {
+  const doc=new JSDOM(html(social,{links:[{platform:"twitter",label:"Studio updates",href:"https://example.test/updates"},{platform:"unknown",label:"Another profile",href:"https://example.test/profile"},{platform:"instagram",label:"Coming soon",href:""}]})).window.document;
+  expect(doc.querySelectorAll("a svg").length + doc.querySelectorAll(".cp-social-profile > svg").length).toBe(2);
+  expect(doc.querySelector("a")?.textContent).toBe("Studio updates");
+  expect(doc.querySelectorAll("svg[aria-hidden=true]").length).toBe(2);
+  expect(doc.querySelectorAll("a").length).toBe(2);
+  expect(doc.body.textContent).toContain("Coming soon");
+});
+
+test("file cards use the configured public attachment host while standalone SDK rendering preserves source URLs", () => {
+  const selected = { media: { file: { src: "https://storage.example/api/storage/file-key", alt: "Guide", filename: "field guide.txt", mimeType: "text/plain" } } };
+  const content = renderToStaticMarkup(<PublicFileDownloadProvider backendOrigin="https://storage.example">{render(download, { media: { id: "file" } }, selected)}</PublicFileDownloadProvider>);
+  expect(content).toContain('href="/api/public-files/file-key?filename=field%20guide.txt"');
+  expect(content).toContain('download="field guide.txt"');
+  expect(html(download, { media: { id: "file" } }, selected)).toContain('href="https://storage.example/api/storage/file-key"');
 });

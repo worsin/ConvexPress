@@ -10,6 +10,8 @@ import { insertTermRelationship } from "../../helpers/postDiscovery";
 import { insertWithMediaReferences, patchWithMediaReferences } from "../../media/attachmentGuard";
 import type { ContentPromotionManifest } from "@convexpress/site-contract/content-promotion";
 const modules = {
+ "./convex/settings/mutations.ts": () => import("../../settings/mutations"),
+ "./convex/settings/templateDrafts.ts": () => import("../../settings/templateDrafts"),
  "./convex/syncedBlocks/refresh.ts": () => import('../../syncedBlocks/refresh'),
  "./convex/syncedBlocks/content.ts": () => import('../../syncedBlocks/content'),
  "./convex/membership/policyReads.ts": () => import("../../membership/policyReads"),
@@ -69,7 +71,7 @@ function manifest(): ContentPromotionManifest {
 			deploymentOrigin: "https://source.convex.cloud",
 			siteOrigin: "https://source.example.test",
 		},
-		target,
+		target: { ...target },
 		selection: {
 			pageIds: ["source-page"],
 			postIds: [],
@@ -1364,7 +1366,7 @@ test("grouped membership policies survive export, apply, update, retry and rollb
 
 test("legacy promotion cannot erase the canonical source discriminator or plan over a canonical target",async()=>{
  const {t,authed,userId}=await fixture();
- const id=await t.run(ctx=>ctx.db.insert("posts",{type:"page",title:"Canonical draft",slug:"welcome",path:"/welcome",content:"",contentMode:"blocks",blocksVersion:2,blocksRevision:1,blocks:[],status:"draft",visibility:"public",authorId:userId,commentStatus:"closed",createdAt:1,updatedAt:1}));
+ const id=await t.run(ctx=>ctx.db.insert("posts",{type:"page",title:"Canonical draft",slug:"welcome",path:"/welcome",content:"",blocksVersion:2,blocksRevision:1,blocks:[],status:"draft",visibility:"public",authorId:userId,commentStatus:"closed",createdAt:1,updatedAt:1}));
  const original=await t.run(ctx=>ctx.db.get("posts",id));
  await t.run(async ctx=>{const identity=(await ctx.db.query("convexpress_siteIdentity").unique())!;await ctx.db.patch("convexpress_siteIdentity",identity._id,manifest().source);});
  const exported=await authed.query(makeFunctionReference<"query">("contentPromotion/operations:exportManifest"),{target,selection:{pageIds:[id],postIds:[],mediaIds:[],menuIds:[],eventIds:[],includePresentation:false}});
@@ -2238,4 +2240,201 @@ test('RSVP promotion rejects invalid event settings and preserves target setting
  const review=await live.authed.mutation(fn('dryRun'),{manifest:old,...bindings});expect(review.ready).toBe(true);
  await live.authed.mutation(fn('apply'),{receiptId:review.receiptId,expectedDigest:review.digest,confirmLive:true});
  expect((await live.t.run(ctx=>ctx.db.get(event)))!.rsvp).toEqual({mode:'guests',capacity:5,closesAt:null});
+});
+
+async function localeFixture() {
+ const f=await fixture();
+ await f.t.run(async ctx=>{const user=await ctx.db.get(f.userId);const role=await ctx.db.get(user!.roleId!);await ctx.db.patch(role!._id,{capabilities:[...role!.capabilities,'settings.update_general']});});
+ return f;
+}
+function localeManifest():ContentPromotionManifest {
+ const m=manifest();m.selection={...m.selection,includeLocalization:true};
+ const first=m.records[0]!;
+ m.records=['en','es'].map(code=>({...structuredClone(first),key:`page:${code}`,data:{...structuredClone(first.data),title:code,slug:code,path:`/${code}`,blocks:[]}}));
+ m.records.push({key:'localeRouting:site',kind:'localeRouting',sourceRevision:'routing-1',data:{key:'site',enabled:true,locales:[{code:'en',label:'English',direction:'ltr',landingPageId:'@promotion:page:en'},{code:'es',label:'Español',direction:'ltr',landingPageId:'@promotion:page:es'}]}},
+ {key:'localeGroup:guide',kind:'localeGroup',sourceRevision:'group-1',data:{key:'guide',translations:[{code:'en',documentId:'@promotion:page:en'},{code:'es',documentId:'@promotion:page:es'}]}});
+ return m;
+}
+test('locale promotion remaps routing and group documents, removes obsolete entries and restores semantic content with fresh revisions',async()=>{
+ const f=await localeFixture(),m=localeManifest();
+ const a=await f.authed.mutation(fn('dryRun'),{manifest:m,...bindings});expect(a.issues).toEqual([]);
+ const applied=await f.authed.mutation(fn('apply'),{receiptId:a.receiptId,expectedDigest:a.digest,confirmLive:true});
+ const rows=await f.t.run(async ctx=>({routing:await ctx.db.query('locale_routing').unique(),group:await ctx.db.query('locale_translation_groups').unique(),entries:await ctx.db.query('locale_translations').collect()}));
+ expect(rows.routing!.locales.map(l=>String(l.landingPageId))).toEqual(['en','es'].map(code=>applied.mappings.find((r:any)=>r.key===`page:${code}`).targetId));
+ expect(rows.entries).toHaveLength(2);expect(rows.group!.revision).toBe(1);
+ const reduced=structuredClone(m);reduced.records.find(r=>r.kind==='localeGroup')!.data.translations=[];
+ const b=await f.authed.mutation(fn('dryRun'),{manifest:reduced,...bindings});expect(b.issues).toEqual([]);
+ await f.authed.mutation(fn('apply'),{receiptId:b.receiptId,expectedDigest:b.digest,confirmLive:true});expect(await f.t.run(ctx=>ctx.db.query('locale_translations').collect())).toEqual([]);
+ await f.authed.mutation(fn('rollback'),{receiptId:b.receiptId,expectedDigest:b.digest,confirmLive:true});
+ const restored=await f.t.run(async ctx=>({routing:await ctx.db.get(rows.routing!._id),group:await ctx.db.get(rows.group!._id),entries:await ctx.db.query('locale_translations').collect()}));
+ expect(restored.routing!.locales).toEqual(rows.routing!.locales);expect(restored.routing!.revision).toBe(3);expect(restored.group!.revision).toBe(3);expect(restored.entries.map(r=>({code:r.code,documentId:r.documentId}))).toEqual(rows.entries.map(r=>({code:r.code,documentId:r.documentId})));
+});
+test('locale promotion binds child assignments and unrelated target context into the review conflict',async()=>{
+ const f=await localeFixture(),m=localeManifest();
+ const a=await f.authed.mutation(fn('dryRun'),{manifest:m,...bindings});expect(a.issues).toEqual([]);await f.authed.mutation(fn('apply'),{receiptId:a.receiptId,expectedDigest:a.digest,confirmLive:true});
+ const b=await f.authed.mutation(fn('dryRun'),{manifest:m,...bindings});
+ await f.t.run(async ctx=>{const entry=await ctx.db.query('locale_translations').first();await ctx.db.patch(entry!._id,{code:'fr'});});
+ await expect(f.authed.mutation(fn('apply'),{receiptId:b.receiptId,expectedDigest:b.digest,confirmLive:true})).rejects.toThrow('PROMOTION_CONFLICT');
+});
+test('locale promotion rejects omitted consent, forged references and duplicate locale identities',async()=>{
+ const f=await localeFixture();
+ for(const mutate of [
+  (m:ContentPromotionManifest)=>{m.selection.includeLocalization=false;},
+  (m:ContentPromotionManifest)=>{m.records.find(r=>r.kind==='localeRouting')!.data.locales=[{code:'en',label:'English',direction:'ltr',landingPageId:'raw-id'}];},
+  (m:ContentPromotionManifest)=>{m.records.find(r=>r.kind==='localeGroup')!.data.translations=[{code:'en',documentId:'@promotion:page:en'},{code:'en',documentId:'@promotion:page:es'}];},
+ ]){const m=localeManifest();mutate(m);await expect(f.authed.mutation(fn('dryRun'),{manifest:m,...bindings})).rejects.toThrow();}
+});
+test('locale export requires explicit selection and carries configured landings and complete selected translation groups',async()=>{
+ const f=await localeFixture();
+ const ids=await f.t.run(async ctx=>{
+  const identity=await ctx.db.query('convexpress_siteIdentity').unique();await ctx.db.patch(identity!._id,manifest().source);
+  const pages=[];for(const code of ['en','es','ar'])pages.push(await ctx.db.insert('posts',{type:'page',title:code,slug:code,path:`/${code}`,status:'publish',visibility:'public',content:'',contentMode:'blocks',blocksVersion:2,blocksRevision:1,blocks:[{id:'language',name:'core/language-switcher',version:1,attrs:{}}],authorId:f.userId,commentStatus:'closed',createdAt:1,updatedAt:1}));
+  await ctx.db.insert('locale_routing',{key:'site',enabled:true,locales:['en','es','ar'].map((code,i)=>({code,label:code,direction:code==='ar'?'rtl' as const:'ltr' as const,landingPageId:pages[i]!})),revision:1,updatedBy:f.userId,updatedAt:1});
+  const group=await ctx.db.insert('locale_translation_groups',{key:'guide',revision:1,updatedBy:f.userId,updatedAt:1});
+  for(const [i,code] of ['en','es'].entries())await ctx.db.insert('locale_translations',{groupId:group,code,documentId:pages[i]!});
+  return {pages};
+ });
+ const args={target,selection:{...manifest().selection,pageIds:[ids.pages[0]!]}},exportFn=makeFunctionReference<'query'>('contentPromotion/operations:exportManifest');
+ await expect(f.authed.query(exportFn,args)).rejects.toThrow('LOCALIZATION_SELECTION_REQUIRED');
+ const exported=await f.authed.query(exportFn,{...args,selection:{...args.selection,includeLocalization:true}});
+ expect(exported.manifest.records.filter((r:any)=>r.kind==='page')).toHaveLength(3);expect(exported.manifest.records.filter((r:any)=>r.kind==='localeRouting')).toHaveLength(1);expect(exported.manifest.records.find((r:any)=>r.kind==='localeGroup').data.translations).toHaveLength(2);
+});
+
+test('locale promotion requires normal language authority and binds configuration changes after review',async()=>{
+ const limited=await fixture();await expect(limited.authed.mutation(fn('dryRun'),{manifest:localeManifest(),...bindings})).rejects.toThrow();
+ const f=await localeFixture(),m=localeManifest();let a=await f.authed.mutation(fn('dryRun'),{manifest:m,...bindings});await f.authed.mutation(fn('apply'),{receiptId:a.receiptId,expectedDigest:a.digest,confirmLive:true});
+ a=await f.authed.mutation(fn('dryRun'),{manifest:m,...bindings});
+ await f.t.run(async ctx=>{const row=await ctx.db.query('locale_routing').unique();await ctx.db.patch(row!._id,{enabled:false,revision:row!.revision+1});});
+ await expect(f.authed.mutation(fn('apply'),{receiptId:a.receiptId,expectedDigest:a.digest,confirmLive:true})).rejects.toThrow('PROMOTION_CONFLICT');
+ expect((await f.t.run(ctx=>ctx.db.query('locale_routing').unique()))!.enabled).toBe(false);
+});
+test('locale promotion preserves unrelated groups and detects new assignments or incompatible language settings',async()=>{
+ const f=await localeFixture(),m=localeManifest();let a=await f.authed.mutation(fn('dryRun'),{manifest:m,...bindings});await f.authed.mutation(fn('apply'),{receiptId:a.receiptId,expectedDigest:a.digest,confirmLive:true});
+ const unrelated=await f.t.run(async ctx=>{
+  const page=await ctx.db.insert('posts',{type:'page',title:'Independent',slug:'independent',status:'publish',visibility:'public',content:'',authorId:f.userId,commentStatus:'closed',createdAt:1,updatedAt:1});
+  const group=await ctx.db.insert('locale_translation_groups',{key:'independent',revision:1,updatedBy:f.userId,updatedAt:1});
+  await ctx.db.insert('locale_translations',{groupId:group,documentId:page,code:'en'});return {page,group};
+ });
+ const before=await f.t.run(async ctx=>({group:await ctx.db.get(unrelated.group),entries:await ctx.db.query('locale_translations').withIndex('by_group',q=>q.eq('groupId',unrelated.group)).collect()}));
+ a=await f.authed.mutation(fn('dryRun'),{manifest:m,...bindings});expect(a.issues).toEqual([]);await f.authed.mutation(fn('apply'),{receiptId:a.receiptId,expectedDigest:a.digest,confirmLive:true});
+ expect(await f.t.run(async ctx=>({group:await ctx.db.get(unrelated.group),entries:await ctx.db.query('locale_translations').withIndex('by_group',q=>q.eq('groupId',unrelated.group)).collect()}))).toEqual(before);
+ a=await f.authed.mutation(fn('dryRun'),{manifest:m,...bindings});
+ await f.t.run(ctx=>ctx.db.insert('locale_translation_groups',{key:'new-empty',revision:1,updatedBy:f.userId,updatedAt:1}));
+ await expect(f.authed.mutation(fn('apply'),{receiptId:a.receiptId,expectedDigest:a.digest,confirmLive:true})).rejects.toThrow('PROMOTION_CONFLICT');
+ const removal=structuredClone(m);removal.records.find(r=>r.kind==='localeRouting')!.data={key:'site',enabled:false,locales:[]};removal.records.find(r=>r.kind==='localeGroup')!.data.translations=[];
+ const review=await f.authed.mutation(fn('dryRun'),{manifest:removal,...bindings});expect(review.ready).toBe(false);expect(review.issues.map((i:any)=>i.code)).toContain('PROMOTION_LOCALE_NOT_CONFIGURED');
+});
+test('locale rollback detects child-only writes and never silently restores over another group assignment',async()=>{
+ const f=await localeFixture(),m=localeManifest();let a=await f.authed.mutation(fn('dryRun'),{manifest:m,...bindings});await f.authed.mutation(fn('apply'),{receiptId:a.receiptId,expectedDigest:a.digest,confirmLive:true});
+ a=await f.authed.mutation(fn('dryRun'),{manifest:m,...bindings});await f.authed.mutation(fn('apply'),{receiptId:a.receiptId,expectedDigest:a.digest,confirmLive:true});
+ await f.t.run(async ctx=>{const entry=await ctx.db.query('locale_translations').first();await ctx.db.delete(entry!._id);});
+ await expect(f.authed.mutation(fn('rollback'),{receiptId:a.receiptId,expectedDigest:a.digest,confirmLive:true})).rejects.toThrow('PROMOTION_ROLLBACK_CONFLICT');
+});
+test('locale manifest rejects cross-group duplicate documents, unconfigured languages and mixed document types',async()=>{
+ const f=await localeFixture();
+ for(const mutate of [
+  (m:ContentPromotionManifest)=>{m.records.push({...structuredClone(m.records.find(r=>r.kind==='localeGroup')!),key:'localeGroup:other',data:{key:'other',translations:[{code:'en',documentId:'@promotion:page:en'}]}});},
+  (m:ContentPromotionManifest)=>{m.records.find(r=>r.kind==='localeGroup')!.data.translations=[{code:'fr',documentId:'@promotion:page:en'}];},
+  (m:ContentPromotionManifest)=>{const p=structuredClone(m.records[0]!);p.key='post:entry';p.kind='post';p.data.slug='entry';p.data.blocks=[];m.records.push(p);m.records.find(r=>r.kind==='localeGroup')!.data.translations=[{code:'en',documentId:'@promotion:page:en'},{code:'es',documentId:'@promotion:post:entry'}];},
+ ]){const m=localeManifest();mutate(m);await expect(f.authed.mutation(fn('dryRun'),{manifest:m,...bindings})).rejects.toThrow();}
+});
+test('locale export includes explicitly selected empty groups and disabled routing without inventing source settings',async()=>{
+ const f=await localeFixture();await f.t.run(async ctx=>{const identity=await ctx.db.query('convexpress_siteIdentity').unique();await ctx.db.patch(identity!._id,manifest().source);await ctx.db.insert('locale_translation_groups',{key:'removed-guide',revision:3,updatedBy:f.userId,updatedAt:1});});
+ const exported=await f.authed.query(makeFunctionReference<'query'>('contentPromotion/operations:exportManifest'),{target,selection:{...manifest().selection,pageIds:[],includeLocalization:true,localeGroupKeys:['removed-guide']}});
+ expect(exported.manifest.records.map((r:any)=>r.kind)).toEqual(['localeRouting','localeGroup']);expect(exported.manifest.records[0].data).toEqual({key:'site',enabled:false,locales:[]});expect(exported.manifest.records[1].data.translations).toEqual([]);
+ expect(await f.t.run(ctx=>ctx.db.query('locale_routing').unique())).toBeNull();
+});
+
+
+test("template presentation writes share nested-shape and size refusal without target changes", async () => {
+ const f = await fixture();
+ await f.t.run(async ctx => {
+  const user = await ctx.db.get(f.userId); const role = await ctx.db.get(user!.roleId!);
+  await ctx.db.patch(role!._id, {capabilities:[...role!.capabilities,"settings.import"]});
+ });
+ const baseline = await f.authed.query(makeFunctionReference<"query">("settings/templateDrafts:snapshot"), {});
+ const malformed = [
+  {Core:{colors:{primary:"#123456"}}},
+  {core:[]},
+  {core:{"menu.layout":{}}},
+  {core:{menuLayout:[]}},
+  {core:{footer:{copyrightText:"x".repeat(250_000)}}},
+ ];
+ for (const settings of malformed) {
+  const values = {...baseline.values,settings};
+  const m = manifest(); m.selection.includePresentation = true;
+  m.records.push({key:"template",kind:"presentation",sourceRevision:"1",data:{section:"appearance.template",values}});
+  await expect(f.authed.mutation(fn("dryRun"), {manifest:m,...bindings})).rejects.toThrow();
+  await expect(f.authed.mutation(makeFunctionReference<"mutation">("settings/mutations:updateSection"), {section:"appearance.template",values:{settings}})).rejects.toThrow();
+  await expect(f.authed.mutation(makeFunctionReference<"mutation">("settings/mutations:importAll"), {data:{settings:{"appearance.template":values}}})).rejects.toThrow();
+  await expect(f.authed.mutation(makeFunctionReference<"mutation">("settings/templateDrafts:publish"), {values,expectedRevision:baseline.revision,confirmLive:true})).rejects.toThrow();
+  expect(await f.authed.query(makeFunctionReference<"query">("settings/templateDrafts:snapshot"), {})).toEqual(baseline);
+ }
+ expect(await f.t.run(ctx=>ctx.db.query("appearance_drafts").collect())).toHaveLength(0);
+ expect(await f.t.run(ctx=>ctx.db.query("posts").collect())).toHaveLength(0);
+});
+
+test("template generic partial updates preserve valid camelCase modules and other packs", async () => {
+ const f=await fixture();
+ const values={active:"core",overrides:{},variants:{},settings:{core:{menuLayout:{primary:"footer-1"}},"aster-house":{colors:{primary:"#123456"}}}};
+ await f.authed.mutation(makeFunctionReference<"mutation">("settings/mutations:updateSection"), {section:"appearance.template",values});
+ await f.authed.mutation(makeFunctionReference<"mutation">("settings/mutations:updateSection"), {section:"appearance.template",values:{active:"aster-house"}});
+ const result=await f.authed.query(makeFunctionReference<"query">("settings/templateDrafts:snapshot"), {});
+ expect(result.values).toEqual({...values,active:"aster-house"});
+ const m=manifest();m.selection.includePresentation=true;m.records.push({key:"template",kind:"presentation",sourceRevision:"1",data:{section:"appearance.template",values:result.values}});
+ const {validateManifest}=await import("../shared");expect(validateManifest(m).records).toHaveLength(2);
+});
+
+test("appearance-only promotion remaps footer media and preserves unrelated live settings", async () => {
+ const src = await canonicalMediaSource(), destination = await fixture();
+ const snapshotRef = makeFunctionReference<"query">("settings/templateDrafts:snapshot");
+ const publishRef = makeFunctionReference<"mutation">("settings/templateDrafts:publish");
+ await src.source.t.run(async ctx => {
+  await ctx.db.insert("settings", {section:"reading",values:{homepageDisplays:"latest_posts",postsPerPage:9},updatedAt:1,updatedBy:src.source.userId});
+  await ctx.db.insert("membership_restriction_rules",{resourceType:"route",resourceIdOrKey:"/members/*",ruleMode:"allow_only",planIds:[],teaserMode:"hide",loginRequired:true,createdAt:1,updatedAt:1});
+ });
+ const sourceBefore = await src.source.authed.query(snapshotRef, {});
+ const values = { ...sourceBefore.values, settings: { core: { footer: { rows: [{ id: "image-row", background: "default", padding: "normal", container: "default", columns: [{ id: "image-cell", cell: { type: "image", mediaId: src.ids.mediaId, alt: "Staging footer image", width: 120 } }] }] } } } };
+ const published = await src.source.authed.mutation(publishRef, {values, expectedRevision: sourceBefore.revision});
+ const liveBefore = await destination.authed.query(snapshotRef, {});
+ // The previous Customizer shortcut cannot copy site-local media IDs.
+ await expect(destination.authed.mutation(publishRef, {values, expectedRevision: liveBefore.revision, confirmLive: true, source: {...published.identity, revision: published.revision}})).rejects.toMatchObject({data:expect.objectContaining({code:"MEDIA_UNAVAILABLE"})});
+ expect(await destination.authed.query(snapshotRef, {})).toEqual(liveBefore);
+ const exported = await src.source.authed.query(makeFunctionReference<"query">("contentPromotion/operations:exportManifest"), {target, selection: {...manifest().selection, pageIds: [], includeAppearance: true}});
+ await expect(src.source.authed.query(makeFunctionReference<"query">("contentPromotion/operations:exportManifest"), {target, selection: {...manifest().selection, pageIds: [src.ids.pageId], includeAppearance: true}})).rejects.toMatchObject({data:expect.objectContaining({code:"ROUTE_POLICY_SELECTION_REQUIRED"})});
+ const full = await src.source.authed.query(makeFunctionReference<"query">("contentPromotion/operations:exportManifest"), {target, selection: {...manifest().selection, pageIds: [], includePresentation: true, includeAppearance: true, includeRoutePolicies: true}});
+ expect(full.manifest.records.filter((r:any)=>r.kind === "presentation").map((r:any)=>r.data.section).sort()).toEqual(["appearance.template","general","reading"]);
+ expect(exported.manifest.records.filter((r:any)=>r.kind === "presentation").map((r:any)=>r.data.section)).toEqual(["appearance.template"]);
+ expect(exported.manifest.records.map((r:any)=>r.kind).sort()).toEqual(["media","presentation"]);
+ const appearance = exported.manifest.records.find((r:any)=>r.kind === "presentation")!;
+ expect((appearance.data.values as any).settings.core.footer.rows[0].columns[0].cell.mediaId).toBe(`@promotion:${src.mediaKey}`);
+ const preserved = () => destination.t.run(async ctx=>({general:await ctx.db.query("settings").withIndex("by_section",q=>q.eq("section","general")).unique(),posts:await ctx.db.query("posts").collect(),menus:await ctx.db.query("menuLocations").collect()}));
+ const before = await preserved();
+ const storageId = await destination.t.run(ctx=>ctx.storage.store(src.bytes));
+ const review = await destination.authed.mutation(fn("dryRun"), {manifest:exported.manifest, mediaBindings:[{key:src.mediaKey,storageId}], dependencyBindings:[]});
+ expect(review.ready).toBe(true);
+ await destination.authed.mutation(fn("apply"), receiptArgs(review));
+ const live = await destination.authed.query(snapshotRef, {});
+ const media = await destination.t.run(ctx=>ctx.db.query("media").unique());
+ expect(live.values.settings.core.footer.rows[0].columns[0].cell.mediaId).toBe(media!._id);
+ expect(media!._id).not.toBe(src.ids.mediaId); expect(media!.storageId).toBe(storageId);
+ expect(await preserved()).toEqual(before);
+ expect(await src.source.authed.query(snapshotRef, {})).toEqual(published);
+});
+
+test("footer audience promotion resolves only one active target-owned list and copies no audience records",async()=>{
+ const source=await fixture(),destination=await fixture();
+ const fields={name:"Journal letters",description:"Local audience",consentText:"Source wording",privacyUrl:"/privacy",status:"active" as const,revision:1,createdAt:1,updatedAt:1};
+ const sourceList=await source.t.run(async ctx=>{const site=(await ctx.db.query("convexpress_siteIdentity").unique())!;await ctx.db.patch(site._id,manifest().source);const id=await ctx.db.insert("mailingLists",{...fields,websiteKey:"site",instanceKey:"site:staging",createdBy:source.userId,updatedBy:source.userId});await ctx.db.insert("settings",{section:"appearance.template",values:{active:"journal",overrides:{},variants:{},settings:{journal:{footer:{rows:[{id:"r",columns:[{id:"c",cell:{type:"newsletter",buttonText:"Subscribe",audienceId:id}}]}]}}}},updatedAt:1,updatedBy:source.userId,legacyAppearanceMigration:{version:2,migratedAt:1}});return id;});
+ const exported=await source.authed.query(makeFunctionReference<"query">("contentPromotion/operations:exportManifest"),{target,selection:{...manifest().selection,pageIds:[],includeAppearance:true}});
+ const m=exported.manifest as ContentPromotionManifest;expect(m.dependencies).toContainEqual(expect.objectContaining({kind:"mailingList",sourceId:sourceList,slug:fields.name}));expect(m.records).toHaveLength(1);
+ const missing=await destination.authed.mutation(fn("dryRun"),{manifest:m,...bindings});expect(missing.ready).toBe(false);
+ const targetList=await destination.t.run(ctx=>ctx.db.insert("mailingLists",{...fields,consentText:"Target wording",websiteKey:"site",instanceKey:"site:live",createdBy:destination.userId,updatedBy:destination.userId}));
+ const review=await destination.authed.mutation(fn("dryRun"),{manifest:m,...bindings});if(!review.ready)throw Error(JSON.stringify(review.issues));expect(review.ready).toBe(true);
+ await destination.t.run(ctx=>ctx.db.patch("mailingLists",targetList,{status:"archived"}));await expect(destination.authed.mutation(fn("apply"),receiptArgs(review))).rejects.toThrow();
+ await destination.t.run(ctx=>ctx.db.patch("mailingLists",targetList,{status:"active",revision:2}));
+ const fresh=await destination.authed.mutation(fn("dryRun"),{manifest:m,...bindings});expect(fresh.ready).toBe(true);await destination.authed.mutation(fn("apply"),receiptArgs(fresh));
+ const saved=await destination.t.run(ctx=>ctx.db.query("settings").withIndex("by_section",q=>q.eq("section","appearance.template")).unique());expect((saved!.values as any).settings.journal.footer.rows[0].columns[0].cell.audienceId).toBe(targetList);
+ expect((await destination.t.run(ctx=>ctx.db.get("mailingLists",targetList)))!.consentText).toBe("Target wording");for(const table of ["mailingListSubscribers","mailingListConsentEvents"] as const)expect(await destination.t.run(ctx=>ctx.db.query(table).take(1))).toEqual([]);
+ await destination.t.run(ctx=>ctx.db.insert("mailingLists",{...fields,websiteKey:"site",instanceKey:"site:live",createdBy:destination.userId,updatedBy:destination.userId}));expect((await destination.authed.mutation(fn("dryRun"),{manifest:m,...bindings})).ready).toBe(false);
 });

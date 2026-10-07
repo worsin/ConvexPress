@@ -1,10 +1,11 @@
-import type { RuleResult, RuleArgs, GrantResult, BlockRuleBatchArgs } from "./policyReads";
+import type { RuleResult, RuleArgs, GrantResult, BlockRuleBatchArgs, ContentRuleBatchArgs } from "./policyReads";
 import { makeFunctionReference } from "convex/server";
 import type { RequestReadLedger, MeasuredPolicyPage } from "../helpers/requestReadLedger";
 import { readMembershipAuthorityGrants, membershipAuthorityReader } from "../helpers/membershipAuthority";
 const rulesRead = makeFunctionReference<"query", RuleArgs, RuleResult[]>("membership/policyReads:rules");
 const measuredRulesRead = makeFunctionReference<"query", RuleArgs, MeasuredPolicyPage<RuleResult>>("membership/policyReads:measuredRules");
 const measuredBlockRulesRead = makeFunctionReference<"query", BlockRuleBatchArgs, MeasuredPolicyPage<RuleResult>>("membership/policyReads:measuredBlockRules");
+const measuredContentRulesRead = makeFunctionReference<"query", ContentRuleBatchArgs, MeasuredPolicyPage<RuleResult>>("membership/policyReads:measuredContentRules");
 import type { Id } from "../_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
 import { isMembershipPluginEnabled } from "../commerce/helpers";
@@ -430,7 +431,20 @@ export function createMembershipAccessEvaluator(ctx: QueryCtx, budget?: RequestR
       for (const key of selected) rulesByTarget.set(JSON.stringify(["block", key]), Promise.resolve(result.items.filter(rule => rule.resourceIdOrKey === key)));
     }
   };
-  return Object.assign(evaluate, { preloadBlocks });
+  const preloadContent = async (resourceType: "page" | "post", keys: readonly string[]): Promise<void> => {
+    if (!keys.length) return;
+    enabled ??= isMembershipPluginEnabled(ctx, budget);
+    if (!await enabled) return;
+    const missing = [...new Set(keys)].filter(key => !rulesByTarget.has(JSON.stringify([resourceType, key])));
+    for (let offset = 0; offset < missing.length; offset += 128) {
+      const selected = missing.slice(offset, offset + 128);
+      budget?.beforeRead();
+      const result = await ctx.runQuery(measuredContentRulesRead, { resourceType, keys: selected });
+      budget?.recordPage(result);
+      for (const key of selected) rulesByTarget.set(JSON.stringify([resourceType, key]), Promise.resolve(result.items.filter(rule => rule.resourceIdOrKey === key)));
+    }
+  };
+  return Object.assign(evaluate, { preloadBlocks, preloadContent });
 }
 export async function evaluateMembershipAccess(ctx: MembershipCtx, args: AccessArgs, budget?: RequestReadLedger): Promise<MembershipAccessDecision> {
   if (!(await isMembershipPluginEnabled(ctx, budget)))

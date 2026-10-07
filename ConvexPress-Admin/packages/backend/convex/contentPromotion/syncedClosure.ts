@@ -42,6 +42,6 @@ export async function captureSyncedPromotionClosure(
     if(source.publishedRevision===undefined)return null;
     const revision=await storedRevision(ctx,id,request.revisionPolicy==='latest'?source.publishedRevision:request.revision,budget);
     if(!revision||revision.publishedAt===undefined)return null;
-    return{source:{id:source._id,generation:source.generation,publishedRevision:source.publishedRevision,scope},revision:publishedProjection(source,revision,scope)};
+    return{source:{id:source._id,generation:source.generation,publishedRevision:source.publishedRevision,isLocked:source.isLocked===true,scope},revision:publishedProjection(source,revision,scope)};
   },resolve);
 }

@@ -58,5 +58,10 @@
       "form.submission",
       "reference.targetResolution"
     ]
-  }
+  },
+  "searchText": [
+    [
+      "title"
+    ]
+  ]
 }

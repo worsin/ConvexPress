@@ -1,4 +1,5 @@
 import {socialFeedTables} from "./schema/socialFeeds";
+import { canonicalDraftTables } from "./schema/canonicalDrafts";
 import {syncedBlockTables} from "./schema/syncedBlocks";
 import { blockDefinitionTables } from "./schema/blockDefinitions";
 import {leadMagnetTables} from "./schema/leadMagnets";
@@ -76,6 +77,7 @@ import { integrationsTables } from "./schema/integrations";
 // ─── Compose Schema ──────────────────────────────────────────────────────────
 import { withMediaReferenceIndexes } from "./media/referenceIndexes";
 export default defineSchema(withMediaReferenceIndexes({
+  ...canonicalDraftTables,
   ...contentPromotionTables,
   ...localizationTables,
   ...usersTables,

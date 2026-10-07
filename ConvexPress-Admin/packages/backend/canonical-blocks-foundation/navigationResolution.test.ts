@@ -46,7 +46,7 @@ test('child-page envelopes bind the requested depth and refuse orphaned or cycli
 test('menu envelopes bind the selected resource and reject malformed navigation or unsafe links',async()=>{
  const node={id:'menu',name:'core/menu',version:1,attrs:{source:'menu',menu:'selected-menu'}};
  const result={menu:{id:'selected-menu',name:'Navigation'},items:[{id:'link',parentId:null,depth:0,kind:'link',label:'Visit',description:null,href:'/page/visit',target:'_self',rel:null}]};
- const data=await resolveCanonicalData([node],scope,policy,async()=>({page:null}),async(resolver,args)=>{expect(resolver).toBe('site.menu');expect(args).toEqual({source:'menu',menu:'selected-menu',location:'primary'});return result;});
+ const data=await resolveCanonicalData([node],scope,policy,async()=>({page:null}),async(resolver,args)=>{expect(resolver).toBe('site.menu');expect(args).toEqual({source:'menu',menu:'selected-menu',location:'header'});return result;});
  expect(validateCanonicalData([node],scope,policy,data)).toEqual(data);
  for(const wrong of [
   {...result,menu:{id:'other',name:'Other'}},

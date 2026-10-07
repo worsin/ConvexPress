@@ -1,3 +1,14 @@
+import {FooterAudienceNewsletter} from "@/components/layout/FooterAudienceNewsletter";
+import { FooterImage } from "@/components/layout/FooterImage";
+import { footerCellAlignment } from "@/components/layout/footerCellAlignment";
+import { Mail, MapPin, Phone } from "lucide-react";
+import { FooterAutoPages } from "@/components/layout/FooterAutoPages";
+import { FooterLegalLinks } from "@/components/layout/FooterLegalLinks";
+import { FooterSectionFrame, footerColumnsClass } from "@/components/layout/FooterSectionFrame";
+import { FooterRowFrame } from "@/components/layout/FooterRowFrame";
+import { footerMenuItems } from "@/components/menus/footerMenuItems";
+import { FooterCopyright } from "@/components/layout/FooterCopyright";
+import { MenuItemTarget } from "@/components/menus/MenuItemTarget";
 /**
  * Aster · chrome.footer — a masthead: the wordmark set large across the top,
  * the configured footer rows as narrow columns of small links, then a rule and
@@ -11,7 +22,6 @@ import DOMPurify from "@/lib/html-sanitizer";
 import { useState, type FormEvent } from "react";
 
 import { SocialLinks } from "@/components/layout/SocialLinks";
-import { MediaImage } from "@/components/media/MediaImage";
 import { useMenuForLocation } from "@/hooks/layout/useMenuForLocation";
 import { useSiteIdentity } from "@/hooks/layout/useSiteIdentity";
 import { useNewsletterSubscribe } from "@/hooks/useNewsletterSubscribe";
@@ -39,27 +49,27 @@ export default function AsterChromeFooter({ data }: SurfaceProps<FooterSurfaceDa
   const rows = footerConfig.rows ?? [];
   const padding = footerConfig.layout.padding === "compact" ? "py-10 md:py-14" : footerConfig.layout.padding === "spacious" ? "py-20 md:py-28" : "py-14 md:py-20";
 
+  if (rows.length > 0) {
+    return <footer data-pack="aster-house" data-slot="site-footer" data-customize="footer.layout.background" role="contentinfo" className={cn("border-t border-border bg-background", footerConfig.layout.background === "dark" && "bg-muted/30")}>
+      <Container className={padding}><Masthead siteIdentity={siteIdentity} footerConfig={footerConfig} /></Container>
+      {rows.map(row => <RowColumns key={row.id} row={row} />)}
+      <Container className="flex flex-col gap-6 py-6"><Rule /><Copyright siteTitle={siteTitle} footerConfig={footerConfig} /></Container>
+    </footer>;
+  }
+
   return (
-    <footer data-pack="aster-house" data-slot="site-footer" data-customize="footer.layout.background" role="contentinfo" className={cn("border-t border-border bg-background", footerConfig.layout.background === "dark" && "bg-muted/30")}>
+    <FooterSectionFrame layout={footerConfig.layout} pack="aster-house">
       <Container className={cn("flex flex-col gap-16", padding)}>
-        <Masthead siteIdentity={siteIdentity} footerConfig={footerConfig} />
-        {rows.length > 0 ? (
-          <div className="flex flex-col gap-16">
-            {rows.map((row) => (
-              <RowColumns key={row.id} row={row} />
-            ))}
-          </div>
-        ) : (
-          <LegacyColumns footerConfig={footerConfig} />
-        )}
-        {footerConfig.bottomBar.enabled || rows.length > 0 ? (
+        {footerConfig.branding.enabled && <Masthead siteIdentity={siteIdentity} footerConfig={footerConfig} />}
+        <LegacyColumns footerConfig={footerConfig} />
+        {footerConfig.bottomBar.enabled ? (
           <div className="flex flex-col gap-6">
             <Rule />
             <Copyright siteTitle={siteTitle} footerConfig={footerConfig} />
           </div>
         ) : null}
       </Container>
-    </footer>
+    </FooterSectionFrame>
   );
 }
 
@@ -99,20 +109,20 @@ const SPAN: Record<number, string> = {
 function RowColumns({ row }: { row: FooterRow }) {
   const align = row.alignment === "center" ? "text-center items-center" : row.alignment === "right" ? "text-right items-end" : "";
   return (
-    <div className={cn("flex flex-col gap-6", row.topBorder && row.topBorder !== "none" && "border-t border-border pt-10")}>
-      {row.heading ? <SmallCaps as="h2">{row.heading}</SmallCaps> : null}
+    <FooterRowFrame row={row}>
+      {row.heading ? <SmallCaps as="h2" className="mb-6">{row.heading}</SmallCaps> : null}
       <div className={cn("grid grid-cols-1 gap-10 sm:grid-cols-2 lg:grid-cols-12", align)}>
         {row.columns.map((column) => (
           <Column key={column.id} column={column} total={row.columns.length} />
         ))}
       </div>
-    </div>
+    </FooterRowFrame>
   );
 }
 
 function Column({ column, total }: { column: FooterColumn; total: number }) {
   const width = column.width ?? Math.max(1, Math.floor(12 / Math.max(1, total)));
-  const align = column.alignment === "center" ? "text-center items-center" : column.alignment === "right" ? "text-right items-end" : "";
+  const align = footerCellAlignment(column);
   return (
     <div className={cn("flex min-w-0 flex-col gap-3", SPAN[Math.min(12, Math.max(1, width))], align)}>
       <Cell cell={column.cell} />
@@ -154,7 +164,7 @@ function Cell({ cell }: { cell: FooterCell }) {
     case "nav":
       return <NavCell heading={cell.heading} location={cell.menuLocation} />;
     case "image":
-      return <ImageCell mediaId={cell.mediaId} alt={cell.alt} href={cell.href} width={cell.width} />;
+      return <FooterImage cell={cell} />;
     case "social":
       return (
         <>
@@ -163,21 +173,21 @@ function Cell({ cell }: { cell: FooterCell }) {
         </>
       );
     case "newsletter":
-      return <NewsletterForm heading={cell.heading} subtext={cell.subtext} buttonText={cell.buttonText} />;
+      return cell.audienceId ? <FooterAudienceNewsletter cell={cell} tone="editorial" /> : <NewsletterForm heading={cell.heading} subtext={cell.subtext} buttonText={cell.buttonText} />;
     case "contact":
       return (
         <>
           <CellHeading>{cell.heading}</CellHeading>
           <div className="flex flex-col gap-1.5 text-sm leading-6 text-muted-foreground">
-            {cell.address ? <p className="whitespace-pre-line">{cell.address}</p> : null}
+            {cell.address ? <div className="flex items-start gap-2">{cell.showIcons && <MapPin className="mt-1 size-3 shrink-0" aria-hidden="true" />}<span className="whitespace-pre-line">{cell.address}</span></div> : null}
             {cell.phone ? (
-              <a href={`tel:${cell.phone}`} className={linkClass}>
-                {cell.phone}
+              <a href={`tel:${cell.phone}`} className={cn(linkClass, "flex min-w-0 items-center gap-2")}>
+                {cell.showIcons && <Phone className="size-3 shrink-0" aria-hidden="true" />}<span className="break-words">{cell.phone}</span>
               </a>
             ) : null}
             {cell.email ? (
-              <a href={`mailto:${cell.email}`} className={cn(linkClass, "break-all")}>
-                {cell.email}
+              <a href={`mailto:${cell.email}`} className={cn(linkClass, "flex min-w-0 items-center gap-2")}>
+                {cell.showIcons && <Mail className="size-3 shrink-0" aria-hidden="true" />}<span className="break-all">{cell.email}</span>
               </a>
             ) : null}
           </div>
@@ -190,7 +200,7 @@ function Cell({ cell }: { cell: FooterCell }) {
     case "divider":
       return <Rule className={cn(cell.thickness === "medium" && "border-t-2", cell.thickness === "thick" && "border-t-4")} />;
     case "copyright":
-      return <p className="text-sm text-muted-foreground">{cell.insertYear ? cell.text.replace(/\{year\}/g, String(new Date().getFullYear())) : cell.text}</p>;
+      return <FooterCopyright cell={cell} className="text-sm text-muted-foreground" />;
     case "payments":
       return cell.methods.length ? (
         <div className="flex flex-wrap items-center gap-2">
@@ -204,7 +214,11 @@ function Cell({ cell }: { cell: FooterCell }) {
   }
 }
 
-function NavCell({ heading, location }: { heading?: string; location: string }) {
+function NavCell(props: { heading?: string; location: string }) {
+  return props.location === "auto-pages" ? <FooterAutoPages heading={props.heading} /> : <AssignedNavCell {...props} />;
+}
+
+function AssignedNavCell({ heading, location }: { heading?: string; location: string }) {
   const menu = useMenuForLocation(location);
   if (!menu) return null;
   return (
@@ -216,49 +230,20 @@ function NavCell({ heading, location }: { heading?: string; location: string }) 
 }
 
 function MenuLinks({ items }: { items: ResolvedMenuItem[] }) {
-  const visible = items.filter((item) => !item.isOrphaned);
+  const visible = footerMenuItems(items);
   if (visible.length === 0) return null;
   return (
     <ul className="flex flex-col gap-1.5">
       {visible.map((item) => {
-        const isExternal = item.url.startsWith("http://") || item.url.startsWith("https://");
         const props = { ...(item.target ? { target: item.target } : {}), ...(item.rel ? { rel: item.rel } : {}) };
         return (
           <li key={item.id}>
-            {isExternal ? (
-              <a href={item.url} className={cn(linkClass, item.cssClasses)} {...props}>
-                {item.label}
-              </a>
-            ) : (
-              <Link to={item.url as any} className={cn(linkClass, item.cssClasses)} {...props}>
-                {item.label}
-              </Link>
-            )}
+            <MenuItemTarget item={item} className={cn(linkClass, item.cssClasses)} {...props} />
           </li>
         );
       })}
     </ul>
   );
-}
-
-function ImageCell({ mediaId, alt, href, width }: { mediaId: string | null; alt: string; href?: string; width?: number }) {
-  if (!mediaId) return null;
-  const isUrl = mediaId.startsWith("http://") || mediaId.startsWith("https://");
-  const image = isUrl ? (
-    <img src={mediaId} alt={alt} style={{ width: width ?? 200, height: "auto" }} loading="lazy" />
-  ) : (
-    <div style={{ width: width ?? 200 }}>
-      <MediaImage mediaId={mediaId as any} alt={alt} className="h-auto w-full" preferredSize="medium" sizes={`${width ?? 200}px`} />
-    </div>
-  );
-  if (href) {
-    return (
-      <a href={href} target="_blank" rel="noreferrer" className="inline-block">
-        {image}
-      </a>
-    );
-  }
-  return image;
 }
 
 function BrandCell({ showLogo, showTagline, description }: { showLogo: boolean; showTagline: boolean; description: string }) {
@@ -283,8 +268,8 @@ function BrandCell({ showLogo, showTagline, description }: { showLogo: boolean; 
 function LegacyColumns({ footerConfig }: { footerConfig: FooterConfig }) {
   const showBranding = footerConfig.branding.enabled;
   const showNav = footerConfig.navColumns.enabled;
-  const showNewsletter = footerConfig.newsletter.enabled;
-  const showContact = footerConfig.contactInfo.enabled;
+  const showNewsletter = footerConfig.newsletter.enabled && footerConfig.layout.columns !== "minimal";
+  const showContact = footerConfig.contactInfo.enabled && footerConfig.layout.columns !== "minimal";
   const navColumns = showNav ? footerConfig.navColumns.columns : [];
 
   if (!showBranding && !showNav && !showNewsletter && !showContact) {
@@ -292,7 +277,7 @@ function LegacyColumns({ footerConfig }: { footerConfig: FooterConfig }) {
   }
 
   return (
-    <div className="grid grid-cols-1 gap-10 sm:grid-cols-2 lg:grid-cols-4">
+    <div className={cn("gap-10 [&>*]:min-w-0", footerColumnsClass(footerConfig.layout.columns))}>
       {showBranding ? (
         <div className="flex flex-col gap-3">
           {footerConfig.branding.showDescription && footerConfig.branding.description ? (
@@ -305,7 +290,7 @@ function LegacyColumns({ footerConfig }: { footerConfig: FooterConfig }) {
         <FooterColumn
           key={`${column.menuSource}-${index}`}
           heading={column.heading}
-          location={column.menuSource === "footer-1" || column.menuSource === "footer-2" || column.menuSource === "footer-3" ? column.menuSource : "footer"}
+          location={column.menuSource === "custom" ? "footer" : column.menuSource}
           first={index === 0}
         />
       ))}
@@ -337,7 +322,11 @@ function LegacyColumns({ footerConfig }: { footerConfig: FooterConfig }) {
 }
 
 /** A heading + links column; renders nothing when its menu location has no links (the first column falls back to the Footer menu). */
-function FooterColumn({ heading, location, first }: { heading: string; location: string; first: boolean }) {
+function FooterColumn(props: { heading: string; location: string; first: boolean }) {
+  return props.location === "auto-pages" ? <FooterAutoPages heading={props.heading} /> : <AssignedFooterColumn {...props} />;
+}
+
+function AssignedFooterColumn({ heading, location, first }: { heading: string; location: string; first: boolean }) {
   const located = useMenuForLocation(location);
   const fallback = useMenuForLocation("footer");
   const menu = located && located.items.some((item) => !item.isOrphaned) ? located : first ? fallback : null;
@@ -364,20 +353,13 @@ function FooterLocationLinks({ location, inline = false }: { location: string; i
   return (
     <nav data-slot="footer-nav" aria-label="Footer navigation">
       <ul className="flex flex-wrap items-center gap-x-6 gap-y-2">
-        {visible.map((item) => {
-          const isExternal = item.url.startsWith("http://") || item.url.startsWith("https://");
+        {footerMenuItems(visible).map((item) => {
           const props = { ...(item.target ? { target: item.target } : {}), ...(item.rel ? { rel: item.rel } : {}) };
           return (
             <li key={item.id}>
-              {isExternal ? (
-                <a href={item.url} className={linkClass} {...props}>
+              <MenuItemTarget item={item} separatorOrientation="vertical" className={linkClass} {...props}>
                   {item.label}
-                </a>
-              ) : (
-                <Link to={item.url as any} className={linkClass} {...props}>
-                  {item.label}
-                </Link>
-              )}
+                </MenuItemTarget>
             </li>
           );
         })}
@@ -446,6 +428,7 @@ function Copyright({ siteTitle, footerConfig }: { siteTitle: string; footerConfi
         <p className="text-xs text-muted-foreground">{text}</p>
         {poweredBy ? <p className="text-xs text-muted-foreground/60">Powered by ConvexPress</p> : null}
       </div>
+      {!(footerConfig.rows?.length) && <FooterLegalLinks choice={footerConfig.bottomBar.legalLinks} />}
       <SocialLinks iconSize="sm" />
     </div>
   );

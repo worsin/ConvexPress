@@ -1,3 +1,11 @@
+import {FooterAudienceNewsletter} from "@/components/layout/FooterAudienceNewsletter";
+import { FooterImage } from "./FooterImage";
+import { footerCellAlignment } from "./footerCellAlignment";
+import { FooterAutoPages } from "./FooterAutoPages";
+import { FooterRowFrame } from "./FooterRowFrame";
+import { footerMenuItems } from "@/components/menus/footerMenuItems";
+import { FooterCopyright } from "./FooterCopyright";
+import { MenuItemTarget } from "@/components/menus/MenuItemTarget";
 /**
  * FooterRowsRenderer — renders the v2 block-style footer.
  *
@@ -9,7 +17,7 @@
 import { useState, type FormEvent } from "react";
 import { Link } from "@tanstack/react-router";
 import DOMPurify from "@/lib/html-sanitizer";
-import { useMutation, useQuery } from "convex/react";
+import { useMutation } from "convex/react";
 import { Mail, MapPin, Phone } from "lucide-react";
 import { api } from "@convexpress-website/backend/generated/api";
 
@@ -21,10 +29,8 @@ import type {
   FooterCell,
   FooterColumn,
   FooterContactCell,
-  FooterCopyrightCell,
   FooterDividerCell,
   FooterHtmlCell,
-  FooterImageCell,
   FooterLinksCell,
   FooterNavCell,
   FooterNewsletterCell,
@@ -53,31 +59,6 @@ export function FooterRowsRenderer({ rows }: FooterRowsRendererProps) {
 
 // ─── Row ─────────────────────────────────────────────────────────────────────
 
-const ROW_BG: Record<FooterRow["background"], string> = {
-  default: "bg-background",
-  muted: "bg-muted/40",
-  accent: "bg-accent/10",
-  contrast: "bg-foreground text-background",
-  transparent: "",
-};
-const ROW_PAD: Record<FooterRow["padding"], string> = {
-  none: "py-0",
-  compact: "py-3 lg:py-4",
-  normal: "py-6 lg:py-8",
-  spacious: "py-10 lg:py-14",
-};
-const ROW_CONTAINER: Record<FooterRow["container"], string> = {
-  narrow: "max-w-3xl",
-  default: "max-w-5xl",
-  wide: "max-w-7xl",
-  full: "max-w-none",
-};
-const ROW_BORDER: Record<NonNullable<FooterRow["topBorder"]>, string> = {
-  none: "",
-  subtle: "border-t border-border",
-  bold: "border-t-2 border-border",
-  accent: "border-t-2 border-accent",
-};
 const ALIGN: Record<NonNullable<FooterRow["alignment"]>, string> = {
   left: "text-left items-start",
   center: "text-center items-center",
@@ -86,33 +67,12 @@ const ALIGN: Record<NonNullable<FooterRow["alignment"]>, string> = {
 
 function FooterRowRenderer({ row }: { row: FooterRow }) {
   return (
-    <div className={cn(ROW_BG[row.background], row.topBorder && ROW_BORDER[row.topBorder])}>
-      <div
-        className={cn(
-          "mx-auto px-4 md:px-6 lg:px-8",
-          ROW_CONTAINER[row.container],
-          ROW_PAD[row.padding],
-        )}
-      >
-        {row.heading && (
-          <h2 className="mb-4 text-sm font-semibold text-foreground">{row.heading}</h2>
-        )}
-        <div
-          className={cn(
-            "grid grid-cols-12 gap-8",
-            row.alignment && ALIGN[row.alignment],
-          )}
-        >
-          {row.columns.map((col) => (
-            <FooterColumnRenderer
-              key={col.id}
-              column={col}
-              totalColumns={row.columns.length}
-            />
-          ))}
-        </div>
+    <FooterRowFrame row={row}>
+      {row.heading && <h2 className="mb-4 text-sm font-semibold text-foreground">{row.heading}</h2>}
+      <div className={cn("grid grid-cols-12 gap-8", row.alignment && ALIGN[row.alignment])}>
+        {row.columns.map(col => <FooterColumnRenderer key={col.id} column={col} totalColumns={row.columns.length} />)}
       </div>
-    </div>
+    </FooterRowFrame>
   );
 }
 
@@ -132,9 +92,9 @@ function FooterColumnRenderer({
   return (
     <div
       className={cn(
-        "col-span-12 flex flex-col gap-3",
+        "col-span-12 flex min-w-0 flex-col gap-3",
         colSpanClass,
-        column.alignment && ALIGN[column.alignment],
+        footerCellAlignment(column),
       )}
     >
       <FooterCellRenderer cell={column.cell} />
@@ -168,11 +128,11 @@ function FooterCellRenderer({ cell }: { cell: FooterCell }) {
     case "nav":
       return <NavCellRenderer cell={cell} />;
     case "image":
-      return <ImageCellRenderer cell={cell} />;
+      return <FooterImage cell={cell} />;
     case "social":
       return <SocialCellRenderer cell={cell} />;
     case "newsletter":
-      return <NewsletterCellRenderer cell={cell} />;
+      return cell.audienceId ? <FooterAudienceNewsletter cell={cell} /> : <NewsletterCellRenderer cell={cell} />;
     case "contact":
       return <ContactCellRenderer cell={cell} />;
     case "brand":
@@ -182,7 +142,7 @@ function FooterCellRenderer({ cell }: { cell: FooterCell }) {
     case "divider":
       return <DividerCellRenderer cell={cell} />;
     case "copyright":
-      return <CopyrightCellRenderer cell={cell} />;
+      return <FooterCopyright cell={cell} className="text-xs text-muted-foreground" />;
     case "payments":
       return <PaymentsCellRenderer cell={cell} />;
   }
@@ -229,13 +189,17 @@ function LinksCellRenderer({ cell }: { cell: FooterLinksCell }) {
 }
 
 function NavCellRenderer({ cell }: { cell: FooterNavCell }) {
+  return cell.menuLocation === "auto-pages" ? <FooterAutoPages heading={cell.heading} /> : <AssignedNavCell cell={cell} />;
+}
+
+function AssignedNavCell({ cell }: { cell: FooterNavCell }) {
   const menu = useMenuForLocation(cell.menuLocation);
   if (!menu) return null;
   return (
     <>
       <CellHeading>{cell.heading || menu.name}</CellHeading>
       <ul className="flex flex-col gap-2">
-        {menu.items.map((item) => (
+        {footerMenuItems(menu.items).map((item) => (
           <NavItemLink key={item.id} item={item} />
         ))}
       </ul>
@@ -246,8 +210,8 @@ function NavCellRenderer({ cell }: { cell: FooterNavCell }) {
 function NavItemLink({ item }: { item: ResolvedMenuItem }) {
   return (
     <li>
-      <a
-        href={item.url}
+      <MenuItemTarget
+        item={item}
         target={item.target}
         rel={item.rel}
         className={cn(
@@ -256,37 +220,9 @@ function NavItemLink({ item }: { item: ResolvedMenuItem }) {
         )}
       >
         {item.label}
-      </a>
+      </MenuItemTarget>
     </li>
   );
-}
-
-function ImageCellRenderer({ cell }: { cell: FooterImageCell }) {
-  const mediaId = cell.mediaId ?? "";
-  const mediaDoc = useQuery(
-    (api as any).media.queries.getPublic,
-    !mediaId || mediaId.startsWith("http://") || mediaId.startsWith("https://")
-      ? "skip"
-      : { mediaId },
-  ) as { url?: string; altText?: string; title?: string } | null | undefined;
-  if (!mediaId) return null;
-  const src = mediaDoc?.url ?? mediaId;
-  const img = (
-    <img
-      src={src}
-      alt={cell.alt || mediaDoc?.altText || mediaDoc?.title || ""}
-      style={{ width: cell.width ?? 200, height: "auto" }}
-      loading="lazy"
-    />
-  );
-  if (cell.href) {
-    return (
-      <a href={cell.href} target="_blank" rel="noreferrer">
-        {img}
-      </a>
-    );
-  }
-  return img;
 }
 
 function SocialCellRenderer({ cell }: { cell: FooterSocialCell }) {
@@ -341,7 +277,7 @@ function NewsletterCellRenderer({ cell }: { cell: FooterNewsletterCell }) {
           placeholder="you@example.com"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          className="flex-1 border border-border bg-background px-3 py-1.5 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+          className="min-w-0 flex-1 border border-border bg-background px-3 py-1.5 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring"
           required
         />
         <button
@@ -452,13 +388,6 @@ function DividerCellRenderer({ cell }: { cell: FooterDividerCell }) {
     thick: "border-t-4",
   }[cell.thickness];
   return <hr className={cn(heightClass, "border-border")} />;
-}
-
-function CopyrightCellRenderer({ cell }: { cell: FooterCopyrightCell }) {
-  const rendered = cell.insertYear
-    ? cell.text.replace(/\{year\}/g, String(new Date().getFullYear()))
-    : cell.text;
-  return <p className="text-xs text-muted-foreground">{rendered}</p>;
 }
 
 function PaymentsCellRenderer({ cell }: { cell: FooterPaymentsCell }) {

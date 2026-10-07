@@ -47,7 +47,7 @@ export function createBlockSpecCompiler(z) {
   ]);
   const constraints = z.array(constraintSchema).max(20).optional();
   const variants = [
-    z.object({ ...common, type: z.literal("text"), min: size.optional(), max: size.optional(), multiline: z.literal(true).optional(), authoringNonblank: z.literal(true).optional(), format: z.enum(["timezone", "anchor", "resource-id"]).optional(), domId: z.literal(true).optional() }).strict(),
+    z.object({ ...common, type: z.literal("text"), min: size.optional(), max: size.optional(), multiline: z.literal(true).optional(), authoringNonblank: z.literal(true).optional(), authoringWebUrl: z.literal(true).optional(), authoringSafeLink: z.literal(true).optional(), format: z.enum(["timezone", "anchor", "resource-id"]).optional(), domId: z.literal(true).optional() }).strict(),
     z.object({ ...common, type: z.literal("richtext"), max: size.optional(), inline: z.boolean().optional() }).strict(),
     z.object({ ...common, type: z.literal("number"), integer: z.boolean().optional(), min: z.number().optional(), max: z.number().optional() }).strict(),
     z.object({ ...common, type: z.literal("select"), options: z.array(z.union([z.string().min(1).max(100), z.number()])).min(1).max(100) }).strict(),
@@ -56,8 +56,8 @@ export function createBlockSpecCompiler(z) {
     z.object({ ...common, type: z.literal("link"), protocols: z.array(z.enum(["http", "https", "relative", "anchor", "mailto", "tel"])).min(1).max(6).optional(), storage: z.literal("href").optional(), allowEmpty: z.boolean().optional(), max: size.optional() }).strict(),
     z.object({ ...common, type: z.literal("icon"), optionsMode: z.literal("authoring").optional(), options: z.array(z.string().max(100).regex(/^[a-z][a-z0-9-]*$/)).min(1).max(100).optional() }).strict(),
     ...["boolean", "color-role", "date", "menu", "form"].map(type => z.object({ ...common, type: z.literal(type) }).strict()),
-    z.object({ ...common, type: z.literal("repeater"), constraints, min: z.number().int().min(0).max(1000).optional(), max: z.number().int().min(0).max(1000).optional(), fields: z.lazy(() => z.array(fieldSchema).min(1).max(100)).optional(), item: z.lazy(() => fieldSchema).optional() }).strict(),
-    z.object({ ...common, type: z.literal("object"), constraints, fields: z.lazy(() => z.array(fieldSchema).min(1).max(100)) }).strict(),
+    z.object({ ...common, type: z.literal("repeater"), constraints, authoringConstraints: constraints, min: z.number().int().min(0).max(1000).optional(), max: z.number().int().min(0).max(1000).optional(), fields: z.lazy(() => z.array(fieldSchema).min(1).max(100)).optional(), item: z.lazy(() => fieldSchema).optional() }).strict(),
+    z.object({ ...common, type: z.literal("object"), constraints, authoringConstraints: constraints, fields: z.lazy(() => z.array(fieldSchema).min(1).max(100)) }).strict(),
   ];
   const fieldSchema = z.discriminatedUnion("type", variants);
   const fieldTypeNames = variants.map(variant => variant.shape.type.value);
@@ -162,8 +162,8 @@ export function createBlockSpecCompiler(z) {
         checkFieldTree([field.item], depth + 1, budget);
       }
       if (field.protocols && new Set(field.protocols).size !== field.protocols.length) throw new Error("Duplicate link protocols");
-      if (field.constraints && !field.fields) throw new Error("Object constraints require object fields");
-      if (field.fields) { checkFieldTree(field.fields, depth + 1, budget); checkConstraints(field.fields, field.constraints); }
+      if ((field.constraints || field.authoringConstraints) && !field.fields) throw new Error("Object constraints require object fields");
+      if (field.fields) { checkFieldTree(field.fields, depth + 1, budget); checkConstraints(field.fields, field.constraints); checkConstraints(field.fields, field.authoringConstraints); }
       if (own(field, "default")) validateAuthoringFields(z, attrsSchema([{ ...field, required: true }]).parse({ [field.id]: field.default }), authoringFieldRules([field]));
     }
   }
@@ -278,7 +278,10 @@ export function authoringFieldRules(fields, parent = []) {
   const result = [];
   function field(item, path) {
     if (item.type === "icon" && item.optionsMode === "authoring") result.push({ path, kind: "icon", options: item.options });
+    if (item.type === "text" && item.authoringSafeLink) result.push({ path, kind: "safe-link" });
+    if (item.type === "text" && item.authoringWebUrl) result.push({ path, kind: "web-url" });
     if (item.type === "text" && item.authoringNonblank) result.push({ path, kind: "nonblank" });
+    if (item.authoringConstraints?.length) result.push({ path: item.type === "repeater" ? [...path, "*"] : path, kind: "constraints", constraints: item.authoringConstraints });
     if (item.type === "object") result.push(...authoringFieldRules(item.fields, path));
     if (item.type === "repeater") {
       if (item.fields) result.push(...authoringFieldRules(item.fields, [...path, "*"]));
@@ -296,6 +299,19 @@ export function validateAuthoringFields(z, attrs, choices = []) {
     function visit(value, offset, path) {
       if (value == null) return;
       if (offset === choice.path.length) {
+        if (choice.kind === "constraints") {
+          const result = constrainObject(z.unknown(), choice.constraints).safeParse(value);
+          if (!result.success) issues.push(...result.error.issues.map(issue => ({ ...issue, path: [...path, ...issue.path] })));
+        }
+        if (choice.kind === "safe-link" && value !== "") {
+          const checked = safeLinkSchema(z).safeParse(value);
+          if (!checked.success) issues.push({ code: "custom", path, message: checked.error.issues[0].message });
+        }
+        if (choice.kind === "web-url" && value !== "") {
+          let valid = false;
+          try { const url = new URL(value); valid = /^https?:\/\//i.test(value) && !/[\u0000-\u0020\u007f\\]/.test(value) && ["http:","https:"].includes(url.protocol) && !!url.hostname && !url.username && !url.password; } catch {}
+          if (!valid) issues.push({ code: "custom", path, message: "Use a complete HTTP or HTTPS URL without embedded credentials, or leave it empty" });
+        }
         if (choice.kind === "nonblank" && !value.replace(/[\s\p{Default_Ignorable_Code_Point}]/gu, "")) issues.push({ code: "custom", path, message: "Enter visible text; a label cannot contain only spaces or invisible characters" });
         if (choice.kind === "icon" && !choice.options.includes(value)) issues.push({ code: "custom", path, message: "Choose a supported icon or remove the icon to use an owned media asset" });
         return;

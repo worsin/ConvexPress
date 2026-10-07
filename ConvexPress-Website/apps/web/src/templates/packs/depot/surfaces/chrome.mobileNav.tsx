@@ -1,3 +1,5 @@
+import { useMobileMenuGeometry } from "@/hooks/layout/useMobileMenuGeometry";
+import { MenuItemTarget } from "@/components/menus/MenuItemTarget";
 /**
  * Depot · chrome.mobileNav — the menu behind the hamburger as a drawer with
  * grouped links. Departments with children become a labelled group; the rest
@@ -12,7 +14,7 @@ import { useEffect, useRef, type ReactNode } from "react";
 
 import { useSettings } from "@/contexts/SettingsContext";
 import { useAuth, useClerk, useUser } from "@/lib/auth/clerk";
-import type { ResolvedMenuItem, SiteIdentity } from "@/lib/layout/types";
+import type { HeaderConfig, ResolvedMenuItem, SiteIdentity } from "@/lib/layout/types";
 import { cn } from "@/lib/utils";
 import type { MobileNavSurfaceData } from "@/templates/packs/core/surfaces/chrome.mobileNav";
 import type { SurfaceProps } from "@/templates/sdk/types";
@@ -35,8 +37,7 @@ export default function DepotMobileNav({ data }: SurfaceProps<MobileNavSurfaceDa
   const visibleItems = menu?.items.filter((item) => !item.isOrphaned) ?? [];
   const groups = visibleItems.filter((item) => item.children.length > 0);
   const singles = visibleItems.filter((item) => item.children.length === 0);
-  const side = config?.drawerSide ?? "left";
-  const fullscreen = config?.variant === "fullscreen";
+  const geometry = useMobileMenuGeometry(config, open, "w-80");
 
   return (
     <DialogPrimitive.Root
@@ -46,19 +47,18 @@ export default function DepotMobileNav({ data }: SurfaceProps<MobileNavSurfaceDa
       }}
     >
       <DialogPrimitive.Portal>
-        <DialogPrimitive.Backdrop className="fixed inset-0 z-50 bg-foreground/40 transition-opacity duration-200 data-closed:opacity-0 data-open:opacity-100 lg:hidden" />
+        <DialogPrimitive.Backdrop data-slot="mobile-nav-backdrop" className="fixed inset-0 z-50 bg-foreground/40 transition-opacity duration-200 data-closed:pointer-events-none data-closed:opacity-0 data-open:opacity-100 lg:hidden" />
         <DialogPrimitive.Popup
           data-slot="mobile-nav"
+          data-variant={geometry.variant}
+          style={geometry.style}
           aria-label="Navigation menu"
           className={cn(
-            "fixed inset-y-0 z-50 flex flex-col bg-background shadow-lg outline-hidden transition-transform duration-300 lg:hidden",
-            fullscreen ? "inset-x-0 w-full" : "w-80 max-w-[88vw]",
-            !fullscreen && side === "left" && "left-0 data-closed:-translate-x-full",
-            !fullscreen && side === "right" && "right-0 data-closed:translate-x-full",
-            fullscreen && "data-closed:-translate-y-full",
+            "fixed z-50 flex flex-col data-closed:pointer-events-none bg-background shadow-lg outline-hidden transition-transform duration-300 lg:hidden",
+            geometry.className,
           )}
         >
-          <div className="flex h-14 items-center justify-between border-b border-border px-4">
+          <div className="flex h-14 shrink-0 items-center justify-between border-b border-border px-4">
             <Brand siteIdentity={siteIdentity} onNavigate={onClose} />
             <DialogPrimitive.Close
               className="flex size-10 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
@@ -68,7 +68,7 @@ export default function DepotMobileNav({ data }: SurfaceProps<MobileNavSurfaceDa
             </DialogPrimitive.Close>
           </div>
 
-          <nav aria-label="Mobile navigation" className="flex-1 overflow-y-auto px-4 py-3">
+          <nav aria-label="Mobile navigation" className="min-h-0 flex-1 overflow-y-auto px-4 py-3">
             {visibleItems.length === 0 ? (
               <Group label="Browse">
                 <NavLink label="Home" url="/" onNavigate={onClose} />
@@ -78,15 +78,15 @@ export default function DepotMobileNav({ data }: SurfaceProps<MobileNavSurfaceDa
                 {singles.length > 0 && (
                   <Group label="Browse">
                     {singles.map((item) => (
-                      <NavLink key={item.id} label={item.label} url={item.url} target={item.target} rel={item.rel} cssClasses={item.cssClasses} onNavigate={onClose} />
+                      <NavLink key={item.id} item={item} label={item.label} url={item.url} target={item.target} rel={item.rel} cssClasses={item.cssClasses} onNavigate={onClose} />
                     ))}
                   </Group>
                 )}
                 {groups.map((group) => (
-                  <Group key={group.id} label={group.label}>
-                    <NavLink label={`All ${group.label}`} url={group.url} target={group.target} rel={group.rel} cssClasses={group.cssClasses} onNavigate={onClose} strong />
+                  <Group key={group.id} label={group.type === "separator" ? undefined : group.label}>
+                    {group.type !== "heading" && <NavLink item={group} label={`All ${group.label}`} url={group.url} target={group.target} rel={group.rel} cssClasses={group.cssClasses} onNavigate={onClose} strong />}
                     {flatten(group.children).map(({ item, depth }) => (
-                      <NavLink key={item.id} label={item.label} url={item.url} target={item.target} rel={item.rel} cssClasses={item.cssClasses} depth={depth} onNavigate={onClose} />
+                      <NavLink key={item.id} item={item} label={item.label} url={item.url} target={item.target} rel={item.rel} cssClasses={item.cssClasses} depth={depth} onNavigate={onClose} />
                     ))}
                   </Group>
                 ))}
@@ -94,7 +94,7 @@ export default function DepotMobileNav({ data }: SurfaceProps<MobileNavSurfaceDa
             )}
           </nav>
 
-          <AccountBlock onNavigate={onClose} />
+          <AccountBlock onNavigate={onClose} userMenu={data.userMenu} />
         </DialogPrimitive.Popup>
       </DialogPrimitive.Portal>
     </DialogPrimitive.Root>
@@ -123,12 +123,12 @@ function Brand({ siteIdentity, onNavigate }: { siteIdentity: SiteIdentity | unde
   );
 }
 
-function Group({ label, children }: { label: string; children: ReactNode }) {
+function Group({ label, children }: { label?: string; children: ReactNode }) {
   return (
     <div className="flex flex-col gap-1">
-      <Label as="p" className="px-2">
+      {label && <Label as="p" className="px-2">
         {label}
-      </Label>
+      </Label>}
       <ul role="list" className="flex flex-col rounded-md border border-border bg-card">
         {children}
       </ul>
@@ -137,6 +137,7 @@ function Group({ label, children }: { label: string; children: ReactNode }) {
 }
 
 function NavLink({
+  item,
   label,
   url,
   target,
@@ -146,6 +147,7 @@ function NavLink({
   strong = false,
   onNavigate,
 }: {
+  item?: ResolvedMenuItem;
   label: string;
   url: string;
   target?: string;
@@ -163,6 +165,7 @@ function NavLink({
   const style = depth > 0 ? { paddingLeft: `${12 + depth * 14}px` } : undefined;
   const linkProps = { ...(target ? { target } : {}), ...(rel ? { rel } : {}) };
   const external = url.startsWith("http://") || url.startsWith("https://");
+  if (item) return <li><MenuItemTarget item={item} className={className} style={style} activeProps={{ className: "bg-muted font-semibold", "aria-current": "page" }} onClick={onNavigate}>{label}</MenuItemTarget></li>;
   return (
     <li>
       {external ? (
@@ -178,7 +181,7 @@ function NavLink({
   );
 }
 
-function AccountBlock({ onNavigate }: { onNavigate: () => void }) {
+function AccountBlock({ onNavigate, userMenu }: { onNavigate: () => void; userMenu?: HeaderConfig["userMenu"] }) {
   const { user } = useUser();
   const { isLoaded } = useAuth();
   const { signOut } = useClerk();
@@ -193,7 +196,7 @@ function AccountBlock({ onNavigate }: { onNavigate: () => void }) {
           Cart
         </Link>
       )}
-      {isLoaded &&
+      {userMenu?.enabled !== false && isLoaded && (user || userMenu?.guestDisplay !== "hidden") &&
         (user ? (
           <div className="flex flex-col gap-2">
             <div className="flex items-center gap-2">
@@ -227,9 +230,12 @@ function AccountBlock({ onNavigate }: { onNavigate: () => void }) {
             </div>
           </div>
         ) : (
+          <>
           <Link to="/login" onClick={onNavigate} className={buttonClasses("primary", "md", "w-full")}>
             Sign in
           </Link>
+          {(userMenu?.guestDisplay ?? "login-register") === "login-register" && <Link to="/register" onClick={onNavigate} className={buttonClasses("secondary", "md", "w-full")}>Register</Link>}
+          </>
         ))}
     </div>
   );

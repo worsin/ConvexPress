@@ -13,14 +13,19 @@
 	text-align: end;
 }
 .cp-p[data-tone="muted"] {
-	color: var(--muted-foreground, #555);
+	color: var(--cp-inline-muted, var(--muted-foreground, #555));
 }
 .cp-p[data-tone="accent"] {
-	color: var(--primary, #94502e);
+	color: var(--cp-inline-accent, var(--primary, #94502e));
 }
 .cp-section {
 	padding-block: var(--section-py-default, clamp(3rem, 6vw, 6rem));
 	color: var(--foreground, #252923);
+}
+/* Transparent children keep the ink of the surface they sit on. Painted
+ * surfaces establish their own inline tones, including nested light islands. */
+.cp-section[data-nested="true"][data-tone="default"] {
+	color: inherit;
 }
 .cp-section + .cp-section {
 	margin-block-start: var(--block-gap, 0);
@@ -37,18 +42,24 @@
 .cp-section[data-tone="muted"],
 .cp-card[data-tone="muted"],
 .cp-badge[data-tone="muted"] {
+	--cp-inline-accent: var(--primary, #94502e);
+	--cp-inline-muted: var(--muted-foreground, #555);
 	background: var(--muted, #f1f0ea);
 	color: var(--foreground, #252923);
 }
 .cp-section[data-tone="inverted"],
 .cp-card[data-tone="inverted"],
 .cp-badge[data-tone="inverted"] {
+	--cp-inline-accent: var(--background, #fff);
+	--cp-inline-muted: var(--background, #fff);
 	background: var(--foreground, #252923);
 	color: var(--background, #fff);
 }
 .cp-section[data-tone="accent"],
 .cp-card[data-tone="accent"],
 .cp-badge[data-tone="accent"] {
+	--cp-inline-accent: var(--primary-foreground, #fff);
+	--cp-inline-muted: var(--primary-foreground, #fff);
 	background: var(--primary, #94502e);
 	color: var(--primary-foreground, #fff);
 }
@@ -156,6 +167,8 @@
 	border: 1px solid var(--border, #d8d8d0);
 }
 .cp-card[data-variant="filled"] {
+	--cp-inline-accent: var(--primary, #94502e);
+	--cp-inline-muted: var(--muted-foreground, #555);
 	background: var(--card, #f6f5f0);
 	color: var(--card-foreground, #252923);
 }
@@ -267,6 +280,7 @@
 	height: auto;
 }
 .cp-image figcaption {
+	overflow-wrap: anywhere;
 	margin-block-start: 0.65rem;
 	font-size: 0.8rem;
 	line-height: 1.5;
@@ -331,6 +345,7 @@
 }
 .cp-link {
 	line-height: 1.5;
+	overflow-wrap: anywhere;
 }
 .cp-badge {
 	display: inline-flex;
@@ -361,6 +376,10 @@
 	font-size: 0.875rem;
 	line-height: 1.6;
 }
+.cp-quote {
+	min-inline-size: 0;
+	overflow-wrap: anywhere;
+}
 .cp-quote blockquote {
 	margin: 0;
 	padding-inline-start: 1.5rem;
@@ -378,6 +397,8 @@
 }
 .cp-list {
 	display: grid;
+	grid-template-columns: minmax(0, 1fr);
+	overflow-wrap: anywhere;
 	padding-inline-start: 1.5rem;
 	line-height: 1.7;
 	list-style: disc;

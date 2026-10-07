@@ -1,3 +1,4 @@
+import { useMobileMenuGeometry } from "@/hooks/layout/useMobileMenuGeometry";
 import { Link, useRouterState } from "@tanstack/react-router";
 import { useUser, useClerk, useAuth } from "@/lib/auth/clerk";
 import { X } from "lucide-react";
@@ -20,6 +21,7 @@ interface MobileNavProps {
   menu: ResolvedMenu | undefined;
   siteIdentity: SiteIdentity | undefined;
   config?: HeaderConfig["mobileMenu"];
+  userMenu?: HeaderConfig["userMenu"];
   /** Open state; defaults to the layout shell's mobile nav state. */
   open?: boolean;
   /** Close callback; defaults to the layout shell's closeMobileNav. */
@@ -31,7 +33,7 @@ interface MobileNavProps {
  * Visible only on viewports smaller than lg.
  * Includes focus trap for WCAG 2.1 AA compliance.
  */
-export function MobileNav({ menu, siteIdentity, config, open, onClose }: MobileNavProps) {
+export function MobileNav({ menu, siteIdentity, config, userMenu, open, onClose }: MobileNavProps) {
   const shell = useLayoutShell();
   const mobileNavOpen = open ?? shell.mobileNavOpen;
   const closeMobileNav = onClose ?? shell.closeMobileNav;
@@ -115,8 +117,7 @@ export function MobileNav({ menu, siteIdentity, config, open, onClose }: MobileN
   }, [mobileNavOpen]);
 
   const visibleItems = menu?.items.filter((item) => !item.isOrphaned) ?? [];
-  const side = config?.drawerSide ?? "left";
-  const isFullscreen = config?.variant === "fullscreen";
+  const geometry = useMobileMenuGeometry(config, mobileNavOpen);
 
   return (
     <>
@@ -135,26 +136,21 @@ export function MobileNav({ menu, siteIdentity, config, open, onClose }: MobileN
       <div
         ref={panelRef}
           data-slot="mobile-nav"
+        data-variant={geometry.variant}
+        style={geometry.style}
         role="dialog"
         aria-modal={mobileNavOpen}
         aria-label="Navigation menu"
         inert={!mobileNavOpen}
         className={cn(
-          "absolute inset-y-0 flex flex-col bg-background shadow-lg transition-transform duration-300 motion-reduce:transition-none",
+          "absolute flex flex-col bg-background shadow-lg transition-transform duration-300 motion-reduce:transition-none",
           mobileNavOpen && "pointer-events-auto",
-          isFullscreen ? "left-0 right-0 w-full" : "w-72",
-          !isFullscreen && side === "left" && "left-0",
-          !isFullscreen && side === "right" && "right-0",
-          mobileNavOpen
-            ? "translate-x-0"
-            : side === "right" && !isFullscreen
-              ? "translate-x-full"
-              : "-translate-x-full",
+          geometry.className,
         )}
       >
         {/* Header */}
-        <div className="flex h-14 items-center justify-between border-b border-border px-4">
-          <SiteBrand siteIdentity={siteIdentity} />
+        <div className="flex h-14 shrink-0 items-center justify-between border-b border-border px-4">
+          <SiteBrand siteIdentity={siteIdentity} onNavigate={closeMobileNav} />
           <button
             ref={closeButtonRef}
             type="button"
@@ -169,7 +165,7 @@ export function MobileNav({ menu, siteIdentity, config, open, onClose }: MobileN
         {/* Navigation items */}
         <nav
           aria-label="Mobile navigation"
-          className="flex-1 overflow-y-auto"
+          className="min-h-0 flex-1 overflow-y-auto"
         >
           {visibleItems.length > 0 ? (
             <ul role="list" className="py-2">
@@ -196,7 +192,7 @@ export function MobileNav({ menu, siteIdentity, config, open, onClose }: MobileN
         </nav>
 
         {/* User actions at bottom */}
-        <div className="border-t border-border p-4">
+        {userMenu?.enabled !== false && isLoaded && (user || userMenu?.guestDisplay !== "hidden") && <div className="shrink-0 border-t border-border p-4">
           {isLoaded && (
             <>
               {user ? (
@@ -246,6 +242,7 @@ export function MobileNav({ menu, siteIdentity, config, open, onClose }: MobileN
                   </div>
                 </div>
               ) : (
+                <>
                 <Link
                   to="/login"
                   onClick={closeMobileNav}
@@ -253,10 +250,16 @@ export function MobileNav({ menu, siteIdentity, config, open, onClose }: MobileN
                 >
                   Sign In
                 </Link>
+                {(userMenu?.guestDisplay ?? "login-register") === "login-register" && <Link
+                  to="/register"
+                  onClick={closeMobileNav}
+                  className="mt-2 block w-full border border-border bg-background px-3 py-2 text-center text-xs font-medium text-foreground transition-colors hover:bg-muted"
+                >Register</Link>}
+                </>
               )}
             </>
           )}
-        </div>
+        </div>}
       </div>
       </div>
     </>

@@ -80,5 +80,10 @@
     "capabilities": [
       "map.approvedProvider"
     ]
-  }
+  },
+  "searchText": [
+    [
+      "address"
+    ]
+  ]
 }

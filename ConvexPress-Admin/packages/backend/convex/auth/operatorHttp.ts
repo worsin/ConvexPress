@@ -36,6 +36,6 @@ export const operatorHandoffHandler = httpAction(async (ctx, request) => {
     const token = principal.managementSessionId && principal.siteRole
       ? await signManagementAccessToken({ sessionId: principal.managementSessionId, sessionToken: generateRefreshToken(), siteRole: principal.siteRole, expiresAt: principal.expiresAt })
       : await signAccessToken({ userId: principal.userId, email: principal.email, name: principal.name, expiresAt: principal.expiresAt });
-    return new Response(JSON.stringify({ token, expiresAt: principal.expiresAt, instanceKey: principal.instanceKey, userId: principal.userId }), { status: 200, headers });
+    return new Response(JSON.stringify({ token, expiresAt: principal.expiresAt, instanceKey: principal.instanceKey, userId: principal.userId, viewerSubject: principal.managementSessionId && principal.siteRole ? principal.managementSessionId : principal.userId }), { status: 200, headers });
   } catch { return refused(); }
 });

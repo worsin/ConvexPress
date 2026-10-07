@@ -12,7 +12,7 @@ import { readCompletedFormCount } from "../../helpers/formSubmissionCounts";
 import { query } from "../../_generated/server";
 import { v } from "convex/values";
 import { paginationOptsValidator } from "convex/server";
-import { currentUserCan } from "../../helpers/permissions";
+import { currentUserCan, getCurrentUser } from "../../helpers/permissions";
 import { isPluginEnabled } from "../../helpers/plugins";
 import { evaluateMembershipAccess } from "../../membership/access";
 import type { Id } from "../../_generated/dataModel";
@@ -24,7 +24,8 @@ import {
   formRequiresLogin,
 } from "./builderCore";
 import { loadSecuritySettings } from "./spam";
-import { isGeneratedResumeToken } from "./tokens";
+import { isGeneratedResumeToken, computeResumeExpiry } from "./tokens";
+export { DEFAULT_RESUME_TTL_MS, computeResumeExpiry } from "./tokens";
 import { LAYOUT_FIELD_TYPES } from "../../customFields/validators";
 import { RequestReadLedger } from "../../helpers/requestReadLedger";
 
@@ -342,26 +343,6 @@ export const getBySlug = query({
 // ─── Public: resume a save-and-continue draft by token ───────────────────────
 
 /**
- * Default draft TTL for save-and-continue (Form Multi-Step PRD §11): 30 days.
- * The schema has no `form_submissions.expiresAt` column today, so v1 computes
- * expiry from `submittedAt + DEFAULT_RESUME_TTL_MS` at read time. If/when the
- * Submission System adds an explicit column, read that instead (owned there).
- */
-export const DEFAULT_RESUME_TTL_MS = 30 * 24 * 60 * 60 * 1000;
-
-/**
- * Compute a draft's resume expiry from its start time. v1 has no `expiresAt`
- * column, so expiry = (submittedAt ?? createdAt) + TTL. Pure.
- */
-export function computeResumeExpiry(
-  sub: { submittedAt?: number; createdAt: number },
-  ttlMs: number = DEFAULT_RESUME_TTL_MS,
-): number {
-  const startedAt = sub.submittedAt ?? sub.createdAt;
-  return startedAt + ttlMs;
-}
-
-/**
  * Resume-safe projection of a draft's answer rows: a flat `{ fieldKey -> value }`
  * map drawn ONLY from `fieldKey`/`value`. By construction this can never carry
  * a row's `updatedBy`/`updatedAt` or any submission-level metadata
@@ -416,6 +397,13 @@ export const resume = query({
     const form = await ctx.db.get(sub.formId);
     if (!form || form.status !== "published") return null;
     if (!(await contactSourceAllowed(ctx, form, contactPassword))) return null;
+
+    // Possession of a draft token cannot bypass current form access rules.
+    if (!(await evaluateMembershipAccess(ctx, { resourceType: "route", resourceIdOrKey: `/forms/${encodeURIComponent(form.slug)}` })).allowed) return null;
+    if (formRequiresLogin(parseFormSettings(form.settings))) {
+      const user = await getCurrentUser(ctx);
+      if (!user || user.status !== "active") return null;
+    }
 
     // Read answers; project resume-safe { fieldKey -> value } only.
     const rows = await ctx.db

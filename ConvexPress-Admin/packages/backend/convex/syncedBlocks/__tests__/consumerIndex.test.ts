@@ -5,7 +5,7 @@ import { consumerDiscoveryReady, consumerIndexReady } from "../consumerIndexStat
 import { installation } from "../model";
 import { RequestReadLedger } from "../../helpers/requestReadLedger";
 import { insertWithMediaReferences, patchWithMediaReferences, replaceWithMediaReferences, deleteWithMediaReferences } from "../../media/attachmentGuard";
-import { permitValidatedCanonicalAuthoringWrite, permitValidatedLegacyRecoveryWrite } from "../../helpers/authoringVersionFence";
+import { permitValidatedCanonicalAuthoringWrite } from "../../helpers/authoringVersionFence";
 import { validateCanonicalTree } from "../../canonicalDocuments/foundation/generated/instances";
 import { syncDocumentContactForms } from "../../canonicalDocuments/contactDocuments";
 import { clearSyncedConsumerDirty } from "../consumerWrites";
@@ -80,11 +80,13 @@ test("canonical reconciliation and final write acknowledgement leave no dirty wi
   expect((await f.edges()).some(edge => edge.postId === postId)).toBe(false);
 }));
 
-test("legacy recovery and deletion clean edges and dirty rows through normal guarded writers", () => withEpoch(async () => {
+test("canonical replacement and deletion clean edges and dirty rows through normal guarded writers", () => withEpoch(async () => {
   const f = await setup(); const recovery = await f.addPage(), deleted = await f.addPage(); await f.drain();
   await f.t.run(async ctx => {
-    const previous = (await ctx.db.get("posts", recovery))!, value = { blocksVersion: 1, blocks: undefined, content: "Recovered article" };
-    await patchWithMediaReferences(ctx, "posts", recovery, value, permitValidatedLegacyRecoveryWrite({ table: "posts", operation: "patch", id: recovery, previous, value }));
+    const previous = (await ctx.db.get("posts", recovery))!, value = { blocksVersion: 2, blocks: [], content: "" };
+    await syncDocumentContactForms(ctx, {postId:recovery,title:previous.title,blocks:[]});
+    await patchWithMediaReferences(ctx, "posts", recovery, value, permitValidatedCanonicalAuthoringWrite({ table: "posts", operation: "patch", id: recovery, previous, value }));
+    await clearSyncedConsumerDirty(ctx,recovery);
     await deleteWithMediaReferences(ctx, "posts", deleted);
   });
   expect(await f.edges()).toHaveLength(0); expect(await f.dirty()).toHaveLength(0); expect(await f.ready()).toBe(true);

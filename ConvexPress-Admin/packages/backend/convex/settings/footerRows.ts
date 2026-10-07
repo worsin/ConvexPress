@@ -118,8 +118,8 @@ export function convertLegacyFooterToRows(legacy: FooterSettings): FooterRow[] {
         makeColumn({
           type: "nav",
           heading: col.heading,
-          menuLocation: col.menuSource === "custom" || col.menuSource === "auto-pages"
-            ? "footer-1"
+          menuLocation: col.menuSource === "custom"
+            ? "footer"
             : col.menuSource,
         }),
       );
@@ -167,7 +167,9 @@ export function convertLegacyFooterToRows(legacy: FooterSettings): FooterRow[] {
         makeColumn(
           legacy.bottomBar.legalLinks === "none"
             ? makeDefaultCell("links")
-            : {
+            : legacy.bottomBar.legalLinks === "custom"
+              ? { type: "nav", menuLocation: "footer", alignment: "right" }
+              : {
                 type: "links",
                 items: [
                   { label: "Privacy Policy", url: "/privacy", target: "_self" },

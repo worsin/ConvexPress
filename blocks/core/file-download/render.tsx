@@ -6,7 +6,9 @@ import {
 	fileSize,
 } from "../../../ConvexPress-Website/apps/web/src/templates/sdk/block-renderer/media";
 import "./file.css";
+import { usePublicFileDownloadHref } from "../../../ConvexPress-Website/apps/web/src/templates/sdk/block-renderer/public-file-download";
 export default defineBlock("core/file-download", ({ attrs, resources }) => {
+	const downloadHref = usePublicFileDownloadHref();
 	if (!attrs.media)
 		return <P.Text tone="muted">Choose a file to offer for download.</P.Text>;
 	const media = resolvedAsset(attrs.media.id, resources, "file");
@@ -30,7 +32,7 @@ export default defineBlock("core/file-download", ({ attrs, resources }) => {
 				</P.Text>
 				<a
 					className="cp-library-download"
-					href={media.src}
+					href={downloadHref(media.src, media.filename)}
 					download={media.filename || true}
 				>
 					{title}

@@ -437,6 +437,7 @@ export const FOOTER_SECTIONS: ComposerSectionDef[] = [
           { value: "image", label: "Image" },
         ],
       },
+      { id: "backgroundImageId", label: "Background Image", type: "image" },
       {
         id: "topBorder",
         label: "Top Border",

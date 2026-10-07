@@ -11,13 +11,11 @@ import { useCallback, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { usePageMutations } from "@/hooks/pages/usePageMutations";
+import { useCanonicalMetadata } from "@/hooks/useCanonicalMetadata";
+import { QuickEditImportNotice } from "@/components/blocks/canonical-editor/QuickEditImportNotice";
 import { usePageTree } from "@/hooks/pages/usePageTree";
 import { usePageTemplates } from "@/hooks/pages/usePageTemplates";
 import type { Id } from "@backend/convex/_generated/dataModel";
-
-/** Valid page status values */
-type PageStatus = "auto-draft" | "draft" | "pending" | "publish" | "future" | "private" | "trash";
 
 interface PageQuickEditProps {
   page: {
@@ -28,6 +26,8 @@ interface PageQuickEditProps {
     parentId?: string;
     pageTemplate?: string;
     menuOrder?: number;
+    blocksVersion?: number;
+    blocksRevision?: number;
   };
   onClose: () => void;
 }
@@ -38,6 +38,15 @@ interface PageTemplateOption {
 }
 
 export function PageQuickEdit({ page, onClose }: PageQuickEditProps) {
+  if (page.blocksVersion !== 2 || !Number.isInteger(page.blocksRevision) || (page.blocksRevision ?? 0) < 1) {
+    return <QuickEditImportNotice type="page" postId={String(page._id)} onClose={onClose} />;
+  }
+  return <CanonicalPageQuickEdit page={page} onClose={onClose} />;
+}
+
+function CanonicalPageQuickEdit({ page, onClose }: PageQuickEditProps) {
+  const [revision] = useState(() => page.blocksRevision!);
+  const updateCanonical = useCanonicalMetadata();
   const [title, setTitle] = useState(page.title);
   const [slug, setSlug] = useState(page.slug);
   const [status, setStatus] = useState(page.status);
@@ -46,7 +55,6 @@ export function PageQuickEdit({ page, onClose }: PageQuickEditProps) {
   const [menuOrder, setMenuOrder] = useState(page.menuOrder ?? 0);
   const [isSaving, setIsSaving] = useState(false);
 
-  const { updatePage, setPageParent } = usePageMutations();
   const { tree } = usePageTree({ status: "all" });
   const { templates } = usePageTemplates();
   const templateOptions = templates as PageTemplateOption[];
@@ -77,35 +85,15 @@ export function PageQuickEdit({ page, onClose }: PageQuickEditProps) {
   const handleUpdate = useCallback(async () => {
     setIsSaving(true);
     try {
-      // Detect parent change: user selected "(no parent)" to make top-level
-      const originalParentId = page.parentId ?? "";
-      const parentChanged = parentId !== originalParentId;
-
-      // If parent changed to top-level (empty string), use setPageParent
-      // because the update mutation cannot distinguish "no parentId arg"
-      // from "clear parentId" (both are undefined in Convex args).
-      if (parentChanged && !parentId) {
-        await setPageParent(page._id as Id<"posts">, undefined);
-      } else if (parentChanged && parentId) {
-        await setPageParent(page._id as Id<"posts">, parentId as Id<"posts">);
-      }
-
-      // Update other fields (exclude parentId -- handled above via setPageParent)
-      await updatePage({
-        pageId: page._id as Id<"posts">,
-        title,
-        slug,
-        status: status as PageStatus,
-        pageTemplate,
-        menuOrder,
-      });
+      await updateCanonical({postId:page._id as Id<"posts">,expectedRevision:revision,title,slug,
+        status:status as "draft"|"publish"|"future"|"private",parentId:(parentId || null) as Id<"posts">|null,pageTemplate,menuOrder});
       onClose();
     } catch {
       // Error toast is handled by the mutation hooks
     } finally {
       setIsSaving(false);
     }
-  }, [title, slug, status, parentId, pageTemplate, menuOrder, page._id, page.parentId, updatePage, setPageParent, onClose]);
+  }, [title, slug, status, parentId, pageTemplate, menuOrder, page._id, onClose, revision, updateCanonical]);
 
   return (
     <div className="border border-border bg-card rounded-none">
@@ -121,6 +109,7 @@ export function PageQuickEdit({ page, onClose }: PageQuickEditProps) {
               Title
             </Label>
             <Input
+              aria-label="Title"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               className="w-full"
@@ -131,6 +120,7 @@ export function PageQuickEdit({ page, onClose }: PageQuickEditProps) {
               Slug
             </Label>
             <Input
+              aria-label="Slug"
               value={slug}
               onChange={(e) => setSlug(e.target.value)}
               className="w-full"
@@ -145,12 +135,13 @@ export function PageQuickEdit({ page, onClose }: PageQuickEditProps) {
               Status
             </Label>
             <select
+              aria-label="Status"
               value={status}
               onChange={(e) => setStatus(e.target.value)}
               className="h-8 w-full rounded-none border border-input bg-transparent px-2 text-xs text-foreground outline-hidden focus-visible:border-ring focus-visible:ring-1 focus-visible:ring-ring/50"
             >
               <option value="draft">Draft</option>
-              <option value="pending">Pending Review</option>
+              {status === "future" && <option value="future">Scheduled</option>}
               <option value="publish">Published</option>
               <option value="private">Private</option>
             </select>
@@ -160,6 +151,7 @@ export function PageQuickEdit({ page, onClose }: PageQuickEditProps) {
               Parent
             </Label>
             <select
+              aria-label="Parent"
               value={parentId}
               onChange={(e) => setParentId(e.target.value)}
               className="h-8 w-full rounded-none border border-input bg-transparent px-2 text-xs text-foreground outline-hidden focus-visible:border-ring focus-visible:ring-1 focus-visible:ring-ring/50"
@@ -181,6 +173,7 @@ export function PageQuickEdit({ page, onClose }: PageQuickEditProps) {
               Template
             </Label>
             <select
+              aria-label="Template"
               value={pageTemplate}
               onChange={(e) => setPageTemplate(e.target.value)}
               className="h-8 w-full rounded-none border border-input bg-transparent px-2 text-xs text-foreground outline-hidden focus-visible:border-ring focus-visible:ring-1 focus-visible:ring-ring/50"
@@ -198,6 +191,7 @@ export function PageQuickEdit({ page, onClose }: PageQuickEditProps) {
             </Label>
             <Input
               type="number"
+              aria-label="Order"
               value={menuOrder}
               onChange={(e) => setMenuOrder(parseInt(e.target.value, 10) || 0)}
               min={0}

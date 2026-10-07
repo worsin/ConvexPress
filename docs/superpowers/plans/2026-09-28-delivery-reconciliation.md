@@ -1,0 +1,192 @@
+# Delivery reconciliation — September 28
+
+Authoritative baseline for this review: hardening `d8a0ea2c`, with live MagicTables readback of137 rows,60Verified/77Inprogress. All cells equal the prior opening/navigation readback. `output/editor-pointer-20260928/mt-{doctor,schema,readback}.json` records the current account/base/table checks. The owner handoff is retained uncommitted. No tracker write occurs in this reconciliation.
+
+The77 pending rows now have an individual next check, owning task, family batch, current spec/renderer hash and live Notes hash in `2026-09-28-editor-template-status.json`. Their existing evidence links remain. Requirements were reconciled against the actual canonical fields and the latest specific Notes, including six final Notes that were missed by a keyword-only extraction. Old whole-application conditions remain historical in Notes but do not automatically block a block's acceptance. No row is promoted from this review alone.
+
+## What is closed and what is next
+
+E01 current native baseline and E19 device/private-site recovery are accepted with scoped evidence. E02 Announcement and E03 Breadcrumbs are accepted. Other58 previously Verified blocks retain their evidence; shared changes require only affected assertions to be rerun.
+
+The pending rows divide into20 primarily Task2 rows,54 Task3 rows, two Task4 migration/reusable rows and one Task7 promoted-SDK row. There are20 coherent acceptance families; these are grouping estimates, not20 fixed execution cycles or a completion date. Share native pages, source snapshots and cleanup across related blocks. The immediate Task2 family is remaining navigation (TOC, Anchor Nav, Child Pages, Site Info, Menu), using the September21 native/four-pack report before adding missing field/variant checks. In parallel scope terms, not parallel agents: source-contract gaps below belong to the same delivery and must close before its final gate.
+
+Actual external prerequisites remain specific: legitimate Vimeo provider playback, current configured AI generation, and current Aster cloud availability need fresh checks when their tasks run. Historic failures do not prove they are blocked today. Ordinary static blocks do not inherit these prerequisites.
+
+## Newly confirmed source/check gaps
+
+- **E20 — per-block lazy loading is missing.** `templates/sdk/block-renderer/discovery.ts` eagerly imports every root Library renderer and every owned pack renderer. `CanonicalDocumentView.tsx` imports that registry. This contradicts block handoff Phase1's per-block lazy chunk requirement even though template *surfaces* are lazy. Task2 repair must preserve SSR, synchronous contract/data preparation, pack ownership, error boundaries and preview continuity; prove a page requests only its needed renderer modules and relevant owned treatments, with nested/reusable/composed content handled. Do not substitute a single lazy chunk containing the whole library.
+- **E21 — generated roles do not yet replace all hero lists.** `components/blog/PageContent.tsx` and Journal/Depot/Aster `surfaces/page.tsx` retain handwritten `HERO_BLOCKS` checks. These branches coexist with canonical and legacy dispatch. Task2/4 must trace which branch controls each title and replace active name lists with the generated role contract, preserving historical rendering until migration. The old1396-line Website registry and `contentMode`, `pageSections`, `reusableBlocks` schema paths remain Task4 retirement work; a small canonical discovery file does not prove all handwritten registries are gone.
+- **E22 — tracker evidence-path gate fails.** The correctly flattened current tracker snapshot passes137spec discovery, generated freshness,54legacy compatibility contracts and22transport shapes, then refuses `core/paragraph` because the prescribed `ConvexPress-Admin/output/playwright/blocks/aster-house/core/paragraph.png` is absent. Accepted images live in dated family outputs; their existence/identity must be verified and indexed or placed at the required location. Do not copy unrelated thumbnails or relax the gate to file-presence claims. Task6/8 owns an auditable source/pack/capture mapping and the final live tracker gate. Initial raw CLI-envelope input was a harness-format error, distinct from this real evidence-path failure.
+
+## Full handoff clause map
+
+“Implemented / partial” means there is source or scoped evidence, not full delivery acceptance. File paths below are relative to this repository. Shared gates apply once at the correct boundary and are not77 independent infrastructure projects.
+
+| Clause / explicit requirement | Current evidence or contradiction | Owner / remaining gate |
+|---|---|---|
+| Template A1:22 customer dashboard surfaces per pack, signed-in customer on each site | Existing dashboard/template source and historical screenshots; current full authenticated matrix not established | Tasks5/6:all four packs, real customer authority and required site deployments |
+| Template A1:Journal/Depot colors/fonts/radius/shop variants, publish/promote | Customizer and appearance promotion source; scoped historical receipts | Task5:contextual fields, actual saved/published surfaces, conflict/revocation and staging→live preservation |
+| Template A2:retire Themes/ThemeGallery/themes/layouts/old Website templates and `/shop` redirect | Legacy paths remain; deletion requires active palette/import/link inventory | Task4:copy palette without replacing authored template values, prove old/new site equivalence, then remove named obsolete paths |
+| Template A3:fold commerce.layout and retire Shop layouts | Existing preference/fallback paths are compatibility, not retirement | Task4:copy shop/product/cart values into variants and active pack shop settings, verify recovery and route consolidation |
+| Template B1:on-site operator panel, own-site publication capability | `OnSiteCustomizer.tsx`, `CustomizerPanel.tsx`; panel is lazy | Task5:actual operator/customer separation, revoked capability and publish through selected site |
+| Template B2:surface-aware settings/read tracking/click-to-edit | SDK setting modules/provider and stamps exist | Task5:each visible group affects current surface, correct focus and page/device switches |
+| Template B3:pack presets, brand/group reset, undo/redo, promotion/conflict | Existing draft/history/promotion systems | Task5:Journal/Depot2–3presets, every pack, exact unsaved/saved conflict and identity behavior |
+| Template B4:header/footer/menuLayout groups replace standalone builders | Existing builders/settings readers coexist | Tasks4/5:fold complete real fields, render through SDK settings, remove standalone screens after preservation proof |
+| Template C1:template-kit README/CONTRACT/Core/annotated mini-pack/scaffold | `ConvexPress-Website/template-kit/` and create-template script exist | Task7:copyable one-line scaffold, real complete pack, expected validation and conflict-safe output |
+| Template C1:SSR smoke and per-surface gallery screenshots | Kit README explicitly limits SSR command to home/loading/Aster fixture | Tasks6/7:loaded/authenticated surface coverage and gallery screenshots; don't present home smoke as every surface |
+| Template C1:template-build/template-add-surface/template-audit/design retarget | Named template skills absent from repo skill inventory; design retarget claims require exercise | Task7:add/distribute and run each named skill; source-written success alone insufficient |
+| Template C2:complete Events reference plugin and create:extension | Generated Community Events native RSVP deployment has scoped acceptance | Tasks3/7:complete admin/backend/public/chrome/settings/route manifests, screenshots, scaffold and Dashboard plugin declaration |
+| Template C2:manifest-based enablement replaces switch | Website manifests present; backend PLUGIN_DEFAULTS disagrees for five keys (F1) | Task3:compatibility-aware authority and explicit/missing settings tests, deployed public/native behavior |
+| Template C3:reference block for every field type and live data | block-kit references and generated schema controls exist | Task7:complete16-field/live-data examples used by one-line workflow gates |
+| Template D:site-build orchestration | No repository site-build skill found in current kit/skill inventory | Tasks6/7:brand→pack→plugins→pages/menus/media/shop→rendered audit, with four actual example websites |
+| Block NN1/C3.1/Phase0:one JSON source; generated validators/types/catalog/editors/inserter/coverage; drift failure | `generator.mjs`, `generator.test.ts:75` deliberately changes a field and expects drift; check currently passes generated freshness | Task8:repeat authoritative integrated gate/CI with final contracts; keep examples validated and shared behavior derived |
+| Block C3.1:closed16field types/reference roles/examples | Generator covers all types; actual editor controls and targeted tests exist | Task2/E06:all native field states, omitted/null/empty/limits, reference scopes; Tasks3/7:dynamic and kit use |
+| Block Phase0:unknown names/disabled checks on every mutation | `blocks/__tests__/contracts.test.ts` covers nested duplicate/create/update/AI plus documented edit-existing policy | Tasks2/8:final canonical/legacy/import boundaries and current-role checks; do not silently destroy historical disabled input |
+| Block Phase0:dead fields deleted or meaningful | Legacy metadata still uses rendererStatus; migration compatibility remains | Task4:remove obsolete fields/registries after dispatch retirement; record deliberate historical metadata |
+| Block Phase1:folder+command discovery, generated registries≤200lines, portable AI, lazy chunks | Canonical discovery exists; legacy registry1396lines; eager canonical imports confirmedE20 | Tasks2/4/7:lazy modules, active registry retirement and live portable AI insertion |
+| Block NN2–4/C3.3–5:finished SDK default, closed intents, three pack levers, no raw design controls |137Library renderers, primitives, manifests and common layout controls; historical four-pack matrices | Tasks2/6:all final block variants, parts/tokens/owned treatments, neutral token-only new-pack acceptance and no inheritance |
+| Block C3.3:fixed primitives/props/layout variables, structural lint | Primitive contracts and generator/library checks;11declared layout variables historically accepted | Tasks2/8:negative class/CSS/structural checks, all primitive/runtime composition contracts and final lint |
+| Block C3.4:every renderer wraps Section and uses primitive/token structure | Discovered137 renderers and library contracts | Tasks2/6:actual rendered behavior/visual treatment; component-file existence is not completion |
+| Block C3.5:manifest renderer/style/default/hidden/pattern/signature resolution | `pack-registry.tsx` checks owned identity/data/flow and prevents borrowing | Tasks2/6:missing style fallback, hidden insertion/AI, pack switch preserves tree, flagship owned treatments and8patterns each |
+| Block roles replace every hero name set | Active/legacy page surfaces retain lists, confirmedE21 | Tasks2/4:trace rendered title path, generated-role behavior and legacy preservation |
+| Block NN5–6/C3.7/C3.10:enabled complete catalog, structured nesting, single write, runtime compose/style/promote | Backend custom definitions, immutable history, static promotion and editor review have scoped proof | Tasks3/7:current real AI provider, actual live-price comparison, safe no-code grammar, resource selection, dynamic/media/child-slot and missing-pack treatment |
+| Block NN7:server validates same generated spec, unknown names refused | Shared foundation and registered canonical endpoints; E19 preserves invalid drafts separately | Tasks2/8:final save/preview/import/revision guards and generated contract parity |
+| Block NN8/C3.9/Phase4:actual Website preview, hover/click/highlight, device/page switch | E01 native preview plus prior live-editor/inserter/history reports | Tasks2/5/E05:cross-pack/target/cloud continuity, expiry/reconnect, invalid draft/readable failures and no unintended saves |
+| Block NN9/C3.2/C3.8/Phase2:one tree, no contentMode/content/pageSections; lossless migration/revisions | All three legacy authoring fields/dispatch remain; bounded conversions/recovery accepted | Task4:real retained content, Northstar/Ridgeline before/after, unsupported structures, promotion scanner IDs, final schema/renderer retirement |
+| Block Phase2:layout/style/visibility/lock/anchor; nesting; autosave; syncedBlocks/patterns replacing reusableBlocks | E01/E19 accepted; canonical controls and new tables exist; reusableBlocks still in schema | Tasks2/4:remaining mixed/reusable/composed fields, source graph migration and delete old active paths |
+| Block NN10/C3.6/Phase5:allow-listed page-level resolver, SSR, one subscription; plugin registration | Shared resolver foundation, registered per-domain tests and live scoped proofs | Task3:all54dynamic rows, actual selected records/actions, no renderer queries and bounded public/access projection |
+| Block C3.7:closed expressions, depth8/nodes300/enums, definition scope/approval | Shared composition model and definition lifecycle exist | Task7:negative vocabulary/limits, current authority, runtime edits and canonical exported package acceptance |
+| Block Phase4:thumbnails/Patterns/Saved/describe box, history/multiselect/keyboard/diagnostics |548thumbnails; native inserter and diagnostics/history reports; E01/E19 current | Tasks2/7:full target/pack/permission scope, all missing keyboard/selection states and successful live generation |
+| Block NN11/Phase6:copyable folders, tests each layer, screenshots each pack | Kits/source exist; prescribed tracker screenshot paths failE22 | Tasks6–8:source-linked final screenshot inventory, kit copyability, full suites and tracker readback |
+| Block NN12/Phase3/6:4–6complete packs, flagship12/8patterns, each a demo site | Core/Journal/Depot/Aster,32patterns; owned treatments and some authored sites | Tasks5/6:four complete polished example websites, all required surfaces, actual activation/switching and scoped motion review |
+| Block Phase6:eight named block-kit one-line skills | All eight repo skills exist, prior local package checks | Task7:each produces reviewed passing result; include canonical migration/AI/style/promotion and real dependency mapping |
+| Block §6:blocks/tests/types/templates/sync/screenshot/fleet gates | Many scoped receipts; no final candidate verdict | Task8:run prescribed full suites/types/build/kit/template/SSR and final rendered matrix; preserve installed Events source boundary |
+| Block §6:fleet alpha/gamma Northstar/Journal and Ridgeline/Depot | Current native proof uses separate disposable4860; original sites not freshly claimed | Tasks4–6/8:required named site deployment/renderer evidence with preserved originals; current cloud-only limits explicit |
+| Block §6a:row before block, current status, treatment metadata, tracker check, rename not duplicate |137unique live rows and source names reconciled; E22path failure | Tasks2/3/6/8:dry-run scoped Notes/status updates only after proof, all-pack treatment values, final check and exact full readback |
+| Block §7:single owned browser driver, separate databases/sessions, no push | Current native sessions cleaned and user39198preserved | Every task; unchanged owner constraints, no agents requested |
+| Owner:internal categorized all-block BlockDemo, shared content across packs | Internal demo and137/285historical example matrix exist | Task6:organized current full inventory, real meaningful states, final images/keyboard/narrow review; no public promotion implied |
+| Owner:premium visuals/smooth animations/no stutter/pixelated gradients | Scoped M5 marquees and entrance proof; Steps historical outlier remains | Tasks2/6:inspect actual final content/pack transitions under stated viewport/DPR/hardware and reduced motion; no universal guarantee |
+| Owner:original imagery/UploadThing fallback | Original assets exist; Convex storage succeeded historically | Task6:correct approved asset identity/alt/focal crop; only use storage alternative if demonstrated necessary |
+| Later approved schema/treatment refinements | Scalar repeaters/numeric select/id-href/reference tag+user; closed inline TipTap; matrix/anchor rules; editorial treatment axes | Tasks2/4/7:preserve exact supported storage/refs, fail unresolved IDs or unsupported structures, no silent padding/truncation or raw styling |
+| Owner scope correction vs original whole-app audit | Current objective explicitly defers unrelated payments/domain/distribution/maximum-capacity campaigns | All tasks:repair only demonstrated delivery dependencies; don't delete those historical findings or label them resolved |
+
+## Shared row acceptance boundary
+
+For a pending row, reuse valid contract/example/interaction/native/provider evidence with source identity. Its remaining unique check below is additive to any genuinely missing authoring/persistence/recovery, actual Website action, relevant access/failure, four-pack desktop/mobile and visual/keyboard checks. Don't rerun every shared backend/auth scenario per static block. A provider-free block does not need a provider test. A real paid action is not authorized just because a commerce block is in scope.
+
+Historical broad statements such as “all original24audit gates” or “packaging incomplete” are not row-specific blockers under the owner's September28 scope. Real block-linked authority, public data, payment entitlement or deployment failures remain blockers until their causal repair is verified.
+
+| Block | Task / batch | Remaining specific check |
+|---|---|---|
+| `core/rich-text` | 2 / text-migration | Native inline marks, breaks and links; exact saved/recovered document; reconcile supported legacy structures with Task4. |
+| `core/table-of-contents` | 2 / navigation | Reuse native depth2/3 and target-focus proof; inspect optional title, heading limits/empty states and source parity before closure. |
+| `core/carousel` | 2 / media-interaction | Native nested children/reorder and exact recovery; keyboard boundaries, empty/single/multiple slides and narrow/reduced-motion behavior. |
+| `core/embed` | 3 / external-embeds | Retain accepted YouTube consent/playback; establish a legitimate working Vimeo fixture and diagnose provider versus integration failure. |
+| `core/map` | 3 / external-embeds | Native address/coordinates/provider/directions fields; actual supported map load after consent, reset/error and destination behavior. |
+| `core/file-download` | 2 / media-interaction | Native owned-media selection, title/description, save/recovery; actual authorized file contents, download target and unavailable-media states. |
+| `core/steps-with-media` | 2 / motion | Reuse native/media/error repair; one controlled cold/warm transition investigation with hardware/frame/paint evidence and explicit limits for the historical304.5ms outlier. |
+| `core/marquee` | 2 / media-interaction | Reuse32-case hardware motion proof; native media repeater/reorder/recovery and distinct empty/single/pause states across final packs. |
+| `blocks/customer-showcase` | 2 / media-interaction | Native name/media/url/quote repeater variants; real destinations, absent media, long attribution and pack treatment review. |
+| `blocks/social-share` | 2 / social-utilities | Native network selection/label; exact encoded current URL and actual keyboard share/copy/fallback destinations without posting. |
+| `core/social-links` | 2 / social-utilities | Native network/url repeater, ordering and absent values; actual links/accessibility under all packs. |
+| `core/reviews` | 3 / customer-commerce | Reuse current review authorization evidence; real customer session/expiry, source/product/rating/limit fields and paginated empty/denied/error states. Broader analytics cleanup is not a block prerequisite unless reached. |
+| `core/social-feed` | 3 / social-data | Reuse per-card entrance repair; actual configured provider/handle/limit, SSR, authorization and loading/empty/error/continuation states. |
+| `core/ugc-grid` | 3 / social-data | Native tag/limit picker and actual scoped media; empty/denied/withdrawn records, paging and observed entrance behavior. |
+| `core/featured-products` | 3 / catalog | Actual selected catalog/limit/columns, price/availability changes and authorized cart action; reuse existing stock guards without reopening carrier operations. |
+| `commerce/assistant-band` | 3 / customer-commerce | Native prompts/title, real assistant response/history scope, cart actions, signed-out/session changes and all-pack host states. |
+| `commerce/product-compare` | 3 / catalog | Native product/attribute selection and order; actual prices, maximum6-product budget, denied/withdrawn/empty and responsive comparison destinations. |
+| `commerce/bundle-offer` | 3 / catalog | Reuse all-pack variant/inclusion/quantity fixtures; actual scoped bundle add with exact cart lines, unavailable/stock/price change and no duplicate action. |
+| `commerce/sale-countdown` | 3 / catalog | Reuse product start/end scheduling proof; verify authored campaign deadline expiry, selected card limit, clock/access states and final pack output. |
+| `commerce/recently-viewed` | 3 / customer-commerce | Reuse real anonymous visit ordering; signed-in/account/site switching, deleted/private product removal, limit and empty state. |
+| `commerce/cart-cta` | 3 / customer-commerce | Reuse customer restore/guest merge proof; title/empty copy, closed-cart cross-tab changes, currency and all-pack live host states. Payment lifecycle is separate unless reached. |
+| `commerce/search-band` | 3 / content-discovery | Native placeholder/suggestions; real search navigation, encoded queries, keyboard and empty/long suggestion layouts. |
+| `commerce/brand-list` | 3 / catalog | Reuse brand publication/withdrawal and navigation; reconcile repaired canonical promotion boundary, limit/pagination and final four-pack live rendering. |
+| `commerce/product-hero` | 3 / catalog | Reuse exact product/cart proof and shared preview repair; native optional title/media, long/absent values and selected variant/availability across packs. |
+| `commerce/variant-picker-teaser` | 3 / catalog | Reuse sparse-option transition repair; actual product/attribute picker, invalid hints, live withdrawn combinations, selected URL and all-pack limits. |
+| `commerce/shipping-promise` | 3 / catalog | Reuse configured policy live withdrawal; optional links/icons and0–8 promises, final pack layouts; no carrier purchase needed for display acceptance. |
+| `core/latest-posts` | 3 / content-discovery | Reuse Journal/Depot native treatments; category/tag picker, excerpts/authors/count and full public/access/empty states including Core/Aster. |
+| `core/post-grid` | 3 / content-discovery | Native query filters/limit/excerpt; real scoped records and category/taxonomy, pagination, unavailable/empty and pack layouts. |
+| `core/author-bio` | 3 / content-discovery | Native current/explicit author choice; exact public projection, missing profile/media, target withdrawal and correct author destinations. |
+| `core/tag-cloud` | 3 / content-discovery | Reuse private-label repair; heading/max, actual taxonomy access and continuation/count boundaries without reviving unrelated legacy endpoint audits. |
+| `core/related-content` | 3 / content-discovery | Reuse native siblings and scoped cursors; post/page/type/limit alternatives, actual links, missing current context and access filtering. |
+| `core/archive-list` | 3 / content-discovery | Reuse real month archive navigation; year/time-zone/limit variants, exact counts, continuation and denied/empty states. |
+| `core/search-box` | 3 / content-discovery | Native placeholder/scope, correct encoded route arguments, actual destination results and keyboard/empty query behavior. |
+| `core/featured-page` | 3 / content-discovery | Native page/CTA picker with actual target; private/deleted/empty/media variants and final pack navigation/recovery. |
+| `core/child-pages` | 2 / navigation | Reuse native child/grandchild/private filtering; depth1–4, empty/context/cycle-bound refusals and native hierarchy changes where relevant. |
+| `core/contact-form` | 3 / forms | Actual field/question authoring and source identity, submit/validation/deduplication, revoked/expired authority and nested reusable graph recovery; no outbound email. |
+| `core/newsletter-signup` | 3 / forms | Reuse SSR-readiness/deduplicated signup; native list/title/body/button variants and actual all-pack success/error/retry with synthetic addresses and no email. |
+| `core/booking-cta` | 3 / external-embeds | Native title/body/url/provider, approved provider consent/load/reset/failure or actual external destination; booking submission requires explicit scope. |
+| `blocks/contact-stack` | 3 / external-embeds | Reuse container-width/consent repairs; native address/hours/phone/email/map/form, actual scoped form/map load and correct contact destinations. |
+| `core/form` | 3 / forms | Reuse Journal/Depot owned treatments; native selected form/title and real multi-step submit/validation, denied/revoked/unavailable response and narrow live layout. |
+| `core/lead-magnet` | 3 / forms | Reuse stale-callback and fixture-file proof; native media/file/list selection, real scoped signup/download/opt-out/retry and account/environment isolation without email. |
+| `core/poll` | 3 / forms | Native stable option keys/question/results/policy, actual visitor and signed-in vote rules, repeat vote/results/revision behavior and all-pack keyboard states. |
+| `core/event-rsvp` | 3 / forms | Reuse independent generated-plugin RSVP proof; final all-pack state review and legitimate verified-provider/CAPTCHA path, access withdrawal and original/generated event selection. |
+| `lms/course-grid` | 3 / learning | Native category/limit and actual course cards; real customer progress/access/privacy, continuation/empty states; avoid unrelated player maintenance absent a causal failure. |
+| `lms/curriculum` | 3 / learning | Reuse all-pack navigation/accordion proof; native course/expanded and real enrollment authorization, locked/available modules and continuation. |
+| `lms/instructor` | 3 / learning | Reuse picker/cross-database/public course proof; exact remaining optional profile/media/pagination variants and native revision recovery before closure. |
+| `lms/progress` | 3 / learning | Reuse all-pack42/100 display proof; real learner/course scope, signed-out/empty/unavailable, revoked enrollment and no other customer's progress. |
+| `events/calendar` | 3 / events | Native view/category/limit; actual month/range/time-zone boundaries, cancelled/private/empty events and keyboard navigation. |
+| `events/upcoming` | 3 / events | Reuse actual publish/cancel/reappear flow; count/heading/intro/show-description/empty copy and final pack/time-boundary review. |
+| `events/next-event` | 3 / events | Reuse actual category rename/filter/empty proof; current source bounds, missing/withdrawn category and final all-pack exact target/date. |
+| `membership/plans` | 3 / membership | Reuse real selected/all order and9-plan paging; actual customer/session/availability, limit/copy/action link and final pack states. |
+| `membership/gated-teaser` | 3 / membership | Reuse native plan/grant/revocation API proof; actual browser member login/upgrade destination, signed-out/denied/withdrawn plan and all-pack presentation. |
+| `gallery/recipe-card` | 3 / plugin-content | Resolve F1 default authority; reuse native image/checklist proof; exact recipe selection/withdrawal, public detail and final required field variants. |
+| `gallery/album` | 3 / plugin-content | Resolve F1 default authority; reuse native two-image lightbox/paging; actual published page and missing/private album/media lifecycle. |
+| `support/kb-search` | 3 / support | Resolve F1 default authority; actual configured search provider and accessible category/results/pagination. Provider indexing repair only to the extent required by this block; RAG campaign is separate. |
+| `support/ticket-cta` | 3 / support | Resolve F1 default authority; real customer sign-in and owned ticket destination/submission, denied/signed-out behavior and final pack rendering. |
+| `certificates/verify` | 3 / learning | Reuse all-pack invalid/valid/revoked fixture and stale-response repair; real certificate provider verification, privacy, retry and native title/recovery. |
+| `core/site-info` | 2 / navigation | Native show-field selection and exact public site identity/contact destinations; omitted fields and all-pack review without private setting leakage. |
+| `core/menu` | 2 / navigation | Reuse native exact scoped menu/private target filtering; location assignment versus explicit menu, nested variants/current state and all-pack keyboard navigation. |
+| `core/account-teaser` | 3 / membership | Reuse native independent-site API proof; actual browser sign-in/out/session change, correct current customer action and configured text under all packs. |
+| `core/custom-html` | 2 / safe-utilities | Native sanitized markup/save/recovery, script/event/style refusal and retained safe structure, links, keyboard and template containment. |
+| `core/iframe` | 3 / external-embeds | Native safe URL/title, approved real frame load after consent, reset/failure/title/keyboard and sandbox boundaries. |
+| `core/script-embed` | 3 / external-embeds | Native allow-listed provider/resourceId, legitimate provider consent/load/unload/failure and no arbitrary code path. |
+| `core/anchor-nav` | 2 / navigation | Reuse native auto/manual missing-target preflight and public focus; reconcile full authored variants, headings changing/removal and final source parity. |
+| `core/language-switcher` | 3 / content-discovery | Actual configured locale links/current state, unavailable/private translations, native context/recovery and required promotion preservation; no invented full translation engine. |
+| `blocks/grade-gallery` | 2 / media-interaction | Reuse pack layout polish; native nested groups/media order, real selected images/alt/focal values and no-image/single/multiple narrow states. |
+| `core/synced` | 4 / reusable-migration | Reuse source/pinned/latest/Forms history; reconcile full nested source graph, permissions/revocation, migration of reusableBlocks and exact recovery/promotion across packs. |
+| `business/opening-hours` | 2 / business | Native timezone/week/exceptions/contact link, valid/invalid boundary values, closed/overnight/date exceptions and all-pack readable output. |
+| `business/locations` | 2 / business | Native repeater order, media/links/address variations, real destination actions and empty/long/narrow states. |
+| `business/service-list` | 2 / business | Native services and order, omitted/long descriptions/price/actions, safe destinations and final pack treatments. |
+| `business/menu` | 2 / business | Native nested sections/items and prices, reorder/recovery, dietary/optional/long variants and final pack readability. |
+| `commerce/wishlist` | 3 / customer-commerce | Reuse fixture/readiness/paging proof; real customer-owned list/item actions and session isolation, native copy/browse link and all-pack host behavior. |
+| `commerce/download-library` | 3 / customer-commerce | Reuse callback/entrance fixes; actual permitted entitlement/file bytes, denial/revocation/session changes, paging and native text/help action without real charge. |
+| `core/search-results` | 3 / content-discovery | Reuse real10-page8+2 capacity fix; remaining canonical library/composed/reusable prose sources, filtering/backfill and access budget with actual rendered results. |
+| `reference/field-guide` | 4 / text-migration | Native all authored fields and closed editorial treatment axes, explicit lossless legacy conversion/restore, images/links and final four-pack treatment parity. |
+| `local/sample-alert` | 2 / social-utilities | Reuse deployed action validation; native notice variants, empty/long message and actual destination, every pack's final visual signoff. |
+| `blocks/studio-services` | 7 / sdk-promotion | Reuse native exact promoted package/immutable history and pack refresh; final full field/variant review and one-line compose/style/promote workflow acceptance. |
+
+## Follow-through: canonical page headings
+
+E21 is implemented locally after this inventory checkpoint. Public page projection deliberately omits v2 bodies; the old name checks consequently missed every canonical hero, not just `core/hero-video`. The new 141-line generated role map comes from each spec. `PublicCanonicalBody.renderLayout` shares its current validated response with the template's title decision, with no second subscription or raw-body projection. Core's PageContent and Journal/Depot/Aster page surfaces now consume it. The historical `blocks/page-banner` alias remains one explicit compatibility case until Task4.
+
+Focused generator, role, public lifecycle, four real page-layout DOM/SSR fixture and privacy-boundary checks pass. These fixtures isolate block painting; they do not replace live Website/native acceptance. See `ConvexPress-Admin/audits/2026-09-04/canonical-page-headings-20260928.md`. E20 per-block loading and E22 evidence-path reconciliation remain open. Tracker remains60Verified/77In progress.
+
+## E20/E21 live follow-through
+
+Selective canonical loading now passes real native incremental insertion/save/reload,16 built four-pack public cases and nested/reusable/custom SSR. E21 hero-first/ordinary-first title behavior is accepted in that live batch. See `ConvexPress-Admin/audits/2026-09-04/canonical-lazy-renderers-20260928.md`. Preserve the existing main-bundle budget failure and E22 evidence mapping as open gates. Opus04 F13 autosave-conflict routing is the next bounded reproduction; tracker remains60/77.
+
+## Opus04 F13 follow-through
+
+E23 records the reproduced private-autosave conflict routing repair. Controlled lost-reply/accepted-revision/local-Save overlap cases and actual two-native-window automatic/simultaneous conflict choices pass. See `ConvexPress-Admin/audits/2026-09-04/editor-autosave-conflicts-20260928.md` for the exact boundary and cleanup. E19 remains accepted. Resume remaining Task2 family acceptance; tracker unchanged60/77.
+
+## Three navigation rows accepted
+
+Table of Contents, Anchor Nav and Site Info now close their block-specific gaps using native authoring/save/reopen/exact restoration, actual public4pack/2viewport behavior and focused boundary checks. `navigation-completion-20260928.md` records the preserved evidence and limits. Site Info has logo/name/tagline; the earlier contact-destinations phrase was not part of its actual contract. Full tracker readback is63Verified/74In progress; other cells unchanged. Menu/Child Pages are the next navigation batch. The77-row inventory above remains the historical reconciliation checkpoint, with these3rows now accepted.
+
+## Menu / Child Pages causal repairs
+
+E24 fixes the default Menu location while preserving explicit historical/custom primary values. E25 fixes the extra page-depth increment across five mutation callers, with registered-mutation and actual native hierarchy/depth1..4 proof. Strict disposable deployment preserves all2404 function signatures and22Events files. See `menu-children-repairs-20260928.md`. Full rows remain In progress: explicit selected-menu/location assignment variants and remaining interaction/restore acceptance are still open. E26 records observed early public focus loss; settled visual captures cannot close that keyboard gate. Tracker remains63/74 with no writes.
+
+Opus05 F14 adopted as explicit Task2/3 console/page-error and hydration acceptance criteria. F15 located: `scripts/website/check-bundle.mjs:6` defaults to300000bytes =292.96875KiB. Its formatter labels binary units kB; the threshold is unchanged and the budget remains an open Task8 gate.
+
+
+### E26 initial public keyboard focus accepted
+
+Three independent resets were reproduced and repaired: session-provider anonymous readiness, lead-magnet-provider anonymous readiness, and display installation revoking its initial grant before committing the replacement. The latter required a browser-scheduled regression outside React act batching. All four packs at1440/390 preserve the exact server-rendered link focused by Tab before application JavaScript starts, retain focus through hydration and anonymous auth readiness, then navigate with Enter. Console/page errors and overflow are absent. Identity changes, stale callbacks and grant cleanup remain guarded. See `public-focus-hydration-20260928.md` and `output/public-focus-20260928/live-matrix.json`. All42 original pages/appearance preserved, API session revoked; no tracker writes. Full Menu/Child Pages variants, E22 and main-bundle budget remain open.
+
+September28 Author Bio completion:66Verified/71Inprogress. The current-author requirement in the historical table is now implemented explicitly alongside selected and manual cards; accepted under E29 with native/public/demo/search/cleanup evidence in `author-bio-completion-20260928.md`. Current counts and source hashes are in the status JSON.
+
+September29 Steps completion:94 Verified/43 In progress. E11 current bounded motion acceptance closes; historical304.5ms cause remains unknown. E50 repaired initial CSS delivery, with8 actual JavaScript-disabled four-pack cases. Unchanged native/media evidence reused. See `steps-review-20260929.md`; Grade Gallery remains the last Task2 block row, while broader editor/integration gates remain assigned.
+
+September29 Grade Gallery completion:95 Verified/42 In progress. All20 Task2-assigned rows are accepted; E51 shared caption wrapping closes the reproduced2991px overflow. Native nested media selection/order and exact4→6 recovery,16 final normal/maximum four-pack cases. Current sections/images contract reconciles old groups/label shorthand; no per-item focal control exists or is claimed. Task3 catalog family follows; migration/SDK/Customizer/integrated gates remain open.

@@ -1,4 +1,5 @@
 import thumbnailCatalog from "./block-thumbnails.generated.json";
+import { recoverCanonicalDraft } from "./recovery-draft";
 import { z } from "zod";
 import { BLOCK_LAYOUT_VALUES, MENU_VISIBILITY_VALUES, createCanonicalLayoutSchema, assertCanonicalBlockLocks } from "../../../../../../../blocks/.generated/instance-runtime.mjs";
 import { templatePatterns } from "../../../../../../../blocks/.generated/patterns";
@@ -231,6 +232,7 @@ export function canonicalEditorAdapter(
 	};
 	return {
 		contract,
+		recover: recoverCanonicalDraft,
 		visibilityValue: node => metadata(node.name, node.version)?.supports.visibility ? node.visibility ?? "everyone" : undefined,
 		withVisibility: (node, value) => {
 			if (!metadata(node.name, node.version)?.supports.visibility || !MENU_VISIBILITY_VALUES.includes(value)) throw new Error("This block visibility choice is unavailable.");
@@ -425,9 +427,10 @@ export function canonicalEditorAdapter(
 							checked.blocks,
 							{
 								...scope,
-								deploymentOrigin: "https://editor-validation.convex.cloud",
+								deploymentOrigin: composed?.scope.deploymentOrigin ?? "https://editor-validation.convex.cloud",
 							},
 							() => null,
+							{ composed },
 						),
 						scope,
 						policy,

@@ -5,8 +5,9 @@ import { fileURLToPath } from "node:url";
 import ts from "typescript";
 
 const root = fileURLToPath(new URL("../convex/", import.meta.url));
+// Keep the retired permit name detectable so reintroducing it fails this inventory.
 const permitNames = new Set(["permitValidatedCanonicalAuthoringWrite", "permitValidatedLegacyRecoveryWrite"]);
-const allowed = new Set(["snapshot", "commit", "duplicateDocument", "recoverLegacyDocument", "setDocumentSettings", "writePromotedCanonicalDocument"]);
+const allowed = new Set(["snapshot", "commit", "createDocument", "createForActor", "duplicateDocument", "setDocumentSettings", "writePromotedCanonicalDocument", "canonicalTrashRestorePermit"]);
 function files(dir) {
   return fs.readdirSync(dir, { withFileTypes: true }).flatMap(entry => entry.isDirectory()
     ? ["__tests__", "_generated"].includes(entry.name) ? [] : files(path.join(dir, entry.name))
@@ -36,11 +37,11 @@ for (const file of files(root)) {
 const reviewed = [
   "helpers/authoringVersionFence.ts", "media/attachmentGuard.ts", "media/references.ts",
   "contentPromotion/shared.ts", "contentPromotion/operations.ts", "canonicalDocuments/service.ts",
-  "canonicalDocuments/contactDocuments.ts", "canonicalDocuments/foundation/syncedContent.ts",
+  "canonicalDocuments/apiAuthority.ts", "canonicalDocuments/contactDocuments.ts", "canonicalDocuments/foundation/syncedContent.ts",
   "canonicalDocuments/foundation/syncedOccurrences.ts", "syncedBlocks/model.ts", "syncedBlocks/content.ts",
   "syncedBlocks/refresh.ts", "syncedBlocks/occurrences.ts", "syncedBlocks/consumers.ts",
   "syncedBlocks/consumerWrites.ts", "syncedBlocks/consumerIndex.ts", "syncedBlocks/consumerIndexState.ts",
-  "schema/syncedBlocks.ts",
+  "schema/syncedBlocks.ts", "syncedBlocks/legacy.ts",
   "canonicalDocuments/contactProjection.ts", "canonicalDocuments/contactDefinitions.ts",
   "canonicalDocuments/contactFields.ts", "canonicalDocuments/contactMessaging.ts",
   "canonicalDocuments/displayContext.ts",

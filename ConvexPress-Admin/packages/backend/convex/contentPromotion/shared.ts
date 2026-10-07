@@ -1,3 +1,4 @@
+import {isLocaleKind,readLocaleGroup,validateLocalizationManifest,writeLocalization} from "./localization";
 import {syncEventSearch} from "../search/events";
 import {syncedClosureFromManifest} from "./syncedClosure";
 import { assertCategoryNotDeleting, validateCategoryParent } from "../kb/helpers/categoryHierarchy";
@@ -44,6 +45,7 @@ import {
 import { validateSectionValues } from "../settings/validation";
 
 export const TABLES = {
+  localeRouting:"locale_routing",localeGroup:"locale_translation_groups",
   course: "lms_courses", courseNode: "lms_nodes", coursePrerequisite: "lms_course_prerequisites", plan: "membership_plans", planBenefit: "membership_plan_benefits",
   product: "commerce_products",
   productCategory: "commerce_product_categories",
@@ -146,7 +148,8 @@ export async function read(
 	const table = TABLES[kind];
 	const normalized = ctx.db.normalizeId(table, id);
 	if (!normalized) return null;
-	return (await ctx.db.get(table, normalized)) as Row | null;
+	const row=(await ctx.db.get(table, normalized)) as Row | null;
+  return kind==="localeGroup"&&row?readLocaleGroup(ctx,row):row;
 }
 export function validateManifest(raw: unknown): ContentPromotionManifest {
 	if (
@@ -170,6 +173,7 @@ export function validateManifest(raw: unknown): ContentPromotionManifest {
   const syncedClosure=syncedClosureFromManifest(manifest);
   validateCatalogManifest(manifest);
   validateLearningManifest(manifest);
+  validateLocalizationManifest(manifest);
 	const identities = new Set<string>();
 	// Legacy membership rules address blocks globally. Canonical identities are
 	// document-local and must never satisfy that legacy policy namespace.
@@ -284,7 +288,8 @@ export function validateManifest(raw: unknown): ContentPromotionManifest {
 					parent = path[path.length - 2] ?? "";
 				const kind = kinds.get(key);
 				const fieldKinds: Record<string, string[]> = {
-					featuredImageId: ["media"],
+					audienceId: ["mailingList"],
+          featuredImageId: ["media"],
           featuredMediaId: ["media"],
           thumbnailMediaId: ["media"],
           logoMediaId: ["media"],
@@ -298,6 +303,7 @@ export function validateManifest(raw: unknown): ContentPromotionManifest {
 					postId: ["page", "post"],
 					pageId: ["page"],
 					homepageId: ["page"],
+          landingPageId:["page"],documentId:["page","post"],
 					postsPageId: ["page"],
 					menuId: ["menu"],
 					parentItemId: ["menuItem"],
@@ -469,6 +475,7 @@ export async function write(
 	id: string | null,
 	data: Record<string, unknown>,
 ): Promise<string> {
+if(isLocaleKind(kind))return writeLocalization(ctx,kind,id,data);
 	const table = TABLES[kind];
 	const existing = id ? await read(ctx, kind, id) : null;
   if (kind === "kbCategory") {
@@ -491,7 +498,7 @@ export async function write(
 		const normalized = ctx.db.normalizeId(table, id);
 		if (!normalized)
 			fail("PROMOTION_MAPPING_INVALID", "Invalid target mapping.");
-		await ctx.db.patch(table, normalized, data as Partial<Doc<PromotionTable>>);
+		await ctx.db.patch(table, normalized, data as Partial<Doc<typeof table>>);
     await reconcileCurriculumWrite(ctx, table, normalized, existing, { ...existing, ...data });
     await recordCatalogWrite(ctx, table, "patch", data);
 		await reconcileOwnerReferences(ctx, table, normalized, { ...existing, ...data });
@@ -514,7 +521,7 @@ export async function write(
 	}
 	const created = await ctx.db.insert(
 		table,
-		data as WithoutSystemFields<Doc<PromotionTable>>,
+		data as WithoutSystemFields<Doc<typeof table>>,
 	);
 	await reconcileOwnerReferences(ctx, table, created, data);
   if(table==="extension_events")await syncEventSearch(ctx,created as Id<"extension_events">);

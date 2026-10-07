@@ -1,3 +1,5 @@
+import {DocumentSettings} from "./DocumentSettings";
+import {Button} from "@/components/ui/button";
 import { useDefinitionClients } from "../../custom-blocks/useDefinitionClients";
 import { DefinitionPreviewPanel } from "../../custom-blocks/DefinitionPreviewPanel";
 import { useCan } from "@/hooks/useCan";
@@ -17,6 +19,7 @@ import {
 	useConvexConnectionState,
 } from "convex/react";
 import { api } from "@backend/convex/_generated/api";
+import { makeFunctionReference } from "convex/server";
 import type { Id } from "@backend/convex/_generated/dataModel";
 import {
 	useVerifiedSiteRuntime,
@@ -31,7 +34,9 @@ import {
 	type CanonicalPickerRequest,
 	type ResourcePickerClient,
 } from "./CanonicalResourcePicker";
-import { readForEditor } from "./document-adapter";
+import { readForEditor, type CanonicalDraft } from "./document-adapter";
+import { recoverCanonicalDraft } from "./recovery-draft";
+import { decodeSiteDraft } from "./site-draft";
 import type { PickerResult } from "../schema-editor/model";
 import type { DocumentKey } from "./session";
 import {
@@ -44,67 +49,15 @@ import { recoverableCanonicalRead } from "./read-recovery";
 import { useCanonicalDocumentQuery } from "./document-query";
 import type { CanonicalDocumentDto } from "@backend/canonical-blocks-foundation/documentContracts";
 
-export function CanonicalEditorEntry({
-	postId,
-	canonical,
-	draft,
-	initialOpen = false,
-	children,
-}: {
-	postId: Id<"posts">;
-	canonical: boolean;
-	draft: boolean;
-	initialOpen?: boolean;
-	children: ReactNode;
-}) {
-	const [selected, setSelected] = useState(initialOpen);
-	if (canonical || selected)
-		return (
-			<div className="space-y-4">
-				{!canonical && (
-					<button
-						type="button"
-						className="min-h-11 rounded border px-4 text-sm"
-						onClick={() => setSelected(false)}
-					>
-						Back to existing editor
-					</button>
-				)}
-				<NativeCanonicalEditor
-					postId={postId}
-					onRecovered={() => setSelected(false)}
-				/>
-			</div>
-		);
-	return (
-		<>
-			{
-				<div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-card p-4">
-					<p className="text-sm text-muted-foreground">
-						{draft
-							? "Create blocks in an empty draft or review a supported conversion of existing content."
-							: "Review saved block versions, including versions preserved before returning to this editor."}
-					</p>
-					<button
-						type="button"
-						onClick={() => setSelected(true)}
-						className="min-h-11 rounded border px-4 text-sm"
-					>
-						{draft ? "Open block editor" : "Block revision history"}
-					</button>
-				</div>
-			}
-			{children}
-		</>
-	);
-}
+type PrivateDraftIdentity = { postId: Id<"posts">; expectedScope: { websiteKey: string; instanceKey: string } };
+const privateDraftRead = makeFunctionReference<"query", PrivateDraftIdentity, unknown>("canonicalDocuments/drafts:get");
+const privateDraftSave = makeFunctionReference<"mutation", PrivateDraftIdentity & { expectedGeneration: number; baseRevision: number; draft: CanonicalDraft }, unknown>("canonicalDocuments/drafts:save");
+const privateDraftDiscard = makeFunctionReference<"mutation", PrivateDraftIdentity & { expectedGeneration: number }, unknown>("canonicalDocuments/drafts:discard");
 
 export function NativeCanonicalEditor({
 	postId,
-	onRecovered,
 }: {
 	postId: Id<"posts">;
-	onRecovered?: () => void;
 }) {
 	const runtime = useVerifiedSiteRuntime(),
 		auth = useConvexAuth(),
@@ -125,7 +78,6 @@ export function NativeCanonicalEditor({
 			<ConnectedEditor
 				postId={postId}
 				runtime={runtime}
-				onRecovered={onRecovered}
 			/>
 		</CanonicalReadBoundary>
 	);
@@ -133,11 +85,9 @@ export function NativeCanonicalEditor({
 function ConnectedEditor({
 	postId,
 	runtime,
-	onRecovered,
 }: {
 	postId: Id<"posts">;
 	runtime: VerifiedSiteRuntime;
-	onRecovered?: () => void;
 }) {
 	const can = useCan();
 	const convex = useConvex(),
@@ -159,8 +109,9 @@ function ConnectedEditor({
 		pending = useRef<((result: PickerResult | null) => void) | null>(null);
 	const [picker, setPicker] = useState<CanonicalPickerRequest | null>(null);
 	const [dirty, setDirty] = useState(false);
+ const [settingsOpen,setSettingsOpen]=useState(false),[settingsDirty,setSettingsDirty]=useState(false);
 	useUnsavedChangesWarning({
-		isDirty: dirty || picker !== null,
+		isDirty: dirty || settingsDirty || picker !== null,
 		enabled: true,
 	});
 	const [preview, setPreview] = useState<CanonicalDocumentDto | null>(null);
@@ -212,6 +163,23 @@ function ConnectedEditor({
 	};
 	const client = useMemo<CanonicalDocumentClient>(
 		() => ({
+			privateDraft: {
+				load: async () => {
+					guard();
+					const result = await convex.query(privateDraftRead, { postId, expectedScope: { websiteKey: key.websiteKey, instanceKey: key.instanceKey } });
+					guard(); return decodeSiteDraft(result, key, recoverCanonicalDraft);
+				},
+				save: async args => {
+					guard();
+					const result = await convex.mutation(privateDraftSave, { postId, expectedScope: { websiteKey: key.websiteKey, instanceKey: key.instanceKey }, ...args });
+					guard(); return decodeSiteDraft(result, key, recoverCanonicalDraft);
+				},
+				discard: async args => {
+					guard();
+					const result = await convex.mutation(privateDraftDiscard, { postId, expectedScope: { websiteKey: key.websiteKey, instanceKey: key.instanceKey }, ...args });
+					guard(); return decodeSiteDraft(result, key, recoverCanonicalDraft);
+				},
+			},
 			previewDraft: async (args) => {
 				guard();
 				const value = await freshCanonicalRead(postId, (fresh) =>
@@ -353,19 +321,21 @@ function ConnectedEditor({
 				guard();
 				return value;
 			},
-			recoverLegacy: async (args) => {
-				guard();
-				const value = await convex.mutation(
-					api.canonicalDocuments.recoverLegacy,
-					{
-						postId,
-						...args,
-						revisionId: args.revisionId as Id<"revisions">,
-					},
-				);
-				guard();
-				return value;
-			},
+      prepareRevisionImport: async (args) => {
+        guard();
+        const value = await convex.query(api.canonicalDocuments.prepareRevisionImport,{postId,...args,revisionId:args.revisionId as Id<"revisions">});
+        guard(); return value;
+      },
+      importRevision: async (args) => {
+        guard();
+        const value = await convex.mutation(api.canonicalDocuments.importRevision,{postId,...args,revisionId:args.revisionId as Id<"revisions">});
+        guard(); return value;
+      },
+      getRevisionSource: async (args) => {
+        guard();
+        const value = await convex.query(api.canonicalDocuments.getRevisionSource,{postId,revisionId:args.revisionId as Id<"revisions">});
+        guard(); return value;
+      },
 			setPublication: async (args) => {
 				guard();
 				const value = await convex.mutation(
@@ -651,8 +621,13 @@ function ConnectedEditor({
 					reappear automatically…
 				</p>
 			)}
-			{/* Keep unsaved editor state mounted but inaccessible while its index recovers. */}
-			<div hidden={recovery.preparing} inert={recovery.preparing}>
+			{!recovery.preparing && decodedRead?.contract === "canonical-document-v1" && <div className="mb-4 flex items-center justify-end gap-3">
+    {dirty && <p className="text-xs text-muted-foreground">Save or discard body edits before opening document settings.</p>}
+    {!settingsOpen && <Button variant="outline" disabled={dirty || picker!==null} onClick={()=>setSettingsOpen(true)}>Document settings</Button>}
+   </div>}
+   {settingsOpen && !recovery.preparing && <DocumentSettings postId={postId} onClose={()=>setSettingsOpen(false)} onDirtyChange={setSettingsDirty}/>}
+   {/* Keep unsaved editor state mounted but inaccessible while its index recovers. */}
+			<div hidden={recovery.preparing || settingsOpen} inert={recovery.preparing || settingsOpen}>
 				<CanonicalDocumentWorkspace
 					siteOrigin={
 						recovery.preparing ? undefined : runtime.target.siteOrigin
@@ -695,11 +670,6 @@ function ConnectedEditor({
 					read={decodedRead}
 					client={client}
 					onPreview={setPreview}
-					onRecovered={() => {
-						guard();
-						setPreview(null);
-						onRecovered?.();
-					}}
 					pickResource={(request) => {
 						guard();
 						if (

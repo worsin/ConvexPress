@@ -126,16 +126,18 @@ export async function migrationPlan() {
       data: null, preview: fields.some((f: any) => f.id === "heading") ? "{heading}" : fields.some((f: any) => f.id === "title") ? "{title}" : catalog.title,
       examples: [...new Map(examples.map(value => [plain(value), value])).values()],
     };
+    const extractedCandidate = structuredClone(candidate);
+    let hasInstalledSpec = false;
     // A prior canonical spec may contain deliberately authored AI/resolver
     // metadata. A one-time extractor must not overwrite that source of truth.
-    try { candidate = JSON.parse(await readFile(path.join(ROOT, `blocks/${legacy.name}/block.json`), "utf8")); } catch (error: any) { if (error.code !== "ENOENT") throw error; }
+    try { candidate = JSON.parse(await readFile(path.join(ROOT, `blocks/${legacy.name}/block.json`), "utf8")); hasInstalledSpec = true; } catch (error: any) { if (error.code !== "ENOENT") throw error; }
     if (!issues.length) {
       try { parseBlockSpec(candidate); } catch (error: any) { issues.push({ path: "spec", code: "contract", requirement: error.message }); }
     }
     const sourceHash = createHash("sha256").update(await readFile(path.join(ROOT, legacy.source), "utf8")).digest("hex");
     const websiteSchemaDiffers = Boolean(legacy.websiteSchema && plain(z.toJSONSchema(legacy.schema, { io: "input" })) !== plain(z.toJSONSchema(legacy.websiteSchema, { io: "input" })));
     const websiteDefaultDifference = legacy.websiteSchema && plain(legacy.schema.parse({})) !== plain(legacy.websiteSchema.parse({})) ? { savedDefaults: legacy.schema.parse({}), renderDefaults: legacy.websiteSchema.parse({}) } : null;
-    plans.push({ name: legacy.name, source: legacy.source, sourceHash, rowId: row.rowId, specPath: `blocks/${legacy.name}/block.json`, candidate, issues, websiteSchemaAvailable: Boolean(legacy.websiteSchema), websiteSchemaDiffers, websiteDefaultDifference });
+    plans.push({ name: legacy.name, source: legacy.source, sourceHash, rowId: row.rowId, specPath: `blocks/${legacy.name}/block.json`, candidate, extractedCandidate, hasInstalledSpec, issues, websiteSchemaAvailable: Boolean(legacy.websiteSchema), websiteSchemaDiffers, websiteDefaultDifference });
   }
   return plans;
 }
@@ -156,9 +158,9 @@ export async function stagedMigrationPlan() {
   const plans = await migrationPlan(), sources = await legacyInventory();
   for (const plan of plans) {
     const source = sources.find(s => s.name === plan.name)!;
-    const candidate: any = structuredClone(plan.candidate);
-    // Re-extract original fields: a previous canonical v2 spec no longer owns
-    // legacy design attrs, but repeatable planning must still describe them.
+    const candidate: any = structuredClone(plan.extractedCandidate);
+    // Analyze the historical contract independently. Current canonical specs
+    // can have newer fields/rules/resolvers that do not belong to old attrs.
     const ignored: Issue[] = [];
     candidate.fields = Object.entries(source.schema.shape).map(([id, schema]) => extractField(schema, id, [], ignored));
     const transforms: any[] = [], unresolved: Issue[] = [];
@@ -211,7 +213,9 @@ export async function stagedMigrationPlan() {
       return attrs;
     });
     if (!unresolved.length) parseBlockSpec(candidate);
-    plan.candidate = candidate; plan.issues = unresolved;
+    if (!plan.hasInstalledSpec) plan.candidate = candidate;
+    else parseBlockSpec(plan.candidate);
+    plan.issues = unresolved;
   }
   return plans;
 }
@@ -222,13 +226,13 @@ if (import.meta.main) {
   if ((write || staged) && process.argv.includes("--check")) throw new Error("Choose write or check mode");
   const plans = staged || process.argv.includes("--check") ? await stagedMigrationPlan() : await migrationPlan();
   for (const plan of plans) {
-    if ((write || staged) && !plan.issues.length && plan.name !== "events/upcoming") {
+    if ((write || staged) && !plan.hasInstalledSpec && !plan.issues.length && plan.name !== "events/upcoming") {
       const file = path.join(ROOT, plan.specPath);
       await mkdir(path.dirname(file), { recursive: true });
-      try { await writeFile(file, JSON.stringify(plan.candidate, null, 2) + "\n", { flag: staged ? "w" : "wx" }); } catch (error: any) { if (error.code !== "EEXIST") throw error; }
+      try { await writeFile(file, JSON.stringify(plan.candidate, null, 2) + "\n", { flag: "wx" }); } catch (error: any) { if (error.code !== "EEXIST") throw error; }
     }
   }
-  const report = plans.map(({ candidate, ...plan }) => ({ ...plan, state: plan.issues.length ? "migration-required" : candidate.migration ? "staged-migration" : "representable", metadata: { title: candidate.title, category: candidate.category, role: candidate.role, version: candidate.version, fields: candidate.fields, data: candidate.data, supports: candidate.supports, ...(candidate.migration ? { migration: candidate.migration } : {}) } }));
+  const report = plans.map(({ candidate, extractedCandidate: _extractedCandidate, ...plan }) => ({ ...plan, state: plan.issues.length ? "migration-required" : candidate.migration ? "staged-migration" : "representable", metadata: { title: candidate.title, category: candidate.category, role: candidate.role, version: candidate.version, fields: candidate.fields, data: candidate.data, supports: candidate.supports, ...(candidate.migration ? { migration: candidate.migration } : {}) } }));
   if (write || staged) {
     const output = path.join(ROOT, "blocks/.migration"); await mkdir(output, { recursive: true });
     await writeFile(path.join(output, "existing-contracts.json"), JSON.stringify(report, null, 2) + "\n");

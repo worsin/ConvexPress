@@ -3,7 +3,7 @@ import { ProductionBundleProvider } from "../block-renderer/bundle-production";
 import { ProductionWishlistProvider } from "../block-renderer/wishlist-production";
 import { ProductionCartSummaryProvider } from "../block-renderer/cart-summary-production";
 import { ProductionShoppingAssistantProvider } from "../block-renderer/shopping-assistant-production";
-import { Component, useEffect, useRef, useState, type ReactNode } from "react";
+import { Component, Suspense, useEffect, useRef, useState, type ReactNode } from "react";
 import { getSiteRuntime } from "@/lib/site-runtime";
 import { useTemplateSettings } from "../useTemplateSettings";
 import { useDisplayInstallation } from "../block-data/use-display-installation";
@@ -75,12 +75,14 @@ export function EmbeddedDocumentPreview() {
 			resetKey={canonicalDisplayDigest(value.document)}
 			onFailed={receipt?.failed}
 		>
+      <Suspense fallback={<p role="status" className="p-8">Loading preview blocks…</p>}>
 			<InstalledDocument
 				value={value}
 				receipt={receipt}
 				selectedId={selectedId}
 				editing={editing}
 			/>
+      </Suspense>
 		</PreviewBoundary>
 	);
 }

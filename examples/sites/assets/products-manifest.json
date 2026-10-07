@@ -1,0 +1,35 @@
+[
+  {
+    "pack": "depot",
+    "key": "cup",
+    "file": "common-supply-cup.png",
+    "alt": "A chalk-white stoneware cup with a rounded handle on an ivory tabletop.",
+    "width": 1254,
+    "height": 1254,
+    "sha256": "1174fecee58e1c4ef6b5267de68ff6ef1f06fe14f987bd83fb3d293cf446920a",
+    "bytes": 1739659,
+    "provenance": "Original built-in image_gen edit of common-supply-collection.png; fictional demonstration product."
+  },
+  {
+    "pack": "depot",
+    "key": "linen",
+    "file": "common-supply-linen.png",
+    "alt": "A folded oat linen kitchen cloth with a gently opened stitched edge.",
+    "width": 1254,
+    "height": 1254,
+    "sha256": "c85a67653ee282b6d971cc9db77c06396e040487cb3898e1402e1bd81292631e",
+    "bytes": 2260777,
+    "provenance": "Original built-in image_gen edit of common-supply-collection.png; fictional demonstration product."
+  },
+  {
+    "pack": "depot",
+    "key": "tray",
+    "file": "common-supply-tray.png",
+    "alt": "An empty shallow oak desk tray with rounded corners and a raised rim.",
+    "width": 1254,
+    "height": 1254,
+    "sha256": "5723cc6f4adb39899306c522c84c0601fd439be996e339404f2b655e12b0cf33",
+    "bytes": 1949933,
+    "provenance": "Original built-in image_gen edit of common-supply-collection.png; fictional demonstration product."
+  }
+]

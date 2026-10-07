@@ -1,3 +1,4 @@
+import {ownedMailingList} from "../audiences/policy";
 import {captureSyncedPromotionClosure} from "./syncedClosure";
 import {RequestReadLedger} from "../helpers/requestReadLedger";
 import type {CanonicalReference} from "../canonicalDocuments/foundation/promotionTree";
@@ -188,6 +189,13 @@ export async function exportAuthoredManifest(
 						continue;
 					}
           if (field === "brandId" && owner.startsWith("product:")) { output[field] = ref(await add("productBrand", item)); continue; }
+                    if (field === "audienceId") {
+                      const id = ctx.db.normalizeId("mailingLists", item);
+                      const list = id ? await ownedMailingList(ctx as Parameters<typeof ownedMailingList>[0], id) : null;
+                      if (!list) fail("PROMOTION_DEPENDENCY_MISSING", "Select a mailing list owned by this installation before promoting the footer.");
+                      output[field] = dependency("mailingList", item, owner, list.name);
+                      continue;
+                    }
 					if (field === "menuId") {
 						output[field] = ref(await add("menu", item));
 						continue;
@@ -302,6 +310,21 @@ export async function exportAuthoredManifest(
 		}
 		return value;
 	}
+  let localeConfig:Doc<'locale_routing'>|null|undefined;
+  let localeStarted=false;
+  async function includeLocaleConfiguration(){
+    if(localeConfig===undefined){reserveCanonicalRead();localeConfig=await ctx.db.query('locale_routing').withIndex('by_key',q=>q.eq('key','site')).unique();}
+    if(!args.selection.includeLocalization){if(localeConfig)fail('LOCALIZATION_SELECTION_REQUIRED','Include site languages to review configured destinations and translation mappings.');return;}
+    if(localeStarted)return;localeStarted=true;
+    await add('localeRouting',localeConfig?._id??'site-absent',localeConfig??{_id:'site-absent',key:'site',enabled:false,locales:[]});
+  }
+  async function includeDocumentLocalization(id:string){
+    await includeLocaleConfiguration();
+    if(!args.selection.includeLocalization)return;
+    const documentId=ctx.db.normalizeId('posts',id);if(!documentId)fail('PROMOTION_MAPPING_INVALID','Invalid language document.');
+    reserveCanonicalRead();const membership=await ctx.db.query('locale_translations').withIndex('by_document',q=>q.eq('documentId',documentId)).unique();
+    if(membership)await add('localeGroup',membership.groupId);
+  }
 	async function add(
 		kind: PromotionKind,
 		id: string,
@@ -320,9 +343,24 @@ export async function exportAuthoredManifest(
 		await authorization.read(kind, row);
 		let data = pickData(kind, row);
     const canonicalSource=(kind==="page" || kind==="post") && row.blocksVersion===2;
-    if(canonicalSource){delete data.blocks;canonicalDocuments.set(key,row.blocks);}
+    if(canonicalSource){delete data.blocks;delete data.contentMode;canonicalDocuments.set(key,row.blocks);}
 		records.set(key, { key, kind, sourceRevision: recordRevision(kind, row), data });
+    if(kind==='localeRouting'){
+      const locales=[];
+      for(const locale of row.locales as Doc<'locale_routing'>['locales'])locales.push({...locale,landingPageId:ref(await add('page',locale.landingPageId))});
+      data.locales=locales;return key;
+    }
+    if(kind==='localeGroup'){
+      const translations=[];
+      for(const entry of row.translations as Array<{code:string;documentId:string}>){
+        reserveCanonicalRead();const post=await read(ctx,'page',entry.documentId);if(!post||(post.type!=='page'&&post.type!=='post'))fail('PROMOTION_LOCALE_DOCUMENT','A source translation document is missing.');
+        translations.push({code:entry.code,documentId:ref(await add(post.type,entry.documentId,post))});
+      }
+      inspectedRows+=translations.length;if(inspectedRows>500)fail('PROMOTION_SCAN_LIMIT','Language dependencies exceed the inspection budget.');
+      data.translations=translations;return key;
+    }
 		if (kind === "page" || kind === "post") {
+			await includeDocumentLocalization(row._id);
 			if (row.type !== kind)
 				fail("PROMOTION_SELECTION_INVALID", `${key} is not a ${kind}.`);
 			if (
@@ -621,6 +659,7 @@ export async function exportAuthoredManifest(
 		data = (await transform(data, key)) as Record<string, unknown>;
     if(canonical)data.canonical=canonical;
 		records.set(key, { key, kind, sourceRevision: recordRevision(kind, row), data });
+
 		return key;
 	}
   async function resolveCanonicalReference(reference:CanonicalReference,key:string):Promise<string>{
@@ -648,6 +687,9 @@ export async function exportAuthoredManifest(
 
   }
 
+	if(args.selection.includeLocalization)await includeLocaleConfiguration();
+  if(args.selection.localeGroupKeys?.length&&!args.selection.includeLocalization)fail('LOCALIZATION_SELECTION_REQUIRED','Include site languages before selecting translation groups.');
+  for(const key of args.selection.localeGroupKeys??[]){reserveCanonicalRead();const group=await ctx.db.query('locale_translation_groups').withIndex('by_key',q=>q.eq('key',key)).unique();if(!group)fail('PROMOTION_DEPENDENCY_MISSING','Selected translation group is missing.');await add('localeGroup',group._id);}
 	for (const id of args.selection.mediaIds) await add("media", id);
 	for (const id of args.selection.pageIds) await add("page", id);
 	for (const id of args.selection.postIds) await add("post", id);
@@ -685,6 +727,10 @@ export async function exportAuthoredManifest(
 				data: { section, values: await transform(values, key) },
 			});
 		}
+	}
+  // Appearance can travel through verified media remapping without replacing
+  // general/reading settings or the destination menu assignments.
+  if (args.selection.includePresentation || args.selection.includeAppearance) {
 		const appearance = await readAppearance(ctx);
 		records.set("presentation:appearance.template", {
 			key: "presentation:appearance.template",
@@ -706,7 +752,11 @@ export async function exportAuthoredManifest(
   if (args.selection.includeRoutePolicies) {
     if (routeRules.length > 100) fail("PROMOTION_LIMIT", "Site access rules exceed the atomic promotion budget; no partial policy collection can be promoted.");
     for (const rule of routeRules) await add("restriction", rule._id, rule as Row);
-  } else if (routeRules.length)
+  } else if (routeRules.length && !(
+    args.selection.includeAppearance && !args.selection.includePresentation &&
+    [...records.values()].every(record => record.kind === "media" ||
+      (record.kind === "presentation" && record.data.section === "appearance.template"))
+  ))
 		fail(
 			"ROUTE_POLICY_SELECTION_REQUIRED",
 			"Include site access rules to review the source route policies and their membership plans with this promotion.",

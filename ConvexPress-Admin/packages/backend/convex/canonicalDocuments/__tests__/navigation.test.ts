@@ -1,5 +1,6 @@
 import {test, expect} from 'bun:test';
 import {convexTest} from 'convex-test';
+import {makeFunctionReference} from 'convex/server';
 import schema from '../../schema';
 import {createNavigationReader} from '../navigation';
 import {RequestReadLedger} from '../../helpers/requestReadLedger';
@@ -110,4 +111,71 @@ test('hidden source rows also count toward the directory traversal bound',async(
   for(let i=0;i<81;i++)await ctx.db.insert('posts',{type:'page',title:`Draft ${i}`,slug:`draft-${i}`,parentId:ids.parent,menuOrder:i,status:'draft',visibility:'public',authorId:parent.authorId,commentStatus:'closed',createdAt:1,updatedAt:1});
  });
  await expect(t.run(async ctx=>{const document=await ctx.db.get('posts',ids.parent);if(!document)throw Error();return createNavigationReader(ctx,{document,tree:[]})('content.childPages',{depth:1});})).rejects.toThrow('80-source limit');
+});
+
+test('heading projection preserves all levels and maximum text, excludes cleared labels and follows edits without changing derived targets', async()=>{
+ const {t,ids}=await fixture();
+ const rich=(text:string)=>({type:'doc',content:[{type:'paragraph',content:[{type:'text',text}]}]});
+ const tree=Array.from({length:79},(_,i)=>({id:`heading-${i}`,name:'core/heading',version:2,attrs:{level:i%6+1,text:rich(i===0?'A'.repeat(200):`Section ${i}`)}}));
+ const read=(nodes:unknown)=>t.run(async ctx=>{const document=await ctx.db.get('posts',ids.child);if(!document)throw Error();return createNavigationReader(ctx,{document,tree:nodes})('content.headings',{});});
+ const first=await read(tree);if(!('items' in first))throw Error();
+ expect(first.items).toHaveLength(79);expect(first.items[0]).toMatchObject({label:'A'.repeat(200),level:1});
+ expect(new Set(first.items.map(item=>'anchor' in item?item.anchor:null)).size).toBe(79);
+ expect(first.items.slice(0,6).map(item=>'level' in item?item.level:null)).toEqual([1,2,3,4,5,6]);
+ const changed=structuredClone(tree);changed[0].attrs.text=rich('Renamed section');changed[1].attrs.text=rich('');changed.splice(2,1);
+ const next=await read(changed);if(!('items' in next))throw Error();
+ expect(next.items).toHaveLength(77);expect(next.items[0]).toEqual({...first.items[0],label:'Renamed section'});
+ expect(next.items.some(item=>'anchor' in item&&'anchor' in first.items[1]&&item.anchor===first.items[1].anchor)).toBe(false);
+ expect(await read([])).toEqual({items:[]});
+});
+
+test('an 80-page directory at depth four fits the unchanged request budget', async () => {
+  const {t,ids}=await fixture();
+  await t.run(async ctx=>{
+    await ctx.db.delete('posts',ids.child);
+    const parent=await ctx.db.get('posts',ids.parent);if(!parent)throw Error();
+    for(let i=0;i<80;i++)await ctx.db.insert('posts',{type:'page',title:`Page ${i}`,slug:`page-${i}`,path:`/parent/page-${i}`,parentId:ids.parent,menuOrder:i,status:'publish',visibility:'public',authorId:parent.authorId,commentStatus:'closed',createdAt:1,updatedAt:1});
+  });
+  const result=await t.run(async ctx=>{
+    const document=await ctx.db.get('posts',ids.parent);if(!document)throw Error();
+    const budget=new RequestReadLedger();
+    const value=await createNavigationReader(ctx,{document,tree:[]},budget)('content.childPages',{depth:4});
+    return {value,queries:budget.queries};
+  });
+  expect('items' in result.value && result.value.items.length).toBe(80);
+  // Leave headroom for document authorization and other navigation blocks.
+  expect(result.queries).toBeLessThan(180);
+});
+
+test('directory policy reuse preserves home aliases and is fresh for every read', async () => {
+  const {t,ids}=await fixture();
+  await t.run(async ctx=>{
+    const parent=await ctx.db.get('posts',ids.parent);if(!parent)throw Error();
+    await ctx.db.patch('posts',ids.child,{status:'publish'});
+    await ctx.db.insert('settings',{section:'reading',values:{homepageDisplays:'static_page',homepageId:ids.child},updatedAt:1,updatedBy:parent.authorId});
+    await ctx.db.insert('membership_restriction_rules',{resourceType:'route',resourceIdOrKey:'/',ruleMode:'allow_only',planIds:[],requiredCapabilities:['private.reader'],teaserMode:'hide',loginRequired:true,createdAt:1,updatedAt:1});
+  });
+  const read=()=>t.run(async ctx=>{const document=await ctx.db.get('posts',ids.parent);if(!document)throw Error();return createNavigationReader(ctx,{document,tree:[]})('content.childPages',{depth:4});});
+  const before=await read();expect('items' in before && before.items.length).toBe(1);
+  await t.run(async ctx=>{const plugins=await ctx.db.query('settings').withIndex('by_section',q=>q.eq('section','plugins')).unique();if(!plugins)throw Error();await ctx.db.patch('settings',plugins._id,{values:{membershipEnabled:true}});});
+  expect(await read()).toEqual({parentLabel:'Public parent',items:[]});
+  await t.run(async ctx=>{const reading=await ctx.db.query('settings').withIndex('by_section',q=>q.eq('section','reading')).unique();if(!reading)throw Error();await ctx.db.patch('settings',reading._id,{values:{homepageDisplays:'latest_posts'}});});
+  const after=await read();expect('items' in after && after.items.length).toBe(1);
+});
+
+const contentRules = makeFunctionReference<'query', {resourceType:'page'|'post';keys:string[]}, {items:unknown[];rows:number;bytes:number}>('membership/policyReads:measuredContentRules');
+test('content-policy batches read only exact targets and reject invalid keys or overflowing policy', async () => {
+  const {t}=await fixture();
+  await t.run(async ctx=>{
+    for(const [resourceType,resourceIdOrKey] of [['page','wanted'],['page','unrelated'],['post','wanted']] as const)
+      await ctx.db.insert('membership_restriction_rules',{resourceType,resourceIdOrKey,ruleMode:'allow_only',planIds:[],teaserMode:'hide',loginRequired:true,createdAt:1,updatedAt:1});
+  });
+  const result=await t.query(contentRules,{resourceType:'page',keys:['wanted','absent']});
+  expect(result.rows).toBe(1);expect(result.items).toHaveLength(1);expect(result.items[0]).toMatchObject({resourceType:'page',resourceIdOrKey:'wanted'});expect(result.bytes).toBeGreaterThan(0);
+  for(const keys of [[],['same','same'],[''],['x'.repeat(257)],Array.from({length:129},(_,i)=>String(i))])
+    await expect(t.query(contentRules,{resourceType:'page',keys})).rejects.toMatchObject({data:{code:'MEMBERSHIP_POLICY_KEYS'}});
+  await t.run(async ctx=>{for(let i=0;i<256;i++)await ctx.db.insert('membership_restriction_rules',{resourceType:'page',resourceIdOrKey:'wanted',ruleMode:'allow_only',planIds:[],teaserMode:'hide',loginRequired:true,createdAt:1,updatedAt:1});});
+  await expect(t.query(contentRules,{resourceType:'page',keys:['wanted']})).rejects.toMatchObject({data:{code:'MEMBERSHIP_POLICY_BUDGET'}});
+  await t.run(async ctx=>{for(let i=0;i<2;i++)await ctx.db.insert('membership_restriction_rules',{resourceType:'page',resourceIdOrKey:'heavy',ruleMode:'allow_only',planIds:[],teaserMode:'hide',loginRequired:true,customMessage:'x'.repeat(300000),createdAt:1,updatedAt:1});});
+  await expect(t.query(contentRules,{resourceType:'page',keys:['heavy']})).rejects.toMatchObject({data:{code:'MEMBERSHIP_POLICY_BUDGET'}});
 });

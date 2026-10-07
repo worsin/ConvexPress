@@ -17,6 +17,22 @@ import {
   listPublishedAlbumsArgs,
 } from "./validators";
 import { isPluginEnabled } from "../helpers/plugins";
+import type { Doc, Id } from "../_generated/dataModel";
+import { createMembershipAccessEvaluator } from "../membership/access";
+
+// Share one request-scoped evaluator across archive rows. The actual destination
+// remains authoritative for detail, embed, and archive entry points alike.
+async function isPublicAlbum(
+  album: Doc<"gallery_albums">,
+  evaluate: ReturnType<typeof createMembershipAccessEvaluator>,
+  now: number,
+) {
+  if (album.status !== "publish" || album.visibility !== "public" ||
+      (album.publishedAt !== undefined && album.publishedAt > now)) return false;
+  return (await evaluate({ resourceType: "route", resourceIdOrKey: "/gallery" })).allowed &&
+    (await evaluate({ resourceType: "route", resourceIdOrKey: `/gallery/${album.slug}` })).allowed;
+}
+
 
 // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const listCategories = query({
@@ -172,26 +188,25 @@ export const listPublished = query({
         ? categories.find((entry) => entry.slug === args.categorySlug) ?? null
         : null;
 
-    let filtered = allAlbums.filter(
-      // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
-      (album) => album.status === "publish" && album.visibility === "public",
-    );
+    const evaluate = createMembershipAccessEvaluator(ctx);
+    const now = Date.now();
+    let filtered: Doc<"gallery_albums">[] = [];
+    for (const album of allAlbums) {
+      if (await isPublicAlbum(album, evaluate, now)) filtered.push(album);
+    }
 
     if (args.categorySlug) {
       filtered = category
-        // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
         ? filtered.filter((album) =>
             album.categoryIds.some(
-              // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
-              (categoryId) => categoryId.toString() === category._id.toString(),
+              (categoryId: Id<"gallery_categories">) => categoryId.toString() === category._id.toString(),
             ),
           )
         : [];
     }
 
     filtered.sort(
-      // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
-      (a, b) => (b.publishedAt ?? b.updatedAt) - (a.publishedAt ?? a.updatedAt),
+      (a: Doc<"gallery_albums">, b: Doc<"gallery_albums">) => (b.publishedAt ?? b.updatedAt) - (a.publishedAt ?? a.updatedAt),
     );
 
     const total = filtered.length;
@@ -200,7 +215,7 @@ export const listPublished = query({
     const items = filtered.slice(start, start + perPage);
 
     return {
-      // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
+      // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
       albums: await Promise.all(items.map((album) => enrichAlbum(ctx, album))),
       page,
       perPage,
@@ -226,8 +241,7 @@ export const getBySlug: import("convex/server").RegisteredQuery<"public", { slug
 
     if (
       !album ||
-      album.status !== "publish" ||
-      album.visibility !== "public"
+      !(await isPublicAlbum(album, createMembershipAccessEvaluator(ctx), Date.now()))
     ) {
       return null;
     }
@@ -255,8 +269,7 @@ export const getEmbed: import("convex/server").RegisteredQuery<"public", { album
 
     if (
       !album ||
-      album.status !== "publish" ||
-      album.visibility !== "public"
+      !(await isPublicAlbum(album, createMembershipAccessEvaluator(ctx), Date.now()))
     ) {
       return null;
     }

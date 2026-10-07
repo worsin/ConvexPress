@@ -16,19 +16,9 @@ import { internal } from "../_generated/api";
 import { ConvexError, v } from "convex/values";
 import { searchableContentTypeValidator } from "./validators";
 
-type ReindexResult =
-  | { updated: true }
-  | {
-      indexed: {
-        post: number;
-        page: number;
-        media: number;
-        comment: number;
-      };
-      removed: number;
-      errors: number;
-      duration: number;
-    };
+import { progressValidator, type ReindexProgress } from "./reindex";
+const resultValidator = v.union(v.object({ updated: v.literal(true) }), progressValidator);
+type ReindexResult = { updated: true } | ReindexProgress;
 
 // ─── _reindexInternal (INTERNAL) ────────────────────────────────────────────
 
@@ -43,7 +33,9 @@ export const _reindexInternal = internalAction({
     contentType: v.optional(searchableContentTypeValidator),
     contentId: v.optional(v.string()),
     force: v.optional(v.boolean()),
+    jobId: v.optional(v.string()),
   },
+  returns: resultValidator,
   handler: async (ctx, args): Promise<ReindexResult> => {
     // Incremental reindex (internal call with contentId)
     if (args.contentId) {
@@ -55,62 +47,30 @@ export const _reindexInternal = internalAction({
       return { updated: true };
     }
 
-    // ── Concurrent reindex prevention (#57 FIX) ─────────────────────────
-    // Use an internal mutation to atomically acquire a lock flag. If another
-    // reindex is in progress, this will throw ALREADY_RUNNING.
-    const lockAcquired = await ctx.runMutation(
-      internal.search.internals.acquireReindexLock,
-      {},
-    );
-    if (!lockAcquired) {
-      throw new ConvexError({
-        code: "ALREADY_RUNNING",
-        message: "A full reindex is already in progress. Please wait for it to complete.",
-      });
+    const leaseId = crypto.randomUUID();
+    let state: ReindexProgress = await ctx.runMutation(internal.search.reindex.begin, {
+      jobId: args.jobId, newJobId: crypto.randomUUID(), leaseId, contentType: args.contentType,
+    });
+    const deadline = Date.now() + 30_000;
+    let steps = 0;
+    while (state.status === "running" && Date.now() < deadline && steps++ < 100) {
+      const sequence = state.sequence;
+      try {
+        state = await ctx.runMutation(internal.search.reindex.step, { jobId: state.jobId, leaseId, sequence });
+      } catch (error) {
+        // A response may be lost after commit. Read durable progress before
+        // recording failure; never replay an already committed sequence.
+        const latest: ReindexProgress = await ctx.runQuery(internal.search.reindex.status, { jobId: state.jobId });
+        if (latest.sequence !== sequence || latest.status === "completed") { state = latest; continue; }
+        const details = error instanceof ConvexError ? error.data : null;
+        const failure = details && typeof details === "object" && !Array.isArray(details) && details.code === "REINDEX_ITEM_FAILED"
+          && typeof details.contentId === "string" && ["post", "page", "media", "comment", "course", "product", "event"].includes(String(details.contentType))
+          ? { contentType: details.contentType as NonNullable<ReindexProgress["contentType"]>, contentId: details.contentId } : undefined;
+        return await ctx.runMutation(internal.search.reindex.finishChunk, { jobId: state.jobId, leaseId, sequence, failed: true, failure });
+      }
     }
-
-    // Full reindex - delegate to internal mutation
-    const startTime = Date.now();
-
-    let stats: {
-      post: number;
-      page: number;
-      media: number;
-      comment: number;
-      removed: number;
-      errors: number;
-    };
-
-    try {
-      stats = await ctx.runMutation(
-        internal.search.internals.reindexAll,
-        {
-          contentType: args.contentType,
-        },
-      );
-    } finally {
-      // Always release the lock, even if reindex fails
-      await ctx.runMutation(
-        internal.search.internals.releaseReindexLock,
-        {},
-      ).catch(() => {
-        // Best-effort lock release
-      });
-    }
-
-    const duration = Date.now() - startTime;
-
-    return {
-      indexed: {
-        post: stats.post,
-        page: stats.page,
-        media: stats.media,
-        comment: stats.comment,
-      },
-      removed: stats.removed,
-      errors: stats.errors,
-      duration,
-    };
+    if (state.status === "completed") return state;
+    return await ctx.runMutation(internal.search.reindex.finishChunk, { jobId: state.jobId, leaseId, sequence: state.sequence, failed: false });
   },
 });
 
@@ -130,7 +90,9 @@ export const reindex = action({
     contentType: v.optional(searchableContentTypeValidator),
     contentId: v.optional(v.string()),
     force: v.optional(v.boolean()),
+    jobId: v.optional(v.string()),
   },
+  returns: resultValidator,
   handler: async (ctx, args): Promise<ReindexResult> => {
     // ── Authentication & Authorization ──────────────────────────────────
     const identity = await ctx.auth.getUserIdentity();

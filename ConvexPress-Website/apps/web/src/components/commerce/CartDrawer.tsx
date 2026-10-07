@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { api } from "@convexpress-website/backend/generated/api";
 
 import {
+  type CartLineVariant,
   getCartLineSku,
   getCartLineSubtitle,
   getCartLineTitle,
@@ -48,7 +49,7 @@ type CartDrawerCart =
           featuredMediaId?: string;
           sku?: string;
         } | null;
-        variant?: {
+        variant?: CartLineVariant & {
           _id: string;
           featuredMediaId?: string;
         } | null;
@@ -195,14 +196,14 @@ export function CartDrawer({ open, onOpenChange }: CartDrawerProps) {
                           >
                             {getCartLineTitle(item.product, item.metadata)}
                           </Link>
-                          {getCartLineSubtitle(item.metadata) ? (
+                          {getCartLineSubtitle(item.metadata, item.variant) ? (
                             <p className="mt-1 text-xs text-muted-foreground">
-                              {getCartLineSubtitle(item.metadata)}
+                              {getCartLineSubtitle(item.metadata, item.variant)}
                             </p>
                           ) : null}
-                          {getCartLineSku(item.product, item.metadata) ? (
+                          {getCartLineSku(item.product, item.metadata, item.variant) ? (
                             <p className="mt-1 text-xs text-muted-foreground">
-                              SKU {getCartLineSku(item.product, item.metadata)}
+                              SKU {getCartLineSku(item.product, item.metadata, item.variant)}
                             </p>
                           ) : null}
                         </div>

@@ -9,6 +9,14 @@
               "const": true,
               "type": "boolean"
             },
+            "authoringSafeLink": {
+              "const": true,
+              "type": "boolean"
+            },
+            "authoringWebUrl": {
+              "const": true,
+              "type": "boolean"
+            },
             "default": {
               "$ref": "#/$defs/__schema1"
             },
@@ -633,6 +641,154 @@
         {
           "additionalProperties": false,
           "properties": {
+            "authoringConstraints": {
+              "items": {
+                "oneOf": [
+                  {
+                    "additionalProperties": false,
+                    "properties": {
+                      "headerOffset": {
+                        "maximum": 1,
+                        "minimum": 0,
+                        "type": "integer"
+                      },
+                      "headers": {
+                        "maxLength": 80,
+                        "pattern": "^[a-zA-Z][a-zA-Z0-9_]*$",
+                        "type": "string"
+                      },
+                      "kind": {
+                        "const": "matrix",
+                        "type": "string"
+                      },
+                      "rowField": {
+                        "maxLength": 80,
+                        "pattern": "^[a-zA-Z][a-zA-Z0-9_]*$",
+                        "type": "string"
+                      },
+                      "rows": {
+                        "maxLength": 80,
+                        "pattern": "^[a-zA-Z][a-zA-Z0-9_]*$",
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "kind",
+                      "headers",
+                      "rows"
+                    ],
+                    "type": "object"
+                  },
+                  {
+                    "additionalProperties": false,
+                    "properties": {
+                      "field": {
+                        "maxLength": 80,
+                        "pattern": "^[a-zA-Z][a-zA-Z0-9_]*$",
+                        "type": "string"
+                      },
+                      "key": {
+                        "maxLength": 80,
+                        "pattern": "^[a-zA-Z][a-zA-Z0-9_]*$",
+                        "type": "string"
+                      },
+                      "kind": {
+                        "const": "unique-by",
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "kind",
+                      "field",
+                      "key"
+                    ],
+                    "type": "object"
+                  },
+                  {
+                    "additionalProperties": false,
+                    "properties": {
+                      "kind": {
+                        "const": "ordered",
+                        "type": "string"
+                      },
+                      "lower": {
+                        "maxLength": 80,
+                        "pattern": "^[a-zA-Z][a-zA-Z0-9_]*$",
+                        "type": "string"
+                      },
+                      "upper": {
+                        "maxLength": 80,
+                        "pattern": "^[a-zA-Z][a-zA-Z0-9_]*$",
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "kind",
+                      "lower",
+                      "upper"
+                    ],
+                    "type": "object"
+                  },
+                  {
+                    "additionalProperties": false,
+                    "properties": {
+                      "end": {
+                        "maxLength": 80,
+                        "pattern": "^[a-zA-Z][a-zA-Z0-9_]*$",
+                        "type": "string"
+                      },
+                      "field": {
+                        "maxLength": 80,
+                        "pattern": "^[a-zA-Z][a-zA-Z0-9_]*$",
+                        "type": "string"
+                      },
+                      "kind": {
+                        "const": "non-overlap",
+                        "type": "string"
+                      },
+                      "start": {
+                        "maxLength": 80,
+                        "pattern": "^[a-zA-Z][a-zA-Z0-9_]*$",
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "kind",
+                      "field",
+                      "start",
+                      "end"
+                    ],
+                    "type": "object"
+                  },
+                  {
+                    "additionalProperties": false,
+                    "properties": {
+                      "fields": {
+                        "items": {
+                          "maxLength": 80,
+                          "pattern": "^[a-zA-Z][a-zA-Z0-9_]*$",
+                          "type": "string"
+                        },
+                        "maxItems": 10,
+                        "minItems": 2,
+                        "type": "array"
+                      },
+                      "kind": {
+                        "const": "at-most-one",
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "kind",
+                      "fields"
+                    ],
+                    "type": "object"
+                  }
+                ]
+              },
+              "maxItems": 20,
+              "type": "array"
+            },
             "constraints": {
               "items": {
                 "oneOf": [
@@ -838,6 +994,154 @@
         {
           "additionalProperties": false,
           "properties": {
+            "authoringConstraints": {
+              "items": {
+                "oneOf": [
+                  {
+                    "additionalProperties": false,
+                    "properties": {
+                      "headerOffset": {
+                        "maximum": 1,
+                        "minimum": 0,
+                        "type": "integer"
+                      },
+                      "headers": {
+                        "maxLength": 80,
+                        "pattern": "^[a-zA-Z][a-zA-Z0-9_]*$",
+                        "type": "string"
+                      },
+                      "kind": {
+                        "const": "matrix",
+                        "type": "string"
+                      },
+                      "rowField": {
+                        "maxLength": 80,
+                        "pattern": "^[a-zA-Z][a-zA-Z0-9_]*$",
+                        "type": "string"
+                      },
+                      "rows": {
+                        "maxLength": 80,
+                        "pattern": "^[a-zA-Z][a-zA-Z0-9_]*$",
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "kind",
+                      "headers",
+                      "rows"
+                    ],
+                    "type": "object"
+                  },
+                  {
+                    "additionalProperties": false,
+                    "properties": {
+                      "field": {
+                        "maxLength": 80,
+                        "pattern": "^[a-zA-Z][a-zA-Z0-9_]*$",
+                        "type": "string"
+                      },
+                      "key": {
+                        "maxLength": 80,
+                        "pattern": "^[a-zA-Z][a-zA-Z0-9_]*$",
+                        "type": "string"
+                      },
+                      "kind": {
+                        "const": "unique-by",
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "kind",
+                      "field",
+                      "key"
+                    ],
+                    "type": "object"
+                  },
+                  {
+                    "additionalProperties": false,
+                    "properties": {
+                      "kind": {
+                        "const": "ordered",
+                        "type": "string"
+                      },
+                      "lower": {
+                        "maxLength": 80,
+                        "pattern": "^[a-zA-Z][a-zA-Z0-9_]*$",
+                        "type": "string"
+                      },
+                      "upper": {
+                        "maxLength": 80,
+                        "pattern": "^[a-zA-Z][a-zA-Z0-9_]*$",
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "kind",
+                      "lower",
+                      "upper"
+                    ],
+                    "type": "object"
+                  },
+                  {
+                    "additionalProperties": false,
+                    "properties": {
+                      "end": {
+                        "maxLength": 80,
+                        "pattern": "^[a-zA-Z][a-zA-Z0-9_]*$",
+                        "type": "string"
+                      },
+                      "field": {
+                        "maxLength": 80,
+                        "pattern": "^[a-zA-Z][a-zA-Z0-9_]*$",
+                        "type": "string"
+                      },
+                      "kind": {
+                        "const": "non-overlap",
+                        "type": "string"
+                      },
+                      "start": {
+                        "maxLength": 80,
+                        "pattern": "^[a-zA-Z][a-zA-Z0-9_]*$",
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "kind",
+                      "field",
+                      "start",
+                      "end"
+                    ],
+                    "type": "object"
+                  },
+                  {
+                    "additionalProperties": false,
+                    "properties": {
+                      "fields": {
+                        "items": {
+                          "maxLength": 80,
+                          "pattern": "^[a-zA-Z][a-zA-Z0-9_]*$",
+                          "type": "string"
+                        },
+                        "maxItems": 10,
+                        "minItems": 2,
+                        "type": "array"
+                      },
+                      "kind": {
+                        "const": "at-most-one",
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "kind",
+                      "fields"
+                    ],
+                    "type": "object"
+                  }
+                ]
+              },
+              "maxItems": 20,
+              "type": "array"
+            },
             "constraints": {
               "items": {
                 "oneOf": [

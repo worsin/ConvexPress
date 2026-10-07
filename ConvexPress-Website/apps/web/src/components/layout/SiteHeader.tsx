@@ -1,5 +1,6 @@
+import { HeaderSearchInline, HeaderSearchExpansion } from "@/components/layout/HeaderSearch";
 import { useStickyHeaderOffset } from "@/hooks/layout/useStickyHeaderOffset";
-import { Mail, Menu, Phone } from "lucide-react";
+import { Menu } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { useLayoutShell } from "@/hooks/layout/useLayoutShell";
@@ -12,7 +13,8 @@ import { Surface } from "@/templates/sdk/Surface";
 import { DesktopNav } from "./DesktopNav";
 import { HeaderActions } from "./HeaderActions";
 import { SiteBrand } from "./SiteBrand";
-import { SocialLinks } from "./SocialLinks";
+import { HeaderMainRow } from "./HeaderMainRow";
+import { HeaderTopBar } from "./HeaderTopBar";
 
 interface SiteHeaderProps {
   siteIdentity: SiteIdentity | undefined;
@@ -28,20 +30,20 @@ interface SiteHeaderProps {
  * Falls back to standard layout when no config is stored.
  */
 export function SiteHeader({ siteIdentity, menu, layoutConfig, headerConfig: headerConfigProp }: SiteHeaderProps) {
-  const { isScrolled, toggleMobileNav, searchOpen, closeSearch } = useLayoutShell();
+  const { toggleMobileNav, searchOpen, closeSearch } = useLayoutShell();
   const storedHeaderConfig = useHeaderConfig();
   const headerConfig = headerConfigProp ?? storedHeaderConfig;
 
   const stickyHeader = layoutConfig?.stickyHeader !== false;
   const stickyMode = headerConfig.layout.sticky;
   const isSticky = stickyMode === "always" || (stickyMode === "scroll-up" && stickyHeader);
-  const headerRef = useStickyHeaderOffset(isSticky);
+  const headerRef = useStickyHeaderOffset(isSticky, stickyMode);
   const layoutStyle = headerConfig.layout.style;
   const heightClass = headerConfig.layout.height === "compact"
-    ? "h-12 lg:h-12"
+    ? "min-h-12 lg:min-h-12"
     : headerConfig.layout.height === "tall"
-      ? "h-16 lg:h-20"
-      : "h-14 lg:h-16";
+      ? "min-h-16 lg:min-h-20"
+      : "min-h-14 lg:min-h-16";
 
   const backgroundClass = headerConfig.layout.background === "transparent"
     ? "bg-transparent"
@@ -67,7 +69,6 @@ export function SiteHeader({ siteIdentity, menu, layoutConfig, headerConfig: hea
         backgroundClass,
         borderClass,
         isSticky && "sticky top-0",
-        isScrolled && headerConfig.layout.background !== "glass" && "bg-background/95 shadow-sm backdrop-blur-sm",
       )}
     >
       {/* Top bar - show/hide based on config */}
@@ -75,40 +76,36 @@ export function SiteHeader({ siteIdentity, menu, layoutConfig, headerConfig: hea
         <TopBar config={headerConfig.topBar} />
       )}
 
-      {/* Main header bar */}
-      <div className={cn(
-        "mx-auto flex items-center justify-between gap-3 px-4 md:px-6 lg:px-8",
-        heightClass,
-      )}>
-        {layoutStyle === "centered" ? (
-          <CenteredLayout
-            siteIdentity={siteIdentity}
-            menu={menu}
-            headerConfig={headerConfig}
-            toggleMobileNav={toggleMobileNav}
-          />
-        ) : layoutStyle === "split" ? (
-          <SplitLayout
-            siteIdentity={siteIdentity}
-            menu={menu}
-            headerConfig={headerConfig}
-            toggleMobileNav={toggleMobileNav}
-          />
-        ) : (
-          <StandardLayout
-            siteIdentity={siteIdentity}
-            menu={menu}
-            headerConfig={headerConfig}
-            toggleMobileNav={toggleMobileNav}
-          />
-        )}
+      <div className="mx-auto px-4 md:px-6 lg:px-8">
+        <HeaderMainRow
+          style={layoutStyle}
+          heightClass={heightClass}
+          brand={<SiteBrand siteIdentity={siteIdentity} logo={headerConfig.logo} />}
+          mobileToggle={
+            <button
+              type="button"
+              onClick={toggleMobileNav}
+              className="flex size-8 shrink-0 items-center justify-center text-muted-foreground transition-colors hover:text-foreground lg:hidden"
+              data-customize="header.mobileMenu.variant" aria-label="Open navigation menu"
+            >
+              <Menu className="size-5" aria-hidden="true" />
+            </button>
+          }
+          navigation={headerConfig.navigation.enabled && (
+            <DesktopNav menu={menu} linkStyle={headerConfig.navigation.style} dropdownStyle={headerConfig.navigation.dropdownStyle} />
+          )}
+          search={headerConfig.search.enabled && headerConfig.search.variant === "inline" && <HeaderSearchInline config={headerConfig.search} pack="core" />}
+          actions={<HeaderActions headerConfig={headerConfig} />}
+        />
+        <HeaderSearchInline config={headerConfig.search} pack="core" mobile />
+        <HeaderSearchExpansion config={headerConfig.search} pack="core" />
       </div>
 
       {/* Search overlay - renders below header bar when open */}
-      {headerConfig.search.enabled && (
+      {headerConfig.search.enabled && headerConfig.search.variant === "icon" && (
         <Surface
           name="chrome.searchOverlay"
-          data={{ open: searchOpen, onClose: closeSearch }}
+          data={{ open: searchOpen, onClose: closeSearch, placeholder: headerConfig.search.placeholder }}
           fallback={CoreSearchOverlay}
         />
       )}
@@ -125,160 +122,7 @@ interface TopBarProps {
 function TopBar({ config }: TopBarProps) {
   return (
     <div className="border-b border-border bg-muted/50 text-xs text-muted-foreground">
-      <div className="mx-auto flex min-w-0 items-center justify-between gap-3 px-4 py-1.5 md:px-6 lg:px-8">
-        <div className="min-w-0 flex-1">
-          <TopBarContent type={config.leftContent} config={config} />
-        </div>
-        <div className="flex shrink-0 justify-end">
-          <TopBarContent type={config.rightContent} config={config} />
-        </div>
-      </div>
+      <HeaderTopBar config={config} className="mx-auto px-4 md:px-6 lg:px-8" />
     </div>
-  );
-}
-
-interface TopBarContentProps {
-  type: HeaderConfig["topBar"]["leftContent"];
-  config: HeaderConfig["topBar"];
-}
-
-function TopBarContent({ type, config }: TopBarContentProps) {
-  if (type === "none") return <div />;
-
-  if (type === "contact") {
-    return (
-      <div className="flex min-w-0 items-center justify-end gap-3 md:gap-4">
-        {config.email && (
-          <a href={`mailto:${config.email}`} className="flex shrink-0 items-center gap-1.5 whitespace-nowrap transition-colors hover:text-foreground">
-            <Mail className="size-3" aria-hidden="true" />
-            <span>{config.email}</span>
-          </a>
-        )}
-        {config.phone && (
-          <a href={`tel:${config.phone}`} className="hidden shrink-0 items-center gap-1.5 whitespace-nowrap transition-colors hover:text-foreground md:flex">
-            <Phone className="size-3" aria-hidden="true" />
-            <span>{config.phone}</span>
-          </a>
-        )}
-        {!config.email && !config.phone && <div />}
-      </div>
-    );
-  }
-
-  if (type === "announcement" && config.announcementText) {
-    return (
-      <p className="min-w-0 truncate">{config.announcementText}</p>
-    );
-  }
-
-  if (type === "social") {
-    return <SocialLinks iconSize="sm" />;
-  }
-
-  return <div />;
-}
-
-// ─── Standard Layout ────────────────────────────────────────────────────────
-
-interface LayoutInnerProps {
-  siteIdentity: SiteIdentity | undefined;
-  menu: ResolvedMenu | undefined;
-  headerConfig: HeaderConfig;
-  toggleMobileNav: () => void;
-}
-
-function StandardLayout({ siteIdentity, menu, headerConfig, toggleMobileNav }: LayoutInnerProps) {
-  return (
-    <>
-      {/* Left: Hamburger (mobile) + Brand */}
-      <div className="flex min-w-0 items-center gap-3">
-        <button
-          type="button"
-          onClick={toggleMobileNav}
-          className="flex size-8 shrink-0 items-center justify-center text-muted-foreground transition-colors hover:text-foreground lg:hidden"
-          aria-label="Open navigation menu"
-        >
-          <Menu className="size-5" aria-hidden="true" />
-        </button>
-        <SiteBrand siteIdentity={siteIdentity} />
-      </div>
-
-      {/* Center: Desktop navigation */}
-      {headerConfig.navigation.enabled && (
-        <DesktopNav
-          menu={menu}
-          className="mx-6 flex-1"
-          linkStyle={headerConfig.navigation.style}
-          dropdownStyle={headerConfig.navigation.dropdownStyle}
-        />
-      )}
-
-      {/* Right: Actions */}
-      <HeaderActions headerConfig={headerConfig} />
-    </>
-  );
-}
-
-// ─── Centered Layout ────────────────────────────────────────────────────────
-
-function CenteredLayout({ siteIdentity, menu, headerConfig, toggleMobileNav }: LayoutInnerProps) {
-  return (
-    <div className="flex w-full flex-col items-center gap-2">
-      {/* Top row: hamburger left, brand center, actions right */}
-      <div className="flex w-full min-w-0 items-center justify-between gap-3">
-        <button
-          type="button"
-          onClick={toggleMobileNav}
-          className="flex size-8 shrink-0 items-center justify-center text-muted-foreground transition-colors hover:text-foreground lg:hidden"
-          aria-label="Open navigation menu"
-        >
-          <Menu className="size-5" aria-hidden="true" />
-        </button>
-        <SiteBrand siteIdentity={siteIdentity} />
-        <HeaderActions headerConfig={headerConfig} />
-      </div>
-      {/* Bottom row: navigation centered */}
-      {headerConfig.navigation.enabled && (
-        <DesktopNav
-          menu={menu}
-          className="justify-center"
-          linkStyle={headerConfig.navigation.style}
-          dropdownStyle={headerConfig.navigation.dropdownStyle}
-        />
-      )}
-    </div>
-  );
-}
-
-// ─── Split Layout ───────────────────────────────────────────────────────────
-
-function SplitLayout({ siteIdentity, menu, headerConfig, toggleMobileNav }: LayoutInnerProps) {
-  return (
-    <>
-      {/* Left: Nav */}
-      <div className="flex min-w-0 items-center gap-3">
-        <button
-          type="button"
-          onClick={toggleMobileNav}
-          className="flex size-8 shrink-0 items-center justify-center text-muted-foreground transition-colors hover:text-foreground lg:hidden"
-          aria-label="Open navigation menu"
-        >
-          <Menu className="size-5" aria-hidden="true" />
-        </button>
-        {headerConfig.navigation.enabled && (
-          <DesktopNav
-            menu={menu}
-            linkStyle={headerConfig.navigation.style}
-            dropdownStyle={headerConfig.navigation.dropdownStyle}
-          />
-        )}
-      </div>
-
-      {/* Center: Brand */}
-      <SiteBrand siteIdentity={siteIdentity} />
-
-      {/* Right: Actions */}
-      <HeaderActions headerConfig={headerConfig} />
-    </>
   );
 }

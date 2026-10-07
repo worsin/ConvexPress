@@ -2,10 +2,11 @@ import { useEffect, useState } from "react";
 import * as P from "../primitives";
 import type { BlockProps } from "./model";
 import "./media-details.css";
+import { countdownExpired } from "../block-data/portable/libraryPresentation";
 export function remainingTime(target: number, now: number) {
 	const seconds = Math.max(0, Math.ceil((target - now) / 1000));
 	return {
-		expired: seconds === 0,
+		expired: countdownExpired(target, now),
 		days: Math.floor(seconds / 86400),
 		hours: Math.floor(seconds / 3600) % 24,
 		minutes: Math.floor(seconds / 60) % 60,

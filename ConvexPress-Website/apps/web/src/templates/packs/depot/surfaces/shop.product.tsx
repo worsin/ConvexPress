@@ -214,7 +214,7 @@ function BuyBoxBody({ product, state, showPrice = true }: LayoutProps & { showPr
             <Truck className="size-3.5" aria-hidden="true" /> Free shipping over {formatMoney(threshold, state.currency).replace(/\.00$/, "")}
           </li>
         )}
-        <li>{product.isDownloadable ? "Digital delivery after checkout" : product.isVirtual ? "Virtual service, nothing ships" : "Ships from our warehouse"}</li>
+        <li>{product.isDownloadable ? "Digital delivery after checkout" : product.isVirtual ? "Virtual service, nothing ships" : "Delivery options at checkout"}</li>
         {state.sku && <li className="tabular-nums">SKU {state.sku}</li>}
       </ul>
     </>

@@ -3,7 +3,7 @@ export default defineExtension({
   "id": "recipes",
   "title": "Recipes",
   "settingsKey": "recipesEnabled",
-  "defaultEnabled": false,
+  "defaultEnabled": true,
   "routePrefixes": [
     "/recipes"
   ]

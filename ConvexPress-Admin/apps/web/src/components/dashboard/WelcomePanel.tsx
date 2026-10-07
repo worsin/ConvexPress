@@ -76,7 +76,7 @@ export function WelcomePanel({
             <ul className="space-y-1.5">
               {canManageThemes && (
                 <QuickLink
-                  to="/settings/general"
+                  to="/appearance/customize"
                   icon={<PaletteIcon className="size-3.5" />}
                   label="Customize Your Site"
                 />

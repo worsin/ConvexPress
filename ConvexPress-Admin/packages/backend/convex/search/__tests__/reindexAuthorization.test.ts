@@ -3,6 +3,7 @@ import { convexTest } from "convex-test";
 import { makeFunctionReference } from "convex/server";
 import schema from "../../schema";
 const modules = {
+  "./convex/search/reindex.ts": () => import("../reindex"),
   "./convex/_generated/server.js": () => import("../../_generated/server.js"),
   "./convex/search/actions.ts": () => import("../actions"),
   "./convex/search/internals.ts": () => import("../internals"),

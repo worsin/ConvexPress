@@ -23,6 +23,8 @@ export interface FormResumeSurfaceData {
   token: string;
   /** The draft to rehydrate, or the TTL marker. */
   draft: ResumeDraftState;
+  onSubmittingChange?: (submitting: boolean) => void;
+  onSubmitted?: () => void;
 }
 
 export default function CoreFormResume({ data }: SurfaceProps<FormResumeSurfaceData>) {
@@ -44,6 +46,8 @@ export default function CoreFormResume({ data }: SurfaceProps<FormResumeSurfaceD
         resumeToken={token}
         initialValues={draft.values}
         initialStep={draft.currentStep}
+        onSubmittingChange={data.onSubmittingChange}
+        onSubmitted={data.onSubmitted}
       />
     </div>
   );

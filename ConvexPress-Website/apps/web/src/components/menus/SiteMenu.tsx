@@ -1,4 +1,4 @@
-import { Link } from "@tanstack/react-router";
+import { MenuItemTarget, dismissMenuOnEscape } from "./MenuItemTarget";
 import { ChevronDown } from "lucide-react";
 import * as React from "react";
 
@@ -235,9 +235,15 @@ function HeaderMenuItem({ item, className, maxDepth }: HeaderMenuItemProps) {
       className="relative"
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
+      onKeyDown={(event) => dismissMenuOnEscape(event, isOpen, () => {
+        if (openTimeoutRef.current) clearTimeout(openTimeoutRef.current);
+        setIsOpen(false);
+      })}
     >
-      <Link
-        to={item.url}
+      <MenuItemTarget
+        item={item}
+        separatorOrientation="vertical"
+        onToggle={hasChildren ? () => setIsOpen(value => !value) : undefined}
         className={cn(
           "flex items-center gap-1 px-3 py-2 text-xs text-muted-foreground transition-colors hover:text-foreground",
           item.cssClasses,
@@ -260,9 +266,9 @@ function HeaderMenuItem({ item, className, maxDepth }: HeaderMenuItemProps) {
             )}
           />
         )}
-      </Link>
-      {hasChildren && isOpen && (
-        <DropdownMenu items={item.children} depth={0} />
+      </MenuItemTarget>
+      {hasChildren && (isOpen || item.type === "separator") && (
+        <DropdownMenu className={item.type === "separator" ? "static shadow-none ring-0" : undefined} items={item.children} depth={0} />
       )}
     </li>
   );
@@ -306,8 +312,9 @@ function FooterMenu({
 
           return (
             <li key={item.id} className="flex items-center gap-4">
-              <Link
-                to={item.url}
+              <MenuItemTarget
+                item={item}
+                separatorOrientation="vertical"
                 className={cn(
                   "text-xs text-muted-foreground transition-colors hover:text-foreground",
                   item.cssClasses,
@@ -316,8 +323,8 @@ function FooterMenu({
                 {...linkProps}
               >
                 {item.label}
-              </Link>
-              {index < visibleItems.length - 1 && (
+              </MenuItemTarget>
+              {index < visibleItems.length - 1 && item.type !== "separator" && visibleItems[index + 1].type !== "separator" && (
                 <span className="text-border" aria-hidden="true">
                   |
                 </span>

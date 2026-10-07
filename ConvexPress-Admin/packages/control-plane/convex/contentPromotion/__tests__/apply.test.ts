@@ -61,6 +61,8 @@ test("source value, revision, selection, dependency and media metadata drift can
     (manifest: any) => { manifest.records[0].sourceRevision = "Changed"; },
     (manifest: any) => { manifest.selection.includePresentation = true; },
     (manifest: any) => { manifest.selection.includeRoutePolicies = true; },
+    (manifest: any) => { manifest.selection.includeLocalization = true; manifest.records.push({key:"localeRouting:site",kind:"localeRouting",sourceRevision:"r1",data:{key:"site",enabled:false,locales:[]}}); },
+    (manifest: any) => { manifest.selection.includeLocalization = true; manifest.selection.localeGroupKeys = ["guide"]; manifest.records.push({key:"localeRouting:site",kind:"localeRouting",sourceRevision:"r1",data:{key:"site",enabled:false,locales:[]}},{key:"localeGroup:guide",kind:"localeGroup",sourceRevision:"g1",data:{key:"guide",translations:[]}}); },
     (manifest: any) => { manifest.dependencies.push({ key: "plugin:events", kind: "plugin", requiredBy: ["page:source-page"] }); },
     (manifest: any) => { manifest.records.push({ key: "media:new", kind: "media", sourceRevision: "media-new", data: { title: "New", fileName: "new.png", slug: "new", mimeType: "image/png", mediaType: "image", fileSize: 2, sha256: "a".repeat(64) } }); },
   ]) {

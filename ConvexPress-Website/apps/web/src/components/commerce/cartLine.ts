@@ -28,10 +28,14 @@ export function getCartLineTitle(
   return product?.title ?? "Product";
 }
 
-export function getCartLineSubtitle(metadata?: CartLineMetadata) {
+export type CartLineVariant = { title?: string; optionSummary?: string; sku?: string };
+
+export function getCartLineSubtitle(metadata?: CartLineMetadata, variant?: CartLineVariant | null) {
   if (metadata?.lineType === "bundle") {
     return null;
   }
+
+  if (variant) return variant.optionSummary || variant.title || null;
 
   if (metadata?.optionSummary) return metadata.optionSummary;
   if (metadata?.variantTitle) return metadata.variantTitle;
@@ -46,7 +50,9 @@ export function getCartLineBundleSelections(metadata?: CartLineMetadata) {
 export function getCartLineSku(
   product: CartLineProduct | null | undefined,
   metadata?: CartLineMetadata,
+  variant?: CartLineVariant | null,
 ) {
   if (metadata?.lineType === "bundle") return null;
+  if (variant) return variant.sku ?? product?.sku ?? null;
   return metadata?.variantSku ?? product?.sku ?? null;
 }

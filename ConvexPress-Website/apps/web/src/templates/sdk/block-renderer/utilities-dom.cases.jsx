@@ -155,6 +155,23 @@ test("announcement dismissal preserves a focused restore control and new authore
 		);
 		expect(document.body.textContent).toContain("New announcement");
 	}));
+test("a dismissed announcement becomes visible when dismissal is disabled", async () =>
+	inDom(async (root) => {
+		const attrs = {
+			text: "Required announcement",
+			link: { label: "Read the notice", href: "/notice" },
+			dismissible: true,
+		};
+		await act(async () => root.render(utilityTree(announcement, attrs)));
+		await act(async () => document.querySelector("button").click());
+		expect(document.body.textContent).not.toContain(attrs.text);
+		await act(async () =>
+			root.render(utilityTree(announcement, { ...attrs, dismissible: false })),
+		);
+		expect(document.body.textContent).toContain(attrs.text);
+		expect(document.querySelector("a")?.getAttribute("href")).toBe("/notice");
+		expect(document.querySelector("button")).toBeNull();
+	}));
 test("carousel instances keep independent controls/IDs, hidden slide focus safety and no automatic advance", async () =>
 	inDom(async (root) => {
 		const children = [
@@ -181,7 +198,7 @@ test("carousel instances keep independent controls/IDs, hidden slide focus safet
 		expect(carousels.length).toBe(2);
 		const ids = [...document.querySelectorAll("[id]")].map((node) => node.id);
 		expect(new Set(ids).size).toBe(ids.length);
-		const next = carousels[0].querySelectorAll("button")[1];
+		const next = [...carousels[0].querySelectorAll("button")].find(b=>b.textContent === "Next slide");
 		next.focus();
 		await act(async () => next.click());
 		expect(document.activeElement).toBe(next);
@@ -263,3 +280,53 @@ test("share uses the actual click-time page URL and reports clipboard failure wi
 			"https://example.test/changed?q=clay#notes",
 		);
 	}));
+
+
+test("delayed clipboard feedback cannot replace a newer request or destination", async () => inDom(async (root) => {
+  const pending=[];
+  Object.defineProperty(navigator,"clipboard",{configurable:true,value:{writeText:url=>new Promise((resolve,reject)=>pending.push({url,resolve,reject}))}});
+  const render=url=>root.render(utilityTree(share,{shareUrlMode:"custom",customUrl:url,networks:["copy"]}));
+  await act(async()=>render("https://example.test/old"));
+  await act(async()=>document.querySelector("button").click());
+  await act(async()=>render("https://example.test/new"));
+  await act(async()=>pending[0].reject(Error("denied")));
+  expect(document.querySelector("input")).toBeNull();
+  expect(document.querySelector("[role=status]").textContent).toBe("");
+  await act(async()=>document.querySelector("button").click());
+  await act(async()=>document.querySelector("button").click());
+  await act(async()=>pending[2].resolve());
+  await act(async()=>pending[1].reject(Error("old request denied")));
+  expect(document.querySelector("[role=status]").textContent).toBe("Link copied.");
+  expect(document.querySelector("input")).toBeNull();
+  await act(async()=>render("https://example.test/final"));
+  expect(document.querySelector("[role=status]").textContent).toBe("");
+}));
+
+test("carousel offers opt-in rotation, stops on interaction/preference/visibility, and cleans its timer", async () =>
+  inDom(async(root,dom)=>{
+    const previous={setInterval:globalThis.setInterval,clearInterval:globalThis.clearInterval};
+    let tick=null, listener=null;
+    const media={matches:false,addEventListener:(_,fn)=>listener=fn,removeEventListener:(_,fn)=>{if(listener===fn)listener=null;}};
+    dom.window.matchMedia=()=>media;
+    Object.defineProperty(document,'hidden',{configurable:true,value:false});
+    globalThis.setInterval=(fn,delay)=>{expect(delay).toBe(5000);tick=fn;return 991;};
+    globalThis.clearInterval=id=>{if(id===991)tick=null;else previous.clearInterval(id);};
+    try{
+      await act(async()=>root.render(utilityTree(carousel,{},[slide('a','First'),slide('b','Second')])));
+      const region=document.querySelector('.cp-library-carousel');
+      const button=()=>[...region.querySelectorAll('button')].find(b=>/slide playback|Motion reduced/.test(b.textContent));
+      expect(button()).toBeDefined(); expect(button().textContent).toBe('Start slide playback'); expect(tick).toBeNull();
+      await act(async()=>button().click()); expect(tick).not.toBeNull(); expect(region.querySelector('[role=status]').getAttribute('aria-live')).toBe('off');
+      await act(async()=>tick()); expect(region.querySelector('[role=status]').textContent).toBe('2 / 2');
+      await act(async()=>button().click());expect(tick).toBeNull();
+      await act(async()=>button().click());
+      await act(async()=>region.dispatchEvent(new dom.window.MouseEvent('mouseover',{bubbles:true})));expect(tick).toBeNull();
+      await act(async()=>button().click());await act(async()=>region.querySelectorAll('button')[1].focus());expect(tick).toBeNull();
+      await act(async()=>button().click());
+      Object.defineProperty(document,'hidden',{configurable:true,value:true});await act(async()=>document.dispatchEvent(new dom.window.Event('visibilitychange')));expect(tick).toBeNull();
+      Object.defineProperty(document,'hidden',{configurable:true,value:false});await act(async()=>document.dispatchEvent(new dom.window.Event('visibilitychange')));expect(tick).toBeNull();
+      await act(async()=>button().click());media.matches=true;await act(async()=>listener());expect(tick).toBeNull();expect(button().disabled).toBe(true);
+      media.matches=false;await act(async()=>listener());expect(tick).toBeNull();await act(async()=>button().click());expect(tick).not.toBeNull();
+      await act(async()=>root.render(null));expect(tick).toBeNull();expect(listener).toBeNull();
+    }finally{Object.assign(globalThis,previous);}
+  }));

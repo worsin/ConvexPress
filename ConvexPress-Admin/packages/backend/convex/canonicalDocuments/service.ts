@@ -1,3 +1,5 @@
+import { legacyReferenceMap } from "../syncedBlocks/legacy";
+import { readCanonicalResources as resources } from "./resources";
 import { owned as ownedDefinition, checkGeneration as checkDefinitionGeneration, readVersion as readDefinitionVersion } from "../blockDefinitions/model";
 import { decodeComposedDefinition, composedAttrsSchema } from "./foundation/composedDefinitions";
 import { assertAuthoredActions, parseAuthoredDefinitionContent, type AuthoredDefinitionContent } from "./foundation/authoredDefinitions";
@@ -11,7 +13,7 @@ import type { ComposedDataContext } from "./foundation/planner";
 import * as catalogRevisionWrites from "../media/attachmentGuard";
 import { syncDocumentContactForms } from "./contactDocuments";
 import { clearSyncedConsumerDirty } from "../syncedBlocks/consumerWrites";
-import { insertTermRelationship } from "../helpers/postDiscovery";
+import { insertTermRelationship, deleteTermRelationship } from "../helpers/postDiscovery";
 import { makeFunctionReference } from "convex/server";
 import { ConvexError, getDocumentSize, type Value } from "convex/values";
 import type {
@@ -21,8 +23,10 @@ import type {
 } from "convex/server";
 import type { Doc, Id } from "../_generated/dataModel";
 import type { QueryCtx, MutationCtx } from "../_generated/server";
-import { requireAuth, requireCan } from "../helpers/permissions";
-import { canEditContent, canDiscoverContent, readPublicContent } from "../helpers/publicContent";
+import { requireAuth, requireCan, getCurrentRoleLevel } from "../helpers/permissions";
+import type { Capability } from "../types/capabilities";
+import { isPublicAuthor } from "../helpers/publicAuthor";
+import { canEditContent, canDiscoverContent, readPublicContent, publicContentAuthor } from "../helpers/publicContent";
 import { RequestReadLedger } from "../helpers/requestReadLedger";
 import { enabledPluginIds } from "../helpers/plugins";
 import {
@@ -41,7 +45,6 @@ import {
 	canonicalInitializationSchema,
 	canonicalRevisionPageSchema,
 	canonicalPageOptionsSchema,
-	collectCanonicalDisplayMediaIds,
   collectCanonicalMediaIds,
 	canonicalContentDigest,
 	type CanonicalDocumentRead,
@@ -50,7 +53,6 @@ import {
 	type CanonicalRevisionPage,
 	type CanonicalPageOptions,
 } from "./foundation/documentContracts";
-import { renderMediaSchema } from "./foundation/renderResources";
 import {
 	authoringRevision,
 	authoringSourceDigest,
@@ -67,7 +69,7 @@ import {
 } from "./foundation/documentState";
 import { resolveCanonicalPageData } from "./data";
 import { projectPublicBlocks } from "./publicBlocks";
-import { LegacyMigrationError, migrateLegacyDocument } from "./foundation/legacyDocumentMigration";
+import { LegacyMigrationError, reviewLegacyDocumentSource } from "./foundation/legacyDocumentMigration";
 import { reviewLegacyBlocks } from "./foundation/legacyBlockMigration";
 import { hasStructuredArticle, migrateStructuredArticle } from "./foundation/legacyStructuredMigration";
 import { migrateLegacySections } from "./foundation/legacySectionMigration";
@@ -91,7 +93,12 @@ export async function canonicalBoundary<T>(run: () => Promise<T>): Promise<T> {
 				error.code,
 				"The canonical document failed validation. Reload or correct the indicated document before saving.",
 			);
-		if (error instanceof Error && error.name === "ZodError")
+		// Zod 4 validation errors need not inherit from the native Error class.
+		if (
+			error && typeof error === "object" &&
+			"name" in error && error.name === "ZodError" &&
+			"issues" in error && Array.isArray(error.issues)
+		)
 			refuse(
 				"INVALID_CANONICAL_DOCUMENT",
 				"The document does not satisfy the canonical contract.",
@@ -99,10 +106,11 @@ export async function canonicalBoundary<T>(run: () => Promise<T>): Promise<T> {
 		throw error;
 	}
 }
-async function authorized(
+export async function authorized(
 	ctx: QueryCtx,
 	postId: Id<"posts">,
 	budget: RequestReadLedger,
+  allowTrashedMigration = false,
 ) {
 	const user = await requireAuth(ctx, budget);
 	budget.beforeRead();
@@ -110,7 +118,7 @@ async function authorized(
 	if (!post) return { post: null, user };
 	if (!(await canEditContent(ctx, post, budget)))
 		refuse("FORBIDDEN", "You cannot edit this document.");
-	if (post.status === "trash")
+	if (post.status === "trash" && !allowTrashedMigration)
 		refuse(
 			"CANONICAL_DRAFT_REQUIRED",
 			"Restore the document from Trash before editing.",
@@ -150,41 +158,7 @@ async function validateNewKnowledgeCategoryReferences(ctx: QueryCtx, blocks: Run
   };
   await inspect(blocks);
 }
-async function resources(
-	ctx: QueryCtx,
-	blocks: RuntimeCanonicalTree,
-	budget: RequestReadLedger,
-  composed?: ComposedDataContext,
-): Promise<CanonicalDocumentDto["resources"]> {
-	const media: CanonicalDocumentDto["resources"]["media"] = {};
-	for (const value of collectCanonicalDisplayMediaIds(blocks, composed)) {
-		const id = ctx.db.normalizeId("media", value);
-		if (!id)
-			refuse("MEDIA_UNAVAILABLE", "A selected media reference is invalid.");
-		budget.beforeRead();
-		const doc = budget.record(await ctx.db.get("media", id));
-		if (!doc || (doc.status !== "active" && doc.status !== "processing"))
-			refuse("MEDIA_UNAVAILABLE", "A selected media item is unavailable.");
-		let src = doc.url;
-		if (doc.storageId) {
-			budget.beforeRead();
-			const current = await ctx.storage.getUrl(doc.storageId);
-			if (!current)
-				refuse("MEDIA_UNAVAILABLE", "A selected media file is missing.");
-			src = current;
-		}
-		media[value] = renderMediaSchema.parse({
-			src,
-			alt: doc.altText ?? "",
-			...(doc.width === undefined ? {} : { width: doc.width }),
-			...(doc.height === undefined ? {} : { height: doc.height }),
-			mimeType: doc.mimeType,
-			filename: doc.fileName,
-			byteSize: doc.fileSize,
-		});
-	}
-	return { media };
-}
+
 async function project(
 	ctx: QueryCtx,
 	post: Doc<"posts">,
@@ -307,6 +281,7 @@ async function snapshot(
 		);
 	const value: WithoutSystemFields<Doc<"revisions">> = {
 		...authoringSnapshot(post),
+    ...(post.blocksVersion !== 2 ? {autosaveTitle:post.autosaveTitle,autosaveContent:post.autosaveContent,autosavedAt:post.autosavedAt} : {}),
 		content: post.content ?? "",
 		parentId: post._id,
 		parentType: post.type,
@@ -345,12 +320,13 @@ async function commit(
 	restore?: Doc<"revisions">,
   publication?: CanonicalPublicationPatch,
   scheduled = false,
+  preserveTrash = false,
 ): Promise<CanonicalWriteReceipt> {
   if ((publication?.status ?? post.status) !== "draft") assertAuthoredActions(prepared, prepared.composedDefinitions?.scope);
   const previous = post.blocksVersion === 2 ? await (scheduled ? readApprovedDocument : readAuthoredDocument)(ctx, post, budget) : undefined;
   await validateNewKnowledgeCategoryReferences(ctx, prepared.blocks, previous?.blocks ?? [], budget);
 	// A no-op still revalidates current policy and exact referenced resources.
-	await project(ctx, post, budget, prepared, {}, (publication?.status ?? post.status) === "draft" ? "authoring" : "published");
+	await project(ctx, preserveTrash ? {...post, status: "draft"} : post, budget, prepared, {}, (publication?.status ?? post.status) === "draft" ? "authoring" : "published");
   await syncDocumentContactForms(ctx, { postId: post._id, title: prepared.title, blocks: prepared.blocks, scheduled,
     ...(prepared.composedDefinitions ? { composed: { scope: prepared.composedDefinitions.scope, definitions: prepared.composedDefinitions } } : {}) }, budget);
 	if (prepared.changed) {
@@ -358,7 +334,7 @@ async function commit(
 			...(restore ? restoredAuthoring(restore) : {}),
 			title: prepared.title,
 			content: "",
-			contentMode: "blocks",
+			contentMode: undefined,
 			blocksVersion: 2,
 			blocks: prepared.blocks,
       composedDefinitions: prepared.composedDefinitions,
@@ -550,14 +526,14 @@ export async function pageRevisions(
 	);
 	return canonicalRevisionPageSchema.parse({
 		...result,
-		page: result.page.map((row) => {
-      let action: "restore-canonical" | "recover-legacy" | null = null;
+		page: await Promise.all(result.page.map(async (row) => {
+      let action: "restore-canonical" | "import-legacy" | null = null;
       if (row.blocksVersion === 2) action = "restore-canonical";
-      else if (post.blocksVersion === 2) { try { legacyRecoveryValue(post, row); action = "recover-legacy"; } catch { /* Unsupported old format remains explicit, without returning partial source. */ } }
+      else if (post.blocksVersion === 2) { try { await prepareMigrationReferences(ctx,historicalAuthoring(post, row, "saved"),budget); action = "import-legacy"; } catch { /* Unsupported old format remains explicit, without returning partial source. */ } }
       return { id: row._id, revisionNumber: row.revisionNumber, createdAt: row.createdAt, type: row.type, title: row.title,
-        blocksVersion: row.blocksVersion ?? null, action, restorable: action !== null,
+        blocksVersion: row.blocksVersion ?? null, action, hasRetainedAutosave: row.autosaveTitle !== undefined || row.autosaveContent !== undefined, restorable: action !== null,
         reason: action ? null : row.blocksVersion === undefined || row.blocksVersion === 1 ? "legacy-format" : "unsupported-format" };
-    }),
+    })),
 	});
 }
 export async function pageOptions(
@@ -590,52 +566,164 @@ export async function pageOptions(
 
 /** Select the same visible source as current public page/post surfaces. Hidden
  * source fields remain in the original revision; they are never chosen by guess. */
-function prepareAuthoredMigration(post: Doc<"posts">): PreparedCanonicalWrite & {inactiveSettings?: CanonicalMigrationDto["inactiveSettings"]} {
+function prepareAuthoredMigration(post: Doc<"posts">, reusableSources?: ReadonlyMap<string,string>): PreparedCanonicalWrite & {inactiveSettings?: CanonicalMigrationDto["inactiveSettings"]; importedContent?: "plain-text" | "html"} {
   if (post.status !== "draft") refuse("CANONICAL_DRAFT_REQUIRED", "Migrate an editable draft before publishing it.");
   if (post.blocksVersion !== undefined && post.blocksVersion !== 1) refuse("UNSUPPORTED_AUTHORING_VERSION", "This is not a supported legacy authoring document.");
   if (post.contentMode !== undefined && post.contentMode !== "article" && post.contentMode !== "blocks") refuse("UNSUPPORTED_AUTHORING_VERSION", "The legacy content mode is unsupported.");
-  if ((post.autosaveTitle !== undefined && post.autosaveTitle !== post.title) || (post.autosaveContent !== undefined && post.autosaveContent !== (post.content ?? ""))) refuse("UNSAVED_AUTHORING", "Save or explicitly discard the distinct autosave before reviewing this migration.");
   const revision = authoringRevision(post);
   if (revision >= Number.MAX_SAFE_INTEGER - 1) refuse("AUTHORING_REVISION_EXHAUSTED", "The document revision cannot advance safely.");
   // Match the Website's visible-source precedence. In particular, block-mode
   // posts prefer nonempty blocks to structured content, and block-mode pages
   // use sections (including an empty list) rather than hidden article text.
+  let importedContent: "plain-text" | "html" | undefined;
   const blockReview = post.contentMode === "blocks" && post.blocks?.length ? reviewLegacyBlocks(post.blocks) : null;
   const blocks = blockReview
     ? blockReview.blocks
     : post.contentMode === "blocks" && post.type === "page"
       ? migrateLegacySections(post.pageSections ?? [])
       : migrateArticleSource();
-  return { title: post.title, blocks, digest: canonicalContentDigest(post.title, blocks), revision: revision + 1, changed: true, ...(blockReview?.inactiveSettings.length ? {inactiveSettings:blockReview.inactiveSettings} : {}) };
+  return { title: post.title, blocks, digest: canonicalContentDigest(post.title, blocks), revision: revision + 1, changed: true, ...(importedContent ? {importedContent} : {}), ...(blockReview?.inactiveSettings.length ? {inactiveSettings:blockReview.inactiveSettings} : {}) };
 
   function migrateArticleSource() {
    if (post.type === "post" && hasStructuredArticle(post)) return migrateStructuredArticle({
      postId: post._id, path: `/blog/${post.slug}`, hero: post.hero, topics: post.topics,
      summary: post.summary, sources: post.sources, tableOfContents: post.tableOfContents,
    });
-   return migrateLegacyDocument({ postId: post._id, content: post.content ?? "" });
+   const reviewed = reviewLegacyDocumentSource({ postId: post._id, content: post.content ?? "", reusableSources });
+   importedContent = reviewed.importedContent;
+   return reviewed.blocks;
   }
 }
-export async function prepareMigrationDocument(ctx: QueryCtx, args: { postId: Id<"posts"> }): Promise<CanonicalMigrationDto> {
-  const budget = new RequestReadLedger();
-  const { post } = await authorized(ctx, args.postId, budget);
-  if (!post) refuse("NOT_FOUND", "Document not found.");
-  const prepared = prepareAuthoredMigration(post);
-  return parseCanonicalMigration({ contract: "canonical-migration-v1", source: { postId: post._id, revision: authoringRevision(post), authoringDigest: authoringSourceDigest(post) }, candidate: await project(ctx, post, budget, prepared), ...(prepared.inactiveSettings ? {inactiveSettings:prepared.inactiveSettings} : {}) });
+async function prepareMigrationReferences(ctx: QueryCtx, post: Doc<"posts">, budget: RequestReadLedger) {
+ const usesDocument = !(post.contentMode === "blocks" && (post.blocks?.length || post.type === "page"))
+  && !(post.type === "post" && hasStructuredArticle(post));
+ const references = usesDocument ? await legacyReferenceMap(ctx,post.content ?? "",budget) : undefined;
+ return prepareAuthoredMigration(post,references);
 }
-export type MigrateArgs = { postId: Id<"posts">; expectedRevision: number; expectedAuthoringDigest: string; expectedCandidateDigest: string; expectedPresentationRevision: string; preserveInactiveSettings?: boolean };
+/** Trash conversion is authoring-only: never restore, reschedule or publish.
+ * Bind its lifecycle too, so restoring/retrashing after review invalidates it.
+ * The draft projection is only a preview; commit retains the actual trash row. */
+function migrationSource(post: Doc<"posts">, preserveTrash: boolean) {
+  if (!preserveTrash) return {preview:post,digest:authoringSourceDigest(post)};
+  if (post.status !== "trash") refuse("CONFLICT", "The document is no longer in the reviewed Trash state.");
+  return {preview:{...post,status:"draft" as const},digest:sha256Hex(canonicalJson({
+    authoring:authoringSourceDigest(post),status:post.status,
+    previousStatus:post.previousStatus ?? null,trashedAt:post.trashedAt ?? null,
+  }))};
+}
+/** The ordinary Trash routes keep their ownership/route checks. A canonical
+ * restore additionally validates the exact resulting body and publication
+ * authority before issuing the same single-use write permit as other writers. */
+export async function canonicalTrashRestorePermit(ctx: MutationCtx, post: Doc<"posts">, value: Record<string, unknown>) {
+  if (post.blocksVersion !== 2) return undefined;
+  return canonicalBoundary(async () => {
+    const budget = new RequestReadLedger();
+    const restoreFields = new Set(["status","previousStatus","trashedAt","slug","updatedAt","parentId","depth","path"]);
+    if (Object.keys(value).some(key => !restoreFields.has(key))) refuse("INVALID_RESTORE_PATCH", "Trash restoration cannot replace authored content.");
+    if (post.status !== "trash") refuse("CONFLICT", "The document is no longer in Trash.");
+    if (!(await canEditContent(ctx, post, budget))) refuse("FORBIDDEN", "You cannot restore this document.");
+    if (["pending", "auto-draft"].includes(String(value.status)) ||
+        (value.status === "future" && (!post.scheduledAt || post.scheduledAt <= Date.now()))) value.status = "draft";
+    if (value.status !== "draft") await requireCan(ctx, post.type === "page" ? "page.publish" : "post.publish", budget);
+    const candidate = {...post,...value} as Doc<"posts">;
+    const authored = await (candidate.status === "draft" ? readAuthoredDocument : readApprovedDocument)(ctx, candidate, budget);
+    const context = authored.composedDefinitions ? {scope:authored.composedDefinitions.scope,definitions:authored.composedDefinitions} : undefined;
+    const prepared = context ? prepareCanonicalCurrent(candidate, authoringRevision(post), context) : prepareCanonicalCurrent(candidate, authoringRevision(post));
+    if (candidate.status !== "draft") assertAuthoredActions(prepared, context?.scope);
+    await project(ctx, candidate, budget, prepared, {}, candidate.status === "draft" ? "authoring" : "published");
+    return permitValidatedCanonicalAuthoringWrite({table:"posts",operation:"patch",id:post._id,previous:post,value});
+  });
+}
+/** The old shared autosave has no author identity. Keep its exact fields with
+ * the original source revision; do not adopt it into the current user's draft. */
+function retainedAutosave(post: Doc<"posts">): CanonicalMigrationDto["retainedAutosave"] {
+  const titleChanged = post.autosaveTitle !== undefined && post.autosaveTitle !== post.title;
+  const contentChanged = post.autosaveContent !== undefined && post.autosaveContent !== (post.content ?? "");
+  return titleChanged || contentChanged ? {titleChanged,contentChanged,savedAt:post.autosavedAt ?? null} : undefined;
+}
+export async function prepareMigrationDocument(ctx: QueryCtx, args: { postId: Id<"posts">; preserveTrash?: boolean }): Promise<CanonicalMigrationDto> {
+  const budget = new RequestReadLedger();
+  const { post } = await authorized(ctx, args.postId, budget, args.preserveTrash === true);
+  if (!post) refuse("NOT_FOUND", "Document not found.");
+  const source = migrationSource(post, args.preserveTrash === true);
+  const prepared = await prepareMigrationReferences(ctx,source.preview,budget);
+  return parseCanonicalMigration({ contract: "canonical-migration-v1", source: { postId: post._id, revision: authoringRevision(post), authoringDigest: source.digest }, candidate: await project(ctx, source.preview, budget, prepared), ...(args.preserveTrash ? {preservesTrash:true} : {}), ...(retainedAutosave(post) ? {retainedAutosave:retainedAutosave(post)} : {}), ...(prepared.inactiveSettings ? {inactiveSettings:prepared.inactiveSettings} : {}), ...(prepared.importedContent ? {importedContent:prepared.importedContent} : {}) });
+}
+export type MigrateArgs = { postId: Id<"posts">; expectedRevision: number; expectedAuthoringDigest: string; expectedCandidateDigest: string; expectedPresentationRevision: string; preserveInactiveSettings?: boolean; acknowledgeTextImport?: boolean; acknowledgeHtmlImport?: boolean; preserveTrash?: boolean; preserveLegacyAutosave?: boolean };
 export async function migrateDocument(ctx: MutationCtx, args: MigrateArgs): Promise<CanonicalWriteReceipt> {
   const budget = new RequestReadLedger();
-  const { post, user } = await authorized(ctx, args.postId, budget);
+  const { post, user } = await authorized(ctx, args.postId, budget, args.preserveTrash === true);
   if (!post) refuse("NOT_FOUND", "Document not found.");
+  const source = migrationSource(post, args.preserveTrash === true);
   // Check complete source CAS before converting or starting dependent reads.
-  if (!Number.isSafeInteger(args.expectedRevision) || authoringRevision(post) !== args.expectedRevision || authoringSourceDigest(post) !== args.expectedAuthoringDigest) refuse("CONFLICT", "The authoring source changed after migration review.");
-  const prepared = prepareAuthoredMigration(post);
+  if (!Number.isSafeInteger(args.expectedRevision) || authoringRevision(post) !== args.expectedRevision || source.digest !== args.expectedAuthoringDigest) refuse("CONFLICT", "The authoring source changed after migration review.");
+  const prepared = await prepareMigrationReferences(ctx,source.preview,budget);
+  if (retainedAutosave(post) && args.preserveLegacyAutosave !== true) refuse("MIGRATION_INTENT_REVIEW_REQUIRED", "Confirm retaining the separate unsaved draft with the original revision before converting accepted content.");
+  if (prepared.importedContent === "plain-text" && args.acknowledgeTextImport !== true) refuse("MIGRATION_INTENT_REVIEW_REQUIRED", "Review and acknowledge importing plain text that the original renderer may not have displayed.");
+  if (prepared.importedContent === "html" && args.acknowledgeHtmlImport !== true) refuse("MIGRATION_INTENT_REVIEW_REQUIRED", "Review and acknowledge importing HTML that the original renderer may not have displayed.");
   if (prepared.inactiveSettings?.length && args.preserveInactiveSettings !== true) refuse("MIGRATION_INTENT_REVIEW_REQUIRED", "Confirm that unused layout and lock settings remain in the original revision before converting.");
   if (prepared.digest !== args.expectedCandidateDigest) refuse("MIGRATION_REVIEW_MISMATCH", "The reviewed candidate does not match this source conversion.");
-  const candidate = await project(ctx, post, budget, prepared);
+  const candidate = await project(ctx, source.preview, budget, prepared);
   if (candidate.presentation.revision !== args.expectedPresentationRevision) refuse("MIGRATION_REVIEW_MISMATCH", "The template presentation changed after migration review.");
-  return commit(ctx, post, user, prepared, budget);
+  return commit(ctx, post, user, prepared, budget, undefined, undefined, false, args.preserveTrash === true);
+}
+
+export type RevisionImportArgs = {postId: Id<"posts">; revisionId: Id<"revisions">; sourceKind: "saved" | "autosave"};
+export type ImportRevisionArgs = RevisionImportArgs & Omit<MigrateArgs, "preserveTrash" | "preserveLegacyAutosave"> & {expectedArchiveDigest: string};
+import { revisionSourceSchema, type RevisionSourceDto } from "./foundation/migrationContracts";
+async function revisionSource(ctx: QueryCtx, post: Doc<"posts">, revisionId: Id<"revisions">, budget: RequestReadLedger) {
+  await requireCan(ctx, "revision.restore", budget);
+  budget.beforeRead();
+  const revision = budget.record(await ctx.db.get("revisions", revisionId));
+  if (!revision) refuse("NOT_FOUND", "Revision not found.");
+  if (revision.parentId !== post._id || revision.parentType !== post.type) refuse("REVISION_PARENT_MISMATCH", "The revision belongs to another document.");
+  return revision;
+}
+export async function getRevisionSource(ctx: QueryCtx, args: {postId: Id<"posts">; revisionId: Id<"revisions">}): Promise<RevisionSourceDto> {
+  const budget = new RequestReadLedger();
+  const {post} = await authorized(ctx,args.postId,budget,true);
+  if (!post) refuse("NOT_FOUND", "Document not found.");
+  const revision = await revisionSource(ctx,post,args.revisionId,budget);
+  return revisionSourceSchema.parse({revisionId:revision._id,sourceDigest:sha256Hex(canonicalJson(revision)),sourceJson:JSON.stringify(revision)});
+}
+function historicalAuthoring(post: Doc<"posts">, revision: Doc<"revisions">, sourceKind: RevisionImportArgs["sourceKind"]): Doc<"posts"> {
+  if (revision.blocksVersion !== undefined && revision.blocksVersion !== 1) refuse("LEGACY_IMPORT_UNSUPPORTED", "This is not a supported historical legacy source.");
+  let authored = restoredAuthoring(revision);
+  if (sourceKind === "autosave") {
+    if (revision.autosaveTitle === undefined && revision.autosaveContent === undefined) refuse("NO_RETAINED_AUTOSAVE", "This revision has no retained unsaved draft.");
+    authored = {...authored,title:revision.autosaveTitle ?? authored.title};
+    if (revision.autosaveContent !== undefined) authored = {...authored,content:revision.autosaveContent,contentMode:"article",blocks:undefined,pageSections:undefined,hero:undefined,topics:undefined,summary:undefined,sources:undefined,tableOfContents:undefined};
+  }
+  return {...post,...authored,blocksVersion:1,blocksRevision:authoringRevision(post),status:"draft",autosaveTitle:undefined,autosaveContent:undefined,autosavedAt:undefined,
+    content:authored.content || JSON.stringify({type:"doc",content:[]})};
+}
+async function revisionImport(ctx: QueryCtx, post: Doc<"posts">, args: RevisionImportArgs, budget: RequestReadLedger, request: BlockPageRequest = {}) {
+  if (post.blocksVersion !== 2) refuse("UNSUPPORTED_AUTHORING_VERSION", "Import history into the canonical editor.");
+  if (post.status !== "draft") await requireCan(ctx,post.type === "page" ? "page.publish" : "post.publish",budget);
+  const revision = await revisionSource(ctx,post,args.revisionId,budget);
+  const converted = await prepareMigrationReferences(ctx,historicalAuthoring(post,revision,args.sourceKind),budget);
+  const candidate = {...revision,title:converted.title,content:"",contentMode:undefined,blocksVersion:2 as const,blocks:converted.blocks,composedDefinitions:undefined};
+  const context = await loadDocumentWriteContext(ctx,converted.blocks,budget,post.composedDefinitions);
+  const restoreArgs = {postId:post._id,expectedRevision:authoringRevision(post)};
+  const prepared = context ? prepareCanonicalRestore(post,candidate,restoreArgs,context) : prepareCanonicalRestore(post,candidate,restoreArgs);
+  const previewPost = {...post,...restoredAuthoring(revision)};
+  const review = parseCanonicalMigration({contract:"canonical-migration-v1",source:{postId:post._id,revision:authoringRevision(post),authoringDigest:authoringSourceDigest(post)},archive:{revisionId:revision._id,sourceKind:args.sourceKind,sourceDigest:sha256Hex(canonicalJson(revision))},candidate:await project(ctx,previewPost,budget,prepared,request),...(converted.importedContent ? {importedContent:converted.importedContent} : {}),...(converted.inactiveSettings ? {inactiveSettings:converted.inactiveSettings} : {})});
+  return {revision,prepared,review};
+}
+export async function prepareRevisionImport(ctx: QueryCtx, args: RevisionImportArgs & {request?: BlockPageRequest}): Promise<CanonicalMigrationDto> {
+  const budget = new RequestReadLedger(),{post} = await authorized(ctx,args.postId,budget);
+  if (!post) refuse("NOT_FOUND", "Document not found.");
+  return (await revisionImport(ctx,post,args,budget,blockPageRequestSchema.parse(args.request ?? {}))).review;
+}
+export async function importRevision(ctx: MutationCtx, args: ImportRevisionArgs): Promise<CanonicalWriteReceipt> {
+  const budget = new RequestReadLedger(),{post,user} = await authorized(ctx,args.postId,budget);
+  if (!post) refuse("NOT_FOUND", "Document not found.");
+  if (authoringRevision(post) !== args.expectedRevision || authoringSourceDigest(post) !== args.expectedAuthoringDigest) refuse("CONFLICT", "The current document changed after historical import review.");
+  const {revision,prepared,review} = await revisionImport(ctx,post,args,budget);
+  if (review.archive!.sourceDigest !== args.expectedArchiveDigest) refuse("CONFLICT", "The historical source changed after review.");
+  if (review.candidate.document.digest !== args.expectedCandidateDigest || review.candidate.presentation.revision !== args.expectedPresentationRevision) refuse("MIGRATION_REVIEW_MISMATCH", "The historical import or template changed after review.");
+  if ((review.importedContent === "plain-text" && !args.acknowledgeTextImport) || (review.importedContent === "html" && !args.acknowledgeHtmlImport) || (review.inactiveSettings?.length && !args.preserveInactiveSettings)) refuse("MIGRATION_INTENT_REVIEW_REQUIRED", "Acknowledge the historical source import before restoring it.");
+  return commit(ctx,post,user,prepared,budget,revision);
 }
 
 import { blockPageRequestSchema, type BlockPageRequest } from "./foundation/postGridContracts";
@@ -688,7 +776,7 @@ export async function getPublicDocument(ctx: QueryCtx, args: { postId: Id<"posts
 
 import { replacePublicationSchedule, clearPublicationSchedule } from "../helpers/publicationSchedule";
 import { emitEvent } from "../helpers/events";
-import { PAGE_EVENTS, POST_EVENTS, SYSTEM } from "../events/constants";
+import { PAGE_EVENTS, POST_EVENTS, TAXONOMY_EVENTS, SYSTEM } from "../events/constants";
 /** Canonical authoring uses the same incremental listeners as the original
  * editors. Only identities and field names enter the event; protected bodies
  * and access secrets stay in the authorized source document. */
@@ -713,13 +801,14 @@ export async function setDocumentPublication(ctx: MutationCtx, args: Publication
   const authored = await readAuthoredDocument(ctx, post, budget);
   const context = authored.composedDefinitions ? { scope: authored.composedDefinitions.scope, definitions: authored.composedDefinitions } : undefined;
   const prepared = context ? prepareCanonicalPublication(post, args, Date.now(), context) : prepareCanonicalPublication(post, args, Date.now());
-  // Resource/schema/policy refusal precedes scheduler writes as well as owner writes.
-  await project(ctx, post, budget, prepared, {}, args.status === "draft" ? "authoring" : "published");
+  // Commit validates current resources/schema/policy before its writes. Resolve
+  // once, then change scheduling in the same atomic mutation; any later refusal
+  // rolls back both owner and scheduler writes.
+  const receipt = await commit(ctx, post, user, prepared, budget, undefined, prepared.publication);
   if (prepared.changed) {
     if (prepared.publication.status === "future") await replacePublicationSchedule(ctx, post._id, prepared.publication.scheduledAt!, budget);
     else await clearPublicationSchedule(ctx, post._id, budget);
   }
-  const receipt = await commit(ctx, post, user, prepared, budget, undefined, prepared.publication);
   if (prepared.changed && args.status === "publish" && post.status !== "publish") await publishedEvent(ctx, post, prepared.publication.publishedAt!, false, budget);
   return receipt;
 }
@@ -749,6 +838,38 @@ import { assertPagePathAvailable } from "../helpers/pageRouteGuard";
 import { getUserIdentifier } from "../helpers/permissions";
 import { DOCUMENT_LIMITS } from "./foundation/documentContracts";
 export type DuplicateArgs = { postId: Id<"posts">; expectedRevision: number };
+/** Create the first canonical revision atomically. No legacy body or publication
+ * input is accepted; existing source belongs to the deliberate import workflow. */
+export async function createDocument(ctx: MutationCtx, args: { type: "post" | "page"; title: string }, options: { plainText?: string; source?: "quick_draft" } = {}): Promise<CanonicalWriteReceipt & { postId: Id<"posts"> }> {
+  const budget = new RequestReadLedger();
+  const user = await requireCan(ctx, args.type === "page" ? "page.create" : "post.create", budget);
+  const title = args.title.trim() || (args.type === "page" ? "Untitled page" : "Untitled post");
+  // Internal plain-text entry points supply text nodes directly. HTML and Markdown
+  // syntax stays literal; arbitrary client trees still use the canonical save API.
+  const text = options.plainText?.trim();
+  const blocks = text ? [{id: "quick-draft-body", name: "core/paragraph", version: 2, attrs: {body: {type: "doc", content: [{type: "paragraph", content: text.split(/(\r\n|\n|\r)/u).filter(Boolean).map(part => /^(\r\n|\n|\r)$/u.test(part) ? {type: "hardBreak"} : {type: "text", text: part})}]}}}] : [];
+  const prepared = prepareCanonicalCurrent({title, blocks, blocksVersion: 2, blocksRevision: 1, contentMode: undefined, status: "draft"}, 1);
+  const slug = await generateUniqueSlug(ctx, title, args.type, undefined, budget);
+  if (args.type === "page") await assertPagePathAvailable(ctx, `/${slug}`, undefined, budget);
+  const now = Date.now();
+  const value: WithoutSystemFields<Doc<"posts">> = {
+    type: args.type, title, slug, status: "draft", visibility: "public", authorId: user._id,
+    content: "", contentMode: undefined, blocks: prepared.blocks, blocksVersion: 2, blocksRevision: 1,
+    commentStatus: args.type === "page" ? "closed" : "open", commentCount: 0, isSticky: false,
+    ...(args.type === "page" ? {path: `/${slug}`, depth: 0, menuOrder: 0, pageTemplate: "default"} : {}),
+    createdAt: now, updatedAt: now,
+  };
+  assertStoredSize(value, budget);
+  const permit = permitValidatedCanonicalAuthoringWrite({table: "posts", operation: "insert", value});
+  const postId = await insertWithMediaReferences(ctx, "posts", value, permit, budget);
+  const post = budget.record(await ctx.db.get("posts", postId));
+  if (!post) refuse("NOT_FOUND", "Created document not found.");
+  await project(ctx, post, budget, prepared, {}, "authoring");
+  await clearSyncedConsumerDirty(ctx, postId, budget);
+  await emitEvent(ctx, args.type === "page" ? PAGE_EVENTS.CREATED : POST_EVENTS.CREATED, options.source === "quick_draft" ? "dashboard" : args.type === "page" ? SYSTEM.PAGE : SYSTEM.POST,
+    {postId, ...(args.type === "page" ? {pageId: postId} : {}), title, authorId: user._id, postType: args.type, status: "draft", ...(options.source ? {source: options.source} : {})}, undefined, budget);
+  return {postId, revision: 1, digest: prepared.digest, changed: true};
+}
 /** Exact source CAS, fresh destination identity/revision, and unchanged source.
  * Route restrictions become grouped direct policies on the new draft just as in
  * the established legacy duplication path; no customer grants are copied. */
@@ -786,7 +907,7 @@ export async function duplicateDocument(ctx: MutationCtx, args: DuplicateArgs): 
   if (post.type === "page") await assertPagePathAvailable(ctx, `/${slug}`, undefined, budget);
   const now = Date.now();
   const value: WithoutSystemFields<Doc<"posts">> = {
-    ...authoringSnapshot(post), title, content: "", contentMode: "blocks", blocksVersion: 2,
+    ...authoringSnapshot(post), title, content: "", contentMode: undefined, blocksVersion: 2,
     blocks: prepared.blocks, blocksRevision: 1, type: post.type, slug,
     status: "draft", visibility: post.status === "private" ? "private" : post.visibility,
     password: post.password, authorId: user._id,
@@ -811,42 +932,6 @@ export async function duplicateDocument(ctx: MutationCtx, args: DuplicateArgs): 
   }
   await emitEvent(ctx, POST_EVENTS.DUPLICATED, SYSTEM.POST, { postId, title, authorId: user._id, postType: post.type, status: "draft", duplicatedFrom: post._id }, undefined, budget);
   return { postId, revision: 1, digest: canonicalContentDigest(title, prepared.blocks), changed: true };
-}
-
-import { permitValidatedLegacyRecoveryWrite } from "../helpers/authoringVersionFence";
-import { parseCanonicalRecoveryReceipt, type CanonicalRecoveryReceipt } from "./foundation/documentContracts";
-export type LegacyRecoveryArgs = { postId: Id<"posts">; revisionId: Id<"revisions">; expectedRevision: number };
-function legacyRecoveryValue(post: Doc<"posts">, revision: Doc<"revisions">): Partial<WithoutSystemFields<Doc<"posts">>> {
-  if (revision.parentId !== post._id || revision.parentType !== post.type) refuse("REVISION_PARENT_MISMATCH", "The revision belongs to another document.");
-  if (revision.snapshotVersion !== 2 || (revision.blocksVersion !== undefined && revision.blocksVersion !== 1)) refuse("LEGACY_RECOVERY_UNSUPPORTED", "This revision does not contain a supported complete legacy authoring snapshot.");
-  const authored = restoredAuthoring(revision);
-  const candidate = { ...post, ...authored, blocksVersion: 1 as const, status: "draft" as const, autosaveTitle: undefined, autosaveContent: undefined, autosavedAt: undefined };
-  // Validate the historical visible authoring model without replacing its bytes.
-  // An actually empty block page is a supported empty original editor state.
-  prepareAuthoredMigration({ ...candidate,
-    content: candidate.content || JSON.stringify({ type: "doc", content: [] }),
-  });
-  return { ...authored, blocksVersion: 1, blocksRevision: authoringRevision(post) + 1, autosaveTitle: undefined, autosaveContent: undefined, autosavedAt: undefined, updatedAt: Date.now() };
-}
-export async function recoverLegacyDocument(ctx: MutationCtx, args: LegacyRecoveryArgs): Promise<CanonicalRecoveryReceipt> {
-  const budget = new RequestReadLedger();
-  const { post, user } = await authorized(ctx, args.postId, budget);
-  if (!post) refuse("NOT_FOUND", "Document not found.");
-  await requireCan(ctx, "revision.restore", budget);
-  if (post.status !== "draft") await requireCan(ctx, post.type === "page" ? "page.publish" : "post.publish", budget);
-  // Validates current canonical format and exact revision before reading history.
-  prepareCanonicalCurrent(post, args.expectedRevision);
-  budget.beforeRead();
-  const revision = budget.record(await ctx.db.get("revisions", args.revisionId));
-  if (!revision) refuse("NOT_FOUND", "Revision not found.");
-  const value = legacyRecoveryValue(post, revision);
-  const candidate = { ...post, ...value };
-  assertStoredSize(candidate, budget);
-  await snapshot(ctx, post, String(user._id), budget);
-  const permit = permitValidatedLegacyRecoveryWrite({ table: "posts", operation: "patch", id: post._id, previous: post, value });
-  await patchWithMediaReferences(ctx, "posts", post._id, value, permit, budget);
-  await authoringUpdatedEvent(ctx, candidate, Object.keys(value), budget, post);
-  return parseCanonicalRecoveryReceipt({ postId: post._id, revision: authoringRevision(candidate), blocksVersion: 1, authoringDigest: authoringSourceDigest(candidate) });
 }
 
 import {canonicalMenuOptionsSchema, type CanonicalMenuOptions} from './foundation/documentContracts';
@@ -1041,7 +1126,7 @@ export async function writePromotedCanonicalDocument(
   const budget = new RequestReadLedger();
   const user = await requireCan(ctx, "manage_options", budget);
   if (fields.type !== "page" && fields.type !== "post") refuse("PROMOTION_CONTENT_KIND", "Expected a page or post.");
-  if (fields.blocksVersion !== 2 || fields.contentMode !== "blocks" || fields.content !== "" || fields.canonical !== undefined)
+  if (fields.blocksVersion !== 2 || fields.content !== "" || fields.canonical !== undefined)
     refuse("PROMOTION_CANONICAL_INVALID", "Expected resolved canonical authoring fields.");
   if (!["draft", "publish", "private", ...(restoring ? ["future"] : [])].includes(String(fields.status)))
     refuse("PROMOTION_PUBLICATION_INVALID", "Unsupported publication transition.");
@@ -1073,7 +1158,7 @@ export async function writePromotedCanonicalDocument(
     // Allocate a target-local identity inside this atomic transaction. Any later
     // validation refusal rolls this draft back together with its derived rows.
     targetId = await insertWithMediaReferences(ctx, "posts", {
-      type, title:String(fields.title), slug:String(fields.slug), content:"", contentMode:"blocks",
+      type, title:String(fields.title), slug:String(fields.slug), content:"", contentMode:undefined,
       status:"draft", visibility:"public", commentStatus:"closed", authorId:user._id, createdAt:now, updatedAt:now,
     }, undefined, budget);
     budget.beforeRead(); previous = budget.record(await ctx.db.get("posts", targetId));
@@ -1083,7 +1168,7 @@ export async function writePromotedCanonicalDocument(
   if (priorRevision >= Number.MAX_SAFE_INTEGER - 1) refuse("AUTHORING_REVISION_EXHAUSTED", "Target revision cannot advance safely.");
   const absent = restoring ? Object.fromEntries(Object.keys(previous).filter(key=>key!=="_id" && key!=="_creationTime" && !(key in fields)).map(key=>[key,undefined])) : {};
   const value: Partial<WithoutSystemFields<Doc<"posts">>> = {
-    ...absent, ...fields, blocks, blocksVersion:2, contentMode:"blocks", content:"",
+    ...absent, ...fields, blocks, blocksVersion:2, contentMode:undefined, content:"",
     authorId:previous.authorId, createdAt:previous.createdAt, blocksRevision:priorRevision+1,
     autosaveTitle:undefined, autosaveContent:undefined, autosavedAt:undefined,
     scheduledAt:fields.status==="future" ? Number(fields.scheduledAt) : undefined,
@@ -1187,4 +1272,681 @@ export async function mailingListOptions(ctx:QueryCtx,args: CanonicalOptionsArgs
  budget.beforeRead();
  const result=chargePage(await ctx.db.query("mailingLists").withIndex("by_installation_status_name",q=>q.eq("websiteKey",identity.websiteKey).eq("instanceKey",identity.instanceKey).eq("status","active")).paginate(opts),budget);
  return canonicalMailingListOptionsSchema.parse({...result,page:result.page.map(list=>({id:list._id,name:list.name}))});
+}
+
+
+// API-key authoring shares canonical validation, history, media and publication.
+// Only the caller's authority is different from a native interactive session.
+import {
+	apiContentActor,
+	apiCanEdit,
+	requireApiCapability,
+} from "./apiAuthority";
+import { slugify as apiSlugify } from "../helpers/slug";
+import { MAX_PAGE_DEPTH } from "../pages/internals";
+export type ApiDocumentInput = {
+	keyId: Id<"apiKeys">;
+	title?: string;
+	content?: string;
+	blocks?: unknown;
+	excerpt?: string;
+	status?: string;
+	scheduledAt?: number;
+	slug?: string;
+	parentId?: Id<"posts"> | null;
+	menuOrder?: number;
+	pageTemplate?: string;
+	visibility?: "public" | "private" | "password";
+	password?: string;
+	commentStatus?: "open" | "closed";
+};
+type DocumentInput = Omit<ApiDocumentInput, "keyId">;
+// Only server-resolved import metadata can enter these private write primitives.
+type ImportMetadata = Pick<Partial<WithoutSystemFields<Doc<"posts">>>,
+ "authorId" | "featuredImageId" | "isSticky" | "wpPostId" | "wpGuid" | "wpSourceSiteId" | "publishedAt">;
+function apiBody(
+	input: DocumentInput,
+	identity: string,
+	fallback: unknown = [],
+) {
+	if (input.content !== undefined && input.blocks !== undefined)
+		refuse(
+			"INVALID_CANONICAL_DOCUMENT",
+			"Supply either content for conversion or canonical blocks, not both.",
+		);
+	return (
+		input.blocks ??
+		(input.content === undefined
+			? fallback
+			: reviewLegacyDocumentSource({ postId: identity, content: input.content })
+					.blocks)
+	);
+}
+function apiMetadata(input: DocumentInput, previous?: Doc<"posts">) {
+	if (input.excerpt !== undefined && input.excerpt.length > 1000)
+		refuse(
+			"INVALID_DOCUMENT_EXCERPT",
+			"The excerpt is limited to 1000 characters.",
+		);
+	if (input.menuOrder !== undefined && !Number.isSafeInteger(input.menuOrder))
+		refuse("INVALID_DOCUMENT_ORDER", "Menu order must be a safe integer.");
+	const patch: Partial<WithoutSystemFields<Doc<"posts">>> = {};
+	for (const key of [
+		"excerpt",
+		"menuOrder",
+		"pageTemplate",
+		"commentStatus",
+	] as const)
+		if (input[key] !== undefined) Object.assign(patch, { [key]: input[key] });
+	const visibility = input.visibility ?? previous?.visibility ?? "public";
+	if (input.password !== undefined && visibility !== "password")
+		refuse(
+			"DOCUMENT_VISIBILITY_INVALID",
+			"Choose password protection before setting a password.",
+		);
+	const password =
+		visibility === "password"
+			? (input.password ?? previous?.password)
+			: undefined;
+	if (visibility === "password" && !password)
+		refuse(
+			"DOCUMENT_PASSWORD_REQUIRED",
+			"Enter a password to protect this document.",
+		);
+	if (input.visibility !== undefined || input.password !== undefined)
+		Object.assign(patch, { visibility, password });
+	return patch;
+}
+function apiPublication(
+	input: DocumentInput,
+	post: Doc<"posts">,
+	context?: Awaited<ReturnType<typeof loadDocumentWriteContext>>,
+) {
+	const args = {
+		expectedRevision: authoringRevision(post),
+		status: (input.status ?? post.status) as PublicationStatus,
+		...(input.scheduledAt !== undefined
+			? { scheduledAt: input.scheduledAt }
+			: (input.status === undefined || input.status === "future") && post.status === "future"
+				? { scheduledAt: post.scheduledAt }
+				: {}),
+	};
+	return (
+		context
+			? prepareCanonicalPublication(post, args, Date.now(), context)
+			: prepareCanonicalPublication(post, args, Date.now())
+	).publication;
+}
+export async function createApiDocument(ctx: MutationCtx, type: "post" | "page", input: ApiDocumentInput): Promise<Id<"posts">> {
+ return createForActor(ctx, type, input, await apiContentActor(ctx, input.keyId, "write:posts"));
+}
+async function createForActor(ctx: MutationCtx, type: "post" | "page", input: DocumentInput, user: Doc<"users">, imported: ImportMetadata = {}): Promise<Id<"posts">> {
+ const budget = new RequestReadLedger();
+	await requireApiCapability(
+		ctx,
+		user,
+		type === "page" ? "page.create" : "post.create",
+	);
+	const title = input.title?.trim();
+	if (!title) refuse("INVALID_DOCUMENT_TITLE", "A document title is required.");
+	if (
+		(input.status !== undefined && input.status !== "draft") ||
+		(input.visibility !== undefined && input.visibility !== "public")
+	)
+		await requireApiCapability(
+			ctx,
+			user,
+			type === "page" ? "page.publish" : "post.publish",
+		);
+	const slug = await generateUniqueSlug(
+			ctx,
+			input.slug ?? title,
+			type,
+			undefined,
+			budget,
+		),
+		now = Date.now();
+	let path = `/${slug}`,
+		depth = 0;
+	if (type === "page") {
+		const seen = new Set<string>();
+		let parentId = input.parentId;
+		while (parentId) {
+			if (seen.has(parentId) || depth >= MAX_PAGE_DEPTH)
+				refuse(
+					"DOCUMENT_ROUTE_INVALID",
+					"The page hierarchy exceeds its supported depth or contains a cycle.",
+				);
+			seen.add(parentId);
+			budget.beforeRead();
+			const parent = budget.record(await ctx.db.get("posts", parentId));
+			if (!parent || parent.type !== "page" || parent.status === "trash")
+				refuse("DOCUMENT_ROUTE_INVALID", "The parent page is unavailable.");
+			path = `/${parent.slug}${path}`;
+			depth++;
+			parentId = parent.parentId;
+		}
+		if (input.parentId)
+			await requireApiCapability(ctx, user, "page.set_parent");
+		// Check the requested route before accepting a generated collision suffix.
+		// An old conflicting row must not turn a reserved URL into a renamed page.
+		const requestedPath = path.slice(0, -slug.length) + apiSlugify(input.slug ?? title);
+		await assertPagePathAvailable(ctx, requestedPath, undefined, budget);
+		await assertPagePathAvailable(ctx, path, undefined, budget);
+	}
+	const value: WithoutSystemFields<Doc<"posts">> = {
+		type,
+		title,
+		slug,
+		status: "draft",
+		visibility: "public",
+		authorId: user._id,
+		content: "",
+		contentMode: undefined,
+		blocks: [],
+		blocksVersion: 2,
+		blocksRevision: 1,
+		commentStatus: type === "page" ? "closed" : "open",
+		commentCount: 0,
+		isSticky: false,
+		...(type === "page"
+			? {
+					path,
+					depth,
+					parentId: input.parentId ?? undefined,
+					menuOrder: 0,
+					pageTemplate: "default",
+				}
+			: {}),
+		...apiMetadata(input),
+    ...imported,
+		createdAt: now,
+		updatedAt: now,
+	};
+	assertStoredSize(value, budget);
+	const id = await insertWithMediaReferences(
+		ctx,
+		"posts",
+		value,
+		permitValidatedCanonicalAuthoringWrite({
+			table: "posts",
+			operation: "insert",
+			value,
+		}),
+		budget,
+	);
+	const post = budget.record(await ctx.db.get("posts", id))!;
+	const blocks = apiBody(input, id),
+		context = await loadDocumentWriteContext(ctx, blocks, budget);
+	const candidate = {
+		...post,
+		blocks,
+		composedDefinitions: context?.definitions,
+	};
+	const prepared = context
+		? prepareCanonicalCurrent(candidate, 1, context)
+		: prepareCanonicalCurrent(candidate, 1);
+	const publication = apiPublication(
+		input,
+		{
+			...post,
+			blocks: prepared.blocks,
+			composedDefinitions: prepared.composedDefinitions,
+		},
+		context,
+	);
+	assertAuthoredActions(prepared, prepared.composedDefinitions?.scope);
+	await validateNewKnowledgeCategoryReferences(ctx, prepared.blocks, [], budget);
+	const patch = {
+		blocks: prepared.blocks,
+		composedDefinitions: prepared.composedDefinitions,
+		...publication,
+	};
+	const ready = { ...post, ...patch };
+	documentSettings(ready);
+	assertStoredSize(ready, budget);
+	await project(
+		ctx,
+		ready,
+		budget,
+		prepared,
+		{},
+		publication.status === "draft" ? "authoring" : "published",
+	);
+	await syncDocumentContactForms(
+		ctx,
+		{
+			postId: id,
+			title,
+			blocks: prepared.blocks,
+			...(prepared.composedDefinitions
+				? {
+						composed: {
+							scope: prepared.composedDefinitions.scope,
+							definitions: prepared.composedDefinitions,
+						},
+					}
+				: {}),
+		},
+		budget,
+	);
+	await patchWithMediaReferences(
+		ctx,
+		"posts",
+		id,
+		patch,
+		permitValidatedCanonicalAuthoringWrite({
+			table: "posts",
+			operation: "patch",
+			id,
+			previous: post,
+			value: patch,
+		}),
+		budget,
+	);
+	await clearSyncedConsumerDirty(ctx, id, budget);
+	if (publication.status === "future")
+		await replacePublicationSchedule(ctx, id, publication.scheduledAt!, budget);
+	await emitEvent(
+		ctx,
+		type === "page" ? PAGE_EVENTS.CREATED : POST_EVENTS.CREATED,
+		type === "page" ? SYSTEM.PAGE : SYSTEM.POST,
+		{
+			postId: id,
+			...(type === "page" ? { pageId: id } : {}),
+			title,
+			authorId: ready.authorId,
+			postType: type,
+			status: publication.status,
+		},
+		undefined,
+		budget,
+	);
+	if (publication.status === "publish")
+		await publishedEvent(ctx, ready, publication.publishedAt!, false, budget);
+	return id;
+}
+export async function updateApiDocument(ctx: MutationCtx, type: "post" | "page", input: ApiDocumentInput & { postId: Id<"posts">; expectedRevision: number }): Promise<CanonicalWriteReceipt & { postId: Id<"posts"> }> {
+ return updateForActor(ctx, type, input, await apiContentActor(ctx, input.keyId, "write:posts"));
+}
+export type MetadataArgs = Pick<DocumentInput, "title" | "slug" | "status" | "scheduledAt" | "parentId" | "menuOrder" | "pageTemplate" | "commentStatus" | "excerpt"> & {
+ postId: Id<"posts">; expectedRevision: number; authorId?: Id<"users">; isSticky?: boolean; featuredImageId?: Id<"media"> | null; expectedSettingsDigest?: string; termIds?: Id<"terms">[];
+};
+export type DocumentMetadata = {postId:Id<"posts">;type:"post"|"page";revision:number;settingsDigest:string;excerpt:string;featuredImageId:Id<"media">|null;commentStatus:"open"|"closed";terms:{id:Id<"terms">;name:string;taxonomy:"category"|"post_tag"}[]};
+async function documentTerms(ctx:QueryCtx,postId:Id<"posts">,budget:RequestReadLedger){
+ budget.beforeRead();const rows=await ctx.db.query("termRelationships").withIndex("by_post",q=>q.eq("postId",postId)).take(257);
+ if(rows.length>256)refuse("POST_TERM_LIMIT","Review this document's taxonomy assignments before editing settings.");
+ for(const row of rows)budget.record(row);return rows;
+}
+export async function getDocumentMetadata(ctx:QueryCtx,postId:Id<"posts">):Promise<DocumentMetadata>{
+ const budget=new RequestReadLedger();const {post}=await authorized(ctx,postId,budget);
+ if(!post || (post.type!=="post" && post.type!=="page"))refuse("NOT_FOUND","Document not found.");
+ if(post.blocksVersion!==2)refuse("CANONICAL_AUTHORING_REQUIRED","Complete canonical migration before editing settings.");
+ const terms:DocumentMetadata["terms"]=[];
+ for(const id of new Set((await documentTerms(ctx,postId,budget)).map(row=>row.termId))){
+  budget.beforeRead();const term=budget.record(await ctx.db.get("terms",id));
+  if(!term)refuse("DOCUMENT_TERM_INVALID","A saved taxonomy assignment is unavailable. Repair it before editing settings.");
+  terms.push({id:term._id,name:term.name,taxonomy:term.taxonomy});
+ }
+ const values={excerpt:post.excerpt??"",featuredImageId:post.featuredImageId??null,commentStatus:post.commentStatus,termIds:terms.map(t=>t.id).sort()};
+ return {postId,type:post.type,revision:authoringRevision(post),settingsDigest:sha256Hex(canonicalJson(values)),excerpt:values.excerpt,featuredImageId:values.featuredImageId,commentStatus:values.commentStatus,terms};
+}
+/** Native metadata uses the current session's authority, including a broker's
+ * current site capabilities. Body writes remain exclusive to the editor. */
+export async function updateDocumentMetadata(ctx: MutationCtx, input: MetadataArgs) {
+ const budget = new RequestReadLedger();
+ const {post,user} = await authorized(ctx,input.postId,budget);
+ if (!post || (post.type !== "post" && post.type !== "page")) refuse("NOT_FOUND","Document not found.");
+ // Remaining generic metadata/taxonomy callers may not advance the canonical
+ // revision. Compare the opened settings as well until those callers retire.
+ if(input.excerpt!==undefined || input.featuredImageId!==undefined || input.termIds!==undefined || input.expectedSettingsDigest!==undefined){
+  const current=await getDocumentMetadata(ctx,input.postId);
+  if(input.expectedSettingsDigest!==current.settingsDigest)refuse("CONFLICT","Document settings changed. Reopen settings before saving.");
+ }
+ const metadata: ImportMetadata = {};
+ if(input.featuredImageId!==undefined){
+  if(input.featuredImageId!==null){
+   await requireCan(ctx,"media.read",budget);budget.beforeRead();const media=budget.record(await ctx.db.get("media",input.featuredImageId));
+   if(!media || media.status!=="active" || media.mediaType!=="image")refuse("DOCUMENT_IMAGE_INVALID","Choose an active image from this website's media library.");
+  }
+  metadata.featuredImageId=input.featuredImageId??undefined;
+ }
+ const additions:Id<"terms">[]=[];const removals:Doc<"termRelationships">[]=[];
+ if(input.termIds!==undefined){
+  if(post.type!=="post")refuse("DOCUMENT_LAYOUT_INVALID","Categories and tags apply to posts.");
+  if(input.termIds.length>256)refuse("POST_TERM_LIMIT","A post supports up to 256 taxonomy assignments.");
+  const wanted=new Set(input.termIds);const previous=await documentTerms(ctx,post._id,budget);const current=new Set(previous.map(row=>row.termId));
+  for(const id of wanted){budget.beforeRead();const term=budget.record(await ctx.db.get("terms",id));if(!term)refuse("DOCUMENT_TERM_INVALID","A selected category or tag is no longer available.");if(!current.has(id))additions.push(id);}
+  removals.push(...previous.filter(row=>!wanted.has(row.termId)));
+  if(additions.length)await requireCan(ctx,"taxonomy.assign",budget);
+  if(removals.length)await requireCan(ctx,"taxonomy.unassign",budget);
+ }
+
+ if (input.authorId !== undefined || input.isSticky !== undefined) {
+  if (post.type !== "post") refuse("DOCUMENT_LAYOUT_INVALID","Author and sticky settings apply to posts.");
+  if ((input.authorId !== undefined && input.authorId !== post.authorId) || (input.isSticky !== undefined && input.isSticky !== post.isSticky)) {
+   if (await getCurrentRoleLevel(ctx,budget) < 80) refuse("FORBIDDEN","Only Editors and Administrators can change author or sticky settings.");
+  }
+  if (input.authorId !== undefined && input.authorId !== post.authorId) {
+   budget.beforeRead();const author=budget.record(await ctx.db.get("users",input.authorId));
+   if (!isPublicAuthor(author)) refuse("VALIDATION_ERROR","Choose an active site user as the post author.");
+   metadata.authorId=input.authorId;
+  }
+  if(input.isSticky !== undefined) metadata.isSticky=input.isSticky;
+ }
+ const receipt=await updateForActor(ctx,post.type,input,user,metadata,{
+  canEdit: row=>canEditContent(ctx,row,budget),
+  requireCapability: async capability=>{await requireCan(ctx,capability,budget);},
+ },additions.length>0 || removals.length>0);
+ for(const row of removals)await deleteTermRelationship(ctx,row._id,budget);
+ for(const termId of additions){
+  await insertTermRelationship(ctx,{postId:post._id,termId},budget);
+  budget.beforeRead();const term=budget.record(await ctx.db.get("terms",termId))!;
+  await emitEvent(ctx,TAXONOMY_EVENTS.TERM_ASSIGNED,SYSTEM.TAXONOMY,{postId:post._id,termId,taxonomyType:term.taxonomy},undefined,budget);
+ }
+ return receipt;
+}
+type UpdateAuthority = {canEdit:(post:Doc<"posts">)=>Promise<boolean>;requireCapability:(capability:Capability)=>Promise<void>};
+async function updateForActor(ctx: MutationCtx, type: "post" | "page", input: DocumentInput & { postId: Id<"posts">; expectedRevision: number }, user: Doc<"users">, imported: ImportMetadata = {}, authority: UpdateAuthority = {canEdit: row=>apiCanEdit(ctx,user,row),requireCapability: capability=>requireApiCapability(ctx,user,capability)}, relatedMetadataChanged = false): Promise<CanonicalWriteReceipt & { postId: Id<"posts"> }> {
+ const budget = new RequestReadLedger();
+	budget.beforeRead();
+	const post = budget.record(await ctx.db.get("posts", input.postId));
+	if (!post || post.type !== type) refuse("NOT_FOUND", "Document not found.");
+	if (!(await authority.canEdit(post)))
+		refuse("FORBIDDEN", "You cannot edit this document.");
+	const blocks = apiBody(input, post._id, post.blocks),
+		context = await loadDocumentWriteContext(
+			ctx,
+			blocks,
+			budget,
+			post.composedDefinitions,
+		);
+	let prepared = context
+		? prepareCanonicalSave(
+				post,
+				{
+					expectedRevision: input.expectedRevision,
+					title: input.title ?? post.title,
+					blocks,
+				},
+				context,
+			)
+		: prepareCanonicalSave(post, {
+				expectedRevision: input.expectedRevision,
+				title: input.title ?? post.title,
+				blocks,
+			});
+	const metadata = { ...apiMetadata(input, post), ...imported };
+	if (
+		post.status !== "draft" ||
+		(input.status !== undefined && input.status !== post.status) ||
+		(metadata.visibility !== undefined &&
+			metadata.visibility !== post.visibility) ||
+		(metadata.password !== post.password &&
+			(input.password !== undefined || input.visibility !== undefined))
+	)
+		await authority.requireCapability(
+			type === "page" ? "page.publish" : "post.publish",
+		);
+	if (
+		type === "post" &&
+		(input.parentId !== undefined ||
+			input.menuOrder !== undefined ||
+			input.pageTemplate !== undefined)
+	)
+		refuse("DOCUMENT_LAYOUT_INVALID", "Page settings apply to pages.");
+	if (input.parentId !== undefined && (input.parentId ?? undefined) !== post.parentId)
+		await authority.requireCapability("page.set_parent");
+	const routes = await planDocumentSlug(
+		ctx,
+		post,
+		input.slug === undefined ? post.slug : apiSlugify(input.slug),
+		budget,
+		{ parentId: input.parentId, canEdit: authority.canEdit },
+	);
+	if (routes.length)
+		Object.assign(metadata, {
+			slug: input.slug === undefined ? post.slug : apiSlugify(input.slug),
+			...(type === "page"
+				? {
+						path: routes[0]!.path,
+						depth: routes[0]!.depth,
+						parentId:
+							input.parentId === undefined
+								? post.parentId
+								: (input.parentId ?? undefined),
+					}
+				: {}),
+		});
+	const publication = apiPublication(
+			input,
+			{
+				...post,
+				title: prepared.title,
+				blocks: prepared.blocks,
+				composedDefinitions: prepared.composedDefinitions,
+			},
+			context,
+		),
+		patch = { ...metadata, ...publication };
+	documentSettings({ ...post, ...patch });
+	const changed =
+    relatedMetadataChanged ||
+		prepared.changed ||
+		Object.entries(patch).some(
+			([key, value]) => value !== post[key as keyof typeof post],
+		);
+	prepared = {
+		...prepared,
+		changed,
+		revision: authoringRevision(post) + (changed ? 1 : 0),
+	};
+	const receipt = await commit(
+		ctx,
+		post,
+		user,
+		prepared,
+		budget,
+		undefined,
+		patch,
+	);
+	if (changed) {
+		if (publication.status === "future")
+			await replacePublicationSchedule(
+				ctx,
+				post._id,
+				publication.scheduledAt!,
+				budget,
+			);
+		else await clearPublicationSchedule(ctx, post._id, budget);
+		if (publication.status === "publish" && post.status !== "publish")
+			await publishedEvent(
+				ctx,
+				{ ...post, ...patch, title: prepared.title },
+				publication.publishedAt!,
+				false,
+				budget,
+			);
+		for (const route of routes.slice(1)) {
+			const routePatch = {
+				path: route.path,
+				depth: route.depth,
+				updatedAt: Date.now(),
+			};
+			await patchWithMediaReferences(
+				ctx,
+				"posts",
+				route.post._id,
+				routePatch,
+				undefined,
+				budget,
+			);
+			await authoringUpdatedEvent(
+				ctx,
+				{ ...route.post, ...routePatch },
+				Object.keys(routePatch),
+				budget,
+				route.post,
+			);
+		}
+	}
+	return { ...receipt, postId: post._id };
+}
+export async function readApiDocument(
+	ctx: QueryCtx,
+	type: "post" | "page",
+	postId: Id<"posts">,
+	keyId: Id<"apiKeys">,
+) {
+	const user = await apiContentActor(ctx, keyId, "read:posts"),
+		budget = new RequestReadLedger();
+	budget.beforeRead();
+	const post = budget.record(await ctx.db.get("posts", postId));
+	if (!post || post.type !== type) return null;
+	const editable = await apiCanEdit(ctx, user, post);
+	let blocks: unknown, revision: number | undefined;
+	if (editable) {
+		const authored = await readStoredDocument(ctx, post, budget);
+		blocks = authored.blocks;
+		revision = authoringRevision(post);
+	} else {
+		const published = await getPublicDocument(ctx, { postId });
+		if (!published || published.state !== "ready") return null;
+		blocks = published.document.blocks;
+		revision = published.document.revision;
+	}
+	let parent: { _id: Id<"posts">; title: string; slug: string; path?: string } | null = null;
+ const children: { _id: Id<"posts">; title: string; slug: string; path?: string; status: string; menuOrder?: number }[] = [];
+ if(type === "page") {
+  if(post.parentId) {
+   budget.beforeRead();const row=budget.record(await ctx.db.get("posts",post.parentId));
+   if(row?.type === "page" && (await apiCanEdit(ctx,user,row) || await canDiscoverContent(ctx,row,budget))) parent={_id:row._id,title:row.title,slug:row.slug,path:row.path};
+  }
+  budget.beforeRead();const rows=await ctx.db.query("posts").withIndex("by_type_parent",q=>q.eq("type","page").eq("parentId",postId)).take(101);
+  if(rows.length>100) refuse("LIMIT_EXCEEDED","This page has more children than a single document response supports.");
+  for(const row of rows){budget.record(row);if(row.status==="publish"&&await canDiscoverContent(ctx,row,budget)) children.push({_id:row._id,title:row.title,slug:row.slug,status:row.status,menuOrder:row.menuOrder,path:row.path});}
+  children.sort((a,b)=>(a.menuOrder??0)-(b.menuOrder??0));
+ }
+ return {
+  ...(type==="post"?{author:await publicContentAuthor(ctx,post)}:{parent,children}),
+		_id: post._id,
+		type: post.type,
+		title: post.title,
+		slug: post.slug,
+		status: post.status,
+		excerpt: post.excerpt,
+		path: post.path,
+		parentId: post.parentId,
+		depth: post.depth,
+		menuOrder: post.menuOrder,
+		pageTemplate: post.pageTemplate,
+		visibility: post.visibility,
+		commentStatus: post.commentStatus,
+		isPasswordProtected: post.visibility === "password",
+		blocks,
+		blocksVersion: 2 as const,
+		blocksRevision: revision,
+		createdAt: post.createdAt,
+		updatedAt: post.updatedAt,
+		publishedAt: post.publishedAt,
+	};
+}
+
+// WordPress has a durable job owner, not an HTTP key or interactive session.
+// Authority and the import receipt are rechecked in the same mutation as all
+// document writes. A failed conversion must leave the old hash retryable.
+import { userCan as importUserCan } from "../helpers/permissions";
+import { normalizeImportConfig } from "../wordpressSync/validators";
+export type WordPressDocumentInput = {
+ jobId: Id<"wordpressSyncJobs">;
+ siteId: Id<"wordpressSites">;
+ existingId?: string;
+ expectedRevision?: number;
+ expectedUpdatedAt?: number;
+ sourceHash: string;
+ authorId?: string;
+ featuredImageId?: string;
+ parentId?: string;
+ meta: Array<{key:string;value:string}>;
+ termIds?: string[];
+ document: {id:number;title:string;slug:string;content:string;excerpt:string;status:string;commentStatus:"open"|"closed";publishedAt?:number;guid?:string;isSticky?:boolean;menuOrder?:number;template?:string};
+};
+export async function importWordPressDocument(ctx: MutationCtx, type: "post" | "page", args: WordPressDocumentInput): Promise<Id<"posts">> {
+ const job = await ctx.db.get("wordpressSyncJobs", args.jobId);
+ const site = await ctx.db.get("wordpressSites", args.siteId);
+ if (!job || !site || site.status !== "active" || job.siteId !== args.siteId || job.status !== "running" || job.currentPhase !== (type === "post" ? "posts" : "pages"))
+  refuse("IMPORT_JOB_INACTIVE", "This import job no longer authorizes document writes.");
+ const user = await ctx.db.get("users", job.createdBy);
+ if (!user || user.status !== "active" || user.authSource === "management" || !(await importUserCan(ctx,user._id,"manage_options")))
+  refuse("FORBIDDEN", "The import job owner no longer has site import authority.");
+ const config = normalizeImportConfig(job.importConfig);
+ if (config.behavior.dryRun) refuse("IMPORT_DRY_RUN", "A dry run cannot write documents.");
+ const wp = args.document;
+ if (!["draft","publish","future","private"].includes(wp.status))
+  refuse("IMPORT_STATUS_REVIEW_REQUIRED", `WordPress status ${wp.status} requires an explicit lifecycle review before import.`);
+ if (args.meta.length > 128 || (args.termIds?.length ?? 0) > 100)
+  refuse("IMPORT_RECORD_TOO_LARGE", "Import metadata or taxonomy count exceeds the bounded record limit.");
+ for (const item of args.meta) {
+  if (!item.key || item.key.length > 256 || new TextEncoder().encode(item.value).length > 262144)
+   refuse("IMPORT_RECORD_TOO_LARGE", "An import metadata entry exceeds the bounded record limit.");
+ }
+ const mapping = await ctx.db.query("wpIdMappings").withIndex("by_wp_id",q=>q.eq("siteId",args.siteId).eq("objectType",type).eq("wpId",wp.id)).unique();
+ if ((mapping?.convexId ?? undefined) !== args.existingId)
+  refuse("CONFLICT", "The import mapping changed; reload the record before retrying.");
+ const existingId = args.existingId ? ctx.db.normalizeId("posts",args.existingId) : null;
+ const previous = existingId ? await ctx.db.get("posts",existingId) : null;
+ if (args.existingId && (!previous || previous.type !== type || previous.wpSourceSiteId !== args.siteId || previous.wpPostId !== wp.id))
+  refuse("CONFLICT", "The mapped document no longer belongs to this source record.");
+ if (previous) {
+  if (!config.behavior.updateExisting) refuse("IMPORT_UPDATE_DISABLED", "Updating existing documents is disabled for this job.");
+  if (args.expectedRevision !== authoringRevision(previous) || args.expectedUpdatedAt !== previous.updatedAt)
+   refuse("CONFLICT", "The document changed while the import was being prepared.");
+  if (config.behavior.preserveLocalEdits && (mapping?.acceptedRevision !== undefined
+    ? mapping.acceptedRevision !== authoringRevision(previous) || mapping.acceptedUpdatedAt !== previous.updatedAt
+    : previous.updatedAt > mapping!.createdAt))
+   refuse("IMPORT_LOCAL_EDIT_CONFLICT", "The mapped document has local edits which this import must preserve.");
+ }
+ const authorId = args.authorId ? ctx.db.normalizeId("users",args.authorId) : user._id;
+ const author = authorId ? await ctx.db.get("users",authorId) : null;
+ if (!author || author.authSource === "management") refuse("IMPORT_AUTHOR_INVALID", "The mapped WordPress author is unavailable.");
+ const featuredImageId = args.featuredImageId ? ctx.db.normalizeId("media",args.featuredImageId) : undefined;
+ if (args.featuredImageId && !featuredImageId) refuse("IMPORT_MEDIA_INVALID", "The mapped featured image is invalid.");
+ const parentId = args.parentId ? ctx.db.normalizeId("posts",args.parentId) : null;
+ if (args.parentId && !parentId) refuse("DOCUMENT_ROUTE_INVALID", "The mapped parent page is invalid.");
+ const input: DocumentInput = {
+  title:wp.title,slug:wp.slug,content:wp.content,excerpt:wp.excerpt,status:wp.status,
+  visibility:wp.status === "private" ? "private" : "public",commentStatus:wp.commentStatus,
+  ...(wp.status === "future" ? {scheduledAt:wp.publishedAt} : {}),
+  ...(type === "page" ? {parentId,menuOrder:wp.menuOrder,pageTemplate:wp.template || "default"} : {}),
+ };
+ const metadata: ImportMetadata = {authorId:author._id,featuredImageId:featuredImageId ?? undefined,isSticky:wp.isSticky ?? false,wpPostId:wp.id,wpGuid:wp.guid,wpSourceSiteId:args.siteId,...(!previous && wp.publishedAt !== undefined ? {publishedAt:wp.publishedAt} : {})};
+ const id = previous
+  ? (await updateForActor(ctx,type,{...input,postId:previous._id,expectedRevision:args.expectedRevision!},user,metadata)).postId
+  : await createForActor(ctx,type,input,user,metadata);
+ // Keep source separate from the active canonical body. The transaction cannot
+ // advertise success until all recoverable source and relationships are stored.
+ const archive = JSON.stringify({document:wp,meta:args.meta});
+ if (new TextEncoder().encode(archive).length > 768 * 1024 || args.sourceHash.length > 128)
+  refuse("IMPORT_RECORD_TOO_LARGE", "The recoverable import source exceeds the bounded record limit.");
+ const entries = new Map(args.meta.map(item=>[item.key,item.value]));
+ // Retain each accepted source, including metadata-only imports whose canonical
+ // body revision is unchanged. Later imports may replace only the latest view.
+ entries.set(`_convexpress_wp_import:${args.sourceHash}`,archive);
+ entries.set("_convexpress_wp_source",JSON.stringify(wp));
+ for (const [key,value] of entries) {
+  const old = await ctx.db.query("postMeta").withIndex("by_post_key",q=>q.eq("postId",id).eq("key",key)).unique();
+  if (old) await patchWithMediaReferences(ctx,"postMeta",old._id,{value});
+  else await insertWithMediaReferences(ctx,"postMeta",{postId:id,key,value});
+ }
+ for (const rawId of new Set(args.termIds ?? [])) {
+  const termId = ctx.db.normalizeId("terms",rawId);
+  if (!termId || !await ctx.db.get("terms",termId)) refuse("IMPORT_TERM_INVALID", "An imported taxonomy mapping is unavailable.");
+  const old = await ctx.db.query("termRelationships").withIndex("by_post_term",q=>q.eq("postId",id).eq("termId",termId)).unique();
+  if (!old) await insertTermRelationship(ctx,{postId:id,termId,order:0});
+ }
+ const accepted = (await ctx.db.get("posts",id))!;
+ const receipt = {convexId:id,sourceHash:args.sourceHash,lastSeenJobId:args.jobId,lastSeenAt:Date.now(),acceptedRevision:authoringRevision(accepted),acceptedUpdatedAt:accepted.updatedAt};
+ if (mapping) await ctx.db.patch("wpIdMappings",mapping._id,receipt);
+ else await ctx.db.insert("wpIdMappings",{siteId:args.siteId,objectType:type,wpId:wp.id,...receipt,createdAt:Date.now()});
+ return id;
 }

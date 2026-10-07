@@ -1,63 +1,16 @@
 ---
 name: design-single-post
-description: Use when the user asks to design, redesign, build, regenerate, or restyle the single blog post / single article page. Triggers on phrases like "design the post page", "fix how blog posts look", "rebuild post detail", "redo the article template". Generates apps/web/src/routes/_marketing/blog/$slug.tsx.
+description: Design or restyle the single blog post surface in an installed ConvexPress template pack using the canonical template SDK.
 ---
 
 # design-single-post
 
-You are generating the **single-post** template — the route that renders
-one blog post by slug. Output: a complete
-`apps/web/src/routes/_marketing/blog/$slug.tsx`.
+Edit `ConvexPress-Website/apps/web/src/templates/packs/<installed-pack>/surfaces/blog.post.tsx`. Preserve the existing data route at `apps/web/src/routes/_marketing/blog/$slug.tsx`: it owns SSR, SEO, canonical scope and access decisions.
 
-## Workflow
-
-1. **Read the kit:** `design-kit/README.md`, `ARCHITECTURE.md`,
-   `CONTRACTS.md`, `BRAND.md`, `references/single-post.example.tsx`.
-
-2. **Pull brand + sample data:**
-   ```bash
-   bunx convex run settings:queries:getBySection '{"section":"brand"}'
-   bunx convex run posts:queries:getPublished '{"slug": "<any real post slug from the site>"}'
-   ```
-   To find a real slug, list a few:
-   ```bash
-   bunx convex run posts:queries:listPublished '{"limit": 5}'
-   ```
-
-3. **Read current file** at `apps/web/src/routes/_marketing/blog/$slug.tsx`.
-
-4. **Generate the new file**, following the reference's structure:
-   - Zod-validated `slug` param
-   - SSR loader prefetches the post + brand
-   - `head:` returns title, description, OG meta, canonical link, JSON-LD article
-   - Component: header (categories, title, excerpt, byline, date) → featured
-     image → body content via existing structured-content renderer → related
-     posts → comments
-   - Wrap content in `<RestrictedContent>` for membership gating
-   - Skeleton + notFound states required
-
-5. **Use existing components** where they exist:
-   - `@/components/blog/PostContent` for body
-   - `@/components/blog/AuthorBox` for author info
-   - `@/components/blog/RelatedPosts` for related posts
-   - `@/components/comments/CommentSection` for comments
-   - `@/components/membership/RestrictedContent` for gating
-   - `@/components/seo/SeoHead` + `@/lib/seo/resolve` for JSON-LD
-   Don't reimplement what's there. Replace only what the brand requires.
-
-6. **Verify it compiles:** `bun --filter web check-types` in
-   `ConvexPress-Website/`.
-
-7. **Record generation** (see CONTRACTS.md §8).
-
-8. **Report back.**
-
-## Output contract
-
-- **File:** `apps/web/src/routes/_marketing/blog/$slug.tsx`
-- **Required exports:** `Route`
-- **Must include:** params validation, loader prefetch of post + brand,
-  `head:` with article meta, JSON-LD article, semantic `<article>`, `<h1>`
-  with post title, byline, body, skeleton, notFound() on null post.
-- **Must respect:** membership gating, comment section, related posts. If
-  you remove any of these, justify in your report.
+1. Read the selected pack manifest, tokens, parts and current `blog.post` surface, `apps/web/src/templates/sdk/types.ts`, the `BlogPostSurfaceData` contract in Core's `blog.post.tsx`, and `design-kit/references/single-post.example.tsx`.
+2. Use existing authored site content for preview. Keep fixture data in BlockDemo or explicit acceptance fixtures; do not seed customer data merely for styling.
+3. Compose pack-owned presentation from PostHeader, PostFooter, AuthorBox, RelatedPosts and CommentSection as appropriate. Preserve header/byline, navigation, comments and membership behavior.
+4. Render `PublicCanonicalBody` with `documentId={post._id}` for the authorized body. The production route supplies `PublicCanonicalScope`. When `data.restricted` is present, render the `system.restricted` surface in place of the body. Never resurrect raw article/structured/block-list dispatch, contentMode branches or contentHtml rendering.
+5. Preserve `SurfaceProps<BlogPostSurfaceData>` and the default surface export. Register surfaces through the installed pack manifest. Use semantic markup, responsive pack tokens and supported SDK primitives; keep data fetching, authentication and SEO in the route.
+6. Run Website type checks, canonical surface and public-body lifecycle tests, and template SSR checks. Preview the selected installed pack on an actual authored post at desktop/mobile; verify membership gating and canonical content survive the presentation change.
+7. Record affected pack, source changes, checks and rendered evidence. Do not claim SDK or all-pack completion from one surface.

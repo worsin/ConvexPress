@@ -39,7 +39,7 @@ async function fixture(transport?: (args: { schemaJson: string; system: string; 
     const site = await ctx.db.insert("convexpress_siteIdentity", { ...scope, identityKey: "site-identity", environmentKind: "staging", managementOrigin: "https://controller.convex.cloud", siteOrigin: "https://ai-context.convex.site", siteContractVersion: "1", schemaVersion: "1", engineVersion: "1", managementCapabilities: [], initializedAt: 1, updatedAt: 1 });
     const appearance = await ctx.db.insert("settings", { section: "appearance.template", values: { active: "core", overrides: {}, variants: {}, settings: {} }, legacyAppearanceMigration: { version: 2, migratedAt: 1 }, updatedAt: 1, updatedBy: user });
     const plugins = await ctx.db.insert("settings", { section: "plugins", values: { formsEnabled: true, membershipEnabled: false }, updatedAt: 1, updatedBy: user });
-    const post = await ctx.db.insert("posts", { type: "page", title: "Before AI", slug: "before-ai", content: "", contentMode: "blocks", blocksVersion: 2, blocksRevision: 3, blocks: [], status: "draft", visibility: "public", authorId: user, commentStatus: "closed", createdAt: 1, updatedAt: 1 });
+    const post = await ctx.db.insert("posts", { type: "page", title: "Before AI", slug: "before-ai", content: "", blocksVersion: 2, blocksRevision: 3, blocks: [], status: "draft", visibility: "public", authorId: user, commentStatus: "closed", createdAt: 1, updatedAt: 1 });
     return { role, user, other, site, post, appearance, plugins };
   });
   const as = (id: string, suffix = "") => t.withIdentity({ subject: id, tokenIdentifier: `https://convexpress-admin.local|${id}${suffix}` });
@@ -254,6 +254,8 @@ test("trusted template styles reach AI validation and a saved styled document su
   await f.t.run(ctx => ctx.db.patch("settings", f.ids.appearance, { values: { active: "core", overrides: {}, variants: {}, settings: {} } }));
   const changed = await f.author.query(get, { ...f.base, expectedRevision: 4 });
   expect(JSON.parse(changed.contextJson).document.blocks[0].style).toBe("inset");
-  expect(JSON.parse(changed.contextJson).catalog.styles).toEqual({});
+  // Core may offer styles for other blocks; Journal's CTA treatment must no
+  // longer be available to a new proposal after switching away from Journal.
+  expect(JSON.parse(changed.contextJson).catalog.styles["core/cta-band"]).toBeUndefined();
   await expect(f.author.query(validate, { ...f.base, expectedRevision: 4, expectedFingerprint: changed.fingerprint, proposalId, resultJson: JSON.stringify(result) })).rejects.toThrow();
 });

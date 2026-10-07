@@ -63,30 +63,13 @@ New status lives in a compact companion `2026-09-28-editor-template-status.json`
 
 ## 4. Known blockers and unfinished acceptance
 
-This list includes all concrete blockers and material acceptance gaps found in the current review. It cannot certify the absence of undiscovered defects. Reproduce stale findings before repairing them; update this list when new evidence changes their classification.
+The single current blocker register is [`2026-09-28-editor-template-status.json`](./2026-09-28-editor-template-status.json), under `blockers`. Read it with this guide at every handoff. Each entry carries its current classification/evidence; the original E01–E19 findings and required closure boundaries have also been preserved there. New defects and their owner task belong in that register when identified, including work still in flight. This guide deliberately does not maintain a second status table.
 
-| ID | Current issue or gap | Required closure / boundary |
-|---|---|---|
-| E01 | Native pointer/account-menu instability remains an open follow-up. The recent Codex conversation lag is a separate application issue. | Reproduce editor typing, selection, wheel/drag scrolling and menu actions in the actual Electron window. Identify overlays, pointer capture, main-thread load or stale session only from evidence. Repair the actual cause; do not assume the older repaired EPIPE freeze is the same failure. |
-| E02 | Announcement Bar allows inverted dates until rendering; dismissed content can stay hidden after dismissal is disabled. These are source-review findings awaiting focused reproduction. | Add meaningful failures for date order and live dismissible changes; apply shared write-time validation preserving historical draft recovery; verify schedule boundaries, visibility and keyboard restore. |
-| E03 | Breadcrumbs has auto-trail evidence but incomplete manual/ancestor variants. | Verify authored manual links/text/current state, public ancestors, hidden-ancestor omission, new-tab behavior and narrow layout. Repair only demonstrated gaps. |
-| E04 | 79 block rows have incomplete full acceptance; many are already functional. | Reconcile field requirements and prior proof first, then finish missing behavior and checks in families. Do not repeat complete infrastructure acceptance for each row. |
-| E05 | Preview has historically failed at protocol, origin, session renewal, hydration and readiness boundaries. Several fixes are accepted, but remaining cross-pack/cloud paths are open. | Verify installed matching contracts, unsaved DOM continuity, reconnect/expiry, site switching and readable failure. Preserve draft and selected target; no stale frames or unintended saves. |
-| E06 | All native field types, picker states, keyboard operations and mixed nested/reusable/composed content are not fully covered. | Exercise them on batched authored pages, compare saved/reopened trees and revision restores exactly; test field-specific limits and omitted/null/empty semantics where meaningful. |
-| E07 | One-content-model migration and legacy retirement remain incomplete. | Complete lossless conversion/recovery for actual retained content, source snapshots and installed-site receipts; then remove active legacy editor/renderer/schema dispatch as specified. Keep historical recovery data and a deliberate import converter. Do not delete old fields before proving preservation or claim migration complete while silently relying on legacy rendering. |
-| E08 | Palette and commerce-layout migration plus old Themes/Shop-layout/builder screens remain partly retired. | Read actual installed values, migrate without overwriting current settings, verify appearance and rollback; route all authoring to template settings before removing obsolete screens/tables/imports. |
-| E09 | Customizer contextual fields, all packs/surfaces, header/footer/menu integration and operator authority are not fully accepted. | Verify the field group controls the actual surface, click-to-edit focus, draft/publish/reset/history/conflicts, pack switches, session continuity, customer denial and revocation. |
-| E10 | Full default websites, remaining flagship treatments and the complete BlockDemo visual review are unfinished. | Deliver four complete simple sites and all-block demo coverage. Check realistic copy, optional assets, narrow placements, links, image crops, visible focus and template consistency. |
-| E11 | Steps with Media has a historical 304.5ms frame outlier; later samples were smooth and image-decode defects were fixed. | Retain the historical observation. Profile the real visible component under controlled warm/cold transitions and declared hardware conditions, inspect long tasks and frames. Establish reproducible current behavior and report limits; do not repeatedly sample an unexplained old event indefinitely or claim universal hardware smoothness. |
-| E12 | Vimeo playback remains unverified; YouTube proof does not cover it. | Verify supported provider consent/load/play/failure behavior using legitimate fixtures, or explicitly identify an external prerequisite. Keep intended supported providers; do not quietly remove capability to pass. |
-| E13 | Some isolated AI exercises returned missing_api_key; earlier provider success does not establish current end-to-end editor generation. | Inspect authorized configured connections without exposing secrets; use the existing provider if available. Prove one live structured generation, resource selection, review, insert/save and Website output, plus composition/style/promotion. Do not substitute mocked success. |
-| E14 | Aster cloud deployments previously reported free-plan restrictions. Current status is not established. | Verify once using configured CLI/API/auth. Continue equivalent local isolated acceptance while unavailable; retain the specific cloud-only missing proof. Do not change billing or invent successful cloud deployment. |
-| E15 | Dynamic commerce/forms/plugin blocks retain incomplete data/action states. | Verify actual selected records and relevant actions, empty/denied/disabled/loading/error states, auth changes and cross-site refusal. Repair source authority, pagination or session issues only as required by their contracts. Provider settlement/accounting unrelated to a block's action remains deferred. |
-| E16 | Installed extension code can be lost by deploying a generic backend snapshot; this happened and was repaired. | Preserve the installed plugin directories/generated indexes. Build next snapshot from verified installed checkpoint and overlay reviewed source changes; verify plugin parity before deployment. Complete install/disable/re-enable and reference Events/Dashboard manifest workflows. |
-| E17 | SDK existence is proven more broadly than each workflow's end-to-end operation. | Exercise all eight block-kit operations plus template and extension scaffolds in disposable outputs. Verify generated source, authoring and rendered result; remove owned scaffolds afterward. |
-| E18 | Current source/main/deployed artifacts and historical screenshots can diverge. | Record exact source and deployment identity; reuse only relevant current evidence. Run a final integrated gate on the deliverable, not a collection of unrelated historical green logs. |
+The register cannot certify the absence of undiscovered defects. Reproduce stale findings before repair and update the relevant entry when evidence changes. Implementation, live acceptance and cleanup are separate states; an active fixture or partial deployment is not closure.
 
 Other original audit findings remain in `current-acceptance.md`. Payment/refund renewal matrices, multi-provider account/domain onboarding, signed Windows/macOS distribution, maximum backup capacity and full fleet scheduling are **deferred independent deliverables**. Bring one into this plan only when its concrete failure blocks an editor/template requirement, and only through the blocker procedure above. Existing site/organization isolation, safe publication and customer/operator boundaries must remain intact throughout.
+
+September28 reconciliation: Task1 is complete. See `2026-09-28-delivery-reconciliation.md` for all77 pending row checks, the complete handoff-clause map, and newly confirmed E20 eager block imports, E21 handwritten hero roles and E22 prescribed screenshot-path failure. E20/E21 subsequently passed focused live acceptance (see canonical-lazy-renderers-20260928.md); E22 subsequently passed final provenance and tracker reconciliation (tracker-evidence-final-20261006.md); the whole-bundle budget subsequently passed through the E106 registry boundary (template-registry-bundle-20261006.md).
 
 ## 5. File ownership and interfaces
 
@@ -116,12 +99,12 @@ Generated files are output, not edit surfaces. Keep data in the site backend; pa
 
 **Consumes:** current tracker, saved evidence, current process/deployment identities. **Produces:** an exact remaining-work map and a trustworthy native authoring session for subsequent batches.
 
-- [ ] Refresh the 137-row tracker read-only and map each pending row to requirements, source files, reusable evidence and actual missing checks. No full-history reread. Reconcile every clause of both handoffs, not only the previously summarized ledger: include schema/field drift detection, disabled-block mutation checks, generated registries, per-block lazy loading, roles, pack manifests, patterns and tracker reconciliation. Record any unmet clause under its owning task.
-- [ ] Confirm checkout, native executable, renderer port, selected site/environment and backend identity. Use an owned profile; preserve user app windows.
-- [ ] Exercise typing, scrolling, selection, insertion, nesting, save/reopen and undo/recovery on an owned page. Reproduce E01 only if still present.
-- [ ] For a reproduced failure, write a focused regression at its actual boundary, implement the causal repair, rerun it and the affected editor suite. Record exactly what changed. Verify the handoff's block-tree autosave behavior, crash/reopen draft recovery and revision/conflict guards; autosave must not publish or create duplicate accepted writes.
-- [ ] Complete the two opening-block reproductions E02/E03 as part of the first family batch, not a separate infrastructure campaign.
-- [ ] Publish the first delivery checkpoint: actual gaps, reused proof, remaining batch estimates and any external prerequisites. Do not invent an overall finish date from the old 58/137 ratio.
+- [x] Refresh the 137-row tracker read-only and map each pending row to requirements, source files, reusable evidence and actual missing checks. No full-history reread. Reconcile every clause of both handoffs, not only the previously summarized ledger: include schema/field drift detection, disabled-block mutation checks, generated registries, per-block lazy loading, roles, pack manifests, patterns and tracker reconciliation. Record any unmet clause under its owning task.
+- [x] Confirm checkout, native executable, renderer port, selected site/environment and backend identity. Use an owned profile; preserve user app windows.
+- [x] Exercise typing, scrolling, selection, insertion, nesting, save/reopen and undo/recovery on an owned page. Reproduce E01 only if still present.
+- [x] For a reproduced failure, write a focused regression at its actual boundary, implement the causal repair, rerun it and the affected editor suite. Record exactly what changed. Verify the handoff's block-tree autosave behavior, crash/reopen draft recovery and revision/conflict guards; autosave must not publish or create duplicate accepted writes.
+- [x] Complete the two opening-block reproductions E02/E03 as part of the first family batch, not a separate infrastructure campaign.
+- [x] Publish the first delivery checkpoint: actual gaps, reused proof, remaining batch estimates and any external prerequisites. Do not invent an overall finish date from the old 58/137 ratio.
 
 ### Task 2 — Finish block contracts, fields and common interaction families
 
@@ -129,12 +112,15 @@ Generated files are output, not edit surfaces. Keep data in the site backend; pa
 
 **Consumes:** Task 1 remaining map and existing canonical APIs. **Produces:** complete non-provider block behavior and batched accepted content.
 
-- [ ] Group the pending Text/Layout/Media/Openers/Marketing/Site utility blocks by shared implementation. Reuse accepted structural, hero, CTA, table and media evidence.
-- [ ] Before edits, compare every required field/style/action with the actual renderer and generated editor. Include optional absent values, maximum meaningful content, nested widths and safe link labels.
-- [ ] Write failures for reproduced gaps, repair the shared cause, preserve stored versions and historical values. A version change requires a wired converter and recovery test.
-- [ ] Add several related blocks to one real native-authored page, save/reopen once, edit/reorder relevant nodes, restore the exact prior tree and publish once. Readback must prove every included block's values survived.
-- [ ] Exercise each block's distinct public interaction and review every pack's presentation. Batch screenshots and the shared deployment/cleanup; do not skip per-block behavior.
-- [ ] Update only rows whose missing requirements are closed. Others retain precise remaining notes.
+- [x] Group the pending Text/Layout/Media/Openers/Marketing/Site utility blocks by shared implementation. Reuse accepted structural, hero, CTA, table and media evidence.
+- [x] Before edits, compare every required field/style/action with the actual renderer and generated editor. Include optional absent values, maximum meaningful content, nested widths and safe link labels.
+- [x] Write failures for reproduced gaps, repair the shared cause, preserve stored versions and historical values. A version change requires a wired converter and recovery test.
+- [x] Add several related blocks to one real native-authored page, save/reopen once, edit/reorder relevant nodes, restore the exact prior tree and publish once. Readback must prove every included block's values survived.
+- [x] Exercise each block's distinct public interaction and review every pack's presentation. Batch screenshots and the shared deployment/cleanup; do not skip per-block behavior.
+- [x] For every Task 2/3 accepted row, capture page errors and console errors, including hydration warnings, in native preview and public interaction checks. Visually correct output with an unresolved product error is not passing evidence; classify unrelated harness/environment diagnostics explicitly.
+- [x] Update only rows whose missing requirements are closed. Others retain precise remaining notes.
+
+September29 closure: all20 assigned Task2 block rows are Verified on the linked family reports and exact95/42 tracker checkpoint. Separate native all-field reference, migration, Customizer, SDK and final integrated requirements remain in their assigned tasks. Latest family evidence: `grade-gallery-20260929.md`.
 
 ### Task 3 — Finish live-data and action block families
 
@@ -151,15 +137,19 @@ Generated files are output, not edit surfaces. Keep data in the site backend; pa
 
 ### Task 4 — Finish content migration and the single authoring model
 
+**Completeness criterion (Opus F21/F22, accepted September29):** Migration/backfill/export completion must account for the entire intended corpus. A bounded or failed partial pass must return explicit incomplete/blocked state and a resumable position or actionable limit; it must not report success. Before legacy retirement, reconcile source/destination counts and representative exact authored values, including interrupted and over-limit cases. This is a delivery acceptance lens, not authorization for an unrelated codebase sweep.
+
 **Files:** `scripts/blocks/{content-migration,staged-migration}.mjs`, actual canonical migration/recovery service and legacy dispatch/schema consumers found through source search; existing migration/recovery suites.
 
 **Consumes:** finished canonical capabilities and actual retained content inventory. **Produces:** one active content model/Website renderer, preserved history and explicit old-content import support.
 
-- [ ] Enumerate real legacy shapes and references once; distinguish retained revision snapshots from active authoring fields. Match converter coverage to that inventory.
-- [ ] Prove each supported conversion preserves editorial text, inline structure, media identity, layout intent, anchors, links, visibility/locks and revision source. Mixed/oversized unsupported inputs must be refused without loss, then receive a complete supported conversion before claiming closure.
-- [ ] Run native conversion/reopen/publication/recovery and before/after rendered comparison on representative owned copies of actual content.
-- [ ] Migrate known installed/demo content with backups, explicit receipts and exact readback. Preserve original user data and rollback until success is established.
-- [ ] Remove obsolete live editor/renderer/contentMode paths and fields only after preservation and import/recovery requirements pass; no premature destructive schema cleanup.
+- [x] Enumerate real legacy shapes and references once; distinguish retained revision snapshots from active authoring fields. Match converter coverage to that inventory.
+- [x] Prove each supported conversion preserves editorial text, inline structure, media identity, layout intent, anchors, links, visibility/locks and revision source. Mixed/oversized unsupported inputs must be refused without loss, then receive a complete supported conversion before claiming closure.
+- [x] Run native conversion/reopen/publication/recovery and before/after rendered comparison on representative owned copies of actual content.
+- [x] Migrate known installed/demo content with backups, explicit receipts and exact readback. Preserve original user data and rollback until success is established.
+- [x] Remove obsolete live editor/renderer/contentMode paths and fields only after preservation and import/recovery requirements pass; no premature destructive schema cleanup.
+
+Acceptance: `ConvexPress-Admin/audits/2026-09-04/legacy-reusable-retirement-20261006.md` maps all five clauses to current complete corpus, retained sources, native/Website conversion evidence and exact API/data preservation. Historical import/schema compatibility is intentional; full delivery remains open.
 
 ### Task 5 — Finish Templates and Customizer as one workflow
 
@@ -167,12 +157,14 @@ Generated files are output, not edit surfaces. Keep data in the site backend; pa
 
 **Consumes:** completed canonical pages and four installed packs. **Produces:** template switching and customization without content loss or authority leakage.
 
-- [ ] Complete palette and commerce-layout migrations with idempotent receipts; retain explicit new settings over legacy defaults.
-- [ ] Connect header/footer/menu builders fully to Customize, then retire duplicate screens and obsolete runtime consumers.
-- [ ] Exercise each pack's fields, presets, brand/group reset, undo/redo, context groups and click-to-edit. A visible control must change its declared rendered surface.
-- [ ] Verify draft versus published values, conflicting changes, pack switches, save/reopen and staging appearance promotion preserving unrelated live data.
+- [x] Complete palette and commerce-layout migrations with idempotent receipts; retain explicit new settings over legacy defaults. Accepted six-site receipts, no-write replay and four-pack handler/consumer preservation: `appearance-rollout-20261006.md`.
+- [x] Connect header/footer/menu builders fully to Customize, then retire duplicate screens and obsolete runtime consumers.
+- [x] Exercise each pack's fields, presets, brand/group reset, undo/redo, context groups and click-to-edit. A visible control must change its declared rendered surface.
+- [x] Verify draft versus published values, conflicting changes, pack switches, save/reopen and staging appearance promotion preserving unrelated live data.
 - [ ] Verify operator-only Website editing, customer denial, live revocation, session expiry/reconnect and retained unsaved values.
-- [ ] Cover the template handoff's 22 signed-in dashboard surfaces per applicable pack plus affected public surfaces. Use shared valid fixtures and batch route captures; do not invent extra dashboard features.
+- [x] Cover the template handoff's 22 signed-in dashboard surfaces per applicable pack plus affected public surfaces. Use shared valid fixtures and batch route captures; do not invent extra dashboard features.
+
+Task5 reconciliation: `customizer-global-layout-20261006.md` maps the completed chrome, separate-database promotion and dashboard clauses. Actual global layout controls pass156rendered checks. `customizer-palette-shop-20261006.md` adds20palette/theme combinations,64manual color mappings and96Shop responsive combinations, closing field mapping and the E102 operator canonical-body defect. E05 public HTTPS/local-network editing remains open.
 
 ### Task 6 — Deliver four polished starter websites and BlockDemo
 
@@ -180,12 +172,14 @@ Generated files are output, not edit surfaces. Keep data in the site backend; pa
 
 **Consumes:** completed blocks and Customizer. **Produces:** four coherent example sites and a useful all-block review website.
 
-- [ ] Finish required flagship owned treatments and named styles from the existing handoff/tracker; every other block must look intentional through SDK/pack styling. Reconcile the phase-3 flagship minimum and all P0 tracker rows explicitly; verify at least the specified eight patterns each for Journal and Depot rather than inferring that from 32 aggregate patterns.
-- [ ] Author Core studio/business, Journal editorial, Depot store and Aster House hospitality examples with real navigation, headers/footers, media and applicable detail pages. Preserve literal authored content through pack switches.
-- [ ] Organize BlockDemo by purpose with every block discoverable, selected-pack previews, full-page compositions and useful state variants. Keep demo-only fixtures out of customer starter data.
+- [x] Finish required flagship owned treatments and named styles from the existing handoff/tracker; every other block must look intentional through SDK/pack styling. Reconcile the phase-3 flagship minimum and all P0 tracker rows explicitly; verify at least the specified eight patterns each for Journal and Depot rather than inferring that from 32 aggregate patterns. Evidence: collection-styles-20261006.md explicitly reconciles15P0owned treatments per pack, all required named-style families and eight patterns each; E107 supplies the previously missing collection styles.
+- [x] Author Core studio/business, Journal editorial, Depot store and Aster House hospitality examples with real navigation, headers/footers, media and applicable detail pages. Preserve literal authored content through pack switches. Evidence: example-sites-live-20261005.md, example-site-media-inquiries-20261005.md, example-products-20261005.md, example-native-20261005.md and example-responsive-20261005.md; four distinct backends,21 published canonical documents, real media/navigation/detail pages and native/public workflows. Literal four-pack content parity is recorded in demo-visible-review-20261006.md and field-events-final-20261006.md. Final installed-candidate integration remains Task8.
+- [x] Organize BlockDemo by purpose with every block discoverable, selected-pack previews, full-page compositions and useful state variants. Keep demo-only fixtures out of customer starter data. Evidence: demo-visible-review-20261006.md; exact137 identities,24 category cases,40 full-page route cases and16 composition states. Final all-block visual acceptance remains separate.
 - [ ] Review actual rendered desktop/mobile and narrow nested layouts, realistic short/long copy, media present/absent, keyboard/focus and all interactive controls. Inspect screenshots, not just successful capture counts.
 - [ ] Use existing motion infrastructure. Favor transform/opacity and compositor-friendly effects; no per-frame React animation loops, pixelated gradient bitmaps or motion-required content. Support reduced motion and pause controls where applicable.
-- [ ] Profile moving flagship examples in a visible hardware-accelerated browser; record environment and reproducible bad transitions. Fix observed stutter. Resolve E11 through controlled evidence and an honest supported-environment result, not infinite repeats or a blanket performance claim.
+- [x] Profile moving flagship examples in a visible hardware-accelerated browser; record environment and reproducible bad transitions. Fix observed stutter. Resolve E11 through controlled evidence and an honest supported-environment result, not infinite repeats or a blanket performance claim. Evidence: steps-review-20260929.md; E11 accepted with bounded Apple M5/ANGLE Metal results and historical/startup limits retained.
+
+Task6 final review checkpoint: `desktop-matrix-final-20261006.md` records all four packs ×137 selected desktop examples visually reviewed (548 records/699 segments). E103–E105 repairs have27+12+24 scoped responsive cases. Remaining state/mobile/motion/native and installed-candidate checks stay open; this desktop subset does not close the full matrix gate.
 
 ### Task 7 — Prove SDK, plugin and AI authoring workflows
 
@@ -193,12 +187,13 @@ Generated files are output, not edit surfaces. Keep data in the site backend; pa
 
 **Consumes:** finished contracts/presentation, configured legitimate provider where needed. **Produces:** usable documented extension workflows, not merely generated folders.
 
-- [ ] In disposable outputs, exercise `block-build`, `block-add-feature`, `block-audit`, `block-style`, `block-compose`, `block-promote`, `pattern-build`, `block-migrate-content`; each yields a valid authored/rendered result appropriate to its operation.
-- [ ] Scaffold one token-first template and verify baseline coverage; create/enable/disable/re-enable the reference Events extension while preserving source/data and denied access when disabled. Confirm Dashboard manifest integration required by the handoff.
-- [ ] Exercise the all-field reference block and live Events block through authoring, pack switching and public data updates.
+- [x] In disposable outputs, exercise `block-build`, `block-add-feature`, `block-audit`, `block-style`, `block-compose`, `block-promote`, `pattern-build`, `block-migrate-content`; each yields a valid authored/rendered result appropriate to its operation. Evidence: block-sdk-workflows-20261006.md maps all eight operations, reusing accepted native migration/composition/promotion evidence. Actual AI generation remains separate.
+- [x] Scaffold one token-first template and verify baseline coverage; create/enable/disable/re-enable the reference Events extension while preserving source/data and denied access when disabled. Confirm Dashboard manifest integration required by the handoff. Evidence: template-sdk-trial-20261006.md, reference-extension-acceptance-20261006.md and extension-installed-20261006.md (generated live install, native lifecycle and actual Clerk customer Dashboard).
+- [x] Exercise the all-field reference block and live Events block through authoring, pack switching and public data updates. Evidence: field-events-final-20261006.md; native authoring reused, eight pack/viewport cases, reactive event update, ICU hydration repair and scoped restoration pass.
 - [ ] Prove actual structured AI generation with enabled core/portable/pack/plugin/composed vocabulary, permitted nesting and real selected resources; inspect/review before approval and one save. Reject invalid/disabled/hidden-by-pack/cross-site references. No provider call is a reason to expose credentials or invent data.
-- [ ] Prove runtime composition, per-pack styling and reviewed promotion into canonical source with field preservation and no arbitrary executable code.
-- [ ] Refresh kit docs/skills from the working interfaces; remove owned scaffolds/fixtures and document the minimal user workflow.
+- [x] Prove runtime composition, per-pack styling and reviewed promotion into canonical source with field preservation and no arbitrary executable code. Evidence: mixed-composition-20261006.md, promotion-resources-20261006.md and promotion-installed-20261006.md; manually authored definitions, actual AI still open.
+- [x] Add and exercise `template-build`, `template-add-surface`, and `template-audit` skills, and retarget the required design skill to the delivered template SDK. Evidence: template-sdk-trial-20261006.md; existing design-homepage already targets the SDK.
+- [x] Refresh kit docs/skills from the working interfaces; remove owned scaffolds/fixtures and document the minimal user workflow. Evidence: kit-workflow-refresh-20261006.md and field-events-final-20261006.md. Scaffolds removed; remaining live fixtures retired through recoverable product APIs with immutable history retained.
 
 ### Task 8 — Final integrated acceptance and delivery
 
@@ -206,9 +201,12 @@ Generated files are output, not edit surfaces. Keep data in the site backend; pa
 
 **Consumes:** all preceding deliverables. **Produces:** completed scoped system, locally integrated clean source and reviewable release evidence.
 
+- [ ] Deploy Website support for nested list children before or together with backend acceptance of that content. Older Website validators reject the whole document with `CHILDREN_FORBIDDEN`; verify each installed site uses a compatible consumer before publishing nested lists.
 - [ ] Freeze a candidate commit and matching backend/Website artifacts. Run broad required suites once on that candidate; subsequent reruns follow actual changes.
-- [ ] Run one integrated native author journey: create site content, insert patterns and representative blocks, edit/nest/move, switch templates, customize, save/reopen, recover, publish, inspect public output and recover from a deliberate conflict/session interruption.
-- [ ] Finish the all-block/all-pack screenshot matrix and verify every tracker acceptance has actual tests and reviewed captures. Verify the required tracker reconciliation gate detects missing inventory rows and unsupported Verified claims, and generated drift checks inspect fields rather than names alone. Keep source hashes and affected shared dependencies in the evidence index.
+- [x] Run one integrated native author journey: create site content, insert patterns and representative blocks, edit/nest/move, switch templates, customize, save/reopen, recover, publish, inspect public output and recover from a deliberate conflict/session interruption.
+  October6: candidate-native-20261006.md joins all four native pack switches, Customize draft/conflict/reviewed publication, nested document conflict/restore, actual sign-out/sign-in draft recovery and public readback to native-integration-20261006.md insertion/move/undo/redo evidence. Candidate artifact parity remains separate; E99 did not reproduce and has no speculative causal patch.
+- [x] Finish the all-block/all-pack screenshot matrix and verify every tracker acceptance has actual tests and reviewed captures. Verify the required tracker reconciliation gate detects missing inventory rows and unsupported Verified claims, and generated drift checks inspect fields rather than names alone. Keep source hashes and affected shared dependencies in the evidence index.
+  October6: tracker-evidence-final-20261006.md closes E22 with548 reviewed identities/699 pixel-equivalent PNG segments and live133Verified/137row reconciliation; four provider-dependent rows remain explicit. Native, mobile and motion evidence retain their separate scope.
 - [ ] Confirm all 137 rows and handoff phases 0–6 plus HA/HB/HC/HD/HX requirements are satisfied at their actual scope. Every unresolved dependency blocks only its affected requirement and remains explicit; no missing item is silently waived.
 - [ ] Verify preservation/cleanup and locally integrate the final commit to the user's checkout safely. No push or remote publication beyond already authorized acceptance.
 - [ ] Deliver exact launch/open instructions, four example websites, BlockDemo, editor/Customizer usage, SDK examples and residual broader-app audit list. Mark the new goal complete only when this scoped deliverable is actually complete.
@@ -274,3 +272,10 @@ No arbitrary implementation/token cap is imposed by this guide; a cap must not f
 - [ ] The owner receives working instructions and concrete artifacts. Broader deferred production findings remain accurately documented.
 
 A planning document is not progress toward these checkboxes by itself. Execution must change the deliverable or obtain evidence that closes a real outstanding requirement.
+
+September28 navigation completion:63Verified/74In progress after Table of Contents, Anchor Nav and Site Info passed their remaining native/public/field gates. See `ConvexPress-Admin/audits/2026-09-04/navigation-completion-20260928.md`. Task2 continues with Menu/Child Pages and remaining families; full delivery remains open.
+
+
+### Checkpoint parity gate
+
+After each accepted batch, reconcile every `blocks[].checkpointStatus` and its remaining-review/evidence entry against the exact full tracker readback, update `checkpointCounts` and `checkpointSource`, then run `bun run check:delivery-status`. This check compares all137 identities and individual statuses as well as the header counts; matching totals alone are insufficient. The check is read-only and does not grant acceptance or mutate MagicTables.

@@ -2,7 +2,7 @@
  * Journal · dashboard.posts — the member's posts as rule-separated rows:
  * title, small-caps status pill, date. Same states as Core.
  */
-import { Link } from "@tanstack/react-router";
+import { DashboardPostTitle } from "@/components/dashboard/DashboardPostTitle";
 
 import type { DashboardPostsSurfaceData } from "@/templates/packs/core/surfaces/dashboard.posts";
 import type { SurfaceProps } from "@/templates/sdk/types";
@@ -28,9 +28,7 @@ export default function JournalDashboardPosts({ data }: SurfaceProps<DashboardPo
           {posts.map((post) => (
             <Row key={post._id} className="flex-row items-baseline justify-between gap-6">
               <div className="flex min-w-0 flex-col gap-1.5">
-                <Link to="/blog/$slug" params={{ slug: post.slug }} className="truncate font-display text-xl leading-snug tracking-tight text-foreground transition-colors hover:text-primary">
-                  {post.title || "(no title)"}
-                </Link>
+                <DashboardPostTitle post={post} className="truncate font-display text-xl leading-snug tracking-tight text-foreground transition-colors" />
                 <SmallCaps as="time" className="tabular-nums" {...({ dateTime: new Date(post.createdAt).toISOString() } as object)}>
                   {dashDate(post.createdAt)}
                 </SmallCaps>

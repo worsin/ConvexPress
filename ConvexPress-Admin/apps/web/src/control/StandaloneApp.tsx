@@ -71,7 +71,10 @@ function ControlPlaneShell({
   const managerOpen = openPanel === "sites";
 
   const [committedSelection,commitSelection]=useWindowScopeSelection(context?.active,operator?`convexpress.window-scope:${controlClient.url}:${operator.userId}`:null);
-  const selection = pendingSelection ?? committedSelection;
+  // Preparing a new origin may reload Electron immediately. Expose the new
+  // target only after setActive succeeds and commitSelection remembers it.
+  // Otherwise the reload restores the old per-window selection mid-switch.
+  const selection = committedSelection;
   const selectedEnvironment =
     context?.environments.find(
       (entry) => String(entry.instanceId) === selection.instanceId,

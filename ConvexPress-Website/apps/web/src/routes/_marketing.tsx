@@ -17,7 +17,7 @@ import { useFooterConfig } from "@/hooks/layout/useFooterConfig";
 import { useLayoutConfig } from "@/hooks/layout/useLayoutConfig";
 import { useLayoutShell } from "@/hooks/layout/useLayoutShell";
 import { useHeaderConfig } from "@/hooks/layout/useHeaderConfig";
-import { useMenuForLocation } from "@/hooks/layout/useMenuForLocation";
+import { useHeaderMenu } from "@/hooks/layout/useHeaderMenu";
 import { useSiteIdentity } from "@/hooks/layout/useSiteIdentity";
 import { checkRouteAccess } from "@/lib/routeRestriction";
 import type { RouteAccessResult } from "@/lib/routeRestriction";
@@ -27,6 +27,7 @@ import CoreMobileNav from "@/templates/packs/core/surfaces/chrome.mobileNav";
 import CoreNotFound from "@/templates/packs/core/surfaces/system.notFound";
 import CoreRestricted from "@/templates/packs/core/surfaces/system.restricted";
 import { Surface } from "@/templates/sdk/Surface";
+import { FormRouteAuthRecovery } from "@/extensions/forms/FormRouteNotFound";
 
 export const Route = createFileRoute("/_marketing")({
   loader: async ({ context: { queryClient }, location }) => {
@@ -75,10 +76,12 @@ function MarketingLayout() {
  */
 function MarketingLayoutInner({ routeAccess }: { routeAccess: RouteAccessResult }) {
   const pathname=useLocation({select:location=>location.pathname});
-  const archiveOwnsBreadcrumbs=/^\/(?:category|tag)\/[^/]+\/?$/.test(pathname);
+  const routeOwnsBreadcrumbs=/^\/(?:category|tag)\/[^/]+\/?$/.test(pathname)
+    // A resume URL contains a bearer credential, not a navigation label.
+    || /^\/forms\/[^/]+\/resume\/[^/]+\/?$/.test(pathname);
   const siteIdentity = useSiteIdentity();
   const headerConfig = useHeaderConfig();
-  const headerMenu = useMenuForLocation(getHeaderMenuLocation(headerConfig.navigation));
+  const headerMenu = useHeaderMenu(headerConfig.navigation);
   const layoutConfig = useLayoutConfig();
   const footerConfig = useFooterConfig();
   const { mobileNavOpen, closeMobileNav } = useLayoutShell();
@@ -125,6 +128,7 @@ function MarketingLayoutInner({ routeAccess }: { routeAccess: RouteAccessResult 
   return (
     <>
       <AnalyticsProvider />
+      {isRouteGated && /^\/forms\/[^/]+(?:\/resume\/[^/]+)?\/?$/.test(pathname) ? <FormRouteAuthRecovery /> : null}
       {/* MobileNav is outside the inert wrapper so focus trap works */}
       {!hideHeader && (
         <Surface
@@ -132,7 +136,7 @@ function MarketingLayoutInner({ routeAccess }: { routeAccess: RouteAccessResult 
           data={{
             menu: headerMenu,
             siteIdentity,
-            config: headerConfig.mobileMenu,
+            config: headerConfig.mobileMenu, userMenu: headerConfig.userMenu,
             open: mobileNavOpen,
             onClose: closeMobileNav,
           }}
@@ -155,7 +159,7 @@ function MarketingLayoutInner({ routeAccess }: { routeAccess: RouteAccessResult 
           {fullWidth ? (
             <main id="main-content" role="main">{pageContent}</main>
           ) : (
-            <ContentWrapper layoutConfig={layoutConfig} showBreadcrumbs={!archiveOwnsBreadcrumbs}>
+            <ContentWrapper layoutConfig={layoutConfig} showBreadcrumbs={!routeOwnsBreadcrumbs}>
               {pageContent}
             </ContentWrapper>
           )}
@@ -171,15 +175,4 @@ function MarketingLayoutInner({ routeAccess }: { routeAccess: RouteAccessResult 
       </div>
     </>
   );
-}
-
-function getHeaderMenuLocation(navigation: {
-  menuSource: string;
-  customLocation?: string;
-}): string {
-  if (navigation.menuSource === "secondary") return "secondary";
-  if (navigation.menuSource === "custom") {
-    return navigation.customLocation?.trim() || "header";
-  }
-  return "header";
 }

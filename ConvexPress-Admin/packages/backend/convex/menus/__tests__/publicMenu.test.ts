@@ -73,6 +73,30 @@ function flatten(items: PublicMenuItem[]): PublicMenuItem[] {
   return items.flatMap((item) => [item, ...flatten(item.children)]);
 }
 
+test("historical primary location follows header only when no primary location exists", async () => {
+  const { t, ids, add, read } = await fixture();
+  await add("public");
+  await add("private", { visibility: "signedIn" });
+  const primary = () => t.query(getMenuForLocation, { locationSlug: "primary" });
+  expect(await primary()).toEqual(await read());
+  expect((await primary())!.items.map(item => item.label)).toEqual(["public"]);
+  expect(await t.query(getMenuForLocation, { locationSlug: "unknown" })).toBeNull();
+
+  // An existing custom location is authoritative, even when intentionally empty.
+  const location = await t.run(ctx => ctx.db.insert("menuLocations", {
+    slug: "primary", name: "Custom primary", createdAt: 1, updatedAt: 1,
+  }));
+  expect(await primary()).toBeNull();
+  const other = await t.run(ctx => ctx.db.insert("menus", {
+    name: "Other", slug: "other", createdBy: ids.user, createdAt: 1, updatedAt: 1,
+  }));
+  await add("custom", { menuId: other });
+  await t.run(ctx => ctx.db.patch("menuLocations", location, { menuId: other }));
+  expect((await primary())!.items.map(item => item.label)).toEqual(["custom"]);
+  await t.run(ctx => ctx.db.delete("menuLocations", location));
+  expect(await primary()).toEqual(await read());
+});
+
 test('membership menu visibility includes valid grants beyond the old twenty-row cutoff', async () => {
   const { t, ids, add } = await fixture();
   await t.run(async ctx => {

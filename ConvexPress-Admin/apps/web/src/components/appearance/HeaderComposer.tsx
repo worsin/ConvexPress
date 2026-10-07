@@ -1,45 +1,17 @@
-/**
- * HeaderComposer - Two-column composer for configuring the site header.
- *
- * Left panel: collapsible section controls with toggle, select, text, and variant-grid fields.
- * Right panel: real-time HeaderPreview with device size toolbar.
- *
- * Reads/writes the "header" settings section via Convex.
- */
+import { focusCustomizeField } from "@/lib/templates/customizeSelection";
+/** Header section controls owned by the Customizer draft. */
 
-import { useState, useCallback, useEffect } from "react";
-import { useMutation } from "convex/react";
-import { useQuery } from "convex-helpers/react/cache";
-import { api } from "@backend/convex/_generated/api";
+import { useState, useId, useEffect, useRef } from "react";
 import {
   ChevronDown,
-  RotateCcw,
-  Monitor,
-  Tablet,
-  Smartphone,
-  Loader2,
-  Save,
-  ExternalLink,
 } from "lucide-react";
-import { toast } from "sonner";
 import { Switch as SwitchPrimitive } from "@base-ui/react/switch";
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { HEADER_DEFAULTS, HEADER_SECTIONS } from "./constants";
-import { HeaderPreview } from "./HeaderPreview";
 import type { HeaderConfig, ComposerField, ComposerSectionDef } from "./types";
-
-// ─── Device Preview Sizes ───────────────────────────
-
-type DeviceSize = "desktop" | "tablet" | "mobile";
-
-const DEVICE_WIDTHS: Record<DeviceSize, string> = {
-  desktop: "w-full",
-  tablet: "max-w-[768px]",
-  mobile: "max-w-[375px]",
-};
 
 const HEADER_PRESETS: Array<{ label: string; config: HeaderConfig }> = [
   {
@@ -119,6 +91,7 @@ function VariantGrid({
       {field.options?.map((opt) => (
         <button
           key={opt.value}
+          aria-pressed={value === opt.value}
           type="button"
           onClick={() => onChange(opt.value)}
           className={cn(
@@ -136,16 +109,19 @@ function VariantGrid({
 }
 
 function SelectField({
+  id,
   field,
   value,
   onChange,
 }: {
+  id: string;
   field: ComposerField;
   value: string;
   onChange: (val: string) => void;
 }) {
   return (
     <select
+      id={id}
       value={value}
       onChange={(e) => onChange(e.target.value)}
       className="w-full h-8 rounded-md border border-border bg-card px-2 text-xs text-foreground outline-hidden focus:border-ring"
@@ -163,13 +139,16 @@ function ToggleSwitch({
   checked,
   onChange,
   id,
+  label,
 }: {
   checked: boolean;
   onChange: (val: boolean) => void;
   id: string;
+  label: string;
 }) {
   return (
     <SwitchPrimitive.Root
+      aria-label={label}
       checked={checked}
       onCheckedChange={onChange}
       id={id}
@@ -205,22 +184,25 @@ function ToggleField({
       <label htmlFor={fieldId} className="text-xs text-foreground cursor-pointer">
         {field.label}
       </label>
-      <ToggleSwitch checked={value} onChange={onChange} id={fieldId} />
+      <ToggleSwitch checked={value} onChange={onChange} id={fieldId} label={field.label} />
     </div>
   );
 }
 
 function TextField({
+  id,
   field,
   value,
   onChange,
 }: {
+  id: string;
   field: ComposerField;
   value: string;
   onChange: (val: string) => void;
 }) {
   return (
     <Input
+      id={id}
       value={value}
       onChange={(e) => onChange(e.target.value)}
       placeholder={field.label}
@@ -233,16 +215,26 @@ function TextField({
 
 function SectionPanel({
   section,
+  focusField,
   config,
   onToggle,
   onFieldChange,
 }: {
   section: ComposerSectionDef;
+  focusField?: string | null;
   config: HeaderConfig;
   onToggle: (sectionId: string, enabled: boolean) => void;
   onFieldChange: (sectionId: string, fieldId: string, value: unknown) => void;
 }) {
   const [isOpen, setIsOpen] = useState(false);
+  const fieldPrefix = useId();
+  const sectionRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (focusField?.startsWith(`header.${section.id}.`)) setIsOpen(true);
+  }, [focusField, section.id]);
+  useEffect(() => {
+    if (isOpen && focusField?.startsWith(`header.${section.id}.`)) focusCustomizeField(sectionRef.current, focusField);
+  }, [focusField, isOpen, section.id]);
   const sectionConfig = config[section.id as keyof HeaderConfig] as Record<
     string,
     unknown
@@ -253,19 +245,20 @@ function SectionPanel({
 
   return (
     <Collapsible open={isOpen} onOpenChange={setIsOpen}>
-      <div
+      <div ref={sectionRef}
         className={cn(
           "border border-border rounded-lg overflow-hidden",
           !isEnabled && section.hasToggle && "opacity-60",
         )}
       >
         {/* Section header */}
-        <div className="flex items-center gap-2 px-3 py-2.5 bg-card">
+        <div data-customize-field={`header.${section.id}.enabled`} className="flex items-center gap-2 px-3 py-2.5 bg-card">
           {section.hasToggle && (
             <ToggleSwitch
               checked={isEnabled}
               onChange={(val) => onToggle(section.id, val)}
               id={`section-toggle-${section.id}`}
+              label={section.label}
             />
           )}
           <CollapsibleTrigger className="flex-1 flex items-center justify-between cursor-pointer min-w-0">
@@ -291,11 +284,12 @@ function SectionPanel({
           <div className="px-3 py-3 space-y-3 border-t border-border bg-muted/30">
             {section.fields.map((field) => {
               const fieldValue = sectionConfig?.[field.id];
+              const fieldId = `${fieldPrefix}-${field.id}`;
 
               return (
-                <div key={field.id} className="space-y-1">
+                <div key={field.id} data-customize-field={`header.${section.id}.${field.id}`} className="space-y-1">
                   {field.type !== "toggle" && (
-                    <label className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
+                    <label htmlFor={field.type === "text" || field.type === "select" ? fieldId : undefined} className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
                       {field.label}
                     </label>
                   )}
@@ -312,6 +306,7 @@ function SectionPanel({
 
                   {field.type === "select" && (
                     <SelectField
+                      id={fieldId}
                       field={field}
                       value={(fieldValue as string) ?? ""}
                       onChange={(val) =>
@@ -332,6 +327,7 @@ function SectionPanel({
 
                   {field.type === "text" && (
                     <TextField
+                      id={fieldId}
                       field={field}
                       value={(fieldValue as string) ?? ""}
                       onChange={(val) =>
@@ -349,239 +345,13 @@ function SectionPanel({
   );
 }
 
-// ─── Main Composer ───────────────────────────────────
-
-export function HeaderComposer() {
-  const settingsData = useQuery(api.settings.queries.getBySection, {
-    section: "header",
-  });
-  const updateSection = useMutation(api.settings.mutations.updateSection);
-
-  const [config, setConfig] = useState<HeaderConfig>(HEADER_DEFAULTS);
-  const [initialConfig, setInitialConfig] = useState<HeaderConfig | null>(null);
-  const [isSaving, setIsSaving] = useState(false);
-  const [device, setDevice] = useState<DeviceSize>("desktop");
-  const [initialized, setInitialized] = useState(false);
-
-  // Merge fetched data with defaults
-  useEffect(() => {
-    if (settingsData !== undefined && !initialized) {
-      const stored = settingsData as Record<string, unknown> | null;
-      const merged = stored
-        ? deepMerge(HEADER_DEFAULTS, stored as unknown as Partial<HeaderConfig>)
-        : HEADER_DEFAULTS;
-      setConfig(merged);
-      setInitialConfig(merged);
-      setInitialized(true);
-    }
-  }, [settingsData, initialized]);
-
-  const hasChanges = initialConfig !== null && JSON.stringify(config) !== JSON.stringify(initialConfig);
-
-  const handleToggle = useCallback(
-    (sectionId: string, enabled: boolean) => {
-      setConfig((prev) => ({
-        ...prev,
-        [sectionId]: {
-          ...(prev[sectionId as keyof HeaderConfig] as Record<string, unknown>),
-          enabled,
-        },
-      }));
-    },
-    [],
-  );
-
-  const handleFieldChange = useCallback(
-    (sectionId: string, fieldId: string, value: unknown) => {
-      setConfig((prev) => ({
-        ...prev,
-        [sectionId]: {
-          ...(prev[sectionId as keyof HeaderConfig] as Record<string, unknown>),
-          [fieldId]: value,
-        },
-      }));
-    },
-    [],
-  );
-
-  const handleReset = useCallback(() => {
-    setConfig(HEADER_DEFAULTS);
-    toast.success("Reset to defaults");
-  }, []);
-
-  const handleSave = useCallback(async () => {
-    setIsSaving(true);
-    try {
-      await updateSection({ section: "header", values: config });
-      setInitialConfig(config);
-      toast.success("Header saved successfully");
-    } catch (err: unknown) {
-      const message =
-        err instanceof Error ? err.message : "Failed to save header";
-      toast.error(message);
-    } finally {
-      setIsSaving(false);
-    }
-  }, [updateSection, config]);
-
-  // Loading state
-  if (settingsData === undefined) {
-    return (
-      <div className="flex flex-col gap-6 pb-8">
-        <div>
-          <h1 className="text-xl font-semibold text-foreground">
-            Header Builder
-          </h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Configure your website's header layout and components.
-          </p>
-        </div>
-        <div className="flex items-center justify-center py-20">
-          <Loader2 className="size-6 animate-spin text-muted-foreground" />
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="flex flex-col gap-4 pb-8">
-      {/* Page header */}
-      <div>
-        <h1 className="text-xl font-semibold text-foreground">
-          Header Builder
-        </h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Configure your website's header layout and components. Changes preview
-          in real-time.
-        </p>
-      </div>
-
-      {/* Two-column layout */}
-      <div className="flex flex-col gap-6 items-start xl:flex-row">
-        {/* Left sidebar - section controls */}
-        <div className="flex w-full shrink-0 flex-col gap-3 xl:w-[360px]">
-          {/* Sidebar header */}
-          <div className="flex items-center justify-between">
-            <span className="text-sm font-medium text-foreground">
-              Header Sections
-            </span>
-            <Button variant="ghost" size="xs" onClick={handleReset}>
-              <RotateCcw className="size-3" />
-              Reset
-            </Button>
-          </div>
-
-          <div className="grid grid-cols-3 gap-1">
-            {HEADER_PRESETS.map((preset) => (
-              <Button
-                key={preset.label}
-                type="button"
-                variant="outline"
-                size="xs"
-                onClick={() => setConfig(preset.config)}
-              >
-                {preset.label}
-              </Button>
-            ))}
-          </div>
-
-          {/* Section panels */}
-          <div className="flex flex-col gap-2">
-            {HEADER_SECTIONS.map((section) => (
-              <SectionPanel
-                key={section.id}
-                section={section}
-                config={config}
-                onToggle={handleToggle}
-                onFieldChange={handleFieldChange}
-              />
-            ))}
-          </div>
-
-          {/* Save bar */}
-          <div className="flex items-center gap-2 pt-2 border-t border-border">
-            <Button
-              variant="ghost"
-              size="sm"
-              className="flex-1 gap-1.5"
-              onClick={() => window.open("/", "_blank", "noopener,noreferrer")}
-            >
-              <ExternalLink className="size-3" />
-              Preview on Site
-            </Button>
-            <Button
-              size="sm"
-              className="flex-1 gap-1.5"
-              onClick={handleSave}
-              disabled={!hasChanges || isSaving}
-            >
-              {isSaving ? (
-                <Loader2 className="size-3 animate-spin" />
-              ) : (
-                <Save className="size-3" />
-              )}
-              {isSaving ? "Saving..." : "Save Header"}
-            </Button>
-          </div>
-        </div>
-
-        {/* Right panel - preview */}
-        <div className="flex-1 min-w-0 flex flex-col gap-3">
-          {/* Device toolbar */}
-          <div className="flex items-center gap-1 self-end">
-            {(
-              [
-                { size: "desktop", icon: Monitor, label: "Desktop" },
-                { size: "tablet", icon: Tablet, label: "Tablet" },
-                { size: "mobile", icon: Smartphone, label: "Mobile" },
-              ] as const
-            ).map(({ size, icon: Icon, label }) => (
-              <Button
-                key={size}
-                variant={device === size ? "outline" : "ghost"}
-                size="icon-xs"
-                onClick={() => setDevice(size)}
-                title={label}
-              >
-                <Icon className="size-3" />
-              </Button>
-            ))}
-          </div>
-
-          {/* Preview container */}
-          <div
-            className={cn(
-              "mx-auto transition-all duration-300",
-              DEVICE_WIDTHS[device],
-            )}
-          >
-            <HeaderPreview config={config} />
-          </div>
-
-          {/* Placeholder page content below header */}
-          <div
-            className={cn(
-              "mx-auto transition-all duration-300",
-              DEVICE_WIDTHS[device],
-            )}
-          >
-            <div className="rounded-lg border border-border/50 bg-muted/20 p-6 space-y-3">
-              <div className="h-3 w-2/3 rounded bg-foreground/5" />
-              <div className="h-2 w-full rounded bg-foreground/5" />
-              <div className="h-2 w-5/6 rounded bg-foreground/5" />
-              <div className="h-2 w-4/5 rounded bg-foreground/5" />
-              <div className="h-20 w-full rounded bg-foreground/5 mt-4" />
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 /** Existing section controls bound to the Customizer's draft, with no independent save. */
-export function HeaderSettingsEditor({ value, onChange }: { value: Record<string, unknown>; onChange: (value: Record<string, unknown>) => void }) {
+export function HeaderSettingsEditor({ value, onChange, focusField }: { value: Record<string, unknown>; onChange: (value: Record<string, unknown>) => void; focusField?: string | null }) {
   const config = deepMerge(HEADER_DEFAULTS, value as unknown as Partial<HeaderConfig>);
   const setField = (sectionId: string, fieldId: string, next: unknown) => onChange({ ...value, [sectionId]: { ...(config[sectionId as keyof HeaderConfig] as Record<string, unknown>), [fieldId]: next } });
-  return <div className="space-y-2">{HEADER_SECTIONS.map(section => <SectionPanel key={section.id} section={section} config={config} onToggle={(id, enabled) => setField(id, "enabled", enabled)} onFieldChange={setField} />)}</div>;
+  return <div className="space-y-2">
+    <div className="flex flex-wrap gap-2" aria-label="Header presets">
+      {HEADER_PRESETS.map(preset => <Button key={preset.label} type="button" variant="outline" size="sm" onClick={() => onChange({ ...preset.config })}>{preset.label} preset</Button>)}
+    </div>
+    {HEADER_SECTIONS.map(section => <SectionPanel key={section.id} section={section} focusField={focusField} config={config} onToggle={(id, enabled) => setField(id, "enabled", enabled)} onFieldChange={setField} />)}</div>;
 }

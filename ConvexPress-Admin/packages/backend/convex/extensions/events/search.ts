@@ -24,6 +24,22 @@ export const searchSource = {
   id: "events",
   contentType: "event" as const,
   matchesId: (ctx: Pick<QueryCtx, "db">, rawId: string) => ctx.db.normalizeId("extension_events", rawId) !== null,
+  maintenance: {
+    version: "events-created-order-v1",
+    async page(ctx, cursor) {
+      const page = await ctx.db.query("extension_events").paginate({ cursor, numItems: 1, maximumRowsRead: 1, maximumBytesRead: 1024 * 1024 });
+      return { ids: page.page.map(row => String(row._id)), cursor: page.continueCursor, isDone: page.isDone };
+    },
+    async sync(ctx, rawId) {
+      const id = ctx.db.normalizeId("extension_events", rawId);
+      if (!id) throw Error("Event search identity does not belong to this source");
+      await syncEventSearch(ctx, id);
+    },
+    async exists(ctx, rawId) {
+      const id = ctx.db.normalizeId("extension_events", rawId);
+      return Boolean(id && await ctx.db.get("extension_events", id));
+    },
+  },
   createReader(ctx: QueryCtx, budget?: RequestReadLedger) {
     let enabled: Promise<boolean> | undefined;
     return async (rawId: string): Promise<PublicSearchSource | null> => {

@@ -1,7 +1,7 @@
 import { expect, test } from "bun:test";
 import { parseBlockSpec } from "./schema.mjs";
 import paragraph from "../../blocks/core/paragraph/block.json";
-import { authoredBlockSearchText } from "../../ConvexPress-Admin/packages/backend/canonical-blocks-foundation/searchText";
+import { authoredBlockSearchText, resolvedCompositionSearchText } from "../../ConvexPress-Admin/packages/backend/canonical-blocks-foundation/searchText";
 
 test("search declarations reject guessed fields, duplicates, structural IDs and non-text values", () => {
   for (const searchText of [[ ["missing"] ], [["body"], ["body"]], [["body", "content", "*"]]])
@@ -27,7 +27,7 @@ test("nested editorial repeaters are searchable without their destinations", () 
 });
 
 test("undeclared data and private form configuration produce no candidate text", () => {
-  expect(authoredBlockSearchText("core/contact-form", { recipientEmail: "secret@example.invalid" })).toBe("");
+  expect(authoredBlockSearchText("core/contact-form", { eyebrow: "", heading: "", body: "", recipientEmail: "secret@example.invalid" })).toBe("");
   expect(authoredBlockSearchText("core/search-results", { emptyMessage: "No recursive candidates" })).toBe("");
   expect(() => authoredBlockSearchText("unknown/private", { body: "secret" })).toThrow();
   expect(() => authoredBlockSearchText("core/paragraph", { body: { type: "doc", content: [{ type: "script", text: "bad" }] } })).toThrow();
@@ -39,4 +39,22 @@ test("prose follows rendered inline copy without indexing markdown link destinat
   expect(authoredBlockSearchText("core/hero", { eyebrow: "", title: "[Garden](https://example.invalid/literal)", body: "" })).toBe("[Garden](https://example.invalid/literal)");
   expect(authoredBlockSearchText("core/hero", { eyebrow: "", title: "Intro", body: "**First\n\nsecond** [relative](/visible-literal)" })).toBe("Intro **First second** [relative](/visible-literal)");
   expect(() => parseBlockSpec({ ...paragraph, searchText: [{ path: ["body"], format: "prose" }] })).toThrow("plain text field");
+});
+
+
+test("resolved composition text follows loops and slots without collecting URLs or metadata", async () => {
+  const { resolveComposition } = await import("../../ConvexPress-Admin/packages/backend/canonical-blocks-foundation/composition");
+  const root = resolveComposition({ version: 1, root: { el: "Stack", children: [
+    { el: "Text", bind: "attrs.heading" },
+    { el: "Text", bind: "attrs.hidden", if: "false" },
+    { el: "Grid", each: "attrs.items", as: "item", children: [{ el: "Text", bind: "item" }] },
+    { el: "RichText", bind: { content: "attrs.body" } },
+    { el: "Link", props: { label: "Visible link", href: "https://example.invalid/SECRET_URL" } },
+    { el: "Slot", props: { name: "children" } },
+    { el: "Quote", props: { quote: "A quote", attribution: "Author", source: "Book", href: "https://example.invalid/SECRET_SOURCE" } },
+    { el: "Tabs", props: { label: "ACCESSIBLE_LABEL", items: [{ id: "SECRET_ID", title: "Tab title", body: "Tab body" }] } },
+  ] } }, { attrs: { heading: "Heading", hidden: "SECRET_HIDDEN", unused: "SECRET_SETTING", items: ["First", "Second"],
+    body: { type: "doc", content: [{ type: "paragraph", content: [{ type: "text", text: "Rich" }, { type: "text", text: "text", marks: [{ type: "link", attrs: { href: "https://example.invalid/SECRET_MARK" } }] }] }] } } }, { allowedSlots: ["children"] });
+  expect(resolvedCompositionSearchText(root, "Slotted prose")).toBe("Heading First Second Richtext Visible link Slotted prose A quote Author Book Tab title Tab body");
+  expect(resolvedCompositionSearchText(null, "Never rendered child")).toBe("");
 });

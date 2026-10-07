@@ -104,7 +104,7 @@
       "heading": "Find your place in the studio.",
       "introduction": "Come for the craft. Stay for the conversations, the shared table, and the things we make together.",
       "actionLink": "/contact",
-      "actionLabel": "Let\u2019s find your membership"
+      "actionLabel": "Let’s find your membership"
     }
   ],
   "requires": {
@@ -114,5 +114,13 @@
     "capabilities": [
       "reference.targetResolution"
     ]
-  }
+  },
+  "searchText": [
+    [
+      "heading"
+    ],
+    [
+      "introduction"
+    ]
+  ]
 }

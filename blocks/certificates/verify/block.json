@@ -47,5 +47,10 @@
     "capabilities": [
       "form.submission"
     ]
-  }
+  },
+  "searchText": [
+    [
+      "title"
+    ]
+  ]
 }

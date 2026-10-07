@@ -1,3 +1,4 @@
+import { typeScale } from "./type-scale.mjs";
 import { fileURLToPath } from "node:url";
 import { defineConfig } from "vite";
 import { canonicalBlockWatch } from "./block-demo/dev-watch.mjs";
@@ -17,6 +18,7 @@ export default defineConfig({
 		},
 		dedupe: ["react", "react-dom", "zod"],
 	},
+	css: { postcss: { plugins: [typeScale()] } },
 	plugins: [
 		tailwindcss(),
 		canonicalBlockWatch({

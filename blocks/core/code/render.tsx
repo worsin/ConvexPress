@@ -22,4 +22,4 @@ export default defineBlock("core/code", ({ attrs }) => (
 			</section>
 		</P.Stack>
 	</P.Card>
-));
+), { flow: "prose" });

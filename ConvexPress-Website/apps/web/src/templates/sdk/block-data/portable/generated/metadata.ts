@@ -1503,7 +1503,13 @@ export const dependencyDescriptors = {
     "version": 1
   },
   "core/author-bio": {
-    "data": null,
+    "data": {
+      "args": {
+        "useCurrentAuthor": "attrs.useCurrentAuthor",
+        "userId": "attrs.userId"
+      },
+      "resolver": "content.author"
+    },
     "fields": [
       {
         "allowEmpty": true,
@@ -3094,7 +3100,7 @@ export const dependencyDescriptors = {
     "source": "blocks/core/list/block.json",
     "supports": {
       "anchor": true,
-      "children": false,
+      "children": true,
       "layout": [
         "width",
         "tone",
@@ -3104,7 +3110,7 @@ export const dependencyDescriptors = {
       "styles": true,
       "visibility": true
     },
-    "supportsChildren": false,
+    "supportsChildren": true,
     "treatments": [],
     "version": 2
   },
@@ -5518,10 +5524,20 @@ export const packBlockPresentation = {
         "default",
         "outline"
       ],
+      "core/feature-grid": [
+        "default",
+        "cards",
+        "minimal"
+      ],
       "core/hero": [
         "default",
         "editorial",
         "poster"
+      ],
+      "core/testimonials": [
+        "default",
+        "editorial",
+        "wall"
       ]
     }
   },
@@ -5532,10 +5548,20 @@ export const packBlockPresentation = {
         "default",
         "inset"
       ],
+      "core/feature-grid": [
+        "default",
+        "cards",
+        "minimal"
+      ],
       "core/hero": [
         "default",
         "editorial",
         "poster"
+      ],
+      "core/testimonials": [
+        "default",
+        "editorial",
+        "wall"
       ]
     }
   }

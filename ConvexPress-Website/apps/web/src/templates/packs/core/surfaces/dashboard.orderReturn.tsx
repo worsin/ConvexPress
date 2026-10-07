@@ -4,7 +4,7 @@
  * draft is local UI state; eligibility and the request mutation come from
  * the loader (dashboard/pages/orders/OrderReturnPage.tsx).
  */
-import { useState } from "react";
+import { useId, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { ArrowLeft, RotateCcw, CheckCircle2 } from "lucide-react";
 
@@ -66,6 +66,7 @@ const REASON_OPTIONS = [
 
 export default function CoreDashboardOrderReturn({ data }: SurfaceProps<DashboardOrderReturnSurfaceData>) {
   const { eligibility, submitting, submitted, hrefs, actions } = data;
+  const formId = useId();
 
   const [selectedItems, setSelectedItems] = useState<
     Record<string, { selected: boolean; quantity: number; reason: string }>
@@ -256,6 +257,7 @@ export default function CoreDashboardOrderReturn({ data }: SurfaceProps<Dashboar
                   <div className="flex items-start gap-3">
                     <input
                       type="checkbox"
+                      aria-labelledby={`${formId}-${item.orderItemId}-title`}
                       checked={!!isSelected}
                       onChange={() =>
                         toggleItem(
@@ -267,7 +269,7 @@ export default function CoreDashboardOrderReturn({ data }: SurfaceProps<Dashboar
                       className="mt-1 h-4 w-4 rounded border-border"
                     />
                     <div className="min-w-0 flex-1">
-                      <p className="text-sm font-medium text-foreground">
+                      <p id={`${formId}-${item.orderItemId}-title`} className="text-sm font-medium text-foreground">
                         {item.productTitle}
                       </p>
                       <p className="text-xs text-muted-foreground">
@@ -291,10 +293,11 @@ export default function CoreDashboardOrderReturn({ data }: SurfaceProps<Dashboar
                       {isSelected && item.eligible && (
                         <div className="mt-3 space-y-2">
                           <div className="flex items-center gap-3">
-                            <label className="text-xs text-muted-foreground">
+                            <label htmlFor={`${formId}-${item.orderItemId}-quantity`} className="text-xs text-muted-foreground">
                               Return qty:
                             </label>
                             <select
+                              id={`${formId}-${item.orderItemId}-quantity`}
                               value={
                                 selectedItems[item.orderItemId]?.quantity ??
                                 item.quantityAvailableToReturn
@@ -318,6 +321,7 @@ export default function CoreDashboardOrderReturn({ data }: SurfaceProps<Dashboar
                             </select>
                           </div>
                           <input
+                            aria-label={`Reason for returning ${item.productTitle} (optional)`}
                             value={selectedItems[item.orderItemId]?.reason ?? ""}
                             onChange={(e) =>
                               updateItemReason(item.orderItemId, e.target.value)
@@ -336,14 +340,15 @@ export default function CoreDashboardOrderReturn({ data }: SurfaceProps<Dashboar
 
           {/* Reason */}
           <div className="space-y-3">
-            <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+            <h2 id={`${formId}-reason`} className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
               Reason for Return
             </h2>
-            <div className="grid gap-2 sm:grid-cols-2">
+            <div role="group" aria-labelledby={`${formId}-reason`} className="grid gap-2 sm:grid-cols-2">
               {REASON_OPTIONS.map((opt) => (
                 <button
                   key={opt.value}
                   type="button"
+                  aria-pressed={mainReason === opt.value}
                   onClick={() => setMainReason(opt.value)}
                   className={`rounded-xl border px-4 py-3 text-left text-sm font-medium transition-colors ${
                     mainReason === opt.value
@@ -359,10 +364,11 @@ export default function CoreDashboardOrderReturn({ data }: SurfaceProps<Dashboar
 
           {/* Notes */}
           <div className="space-y-2">
-            <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+            <h2 id={`${formId}-notes`} className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
               Additional Notes
             </h2>
             <textarea
+              aria-labelledby={`${formId}-notes`}
               value={additionalNotes}
               onChange={(e) => setAdditionalNotes(e.target.value)}
               placeholder="Provide any additional details about your return..."

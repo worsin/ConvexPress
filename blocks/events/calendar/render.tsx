@@ -1,3 +1,4 @@
+// Normalize ICU date-range spacing so server and browser text hydrate identically.
 import {useState} from 'react';
 import {defineDataBlock} from '../../../ConvexPress-Website/apps/web/src/templates/sdk/block-renderer/model';
 import {useBlockPageHref} from '../../../ConvexPress-Website/apps/web/src/templates/sdk/block-renderer/pagination';
@@ -6,7 +7,11 @@ import * as P from '../../../ConvexPress-Website/apps/web/src/templates/sdk/prim
 import '../../../ConvexPress-Website/apps/web/src/templates/sdk/block-renderer/calendar.css';
 const weekdays=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
 export default defineDataBlock('events/calendar','events.list',({attrs,data,blockId})=>{
- const [view,setView]=useState<'month'|'agenda'>(attrs.view),pageHref=useBlockPageHref(blockId);
+ const [display,setDisplay]=useState({authored:attrs.view,selected:attrs.view}),pageHref=useBlockPageHref(blockId);
+ // Apply author edits and undo without discarding visitor choice on data refresh.
+ if(display.authored!==attrs.view)setDisplay({authored:attrs.view,selected:attrs.view});
+ const view=display.authored===attrs.view?display.selected:attrs.view;
+ const setView=(selected:'month'|'agenda')=>setDisplay({authored:attrs.view,selected});
  const href=(month:string|null,cursor:string|null=null)=>month?pageHref(JSON.stringify({month,cursor})):null;
  const label=new Intl.DateTimeFormat('en',{month:'long',year:'numeric',timeZone:data.timeZone}).format(data.startsAt);
  const days=calendarDays(data.month,data.timeZone),leading=days[0]!.weekday;
@@ -23,7 +28,7 @@ export default defineDataBlock('events/calendar','events.list',({attrs,data,bloc
   {view==='month'?<div className="cp-calendar-month"><table><caption className="cp-calendar-sr">{label}. This calendar shows the events on the current page.{data.nextCursor?' More events are available below.':''}</caption>
    <thead><tr>{weekdays.map(day=><th scope="col" key={day}><abbr title={day}>{day.slice(0,3)}</abbr></th>)}</tr></thead>
    <tbody>{Array.from({length:cells.length/7},(_,week)=><tr key={week}>{cells.slice(week*7,week*7+7).map((day,index)=><td key={day?.date??`blank-${index}`} className={day?'':'cp-calendar-blank'}>{day&&<><time className="cp-calendar-day" dateTime={day.date}>{day.day}</time><ul>{data.items.filter(event=>eventOverlapsWindow(event,day)).map(event=><li key={event.id}><P.Link href={event.href} label={event.title}/></li>)}</ul></>}</td>)}</tr>)}</tbody>
-  </table><ol className="cp-calendar-compact-events" aria-label="Events on this calendar page">{data.items.map(event=><li key={event.id}><P.Link href={event.href} label={event.title}/><P.Text size="sm" tone="muted">{dateFormat.formatRange(event.startsAt,event.endsAt)}</P.Text></li>)}</ol></div>:<div className="cp-calendar-agenda">{data.items.map(event=><article key={event.id}><div className="cp-calendar-agenda-date"><P.Text size="sm" tone="muted">{event.startsAt<data.startsAt?'Continues into this month':new Intl.DateTimeFormat('en',{weekday:'long',timeZone:data.timeZone}).format(event.startsAt)}</P.Text><P.Text>{dateFormat.formatRange(event.startsAt,event.endsAt)}</P.Text></div><div><P.Heading level={3} size="md"><P.Link href={event.href} label={event.title}/></P.Heading>{event.venue&&<P.Text size="sm" tone="muted">{event.venue}</P.Text>}{event.description&&<P.Text>{event.description}</P.Text>}</div></article>)}</div>}
+  </table><ol className="cp-calendar-compact-events" aria-label="Events on this calendar page">{data.items.map(event=><li key={event.id}><P.Link href={event.href} label={event.title}/><P.Text size="sm" tone="muted">{dateFormat.formatRange(event.startsAt,event.endsAt).replace(/[\u00a0\u2009\u202f]/gu,' ')}</P.Text></li>)}</ol></div>:<div className="cp-calendar-agenda">{data.items.map(event=><article key={event.id}><div className="cp-calendar-agenda-date"><P.Text size="sm" tone="muted">{event.startsAt<data.startsAt?'Continues into this month':new Intl.DateTimeFormat('en',{weekday:'long',timeZone:data.timeZone}).format(event.startsAt)}</P.Text><P.Text>{dateFormat.formatRange(event.startsAt,event.endsAt).replace(/[\u00a0\u2009\u202f]/gu,' ')}</P.Text></div><div><P.Heading level={3} size="md"><P.Link href={event.href} label={event.title}/></P.Heading>{event.venue&&<P.Text size="sm" tone="muted">{event.venue}</P.Text>}{event.description&&<P.Text>{event.description}</P.Text>}</div></article>)}</div>}
   {!data.items.length&&<div className="cp-calendar-empty"><P.Text>{data.nextCursor?'No accessible events on this page. Continue to browse this month.':data.cursor?'You’ve reached the end of this month’s events.':'A little room for something new. No events are scheduled for these filters this month.'}</P.Text></div>}
   {(data.cursor||data.nextCursor)&&<nav className="cp-calendar-paging" aria-label="Calendar event pages">{first&&<P.Link href={first} label="First events this month"/>}{more&&<P.Link href={more} label="More events this month →"/>}</nav>}
  </section>;

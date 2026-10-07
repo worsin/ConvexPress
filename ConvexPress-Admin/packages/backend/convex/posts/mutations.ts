@@ -1,16 +1,14 @@
 import * as catalogRevisionWrites from "../media/attachmentGuard";
 import { deleteTermRelationship } from "../helpers/postDiscovery";
 import { insertTermRelationship } from "../helpers/postDiscovery";
-import { canonicalBoundary, duplicateDocument } from "../canonicalDocuments/service";
-import { reconcileManualSaveAutosave } from "../helpers/autosaveReconciliation";
+import { canonicalBoundary, duplicateDocument, canonicalTrashRestorePermit } from "../canonicalDocuments/service";
+
 import { assertNoNewDisabledBlocks } from "../blocks/policy";
 import { replacePublicationSchedule } from "../helpers/publicationSchedule";
 /**
  * Post System - Mutations
  *
  * All write operations for the post lifecycle:
- *   create           - Create a new post (auto-draft by default)
- *   update           - Update an existing post
  *   publish          - Publish a post
  *   unpublish        - Revert a published post to draft
  *   trash            - Move a post to trash
@@ -41,23 +39,21 @@ import { replacePublicationSchedule } from "../helpers/publicationSchedule";
 import { ConvexError, v } from "convex/values";
 import { authoringSnapshot } from "../helpers/authoringSnapshot";
 import { canEditContent } from "../helpers/publicContent";
-import { isPublicAuthor } from "../helpers/publicAuthor";
+
 import { assertPagePathAvailable } from "../helpers/pageRouteGuard";
 import { prepareContentRestrictionCopy } from "../membership/policyCopy";
 import { mutation } from "../_generated/server";
 import { internal } from "../_generated/api";
 import type { Doc } from "../_generated/dataModel";
-import { sanitizeTipTapContent } from "../helpers/sanitize";
-import { requireCan, getCurrentUser , getUserIdentifier } from "../helpers/permissions";
+
+import { requireCan, getCurrentUser, getUserIdentifier } from "../helpers/permissions";
 import { emitEvent } from "../helpers/events";
 import { POST_EVENTS, SYSTEM } from "../events/constants";
-import { generateUniqueSlug, sanitizeSlug } from "../helpers/slug";
+import { generateUniqueSlug } from "../helpers/slug";
 import { checkPostCapability, isPostOwner, getUserRoleLevel } from "../helpers/postAuth";
-import { setMediaAttachment, setMediaAttachmentBatch } from "../media/helpers";
+
 import type { AuthUser, AuthPost } from "../helpers/postAuth";
 import {
-  createPostArgs,
-  updatePostArgs,
   publishPostArgs,
   unpublishPostArgs,
   schedulePostArgs,
@@ -65,7 +61,6 @@ import {
   restorePostArgs,
   deletePostArgs,
   duplicatePostArgs,
-  autosavePostArgs,
   bulkTrashArgs,
   bulkRestoreArgs,
   bulkDeleteArgs,
@@ -74,635 +69,17 @@ import {
   deleteMetaArgs,
   bulkSetMetaArgs,
   MAX_TITLE_LENGTH,
-  MAX_EXCERPT_LENGTH,
   MAX_BULK_SIZE,
-  MAX_TOPICS,
   TRASH_PURGE_DAYS_MS,
 } from "./validators";
-import { validateBlocks, validateBlocksAgainstCatalog, getStoredBlocks, type StoredBlock } from "../blocks/helpers";
+import { validateBlocks, validateBlocksAgainstCatalog } from "../blocks/helpers";
 import { deleteWithMediaReferences, insertWithMediaReferences, patchWithMediaReferences } from "../media/attachmentGuard";
 
 type PostStatus = Doc<"posts">["status"];
 
-// ─── Create ─────────────────────────────────────────────────────────────────
+// New documents are created through canonicalDocuments.create or the canonical HTTP API.
 
-/**
- * Create a new post.
- *
- * Defaults to "auto-draft" status with empty title/content.
- * Generates a unique slug from the title.
- * Assigns default category if no categories are specified.
- *
- * @returns The new post document ID
- */
-export const create = mutation({
-  args: createPostArgs,
-  handler: async (ctx, args) => {
-    const user = await requireCan(ctx, "post.create");
-
-    // ── Validate title ──────────────────────────────────────────────────
-    const title = (args.title ?? "").trim();
-    if (title.length > MAX_TITLE_LENGTH) {
-      throw new ConvexError({
-        code: "VALIDATION_ERROR",
-        message: `Title must be ${MAX_TITLE_LENGTH} characters or fewer`,
-      });
-    }
-
-    // ── Validate excerpt ────────────────────────────────────────────────
-    if (args.excerpt && args.excerpt.length > MAX_EXCERPT_LENGTH) {
-      throw new ConvexError({
-        code: "VALIDATION_ERROR",
-        message: `Excerpt must be ${MAX_EXCERPT_LENGTH} characters or fewer`,
-      });
-    }
-
-    // ── Determine status ────────────────────────────────────────────────
-    let status = args.status ?? "auto-draft";
-
-    // Contributors cannot publish/schedule/set private
-    const roleLevel = await getUserRoleLevel(ctx, user as AuthUser);
-    if (roleLevel < 60 && ["publish", "future", "private"].includes(status)) {
-      status = "pending";
-    }
-
-    // ── Visibility logic ────────────────────────────────────────────────
-    let visibility = args.visibility ?? "public";
-    if (status === "private") {
-      visibility = "private";
-    }
-    if (visibility === "password" && !args.password) {
-      throw new ConvexError({
-        code: "VALIDATION_ERROR",
-        message: "Password is required when visibility is 'password'",
-      });
-    }
-
-    // ── Future scheduling validation ────────────────────────────────────
-    let scheduledAt = args.scheduledAt;
-    if (status === "future") {
-      if (!scheduledAt || scheduledAt <= Date.now()) {
-        throw new ConvexError({
-          code: "VALIDATION_ERROR",
-          message: "Scheduled date must be in the future",
-        });
-      }
-    }
-
-    // ── Generate slug ───────────────────────────────────────────────────
-    const slug = await generateUniqueSlug(ctx, title || "auto-draft", "post");
-
-    // ── Determine comment status default ────────────────────────────────
-    const commentStatus = args.commentStatus ?? "open";
-
-    // ── Insert post ─────────────────────────────────────────────────────
-    const now = Date.now();
-    // ── Validate structured content ────────────────────────────────────
-    if (args.topics && args.topics.length > MAX_TOPICS) {
-      throw new ConvexError({
-        code: "VALIDATION_ERROR",
-        message: `Maximum ${MAX_TOPICS} topics allowed`,
-      });
-    }
-
-    let blocks = args.blocks;
-    if (blocks) {
-      validateBlocks(blocks as StoredBlock[]);
-      blocks = validateBlocksAgainstCatalog(blocks as StoredBlock[]);
-      await assertNoNewDisabledBlocks(ctx, [], blocks as StoredBlock[]);
-    }
-
-    const postId: import("../_generated/dataModel").Id<"posts"> = await insertWithMediaReferences<"posts">(ctx, "posts", {
-      type: "post",
-      title,
-      slug,
-      content: sanitizeTipTapContent(args.content),
-      excerpt: args.excerpt,
-      status,
-      visibility,
-      password: visibility === "password" ? args.password : undefined,
-      authorId: user._id,
-      featuredImageId: args.featuredImageId,
-      commentStatus,
-      commentCount: 0,
-      isSticky: args.isSticky ?? false,
-      publishedAt: status === "publish" ? now : undefined,
-      scheduledAt: status === "future" ? scheduledAt : undefined,
-      // Structured content fields
-      hero: args.hero,
-      topics: args.topics,
-      summary: args.summary,
-      sources: args.sources,
-      tableOfContents: args.tableOfContents,
-      pagePrompt: args.pagePrompt,
-      contentMode: args.contentMode ?? "blocks",
-      blocks,
-      blocksVersion: args.blocksVersion ?? (args.blocks ? 1 : undefined),
-      blocksRevision: args.blocksRevision ?? (args.blocks ? 1 : undefined),
-      layoutId: args.layoutId || undefined,
-      hideHeader: args.hideHeader,
-      hideFooter: args.hideFooter,
-      createdAt: now,
-      updatedAt: now,
-    });
-
-    // ── Auto-attach media to this post (WP-style first-use wins) ─────────
-    await setMediaAttachment(ctx, args.featuredImageId, postId);
-    if (args.hero?.imageId) {
-      await setMediaAttachment(ctx, args.hero.imageId, postId);
-    }
-    if (Array.isArray(args.topics)) {
-      await setMediaAttachmentBatch(
-        ctx,
-        args.topics.map((t: any) => t?.imageId).filter(Boolean),
-        postId,
-      );
-    }
-
-    // ── Handle scheduled publish ────────────────────────────────────────
-    if (status === "future" && scheduledAt) {
-      await replacePublicationSchedule(ctx, postId, scheduledAt);
-    }
-
-    // ── Assign taxonomy terms ───────────────────────────────────────────
-    // Note: Category/tag assignment is handled by the Taxonomy System.
-    // If no categories are assigned, the default "Uncategorized" category
-    // should be assigned on publish. For now, we store the intent and
-    // let the Taxonomy System handle it.
-    if (args.categoryIds && args.categoryIds.length > 0) {
-      for (const termId of args.categoryIds) {
-        // Check if relationship already exists
-        const existing = await ctx.db
-          .query("termRelationships")
-          .withIndex("by_post_term", (q) =>
-            q.eq("postId", postId).eq("termId", termId),
-          )
-          .unique();
-        if (!existing) {
-          await insertTermRelationship(ctx, {
-            postId,
-            termId,
-          });
-        }
-      }
-    }
-
-    if (args.tagIds && args.tagIds.length > 0) {
-      for (const termId of args.tagIds) {
-        const existing = await ctx.db
-          .query("termRelationships")
-          .withIndex("by_post_term", (q) =>
-            q.eq("postId", postId).eq("termId", termId),
-          )
-          .unique();
-        if (!existing) {
-          await insertTermRelationship(ctx, {
-            postId,
-            termId,
-          });
-        }
-      }
-    }
-
-    // ── Emit event ──────────────────────────────────────────────────────
-    await emitEvent(ctx, POST_EVENTS.CREATED, SYSTEM.POST, {
-      postId,
-      title,
-      authorId: user._id,
-      postType: "post",
-      status,
-    });
-
-    // ── Emit post.scheduled event if status is "future" (C1 fix) ─────
-    if (status === "future" && scheduledAt) {
-      await emitEvent(ctx, POST_EVENTS.SCHEDULED, SYSTEM.POST, {
-        postId,
-        title,
-        authorId: user._id,
-        scheduledFor: scheduledAt,
-      });
-    }
-
-    return postId;
-  },
-});
-
-// ─── Update ─────────────────────────────────────────────────────────────────
-
-/**
- * Update an existing post.
- *
- * Handles status transitions, slug regeneration, ownership checks,
- * and change tracking for the event payload.
- */
-export const update = mutation({
-  args: updatePostArgs,
-  handler: async (ctx, args) => {
-    const user = await requireCan(ctx, "post.update");
-
-    // ── Fetch existing post ─────────────────────────────────────────────
-    const post = await ctx.db.get("posts", args.postId);
-    if (!post) {
-      throw new ConvexError({
-        code: "NOT_FOUND",
-        message: "Post not found",
-      });
-    }
-
-    // ── Ownership check ─────────────────────────────────────────────────
-    await checkPostCapability(ctx, user as AuthUser, post as AuthPost, "edit");
-
-    // ── Validate title ──────────────────────────────────────────────────
-    if (args.title !== undefined && args.title.trim().length > MAX_TITLE_LENGTH) {
-      throw new ConvexError({
-        code: "VALIDATION_ERROR",
-        message: `Title must be ${MAX_TITLE_LENGTH} characters or fewer`,
-      });
-    }
-
-    // ── Validate excerpt ────────────────────────────────────────────────
-    if (args.excerpt !== undefined && args.excerpt.length > MAX_EXCERPT_LENGTH) {
-      throw new ConvexError({
-        code: "VALIDATION_ERROR",
-        message: `Excerpt must be ${MAX_EXCERPT_LENGTH} characters or fewer`,
-      });
-    }
-
-    // ── Build patch ─────────────────────────────────────────────────────
-    const now = Date.now();
-    const patch: Record<string, unknown> = { updatedAt: now };
-    const changes: Array<{ field: string; oldValue: unknown; newValue: unknown }> = [];
-
-    // Title
-    if (args.title !== undefined) {
-      const newTitle = args.title.trim();
-      if (newTitle !== post.title) {
-        patch.title = newTitle;
-        changes.push({ field: "title", oldValue: post.title, newValue: newTitle });
-      }
-    }
-
-    // Content
-    if (args.content !== undefined && args.content !== post.content) {
-      patch.content = sanitizeTipTapContent(args.content);
-      changes.push({ field: "content", oldValue: "[content]", newValue: "[content]" });
-    }
-
-    // Excerpt
-    if (args.excerpt !== undefined && args.excerpt !== post.excerpt) {
-      patch.excerpt = args.excerpt || undefined;
-      changes.push({ field: "excerpt", oldValue: post.excerpt, newValue: args.excerpt });
-    }
-
-    // Slug
-    if (args.slug !== undefined) {
-      const sanitized = sanitizeSlug(args.slug);
-      if (!sanitized) {
-        throw new ConvexError({
-          code: "VALIDATION_ERROR",
-          message: "Invalid slug format",
-        });
-      }
-      if (sanitized !== post.slug) {
-        // Check uniqueness
-        const slugConflict = await ctx.db
-          .query("posts")
-          .withIndex("by_slug", (q) =>
-            q.eq("slug", sanitized).eq("type", post.type),
-          )
-          .first();
-        if (slugConflict && slugConflict._id !== args.postId) {
-          throw new ConvexError({
-            code: "CONFLICT",
-            message: `Slug "${sanitized}" is already in use`,
-          });
-        }
-        patch.slug = sanitized;
-        changes.push({ field: "slug", oldValue: post.slug, newValue: sanitized });
-      }
-    }
-
-    // Status
-    if (args.status !== undefined && args.status !== post.status) {
-      const roleLevel = await getUserRoleLevel(ctx, user as AuthUser);
-      let newStatus = args.status;
-
-      // Contributors cannot publish/schedule/set private
-      if (roleLevel < 60 && ["publish", "future", "private"].includes(newStatus)) {
-        newStatus = "pending";
-      }
-
-      patch.status = newStatus;
-      changes.push({ field: "status", oldValue: post.status, newValue: newStatus });
-
-      // Handle scheduled publish
-      if (newStatus === "future") {
-        const scheduledAt = args.scheduledAt;
-        if (!scheduledAt || scheduledAt <= Date.now()) {
-          throw new ConvexError({
-            code: "VALIDATION_ERROR",
-            message: "Scheduled date must be in the future",
-          });
-        }
-        patch.scheduledAt = scheduledAt;
-        await replacePublicationSchedule(ctx, args.postId, scheduledAt);
-      }
-
-      // If publishing, set publishedAt
-      if (newStatus === "publish" && !post.publishedAt) {
-        patch.publishedAt = now;
-      }
-
-      // If making private, update visibility
-      if (newStatus === "private") {
-        patch.visibility = "private";
-      }
-    }
-
-    // A new deadline also matters when status remains future.
-    if (post.status === "future" && (args.status === undefined || args.status === "future") &&
-        args.scheduledAt !== undefined && args.scheduledAt !== post.scheduledAt) {
-      await requireCan(ctx, "post.publish");
-      await checkPostCapability(ctx, user as AuthUser, post as AuthPost, "publish");
-      await replacePublicationSchedule(ctx, args.postId, args.scheduledAt);
-      patch.scheduledAt = args.scheduledAt;
-      changes.push({ field: "scheduledAt", oldValue: post.scheduledAt, newValue: args.scheduledAt });
-    }
-
-    // Visibility
-    if (args.visibility !== undefined && args.visibility !== post.visibility) {
-      if (args.visibility === "password" && !args.password && !post.password) {
-        throw new ConvexError({
-          code: "VALIDATION_ERROR",
-          message: "Password is required when visibility is 'password'",
-        });
-      }
-      patch.visibility = args.visibility;
-      changes.push({ field: "visibility", oldValue: post.visibility, newValue: args.visibility });
-    }
-
-    // Password
-    if (args.password !== undefined) {
-      patch.password = args.password || undefined;
-    }
-
-    // Comment status
-    if (args.commentStatus !== undefined && args.commentStatus !== post.commentStatus) {
-      patch.commentStatus = args.commentStatus;
-      changes.push({ field: "commentStatus", oldValue: post.commentStatus, newValue: args.commentStatus });
-    }
-
-    // Featured image
-    if (args.featuredImageId !== undefined) {
-      patch.featuredImageId = args.featuredImageId ?? undefined;
-      if (post.featuredImageId !== args.featuredImageId) {
-        changes.push({ field: "featuredImageId", oldValue: post.featuredImageId, newValue: args.featuredImageId });
-      }
-    }
-
-    // Sticky
-    if (args.isSticky !== undefined && args.isSticky !== post.isSticky) {
-      // Only Editor+ can set sticky
-      const roleLevel = await getUserRoleLevel(ctx, user as AuthUser);
-      if (roleLevel < 80) {
-        throw new ConvexError({
-          code: "FORBIDDEN",
-          message: "Only Editors and Administrators can set sticky posts",
-        });
-      }
-      patch.isSticky = args.isSticky;
-      changes.push({ field: "isSticky", oldValue: post.isSticky, newValue: args.isSticky });
-    }
-
-    // Author reassignment
-    if (args.authorId !== undefined && args.authorId !== post.authorId) {
-      const roleLevel = await getUserRoleLevel(ctx, user as AuthUser);
-      if (roleLevel < 80) {
-        throw new ConvexError({
-          code: "FORBIDDEN",
-          message: "Only Editors and Administrators can change post author",
-        });
-      }
-      const author = await ctx.db.get("users", args.authorId);
-      if (!isPublicAuthor(author)) {
-        throw new ConvexError({
-          code: "VALIDATION_ERROR",
-          message: "Choose an active site user as the post author",
-        });
-      }
-      patch.authorId = args.authorId;
-      changes.push({ field: "authorId", oldValue: post.authorId, newValue: args.authorId });
-    }
-
-    // Menu order
-    if (args.menuOrder !== undefined && args.menuOrder !== post.menuOrder) {
-      patch.menuOrder = args.menuOrder;
-    }
-
-    if (args.layoutId !== undefined && args.layoutId !== post.layoutId) {
-      patch.layoutId = args.layoutId || undefined;
-      changes.push({ field: "layoutId", oldValue: post.layoutId, newValue: args.layoutId });
-    }
-    if (args.hideHeader !== undefined && args.hideHeader !== post.hideHeader) {
-      patch.hideHeader = args.hideHeader;
-      changes.push({ field: "hideHeader", oldValue: post.hideHeader, newValue: args.hideHeader });
-    }
-    if (args.hideFooter !== undefined && args.hideFooter !== post.hideFooter) {
-      patch.hideFooter = args.hideFooter;
-      changes.push({ field: "hideFooter", oldValue: post.hideFooter, newValue: args.hideFooter });
-    }
-
-    // ── Structured content fields ──────────────────────────────────────
-    if (args.hero !== undefined) {
-      patch.hero = args.hero;
-      changes.push({ field: "hero", oldValue: "[hero]", newValue: "[hero]" });
-    }
-    if (args.topics !== undefined) {
-      if (args.topics && args.topics.length > MAX_TOPICS) {
-        throw new ConvexError({
-          code: "VALIDATION_ERROR",
-          message: `Maximum ${MAX_TOPICS} topics allowed`,
-        });
-      }
-      patch.topics = args.topics;
-      changes.push({ field: "topics", oldValue: "[topics]", newValue: "[topics]" });
-    }
-    if (args.summary !== undefined) {
-      patch.summary = args.summary;
-      changes.push({ field: "summary", oldValue: "[summary]", newValue: "[summary]" });
-    }
-    if (args.sources !== undefined) {
-      patch.sources = args.sources;
-      changes.push({ field: "sources", oldValue: "[sources]", newValue: "[sources]" });
-    }
-    if (args.tableOfContents !== undefined) {
-      patch.tableOfContents = args.tableOfContents;
-      changes.push({ field: "tableOfContents", oldValue: "[toc]", newValue: "[toc]" });
-    }
-    if (args.pagePrompt !== undefined && args.pagePrompt !== post.pagePrompt) {
-      patch.pagePrompt = args.pagePrompt;
-      changes.push({ field: "pagePrompt", oldValue: post.pagePrompt, newValue: args.pagePrompt });
-    }
-    if (args.contentMode !== undefined && args.contentMode !== post.contentMode) {
-      patch.contentMode = args.contentMode;
-      changes.push({ field: "contentMode", oldValue: post.contentMode, newValue: args.contentMode });
-    }
-    if (args.blocks !== undefined) {
-      validateBlocks(args.blocks as StoredBlock[]);
-      const blocks = validateBlocksAgainstCatalog(args.blocks as StoredBlock[]);
-      await assertNoNewDisabledBlocks(ctx, getStoredBlocks(post), blocks);
-      patch.blocks = blocks;
-      patch.blocksVersion = args.blocksVersion ?? post.blocksVersion ?? 1;
-      patch.blocksRevision =
-        args.blocksRevision ?? ((post.blocksRevision as number | undefined) ?? 0) + 1;
-      changes.push({ field: "blocks", oldValue: "[blocks]", newValue: "[blocks]" });
-    }
-    if (args.blocksVersion !== undefined && args.blocks === undefined) {
-      patch.blocksVersion = args.blocksVersion;
-      changes.push({ field: "blocksVersion", oldValue: post.blocksVersion, newValue: args.blocksVersion });
-    }
-    if (args.blocksRevision !== undefined && args.blocks === undefined) {
-      patch.blocksRevision = args.blocksRevision;
-      changes.push({ field: "blocksRevision", oldValue: post.blocksRevision, newValue: args.blocksRevision });
-    }
-
-    // Retire only an autosave pair represented by this transaction's saved body.
-    Object.assign(patch, reconcileManualSaveAutosave(post, patch, args));
-
-    // ── Create revision snapshot BEFORE applying patch ─────────────────
-    // Must be synchronous (not scheduled) to guarantee the snapshot captures
-    // the state BEFORE the update is applied within this same transaction.
-    if (post.status !== "auto-draft" && changes.length > 0) {
-      const changedFieldNames = changes.map((c) => c.field);
-      await ctx.runMutation(
-        internal.revisions.internals.createOnSave,
-        {
-          parentId: args.postId,
-          parentType: post.type,
-          title: post.title ?? "",
-          content: post.content ?? "",
-          excerpt: post.excerpt,
-          authorId: getUserIdentifier(user),
-          changedFields: changedFieldNames,
-        },
-      );
-    }
-
-    // ── Apply patch ─────────────────────────────────────────────────────
-    await patchWithMediaReferences<"posts">(ctx, "posts", args.postId, patch);
-
-    // ── Auto-attach any newly-assigned media (first-use wins) ────────────
-    if (args.featuredImageId !== undefined && args.featuredImageId) {
-      await setMediaAttachment(ctx, args.featuredImageId, args.postId);
-    }
-    if (args.hero?.imageId) {
-      await setMediaAttachment(ctx, args.hero.imageId, args.postId);
-    }
-    if (Array.isArray(args.topics)) {
-      await setMediaAttachmentBatch(
-        ctx,
-        args.topics.map((t: any) => t?.imageId).filter(Boolean),
-        args.postId,
-      );
-    }
-
-    // ── Handle taxonomy updates ─────────────────────────────────────────
-    if (args.categoryIds !== undefined) {
-      // Delete existing category relationships
-      const existingRels = await ctx.db
-        .query("termRelationships")
-        .withIndex("by_post", (q) => q.eq("postId", args.postId))
-        .collect();
-
-      for (const rel of existingRels) {
-        const term = await ctx.db.get("terms", rel.termId);
-        if (term && term.taxonomy === "category") {
-          await deleteTermRelationship(ctx, rel._id);
-        }
-      }
-
-      // Insert new category relationships
-      if (args.categoryIds.length > 0) {
-        for (const termId of args.categoryIds) {
-          await insertTermRelationship(ctx, {
-            postId: args.postId,
-            termId,
-          });
-        }
-      } else {
-        // Ensure at least one category (default) if categoryIds is empty
-        const defaultCategory = await ctx.db
-          .query("terms")
-          .withIndex("by_isDefault", (q) => q.eq("isDefault", true))
-          .first();
-
-        if (defaultCategory && defaultCategory.taxonomy === "category") {
-          await insertTermRelationship(ctx, {
-            postId: args.postId,
-            termId: defaultCategory._id,
-          });
-        }
-      }
-    }
-
-    if (args.tagIds !== undefined) {
-      // Delete existing tag relationships
-      const existingRels = await ctx.db
-        .query("termRelationships")
-        .withIndex("by_post", (q) => q.eq("postId", args.postId))
-        .collect();
-
-      for (const rel of existingRels) {
-        const term = await ctx.db.get("terms", rel.termId);
-        if (term && term.taxonomy === "post_tag") {
-          await deleteTermRelationship(ctx, rel._id);
-        }
-      }
-
-      // Insert new tag relationships
-      for (const termId of args.tagIds) {
-        await insertTermRelationship(ctx, {
-          postId: args.postId,
-          termId,
-        });
-      }
-    }
-
-    // ── Emit event ──────────────────────────────────────────────────────
-    if (changes.length > 0) {
-      await emitEvent(ctx, POST_EVENTS.UPDATED, SYSTEM.POST, {
-        postId: args.postId,
-        title: (patch.title as string) ?? post.title,
-        authorId: (patch.authorId as string) ?? post.authorId,
-        changes,
-      });
-    }
-
-    // ── Emit post.status_changed event when status transitions (C2 fix)
-    const statusChange = changes.find((c) => c.field === "status");
-    if (statusChange) {
-      await emitEvent(ctx, POST_EVENTS.STATUS_CHANGED, SYSTEM.POST, {
-        postId: args.postId,
-        title: (patch.title as string) ?? post.title,
-        authorId: (patch.authorId as string) ?? post.authorId,
-        oldStatus: statusChange.oldValue,
-        newStatus: statusChange.newValue,
-      });
-
-      // ── Emit post.scheduled event if new status is "future" (C1 fix)
-      if (statusChange.newValue === "future" && patch.scheduledAt) {
-        await emitEvent(ctx, POST_EVENTS.SCHEDULED, SYSTEM.POST, {
-          postId: args.postId,
-          title: (patch.title as string) ?? post.title,
-          authorId: (patch.authorId as string) ?? post.authorId,
-          scheduledFor: patch.scheduledAt,
-        });
-      }
-    }
-
-    return args.postId;
-  },
-});
+// Metadata and authoring use revision-checked canonicalDocuments mutations.
 
 // ─── Publish ────────────────────────────────────────────────────────────────
 
@@ -1053,13 +430,15 @@ export const restore = mutation({
       newSlug = await generateUniqueSlug(ctx, post.title, post.type as "post" | "page", args.postId);
     }
 
-    await patchWithMediaReferences<"posts">(ctx, "posts", args.postId, {
+    const restorePatch = {
       status: restoredStatus,
       previousStatus: undefined,
       trashedAt: undefined,
       slug: newSlug,
       updatedAt: now,
-    });
+    };
+    const restorePermit = await canonicalTrashRestorePermit(ctx, post, restorePatch);
+    await patchWithMediaReferences<"posts">(ctx, "posts", args.postId, restorePatch, restorePermit);
 
     await emitEvent(ctx, POST_EVENTS.RESTORED, SYSTEM.POST, {
       postId: args.postId,
@@ -1301,59 +680,6 @@ export const duplicate = mutation({
   },
 });
 
-// ─── Autosave ───────────────────────────────────────────────────────────────
-
-/**
- * Autosave post content.
- *
- * Updates only autosave fields. Does NOT:
- *   - Update `updatedAt` (autosave is invisible to modification tracking)
- *   - Create a revision
- *   - Emit events
- */
-export const autosave = mutation({
-  args: autosavePostArgs,
-  handler: async (ctx, args) => {
-    const user = await getCurrentUser(ctx);
-    if (!user) {
-      throw new ConvexError({
-        code: "UNAUTHORIZED",
-        message: "Authentication required",
-      });
-    }
-
-    const post = await ctx.db.get("posts", args.postId);
-    if (!post) {
-      // Silently fail if post was deleted (per knowledge doc)
-      return { autosavedAt: 0 };
-    }
-
-    // Basic edit check - verify user can edit this post
-    if (!isPostOwner(user, post) && (await getUserRoleLevel(ctx, user as AuthUser)) < 80) {
-      throw new ConvexError({
-        code: "FORBIDDEN",
-        message: "Cannot edit this post",
-      });
-    }
-
-    const now = Date.now();
-    const patch: Record<string, unknown> = {
-      autosavedAt: now,
-    };
-
-    if (args.title !== undefined) {
-      patch.autosaveTitle = args.title;
-    }
-    if (args.content !== undefined) {
-      patch.autosaveContent = args.content;
-    }
-
-    await patchWithMediaReferences<"posts">(ctx, "posts", args.postId, patch);
-
-    return { autosavedAt: now };
-  },
-});
-
 // ─── Bulk Trash ─────────────────────────────────────────────────────────────
 
 /**
@@ -1491,13 +817,15 @@ export const bulkRestore = mutation({
           newSlug = await generateUniqueSlug(ctx, post.title, post.type as "post" | "page", postId);
         }
 
-        await patchWithMediaReferences<"posts">(ctx, "posts", postId, {
+        const restorePatch = {
           status: restoredStatus,
           previousStatus: undefined,
           trashedAt: undefined,
           slug: newSlug,
           updatedAt: now,
-        });
+        };
+        const restorePermit = await canonicalTrashRestorePermit(ctx, post, restorePatch);
+        await patchWithMediaReferences<"posts">(ctx, "posts", postId, restorePatch, restorePermit);
 
         await emitEvent(ctx, POST_EVENTS.RESTORED, SYSTEM.POST, {
           postId,

@@ -70,7 +70,7 @@ export function menuToNav(items: MenuTreeNode[] | undefined | null, basePath: st
   for (const item of items) {
     if (item.isOrphaned) continue;
     if (item.itemType === "heading") {
-      out.push({ id: item._id, kind: "heading", label: item.label, href: "", exact: false, external: false, children: [] });
+      out.push({ id: item._id, kind: "heading", label: item.label, href: "", exact: false, external: false, children: menuToNav(item.children ?? [], basePath) });
       continue;
     }
     if (item.itemType === "separator") {

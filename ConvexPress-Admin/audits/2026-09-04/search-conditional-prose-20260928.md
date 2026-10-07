@@ -1,0 +1,38 @@
+# Conditional Library prose and timed search — September 28
+
+E39 remains open; Search Results stays In progress. Tracker counts remain **74 Verified /63 In progress /137**. This batch accepts the specific conditional prose and timed refresh cases below. It does not accept the whole Library search corpus or the full delivery goal.
+
+## Repair boundary
+
+Thirteen canonical specifications now explicitly declare candidate copy: Announcement Bar, Countdown, Account Teaser, Audio, File Download, Before/After, Logo Cloud, Field Guide, Form, Table of Contents, Product Hero, Bundle Offer and Product Collection. The declarations preserve saved fields, versions, defaults, examples and treatments. A reviewed current-text projection uses current resolver data and resources to select visible authored alternatives. It omits hidden details, overflow cards/items, undisclosed prices, unavailable form/product/bundle headings, absent media copy and the opposite account state. Markdown labels follow actual prose rendering; link destinations remain excluded. All reachable authored collection group panels participate, subject to mode, selected IDs and per-panel count.
+
+Announcement/countdown boundaries, supported media types and manual collection selection are shared with the actual renderers. The collection helper slices before mapping; visible cards remain the same. Search still refuses document bodies whose selected media makes rendering unavailable. This is not a broad error-handler sweep.
+
+A live clock probe then demonstrated E40: fresh HTTP search correctly removed expired announcement copy, but an already-open ordinary search page retained its result until reload. Both ordinary search and canonical Search Results now receive the next applicable presentation boundary, including currently hidden future alternatives. Ordinary search uses a fresh bounded subscription, clears expired results before replacement, binds responses to the viewer and prevents late old-request resurrection. Authenticated responses have a maximum60-second lease; timed responses use the earlier boundary. The existing monotonic/wall elapsed-time clock accounts conservatively for latency and suspended devices. Route/auth generations and disposal isolate subscriptions. Older environments retain the preexisting transport until their response advertises the new contract.
+
+Only `search/queries:search` changes its installed endpoint contract: optional refreshKey and returned viewerSubject/displayLease. Consumer types were regenerated from the isolated installed-source snapshot. DTO renumbering and harmless union ordering account for the large declaration diff; normalized comparison confirms all other consumer endpoint contracts unchanged. Website SearchResult now includes the already-returned event kind, and pagination explicitly requires an available search response.
+
+## Verification
+
+- Registered search/canonical/reusable/custom-definition tests: **549 passed /4,445 assertions /68 files**. Current-presentation helper cases cover time, media MIME/presence, collection visibility and resolver availability. Ordinary and canonical search share the tested clock boundary.
+- Client expiry/access/display tests: **12 passed /77 assertions /3 files**, including old-response rejection, cleanup, hidden-future refresh, malformed transport and wrong-viewer rejection. Initial malformed-lease test incorrectly classified equal timestamps; it was corrected to exercise invalid input, and the consumer additionally rejects nonpositive or overlong lease duration.
+- Actual renderer suite: **310 passed /5,442 assertions**, covering the shared renderer helper extraction. Backend explicit Convex types, Admin types, Website types and Website build pass. Canonical, portable, deployed/backend foundation and block-kit freshness pass.
+- Native Electron22859 edited Field Guide Show Details, saved and reloaded false, verified hidden body/current search, then restored true and verified the actual Website iframe note and painted view. No native errors. The initial library fixture's disabled Bundle Offer was rejected at revision0; it was omitted after inspecting the unchanged plugin setting, rather than enabling it.
+- Final actual Website matrix: **8 cases**, four packs at1440/390; **108 backend positive/negative decisions**, signed-in account alternatives, current body text, Markdown label match, group keyboard reveal, canonical keyboard destination and ordinary result links. No overflow, browser, console or hydration errors. Appearance restored exactly. These 15 live block specimens do not establish all positive media/form/product/bundle states; those additional states have registered evidence only.
+- Live time acceptance: **4 cases**, appearance and disappearance on ordinary search and canonical Search Results. Results changed at the boundary without navigation or reload; zero browser errors. Screenshots and clock receipts retained. The initial failing `clock-proof.json` remains distinct from final `clock-acceptance.json`.
+
+## Installation and cleanup
+
+Source4860 only; target4870 unchanged. Initial `search-conditional-20260928` deployment added the current projections. Final `search-conditional-expiry-20260928` deployment adds the timed refresh contract. Both have separate private backups including storage and strict deployment typechecks/writer preflight. Final snapshot: **1,615 exact file hashes /0 drift**, all22 installed Community Events files preserved, **2,410 registered function signatures**, only the named search endpoint changed. Final deploy57.85seconds. Website4322 is rebuilt ownedPID24868; replaced owned22845 after identity checks.
+
+All3 owned pages were trashed and permanently deleted using normal APIs; all3 routes return404 and unique owned search terms have zero matches. Original **42 pages /2 posts /1 term**, menus, locations, appearance and reindex state match exactly. Consumer index ready; API session revoked. Native session signed out, process closed and owned profile removed. User Electron39198, Admin62672, BlockDemo65092 and SOCKS68390 retained. No roles or plugin flags changed.
+
+Thirteen specification hashes are reconciled as metadata-only changes; historical statuses are unchanged. Product Collection renderer hash records the shared helper extraction, backed by renderer and live group evidence. No external tracker cells changed. Owner handoff stays untracked and untouched. No push.
+
+Evidence: `output/search-conditional-20260928/` and `output/search-conditional-expiry-20260928/`, including initial failures, focused/broader logs, native receipts, final public matrix, time probe/acceptance, signature/source/consumer-contract checks, spec reconciliation, cleanup and lifecycle.
+
+## Remaining boundary
+
+Continue E39 with promoted canonical compositions, sanitized HTML and other demonstrated conditional authored copy (assistant host settings, approved embed/map paths, current poll definition and video presentation). Keep private settings, destinations, identifiers, controls and inaccessible alternatives excluded. No unlimited-text/corpus claim follows from this pass. Apply audit11/F21's completeness lens to concrete failures, not a whole-repository catch sweep. F1 plugin defaults remain prerequisite to plugin/support acceptance; Language Switcher/promotion and F19 destination construction remain next. E17/E22/E28 and the remaining editor/Customizer/authored-sites/migration/SDK/AI delivery work remain open.
+
+Accounting checkpoint: progress;299,231 tokens /2,560seconds since the prior completed batch (5,642,143 cumulative tokens /37,373seconds). Goal remains active; no dollar estimate.

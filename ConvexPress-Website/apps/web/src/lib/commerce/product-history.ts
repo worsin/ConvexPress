@@ -39,7 +39,7 @@ export function recordProductVisit(storage: HistoryStorage, key: string, id: str
 }
 
 /** An unresolved identity must never read or write the anonymous bucket. */
-export function productHistoryScope(scope: {backendUrl:string;instanceKey:string;loaded:boolean;signedIn:boolean;userId?:string|null;backendLoading:boolean;backendAuthenticated:boolean}): string | null {
+export function productHistoryScope(scope: {backendUrl:string;instanceKey:string;loaded:boolean;signedIn:boolean;userId?:string|null;backendLoading:boolean;backendAuthenticated:boolean;viewerKind?:"customer"|"operator"}): string | null {
   if (!scope.loaded || scope.backendLoading || scope.signedIn !== scope.backendAuthenticated || (scope.signedIn && !scope.userId)) return null;
-  return productHistoryKey({...scope,viewerKey:scope.signedIn ? `user:${scope.userId}` : "anonymous"});
+  return productHistoryKey({...scope,viewerKey:scope.signedIn ? `${scope.viewerKind === "operator" ? "operator" : "user"}:${scope.userId}` : "anonymous"});
 }

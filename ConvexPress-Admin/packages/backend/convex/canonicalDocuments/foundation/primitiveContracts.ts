@@ -135,14 +135,16 @@ export const primitiveSchemas = {
 		size: z.enum(["sm", "md", "lg"]).optional(),
 		newTab: z.boolean().optional(),
 	}),
-	Link: z.strictObject({ label, href, newTab: z.boolean().optional() }),
+	// Contact rows allow 300 characters of linked text in the canonical block.
+	Link: z.strictObject({ label: z.string().min(1).max(300), href, newTab: z.boolean().optional() }),
 	Badge: z.strictObject({ label, tone: tone.optional() }),
 	Divider: z.strictObject({ tone: tone.optional() }),
 	Stat: z.strictObject({ value: label, label, detail: text.optional() }),
 	Quote: z.strictObject({
 		quote: text,
 		attribution: label.optional(),
-		source: label.optional(),
+		// A source may combine a role and company; it is longer than a short label.
+		source: z.string().min(1).max(500).optional(),
 		href: href.optional(),
 	}),
 	List: z.strictObject({

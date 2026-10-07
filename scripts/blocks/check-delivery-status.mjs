@@ -1,0 +1,20 @@
+import fs from 'node:fs/promises';
+import path from 'node:path';
+import {fileURLToPath} from 'node:url';
+import assert from 'node:assert/strict';
+const root=fileURLToPath(new URL('../../',import.meta.url));
+const status=JSON.parse(await fs.readFile(path.join(root,'docs/superpowers/plans/2026-09-28-editor-template-status.json'),'utf8'));
+const snapshot=JSON.parse(await fs.readFile(path.resolve(root,status.checkpointSource),'utf8'));
+const rows=snapshot.records;
+assert(Array.isArray(rows),'Checkpoint source must contain tracker records');
+const tracker=new Map(rows.map(row=>[row.values.Name,row.values.Status]));
+const local=new Map(status.blocks.map(block=>[block.name,block.checkpointStatus]));
+assert.equal(tracker.size,rows.length,'Duplicate tracker names');
+assert.equal(local.size,status.blocks.length,'Duplicate status names');
+assert.equal(tracker.size,137,'Expected complete 137-block tracker readback');
+assert.deepEqual([...local.keys()].sort(),[...tracker.keys()].sort(),'Status and tracker identities differ');
+const stale=[...local].filter(([name,value])=>tracker.get(name)!==value).map(([name,local])=>({name,local,tracker:tracker.get(name)}));
+assert.deepEqual(stale,[],'Per-block status differs from the exact tracker checkpoint');
+const counts={};for(const value of tracker.values()){assert(['Verified','In progress'].includes(value),'Unexpected tracker status');counts[value]=(counts[value]??0)+1;}
+assert.deepEqual(status.checkpointCounts,counts,'Checkpoint header differs from tracker and rows');
+console.log(JSON.stringify({rows:tracker.size,counts,perRowParity:true,headerParity:true,source:status.checkpointSource}));

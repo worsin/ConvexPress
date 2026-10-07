@@ -35,7 +35,7 @@ export default defineBlock(
 									{item.instrumentType}
 								</P.Text>
 							)}
-							{item.url && (
+							{item.url && P.primitiveSchemas.Link.shape.href.safeParse(item.url).success && (
 								<P.Link
 									href={item.url}
 									label={

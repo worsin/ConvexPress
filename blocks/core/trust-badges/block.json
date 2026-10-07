@@ -81,19 +81,19 @@
       "items": [
         {
           "icon": "book-open",
-          "label": "Original field notes \u2014 sample label"
+          "label": "Original field notes — sample label"
         },
         {
           "icon": "clock",
-          "label": "Time to notice \u2014 sample label"
+          "label": "Time to notice — sample label"
         },
         {
           "icon": "heart",
-          "label": "Made with care \u2014 sample label"
+          "label": "Made with care — sample label"
         },
         {
           "icon": "check",
-          "label": "Fictional studio mark \u2014 example only",
+          "label": "Fictional studio mark — example only",
           "media": {
             "id": "demo-image-aster-mark",
             "alt": "Fictional Aster House studio mark",
@@ -111,5 +111,12 @@
     "capabilities": [
       "reference.targetResolution"
     ]
-  }
+  },
+  "searchText": [
+    [
+      "items",
+      "*",
+      "label"
+    ]
+  ]
 }

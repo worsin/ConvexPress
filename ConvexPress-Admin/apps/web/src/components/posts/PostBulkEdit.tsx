@@ -3,20 +3,21 @@
  *
  * Allows editing common fields on multiple selected posts at once.
  * Fields: Status, Comment Status, Sticky.
- * Applies changes via the Convex posts.update mutation for each selected post.
+ * Applies each canonical update against the selected revision.
  */
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { Id } from "@backend/convex/_generated/dataModel";
 
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
-import { usePostMutations } from "@/hooks/posts/usePostMutations";
+import { useMutation } from "convex/react";
+import { api } from "@backend/convex/_generated/api";
+import {applyBulkPostEdit,type BulkPost,type BulkPostPatch,type BulkPostResult} from "./bulk-edit";
 import { toast } from "sonner";
 
 interface PostBulkEditProps {
-  /** IDs of the selected posts. */
-  selectedIds: string[];
+  /** Immutable revisions captured when these rows were selected. */
+  posts: readonly BulkPost[];
   /** Close the bulk edit panel. */
   onClose: () => void;
   /** Clear selection after successful edit. */
@@ -30,72 +31,50 @@ interface PostBulkEditProps {
  * Only changes fields that the user explicitly modifies (uses "-- No Change --" defaults).
  */
 export function PostBulkEdit({
-  selectedIds,
+  posts,
   onClose,
   onClearSelection,
 }: PostBulkEditProps) {
   const [status, setStatus] = useState("");
   const [commentStatus, setCommentStatus] = useState("");
-  const [isSticky, setIsSticky] = useState<boolean | null>(null);
+  const [sticky, setSticky] = useState("");
   const [isSaving, setIsSaving] = useState(false);
-
-  const { updatePost } = usePostMutations();
-
+  const [results,setResults] = useState<BulkPostResult[]|null>(null);
+  const active=useRef(true),busy=useRef(false);
+  useEffect(()=>{active.current=true;return()=>{active.current=false;};},[]);
+  const update=useMutation(api.canonicalDocuments.updateMetadata);
   const handleApply = useCallback(async () => {
-    if (selectedIds.length === 0) return;
-
-    // Build the patch - only include fields that were changed
-    const patch: Record<string, unknown> = {};
-    if (status) patch.status = status;
-    if (commentStatus) patch.commentStatus = commentStatus;
-    if (isSticky !== null) patch.isSticky = isSticky;
-
-    if (Object.keys(patch).length === 0) {
-      toast.error("No changes selected.");
-      return;
+    if (busy.current || results || posts.length===0) return;
+    const patch:BulkPostPatch = {};
+    if(status)patch.status=status as BulkPostPatch["status"];
+    if(commentStatus)patch.commentStatus=commentStatus as BulkPostPatch["commentStatus"];
+    if(sticky)patch.isSticky=sticky==="yes";
+    if(Object.keys(patch).length===0){toast.error("No changes selected.");return;}
+    busy.current=true;setIsSaving(true);
+    const outcome=await applyBulkPostEdit(posts,patch,args=>update({...args,postId:args.postId as Id<"posts">}),()=>active.current);
+    busy.current=false;
+    if(!active.current)return;
+    setIsSaving(false);setResults(outcome);
+    if(outcome.every(row=>row.status==="updated")){
+      toast.success(`${outcome.length} post(s) updated.`);onClearSelection();onClose();
     }
+  },[posts,status,commentStatus,sticky,results,update,onClearSelection,onClose]);
 
-    setIsSaving(true);
-    let successCount = 0;
-    let errorCount = 0;
-
-    for (const id of selectedIds) {
-      try {
-        await updatePost({
-          postId: id as Id<"posts">,
-          ...patch,
-        });
-        successCount++;
-      } catch {
-        errorCount++;
-      }
-    }
-
-    setIsSaving(false);
-
-    if (successCount > 0) {
-      toast.success(`${successCount} post(s) updated.`);
-    }
-    if (errorCount > 0) {
-      toast.error(`${errorCount} post(s) could not be updated.`);
-    }
-
-    onClearSelection();
-    onClose();
-  }, [selectedIds, status, commentStatus, isSticky, updatePost, onClose, onClearSelection]);
+  const close = () => {if(results)onClearSelection();onClose();};
 
   return (
     <div className="border border-border bg-card rounded-none mb-4">
       <div className="border-b border-border bg-muted/50 px-4 py-2 flex items-center justify-between">
         <h3 className="text-xs font-semibold text-foreground">
-          Bulk Edit ({selectedIds.length} post{selectedIds.length !== 1 ? "s" : ""} selected)
+          Bulk Edit ({posts.length} post{posts.length !== 1 ? "s" : ""} selected)
         </h3>
         <button
           type="button"
-          onClick={onClose}
+          onClick={close}
+          disabled={isSaving}
           className="text-xs text-muted-foreground hover:text-foreground"
         >
-          Cancel
+          {results ? "Close" : "Cancel"}
         </button>
       </div>
 
@@ -107,13 +86,14 @@ export function PostBulkEdit({
               Status
             </label>
             <select
+              aria-label="Bulk status"
+              disabled={isSaving || results!==null}
               value={status}
               onChange={(e) => setStatus(e.target.value)}
               className="h-8 w-full rounded-none border border-input bg-transparent px-2 text-xs text-foreground outline-hidden focus-visible:border-ring focus-visible:ring-1 focus-visible:ring-ring/50"
             >
               <option value="">-- No Change --</option>
               <option value="draft">Draft</option>
-              <option value="pending">Pending Review</option>
               <option value="publish">Published</option>
               <option value="private">Private</option>
             </select>
@@ -125,6 +105,8 @@ export function PostBulkEdit({
               Comments
             </label>
             <select
+              aria-label="Bulk comments"
+              disabled={isSaving || results!==null}
               value={commentStatus}
               onChange={(e) => setCommentStatus(e.target.value)}
               className="h-8 w-full rounded-none border border-input bg-transparent px-2 text-xs text-foreground outline-hidden focus-visible:border-ring focus-visible:ring-1 focus-visible:ring-ring/50"
@@ -135,31 +117,29 @@ export function PostBulkEdit({
             </select>
           </div>
 
-          {/* Sticky */}
-          <div className="flex items-end pb-1">
-            <label className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer">
-              <Checkbox
-                checked={isSticky === true}
-                onCheckedChange={(checked) =>
-                  setIsSticky(checked === true ? true : checked === false ? false : null)
-                }
-              />
-              Make sticky
-            </label>
+          <div>
+            <label className="text-xs text-muted-foreground mb-1 block">Sticky</label>
+            <select aria-label="Bulk sticky" disabled={isSaving || results!==null} value={sticky} onChange={event=>setSticky(event.target.value)} className="h-8 w-full rounded-none border border-input bg-transparent px-2 text-xs">
+              <option value="">-- No Change --</option><option value="yes">Make sticky</option><option value="no">Remove sticky</option>
+            </select>
           </div>
         </div>
 
+        {results && <div role="status" className="space-y-2 text-sm">
+          <p>{results.filter(row=>row.status==="updated").length} updated; {results.filter(row=>row.status!=="updated").length} need review. Close Bulk Edit, then review and reselect these posts before trying again.</p>
+          <ul>{results.map(row=><li key={row.id}><strong>{row.title}</strong>: {row.message}</li>)}</ul>
+        </div>}
         {/* Actions */}
         <div className="flex items-center justify-end gap-2 pt-2 border-t border-border">
           <Button
             variant="outline"
             size="sm"
-            onClick={onClose}
+            onClick={close}
             disabled={isSaving}
           >
-            Cancel
+            {results ? "Close and clear selection" : "Cancel"}
           </Button>
-          <Button size="sm" onClick={handleApply} disabled={isSaving}>
+          <Button size="sm" onClick={handleApply} disabled={isSaving || results!==null}>
             {isSaving ? "Updating..." : "Update"}
           </Button>
         </div>

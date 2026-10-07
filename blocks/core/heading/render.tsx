@@ -21,4 +21,4 @@ export default defineBlock("core/heading", ({ attrs, blockId }) => {
 			{attrs.text && <P.RichText content={attrs.text} inline />}
 		</P.Heading>
 	);
-});
+}, { flow: "prose" });

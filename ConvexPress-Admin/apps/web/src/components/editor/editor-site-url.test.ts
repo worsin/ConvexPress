@@ -2,7 +2,9 @@ import { expect, test } from "bun:test";
 import { editorContentUrl, resolveEditorSiteUrl } from "./editor-site-url";
 
 test("published links use the selected Website and preserve nested page paths", () => {
-  expect(editorContentUrl("http://127.0.0.1:4322", { type: "page", slug: "child", path: "/parent/child" })).toBe("http://127.0.0.1:4322/parent/child");
+  expect(editorContentUrl("http://127.0.0.1:4322", { type: "page", slug: "child", path: "/parent/child" })).toBe("http://127.0.0.1:4322/page/parent/child");
+  expect(editorContentUrl("https://live.example", { type: "page", slug: "child", path: "/child" })).toBe("https://live.example/page/child");
+  expect(editorContentUrl("https://live.example", { type: "page", slug: "hello world" })).toBe("https://live.example/page/hello%20world");
   expect(editorContentUrl("https://live.example", { type: "post", slug: "hello world" })).toBe("https://live.example/blog/hello%20world");
   expect(editorContentUrl(undefined, { type: "page", slug: "child" })).toBeUndefined();
   for (const path of ["//foreign.example", "/\\foreign.example", "https://foreign.example", "/page?token=value", "/page#fragment", "/\n/foreign.example"])

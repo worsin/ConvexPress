@@ -1,3 +1,4 @@
+import { FooterLegalLinks } from "./FooterLegalLinks";
 import { cn } from "@/lib/utils";
 import type { FooterConfig } from "@/lib/layout/types";
 
@@ -41,6 +42,7 @@ export function FooterBottom({ siteTitle, className, footerConfig }: FooterBotto
           </p>
         )}
       </div>
+      <FooterLegalLinks choice={footerConfig?.bottomBar.legalLinks ?? "privacy-terms"} />
       <SocialLinks iconSize="sm" />
     </div>
   );

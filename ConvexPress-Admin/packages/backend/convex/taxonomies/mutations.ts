@@ -426,13 +426,17 @@ export const deleteCategory = mutation({
       .withIndex("by_term", (q) => q.eq("termId", args.termId))
       .collect();
 
-    // Ensure default category exists for post reassignment
-    const defaultCategoryId = await ensureDefaultCategory(ctx);
+    // Create the default only when a surviving document needs reassignment.
+    let defaultCategoryId: Doc<"terms">["_id"] | undefined;
     let reassignedPosts = 0;
 
     for (const rel of relationships) {
       // Delete this relationship
       await deleteTermRelationship(ctx, rel._id);
+
+      // Older page deletions can leave orphan relationships. Removing the
+      // category must not create a new assignment for a missing document.
+      if (!(await ctx.db.get("posts", rel.postId))) continue;
 
       // Check if post has any remaining categories (the deleted record
       // is already removed from the DB, so the query returns only live records)
@@ -453,11 +457,13 @@ export const deleteCategory = mutation({
 
       // If no categories left, assign default category
       if (!hasCategoryLeft) {
+        defaultCategoryId ??= await ensureDefaultCategory(ctx);
+        const targetCategoryId = defaultCategoryId;
         // Check if default category relationship already exists
         const existingDefault = await ctx.db
           .query("termRelationships")
           .withIndex("by_post_term", (q) =>
-            q.eq("postId", rel.postId).eq("termId", defaultCategoryId),
+            q.eq("postId", rel.postId).eq("termId", targetCategoryId),
           )
           .unique();
 
