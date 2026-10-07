@@ -3,8 +3,8 @@
 This is the working delivery entry point, not a declaration that every acceptance
 gate is complete. The block tracker has **135 Verified rows and two In progress**.
 Candidate `3a3f58a3` is installed on the six delivery environments with the accepted
-Assistant and AI authoring fixes; original Alpha has the same implementation.
-See [current candidate evidence](../ConvexPress-Admin/audits/2026-09-04/final-candidate-20261007.md).
+Assistant and AI authoring fixes; original Alpha, Beta, Gamma and Delta now have the same implementation.
+See [original fleet evidence](../ConvexPress-Admin/audits/2026-09-04/original-candidate-20261007.md) and [current candidate evidence](../ConvexPress-Admin/audits/2026-09-04/final-candidate-20261007.md).
 
 ## Open the examples
 
@@ -132,3 +132,5 @@ open; no real checkout or booking is implied by an example site.
 The current native artifact is a local acceptance assembly with external local
 dependencies, not a signed installer. Existing unrelated whole-application audit
 items remain outside this delivery unless they reproduce as a necessary blocker.
+
+The current [requirement map](../ConvexPress-Admin/audits/2026-09-04/delivery-requirements-20261007.md) identifies one remaining implementation item: archive/preserve and retire legacy themes/layouts (E117). Completed canonical posts migration and AI/SDK acceptance remain valid. Instagram, human Turnstile and public HTTPS acceptance retain their external prerequisites.

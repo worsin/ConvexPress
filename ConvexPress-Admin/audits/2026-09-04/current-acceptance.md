@@ -167,7 +167,7 @@ Implementation and historical tests are recorded in the linked outcomes. The las
 
 ## Claude handoff and additional block requirements
 
-Every row remains open at full requirement scope. Consult the exact source requirements in [the template handoff](../../../specs/handoffs/HANDOFF-ASTRA-2026-09-04.md) and [the block handoff](../../../specs/handoffs/HANDOFF-ASTRA-BLOCKS-2026-09-05.md). Those paths resolve from the repository root documents; direct source paths are also retained in the implementation ledger.
+Historical checkpoint below. Current clause-by-clause status is in [delivery-requirements-20261007.md](delivery-requirements-20261007.md); E117 legacy themes/layouts remains implementation work, and provider/HTTPS gates remain explicit. At the earlier checkpoint, every row remained open at full requirement scope. Consult the exact source requirements in [the template handoff](../../../specs/handoffs/HANDOFF-ASTRA-2026-09-04.md) and [the block handoff](../../../specs/handoffs/HANDOFF-ASTRA-BLOCKS-2026-09-05.md). Those paths resolve from the repository root documents; direct source paths are also retained in the implementation ledger.
 
 | Requirement | Implemented checkpoint | Required acceptance / remaining work |
 |---|---|---|
