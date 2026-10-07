@@ -227,3 +227,47 @@ test("adopted preferences deduplicate without extending retention and remain pri
   await a.mutation(m.forgetFact, { sessionToken: otherToken, memoryId: memory[0].id });
   expect(await a.query(q.listMemory, { sessionToken: token })).toEqual([]);
 });
+
+
+test("disabled memory is excluded from grounding and refuses fresh writes without deleting shopper controls", async () => {
+  const { t, a, b, ids } = await fixture();
+  const fact = "Saved preference only: narrow cabinet";
+  await a.mutation(m.rememberFact, { sessionToken: token, fact });
+  const before = await a.query(q.listMemory, { sessionToken: token });
+  const context = (internal as any).commerce.assistant.queries.contextBundle;
+  expect((await a.query(context, { sessionToken: token })).memory[0].fact).toBe(fact);
+  const setting = await t.run(ctx => ctx.db.insert("settings", {
+    section: "commerce.assistant", values: { memoryEnabled: false }, updatedAt: 1, updatedBy: ids.a,
+  }));
+  expect((await a.query(context, { sessionToken: token })).memory).toEqual([]);
+  await expect(a.mutation(m.rememberFact, { sessionToken: token, fact: "New direct preference" })).rejects.toThrow("disabled");
+  // A provider turn may have started before the operator disabled memory.
+  await expect(a.mutation(im.rememberFactFromAssistant, { sessionToken: token, fact: "Late provider preference", retentionDays: 90 })).rejects.toThrow("disabled");
+  expect(await a.query(q.listMemory, { sessionToken: token })).toEqual(before);
+  await expect(b.query(q.listMemory, { sessionToken: token })).rejects.toThrow("another account");
+  await t.run(ctx => ctx.db.patch(setting, { values: { memoryEnabled: true } }));
+  expect((await a.query(context, { sessionToken: token })).memory[0].fact).toBe(fact);
+  await t.run(ctx => ctx.db.patch(setting, { values: { memoryEnabled: false } }));
+  await a.mutation(m.forgetFact, { sessionToken: token, memoryId: before[0].id });
+  expect(await a.query(q.listMemory, { sessionToken: token })).toEqual([]);
+});
+
+
+test("disabling memory invalidates old personalized briefs and facets, but permits fresh non-memory briefs", async () => {
+  const { t, a, ids } = await fixture();
+  const facets = (api as any).commerce.storefront.facetsForQuery;
+  const blocks = [{ type: "facets", items: [{ label: "Based on my saved preferences", query: "notebook" }] }];
+  await a.mutation(im.storeBrief, { sessionToken: token, cacheKey: "old-memory", kind: "query", query: "notebook", payload: { blocks }, ttlMs: 60000 });
+  expect(await a.query(q.getBrief, { sessionToken: token, cacheKey: "old-memory" })).not.toBeNull();
+  expect(await a.query(facets, { sessionToken: token, q: "notebook" })).not.toBeNull();
+  const setting = await t.run(ctx => ctx.db.insert("settings", { section: "commerce.assistant", values: { memoryEnabled: false }, updatedAt: 1, updatedBy: ids.a }));
+  expect(await a.query(q.getBrief, { sessionToken: token, cacheKey: "old-memory" })).toBeNull();
+  expect(await a.query(facets, { sessionToken: token, q: "notebook" })).toBeNull();
+  const fresh = [{ type: "facets", items: [{ label: "Current catalog", query: "notebook" }] }];
+  await a.mutation(im.storeBrief, { sessionToken: token, cacheKey: "no-memory", kind: "query", query: "notebook", payload: { blocks: fresh, memoryEnabled: false }, ttlMs: 60000 });
+  expect(await a.query(q.getBrief, { sessionToken: token, cacheKey: "no-memory" })).not.toBeNull();
+  expect((await a.query(facets, { sessionToken: token, q: "notebook" })).chips[0].label).toBe("Current catalog");
+  await t.run(ctx => ctx.db.patch(setting, { values: { enabled: false, memoryEnabled: false } }));
+  expect(await a.query(q.getBrief, { sessionToken: token, cacheKey: "no-memory" })).toBeNull();
+  expect(await a.query(facets, { sessionToken: token, q: "notebook" })).toBeNull();
+});
