@@ -2,8 +2,8 @@
 
 This is the working delivery entry point, not a declaration that every acceptance
 gate is complete. The block tracker currently has 133 Verified rows and four
-provider-dependent rows still In progress. Source candidate `ff8d9f22` includes
-the Journal/Depot collection styles described below.
+provider-dependent rows still In progress. Source candidate `cd587c50` includes
+the Journal/Depot collection styles, preview receiver recovery and reserved media-route policy.
 
 ## Open the examples
 
@@ -26,10 +26,10 @@ preview has stopped, run the corresponding command from
 `/Users/worsin/.codex/worktrees/convexpress-hardening`:
 
 ```sh
-node output/e107-installed-20261006/start-preview.mjs core
-node output/e107-installed-20261006/start-preview.mjs journal
-node output/e107-installed-20261006/start-preview.mjs depot
-node output/e107-installed-20261006/start-preview.mjs aster-house
+node output/preview-history-fixed-20261006/start-preview.mjs core
+node output/preview-history-fixed-20261006/start-preview.mjs journal
+node output/preview-history-fixed-20261006/start-preview.mjs depot
+node output/preview-history-fixed-20261006/start-preview.mjs aster-house
 ```
 
 Each command runs one preview in the foreground with a strict port. Run only the
@@ -95,6 +95,7 @@ from signed/self-contained distribution.
 | Area | Evidence |
 | --- | --- |
 | Actual native authoring, conflict and recovery | [Native candidate](../ConvexPress-Admin/audits/2026-09-04/candidate-native-20261006.md) |
+| Production native history restore and receiver recovery | [Preview recovery](../ConvexPress-Admin/audits/2026-09-04/preview-history-fixed-20261006.md) |
 | Production native assembly and preview | [Artifact acceptance](../ConvexPress-Admin/audits/2026-09-04/delivery-artifacts-20261006.md) |
 | Four authored sites, data preservation and public actions | [Example candidates](../ConvexPress-Admin/audits/2026-09-04/example-candidate-20261006.md) |
 | New collection styles and fallback | [E107](../ConvexPress-Admin/audits/2026-09-04/collection-styles-20261006.md) |

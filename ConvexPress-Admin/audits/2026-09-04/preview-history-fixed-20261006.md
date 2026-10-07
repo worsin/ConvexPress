@@ -1,0 +1,26 @@
+# Production native preview recovery and route policy
+
+Fresh production Admin/Website artifacts include `7f6d3365`'s receiver lifecycle repair. Actual native history restoration passed without Reconnect. The separate page-authoring route guard now reserves the existing public media path (cd587c50).
+
+## Native workflow and evidence boundary
+
+Owned Electron 46614 launched the real packaged custom-protocol renderer at convexpress-app://shell/index.html with a private profile and normal synthetic operator sign-in. Owned Website 46591 served the new production SSR/client artifact on 4322 against source 4860, configured for the packaged native parent origin. The native switcher selected disposable staging; Pages search opened the owned page g185qkjs7fv1g65phkgbr9bqys8ftw6h.
+
+The page initially showed After edit at revision 3. Native Browse revisions → Review restore → Restore this revision imported revision 2 as revision 4. The actual iframe automatically showed Before restore and the host reported Live draft rendered, without Reconnect. Authenticated readback confirms revision 4 and exact expected content. Native mobile preview remained rendered. The page is a minimal canonical heading fixture, not a repeat claim for every mixed block.
+
+Evidence in output/preview-history-fixed-20261006: restored-document.json, native-restored.txt, native-restored-visible.png, native-restored-mobile.png and artifact-receipt.json. The first native-restored.png shows the scrolled history area only; it is not visual proof of the offscreen heading. The desktop and mobile visible screenshots were separately inspected. Native application/Website builds passed; unchanged client bundle limits passed. 2,458 Admin files and 1,654 Website files are sealed. Desktop main/resources/dependencies are explicitly reused from the prior E107 assembly; this is a local test assembly, not a standalone signed installer.
+
+E99 now has a demonstrated receiver teardown cause, failing-before/passing-after transport regression, real native remount fixture, and production native restore acceptance. The original Field/Studio incident did not have enough tracing to prove its exact trigger. Preserve that historical uncertainty; stop repeating identical passing restores or treating the missing historical trace as a reason to stop other delivery. A new actual mismatch would reopen investigation with its trace.
+
+## Page route repair
+
+The Website already exposes /api/public-files/$storageId. The shared page-route guard omitted it and returned null for /api/public-files/portrait, permitting a collision. A new behavioral assertion failed before the one-line policy repair; the neighboring /api/public-files-story remains permitted. 15 registered/policy tests / 66 assertions pass; the full Website tooling suite now passes 17 tests / 44 assertions. Explicit Convex project TypeScript passes. The initial unqualified tsc invocation discovered the parent Admin project and exhausted its default 4 GB heap; it is not backend acceptance evidence. The corrected invocation specifies convex/tsconfig.json and the established 8 GB budget. No compiler rules were relaxed.
+
+## Preservation and installation
+
+Restored the original native Live 4870 selection and observed native signout. Recoverably trashed only the owned page. All 71 original pages, source/target appearance identity/values, general/reading settings and menu locations remain exact. Both owned API sessions were revoked and refresh returns 401. Owned Electron/Website stopped, private profile removed, seven protected processes preserved. No push.
+
+The four owned candidate Website previews 4335–4338 now use this fresh Website artifact. Existing original previews 4325–4328 remain untouched. The one-file backend policy rollout uses separate snapshots/backups per environment and is recorded in this output directory. All six deployments succeeded: source 4860 retains 2,388 function contracts and 1,698 sealed files; target 4870 and the four example sites 4880–4910 each retain 2,368 contracts and 1,681 sealed files. Rechecked every installed snapshot hash. Full exports preserve all 81 storage files and all original non-maintenance rows. Only the existing LMS maintenance generation/job changed. Depot required three transient network retries inside the CLI, then completed successfully; no duplicate deployment was started. `final-receipt.json` links the per-site evidence. All 21 authored public routes returned HTTP 200 with their expected titles on the refreshed Website artifact. These route checks are SSR evidence; prior interactive example acceptance remains separately scoped.
+
+
+Live source 4860 also refuses an authenticated canonical metadata move to /api/public-files/portrait with structured code RESERVED_PAGE_ROUTE and leaves the attempted document unchanged. The probe restored only its own previously trashed parent/child fixtures, then returned them to trash; 43 original source pages remain exact and its session is revoked. Two earlier harness attempts are excluded: checking String(error) missed the structured Convex error data, and a fresh root then collided with the recoverably retained /api slug. Corrected by reading error.data and reusing the owned fixtures through normal restore/trash APIs. No guard was relaxed and no record was permanently deleted.

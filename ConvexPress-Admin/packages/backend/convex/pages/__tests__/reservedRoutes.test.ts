@@ -87,6 +87,8 @@ test('route policy distinguishes exact URLs, dynamic segments, splats and config
   expect(reservedPageRoute('/products/field-kit')).toBe('/products/$slug');
   expect(reservedPageRoute('/api/downloads/receipt')).toBe('/api/downloads/$leaseId');
   expect(reservedPageRoute('/api/lead-magnets/receipt')).toBe('/api/lead-magnets/$leaseId');
+  expect(reservedPageRoute('/api/public-files/portrait')).toBe('/api/public-files/$storageId');
+  expect(reservedPageRoute('/api/public-files-story')).toBeNull();
   expect(reservedPageRoute('/api/download-story')).toBeNull();
   expect(reservedPageRoute('/product-story')).toBeNull();
   expect(reservedPageRoute('/account')).toBeNull();

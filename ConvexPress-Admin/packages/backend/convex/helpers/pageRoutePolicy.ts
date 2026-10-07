@@ -20,6 +20,7 @@ export const PUBLIC_ROUTE_PATTERNS: readonly string[] = [
   "/api/feed/atom",
   "/api/feed/rss2",
   "/api/lead-magnets/$leaseId",
+  "/api/public-files/$storageId",
   "/api/robots",
   "/api/sitemap-$type-$page/xml",
   "/api/sitemap-style/xsl",
