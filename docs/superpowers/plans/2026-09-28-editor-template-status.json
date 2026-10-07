@@ -7,7 +7,7 @@
     "In progress": 4
   },
   "goal": "Complete block editor and template delivery plus all demonstrated blockers; defer unrelated whole-app audit campaigns.",
-  "currentTask": "Task6 motion implementation accepted and all137 identities mapped across45 state/presentation families. Task8 nested-list compatibility now passes all six installed consumers with86original pages/settings preserved. Next: reconcile the frozen candidate command/evidence map and final handoff requirements. Four real provider paths and authorized public HTTPS remain unaccepted. Reuse accepted restore, desktop and deployment evidence.",
+  "currentTask": "E108: complete physical retirement of live posts.content/contentMode/pageSections, preserving original history. Compatibility-stage writer/atomic archival code is locally tested, not deployed. Next: staged installed snapshots and corpus cleanup, then schema contraction and affected native/public/promotion checks. Candidate final gate remains open; four providers and public HTTPS remain separate prerequisites.",
   "tasks": [
     {
       "id": 1,
@@ -24,8 +24,8 @@
     },
     {
       "id": 4,
-      "status": "complete",
-      "scope": "Known installed/demo corpus migration, exact archive/reference preservation and inventoried obsolete authoring/renderer retirement accepted; legacy-reusable-retirement-20261006.md maps all five plan criteria. Retained compatibility schema/import readers are intentional. Full delivery remains open."
+      "status": "in_progress",
+      "scope": "Known corpus conversion, immutable archives, native recovery and obsolete UI/API retirement remain accepted. E108 reopens the explicit live posts schema-field removal requirement: compatibility columns still exist. Preservation-first retirement and writer changes are implemented and tested locally; installation, complete cleanup and schema contraction remain."
     },
     {
       "id": 5,
@@ -97,18 +97,18 @@
     },
     {
       "id": "E06",
-      "status": "Native Field Guide text/multiline/number/boolean/media/object/link/repeater/nullable reset and Editorial alignment now saved/reopened with exact API tree and actual Aster Website preview. Numeric limit13 rejected (max12), invalid repeaters pause preview/save. Same document includes live Events and pinned reusable revision2; final revision5 reload renders all three. Approved custom composition in this mixed document and remaining combined recovery/field matrix still open. See native-field-reusable-20261006.md. E77 native manual composition with exact media/page resolver and Aster treatment, sibling and nested pinned reusable, autosave recovery, save/reopen/history now accepted at revision9; see mixed-composition-20261006.md. Actual AI/canonical promotion and remaining workflow gates stay open.",
-      "classification": "missing evidence",
+      "status": "Native all-field/reference/Events/reusable/composed editing and combined recovery accepted through native-field-reusable-20261006.md, mixed-composition-20261006.md and field-events-final-20261006.md. Exact revision9-to10 publication, live Events update, four-pack desktop/mobile and fixture cleanup complete. Actual AI remains E13, separate from manual field acceptance.",
+      "classification": "accepted/reusable evidence",
       "initialFinding": "All native field types, picker states, keyboard operations and mixed nested/reusable/composed content are not fully covered.",
       "closureBoundary": "Exercise them on batched authored pages, compare saved/reopened trees and revision restores exactly; test field-specific limits and omitted/null/empty semantics where meaningful.",
-      "nextCheck": "Task7: extend retained owned Aster draft k9825w4682xavx7nbj8wa36xs98fsgtk with approved custom composition and test combined history/recovery. Reuse accepted native fields, Events and pinned reusable evidence. Finish outstanding field-specific acceptance without repeating unchanged controls.",
+      "nextCheck": "Reuse field-events-final-20261006.md and its source-linked native mixed-field evidence. Retained test page is already trashed; do not recreate the completed batch.",
       "deliveryTask": 7,
       "triagedAt": "2026-09-29",
       "triageEvidence": "ConvexPress-Admin/audits/2026-09-04/delivery-blocker-triage-20260929.md"
     },
     {
       "id": "E07",
-      "status": "Closed for Task4: complete installed corpus160canonicaldocuments/579revisions;198legacy saved/draft sources convertible,625canonicaltrees valid,3/3old reusable sources mapped with exact immutable originals. Retired inventoried generic/v1/mode/downgrade/autosave/structured-AI/reusable live APIs and private UI/renderer closures. Canonical native migration/recovery/publication/Website and current API evidence reused with provenance. Exact original data/settings and129media-reference reconciliation pass. Explicit archive/schema/import compatibility retained; no destructive sweep.",
+      "status": "Accepted for known installed corpus conversion, archive/reference preservation and obsolete editor/API retirement. Prior full Task4 closure was too broad: the handoff also requires removal of live posts.content/contentMode/pageSections columns, still declared in current source. E108 tracks that unfinished requirement; historical revision data remains protected.",
       "classification": "accepted/reusable evidence",
       "initialFinding": "One-content-model migration and legacy retirement remain incomplete.",
       "closureBoundary": "Complete lossless conversion/recovery for actual retained content, source snapshots and installed-site receipts; then remove active legacy editor/renderer/schema dispatch as specified. Keep historical recovery data and a deliberate import converter. Do not delete old fields before proving preservation or claim migration complete while silently relying on legacy rendering.",
@@ -1397,6 +1397,21 @@
         "ConvexPress-Admin/audits/2026-09-04/e107-installed-20261006.md"
       ],
       "nextCheck": "Reuse the accepted style/source/deployment evidence unless those dependencies change. Continue E99 causal investigation and remaining final state/mobile/motion/provider/HTTPS requirements; do not repeat unaffected six-site deployment checks."
+    },
+    {
+      "id": "E108",
+      "classification": "confirmed unfinished schema retirement",
+      "deliveryTask": 4,
+      "requiredWorkflow": "Complete the handoff single-content-model requirement by removing obsolete live posts.content/contentMode/pageSections fields after canonical conversion, while retaining recoverable original history.",
+      "initialFinding": "Task4 was marked complete while schema/posts.ts still declares all three columns and canonical create/save/restore writes empty content back. The literal schema retirement requirement is therefore not achieved.",
+      "dependency": "Historical revisions share validators with live posts and preserve original imports; deleting schema fields before archiving retained values would risk data or deployment failure.",
+      "repairBoundary": "Separate immutable historical validation from live schema. Stop canonical writers reintroducing legacy columns; archive retained values atomically using exact source CAS; enumerate every current site to completion and verify original bodies/media/history before schema contraction. Preserve explicit legacy import decoding.",
+      "closureBoundary": "All six current site corpora verified and migrated without changing canonical trees/publication/ownership/history; strict deployments reject obsolete live columns; native save/reopen/history and public/promotion checks pass on the final installed candidate. Physical schema contraction is required, not merely a compatibility comment.",
+      "status": "Local preparatory implementation passes: internal per-record retirement snapshots original fields, validates canonical tree and full-record CAS, then clears only three obsolete columns; no-op repeats and archive failure rollback tested. Canonical create/save/duplicate/import/restore stop repopulating old fields; promotion rollback accepts absent or exactly empty compatibility content and rejects nonempty. Full backend3712/25741, focused282/2430, final retirement6/39, strict backend types and writer coverage pass. No live deployment or data cleanup performed yet.",
+      "nextCheck": "Deploy the compatibility-stage writer/retirement implementation from each sealed installed snapshot, with backup and exact contract delta; clean reviewed canonical rows with archive/media equality and complete pagination; then remove live schema fields and update actual remaining callers. Reuse unaffected prior block/native evidence.",
+      "currentEvidence": [
+        "ConvexPress-Admin/audits/2026-09-04/schema-retirement-preparation-20261007.md"
+      ]
     }
   ],
   "blocks": [
@@ -5251,7 +5266,8 @@
     "ConvexPress-Admin/audits/2026-09-04/task6-state-motion-20261007.md",
     "output/task6-final-20261007/block-evidence-crosswalk.json",
     "output/task6-final-20261007/motion-provenance.json",
-    "ConvexPress-Admin/audits/2026-09-04/nested-consumers-20261007.md"
+    "ConvexPress-Admin/audits/2026-09-04/nested-consumers-20261007.md",
+    "ConvexPress-Admin/audits/2026-09-04/schema-retirement-preparation-20261007.md"
   ],
   "trackerRefresh": {
     "source": "output/field-guide-legacy-final-20261006/mt-accept-after.json",

@@ -147,9 +147,9 @@ September29 closure: all20 assigned Task2 block rows are Verified on the linked 
 - [x] Prove each supported conversion preserves editorial text, inline structure, media identity, layout intent, anchors, links, visibility/locks and revision source. Mixed/oversized unsupported inputs must be refused without loss, then receive a complete supported conversion before claiming closure.
 - [x] Run native conversion/reopen/publication/recovery and before/after rendered comparison on representative owned copies of actual content.
 - [x] Migrate known installed/demo content with backups, explicit receipts and exact readback. Preserve original user data and rollback until success is established.
-- [x] Remove obsolete live editor/renderer/contentMode paths and fields only after preservation and import/recovery requirements pass; no premature destructive schema cleanup.
+- [ ] Remove obsolete live editor/renderer/contentMode paths and fields only after preservation and import/recovery requirements pass; no premature destructive schema cleanup.
 
-Acceptance: `ConvexPress-Admin/audits/2026-09-04/legacy-reusable-retirement-20261006.md` maps all five clauses to current complete corpus, retained sources, native/Website conversion evidence and exact API/data preservation. Historical import/schema compatibility is intentional; full delivery remains open.
+Accepted corpus/API evidence: `ConvexPress-Admin/audits/2026-09-04/legacy-reusable-retirement-20261006.md`. October7 E108 corrects its overbroad fifth-clause closure: obsolete live posts schema columns still exist and must be retired after preservation. Immutable revision archives and explicit import decoding remain supported. `schema-retirement-preparation-20261007.md` records the tested local first stage; deployment, cleanup and schema contraction remain unfinished.
 
 ### Task 5 — Finish Templates and Customizer as one workflow
 

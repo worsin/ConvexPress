@@ -106,6 +106,10 @@ from signed/self-contained distribution.
 | Demo navigation and complete mobile patterns | [BlockDemo review](../ConvexPress-Admin/audits/2026-09-04/demo-visible-review-20261006.md) |
 | SDK workflows and cleanup | [Kit workflows](../ConvexPress-Admin/audits/2026-09-04/kit-workflow-refresh-20261006.md) |
 
+The completion audit also reopened removal of three obsolete live post columns.
+The preservation-first migration and writer changes are tested locally; deployment,
+corpus cleanup and schema removal remain unfinished. See [schema retirement](../ConvexPress-Admin/audits/2026-09-04/schema-retirement-preparation-20261007.md).
+
 The remaining provider requirements are actual AI generation/Assistant Band,
 authorized Instagram data for Social Feed, human Turnstile completion for Event
 RSVP, and the Vimeo refusal affecting Script Embed. Public HTTPS/local-network
