@@ -1,13 +1,13 @@
 {
   "plan": "2026-09-28-editor-template-delivery.md",
   "baselineCommit": "d0fee8acceb408fd306a15f3c054322cb73ac8bc",
-  "checkpointSource": "output/assistant-catalog-20261007/mt-after.json",
+  "checkpointSource": "output/remaining-acceptance-20261007/mt-after.json",
   "checkpointCounts": {
-    "Verified": 135,
-    "In progress": 2
+    "Verified": 136,
+    "In progress": 1
   },
   "goal": "Complete block editor and template delivery plus all demonstrated blockers; defer unrelated whole-app audit campaigns.",
-  "currentTask": "135/137 verified. E117 closed: archived three original themes, removed old theme/layout schema and active dependencies, installed012255f2 on all10local environments;85749original rows/201files, public appearance and operator sessions preserved.3572backend tests and strict types pass. Actual native Customizer/Website checks pass after restoring the original Electron missing SOCKS tunnel. Task4 complete. Final45-clause reconciliation updated; remaining acceptance is Instagram/human Turnstile/quota-disabled HTTPS. Locally integrated with preserved unrelated files; no push or audit wait.",
+  "currentTask": "136/137 verified. Event RSVP actual real Turnstile registration/reload/cancellation accepted for original and generated providers; passive widget success, no challenge automation or bypass. Owned page trashed/events archived, original content preserved, temporary backend secret/settings restored. E117 complete across10environments. Remaining block: authorized Instagram success; public HTTPS staging is quota-disabled. Unused localhost-only Cloudflare widget removal remains explicit cleanup residual; no callable Cloudflare connector/auth available. No push or audit wait.",
   "tasks": [
     {
       "id": 1,
@@ -227,11 +227,11 @@
     },
     {
       "id": "E10",
-      "status": "Four authored sites,21 published documents, all-block desktop review,137-identity/45-family state map, motion, current installed examples and27routes accepted. Assistant and Vimeo later accepted. Task6 combined interactive-controls gate remains open specifically for Instagram and real human Turnstile; no general missing visual implementation identified by this reconciliation.",
+      "status": "Four authored sites,21 published documents, all-block desktop review,137-identity/45-family state map, motion, current installed examples and27routes accepted. Assistant and Vimeo later accepted. Task6 combined interactive-controls gate remains open specifically for authorized Instagram only; real Turnstile RSVP now accepted for both providers; no general missing visual implementation identified by this reconciliation.",
       "classification": "accepted presentation/sites; external interaction prerequisites",
       "initialFinding": "Full default websites, remaining flagship treatments and the complete BlockDemo visual review are unfinished.",
       "closureBoundary": "Deliver four complete simple sites and all-block demo coverage. Check realistic copy, optional assets, narrow placements, links, image crops, visible focus and template consistency. Provide a non-destructive, idempotent canonical example-site authoring/provisioning path; preserve existing documents, menus and revisions.",
-      "nextCheck": "Reuse final-candidate-20261007.md and task6-state-motion-20261007.md; complete only the outstanding real provider interactions.",
+      "nextCheck": "Reuse final-candidate-20261007.md, task6-state-motion-20261007.md and rsvp-provider-final-20261007.md; finish authorized Instagram provider acceptance.",
       "deliveryTask": 6,
       "triagedAt": "2026-09-29",
       "triageEvidence": "ConvexPress-Admin/audits/2026-09-04/delivery-blocker-triage-20260929.md",
@@ -1568,7 +1568,7 @@
       "repairBoundary": "One bounded correction with current authority/fingerprint checks; complete each/as tool-schema branches and explicit media guidance; execute authored bindings even when resolver data is deferred. Preserve all draft/apply/publication guards. No increased retry budget or validator weakening.",
       "exitCheck": "Registered invalid-first/valid-correction, exhausted-budget and changed-authority tests; native configured-provider generation/review/preview/save and per-pack style/promotion evidence with original preservation.",
       "status": "Accepted:61tests/812assertions, strict final frozen installation6e23d609, installed rejection of the reproduced missing binding, native generation/review/save/actual Website preview, three real AI pack treatments, reviewed portable export/CLI and actual AI reuse of approved custom version7 in published revision4. Owned page trashed, versions5/6/7 approvals revoked; originals and14protected processes exact. No full-delivery closure.",
-      "nextCheck": "Reuse completed AI acceptance. Final fleet parity is Task8; Instagram/Turnstile/public HTTPS remain separate."
+      "nextCheck": "Reuse completed AI acceptance and completed fleet parity; Instagram/public HTTPS remain separate."
     },
     {
       "id": "E117",
@@ -2977,7 +2977,7 @@
       "title": "Social feed",
       "category": "Social",
       "checkpointStatus": "In progress",
-      "nextClassification": "Complete declared Instagram provider; preserve accepted Mastodon evidence.",
+      "nextClassification": "Instagram adapter and private native authorization implemented and accepted; actual authorized provider feed/expiry/revocation acceptance remains. Preserve accepted Mastodon evidence.",
       "classification": "demonstrated implementation gap",
       "source": "blocks/core/social-feed/block.json",
       "requirements": "provider (select), handle (text), limit (number)",
@@ -4002,9 +4002,9 @@
       "name": "core/event-rsvp",
       "title": "Event RSVP",
       "category": "Forms",
-      "checkpointStatus": "In progress",
-      "nextClassification": "Current original/generated event selection passes in actual native picker and published page; both providers refuse direct unverified, missing-token and invalid-token writes without capacity use. Legitimate real Turnstile widget requires human challenge; successful provider registration and fixture cleanup pending. Prior native save/reopen and no-CAPTCHA registration/cancellation evidence retained.",
-      "classification": "missing evidence",
+      "checkpointStatus": "Verified",
+      "nextClassification": "Real Turnstile original/generated registration, reload, cancellation and exact capacity passed; reuse native selection, policy/retry and four-pack evidence.",
+      "classification": "accepted/reusable evidence",
       "source": "blocks/core/event-rsvp/block.json",
       "requirements": "event (reference)",
       "evidenceReferences": [
@@ -4013,12 +4013,13 @@
         "output/event-rsvp-20260914/live-restore-checks.json",
         "output/extension-rsvp-20260920/acceptance-review.md.",
         "ConvexPress-Admin/audits/2026-09-04/forms-acceptance-20260929.md",
-        "ConvexPress-Admin/audits/2026-09-04/rsvp-provider-20260929.md"
+        "ConvexPress-Admin/audits/2026-09-04/rsvp-provider-20260929.md",
+        "ConvexPress-Admin/audits/2026-09-04/rsvp-provider-final-20261007.md"
       ],
-      "remainingReview": "Current original/generated event selection passes in actual native picker and published page; both providers refuse direct unverified, missing-token and invalid-token writes without capacity use. Legitimate real Turnstile widget requires human challenge; successful provider registration and fixture cleanup pending. Prior native save/reopen and no-CAPTCHA registration/cancellation evidence retained.",
+      "remainingReview": "Block acceptance complete. Unused localhost-only provider widget remains separately recorded cleanup residual; backend secret removed and effective original policy restored.",
       "deliveryTask": 3,
       "acceptanceBatch": "forms",
-      "reviewedAtCommit": "d8a0ea2c",
+      "reviewedAtCommit": "71b58d76",
       "notesSha256": "4b9f628cd281d5b29e1193441f849fa944349461e6f5e6115900ea4997a4dbc9",
       "specSha256": "215322743a71d14590efe4fb55b6b76e65e5eb1933c20c7f627903bd5403ca40",
       "rendererSha256": "a24e3ee41427980bb2b012aa640c043b3febe9469e15c64161cf2df59a85958c",
@@ -5467,21 +5468,22 @@
     "ConvexPress-Admin/audits/2026-09-04/assistant-cart-authority-20261007.md",
     "ConvexPress-Admin/audits/2026-09-04/original-candidate-20261007.md",
     "ConvexPress-Admin/audits/2026-09-04/delivery-requirements-20261007.md",
-    "output/original-candidate-20261007/acceptance.json"
+    "output/original-candidate-20261007/acceptance.json",
+    "ConvexPress-Admin/audits/2026-09-04/rsvp-provider-final-20261007.md"
   ],
   "trackerRefresh": {
-    "source": "output/assistant-catalog-20261007/mt-after.json",
-    "schema": "output/assistant-catalog-20261007/mt-schema.json",
+    "source": "output/remaining-acceptance-20261007/mt-after.json",
+    "schema": "output/remaining-acceptance-20261007/mt-schema.json",
     "rows": 137,
     "counts": {
-      "Verified": 135,
-      "In progress": 2
+      "Verified": 136,
+      "In progress": 1
     },
     "otherCellsUnchangedFromPreviousRead": true,
     "pendingNotesReconciled": 77,
     "classificationScope": "Block-specific missing gates; historical whole-app audit conditions retained in Notes but not automatic prerequisites.",
     "lastAcceptedNames": [
-      "commerce/assistant-band"
+      "core/event-rsvp"
     ],
     "allNotesExact": true
   },
