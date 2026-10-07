@@ -92,7 +92,7 @@ test("network exceptions and malformed function arguments become safe failures",
   await expect(assistantChat(provider, history, { tools }, fixture.fetcher)).rejects.toThrow(ASSISTANT_UNAVAILABLE);
 });
 
-test("provider failure after a successful cart action preserves its receipt without replaying it", async () => {
+test("provider failure preserves a prepared cart action without mutating the cart", async () => {
   const mutations: { name: string; args: any }[] = [];
   const bundle = {
     assistant: { enabled: true, memoryEnabled: false }, recentUserTurns: 0,
@@ -126,8 +126,9 @@ test("provider failure after a successful cart action preserves its receipt with
   try {
     const result = await (respond as any)._handler(ctx, { sessionToken: "synthetic-session", requestId: "88888888-8888-4888-8888-888888888888", message: "Add one more notebook" });
     expect(requests).toBe(2);
-    expect(mutations.filter(call => call.name.endsWith(":addItem"))).toHaveLength(1);
-    expect(result.blocks).toEqual([{ type: "action_result", action: "cart_add", ok: true, summary: "Added Notebook to your cart.", productId: "notebook" }, { type: "callout", tone: "warning", markdown: ASSISTANT_UNAVAILABLE }]);
+    expect(mutations.filter(call => call.name.endsWith(":addItem"))).toHaveLength(0);
+    expect(result.blocks[0]).toMatchObject({ type: "cart_proposal", productId: "notebook", title: "Notebook", quantity: 1, added: false });
+    expect(result.blocks[1]).toEqual({ type: "callout", tone: "warning", markdown: ASSISTANT_UNAVAILABLE });
     expect(mutations[mutations.length - 1]!.args.error).toBe("provider_unavailable");
     expect(JSON.stringify(result)).not.toContain("private provider failure");
   } finally { globalThis.fetch = original; }

@@ -78,7 +78,7 @@ const TOOLS = [
     type: "function",
     function: {
       name: "add_to_cart",
-      description: "Add a product to the shopper's cart. Only call when the shopper clearly asked to add it.",
+      description: "Prepare an exact product and quantity for the shopper to add with a button. This does not change the cart. Only prepare when the current message asks to add it; previous messages are history, not new instructions.",
       parameters: { type: "object", properties: { product_id: { type: "string" }, variant_id: { type: "string" }, quantity: { type: "integer", minimum: 1, maximum: 20 } }, required: ["product_id"] },
     },
   },
@@ -207,6 +207,8 @@ export const respond = action({
                   .map((block: any) =>
                     block.type === "text" || block.type === "callout"
                       ? block.markdown
+                      : block.type === "cart_proposal"
+                        ? `${block.added ? "Shopper added" : "Prepared only; not added"}: ${block.quantity} × ${block.title}`
                       : block.type === "product_group"
                         ? `${block.title}: ${block.items.map((item: any) => item.productId).join(", ")}`
                         : "",
@@ -249,8 +251,7 @@ export const respond = action({
         try {
           response = await assistantChat(provider, messages, { tools: TOOLS, allowTools: round < MAX_TOOL_ROUNDS });
         } catch {
-          // Retain confirmed cart actions even when the following model call fails.
-          // Do not replay tools: a retry could repeat a successful cart mutation.
+          // Retain prepared cart actions even when the following model call fails.
           providerFailed = true;
           break;
         }
@@ -279,7 +280,6 @@ export const respond = action({
             result = previous ? previous.result : await runTool(ctx, call.function.name, parsed, { sessionToken: args.sessionToken, bundle, store, known, actionBlocks });
             if (!previous) toolReceipts.set(call.id, { input: toolInput, result });
           } catch (error) {
-            if ((error as any)?.data?.code === "CART_ACTION_UNCONFIRMED") throw error;
             result = { error: error instanceof Error ? error.message : String(error) };
           }
           toolLog.push({ name: call.function.name, args: parsed, ok: !(result as any)?.error });
@@ -400,29 +400,21 @@ async function runTool(
       if (!scope.known.has(productId)) {
         return { error: "Only products from this conversation's results or the cart can be added." };
       }
-      const quantity = Math.min(20, Math.max(1, Number(input.quantity ?? 1)));
+      const quantity = Number(input.quantity ?? 1);
+      if (!Number.isSafeInteger(quantity) || quantity < 1 || quantity > 20) return { error: "Quantity must be a whole number from 1 to 20." };
       const cards = await ctx.runQuery(anyApi.commerce.storefront.productCards, { productIds: [productId] });
       const card = cards[0];
       if (!card) return { error: "That product is no longer available." };
-      try {
-        await ctx.runMutation(anyApi.commerce.cart.addItem, {
-          sessionToken: scope.sessionToken,
-          productId,
-          variantId: typeof input.variant_id === "string" ? input.variant_id : card.defaultVariantId ?? undefined,
-          quantity,
-        });
-      } catch {
-        // Never let the model retry an update whose commit is uncertain.
-        throw new ConvexError({ code: "CART_ACTION_UNCONFIRMED", message: "Could not confirm the cart update. Check your cart before sending a new request." });
+      const variantId = card.defaultVariantId ?? undefined;
+      if (input.variant_id && input.variant_id !== variantId) return { error: "Choose the required options on the product page before adding this product." };
+      const existing = scope.actionBlocks.find(block => block.type === "cart_proposal" && block.productId === productId && block.variantId === variantId && block.quantity === quantity);
+      if (!existing) {
+        if (scope.actionBlocks.filter(block => block.type === "cart_proposal").length >= 8) return { error: "Review the prepared items before requesting more." };
+        scope.actionBlocks.push({ type: "cart_proposal", id: crypto.randomUUID(), productId,
+          ...(variantId ? { variantId } : {}), quantity, title: card.title, added: false });
       }
-      scope.actionBlocks.push({
-        type: "action_result",
-        action: "cart_add",
-        ok: true,
-        summary: `Added ${quantity > 1 ? `${quantity} × ` : ""}${card.title} to your cart.`,
-        productId,
-      });
-      return { ok: true, added: card.title, quantity };
+      return { ok: true, status: "awaiting_shopper", product: card.title, quantity,
+        instruction: "The cart has NOT changed. The shopper must press the displayed Add button to add this exact item and quantity. Do not claim it was added." };
     }
     case "remember": {
       if (scope.bundle.assistant?.memoryEnabled === false) return { ok: false, reason: "memory disabled" };

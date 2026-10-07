@@ -16,6 +16,7 @@ import { assistantIdentityReady } from "./prompt-handoff";
 import type { ProductCardData } from "@/components/shop/ProductMiniCard";
 
 export type AssistantBlock =
+  | { type: "cart_proposal"; id: string; productId: string; variantId?: string; quantity: number; title: string; added: boolean }
   | { type: "text"; markdown: string }
   | { type: "product_group"; title: string; reason?: string; items: Array<{ productId: string; rationale?: string }>; seeMoreQuery?: string }
   | { type: "compare_table"; columns: string[]; rows: Array<{ productId: string; values: string[] }> }
@@ -48,7 +49,7 @@ function productIdsIn(blocks: AssistantBlock[]): string[] {
   for (const block of blocks) {
     if (block.type === "product_group") block.items.forEach((item) => ids.add(item.productId));
     if (block.type === "compare_table") block.rows.forEach((row) => ids.add(row.productId));
-    if (block.type === "action_result" && block.productId) ids.add(block.productId);
+    if ((block.type === "action_result" || block.type === "cart_proposal") && block.productId) ids.add(block.productId);
   }
   return [...ids];
 }
@@ -88,6 +89,7 @@ export function useAssistant(input: { kind: BriefKind | "catalog" | "checkout" |
   const setFeedbackMutation = useMutation(anyApi.commerce.assistant.mutations.setFeedback);
   const forgetMutation = useMutation(anyApi.commerce.assistant.mutations.forgetFact);
   const clearMutation = useMutation(anyApi.commerce.assistant.mutations.clearThread);
+  const confirmCartMutation = useMutation(anyApi.commerce.assistant.cartActions.confirm);
   const logEvent = useMutation(anyApi.commerce.assistant.mutations.logEvent);
 
   const [pending, setPending] = useState<(RequestOwner & { text: string }) | null>(null);
@@ -199,6 +201,20 @@ export function useAssistant(input: { kind: BriefKind | "catalog" | "checkout" |
     void clearMutation({ sessionToken });
   }, [clearMutation, sessionToken]);
 
+  const confirmCart = useCallback(async (messageId: string, proposalId: string) => {
+    if (!sessionToken || !active || !lifetime.current.mounted || lifetime.current.scope !== scope) return false;
+    const generation = lifetime.current.generation;
+    try {
+      await confirmCartMutation({ sessionToken, messageId, proposalId });
+      return lifetime.current.mounted && lifetime.current.scope === scope && lifetime.current.generation === generation;
+    } catch (error) {
+      if (lifetime.current.mounted && lifetime.current.scope === scope && lifetime.current.generation === generation) {
+        toast.error((error as { data?: { message?: string } })?.data?.message ?? "Could not confirm this addition. Retry the same button to check its result.");
+      }
+      return false;
+    }
+  }, [sessionToken, active, scope, confirmCartMutation]);
+
   const track = useCallback(
     (surface: "rail" | "drawer" | "cart_page" | "product_page" | "search", event: "impression" | "click" | "add", productIds: string[], groupKey?: string) => {
       if (!sessionToken || !productIds.length) return;
@@ -233,6 +249,7 @@ export function useAssistant(input: { kind: BriefKind | "catalog" | "checkout" |
     feedback,
     forget,
     clear,
+    confirmCart,
     track,
   };
 }
