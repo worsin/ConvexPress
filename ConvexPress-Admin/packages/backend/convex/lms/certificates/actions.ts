@@ -16,7 +16,10 @@ export const renderCertificatePdf = internalAction({
     v.object({ ok: v.literal(true), mediaId: v.id("media") }),
     v.object({ ok: v.literal(false), reason: v.union(v.literal("not_renderable"), v.literal("superseded")) }),
   ),
-  handler: async (ctx, args) => {
+  handler: async (ctx, args): Promise<
+    | { ok: true; mediaId: Id<"media"> }
+    | { ok: false; reason: "not_renderable" | "superseded" }
+  > => {
     const payload = await ctx.runQuery(
       (internal as any).lms.certificates.actions.getRenderPayload,
       { issueId: args.issueId },

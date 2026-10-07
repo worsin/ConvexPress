@@ -1550,6 +1550,17 @@
       "exitCheck": "Registered fail-before/pass-after visibility/ranking/budget/variant tests; scoped commerce suite/types; installed actual catalog and provider smoke with original data preservation.",
       "status": "Accepted on original Alpha: source3c2cd803,8focused cases/440commerce tests, strict frozen install, exact20product/6category public catalog and actual configured-provider cart smoke with preservation.",
       "nextCheck": "Reuse this boundary; continue selected-resource AI authoring and final candidate parity."
+    },
+    {
+      "id": "E116",
+      "classification": "reproduced delivery failure",
+      "deliveryTask": 7,
+      "requiredWorkflow": "Actual configured AI produces a reviewable editable custom definition using selected resources and supported SDK grammar.",
+      "evidence": "output/ai-resources-20261007/composition-rejected.png; first-compose-rejected.json; diagnostic-provider-result.json; diagnostic-validation.json",
+      "dependency": "Three native composition attempts return only a rejection after provider success. Captured diagnostic output omits media storage:id and uses unsupported == expressions; validation correctly rejects, but no bounded correction path carries authoritative feedback to the provider. Earlier uncaptured outputs are not assumed identical.",
+      "repairBoundary": "One bounded corrective generation using limited validator feedback and the prior untrusted proposal; repeat current scope/permission/resource/fingerprint validation before any review result. Preserve all draft/apply/publication guards.",
+      "exitCheck": "Registered invalid-first/valid-correction, exhausted-budget and changed-authority tests; native configured-provider generation/review/preview/save and per-pack style/promotion evidence with original preservation.",
+      "status": "Bounded correction passes60focused tests/769assertions and strict backend types; installed/native acceptance next. Explicit certificate action return annotation matches its existing validator and resolves the strict build failure without runtime behavior changes. Native selected-resource canonical page generation already passes separately."
     }
   ],
   "blocks": [

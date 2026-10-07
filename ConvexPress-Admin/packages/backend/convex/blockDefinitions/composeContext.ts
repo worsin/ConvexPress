@@ -18,7 +18,8 @@ import { approvedAiDefinitions } from "./aiLibrary";
 import { assertAiResolverReferences } from "./composeReferences";
 import { createDefinitionDraft } from "./createDraft";
 import { fail } from "./model";
-import { composeArgs, composeProposalValidator, definitionReceipt, type ComposeArgs, type ComposeProposal } from "./composeContracts";
+import { composeArgs, composeProposalValidator, composeCheckValidator, definitionReceipt, type ComposeArgs, type ComposeProposal, type ComposeCheck } from "./composeContracts";
+import { composeDiagnostics } from "./composeDiagnostics";
 
 async function load(ctx: QueryCtx, args: ComposeArgs) {
   const budget = new RequestReadLedger();
@@ -89,6 +90,23 @@ export const validateResult = internalQuery({
       const proposed = validateDefinition(args.resultJson, args, current);
       return { definitionJson: proposed.json, digest: proposed.digest, fingerprint: current.fingerprint };
     } catch { return fail("AI_PROPOSAL_INVALID", "The generated definition did not pass field, composition, resource or data-policy validation. Nothing was saved."); }
+  },
+});
+
+/** The Node action may correct invalid model output once. Scope, permissions,
+ * selected resources and the generation fingerprint are checked outside the
+ * recoverable validation branch; authority failures never become repair hints. */
+export const checkResult = internalQuery({
+  args: { ...composeArgs, expectedFingerprint: v.string(), resultJson: v.string() }, returns: composeCheckValidator,
+  handler: async (ctx, args: ComposeArgs & { expectedFingerprint: string; resultJson: string }): Promise<ComposeCheck> => {
+    const current = await load(ctx, args);
+    if (current.fingerprint !== args.expectedFingerprint) fail("AI_CONTEXT_CHANGED", "The catalog, resources, session or site settings changed. Generate a new block proposal.");
+    try {
+      const proposed = validateDefinition(args.resultJson, args, current);
+      return { valid: true, proposal: { definitionJson: proposed.json, digest: proposed.digest, fingerprint: current.fingerprint } };
+    } catch (error) {
+      return { valid: false, issues: composeDiagnostics(args.resultJson, error) };
+    }
   },
 });
 
