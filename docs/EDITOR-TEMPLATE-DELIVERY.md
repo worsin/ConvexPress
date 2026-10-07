@@ -1,10 +1,10 @@
 # Editor and template delivery
 
 This is the working delivery entry point, not a declaration that every acceptance
-gate is complete. The block tracker currently has 134 Verified rows and three
-provider-dependent rows still In progress. Backend candidate `11942647` is installed on all six sites. It includes physical
-live-schema retirement, canonical promotion refusal for unmigrated sources,
-and the previously accepted styles, preview recovery and media-route policy.
+gate is complete. The block tracker has **135 Verified rows and two In progress**.
+Candidate `3a3f58a3` is installed on the six delivery environments with the accepted
+Assistant and AI authoring fixes; original Alpha has the same implementation.
+See [current candidate evidence](../ConvexPress-Admin/audits/2026-09-04/final-candidate-20261007.md).
 
 ## Open the examples
 
@@ -13,10 +13,10 @@ content. They are fictional demonstration businesses.
 
 | Template | Website | Open |
 | --- | --- | --- |
-| Core | Fieldwork Studio | <http://127.0.0.1:4335> |
-| Journal | Slow Current | <http://127.0.0.1:4336> |
-| Depot | Common Supply | <http://127.0.0.1:4337> |
-| Aster House | Aster House | <http://127.0.0.1:4338> |
+| Core | Fieldwork Studio | <http://127.0.0.1:4340> |
+| Journal | Slow Current | <http://127.0.0.1:4341> |
+| Depot | Common Supply | <http://127.0.0.1:4342> |
+| Aster House | Aster House | <http://127.0.0.1:4343> |
 
 The internal BlockDemo is at <http://127.0.0.1:4318>. Select a template and a
 category or block to inspect its examples. Full-page compositions and state
@@ -27,16 +27,16 @@ preview has stopped, run the corresponding command from
 `/Users/worsin/.codex/worktrees/convexpress-hardening`:
 
 ```sh
-node output/preview-history-fixed-20261006/start-preview.mjs core
-node output/preview-history-fixed-20261006/start-preview.mjs journal
-node output/preview-history-fixed-20261006/start-preview.mjs depot
-node output/preview-history-fixed-20261006/start-preview.mjs aster-house
+node output/final-candidate-20261007/start-example.mjs core
+node output/final-candidate-20261007/start-example.mjs journal
+node output/final-candidate-20261007/start-example.mjs depot
+node output/final-candidate-20261007/start-example.mjs aster-house
 ```
 
 Each command runs one preview in the foreground with a strict port. Run only the
 stopped preview, in its own terminal. The runners retain each site's identity and
-use the tested client/server Website artifact. Original previews on4325–4328
-are separate processes.
+use the tested client/server Website artifact. Original previews on4325–4328 and the prior candidate previews on4335–4338
+remain separate, preserved processes.
 
 ## Author and customize
 
@@ -106,7 +106,7 @@ from signed/self-contained distribution.
 | Presentation/state map and motion acceptance | [Task6 reconciliation](../ConvexPress-Admin/audits/2026-09-04/task6-state-motion-20261007.md) |
 | Demo navigation and complete mobile patterns | [BlockDemo review](../ConvexPress-Admin/audits/2026-09-04/demo-visible-review-20261006.md) |
 | Script Embed Vimeo and refreshed packaged-native save/reload | [Current provider/native acceptance](../ConvexPress-Admin/audits/2026-09-04/script-vimeo-final-20261007.md) |
-| Current installed sources, artifacts and remaining gates | [Candidate map](../ConvexPress-Admin/audits/2026-09-04/delivery-candidate-map-20261007.md) |
+| Current installed sources, artifacts and remaining gates | [Current candidate](../ConvexPress-Admin/audits/2026-09-04/final-candidate-20261007.md) |
 | SDK workflows and cleanup | [Kit workflows](../ConvexPress-Admin/audits/2026-09-04/kit-workflow-refresh-20261006.md) |
 
 The three obsolete live post columns are now removed across all six sites.
@@ -121,13 +121,13 @@ The action is unavailable after the conversation is cleared. Specific variants r
 their option label and use current cart pricing and stock checks when added. See
 [Assistant cart authority](../ConvexPress-Admin/audits/2026-09-04/assistant-cart-authority-20261007.md).
 
-The remaining provider requirements are actual AI generation/Assistant Band,
-authorized Instagram data for Social Feed, human Turnstile completion for Event
-RSVP. Script Embed Vimeo playback is now accepted at desktop and mobile widths. Public HTTPS/local-network
-editing still needs an authorized public staging host. Presentation/state evidence is mapped for all 137 blocks and the motion
-implementation gate is accepted. The three remaining actual provider interactions and
-final integrated acceptance remain open; desktop images do not prove them. No real checkout or booking is
-implied by an example site.
+Actual AI generation, selected-resource composition/style/SDK workflows and Assistant
+Band are accepted. The two remaining block requirements are authorized Instagram
+for Social Feed and human Turnstile completion for Event RSVP. Public HTTPS editing
+still needs a working authorized target: the registered Aster House staging backend
+is currently disabled by Convex for exceeding free-plan limits. Restore that deployment
+or use another authorized staging environment. Final requirement reconciliation remains
+open; no real checkout or booking is implied by an example site.
 
 The current native artifact is a local acceptance assembly with external local
 dependencies, not a signed installer. Existing unrelated whole-application audit
