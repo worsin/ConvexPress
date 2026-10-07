@@ -284,3 +284,8 @@ September28 navigation completion:63Verified/74In progress after Table of Conten
 ### Checkpoint parity gate
 
 After each accepted batch, reconcile every `blocks[].checkpointStatus` and its remaining-review/evidence entry against the exact full tracker readback, update `checkpointCounts` and `checkpointSource`, then run `bun run check:delivery-status`. This check compares all137 identities and individual statuses as well as the header counts; matching totals alone are insufficient. The check is read-only and does not grant acceptance or mutate MagicTables.
+
+## October 7 original-fleet correction
+
+- [ ] Finish E109 original alpha/beta/gamma/delta acceptance. The six-site retirement closure omitted11original legacy records. Backups preserve120files; current Hero treatment conversion refuses exact saved alignment/media-side values. Preserve prior accepted evidence and original lifecycle, then repair/verify this bounded gap.
+- [ ] Complete E13 with the existing original AI configuration: provider checks pass and alpha real generation returned `ok`. Earlier six-site key absence is not a global blocker. See `original-fleet-reconciliation-20261007.md`.
