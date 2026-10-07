@@ -311,11 +311,9 @@ export const opaqueMediaReferences = {
     "name",
     "slug"
   ],
-  "layouts": [
-    "config",
-    "description",
-    "name",
-    "slug"
+  "legacyAppearanceArchives": [
+    "snapshot",
+    "sourceId"
   ],
   "lms_certificates": [
     "templateDoc",
@@ -420,16 +418,6 @@ export const opaqueMediaReferences = {
     "digest",
     "legacySourceJson",
     "title"
-  ],
-  "themes": [
-    "colorPalette",
-    "description",
-    "footerConfig",
-    "headerConfig",
-    "layoutAssignments",
-    "name",
-    "slug",
-    "thumbnail"
   ]
 } as const;
 export const mediaReferenceIndexes = {

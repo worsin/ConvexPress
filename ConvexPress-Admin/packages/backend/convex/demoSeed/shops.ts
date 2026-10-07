@@ -17,6 +17,7 @@ import { deleteWithMediaReferences, insertWithMediaReferences, patchWithMediaRef
 import { v } from "convex/values";
 import { internalMutation, internalQuery } from "../_generated/server";
 import { syncProductSearch } from "../search/products";
+import { persistLegacyAppearance, readAppearance } from "../settings/appearanceMigration";
 import { northstarCoffee } from "./catalogs/northstarCoffee";
 import { ridgelineCycles } from "./catalogs/ridgelineCycles";
 import type { DemoShop } from "./catalogs/types";
@@ -56,25 +57,14 @@ async function upsertSettings(ctx: any, section: string, values: Record<string, 
 }
 
 async function activatePalette(ctx: any, shop: DemoShop, userId: any) {
-  const slug = `demo-${shop.key}`;
-  const now = Date.now();
-  const themes = await ctx.db.query("themes").take(200);
-  for (const theme of themes) {
-    if (theme.isActive && theme.slug !== slug) await patchWithMediaReferences<"themes">(ctx, "themes", theme._id, { isActive: false, updatedAt: now });
-  }
-  const existing = themes.find((theme: any) => theme.slug === slug);
-  const doc = {
-    name: `${shop.siteTitle} palette`,
-    slug,
-    description: `Seeded colour tokens for the ${shop.siteTitle} demo storefront.`,
-    type: "custom" as const,
-    colorPalette: shop.palette,
-    isActive: true,
-    createdBy: userId,
-    updatedAt: now,
-  };
-  if (existing) await patchWithMediaReferences<"themes">(ctx, "themes", existing._id, doc);
-  else await insertWithMediaReferences<"themes">(ctx, "themes", { ...doc, createdAt: now });
+  await persistLegacyAppearance(ctx, userId);
+  const { values } = await readAppearance(ctx);
+  const pack = values.settings[values.active] ?? {};
+  const colors = { ...pack.colors, ...Object.fromEntries(shop.palette.map(({ slug, color }) => [slug, color])) };
+  await upsertSettings(ctx, "appearance.template", {
+    ...values,
+    settings: { ...values.settings, [values.active]: { ...pack, colors } },
+  }, userId);
 }
 
 export const listShops = internalQuery({
@@ -250,7 +240,7 @@ export const seedShop = internalMutation({
         status: "active",
         updatedAt: now,
       };
-      if (existing) await patchWithMediaReferences<"themes">(ctx, "themes", existing._id, doc);
+      if (existing) await ctx.db.patch("commerce_product_relations", existing._id, doc);
       else await ctx.db.insert("commerce_product_relations", { ...doc, createdAt: now });
       relations += 1;
     }

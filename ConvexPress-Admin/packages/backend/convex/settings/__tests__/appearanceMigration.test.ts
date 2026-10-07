@@ -1,16 +1,18 @@
 import { describe, expect, test } from "bun:test";
 import { commerceHarness } from "../../commerce/__tests__/handlerHarness.test-support";
+import { projectLegacyAppearance } from "../appearanceMigration";
 import { migrateLegacyAppearance } from "../migrations";
 import { updateSection, importAll } from "../mutations";
 import { getBySection, getPublic } from "../queries";
-const legacy = () => commerceHarness({ settings: [{ _id: "layout", section: "commerce.layout", values: { shopLayout: "marketplace", productLayout: "split", cartPanel: "drawer", gridDensity: "dense" } }], themes: [{ _id: "theme", isActive: true, globalStyles: { settings: { color: { palette: [{ slug: "primary", color: "#123456" }, { slug: "dark-sidebar", color: "#abcdef" }] } } } }] });
+const legacy = () => commerceHarness({ settings: [{ _id: "layout", section: "commerce.layout", values: { shopLayout: "marketplace", productLayout: "split", cartPanel: "drawer", gridDensity: "dense" } }] });
+
 describe("legacy appearance migration", () => {
-  test("authenticated settings project legacy shop and palette before persistence", async () => {
+  test("authenticated settings project retained shop configuration without a legacy theme", async () => {
     const ctx = legacy();
     const result = await (getBySection as any)._handler(ctx, { section: "appearance.template" });
     expect(result.variants["shop.catalog"]).toBe("marketplace");
     expect(result.settings.core.shop.gridDensity).toBe("dense");
-    expect(result.settings.core.colors["dark-sidebar"]).toBe("#abcdef");
+    expect(result.settings.core.colors).toBeUndefined();
     expect(ctx.tables.settings).toHaveLength(1);
   });
   test("existing variants and other pack modules survive projection", async () => {
@@ -45,7 +47,7 @@ test("migration persists exactly once and preserves source rows", async () => {
   const snapshot = JSON.stringify(ctx.tables);
   expect(await (migrateLegacyAppearance as any)._handler(ctx, {})).toEqual({ migrated: false });
   expect(JSON.stringify(ctx.tables)).toBe(snapshot);
-  expect(ctx.tables.themes).toHaveLength(1);
+  expect(ctx.tables.settings.find((row: any) => row.section === "commerce.layout").values.gridDensity).toBe("dense");
 });
 test("first explicit update preserves migrated packs and reset never resurrects legacy", async () => {
   const ctx = legacy();
@@ -89,4 +91,10 @@ test("flat v1 chrome aliases become nested controls before legacy defaults fill"
   expect(result.settings.core.header.sticky).toBeUndefined();
   expect(result.settings.core.footer.newsletter.enabled).toBe(false);
   expect(result.settings.core.footer.bottomBar.copyrightText).toBe("Example");
+});
+
+test("explicit legacy projection preserves palette values without reading storage", () => {
+  const palette = [{ slug: "primary", color: "#123456" }, { slug: "dark-sidebar", color: "#abcdef" }];
+  const result = projectLegacyAppearance({ active: "journal", settings: { journal: { colors: { primary: "#654321" } } } }, {}, palette);
+  expect(result.settings.journal.colors).toEqual({ primary: "#654321", "dark-sidebar": "#abcdef" });
 });

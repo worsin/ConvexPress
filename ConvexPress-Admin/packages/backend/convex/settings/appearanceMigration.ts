@@ -84,12 +84,9 @@ export async function readAppearance(ctx: Pick<QueryCtx, "db">, budget?: Request
     budget?.beforeRead();
     const layout = await ctx.db.query("settings").withIndex("by_section", q => q.eq("section", "commerce.layout")).unique();
     budget?.record(layout);
-    budget?.beforeRead();
-    const theme = await ctx.db.query("themes").withIndex("by_active", q => q.eq("isActive", true)).first();
-    budget?.record(theme);
-    const globalPalette = record(record(record(record(theme).globalStyles).settings).color).palette;
-    const palette = Array.isArray(globalPalette) ? globalPalette : theme?.colorPalette;
-    values = projectLegacyAppearance(doc?.values, layout?.values, palette);
+    // Theme palettes were persisted before table retirement. Recovery archives
+    // never participate in active appearance or resurrect an explicit reset.
+    values = projectLegacyAppearance(doc?.values, layout?.values, undefined);
   }
   const pack = { ...values.settings[values.active] };
   for (const section of ["header", "footer"] as const) {

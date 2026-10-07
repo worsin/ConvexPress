@@ -36,9 +36,8 @@ test("management authentication does not swallow a request budget refusal as mis
 test("appearance counts full stored template and all actual legacy projection inputs",async()=>{
  const ctx=admin();
  ctx.tables.settings=[{_id:"appearance",section:"appearance.template",values:{active:"core",settings:{},overrides:{},variants:{}}},{_id:"header",section:"header",values:{privateUnused:"x".repeat(300)}}];
- ctx.tables.themes=[];
  const budget=new RequestReadLedger(); await readAppearance(ctx as any,budget);
- expect(budget.queries).toBe(5); expect(budget.documents).toBe(2);
+ expect(budget.queries).toBe(4); expect(budget.documents).toBe(2);
  expect(budget.bytes).toBe(ctx.tables.settings.reduce((sum:any,row:any)=>sum+getDocumentSize(row),0));
  expect(await code(()=>readAppearance(ctx as any,new RequestReadLedger({...limits,queries:3})))).toBe("CANONICAL_READ_BUDGET");
 });
