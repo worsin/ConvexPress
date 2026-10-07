@@ -148,13 +148,14 @@ export const pageOptions: RegisteredQuery<
 	handler: (ctx, args) => canonicalBoundary(() => pages(ctx, args)),
 });
 
+import type { MigrationReviewArgs } from "./canonicalDocuments/service";
 import type { CanonicalMigrationDto } from "./canonicalDocuments/foundation/migrationContracts";
-export const prepareMigration: RegisteredQuery<"public", ReadArgs & { preserveTrash?: boolean }, Promise<CanonicalMigrationDto>> = query({
-  args: { postId: v.id("posts"), preserveTrash: v.optional(v.boolean()) }, returns: migrationValidator,
+export const prepareMigration: RegisteredQuery<"public", MigrationReviewArgs, Promise<CanonicalMigrationDto>> = query({
+  args: { postId: v.id("posts"), preserveTrash: v.optional(v.boolean()), preserveStatus: v.optional(v.union(v.literal("publish"),v.literal("private"),v.literal("future"),v.literal("auto-draft"))) }, returns: migrationValidator,
   handler: (ctx, args) => canonicalBoundary(() => prepareMigrationDocument(ctx, args)),
 });
 export const migrate: RegisteredMutation<"public", MigrateArgs, Promise<CanonicalWriteReceipt>> = mutation({
-  args: { postId: v.id("posts"), expectedRevision: v.number(), expectedAuthoringDigest: v.string(), expectedCandidateDigest: v.string(), expectedPresentationRevision: v.string(), preserveInactiveSettings: v.optional(v.boolean()), acknowledgeTextImport: v.optional(v.boolean()), acknowledgeHtmlImport: v.optional(v.boolean()), preserveTrash: v.optional(v.boolean()), preserveLegacyAutosave: v.optional(v.boolean()) }, returns: receiptValidator,
+  args: { postId: v.id("posts"), expectedRevision: v.number(), expectedAuthoringDigest: v.string(), expectedCandidateDigest: v.string(), expectedPresentationRevision: v.string(), preserveInactiveSettings: v.optional(v.boolean()), acknowledgeTextImport: v.optional(v.boolean()), acknowledgeHtmlImport: v.optional(v.boolean()), preserveTrash: v.optional(v.boolean()), preserveLegacyAutosave: v.optional(v.boolean()), preserveStatus: v.optional(v.union(v.literal("publish"),v.literal("private"),v.literal("future"),v.literal("auto-draft"))) }, returns: receiptValidator,
   handler: (ctx, args) => canonicalBoundary(() => migrateDocument(ctx, args)),
 });
 

@@ -3,6 +3,26 @@ import { assertAuthoringWrite, authoringWriteNeedsPrevious, assertLegacyAuthorin
 const previous = { _id: "post", title: "Draft", status: "draft", contentMode: "blocks", blocksVersion: 2, blocksRevision: 4, blocks: [] };
 const errorCode = (run: () => unknown) => { try { run(); return null; } catch (error: any) { return error.data?.code ?? error.message; } };
 
+test("auto-draft migration permits bind one legacy conversion and cannot create or republish auto-drafts", () => {
+ const write = {table:"posts",operation:"patch" as const,id:"post",previous:{...previous,status:"auto-draft",blocksVersion:1},value:{blocksVersion:2,blocksRevision:5,blocks:[]}};
+ expect(errorCode(()=>permitValidatedCanonicalAuthoringWrite(write))).toBe("CANONICAL_PUBLICATION_UNAVAILABLE");
+ expect(errorCode(()=>assertAuthoringWrite(write,{} as any))).toBe("CANONICAL_PUBLICATION_UNAVAILABLE");
+ const permit=permitValidatedCanonicalAuthoringWrite(write,{preserveLegacyAutoDraft:true});
+ assertAuthoringWrite(write,permit);
+ expect(errorCode(()=>assertAuthoringWrite(write,permit))).toBe("CANONICAL_PUBLICATION_UNAVAILABLE");
+ for (const other of [
+  {...write,operation:"insert" as const,value:{...write.value,status:"auto-draft"}},
+  {...write,operation:"replace" as const,value:{...write.value,status:"auto-draft"}},
+  {...write,previous:{...write.previous,blocksVersion:2}},
+  {...write,previous:{...write.previous,status:"draft"},value:{...write.value,status:"auto-draft"}},
+  {...write,value:{...write.value,status:"auto-draft"}},
+  {...write,value:{...write.value,publishedAt:42}},
+  {...write,previous:{...write.previous,status:"pending"}},
+ ]) expect(errorCode(()=>permitValidatedCanonicalAuthoringWrite(other,{preserveLegacyAutoDraft:true}))).not.toBeNull();
+ const altered=permitValidatedCanonicalAuthoringWrite(write,{preserveLegacyAutoDraft:true});
+ expect(errorCode(()=>assertAuthoringWrite({...write,id:"different"},altered))).toBe("CANONICAL_AUTHORING_REQUIRED");
+});
+
 test("legacy and unrelated writes remain available; metadata patches do not demand an authoring read", () => {
   expect(authoringWriteNeedsPrevious("posts", "patch", { commentCount: 2 })).toBe(false);
   expect(authoringWriteNeedsPrevious("posts", "patch", { title: "Changed" })).toBe(true);

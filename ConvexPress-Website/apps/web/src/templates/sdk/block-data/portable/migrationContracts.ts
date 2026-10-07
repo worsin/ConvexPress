@@ -27,13 +27,16 @@ export const revisionSourceSchema = z.strictObject({
 });
 export type RevisionSourceDto = z.infer<typeof revisionSourceSchema>;
 type LibraryMigrationCandidate = Omit<CanonicalDocumentDto, "document"> & { document: Omit<CanonicalDocumentDto["document"], "blocks" | "composedDefinitions"> & { blocks: CanonicalTree; composedDefinitions?: never } };
-export type CanonicalMigrationDto = { contract: "canonical-migration-v1"; source: { postId: string; revision: number; authoringDigest: string }; candidate: LibraryMigrationCandidate; archive?: z.infer<typeof revisionImportSourceSchema>; preservesTrash?: true; retainedAutosave?: z.infer<typeof retainedLegacyAutosaveSchema>; inactiveSettings?: InactiveLegacySettings[]; importedContent?: "plain-text" | "html" };
+export const migrationPreservedStatusSchema = z.enum(["publish", "private", "future", "auto-draft"]);
+export type MigrationPreservedStatus = z.infer<typeof migrationPreservedStatusSchema>;
+export type CanonicalMigrationDto = { contract: "canonical-migration-v1"; source: { postId: string; revision: number; authoringDigest: string }; candidate: LibraryMigrationCandidate; archive?: z.infer<typeof revisionImportSourceSchema>; preservesTrash?: true; preservesStatus?: MigrationPreservedStatus; retainedAutosave?: z.infer<typeof retainedLegacyAutosaveSchema>; inactiveSettings?: InactiveLegacySettings[]; importedContent?: "plain-text" | "html" };
 export const canonicalMigrationSchema = z.strictObject({
   contract: z.literal("canonical-migration-v1"),
   source: z.strictObject({ postId: z.string().min(1).max(256), revision: z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER - 2), authoringDigest: digest }),
   candidate: canonicalDocumentSchema,
   archive: revisionImportSourceSchema.optional(),
   preservesTrash: z.literal(true).optional(),
+  preservesStatus: migrationPreservedStatusSchema.optional(),
   retainedAutosave: retainedLegacyAutosaveSchema.optional(),
   inactiveSettings: z.array(inactiveLegacySettingsSchema).max(80).optional(),
   importedContent: z.enum(["plain-text", "html"]).optional(),
@@ -42,6 +45,7 @@ export function parseCanonicalMigration(input: unknown): CanonicalMigrationDto {
   const parsed = canonicalMigrationSchema.parse(input);
   const candidate = parseCanonicalDocumentRead(parsed.candidate);
   if (!candidate || candidate.contract !== "canonical-document-v1" || candidate.document.id !== parsed.source.postId || candidate.document.revision !== parsed.source.revision + 1) throw Error("Migration candidate is not bound to its exact source revision");
+  if (parsed.preservesStatus && (parsed.preservesTrash || candidate.document.status !== (parsed.preservesStatus === "auto-draft" ? "draft" : parsed.preservesStatus))) throw Error("Migration candidate does not preserve its reviewed lifecycle");
   if (candidate.document.composedDefinitions) throw Error("Legacy migration cannot introduce custom definitions");
   const { composedDefinitions: _definitions, ...document } = candidate.document;
   return { ...parsed, candidate: { ...candidate, document: { ...document, blocks: validateCanonicalTree(document.blocks) } } };
