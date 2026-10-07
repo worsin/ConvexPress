@@ -18,7 +18,7 @@ declare const canonicalPermit: unique symbol;
 export type CanonicalAuthoringWritePermit = { readonly [canonicalPermit]: true };
 const protectedFields = new Set<string>([...AUTHORING_FIELDS, "autosaveTitle", "autosaveContent", "autosavedAt"]);
 const publicationFields = new Set(["visibility", "password", "scheduledAt", "publishedAt"]);
-const permits = new WeakMap<object, { table: string; operation: string; id?: string; value: object; encodedValue: string; previous: string }>();
+const permits = new WeakMap<object, { table: string; operation: string; id?: string; value: object; encodedValue: string; previous: string; preserveLegacyAutoDraft: boolean }>();
 function refusal(code = "CANONICAL_AUTHORING_REQUIRED"): never {
   throw new ConvexError({ code, message: code === "UNSUPPORTED_AUTHORING_VERSION" ? "This authoring format is unsupported. It cannot be converted by a legacy writer." : code === "CANONICAL_PUBLICATION_UNAVAILABLE" ? "Canonical publication is not available at this implementation checkpoint." : "This document requires the canonical authoring service. Reload it in the supported editor." });
 }
@@ -61,29 +61,34 @@ function priorBinding(write: AuthoringWrite): string {
   const previous = write.previous;
   return encode(previous ? Object.fromEntries(["_id", "status", ...publicationFields, ...protectedFields].filter(key => Object.prototype.hasOwnProperty.call(previous, key)).map(key => [key, previous[key]])) : null);
 }
-function transition(write: AuthoringWrite): { from: 1 | 2; to: 1 | 2; body: boolean } {
+function transition(write: AuthoringWrite, preserveLegacyAutoDraft = false): { from: 1 | 2; to: 1 | 2; body: boolean } {
   if (authoringWriteNeedsPrevious(write.table, write.operation, write.value) && !write.previous) throw new ConvexError({ code: "NOT_FOUND", message: "Document not found." });
   const from = version(write.previous);
   const candidate = write.operation === "patch" ? { ...write.previous, ...write.value } : write.value;
   const to = version(candidate);
-  if (write.table === "posts" && to === 2 && ["pending", "auto-draft"].includes(String(candidate.status))) refusal("CANONICAL_PUBLICATION_UNAVAILABLE");
+  const retainedLegacyAutoDraft = preserveLegacyAutoDraft && write.table === "posts" && write.operation === "patch"
+    && from === 1 && to === 2 && write.previous?.status === "auto-draft" && candidate.status === "auto-draft"
+    && !Object.keys(write.value).some(key => key === "status" || publicationFields.has(key));
+  if (preserveLegacyAutoDraft && !retainedLegacyAutoDraft) refusal();
+  if (write.table === "posts" && to === 2 && ["pending", "auto-draft"].includes(String(candidate.status)) && !retainedLegacyAutoDraft) refusal("CANONICAL_PUBLICATION_UNAVAILABLE");
   return { from, to, body: write.operation !== "patch" || Object.keys(write.value).some(key => protectedFields.has(key) || publicationFields.has(key) || (key === "status" && ["publish", "future", "private"].includes(String(candidate.status)))) };
 }
-export function permitValidatedCanonicalAuthoringWrite(write: AuthoringWrite): CanonicalAuthoringWritePermit {
+export function permitValidatedCanonicalAuthoringWrite(write: AuthoringWrite, options?: {preserveLegacyAutoDraft: true}): CanonicalAuthoringWritePermit {
   if (!owns(write.table)) refusal();
-  const { to } = transition(write);
+  const preserveLegacyAutoDraft = options?.preserveLegacyAutoDraft === true;
+  const { to } = transition(write, preserveLegacyAutoDraft);
   if (to !== 2) refusal();
   const permit = Object.freeze({}) as CanonicalAuthoringWritePermit;
-  permits.set(permit, { table: write.table, operation: write.operation, id: write.id, value: write.value, encodedValue: encode(write.value), previous: priorBinding(write) });
+  permits.set(permit, { table: write.table, operation: write.operation, id: write.id, value: write.value, encodedValue: encode(write.value), previous: priorBinding(write), preserveLegacyAutoDraft });
   return permit;
 }
 export function assertAuthoringWrite(write: AuthoringWrite, permit?: CanonicalAuthoringWritePermit): void {
   if (!owns(write.table)) return;
   if (write.operation === "patch" && !authoringWriteNeedsPrevious(write.table, write.operation, write.value)) return;
-  const { from, to, body } = transition(write);
-  if (!body || (from === 1 && to === 1)) return;
   const receipt = permit && permits.get(permit);
   if (permit) permits.delete(permit);
+  const { from, to, body } = transition(write, receipt?.preserveLegacyAutoDraft);
+  if (!body || (from === 1 && to === 1)) return;
   if (!receipt || to !== 2 || receipt.table !== write.table || receipt.operation !== write.operation || receipt.id !== write.id || receipt.value !== write.value || receipt.encodedValue !== encode(write.value) || receipt.previous !== priorBinding(write)) refusal();
   if (write.table === "posts" && from === 2) {
     const candidate = write.operation === "patch" ? { ...write.previous, ...write.value } : write.value;

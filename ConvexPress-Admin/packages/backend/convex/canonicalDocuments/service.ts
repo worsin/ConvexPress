@@ -76,7 +76,7 @@ import { LegacyMigrationError, reviewLegacyDocumentSource } from "./foundation/l
 import { reviewLegacyBlocks } from "./foundation/legacyBlockMigration";
 import { hasStructuredArticle, migrateStructuredArticle } from "./foundation/legacyStructuredMigration";
 import { migrateLegacySections } from "./foundation/legacySectionMigration";
-import { parseCanonicalMigration, type CanonicalMigrationDto } from "./foundation/migrationContracts";
+import { parseCanonicalMigration, type CanonicalMigrationDto, type MigrationPreservedStatus } from "./foundation/migrationContracts";
 function refuse(code: string, message: string): never {
 	throw new ConvexError({ code, message });
 }
@@ -323,13 +323,14 @@ async function commit(
 	restore?: Doc<"revisions">,
   publication?: CanonicalPublicationPatch,
   scheduled = false,
-  preserveTrash = false,
+  migration?: { draftProjection: boolean; preserveUpdatedAt: boolean },
 ): Promise<CanonicalWriteReceipt> {
-  if ((publication?.status ?? post.status) !== "draft") assertAuthoredActions(prepared, prepared.composedDefinitions?.scope);
+  const retainedAutoDraft = migration?.draftProjection && post.status === "auto-draft";
+  if (!retainedAutoDraft && (publication?.status ?? post.status) !== "draft") assertAuthoredActions(prepared, prepared.composedDefinitions?.scope);
   const previous = post.blocksVersion === 2 ? await (scheduled ? readApprovedDocument : readAuthoredDocument)(ctx, post, budget) : undefined;
   await validateNewKnowledgeCategoryReferences(ctx, prepared.blocks, previous?.blocks ?? [], budget);
 	// A no-op still revalidates current policy and exact referenced resources.
-	await project(ctx, preserveTrash ? {...post, status: "draft"} : post, budget, prepared, {}, (publication?.status ?? post.status) === "draft" ? "authoring" : "published");
+	await project(ctx, migration?.draftProjection ? {...post, status: "draft"} : post, budget, prepared, {}, retainedAutoDraft || (publication?.status ?? post.status) === "draft" ? "authoring" : "published");
   await syncDocumentContactForms(ctx, { postId: post._id, title: prepared.title, blocks: prepared.blocks, scheduled,
     ...(prepared.composedDefinitions ? { composed: { scope: prepared.composedDefinitions.scope, definitions: prepared.composedDefinitions } } : {}) }, budget);
 	if (prepared.changed) {
@@ -345,7 +346,7 @@ async function commit(
 			autosaveTitle: undefined,
 			autosaveContent: undefined,
 			autosavedAt: undefined,
-			updatedAt: Date.now(),
+			updatedAt: migration?.preserveUpdatedAt ? post.updatedAt : Date.now(),
       ...publication,
 		};
 		assertStoredSize({ ...post, ...value }, budget);
@@ -356,7 +357,7 @@ async function commit(
 			id: post._id,
 			previous: post,
 			value,
-		});
+		}, migration?.draftProjection && post.status === "auto-draft" ? {preserveLegacyAutoDraft:true} : undefined);
 		await patchWithMediaReferences(
 			ctx,
 			"posts",
@@ -603,16 +604,29 @@ async function prepareMigrationReferences(ctx: QueryCtx, post: HistoricalAuthori
  const references = usesDocument ? await legacyReferenceMap(ctx,post.content ?? "",budget) : undefined;
  return prepareAuthoredMigration(post,references);
 }
-/** Trash conversion is authoring-only: never restore, reschedule or publish.
- * Bind its lifecycle too, so restoring/retrashing after review invalidates it.
- * The draft projection is only a preview; commit retains the actual trash row. */
-function migrationSource(post: Doc<"posts">, preserveTrash: boolean) {
-  if (!preserveTrash) return {preview:post,digest:authoringSourceDigest(post)};
+/** Explicit migration retains lifecycle. Draft projection selects the legacy
+ * converter, not a stored state change. Trash retains its existing binding;
+ * publication-preserving upgrades bind the complete reviewed record. */
+export type MigrationReviewArgs = { postId: Id<"posts">; preserveTrash?: boolean; preserveStatus?: MigrationPreservedStatus };
+function migrationSource(post: Doc<"posts">, preserveTrash: boolean, preserveStatus?: MigrationPreservedStatus) {
+  if (preserveTrash && preserveStatus) refuse("INVALID_MIGRATION_INTENT", "Choose one lifecycle preservation mode.");
+  if (preserveStatus) {
+    if (post.status !== preserveStatus) refuse("CONFLICT", "The document no longer has its reviewed publication state.");
+    const preview = {...post,status:"draft" as const};
+    // Migration leaves all non-authoring fields untouched. Bind the complete
+    // reviewed row so ownership, routes, scheduling or publication cannot drift.
+    return {preview,display:preserveStatus === "auto-draft" ? preview : post,digest:sha256Hex(canonicalJson(post))};
+  }
+  if (!preserveTrash) return {preview:post,display:post,digest:authoringSourceDigest(post)};
   if (post.status !== "trash") refuse("CONFLICT", "The document is no longer in the reviewed Trash state.");
-  return {preview:{...post,status:"draft" as const},digest:sha256Hex(canonicalJson({
+  const preview = {...post,status:"draft" as const};
+  return {preview,display:preview,digest:sha256Hex(canonicalJson({
     authoring:authoringSourceDigest(post),status:post.status,
     previousStatus:post.previousStatus ?? null,trashedAt:post.trashedAt ?? null,
   }))};
+}
+async function requireMigrationPublication(ctx: QueryCtx, post: Doc<"posts">, status: MigrationPreservedStatus | undefined, budget: RequestReadLedger) {
+  if (status && status !== "auto-draft") await requireCan(ctx, post.type === "page" ? "page.publish" : "post.publish", budget);
 }
 /** The ordinary Trash routes keep their ownership/route checks. A canonical
  * restore additionally validates the exact resulting body and publication
@@ -644,20 +658,22 @@ function retainedAutosave(post: HistoricalAuthoringSource): CanonicalMigrationDt
   const contentChanged = post.autosaveContent !== undefined && post.autosaveContent !== (post.content ?? "");
   return titleChanged || contentChanged ? {titleChanged,contentChanged,savedAt:post.autosavedAt ?? null} : undefined;
 }
-export async function prepareMigrationDocument(ctx: QueryCtx, args: { postId: Id<"posts">; preserveTrash?: boolean }): Promise<CanonicalMigrationDto> {
+export async function prepareMigrationDocument(ctx: QueryCtx, args: MigrationReviewArgs): Promise<CanonicalMigrationDto> {
   const budget = new RequestReadLedger();
   const { post } = await authorized(ctx, args.postId, budget, args.preserveTrash === true);
   if (!post) refuse("NOT_FOUND", "Document not found.");
-  const source = migrationSource(post, args.preserveTrash === true);
+  const source = migrationSource(post, args.preserveTrash === true, args.preserveStatus);
+  await requireMigrationPublication(ctx, post, args.preserveStatus, budget);
   const prepared = await prepareMigrationReferences(ctx,source.preview,budget);
-  return parseCanonicalMigration({ contract: "canonical-migration-v1", source: { postId: post._id, revision: authoringRevision(post), authoringDigest: source.digest }, candidate: await project(ctx, source.preview, budget, prepared), ...(args.preserveTrash ? {preservesTrash:true} : {}), ...(retainedAutosave(post) ? {retainedAutosave:retainedAutosave(post)} : {}), ...(prepared.inactiveSettings ? {inactiveSettings:prepared.inactiveSettings} : {}), ...(prepared.importedContent ? {importedContent:prepared.importedContent} : {}) });
+  return parseCanonicalMigration({ contract: "canonical-migration-v1", source: { postId: post._id, revision: authoringRevision(post), authoringDigest: source.digest }, candidate: await project(ctx, source.display, budget, prepared), ...(args.preserveTrash ? {preservesTrash:true} : {}), ...(args.preserveStatus ? {preservesStatus:args.preserveStatus} : {}), ...(retainedAutosave(post) ? {retainedAutosave:retainedAutosave(post)} : {}), ...(prepared.inactiveSettings ? {inactiveSettings:prepared.inactiveSettings} : {}), ...(prepared.importedContent ? {importedContent:prepared.importedContent} : {}) });
 }
-export type MigrateArgs = { postId: Id<"posts">; expectedRevision: number; expectedAuthoringDigest: string; expectedCandidateDigest: string; expectedPresentationRevision: string; preserveInactiveSettings?: boolean; acknowledgeTextImport?: boolean; acknowledgeHtmlImport?: boolean; preserveTrash?: boolean; preserveLegacyAutosave?: boolean };
+export type MigrateArgs = { postId: Id<"posts">; expectedRevision: number; expectedAuthoringDigest: string; expectedCandidateDigest: string; expectedPresentationRevision: string; preserveInactiveSettings?: boolean; acknowledgeTextImport?: boolean; acknowledgeHtmlImport?: boolean; preserveTrash?: boolean; preserveLegacyAutosave?: boolean; preserveStatus?: MigrationPreservedStatus };
 export async function migrateDocument(ctx: MutationCtx, args: MigrateArgs): Promise<CanonicalWriteReceipt> {
   const budget = new RequestReadLedger();
   const { post, user } = await authorized(ctx, args.postId, budget, args.preserveTrash === true);
   if (!post) refuse("NOT_FOUND", "Document not found.");
-  const source = migrationSource(post, args.preserveTrash === true);
+  const source = migrationSource(post, args.preserveTrash === true, args.preserveStatus);
+  await requireMigrationPublication(ctx, post, args.preserveStatus, budget);
   // Check complete source CAS before converting or starting dependent reads.
   if (!Number.isSafeInteger(args.expectedRevision) || authoringRevision(post) !== args.expectedRevision || source.digest !== args.expectedAuthoringDigest) refuse("CONFLICT", "The authoring source changed after migration review.");
   const prepared = await prepareMigrationReferences(ctx,source.preview,budget);
@@ -666,13 +682,13 @@ export async function migrateDocument(ctx: MutationCtx, args: MigrateArgs): Prom
   if (prepared.importedContent === "html" && args.acknowledgeHtmlImport !== true) refuse("MIGRATION_INTENT_REVIEW_REQUIRED", "Review and acknowledge importing HTML that the original renderer may not have displayed.");
   if (prepared.inactiveSettings?.length && args.preserveInactiveSettings !== true) refuse("MIGRATION_INTENT_REVIEW_REQUIRED", "Confirm that unused layout and lock settings remain in the original revision before converting.");
   if (prepared.digest !== args.expectedCandidateDigest) refuse("MIGRATION_REVIEW_MISMATCH", "The reviewed candidate does not match this source conversion.");
-  const candidate = await project(ctx, source.preview, budget, prepared);
+  const candidate = await project(ctx, source.display, budget, prepared);
   if (candidate.presentation.revision !== args.expectedPresentationRevision) refuse("MIGRATION_REVIEW_MISMATCH", "The template presentation changed after migration review.");
-  return commit(ctx, post, user, prepared, budget, undefined, undefined, false, args.preserveTrash === true);
+  return commit(ctx, post, user, prepared, budget, undefined, undefined, false, {draftProjection:args.preserveTrash === true || args.preserveStatus === "auto-draft",preserveUpdatedAt:args.preserveStatus !== undefined});
 }
 
 export type RevisionImportArgs = {postId: Id<"posts">; revisionId: Id<"revisions">; sourceKind: "saved" | "autosave"};
-export type ImportRevisionArgs = RevisionImportArgs & Omit<MigrateArgs, "preserveTrash" | "preserveLegacyAutosave"> & {expectedArchiveDigest: string};
+export type ImportRevisionArgs = RevisionImportArgs & Omit<MigrateArgs, "preserveTrash" | "preserveLegacyAutosave" | "preserveStatus"> & {expectedArchiveDigest: string};
 import { revisionSourceSchema, type RevisionSourceDto } from "./foundation/migrationContracts";
 async function revisionSource(ctx: QueryCtx, post: Doc<"posts">, revisionId: Id<"revisions">, budget: RequestReadLedger) {
   await requireCan(ctx, "revision.restore", budget);

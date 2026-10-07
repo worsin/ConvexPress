@@ -7,7 +7,7 @@
     "In progress": 3
   },
   "goal": "Complete block editor and template delivery plus all demonstrated blockers; defer unrelated whole-app audit campaigns.",
-  "currentTask": "134/137 blocks verified. E109 original-fleet treatment adapters implemented; all11 legacy documents pass pure conversion and112 layout specimens pass. Original installed migration remains open: preserve8 published/3 auto-draft records and120 files with matching contracts/native/public evidence. Configured original AI provider works; continue actual AI acceptance after compatibility. No push.",
+  "currentTask": "134/137 blocks verified. E109 treatment adapters and explicit lifecycle-preserving migration now implemented/tested; original11-record installed transition remains open. Exact original compiled source captured; historical checkpoint manifest is stale. Establish matching transitional deployment, native/public/reference preservation, then real configured AI workflows. No original site mutation or push.",
   "tasks": [
     {
       "id": 1,
@@ -1428,15 +1428,16 @@
       "deliveryTask": 4,
       "requiredWorkflow": "Complete original named-fleet canonical migration/retirement and matching native/public template acceptance required by the handoff.",
       "evidence": "Six missing original treatment mappings repaired across four packs. All11 original records pass pure conversion;326 renderer tests and112 desktop/mobile specimens pass. Full original backups preserve120 files. Installed lifecycle/reference acceptance remains open.",
-      "dependency": "Exact treatment conversion is implemented. Original published/auto-draft records still require a preservation-safe transition and matching installed contracts before contracted deployment.",
+      "dependency": "Treatment conversion and explicit lifecycle-preserving API are implemented. Original installed transition must preserve compatible storage/public reads, exact references/media/history and independent site contracts before contraction.",
       "repairBoundary": "Implement and verify exact canonical/rendered treatment mapping; review all remaining nodes and lifecycle preservation; reconcile actual installed source/contracts; install safely with original content/history/media and sessions intact.",
       "exitCheck": "Complete original corpus migration and schema contraction with preservation receipts, actual native edit/reopen and Website parity on named sites, then current configured AI workflows.",
-      "status": "Open; local adapter repair verified. No original deployment or authored record changed.",
+      "status": "Open installed acceptance; local adapters and lifecycle preservation verified. No original deployment or authored record changed.",
       "currentEvidence": [
         "ConvexPress-Admin/audits/2026-09-04/original-fleet-reconciliation-20261007.md",
-        "ConvexPress-Admin/audits/2026-09-04/original-fleet-treatments-20261007.md"
+        "ConvexPress-Admin/audits/2026-09-04/original-fleet-treatments-20261007.md",
+        "ConvexPress-Admin/audits/2026-09-04/original-fleet-lifecycle-20261007.md"
       ],
-      "nextCheck": "Reconcile original installed source/contracts and implement a tested archival/CAS transition retaining publication/auto-draft lifecycle, media and immutable originals; then matching installed native/public acceptance."
+      "nextCheck": "Compare original captured compiled code with an isolated transition candidate; historical checkpoint manifest is stale. Keep old readers/storage valid through migration, then verify exact original corpus, native/public behavior and contraction."
     }
   ],
   "blocks": [

@@ -74,6 +74,30 @@ legacy styling or complete structured-article migration. See
    the committed revision and retained original source. Use the historical import
    path below to recover content while keeping canonical authoring.
 
+### Explicit preservation of publication state
+
+For a reviewed upgrade that must retain lifecycle, both `prepareMigration` and
+`migrate` accept `preserveStatus` with the exact current `publish`, `private`,
+`future`, or `auto-draft` value. This is incompatible with `preserveTrash`. Omitting
+the option retains the existing draft-only workflow. The review exposes
+`preservesStatus`; auto-draft uses a draft display projection only and remains
+auto-draft in storage. This does not make it public or activate it for editing.
+
+The server requires current edit authority and, except for auto-draft, publishing
+authority at both review and commit. The source digest binds the complete row,
+including ownership, URL, confidentiality, scheduling and timestamps. Any change
+requires a fresh review. The write retains status, publication/schedule timestamps,
+and `updatedAt`, archives the original authoring and unsaved draft, and applies the
+normal media/reference and publication validation. It does not withdraw, restore,
+reschedule or republish a document. All existing import acknowledgements remain
+required. Auto-draft conversion has a single-use permit limited to legacy-to-v2
+patches that cannot change lifecycle or publication fields.
+
+This source capability does not establish deployment or corpus acceptance. Use a
+compatible transitional schema and preserve existing public readers while legacy
+records remain. Prove matching native/public behavior and original/history/media
+readback before contraction; never deploy the contracted schema over legacy rows.
+
 ### Historical source recovery without an authoring downgrade
 
 `canonicalDocuments:recoverLegacy` is retired. Canonical documents cannot return

@@ -114,6 +114,7 @@ export const migrationValidator: Validator<CanonicalMigrationDto, "required", st
   candidate: fromZod<CanonicalDocumentDto>(structuralDocument),
   archive: v.optional(fromZod(revisionImportSourceSchema)),
   preservesTrash: v.optional(v.literal(true)),
+  preservesStatus: v.optional(v.union(v.literal("publish"),v.literal("private"),v.literal("future"),v.literal("auto-draft"))),
   retainedAutosave: v.optional(fromZod(retainedLegacyAutosaveSchema)),
   inactiveSettings: v.optional(v.array(fromZod(inactiveLegacySettingsSchema))),
   importedContent: v.optional(v.union(v.literal("plain-text"),v.literal("html"))),
