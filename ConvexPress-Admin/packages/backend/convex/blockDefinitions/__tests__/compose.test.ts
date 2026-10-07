@@ -8,6 +8,7 @@ import { encodeComposedDefinition } from "../../canonicalDocuments/foundation/co
 import { resolverArgs } from "../../canonicalDocuments/foundation/contracts";
 import { composeProposalSchema, resolverAuthoringCatalog } from "../composeSchema";
 import { assertAiResolverReferences } from "../composeReferences";
+import { composeDiagnostics } from "../composeDiagnostics";
 
 const modules = {
   "./convex/blockDefinitions/composeResources.ts": () => import("../composeResources"),
@@ -207,4 +208,54 @@ test("selected live resources remain bounded and revalidated at creation; genera
   await f.t.run(ctx => ctx.db.patch("commerce_products", product, { status: "draft" }));
   await expect(f.author.mutation(create, { ...base, expectedFingerprint: trusted.fingerprint, definitionJson: result.definitionJson })).rejects.toThrow("selected resource");
   expect((await f.counts()).heads).toBe(0);
+});
+
+
+test("invalid provider output gets one validator-guided correction before review without writes", async () => {
+  let calls=0;
+  const f=await fixture(async args=>{
+    calls++;const prompt=JSON.parse(args.prompt);
+    if(calls===1){const invalid=definition().definition;invalid.composition.root={el:"Heading",bind:"attrs.title == 'bad'"};return JSON.stringify(invalid);}
+    expect(prompt.validationIssues.join(" ")).toContain("expression");
+    expect(prompt.previousProposal).toContain("==");
+    return definition().json;
+  });
+  const result=await f.author.action(compose,{...f.base,prompt:"A field notes introduction"});
+  expect(result.digest).toBe(definition().digest);expect(calls).toBe(2);
+  expect(await f.counts()).toEqual({heads:0,versions:0,approvals:0,pages:0});
+});
+
+test("invalid corrections stop after two provider calls and authority changes cannot be repaired away", async () => {
+  let calls=0;const f=await fixture(async()=>{calls++;return '{"invalid":true}';});
+  await expect(f.author.action(compose,{...f.base,prompt:"A block"})).rejects.toThrow();expect(calls).toBe(2);
+  expect(await f.counts()).toEqual({heads:0,versions:0,approvals:0,pages:0});
+  let changedCalls=0;const g=await fixture(async()=>{changedCalls++;if(changedCalls===1)return '{"invalid":true}';await g.t.run(ctx=>ctx.db.patch("roles",g.ids.role,{capabilities:[]}));return definition().json;});
+  await expect(g.author.action(compose,{...g.base,prompt:"A block"})).rejects.toThrow();expect(changedCalls).toBe(2);
+  expect(await g.counts()).toEqual({heads:0,versions:0,approvals:0,pages:0});
+});
+
+test("feedback includes independent media and grammar failures and oversized output is not retried", async () => {
+  const invalid=definition().definition;
+  invalid.spec.fields.push({id:"heroImage",type:"media",default:"selected-media"} as any);
+  invalid.composition.root={el:"Heading",bind:"attrs.title == 'bad'"};
+  const feedback=composeDiagnostics(JSON.stringify(invalid),new Error("Invalid definition"));
+  expect(feedback.join(" ")).toContain("heroImage");expect(feedback.join(" ")).toContain("expression");
+  expect(feedback.every(issue=>issue.length<=600)).toBe(true);
+  let calls=0;const f=await fixture(async()=>{calls++;return "x".repeat(64*1024+1);});
+  await expect(f.author.action(compose,{...f.base,prompt:"A block"})).rejects.toThrow();expect(calls).toBe(1);
+  expect(await f.counts()).toEqual({heads:0,versions:0,approvals:0,pages:0});
+});
+
+test("resolver-backed proposals still execute authored bindings before review", async () => {
+  const f = await fixture(), trusted = await f.author.query(get, f.base);
+  const value = definition().definition;
+  value.spec.data = { resolver: "content.posts", args: resolverArgs["content.posts"].parse({}) };
+  value.composition.root = { el: "Section", bind: { anchor: "attrs.anchor" }, children: [{ el: "Heading", bind: "attrs.title" }] };
+  const checked = await f.author.query(ref("blockDefinitions/composeContext:checkResult"), { ...f.base, expectedFingerprint: trusted.fingerprint, resultJson: JSON.stringify(value) });
+  expect(checked.valid).toBe(false);
+  expect(checked.issues.join(" ")).toContain("attrs.anchor");
+  await expect(f.author.mutation(create, { ...f.base, expectedFingerprint: trusted.fingerprint, definitionJson: JSON.stringify(value) })).rejects.toThrow();
+  delete value.composition.root.bind;
+  expect((await f.author.query(ref("blockDefinitions/composeContext:checkResult"), { ...f.base, expectedFingerprint: trusted.fingerprint, resultJson: JSON.stringify(value) })).valid).toBe(true);
+  expect(await f.counts()).toEqual({ heads: 0, versions: 0, approvals: 0, pages: 0 });
 });

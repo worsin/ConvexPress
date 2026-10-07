@@ -7,7 +7,7 @@
     "In progress": 2
   },
   "goal": "Complete block editor and template delivery plus all demonstrated blockers; defer unrelated whole-app audit campaigns.",
-  "currentTask": "135/137 blocks verified. Assistant Band is accepted: E110-E115 close actual provider/customer history/memory, replay, exact shopper cart authority and catalog visibility/read bounds on original Alpha. Source3c2cd803 installed;440commerce tests and preservation pass. Now execute selected-resource AI generation/composition/style/promotion in native Electron. Instagram, Turnstile, public HTTPS editing and final candidate parity remain explicit; no audit wait.",
+  "currentTask": "135/137 blocks verified. Task7 selected-resource AI/native composition, three AI pack treatments, reviewed portable SDK export/CLI and AI reuse of the approved custom library now pass with original preservation. E116 closed at source6e23d609 on Alpha. Next: remaining Instagram/real human Turnstile and public HTTPS gates, then final candidate parity; no audit wait.",
   "tasks": [
     {
       "id": 1,
@@ -37,8 +37,8 @@
     },
     {
       "id": 7,
-      "status": "in_progress",
-      "scope": "Actual original provider canonical generation and Assistant accepted. Selected-resource AI generation/composition/style/promotion remains; manual SDK/native workflows retained."
+      "status": "complete",
+      "scope": "SDK/plugin/reference/manual promotion evidence plus actual selected-resource AI page generation, native composition review, three AI template treatments, reviewed portable SDK export/CLI and AI reuse of approved custom library accepted. See ai-resources-20261007.md. Final fleet/source parity remains Task8; original data/settings/processes preserved."
     },
     {
       "id": 8,
@@ -272,7 +272,7 @@
     },
     {
       "id": "E13",
-      "status": "Configured original provider available and exercised: Alpha actual native structured generation/review/apply/reopen/publication and registered Website proposal preview passed. Real guest/customer Assistant answers, cart action, adopted history, account-wide memory and isolation passed after E110/E111. Selected-resource generation and AI composition/style/promotion remain; remaining Assistant backend gates stay explicit.",
+      "status": "Accepted actual configured original provider: prior canonical/Assistant evidence plus selected product/media page generation, AI custom composition, three template treatments, portable SDK export and AI reuse of approved custom library. Native review/public desktop/mobile and preservation receipts in ai-resources-20261007.md. No missing-key blocker remains for this gate.",
       "classification": "missing evidence; configured provider available",
       "initialFinding": "Some isolated AI exercises returned missing_api_key; earlier provider success does not establish current end-to-end editor generation.",
       "closureBoundary": "Inspect authorized configured connections without exposing secrets; use the existing provider if available. Prove one live structured generation, resource selection, review, insert/save and Website output, plus composition/style/promotion. Do not substitute mocked success.",
@@ -288,7 +288,7 @@
         "ConvexPress-Admin/audits/2026-09-04/original-preview-assistant-20261007.md",
         "ConvexPress-Admin/audits/2026-09-04/original-assistant-customer-20261007.md"
       ],
-      "nextCheck": "Real selected-resource AI generation/composition/style/promotion using original Alpha provider. Assistant now accepted; no repeated customer/provider checks."
+      "nextCheck": "Reuse AI evidence; complete separate provider/public HTTPS and final candidate parity gates."
     },
     {
       "id": "E14",
@@ -1550,6 +1550,18 @@
       "exitCheck": "Registered fail-before/pass-after visibility/ranking/budget/variant tests; scoped commerce suite/types; installed actual catalog and provider smoke with original data preservation.",
       "status": "Accepted on original Alpha: source3c2cd803,8focused cases/440commerce tests, strict frozen install, exact20product/6category public catalog and actual configured-provider cart smoke with preservation.",
       "nextCheck": "Reuse this boundary; continue selected-resource AI authoring and final candidate parity."
+    },
+    {
+      "id": "E116",
+      "classification": "reproduced delivery failure",
+      "deliveryTask": 7,
+      "requiredWorkflow": "Actual configured AI produces a reviewable editable custom definition using selected resources and supported SDK grammar.",
+      "evidence": "ConvexPress-Admin/audits/2026-09-04/ai-resources-20261007.md; output/ai-resources-20261007/acceptance.json and output/ai-compose-bindings-20261007 installed-source.json.",
+      "dependency": "Three native composition attempts return only a rejection after provider success. Captured diagnostic output omits media storage:id and uses unsupported == expressions; validation correctly rejects, but no bounded correction path carries authoritative feedback to the provider. Earlier uncaptured outputs are not assumed identical.",
+      "repairBoundary": "One bounded correction with current authority/fingerprint checks; complete each/as tool-schema branches and explicit media guidance; execute authored bindings even when resolver data is deferred. Preserve all draft/apply/publication guards. No increased retry budget or validator weakening.",
+      "exitCheck": "Registered invalid-first/valid-correction, exhausted-budget and changed-authority tests; native configured-provider generation/review/preview/save and per-pack style/promotion evidence with original preservation.",
+      "status": "Accepted:61tests/812assertions, strict final frozen installation6e23d609, installed rejection of the reproduced missing binding, native generation/review/save/actual Website preview, three real AI pack treatments, reviewed portable export/CLI and actual AI reuse of approved custom version7 in published revision4. Owned page trashed, versions5/6/7 approvals revoked; originals and14protected processes exact. No full-delivery closure.",
+      "nextCheck": "Reuse completed AI acceptance. Final fleet parity is Task8; Instagram/Turnstile/public HTTPS remain separate."
     }
   ],
   "blocks": [
@@ -5504,7 +5516,8 @@
     "audit61": "Accepted scoped E99 repair/E18 integration and recurrence-on-new-trace advice. Task4 completion superseded by newly confirmed E108 live-schema-column retirement; source ad2e3701 prepares preserved cleanup with3712backend tests passing. Source strict dry run in flight; current installed candidate remains cd587c50. External provider requirements unchanged. See shared Codex notes.",
     "originalGamma": "Audit64 already reviewed; no newer audit. Gamma actual native/public and owned save/reopen passed with exact preservation; Task4 closed. Continue E13 independently; no audit wait.",
     "assistantCustomer": "Audit64 remains latest/already reviewed. Independently reproduced/repaired E111, real original customer/provider acceptance and preservation complete. No automatic scope expansion; remaining Assistant gates are explicit original requirements. Codex leads and continues without waiting for deep audit.",
-    "assistantCartAuthority": "Audit65 remains latest/reviewed. Codex independently closed E114 with durable exact cart actions, restored variant compatibility,432tests and original desktop/mobile/provider proof; originals preserved. Next catalog visibility/bounds. Advisory context does not gate work."
+    "assistantCartAuthority": "Audit65 remains latest/reviewed. Codex independently closed E114 with durable exact cart actions, restored variant compatibility,432tests and original desktop/mobile/provider proof; originals preserved. Next catalog visibility/bounds. Advisory context does not gate work.",
+    "audit66AiDelivery": "Accepted audit66 scope guidance; no newer audit at completion of this batch. Task7 actual AI acceptance now passes; source6e23d609 installed on Alpha with61tests/812assertions, reviewed native/rendered/SDK evidence and exact original preservation. Await neither audit nor generic permission; proceed to remaining provider/HTTPS/final parity gates."
   },
   "sessionBaseCommit": "9824d9605e50c4b0ebd711c13715b506f8ef5bd3"
 }

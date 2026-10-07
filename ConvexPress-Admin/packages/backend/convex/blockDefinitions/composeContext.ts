@@ -18,7 +18,10 @@ import { approvedAiDefinitions } from "./aiLibrary";
 import { assertAiResolverReferences } from "./composeReferences";
 import { createDefinitionDraft } from "./createDraft";
 import { fail } from "./model";
-import { composeArgs, composeProposalValidator, definitionReceipt, type ComposeArgs, type ComposeProposal } from "./composeContracts";
+import { composeArgs, composeProposalValidator, composeCheckValidator, definitionReceipt, type ComposeArgs, type ComposeProposal, type ComposeCheck } from "./composeContracts";
+import { composeDiagnostics } from "./composeDiagnostics";
+import { composedPresentationAttrs } from "../canonicalDocuments/foundation/composedPresentation";
+import { resolveComposition } from "../canonicalDocuments/foundation/composition";
 
 async function load(ctx: QueryCtx, args: ComposeArgs) {
   const budget = new RequestReadLedger();
@@ -67,6 +70,12 @@ function validateDefinition(json: string, args: ComposeArgs, context: Awaited<Re
   const registry = createComposedRegistry(snapshot, context.scope);
   for (const example of spec.examples) {
     const attrs = attrsSchema.parse(example);
+    // A resolver defers data-dependent execution, not authored-field validation.
+    // This placeholder only exercises media primitive contracts; actual resource
+    // availability and selection remain checked below and by load().
+    const presentation = composedPresentationAttrs(spec.fields, attrs, () => ({ src: "/__definition-validation__/media", alt: "" }));
+    for (const composition of [value.definition.composition, ...Object.values(value.definition.packTreatments ?? {})])
+      resolveComposition(composition, { attrs: presentation }, { omitDataDependentNodes: true, allowedSlots: spec.supports.children ? ["children"] : [] });
     const tree = registry.validateTree([{ id: "compose-example", name: spec.name, version: 1, attrs }]);
     const plan = planCanonicalData(tree, context.display.scope, context.display.policy, {}, { scope: context.scope, definitions: snapshot });
     assertAiResolverReferences(plan.jobs, context.resources);
@@ -89,6 +98,23 @@ export const validateResult = internalQuery({
       const proposed = validateDefinition(args.resultJson, args, current);
       return { definitionJson: proposed.json, digest: proposed.digest, fingerprint: current.fingerprint };
     } catch { return fail("AI_PROPOSAL_INVALID", "The generated definition did not pass field, composition, resource or data-policy validation. Nothing was saved."); }
+  },
+});
+
+/** The Node action may correct invalid model output once. Scope, permissions,
+ * selected resources and the generation fingerprint are checked outside the
+ * recoverable validation branch; authority failures never become repair hints. */
+export const checkResult = internalQuery({
+  args: { ...composeArgs, expectedFingerprint: v.string(), resultJson: v.string() }, returns: composeCheckValidator,
+  handler: async (ctx, args: ComposeArgs & { expectedFingerprint: string; resultJson: string }): Promise<ComposeCheck> => {
+    const current = await load(ctx, args);
+    if (current.fingerprint !== args.expectedFingerprint) fail("AI_CONTEXT_CHANGED", "The catalog, resources, session or site settings changed. Generate a new block proposal.");
+    try {
+      const proposed = validateDefinition(args.resultJson, args, current);
+      return { valid: true, proposal: { definitionJson: proposed.json, digest: proposed.digest, fingerprint: current.fingerprint } };
+    } catch (error) {
+      return { valid: false, issues: composeDiagnostics(args.resultJson, error) };
+    }
   },
 });
 
