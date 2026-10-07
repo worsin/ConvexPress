@@ -19,6 +19,14 @@ import { defineTable } from "convex/server";
 import { v } from "convex/values";
 
 export const settingsTables = {
+  /** Immutable source records retained after retiring the legacy appearance tables.
+   * Recovery/export only: these are never read as active Website configuration. */
+  legacyAppearanceArchives: defineTable({
+    sourceTable: v.union(v.literal("themes"), v.literal("layouts")),
+    sourceId: v.string(),
+    snapshot: v.any(),
+    archivedAt: v.number(),
+  }).index("by_source", ["sourceTable", "sourceId"]),
   /** Private, recoverable Customizer overrides; never projected to visitors. */
   appearance_drafts: defineTable({
     userId: v.id("users"),

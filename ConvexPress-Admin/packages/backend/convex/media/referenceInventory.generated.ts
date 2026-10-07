@@ -317,6 +317,10 @@ export const opaqueMediaReferences = {
     "name",
     "slug"
   ],
+  "legacyAppearanceArchives": [
+    "snapshot",
+    "sourceId"
+  ],
   "lms_certificates": [
     "templateDoc",
     "title"
