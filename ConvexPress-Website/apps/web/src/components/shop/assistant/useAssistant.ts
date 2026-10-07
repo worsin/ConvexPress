@@ -67,6 +67,7 @@ export function useAssistant(input: { kind: BriefKind | "catalog" | "checkout" |
   }
   type RequestOwner = { scope: string; generation: number };
   const sendingRef = useRef<RequestOwner | null>(null);
+  const retryRef = useRef<{ key: string; requestId: string } | null>(null);
   useEffect(() => {
     lifetime.current.mounted = true;
     return () => {
@@ -154,8 +155,14 @@ export function useAssistant(input: { kind: BriefKind | "catalog" | "checkout" |
       const isCurrent = () => lifetime.current.mounted && lifetime.current.scope === scope && lifetime.current.generation === owner.generation && sendingRef.current === owner;
       sendingRef.current = owner;
       setPending({ ...owner, text });
+      // An uncertain network result retains its identity for an explicit retry.
+      // A successful answer or a different shopper/question starts a new turn.
+      const key = JSON.stringify([scope, text, input.kind, input.query ?? null]);
+      const request = retryRef.current?.key === key ? retryRef.current : { key, requestId: crypto.randomUUID() };
+      retryRef.current = request;
       try {
-        await respond({ sessionToken, message: text, route: input.kind, query: input.query });
+        await respond({ sessionToken, requestId: request.requestId, message: text, route: input.kind, query: input.query });
+        if (isCurrent() && retryRef.current === request) retryRef.current = null;
       } catch (error) {
         const detail = (error as { data?: { message?: string } })?.data?.message ?? (error as Error)?.message;
         if (isCurrent()) toast.error(detail && detail.length < 160 ? detail : "The assistant could not answer just now.");

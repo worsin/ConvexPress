@@ -153,6 +153,7 @@ function relatedGroupsText(groups: any[], store: StoreContext): string {
 export const respond = action({
   args: {
     sessionToken: v.string(),
+    requestId: v.optional(v.string()),
     message: v.string(),
     route: v.optional(v.string()),
     query: v.optional(v.string()),
@@ -160,6 +161,7 @@ export const respond = action({
   handler: async (ctx: any, args: any): Promise<{ messageId: string | null; blocks: AssistantBlock[]; productIds: string[] }> => {
     const startedAt = Date.now();
     const message = args.message.trim().slice(0, 2000);
+    if (!args.requestId) throw new ConvexError({ code: "INVALID_REQUEST", message: "Please refresh the shop before sending this request." });
     if (!message) throw new ConvexError({ code: "VALIDATION_ERROR", message: "Say something first." });
 
     const bundle = await ctx.runQuery(anyInternal.commerce.assistant.queries.contextBundle, {
@@ -172,170 +174,176 @@ export const respond = action({
     }
 
 
-    await ctx.runMutation(anyInternal.commerce.assistant.mutations.appendMessage, {
-      sessionToken: args.sessionToken,
-      role: "user",
-      text: message,
-      blocks: [],
+    const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(JSON.stringify([message, args.route ?? null, args.query ?? null])));
+    const fingerprint = Array.from(new Uint8Array(digest), byte => byte.toString(16).padStart(2, "0")).join("");
+    const claim = await ctx.runMutation(anyInternal.commerce.assistant.requests.claim, {
+      sessionToken: args.sessionToken, requestId: args.requestId, fingerprint, message, route: args.route, query: args.query,
     });
-    await ctx.runMutation(anyApi.commerce.assistant.mutations.ensureSession, {
-      sessionToken: args.sessionToken,
-      route: args.route,
-      query: args.query,
-    });
+    if (claim.state === "finished") return claim.result;
+    if (claim.state === "running") throw new ConvexError({ code: "REQUEST_IN_PROGRESS", message: "This request is still running. Retry it shortly to retrieve its answer." });
 
-    const store = storeContextFrom(bundle);
-    const provider = await resolveProvider(ctx, String(bundle.assistant?.model ?? ""));
-    if (!provider.apiKey) {
-      const blocks: AssistantBlock[] = [
-        { type: "callout", tone: "warning", markdown: ASSISTANT_UNAVAILABLE },
-      ];
-      const messageId = await ctx.runMutation(anyInternal.commerce.assistant.mutations.appendMessage, {
-        sessionToken: args.sessionToken,
-        role: "assistant",
-        blocks,
-        error: "missing_api_key",
-      });
-      return { messageId, blocks, productIds: [] };
-    }
-
-    const known = new Set<string>(bundle.cart.lines.map((line: any) => line.productId));
-    const history: ChatMessage[] = bundle.recent
-      .filter((entry: any) => entry.role !== "system")
-      .slice(-8)
-      .map((entry: any) => ({
-        role: entry.role,
-        content:
-          entry.role === "user"
-            ? entry.text ?? ""
-            : (entry.blocks ?? [])
-                .map((block: any) =>
-                  block.type === "text" || block.type === "callout"
-                    ? block.markdown
-                    : block.type === "product_group"
-                      ? `${block.title}: ${block.items.map((item: any) => item.productId).join(", ")}`
-                      : "",
-                )
-                .filter(Boolean)
-                .join("\n") || entry.text || "",
-      }));
-
-    const context = [
-      `Live cart (${bundle.cart.itemCount} items, subtotal ${formatMoney(bundle.cart.subtotalAmount, store.currencyCode, store.currencySymbol)}):\n${describeCart(bundle.cart.lines, store)}`,
-      bundle.cartCards.length ? `Cart product details:\n${describeProducts(bundle.cartCards, store)}` : "",
-      bundle.related.length ? `Relation graph for the cart:\n${relatedGroupsText(bundle.related, store)}` : "",
-      bundle.assistant?.memoryEnabled === false
-        ? "Saved shopper memory is disabled. Do not claim to remember or save preferences."
-        : `Remembered about this shopper:\n${describeMemory(bundle.memory)}`,
-      bundle.session?.lastQuery ? `Most recent search: "${bundle.session.lastQuery}"` : "",
-      bundle.categories.length ? `Categories: ${bundle.categories.map((c: any) => c.name).join(", ")}` : "",
-    ]
-      .filter(Boolean)
-      .join("\n\n");
-    for (const group of bundle.related) for (const item of group.items) known.add(item.card.productId);
-
-    const messages: ChatMessage[] = [
-      { role: "system", content: buildSystemPrompt(store, args.route, args.query ?? bundle.session?.lastQuery ?? undefined) },
-      { role: "system", content: context },
-      ...history,
-      { role: "user", content: message },
-    ];
-
-    const toolLog: any[] = [];
-    const actionBlocks: AssistantBlock[] = [];
-    let tokensIn = 0;
-    let tokensOut = 0;
-    let finalText = "";
-    let providerFailed = false;
-
-    for (let round = 0; round <= MAX_TOOL_ROUNDS; round += 1) {
-      let response: Awaited<ReturnType<typeof assistantChat>>;
-      try {
-        response = await assistantChat(provider, messages, { tools: TOOLS, allowTools: round < MAX_TOOL_ROUNDS });
-      } catch {
-        // Retain confirmed cart actions even when the following model call fails.
-        // Do not replay tools: a retry could repeat a successful cart mutation.
-        providerFailed = true;
-        break;
-      }
-      const { message: reply, usage } = response;
-      tokensIn += usage.prompt_tokens ?? 0;
-      tokensOut += usage.completion_tokens ?? 0;
-      messages.push({ role: "assistant", content: reply.content ?? "", tool_calls: reply.tool_calls });
-
-      if (!reply.tool_calls?.length) {
-        finalText = reply.content ?? "";
-        break;
-      }
-
-      for (const call of reply.tool_calls) {
-        let parsed: any = {};
-        try {
-          parsed = call.function.arguments ? JSON.parse(call.function.arguments) : {};
-        } catch {
-          parsed = {};
-        }
-        let result: unknown;
-        try {
-          result = await runTool(ctx, call.function.name, parsed, { sessionToken: args.sessionToken, bundle, store, known, actionBlocks });
-        } catch (error) {
-          result = { error: error instanceof Error ? error.message : String(error) };
-        }
-        toolLog.push({ name: call.function.name, args: parsed, ok: !(result as any)?.error });
-        messages.push({
-          role: "tool",
-          tool_call_id: call.id,
-          name: call.function.name,
-          content: JSON.stringify(result).slice(0, 12_000),
+    try {
+      const store = storeContextFrom(bundle);
+      const provider = await resolveProvider(ctx, String(bundle.assistant?.model ?? ""));
+      if (!provider.apiKey) {
+        const blocks: AssistantBlock[] = [
+          { type: "callout", tone: "warning", markdown: ASSISTANT_UNAVAILABLE },
+        ];
+        return await ctx.runMutation(anyInternal.commerce.assistant.requests.complete, {
+          requestId: args.requestId, blocks, error: "missing_api_key",
         });
       }
-    }
 
-    const parsed = extractJsonObject(finalText) as any;
-    let blocks = normalizeBlocks(parsed?.blocks, known);
-    if (providerFailed) blocks = [{ type: "callout", tone: "warning", markdown: ASSISTANT_UNAVAILABLE }];
-    if (!blocks.length) {
-      const fallback = finalText.replace(/```[\s\S]*?```/g, "").trim();
-      blocks = [{ type: "text", markdown: fallback || "I couldn't put that together. Try asking in a different way." }];
-    }
-    blocks = [...actionBlocks, ...blocks];
+      const known = new Set<string>(bundle.cart.lines.map((line: any) => line.productId));
+      const history: ChatMessage[] = bundle.recent
+        .filter((entry: any) => entry.role !== "system")
+        .slice(-8)
+        .map((entry: any) => ({
+          role: entry.role,
+          content:
+            entry.role === "user"
+              ? entry.text ?? ""
+              : (entry.blocks ?? [])
+                  .map((block: any) =>
+                    block.type === "text" || block.type === "callout"
+                      ? block.markdown
+                      : block.type === "product_group"
+                        ? `${block.title}: ${block.items.map((item: any) => item.productId).join(", ")}`
+                        : "",
+                  )
+                  .filter(Boolean)
+                  .join("\n") || entry.text || "",
+        }));
 
-    if (bundle.assistant?.memoryEnabled !== false && Array.isArray(parsed?.memory)) {
-      for (const entry of parsed.memory.slice(0, 3)) {
-        if (entry && typeof entry.fact === "string" && entry.fact.trim()) {
+      const context = [
+        `Live cart (${bundle.cart.itemCount} items, subtotal ${formatMoney(bundle.cart.subtotalAmount, store.currencyCode, store.currencySymbol)}):\n${describeCart(bundle.cart.lines, store)}`,
+        bundle.cartCards.length ? `Cart product details:\n${describeProducts(bundle.cartCards, store)}` : "",
+        bundle.related.length ? `Relation graph for the cart:\n${relatedGroupsText(bundle.related, store)}` : "",
+        bundle.assistant?.memoryEnabled === false
+          ? "Saved shopper memory is disabled. Do not claim to remember or save preferences."
+          : `Remembered about this shopper:\n${describeMemory(bundle.memory)}`,
+        bundle.session?.lastQuery ? `Most recent search: "${bundle.session.lastQuery}"` : "",
+        bundle.categories.length ? `Categories: ${bundle.categories.map((c: any) => c.name).join(", ")}` : "",
+      ]
+        .filter(Boolean)
+        .join("\n\n");
+      for (const group of bundle.related) for (const item of group.items) known.add(item.card.productId);
+
+      const messages: ChatMessage[] = [
+        { role: "system", content: buildSystemPrompt(store, args.route, args.query ?? bundle.session?.lastQuery ?? undefined) },
+        { role: "system", content: context },
+        ...history,
+        { role: "user", content: message },
+      ];
+
+      const toolLog: any[] = [];
+      const actionBlocks: AssistantBlock[] = [];
+      const toolReceipts = new Map<string, { input: string; result: unknown }>();
+      let tokensIn = 0;
+      let tokensOut = 0;
+      let finalText = "";
+      let providerFailed = false;
+
+      for (let round = 0; round <= MAX_TOOL_ROUNDS; round += 1) {
+        let response: Awaited<ReturnType<typeof assistantChat>>;
+        try {
+          response = await assistantChat(provider, messages, { tools: TOOLS, allowTools: round < MAX_TOOL_ROUNDS });
+        } catch {
+          // Retain confirmed cart actions even when the following model call fails.
+          // Do not replay tools: a retry could repeat a successful cart mutation.
+          providerFailed = true;
+          break;
+        }
+        const { message: reply, usage } = response;
+        tokensIn += usage.prompt_tokens ?? 0;
+        tokensOut += usage.completion_tokens ?? 0;
+        messages.push({ role: "assistant", content: reply.content ?? "", tool_calls: reply.tool_calls });
+
+        if (!reply.tool_calls?.length) {
+          finalText = reply.content ?? "";
+          break;
+        }
+
+        for (const call of reply.tool_calls) {
+          let parsed: any = {};
           try {
-            await ctx.runMutation(anyInternal.commerce.assistant.mutations.rememberFactFromAssistant, {
-              sessionToken: args.sessionToken,
-              fact: entry.fact,
-              kind: typeof entry.kind === "string" ? entry.kind : undefined,
-              retentionDays: Number(bundle.assistant?.memoryRetentionDays ?? 90),
-            });
+            parsed = call.function.arguments ? JSON.parse(call.function.arguments) : {};
+          } catch {
+            parsed = {};
+          }
+          let result: unknown;
+          try {
+            const toolInput = JSON.stringify([call.function.name, parsed]);
+            const previous = toolReceipts.get(call.id);
+            if (previous && previous.input !== toolInput) throw new Error("This tool identity was already used with different arguments.");
+            result = previous ? previous.result : await runTool(ctx, call.function.name, parsed, { sessionToken: args.sessionToken, bundle, store, known, actionBlocks });
+            if (!previous) toolReceipts.set(call.id, { input: toolInput, result });
           } catch (error) {
-            // A setting change during generation must not discard the answer or
-            // a completed cart action. Other failures remain visible.
-            if ((error as any)?.data?.code !== "MEMORY_DISABLED") throw error;
+            if ((error as any)?.data?.code === "CART_ACTION_UNCONFIRMED") throw error;
+            result = { error: error instanceof Error ? error.message : String(error) };
+          }
+          toolLog.push({ name: call.function.name, args: parsed, ok: !(result as any)?.error });
+          messages.push({
+            role: "tool",
+            tool_call_id: call.id,
+            name: call.function.name,
+            content: JSON.stringify(result).slice(0, 12_000),
+          });
+        }
+      }
+
+      const parsed = extractJsonObject(finalText) as any;
+      let blocks = normalizeBlocks(parsed?.blocks, known);
+      if (providerFailed) blocks = [{ type: "callout", tone: "warning", markdown: ASSISTANT_UNAVAILABLE }];
+      if (!blocks.length) {
+        const fallback = finalText.replace(/```[\s\S]*?```/g, "").trim();
+        blocks = [{ type: "text", markdown: fallback || "I couldn't put that together. Try asking in a different way." }];
+      }
+      blocks = [...actionBlocks, ...blocks];
+
+      if (bundle.assistant?.memoryEnabled !== false && Array.isArray(parsed?.memory)) {
+        for (const entry of parsed.memory.slice(0, 3)) {
+          if (entry && typeof entry.fact === "string" && entry.fact.trim()) {
+            try {
+              await ctx.runMutation(anyInternal.commerce.assistant.mutations.rememberFactFromAssistant, {
+                sessionToken: args.sessionToken,
+                fact: entry.fact,
+                kind: typeof entry.kind === "string" ? entry.kind : undefined,
+                retentionDays: Number(bundle.assistant?.memoryRetentionDays ?? 90),
+              });
+            } catch (error) {
+              // A setting change during generation must not discard the answer or
+              // a completed cart action. Other failures remain visible.
+              if ((error as any)?.data?.code !== "MEMORY_DISABLED") throw error;
+            }
           }
         }
       }
-    }
-    if (Array.isArray(parsed?.suggestedPrompts) && !blocks.some((block) => block.type === "chips")) {
-      const items = parsed.suggestedPrompts.filter((p: unknown) => typeof p === "string").slice(0, 4);
-      if (items.length) blocks.push({ type: "chips", items });
-    }
+      if (Array.isArray(parsed?.suggestedPrompts) && !blocks.some((block) => block.type === "chips")) {
+        const items = parsed.suggestedPrompts.filter((p: unknown) => typeof p === "string").slice(0, 4);
+        if (items.length) blocks.push({ type: "chips", items });
+      }
 
-    const messageId = await ctx.runMutation(anyInternal.commerce.assistant.mutations.appendMessage, {
-      sessionToken: args.sessionToken,
-      role: "assistant",
-      text: blocks.find((block) => block.type === "text")?.type === "text" ? (blocks.find((block) => block.type === "text") as any).markdown : undefined,
-      blocks,
-      toolCalls: toolLog,
-      ...(providerFailed ? { error: "provider_unavailable" } : {}),
-      model: provider.model,
-      latencyMs: Date.now() - startedAt,
-      tokensIn,
-      tokensOut,
-    });
-    return { messageId, blocks, productIds: productIdsInBlocks(blocks) };
+      return await ctx.runMutation(anyInternal.commerce.assistant.requests.complete, {
+        requestId: args.requestId,
+        text: blocks.find((block) => block.type === "text")?.type === "text" ? (blocks.find((block) => block.type === "text") as any).markdown : undefined,
+        blocks,
+        toolCalls: toolLog,
+        ...(providerFailed ? { error: "provider_unavailable" } : {}),
+        model: provider.model,
+        latencyMs: Date.now() - startedAt,
+        tokensIn,
+        tokensOut,
+      });
+    } catch (error) {
+      // Persist an uncertain outcome without reclaiming the execution. A cart
+      // mutation may already have committed even if its acknowledgement failed.
+      await ctx.runMutation(anyInternal.commerce.assistant.requests.complete, {
+        requestId: args.requestId, error: "request_interrupted",
+        blocks: [{ type: "callout", tone: "warning", markdown: "This request was interrupted. Check your cart before sending a new request; retrying this request will not repeat its actions." }],
+      });
+      throw error;
+    }
   },
 });
 
@@ -396,12 +404,17 @@ async function runTool(
       const cards = await ctx.runQuery(anyApi.commerce.storefront.productCards, { productIds: [productId] });
       const card = cards[0];
       if (!card) return { error: "That product is no longer available." };
-      await ctx.runMutation(anyApi.commerce.cart.addItem, {
-        sessionToken: scope.sessionToken,
-        productId,
-        variantId: typeof input.variant_id === "string" ? input.variant_id : card.defaultVariantId ?? undefined,
-        quantity,
-      });
+      try {
+        await ctx.runMutation(anyApi.commerce.cart.addItem, {
+          sessionToken: scope.sessionToken,
+          productId,
+          variantId: typeof input.variant_id === "string" ? input.variant_id : card.defaultVariantId ?? undefined,
+          quantity,
+        });
+      } catch {
+        // Never let the model retry an update whose commit is uncertain.
+        throw new ConvexError({ code: "CART_ACTION_UNCONFIRMED", message: "Could not confirm the cart update. Check your cart before sending a new request." });
+      }
       scope.actionBlocks.push({
         type: "action_result",
         action: "cart_add",

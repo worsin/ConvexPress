@@ -118,6 +118,18 @@ export const commerceAssistantTables = {
     createdAt: v.number(),
   }).index("by_session", ["sessionId", "createdAt"]).index("by_session_role", ["sessionId", "role", "createdAt"]).index("by_session_adopted", ["sessionId", "adoptedAt", "createdAt"]),
 
+  // Keep the request identity after thread clearing; the receipt stores no
+  // prompt or answer copy, so clearing messages cannot re-enable a cart action.
+  commerce_assistant_requests: defineTable({
+    requestId: v.string(),
+    sessionId: v.id("commerce_assistant_sessions"),
+    fingerprint: v.string(),
+    state: v.union(v.literal("running"), v.literal("completed"), v.literal("interrupted")),
+    resultMessageId: v.optional(v.id("commerce_assistant_messages")),
+    startedAt: v.number(),
+    finishedAt: v.optional(v.number()),
+  }).index("by_request_id", ["requestId"]),
+
   commerce_shopper_memory: defineTable({
     /** User id when signed in, otherwise the session token. */
     subjectKey: v.string(),

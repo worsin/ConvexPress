@@ -1,6 +1,7 @@
 import { test, expect } from "bun:test";
 import { getFunctionName } from "convex/server";
 import { ConvexError } from "convex/values";
+import { productIdsInBlocks } from "../assistant/blocks";
 import { respond } from "../assistant/actions";
 import { assistantChat, resolveAssistantProvider, ASSISTANT_UNAVAILABLE, type AssistantProvider, type ChatMessage } from "../assistant/provider";
 
@@ -107,7 +108,12 @@ test("provider failure after a successful cart action preserves its receipt with
       if (name.endsWith(":productCards")) return [{ productId: "notebook", title: "Notebook" }];
       throw new Error(`Unexpected query ${name}`);
     },
-    runMutation: async (fn: any, args: any) => { mutations.push({ name: getFunctionName(fn), args }); return "synthetic-receipt"; },
+    runMutation: async (fn: any, args: any) => {
+      const name = getFunctionName(fn); mutations.push({ name, args });
+      if (name.endsWith(":claim")) return { state: "claimed" };
+      if (name.endsWith(":complete")) return { messageId: "synthetic-receipt", blocks: args.blocks, productIds: productIdsInBlocks(args.blocks) };
+      return "synthetic-receipt";
+    },
   };
   const original = globalThis.fetch;
   let requests = 0;
@@ -118,7 +124,7 @@ test("provider failure after a successful cart action preserves its receipt with
       : new Response("private provider failure", { status: 503 });
   }) as typeof fetch;
   try {
-    const result = await (respond as any)._handler(ctx, { sessionToken: "synthetic-session", message: "Add one more notebook" });
+    const result = await (respond as any)._handler(ctx, { sessionToken: "synthetic-session", requestId: "88888888-8888-4888-8888-888888888888", message: "Add one more notebook" });
     expect(requests).toBe(2);
     expect(mutations.filter(call => call.name.endsWith(":addItem"))).toHaveLength(1);
     expect(result.blocks).toEqual([{ type: "action_result", action: "cart_add", ok: true, summary: "Added Notebook to your cart.", productId: "notebook" }, { type: "callout", tone: "warning", markdown: ASSISTANT_UNAVAILABLE }]);
@@ -157,7 +163,8 @@ test("memory switched off during a provider turn preserves the answer without sa
       if (getFunctionName(fn).endsWith(":rememberFactFromAssistant")) {
         throw new ConvexError({ code: "MEMORY_DISABLED", message: "Shopper memory is disabled." });
       }
-      if (args.role) writes.push(args.role);
+      if (getFunctionName(fn).endsWith(":claim")) { writes.push("user"); return { state: "claimed" }; }
+      if (getFunctionName(fn).endsWith(":complete")) { writes.push("assistant"); return { messageId: "synthetic-message", blocks: args.blocks, productIds: productIdsInBlocks(args.blocks) }; }
       return "synthetic-message";
     },
   };
@@ -166,7 +173,7 @@ test("memory switched off during a provider turn preserves the answer without sa
     blocks: [{ type: "text", markdown: "Here is the answer." }], memory: [{ fact: "Narrow cabinet" }],
   }) }] })) as typeof fetch;
   try {
-    const result = await (respond as any)._handler(ctx, { sessionToken: "synthetic-session", message: "Help with a narrow cabinet" });
+    const result = await (respond as any)._handler(ctx, { sessionToken: "synthetic-session", requestId: "88888888-8888-4888-8888-888888888888", message: "Help with a narrow cabinet" });
     expect(result.blocks).toEqual([{ type: "text", markdown: "Here is the answer." }]);
     expect(writes).toEqual(["user", "assistant"]);
   } finally { globalThis.fetch = original; }
