@@ -6,6 +6,7 @@ import schema from "../../schema";
 const modules = {
   "./convex/_generated/api.js": () => import("../../_generated/api.js"),
   "./convex/_generated/server.js": () => import("../../_generated/server.js"),
+  "./convex/commerce/assistant/queries.ts": () => import("../assistant/queries"),
   "./convex/commerce/assistant/mutations.ts": () => import("../assistant/mutations"),
   "./convex/commerce/cart.ts": () => import("../cart"),
   "./convex/commerce/cartRecovery.ts": () => import("../cartRecovery"),
@@ -209,4 +210,18 @@ test("two guest-only lines for the same product become one line with their full 
   const lines = await t.run(ctx => ctx.db.query("commerce_cart_items").withIndex("by_cart", q => q.eq("cartId", ids.owned)).collect());
   expect(lines).toHaveLength(1);
   expect(lines[0].quantity).toBe(4);
+});
+
+test("explicit basket combination adopts its conversation just like sign-in recovery", async () => {
+  const { t, ids, a } = await fixture();
+  await t.run(ctx => ctx.db.patch(ids.guest, { userId: ids.a }));
+  const append = makeFunctionReference<"mutation">("commerce/assistant/mutations:appendMessage");
+  const query = makeFunctionReference<"query">("commerce/assistant/queries:getThread");
+  await a.mutation(append, { sessionToken: guestToken, role: "user", text: "Keep my current question", blocks: [] });
+  await a.mutation(append, { sessionToken: existingToken, role: "assistant", text: "Keep my saved answer", blocks: [] });
+  expect(await a.mutation(combineSaved, { sessionToken: guestToken, cartId: ids.owned })).toBe(existingToken);
+  const result = await a.query(query, { sessionToken: existingToken });
+  expect(result.messages.map((x: any) => x.text).sort()).toEqual(["Keep my current question", "Keep my saved answer"]);
+  await a.mutation(combineSaved, { sessionToken: guestToken, cartId: ids.owned });
+  expect((await a.query(query, { sessionToken: existingToken })).messages).toHaveLength(2);
 });
