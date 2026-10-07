@@ -3,7 +3,7 @@ import { expect, test, setSystemTime } from "bun:test";
 import { convexTest } from "convex-test";
 import { makeFunctionReference } from "convex/server";
 import schema from "../../schema";
-import { legacyPostSchema } from "./legacyPostSchema";
+import { legacyPostSchema } from "./legacyPostSchema.test-support";
 import { parseCanonicalDocumentRead } from "../foundation/documentContracts";
 for (const status of ["publish", "private", "future", "auto-draft"] as const) test(`explicit lifecycle migration retains ${status} and immutable authoring without withdrawal`, async () => {
  const f = await fixture({legacySource:true});
