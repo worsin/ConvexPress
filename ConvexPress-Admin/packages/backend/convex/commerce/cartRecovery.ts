@@ -1,3 +1,4 @@
+import { adoptAssistantSession } from "./assistant/mutations";
 import { paginationOptsValidator } from "convex/server";
 import type { PaginationOptions, PaginationResult, RegisteredMutation, RegisteredQuery } from "convex/server";
 import type { Id } from "../_generated/dataModel";
@@ -72,7 +73,7 @@ export const combineSaved: RegisteredMutation<"public", SelectArgs, string> = mu
     const cartId = await mergeCartForSession(ctx, args, args.cartId);
     const cart = cartId ? await ctx.db.get("commerce_carts", cartId) : null;
     if (!cart) throw new ConvexError({ code: "NOT_FOUND", message: "The saved basket is no longer available." });
-    await assistantScope(ctx, cart.sessionToken);
+    await adoptAssistantSession(ctx, args.sessionToken, cart.sessionToken);
     return cart.sessionToken;
   },
 });

@@ -90,6 +90,8 @@ export const commerceAssistantTables = {
     lastRoute: v.optional(v.string()),
     lastTipAt: v.optional(v.number()),
     messageCount: v.number(),
+    mergedIntoSessionId: v.optional(v.id("commerce_assistant_sessions")),
+    adoptedAt: v.optional(v.number()),
     clearedBefore: v.optional(v.number()),
     recentUserTurnTimes: v.optional(v.array(v.number())),
     createdAt: v.number(),
@@ -100,6 +102,7 @@ export const commerceAssistantTables = {
 
   commerce_assistant_messages: defineTable({
     sessionId: v.id("commerce_assistant_sessions"),
+    adoptedAt: v.optional(v.number()),
     role: v.union(v.literal("user"), v.literal("assistant"), v.literal("system")),
     /** Plain text of the turn (user input, or assistant text fallback). */
     text: v.optional(v.string()),
@@ -113,7 +116,7 @@ export const commerceAssistantTables = {
     feedback: v.optional(v.union(v.literal("up"), v.literal("down"))),
     error: v.optional(v.string()),
     createdAt: v.number(),
-  }).index("by_session", ["sessionId", "createdAt"]).index("by_session_role", ["sessionId", "role", "createdAt"]),
+  }).index("by_session", ["sessionId", "createdAt"]).index("by_session_role", ["sessionId", "role", "createdAt"]).index("by_session_adopted", ["sessionId", "adoptedAt", "createdAt"]),
 
   commerce_shopper_memory: defineTable({
     /** User id when signed in, otherwise the session token. */

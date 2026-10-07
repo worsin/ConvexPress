@@ -1,3 +1,4 @@
+import { adoptGuestMemory, adoptThread, transferHistoryBatch } from "./history";
 /**
  * Shopping assistant - mutations.
  *
@@ -26,8 +27,8 @@ async function ensureSessionDoc(ctx: any, sessionToken: string) {
   const userId = user?._id;
   const now = Date.now();
   if (existing) {
-    if (userId && !existing.userId) await patchDynamicWithMediaReferences(ctx, existing._id, { userId, updatedAt: now });
-    return existing;
+    if (userId && !existing.userId) await patchDynamicWithMediaReferences(ctx, existing._id, { userId, updatedAt: Math.max(now, existing.updatedAt) });
+    return userId && !existing.userId ? { ...existing, userId } : existing;
   }
   const id = await ctx.db.insert("commerce_assistant_sessions", {
     sessionToken,
@@ -37,6 +38,17 @@ async function ensureSessionDoc(ctx: any, sessionToken: string) {
     updatedAt: now,
   });
   return await ctx.db.get(id);
+}
+
+/** Used only after the caller has authorized a cart recovery/merge. */
+export async function adoptAssistantSession(ctx: any, sourceToken: string, destinationToken: string) {
+  const scope = await assistantScope(ctx, sourceToken);
+  if (!scope.user) return;
+  const source = await ensureSessionDoc(ctx, sourceToken);
+  await adoptGuestMemory(ctx, sourceToken, scope.user._id);
+  await assistantScope(ctx, destinationToken);
+  const destination = await ensureSessionDoc(ctx, destinationToken);
+  await adoptThread(ctx, source, destination);
 }
 
 /** Settle legacy browser tokens before any cart or assistant query subscribes. */
@@ -70,9 +82,9 @@ export const resolveSession = mutation({
       if (!scope.cart.userId) await ctx.db.patch("commerce_carts", scope.cart._id, { userId: scope.user._id, updatedAt: Date.now() });
     }
     const cart = cartId ? await ctx.db.get("commerce_carts", cartId) : null;
-    if (!cart) return sessionToken;
-    await assistantScope(ctx, cart.sessionToken);
-    return cart.sessionToken;
+    const destinationToken = cart?.sessionToken ?? sessionToken;
+    await adoptAssistantSession(ctx, sessionToken, destinationToken);
+    return destinationToken;
   },
 });
 
@@ -81,7 +93,7 @@ export const ensureSession = mutation({
   handler: async (ctx: any, args: any) => {
     await assistantScope(ctx, args.sessionToken);
     const session = await ensureSessionDoc(ctx, args.sessionToken);
-    const patch: Record<string, unknown> = { updatedAt: Date.now() };
+    const patch: Record<string, unknown> = { updatedAt: Math.max(Date.now(), session.updatedAt) };
     if (args.route) patch.lastRoute = args.route;
     if (typeof args.query === "string" && args.query.trim()) patch.lastQuery = args.query.trim().slice(0, 200);
     await patchDynamicWithMediaReferences(ctx, session._id, patch);
@@ -104,7 +116,7 @@ export const appendMessage = internalMutation({
   },
   handler: async (ctx: any, args: any) => {
     const session = await ensureSessionDoc(ctx, args.sessionToken);
-    const now = Math.max(Date.now(), (session.clearedBefore ?? 0) + 1);
+    const now = Math.max(Date.now(), session.updatedAt, (session.clearedBefore ?? 0) + 1);
     let recentUserTurnTimes: number[] | undefined;
     if (args.role === "user") {
       const doc = await getSettingsDoc(ctx, "commerce.assistant");
@@ -144,11 +156,11 @@ export const setFeedback = mutation({
     feedback: v.union(v.literal("up"), v.literal("down"), v.null()),
   },
   handler: async (ctx: any, args: any) => {
-    await assistantScope(ctx, args.sessionToken);
+    const scope = await assistantScope(ctx, args.sessionToken);
     const message = await ctx.db.get(args.messageId);
     if (!message) return;
     const session = await ctx.db.get(message.sessionId);
-    if (!session || session.sessionToken !== args.sessionToken) return;
+    if (!session || session._id !== scope.session?._id) return;
     await patchDynamicWithMediaReferences(ctx, args.messageId, { feedback: args.feedback ?? undefined });
   },
 });
@@ -156,13 +168,9 @@ export const setFeedback = mutation({
 export const clearThread = mutation({
   args: { sessionToken: v.string() },
   handler: async (ctx: any, args: any) => {
-    await assistantScope(ctx, args.sessionToken);
-    const session = await ctx.db
-      .query("commerce_assistant_sessions")
-      .withIndex("by_session_token", (q: any) => q.eq("sessionToken", args.sessionToken))
-      .unique();
+    const { session } = await assistantScope(ctx, args.sessionToken);
     if (!session) return;
-    const cutoff = Date.now();
+    const cutoff = Math.max(Date.now(), session.updatedAt);
     await patchDynamicWithMediaReferences(ctx, session._id, { clearedBefore: cutoff, messageCount: 0, updatedAt: cutoff });
     await ctx.scheduler.runAfter(0, (internal as any).commerce.assistant.mutations.purgeThread, { sessionId: session._id, cutoff });
   },
@@ -173,10 +181,24 @@ export const purgeThread = internalMutation({
   args: { sessionId: v.id("commerce_assistant_sessions"), cutoff: v.number() },
   returns: v.null(),
   handler: async (ctx, args) => {
-    const messages = await ctx.db.query("commerce_assistant_messages")
-      .withIndex("by_session", q => q.eq("sessionId", args.sessionId).lte("createdAt", args.cutoff)).take(250);
+    const ordinary = await ctx.db.query("commerce_assistant_messages")
+      .withIndex("by_session_adopted", q => q.eq("sessionId", args.sessionId).eq("adoptedAt", undefined).lte("createdAt", args.cutoff)).take(250);
+    const adopted = ordinary.length < 250 ? await ctx.db.query("commerce_assistant_messages")
+      .withIndex("by_session_adopted", q => q.eq("sessionId", args.sessionId).gt("adoptedAt", 0).lte("adoptedAt", args.cutoff)).take(250 - ordinary.length) : [];
+    const messages = [...ordinary, ...adopted];
     for (const message of messages) await deleteDynamicWithMediaReferences(ctx, message._id);
     if (messages.length === 250) await ctx.scheduler.runAfter(0, (internal as any).commerce.assistant.mutations.purgeThread, args);
+    return null;
+  },
+});
+
+/** Scheduled only by authenticated adoption; session ownership is checked again. */
+export const transferHistory = internalMutation({
+  args: { sessionId: v.id("commerce_assistant_sessions") },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const source = await ctx.db.get("commerce_assistant_sessions", args.sessionId);
+    if (source) await transferHistoryBatch(ctx, source);
     return null;
   },
 });
@@ -342,7 +364,7 @@ export const markTip = internalMutation({
   args: { sessionToken: v.string() },
   handler: async (ctx: any, args: any) => {
     const session = await ensureSessionDoc(ctx, args.sessionToken);
-    await patchDynamicWithMediaReferences(ctx, session._id, { lastTipAt: Date.now(), updatedAt: Date.now() });
+    await patchDynamicWithMediaReferences(ctx, session._id, { lastTipAt: Date.now(), updatedAt: Math.max(Date.now(), session.updatedAt) });
   },
 });
 

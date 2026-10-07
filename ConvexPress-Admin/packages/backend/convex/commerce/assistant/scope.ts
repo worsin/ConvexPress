@@ -1,3 +1,4 @@
+import { resolveThread } from "./history";
 import { ConvexError } from "convex/values";
 import { getCurrentUser } from "../../helpers/permissions";
 import { requireCommerceEnabled } from "../helpers";
@@ -28,5 +29,6 @@ export async function assistantScope(ctx: any, sessionToken: string) {
       throw new ConvexError({ code: "SESSION_OWNER_MISMATCH", message: "This shopping session belongs to another account. Please refresh the shop." });
     }
   }
-  return { session, cart, user, subjectKey: user ? String(user._id) : sessionToken, memoryKeys: user ? [String(user._id), sessionToken] : [sessionToken] };
+  const canonical = session ? (await resolveThread(ctx, session)).session : null;
+  return { session: canonical, cart, user, subjectKey: user ? String(user._id) : sessionToken, memoryKeys: user ? [String(user._id), sessionToken] : [sessionToken] };
 }

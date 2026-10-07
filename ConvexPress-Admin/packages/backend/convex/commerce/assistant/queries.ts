@@ -1,3 +1,4 @@
+import { visibleMessages } from "./history";
 import { assistantScope } from "./scope";
 import { isClosedCart } from "../cartLifecycle";
 /**
@@ -32,11 +33,7 @@ export const getThread = query({
   handler: async (ctx: any, args: any) => {
     const { session } = await assistantScope(ctx, args.sessionToken);
     if (!session) return { session: null, messages: [] as any[] };
-    const messages = await ctx.db
-      .query("commerce_assistant_messages")
-      .withIndex("by_session", (q: any) => q.eq("sessionId", session._id).gt("createdAt", session.clearedBefore ?? 0))
-      .order("desc")
-      .take(Math.min(60, Math.max(1, args.limit ?? 30)));
+    const messages = await visibleMessages(ctx, session, Math.min(60, Math.max(1, args.limit ?? 30)));
     messages.reverse();
     return {
       session: {
@@ -106,13 +103,7 @@ export const contextBundle = internalQuery({
     ]);
 
     const { session, cart } = scope;
-    const recent = session
-      ? await ctx.db
-          .query("commerce_assistant_messages")
-          .withIndex("by_session", (q: any) => q.eq("sessionId", session._id).gt("createdAt", session.clearedBefore ?? 0))
-          .order("desc")
-          .take(10)
-      : [];
+    const recent = session ? await visibleMessages(ctx, session, 10) : [];
     recent.reverse();
 
     const lines: any[] = [];

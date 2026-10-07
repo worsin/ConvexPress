@@ -142,3 +142,88 @@ test("thread purge is bounded and preserves turns after the clear cutoff", async
   expect(scheduled).toBe(2);
   expect((await t.run(ctx => ctx.db.query("commerce_assistant_messages").collect())).map(row => row.text)).toEqual(["new"]);
 });
+
+test("returning customer retains both conversations and guest memory when its saved cart is recovered", async () => {
+  const { t, a, ids } = await fixture();
+  await a.mutation(im.appendMessage, { sessionToken: otherToken, role: "user", text: "Earlier account question", blocks: [] });
+  await t.run(ctx => ctx.db.insert("commerce_carts", { sessionToken: otherToken, userId: ids.a, status: "active", currencyCode: "USD", subtotalAmount: 0, discountAmount: 0, shippingAmount: 0, taxAmount: 0, totalAmount: 0, itemCount: 0, lastActiveAt: 1, createdAt: 1, updatedAt: 1 }));
+  await t.mutation(im.appendMessage, { sessionToken: token, role: "user", text: "Guest question before sign-in", blocks: [] });
+  await t.mutation(m.rememberFact, { sessionToken: token, fact: "I prefer manual grinders" });
+  expect(await a.mutation(m.resolveSession, { sessionToken: token })).toBe(otherToken);
+  expect((await a.query(q.getThread, { sessionToken: otherToken })).messages.map((x: any) => x.text)).toEqual(["Earlier account question", "Guest question before sign-in"]);
+  expect((await a.query(q.listMemory, { sessionToken: otherToken })).map((x: any) => x.fact)).toEqual(["I prefer manual grinders"]);
+  await expect(t.query(q.getThread, { sessionToken: token })).rejects.toThrow("another account");
+  await a.mutation(m.resolveSession, { sessionToken: token });
+  expect((await a.query(q.getThread, { sessionToken: otherToken })).messages).toHaveLength(2);
+});
+
+test("first customer sign-in adopts guest preferences for another device before another assistant turn", async () => {
+  const { t, a } = await fixture();
+  await t.mutation(m.rememberFact, { sessionToken: token, fact: "I use paper filters" });
+  await a.mutation(m.resolveSession, { sessionToken: token });
+  await a.mutation(m.resolveSession, { sessionToken: otherToken });
+  expect((await a.query(q.listMemory, { sessionToken: otherToken })).map((x: any) => x.fact)).toEqual(["I use paper filters"]);
+  await expect(t.query(q.listMemory, { sessionToken: token })).rejects.toThrow("another account");
+});
+
+test("adoption drains every older message in bounded batches without rewriting original turn data", async () => {
+  const { t, a, ids } = await fixture();
+  const source = await t.mutation(m.ensureSession, { sessionToken: token });
+  await t.run(async ctx => {
+    await ctx.db.insert("commerce_carts", { sessionToken: otherToken, userId: ids.a, status: "active", currencyCode: "USD", subtotalAmount: 0, discountAmount: 0, shippingAmount: 0, taxAmount: 0, totalAmount: 0, itemCount: 0, lastActiveAt: 1, createdAt: 1, updatedAt: 1 });
+    for (let i = 0; i < 610; i++) await ctx.db.insert("commerce_assistant_messages", { sessionId: source as any, role: "assistant", text: `History ${i}`, blocks: [{ type: "text", markdown: `Body ${i}` }], feedback: "up", model: "preserved-model", createdAt: i + 1 });
+    await ctx.db.patch(source as any, { messageCount: 610 });
+  });
+  const before = await t.run(ctx => ctx.db.query("commerce_assistant_messages").collect());
+  await a.mutation(m.resolveSession, { sessionToken: token });
+  const immediate = await a.query(q.getThread, { sessionToken: otherToken, limit: 60 });
+  expect(immediate.messages).toHaveLength(60); expect(immediate.messages[0].text).toBe("History 550");
+  // Manually drive the registered batches: retrying an already drained source is harmless.
+  for (let i = 0; i < 4; i++) await t.mutation(im.transferHistory, { sessionId: source });
+  const after = await t.run(ctx => ctx.db.query("commerce_assistant_messages").collect());
+  expect(after).toHaveLength(610);
+  for (const old of before) {
+    const row = after.find(x => x._id === old._id)!;
+    expect({ ...row, sessionId: old.sessionId, adoptedAt: undefined }).toEqual({ ...old, adoptedAt: undefined });
+  }
+  expect(new Set(after.map(x => x.sessionId)).size).toBe(1);
+  await a.mutation(im.appendMessage, { sessionToken: token, role: "assistant", text: "Late reply", blocks: [] });
+  expect((await a.query(q.getThread, { sessionToken: otherToken })).messages.at(-1).text).toBe("Late reply");
+});
+
+test("clear during adoption cannot resurrect older imported turns, while a pre-adoption clear cannot erase new imports", async () => {
+  const { t, a, ids } = await fixture();
+  await a.mutation(im.appendMessage, { sessionToken: otherToken, role: "assistant", text: "Old account answer", blocks: [] });
+  const destination = (await a.query(q.getThread, { sessionToken: otherToken })).session.id;
+  await a.mutation(m.clearThread, { sessionToken: otherToken });
+  const cutoff = await t.run(async ctx => (await ctx.db.get(destination))!.clearedBefore);
+  await t.run(ctx => ctx.db.insert("commerce_carts", { sessionToken: otherToken, userId: ids.a, status: "active", currencyCode: "USD", subtotalAmount: 0, discountAmount: 0, shippingAmount: 0, taxAmount: 0, totalAmount: 0, itemCount: 0, lastActiveAt: 1, createdAt: 1, updatedAt: 1 }));
+  const source = await t.mutation(m.ensureSession, { sessionToken: token });
+  await t.run(async ctx => {
+    for (let i = 0; i < 310; i++) await ctx.db.insert("commerce_assistant_messages", { sessionId: source as any, role: "assistant", text: "Guest older answer", blocks: [], createdAt: 100 + i });
+    await ctx.db.patch(source as any, { messageCount: 310 });
+  });
+  await a.mutation(m.resolveSession, { sessionToken: token });
+  await t.mutation(im.purgeThread, { sessionId: destination, cutoff });
+  expect((await a.query(q.getThread, { sessionToken: otherToken })).messages).toHaveLength(30);
+  await a.mutation(m.clearThread, { sessionToken: otherToken });
+  await t.mutation(im.transferHistory, { sessionId: source });
+  expect((await a.query(q.getThread, { sessionToken: otherToken })).messages).toEqual([]);
+  await a.mutation(im.appendMessage, { sessionToken: token, role: "assistant", text: "After clear", blocks: [] });
+  expect((await a.query(q.getThread, { sessionToken: otherToken })).messages.map((x: any) => x.text)).toEqual(["After clear"]);
+});
+
+test("adopted preferences deduplicate without extending retention and remain private to the customer", async () => {
+  const { t, a, b } = await fixture();
+  const guestId = await t.mutation(m.rememberFact, { sessionToken: token, fact: "Manual grinder" });
+  await a.mutation(m.rememberFact, { sessionToken: otherToken, fact: "manual grinder" });
+  const before = await t.run(ctx => ctx.db.get(guestId as any));
+  await a.mutation(m.resolveSession, { sessionToken: token });
+  const memory = await a.query(q.listMemory, { sessionToken: otherToken });
+  expect(memory).toHaveLength(1);
+  const row = await t.run(ctx => ctx.db.get(memory[0].id));
+  expect(row!.expiresAt - before!.expiresAt).toBeLessThan(1000);
+  await expect(b.query(q.listMemory, { sessionToken: token })).rejects.toThrow("another account");
+  await a.mutation(m.forgetFact, { sessionToken: otherToken, memoryId: memory[0].id });
+  expect(await a.query(q.listMemory, { sessionToken: token })).toEqual([]);
+});
