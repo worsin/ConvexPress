@@ -405,15 +405,17 @@ async function runTool(
       const cards = await ctx.runQuery(anyApi.commerce.storefront.productCards, { productIds: [productId] });
       const card = cards[0];
       if (!card) return { error: "That product is no longer available." };
-      const variantId = card.defaultVariantId ?? undefined;
-      if (input.variant_id && input.variant_id !== variantId) return { error: "Choose the required options on the product page before adding this product." };
+      const variantId = typeof input.variant_id === "string" ? input.variant_id : card.defaultVariantId ?? undefined;
+      const variantTitle = variantId ? await ctx.runQuery(anyInternal.commerce.assistant.cartActions.variantTitle, { productId, variantId }) : null;
+      if (variantId && variantTitle === null) return { error: "That product option is no longer available." };
+      const title = variantTitle ? `${card.title} — ${variantTitle}` : card.title;
       const existing = scope.actionBlocks.find(block => block.type === "cart_proposal" && block.productId === productId && block.variantId === variantId && block.quantity === quantity);
       if (!existing) {
         if (scope.actionBlocks.filter(block => block.type === "cart_proposal").length >= 8) return { error: "Review the prepared items before requesting more." };
         scope.actionBlocks.push({ type: "cart_proposal", id: crypto.randomUUID(), productId,
-          ...(variantId ? { variantId } : {}), quantity, title: card.title, added: false });
+          ...(variantId ? { variantId } : {}), quantity, title, added: false });
       }
-      return { ok: true, status: "awaiting_shopper", product: card.title, quantity,
+      return { ok: true, status: "awaiting_shopper", product: title, quantity,
         instruction: "The cart has NOT changed. The shopper must press the displayed Add button to add this exact item and quantity. Do not claim it was added." };
     }
     case "remember": {

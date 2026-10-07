@@ -1,9 +1,21 @@
 import { ConvexError, v } from 'convex/values';
-import { mutation } from '../../_generated/server';
+import { mutation, internalQuery } from '../../_generated/server';
 import { api } from '../../_generated/api';
 import { assistantScope } from './scope';
 import { resolveThread } from './history';
 import { getSettingsDoc, mergeWithDefaults } from '../../settings/helpers';
+import { isPublicVariant } from '../activePrice';
+
+export const variantTitle = internalQuery({
+  args: { productId: v.id('commerce_products'), variantId: v.id('commerce_product_variants') },
+  returns: v.union(v.string(), v.null()),
+  handler: async (ctx, args) => {
+    const product = await ctx.db.get('commerce_products', args.productId);
+    const variant = await ctx.db.get('commerce_product_variants', args.variantId);
+    if (!product || product.status !== 'publish' || !variant || variant.productId !== args.productId || !isPublicVariant(variant)) return null;
+    return variant.title || variant.optionSummary || null;
+  },
+});
 
 /** Only the shopper UI calls this mutation. Provider tools can prepare actions,
  * but cannot call it. The stored proposal fixes the product/quantity; its receipt
