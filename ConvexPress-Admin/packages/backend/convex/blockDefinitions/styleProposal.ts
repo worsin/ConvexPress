@@ -9,22 +9,31 @@ const expression = { type: "string", minLength: 1, maxLength: 2000 };
 /** Provider transport constraints. The shared composition compiler remains the
  * authority for expressions, required/bound props, budgets and example execution. */
 export function styleProposalSchema() {
-  const nodes = Object.entries(primitiveSchemas).map(([el, schema]) => {
+  const nodes = Object.entries(primitiveSchemas).flatMap(([el, schema]) => {
     const { $schema: _schema, ...props } = z.toJSONSchema(schema.partial(), { io: "input" });
     delete props.properties?.blockId;
     const bindings = Object.fromEntries(Object.keys(schema.shape).filter(key => key !== "blockId").map(key => [key, expression]));
-    return {
+    const node = {
       type: "object", additionalProperties: false,
       required: textElements.has(el) ? ["el", "bind"] : ["el"],
       properties: {
         el: { const: el }, props, if: expression,
         bind: textElements.has(el) ? expression : { type: "object", additionalProperties: false, properties: bindings, maxProperties: 32 },
         ...(containers.has(el) ? {
-          each: expression, as: { type: "string", pattern: "^[A-Za-z][A-Za-z0-9_]*$", maxLength: 80 },
           children: { type: "array", maxItems: 300, items: { $ref: "#/$defs/node" } },
         } : {}),
       },
     };
+    // A loop is a distinct schema branch: advertising each/as independently
+    // allowed providers to omit the alias while still satisfying the tool schema.
+    return containers.has(el) ? [node, {
+      ...node, required: [...node.required, "each", "as", "children"],
+      properties: { ...node.properties,
+        each: { ...expression, description: "Collection path, for example data.items. Requires an explicit as alias." },
+        as: { type: "string", pattern: "^[A-Za-z][A-Za-z0-9_]*$", maxLength: 80, description: "Distinct loop alias, for example item; child bindings can use item.title." },
+        children: { type: "array", minItems: 1, maxItems: 300, items: { $ref: "#/$defs/node" } },
+      },
+    }] : [node];
   });
   return {
     type: "object", additionalProperties: false, required: ["composition"],

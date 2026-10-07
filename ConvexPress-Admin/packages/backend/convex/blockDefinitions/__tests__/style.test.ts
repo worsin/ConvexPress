@@ -49,7 +49,11 @@ async function fixture(transport?: (args: { schemaJson: string; system: string; 
 
 test("provider schema includes every primitive, closed props and recursive compositions without host IDs", () => {
   const schema = styleProposalSchema();
-  expect(schema.$defs.node.oneOf).toHaveLength(Object.keys(primitiveSchemas).length);
+  expect(new Set(schema.$defs.node.oneOf.map(node => node.properties.el.const)).size).toBe(Object.keys(primitiveSchemas).length);
+  const loop = schema.$defs.node.oneOf.find(node => node.properties.el.const === "Grid" && node.required.includes("each"));
+  expect(loop?.required).toEqual(["el", "each", "as", "children"]);
+  expect(schema.$defs.node.oneOf.filter(node => node.properties.el.const === "Grid")).toHaveLength(2);
+  expect(schema.$defs.node.oneOf.find(node => node.properties.el.const === "Grid" && !node.required.includes("each"))?.properties).not.toHaveProperty("each");
   for (const node of schema.$defs.node.oneOf) {
     expect(node.additionalProperties).toBe(false);
     expect(node.properties.props.additionalProperties).toBe(false);
