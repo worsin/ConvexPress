@@ -5,7 +5,11 @@ import {
 	Action,
 	ResolvedImage,
 } from "../../../ConvexPress-Website/apps/web/src/templates/sdk/block-renderer/presentation";
-export default defineBlock("core/hero-split", ({ attrs, resources }) => {
+export default defineBlock("core/hero-split", ({ attrs, resources, treatment }) => {
+	// Legacy left/right controls DOM order, including the stacked layout.
+	// An explicitly edited modern start/end value takes precedence.
+	const originalMediaFirst = attrs.mediaSide === undefined && treatment?.values.mediaSide === "left";
+	const reverse = attrs.mediaSide === "start";
 	const copy = (
 		<P.Stack gap="lg">
 			{attrs.eyebrow && <P.Eyebrow>{attrs.eyebrow}</P.Eyebrow>}
@@ -21,14 +25,18 @@ export default defineBlock("core/hero-split", ({ attrs, resources }) => {
 			</P.Stack>
 		</P.Stack>
 	);
-	return attrs.mediaId ? (
-		<P.Split gap="lg" reverse={attrs.mediaSide === "start"}>
-			{copy}
-			<ResolvedImage
+	const media = (
+		<ResolvedImage
 				id={attrs.mediaId}
-				alt={attrs.mediaAlt}
+				alt={attrs.mediaAlt || (treatment ? attrs.title ?? "" : "")}
 				resources={resources}
 			/>
+	);
+
+	return attrs.mediaId ? (
+		<P.Split gap="lg" reverse={reverse}>
+			{originalMediaFirst ? media : copy}
+			{originalMediaFirst ? copy : media}
 		</P.Split>
 	) : (
 		copy

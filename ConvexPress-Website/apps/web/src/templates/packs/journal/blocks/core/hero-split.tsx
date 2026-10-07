@@ -6,7 +6,11 @@ import {
 	ResolvedImage,
 } from "../../../../sdk/block-renderer/presentation";
 import "../owned.css";
-export default defineBlock("core/hero-split", ({ attrs, resources }) => {
+export default defineBlock("core/hero-split", ({ attrs, resources, treatment }) => {
+	// Legacy left/right controls DOM order, including the stacked layout.
+	// An explicitly edited modern start/end value takes precedence.
+	const originalMediaFirst = attrs.mediaSide === undefined && treatment?.values.mediaSide === "left";
+	const reverse = attrs.mediaSide === "start";
 	const copy = (
 		<P.Stack gap="lg">
 			{attrs.eyebrow && <P.Eyebrow>{attrs.eyebrow}</P.Eyebrow>}
@@ -30,18 +34,22 @@ export default defineBlock("core/hero-split", ({ attrs, resources }) => {
 			)}
 		</P.Stack>
 	);
-	return (
-		<div className="journal-hero" data-has-image={!!attrs.mediaId}>
-			{attrs.mediaId ? (
-				<P.Split ratio={attrs.mediaSide === "start" ? "one-two" : "two-one"} reverse={attrs.mediaSide === "start"} gap="lg" align="center">
-					{copy}
-					<div className="journal-hero-image">
+	const media = (
+		<div className="journal-hero-image">
 						<ResolvedImage
 							id={attrs.mediaId}
-							alt={attrs.mediaAlt}
+							alt={attrs.mediaAlt || (treatment ? attrs.title ?? "" : "")}
 							resources={resources}
 						/>
 					</div>
+	);
+
+	return (
+		<div className="journal-hero" data-has-image={!!attrs.mediaId}>
+			{attrs.mediaId ? (
+				<P.Split ratio={originalMediaFirst || reverse ? "one-two" : "two-one"} reverse={reverse} gap="lg" align="center">
+					{originalMediaFirst ? media : copy}
+					{originalMediaFirst ? copy : media}
 				</P.Split>
 			) : (
 				copy

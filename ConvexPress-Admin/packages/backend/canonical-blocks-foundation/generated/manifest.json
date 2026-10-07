@@ -1,11 +1,11 @@
 {
   "files": {
-    "ai-catalog.ts": "c8d4b69bdb244475fde4409a737c034288cf6e11a147eca531b6ef28fceb2040",
+    "ai-catalog.ts": "a0776fca2b2c35d0ca1c404f25a0e9ce5d0dd0fc4379749bf4415f7df1267aa7",
     "block-spec.schema.json": "8d9493e9cfddb1b68eb7b275259b3585bb67f52ed382f7e0ca3b53ca6ea7cb8e",
-    "catalog.json": "19f2cb706d033fcebdb153ff8f3317ee1ed944579a3ed40dae3a38f2538d07bf",
+    "catalog.json": "bde319f2e847e51145c9789dfa0a0d55d66f0eddff8bf5bd99592273fd23c603",
     "convex.ts": "a4abad47462f2970833041a03c0b992948487a541670df7e344eedec765e5a42",
-    "coverage.json": "3584ed54ce1860b1b712ffc98ca3e7a7de2136f7b9e83c28bf64d7e2ce11204b",
-    "dependencies.json": "231627942131a7993a3d59798d14dc276c877f47c9d7cace24d017d32c2b4738",
+    "coverage.json": "5c618dc11427f332f2602121572a8880f988a8858475678a93dc303f2ef543b5",
+    "dependencies.json": "6fa3f925978184eaf7e87e0743d052b9ce0556233e90e00360b5e2387530d5ea",
     "editor-metadata.ts": "48ac9d9841bda32c573bf8aaf5e550661797e36e903bfc7d89637c31a9c6663c",
     "editors.json": "1a4e3eb9ad59fc56bbb1b8d945281f3a5eef13af34c4abee15c4dbad2fdb59aa",
     "field-runtime.d.mts": "9e1d25230a1ff8ec61f818b6004c8927cef3c95502a2d0edb1c28604da3388ce",
@@ -13,14 +13,14 @@
     "instance-runtime.d.mts": "56a0e4c7115873efc02701e6ded4ff34c2f4e1e28e98a29ec3c45dd963405a14",
     "instance-runtime.mjs": "89d1f85cb8a57d6c7e594284ef9e413a4b27cea32186d8fd457d597dfb66e2da",
     "instances.ts": "b221da7be40282981b196a29fb625f14ba8a2759fe43dc52bea09b4a61a3c684",
-    "metadata.ts": "74af3f6e22039875304c26bb704b9b8c2e3b6de7b88edfb9a00ccee530bf97a7",
+    "metadata.ts": "ebebe3bf48ee6ca6c443737bf5052b216ae9ed06b3516910166029928d5bc54c",
     "migrations.json": "c5e06b9dba15e0d14a863eaadc5d50c219639718393bd5f0402ed6f7fede47a6",
-    "pack-designs.ts": "23a0281cb2a8a58a2fc805a447be1bcaab7ce18517c0ba6dc037799f24ac32a0",
+    "pack-designs.ts": "9b1ab6478f54f24ec232557c49219629e40a393468260f0d10e3e42c9a225fe5",
     "patterns.ts": "2ec3505c0b75e44834a38aaf79a8ec7d6ce9f9c2273bb76b267eb7896449906e",
     "promotions.ts": "4548b1fdea34bc5f243b6a7b7473d0ee5e206ad6cf78add4abb9c308f42d00c3",
     "renderer-coverage.ts": "83f31347862364f7943ff6db161ae67d8a6d90e5f9a410bbcc86da30a16f76bf",
     "roles.ts": "ba744ac0a275c3ab8a661b58b55b12738138cbd5b0266ac868c79c7c8b3c62f3",
-    "schemas.ts": "35602eace30bbbee85054b838790eb6444d441f4701754472ac2c1ae809d345a",
+    "schemas.ts": "828f41496e8eb513cb16cea4dbc53004cf547717d302cff97201f2f0d66f65ee",
     "search-text.ts": "2533eacd5a731f5900dc788fb93b2d1c795c6e7adc29669177490d9a2730e188",
     "spec-runtime.d.mts": "b5b77504d0fab42615079e9f49ac192ccb37be72d42c341e42f3cc8a66aae1f2",
     "spec-runtime.mjs": "0d1052b9140a5c6f0361cd8a26d7e0d933c02858db73bf3022f665ebcc3fd5fa",
@@ -110,7 +110,7 @@
       "source": "blocks/commerce/cart-cta/block.json"
     },
     {
-      "sha256": "1944b1dc2f9131136bd83bb20bc4d996f7367d28305e0a9e5830fad96a451d46",
+      "sha256": "b65ffd804f7e8d5ec9801f249ccdbfc6e4ae42ed8f687bcf5aa5e87218c694bf",
       "source": "blocks/commerce/category-tiles/block.json"
     },
     {
@@ -126,7 +126,7 @@
       "source": "blocks/commerce/product-hero/block.json"
     },
     {
-      "sha256": "4f1c93b668211007a6b709bcccf2924668bfcc504aa2cdf75e03a8d50771036e",
+      "sha256": "c666967f9820e654a2ee905498bcdadf615bd43d81abdb2c099098cf00d88736",
       "source": "blocks/commerce/product-showcase/block.json"
     },
     {
@@ -314,11 +314,11 @@
       "source": "blocks/core/hero/block.json"
     },
     {
-      "sha256": "84cb2ddba3e270287f78b34fca4ddaa6d62ea8851c5b500c8bfa81e7a292dd0a",
+      "sha256": "47d9364d6d395ad784f8b793119779c766405bd3a1e5fa8a31ff1aa0f4ab33e1",
       "source": "blocks/core/hero-split/block.json"
     },
     {
-      "sha256": "5fda6d79c9dba805441a30b62a94b37882e2eeb1a43cb7faafacf8315a44ed2a",
+      "sha256": "b747c17361d1e87c5ab8fa244ce9e2521a78a527d430bceabfa95fbc5c0e87f9",
       "source": "blocks/core/hero-text-only/block.json"
     },
     {
@@ -366,7 +366,7 @@
       "source": "blocks/core/marquee/block.json"
     },
     {
-      "sha256": "3d3f213195d89aae4858c8dfd98e5857322376b7b797de9c4aa333b07aea77a9",
+      "sha256": "64c1c9f830f27102620291e38e8ffabccb24d8b350af2b718d98686174e4ddcf",
       "source": "blocks/core/media-text/block.json"
     },
     {
@@ -374,7 +374,7 @@
       "source": "blocks/core/menu/block.json"
     },
     {
-      "sha256": "5dd31783a0c0411aecc864044a8817371b4d91dbfe19e650da49ceb9bad3ba39",
+      "sha256": "16d2b90f914c921cd950ae7e9cfbd7938568616dba9edcc81c48bfea38841baa",
       "source": "blocks/core/newsletter-signup/block.json"
     },
     {

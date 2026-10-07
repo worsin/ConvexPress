@@ -1,3 +1,4 @@
+import { OriginalMediaText } from "../../../../sdk/block-renderer/original-media-text";
 import { defineBlock } from "../../../../sdk/block-renderer/model";
 import * as P from "../../../../sdk/primitives";
 import {
@@ -7,7 +8,7 @@ import {
 } from "../../../../sdk/block-renderer/presentation";
 import "../owned.css";
 import "../../../../../../../../../blocks/core/media-text/media-text.css";
-export default defineBlock("core/media-text", ({ attrs, resources }) => {
+export default defineBlock("core/media-text", ({ attrs, resources, treatment }) => {
 	const copy = (
 		<P.Stack gap="lg">
 			<Intro {...attrs} />
@@ -16,7 +17,10 @@ export default defineBlock("core/media-text", ({ attrs, resources }) => {
 	);
 	return (
 		<div className="journal-media-text cp-library-media-text">
-			{attrs.mediaId ? (
+			{treatment ? <OriginalMediaText side={treatment.values.mediaPosition} copy={copy} media={attrs.mediaId
+    ? <ResolvedImage id={attrs.mediaId} alt={attrs.mediaAlt || attrs.heading} resources={resources} />
+    : <div className="cp-original-media-placeholder" aria-label={attrs.mediaAlt || "Media placeholder"} />
+   } /> : attrs.mediaId ? (
 				<P.Split ratio="one-two" gap="lg" align="center">
 					<ResolvedImage
 						id={attrs.mediaId}

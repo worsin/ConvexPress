@@ -66,8 +66,8 @@
     "blocks/blocks/story-timeline/block.json": "9dd81476cbc1365630304f0f174bfb4c6cfc21f8bc0518d07752bd61d4ed7609",
     "blocks/blocks/tabbed-content/block.json": "7785c4925c5332733472430c6877a182122acc81c6762549e73abee7df49261f",
     "blocks/commerce/assistant-band/block.json": "4cb9655343dc8a87ef6cc4a6d0ba7dd927c4e64cd245d9607a26f41376425c20",
-    "blocks/commerce/category-tiles/block.json": "c61893943c6da4baca802ece2bcb387d2bcdabb3f2bfa8f1b0c74342e18eb1a9",
-    "blocks/commerce/product-showcase/block.json": "2ed4783fb0ff8ec59f7f2c7bdf6d8b5be3a812e68578072f6de229e6367c968f",
+    "blocks/commerce/category-tiles/block.json": "5dd3584f62a1e9cc534d7d6f4fce84c4c61a3814010286ad4ca7c84db225bf54",
+    "blocks/commerce/product-showcase/block.json": "fdaff5fd908b0639d28b89bb9fec79463b18f2fdd7cae92c936810474cba4b0a",
     "blocks/core/accordion/block.json": "f84ae0aca87d5a994b2297cfc895bce6b0a837568441a38834651151f6ef5ad8",
     "blocks/core/author-bio/block.json": "0d4799b327ad613cc2e5e82ff7d4ab0e0239213e952882b0e180f74dc451c324",
     "blocks/core/bento-grid/block.json": "0f333473405b29b98d373e9605b4245556a73a7f94275f3a4fadc45f336bc198",
@@ -84,15 +84,15 @@
     "blocks/core/feature-list-alternating/block.json": "e0dbd5199a54fc8929685737a202e8889a10a139018497b629f94f2758d2c3db",
     "blocks/core/featured-products/block.json": "362eb9e70287fcdaa4bf831d0e336c37ed980937fde1810e7afa852022a7468d",
     "blocks/core/heading/block.json": "8b5720b52feb51c43e60ce6a7f0dabd147bcc50ff10ea8cd5e954808ed192102",
-    "blocks/core/hero-split/block.json": "9dbeef238529bf84248ceedeed714f42148ab14cf7b4b91281b7e56895536d45",
-    "blocks/core/hero-text-only/block.json": "a88cb49a6118a220d1af0ba15e8a032490622391fad28ea643e008374b32756f",
+    "blocks/core/hero-split/block.json": "a2c44aba309ecbe34cce409ecd542759bea9fec94a1a9f7816dfa058ecd8d1fb",
+    "blocks/core/hero-text-only/block.json": "3a843258369a086b129f58df3bd05ef97d2f468152c0e0be1e20962e5a8eb222",
     "blocks/core/hero/block.json": "09f4bfa0e0b5dd0a846c427be0cac49175692606625fee89c8cdcc368fa7e14a",
     "blocks/core/image/block.json": "4dee0153dc050a84cf6579e8cfe320492c34492f7c33e04892e2f419e95023e0",
     "blocks/core/latest-posts/block.json": "1b7b3a2905255a6cb4c92c861e3bd155c213f6d7f2c35370a261a250ab7c3e12",
     "blocks/core/list/block.json": "f20b573da74d6a69eeef4e55b1470770c642a0d32c442d9cf3d1d242945e9e0e",
     "blocks/core/logo-cloud/block.json": "786e4253dc11fcaf4b4daa4a87b3516d04221a43a71566e32cc470f0aa589d98",
-    "blocks/core/media-text/block.json": "52282d1c75d5c65ea146ab38032e572cb95c2fb8c861af749db14cb0429efb36",
-    "blocks/core/newsletter-signup/block.json": "8b2b12b92a2f5841fab1968f37e7e58cc15cb7f7ab18a3508cb1fbae5cc65582",
+    "blocks/core/media-text/block.json": "c91fbeba4e7982ce180a80c092316d7c18f9755e80e85a3257c8fd92e489f222",
+    "blocks/core/newsletter-signup/block.json": "b4910a4f44e1f45ed26bda6ac0edcb044a95ebb5bff79e52621ba66406bcfb97",
     "blocks/core/paragraph/block.json": "6c11d75c9730da40b117e513d299f026a580967a54571ff4acf389006bcc7af3",
     "blocks/core/pricing-cards/block.json": "daca5b655867932d78b8d9ab77171cab48dd78a20ff8115f2c501e804053343c",
     "blocks/core/process-steps/block.json": "072c0896ba93114cdb5f46ab5aadbd6165fe82bc052c3e992f247077b76a7725",
@@ -152,7 +152,7 @@
   "files": {
     "rich_text.mjs": "3349516bb2c8b12ff8be5119f64272b278f1216adaf79606a647f3770e9e1c8f",
     "rich_text.d.mts": "5da566831696a1632ba432c888fdce65d00ee177770a06dd14c4497cb5641177",
-    "legacy_schemas.mjs": "d872f9088f5642a0ccd2bfca3512bbd36f0f12fd0e146a4cc86116b7307773b3",
+    "legacy_schemas.mjs": "2450dc0d3ba2922c83a72713c475e3a03f3d2b73a8560275011cf662048471ab",
     "legacy_schemas.d.mts": "3de9ddcd3bbd863e6cb71f7179614bc2faa1b7d9ff93a4d9cb50d9fb64600169"
   },
   "descriptors": {
@@ -283,7 +283,14 @@
           ]
         }
       ],
-      "treatments": []
+      "treatments": [
+        {
+          "name": "original",
+          "axes": [
+            "columns"
+          ]
+        }
+      ]
     },
     "commerce/product-showcase": {
       "name": "commerce/product-showcase",
@@ -297,7 +304,14 @@
           ]
         }
       ],
-      "treatments": []
+      "treatments": [
+        {
+          "name": "original",
+          "axes": [
+            "columns"
+          ]
+        }
+      ]
     },
     "core/accordion": {
       "name": "core/accordion",
@@ -508,7 +522,14 @@
           ]
         }
       ],
-      "treatments": []
+      "treatments": [
+        {
+          "name": "original",
+          "axes": [
+            "mediaSide"
+          ]
+        }
+      ]
     },
     "core/hero-text-only": {
       "name": "core/hero-text-only",
@@ -528,7 +549,14 @@
           ]
         }
       ],
-      "treatments": []
+      "treatments": [
+        {
+          "name": "original",
+          "axes": [
+            "alignment"
+          ]
+        }
+      ]
     },
     "core/image": {
       "name": "core/image",
@@ -580,7 +608,14 @@
           ]
         }
       ],
-      "treatments": []
+      "treatments": [
+        {
+          "name": "original",
+          "axes": [
+            "mediaPosition"
+          ]
+        }
+      ]
     },
     "core/newsletter-signup": {
       "name": "core/newsletter-signup",
@@ -594,7 +629,14 @@
           ]
         }
       ],
-      "treatments": []
+      "treatments": [
+        {
+          "name": "original",
+          "axes": [
+            "variant"
+          ]
+        }
+      ]
     },
     "core/paragraph": {
       "name": "core/paragraph",

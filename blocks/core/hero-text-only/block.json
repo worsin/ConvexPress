@@ -137,5 +137,23 @@
       "href": "secondaryCtaUrl",
       "label": "secondaryCtaLabel"
     }
+  ],
+  "treatments": [
+    {
+      "name": "original",
+      "title": "Original Hero presentation",
+      "axes": [
+        {
+          "id": "alignment",
+          "title": "Alignment",
+          "type": "select",
+          "options": [
+            "left",
+            "center"
+          ],
+          "default": "center"
+        }
+      ]
+    }
   ]
 }
