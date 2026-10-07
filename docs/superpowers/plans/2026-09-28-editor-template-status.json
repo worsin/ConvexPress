@@ -1,13 +1,13 @@
 {
   "plan": "2026-09-28-editor-template-delivery.md",
   "baselineCommit": "d0fee8acceb408fd306a15f3c054322cb73ac8bc",
-  "checkpointSource": "output/delivery-candidate-20261007/mt-accept-after.json",
+  "checkpointSource": "output/assistant-catalog-20261007/mt-after.json",
   "checkpointCounts": {
-    "Verified": 134,
-    "In progress": 3
+    "Verified": 135,
+    "In progress": 2
   },
   "goal": "Complete block editor and template delivery plus all demonstrated blockers; defer unrelated whole-app audit campaigns.",
-  "currentTask": "134/137 blocks verified. E112 memory/brief, E113 request replay and E114 shopper-authorized exact cart actions are installed/accepted on original Alpha; final source1bf909bf,432commerce tests and actual desktop/mobile/real-provider acceptance pass. Next: Assistant public catalog grounding and bounded readers; contextBundle reads unpublished cart products directly and relatedGroups/toProductCard still collect unbounded edges/variants. Prove and repair the scoped caller paths, then selected-resource AI composition/style/promotion and final candidate parity. No audit wait.",
+  "currentTask": "135/137 blocks verified. Assistant Band is accepted: E110-E115 close actual provider/customer history/memory, replay, exact shopper cart authority and catalog visibility/read bounds on original Alpha. Source3c2cd803 installed;440commerce tests and preservation pass. Now execute selected-resource AI generation/composition/style/promotion in native Electron. Instagram, Turnstile, public HTTPS editing and final candidate parity remain explicit; no audit wait.",
   "tasks": [
     {
       "id": 1,
@@ -38,7 +38,7 @@
     {
       "id": 7,
       "status": "in_progress",
-      "scope": "Original Alpha real-provider native canonical generation/review/apply/reopen/publication and preview accepted. Assistant guest/customer history/memory and exact shopper cart actions accepted with E110\u2013E114; catalog visibility/read bounds and selected-resource AI composition/style/promotion remain open."
+      "scope": "Actual original provider canonical generation and Assistant accepted. Selected-resource AI generation/composition/style/promotion remains; manual SDK/native workflows retained."
     },
     {
       "id": 8,
@@ -288,7 +288,7 @@
         "ConvexPress-Admin/audits/2026-09-04/original-preview-assistant-20261007.md",
         "ConvexPress-Admin/audits/2026-09-04/original-assistant-customer-20261007.md"
       ],
-      "nextCheck": "Complete bounded Assistant disabled-memory grounding/request idempotency/catalog checks, then real selected-resource AI composition/style/promotion using existing Alpha provider. No new key request or repeated accepted customer flow."
+      "nextCheck": "Real selected-resource AI generation/composition/style/promotion using original Alpha provider. Assistant now accepted; no repeated customer/provider checks."
     },
     {
       "id": "E14",
@@ -1538,6 +1538,18 @@
         "output/assistant-cart-authority-final-20261007/live.json",
         "output/assistant-cart-authority-final-20261007/preservation.json"
       ]
+    },
+    {
+      "id": "E115",
+      "classification": "accepted/reusable evidence",
+      "deliveryTask": 7,
+      "requiredWorkflow": "Assistant grounding and recommendations expose only current public catalog data and complete valid rankings within explicit read budgets.",
+      "evidence": "ConvexPress-Admin/audits/2026-09-04/assistant-catalog-20261007.md",
+      "dependency": "contextBundle/cartContext read unpublished cart product fields directly; relation ranking slices before publication filtering and accepts unpublished seeds; toProductCard collects every variant and ignores selected-option stock; relation reads collect every edge.",
+      "repairBoundary": "Shared public cart grounding with unavailable placeholders preserving counts; public seed/target/category filtering; indexed default-variant selection; bounded total relation reads with explicit overflow and complete ranking within budget. Preserve existing cart/auth/data and normal storefront results.",
+      "exitCheck": "Registered fail-before/pass-after visibility/ranking/budget/variant tests; scoped commerce suite/types; installed actual catalog and provider smoke with original data preservation.",
+      "status": "Accepted on original Alpha: source3c2cd803,8focused cases/440commerce tests, strict frozen install, exact20product/6category public catalog and actual configured-provider cart smoke with preservation.",
+      "nextCheck": "Reuse this boundary; continue selected-resource AI authoring and final candidate parity."
     }
   ],
   "blocks": [
@@ -3088,9 +3100,9 @@
       "name": "commerce/assistant-band",
       "title": "Assistant band",
       "category": "Commerce",
-      "checkpointStatus": "In progress",
-      "nextClassification": "Real configured original provider, catalog answer/cart action, actual customer sign-in history adoption, account-wide memory, foreign/anonymous denial, reload and desktop/mobile accepted. E110/E111 repairs verified.",
-      "classification": "missing evidence",
+      "checkpointStatus": "Verified",
+      "nextClassification": "Complete scoped Assistant Band acceptance across native fields, four-pack states, actual provider/customer lifecycle and E110-E115 repairs.",
+      "classification": "accepted/reusable evidence",
       "source": "blocks/commerce/assistant-band/block.json",
       "requirements": "eyebrow, heading, body, prompts, ctaLabel, ctaUrl",
       "evidenceReferences": [
@@ -3102,12 +3114,16 @@
         "ConvexPress-Admin/audits/2026-09-04/customer-commerce-20260929.md",
         "output/customer-commerce-20260929/source-provenance.json",
         "ConvexPress-Admin/audits/2026-09-04/original-preview-assistant-20261007.md",
-        "ConvexPress-Admin/audits/2026-09-04/original-assistant-customer-20261007.md"
+        "ConvexPress-Admin/audits/2026-09-04/original-assistant-customer-20261007.md",
+        "ConvexPress-Admin/audits/2026-09-04/assistant-catalog-20261007.md",
+        "ConvexPress-Admin/audits/2026-09-04/assistant-memory-brief-20261007.md",
+        "ConvexPress-Admin/audits/2026-09-04/assistant-replay-20261007.md",
+        "ConvexPress-Admin/audits/2026-09-04/assistant-cart-authority-20261007.md"
       ],
-      "remainingReview": "Disabled-memory grounding, robust Assistant request idempotency and bounded/visible catalog readers remain from the original Assistant scope notes. Reuse completed real customer/provider and field/four-pack evidence; no missing API key.",
+      "remainingReview": "No block-specific open gate; final installed-candidate parity remains Task8.",
       "deliveryTask": 3,
       "acceptanceBatch": "customer-commerce",
-      "reviewedAtCommit": "ca7cb390 + Purchased Downloads flex-shrink repair",
+      "reviewedAtCommit": "3c2cd803",
       "notesSha256": "934f3d9b76c5502f41c5f13025021b3b1abe1e7b82d31848c9718722ee90b71b",
       "specSha256": "4cb9655343dc8a87ef6cc4a6d0ba7dd927c4e64cd245d9607a26f41376425c20",
       "rendererSha256": "aa111a1ebd026457e728f54c1ec262cdd6b501a737e77964ab939962fd9f4ecd",
@@ -5058,6 +5074,7 @@
     }
   ],
   "latestEvidence": [
+    "ConvexPress-Admin/audits/2026-09-04/assistant-catalog-20261007.md",
     "ConvexPress-Admin/audits/2026-09-04/assistant-memory-brief-20261007.md",
     "output/assistant-memory-brief-final-20261007/live.json",
     "ConvexPress-Admin/audits/2026-09-04/original-preview-assistant-20261007.md",
@@ -5419,25 +5436,25 @@
     "ConvexPress-Admin/audits/2026-09-04/assistant-cart-authority-20261007.md"
   ],
   "trackerRefresh": {
-    "source": "output/field-guide-legacy-final-20261006/mt-accept-after.json",
-    "schema": "output/lead-customer-20260929/mt-schema.json",
+    "source": "output/assistant-catalog-20261007/mt-after.json",
+    "schema": "output/assistant-catalog-20261007/mt-schema.json",
     "rows": 137,
     "counts": {
-      "Verified": 132,
-      "In progress": 5
+      "Verified": 135,
+      "In progress": 2
     },
     "otherCellsUnchangedFromPreviousRead": true,
     "pendingNotesReconciled": 77,
     "classificationScope": "Block-specific missing gates; historical whole-app audit conditions retained in Notes but not automatic prerequisites.",
     "lastAcceptedNames": [
-      "reference/field-guide"
+      "commerce/assistant-band"
     ],
     "allNotesExact": true
   },
   "coordination": {
     "folder": "/Users/worsin/Development/ConvexPress/Opus Audits/",
     "authority": "Codex leads; Claude audits are advisory and independently verified",
-    "lastAudit": "2026-10-06T2206-audit-64-original-fleet-migrated.md",
+    "lastAudit": "2026-10-06T2306-audit-65-task4-closed-assistant.md",
     "pendingAdvisory": {
       "F19": "Accepted shared public document href contract. Historical encoded-slug fixture reproduced discrepancy; ordinary authoring slugifies safely. Legacy menu root/prefix behavior and membership aliases preserved. See locale-destinations-20260928.md.",
       "F20": "Source-verified enterprise commerce backfill truncation recorded in current-acceptance.md deferred register. No live reproduction or repair; promote only if catalog/customer-commerce delivery demonstrates a dependency.",

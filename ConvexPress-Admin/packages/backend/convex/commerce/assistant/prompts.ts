@@ -21,6 +21,7 @@ export interface StoreContext {
 }
 
 export interface CartLineContext {
+  unavailable?: boolean;
   productId: string;
   title: string;
   variantTitle: string | null;
@@ -55,7 +56,7 @@ export function describeCart(lines: CartLineContext[], store: StoreContext): str
   return lines
     .map((line) => {
       const attrs = compactAttributes(line.attributes);
-      return `- [${line.productId}] ${line.title}${line.variantTitle ? ` (${line.variantTitle})` : ""} ×${line.quantity} @ ${formatMoney(line.unitPriceAmount, store.currencyCode, store.currencySymbol)}${line.summary ? ` — ${line.summary}` : ""}${attrs ? ` — ${attrs}` : ""}`;
+      return `- [${line.productId}] ${line.title}${line.unavailable ? " (not currently available; do not recommend or add)" : ""}${line.variantTitle ? ` (${line.variantTitle})` : ""} ×${line.quantity} @ ${formatMoney(line.unitPriceAmount, store.currencyCode, store.currencySymbol)}${line.summary ? ` — ${line.summary}` : ""}${attrs ? ` — ${attrs}` : ""}`;
     })
     .join("\n");
 }

@@ -1,0 +1,19 @@
+# Assistant catalog acceptance — October 7
+
+Source `3c2cd80312ab3ff561a3146ac0d47dc489207e00` is installed on original Alpha4820. Four original failing regressions proved private updated cart-product grounding, unpublished recommendation crowding, unbounded variant reads with incorrect selected-option stock, and unbounded relation reads. The shared storefront/context readers now retain unavailable basket quantities/totals without private descriptions, reject unpublished recommendation seeds/targets, exclude hidden category labels, select default/legacy variants through indexes and enforce explicit cart/relation budgets. Ranking examines every candidate within the edge budget before choosing public winners; overflow fails explicitly instead of silently claiming an incomplete ranking.
+
+Eight focused cases pass with30assertions, including legacy variant priority/fallback, withdrawn cart variants, hidden category prefixes and shared cart overflow. The affected commerce suite passes440tests/2,131assertions across37files. Strict backend types, frozen strict dry-run/install and whitespace checks pass. This is focused commerce coverage, not whole-application acceptance.
+
+The immutable checkpoint captures2,032tracked Admin files and installs1,785modules. Existing operator session survived deployment; the owned controller signed out. Actual unauthenticated public catalog before/after matches exactly after removing only observation time:20products,6categories, SHA256 `23707d69595c9e9cc714e6f7ea071b2d55ff477da0a58dd66b9958e5d3cfe339`. The original dataset has no relation groups in this all-product exclusion query; ranking/overflow and private-resource edge cases are registered Convex tests, not claimed original production fixtures.
+
+The configured actual Assistant prepared one Compact15 with cart0, two concurrent shopper confirmations produced cart1, and a subsequent read-only question reported1 while leaving1. Owned thread, memory and cart cleared. Original selected17users/9posts/50storage/14settings/15emailQueue/12assistantSessions/8messages/1memory/7carts/2cartItems remain exact. All14protected runtimes remain alive. No original catalog/settings were changed, no secrets persisted in evidence, no push.
+
+Raw evidence: `output/assistant-catalog-20261007/` red/green logs, full commerce log, strict type/dry-run/install receipts, installed module hash, catalog snapshots, live provider and preservation receipts.
+
+## Assistant Band reconciliation
+
+The block's authored fields, eight prompts, normal/maximum/empty/disabled/mobile-hidden states, four-pack desktop/mobile rendering, keyboard and motion have accepted evidence in `output/assistant-band-20260910/`, `assistant-family-20260921.md`, `cta-family-20260921.md`, and the final reviewed tracker screenshot matrix. Actual configured-provider response and original native/public preview are in `original-preview-assistant-20261007.md`. Real customer adoption/history/memory/isolation is in `original-assistant-customer-20261007.md`. Disabled-memory policy and brief freshness, backend replay, and explicit exact shopper cart authority are in `assistant-memory-brief-20261007.md`, `assistant-replay-20261007.md`, and `assistant-cart-authority-20261007.md`. This report closes the last catalog visibility/read-bound assertion. These combined receipts support Assistant Band acceptance without asserting unrelated checkout/payment or universal search-policy acceptance.
+
+The tracker update targets only this existing row's Status/Tests/Screenshots; its Notes and all unrelated cells are preserved and compared after readback. Selected-resource AI generation/composition/style/promotion, SocialFeed/Instagram, EventRSVP/Turnstile, public HTTPS editing and final candidate parity remain separately open.
+
+Verified live tracker readback:135Verified/2In progress/137rows; one changed row, all other cells and Notes exact (`mt-verified.json`).
