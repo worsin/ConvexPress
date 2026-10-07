@@ -1,3 +1,4 @@
+import { canonicalPostBody } from "../../__tests__/canonicalPostFixture";
 import { expect, test } from "bun:test";
 import { convexTest } from "convex-test";
 import schema from "../../schema";
@@ -14,7 +15,7 @@ async function fixture() {
     for (const name of ["Ceramics", "Design", "Empty", "Private plans", "Scheduled", "Wood & wool"]) tags.push(await ctx.db.insert("terms", { name, slug: name.toLowerCase().replaceAll(" ", "-"), taxonomy: "post_tag", count: 99999, isDefault: false, createdAt: 1, updatedAt: 1 }));
     const posts = [];
     for (const i of [0, 1, 3, 4, 5]) {
-      const post = await ctx.db.insert("posts", { type: "post", title: `Story ${i}`, slug: `story-${i}`, publishedAt: i === 4 ? Date.now() + 86400000 : 100, visibility: i === 3 ? "private" : "public", status: "publish", authorId: user, commentStatus: "closed", content: "Never disclose source body", createdAt: 1, updatedAt: 1 });
+      const post = await ctx.db.insert("posts", { type: "post", title: `Story ${i}`, slug: `story-${i}`, publishedAt: i === 4 ? Date.now() + 86400000 : 100, visibility: i === 3 ? "private" : "public", status: "publish", authorId: user, commentStatus: "closed", ...canonicalPostBody("Never disclose source body"), createdAt: 1, updatedAt: 1 });
       // Deliberately raw legacy rows: topic discovery does not require derived caches.
       await ctx.db.insert("termRelationships", { postId: post, termId: tags[i]! }); posts.push(post);
     }

@@ -1,3 +1,4 @@
+import { canonicalPostBody } from "../../__tests__/canonicalPostFixture";
 import { expect, test } from "bun:test";
 import { convexTest } from "convex-test";
 import schema from "../../schema";
@@ -50,7 +51,7 @@ test("bounded repair deduplicates across pages, restarts concurrent scans and ig
   const {term,posts}=await t.run(async ctx=>{
     const term=await ctx.db.insert("terms",termData("legacy")); const author=await ctx.db.insert("users",account); const posts=[];
     for(let i=0;i<22;i++){
-      const post=await ctx.db.insert("posts",article(author,{content:"x".repeat(40_000)}));posts.push(post);
+      const post=await ctx.db.insert("posts",article(author,canonicalPostBody("x".repeat(40_000))));posts.push(post);
       for(let j=0;j<9;j++)await ctx.db.insert("termRelationships",{termId:term,postId:post});
     }
     const draft=await ctx.db.insert("posts",article(author,{status:"draft"}));

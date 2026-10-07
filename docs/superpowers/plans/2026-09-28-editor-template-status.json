@@ -1407,11 +1407,12 @@
       "dependency": "Historical revisions share validators with live posts and preserve original imports; deleting schema fields before archiving retained values would risk data or deployment failure.",
       "repairBoundary": "Separate immutable historical validation from live schema. Stop canonical writers reintroducing legacy columns; archive retained values atomically using exact source CAS; enumerate every current site to completion and verify original bodies/media/history before schema contraction. Preserve explicit legacy import decoding.",
       "closureBoundary": "All six current site corpora verified and migrated without changing canonical trees/publication/ownership/history; strict deployments reject obsolete live columns; native save/reopen/history and public/promotion checks pass on the final installed candidate. Physical schema contraction is required, not merely a compatibility comment.",
-      "status": "Compatibility candidate ad2e3701 deployed on all six scoped sites. Complete cleanup verified203canonical records,203new original archives,724unchanged prior revisions and81unchanged storage files. Source/target reusable indexes ready. Local schema contraction passes strict backend types and168canonical/history tests; generated gates refreshed. Wider contracted suite3434passed/276failed (obsolete-field fixture and compatibility-expectation failures); contracted source remains uncommitted. Contracted schema not deployed.",
+      "status": "Stage A installed and preserved all six corpora (203 cleaned records,203 new archives,724 prior revisions,81 stored files). Contracted live schema now passes3711backend tests with0failures, strict backend/Admin/Website types and generated writer gates. Legacy promotion now refuses with an actionable migration issue before receipts/writes. Contracted schema is locally verified but not deployed; E108 remains open.",
       "nextCheck": "Finish contracted-source regression/generation gates, then deploy strict contracted schema from preserved installed snapshots and verify affected native authoring/history, public and promotion workflows. Preserve original archives; do not close E108 on cleanup alone.",
       "currentEvidence": [
         "ConvexPress-Admin/audits/2026-09-04/schema-retirement-preparation-20261007.md",
-        "ConvexPress-Admin/audits/2026-09-04/schema-retirement-stage-a-20261007.md"
+        "ConvexPress-Admin/audits/2026-09-04/schema-retirement-stage-a-20261007.md",
+        "ConvexPress-Admin/audits/2026-09-04/schema-retirement-contraction-20261007.md"
       ]
     }
   ],

@@ -149,7 +149,7 @@ September29 closure: all20 assigned Task2 block rows are Verified on the linked 
 - [x] Migrate known installed/demo content with backups, explicit receipts and exact readback. Preserve original user data and rollback until success is established.
 - [ ] Remove obsolete live editor/renderer/contentMode paths and fields only after preservation and import/recovery requirements pass; no premature destructive schema cleanup.
 
-Accepted corpus/API evidence: `ConvexPress-Admin/audits/2026-09-04/legacy-reusable-retirement-20261006.md`. October7 E108 corrects its overbroad fifth-clause closure: obsolete live posts schema columns still exist and must be retired after preservation. Immutable revision archives and explicit import decoding remain supported. `schema-retirement-preparation-20261007.md` records the tested local first stage; deployment, cleanup and schema contraction remain unfinished.
+Accepted corpus/API evidence: `ConvexPress-Admin/audits/2026-09-04/legacy-reusable-retirement-20261006.md`. October7 E108 corrects its overbroad fifth-clause closure: obsolete live posts schema columns still exist and must be retired after preservation. Immutable revision archives and explicit import decoding remain supported. `schema-retirement-stage-a-20261007.md` records installed cleanup and exact archival preservation across all six sites. `schema-retirement-contraction-20261007.md` records the locally contracted schema with3,711passing tests and strict backend/Admin/Website types. Contracted deployment and final native/public/promotion verification remain unfinished.
 
 ### Task 5 — Finish Templates and Customizer as one workflow
 

@@ -83,7 +83,7 @@ test("canonical reconciliation and final write acknowledgement leave no dirty wi
 test("canonical replacement and deletion clean edges and dirty rows through normal guarded writers", () => withEpoch(async () => {
   const f = await setup(); const recovery = await f.addPage(), deleted = await f.addPage(); await f.drain();
   await f.t.run(async ctx => {
-    const previous = (await ctx.db.get("posts", recovery))!, value = { blocksVersion: 2, blocks: [], content: "" };
+    const previous = (await ctx.db.get("posts", recovery))!, value = { blocksVersion: 2, blocks: [] };
     await syncDocumentContactForms(ctx, {postId:recovery,title:previous.title,blocks:[]});
     await patchWithMediaReferences(ctx, "posts", recovery, value, permitValidatedCanonicalAuthoringWrite({ table: "posts", operation: "patch", id: recovery, previous, value }));
     await clearSyncedConsumerDirty(ctx,recovery);
@@ -202,7 +202,7 @@ test("verified installations enable real Synced editor reads and saves while exp
     await ctx.db.patch("roles", role._id, { capabilities: [...role.capabilities, "page.read", "page.update"] });
   });
   const postId = await f.addPage();
-  await f.t.run(ctx => ctx.db.patch("posts", postId, { contentMode: "blocks", blocksRevision: 1 }));
+  await f.t.run(ctx => ctx.db.patch("posts", postId, { blocksRevision: 1 }));
   const policy = () => f.t.run(async ctx => (await displayContext(ctx, new RequestReadLedger())).policy);
   expect((await policy()).disabledBlocks).toContain("core/synced");
   await f.drain(); expect((await policy()).disabledBlocks).not.toContain("core/synced");

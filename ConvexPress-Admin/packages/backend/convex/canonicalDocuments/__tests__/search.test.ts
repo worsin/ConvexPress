@@ -1,3 +1,4 @@
+import { canonicalPostBody } from "../../__tests__/canonicalPostFixture";
 import {expect,test} from "bun:test";
 import {convexTest} from "convex-test";
 import schema from "../../schema";
@@ -10,10 +11,12 @@ async function fixture(){
  const ids=await t.run(async ctx=>{
   const user=await ctx.db.insert("users",{authSource:"local",email:"author@example.invalid",emailVerified:true,status:"active",displayName:"Public author",createdAt:1,updatedAt:1});
   await ctx.db.insert("settings",{section:"plugins",values:{membershipEnabled:false},updatedAt:1,updatedBy:user});
+  await ctx.db.insert("convexpress_siteIdentity",{...scope,identityKey:"site-identity",environmentKind:"staging",deploymentOrigin:"https://search.convex.cloud",managementOrigin:"https://controller.convex.cloud",siteOrigin:"https://search.convex.site",siteContractVersion:"1",schemaVersion:"1",engineVersion:"1",managementCapabilities:[],initializedAt:1,updatedAt:1});
+  await ctx.db.insert("settings",{section:"appearance.template",values:{active:"core",overrides:{},variants:{},settings:{}},legacyAppearanceMigration:{version:2,migratedAt:1},updatedAt:1,updatedBy:user});
   const ids=[];
   for(let i=0;i<11;i++){
    const title=i<5?`Orchid title ${i}`:`Body match ${i}`,content=i<2?"Other text":"Orchid body",visibility=i===10?"password":"public";
-   const id=await ctx.db.insert("posts",{type:"post",title,slug:`story-${i}`,status:"publish",visibility,authorId:user,commentStatus:"closed",excerpt:`Current summary ${i}`,content,createdAt:1,updatedAt:1,publishedAt:1});
+   const id=await ctx.db.insert("posts",{type:"post",title,slug:`story-${i}`,status:"publish",visibility,authorId:user,commentStatus:"closed",excerpt:`Current summary ${i}`,...canonicalPostBody(content),createdAt:1,updatedAt:1,publishedAt:1});
    await ctx.db.insert("searchIndex",{contentType:"post",contentId:id,title,content,excerpt:"STALE_SECRET",authorName:"PRIVATE_EMAIL",authorId:String(user),status:"publish",url:"/stale",createdAt:1,updatedAt:1,publishedAt:1,indexedAt:1});
    if(i<10)ids.push(id);
   }
@@ -75,7 +78,7 @@ test("hidden candidates fill visible pages through bounded batches instead of on
   for(const id of ids){await ctx.db.patch("posts",id,{visibility:"password"});}
   const author=(await ctx.db.query("users").first())!;
   for(let i=0;i<40;i++){
-   const post=await ctx.db.insert("posts",{type:"post",title:"Orchid",slug:`batch-${i}`,status:"publish",visibility:i<36?"password":"public",authorId:author._id,commentStatus:"closed",content:"",excerpt:"Current",createdAt:1,updatedAt:1});
+   const post=await ctx.db.insert("posts",{type:"post",title:"Orchid",slug:`batch-${i}`,status:"publish",visibility:i<36?"password":"public",authorId:author._id,commentStatus:"closed",excerpt:"Current",createdAt:1,updatedAt:1});
    await ctx.db.insert("searchIndex",{contentType:"post",contentId:post,title:"Orchid",content:"",excerpt:"",authorId:String(author._id),authorName:"",status:"publish",url:"/unused",createdAt:1,updatedAt:1,indexedAt:1});
   }
  });
@@ -100,7 +103,7 @@ test("partial batches reject changed ranking and recheck changed source visibili
 
 test("search blocks exclude stale term associations while still filling current matches",async()=>{
  const {t,ids}=await fixture();
- await t.run(async ctx=>{for(const id of ids.slice(0,8))await ctx.db.patch('posts',id,{title:'Changed title',content:'Changed body',excerpt:'Orchid teaser is not an indexed body'});});
+ await t.run(async ctx=>{for(const id of ids.slice(0,8))await ctx.db.patch('posts',id,{title:'Changed title',...canonicalPostBody('Changed body'),excerpt:'Orchid teaser is not an indexed body'});});
  const result=await t.run(ctx=>readSearch(ctx,{query:'Orchid',pageSize:2},scope,'document'));
  expect(result.items.map(row=>row.id).sort()).toEqual(ids.slice(8).sort());
 });

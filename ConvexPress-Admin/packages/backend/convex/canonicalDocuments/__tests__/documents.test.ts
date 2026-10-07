@@ -3,9 +3,10 @@ import { expect, test, setSystemTime } from "bun:test";
 import { convexTest } from "convex-test";
 import { makeFunctionReference } from "convex/server";
 import schema from "../../schema";
+import { legacyPostSchema } from "./legacyPostSchema";
 import { parseCanonicalDocumentRead } from "../foundation/documentContracts";
 for (const type of ["post", "page"] as const) test(`reviewed trash migration converts ${type} without restoring or publishing it`, async () => {
- const f=await fixture();const content=JSON.stringify({type:"doc",content:[{type:"paragraph",content:[{type:"text",text:"Retained trash body"}]}]});
+ const f=await fixture({ legacySource: true });const content=JSON.stringify({type:"doc",content:[{type:"paragraph",content:[{type:"text",text:"Retained trash body"}]}]});
  await f.t.run(ctx=>ctx.db.patch("posts",f.ids.post,{type,status:"trash",previousStatus:"publish",trashedAt:123,publishedAt:45,contentMode:"article",content}));
  const before=await f.t.run(ctx=>ctx.db.get("posts",f.ids.post));
  await expect(f.client.query(reference("prepareMigration"),{postId:f.ids.post})).rejects.toMatchObject({data:{code:"CANONICAL_DRAFT_REQUIRED"}});
@@ -31,7 +32,7 @@ for (const type of ["post", "page"] as const) test(`reviewed trash migration con
 });
 
 test("trash migration refuses changed lifecycle, source, acknowledgement and authority without writes",async()=>{
- const f=await fixture();const base={status:"trash" as const,previousStatus:"publish" as const,trashedAt:123,contentMode:"article" as const,content:"Original plain text"};
+ const f=await fixture({ legacySource: true });const base={status:"trash" as const,previousStatus:"publish" as const,trashedAt:123,contentMode:"article" as const,content:"Original plain text"};
  await f.t.run(ctx=>ctx.db.patch("posts",f.ids.post,base));const plan=await f.client.query(reference("prepareMigration"),{postId:f.ids.post,preserveTrash:true});
  const args={postId:f.ids.post,preserveTrash:true,expectedRevision:plan.source.revision,expectedAuthoringDigest:plan.source.authoringDigest,expectedCandidateDigest:plan.candidate.document.digest,expectedPresentationRevision:plan.candidate.presentation.revision,acknowledgeTextImport:true};
  const snapshot=()=>f.t.run(async ctx=>({post:await ctx.db.get("posts",f.ids.post),history:await ctx.db.query("revisions").collect()}));
@@ -54,7 +55,7 @@ const reference = (name: string, kind: "query" | "mutation" = "query") =>
 	makeFunctionReference<any, any, any>(`canonicalDocuments:${name}`);
 
 test("historical imports review saved and unsaved sources separately and never downgrade canonical authoring", async () => {
-  const f=await fixture();
+  const f=await fixture({ legacySource: true });
   const body=(text:string)=>JSON.stringify({type:"doc",content:[{type:"paragraph",content:[{type:"text",text,marks:[{type:"bold"}]}]}]});
   await f.t.run(ctx=>ctx.db.patch("posts",f.ids.post,{contentMode:"article",content:body("Saved original"),autosaveTitle:"Separate draft",autosaveContent:body("Unsaved original"),autosavedAt:123}));
   const original=await f.t.run(ctx=>ctx.db.get("posts",f.ids.post));
@@ -85,7 +86,7 @@ test("historical imports review saved and unsaved sources separately and never d
 });
 
 for (const status of ["draft", "trash"] as const) test(`migration retains distinct autosaves through ${status} conversion and exact original recovery`, async () => {
-  const f = await fixture();
+  const f = await fixture({ legacySource: true });
   const content = JSON.stringify({type:"doc",content:[{type:"paragraph",content:[{type:"text",text:"Accepted body"}]}]});
   // An unsupported unsaved body is still retained verbatim, never converted or activated.
   const autosave = {autosaveTitle:"Unaccepted title",autosaveContent:'{"unfinished":true}\r\n',autosavedAt:0};
@@ -283,7 +284,7 @@ test("saved block locks reject combined unlock/edit, removal and order changes w
 });
 
 test("legacy utility variants migrate together, save and recover their exact original attrs", async () => {
-  const f = await fixture();
+  const f = await fixture({ legacySource: true });
   const blocks = [
     ...["small","medium","large","xlarge"].map(size=>({id:`space-${size}`,name:"core/spacer",version:1,attrs:{size}})),
     ...["default","section","subtle"].map(variant=>({id:`rule-${variant}`,name:"core/divider",version:1,attrs:{variant}})),
@@ -304,7 +305,7 @@ test("legacy utility variants migrate together, save and recover their exact ori
 });
 
 test("Field Guide migration and historical import preserve authored data and editorial treatment", async () => {
-  const f = await fixture();
+  const f = await fixture({ legacySource: true });
   const attrs = {
     heading: "A careful practice", body: "Keep **literal** notes.\nReturn tomorrow.",
     count: 2, showDetails: false, mediaId: "", mediaAlt: "An intentionally empty image",
@@ -347,7 +348,7 @@ test("Field Guide migration and historical import preserve authored data and edi
 });
 
 test("structured article migration retains visible order, links, anchors and complete original recovery", async () => {
-  const f = await fixture();
+  const f = await fixture({ legacySource: true });
   const authored = {
     type: "post" as const, contentMode: "article" as const, blocksVersion: 1,
     content: "Hidden fallback article", hero: { title: "Hidden hero title", subtitle: "A studio practice", content: "First **literal** paragraph.\n\nRead https://example.org/study", ctaText: "Visit the studio", ctaUrl: "/studio" },
@@ -371,7 +372,7 @@ test("structured article migration retains visible order, links, anchors and com
 
 test("legacy block and section migration commits the visible source and recovers the complete original", async () => {
   for (const source of ["page-blocks", "post-blocks", "page-sections", "empty-block-page"] as const) {
-    const f = await fixture();
+    const f = await fixture({ legacySource: true });
     const blocks = [{ id: "saved-heading", name: "core/heading", version: 1, attrs: { text: "Visible **literal** heading", level: 2 } }];
     const sections = [{ id: "saved-section", type: "rich-text", data: { heading: "Visible section", body: "Original section body" } }];
     await f.t.run(ctx => ctx.db.patch("posts", f.ids.post, {
@@ -401,7 +402,7 @@ test("legacy block and section migration commits the visible source and recovers
 });
 
 test("legacy block migration refuses unknown fields and stale settings reviews without any writes", async () => {
-  const f = await fixture(), block = { id: "saved-heading", name: "core/heading", version: 1, attrs: { text: "Original", level: 2 } };
+  const f = await fixture({ legacySource: true }), block = { id: "saved-heading", name: "core/heading", version: 1, attrs: { text: "Original", level: 2 } };
   await f.t.run(ctx => ctx.db.patch("posts", f.ids.post, { contentMode: "blocks", blocksVersion: 1, blocks: [block] }));
   const review = await f.client.query(reference("prepareMigration"), { postId: f.ids.post });
   const args = { postId: f.ids.post, expectedRevision: review.source.revision, expectedAuthoringDigest: review.source.authoringDigest, expectedCandidateDigest: review.candidate.document.digest, expectedPresentationRevision: review.candidate.presentation.revision };
@@ -421,7 +422,6 @@ test("legacy block migration refuses unknown fields and stale settings reviews w
   }
 });
 const modules = {
- "./convex/canonicalDocuments/retirement.ts":()=>import("../retirement"),
  "./convex/syncedBlocks/legacy.ts":()=>import("../../syncedBlocks/legacy"),
  "./convex/wordpressSync/internals.ts":()=>import("../../wordpressSync/internals"),
  "./convex/wordpressSync/helpers/idMapping.ts":()=>import("../../wordpressSync/helpers/idMapping"),
@@ -493,8 +493,8 @@ test("block-level membership deadlines change the public payload and lease witho
   } finally { setSystemTime(); }
   expect((await f.t.run(ctx => ctx.db.get("posts", f.ids.post)))?.blocks).toHaveLength(1);
 });
-async function fixture() {
-	const t = convexTest({ schema, modules });
+async function fixture(options: { legacySource?: boolean } = {}) {
+	const t = convexTest({ schema: options.legacySource ? legacyPostSchema : schema, modules });
 	const ids = await t.run(async (ctx) => {
 		const role = await ctx.db.insert("roles", {
 			name: "Editor",
@@ -560,7 +560,6 @@ async function fixture() {
 			title: "Disposable draft",
 			slug: "draft",
 			path: "/draft",
-			content: "",
 			status: "draft",
 			visibility: "public",
 			authorId: user,
@@ -753,7 +752,7 @@ test("actual get/write boundaries reject anonymous, inactive and capability-empt
 	).toBe(0);
 });
 test("initialization refuses authored legacy content and a title-only legacy race with unchanged revision", async () => {
-	const f = await fixture(),
+	const f = await fixture({ legacySource: true }),
 		opened = await f.client.query(reference("get"), { postId: f.ids.post });
 	const args = {
 		postId: f.ids.post,
@@ -1216,7 +1215,7 @@ test("normal empty draft with exact redundant autosave can initialize; distinct 
 });
 
 test("reviewed authored article migration preserves marks and source history with exact CAS and candidate binding", async () => {
-  const f = await fixture();
+  const f = await fixture({ legacySource: true });
   const body = JSON.stringify({ type: "doc", content: [{ type: "heading", attrs: { level: 2 }, content: [{ type: "text", text: "A field note", marks: [{ type: "italic" }] }] }, { type: "paragraph", content: [{ type: "text", text: "Keep this", marks: [{ type: "bold" }] }, { type: "hardBreak" }, { type: "text", text: "exact prose" }] }] });
   await f.t.run(async ctx => { await ctx.db.patch("posts", f.ids.post, { type: "post", contentMode: "blocks", content: body, excerpt: "Preserved summary", pagePrompt: "Original editorial direction" }); });
   const plan = await f.client.query(reference("prepareMigration"), { postId: f.ids.post });
@@ -1237,7 +1236,7 @@ test("reviewed authored article migration preserves marks and source history wit
 });
 
 test("migration refuses unsafe precedence, unrepresented nodes, stale source and lost authority without writes", async () => {
-  const f = await fixture();
+  const f = await fixture({ legacySource: true });
   const content = JSON.stringify({ type: "doc", content: [{ type: "paragraph", content: [{ type: "text", text: "Original" }] }] });
   await f.t.run(async ctx => { await ctx.db.patch("posts", f.ids.post, { type: "post", contentMode: "article", content }); });
   const plan = await f.client.query(reference("prepareMigration"), { postId: f.ids.post });
@@ -1257,7 +1256,7 @@ test("migration refuses unsafe precedence, unrepresented nodes, stale source and
 });
 
 test("nested-list migration uses registered review/commit and restores the exact source before canonical undo", async () => {
-  const f = await fixture();
+  const f = await fixture({ legacySource: true });
   const p = (text: string) => ({ type: "paragraph", content: [{ type: "text", text, marks: [{ type: "italic" }] }] });
   const content = JSON.stringify({ type: "doc", content: [{ type: "bulletList", content: [
     { type: "listItem", content: [p("Parent"), { type: "bulletList", content: [{ type: "listItem", content: [p("Nested")] }] }, p("After nested list")] },
@@ -1286,7 +1285,7 @@ test("nested-list migration uses registered review/commit and restores the exact
 
 test("retired generic updates preserve unconverted page/post bodies and distinct autosaves for import review", async () => {
   for (const kind of ["page", "post"] as const) {
-    const f = await fixture();
+    const f = await fixture({ legacySource: true });
     await f.t.run(ctx => ctx.db.patch(f.ids.post, {type:kind, content:"Saved source", autosaveTitle:"Unsaved title", autosaveContent:"Distinct unsaved body", autosavedAt:43}));
     const snapshot = () => f.t.run(async ctx => ({post:await ctx.db.get(f.ids.post),history:await ctx.db.query("revisions").collect()}));
     const before = await snapshot();
@@ -1550,7 +1549,7 @@ test("canonical duplication rolls back a copied unavailable custom-field attachm
 });
 
 test("historical import preserves original source, current access policy and canonical undo without revision ABA", async () => {
-  const f = await fixture();
+  const f = await fixture({ legacySource: true });
   const originalContent = JSON.stringify({ type: "doc", content: [{ type: "paragraph", content: [{ type: "text", text: "Original marked recovery", marks: [{ type: "bold" }] }] }] });
   const protectedRule = await f.t.run(ctx => ctx.db.insert("membership_restriction_rules", { resourceType: "page", resourceIdOrKey: String(f.ids.post), ruleMode: "deny_if_missing", planIds: [], requiredCapabilities: ["private.reader"], teaserMode: "hide", loginRequired: true, createdAt: 1, updatedAt: 1 }));
   const originalPolicy = await f.t.run(ctx => ctx.db.get("membership_restriction_rules", protectedRule));
@@ -1671,7 +1670,7 @@ test('latest posts use authorized taxonomy choices and survive canonical save, p
   await ctx.db.patch('roles',role!._id,{capabilities:[...role!.capabilities,'page.publish']});
   const add=(name:string,taxonomy:'category'|'post_tag')=>ctx.db.insert('terms',{name,slug:name.toLowerCase(),taxonomy,count:100,isDefault:false,createdAt:1,updatedAt:1,description:'PRIVATE_TERM_NOTES'});
   const category=await add('Field','category');await add('Garden','category');await add('Studio','category');await add('Field','post_tag');
-  const post=await ctx.db.insert('posts',{type:'post',title:'A real source story',slug:'source-story',status:'publish',visibility:'public',authorId:f.ids.user,content:'PRIVATE_BODY',excerpt:'An exact public excerpt',commentStatus:'closed',publishedAt:10,createdAt:1,updatedAt:1});
+  const post=await ctx.db.insert('posts',{type:'post',title:'A real source story',slug:'source-story',status:'publish',visibility:'public',authorId:f.ids.user,blocksVersion:2,blocksRevision:1,blocks:[{id:"private-prose",name:"core/paragraph",version:2,attrs:{body:{type:"doc",content:[{type:"paragraph",content:[{type:"text",text:'PRIVATE_BODY'}]}]}}}],excerpt:'An exact public excerpt',commentStatus:'closed',publishedAt:10,createdAt:1,updatedAt:1});
   await ctx.db.insert('termRelationships',{postId:post,termId:category});return post;
  });
  const opts={postId:f.ids.post,taxonomy:'category',paginationOpts:{cursor:null,numItems:2}};
@@ -1699,7 +1698,7 @@ test('registered grids bind independent cursors to the current document and rech
   const user=await ctx.db.get('users',f.ids.user),role=await ctx.db.get('roles',user!.roleId!);
   await ctx.db.patch('roles',role!._id,{capabilities:[...role!.capabilities,'page.publish']});
   const ids=[];
-  for(let n=0;n<5;n++) ids.push(await ctx.db.insert('posts',{type:'post',title:`Story ${n}`,slug:`grid-${n}`,content:'SOURCE_BODY_MUST_NOT_LEAK',excerpt:`Excerpt ${n}`,status:'publish',visibility:'public',authorId:f.ids.user,commentStatus:'closed',publishedAt:100+n,createdAt:1,updatedAt:1}));
+  for(let n=0;n<5;n++) ids.push(await ctx.db.insert('posts',{type:'post',title:`Story ${n}`,slug:`grid-${n}`,blocksVersion:2,blocksRevision:1,blocks:[{id:"private-prose",name:"core/paragraph",version:2,attrs:{body:{type:"doc",content:[{type:"paragraph",content:[{type:"text",text:'SOURCE_BODY_MUST_NOT_LEAK'}]}]}}}],excerpt:`Excerpt ${n}`,status:'publish',visibility:'public',authorId:f.ids.user,commentStatus:'closed',publishedAt:100+n,createdAt:1,updatedAt:1}));
   return ids;
  });
  const blocks=['one','two'].map(id=>({id,name:'core/post-grid',version:1,attrs:{query:{author:f.ids.user},limit:2,showExcerpt:false}}));
@@ -2447,7 +2446,7 @@ test("related content saves, publishes and restores through canonical endpoints 
   const user=await ctx.db.get(f.ids.user);await ctx.db.patch(user!.roleId!,{capabilities:["page.update","page.publish","revision.restore"]});
   const term=await ctx.db.insert("terms",{name:"Design",slug:"design",taxonomy:"post_tag",count:1,isDefault:false,createdAt:1,updatedAt:1});
   await ctx.db.insert("termRelationships",{postId:f.ids.post,termId:term});
-  const candidate=await ctx.db.insert("posts",{type:"post",title:"Related story",slug:"related-story",excerpt:"A public introduction",content:"PRIVATE SOURCE BODY",status:"publish",visibility:"public",authorId:f.ids.user,commentStatus:"closed",publishedAt:1,createdAt:1,updatedAt:1});
+  const candidate=await ctx.db.insert("posts",{type:"post",title:"Related story",slug:"related-story",excerpt:"A public introduction",blocksVersion:2,blocksRevision:1,blocks:[{id:"private-prose",name:"core/paragraph",version:2,attrs:{body:{type:"doc",content:[{type:"paragraph",content:[{type:"text",text:"PRIVATE SOURCE BODY"}]}]}}}],status:"publish",visibility:"public",authorId:f.ids.user,commentStatus:"closed",publishedAt:1,createdAt:1,updatedAt:1});
   await ctx.db.insert("termRelationships",{postId:candidate,termId:term});return candidate;
  });
  const initial=await initialize(f),editor=await f.client.query(reference("get"),{postId:f.ids.post});expect(editor.policy.disabledBlocks).not.toContain("core/related-content");
@@ -2466,7 +2465,7 @@ test("related content saves, publishes and restores through canonical endpoints 
 test("archive list saves, publishes and restores its grouping through canonical endpoints",async()=>{
  const f=await fixture();await f.t.run(async ctx=>{
   const user=await ctx.db.get(f.ids.user);await ctx.db.patch(user!.roleId!,{capabilities:["page.update","page.publish","revision.restore"]});
-  await ctx.db.insert("posts",{type:"post",title:"Archived story",slug:"archived-story",content:"PRIVATE ARCHIVE BODY",status:"publish",visibility:"public",authorId:f.ids.user,commentStatus:"closed",publishedAt:Date.UTC(2026,2,15),createdAt:1,updatedAt:1});
+  await ctx.db.insert("posts",{type:"post",title:"Archived story",slug:"archived-story",blocksVersion:2,blocksRevision:1,blocks:[{id:"private-prose",name:"core/paragraph",version:2,attrs:{body:{type:"doc",content:[{type:"paragraph",content:[{type:"text",text:"PRIVATE ARCHIVE BODY"}]}]}}}],status:"publish",visibility:"public",authorId:f.ids.user,commentStatus:"closed",publishedAt:Date.UTC(2026,2,15),createdAt:1,updatedAt:1});
  });
  const initial=await initialize(f),editor=await f.client.query(reference("get"),{postId:f.ids.post});expect(editor.policy.disabledBlocks).not.toContain("core/archive-list");
  const blocks=[{id:"dates",name:"core/archive-list",version:1,attrs:{groupBy:"year",limit:3}}];
@@ -2574,7 +2573,7 @@ test("gated authored media stays repairable without exposing a URL or bypassing 
 
 test("ordinary editor drafts preview without AI permission and never write content or history", async () => {
   const f = await fixture();
-  await f.t.run(ctx => ctx.db.patch("posts", f.ids.post, { contentMode: "blocks", blocksVersion: 2, blocksRevision: 3, blocks: [] }));
+  await f.t.run(ctx => ctx.db.patch("posts", f.ids.post, { blocksVersion: 2, blocksRevision: 3, blocks: [] }));
   const before = await f.t.run(async ctx => ({ post: await ctx.db.get("posts", f.ids.post), history: await ctx.db.query("revisions").collect() }));
   const args = { postId: f.ids.post, expectedRevision: 3, title: "Unsaved title", blocks: [{ id: "preview-heading", name: "core/heading", version: 2, attrs: {} }] };
   const result = await f.client.query(reference("previewDraft"), args);
@@ -2675,7 +2674,7 @@ test("canonical writes and recovery notify content listeners, while no-ops and c
 
 
 test("inactive legacy settings require exact reviewed acknowledgement and remain fully recoverable", async () => {
-  const f=await fixture();
+  const f=await fixture({ legacySource: true });
   const blocks=[{id:"old-heading",name:"core/heading",version:1,attrs:{text:"Preserve this appearance",level:2},layout:{tone:"contrast" as const,padding:"spacious" as const},lock:{edit:true,move:true}}];
   await f.t.run(ctx=>ctx.db.patch("posts",f.ids.post,{contentMode:"blocks",blocksVersion:1,blocks,content:"Hidden source"}));
   const review=await f.client.query(reference("prepareMigration"),{postId:f.ids.post});
@@ -2704,7 +2703,7 @@ test("inactive legacy settings require exact reviewed acknowledgement and remain
 
 test("long article paragraphs migrate, save, reopen and recover without splitting their authored structure", async () => {
   for (const structured of [false,true]) {
-    const f=await fixture();
+    const f=await fixture({ legacySource: true });
     const text="An article worth keeping. ".repeat(240);
     const originalBody={type:"doc",content:[{type:"paragraph",content:[{type:"text",text,marks:[{type:"italic"}]},{type:"hardBreak"},{type:"text",text:"Source",marks:[{type:"link",attrs:{href:"https://example.org/source"}}]}]}]};
     const originalContent=JSON.stringify(originalBody);
@@ -2918,7 +2917,7 @@ test("social-share URL write rules preserve historical recovery but reject inval
 
 for(const kind of ["plain-text","html"] as const) test(`${kind} migration requires review acknowledgement and preserves exact original recovery`, async () => {
  const ack=kind==="html"?"acknowledgeHtmlImport":"acknowledgeTextImport";
- const f=await fixture();const content=kind==="html"?'<h2>Original title</h2><p>Keep <strong>every word</strong> &amp; <a href="/studio">the link</a>.</p>':"Previously hidden plain text\r\n\r\nKeep **literal** formatting.";
+ const f=await fixture({ legacySource: true });const content=kind==="html"?'<h2>Original title</h2><p>Keep <strong>every word</strong> &amp; <a href="/studio">the link</a>.</p>':"Previously hidden plain text\r\n\r\nKeep **literal** formatting.";
  await f.t.run(ctx=>ctx.db.patch("posts",f.ids.post,{contentMode:"article",content}));
  const before=await f.t.run(ctx=>ctx.db.get("posts",f.ids.post));
  const review=await f.client.query(reference("prepareMigration"),{postId:f.ids.post});
@@ -3683,7 +3682,7 @@ test("legacy reusable import maps document and archive references without flatte
  const {consumerIndexGeneration}=await import("../../syncedBlocks/consumerIndexState");
  const prior=process.env[MEDIA_INDEX_EPOCH_NAME];process.env[MEDIA_INDEX_EPOCH_NAME]="legacy-migration-fixture-20261006";
  try {
- const f=await fixture();
+ const f=await fixture({ legacySource: true });
  await f.t.run(ctx=>ctx.db.insert("syncedBlockConsumerIndex",{key:"active",generation:consumerIndexGeneration()!,websiteKey:"fixture",instanceKey:"fixture-stage",deploymentOrigin:"https://fixture.convex.cloud",phase:"ready",cursor:null,sequence:0,documents:0,updatedAt:1}));
  const legacy=await f.t.run(async ctx=>{const user=(await ctx.db.get("users",f.ids.user))!;await ctx.db.patch("roles",user.roleId!,{capabilities:["page.update","post.update","revision.restore","post.read","post.create","post.publish"]});return ctx.db.insert("reusableBlocks",{title:"Shared legacy",content:JSON.stringify({type:"doc",content:[{type:"paragraph",content:[{type:"text",text:"Shared original"}]}]}),isPublished:true,usageCount:1,createdBy:f.ids.user,createdAt:1,updatedAt:1});});
  const source=JSON.stringify({type:"doc",content:[{type:"reusableBlock",attrs:{blockId:legacy}}]});await f.t.run(ctx=>ctx.db.patch("posts",f.ids.post,{contentMode:"article",content:source}));
@@ -3698,45 +3697,6 @@ test("legacy reusable import maps document and archive references without flatte
  } finally {if(prior===undefined)delete process.env[MEDIA_INDEX_EPOCH_NAME];else process.env[MEDIA_INDEX_EPOCH_NAME]=prior;}
 });
 
-const retireLegacy = makeFunctionReference<any,any,any>("canonicalDocuments/retirement:retirePostFields");
-const retirementDigest = async (value: unknown) => {
- const {canonicalJson,sha256Hex}=await import("../foundation/shared/fingerprints");
- return sha256Hex(canonicalJson(value));
-};
-for (const status of ["draft","publish","trash"] as const) test(`legacy field retirement preserves canonical ${status} and archives original fields`, async()=>{
- const f=await fixture();await initialize(f);
- const legacy={content:"Retained legacy source",contentMode:"blocks" as const,pageSections:[{type:"text",body:"Retained section"}]};
- await f.t.run(ctx=>ctx.db.patch("posts",f.ids.post,{...legacy,status,...(status==="trash"?{previousStatus:"publish",trashedAt:123}:{})}));
- const before=(await f.t.run(ctx=>ctx.db.get("posts",f.ids.post)))!;
- const result=await f.t.mutation(retireLegacy,{postId:f.ids.post,expectedSourceDigest:await retirementDigest(before)});
- expect(result.changed).toBe(true);
- const after=(await f.t.run(ctx=>ctx.db.get("posts",f.ids.post)))!;
- const expected={...before};delete expected.content;delete expected.contentMode;delete expected.pageSections;
- expect(after).toEqual(expected);
- const archive=await f.t.run(ctx=>ctx.db.query("revisions").withIndex("by_parent_number",q=>q.eq("parentId",f.ids.post)).order("desc").first());
- expect(archive).toMatchObject({...legacy,blocks:before.blocks,blocksVersion:2,title:before.title});
- if(status!=="trash") {
-  const download=await f.client.query(reference("getRevisionSource"),{postId:f.ids.post,revisionId:archive!._id});
-  expect(JSON.parse(download.sourceJson)).toMatchObject(legacy);
-  await expect(f.as(f.ids.denied).query(reference("getRevisionSource"),{postId:f.ids.post,revisionId:archive!._id})).rejects.toThrow();
- }
- const again=await f.t.mutation(retireLegacy,{postId:f.ids.post,expectedSourceDigest:await retirementDigest(after)});
- expect(again.changed).toBe(false);
- expect(await f.t.run(ctx=>ctx.db.query("revisions").withIndex("by_parent_number",q=>q.eq("parentId",f.ids.post)).order("desc").first())).toEqual(archive);
-});
-test("legacy field retirement rejects stale, unmigrated and invalid canonical sources without writes",async()=>{
- const f=await fixture();const before=await f.t.run(ctx=>ctx.db.get("posts",f.ids.post));
- await expect(f.t.mutation(retireLegacy,{postId:f.ids.post,expectedSourceDigest:await retirementDigest(before)})).rejects.toMatchObject({data:{code:"LEGACY_MIGRATION_REQUIRED"}});
- expect(await f.t.run(ctx=>ctx.db.get("posts",f.ids.post))).toEqual(before);
- await initialize(f);const current=await f.t.run(ctx=>ctx.db.get("posts",f.ids.post));
- await expect(f.t.mutation(retireLegacy,{postId:f.ids.post,expectedSourceDigest:await retirementDigest(before)})).rejects.toMatchObject({data:{code:"CONFLICT"}});
- expect(await f.t.run(ctx=>ctx.db.get("posts",f.ids.post))).toEqual(current);
- await f.t.run(ctx=>ctx.db.patch("posts",f.ids.post,{blocks:[{id:"invalid",name:"unavailable/block",version:1,attrs:{}}]}));
- const invalid=await f.t.run(ctx=>ctx.db.get("posts",f.ids.post));const history=await f.t.run(ctx=>ctx.db.query("revisions").collect());
- await expect(f.t.mutation(retireLegacy,{postId:f.ids.post,expectedSourceDigest:await retirementDigest(invalid)})).rejects.toThrow();
- expect(await f.t.run(ctx=>ctx.db.get("posts",f.ids.post))).toEqual(invalid);expect(await f.t.run(ctx=>ctx.db.query("revisions").collect())).toEqual(history);
-});
-
 test("canonical initialize and later save do not repopulate retired live fields",async()=>{
  const f=await fixture();await initialize(f);
  let post=(await f.t.run(ctx=>ctx.db.get("posts",f.ids.post)))!;
@@ -3747,24 +3707,15 @@ test("canonical initialize and later save do not repopulate retired live fields"
 });
 
 
-test("legacy field retirement rolls back when preserving history is impossible",async()=>{
- const f=await fixture();await initialize(f);
- await f.t.run(async ctx=>{
-  await ctx.db.patch("posts",f.ids.post,{content:"Must survive failure"});
-  const last=await ctx.db.query("revisions").withIndex("by_parent_number",q=>q.eq("parentId",f.ids.post)).order("desc").first();
-  await ctx.db.patch("revisions",last!._id,{revisionNumber:Number.MAX_SAFE_INTEGER});
- });
- const post=await f.t.run(ctx=>ctx.db.get("posts",f.ids.post));const history=await f.t.run(ctx=>ctx.db.query("revisions").collect());
- await expect(f.t.mutation(retireLegacy,{postId:f.ids.post,expectedSourceDigest:await retirementDigest(post)})).rejects.toMatchObject({data:{code:"AUTHORING_REVISION_EXHAUSTED"}});
- expect(await f.t.run(ctx=>ctx.db.get("posts",f.ids.post))).toEqual(post);expect(await f.t.run(ctx=>ctx.db.query("revisions").collect())).toEqual(history);
-});
-
 test("restoring canonical history never reintroduces archived legacy columns",async()=>{
  const f=await fixture();await initialize(f);
- await f.t.run(ctx=>ctx.db.patch("posts",f.ids.post,{content:"Original legacy source",pageSections:[{type:"text",body:"Original sections"}]}));
  const before=(await f.t.run(ctx=>ctx.db.get("posts",f.ids.post)))!;
- await f.t.mutation(retireLegacy,{postId:f.ids.post,expectedSourceDigest:await retirementDigest(before)});
- const archive=(await f.t.run(ctx=>ctx.db.query("revisions").withIndex("by_parent_number",q=>q.eq("parentId",f.ids.post)).order("desc").first()))!;
+ const archive=await f.t.run(async ctx=>{
+  const {authoringSnapshot}=await import("../../helpers/authoringSnapshot");
+  const original=(await ctx.db.query("revisions").withIndex("by_parent_number",q=>q.eq("parentId",f.ids.post)).order("desc").first())!;
+  await ctx.db.patch("revisions",original._id,{...authoringSnapshot(before),snapshotVersion:2,content:"Original legacy source",pageSections:[{type:"text",body:"Original sections"}]});
+  return (await ctx.db.get("revisions",original._id))!;
+ });
  const saved=await f.client.mutation(reference("save","mutation"),{postId:f.ids.post,expectedRevision:before.blocksRevision,title:"Changed title",blocks:before.blocks});
  await f.client.mutation(reference("restore","mutation"),{postId:f.ids.post,expectedRevision:saved.revision,revisionId:archive._id});
  const after=(await f.t.run(ctx=>ctx.db.get("posts",f.ids.post)))!;
@@ -3773,18 +3724,20 @@ test("restoring canonical history never reintroduces archived legacy columns",as
  expect(await f.t.run(ctx=>ctx.db.get("revisions",archive._id))).toEqual(archive);
 });
 
-test("legacy field retirement retains archived media ownership",async()=>{
+test("retired source fields retain archived media ownership without live columns",async()=>{
  const f=await fixture();await initialize(f);
  const media=await f.t.run(ctx=>ctx.db.insert("media",{title:"Retained source image",fileName:"source.png",slug:"source",url:"https://fixture.example.invalid/source.png",mimeType:"image/png",fileSize:66,mediaType:"image",status:"active",uploadedBy:f.ids.user,createdAt:1,updatedAt:1}));
- await f.t.run(ctx=>ctx.db.patch("posts",f.ids.post,{pageSections:[{type:"image",mediaId:media}],content:JSON.stringify({type:"image",attrs:{mediaId:media}})}));
- const before=(await f.t.run(ctx=>ctx.db.get("posts",f.ids.post)))!;
- await f.t.mutation(retireLegacy,{postId:f.ids.post,expectedSourceDigest:await retirementDigest(before)});
+ const original=JSON.stringify({type:"image",attrs:{mediaId:media}});
+ await f.t.run(async ctx=>{
+  const archive=(await ctx.db.query("revisions").withIndex("by_parent_number",q=>q.eq("parentId",f.ids.post)).order("desc").first())!;
+  await ctx.db.patch("revisions",archive._id,{pageSections:[{type:"image",mediaId:media}],content:original});
+ });
  const refs=await f.t.run(async ctx=>{
   const {collectMediaReferenceIds}=await import("../../media/referenceExtraction");
   const post=(await ctx.db.get("posts",f.ids.post))!;
   const archive=(await ctx.db.query("revisions").withIndex("by_parent_number",q=>q.eq("parentId",f.ids.post)).order("desc").first())!;
   return {post:collectMediaReferenceIds(ctx,"posts",post),archive:collectMediaReferenceIds(ctx,"revisions",archive),original:archive.content};
  });
- expect(refs.post).not.toContain(media);expect(refs.archive).toContain(media);expect(refs.original).toBe(before.content);
+ expect(refs.post).not.toContain(media);expect(refs.archive).toContain(media);expect(refs.original).toBe(original);
  expect(await f.t.run(ctx=>ctx.db.get("media",media))).not.toBeNull();
 });

@@ -1,7 +1,8 @@
 import { describe, expect, test } from "bun:test";
 import { convexTest } from "convex-test";
 import { api, internal } from "../../_generated/api";
-import schema from "../../schema";
+// Explicit pre-retirement corpus: verify refused legacy writers preserve their originals.
+import { legacyPostSchema as schema } from "../../canonicalDocuments/__tests__/legacyPostSchema";
 import { replacePublicationSchedule } from "../../helpers/publicationSchedule";
 
 const modules = {

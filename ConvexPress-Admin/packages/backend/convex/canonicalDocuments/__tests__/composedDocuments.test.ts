@@ -46,7 +46,7 @@ async function fixture() {
     await ctx.db.insert("settings", { section: "plugins", values: { formsEnabled: true, membershipEnabled: false }, updatedAt: 1, updatedBy: user });
     await ctx.db.insert("settings", { section: "general", values: { siteTitle: "A real studio" }, updatedAt: 1, updatedBy: user });
     await ctx.db.insert("settings", { section: "appearance.template", values: { active: "core", overrides: {}, variants: {}, settings: {} }, legacyAppearanceMigration: { version: 2, migratedAt: 1 }, updatedAt: 1, updatedBy: user });
-    const post = await ctx.db.insert("posts", { type: "page", title: "Studio", slug: "studio", path: "/studio", content: "", status: "draft", visibility: "public", authorId: user, commentStatus: "closed", createdAt: 1, updatedAt: 1 });
+    const post = await ctx.db.insert("posts", { type: "page", title: "Studio", slug: "studio", path: "/studio",  status: "draft", visibility: "public", authorId: user, commentStatus: "closed", createdAt: 1, updatedAt: 1 });
     const media = await ctx.db.insert("media", { title: "Studio image", fileName: "studio.png", slug: "studio", url: "https://example.invalid/studio.png", mimeType: "image/png", fileSize: 66, mediaType: "image", status: "active", uploadedBy: user, createdAt: 1, updatedAt: 1 });
     return { user, role, post, media, site };
   });

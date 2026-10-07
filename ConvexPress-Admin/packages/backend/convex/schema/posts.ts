@@ -81,7 +81,6 @@ export const postTables = {
     // ── Core Fields ──────────────────────────────────────────────────────
     title: v.string(), // Post/page title
     slug: v.string(), // URL-safe slug (unique per type among non-trashed)
-    content: v.optional(v.string()), // Serialized block editor content (JSON)
     excerpt: v.optional(v.string()), // Manual excerpt (plain text, max 1000 chars)
 
     // ── Status & Visibility ──────────────────────────────────────────────
@@ -114,18 +113,8 @@ export const postTables = {
     parentId: v.optional(v.id("posts")), // Parent page (pages only)
     menuOrder: v.optional(v.number()), // Manual sort order (pages only)
     pageTemplate: v.optional(v.string()), // Page template key (pages only)
-    // Section composer payload for template-driven layouts (pages only).
-    // Stored as v.any() because section schemas vary by type (hero, feature-grid,
-    // story-split, testimonial-band, cta-band, etc.) and the template-aware
-    // editor handles per-section validation. Existing seeded rows already
-    // populate this field.
-    pageSections: v.optional(v.any()),
-
-    // Canonical authoring is identified by blocksVersion and validated by the
-    // canonical service. Retain the optional old mode only for lossless legacy
-    // import/history decoding; current writes clear it and public rendering
-    // never dispatches on it. Do not remove stored legacy source blindly.
-    contentMode: v.optional(v.union(v.literal("article"), v.literal("blocks"))),
+    // Current authoring uses the canonical tree. Legacy text/mode/sections
+    // are retained only in immutable revisions, never in the live post table.
     blocks: v.optional(v.union(canonicalStoredTreeValidator, v.array(v.object({
       id: v.string(),
       name: v.string(),

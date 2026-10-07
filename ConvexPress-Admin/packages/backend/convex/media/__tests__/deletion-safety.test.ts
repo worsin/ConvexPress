@@ -192,19 +192,19 @@ test("opaque writer guard detects nested and serialized IDs and preserves unrela
   const { assertMediaAttachments } = await import("../attachmentGuard");
   const mediaId = "m".repeat(32);
   const { ctx } = fixture({ media: [{ _id: mediaId, status: "trashed" }] });
-  for (const content of [{ blocks: [{ children: [{ attrs: { unknownPluginImage: mediaId } }] }] }, { content: JSON.stringify({ type: "image", attrs: { mediaId } }) }]) {
-    expect(await code(() => assertMediaAttachments(ctx, "posts", content))).toBe("MEDIA_UNAVAILABLE");
+  for (const [owner, content] of [["posts", { blocks: [{ children: [{ attrs: { unknownPluginImage: mediaId } }] }] }], ["revisions", { content: JSON.stringify({ type: "image", attrs: { mediaId } }) }]] as const) {
+    expect(await code(() => assertMediaAttachments(ctx, owner, content))).toBe("MEDIA_UNAVAILABLE");
   }
-  expect(await code(() => assertMediaAttachments(ctx, "posts", { content: "This is ordinary prose, without media identifiers." }))).toBeNull();
+  expect(await code(() => assertMediaAttachments(ctx, "revisions", { content: "This is ordinary prose, without media identifiers." }))).toBeNull();
 });
 
 
 test("escaped JSON media identifiers cannot bypass legacy reference scan or attachment guard", async () => {
   const { assertMediaAttachments } = await import("../attachmentGuard");
   const encoded = String.raw`{"type":"image","attrs":{"mediaId":"\u006d1"}}`;
-  const { ctx } = fixture({ media: [{ _id: "m1", status: "trashed" }], posts: [{ _id: "p", content: encoded }] });
-  expect((await findMediaReferences(ctx, "m1" as any)).some(ref => ref.documentId === "p")).toBe(true);
-  expect(await code(() => assertMediaAttachments(ctx, "posts", { content: encoded }))).toBe("MEDIA_UNAVAILABLE");
+  const { ctx } = fixture({ media: [{ _id: "m1", status: "trashed" }], revisions: [{ _id: "r", content: encoded }] });
+  expect((await findMediaReferences(ctx, "m1" as any)).some(ref => ref.table === "revisions" && ref.documentId === "r")).toBe(true);
+  expect(await code(() => assertMediaAttachments(ctx, "revisions", { content: encoded }))).toBe("MEDIA_UNAVAILABLE");
 });
 
 test("schema-derived opaque roots cover commerce metadata and custom-field producers", async () => {

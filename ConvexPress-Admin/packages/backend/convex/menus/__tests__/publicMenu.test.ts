@@ -1,3 +1,4 @@
+import { canonicalPostBody } from "../../__tests__/canonicalPostFixture";
 import { test, expect } from "bun:test";
 import { convexTest } from "convex-test";
 import schema from "../../schema";
@@ -178,7 +179,7 @@ test("content links require current discoverability and never use a stale saved 
       title: "Page",
       slug: "current",
       path: "/current",
-      content: "PRIVATE_BODY",
+      ...canonicalPostBody("PRIVATE_BODY"),
       status: "publish",
       visibility: "public",
       authorId: ids.user,

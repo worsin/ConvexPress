@@ -1,3 +1,4 @@
+import { canonicalPostBody } from "../../__tests__/canonicalPostFixture";
 import {test,expect} from "bun:test";
 import {convexTest} from "convex-test";
 import {makeFunctionReference} from "convex/server";
@@ -15,7 +16,7 @@ async function fixture(){
   const tag=await ctx.db.insert("terms",{name:"Making",slug:"making",taxonomy:"post_tag",count:999999,description:"Studio stories",isDefault:false,createdAt:1,updatedAt:1,createdBy:"PRIVATE_OWNER",wpTermId:876543});
   const posts=[];
   for(let i=0;i<5;i++){
-   const id=await ctx.db.insert("posts",{type:"post",title:`Story ${i}`,slug:`story-${i}`,content:"PRIVATE_BODY",pagePrompt:"PRIVATE_PROMPT",status:"publish",visibility:i===4?"private":"public",publishedAt:100+i,authorId:user,commentStatus:"closed",createdAt:1,updatedAt:1});
+   const id=await ctx.db.insert("posts",{type:"post",title:`Story ${i}`,slug:`story-${i}`,...canonicalPostBody("PRIVATE_BODY"),pagePrompt:"PRIVATE_PROMPT",status:"publish",visibility:i===4?"private":"public",publishedAt:100+i,authorId:user,commentStatus:"closed",createdAt:1,updatedAt:1});
    await insertTermRelationship(ctx,{postId:id,termId:tag});posts.push(id);
   }
   for(let i=0;i<300;i++)await ctx.db.insert("posts",{type:"post",title:`Unrelated ${i}`,slug:`other-${i}`,status:"publish",visibility:"public",publishedAt:1000+i,authorId:user,commentStatus:"closed",createdAt:1,updatedAt:1});

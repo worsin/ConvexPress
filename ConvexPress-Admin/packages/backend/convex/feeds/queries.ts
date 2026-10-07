@@ -206,7 +206,7 @@ async function enrichPostsForFeed(ctx: QueryCtx, candidates: Doc<"posts">[]):Pro
         _id: post._id,
         title: post.title || "Untitled",
         slug: post.slug,
-        content: post.content || "",
+        content: "",
         excerpt: post.excerpt || null,
         status: post.status,
         publishedAt: post.publishedAt || post._creationTime,

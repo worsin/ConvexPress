@@ -32,6 +32,9 @@ import { enabledPluginIds } from "../helpers/plugins";
 import {
 	authoringSnapshot,
 	restoredAuthoring,
+  type HistoricalAuthoringSource,
+  liveAuthoringSnapshot,
+  retiredLiveFieldPatch,
 } from "../helpers/authoringSnapshot";
 import { permitValidatedCanonicalAuthoringWrite } from "../helpers/authoringVersionFence";
 import {
@@ -261,7 +264,7 @@ function assertStoredSize(
 }
 async function snapshot(
 	ctx: MutationCtx,
-	post: Doc<"posts">,
+	post: HistoricalAuthoringSource,
 	authorId: string,
 	budget: RequestReadLedger,
 ) {
@@ -311,34 +314,6 @@ export type WriteArgs = {
 	title: string;
 	blocks: unknown;
 };
-/** Deployment-only, one-record retirement step. Preserve the source in normal
- * immutable history before clearing obsolete live columns. No authored tree,
- * publication state, revision, timestamp or customer authority changes. The
- * exact full-record digest makes retries require fresh authoritative readback. */
-export async function retireLegacyPostFields(
-  ctx: MutationCtx,
-  args: { postId: Id<"posts">; expectedSourceDigest: string },
-): Promise<{ changed: boolean }> {
-  const budget = new RequestReadLedger();
-  budget.beforeRead();
-  const post = budget.record(await ctx.db.get("posts", args.postId));
-  if (!post) refuse("NOT_FOUND", "Document not found.");
-  if (sha256Hex(canonicalJson(post)) !== args.expectedSourceDigest)
-    refuse("CONFLICT", "The document changed after retirement review.");
-  if (post.blocksVersion !== 2)
-    refuse("LEGACY_MIGRATION_REQUIRED", "Convert the original content before retiring its fields.");
-  await readStoredDocument(ctx, post, budget);
-  const fields = ["content", "contentMode", "pageSections"] as const;
-  if (!fields.some(field => Object.prototype.hasOwnProperty.call(post, field)))
-    return { changed: false };
-  const value = { content: undefined, contentMode: undefined, pageSections: undefined };
-  await snapshot(ctx, post, String(post.authorId), budget);
-  const permit = permitValidatedCanonicalAuthoringWrite({
-    table: "posts", operation: "patch", id: post._id, previous: post, value,
-  });
-  await patchWithMediaReferences(ctx, "posts", post._id, value, permit, budget);
-  return { changed: true };
-}
 async function commit(
 	ctx: MutationCtx,
 	post: Doc<"posts">,
@@ -359,11 +334,10 @@ async function commit(
     ...(prepared.composedDefinitions ? { composed: { scope: prepared.composedDefinitions.scope, definitions: prepared.composedDefinitions } } : {}) }, budget);
 	if (prepared.changed) {
 		const value: Partial<WithoutSystemFields<Doc<"posts">>> = {
-			...(restore ? restoredAuthoring(restore) : {}),
+			...(restore ? liveAuthoringSnapshot(restoredAuthoring(restore)) : {}),
 			title: prepared.title,
-			content: undefined,
-			contentMode: undefined,
-      pageSections: undefined,
+      // Compatible upgrade writes clear retired columns when running before contraction.
+      ...retiredLiveFieldPatch(post),
 			blocksVersion: 2,
 			blocks: prepared.blocks,
       composedDefinitions: prepared.composedDefinitions,
@@ -595,7 +569,7 @@ export async function pageOptions(
 
 /** Select the same visible source as current public page/post surfaces. Hidden
  * source fields remain in the original revision; they are never chosen by guess. */
-function prepareAuthoredMigration(post: Doc<"posts">, reusableSources?: ReadonlyMap<string,string>): PreparedCanonicalWrite & {inactiveSettings?: CanonicalMigrationDto["inactiveSettings"]; importedContent?: "plain-text" | "html"} {
+function prepareAuthoredMigration(post: HistoricalAuthoringSource, reusableSources?: ReadonlyMap<string,string>): PreparedCanonicalWrite & {inactiveSettings?: CanonicalMigrationDto["inactiveSettings"]; importedContent?: "plain-text" | "html"} {
   if (post.status !== "draft") refuse("CANONICAL_DRAFT_REQUIRED", "Migrate an editable draft before publishing it.");
   if (post.blocksVersion !== undefined && post.blocksVersion !== 1) refuse("UNSUPPORTED_AUTHORING_VERSION", "This is not a supported legacy authoring document.");
   if (post.contentMode !== undefined && post.contentMode !== "article" && post.contentMode !== "blocks") refuse("UNSUPPORTED_AUTHORING_VERSION", "The legacy content mode is unsupported.");
@@ -623,7 +597,7 @@ function prepareAuthoredMigration(post: Doc<"posts">, reusableSources?: Readonly
    return reviewed.blocks;
   }
 }
-async function prepareMigrationReferences(ctx: QueryCtx, post: Doc<"posts">, budget: RequestReadLedger) {
+async function prepareMigrationReferences(ctx: QueryCtx, post: HistoricalAuthoringSource, budget: RequestReadLedger) {
  const usesDocument = !(post.contentMode === "blocks" && (post.blocks?.length || post.type === "page"))
   && !(post.type === "post" && hasStructuredArticle(post));
  const references = usesDocument ? await legacyReferenceMap(ctx,post.content ?? "",budget) : undefined;
@@ -665,7 +639,7 @@ export async function canonicalTrashRestorePermit(ctx: MutationCtx, post: Doc<"p
 }
 /** The old shared autosave has no author identity. Keep its exact fields with
  * the original source revision; do not adopt it into the current user's draft. */
-function retainedAutosave(post: Doc<"posts">): CanonicalMigrationDto["retainedAutosave"] {
+function retainedAutosave(post: HistoricalAuthoringSource): CanonicalMigrationDto["retainedAutosave"] {
   const titleChanged = post.autosaveTitle !== undefined && post.autosaveTitle !== post.title;
   const contentChanged = post.autosaveContent !== undefined && post.autosaveContent !== (post.content ?? "");
   return titleChanged || contentChanged ? {titleChanged,contentChanged,savedAt:post.autosavedAt ?? null} : undefined;
@@ -715,7 +689,7 @@ export async function getRevisionSource(ctx: QueryCtx, args: {postId: Id<"posts"
   const revision = await revisionSource(ctx,post,args.revisionId,budget);
   return revisionSourceSchema.parse({revisionId:revision._id,sourceDigest:sha256Hex(canonicalJson(revision)),sourceJson:JSON.stringify(revision)});
 }
-function historicalAuthoring(post: Doc<"posts">, revision: Doc<"revisions">, sourceKind: RevisionImportArgs["sourceKind"]): Doc<"posts"> {
+function historicalAuthoring(post: Doc<"posts">, revision: Doc<"revisions">, sourceKind: RevisionImportArgs["sourceKind"]): HistoricalAuthoringSource {
   if (revision.blocksVersion !== undefined && revision.blocksVersion !== 1) refuse("LEGACY_IMPORT_UNSUPPORTED", "This is not a supported historical legacy source.");
   let authored = restoredAuthoring(revision);
   if (sourceKind === "autosave") {
@@ -883,7 +857,7 @@ export async function createDocument(ctx: MutationCtx, args: { type: "post" | "p
   const now = Date.now();
   const value: WithoutSystemFields<Doc<"posts">> = {
     type: args.type, title, slug, status: "draft", visibility: "public", authorId: user._id,
-    content: undefined, contentMode: undefined, pageSections: undefined, blocks: prepared.blocks, blocksVersion: 2, blocksRevision: 1,
+    blocks: prepared.blocks, blocksVersion: 2, blocksRevision: 1,
     commentStatus: args.type === "page" ? "closed" : "open", commentCount: 0, isSticky: false,
     ...(args.type === "page" ? {path: `/${slug}`, depth: 0, menuOrder: 0, pageTemplate: "default"} : {}),
     createdAt: now, updatedAt: now,
@@ -936,7 +910,7 @@ export async function duplicateDocument(ctx: MutationCtx, args: DuplicateArgs): 
   if (post.type === "page") await assertPagePathAvailable(ctx, `/${slug}`, undefined, budget);
   const now = Date.now();
   const value: WithoutSystemFields<Doc<"posts">> = {
-    ...authoringSnapshot(post), title, content: undefined, contentMode: undefined, pageSections: undefined, blocksVersion: 2,
+    ...liveAuthoringSnapshot(authoringSnapshot(post)), title, blocksVersion: 2,
     blocks: prepared.blocks, blocksRevision: 1, type: post.type, slug,
     status: "draft", visibility: post.status === "private" ? "private" : post.visibility,
     password: post.password, authorId: user._id,
@@ -1187,7 +1161,7 @@ export async function writePromotedCanonicalDocument(
     // Allocate a target-local identity inside this atomic transaction. Any later
     // validation refusal rolls this draft back together with its derived rows.
     targetId = await insertWithMediaReferences(ctx, "posts", {
-      type, title:String(fields.title), slug:String(fields.slug), content:undefined, contentMode:undefined,
+      type, title:String(fields.title), slug:String(fields.slug),
       status:"draft", visibility:"public", commentStatus:"closed", authorId:user._id, createdAt:now, updatedAt:now,
     }, undefined, budget);
     budget.beforeRead(); previous = budget.record(await ctx.db.get("posts", targetId));
@@ -1197,7 +1171,7 @@ export async function writePromotedCanonicalDocument(
   if (priorRevision >= Number.MAX_SAFE_INTEGER - 1) refuse("AUTHORING_REVISION_EXHAUSTED", "Target revision cannot advance safely.");
   const absent = restoring ? Object.fromEntries(Object.keys(previous).filter(key=>key!=="_id" && key!=="_creationTime" && !(key in fields)).map(key=>[key,undefined])) : {};
   const value: Partial<WithoutSystemFields<Doc<"posts">>> = {
-    ...absent, ...fields, blocks, blocksVersion:2, contentMode:undefined, content:undefined, pageSections:undefined,
+    ...absent, ...Object.fromEntries(Object.entries(fields).filter(([key]) => !["content", "contentMode", "pageSections"].includes(key))), blocks, blocksVersion:2,
     authorId:previous.authorId, createdAt:previous.createdAt, blocksRevision:priorRevision+1,
     autosaveTitle:undefined, autosaveContent:undefined, autosavedAt:undefined,
     scheduledAt:fields.status==="future" ? Number(fields.scheduledAt) : undefined,
@@ -1470,9 +1444,6 @@ async function createForActor(ctx: MutationCtx, type: "post" | "page", input: Do
 		status: "draft",
 		visibility: "public",
 		authorId: user._id,
-		content: undefined,
-		contentMode: undefined,
-    pageSections: undefined,
 		blocks: [],
 		blocksVersion: 2,
 		blocksRevision: 1,

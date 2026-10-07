@@ -98,7 +98,7 @@ test('route policy distinguishes exact URLs, dynamic segments, splats and config
 });
 test('canonical HTTP create rejects reserved routes', async () => {
   const {t,editor,authorId,createPage}=await fixture();
-  await t.run(ctx=>ctx.db.insert('posts',{type:'page',title:'Legacy',slug:'products',path:'/products',content:'',status:'draft',visibility:'public',authorId,commentStatus:'closed',createdAt:1,updatedAt:1}));
+  await t.run(ctx=>ctx.db.insert('posts',{type:'page',title:'Legacy',slug:'products',path:'/products',status:'draft',visibility:'public',authorId,commentStatus:'closed',createdAt:1,updatedAt:1}));
   await expect(createPage({title:'Products',slug:'products'})).rejects.toThrow('built-in website route');
   await expect(createPage({title:'Private preview collision',slug:'document-preview'})).rejects.toThrow('built-in website route');
   expect((await t.run(ctx=>ctx.db.query('posts').collect())).length).toBe(1);
@@ -137,7 +137,7 @@ test('REST internal create follows the same reserved route policy', async () => 
 test('both explicit reparent and drag reorder reject a new root collision', async () => {
  const {t,editor,authorId,createPage}=await fixture();
  const {childId,reservedParentId}=await t.run(async ctx=>{
-  const common={type:'page' as const,content:'',status:'auto-draft' as const,visibility:'public' as const,authorId,commentStatus:'closed' as const,createdAt:1,updatedAt:1};
+  const common={type:'page' as const,status:'auto-draft' as const,visibility:'public' as const,authorId,commentStatus:'closed' as const,createdAt:1,updatedAt:1};
   const parentId=await ctx.db.insert('posts',{...common,title:'Story',slug:'story',path:'/story',depth:0});
   const reservedParentId=await ctx.db.insert('posts',{...common,title:'Legacy Events',slug:'events',path:'/events',depth:0});
   const childId=await ctx.db.insert('posts',{...common,title:'Products',slug:'products',path:'/story/products',parentId,depth:1});

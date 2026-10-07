@@ -70,7 +70,8 @@ export const revisionTables = {
     autosaveTitle: authoring.autosaveTitle,
     autosaveContent: authoring.autosaveContent,
     autosavedAt: authoring.autosavedAt,
-    contentMode: authoring.contentMode,
+    // Historical validators deliberately survive live post schema retirement.
+    contentMode: v.optional(v.union(v.literal("article"), v.literal("blocks"))),
     blocks: authoring.blocks,
     blocksVersion: authoring.blocksVersion,
     blocksRevision: authoring.blocksRevision,
@@ -81,7 +82,7 @@ export const revisionTables = {
     sources: authoring.sources,
     tableOfContents: authoring.tableOfContents,
     featuredImageId: authoring.featuredImageId,
-    pageSections: authoring.pageSections,
+    pageSections: v.optional(v.any()),
     pageTemplate: authoring.pageTemplate,
     hideHeader: authoring.hideHeader,
     hideFooter: authoring.hideFooter,

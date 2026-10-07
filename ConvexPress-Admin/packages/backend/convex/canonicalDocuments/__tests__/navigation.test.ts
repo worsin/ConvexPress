@@ -1,3 +1,4 @@
+import { canonicalPostBody } from "../../__tests__/canonicalPostFixture";
 import {test, expect} from 'bun:test';
 import {convexTest} from 'convex-test';
 import {makeFunctionReference} from 'convex/server';
@@ -15,8 +16,8 @@ async function fixture() {
     const user = await ctx.db.insert('users',{authSource:'local',email:'navigation@example.invalid',emailVerified:true,status:'active',createdAt:1,updatedAt:1});
     await ctx.db.insert('settings',{section:'plugins',values:{membershipEnabled:false},updatedAt:1,updatedBy:user});
     await ctx.db.insert('settings',{section:'general',values:{siteTitle:'A real site name',tagline:'Authored public tagline',logoUrl:'https://images.example.invalid/actual-logo.png',adminEmail:'private@example.invalid',privateKey:'must-not-escape'},updatedAt:1,updatedBy:user});
-    const parent = await ctx.db.insert('posts',{type:'page',title:'Public parent',slug:'parent',path:'/parent',content:'private body excluded',status:'publish',visibility:'public',authorId:user,commentStatus:'closed',createdAt:1,updatedAt:1});
-    const child = await ctx.db.insert('posts',{type:'page',title:'Current page',slug:'child',path:'/parent/child',parentId:parent,content:'secret current body excluded',status:'draft',visibility:'public',authorId:user,commentStatus:'closed',createdAt:1,updatedAt:1});
+    const parent = await ctx.db.insert('posts',{type:'page',title:'Public parent',slug:'parent',path:'/parent',...canonicalPostBody('private body excluded'),status:'publish',visibility:'public',authorId:user,commentStatus:'closed',createdAt:1,updatedAt:1});
+    const child = await ctx.db.insert('posts',{type:'page',title:'Current page',slug:'child',path:'/parent/child',parentId:parent,...canonicalPostBody('secret current body excluded'),status:'draft',visibility:'public',authorId:user,commentStatus:'closed',createdAt:1,updatedAt:1});
     return {parent,child};
   });
   return {t,ids};
@@ -62,7 +63,7 @@ test('child pages honor menu order and depth, omit hidden branches and expose on
     const parent=await ctx.db.get('posts',ids.parent); if(!parent)throw Error();
     const add=(title:string,parentId:typeof ids.parent,menuOrder:number,visibility:'public'|'private'='public')=>ctx.db.insert('posts',{
       type:'page',title,slug:title.toLowerCase(),path:`/parent/${title.toLowerCase()}`,parentId,menuOrder,status:'publish',visibility,
-      authorId:parent.authorId,content:'must-not-leak-body',excerpt:'must-not-leak-excerpt',commentStatus:'closed',createdAt:1,updatedAt:1,
+      authorId:parent.authorId,...canonicalPostBody('must-not-leak-body'),excerpt:'must-not-leak-excerpt',commentStatus:'closed',createdAt:1,updatedAt:1,
     });
     const second=await add('Second',ids.parent,20),first=await add('First',ids.parent,10);
     const nested=await add('Nested',first,0),deep=await add('Deep',nested,0);

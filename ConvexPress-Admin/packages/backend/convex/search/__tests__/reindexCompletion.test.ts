@@ -1,3 +1,4 @@
+import { canonicalPostBody } from "../../__tests__/canonicalPostFixture";
 import { expect, test } from "bun:test";
 import { convexTest } from "convex-test";
 import { makeFunctionReference as ref } from "convex/server";
@@ -15,7 +16,7 @@ async function fixture(count = 551) {
     const roleId = await ctx.db.insert("roles", { name: "Indexer", slug: "indexer", description: "Fixture", level: 80, type: "internal", status: "active", isDefault: false, isProtected: false, capabilities: ["search.reindex"], pageAccess: [], createdAt: 1, updatedAt: 1 });
     const userId = await ctx.db.insert("users", { email: "reindex-completion@example.invalid", emailVerified: true, authSource: "local", roleId, status: "active", createdAt: 1, updatedAt: 1 });
     const pages = [];
-    for (let i=0;i<count;i++) pages.push(await ctx.db.insert("posts", { type: "page", title: `Page ${i}`, slug: `page-${i}`, content: `Searchable authored copy ${i}`, status: "publish", visibility: "public", commentStatus: "closed", authorId: userId, createdAt: i+1, updatedAt: i+1 }));
+    for (let i=0;i<count;i++) pages.push(await ctx.db.insert("posts", { type: "page", title: `Page ${i}`, slug: `page-${i}`, ...canonicalPostBody(`Searchable authored copy ${i}`), status: "publish", visibility: "public", commentStatus: "closed", authorId: userId, createdAt: i+1, updatedAt: i+1 }));
     return { userId, pages };
   });
   return { t, ids, client:t.withIdentity({subject:ids.userId,issuer:"https://convexpress-admin.local"}) };
@@ -70,12 +71,12 @@ test("committed steps replay without duplicate counts and an expired worker cann
 
 test("a failed document aborts its transaction and resumes at the same position after repair", async () => {
   const f=await fixture(2);
-  await f.t.run(ctx=>ctx.db.patch("posts",f.ids.pages[0],{contentMode:"blocks",blocksVersion:2,blocksRevision:1,blocks:[{id:"bad",name:"core/missing",version:1,attrs:{}}]}));
+  await f.t.run(ctx=>ctx.db.patch("posts",f.ids.pages[0],{blocksVersion:2,blocksRevision:1,blocks:[{id:"bad",name:"core/missing",version:1,attrs:{}}]}));
   const failed=await f.client.action(ref("search/actions:reindex"),{contentType:"page"});
   expect(failed.failure).toEqual({contentType:"page",contentId:f.ids.pages[0]});expect(failed.status).toBe("failed");expect(failed.errors).toBe(1);expect(failed.indexed.page).toBe(0);
   expect(await f.t.run(ctx=>ctx.db.query("searchIndex").collect())).toEqual([]);
   const saved=await f.t.run(ctx=>ctx.db.query("searchReindexState").collect());expect(saved[0].sequence).toBe(0);expect(saved[0].cursor).toBeNull();
-  await f.t.run(ctx=>ctx.db.patch("posts",f.ids.pages[0],{contentMode:undefined,blocksVersion:undefined,blocksRevision:undefined,blocks:undefined}));
+  await f.t.run(ctx=>ctx.db.patch("posts",f.ids.pages[0],{blocksVersion:undefined,blocksRevision:undefined,blocks:undefined}));
   const completed=await f.client.action(ref("search/actions:reindex"),{contentType:"page",jobId:failed.jobId});
   expect(completed.status).toBe("completed");expect(completed.errors).toBe(0);expect(completed.failedAttempts).toBe(1);expect(completed.indexed.page).toBe(2);
 });

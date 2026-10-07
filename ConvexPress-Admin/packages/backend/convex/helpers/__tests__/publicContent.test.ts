@@ -251,7 +251,8 @@ function safe(data: any, bodyAllowed: boolean) {
 	if (!bodyAllowed)
 		for (const key of BODY_FIELDS) expect(data[key]).toBeUndefined();
 	else {
-		expect(data.content).toBe(SECRET);
+		// Historical mock columns are never part of the current public DTO.
+    for (const key of ["content", "contentMode", "pageSections"]) expect(data[key]).toBeUndefined();
 		expect(data.blocks[0].attrs.text).toBe(SECRET);
 	}
 }
@@ -475,7 +476,10 @@ describe("REST content projections", () => {
 describe("public discovery channels", () => {
   test("ordinary public articles still appear in feeds and search", async () => {
     const { ctx } = fixture([document()]);
-    expect((await invoke(feeds.getPublishedPosts, ctx, { limit: 10 }))[0].content).toBe(SECRET);
+    const item = (await invoke(feeds.getPublishedPosts, ctx, { limit: 10 }))[0];
+    expect(item.title).toBe("Public title");
+    expect(item.excerpt).toBe("Public teaser");
+    expect(item.content).toBe(""); // Historical raw body is not a current feed source.
     expect((await invoke(search.search, ctx, { q: "Public" })).results[0].title).toBe("Public title");
     expect((await invoke(search.suggest, ctx, { q: "Public" })).suggestions[0].text).toBe("Public title");
   });

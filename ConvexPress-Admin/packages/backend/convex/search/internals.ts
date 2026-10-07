@@ -128,7 +128,7 @@ async function upsertPostOrPage(
     stripContentForSearch(post.title || ""),
     MAX_INDEXED_TITLE_LENGTH,
   );
-  const rawContent = post.blocksVersion === 2 ? await canonicalSearchCandidates(ctx, post) : post.content || "";
+  const rawContent = post.blocksVersion === 2 ? await canonicalSearchCandidates(ctx, post) : "";
   const strippedContent = truncate(
     post.blocksVersion === 2 ? rawContent : stripContentForSearch(rawContent),
     MAX_INDEXED_CONTENT_LENGTH,

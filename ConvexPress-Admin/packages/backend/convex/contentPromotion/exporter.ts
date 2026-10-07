@@ -344,6 +344,9 @@ export async function exportAuthoredManifest(
 		let data = pickData(kind, row);
     const canonicalSource=(kind==="page" || kind==="post") && row.blocksVersion===2;
     if(canonicalSource){delete data.blocks;delete data.contentMode;canonicalDocuments.set(key,row.blocks);}
+    else if (kind === "page" || kind === "post") {
+      issue("CANONICAL_SOURCE_MIGRATION_REQUIRED", key, "blocksVersion", "Review and migrate this document to canonical blocks in the source editor before exporting it for promotion.");
+    }
 		records.set(key, { key, kind, sourceRevision: recordRevision(kind, row), data });
     if(kind==='localeRouting'){
       const locales=[];
