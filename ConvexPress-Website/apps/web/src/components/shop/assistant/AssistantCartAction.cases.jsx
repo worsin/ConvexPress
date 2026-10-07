@@ -17,5 +17,11 @@ test('cart action exposes the exact quantity and requires a click, retaining the
   await act(async()=>calls[0].resolve(false));expect(button.disabled).toBe(false);
   await act(async()=>button.click());expect(calls[1].id).toBe(calls[0].id);
   await act(async()=>calls[1].resolve(true));expect(button.disabled).toBe(true);expect(button.textContent).toBe('Added to cart');
+  await act(async()=>root.render(<AssistantCartAction key="variant" block={{...block,variantId:'blue-large',title:'Notebook — Blue / Large'}} product={{...product,inStock:false}} onConfirm={onConfirm}/>));
+  expect(document.body.textContent).toContain('Notebook — Blue / Large');
+  expect(document.body.textContent).not.toContain('$24.00');
+  expect(document.body.textContent).toContain('Option price calculated in your cart');
+  expect(document.querySelector('button').disabled).toBe(false);
+
  }finally{await act(async()=>root.unmount());dom.window.close();for(const[key,value]of saved){if(value)Object.defineProperty(globalThis,key,value);else delete globalThis[key];}}
 });

@@ -7,7 +7,7 @@
     "In progress": 3
   },
   "goal": "Complete block editor and template delivery plus all demonstrated blockers; defer unrelated whole-app audit campaigns.",
-  "currentTask": "134/137 blocks verified. E112 disabled-memory and brief-context repair is installed/accepted on original Alpha (715c0f09), with415commerce tests and actual configured-provider quantity/cache acceptance; originals preserved. Next: backend Assistant request idempotency and catalog visibility/read bounds, then Task7 selected-resource AI composition/style/promotion and final installed candidate parity. Reuse accepted Task4/E110/E111 evidence; no audit wait.",
+  "currentTask": "134/137 blocks verified. E112 memory/brief, E113 request replay and E114 shopper-authorized exact cart actions are installed/accepted on original Alpha; final source1bf909bf,432commerce tests and actual desktop/mobile/real-provider acceptance pass. Next: Assistant public catalog grounding and bounded readers; contextBundle reads unpublished cart products directly and relatedGroups/toProductCard still collect unbounded edges/variants. Prove and repair the scoped caller paths, then selected-resource AI composition/style/promotion and final candidate parity. No audit wait.",
   "tasks": [
     {
       "id": 1,
@@ -38,7 +38,7 @@
     {
       "id": 7,
       "status": "in_progress",
-      "scope": "Original Alpha real configured-provider native canonical generation/review/apply/reopen/publication and proposal preview accepted. Guest/customer Assistant answers/cart/history/account-wide memory and isolation accepted with E110/E111 repairs. Remaining Assistant backend gates and actual selected-resource AI composition/style/promotion stay open."
+      "scope": "Original Alpha real-provider native canonical generation/review/apply/reopen/publication and preview accepted. Assistant guest/customer history/memory and exact shopper cart actions accepted with E110\u2013E114; catalog visibility/read bounds and selected-resource AI composition/style/promotion remain open."
     },
     {
       "id": 8,
@@ -1521,15 +1521,23 @@
     },
     {
       "id": "E114",
-      "classification": "reproduced defect",
+      "classification": "reproduced defect repaired and verified",
       "deliveryTask": 7,
       "requiredWorkflow": "Assistant answers a cart quantity question without changing the cart; cart changes require current concrete shopper authorization.",
-      "evidence": "output/assistant-replay-20261007/mobile-final.json",
+      "evidence": "ConvexPress-Admin/audits/2026-09-04/assistant-cart-authority-20261007.md",
       "dependency": "add_to_cart trusts provider intent, checking only known product/public availability. Actual configured provider invoked it despite the current message explicitly prohibiting cart changes.",
       "repairBoundary": "Enforce shopper-authorized product/quantity changes at the tool/mutation boundary using a concrete user action; model/history/catalog text alone cannot grant write authority. Preserve existing public cart controls and request replay protection.",
       "exitCheck": "Regression forcing unauthorized provider cart tools leaves quantity unchanged; current user-authorized add works once; actual original provider read-only question after prior add remains nonmutating; preserve original data.",
-      "status": "Open: live mobile read-only question increased owned cart quantity2to3 while prose claimed no change. Evidence retained and owned data cleaned. Duplicate request itself did not mutate again.",
-      "nextCheck": "Implement explicit cart-action authority through existing product controls or a bounded reviewed action, then rerun real provider acceptance. Do not treat a prompt-only change as the boundary."
+      "status": "Closed for source and original Alpha:13a4a2f3 plus1bf909bf replace provider cart writes with persisted exact shopper actions.432commerce tests, strict types/build/install, actual desktop/mobile Add and retry checks, original read-only question and final-source real-provider smoke pass. Original selected data/settings exact;14protected runtimes alive. Full Assistant remains open for catalog bounds/visibility.",
+      "nextCheck": "Reuse E114. Complete bounded/public catalog grounding and readers, then selected-resource AI composition/style/promotion and final fleet parity.",
+      "currentEvidence": [
+        "ConvexPress-Admin/audits/2026-09-04/assistant-cart-authority-20261007.md",
+        "output/assistant-cart-authority-20261007/confirmed.json",
+        "output/assistant-cart-authority-20261007/mobile-read-only.json",
+        "output/assistant-cart-authority-20261007/mobile-confirmed.json",
+        "output/assistant-cart-authority-final-20261007/live.json",
+        "output/assistant-cart-authority-final-20261007/preservation.json"
+      ]
     }
   ],
   "blocks": [
@@ -5407,7 +5415,8 @@
     "output/original-assistant-customer-20261007/live-after.json",
     "output/original-assistant-customer-20261007/cleanup-data.json",
     "output/original-assistant-customer-20261007/runtime-cleanup.json",
-    "ConvexPress-Admin/audits/2026-09-04/assistant-replay-20261007.md"
+    "ConvexPress-Admin/audits/2026-09-04/assistant-replay-20261007.md",
+    "ConvexPress-Admin/audits/2026-09-04/assistant-cart-authority-20261007.md"
   ],
   "trackerRefresh": {
     "source": "output/field-guide-legacy-final-20261006/mt-accept-after.json",
@@ -5477,7 +5486,8 @@
     "audit59": "ACCEPT E106 closed classification correction. ADAPT E99 unchanged-time reminder: preserve original causal uncertainty, reuse accepted automatic native restore and continue independent work. Upcoming deep audit advisory; no automatic scope change or wait.",
     "audit61": "Accepted scoped E99 repair/E18 integration and recurrence-on-new-trace advice. Task4 completion superseded by newly confirmed E108 live-schema-column retirement; source ad2e3701 prepares preserved cleanup with3712backend tests passing. Source strict dry run in flight; current installed candidate remains cd587c50. External provider requirements unchanged. See shared Codex notes.",
     "originalGamma": "Audit64 already reviewed; no newer audit. Gamma actual native/public and owned save/reopen passed with exact preservation; Task4 closed. Continue E13 independently; no audit wait.",
-    "assistantCustomer": "Audit64 remains latest/already reviewed. Independently reproduced/repaired E111, real original customer/provider acceptance and preservation complete. No automatic scope expansion; remaining Assistant gates are explicit original requirements. Codex leads and continues without waiting for deep audit."
+    "assistantCustomer": "Audit64 remains latest/already reviewed. Independently reproduced/repaired E111, real original customer/provider acceptance and preservation complete. No automatic scope expansion; remaining Assistant gates are explicit original requirements. Codex leads and continues without waiting for deep audit.",
+    "assistantCartAuthority": "Audit65 remains latest/reviewed. Codex independently closed E114 with durable exact cart actions, restored variant compatibility,432tests and original desktop/mobile/provider proof; originals preserved. Next catalog visibility/bounds. Advisory context does not gate work."
   },
   "sessionBaseCommit": "9824d9605e50c4b0ebd711c13715b506f8ef5bd3"
 }

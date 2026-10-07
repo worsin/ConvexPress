@@ -114,6 +114,13 @@ All 203 original posts, 927 revisions and 81 stored files were preserved; native
 save/history/reload and actual Website output passed. See
 [installed schema retirement](../ConvexPress-Admin/audits/2026-09-04/schema-retirement-installed-20261007.md).
 
+Assistant cart requests prepare a labeled product/option and quantity in the conversation.
+The shopper selects its Add button to change the cart. Asking a question or generating
+an answer cannot add items; retrying the same button cannot repeat an accepted addition.
+The action is unavailable after the conversation is cleared. Specific variants retain
+their option label and use current cart pricing and stock checks when added. See
+[Assistant cart authority](../ConvexPress-Admin/audits/2026-09-04/assistant-cart-authority-20261007.md).
+
 The remaining provider requirements are actual AI generation/Assistant Band,
 authorized Instagram data for Social Feed, human Turnstile completion for Event
 RSVP. Script Embed Vimeo playback is now accepted at desktop and mobile widths. Public HTTPS/local-network
