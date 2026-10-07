@@ -287,5 +287,5 @@ After each accepted batch, reconcile every `blocks[].checkpointStatus` and its r
 
 ## October 7 original-fleet correction
 
-- [ ] Finish E109 original fleet acceptance: migration/contraction of all11original records and120files are preserved and installed; Alpha original native/registered Website draft/proposal preview and real AI are accepted. Complete Gamma native/Website and remaining customer Assistant/composition evidence. See original-fleet-rollout-20261007.md and original-preview-assistant-20261007.md.
+- [x] Finish E109 original fleet migration/native/public acceptance: all11original records and120files preserved; Alpha original native/registered Website preview and real AI accepted. Gamma four original native pages/eight public cases and owned native save/reopen accepted with exact preservation. See original-fleet-rollout-20261007.md, original-preview-assistant-20261007.md and original-gamma-acceptance-20261007.md. Remaining customer Assistant and selected-resource AI/composition stay open under Task7/E13.
 - [ ] Complete E13 with the existing original AI configuration: provider checks pass and alpha real generation returned `ok`. Earlier six-site key absence is not a global blocker. See `original-fleet-reconciliation-20261007.md`.

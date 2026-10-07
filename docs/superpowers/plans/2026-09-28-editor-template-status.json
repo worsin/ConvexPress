@@ -7,7 +7,7 @@
     "In progress": 3
   },
   "goal": "Complete block editor and template delivery plus all demonstrated blockers; defer unrelated whole-app audit campaigns.",
-  "currentTask": "134/137 blocks verified. Original migration/contraction preserved. Alpha registered Website native draft/proposal preview, selection, unsaved reconnect and save/reopen accepted. Real original provider Assistant answer, catalog grounding, cart action and separate guest history accepted; URL reload replay repaired in a2c52071. Finish Gamma native/Website and actual Assistant customer transition/history consolidation, remaining composition/style/promotion and integrated delivery. No repeat migrations or provider-key request.",
+  "currentTask": "134/137 blocks verified. Task4 original and newer-site migration/native/public acceptance complete, with original content/history/media preserved. Continue actual customer Assistant transition/history/memory and Task7 selected-resource AI composition/style/promotion; then remaining integrated delivery gates. No repeat migrations or provider-key request.",
   "tasks": [
     {
       "id": 1,
@@ -24,8 +24,8 @@
     },
     {
       "id": 4,
-      "status": "in_progress",
-      "scope": "Six newer sites and four originals have completed migration and physical retirement with preservation receipts. Alpha original native reopen and registered actual Website preview accepted; Gamma native/Website acceptance remains."
+      "status": "complete",
+      "scope": "Six newer sites and four originals have completed migration and physical retirement with preservation receipts. Alpha and Gamma original native/registered Website acceptance passed; Beta and Delta original post corpora are empty. Actual remaining AI workflows remain Task7."
     },
     {
       "id": 5,
@@ -109,7 +109,7 @@
     },
     {
       "id": "E07",
-      "status": "Accepted: known installed corpus conversion, archives, obsolete editor/API paths and physical live schema retirement now complete through E108. All203 original posts,927 revisions and81 stored files preserved. Historical revision data and explicit import remain supported.",
+      "status": "Accepted: known installed corpus conversion, archives, obsolete editor/API paths and physical live schema retirement now complete through E108. All203 original posts,927 revisions and81 stored files preserved. Historical revision data and explicit import remain supported. E109 now includes four original fleet sites: 11 posts,11 source archives,120 byte-identical files preserved; Alpha/Gamma native/public acceptance passed.",
       "classification": "accepted/reusable evidence",
       "initialFinding": "One-content-model migration and legacy retirement remain incomplete.",
       "closureBoundary": "Complete lossless conversion/recovery for actual retained content, source snapshots and installed-site receipts; then remove active legacy editor/renderer/schema dispatch as specified. Keep historical recovery data and a deliberate import converter. Do not delete old fields before proving preservation or claim migration complete while silently relying on legacy rendering.",
@@ -170,7 +170,8 @@
         "ConvexPress-Admin/audits/2026-09-04/field-guide-legacy-final-20261006.md",
         "ConvexPress-Admin/audits/2026-09-04/legacy-compatibility-retirement-20261006.md",
         "ConvexPress-Admin/audits/2026-09-04/legacy-reusable-retirement-20261006.md",
-        "ConvexPress-Admin/audits/2026-09-04/schema-retirement-installed-20261007.md"
+        "ConvexPress-Admin/audits/2026-09-04/schema-retirement-installed-20261007.md",
+        "ConvexPress-Admin/audits/2026-09-04/original-gamma-acceptance-20261007.md"
       ]
     },
     {
@@ -271,7 +272,7 @@
     },
     {
       "id": "E13",
-      "status": "Original alpha/beta/gamma stored OpenRouter credentials accepted with HTTP200. Alpha installed internal generation returned ok without saving content. Earlier six-site empty-key evidence remains true only for that subset. Complete normal current native/SDK/Assistant acceptance using the authorized original configuration after matching deployment contracts.",
+      "status": "Configured original provider available and exercised: Alpha actual native structured generation/review/apply/reopen/publication and registered Website proposal preview passed. Real guest Assistant grounded answer/cart action and isolated history passed; URL reload replay repaired. Selected-resource generation, AI composition/style/promotion and actual customer Assistant transition/history/memory remain.",
       "classification": "missing evidence; configured provider available",
       "initialFinding": "Some isolated AI exercises returned missing_api_key; earlier provider success does not establish current end-to-end editor generation.",
       "closureBoundary": "Inspect authorized configured connections without exposing secrets; use the existing provider if available. Prove one live structured generation, resource selection, review, insert/save and Website output, plus composition/style/promotion. Do not substitute mocked success.",
@@ -282,9 +283,11 @@
         "output/extension-lifecycle-20261006/ai-probe.json",
         "output/delivery-candidate-20261007/provider-readiness.json",
         "ConvexPress-Admin/audits/2026-09-04/original-fleet-reconciliation-20261007.md",
-        "output/original-fleet-20261007/ai-probe.json"
+        "output/original-fleet-20261007/ai-probe.json",
+        "ConvexPress-Admin/audits/2026-09-04/original-native-ai-20261007.md",
+        "ConvexPress-Admin/audits/2026-09-04/original-preview-assistant-20261007.md"
       ],
-      "nextCheck": "Resolve E109 original-fleet compatibility, then actual structured generation, review/save, Website, Assistant history/cart and composition/style/promotion. No new key request is necessary on current evidence."
+      "nextCheck": "Use original Alpha configuration for actual customer Assistant history/memory transitions, then real selected-resource AI composition/style/promotion. Reuse accepted text-only generation and native preview; no new key request."
     },
     {
       "id": "E14",
@@ -1425,23 +1428,24 @@
     },
     {
       "id": "E109",
-      "classification": "missing evidence",
+      "classification": "accepted/reusable evidence",
       "deliveryTask": 4,
       "requiredWorkflow": "Complete original named-fleet canonical migration/retirement and matching native/public template acceptance required by the handoff.",
       "evidence": "Report original-fleet-rollout-20261007.md and output/original-fleet-20261007 final export/schema/source/index/session/public receipts. Fixture packaging repair 8da561ea passes 196 tests and 1,837 assertions plus fresh strict codegen/deployment. All 2,020 checked candidate source files match 8da561ea. No preexisting rows deleted; original AI settings exact.",
-      "dependency": "Original backend migration/contraction accepted. Remaining native preview depends on correcting original registered Website startup configuration while preserving running user sessions. Gamma acceptance and full configured-provider Assistant workflows remain.",
+      "dependency": "Original fleet migration and matching native/public template acceptance complete. Remaining AI workflows tracked under E13/Task7.",
       "repairBoundary": "Implement and verify exact canonical/rendered treatment mapping; review all remaining nodes and lifecycle preservation; reconcile actual installed source/contracts; install safely with original content/history/media and sessions intact.",
       "exitCheck": "Complete original corpus migration and schema contraction with preservation receipts, actual native edit/reopen and Website parity on named sites, then current configured AI workflows.",
-      "status": "Original migration and physical contraction installed on alpha/beta/gamma/delta. All 11 original posts, 11 exact source archives and 120 byte-identical original files preserved; lifecycle, ownership, routes and timestamps exact. All four deployed sets match 1,780 modules, schemas reject retired live fields, media/synced indexes are ready, and predeployment operator sessions survived. Eight published canonical bodies are ready; three auto-drafts remain nonpublic. Alpha native original reopen, real AI review/apply/publish and registered4201 Website draft/proposal preview are accepted. Exact startup replay added only instanceKey and adminAppUrl; other82 environment values/argv/cwd/backend unchanged. Contact preview selects the native block; unsaved changes survive reconnect and saved revision3 reopens. Owned draft trashed; original7posts/7archives/50files and AI settings exact. Gamma native/Website and remaining customer Assistant/composition acceptance remain.",
+      "status": "Closed migration acceptance: all original corpus migration/contraction and preservation accepted; Alpha native/Website and configured AI proof reused, Gamma four original native pages/eight public viewport cases and owned native save/reopen passed. Original Gamma four posts/four revisions/50 storage records/AI settings exact. Remaining selected-resource AI and customer Assistant acceptance remain explicit E13/Task7, not migration prerequisites.",
       "currentEvidence": [
         "ConvexPress-Admin/audits/2026-09-04/original-fleet-reconciliation-20261007.md",
         "ConvexPress-Admin/audits/2026-09-04/original-fleet-treatments-20261007.md",
         "ConvexPress-Admin/audits/2026-09-04/original-fleet-lifecycle-20261007.md",
         "ConvexPress-Admin/audits/2026-09-04/original-fleet-rollout-20261007.md",
         "ConvexPress-Admin/audits/2026-09-04/original-native-ai-20261007.md",
-        "ConvexPress-Admin/audits/2026-09-04/original-preview-assistant-20261007.md"
+        "ConvexPress-Admin/audits/2026-09-04/original-preview-assistant-20261007.md",
+        "ConvexPress-Admin/audits/2026-09-04/original-gamma-acceptance-20261007.md"
       ],
-      "nextCheck": "Finish Gamma native/Website acceptance, then actual customer Assistant transition/history consolidation and remaining composition/style/promotion. Reuse accepted Alpha preview/provider evidence."
+      "nextCheck": "Reuse original-fleet, Alpha and Gamma receipts for final reconciliation; reopen only for demonstrated migration or native/public content parity defect."
     },
     {
       "id": "E110",
@@ -5323,7 +5327,10 @@
     "ConvexPress-Admin/audits/2026-09-04/schema-retirement-stage-a-20261007.md",
     "ConvexPress-Admin/audits/2026-09-04/original-native-ai-20261007.md",
     "output/original-native-ai-20261007/ai-guards.json",
-    "output/original-native-ai-20261007/cleanup-data.json"
+    "output/original-native-ai-20261007/cleanup-data.json",
+    "ConvexPress-Admin/audits/2026-09-04/original-gamma-acceptance-20261007.md",
+    "output/original-gamma-20261007/cleanup-data.json",
+    "output/original-gamma-20261007/runtime-cleanup.json"
   ],
   "trackerRefresh": {
     "source": "output/field-guide-legacy-final-20261006/mt-accept-after.json",
@@ -5344,7 +5351,7 @@
   "coordination": {
     "folder": "/Users/worsin/Development/ConvexPress/Opus Audits/",
     "authority": "Codex leads; Claude audits are advisory and independently verified",
-    "lastAudit": "2026-10-06T2006-audit-62-task4-reopened.md",
+    "lastAudit": "2026-10-06T2206-audit-64-original-fleet-migrated.md",
     "pendingAdvisory": {
       "F19": "Accepted shared public document href contract. Historical encoded-slug fixture reproduced discrepancy; ordinary authoring slugifies safely. Legacy menu root/prefix behavior and membership aliases preserved. See locale-destinations-20260928.md.",
       "F20": "Source-verified enterprise commerce backfill truncation recorded in current-acceptance.md deferred register. No live reproduction or repair; promote only if catalog/customer-commerce delivery demonstrates a dependency.",
@@ -5391,7 +5398,8 @@
     "audit58": "ACCEPT bounded scope/progress/count assessment against current source and133/4 checkpoint. ADAPT E99 reminder into final integrated native watch, without inferring a causal repair from successful later restores. E104/E105 independently reproduced and repaired; no new scope or audit wait.",
     "candidateNative": "Accepted integrated native template switching, Customize draft/conflict/publication, document conflict/restore, actual sign-out/sign-in recovery and cleanup on d9a03347.71original pages/settings preserved; seven protected processes alive. No E99 reproduction or speculative patch. Existing main-bundle gate still fails; bounded module-inventory diagnosis next. Audit58 remains latest; no audit wait. E106 now repaired and accepted: fresh production bundle, types/template SSR, four-pack interactive hydration. Source settings/pages restored and API revoked; owned preview stopped. Next final installed-artifact parity, tracker/evidence reconciliation and local integration; preserve four provider prerequisites and HTTPS gap.",
     "audit59": "ACCEPT E106 closed classification correction. ADAPT E99 unchanged-time reminder: preserve original causal uncertainty, reuse accepted automatic native restore and continue independent work. Upcoming deep audit advisory; no automatic scope change or wait.",
-    "audit61": "Accepted scoped E99 repair/E18 integration and recurrence-on-new-trace advice. Task4 completion superseded by newly confirmed E108 live-schema-column retirement; source ad2e3701 prepares preserved cleanup with3712backend tests passing. Source strict dry run in flight; current installed candidate remains cd587c50. External provider requirements unchanged. See shared Codex notes."
+    "audit61": "Accepted scoped E99 repair/E18 integration and recurrence-on-new-trace advice. Task4 completion superseded by newly confirmed E108 live-schema-column retirement; source ad2e3701 prepares preserved cleanup with3712backend tests passing. Source strict dry run in flight; current installed candidate remains cd587c50. External provider requirements unchanged. See shared Codex notes.",
+    "originalGamma": "Audit64 already reviewed; no newer audit. Gamma actual native/public and owned save/reopen passed with exact preservation; Task4 closed. Continue E13 independently; no audit wait."
   },
   "sessionBaseCommit": "9824d9605e50c4b0ebd711c13715b506f8ef5bd3"
 }
