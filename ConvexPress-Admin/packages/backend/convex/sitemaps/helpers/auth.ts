@@ -30,6 +30,7 @@ export const checkCapability = internalQuery({
     userId: v.string(),
     capability: v.string(),
   },
+  returns: v.object({ authorized: v.boolean(), userId: v.id("users") }),
   handler: async (ctx, args) => {
     // Find user by identifier (clerkUserId or Convex _id)
     const user = await lookupUserByIdentifier(ctx, args.userId);

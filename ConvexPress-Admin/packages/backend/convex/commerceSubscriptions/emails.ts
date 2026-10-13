@@ -82,50 +82,38 @@ async function dispatch(
   });
 }
 
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const onSubscriptionCreated = internalMutation({
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   args: { eventId: v.id("events") },
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.null(),
   handler: (ctx, args) => dispatch(ctx, args, "subscription-welcome"),
 });
 
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const onSubscriptionRenewed = internalMutation({
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   args: { eventId: v.id("events") },
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.null(),
   handler: (ctx, args) => dispatch(ctx, args, "subscription-renewed"),
 });
 
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const onSubscriptionPastDue = internalMutation({
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   args: { eventId: v.id("events") },
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.null(),
   handler: (ctx, args) => dispatch(ctx, args, "subscription-payment-failed"),
 });
 
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const onSubscriptionTrialEnding = internalMutation({
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   args: { eventId: v.id("events") },
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.null(),
   handler: (ctx, args) => dispatch(ctx, args, "subscription-trial-ending"),
 });
 
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const onSubscriptionCancelled = internalMutation({
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   args: { eventId: v.id("events") },
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.null(),
   handler: (ctx, args) => dispatch(ctx, args, "subscription-cancelled"),
 });
 
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const onSubscriptionPaused = internalMutation({
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   args: { eventId: v.id("events") },
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.null(),
   handler: (ctx, args) => dispatch(ctx, args, "subscription-paused"),
 });

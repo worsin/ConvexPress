@@ -12,8 +12,10 @@ import { internal } from "../_generated/api";
 import { ConvexError } from "convex/values";
 import { getServiceKeyFromAction } from "../helpers/serviceKeys";
 
+import { v } from "convex/values";
 export const deleteOwnAccount = action({
   args: {},
+  returns: v.object({ closed: v.literal(true), clerkDeleted: v.boolean() }),
   handler: async (ctx): Promise<{ closed: true; clerkDeleted: boolean }> => {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) throw new ConvexError({ code: "UNAUTHORIZED", message: "Authentication required" });

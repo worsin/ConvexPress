@@ -496,6 +496,7 @@ export const getChildren = query({
  */
 export const getBreadcrumbs = query({
 	args: getBreadcrumbsArgs,
+	returns: v.array(v.object({ _id: v.string(), title: v.string(), slug: v.string(), path: v.string() })),
 	handler: async (ctx, args) => {
 		const breadcrumbs: Array<{
 			_id: string;
@@ -566,6 +567,15 @@ export const getBreadcrumbs = query({
  */
 export const counts = query({
 	args: {},
+	returns: v.object({
+   all: v.number(),
+   publish: v.number(),
+   draft: v.number(),
+   pending: v.number(),
+   private: v.number(),
+   trash: v.number(),
+   future: v.number(),
+ }),
 	handler: async (ctx) => {
 		const user = await getCurrentUser(ctx);
 		if (!user) {
@@ -617,6 +627,77 @@ export const counts = query({
  */
 export const getTemplates = query({
 	args: {},
+	returns: v.array(v.union(v.object({
+   id: v.literal("default"),
+   name: v.literal("Default Template"),
+   description: v.literal("Standard page layout with sidebar"),
+   supports: v.object({
+     featuredImage: v.literal(true),
+     excerpt: v.literal(true),
+     customFields: v.literal(true),
+     comments: v.literal(true),
+   }),
+ }), v.object({
+   id: v.literal("full-width"),
+   name: v.literal("Full Width"),
+   description: v.literal("Full-width layout without sidebar"),
+   supports: v.object({
+     featuredImage: v.literal(true),
+     excerpt: v.literal(true),
+     customFields: v.literal(true),
+     comments: v.literal(true),
+   }),
+ }), v.object({
+   id: v.literal("sidebar-left"),
+   name: v.literal("Sidebar Left"),
+   description: v.literal("Content with left sidebar"),
+   supports: v.object({
+     featuredImage: v.literal(true),
+     excerpt: v.literal(true),
+     customFields: v.literal(true),
+     comments: v.literal(true),
+   }),
+ }), v.object({
+   id: v.literal("sidebar-right"),
+   name: v.literal("Sidebar Right"),
+   description: v.literal("Content with right sidebar"),
+   supports: v.object({
+     featuredImage: v.literal(true),
+     excerpt: v.literal(true),
+     customFields: v.literal(true),
+     comments: v.literal(true),
+   }),
+ }), v.object({
+   id: v.literal("no-sidebar"),
+   name: v.literal("No Sidebar"),
+   description: v.literal("Content-only layout at the theme reading width"),
+   supports: v.object({
+     featuredImage: v.literal(true),
+     excerpt: v.literal(true),
+     customFields: v.literal(true),
+     comments: v.literal(true),
+   }),
+ }), v.object({
+   id: v.literal("landing"),
+   name: v.literal("Landing Page"),
+   description: v.literal("Clean layout for landing pages, no header/footer nav"),
+   supports: v.object({
+     featuredImage: v.literal(true),
+     excerpt: v.literal(false),
+     customFields: v.literal(true),
+     comments: v.literal(false),
+   }),
+ }), v.object({
+   id: v.literal("blank"),
+   name: v.literal("Blank Canvas"),
+   description: v.literal("Completely blank - only renders the content"),
+   supports: v.object({
+     featuredImage: v.literal(false),
+     excerpt: v.literal(false),
+     customFields: v.literal(true),
+     comments: v.literal(false),
+   }),
+ }))),
 	handler: async () => {
 		return PAGE_TEMPLATES;
 	},
@@ -644,6 +725,26 @@ export const listPublished = query({
 		page: v.optional(v.number()),
 		perPage: v.optional(v.number()),
 	},
+	returns: v.object({
+   pages: v.array(v.object({
+     _id: v.id("posts"),
+     title: v.string(),
+     slug: v.string(),
+     path: v.optional(v.string()),
+     depth: v.optional(v.number()),
+     menuOrder: v.optional(v.number()),
+     parentId: v.optional(v.id("posts")),
+     pageTemplate: v.optional(v.string()),
+     excerpt: v.optional(v.string()),
+     featuredImageId: v.optional(v.id("media")),
+     publishedAt: v.optional(v.number()),
+     createdAt: v.number(),
+   })),
+   total: v.number(),
+   page: v.number(),
+   perPage: v.number(),
+   totalPages: v.number(),
+ }),
 	handler: async (ctx, args) => {
 		const page = args.page ?? 1;
 		const perPage = args.perPage ?? 100;

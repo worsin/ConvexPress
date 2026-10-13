@@ -79,24 +79,42 @@ export const SUPPORT_AI_DEFAULTS: {
  *
  * @auth manage_options (Administrator only)
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const getSupportSettings = query({
   args: {},
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.union(v.null(), v.object({
+    widget: v.object({
+      enabled: v.literal(true),
+      widgetTitle: v.literal("Support"),
+      widgetSubtitle: v.literal("How can we help you today?"),
+      widgetColor: v.literal("#3b82f6"),
+      showKbSearch: v.literal(true),
+      showTicketHistory: v.literal(true),
+      aiEnabled: v.literal(false),
+      escalationButtonLabel: v.literal("Contact Support"),
+    }),
+    ai: v.object({
+      aiProvider: v.union(v.null(), v.literal("anthropic"), v.literal("openai")),
+      aiApiKey: v.string(),
+      aiModel: v.string(),
+      meilisearchEnabled: v.boolean(),
+      meilisearchUrl: v.string(),
+      meilisearchApiKey: v.string(),
+      ragEnabled: v.boolean(),
+    }),
+  })),
   handler: async (ctx) => {
     if (!(await isPluginEnabled(ctx, "tickets"))) return null;
     const canView = await currentUserCan(ctx, "manage_options");
     if (!canView) return null;
 
-    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     const [widgetDoc, aiDoc] = await Promise.all([
       ctx.db
         .query("settings")
-        .withIndex("by_section", (q: ConvexQueryBuilder) => q.eq("section", "support.widget"))
+        .withIndex("by_section", (q) => q.eq("section", "support.widget"))
         .unique(),
       ctx.db
         .query("settings")
-        .withIndex("by_section", (q: ConvexQueryBuilder) => q.eq("section", "support.ai"))
+        .withIndex("by_section", (q) => q.eq("section", "support.ai"))
         .unique(),
     ]);
 
@@ -134,56 +152,35 @@ export const getSupportSettings = query({
  *
  * @auth manage_options (Administrator only)
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const updateSupportSettings = mutation({
   args: {
-    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     widget: v.optional(
-      // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
       v.object({
-        // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
         enabled: v.optional(v.boolean()),
-        // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
         widgetTitle: v.optional(v.string()),
-        // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
         widgetSubtitle: v.optional(v.string()),
-        // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
         widgetColor: v.optional(v.string()),
-        // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
         showKbSearch: v.optional(v.boolean()),
-        // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
         showTicketHistory: v.optional(v.boolean()),
-        // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
         aiEnabled: v.optional(v.boolean()),
-        // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
         escalationButtonLabel: v.optional(v.string()),
       }),
     ),
-    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     ai: v.optional(
-      // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
       v.object({
-        // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
         aiProvider: v.optional(
-          // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
           v.union(v.literal("openai"), v.literal("anthropic"), v.null()),
         ),
-        // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
         aiApiKey: v.optional(v.string()),
-        // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
         aiModel: v.optional(v.string()),
-        // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
         meilisearchEnabled: v.optional(v.boolean()),
-        // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
         meilisearchUrl: v.optional(v.string()),
-        // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
         meilisearchApiKey: v.optional(v.string()),
-        // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
         ragEnabled: v.optional(v.boolean()),
       }),
     ),
   },
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.object({ updatedSections: v.array(v.string()) }),
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "tickets");
     const user = await requireCan(ctx, "manage_options");
@@ -194,7 +191,7 @@ export const updateSupportSettings = mutation({
     if (args.widget !== undefined) {
       const existingDoc = await ctx.db
         .query("settings")
-        .withIndex("by_section", (q: ConvexQueryBuilder) => q.eq("section", "support.widget"))
+        .withIndex("by_section", (q) => q.eq("section", "support.widget"))
         .unique();
 
       const oldValues: Record<string, unknown> = existingDoc
@@ -233,7 +230,7 @@ export const updateSupportSettings = mutation({
     if (args.ai !== undefined) {
       const existingDoc = await ctx.db
         .query("settings")
-        .withIndex("by_section", (q: ConvexQueryBuilder) => q.eq("section", "support.ai"))
+        .withIndex("by_section", (q) => q.eq("section", "support.ai"))
         .unique();
 
       const oldValues: Record<string, unknown> = existingDoc

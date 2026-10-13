@@ -13,6 +13,7 @@ export const createPendingManifest = internalMutation({
     carrierCode: v.string(),
     manifestDate: v.string(),
   },
+  returns: v.id("commerce_shipment_manifests"),
   handler: async (ctx, args) => {
     // Find-then-insert is safe under Convex OCC: two concurrent calls for the
     // same (location, carrier, date) tuple read the same rows, and whichever
@@ -56,6 +57,7 @@ export const addLabelToManifest = internalMutation({
     manifestId: v.id("commerce_shipment_manifests"),
     labelId: v.id("commerce_shipment_labels"),
   },
+  returns: v.union(v.null(), v.id("commerce_shipment_manifests")),
   handler: async (ctx, args) => {
     const manifest = await ctx.db.get(args.manifestId);
     if (!manifest) return null;
@@ -90,6 +92,7 @@ export const markManifestSubmitted = internalMutation({
     success: v.boolean(),
     errorMessage: v.optional(v.string()),
   },
+  returns: v.null(),
   handler: async (ctx, args) => {
     const manifest = await ctx.db.get(args.manifestId);
     if (!manifest) return;
@@ -116,6 +119,7 @@ export const markManifestSubmitted = internalMutation({
 
 export const closeManifest = mutation({
   args: { manifestId: v.id("commerce_shipment_manifests") },
+  returns: v.id("commerce_shipment_manifests"),
   handler: async (ctx, args) => {
     const user = await requireCan(ctx, "shipping.manifests.close");
     const manifest = await ctx.db.get(args.manifestId);

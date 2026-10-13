@@ -18,6 +18,7 @@ import { createNodeArgs, nodeIdArg, renameNodeArgs, moveNodeArgs } from "./valid
 
 export const createNode = mutation({
   args: createNodeArgs,
+  returns: v.id("lms_nodes"),
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "lms");
     await requireCourseAuthorOrEditor(ctx, args.courseId, "lms.builder.manage");
@@ -75,6 +76,7 @@ export const createNode = mutation({
 
 export const renameNode = mutation({
   args: renameNodeArgs,
+  returns: v.id("lms_nodes"),
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "lms");
     await requireNodeCourseAuthorOrEditor(ctx, args.nodeId, "lms.builder.manage");
@@ -89,6 +91,7 @@ export const renameNode = mutation({
 
 export const deleteNode = mutation({
   args: nodeIdArg,
+  returns: v.object({ deleted: v.boolean() }),
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "lms");
     const { node } = await requireNodeCourseAuthorOrEditor(ctx, args.nodeId, "lms.builder.manage");
@@ -123,6 +126,7 @@ export const deleteNode = mutation({
 
 export const moveNode = mutation({
   args: moveNodeArgs,
+  returns: v.id("lms_nodes"),
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "lms");
     const { node } = await requireNodeCourseAuthorOrEditor(ctx, args.nodeId, "lms.builder.manage");
@@ -157,6 +161,7 @@ export const reorderNodes = mutation({
   args: {
     orderedIds: v.array(v.id("lms_nodes")),
   },
+  returns: v.object({ ok: v.boolean() }),
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "lms");
     if (args.orderedIds.length === 0) return { ok: true };

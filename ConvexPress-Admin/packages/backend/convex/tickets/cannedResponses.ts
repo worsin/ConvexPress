@@ -35,22 +35,21 @@ import {
 } from "./validators";
 import { isPluginEnabled, requirePluginEnabled } from "../helpers/plugins";
 
+import { tableDocs } from "../schema/tableDocs.generated";
 // ─── list ───────────────────────────────────────────────────────────────────
 
 /**
  * List all canned responses, sorted by usage count (most used first).
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const list = query({
   args: {},
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.union(v.null(), v.array(tableDocs.ticket_cannedResponses)),
   handler: async (ctx) => {
     if (!(await isPluginEnabled(ctx, "tickets"))) return null;
     const canManage = await currentUserCan(ctx, "ticket.respond");
     if (!canManage) return null;
 
     const responses = await ctx.db.query("ticket_cannedResponses").take(500);
-    // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
     responses.sort((a, b) => b.usageCount - a.usageCount);
     return responses;
   },
@@ -61,10 +60,9 @@ export const list = query({
 /**
  * List canned responses filtered by category.
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const listByCategory = query({
   args: { category: v.string() },
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.union(v.null(), v.array(tableDocs.ticket_cannedResponses)),
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "tickets"))) return null;
     const canManage = await currentUserCan(ctx, "ticket.respond");
@@ -72,10 +70,9 @@ export const listByCategory = query({
 
     const responses = await ctx.db
       .query("ticket_cannedResponses")
-      .withIndex("by_category", (q: ConvexQueryBuilder) => q.eq("category", args.category))
+      .withIndex("by_category", (q) => q.eq("category", args.category))
       .take(500);
 
-    // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
     responses.sort((a, b) => b.usageCount - a.usageCount);
     return responses;
   },
@@ -87,10 +84,9 @@ export const listByCategory = query({
  * Lookup a canned response by its shortcut string (e.g., "/refund").
  * Used for real-time shortcut matching as the admin types in the reply box.
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const getByShortcut = query({
   args: { shortcut: v.string() },
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.union(v.null(), tableDocs.ticket_cannedResponses),
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "tickets"))) return null;
     const canManage = await currentUserCan(ctx, "ticket.respond");
@@ -98,7 +94,7 @@ export const getByShortcut = query({
 
     return await ctx.db
       .query("ticket_cannedResponses")
-      .withIndex("by_shortcut", (q: ConvexQueryBuilder) => q.eq("shortcut", args.shortcut))
+      .withIndex("by_shortcut", (q) => q.eq("shortcut", args.shortcut))
       .unique();
   },
 });
@@ -109,10 +105,9 @@ export const getByShortcut = query({
  * Full-text search across canned response title and content.
  * Optionally filtered by category.
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const search = query({
   args: searchCannedResponsesArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.union(v.null(), v.array(tableDocs.ticket_cannedResponses)),
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "tickets"))) return null;
     const canManage = await currentUserCan(ctx, "ticket.respond");
@@ -122,7 +117,7 @@ export const search = query({
     if (args.category) {
       responses = await ctx.db
         .query("ticket_cannedResponses")
-        .withIndex("by_category", (q: ConvexQueryBuilder) => q.eq("category", args.category!))
+        .withIndex("by_category", (q) => q.eq("category", args.category!))
         .take(500);
     } else {
       responses = await ctx.db.query("ticket_cannedResponses").take(500);
@@ -130,14 +125,12 @@ export const search = query({
 
     const queryLower = args.query.toLowerCase();
     const matches = responses.filter(
-      // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
       (r) =>
         r.title.toLowerCase().includes(queryLower) ||
         r.content.toLowerCase().includes(queryLower) ||
         r.shortcut.toLowerCase().includes(queryLower),
     );
 
-    // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
     matches.sort((a, b) => b.usageCount - a.usageCount);
     return matches;
   },
@@ -150,10 +143,9 @@ export const search = query({
  * Returns the processed content string (does NOT insert a message).
  * Usage tracking is handled separately by incrementUsage (called on actual send).
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const applyTemplate = mutation({
   args: applyTemplateArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.object({ content: v.string() }),
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "tickets");
     await requireCan(ctx, "ticket.respond");
@@ -186,10 +178,9 @@ export const applyTemplate = mutation({
 /**
  * Create a new canned response template.
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const create = mutation({
   args: createCannedResponseArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.object({ id: v.id("ticket_cannedResponses") }),
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "tickets");
     const user = await requireCan(ctx, "ticket.manageCannedResponses");
@@ -217,7 +208,7 @@ export const create = mutation({
     // Check shortcut uniqueness
     const existing = await ctx.db
       .query("ticket_cannedResponses")
-      .withIndex("by_shortcut", (q: ConvexQueryBuilder) => q.eq("shortcut", args.shortcut.trim()))
+      .withIndex("by_shortcut", (q) => q.eq("shortcut", args.shortcut.trim()))
       .unique();
 
     if (existing) {
@@ -248,10 +239,9 @@ export const create = mutation({
 /**
  * Update an existing canned response template.
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const update = mutation({
   args: updateCannedResponseArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.object({ id: v.id("ticket_cannedResponses") }),
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "tickets");
     const user = await requireCan(ctx, "ticket.manageCannedResponses");
@@ -286,7 +276,7 @@ export const update = mutation({
       // Check uniqueness (excluding self)
       const conflict = await ctx.db
         .query("ticket_cannedResponses")
-        .withIndex("by_shortcut", (q: ConvexQueryBuilder) => q.eq("shortcut", args.shortcut!.trim()))
+        .withIndex("by_shortcut", (q) => q.eq("shortcut", args.shortcut!.trim()))
         .unique();
       if (conflict && conflict._id !== args.id) {
         throw new ConvexError({
@@ -322,10 +312,9 @@ export const update = mutation({
 /**
  * Delete a canned response template permanently.
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const remove = mutation({
   args: removeCannedResponseArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.null(),
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "tickets");
     const user = await requireCan(ctx, "ticket.manageCannedResponses");
@@ -348,11 +337,9 @@ export const remove = mutation({
  * Increment the usage count of a canned response.
  * Called separately from applyTemplate when the admin actually sends the reply.
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const incrementUsage = mutation({
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   args: { id: v.id("ticket_cannedResponses") },
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.null(),
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "tickets");
     await requireCan(ctx, "ticket.respond");
@@ -371,17 +358,15 @@ export const incrementUsage = mutation({
 /**
  * Get a list of distinct categories used across all canned responses.
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const getCategories = query({
   args: {},
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.union(v.null(), v.array(v.string())),
   handler: async (ctx) => {
     if (!(await isPluginEnabled(ctx, "tickets"))) return null;
     const canManage = await currentUserCan(ctx, "ticket.respond");
     if (!canManage) return null;
 
     const responses = await ctx.db.query("ticket_cannedResponses").take(500);
-    // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
     const categories = [...new Set(responses.map((r) => r.category))];
     categories.sort();
     return categories;

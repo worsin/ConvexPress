@@ -32,6 +32,20 @@ export const importBatch = internalAction({
     siteId: v.id("wordpressSites"),
     credentials: siteCredentialsValidator,
   },
+  returns: v.object({
+    progress: v.object({
+      total: v.number(),
+      imported: v.number(),
+      failed: v.number(),
+      cursor: v.optional(v.number()),
+      created: v.optional(v.number()),
+      updated: v.optional(v.number()),
+      skipped: v.optional(v.number()),
+      conflicted: v.optional(v.number()),
+    }),
+    errors: v.array(v.object({ phase: v.string(), wpId: v.number(), message: v.string(), timestamp: v.number() })),
+    hasMore: v.boolean(),
+  }),
   handler: async (ctx, { jobId, siteId, credentials }): Promise<PhaseResult> => {
     const errors: SyncError[] = [];
     let created = 0;
@@ -525,6 +539,7 @@ export const mediaFindBySourceUrl = internalQuery({
   args: {
     sourceUrl: v.string(),
   },
+  returns: v.union(v.null(), v.id("media")),
   handler: async (ctx, { sourceUrl }) => {
     const existing = await ctx.db
       .query("media")
@@ -576,6 +591,7 @@ export const mediaCreate = internalMutation({
     url: v.string(),
     siteId: v.id("wordpressSites"),
   },
+  returns: v.string(),
   handler: async (ctx, { existingId, wpMedia, storageId, url, siteId }) => {
     const now = Date.now();
 
@@ -705,6 +721,7 @@ export const mediaUpdateMetadata = internalMutation({
     }),
     siteId: v.id("wordpressSites"),
   },
+  returns: v.string(),
   handler: async (ctx, { mediaId, wpMedia, siteId }) => {
     const existing = await ctx.db.get(mediaId as Id<"media">);
     if (!existing) {

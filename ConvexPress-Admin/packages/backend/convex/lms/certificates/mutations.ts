@@ -21,6 +21,7 @@ export const createTemplate = mutation({
     orientation: v.optional(v.union(v.literal("landscape"), v.literal("portrait"))),
     templateDoc: v.optional(v.any()),
   },
+  returns: v.id("lms_certificates"),
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "lms");
     const user = await requireCan(ctx, "lms.certificate.manage");
@@ -45,6 +46,7 @@ export const updateTemplate = mutation({
     templateDoc: v.optional(v.any()),
     isActive: v.optional(v.boolean()),
   },
+  returns: v.id("lms_certificates"),
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "lms");
     await requireCan(ctx, "lms.certificate.manage");
@@ -65,6 +67,7 @@ export const updateTemplate = mutation({
 
 export const deleteTemplate = mutation({
   args: { certificateId: v.id("lms_certificates") },
+  returns: v.object({ ok: v.boolean() }),
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "lms");
     await requireCan(ctx, "lms.certificate.manage");
@@ -90,6 +93,7 @@ export const deleteTemplate = mutation({
 /** Idempotent issuance — only when the learner has completed the course and it has a certificate. */
 export const issueCertificate = mutation({
   args: { courseId: v.id("lms_courses"), userId: v.optional(v.id("users")) },
+  returns: v.id("lms_certificate_issues"),
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "lms");
     const me = await requireAuth(ctx);
@@ -167,6 +171,7 @@ export const issueCertificate = mutation({
 
 export const revokeIssue = mutation({
   args: { issueId: v.id("lms_certificate_issues"), reason: v.optional(v.string()) },
+  returns: v.union(v.object({ ok: v.boolean(), alreadyRevoked: v.boolean() }), v.object({ ok: v.boolean(), alreadyRevoked: v.optional(v.null()) })),
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "lms");
     const user = await requireCan(ctx, "lms.certificate.manage");
@@ -196,6 +201,7 @@ export const revokeIssue = mutation({
 
 export const reissueIssue = mutation({
   args: { issueId: v.id("lms_certificate_issues") },
+  returns: v.id("lms_certificate_issues"),
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "lms");
     await requireCan(ctx, "lms.certificate.manage");

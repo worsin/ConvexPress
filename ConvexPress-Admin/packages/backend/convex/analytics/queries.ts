@@ -37,6 +37,16 @@ export const getTrafficSummary = query({
     ...targetArgs,
     ...dateRangeArgs,
   },
+  returns: v.union(v.null(), v.object({
+    totalPageviews: v.number(),
+    totalUniqueVisitors: v.number(),
+    totalSessions: v.number(),
+    avgBounceRate: v.number(),
+    dailyBreakdown: v.array(v.object({ pageviews: v.number(), uniqueVisitors: v.number(), date: v.string() })),
+    topReferrers: v.array(v.object({ domain: v.string(), pageviews: v.number() })),
+    deviceBreakdown: v.object({ desktop: v.number(), mobile: v.number(), tablet: v.number() }),
+    topCountries: v.array(v.object({ country: v.string(), pageviews: v.number() })),
+  })),
   handler: async (ctx, args) => {
     const canView = await currentUserCan(ctx, "analytics.view");
     if (!canView) return null;
@@ -157,6 +167,23 @@ export const getEngagementSummary = query({
     ...targetArgs,
     ...dateRangeArgs,
   },
+  returns: v.union(v.null(), v.object({
+    avgTimeOnPage: v.number(),
+    avgEngagedTime: v.number(),
+    scrollDepthDistribution: v.object({
+      hero: v.number(),
+      topic1: v.number(),
+      topic2: v.number(),
+      topic3: v.number(),
+      topic4: v.number(),
+      topic5: v.number(),
+      summary: v.number(),
+      sources: v.number(),
+      comments: v.number(),
+    }),
+    topInternalLinks: v.array(v.object({ targetPath: v.string(), clicks: v.number() })),
+    totalInternalClicks: v.number(),
+  })),
   handler: async (ctx, args) => {
     const canView = await currentUserCan(ctx, "analytics.view");
     if (!canView) return null;
@@ -261,6 +288,12 @@ export const getTabBadges = query({
   args: {
     postId: v.id("posts"),
   },
+  returns: v.union(v.null(), v.object({
+    views7d: v.number(),
+    views30d: v.number(),
+    avgTimeOnPage: v.number(),
+    topSection: v.string(),
+  })),
   handler: async (ctx, args) => {
     const canView = await currentUserCan(ctx, "analytics.view");
     if (!canView) return null;
@@ -355,6 +388,14 @@ export const getTabBadges = query({
  */
 export const getSiteOverview = query({
   args: dateRangeArgs,
+  returns: v.union(v.null(), v.object({
+    totalPageviews: v.number(),
+    totalUniqueVisitors: v.number(),
+    totalSessions: v.number(),
+    avgBounceRate: v.number(),
+    topPages: v.array(v.object({ path: v.string(), postId: v.optional(v.string()), pageviews: v.number() })),
+    dailyTrend: v.array(v.object({ pageviews: v.number(), uniqueVisitors: v.number(), date: v.string() })),
+  })),
   handler: async (ctx, args) => {
     const canView = await currentUserCan(ctx, "analytics.view");
     if (!canView) return null;
@@ -439,6 +480,23 @@ export const getRecentEvents = query({
     path: v.optional(v.string()),
     limit: v.optional(v.number()),
   },
+  returns: v.union(v.null(), v.array(v.object({
+    eventType: v.union(v.literal("pageview"), v.literal("scroll_depth"), v.literal("click"), v.literal("exit")),
+    path: v.string(),
+    timestamp: v.number(),
+    deviceType: v.union(v.literal("desktop"), v.literal("mobile"), v.literal("tablet")),
+    browser: v.string(),
+    referrerDomain: v.optional(v.string()),
+    payload: v.optional(v.object({
+      section: v.optional(v.string()),
+      sectionIndex: v.optional(v.number()),
+      maxSections: v.optional(v.number()),
+      targetPath: v.optional(v.string()),
+      targetLabel: v.optional(v.string()),
+      timeOnPageMs: v.optional(v.number()),
+      engagedTimeMs: v.optional(v.number()),
+    })),
+  }))),
   handler: async (ctx, args) => {
     const canView = await currentUserCan(ctx, "analytics.view");
     if (!canView) return null;

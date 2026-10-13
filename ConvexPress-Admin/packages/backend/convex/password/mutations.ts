@@ -34,6 +34,7 @@ import {
 } from "./validators";
 import { patchWithMediaReferences } from "../media/attachmentGuard";
 
+import { v } from "convex/values";
 // ─── recordResetRequest ─────────────────────────────────────────────────────
 
 /**
@@ -50,6 +51,7 @@ import { patchWithMediaReferences } from "../media/attachmentGuard";
  */
 export const recordResetRequest = internalMutation({
   args: recordResetRequestArgs,
+  returns: v.null(),
   handler: async (ctx, args) => {
     // Look up user by email (may not exist)
     const user = await ctx.db
@@ -112,6 +114,7 @@ export const recordResetRequest = internalMutation({
  */
 export const storeResetToken = internalMutation({
   args: storeResetTokenArgs,
+  returns: v.null(),
   handler: async (ctx, args) => {
     const user = await ctx.db.get(args.userId);
     if (!user) return;
@@ -153,6 +156,7 @@ export const storeResetToken = internalMutation({
  */
 export const handlePasswordChanged = internalMutation({
   args: handlePasswordChangedArgs,
+  returns: v.null(),
   handler: async (ctx, args) => {
     const user = await ctx.db.get(args.userId);
     if (!user) return;
@@ -182,6 +186,7 @@ export const handlePasswordChanged = internalMutation({
  */
 export const handlePasswordResetCompleted = internalMutation({
   args: handlePasswordResetCompletedArgs,
+  returns: v.null(),
   handler: async (ctx, args) => {
     const user = await ctx.db.get(args.userId);
     if (!user) return;
@@ -220,6 +225,7 @@ export const handlePasswordResetCompleted = internalMutation({
  */
 export const recordAdminReset = internalMutation({
   args: recordAdminResetArgs,
+  returns: v.null(),
   handler: async (ctx, args) => {
     const targetUser = await ctx.db.get(args.targetUserId);
     if (!targetUser) return;

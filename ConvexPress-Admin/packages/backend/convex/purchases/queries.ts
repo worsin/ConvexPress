@@ -225,6 +225,7 @@ export const counts = query({
     dateFrom: v.optional(v.number()),
     dateTo: v.optional(v.number()),
   },
+  returns: v.record(v.string(), v.number()),
   handler: async (ctx, args) => {
     await requireCan(ctx, "manage_options");
     const rows = await ctx.db

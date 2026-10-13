@@ -34,7 +34,6 @@ export const logInteractionArgs = {
   sessionId: v.string(),
   query: v.string(),
   aiResponse: v.string(),
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   kbArticleIds: v.array(v.string()),
   outcome: deflectionOutcomeValidator,
   ticketId: v.optional(v.string()),
@@ -76,7 +75,6 @@ export const logDeflectionInternalArgs = {
   userId: v.optional(v.id("users")),
   query: v.string(),
   aiResponse: v.string(),
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   kbArticleIds: v.array(v.string()),
   outcome: deflectionOutcomeValidator,
   ticketId: v.optional(v.string()),

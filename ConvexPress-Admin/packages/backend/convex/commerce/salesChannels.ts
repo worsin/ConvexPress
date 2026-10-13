@@ -6,6 +6,7 @@ import { requireCan } from "../helpers/permissions";
 import { patchDynamicWithMediaReferences } from "../media/attachmentGuard";
 
 
+import { tableDocs } from "../schema/tableDocs.generated";
 async function clearDefault(ctx: any, currentId?: any) {
   const current = await ctx.db
     .query("commerce_sales_channels")
@@ -20,6 +21,7 @@ async function clearDefault(ctx: any, currentId?: any) {
 
 export const list = query({
   args: { includeDisabled: v.optional(v.boolean()) },
+  returns: v.array(tableDocs.commerce_sales_channels),
   handler: async (ctx, args) => {
     await requireCan(ctx, "manage_options");
     const rows = await ctx.db.query("commerce_sales_channels").collect();
@@ -35,6 +37,7 @@ export const create = mutation({
     isDisabled: v.optional(v.boolean()),
     metadata: v.optional(v.any()),
   },
+  returns: v.id("commerce_sales_channels"),
   handler: async (ctx, args) => {
     await requireCan(ctx, "manage_options");
     if (args.isDefault) await clearDefault(ctx);
@@ -62,6 +65,7 @@ export const update = mutation({
       metadata: v.optional(v.any()),
     }),
   },
+  returns: v.id("commerce_sales_channels"),
   handler: async (ctx, args) => {
     await requireCan(ctx, "manage_options");
     const channel = await ctx.db.get(args.channelId);
@@ -78,6 +82,7 @@ export const assignProduct = mutation({
     channelId: v.id("commerce_sales_channels"),
     isAvailable: v.optional(v.boolean()),
   },
+  returns: v.id("commerce_product_sales_channels"),
   handler: async (ctx, args) => {
     await requireCan(ctx, "manage_options");
     const existing = await ctx.db

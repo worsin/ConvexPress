@@ -68,6 +68,7 @@ function generateExcerpt(content: string, maxLength: number = 200): string {
  */
 export const onContentChanged = internalMutation({
   args: onContentChangedArgs,
+  returns: v.null(),
   handler: async (ctx, args) => {
     const { contentType, contentId, action } = args;
 
@@ -460,6 +461,7 @@ async function upsertComment(
  */
 export const logSearchQuery = internalMutation({
   args: logSearchQueryArgs,
+  returns: v.null(),
   handler: async (ctx, args) => {
     await ctx.db.insert("searchQueries", {
       query: args.query,
@@ -500,6 +502,7 @@ export const purgeOldAnalytics = internalMutation({
   args: {
     retentionDays: v.optional(v.number()),
   },
+  returns: v.object({ purged: v.number() }),
   handler: async (ctx, args) => {
     const retentionMs =
       (args.retentionDays ?? 90) * 24 * 60 * 60 * 1000;
@@ -575,6 +578,7 @@ export const checkReindexPermission = internalQuery({
   args: {
     userId: v.string(),
   },
+  returns: v.boolean(),
   handler: async (ctx, args): Promise<boolean> => {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity || identity.subject !== args.userId) return false;
@@ -603,6 +607,7 @@ const REINDEX_LOCK_TIMEOUT_MS = 30 * 60 * 1000; // 30 minutes auto-expire
  */
 export const acquireReindexLock = internalMutation({
   args: {},
+  returns: v.boolean(),
   handler: async (ctx): Promise<boolean> => {
     // Check if a lock entry exists
     const existing = await ctx.db
@@ -651,6 +656,7 @@ export const acquireReindexLock = internalMutation({
  */
 export const releaseReindexLock = internalMutation({
   args: {},
+  returns: v.null(),
   handler: async (ctx): Promise<void> => {
     const existing = await ctx.db
       .query("searchIndex")

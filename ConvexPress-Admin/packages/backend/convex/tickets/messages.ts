@@ -36,6 +36,8 @@ import {
 } from "./validators";
 import { isPluginEnabled, requirePluginEnabled } from "../helpers/plugins";
 
+import { v } from "convex/values";
+import { tableDocs } from "../schema/tableDocs.generated";
 type TicketUserNameFields = {
   displayName?: string | null;
   firstName?: string | null;
@@ -59,6 +61,7 @@ function getTicketUserSnapshotName(user: TicketUserNameFields): string {
  */
 export const getByTicket: RegisteredQuery<"public", ObjectType<typeof getMessagesByTicketArgs>, Doc<"ticket_messages">[] | null> = query({
   args: getMessagesByTicketArgs,
+  returns: v.union(v.null(), v.array(tableDocs.ticket_messages)),
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "tickets"))) return null;
     const user = await getCurrentUser(ctx);
@@ -102,6 +105,7 @@ export const getByTicket: RegisteredQuery<"public", ObjectType<typeof getMessage
  */
 export const getPublicByTicket: RegisteredQuery<"public", ObjectType<typeof getPublicMessagesByTicketArgs>, Doc<"ticket_messages">[] | null> = query({
   args: getPublicMessagesByTicketArgs,
+  returns: v.union(v.null(), v.array(tableDocs.ticket_messages)),
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "tickets"))) return null;
     const user = await getCurrentUser(ctx);
@@ -137,6 +141,7 @@ export const getPublicByTicket: RegisteredQuery<"public", ObjectType<typeof getP
  */
 export const getCount: RegisteredQuery<"public", ObjectType<typeof getMessageCountArgs>, { publicCount: number; internalCount: number | undefined; totalCount: number } | null> = query({
   args: getMessageCountArgs,
+  returns: v.union(v.null(), v.object({ publicCount: v.number(), internalCount: v.optional(v.number()), totalCount: v.number() })),
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "tickets"))) return null;
     const user = await getCurrentUser(ctx);
@@ -182,6 +187,7 @@ export const getCount: RegisteredQuery<"public", ObjectType<typeof getMessageCou
  */
 export const edit: RegisteredMutation<"public", ObjectType<typeof editMessageArgs>, { messageId: Id<"ticket_messages"> }> = mutation({
   args: editMessageArgs,
+  returns: v.object({ messageId: v.id("ticket_messages") }),
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "tickets");
     const user = await requireAuth(ctx);
@@ -243,6 +249,7 @@ export const edit: RegisteredMutation<"public", ObjectType<typeof editMessageArg
  */
 export const remove: RegisteredMutation<"public", ObjectType<typeof removeMessageArgs>, { messageId: Id<"ticket_messages"> }> = mutation({
   args: removeMessageArgs,
+  returns: v.object({ messageId: v.id("ticket_messages") }),
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "tickets");
     const user = await requireCan(ctx, "ticket.respond");
@@ -281,6 +288,7 @@ export const remove: RegisteredMutation<"public", ObjectType<typeof removeMessag
  */
 export const addInternalNote: RegisteredMutation<"public", ObjectType<typeof addInternalNoteArgs>, { messageId: Id<"ticket_messages"> }> = mutation({
   args: addInternalNoteArgs,
+  returns: v.object({ messageId: v.id("ticket_messages") }),
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "tickets");
     const user = await requireCan(ctx, "ticket.viewInternalNotes");
@@ -350,6 +358,7 @@ export const addInternalNote: RegisteredMutation<"public", ObjectType<typeof add
  */
 export const addSystemMessage: RegisteredMutation<"internal", ObjectType<typeof addSystemMessageArgs>, { messageId: Id<"ticket_messages"> }> = internalMutation({
   args: addSystemMessageArgs,
+  returns: v.object({ messageId: v.id("ticket_messages") }),
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "tickets");
 

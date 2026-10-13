@@ -33,6 +33,7 @@ import {
   recentActivityArgs,
 } from "./validators";
 
+import { v } from "convex/values";
 // ─── list ─────────────────────────────────────────────────────────────────────
 
 /**
@@ -53,6 +54,30 @@ import {
  */
 export const list: import("convex/server").RegisteredQuery<"public", { severity?: "critical" | "high" | "medium" | "low" | "informational"; system?: string; actorId?: string; objectType?: "post" | "page" | "comment" | "media" | "user" | "role" | "taxonomy" | "menu" | "settings" | "seo" | "api" | "notification" | "system"; eventCode?: string; objectId?: string; correlationId?: string; search?: string; dateFrom?: number; dateTo?: number; cursor?: string; limit?: number; direction?: "newer" | "older" }, { entries: Array<Pick<import("../_generated/dataModel").Doc<"auditEntries">, "_id" | "eventId" | "eventCode" | "action" | "description" | "severity" | "system" | "actorId" | "actorName" | "actorEmail" | "actorRole" | "actorIp" | "objectType" | "objectId" | "objectLabel" | "correlationId" | "occurredAt">>; nextCursor?: string; prevCursor?: string; totalEstimate?: number }> = query({
   args: listArgs,
+  returns: v.object({
+    entries: v.array(v.object({
+      _id: v.id("auditEntries"),
+      eventId: v.id("events"),
+      eventCode: v.string(),
+      action: v.string(),
+      description: v.string(),
+      severity: v.union(v.literal("critical"), v.literal("high"), v.literal("medium"), v.literal("low"), v.literal("informational")),
+      system: v.string(),
+      actorId: v.optional(v.string()),
+      actorName: v.optional(v.string()),
+      actorEmail: v.optional(v.string()),
+      actorRole: v.optional(v.string()),
+      actorIp: v.optional(v.string()),
+      objectType: v.union(v.literal("media"), v.literal("system"), v.literal("taxonomy"), v.literal("settings"), v.literal("post"), v.literal("page"), v.literal("comment"), v.literal("user"), v.literal("role"), v.literal("menu"), v.literal("seo"), v.literal("api"), v.literal("notification")),
+      objectId: v.optional(v.string()),
+      objectLabel: v.optional(v.string()),
+      correlationId: v.optional(v.string()),
+      occurredAt: v.number(),
+    })),
+    nextCursor: v.optional(v.string()),
+    prevCursor: v.optional(v.string()),
+    totalEstimate: v.optional(v.number()),
+  }),
   handler: async (ctx, args) => {
     await requireCan(ctx, "audit.view");
 
@@ -402,16 +427,29 @@ export const get: import("convex/server").RegisteredQuery<"public", { entryId: i
  * Uses the by_event index for O(1) lookup.
  * Returns null if no audit entry exists for the given event.
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const getByEvent = query({
   args: getByEventArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.union(v.null(), v.object({
+    _id: v.id("auditEntries"),
+    eventId: v.id("events"),
+    eventCode: v.string(),
+    action: v.string(),
+    description: v.string(),
+    severity: v.union(v.literal("critical"), v.literal("high"), v.literal("medium"), v.literal("low"), v.literal("informational")),
+    system: v.string(),
+    actorId: v.optional(v.string()),
+    actorName: v.optional(v.string()),
+    objectType: v.union(v.literal("media"), v.literal("system"), v.literal("taxonomy"), v.literal("settings"), v.literal("post"), v.literal("page"), v.literal("comment"), v.literal("user"), v.literal("role"), v.literal("menu"), v.literal("seo"), v.literal("api"), v.literal("notification")),
+    objectId: v.optional(v.string()),
+    objectLabel: v.optional(v.string()),
+    occurredAt: v.number(),
+  })),
   handler: async (ctx, args) => {
     await requireCan(ctx, "audit.view");
 
     const entry = await ctx.db
       .query("auditEntries")
-      .withIndex("by_event", (q: ConvexQueryBuilder) => q.eq("eventId", args.eventId))
+      .withIndex("by_event", (q) => q.eq("eventId", args.eventId))
       .unique();
 
     if (!entry) return null;
@@ -445,6 +483,17 @@ export const getByEvent = query({
  */
 export const getObjectHistory: import("convex/server").RegisteredQuery<"public", { objectType: import("../_generated/dataModel").Doc<"auditEntries">["objectType"]; objectId: string; limit?: number }, { entries: Array<Pick<import("../_generated/dataModel").Doc<"auditEntries">, "_id" | "eventCode" | "action" | "description" | "severity" | "actorName" | "occurredAt">> }> = query({
   args: getObjectHistoryArgs,
+  returns: v.object({
+    entries: v.array(v.object({
+      _id: v.id("auditEntries"),
+      eventCode: v.string(),
+      action: v.string(),
+      description: v.string(),
+      severity: v.union(v.literal("critical"), v.literal("high"), v.literal("medium"), v.literal("low"), v.literal("informational")),
+      actorName: v.optional(v.string()),
+      occurredAt: v.number(),
+    })),
+  }),
   handler: async (ctx, args) => {
     await requireCan(ctx, "audit.view");
 
@@ -491,6 +540,20 @@ export const getObjectHistory: import("convex/server").RegisteredQuery<"public",
  */
 export const getStats: import("convex/server").RegisteredQuery<"public", { period?: "today" | "week" | "month" }, { total: number; totalEstimate: number; bySeverity: Record<string, number>; byObjectType: Record<string, number>; topActors: Array<{ actorId: string; actorName: string; count: number }>; recentCritical: Array<{ _id: import("../_generated/dataModel").Id<"auditEntries">; description: string; severity: string; actorName?: string; occurredAt: number }> }> = query({
   args: getStatsArgs,
+  returns: v.object({
+    total: v.number(),
+    totalEstimate: v.number(),
+    bySeverity: v.record(v.string(), v.number()),
+    byObjectType: v.record(v.string(), v.number()),
+    topActors: v.array(v.object({ actorId: v.string(), actorName: v.string(), count: v.number() })),
+    recentCritical: v.array(v.object({
+      _id: v.id("auditEntries"),
+      description: v.string(),
+      severity: v.string(),
+      actorName: v.optional(v.string()),
+      occurredAt: v.number(),
+    })),
+  }),
   handler: async (ctx, args) => {
     await requireCan(ctx, "audit.view");
 
@@ -657,6 +720,23 @@ export const getStats: import("convex/server").RegisteredQuery<"public", { perio
  */
 export const recentActivity: import("convex/server").RegisteredQuery<"public", { limit?: number }, { entries: Array<Pick<import("../_generated/dataModel").Doc<"auditEntries">, "_id" | "eventCode" | "action" | "description" | "severity" | "system" | "actorId" | "actorName" | "actorEmail" | "objectType" | "objectId" | "objectLabel" | "occurredAt">> }> = query({
   args: recentActivityArgs,
+  returns: v.object({
+    entries: v.array(v.object({
+      _id: v.id("auditEntries"),
+      eventCode: v.string(),
+      action: v.string(),
+      description: v.string(),
+      severity: v.union(v.literal("critical"), v.literal("high"), v.literal("medium"), v.literal("low"), v.literal("informational")),
+      system: v.string(),
+      actorId: v.optional(v.string()),
+      actorName: v.optional(v.string()),
+      actorEmail: v.optional(v.string()),
+      objectType: v.union(v.literal("media"), v.literal("system"), v.literal("taxonomy"), v.literal("settings"), v.literal("post"), v.literal("page"), v.literal("comment"), v.literal("user"), v.literal("role"), v.literal("menu"), v.literal("seo"), v.literal("api"), v.literal("notification")),
+      objectId: v.optional(v.string()),
+      objectLabel: v.optional(v.string()),
+      occurredAt: v.number(),
+    })),
+  }),
   handler: async (ctx, args) => {
     await requireCan(ctx, "audit.view");
 

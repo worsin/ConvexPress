@@ -224,6 +224,7 @@ export const emitSubscriptionStarted = internalMutation({
     offerId: v.string(),
     customerEmail: v.optional(v.string()),
   },
+  returns: v.null(),
   handler: async (ctx, args) => {
     const { emitEvent } = await import("../../helpers/events");
     const { FORM_EVENTS, SYSTEM } = await import("../../events/constants");
@@ -531,6 +532,7 @@ async function runSubscriptionAction(
  */
 export const getPriorIntentId = internalQuery({
   args: { submissionId: v.id("form_submissions") },
+  returns: v.union(v.null(), v.string()),
   handler: async (ctx, { submissionId }): Promise<string | null> => {
     const runs = await ctx.db
       .query("form_action_runs")
@@ -555,6 +557,7 @@ export const getPriorIntentId = internalQuery({
 /** Read a checkout intent's pricing snapshot (for the reuse branch). */
 export const getIntentPricing = internalQuery({
   args: { intentId: v.id("commerce_subscription_checkout_intents") },
+  returns: v.union(v.null(), v.object({ amount: v.number(), recurringAmount: v.number(), currency: v.string() })),
   handler: async (
     ctx,
     { intentId },

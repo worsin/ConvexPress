@@ -413,6 +413,19 @@ export const run = internalMutation({
   args: {
     reset: v.optional(v.boolean()),
   },
+  returns: v.object({
+    ok: v.boolean(),
+    userId: v.id("users"),
+    planId: v.id("membership_plans"),
+    certificateId: v.id("lms_certificates"),
+    certificateSerial: v.string(),
+    courses: v.object({
+      freeCourseId: v.id("lms_courses"),
+      memberCourseId: v.id("lms_courses"),
+      certificateCourseId: v.id("lms_courses"),
+      dripCourseId: v.id("lms_courses"),
+    }),
+  }),
   handler: async (ctx, args) => {
     const userId = await getSeedUserId(ctx);
     await upsertPluginSettings(ctx, userId);

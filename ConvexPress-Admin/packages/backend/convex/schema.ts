@@ -4,7 +4,6 @@ import {syncedBlockTables} from "./schema/syncedBlocks";
 import { blockDefinitionTables } from "./schema/blockDefinitions";
 import {leadMagnetTables} from "./schema/leadMagnets";
 import { defineSchema } from "convex/server";
-import type {} from "./types/convexQueryBuilder";
 
 // ─── Modular Schema Imports ──────────────────────────────────────────────────
 // Each system owns its own schema file in convex/schema/

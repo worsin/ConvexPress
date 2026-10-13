@@ -14,6 +14,7 @@ export const createRule = mutation({
     description: v.optional(v.string()),
     ruleAST: v.any(),
   },
+  returns: v.id("commerce_shipping_rules"),
   handler: async (ctx, args) => {
     const user = await requireCan(ctx, "shipping.rules.manage");
     const errors = validateRuleAST(args.ruleAST);
@@ -51,6 +52,7 @@ export const updateRule = mutation({
       ruleAST: v.optional(v.any()),
     }),
   },
+  returns: v.id("commerce_shipping_rules"),
   handler: async (ctx, args) => {
     const user = await requireCan(ctx, "shipping.rules.manage");
     const existing = await ctx.db.get(args.ruleId);
@@ -83,6 +85,7 @@ export const updateRule = mutation({
 
 export const deleteRule = mutation({
   args: { ruleId: v.id("commerce_shipping_rules") },
+  returns: v.object({ deleted: v.boolean() }),
   handler: async (ctx, args) => {
     await requireCan(ctx, "shipping.rules.manage");
 

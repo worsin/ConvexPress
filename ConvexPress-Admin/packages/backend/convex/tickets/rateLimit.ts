@@ -37,10 +37,19 @@ type RateLimitAction = keyof typeof RATE_LIMIT_WINDOWS;
  *
  * This is an atomic check-and-record: the record is only inserted if allowed.
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const checkAndRecord = mutation({
   args: checkRateLimitArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.union(v.object({
+    allowed: v.boolean(),
+    retryAfterMs: v.number(),
+    remaining: v.optional(v.null()),
+    windowMs: v.optional(v.null()),
+  }), v.object({
+    allowed: v.boolean(),
+    remaining: v.number(),
+    windowMs: v.number(),
+    retryAfterMs: v.optional(v.null()),
+  })),
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "tickets");
     const now = Date.now();
@@ -52,19 +61,17 @@ export const checkAndRecord = mutation({
     // Count recent records for this session + action
     const recentRecords = await ctx.db
       .query("ticket_rateLimits")
-      .withIndex("by_session_action", (q: ConvexQueryBuilder) =>
+      .withIndex("by_session_action", (q) =>
         q.eq("sessionId", args.sessionId).eq("action", args.action),
       )
       .take(100);
 
     // Filter to records within the current window
-    // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
     const inWindow = recentRecords.filter((r) => r.createdAt >= windowStart);
 
     if (inWindow.length >= maxRequests) {
       // Rate limited - find when the oldest record in the window expires
       const oldest = inWindow.reduce(
-        // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
         (min, r) => (r.createdAt < min ? r.createdAt : min),
         Infinity,
       );
@@ -95,10 +102,15 @@ export const checkAndRecord = mutation({
  * Get the current rate limit status for a session + action.
  * Does NOT record an action.
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const getStatus = query({
   args: getRateLimitStatusArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.union(v.null(), v.object({
+    used: v.number(),
+    remaining: v.number(),
+    limit: v.union(v.literal(3), v.literal(5), v.literal(10)),
+    windowMs: v.number(),
+    isLimited: v.boolean(),
+  })),
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "tickets"))) return null;
     const now = Date.now();
@@ -109,12 +121,11 @@ export const getStatus = query({
 
     const recentRecords = await ctx.db
       .query("ticket_rateLimits")
-      .withIndex("by_session_action", (q: ConvexQueryBuilder) =>
+      .withIndex("by_session_action", (q) =>
         q.eq("sessionId", args.sessionId).eq("action", args.action),
       )
       .take(100);
 
-    // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
     const inWindow = recentRecords.filter((r) => r.createdAt >= windowStart);
 
     return {
@@ -134,11 +145,9 @@ export const getStatus = query({
  * Records older than 1 hour are deleted (well past any rate limit window).
  * Processes in batches.
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const cleanup = internalMutation({
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   args: { batchSize: v.optional(v.number()) },
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.object({ deleted: v.number() }),
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "tickets");
     const batchSize = args.batchSize ?? 500;
@@ -146,7 +155,7 @@ export const cleanup = internalMutation({
 
     const expired = await ctx.db
       .query("ticket_rateLimits")
-      .withIndex("by_created", (q: ConvexQueryBuilder) => q.lt("createdAt", oneHourAgo))
+      .withIndex("by_created", (q) => q.lt("createdAt", oneHourAgo))
       .take(batchSize);
 
     for (const record of expired) {
@@ -171,10 +180,9 @@ export const cleanup = internalMutation({
  * Admin-only stats on rate limit usage across all sessions.
  * Returns counts per action for the last hour.
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const getGlobalStats = query({
   args: {},
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.union(v.null(), v.record(v.string(), v.object({ count: v.number(), uniqueSessions: v.number() }))),
   handler: async (ctx) => {
     if (!(await isPluginEnabled(ctx, "tickets"))) return null;
     const canView = await currentUserCan(ctx, "ticket.viewAnalytics");
@@ -188,17 +196,15 @@ export const getGlobalStats = query({
     for (const action of actions) {
       const records = await ctx.db
         .query("ticket_rateLimits")
-        .withIndex("by_action_time", (q: ConvexQueryBuilder) =>
+        .withIndex("by_action_time", (q) =>
           q.eq("action", action).gte("createdAt", oneHourAgo),
         )
         .take(5000);
 
-      // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
       const uniqueSessions = new Set(records.map((r) => r.sessionId)).size;
       stats[action] = { count: records.length, uniqueSessions };
     }
 
-    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     return stats;
   },
 });

@@ -87,6 +87,7 @@ function resolveHandler(
  */
 export const processEvent = internalMutation({
   args: processEventArgs,
+  returns: v.null(),
   handler: async (ctx, args) => {
     // ─── 1. Load and validate event ───────────────────────────────────────
     const event = await ctx.db.get("events", args.eventId);
@@ -321,6 +322,7 @@ export const processEvent = internalMutation({
  */
 export const retryExecution = internalMutation({
   args: retryExecutionArgs,
+  returns: v.null(),
   handler: async (ctx, args) => {
     // ─── Load execution and validate ──────────────────────────────────────
     const execution = await ctx.db.get("eventListenerExecutions", args.executionId);
@@ -530,6 +532,7 @@ const CLEANUP_BATCH_SIZE = 100;
  */
 export const retentionCleanup = internalMutation({
   args: {},
+  returns: v.null(),
   handler: async (ctx) => {
     const now = Date.now();
 
@@ -582,6 +585,7 @@ export const cleanupBatch = internalMutation({
   args: {
     deletedSoFar: v.number(),
   },
+  returns: v.null(),
   handler: async (ctx, args) => {
     const now = Date.now();
 

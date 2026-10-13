@@ -104,10 +104,9 @@ function validateUrl(url: string): string {
  *
  * Requires `profile.update` capability (all roles have this).
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const updateProfile = mutation({
   args: updateProfileArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.null(),
   handler: async (ctx, args) => {
     // 1. Auth + capability check
     const user = await requireCan(ctx, "profile.update");
@@ -231,11 +230,9 @@ export const updateProfile = mutation({
  *
  * Can change: all profile fields + status, roleId, email (admin-only fields).
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const updateUser = mutation({
   args: updateUserArgs,
   returns: v.null(),
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     // 1. Auth + capability check
     const currentUser = await requireCan(ctx, "profile.update");
@@ -398,7 +395,7 @@ export const updateUser = mutation({
         // Check email uniqueness
         const existingByEmail = await ctx.db
           .query("users")
-          .withIndex("by_email", (q: ConvexQueryBuilder) => q.eq("email", nextEmail))
+          .withIndex("by_email", (q) => q.eq("email", nextEmail))
           .unique();
         if (existingByEmail && existingByEmail._id !== args.userId) {
           throw new ConvexError({
@@ -554,10 +551,9 @@ export const createUser: RegisteredMutation<"public", ObjectType<typeof createUs
  *   - Cannot deactivate yourself
  *   - Cannot deactivate the last active Administrator
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const deactivateUser = mutation({
   args: deactivateUserArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.null(),
   handler: async (ctx, args) => {
     // 1. Auth + capability check
     const currentUser = await requireCan(ctx, "profile.deactivate");
@@ -625,10 +621,9 @@ export const deactivateUser = mutation({
  * Requires `profile.deactivate` capability (Administrator only).
  * Sets status back to "active" and clears deactivation metadata.
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const reactivateUser = mutation({
   args: reactivateUserArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.null(),
   handler: async (ctx, args) => {
     // 1. Auth + capability check
     const currentUser = await requireCan(ctx, "profile.deactivate");
@@ -681,10 +676,9 @@ export const reactivateUser = mutation({
  *   - Cannot delete yourself
  *   - Cannot delete the last active Administrator
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const deleteUser = mutation({
   args: deleteUserArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.null(),
   handler: async (ctx, args) => {
     // 1. Auth + capability check
     const currentUser = await requireCan(ctx, "profile.delete_user");
@@ -783,10 +777,12 @@ export const deleteUser = mutation({
  * Iterates over userIds and delegates to the delete logic for each.
  * Silently skips the current user if included in the list.
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const bulkDeleteUsers = mutation({
   args: bulkDeleteUsersArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.object({
+    deleted: v.number(),
+    errors: v.array(v.object({ userId: v.string(), error: v.string() })),
+  }),
   handler: async (ctx, args) => {
     // 1. Auth + capability check
     const currentUser = await requireCan(ctx, "profile.bulk_delete");
@@ -928,10 +924,9 @@ export const bulkChangeRole: RegisteredMutation<"public", ObjectType<typeof bulk
  *   4. Client calls this mutation with storageId
  *   5. Server resolves URL, patches user, emits event
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const uploadAvatar = mutation({
   args: uploadAvatarArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.null(),
   handler: async (ctx, args) => {
     // 1. Auth + capability check
     const currentUser = await requireCan(ctx, "profile.upload_avatar");
@@ -996,10 +991,9 @@ export const uploadAvatar = mutation({
  *
  * Requires `profile.upload_avatar` capability (all authenticated users).
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const removeAvatar = mutation({
   args: removeAvatarArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.null(),
   handler: async (ctx, args) => {
     // 1. Auth + capability check
     const currentUser = await requireCan(ctx, "profile.upload_avatar");
@@ -1060,10 +1054,9 @@ export const removeAvatar = mutation({
  * attributed. Invoked by `profiles.actions.deleteOwnAccount`, which also
  * deletes the Clerk user so the credential cannot be reused.
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const closeOwnAccount = internalMutation({
   args: {},
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.object({ userId: v.id("users"), clerkUserId: v.string() }),
   handler: async (ctx) => {
     const user = await getCurrentUser(ctx);
     if (!user) throw new ConvexError({ code: "UNAUTHORIZED", message: "Authentication required" });

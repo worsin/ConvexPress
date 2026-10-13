@@ -300,6 +300,7 @@ export const generateWithClaude = internalAction({
       ),
     ),
   },
+  returns: v.string(),
   handler: async (ctx, args) => {
     const { provider, apiKey, defaultModel, envVarName } =
       await resolveAiSettings(ctx, args.task ?? "default");

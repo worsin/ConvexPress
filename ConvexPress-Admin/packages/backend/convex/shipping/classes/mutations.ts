@@ -16,6 +16,7 @@ import {
 } from "./validators";
 import { patchWithMediaReferences } from "../../media/attachmentGuard";
 
+import { v } from "convex/values";
 const CLASS_SLUG_REGEX = /^[a-z0-9-]+$/;
 
 async function ensureUniqueClassSlug(
@@ -58,6 +59,7 @@ async function getNextClassSortOrder(ctx: any): Promise<number> {
 
 export const create = mutation({
   args: createShippingClassArgs,
+  returns: v.id("commerce_shipping_classes"),
   handler: async (ctx, args) => {
     const user = await requireCan(ctx, "shipping.classes.manage");
     if (!args.name.trim()) {
@@ -98,6 +100,7 @@ export const create = mutation({
 
 export const update = mutation({
   args: updateShippingClassArgs,
+  returns: v.id("commerce_shipping_classes"),
   handler: async (ctx, args) => {
     const user = await requireCan(ctx, "shipping.classes.manage");
     const existing = await ctx.db.get(args.classId);
@@ -141,6 +144,7 @@ export const update = mutation({
 
 export const remove = mutation({
   args: deleteShippingClassArgs,
+  returns: v.object({ deleted: v.boolean(), reassignedProducts: v.number(), reassignedVariants: v.number() }),
   handler: async (ctx, args) => {
     await requireCan(ctx, "shipping.classes.manage");
     const existing = await ctx.db.get(args.classId);
@@ -198,6 +202,7 @@ export const remove = mutation({
 
 export const reorder = mutation({
   args: reorderShippingClassesArgs,
+  returns: v.object({ updated: v.number() }),
   handler: async (ctx, args) => {
     const user = await requireCan(ctx, "shipping.classes.manage");
     const now = Date.now();
@@ -219,6 +224,7 @@ export const reorder = mutation({
 
 export const assignToProduct = mutation({
   args: assignClassToProductArgs,
+  returns: v.id("commerce_products"),
   handler: async (ctx, args) => {
     await requireCan(ctx, "shipping.classes.manage");
     const product = await ctx.db.get(args.productId);
@@ -235,6 +241,7 @@ export const assignToProduct = mutation({
 
 export const assignToVariant = mutation({
   args: assignClassToVariantArgs,
+  returns: v.id("commerce_product_variants"),
   handler: async (ctx, args) => {
     await requireCan(ctx, "shipping.classes.manage");
     const variant = await ctx.db.get(args.variantId);
@@ -267,6 +274,7 @@ export const assignToVariant = mutation({
 
 export const bulkAssign = mutation({
   args: bulkAssignClassArgs,
+  returns: v.object({ updated: v.number() }),
   handler: async (ctx, args) => {
     await requireCan(ctx, "shipping.classes.manage");
     const now = Date.now();

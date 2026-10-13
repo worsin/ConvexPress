@@ -50,6 +50,7 @@ import {
   DEFAULT_ROBOTS_SETTINGS,
 } from "../helpers/seo";
 
+import { v } from "convex/values";
 // ─── updatePostSeo ──────────────────────────────────────────────────────────
 
 /**
@@ -68,6 +69,7 @@ import {
  */
 export const updatePostSeo = mutation({
   args: updatePostSeoArgs,
+  returns: v.object({ success: v.boolean(), updatedKeys: v.array(v.string()) }),
   handler: async (ctx, args) => {
     // 1. Auth check - require seo.update_post base capability
     const user = await requireCan(ctx, "seo.update_post");
@@ -264,6 +266,10 @@ export const updatePostSeo = mutation({
  */
 export const updateGlobal = mutation({
   args: updateGlobalArgs,
+  returns: v.object({
+    success: v.boolean(),
+    key: v.union(v.literal("social"), v.literal("titles"), v.literal("robots"), v.literal("schema"), v.literal("breadcrumbs"), v.literal("verification"), v.literal("advanced")),
+  }),
   handler: async (ctx, args) => {
     // 1. Auth check
     const user = await requireCan(ctx, "seo.update_global");
@@ -340,6 +346,7 @@ export const updateGlobal = mutation({
  */
 export const updateRobots = mutation({
   args: updateRobotsArgs,
+  returns: v.object({ success: v.boolean() }),
   handler: async (ctx, args) => {
     // 1. Auth check
     const user = await requireCan(ctx, "seo.update_robots");
@@ -425,6 +432,7 @@ export const updateRobots = mutation({
  */
 export const generateSitemap = mutation({
   args: {},
+  returns: v.object({ success: v.boolean(), message: v.string() }),
   handler: async (ctx) => {
     // 1. Auth check
     const user = await requireCan(ctx, "seo.generate_sitemap");

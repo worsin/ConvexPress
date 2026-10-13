@@ -18,13 +18,12 @@ import { envPresence } from "./internals";
 import { collectLegacySecrets } from "../helpers/settingsSecretUpgrade";
 import { INTEGRATIONS, RUNTIME_ENVIRONMENT, type IntegrationField } from "./registry";
 
+import { v } from "convex/values";
 /** Overview shapes (kept as types; validators here blow the TS instantiation budget). */
 export type OverviewFieldState = "set" | "env" | "empty";
 
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const overview = query({
   args: {},
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx) => {
     await requireCan(ctx, "manage_options");
 
@@ -171,13 +170,15 @@ export const overview = query({
 });
 
 /** Presence (never values) of the runtime environment variables. */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const environment = query({
   args: {},
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.array(v.object({
+    group: v.string(),
+    description: v.string(),
+    keys: v.array(v.object({ name: v.string(), detail: v.string(), optional: v.boolean(), set: v.boolean() })),
+  })),
   handler: async (ctx) => {
     await requireCan(ctx, "manage_options");
-    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     return RUNTIME_ENVIRONMENT.map((group) => ({
       group: group.group,
       description: group.description,

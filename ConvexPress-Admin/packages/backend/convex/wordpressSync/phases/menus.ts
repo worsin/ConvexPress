@@ -35,6 +35,20 @@ export const importBatch = internalAction({
     siteId: v.id("wordpressSites"),
     credentials: siteCredentialsValidator,
   },
+  returns: v.object({
+    progress: v.object({
+      total: v.number(),
+      imported: v.number(),
+      failed: v.number(),
+      cursor: v.optional(v.number()),
+      created: v.optional(v.number()),
+      updated: v.optional(v.number()),
+      skipped: v.optional(v.number()),
+      conflicted: v.optional(v.number()),
+    }),
+    errors: v.array(v.object({ phase: v.string(), wpId: v.number(), message: v.string(), timestamp: v.number() })),
+    hasMore: v.boolean(),
+  }),
   handler: async (ctx, { jobId, siteId, credentials }): Promise<PhaseResult> => {
     const errors: SyncError[] = [];
     let created = 0;
@@ -424,6 +438,7 @@ export const menusCreate = internalMutation({
     }),
     siteId: v.id("wordpressSites"),
   },
+  returns: v.string(),
   handler: async (ctx, { existingId, wpMenu, siteId }) => {
     const now = Date.now();
 
@@ -492,6 +507,7 @@ export const menusCreateItem = internalMutation({
     }),
     siteId: v.id("wordpressSites"),
   },
+  returns: v.string(),
   handler: async (ctx, { existingId, wpItem, siteId }) => {
     const now = Date.now();
 
@@ -541,6 +557,7 @@ export const menusUpdateCount = internalMutation({
     menuId: v.string(),
     count: v.number(),
   },
+  returns: v.null(),
   handler: async (ctx, { menuId, count }) => {
     await ctx.db.patch("menus", menuId as Id<"menus">, {
       itemCount: count,

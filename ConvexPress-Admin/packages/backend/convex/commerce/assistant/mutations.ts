@@ -90,6 +90,7 @@ export const resolveSession = mutation({
 
 export const ensureSession = mutation({
   args: { sessionToken: v.string(), route: v.optional(v.string()), query: v.optional(v.string()) },
+  returns: v.string(),
   handler: async (ctx: any, args: any) => {
     await assistantScope(ctx, args.sessionToken);
     const session = await ensureSessionDoc(ctx, args.sessionToken);
@@ -147,6 +148,7 @@ export const appendMessage = internalMutation({
     tokensOut: v.optional(v.number()),
     error: v.optional(v.string()),
   },
+  returns: v.string(),
   handler: async (ctx: any, args: any) => {
     const session = await ensureSessionDoc(ctx, args.sessionToken);
     return appendMessageToSession(ctx, session, args);
@@ -159,6 +161,7 @@ export const setFeedback = mutation({
     messageId: v.id("commerce_assistant_messages"),
     feedback: v.union(v.literal("up"), v.literal("down"), v.null()),
   },
+  returns: v.null(),
   handler: async (ctx: any, args: any) => {
     const scope = await assistantScope(ctx, args.sessionToken);
     const message = await ctx.db.get(args.messageId);
@@ -171,6 +174,7 @@ export const setFeedback = mutation({
 
 export const clearThread = mutation({
   args: { sessionToken: v.string() },
+  returns: v.null(),
   handler: async (ctx: any, args: any) => {
     const { session } = await assistantScope(ctx, args.sessionToken);
     if (!session) return;
@@ -258,6 +262,7 @@ export async function rememberFactInternal(
 
 export const rememberFact = mutation({
   args: { sessionToken: v.string(), fact: v.string(), kind: v.optional(shopperMemoryKindValidator) },
+  returns: v.union(v.null(), v.string()),
   handler: async (ctx: any, args: any) => {
     await assistantScope(ctx, args.sessionToken);
     await ensureSessionDoc(ctx, args.sessionToken);
@@ -280,6 +285,7 @@ export const rememberFactFromAssistant = internalMutation({
     kind: v.optional(v.string()),
     retentionDays: v.number(),
   },
+  returns: v.union(v.null(), v.string()),
   handler: async (ctx: any, args: any) => {
     await ensureSessionDoc(ctx, args.sessionToken);
     const scope = await assistantScope(ctx, args.sessionToken);
@@ -296,6 +302,7 @@ export const rememberFactFromAssistant = internalMutation({
 
 export const forgetFact = mutation({
   args: { sessionToken: v.string(), memoryId: v.id("commerce_shopper_memory") },
+  returns: v.null(),
   handler: async (ctx: any, args: any) => {
     await assistantScope(ctx, args.sessionToken);
     const row = await ctx.db.get(args.memoryId);
@@ -307,6 +314,7 @@ export const forgetFact = mutation({
 
 export const forgetAll = mutation({
   args: { sessionToken: v.string() },
+  returns: v.null(),
   handler: async (ctx: any, args: any) => {
     await assistantScope(ctx, args.sessionToken);
     const scope = await assistantScope(ctx, args.sessionToken);
@@ -331,6 +339,7 @@ export const storeBrief = internalMutation({
     model: v.optional(v.string()),
     ttlMs: v.number(),
   },
+  returns: v.null(),
   handler: async (ctx: any, args: any) => {
     await ensureSessionDoc(ctx, args.sessionToken);
     const now = Date.now();
@@ -359,6 +368,7 @@ export const storeFacets = internalMutation({
     query: v.string(),
     chips: v.array(v.object({ label: v.string(), query: v.optional(v.string()), categorySlug: v.optional(v.string()) })),
   },
+  returns: v.null(),
   handler: async (ctx: any, args: any) => {
     const existing = await ctx.db
       .query("commerce_search_facets")
@@ -373,6 +383,7 @@ export const storeFacets = internalMutation({
 
 export const markTip = internalMutation({
   args: { sessionToken: v.string() },
+  returns: v.null(),
   handler: async (ctx: any, args: any) => {
     const session = await ensureSessionDoc(ctx, args.sessionToken);
     await patchDynamicWithMediaReferences(ctx, session._id, { lastTipAt: Date.now(), updatedAt: Math.max(Date.now(), session.updatedAt) });
@@ -389,6 +400,7 @@ export const logEvent = mutation({
     productIds: v.array(v.id("commerce_products")),
     groupKey: v.optional(v.string()),
   },
+  returns: v.null(),
   handler: async (ctx: any, args: any) => {
     await assistantScope(ctx, args.sessionToken);
     const now = Date.now();

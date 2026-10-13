@@ -284,6 +284,7 @@ export const orphanMenuItemsByObject = internalMutation({
     itemType: v.string(),
     objectId: v.string(),
   },
+  returns: v.number(),
   handler: async (ctx, args) => {
     const items = await ctx.db
       .query("menuItems")
@@ -324,6 +325,7 @@ export const autoAddPageToMenus = internalMutation({
     pageTitle: v.string(),
     pagePath: v.optional(v.string()),
   },
+  returns: v.null(),
   handler: async (ctx, args) => {
     // Find all menus with autoAddPages enabled
     const allMenus = await ctx.db.query("menus").collect();
@@ -392,6 +394,7 @@ export const autoAddPageToMenus = internalMutation({
  */
 export const initializeMenuLocations = internalMutation({
   args: {},
+  returns: v.null(),
   handler: async (ctx) => {
     const now = Date.now();
 
@@ -427,6 +430,7 @@ export const handleContentDeleted = internalMutation({
     itemType: v.string(),
     objectId: v.string(),
   },
+  returns: v.null(),
   handler: async (ctx, args) => {
     const items = await ctx.db
       .query("menuItems")
@@ -457,6 +461,21 @@ export const handleContentDeleted = internalMutation({
  */
 export const listMenusInternal = internalQuery({
   args: {},
+  returns: v.array(v.object({
+    assignedLocations: v.array(v.string()),
+    _id: v.id("menus"),
+    _creationTime: v.number(),
+    wpSourceSiteId: v.optional(v.id("wordpressSites")),
+    description: v.optional(v.string()),
+    wpTermId: v.optional(v.number()),
+    autoAddPages: v.optional(v.boolean()),
+    itemCount: v.optional(v.number()),
+    name: v.string(),
+    updatedAt: v.number(),
+    createdAt: v.number(),
+    slug: v.string(),
+    createdBy: v.string(),
+  })),
   handler: async (ctx) => {
     // Fetch all menus
     const menus = await ctx.db.query("menus").collect();
@@ -500,6 +519,7 @@ export const duplicateMenu = internalMutation({
     menuId: v.id("menus"),
     createdBy: v.string(),
   },
+  returns: v.id("menus"),
   handler: async (ctx, args) => {
     // Fetch the source menu
     const sourceMenu = await ctx.db.get("menus", args.menuId);

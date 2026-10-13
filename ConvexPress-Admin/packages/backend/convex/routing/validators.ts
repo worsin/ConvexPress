@@ -127,9 +127,7 @@ export const updateRedirectArgs = {
   redirectId: v.id("redirects"),
   sourceUrl: v.optional(v.string()),
   targetUrl: v.optional(v.string()),
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   statusCode: v.optional(redirectStatusCodeValidator),
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   matchType: v.optional(redirectMatchTypeValidator),
   enabled: v.optional(v.boolean()),
   note: v.optional(v.string()),
@@ -146,7 +144,6 @@ export const deleteRedirectArgs = {
  * Arguments for resolving a 404 entry (marking as addressed).
  */
 export const resolve404Args = {
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   notFoundId: v.id("notFound"),
   redirectId: v.optional(v.id("redirects")),
 };
@@ -162,7 +159,6 @@ export const dismiss404Args = {
  * Arguments for bulk dismissing 404 entries.
  */
 export const bulkDismiss404Args = {
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   notFoundIds: v.array(v.id("notFound")),
 };
 
@@ -172,24 +168,17 @@ export const bulkDismiss404Args = {
  * Arguments for admin redirect list with filters and pagination.
  */
 export const getRedirectsArgs = {
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   source: v.optional(redirectSourceValidator),
   enabled: v.optional(v.boolean()),
   search: v.optional(v.string()),
   sortBy: v.optional(
-    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     v.union(
-      // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
       v.literal("sourceUrl"),
-      // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
       v.literal("hitCount"),
-      // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
       v.literal("createdAt"),
-      // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
       v.literal("lastHitAt"),
     ),
   ),
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   sortOrder: v.optional(v.union(v.literal("asc"), v.literal("desc"))),
   page: v.optional(v.number()),
   perPage: v.optional(v.number()),
@@ -209,17 +198,12 @@ export const get404LogArgs = {
   resolved: v.optional(v.boolean()),
   minHits: v.optional(v.number()),
   sortBy: v.optional(
-    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     v.union(
-      // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
       v.literal("hitCount"),
-      // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
       v.literal("lastHitAt"),
-      // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
       v.literal("url"),
     ),
   ),
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   sortOrder: v.optional(v.union(v.literal("asc"), v.literal("desc"))),
   page: v.optional(v.number()),
   perPage: v.optional(v.number()),
@@ -238,7 +222,6 @@ export const resolveRedirectArgs = {
  * Arguments for generating a slug-change redirect.
  */
 export const generateSlugRedirectArgs = {
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   contentType: v.union(v.literal("post"), v.literal("page")),
   contentId: v.string(),
   oldSlug: v.string(),
@@ -249,15 +232,12 @@ export const generateSlugRedirectArgs = {
  * Arguments for batch creating redirects.
  */
 export const batchCreateRedirectsArgs = {
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   redirects: v.array(
-    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     v.object({
       sourceUrl: v.string(),
       targetUrl: v.string(),
     }),
   ),
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   source: v.union(v.literal("slug_change"), v.literal("permalink_change")),
 };
 

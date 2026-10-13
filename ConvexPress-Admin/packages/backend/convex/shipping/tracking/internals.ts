@@ -2,6 +2,7 @@ import { v } from "convex/values";
 
 import { internalMutation, internalQuery } from "../../_generated/server";
 
+import { tableDocs } from "../../schema/tableDocs.generated";
 /**
  * PRD D2 §5 — append a durable sync log entry. Called from tracking
  * actions (poll) and webhook handlers so admins can inspect the full
@@ -21,6 +22,7 @@ export const recordSyncLog = internalMutation({
     errorMessage: v.optional(v.string()),
     eventCount: v.optional(v.number()),
   },
+  returns: v.id("commerce_tracking_sync_log"),
   handler: async (ctx, args) => {
     // Consecutive-failure tracking + exponential backoff computation.
     let consecutiveFailures = 0;
@@ -62,6 +64,7 @@ const TERMINAL_STATUSES = new Set(["delivered", "returned"]);
  */
 export const listSyncableLabels = internalQuery({
   args: { maxAgeMs: v.number() },
+  returns: v.array(tableDocs.commerce_shipment_labels),
   handler: async (ctx, args) => {
     const cutoff = Date.now() - args.maxAgeMs;
     const labels = await ctx.db
@@ -93,6 +96,7 @@ export const listSyncableLabels = internalQuery({
 
 export const getLabelById = internalQuery({
   args: { labelId: v.id("commerce_shipment_labels") },
+  returns: v.union(v.null(), tableDocs.commerce_shipment_labels),
   handler: async (ctx, args) => {
     return ctx.db.get(args.labelId);
   },
@@ -104,6 +108,15 @@ export const getLabelById = internalQuery({
  */
 export const findShipmentByTracking = internalQuery({
   args: { trackingNumber: v.string() },
+  returns: v.union(v.null(), v.object({
+    shipmentId: v.id("commerce_shipments"),
+    orderId: v.id("commerce_orders"),
+    labelId: v.id("commerce_shipment_labels"),
+  }), v.object({
+    shipmentId: v.id("commerce_shipments"),
+    orderId: v.id("commerce_orders"),
+    labelId: v.null(),
+  })),
   handler: async (ctx, args) => {
     // Try the shipment_labels table first (most granular for multi-package).
     const label = await ctx.db

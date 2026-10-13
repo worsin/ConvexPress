@@ -4,12 +4,14 @@ import { query } from "../../_generated/server";
 import { requireCan } from "../../helpers/permissions";
 import { packageSourceValidator } from "./validators";
 
+import { tableDocs } from "../../schema/tableDocs.generated";
 export const list = query({
   args: {
     source: v.optional(packageSourceValidator),
     shipFromLocationId: v.optional(v.id("commerce_ship_from_locations")),
     includeArchived: v.optional(v.boolean()),
   },
+  returns: v.array(tableDocs.commerce_shipping_packages),
   handler: async (ctx, args) => {
     await requireCan(ctx, "shipping.packages.read");
     const all = await ctx.db.query("commerce_shipping_packages").collect();
@@ -36,6 +38,7 @@ export const list = query({
 
 export const get = query({
   args: { packageId: v.id("commerce_shipping_packages") },
+  returns: v.union(v.null(), tableDocs.commerce_shipping_packages),
   handler: async (ctx, args) => {
     await requireCan(ctx, "shipping.packages.read");
     return ctx.db.get(args.packageId);
@@ -44,6 +47,7 @@ export const get = query({
 
 export const getDefault = query({
   args: { shipFromLocationId: v.optional(v.id("commerce_ship_from_locations")) },
+  returns: v.union(v.null(), tableDocs.commerce_shipping_packages),
   handler: async (ctx, args) => {
     await requireCan(ctx, "shipping.packages.read");
     const scoped = await ctx.db

@@ -31,12 +31,21 @@ type InboundChannelSecurityResult =
   | { exists: false; active: false }
   | { exists: true; active: boolean; security: InboundChannelSecurity };
 
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const getInboundChannelSecurity = internalQuery({
   args: {
     channelCode: v.string(),
   },
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.union(v.object({ exists: v.literal(false), active: v.literal(false) }), v.object({
+    exists: v.literal(true),
+    active: v.boolean(),
+    security: v.object({
+      signingSecret: v.union(v.null(), v.string()),
+      allowUnsigned: v.boolean(),
+      signatureHeader: v.string(),
+      timestampHeader: v.union(v.null(), v.string()),
+      toleranceSeconds: v.number(),
+    }),
+  })),
   handler: async (ctx, args): Promise<InboundChannelSecurityResult> => {
     if (!(await isPluginEnabled(ctx, "tickets"))) {
       return { exists: false as const, active: false as const };
@@ -56,22 +65,55 @@ export const getInboundChannelSecurity = internalQuery({
   },
 });
 
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const recordInboundEmail = internalMutation({
   args: {
     channelCode: v.string(),
     externalId: v.string(),
     fromEmail: v.string(),
-    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     fromName: v.optional(v.string()),
     subject: v.string(),
     body: v.string(),
     rawPayload: v.string(),
-    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     ticketNumber: v.optional(v.string()),
     receivedAt: v.number(),
   },
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.union(v.object({
+    ok: v.literal(false),
+    reason: v.literal("tickets_disabled"),
+    idempotent: v.optional(v.null()),
+    eventId: v.optional(v.null()),
+    ticketId: v.optional(v.null()),
+  }), v.object({
+    ok: v.literal(false),
+    reason: v.literal("channel_not_found"),
+    idempotent: v.optional(v.null()),
+    eventId: v.optional(v.null()),
+    ticketId: v.optional(v.null()),
+  }), v.object({
+    ok: v.literal(false),
+    reason: v.literal("channel_inactive"),
+    idempotent: v.optional(v.null()),
+    eventId: v.optional(v.null()),
+    ticketId: v.optional(v.null()),
+  }), v.object({
+    ok: v.literal(true),
+    idempotent: v.literal(true),
+    eventId: v.id("support_inbound_events"),
+    ticketId: v.optional(v.string()),
+    reason: v.optional(v.null()),
+  }), v.object({
+    ok: v.literal(false),
+    reason: v.literal("unknown_user"),
+    eventId: v.id("support_inbound_events"),
+    idempotent: v.optional(v.null()),
+    ticketId: v.optional(v.null()),
+  }), v.object({
+    ok: v.literal(true),
+    eventId: v.id("support_inbound_events"),
+    ticketId: v.string(),
+    reason: v.optional(v.null()),
+    idempotent: v.optional(v.null()),
+  })),
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "tickets"))) {
       return { ok: false as const, reason: "tickets_disabled" as const };

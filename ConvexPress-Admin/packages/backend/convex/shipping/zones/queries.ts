@@ -6,8 +6,10 @@ import { requireCommerceEnabled } from "../../commerce/helpers";
 import { zoneMatchesAddress } from "../helpers/zoneMatching";
 import { matchZoneForAddressArgs } from "./validators";
 
+import { tableDocs } from "../../schema/tableDocs.generated";
 export const listZones = query({
   args: {},
+  returns: v.array(tableDocs.commerce_shipping_zones),
   handler: async (ctx) => {
     await requireCan(ctx, "shipping.zones.read");
     const zones = await ctx.db
@@ -24,6 +26,7 @@ export const listZones = query({
 
 export const getZone = query({
   args: { zoneId: v.id("commerce_shipping_zones") },
+  returns: v.union(v.null(), tableDocs.commerce_shipping_zones),
   handler: async (ctx, args) => {
     await requireCan(ctx, "shipping.zones.read");
     return ctx.db.get(args.zoneId);
@@ -32,6 +35,7 @@ export const getZone = query({
 
 export const getZoneBySlug = query({
   args: { slug: v.string() },
+  returns: v.union(v.null(), tableDocs.commerce_shipping_zones),
   handler: async (ctx, args) => {
     await requireCan(ctx, "shipping.zones.read");
     return ctx.db
@@ -49,6 +53,7 @@ export const getZoneBySlug = query({
  */
 export const matchZoneForAddress = query({
   args: matchZoneForAddressArgs,
+  returns: v.union(v.null(), v.object({ zone: tableDocs.commerce_shipping_zones, matchedFallback: v.boolean() })),
   handler: async (ctx, args) => {
     await requireCommerceEnabled(ctx);
     const zones = await ctx.db

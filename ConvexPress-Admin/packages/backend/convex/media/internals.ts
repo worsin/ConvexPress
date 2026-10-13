@@ -44,6 +44,8 @@ import {
   validateFileType,
 } from "./helpers";
 
+import { paginationResultValidator } from "convex/server";
+import { tableDocs } from "../schema/tableDocs.generated";
 const DEFAULT_ALLOWED_TYPES = [
   "image/jpeg",
   "image/png",
@@ -636,6 +638,12 @@ const DEFAULT_WORDPRESS_SIZES: SizeConfig[] = [
  */
 export const getImageSizeConfig = internalQuery({
   args: {},
+  returns: v.array(v.object({
+    name: v.string(),
+    maxWidth: v.number(),
+    maxHeight: v.union(v.null(), v.number()),
+    crop: v.boolean(),
+  })),
   handler: async (ctx): Promise<SizeConfig[]> => {
     try {
       const doc = await ctx.db
@@ -725,6 +733,37 @@ export const getMediaInternal = internalQuery({
   args: {
     mediaId: v.id("media"),
   },
+  returns: v.union(v.null(), v.object({
+    url: v.string(),
+    metaMap: v.record(v.string(), v.string()),
+    _id: v.id("media"),
+    _creationTime: v.number(),
+    width: v.optional(v.number()),
+    storageId: v.optional(v.id("_storage")),
+    wpSourceSiteId: v.optional(v.id("wordpressSites")),
+    description: v.optional(v.string()),
+    caption: v.optional(v.string()),
+    altText: v.optional(v.string()),
+    height: v.optional(v.number()),
+    processingError: v.optional(v.string()),
+    attachedTo: v.optional(v.id("posts")),
+    uploadPath: v.optional(v.string()),
+    trashedAt: v.optional(v.number()),
+    previousStatus: v.optional(v.string()),
+    trashedBy: v.optional(v.id("users")),
+    wpAttachmentId: v.optional(v.number()),
+    wpSourceUrl: v.optional(v.string()),
+    title: v.string(),
+    updatedAt: v.number(),
+    createdAt: v.number(),
+    fileSize: v.number(),
+    mimeType: v.string(),
+    status: v.union(v.literal("failed"), v.literal("active"), v.literal("processing"), v.literal("trashed")),
+    slug: v.string(),
+    mediaType: v.union(v.literal("image"), v.literal("video"), v.literal("audio"), v.literal("document"), v.literal("archive"), v.literal("other")),
+    fileName: v.string(),
+    uploadedBy: v.id("users"),
+  })),
   handler: async (ctx, args) => {
     const media = await ctx.db.get("media", args.mediaId);
     if (!media) return null;
@@ -772,6 +811,7 @@ export const getMediaInternal_list = internalQuery({
     numItems: v.number(),
     cursor: v.optional(v.union(v.string(), v.null())),
   },
+  returns: v.object({ items: v.array(tableDocs.media), total: v.number() }),
   handler: async (ctx, args) => {
     let items;
 
@@ -840,6 +880,7 @@ export const createMediaInternal = internalMutation({
     width: v.optional(v.number()),
     height: v.optional(v.number()),
   },
+  returns: v.id("media"),
   handler: async (ctx, args) => {
     const user = await ctx.db.get(args.uploadedBy);
     if (!user) {
@@ -1013,6 +1054,7 @@ export const deleteMediaInternal = internalMutation({
   args: {
     mediaId: v.id("media"),
   },
+  returns: v.null(),
   handler: async (ctx, args) => {
     const media = await ctx.db.get("media", args.mediaId);
     if (!media) return;
@@ -1056,6 +1098,7 @@ export const deleteMediaInternal = internalMutation({
  */
 export const assertEditorLevel = internalMutation({
   args: {},
+  returns: v.null(),
   handler: async (ctx) => {
     const user = await requireCan(ctx, "media.update");
     const level = await getUserRoleLevel(ctx, user);
@@ -1072,6 +1115,7 @@ export const checkEditCapability = internalMutation({
   args: {
     mediaId: v.id("media"),
   },
+  returns: v.object({ userIdentifier: v.string(), userId: v.id("users") }),
   handler: async (ctx, args) => {
     const { requireCan } = await import("../helpers/permissions");
     const { checkMediaCapability } = await import("./mediaAuth");
@@ -1111,6 +1155,7 @@ export const emitMediaEditedEvent = internalMutation({
       newValue: v.any(),
     }))),
   },
+  returns: v.null(),
   handler: async (ctx, args) => {
     // Import lazily to avoid circular deps
     const { emitEvent } = await import("../helpers/events");
@@ -1140,6 +1185,7 @@ export const processImageAction = internalAction({
   args: {
     mediaId: v.id("media"),
   },
+  returns: v.null(),
   handler: async (ctx, args) => {
     // Fetch the media record using the internal (no-auth) query
     const media = await ctx.runQuery(internal.media.internals.getMediaInternal, {
@@ -1294,6 +1340,7 @@ export const processImage = internalMutation({
   args: {
     mediaId: v.id("media"),
   },
+  returns: v.null(),
   handler: async (ctx, args) => {
     const media = await ctx.db.get("media", args.mediaId);
     if (!media) return;
@@ -1327,6 +1374,7 @@ export const setMeta = internalMutation({
     key: v.string(),
     value: v.string(),
   },
+  returns: v.null(),
   handler: async (ctx, args) => {
     await requireAttachableMedia(ctx, args.mediaId);
     // Check if this key already exists for this media
@@ -1360,6 +1408,7 @@ export const deleteMeta = internalMutation({
     mediaId: v.id("media"),
     key: v.string(),
   },
+  returns: v.null(),
   handler: async (ctx, args) => {
     const existing = await ctx.db
       .query("mediaMeta")
@@ -1386,6 +1435,7 @@ export const updateDimensions = internalMutation({
     width: v.number(),
     height: v.number(),
   },
+  returns: v.null(),
   handler: async (ctx, args) => {
     const media = await ctx.db.get("media", args.mediaId);
     if (!media) return;
@@ -1422,6 +1472,7 @@ export const updateStorageId = internalMutation({
     fileSize: v.optional(v.number()),
     mimeType: v.optional(v.string()),
   },
+  returns: v.null(),
   handler: async (ctx, args) => {
     const media = await requireAttachableMedia(ctx, args.mediaId);
     const obsolete = await preflightOriginalSwap(ctx, media, args.storageId);
@@ -1451,6 +1502,7 @@ export const deleteAllSizes = internalMutation({
   args: {
     mediaId: v.id("media"),
   },
+  returns: v.number(),
   handler: async (ctx, args) => {
     await requireAttachableMedia(ctx, args.mediaId);
     const plan = await prepareSizeWipe(ctx, args.mediaId);
@@ -1471,6 +1523,7 @@ export const scheduleReprocess = internalMutation({
   args: {
     mediaId: v.id("media"),
   },
+  returns: v.null(),
   handler: async (ctx, args) => {
     await requireAttachableMedia(ctx, args.mediaId);
 
@@ -1502,6 +1555,7 @@ export const scheduleReprocess = internalMutation({
  */
 export const cleanupExpiredMedia = internalMutation({
   args: {},
+  returns: v.object({ markedFailed: v.number(), cleaned: v.number() }),
   handler: async (ctx) => {
     const now = Date.now();
     let cleaned = 0;
@@ -1560,6 +1614,7 @@ export const listImagesForRegeneration = internalQuery({
     cursor: v.union(v.string(), v.null()),
     numItems: v.number(),
   },
+  returns: paginationResultValidator(tableDocs.media),
   handler: async (ctx, args) => {
     return await ctx.db
       .query("media")
@@ -1575,6 +1630,7 @@ export const listImagesForRegeneration = internalQuery({
  */
 export const wipeMediaSizes = internalMutation({
   args: { mediaId: v.id("media") },
+  returns: v.null(),
   handler: async (ctx, args) => {
     await requireAttachableMedia(ctx, args.mediaId);
     const plan = await prepareSizeWipe(ctx, args.mediaId);

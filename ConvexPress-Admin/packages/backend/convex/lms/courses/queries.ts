@@ -11,6 +11,7 @@ import { lmsCourseStatusValidator } from "../../schema/lms";
 import { canUserAccessCourse, requireCourseAuthorOrEditor } from "../access";
 import { docToText } from "../lessons/helpers";
 
+import { tableDocs } from "../../schema/tableDocs.generated";
 const catalogSortValidator = v.union(
   v.literal("newest"),
   v.literal("title_asc"),
@@ -52,6 +53,7 @@ export const list = query({
     status: v.optional(lmsCourseStatusValidator),
     search: v.optional(v.string()),
   },
+  returns: v.array(tableDocs.lms_courses),
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "lms"))) return [];
     if (!(await currentUserCan(ctx, "lms.course.view"))) return [];
@@ -266,6 +268,11 @@ async function catalogCoursePayload(ctx: any, course: any) {
 
 export const getCatalogFilters = query({
   args: {},
+  returns: v.object({
+    categories: v.array(v.object({ slug: v.string(), label: v.string(), count: v.number() })),
+    tags: v.array(v.object({ slug: v.string(), label: v.string(), count: v.number() })),
+    accessModes: v.array(v.object({ slug: v.string(), label: v.string(), count: v.number() })),
+  }),
   handler: async (ctx) => {
     if (!(await isPluginEnabled(ctx, "lms"))) {
       return { categories: [], tags: [], accessModes: [] };
@@ -316,6 +323,7 @@ function humanize(slug: string) {
 
 export const stats = query({
   args: {},
+  returns: v.object({ total: v.number(), published: v.number(), draft: v.number(), archived: v.number() }),
   handler: async (ctx) => {
     if (!(await isPluginEnabled(ctx, "lms"))) {
       return { total: 0, published: 0, draft: 0, archived: 0 };
@@ -335,6 +343,13 @@ export const stats = query({
 
 export const getPrerequisites = query({
   args: { courseId: v.id("lms_courses") },
+  returns: v.array(v.object({
+    _id: v.id("lms_course_prerequisites"),
+    courseId: v.id("lms_courses"),
+    title: v.string(),
+    slug: v.string(),
+    status: v.union(v.literal("draft"), v.literal("archived"), v.literal("published")),
+  })),
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "lms"))) return [];
     if (!(await currentUserCan(ctx, "lms.course.view"))) return [];
@@ -361,6 +376,22 @@ export const getPrerequisites = query({
 
 export const getAccessRule = query({
   args: { courseId: v.id("lms_courses") },
+  returns: v.union(v.null(), v.object({
+    plans: v.array(v.object({ _id: v.id("membership_plans"), title: v.string(), slug: v.string() })),
+    _id: v.id("membership_restriction_rules"),
+    _creationTime: v.number(),
+    policyGroup: v.optional(v.string()),
+    requiredCapabilities: v.optional(v.array(v.string())),
+    customMessage: v.optional(v.string()),
+    updatedAt: v.number(),
+    createdAt: v.number(),
+    ruleMode: v.union(v.literal("allow_only"), v.literal("deny_if_missing")),
+    resourceType: v.union(v.literal("post"), v.literal("page"), v.literal("course"), v.literal("product"), v.literal("route"), v.literal("block")),
+    resourceIdOrKey: v.string(),
+    planIds: v.array(v.id("membership_plans")),
+    teaserMode: v.union(v.literal("excerpt"), v.literal("hide"), v.literal("custom_message")),
+    loginRequired: v.boolean(),
+  })),
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "lms"))) return null;
     await requireCourseAuthorOrEditor(ctx, args.courseId, "lms.course.edit");

@@ -68,6 +68,26 @@ function isPostType(value: string): value is "post" | "page" {
  */
 export const getPostSeoInternal = internalQuery({
   args: { postId: v.id("posts") },
+  returns: v.object({
+    seoTitle: v.union(v.null(), v.string()),
+    seoDescription: v.union(v.null(), v.string()),
+    focusKeyphrase: v.union(v.null(), v.string()),
+    additionalKeyphrases: v.array(v.string()),
+    canonical: v.union(v.null(), v.string()),
+    noindex: v.union(v.boolean(), v.null()),
+    nofollow: v.union(v.boolean(), v.null()),
+    ogTitle: v.union(v.null(), v.string()),
+    ogDescription: v.union(v.null(), v.string()),
+    ogImage: v.union(v.null(), v.string()),
+    twitterTitle: v.union(v.null(), v.string()),
+    twitterDescription: v.union(v.null(), v.string()),
+    twitterImage: v.union(v.null(), v.string()),
+    schemaType: v.union(v.null(), v.string()),
+    schemaArticleType: v.union(v.null(), v.string()),
+    seoScore: v.union(v.null(), v.number()),
+    readabilityScore: v.union(v.null(), v.number()),
+    cornerstone: v.boolean(),
+  }),
   handler: async (ctx, args) => {
     const post = await ctx.db.get("posts", args.postId);
     if (!post) return EMPTY_POST_SEO;
@@ -97,6 +117,73 @@ export const getPostSeoInternal = internalQuery({
  */
 export const getSettingsInternal = internalQuery({
   args: {},
+  returns: v.object({
+    titles: v.object({
+      separator: v.string(),
+      siteTitle: v.string(),
+      tagline: v.string(),
+      homepageTitle: v.string(),
+      homepageDescription: v.string(),
+      postTitleTemplate: v.string(),
+      pageTitleTemplate: v.string(),
+      categoryTitleTemplate: v.string(),
+      tagTitleTemplate: v.string(),
+      authorTitleTemplate: v.string(),
+      searchTitleTemplate: v.string(),
+      notFoundTitleTemplate: v.string(),
+      dateArchiveTitleTemplate: v.string(),
+      postNoindex: v.boolean(),
+      pageNoindex: v.boolean(),
+      categoryNoindex: v.boolean(),
+      tagNoindex: v.boolean(),
+      authorArchiveNoindex: v.boolean(),
+      dateArchiveNoindex: v.boolean(),
+    }),
+    social: v.object({
+      organizationName: v.string(),
+      organizationLogo: v.string(),
+      facebookUrl: v.string(),
+      twitterUsername: v.string(),
+      instagramUrl: v.string(),
+      linkedinUrl: v.string(),
+      youtubeUrl: v.string(),
+      pinterestUrl: v.string(),
+      defaultOgImage: v.string(),
+      twitterCardType: v.union(v.literal("summary"), v.literal("summary_large_image")),
+      facebookAppId: v.string(),
+    }),
+    robots: v.object({ customRules: v.string(), siteNoindex: v.boolean(), blockAiBots: v.boolean() }),
+    schema: v.object({
+      representType: v.union(v.literal("organization"), v.literal("person")),
+      organizationName: v.string(),
+      organizationLogoUrl: v.string(),
+      personName: v.string(),
+      personImageUrl: v.string(),
+      defaultArticleType: v.union(v.literal("Article"), v.literal("BlogPosting"), v.literal("NewsArticle"), v.literal("TechArticle")),
+      defaultPageType: v.union(v.literal("WebPage"), v.literal("AboutPage"), v.literal("ContactPage"), v.literal("FAQPage"), v.literal("CollectionPage"), v.literal("ItemPage"), v.literal("ProfilePage"), v.literal("SearchResultsPage"), v.literal("CheckoutPage")),
+      sitelinksSearchBox: v.boolean(),
+    }),
+    breadcrumbs: v.object({
+      enabled: v.boolean(),
+      separator: v.string(),
+      homeAnchorText: v.string(),
+      showBlogPage: v.boolean(),
+      boldLastItem: v.boolean(),
+    }),
+    verification: v.object({
+      googleSiteVerification: v.string(),
+      bingSiteVerification: v.string(),
+      pinterestVerification: v.string(),
+      yandexVerification: v.string(),
+    }),
+    advanced: v.object({
+      stripCategoryBase: v.boolean(),
+      redirectAttachmentUrls: v.boolean(),
+      cleanPermalinkFragments: v.boolean(),
+      nofollowExternalLinks: v.boolean(),
+      openExternalLinksNewTab: v.boolean(),
+    }),
+  }),
   handler: async (ctx) => {
     const allRows = await ctx.db.query("seoSettings").collect();
 
@@ -129,6 +216,34 @@ export const resolvePostSeoInternal = internalQuery({
     postId: v.id("posts"),
     siteUrl: v.string(),
   },
+  returns: v.union(v.null(), v.object({
+    authorName: v.string(),
+    authorUrl: v.string(),
+    authorImageUrl: v.optional(v.string()),
+    title: v.string(),
+    description: v.string(),
+    canonical: v.string(),
+    noindex: v.boolean(),
+    nofollow: v.boolean(),
+    robots: v.string(),
+    ogTitle: v.string(),
+    ogDescription: v.string(),
+    ogImage: v.union(v.null(), v.string()),
+    ogType: v.string(),
+    ogUrl: v.string(),
+    ogSiteName: v.string(),
+    twitterCard: v.string(),
+    twitterTitle: v.string(),
+    twitterDescription: v.string(),
+    twitterImage: v.union(v.null(), v.string()),
+    twitterSite: v.union(v.null(), v.string()),
+    schemaType: v.string(),
+    schemaArticleType: v.union(v.null(), v.string()),
+    cornerstone: v.boolean(),
+    focusKeyphrase: v.union(v.null(), v.string()),
+    seoScore: v.union(v.null(), v.number()),
+    readabilityScore: v.union(v.null(), v.number()),
+  })),
   handler: async (ctx, args) => {
     // Fetch the post
     const post = await ctx.db.get("posts", args.postId);
@@ -203,6 +318,7 @@ export const resolvePostSeoInternal = internalQuery({
  */
 export const getNoindexPostIds = internalQuery({
   args: {},
+  returns: v.array(v.id("posts")),
   handler: async (ctx) => {
     // Query all postMeta rows with key "_seo_noindex"
     const noindexRows = await ctx.db
@@ -235,6 +351,7 @@ export const checkDuplicateKeyphrase = internalQuery({
     keyphrase: v.string(),
     excludePostId: v.optional(v.id("posts")),
   },
+  returns: v.array(v.object({ postId: v.string(), postTitle: v.string() })),
   handler: async (ctx, args) => {
     if (!args.keyphrase || args.keyphrase.trim() === "") {
       return [];

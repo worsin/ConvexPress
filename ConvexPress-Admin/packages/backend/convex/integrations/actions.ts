@@ -471,10 +471,14 @@ async function verifyAirtable(config: Config): Promise<Outcome> {
 
 // ─── Entry point ────────────────────────────────────────────────────────────
 
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const verify = action({
   args: { providerId: v.string() },
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.object({
+    status: v.union(v.literal("verified"), v.literal("skipped"), v.literal("failed")),
+    summary: v.string(),
+    latencyMs: v.number(),
+    details: v.array(v.object({ label: v.string(), ok: v.boolean(), note: v.optional(v.string()) })),
+  }),
   handler: async (ctx, args) => {
     await ctx.runQuery(internal.settings.internals.requireManageOptionsInternal, {});
     const definition = getIntegration(args.providerId);

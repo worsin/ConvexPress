@@ -125,6 +125,7 @@ export const generateImage = action({
     /** Optional alt text override. Defaults to the prompt. */
     alt: v.optional(v.string()),
   },
+  returns: v.object({ mediaId: v.string(), url: v.string() }),
   handler: async (
     ctx,
     args,

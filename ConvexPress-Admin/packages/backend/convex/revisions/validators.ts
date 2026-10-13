@@ -112,7 +112,6 @@ export const createOnSaveArgs = {
   content: v.string(),
   excerpt: v.optional(v.string()),
   authorId: v.string(),
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   changedFields: v.array(v.string()),
 };
 

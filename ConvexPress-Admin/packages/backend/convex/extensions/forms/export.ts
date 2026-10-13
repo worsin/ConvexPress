@@ -197,6 +197,10 @@ export const resolveColumns = internalQuery({
     formId: v.id("forms"),
     fields: v.optional(v.array(v.string())),
   },
+  returns: v.object({
+    columns: v.array(v.object({ name: v.string(), label: v.string(), key: v.string() })),
+    warnings: v.array(v.string()),
+  }),
   handler: async (ctx, { formId, fields }) => {
     const form = await ctx.db.get(formId);
     const groupId = form?.fieldGroupId;
@@ -224,6 +228,7 @@ export const emitExported = internalMutation({
     count: v.number(),
     exportedBy: v.optional(v.string()),
   },
+  returns: v.null(),
   handler: async (ctx, { formId, count, exportedBy }) => {
     await emitEvent(
       ctx,
@@ -245,6 +250,7 @@ export const emitExported = internalMutation({
 /** Capability gate for the export action (actions lack the read ctx requireCan needs). */
 export const assertExportAuth = internalQuery({
   args: {},
+  returns: v.null(),
   handler: async (ctx) => {
     await requireCan(ctx, formCap("form.export_entries"));
     await requirePluginEnabled(ctx, "forms");

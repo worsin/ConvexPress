@@ -54,6 +54,7 @@ import {
 	MAX_PER_PAGE,
 } from "./validators";
 
+import { tableDocs } from "../schema/tableDocs.generated";
 // ─── Local Types ────────────────────────────────────────────────────────────
 
 /** Post document shape used in list filtering. */
@@ -433,6 +434,7 @@ export const getByNumericId = query({
 	args: {
 		numericId: v.number(),
 	},
+	returns: v.union(v.null(), v.object({ slug: v.string(), title: v.string() })),
 	handler: async (ctx, args) => {
 		// Look for a published post with this numeric ID
 		const post = await ctx.db
@@ -607,6 +609,16 @@ export const listPublished = query({
  */
 export const counts = query({
 	args: countsArgs,
+	returns: v.object({
+   all: v.number(),
+   publish: v.number(),
+   draft: v.number(),
+   pending: v.number(),
+   future: v.number(),
+   private: v.number(),
+   trash: v.number(),
+   mine: v.number(),
+ }),
 	handler: async (ctx, args) => {
 		const user = await getCurrentUser(ctx);
 		if (!user) {
@@ -720,6 +732,7 @@ export const getSticky = query({
  */
 export const getSlugs = query({
 	args: {},
+	returns: v.array(v.object({ slug: v.string(), publishedAt: v.optional(v.number()), updatedAt: v.number() })),
 	handler: async (ctx) => {
 		// Bounded to 50,000 - sufficient for sitemap generation
 		const publishedPosts = await ctx.db
@@ -749,6 +762,7 @@ export const getSlugs = query({
  */
 export const getMetaByPost = query({
 	args: getMetaByPostArgs,
+	returns: v.array(tableDocs.postMeta),
 	handler: async (ctx, args) => {
 		const post = await ctx.db.get("posts", args.postId);
 		if (!post) return [];
@@ -772,6 +786,7 @@ export const getMetaByPost = query({
  */
 export const getMetaByKey = query({
 	args: getMetaByKeyArgs,
+	returns: v.union(v.null(), tableDocs.postMeta),
 	handler: async (ctx, args) => {
 		const post = await ctx.db.get("posts", args.postId);
 		if (!post) return null;
@@ -808,6 +823,15 @@ export const getRelatedPosts = query({
 		postId: v.id("posts"),
 		limit: v.optional(v.number()),
 	},
+	returns: v.array(v.object({
+   _id: v.id("posts"),
+   title: v.string(),
+   slug: v.string(),
+   excerpt: v.optional(v.string()),
+   featuredImageId: v.optional(v.id("media")),
+   publishedAt: v.optional(v.number()),
+   score: v.number(),
+ })),
 	handler: async (ctx, args) => {
 		const maxResults = Math.min(Math.max(1, args.limit ?? 3), 10);
 
@@ -906,6 +930,20 @@ export const getAdjacentPosts = query({
 	args: {
 		postId: v.id("posts"),
 	},
+	returns: v.object({
+   previous: v.union(v.null(), v.object({
+     _id: v.id("posts"),
+     title: v.string(),
+     slug: v.string(),
+     featuredImageId: v.optional(v.id("media")),
+   })),
+   next: v.union(v.null(), v.object({
+     _id: v.id("posts"),
+     title: v.string(),
+     slug: v.string(),
+     featuredImageId: v.optional(v.id("media")),
+   })),
+ }),
 	handler: async (ctx, args) => {
 		const post = await ctx.db.get("posts", args.postId);
 		if (!post || !post.publishedAt) {
@@ -990,6 +1028,7 @@ export const getDateArchiveGroups = query({
 	args: {
 		type: v.optional(v.union(v.literal("post"), v.literal("page"))),
 	},
+	returns: v.array(v.object({ year: v.number(), month: v.number(), count: v.number() })),
 	handler: async (ctx, args) => {
 		const type = args.type ?? "post";
 

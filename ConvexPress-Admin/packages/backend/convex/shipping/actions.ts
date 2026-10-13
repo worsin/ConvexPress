@@ -1768,6 +1768,12 @@ export const syncShipmentTracking = action({
 
 export const verifyDirectCarrierFoundation = action({
   args: verifyDirectCarrierFoundationArgs,
+  returns: v.object({
+    success: v.boolean(),
+    verificationMode: v.string(),
+    missingFields: v.array(v.string()),
+    message: v.string(),
+  }),
   handler: async (ctx, args) => {
     await requireShippingAdminAction(ctx);
 

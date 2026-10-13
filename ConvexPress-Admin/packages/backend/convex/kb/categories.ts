@@ -31,6 +31,7 @@ import { createPublicKbAccess } from "./publicAccess";
 import { beginCategoryDeletion } from "./categoryDeletion";
 import { kbTables } from "../schema/kb";
 
+import { tableDocs } from "../schema/tableDocs.generated";
 // ─── List (Admin) ───────────────────────────────────────────────────────────
 
 export const list: RegisteredQuery<"public", Record<string, never>, Doc<"kb_categories">[] | null> = query({
@@ -54,16 +55,14 @@ export const list: RegisteredQuery<"public", Record<string, never>, Doc<"kb_cate
 
 // ─── List Published (Public) ────────────────────────────────────────────────
 
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const listPublished = query({
   args: {},
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx) => {
     const access = createPublicKbAccess(ctx);
     if (!await access.available()) return null;
     const categories = await ctx.db
       .query("kb_categories")
-      .withIndex("by_published_order", (q: ConvexQueryBuilder) => q.eq("isPublished", true))
+      .withIndex("by_published_order", (q) => q.eq("isPublished", true))
       .take(500);
 
     const visible = [];
@@ -78,6 +77,7 @@ export const listPublished = query({
 
 export const getBySlug: RegisteredQuery<"public", { slug: string }, Doc<"kb_categories"> | null> = query({
   args: getCategoryBySlugArgs,
+  returns: v.union(v.null(), tableDocs.kb_categories),
   handler: async (ctx, args) => {
     const access = createPublicKbAccess(ctx);
     if (!await access.available()) return null;
@@ -93,16 +93,14 @@ export const getBySlug: RegisteredQuery<"public", { slug: string }, Doc<"kb_cate
 
 // ─── Get Hierarchy (Public) ─────────────────────────────────────────────────
 
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const getHierarchy = query({
   args: {},
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx) => {
     const access = createPublicKbAccess(ctx);
     if (!await access.available()) return null;
     const categories = await ctx.db
       .query("kb_categories")
-      .withIndex("by_published_order", (q: ConvexQueryBuilder) => q.eq("isPublished", true))
+      .withIndex("by_published_order", (q) => q.eq("isPublished", true))
       .take(500);
 
     // Build tree structure
@@ -224,10 +222,9 @@ export const update: RegisteredMutation<"public", {
 
 // ─── Reorder ────────────────────────────────────────────────────────────────
 
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const reorder = mutation({
   args: reorderCategoryArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.id("kb_categories"),
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "knowledgeBase");
     const user = await requireCan(ctx, "kb.manageCategories");

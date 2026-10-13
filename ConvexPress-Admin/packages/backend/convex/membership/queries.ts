@@ -552,6 +552,13 @@ export const checkAccess = query({
 		resourceType: membershipResourceTypeValidator,
 		resourceIdOrKey: v.string(),
 	},
+	returns: v.object({
+   allowed: v.boolean(),
+   reason: v.string(),
+   teaserMode: v.union(v.null(), v.literal("excerpt"), v.literal("hide"), v.literal("custom_message")),
+   customMessage: v.union(v.null(), v.string()),
+   matchingPlanIds: v.array(v.string()),
+ }),
 	handler: async (ctx: any, args: any) => {
 		return await evaluateMembershipAccess(ctx, args);
 	},
@@ -577,6 +584,13 @@ export const checkAccessAndLog = mutation({
 		resourceType: membershipResourceTypeValidator,
 		resourceIdOrKey: v.string(),
 	},
+	returns: v.object({
+   allowed: v.boolean(),
+   reason: v.string(),
+   teaserMode: v.union(v.null(), v.literal("excerpt"), v.literal("hide"), v.literal("custom_message")),
+   customMessage: v.union(v.null(), v.string()),
+   matchingPlanIds: v.array(v.string()),
+ }),
 	handler: async (ctx: any, args: any) => {
 		const result = await evaluateMembershipAccess(ctx, args);
 		if (result.reason === "plugin_disabled") {
@@ -624,6 +638,12 @@ export const getDisplayableBenefitsForPlan = query({
 	args: {
 		planId: v.id("membership_plans"),
 	},
+	returns: v.array(v.object({
+   _id: v.string(),
+   label: v.string(),
+   description: v.optional(v.string()),
+   sourcePlanId: v.string(),
+ })),
 	handler: async (ctx: any, args: any) => {
 		if (!(await isPluginEnabled(ctx, "membership"))) return [];
 		return getDisplayableBenefitsForPlanHelper(ctx, args.planId);
@@ -647,6 +667,12 @@ export const getDisplayableBenefitsForEntitlementCodes = query({
 	args: {
 		codes: v.array(v.string()),
 	},
+	returns: v.array(v.object({
+   _id: v.string(),
+   label: v.string(),
+   description: v.optional(v.string()),
+   sourcePlanId: v.string(),
+ })),
 	handler: async (ctx: any, args: any) => {
 		if (!(await isPluginEnabled(ctx, "membership"))) return [];
 		return getDisplayableBenefitsForCodesHelper(ctx, args.codes);

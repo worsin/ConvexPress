@@ -23,6 +23,7 @@ import {
 } from "../helpers/permissions";
 import { getPasswordStatusArgs } from "./validators";
 
+import { tableDocs } from "../schema/tableDocs.generated";
 // ─── getPasswordStatus (Public Query) ───────────────────────────────────────
 
 /**
@@ -44,6 +45,11 @@ import { getPasswordStatusArgs } from "./validators";
  */
 export const getPasswordStatus = query({
   args: getPasswordStatusArgs,
+  returns: v.union(v.null(), v.object({
+    lastPasswordChangedAt: v.union(v.null(), v.number()),
+    passwordResetRequestedAt: v.union(v.null(), v.number()),
+    passwordResetCount: v.number(),
+  })),
   handler: async (ctx, args) => {
     const currentUser = await getCurrentUser(ctx);
     if (!currentUser) return null;
@@ -79,6 +85,7 @@ export const getPasswordStatus = query({
 
 export const requirePasswordResetCapability = internalQuery({
   args: {},
+  returns: v.object({ _id: v.id("users") }),
   handler: async (ctx) => {
     const user = await requireCan(ctx, "password.reset");
     return { _id: user._id };
@@ -94,6 +101,66 @@ export const requirePasswordResetCapability = internalQuery({
  */
 export const getUserBySubject = internalQuery({
   args: { subject: v.string() },
+  returns: v.union(v.null(), v.object({
+    _id: v.id("users"),
+    _creationTime: v.number(),
+    authSource: v.optional(v.union(v.literal("local"), v.literal("clerk"), v.literal("management"))),
+    passwordHash: v.optional(v.string()),
+    clerkUserId: v.optional(v.string()),
+    email: v.string(),
+    emailVerified: v.boolean(),
+    firstName: v.optional(v.string()),
+    lastName: v.optional(v.string()),
+    phone: v.optional(v.string()),
+    profilePictureUrl: v.optional(v.string()),
+    username: v.optional(v.string()),
+    nickname: v.optional(v.string()),
+    displayName: v.optional(v.string()),
+    slug: v.optional(v.string()),
+    bio: v.optional(v.string()),
+    url: v.optional(v.string()),
+    avatarUrl: v.optional(v.string()),
+    avatarMediaId: v.optional(v.id("media")),
+    avatarStorageId: v.optional(v.string()),
+    socialLinks: v.optional(v.object({
+      twitter: v.optional(v.string()),
+      facebook: v.optional(v.string()),
+      instagram: v.optional(v.string()),
+      linkedin: v.optional(v.string()),
+      youtube: v.optional(v.string()),
+      github: v.optional(v.string()),
+      website: v.optional(v.string()),
+    })),
+    roleId: v.optional(v.id("roles")),
+    status: v.union(v.literal("active"), v.literal("inactive"), v.literal("banned")),
+    deactivatedAt: v.optional(v.number()),
+    deactivatedBy: v.optional(v.id("users")),
+    preferences: v.optional(v.object({
+      adminColorScheme: v.optional(v.string()),
+      showAdminBar: v.optional(v.boolean()),
+      editorMode: v.optional(v.union(v.literal("code"), v.literal("visual"))),
+      emailDigest: v.optional(v.union(v.literal("none"), v.literal("immediate"), v.literal("daily"), v.literal("weekly"))),
+      notifyOnComment: v.optional(v.boolean()),
+      notifyOnReply: v.optional(v.boolean()),
+      notifyOnMention: v.optional(v.boolean()),
+    })),
+    locale: v.optional(v.string()),
+    timezone: v.optional(v.string()),
+    postCount: v.optional(v.number()),
+    commentCount: v.optional(v.number()),
+    registrationMethod: v.optional(v.string()),
+    invitedBy: v.optional(v.id("users")),
+    emailVerifiedAt: v.optional(v.number()),
+    registeredAt: v.optional(v.number()),
+    lastLoginAt: v.optional(v.number()),
+    lastPasswordChangedAt: v.optional(v.number()),
+    passwordResetRequestedAt: v.optional(v.number()),
+    passwordResetCount: v.optional(v.number()),
+    internalRole: v.optional(v.string()),
+    isInternal: v.optional(v.boolean()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })),
   handler: async (ctx, args) => {
     return await lookupUserByIdentifier(ctx, args.subject);
   },
@@ -105,6 +172,7 @@ export const getUserBySubject = internalQuery({
  */
 export const getUserById = internalQuery({
   args: { userId: v.id("users") },
+  returns: v.union(v.null(), tableDocs.users),
   handler: async (ctx, args) => {
     return await ctx.db.get(args.userId);
   },
@@ -119,6 +187,7 @@ export const getUserById = internalQuery({
  */
 export const getRegistrationMethodByEmail = internalQuery({
   args: { email: v.string() },
+  returns: v.union(v.null(), v.string()),
   handler: async (ctx, args) => {
     const user = await ctx.db
       .query("users")
@@ -140,6 +209,7 @@ export const getRegistrationMethodByEmail = internalQuery({
  */
 export const getUserRoleLevel = internalQuery({
   args: { userId: v.id("users") },
+  returns: v.number(),
   handler: async (ctx, args) => {
     const user = await ctx.db.get(args.userId);
     if (!user) return 0;
@@ -177,6 +247,7 @@ export const getUserRoleLevel = internalQuery({
  */
 export const getSiteUrl = internalQuery({
   args: {},
+  returns: v.string(),
   handler: async (ctx) => {
     const generalSettings = await ctx.db
       .query("settings")
@@ -195,6 +266,7 @@ export const getSiteUrl = internalQuery({
  */
 export const getUserByEmail = internalQuery({
   args: { email: v.string() },
+  returns: v.union(v.null(), tableDocs.users),
   handler: async (ctx, args) => {
     return await ctx.db
       .query("users")

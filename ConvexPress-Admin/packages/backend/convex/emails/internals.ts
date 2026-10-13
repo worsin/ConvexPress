@@ -333,14 +333,12 @@ export async function runBootstrapTemplates(ctx: any, now = Date.now()) {
  * Internal mutation to add an email to the queue.
  * Called by event handler functions. Wraps queueEmailForEvent helper.
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const queueEmail = internalMutation({
   args: queueEmailInternalArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.union(v.null(), v.id("emailQueue")),
   handler: async (ctx, args) => {
     const variables = JSON.parse(args.variables) as Record<string, string>;
 
-    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     return await queueEmailForEvent(ctx, args.templateSlug, {
       recipientEmail: args.recipientEmail,
       recipientName: args.recipientName,
@@ -395,7 +393,6 @@ const queueRenderedEmailConfig: any = {
   },
 };
 
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const queueRenderedEmail = internalMutation(queueRenderedEmailConfig);
 
 const getTemplateForTestingConfig: any = {
@@ -407,7 +404,6 @@ const getTemplateForTestingConfig: any = {
   },
 };
 
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const getTemplateForTesting = internalQuery(getTemplateForTestingConfig);
 
 const queueTemplateTestEmailConfig: any = {
@@ -485,7 +481,6 @@ const queueTemplateTestEmailConfig: any = {
   },
 };
 
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const queueTemplateTestEmail = internalMutation(queueTemplateTestEmailConfig);
 
 // ─── sendEmail (Internal Action) ─────────────────────────────────────────────
@@ -501,10 +496,9 @@ export const queueTemplateTestEmail = internalMutation(queueTemplateTestEmailCon
  *   4. On success: call markSent internal mutation
  *   5. On failure: call handleSendFailure internal mutation
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const sendEmail = internalAction({
   args: sendEmailArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.null(),
   handler: async (ctx, args) => {
     // 1. Update status to "sending" and fetch the record
     const email = await ctx.runMutation(
@@ -611,14 +605,23 @@ export const sendEmail = internalAction({
  * If rate limit is exceeded, the email stays in "queued" and returns null
  * so it will be picked up on the next batch processing cycle.
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const updateStatusAndGetEmail = internalMutation({
   args: {
-    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     queueId: v.id("emailQueue"),
     newStatus: emailStatusValidator,
   },
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.union(v.null(), v.object({
+    to: v.string(),
+    toName: v.optional(v.string()),
+    from: v.string(),
+    fromName: v.string(),
+    replyTo: v.optional(v.string()),
+    subject: v.string(),
+    bodyHtml: v.string(),
+    bodyText: v.optional(v.string()),
+    templateSlug: v.string(),
+    unsubscribeUrl: v.string(),
+  })),
   handler: async (ctx, args) => {
     const email = await ctx.db.get("emailQueue", args.queueId);
     if (!email) return null;
@@ -640,10 +643,9 @@ export const updateStatusAndGetEmail = internalMutation({
       // Count emails sent in the last minute
       const recentMinute = await ctx.db
         .query("emailQueue")
-        .withIndex("by_status", (q: ConvexQueryBuilder) => q.eq("status", "sent"))
+        .withIndex("by_status", (q) => q.eq("status", "sent"))
         .take(1000); // H-17 FIX: bounded query
       const sentLastMinute = recentMinute.filter(
-        // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
         (e) => e.sentAt && e.sentAt >= oneMinuteAgo,
       ).length;
 
@@ -654,7 +656,6 @@ export const updateStatusAndGetEmail = internalMutation({
 
       // Count emails sent in the last 24 hours
       const sentLastDay = recentMinute.filter(
-        // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
         (e) => e.sentAt && e.sentAt >= oneDayAgo,
       ).length;
 
@@ -690,10 +691,9 @@ export const updateStatusAndGetEmail = internalMutation({
  * Mark an email as successfully sent.
  * Updates queue record, template stats, and emits notification.email_sent event.
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const markSent = internalMutation({
   args: markSentArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.null(),
   handler: async (ctx, args) => {
     const email = await ctx.db.get("emailQueue", args.queueId);
     if (!email) return;
@@ -714,7 +714,7 @@ export const markSent = internalMutation({
     if (!email.isTest) {
       const template = await ctx.db
         .query("emailTemplates")
-        .withIndex("by_slug", (q: ConvexQueryBuilder) => q.eq("slug", email.templateSlug))
+        .withIndex("by_slug", (q) => q.eq("slug", email.templateSlug))
         .unique();
 
       if (template) {
@@ -744,10 +744,9 @@ export const markSent = internalMutation({
  *
  * Exponential backoff: 5s, 10s, 20s (base * 2^attempt)
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const handleSendFailure = internalMutation({
   args: handleSendFailureArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.null(),
   handler: async (ctx, args) => {
     const email = await ctx.db.get("emailQueue", args.queueId);
     if (!email) return;
@@ -798,10 +797,9 @@ export const handleSendFailure = internalMutation({
  * Simple status update for a queue record.
  * Used for bounced, delivered, and other webhook-driven status changes.
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const updateQueueStatus = internalMutation({
   args: updateQueueStatusArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.null(),
   handler: async (ctx, args) => {
     const email = await ctx.db.get("emailQueue", args.queueId);
     if (!email) return;
@@ -827,18 +825,17 @@ export const updateQueueStatus = internalMutation({
  * Uses the by_resend_id index on the emailQueue table.
  * If no matching record is found, silently returns (the email may have been cleaned up).
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const updateStatusByResendId = internalMutation({
   args: {
     resendId: v.string(),
     status: v.string(),
   },
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.null(),
   handler: async (ctx, args) => {
     // Look up the queue record by resendId using the dedicated index
     const email = await ctx.db
       .query("emailQueue")
-      .withIndex("by_resend_id", (q: ConvexQueryBuilder) => q.eq("resendId", args.resendId))
+      .withIndex("by_resend_id", (q) => q.eq("resendId", args.resendId))
       .unique();
 
     if (!email) {
@@ -874,17 +871,16 @@ export const updateStatusByResendId = internalMutation({
  * Runs every 5 minutes via cron. Picks up queued emails whose
  * scheduledFor timestamp has passed.
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const processBatchedEmails = internalMutation({
   args: {},
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.null(),
   handler: async (ctx) => {
     const now = Date.now();
 
     // Find queued emails with scheduledFor <= now
     const readyEmails = await ctx.db
       .query("emailQueue")
-      .withIndex("by_status_scheduled", (q: ConvexQueryBuilder) =>
+      .withIndex("by_status_scheduled", (q) =>
         q.eq("status", "queued").lte("scheduledFor", now),
       )
       .take(50);
@@ -906,10 +902,9 @@ export const processBatchedEmails = internalMutation({
  *   1. Comment Digest: For employees, summarizes comments on their posts
  *   2. Weekly Content Digest: For all subscribed users, summarizes new posts
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const generateDigest = internalMutation({
   args: {},
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.null(),
   handler: async (ctx) => {
     const now = Date.now();
     const oneWeekAgo = now - 7 * 24 * 60 * 60 * 1000;
@@ -920,12 +915,11 @@ export const generateDigest = internalMutation({
     // Fetch posts published in the last 7 days
     const recentPosts = await ctx.db
       .query("posts")
-      .withIndex("by_status", (q: ConvexQueryBuilder) => q.eq("status", "publish"))
+      .withIndex("by_status", (q) => q.eq("status", "publish"))
       .order("desc")
       .take(100);
 
     const postsThisWeek = recentPosts.filter(
-      // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
       (p) => p.publishedAt && p.publishedAt >= oneWeekAgo,
     );
 
@@ -933,14 +927,13 @@ export const generateDigest = internalMutation({
       // Build the post list for the digest
       const postList = postsThisWeek
         .slice(0, 20)
-        // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
         .map((p) => `<li><a href="${buildWebsiteUrl(settings.siteUrl, `/blog/${p.slug}`)}">${p.title}</a></li>`)
         .join("\n");
 
       // Get the weekly digest template
       const digestTemplate = await ctx.db
         .query("emailTemplates")
-        .withIndex("by_slug", (q: ConvexQueryBuilder) =>
+        .withIndex("by_slug", (q) =>
           q.eq("slug", EMAIL_TEMPLATES.WEEKLY_DIGEST),
         )
         .unique();
@@ -1004,7 +997,7 @@ export const generateDigest = internalMutation({
 
     const commentDigestTemplate = await ctx.db
       .query("emailTemplates")
-      .withIndex("by_slug", (q: ConvexQueryBuilder) =>
+      .withIndex("by_slug", (q) =>
         q.eq("slug", EMAIL_TEMPLATES.COMMENT_DIGEST),
       )
       .unique();
@@ -1106,10 +1099,9 @@ export const generateDigest = internalMutation({
  *   - Sent/delivered emails: 90 days retention
  *   - Failed emails: 30 days retention
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const cleanupOldEmails = internalMutation({
   args: {},
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.null(),
   handler: async (ctx) => {
     const now = Date.now();
     const BATCH_SIZE = 100;
@@ -1118,7 +1110,7 @@ export const cleanupOldEmails = internalMutation({
     const sentCutoff = now - 90 * 24 * 60 * 60 * 1000;
     const oldSentEmails = await ctx.db
       .query("emailQueue")
-      .withIndex("by_created", (q: ConvexQueryBuilder) => q.lt("createdAt", sentCutoff))
+      .withIndex("by_created", (q) => q.lt("createdAt", sentCutoff))
       .take(BATCH_SIZE);
 
     let sentDeleted = 0;
@@ -1133,7 +1125,7 @@ export const cleanupOldEmails = internalMutation({
     const failedCutoff = now - 30 * 24 * 60 * 60 * 1000;
     const oldFailedEmails = await ctx.db
       .query("emailQueue")
-      .withIndex("by_created", (q: ConvexQueryBuilder) => q.lt("createdAt", failedCutoff))
+      .withIndex("by_created", (q) => q.lt("createdAt", failedCutoff))
       .take(BATCH_SIZE);
 
     let failedDeleted = 0;
@@ -1153,10 +1145,9 @@ export const cleanupOldEmails = internalMutation({
  * Checks if templates already exist before inserting.
  * Safe to call multiple times (idempotent).
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const bootstrapTemplates = internalMutation({
   args: {},
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.object({ created: v.number(), updated: v.number() }),
   handler: async (ctx) => {
     return await runBootstrapTemplates(ctx);
   },
@@ -1167,11 +1158,9 @@ export const bootstrapTemplates = internalMutation({
 /**
  * Handler: registration.registered -> Welcome Email + Email Verification + Admin Notification
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const onUserRegistered = internalMutation({
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   args: { eventId: v.id("events") },
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.null(),
   handler: async (ctx, args) => {
     const eventRecord = await getEventRecord(ctx, args.eventId);
     if (!eventRecord) return;
@@ -1230,11 +1219,9 @@ export const onUserRegistered = internalMutation({
 /**
  * Handler: registration.invited -> User Invitation Email
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const onUserInvited = internalMutation({
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   args: { eventId: v.id("events") },
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.null(),
   handler: async (ctx, args) => {
     const eventRecord = await getEventRecord(ctx, args.eventId);
     if (!eventRecord) return;
@@ -1275,11 +1262,9 @@ export const onUserInvited = internalMutation({
  * Handler: auth.login -> New Device Login Alert
  * Only sends if the device/IP is new for this user (simplified: always sends for now).
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const onLoggedIn = internalMutation({
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   args: { eventId: v.id("events") },
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.null(),
   handler: async (ctx, args) => {
     const eventRecord = await getEventRecord(ctx, args.eventId);
     if (!eventRecord) return;
@@ -1331,11 +1316,9 @@ export const onLoggedIn = internalMutation({
  * Handler: auth.login (failed) -> Failed Login Attempts Alert to Admins
  * Only sends when 5+ failures for the same email within 15 minutes.
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const onLoginFailed = internalMutation({
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   args: { eventId: v.id("events") },
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.null(),
   handler: async (ctx, args) => {
     const eventRecord = await getEventRecord(ctx, args.eventId);
     if (!eventRecord) return;
@@ -1389,10 +1372,9 @@ export const onLoginFailed = internalMutation({
 /**
  * Handler: password.reset_requested -> Password Reset Link
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const onPasswordResetRequested = internalMutation({
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   args: { eventId: v.id("events") },
+  returns: v.null(),
   handler: async () => {
     // Password reset emails are queued directly at the point where the secure
     // reset URL is generated. Keeping this listener active would create a
@@ -1403,11 +1385,9 @@ export const onPasswordResetRequested = internalMutation({
 /**
  * Handler: password.changed -> Password Changed Confirmation
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const onPasswordChanged = internalMutation({
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   args: { eventId: v.id("events") },
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.null(),
   handler: async (ctx, args) => {
     const eventRecord = await getEventRecord(ctx, args.eventId);
     if (!eventRecord) return;
@@ -1432,11 +1412,9 @@ export const onPasswordChanged = internalMutation({
 /**
  * Handler: post.published -> Author Notification + Subscriber Notification
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const onPostPublished = internalMutation({
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   args: { eventId: v.id("events") },
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.null(),
   handler: async (ctx, args) => {
     const eventRecord = await getEventRecord(ctx, args.eventId);
     if (!eventRecord) return;
@@ -1500,11 +1478,9 @@ export const onPostPublished = internalMutation({
 /**
  * Handler: post.scheduled -> Schedule Reminder to Author
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const onPostScheduled = internalMutation({
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   args: { eventId: v.id("events") },
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.null(),
   handler: async (ctx, args) => {
     const eventRecord = await getEventRecord(ctx, args.eventId);
     if (!eventRecord) return;
@@ -1550,11 +1526,9 @@ export const onPostScheduled = internalMutation({
 /**
  * Handler: comment.created -> Author Notification + Moderation Notification
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const onCommentCreated = internalMutation({
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   args: { eventId: v.id("events") },
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.null(),
   handler: async (ctx, args) => {
     const eventRecord = await getEventRecord(ctx, args.eventId);
     if (!eventRecord) return;
@@ -1617,11 +1591,9 @@ export const onCommentCreated = internalMutation({
 /**
  * Handler: comment.approved -> Notify the commenter
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const onCommentApproved = internalMutation({
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   args: { eventId: v.id("events") },
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.null(),
   handler: async (ctx, args) => {
     const eventRecord = await getEventRecord(ctx, args.eventId);
     if (!eventRecord) return;
@@ -1653,11 +1625,9 @@ export const onCommentApproved = internalMutation({
  * Handler: comment.created (reply) -> Notify the parent commenter
  * This handler checks if the comment is a reply (has parentCommentId).
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const onCommentReplied = internalMutation({
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   args: { eventId: v.id("events") },
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.null(),
   handler: async (ctx, args) => {
     const eventRecord = await getEventRecord(ctx, args.eventId);
     if (!eventRecord) return;
@@ -1698,11 +1668,9 @@ export const onCommentReplied = internalMutation({
 /**
  * Handler: role.assigned -> Role Changed Notification
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const onRoleAssigned = internalMutation({
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   args: { eventId: v.id("events") },
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.null(),
   handler: async (ctx, args) => {
     const eventRecord = await getEventRecord(ctx, args.eventId);
     if (!eventRecord) return;
@@ -1740,11 +1708,9 @@ export const onRoleAssigned = internalMutation({
 /**
  * Handler: revision.restored -> Revision Restored Alert to Editor/Author
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const onRevisionRestored = internalMutation({
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   args: { eventId: v.id("events") },
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.null(),
   handler: async (ctx, args) => {
     const eventRecord = await getEventRecord(ctx, args.eventId);
     if (!eventRecord) return;
@@ -1777,11 +1743,9 @@ export const onRevisionRestored = internalMutation({
  * Handler: media.uploaded -> Storage Warning (only if storage > 80%)
  * Sends at most once per 24 hours.
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const onMediaUploaded = internalMutation({
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   args: { eventId: v.id("events") },
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.null(),
   handler: async (ctx, args) => {
     const eventRecord = await getEventRecord(ctx, args.eventId);
     if (!eventRecord) return;
@@ -1811,7 +1775,7 @@ export const onMediaUploaded = internalMutation({
     const oneDayAgo = Date.now() - 24 * 60 * 60 * 1000;
     const recentWarnings = await ctx.db
       .query("emailQueue")
-      .withIndex("by_template", (q: ConvexQueryBuilder) =>
+      .withIndex("by_template", (q) =>
         q
           .eq("templateSlug", EMAIL_TEMPLATES.MEDIA_STORAGE)
           .gte("createdAt", oneDayAgo),
@@ -1840,11 +1804,9 @@ export const onMediaUploaded = internalMutation({
 /**
  * Handler: settings.updated -> Settings Changed Alert to Admins
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const onSettingsUpdated = internalMutation({
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   args: { eventId: v.id("events") },
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.null(),
   handler: async (ctx, args) => {
     const eventRecord = await getEventRecord(ctx, args.eventId);
     if (!eventRecord) return;
@@ -1877,11 +1839,9 @@ export const onSettingsUpdated = internalMutation({
 /**
  * Handler: seo.sitemap_generated -> Sitemap Generated Alert to Admins
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const onSitemapGenerated = internalMutation({
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   args: { eventId: v.id("events") },
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.null(),
   handler: async (ctx, args) => {
     const eventRecord = await getEventRecord(ctx, args.eventId);
     if (!eventRecord) return;
@@ -1908,11 +1868,9 @@ export const onSitemapGenerated = internalMutation({
  * Handler: api.webhook_triggered -> Webhook Failure Alert
  * Only sends for failed webhooks (status >= 400 or network error).
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const onWebhookTriggered = internalMutation({
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   args: { eventId: v.id("events") },
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.null(),
   handler: async (ctx, args) => {
     const eventRecord = await getEventRecord(ctx, args.eventId);
     if (!eventRecord) return;
@@ -1945,11 +1903,9 @@ export const onWebhookTriggered = internalMutation({
 /**
  * Handler: profile.deactivated -> Account Deactivated Notification
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const onProfileDeactivated = internalMutation({
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   args: { eventId: v.id("events") },
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.null(),
   handler: async (ctx, args) => {
     const eventRecord = await getEventRecord(ctx, args.eventId);
     if (!eventRecord) return;
@@ -1980,11 +1936,9 @@ export const onProfileDeactivated = internalMutation({
  * Note: profile.deleted is not in the existing event constants.
  * This handler will be wired when the event is available.
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const onProfileDeleted = internalMutation({
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   args: { eventId: v.id("events") },
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.null(),
   handler: async (ctx, args) => {
     const eventRecord = await getEventRecord(ctx, args.eventId);
     if (!eventRecord) return;
@@ -2064,7 +2018,6 @@ const onTicketRepliedConfig: any = {
   },
 };
 
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const onTicketReplied = internalMutation(onTicketRepliedConfig);
 
 const onTicketAssignedConfig: any = {
@@ -2099,7 +2052,6 @@ const onTicketAssignedConfig: any = {
   },
 };
 
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const onTicketAssigned = internalMutation(onTicketAssignedConfig);
 
 const onTicketResolvedConfig: any = {
@@ -2133,7 +2085,6 @@ const onTicketResolvedConfig: any = {
   },
 };
 
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const onTicketResolved = internalMutation(onTicketResolvedConfig);
 
 const onKbWorkflowStepReadyConfig: any = {
@@ -2170,7 +2121,6 @@ const onKbWorkflowStepReadyConfig: any = {
   },
 };
 
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const onKbWorkflowStepReady = internalMutation(onKbWorkflowStepReadyConfig);
 
 const onKbWorkflowApprovedConfig: any = {
@@ -2205,7 +2155,6 @@ const onKbWorkflowApprovedConfig: any = {
   },
 };
 
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const onKbWorkflowApproved = internalMutation(onKbWorkflowApprovedConfig);
 
 const onKbWorkflowRejectedConfig: any = {
@@ -2240,7 +2189,6 @@ const onKbWorkflowRejectedConfig: any = {
   },
 };
 
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const onKbWorkflowRejected = internalMutation(onKbWorkflowRejectedConfig);
 
 const onKbCommentCreatedConfig: any = {
@@ -2289,7 +2237,6 @@ const onKbCommentCreatedConfig: any = {
   },
 };
 
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const onKbCommentCreated = internalMutation(onKbCommentCreatedConfig);
 
 const onLmsCourseEnrolledConfig: any = {
@@ -2317,7 +2264,6 @@ const onLmsCourseEnrolledConfig: any = {
   },
 };
 
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const onLmsCourseEnrolled = internalMutation(onLmsCourseEnrolledConfig);
 
 const onLmsCourseUnenrolledConfig: any = {
@@ -2345,7 +2291,6 @@ const onLmsCourseUnenrolledConfig: any = {
   },
 };
 
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const onLmsCourseUnenrolled = internalMutation(onLmsCourseUnenrolledConfig);
 
 const onLmsEnrollmentExpiredConfig: any = {
@@ -2379,7 +2324,6 @@ const onLmsEnrollmentExpiredConfig: any = {
   },
 };
 
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const onLmsEnrollmentExpired = internalMutation(onLmsEnrollmentExpiredConfig);
 
 const onLmsCourseCompletedConfig: any = {
@@ -2408,7 +2352,6 @@ const onLmsCourseCompletedConfig: any = {
   },
 };
 
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const onLmsCourseCompleted = internalMutation(onLmsCourseCompletedConfig);
 
 const onLmsCertificateIssuedConfig: any = {
@@ -2437,7 +2380,6 @@ const onLmsCertificateIssuedConfig: any = {
   },
 };
 
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const onLmsCertificateIssued = internalMutation(onLmsCertificateIssuedConfig);
 
 const onLmsCertificateRevokedConfig: any = {
@@ -2466,5 +2408,4 @@ const onLmsCertificateRevokedConfig: any = {
   },
 };
 
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const onLmsCertificateRevoked = internalMutation(onLmsCertificateRevokedConfig);

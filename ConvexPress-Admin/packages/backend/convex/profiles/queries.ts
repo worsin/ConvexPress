@@ -39,6 +39,7 @@ import {
 } from "./validators";
 import type { Capability } from "../types/capabilities";
 
+import { v } from "convex/values";
 const USER_DIRECTORY_CAPABILITIES: Capability[] = [
   "profile.deactivate",
   "profile.delete_user",
@@ -63,17 +64,75 @@ async function currentUserCanReadUserDirectory(ctx: QueryCtx): Promise<boolean> 
  * Returns the full user document for the currently authenticated user.
  * Returns null if not authenticated.
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const getProfile = query({
   args: {},
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.union(v.null(), v.object({
+    resolvedAvatarUrl: v.union(v.null(), v.string()),
+    _id: v.id("users"),
+    _creationTime: v.number(),
+    authSource: v.optional(v.union(v.literal("local"), v.literal("clerk"), v.literal("management"))),
+    passwordHash: v.optional(v.string()),
+    clerkUserId: v.optional(v.string()),
+    email: v.string(),
+    emailVerified: v.boolean(),
+    firstName: v.optional(v.string()),
+    lastName: v.optional(v.string()),
+    phone: v.optional(v.string()),
+    profilePictureUrl: v.optional(v.string()),
+    username: v.optional(v.string()),
+    nickname: v.optional(v.string()),
+    displayName: v.optional(v.string()),
+    slug: v.optional(v.string()),
+    bio: v.optional(v.string()),
+    url: v.optional(v.string()),
+    avatarUrl: v.optional(v.string()),
+    avatarMediaId: v.optional(v.id("media")),
+    avatarStorageId: v.optional(v.string()),
+    socialLinks: v.optional(v.object({
+      twitter: v.optional(v.string()),
+      facebook: v.optional(v.string()),
+      instagram: v.optional(v.string()),
+      linkedin: v.optional(v.string()),
+      youtube: v.optional(v.string()),
+      github: v.optional(v.string()),
+      website: v.optional(v.string()),
+    })),
+    roleId: v.optional(v.id("roles")),
+    status: v.union(v.literal("active"), v.literal("inactive"), v.literal("banned")),
+    deactivatedAt: v.optional(v.number()),
+    deactivatedBy: v.optional(v.id("users")),
+    preferences: v.optional(v.object({
+      adminColorScheme: v.optional(v.string()),
+      showAdminBar: v.optional(v.boolean()),
+      editorMode: v.optional(v.union(v.literal("code"), v.literal("visual"))),
+      emailDigest: v.optional(v.union(v.literal("none"), v.literal("immediate"), v.literal("daily"), v.literal("weekly"))),
+      notifyOnComment: v.optional(v.boolean()),
+      notifyOnReply: v.optional(v.boolean()),
+      notifyOnMention: v.optional(v.boolean()),
+    })),
+    locale: v.optional(v.string()),
+    timezone: v.optional(v.string()),
+    postCount: v.optional(v.number()),
+    commentCount: v.optional(v.number()),
+    registrationMethod: v.optional(v.string()),
+    invitedBy: v.optional(v.id("users")),
+    emailVerifiedAt: v.optional(v.number()),
+    registeredAt: v.optional(v.number()),
+    lastLoginAt: v.optional(v.number()),
+    lastPasswordChangedAt: v.optional(v.number()),
+    passwordResetRequestedAt: v.optional(v.number()),
+    passwordResetCount: v.optional(v.number()),
+    internalRole: v.optional(v.string()),
+    isInternal: v.optional(v.boolean()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })),
   handler: async (ctx) => {
     const user = await getCurrentUser(ctx);
     if (!user) return null;
 
     return {
       ...user,
-      // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
       resolvedAvatarUrl: resolveAvatarUrl(user),
     };
   },
@@ -89,10 +148,78 @@ export const getProfile = query({
  *
  * At least one of userId, slug, or externalAuthId must be provided.
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const getUser = query({
   args: getUserArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.union(v.null(), v.object({
+    _id: v.string(),
+    displayName: v.optional(v.string()),
+    slug: v.optional(v.string()),
+    bio: v.optional(v.string()),
+    avatarUrl: v.union(v.null(), v.string()),
+    url: v.optional(v.string()),
+    socialLinks: v.optional(v.record(v.string(), v.string())),
+    status: v.optional(v.string()),
+  }), v.object({
+    resolvedAvatarUrl: v.union(v.null(), v.string()),
+    _id: v.id("users"),
+    _creationTime: v.number(),
+    authSource: v.optional(v.union(v.literal("local"), v.literal("clerk"), v.literal("management"))),
+    passwordHash: v.optional(v.string()),
+    clerkUserId: v.optional(v.string()),
+    email: v.string(),
+    emailVerified: v.boolean(),
+    firstName: v.optional(v.string()),
+    lastName: v.optional(v.string()),
+    phone: v.optional(v.string()),
+    profilePictureUrl: v.optional(v.string()),
+    username: v.optional(v.string()),
+    nickname: v.optional(v.string()),
+    displayName: v.optional(v.string()),
+    slug: v.optional(v.string()),
+    bio: v.optional(v.string()),
+    url: v.optional(v.string()),
+    avatarUrl: v.optional(v.string()),
+    avatarMediaId: v.optional(v.id("media")),
+    avatarStorageId: v.optional(v.string()),
+    socialLinks: v.optional(v.object({
+      twitter: v.optional(v.string()),
+      facebook: v.optional(v.string()),
+      instagram: v.optional(v.string()),
+      linkedin: v.optional(v.string()),
+      youtube: v.optional(v.string()),
+      github: v.optional(v.string()),
+      website: v.optional(v.string()),
+    })),
+    roleId: v.optional(v.id("roles")),
+    status: v.union(v.literal("active"), v.literal("inactive"), v.literal("banned")),
+    deactivatedAt: v.optional(v.number()),
+    deactivatedBy: v.optional(v.id("users")),
+    preferences: v.optional(v.object({
+      adminColorScheme: v.optional(v.string()),
+      showAdminBar: v.optional(v.boolean()),
+      editorMode: v.optional(v.union(v.literal("code"), v.literal("visual"))),
+      emailDigest: v.optional(v.union(v.literal("none"), v.literal("immediate"), v.literal("daily"), v.literal("weekly"))),
+      notifyOnComment: v.optional(v.boolean()),
+      notifyOnReply: v.optional(v.boolean()),
+      notifyOnMention: v.optional(v.boolean()),
+    })),
+    locale: v.optional(v.string()),
+    timezone: v.optional(v.string()),
+    postCount: v.optional(v.number()),
+    commentCount: v.optional(v.number()),
+    registrationMethod: v.optional(v.string()),
+    invitedBy: v.optional(v.id("users")),
+    emailVerifiedAt: v.optional(v.number()),
+    registeredAt: v.optional(v.number()),
+    lastLoginAt: v.optional(v.number()),
+    lastPasswordChangedAt: v.optional(v.number()),
+    passwordResetRequestedAt: v.optional(v.number()),
+    passwordResetCount: v.optional(v.number()),
+    internalRole: v.optional(v.string()),
+    isInternal: v.optional(v.boolean()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })),
   handler: async (ctx, args) => {
     // Resolve target user
     let targetUser;
@@ -102,7 +229,7 @@ export const getUser = query({
     } else if (args.slug) {
       targetUser = await ctx.db
         .query("users")
-        .withIndex("by_slug", (q: ConvexQueryBuilder) => q.eq("slug", args.slug!))
+        .withIndex("by_slug", (q) => q.eq("slug", args.slug!))
         .unique();
     } else if (args.externalAuthId) {
       targetUser = await lookupUserByIdentifier(ctx, args.externalAuthId!);
@@ -141,14 +268,22 @@ export const getUser = query({
  * Auth: Not required (public, for author archive pages).
  * Returns public profile data only. Returns null if user not found or not active.
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const getUserBySlug = query({
   args: getUserBySlugArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.union(v.null(), v.object({
+    _id: v.string(),
+    displayName: v.optional(v.string()),
+    slug: v.optional(v.string()),
+    bio: v.optional(v.string()),
+    avatarUrl: v.union(v.null(), v.string()),
+    url: v.optional(v.string()),
+    socialLinks: v.optional(v.record(v.string(), v.string())),
+    status: v.optional(v.string()),
+  })),
   handler: async (ctx, args) => {
     const user = await ctx.db
       .query("users")
-      .withIndex("by_slug", (q: ConvexQueryBuilder) => q.eq("slug", args.slug))
+      .withIndex("by_slug", (q) => q.eq("slug", args.slug))
       .unique();
 
     if (!user) return null;
@@ -180,10 +315,97 @@ export const getUserBySlug = query({
  *   - Role enrichment is done only for the paginated slice, not all users.
  *   - Role data is cached in a local map to avoid duplicate lookups within the same query.
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const listUsers = query({
   args: listUsersArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.object({
+    users: v.array(v.object({
+      resolvedAvatarUrl: v.union(v.null(), v.string()),
+      roleName: v.optional(v.string()),
+      roleLevel: v.optional(v.number()),
+      _id: v.id("users"),
+      _creationTime: v.number(),
+      authSource: v.optional(v.union(v.literal("local"), v.literal("clerk"), v.literal("management"))),
+      passwordHash: v.optional(v.string()),
+      clerkUserId: v.optional(v.string()),
+      clerkProvisioningStatus: v.optional(v.union(v.literal("pending"), v.literal("provisioned"), v.literal("linked_existing"), v.literal("reset_required"), v.literal("skipped"), v.literal("failed"))),
+      clerkProvisioningSource: v.optional(v.string()),
+      clerkProvisioningReason: v.optional(v.string()),
+      clerkProvisioningError: v.optional(v.string()),
+      clerkProvisionedAt: v.optional(v.number()),
+      clerkProvisioningAttemptedAt: v.optional(v.number()),
+      firstName: v.optional(v.string()),
+      lastName: v.optional(v.string()),
+      phone: v.optional(v.string()),
+      profilePictureUrl: v.optional(v.string()),
+      isTaxExempt: v.optional(v.boolean()),
+      taxExemptId: v.optional(v.string()),
+      taxExemptReason: v.optional(v.string()),
+      taxExemptVerifiedAt: v.optional(v.number()),
+      username: v.optional(v.string()),
+      nickname: v.optional(v.string()),
+      displayName: v.optional(v.string()),
+      slug: v.optional(v.string()),
+      bio: v.optional(v.string()),
+      url: v.optional(v.string()),
+      avatarUrl: v.optional(v.string()),
+      avatarMediaId: v.optional(v.id("media")),
+      avatarStorageId: v.optional(v.string()),
+      socialLinks: v.optional(v.object({
+        twitter: v.optional(v.string()),
+        facebook: v.optional(v.string()),
+        instagram: v.optional(v.string()),
+        linkedin: v.optional(v.string()),
+        youtube: v.optional(v.string()),
+        github: v.optional(v.string()),
+        website: v.optional(v.string()),
+      })),
+      roleId: v.optional(v.id("roles")),
+      deactivatedAt: v.optional(v.number()),
+      deactivatedBy: v.optional(v.id("users")),
+      preferences: v.optional(v.object({
+        adminColorScheme: v.optional(v.string()),
+        showAdminBar: v.optional(v.boolean()),
+        editorMode: v.optional(v.union(v.literal("code"), v.literal("visual"))),
+        emailDigest: v.optional(v.union(v.literal("none"), v.literal("immediate"), v.literal("daily"), v.literal("weekly"))),
+        notifyOnComment: v.optional(v.boolean()),
+        notifyOnReply: v.optional(v.boolean()),
+        notifyOnMention: v.optional(v.boolean()),
+      })),
+      locale: v.optional(v.string()),
+      timezone: v.optional(v.string()),
+      postCount: v.optional(v.number()),
+      postCountReady: v.optional(v.boolean()),
+      commentCount: v.optional(v.number()),
+      registrationMethod: v.optional(v.string()),
+      invitedBy: v.optional(v.id("users")),
+      emailVerifiedAt: v.optional(v.number()),
+      registeredAt: v.optional(v.number()),
+      lastLoginAt: v.optional(v.number()),
+      lastPasswordChangedAt: v.optional(v.number()),
+      passwordResetRequestedAt: v.optional(v.number()),
+      passwordResetCount: v.optional(v.number()),
+      passwordResetToken: v.optional(v.string()),
+      passwordResetTokenExpiresAt: v.optional(v.number()),
+      internalRole: v.optional(v.string()),
+      isInternal: v.optional(v.boolean()),
+      wpUserId: v.optional(v.number()),
+      wpSourceSiteId: v.optional(v.id("wordpressSites")),
+      wpCredentialMigrationStatus: v.optional(v.union(v.literal("provisioned"), v.literal("linked_existing"), v.literal("reset_required"), v.literal("skipped"), v.literal("failed"), v.literal("unsupported_hash"))),
+      wpCredentialMigrationReason: v.optional(v.string()),
+      wpCredentialPasswordHasher: v.optional(v.string()),
+      wpCredentialMigratedAt: v.optional(v.number()),
+      wpCredentialMigrationError: v.optional(v.string()),
+      updatedAt: v.number(),
+      createdAt: v.number(),
+      status: v.union(v.literal("active"), v.literal("inactive"), v.literal("banned")),
+      email: v.string(),
+      emailVerified: v.boolean(),
+    })),
+    total: v.number(),
+    page: v.number(),
+    perPage: v.number(),
+    totalPages: v.number(),
+  }),
   handler: async (ctx, args) => {
     // Auth check - must be authenticated
     const currentUser = await getCurrentUser(ctx);
@@ -210,19 +432,18 @@ export const listUsers = query({
       // Both filters: use one index, filter the other in memory
       allUsers = await ctx.db
         .query("users")
-        .withIndex("by_status", (q: ConvexQueryBuilder) => q.eq("status", args.status!))
+        .withIndex("by_status", (q) => q.eq("status", args.status!))
         .take(10000);
-      // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
       allUsers = allUsers.filter((u) => u.roleId === args.roleId);
     } else if (args.status) {
       allUsers = await ctx.db
         .query("users")
-        .withIndex("by_status", (q: ConvexQueryBuilder) => q.eq("status", args.status!))
+        .withIndex("by_status", (q) => q.eq("status", args.status!))
         .take(10000);
     } else if (args.roleId) {
       allUsers = await ctx.db
         .query("users")
-        .withIndex("by_roleId", (q: ConvexQueryBuilder) => q.eq("roleId", args.roleId!))
+        .withIndex("by_roleId", (q) => q.eq("roleId", args.roleId!))
         .take(10000);
     } else {
       // No filters: use an indexed order when possible to reduce sort cost
@@ -246,7 +467,6 @@ export const listUsers = query({
     // Synthetic management principals authorize controller sessions but are
     // not website members/customers and must never appear in the user directory.
     allUsers = allUsers.filter(
-      // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
       (u) => u.authSource !== "management",
     );
 
@@ -254,7 +474,6 @@ export const listUsers = query({
     if (args.search) {
       const searchLower = args.search.toLowerCase();
       allUsers = allUsers.filter(
-        // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
         (u) =>
           (u.displayName && u.displayName.toLowerCase().includes(searchLower)) ||
           u.email.toLowerCase().includes(searchLower) ||
@@ -272,7 +491,6 @@ export const listUsers = query({
       (orderBy === "createdAt" || orderBy === "displayName");
 
     if (!alreadySorted) {
-      // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
       allUsers.sort((a, b) => {
         let cmp = 0;
         switch (orderBy) {
@@ -305,7 +523,6 @@ export const listUsers = query({
     const roleCache = new Map<string, { name: string; level: number }>();
 
     const enrichedUsers = await Promise.all(
-      // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
       paginatedUsers.map(async (user) => {
         let roleName: string | undefined;
         let roleLevel: number | undefined;
@@ -352,10 +569,9 @@ export const listUsers = query({
  * If userId is provided, generates options for that user (admin only).
  * Otherwise, generates options for the current user.
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const getDisplayNameOptions = query({
   args: generateDisplayNameOptionsArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.array(v.string()),
   handler: async (ctx, args) => {
     const currentUser = await getCurrentUser(ctx);
     if (!currentUser) return [];
@@ -370,7 +586,6 @@ export const getDisplayNameOptions = query({
       targetUser = user;
     }
 
-    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     return generateOptions({
       email: targetUser.email,
       firstName: targetUser.firstName,
@@ -391,10 +606,9 @@ export const getDisplayNameOptions = query({
  * avoiding loading all user documents into memory. Each indexed query only
  * traverses users with that specific status.
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const counts = query({
   args: userCountsArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.object({ total: v.number(), active: v.number(), inactive: v.number(), banned: v.number() }),
   handler: async (ctx) => {
     const user = await getCurrentUser(ctx);
     if (!user || !(await currentUserCanReadUserDirectory(ctx))) {
@@ -403,19 +617,18 @@ export const counts = query({
 
     // Count each status independently using the by_status index.
     // Bounded to 100,000 per status for admin dashboard counts.
-    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     const [activeUsers, inactiveUsers, bannedUsers] = await Promise.all([
       ctx.db
         .query("users")
-        .withIndex("by_status", (q: ConvexQueryBuilder) => q.eq("status", "active"))
+        .withIndex("by_status", (q) => q.eq("status", "active"))
         .take(100000),
       ctx.db
         .query("users")
-        .withIndex("by_status", (q: ConvexQueryBuilder) => q.eq("status", "inactive"))
+        .withIndex("by_status", (q) => q.eq("status", "inactive"))
         .take(100000),
       ctx.db
         .query("users")
-        .withIndex("by_status", (q: ConvexQueryBuilder) => q.eq("status", "banned"))
+        .withIndex("by_status", (q) => q.eq("status", "banned"))
         .take(100000),
     ]);
 

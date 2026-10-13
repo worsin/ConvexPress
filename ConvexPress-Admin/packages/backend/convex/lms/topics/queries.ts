@@ -7,6 +7,7 @@ import { query } from "../../_generated/server";
 import { isPluginEnabled } from "../../helpers/plugins";
 import { currentUserCan } from "../../helpers/permissions";
 
+import { tableDocs } from "../../schema/tableDocs.generated";
 async function canReadTopicAuthoring(ctx: any) {
   return (
     (await currentUserCan(ctx, "lms.course.view")) ||
@@ -17,6 +18,7 @@ async function canReadTopicAuthoring(ctx: any) {
 
 export const getTopic = query({
   args: { nodeId: v.id("lms_nodes") },
+  returns: v.union(v.null(), tableDocs.lms_nodes),
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "lms"))) return null;
     if (!(await canReadTopicAuthoring(ctx))) return null;
@@ -28,6 +30,7 @@ export const getTopic = query({
 
 export const listTopics = query({
   args: { courseId: v.id("lms_courses") },
+  returns: v.array(tableDocs.lms_nodes),
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "lms"))) return [];
     if (!(await canReadTopicAuthoring(ctx))) return [];
@@ -41,6 +44,12 @@ export const listTopics = query({
 
 export const getTopicWithLessons = query({
   args: { nodeId: v.id("lms_nodes") },
+  returns: v.union(v.null(), v.object({
+    topic: tableDocs.lms_nodes,
+    lessons: v.array(tableDocs.lms_nodes),
+    headings: v.array(tableDocs.lms_nodes),
+    children: v.array(tableDocs.lms_nodes),
+  })),
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "lms"))) return null;
     if (!(await canReadTopicAuthoring(ctx))) return null;
@@ -65,6 +74,12 @@ export const getTopicWithLessons = query({
 
 export const resolveLessonDrip = query({
   args: { nodeId: v.id("lms_nodes") },
+  returns: v.union(v.null(), v.object({
+    mode: v.union(v.literal("immediately"), v.literal("enrollment_based"), v.literal("specific_date")),
+    offsetDays: v.number(),
+    date: v.optional(v.number()),
+    source: v.string(),
+  })),
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "lms"))) return null;
     if (!(await canReadTopicAuthoring(ctx))) return null;

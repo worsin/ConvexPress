@@ -22,12 +22,13 @@ import {
 } from "./validators";
 import { isPluginEnabled, requirePluginEnabled } from "../helpers/plugins";
 
+import { v } from "convex/values";
+import { tableDocs } from "../schema/tableDocs.generated";
 // ─── List (Admin) ───────────────────────────────────────────────────────────
 
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const list = query({
   args: {},
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.union(v.null(), v.array(tableDocs.kb_templates)),
   handler: async (ctx) => {
     if (!(await isPluginEnabled(ctx, "knowledgeBase"))) return null;
     const user = await getCurrentUser(ctx);
@@ -37,17 +38,16 @@ export const list = query({
 
     return ctx.db
       .query("kb_templates")
-      .withIndex("by_active", (q: ConvexQueryBuilder) => q.eq("isActive", true))
+      .withIndex("by_active", (q) => q.eq("isActive", true))
       .take(500);
   },
 });
 
 // ─── Get By ID (Admin) ─────────────────────────────────────────────────────
 
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const getById = query({
   args: getTemplateByIdArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.union(v.null(), tableDocs.kb_templates),
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "knowledgeBase"))) return null;
     const user = await getCurrentUser(ctx);
@@ -61,10 +61,9 @@ export const getById = query({
 
 // ─── Create ─────────────────────────────────────────────────────────────────
 
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const create = mutation({
   args: createTemplateArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.id("kb_templates"),
   handler: async (ctx, args): Promise<import("../_generated/dataModel").Id<"kb_templates">> => {
     await requirePluginEnabled(ctx, "knowledgeBase");
     const user = await requireCan(ctx, "kb.manageTemplates");
@@ -95,7 +94,7 @@ export const create = mutation({
     if (args.isDefault) {
       const others = await ctx.db
         .query("kb_templates")
-        .withIndex("by_category", (q: ConvexQueryBuilder) => q.eq("category", args.category))
+        .withIndex("by_category", (q) => q.eq("category", args.category))
         .take(100);
       for (const other of others) {
         if (other._id !== templateId && other.isDefault) {
@@ -110,10 +109,9 @@ export const create = mutation({
 
 // ─── Update ─────────────────────────────────────────────────────────────────
 
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const update = mutation({
   args: updateTemplateArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.id("kb_templates"),
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "knowledgeBase");
     const user = await requireCan(ctx, "kb.manageTemplates");
@@ -145,7 +143,7 @@ export const update = mutation({
         const category = args.category ?? template.category;
         const others = await ctx.db
           .query("kb_templates")
-          .withIndex("by_category", (q: ConvexQueryBuilder) => q.eq("category", category))
+          .withIndex("by_category", (q) => q.eq("category", category))
           .take(100);
         for (const other of others) {
           if (other._id !== args.templateId && other.isDefault) {
@@ -162,10 +160,9 @@ export const update = mutation({
 
 // ─── Remove ─────────────────────────────────────────────────────────────────
 
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const remove = mutation({
   args: removeTemplateArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.id("kb_templates"),
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "knowledgeBase");
     const user = await requireCan(ctx, "kb.manageTemplates");

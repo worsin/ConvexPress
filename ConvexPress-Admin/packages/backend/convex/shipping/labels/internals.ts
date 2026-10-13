@@ -2,8 +2,10 @@ import { v } from "convex/values";
 
 import { internalQuery } from "../../_generated/server";
 
+import { tableDocs } from "../../schema/tableDocs.generated";
 export const getOrderById = internalQuery({
   args: { orderId: v.id("commerce_orders") },
+  returns: v.union(v.null(), tableDocs.commerce_orders),
   handler: async (ctx, args) => {
     return ctx.db.get(args.orderId);
   },
@@ -11,6 +13,7 @@ export const getOrderById = internalQuery({
 
 export const getLabelById = internalQuery({
   args: { labelId: v.id("commerce_shipment_labels") },
+  returns: v.union(v.null(), tableDocs.commerce_shipment_labels),
   handler: async (ctx, args) => {
     return ctx.db.get(args.labelId);
   },
@@ -22,6 +25,7 @@ export const findByIdempotencyKey = internalQuery({
     orderId: v.id("commerce_orders"),
     idempotencyKey: v.string(),
   },
+  returns: v.union(v.null(), tableDocs.commerce_shipment_labels),
   handler: async (ctx, args) => {
     return ctx.db
       .query("commerce_shipment_labels")
@@ -41,6 +45,7 @@ export const findByIdempotencyKey = internalQuery({
  */
 export const getCurrentQuoteFingerprint = internalQuery({
   args: { orderId: v.id("commerce_orders") },
+  returns: v.union(v.null(), v.object({ addressKey: v.union(v.null(), v.string()), cartKey: v.string() })),
   handler: async (ctx, args) => {
     const order: any = await ctx.db.get(args.orderId);
     if (!order) return null;

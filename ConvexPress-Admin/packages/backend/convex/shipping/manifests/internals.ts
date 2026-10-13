@@ -2,6 +2,7 @@ import { v } from "convex/values";
 
 import { internalQuery } from "../../_generated/server";
 
+import { tableDocs } from "../../schema/tableDocs.generated";
 const CARRIER_CUTOFFS_HOUR: Record<string, number> = {
   // Local-time hour by which the day's shipments should be manifested.
   usps: 17, // 5pm
@@ -17,6 +18,7 @@ const CARRIER_CUTOFFS_HOUR: Record<string, number> = {
  */
 export const listManifestsDueForAutoClose = internalQuery({
   args: {},
+  returns: v.array(tableDocs.commerce_shipment_manifests),
   handler: async (ctx) => {
     const pending = await ctx.db
       .query("commerce_shipment_manifests")
@@ -62,6 +64,7 @@ export const listManifestsDueForAutoClose = internalQuery({
 
 export const getManifestById = internalQuery({
   args: { manifestId: v.id("commerce_shipment_manifests") },
+  returns: v.union(v.null(), tableDocs.commerce_shipment_manifests),
   handler: async (ctx, args) => {
     return ctx.db.get(args.manifestId);
   },

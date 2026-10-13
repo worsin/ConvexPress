@@ -147,6 +147,7 @@ export const recordTrackingEvent = internalMutation({
     rawMetadata: v.optional(v.any()),
     receivedVia: v.union(v.literal("webhook"), v.literal("poll")),
   },
+  returns: v.id("commerce_shipment_tracking_events"),
   handler: async (ctx, args) => {
     // Dedup: (shipmentId, eventId).
     const existing = await ctx.db

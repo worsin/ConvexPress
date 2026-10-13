@@ -11,6 +11,7 @@ import { cleanGeneratedLessonText } from "./helpers";
 
 export const generateLessonBodies = internalAction({
   args: { generationId: v.id("lms_ai_generations") },
+  returns: v.object({ ok: v.boolean() }),
   handler: async (ctx, args) => {
     const work = await ctx.runQuery(
       (internal as any).lms.ai.internals.getLessonBodyWork,

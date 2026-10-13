@@ -34,6 +34,7 @@ import {
 } from "./validators";
 import { readSitemapSettings } from "./helpers/settings";
 
+import { v } from "convex/values";
 // ─── Debounce Key for storing scheduled function ID ──────────────────────────
 const DEBOUNCE_KEY = "sitemap_scheduled_regen";
 
@@ -110,10 +111,9 @@ async function scheduleDebounced(
  * @throws FORBIDDEN if user lacks capability
  * @throws VALIDATION_ERROR if any setting value is invalid
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const updateSettings = mutation({
   args: updateSettingsArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.object({ success: v.boolean() }),
   handler: async (ctx, args) => {
     // 1. Auth check
     const user = await requireCan(ctx, "seo.generate_sitemap");
@@ -209,7 +209,7 @@ export const updateSettings = mutation({
 
     const existing = await ctx.db
       .query("seoSettings")
-      .withIndex("by_key", (q: ConvexQueryBuilder) => q.eq("key", SITEMAP_SETTINGS_KEY))
+      .withIndex("by_key", (q) => q.eq("key", SITEMAP_SETTINGS_KEY))
       .unique();
 
     if (existing) {
@@ -277,10 +277,9 @@ export const updateSettings = mutation({
  * @param types - Array of sitemap types to mark stale
  * @returns Count of sitemaps marked stale
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const markStale = internalMutation({
   args: markStaleArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.object({ count: v.number() }),
   handler: async (ctx, args) => {
     // Read settings to check if enabled
     const settings = await readSitemapSettings(ctx);
@@ -295,7 +294,7 @@ export const markStale = internalMutation({
     for (const type of typesToMark) {
       const entries = await ctx.db
         .query("sitemapCache")
-        .withIndex("by_type", (q: ConvexQueryBuilder) => q.eq("type", type as "index" | "posts" | "pages" | "categories" | "tags" | "authors"))
+        .withIndex("by_type", (q) => q.eq("type", type as "index" | "posts" | "pages" | "categories" | "tags" | "authors"))
         .collect();
 
       for (const entry of entries) {

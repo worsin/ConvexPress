@@ -41,6 +41,7 @@ async function clearOtherDefaults(ctx: any, ignoreId?: any) {
 
 export const create = mutation({
   args: createLocationArgs,
+  returns: v.id("commerce_ship_from_locations"),
   handler: async (ctx, args) => {
     const user = await requireCan(ctx, "shipping.locations.manage");
     await ensureUniqueCode(ctx, args.code);
@@ -83,6 +84,7 @@ export const create = mutation({
 
 export const update = mutation({
   args: updateLocationArgs,
+  returns: v.id("commerce_ship_from_locations"),
   handler: async (ctx, args) => {
     const user = await requireCan(ctx, "shipping.locations.manage");
     const existing = await ctx.db.get(args.locationId);
@@ -109,6 +111,7 @@ export const update = mutation({
 
 export const archive = mutation({
   args: archiveLocationArgs,
+  returns: v.object({ archived: v.boolean() }),
   handler: async (ctx, args) => {
     await requireCan(ctx, "shipping.locations.manage");
     const existing = await ctx.db.get(args.locationId);
@@ -141,6 +144,7 @@ export const setActive = mutation({
     locationId: v.id("commerce_ship_from_locations"),
     active: v.boolean(),
   },
+  returns: v.object({ isActive: v.boolean() }),
   handler: async (ctx, args) => {
     await requireCan(ctx, "shipping.locations.manage");
     const existing = await ctx.db.get(args.locationId);
@@ -167,6 +171,7 @@ export const setActive = mutation({
 
 export const setDefault = mutation({
   args: setDefaultLocationArgs,
+  returns: v.id("commerce_ship_from_locations"),
   handler: async (ctx, args) => {
     await requireCan(ctx, "shipping.locations.manage");
     const target = await ctx.db.get(args.locationId);
@@ -190,6 +195,7 @@ export const setDefault = mutation({
 
 export const assignProductLocation = mutation({
   args: assignProductLocationArgs,
+  returns: v.id("commerce_product_location_fulfillment"),
   handler: async (ctx, args) => {
     await requireCan(ctx, "shipping.locations.manage");
 
@@ -230,6 +236,7 @@ export const assignProductLocation = mutation({
 
 export const removeProductLocation = mutation({
   args: removeProductLocationArgs,
+  returns: v.object({ removed: v.boolean() }),
   handler: async (ctx, args) => {
     await requireCan(ctx, "shipping.locations.manage");
     const existing = await ctx.db.get(args.mappingId);

@@ -26,10 +26,9 @@ import { isPluginEnabled, requirePluginEnabled } from "../helpers/plugins";
  * Called by the generateAnswer action (actions cannot write to the DB directly).
  * Also called by logInteraction mutation for external clients.
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const logDeflection = internalMutation({
   args: logDeflectionInternalArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.id("support_deflectionLogs"),
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "tickets");
     return ctx.db.insert("support_deflectionLogs", {
@@ -57,10 +56,9 @@ export const logDeflection = internalMutation({
  *
  * Returns { deleted } count for monitoring.
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const cleanupOldLogs = internalMutation({
   args: {},
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.object({ deleted: v.number() }),
   handler: async (ctx) => {
     await requirePluginEnabled(ctx, "tickets");
     const cutoff = Date.now() - DEFLECTION_LOG_RETENTION_MS;
@@ -68,7 +66,7 @@ export const cleanupOldLogs = internalMutation({
     // Use by_date index to efficiently find old records
     const oldLogs = await ctx.db
       .query("support_deflectionLogs")
-      .withIndex("by_date", (q: ConvexQueryBuilder) => q.lt("createdAt", cutoff))
+      .withIndex("by_date", (q) => q.lt("createdAt", cutoff))
       .take(500);
 
     let deleted = 0;
@@ -96,6 +94,13 @@ export const cleanupOldLogs = internalMutation({
  */
 export const searchKbConvex: import("convex/server").RegisteredQuery<"internal", { query: string }, Array<{ id: string; title: string; excerpt: import("../_generated/dataModel").Doc<"kb_articles">["excerpt"]; slug: string; score: number }>> = internalQuery({
   args: { query: v.string() },
+  returns: v.array(v.object({
+    id: v.string(),
+    title: v.string(),
+    excerpt: v.string(),
+    slug: v.string(),
+    score: v.number(),
+  })),
   handler: async (ctx, { query }) => {
     if (
       !(await isPluginEnabled(ctx, "tickets")) ||
@@ -135,10 +140,15 @@ export const searchKbConvex: import("convex/server").RegisteredQuery<"internal",
  * Called by the generateAnswer action in deflection.ts when support.ai.ragEnabled
  * is true.
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const searchKbKeywordFallback = internalQuery({
   args: { query: v.string() },
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.array(v.object({
+    id: v.string(),
+    title: v.string(),
+    excerpt: v.string(),
+    slug: v.string(),
+    score: v.number(),
+  })),
   handler: async (ctx, { query }) => {
     if (
       !(await isPluginEnabled(ctx, "tickets")) ||
@@ -153,22 +163,18 @@ export const searchKbKeywordFallback = internalQuery({
       .take(500);
 
     const queryLower = query.toLowerCase();
-    // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
     const words = queryLower.split(/\s+/).filter((w) => w.length > 3);
 
     if (words.length === 0) return [];
 
     // Score chunks by keyword overlap
     const scored = allChunks
-      // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
       .map((chunk) => {
         const contentLower = chunk.content.toLowerCase();
-        // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
         const matchCount = words.filter((w) => contentLower.includes(w)).length;
         return { chunk, score: matchCount / words.length };
       })
       .filter((entry: { score: number }) => entry.score > 0)
-      // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
       .sort((a, b) => b.score - a.score)
       .slice(0, 10);
 
@@ -231,15 +237,22 @@ interface SupportAiSettings {
   ragEnabled: boolean;
 }
 
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const getSupportAiSettings = internalQuery({
   args: {},
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.object({
+    aiProvider: v.union(v.null(), v.string()),
+    aiApiKey: v.union(v.null(), v.string()),
+    aiModel: v.union(v.null(), v.string()),
+    meilisearchEnabled: v.boolean(),
+    meilisearchUrl: v.union(v.null(), v.string()),
+    meilisearchApiKey: v.union(v.null(), v.string()),
+    ragEnabled: v.boolean(),
+  }),
   handler: async (ctx): Promise<SupportAiSettings> => {
     if (!(await isPluginEnabled(ctx, "tickets"))) return { aiProvider: null, aiApiKey: null, aiModel: null, meilisearchEnabled: false, meilisearchUrl: null, meilisearchApiKey: null, ragEnabled: false };
     const doc = await ctx.db
       .query("settings")
-      .withIndex("by_section", (q: ConvexQueryBuilder) => q.eq("section", "support.ai"))
+      .withIndex("by_section", (q) => q.eq("section", "support.ai"))
       .unique();
 
     if (!doc) {

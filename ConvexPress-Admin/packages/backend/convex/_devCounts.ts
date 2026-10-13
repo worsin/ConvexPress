@@ -18,6 +18,7 @@ function assertDevInternalsEnabled() {
 
 export const liveCounts = internalQuery({
   args: {},
+  returns: v.record(v.string(), v.union(v.string(), v.number())),
   handler: async (ctx) => {
     assertDevInternalsEnabled();
     const tables = [
@@ -297,6 +298,7 @@ export const probeOrdersList = internalQuery({
 // known to exceed 8000 rows (orders, order items, customer addresses, mappings).
 export const tableSizeFull = internalAction({
   args: { table: v.string() },
+  returns: v.number(),
   handler: async (ctx, { table }) => {
     assertDevInternalsEnabled();
     let total = 0;
@@ -393,6 +395,7 @@ export const listFindingsNoAuth = internalQuery({
 // Force-mark a running job as cancelled so the next runSyncPhase cycle exits.
 export const forceCancelRunning = internalMutation({
   args: { jobId: v.id("wordpressSyncJobs") },
+  returns: v.object({ cancelled: v.id("wordpressSyncJobs") }),
   handler: async (ctx, { jobId }) => {
     assertDevInternalsEnabled();
     await ctx.db.patch("wordpressSyncJobs", jobId, {
@@ -408,6 +411,7 @@ export const forceCancelRunning = internalMutation({
 // fix so the "too many errors" threshold doesn't trip on old failures.
 export const clearJobErrors = internalMutation({
   args: { jobId: v.id("wordpressSyncJobs") },
+  returns: v.object({ cleared: v.id("wordpressSyncJobs") }),
   handler: async (ctx, { jobId }) => {
     assertDevInternalsEnabled();
     await ctx.db.patch("wordpressSyncJobs", jobId, { errors: [], updatedAt: Date.now() });
@@ -467,6 +471,7 @@ export const resetPhaseAndResume = internalMutation({
     phase: v.string(),
     resetCursor: v.optional(v.boolean()),
   },
+  returns: v.object({ resumed: v.id("wordpressSyncJobs"), phase: v.string(), resetCursor: v.boolean() }),
   handler: async (ctx, { jobId, phase, resetCursor }) => {
     assertDevInternalsEnabled();
     const job: any = await ctx.db.get(jobId);

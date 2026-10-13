@@ -16,6 +16,7 @@ import {
 } from "../helpers/registration";
 import { insertWithMediaReferences, patchWithMediaReferences } from "../media/attachmentGuard";
 
+import { v } from "convex/values";
 /**
  * Ensure a ConvexPress user record exists for the current Clerk identity.
  * Called on first login from the website.
@@ -28,10 +29,9 @@ import { insertWithMediaReferences, patchWithMediaReferences } from "../media/at
  *
  * The email-based fallback is critical for customer continuity.
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const provisionClerkUser = mutation({
   args: {},
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.union(v.null(), v.id("users")),
   handler: async (ctx) => {
     const userId = await provisionClerkIdentity(ctx);
     return userId;
@@ -42,10 +42,17 @@ export const provisionClerkUser = mutation({
  * Same as `provisionClerkUser` but reports why an account was not created,
  * so the website can show the right message instead of a generic one.
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const ensureClerkUser = mutation({
   args: {},
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.union(v.object({
+    ok: v.literal(false),
+    reason: v.literal("unauthenticated"),
+    userId: v.optional(v.null()),
+  }), v.object({ ok: v.literal(true), userId: v.id("users"), reason: v.optional(v.null()) }), v.object({
+    ok: v.literal(false),
+    reason: v.union(v.literal("unknown"), v.literal("no_email"), v.literal("email_unverified"), v.literal("email_conflict"), v.literal("local_account"), v.literal("registration_closed")),
+    userId: v.optional(v.null()),
+  })),
   handler: async (ctx) => {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) return { ok: false as const, reason: "unauthenticated" as const };
@@ -100,7 +107,7 @@ async function provisionClerkIdentity(
     // 1. Match by clerkUserId
     const byClerkId = await ctx.db
       .query("users")
-      .withIndex("by_clerkUserId", (q: ConvexQueryBuilder) => q.eq("clerkUserId", clerkUserId))
+      .withIndex("by_clerkUserId", (q) => q.eq("clerkUserId", clerkUserId))
       .unique();
 
     if (byClerkId) return byClerkId._id;
@@ -109,7 +116,7 @@ async function provisionClerkIdentity(
     if (normalizedEmail) {
       const byEmail = await ctx.db
         .query("users")
-        .withIndex("by_email", (q: ConvexQueryBuilder) => q.eq("email", normalizedEmail))
+        .withIndex("by_email", (q) => q.eq("email", normalizedEmail))
         .unique();
 
       if (byEmail) {

@@ -38,6 +38,26 @@ export const listPublishedInternal = internalQuery({
     page: v.optional(v.number()),
     perPage: v.optional(v.number()),
   },
+  returns: v.object({
+    pages: v.array(v.object({
+      _id: v.id("posts"),
+      title: v.string(),
+      slug: v.string(),
+      path: v.optional(v.string()),
+      depth: v.optional(v.number()),
+      menuOrder: v.optional(v.number()),
+      parentId: v.optional(v.id("posts")),
+      pageTemplate: v.optional(v.string()),
+      excerpt: v.optional(v.string()),
+      featuredImageId: v.optional(v.id("media")),
+      publishedAt: v.optional(v.number()),
+      createdAt: v.number(),
+    })),
+    total: v.number(),
+    page: v.number(),
+    perPage: v.number(),
+    totalPages: v.number(),
+  }),
   handler: async (ctx, args) => {
     const page = Math.max(1, args.page ?? 1);
     const perPage = Math.min(100, Math.max(1, args.perPage ?? 100));
@@ -114,6 +134,7 @@ export const trashInternal = internalMutation({
   args: {
     pageId: v.id("posts"),
   },
+  returns: v.object({ success: v.boolean() }),
   handler: async (ctx, args) => {
     const page = await ctx.db.get("posts", args.pageId);
     if (!page || page.type !== "page") {

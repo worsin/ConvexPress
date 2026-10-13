@@ -71,10 +71,8 @@ export const createArticleArgs = {
   parentArticleId: v.optional(v.id("kb_articles")),
   metaTitle: v.optional(v.string()),
   metaDescription: v.optional(v.string()),
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   keywords: v.optional(v.array(v.string())),
   featuredImageId: v.optional(v.id("media")),
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   templateId: v.optional(v.id("kb_templates")),
 };
 
@@ -88,7 +86,6 @@ export const updateArticleArgs = {
   parentArticleId: v.optional(v.id("kb_articles")),
   metaTitle: v.optional(v.string()),
   metaDescription: v.optional(v.string()),
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   keywords: v.optional(v.array(v.string())),
   featuredImageId: v.optional(v.id("media")),
   sortOrder: v.optional(v.number()),
@@ -124,7 +121,6 @@ export const createVersionArgs = {
 
 export const listArticlesArgs = {
   paginationOpts: paginationOptsValidator,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   status: v.optional(kbArticleStatusValidator),
   categoryId: v.optional(v.id("kb_categories")),
   authorId: v.optional(v.id("users")),
@@ -264,7 +260,6 @@ export const updateCollectionArgs = {
   name: v.optional(v.string()),
   description: v.optional(v.string()),
   coverImageId: v.optional(v.id("media")),
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   type: v.optional(kbCollectionTypeValidator),
   isPublic: v.optional(v.boolean()),
 };
@@ -312,7 +307,6 @@ export const updateTemplateArgs = {
   name: v.optional(v.string()),
   description: v.optional(v.string()),
   content: v.optional(v.string()),
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   category: v.optional(kbTemplateCategoryValidator),
   isDefault: v.optional(v.boolean()),
   isActive: v.optional(v.boolean()),
@@ -415,7 +409,6 @@ export const trackProgressArgs = {
 export const createWorkflowArgs = {
   name: v.string(),
   description: v.optional(v.string()),
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   steps: v.array(kbWorkflowStepValidator),
   isDefault: v.optional(v.boolean()),
 };
@@ -424,7 +417,6 @@ export const updateWorkflowArgs = {
   workflowId: v.id("kb_workflows"),
   name: v.optional(v.string()),
   description: v.optional(v.string()),
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   steps: v.optional(v.array(kbWorkflowStepValidator)),
   isDefault: v.optional(v.boolean()),
   isActive: v.optional(v.boolean()),
@@ -436,12 +428,10 @@ export const removeWorkflowArgs = {
 
 export const startWorkflowArgs = {
   articleId: v.id("kb_articles"),
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   workflowId: v.optional(v.id("kb_workflows")),
 };
 
 export const approveStepArgs = {
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   articleWorkflowId: v.id("kb_articleWorkflows"),
 };
 
@@ -460,7 +450,6 @@ export const trackPageViewArgs = {
 };
 
 export const updateDurationArgs = {
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   pageViewId: v.id("kb_pageViews"),
   duration: v.number(),
 };

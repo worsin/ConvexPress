@@ -44,6 +44,8 @@ import { resolveCartBundle, assertCurrentBundlePrice, assertBundleCartInventory 
 import { patchDynamicWithMediaReferences } from "../media/attachmentGuard";
 
 
+import { v } from "convex/values";
+import { tableDocs } from "../schema/tableDocs.generated";
 async function getCartBySession(ctx: any, sessionToken: string) {
   const cart = await ctx.db
     .query("commerce_carts")
@@ -525,10 +527,8 @@ function buildTrackingToken() {
   return `trk_${Math.random().toString(36).slice(2, 10)}${Date.now().toString(36)}`;
 }
 
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const getSession = query({
   args: getCheckoutSessionArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     await requireCommerceEnabled(ctx);
     const session = await getCheckoutBySession(ctx, args.sessionToken);
@@ -547,10 +547,8 @@ export const getSession = query({
   },
 });
 
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const createSession = mutation({
   args: createCheckoutSessionArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     await requireCommerceEnabled(ctx);
     const user = await getCurrentUser(ctx);
@@ -629,10 +627,8 @@ export const createSession = mutation({
   },
 });
 
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const updateSession = mutation({
   args: updateCheckoutSessionArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     await requireCommerceEnabled(ctx);
     const session = await getCheckoutBySession(ctx, args.sessionToken);
@@ -1355,10 +1351,8 @@ export const complete: RegisteredMutation<"public", { sessionToken: string }, Id
   },
 });
 
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const abandonSession = mutation({
   args: abandonCheckoutSessionArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     await requireCommerceEnabled(ctx);
     const session = await getCheckoutBySession(ctx, args.sessionToken);
@@ -1385,6 +1379,7 @@ export const abandonSession = mutation({
 
 export const listSessions: import("convex/server").RegisteredQuery<"public", { limit?: number; olderThanMs?: number }, import("../_generated/dataModel").Doc<"commerce_checkout_sessions">[]> = query({
   args: listAbandonedCheckoutSessionsArgs,
+  returns: v.array(tableDocs.commerce_checkout_sessions),
   handler: async (ctx, args) => {
     await requireCan(ctx, "manage_options");
     const limit = Math.min(args.limit ?? 100, 500);

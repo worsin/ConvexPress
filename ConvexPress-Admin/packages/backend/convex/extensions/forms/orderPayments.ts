@@ -120,6 +120,7 @@ export const attachOrderPaymentIntent = internalMutation({
     returnUrl: v.optional(v.string()),
     customerEmail: v.optional(v.string()),
   },
+  returns: v.null(),
   handler: async (ctx, args) => {
     const submission = await ctx.db.get(args.submissionId);
     if (!submission) return;
@@ -154,6 +155,7 @@ export const markOrderPaymentSucceeded = internalMutation({
     submissionId: v.id("form_submissions"),
     paymentIntentId: v.string(),
   },
+  returns: v.null(),
   handler: async (ctx, args) => {
     const submission = await ctx.db.get(args.submissionId);
     if (!submission) return;
@@ -186,6 +188,7 @@ export const markOrderPaymentFailed = internalMutation({
     paymentIntentId: v.string(),
     error: v.optional(v.string()),
   },
+  returns: v.null(),
   handler: async (ctx, args) => {
     const submission = await ctx.db.get(args.submissionId);
     if (!submission) return;

@@ -25,6 +25,7 @@ import { resolveProvider } from "../providers/contract";
 
 export const voidLabelWithCarrier = action({
   args: { labelId: v.id("commerce_shipment_labels") },
+  returns: v.object({ voided: v.boolean(), refundPending: v.boolean() }),
   handler: async (ctx, args) => {
     const label: any = await ctx.runQuery(
       internal.shipping.labels.internals.getLabelById,

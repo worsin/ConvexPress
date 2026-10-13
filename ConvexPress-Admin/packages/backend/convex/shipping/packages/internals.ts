@@ -2,6 +2,7 @@ import { v } from "convex/values";
 
 import { internalQuery } from "../../_generated/server";
 
+import { tableDocs } from "../../schema/tableDocs.generated";
 /**
  * Resolve the effective package for a cart line (PRD A3 §5.2 resolution order):
  * 1. Product-level override (product.preferredPackageId)
@@ -15,6 +16,7 @@ export const resolveForCartLine = internalQuery({
     variantId: v.optional(v.id("commerce_product_variants")),
     shipFromLocationId: v.optional(v.id("commerce_ship_from_locations")),
   },
+  returns: v.union(v.null(), tableDocs.commerce_shipping_packages),
   handler: async (ctx, args) => {
     const product = await ctx.db.get(args.productId);
     if (!product) return null;
@@ -65,6 +67,7 @@ export const listAvailablePackages = internalQuery({
   args: {
     shipFromLocationId: v.optional(v.id("commerce_ship_from_locations")),
   },
+  returns: v.array(tableDocs.commerce_shipping_packages),
   handler: async (ctx, args) => {
     const all = await ctx.db.query("commerce_shipping_packages").collect();
     return all.filter((pkg: any) => {

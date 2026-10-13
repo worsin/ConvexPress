@@ -3,6 +3,7 @@ import { v } from "convex/values";
 import { query } from "../../_generated/server";
 import { requireCan } from "../../helpers/permissions";
 
+import { tableDocs } from "../../schema/tableDocs.generated";
 export const list = query({
   args: {
     status: v.optional(
@@ -14,6 +15,7 @@ export const list = query({
       ),
     ),
   },
+  returns: v.array(tableDocs.commerce_shipment_manifests),
   handler: async (ctx, args) => {
     await requireCan(ctx, "shipping.manifests.view");
     const all = await ctx.db.query("commerce_shipment_manifests").collect();
@@ -29,6 +31,7 @@ export const getTodaysManifest = query({
     carrierCode: v.string(),
     manifestDate: v.string(),
   },
+  returns: v.union(v.null(), tableDocs.commerce_shipment_manifests),
   handler: async (ctx, args) => {
     await requireCan(ctx, "shipping.manifests.view");
     const all = await ctx.db
@@ -43,6 +46,7 @@ export const getTodaysManifest = query({
 
 export const get = query({
   args: { manifestId: v.id("commerce_shipment_manifests") },
+  returns: v.union(v.null(), tableDocs.commerce_shipment_manifests),
   handler: async (ctx, args) => {
     await requireCan(ctx, "shipping.manifests.view");
     return ctx.db.get(args.manifestId);

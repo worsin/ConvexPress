@@ -73,6 +73,7 @@ export const updateAttribute = mutation({
 
 export const deleteAttribute = mutation({
   args: { attributeId: v.id("commerce_product_attributes") },
+  returns: v.object({ success: v.boolean() }),
   handler: async (ctx: any, args: any) => {
     await requirePluginEnabled(ctx, "customFields");
     await requireCan(ctx, "manage_options");
@@ -150,6 +151,7 @@ export const updateTerm = mutation({
 
 export const deleteTerm = mutation({
   args: { termId: v.id("commerce_product_attribute_terms") },
+  returns: v.object({ success: v.boolean() }),
   handler: async (ctx: any, args: any) => {
     await requirePluginEnabled(ctx, "customFields");
     await requireCan(ctx, "manage_options");
@@ -165,6 +167,7 @@ export const reorderTerms = mutation({
     attributeId: v.id("commerce_product_attributes"),
     termIds: v.array(v.id("commerce_product_attribute_terms")),
   },
+  returns: v.object({ success: v.boolean() }),
   handler: async (ctx: any, args: any) => {
     await requirePluginEnabled(ctx, "customFields");
     await requireCan(ctx, "manage_options");

@@ -34,10 +34,47 @@ import { createPublicKbAccess } from "./publicAccess";
 import { RequestReadLedger } from "../helpers/requestReadLedger";
 import { publicAuthorProfile } from "../helpers/publicAuthor";
 
+import { paginationResultValidator } from "convex/server";
 // ─── List (Admin) ───────────────────────────────────────────────────────────
 
 export const list: import("convex/server").RegisteredQuery<"public", { paginationOpts: import("convex/server").PaginationOptions; search?: string; status?: import("../_generated/dataModel").Doc<"kb_articles">["status"]; categoryId?: import("../_generated/dataModel").Id<"kb_categories">; authorId?: import("../_generated/dataModel").Id<"users"> }, import("convex/server").PaginationResult<import("../_generated/dataModel").Doc<"kb_articles"> & { author: ReturnType<typeof enrichUser> }>> = query({
   args: listArticlesArgs,
+  returns: paginationResultValidator(v.object({
+    author: v.union(v.null(), v.object({ _id: v.id("users"), displayName: v.string(), avatarUrl: v.optional(v.string()) })),
+    _id: v.id("kb_articles"),
+    _creationTime: v.number(),
+    featuredImageId: v.optional(v.id("media")),
+    publishedAt: v.optional(v.number()),
+    scheduledAt: v.optional(v.number()),
+    categoryId: v.optional(v.id("kb_categories")),
+    parentArticleId: v.optional(v.id("kb_articles")),
+    metaTitle: v.optional(v.string()),
+    metaDescription: v.optional(v.string()),
+    lastMajorUpdate: v.optional(v.number()),
+    meilisearchSyncedAt: v.optional(v.number()),
+    ragSyncedAt: v.optional(v.number()),
+    title: v.string(),
+    version: v.number(),
+    updatedAt: v.number(),
+    createdAt: v.number(),
+    status: v.union(v.literal("draft"), v.literal("archived"), v.literal("review"), v.literal("published")),
+    slug: v.string(),
+    authorId: v.id("users"),
+    excerpt: v.string(),
+    content: v.string(),
+    contentPlainText: v.string(),
+    contributors: v.array(v.id("users")),
+    keywords: v.array(v.string()),
+    viewCount: v.number(),
+    uniqueViewCount: v.number(),
+    helpfulVotes: v.number(),
+    notHelpfulVotes: v.number(),
+    readingTimeMinutes: v.number(),
+    isFeatured: v.boolean(),
+    sortOrder: v.number(),
+    meilisearchSynced: v.boolean(),
+    ragSynced: v.boolean(),
+  })),
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "knowledgeBase"))) return { page: [], isDone: true, continueCursor: "" };
     await requireCan(ctx, "kb.view");
@@ -323,10 +360,20 @@ export const getFeatured: RegisteredQuery<"public", PublicListArgs, PublicKbSumm
 
 // ─── Get Versions (Admin) ───────────────────────────────────────────────────
 
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const getVersions = query({
   args: getVersionsArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.array(v.object({
+    author: v.union(v.null(), v.object({ _id: v.id("users"), displayName: v.string(), avatarUrl: v.optional(v.string()) })),
+    _id: v.id("kb_articleVersions"),
+    _creationTime: v.number(),
+    title: v.string(),
+    version: v.number(),
+    createdAt: v.number(),
+    authorId: v.id("users"),
+    content: v.string(),
+    articleId: v.id("kb_articles"),
+    changeSummary: v.string(),
+  })),
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "knowledgeBase"))) return [];
     const user = await getCurrentUser(ctx);
@@ -336,13 +383,11 @@ export const getVersions = query({
 
     const versions = await ctx.db
       .query("kb_articleVersions")
-      .withIndex("by_article", (q: ConvexQueryBuilder) => q.eq("articleId", args.articleId))
+      .withIndex("by_article", (q) => q.eq("articleId", args.articleId))
       .order("desc")
       .take(100);
 
-    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     return Promise.all(
-      // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
       versions.map(async (v) => {
         const author = await ctx.db.get("users", v.authorId);
         return {

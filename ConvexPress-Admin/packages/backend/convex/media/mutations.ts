@@ -47,6 +47,7 @@ import {
 import { checkMediaCapability, getUserRoleLevel } from "./mediaAuth";
 import { prepareMediaDeletion, applyMediaDeletionPreflight, preflightReplacedSizeBlob } from "./deletion";
 
+import { v } from "convex/values";
 // ─── Default allowed MIME types ──────────────────────────────────────────────
 // SECURITY DECISION: SVG (`image/svg+xml`) is intentionally excluded from the
 // allowed MIME types list AND explicitly blocked with a dedicated check in the
@@ -126,6 +127,7 @@ const MAX_FILE_SIZE_DEFAULT = 50 * 1024 * 1024;
  */
 export const create = mutation({
   args: createMediaArgs,
+  returns: v.id("media"),
   handler: async (ctx, args) => {
     const user = await requireCan(ctx, "media.upload");
 
@@ -330,6 +332,7 @@ export const create = mutation({
  */
 export const update = mutation({
   args: updateMediaArgs,
+  returns: v.id("media"),
   handler: async (ctx, args) => {
     const user = await requireCan(ctx, "media.update");
 
@@ -476,6 +479,7 @@ export const update = mutation({
  */
 export const remove = mutation({
   args: removeMediaArgs,
+  returns: v.union(v.object({ success: v.boolean(), alreadyTrashed: v.boolean(), trashed: v.optional(v.null()) }), v.object({ success: v.boolean(), trashed: v.boolean(), alreadyTrashed: v.optional(v.null()) })),
   handler: async (ctx, args) => {
     const user = await requireCan(ctx, "media.delete");
 
@@ -530,6 +534,10 @@ export const remove = mutation({
  */
 export const restore = mutation({
   args: restoreMediaArgs,
+  returns: v.object({
+    success: v.boolean(),
+    restoredStatus: v.union(v.literal("failed"), v.literal("active"), v.literal("processing")),
+  }),
   handler: async (ctx, args) => {
     const user = await requireCan(ctx, "media.delete");
 
@@ -581,6 +589,7 @@ export const restore = mutation({
  */
 export const permanentlyDelete = mutation({
   args: permanentlyDeleteMediaArgs,
+  returns: v.object({ success: v.boolean(), permanent: v.boolean() }),
   handler: async (ctx, args) => {
     const user = await requireCan(ctx, "media.delete");
 
@@ -629,6 +638,7 @@ export const permanentlyDelete = mutation({
  */
 export const addSize = internalMutation({
   args: addSizeArgs,
+  returns: v.id("mediaSizes"),
   handler: async (ctx, args) => {
     // Validate the parent media exists
     const media = await ctx.db.get("media", args.mediaId);
@@ -685,6 +695,7 @@ export const addSize = internalMutation({
  */
 export const updateStatus = internalMutation({
   args: updateStatusArgs,
+  returns: v.id("media"),
   handler: async (ctx, args) => {
     const media = await ctx.db.get("media", args.mediaId);
     if (!media) {
@@ -730,6 +741,7 @@ export const updateStatus = internalMutation({
  */
 export const generateUploadUrl = mutation({
   args: {},
+  returns: v.string(),
   handler: async (ctx) => {
     await requireCan(ctx, "media.upload");
     return await ctx.storage.generateUploadUrl();
@@ -782,6 +794,10 @@ export const bulkDelete = mutation({
 
 export const bulkRestore = mutation({
   args: bulkDeleteArgs,
+  returns: v.object({
+    restored: v.number(),
+    errors: v.array(v.object({ mediaId: v.string(), error: v.string() })),
+  }),
   handler: async (ctx, args) => {
     const user = await requireCan(ctx, "media.delete");
 
@@ -880,6 +896,10 @@ export const bulkPermanentlyDelete = mutation({
  */
 export const bulkUpdate = mutation({
   args: bulkUpdateArgs,
+  returns: v.object({
+    updated: v.number(),
+    errors: v.array(v.object({ mediaId: v.string(), error: v.string() })),
+  }),
   handler: async (ctx, args) => {
     const user = await requireCan(ctx, "media.update");
 

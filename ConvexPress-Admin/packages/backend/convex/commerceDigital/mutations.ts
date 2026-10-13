@@ -202,6 +202,7 @@ export const recordDownload: RegisteredMutation<"internal", DownloadAttempt, { s
     ipAddress: v.optional(v.string()),
     userAgent: v.optional(v.string()),
   },
+  returns: v.object({ storageId: v.id("_storage"), fileName: v.string(), mimeType: v.string() }),
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "commerceDigital");
     await requireCommerceDigitalEnabled(ctx);
@@ -343,6 +344,12 @@ export const recordDownloadInternal: RegisteredMutation<"internal", DownloadAtte
     ipAddress: v.optional(v.string()),
     userAgent: v.optional(v.string()),
   },
+  returns: v.union(v.object({ success: v.literal(false), code: v.literal("DOWNLOAD_UNAVAILABLE"), error: v.string() }), v.object({
+    success: v.literal(true),
+    storageId: v.id("_storage"),
+    fileName: v.string(),
+    mimeType: v.string(),
+  })),
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "commerceDigital");
     await requireCommerceDigitalEnabled(ctx);

@@ -27,10 +27,21 @@ import { getCurrentUser, currentUserCan, getUserIdentifier } from "../helpers/pe
  *
  * Used by: Website header, admin bar, auth state checks.
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const getAuthInfo = query({
   args: {},
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.union(v.null(), v.object({
+    id: v.id("users"),
+    email: v.string(),
+    emailVerified: v.boolean(),
+    firstName: v.optional(v.string()),
+    lastName: v.optional(v.string()),
+    displayName: v.optional(v.string()),
+    profilePictureUrl: v.optional(v.string()),
+    isInternal: v.optional(v.boolean()),
+    internalRole: v.optional(v.string()),
+    status: v.union(v.literal("active"), v.literal("inactive"), v.literal("banned")),
+    lastLoginAt: v.optional(v.number()),
+  })),
   handler: async (ctx) => {
     const user = await getCurrentUser(ctx);
     if (!user) return null;
@@ -63,6 +74,14 @@ export const getLoginHistory: import("convex/server").RegisteredQuery<"public", 
   args: {
     limit: v.optional(v.number()),
   },
+  returns: v.array(v.object({
+    id: v.id("events"),
+    timestamp: v.number(),
+    ip: v.string(),
+    userAgent: v.string(),
+    method: v.string(),
+    app: v.string(),
+  })),
   handler: async (ctx, args) => {
     const user = await getCurrentUser(ctx);
     if (!user) return [];
@@ -113,6 +132,18 @@ export const getFailedLoginAttempts: import("convex/server").RegisteredQuery<"pu
     onlyUnreviewed: v.optional(v.boolean()),
     email: v.optional(v.string()),
   },
+  returns: v.array(v.object({
+    id: v.id("failedLoginAttempts"),
+    email: v.string(),
+    ip: v.optional(v.string()),
+    userAgent: v.optional(v.string()),
+    reason: v.union(v.literal("invalid_credentials"), v.literal("account_locked"), v.literal("account_deactivated"), v.literal("account_banned"), v.literal("mfa_failed"), v.literal("rate_limited"), v.literal("unknown")),
+    description: v.optional(v.string()),
+    app: v.union(v.literal("website"), v.literal("admin"), v.literal("unknown")),
+    userId: v.optional(v.id("users")),
+    reviewed: v.boolean(),
+    attemptedAt: v.number(),
+  })),
   handler: async (ctx, args) => {
     // Use capability system instead of legacy isInternal/internalRole check (#52)
     const canView = await currentUserCan(ctx, "audit.view");
@@ -166,6 +197,7 @@ export const getFailedLoginAttempts: import("convex/server").RegisteredQuery<"pu
  */
 export const getUnreviewedFailedLoginCount: import("convex/server").RegisteredQuery<"public", Record<string, never>, { count: number; isTruncated?: boolean }> = query({
   args: {},
+  returns: v.union(v.object({ count: v.number(), isTruncated: v.optional(v.null()) }), v.object({ count: v.number(), isTruncated: v.boolean() })),
   handler: async (ctx) => {
     // Use capability system instead of legacy isInternal/internalRole check (#52)
     const canView = await currentUserCan(ctx, "audit.view");
@@ -202,6 +234,32 @@ export const getSecurityOverview: import("convex/server").RegisteredQuery<"publi
     loginLimit: v.optional(v.number()),
     failedLimit: v.optional(v.number()),
   },
+  returns: v.union(v.null(), v.object({
+    logins: v.array(v.object({
+      id: v.id("events"),
+      type: v.literal("login"),
+      timestamp: v.number(),
+      ip: v.string(),
+      userAgent: v.string(),
+      method: v.string(),
+      app: v.string(),
+    })),
+    failures: v.array(v.object({
+      id: v.id("failedLoginAttempts"),
+      type: v.literal("failed"),
+      timestamp: v.number(),
+      ip: v.optional(v.string()),
+      userAgent: v.optional(v.string()),
+      reason: v.union(v.literal("invalid_credentials"), v.literal("account_locked"), v.literal("account_deactivated"), v.literal("account_banned"), v.literal("mfa_failed"), v.literal("rate_limited"), v.literal("unknown")),
+      description: v.optional(v.string()),
+      app: v.union(v.literal("website"), v.literal("admin"), v.literal("unknown")),
+    })),
+    totalLogins: v.number(),
+    totalFailures: v.number(),
+    lastLoginAt: v.union(v.null(), v.number()),
+    email: v.string(),
+    createdAt: v.number(),
+  })),
   handler: async (ctx, args) => {
     const user = await getCurrentUser(ctx);
     if (!user) return null;

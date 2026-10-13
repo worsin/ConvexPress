@@ -24,16 +24,22 @@ import {
   getNumber,
 } from "../helpers/airtable";
 
+import { v } from "convex/values";
 // Airtable table IDs
 const EMAIL_NOTIF_TABLE = "tbl5UW9iMJynfVUGG";
 const EVENTS_TABLE = "tblDQOlXXJO1aQapT";
 
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const syncEmailNotifications = internalAction({
   args: {},
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.object({
+    success: v.boolean(),
+    total: v.number(),
+    created: v.number(),
+    updated: v.number(),
+    unchanged: v.number(),
+    errors: v.optional(v.array(v.string())),
+  }),
   handler: async (ctx) => {
-    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     const [eventMap, records] = await Promise.all([
       buildLookupMap(EVENTS_TABLE, "Event Code"),
       fetchAirtableRecords(EMAIL_NOTIF_TABLE),

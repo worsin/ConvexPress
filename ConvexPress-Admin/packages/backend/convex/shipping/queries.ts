@@ -17,6 +17,7 @@ import {
 import { getShippingProviderDescriptor } from "./providers";
 import { getProviderConnectionArgs } from "./validators";
 
+import { tableDocs } from "../schema/tableDocs.generated";
 export const getOverview = query({
   args: {},
   handler: async (ctx) => {
@@ -163,6 +164,7 @@ export const listCheckoutQuotes = query({
 
 export const getRecentQuoteDiagnostics = query({
   args: { limit: v.optional(v.number()) },
+  returns: v.array(tableDocs.shipping_quote_diagnostics),
   handler: async (ctx, args) => {
     await requireShippingAdmin(ctx);
     const limit = args.limit ?? 25;
@@ -176,6 +178,24 @@ export const getRecentQuoteDiagnostics = query({
 
 export const listZonesWithMethods = query({
   args: {},
+  returns: v.array(v.object({
+    methods: v.array(tableDocs.commerce_shipping_zone_methods),
+    _id: v.id("commerce_shipping_zones"),
+    _creationTime: v.number(),
+    updatedBy: v.optional(v.id("users")),
+    description: v.optional(v.string()),
+    createdBy: v.optional(v.id("users")),
+    name: v.string(),
+    updatedAt: v.number(),
+    createdAt: v.number(),
+    enabled: v.boolean(),
+    slug: v.string(),
+    sortOrder: v.number(),
+    countries: v.array(v.string()),
+    states: v.array(v.string()),
+    postalCodeRules: v.array(v.string()),
+    isFallback: v.boolean(),
+  })),
   handler: async (ctx) => {
     await requireCan(ctx, "shipping.zones.read");
 
@@ -199,6 +219,7 @@ export const listZonesWithMethods = query({
 
 export const listPackages = query({
   args: {},
+  returns: v.array(tableDocs.commerce_shipping_packages),
   handler: async (ctx) => {
     await requireCan(ctx, "shipping.packages.read");
     const packages = await ctx.db.query("commerce_shipping_packages").collect();
@@ -210,6 +231,7 @@ export const listPackages = query({
 
 export const getPackage = query({
   args: { packageId: v.id("commerce_shipping_packages") },
+  returns: v.union(v.null(), tableDocs.commerce_shipping_packages),
   handler: async (ctx, args) => {
     await requireCan(ctx, "shipping.packages.read");
     return ctx.db.get(args.packageId);
@@ -218,6 +240,16 @@ export const getPackage = query({
 
 export const getProviderCapabilities = query({
   args: {},
+  returns: v.array(v.object({
+    provider: v.union(v.literal("shipstation"), v.literal("ups"), v.literal("usps"), v.literal("fedex"), v.literal("dhl")),
+    status: v.union(v.literal("error"), v.literal("disconnected"), v.literal("connected"), v.literal("degraded")),
+    enabled: v.boolean(),
+    supportsRates: v.boolean(),
+    supportsLabels: v.boolean(),
+    supportsTracking: v.boolean(),
+    supportsManifests: v.boolean(),
+    supportsReturns: v.boolean(),
+  })),
   handler: async (ctx) => {
     await requireShippingAdmin(ctx);
 

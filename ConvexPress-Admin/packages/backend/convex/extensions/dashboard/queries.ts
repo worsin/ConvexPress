@@ -85,6 +85,33 @@ export const registry = query({
 
 export const myLayout = query({
   args: {},
+  returns: v.union(v.null(), v.object({
+    scope: v.string(),
+    items: v.array(v.object({
+      settings: v.optional(v.record(v.string(), v.union(v.boolean(), v.string(), v.number()))),
+      hidden: v.optional(v.boolean()),
+      key: v.string(),
+      widgetId: v.string(),
+      x: v.number(),
+      y: v.number(),
+      w: v.number(),
+      h: v.number(),
+    })),
+    canEdit: v.boolean(),
+    customized: v.boolean(),
+    baseChanged: v.boolean(),
+    grid: v.object({
+      columns: v.literal(12),
+      rowHeight: v.literal(96),
+      gap: v.literal(16),
+      sizes: v.object({
+        sm: v.object({ w: v.number(), h: v.number() }),
+        md: v.object({ w: v.number(), h: v.number() }),
+        lg: v.object({ w: v.number(), h: v.number() }),
+        xl: v.object({ w: v.number(), h: v.number() }),
+      }),
+    }),
+  })),
   handler: async (ctx) => {
     const user = await getCurrentUser(ctx);
     if (!user || user.status !== "active") return null;
@@ -131,6 +158,7 @@ export const myLayout = query({
 
 export const myBadges = query({
   args: {},
+  returns: v.record(v.string(), v.number()),
   handler: async (ctx) => {
     const user = await getCurrentUser(ctx);
     const empty = Object.fromEntries(BADGE_SOURCES.map((source) => [source, 0]));
@@ -194,6 +222,33 @@ export const defaultLayouts = query({
 
 export const defaultLayout = query({
   args: { scope: v.string() },
+  returns: v.object({
+    scope: v.string(),
+    exists: v.boolean(),
+    title: v.string(),
+    items: v.array(v.object({
+      settings: v.optional(v.record(v.string(), v.union(v.boolean(), v.string(), v.number()))),
+      hidden: v.optional(v.boolean()),
+      key: v.string(),
+      widgetId: v.string(),
+      x: v.number(),
+      y: v.number(),
+      w: v.number(),
+      h: v.number(),
+    })),
+    membersCanEdit: v.boolean(),
+    grid: v.object({
+      columns: v.literal(12),
+      rowHeight: v.literal(96),
+      gap: v.literal(16),
+      sizes: v.object({
+        sm: v.object({ w: v.number(), h: v.number() }),
+        md: v.object({ w: v.number(), h: v.number() }),
+        lg: v.object({ w: v.number(), h: v.number() }),
+        xl: v.object({ w: v.number(), h: v.number() }),
+      }),
+    }),
+  }),
   handler: async (ctx, args) => {
     await requireCan(ctx, "manage_options");
     const flags = await pluginFlags(ctx);

@@ -50,6 +50,31 @@ type CategoryTreeNode = {
  */
 export const list = query({
   args: listArgs,
+  returns: v.object({
+    terms: v.array(v.object({
+      depth: v.number(),
+      children: v.optional(v.array(v.id("terms"))),
+      _id: v.id("terms"),
+      _creationTime: v.number(),
+      wpSourceSiteId: v.optional(v.id("wordpressSites")),
+      description: v.optional(v.string()),
+      createdBy: v.optional(v.string()),
+      parentId: v.optional(v.id("terms")),
+      countReady: v.optional(v.boolean()),
+      wpTermId: v.optional(v.number()),
+      name: v.string(),
+      updatedAt: v.number(),
+      createdAt: v.number(),
+      slug: v.string(),
+      count: v.number(),
+      isDefault: v.boolean(),
+      taxonomy: v.union(v.literal("category"), v.literal("post_tag")),
+    })),
+    total: v.number(),
+    page: v.number(),
+    perPage: v.number(),
+    totalPages: v.number(),
+  }),
   handler: async (ctx, args) => {
     // Auth check
     if (!(await canReadTaxonomyAdmin(ctx))) {
@@ -311,6 +336,7 @@ export const getCategoryTree = query({
  */
 export const counts = query({
   args: {},
+  returns: v.object({ categories: v.number(), tags: v.number() }),
   handler: async (ctx) => {
     // Auth check
     if (!(await canReadTaxonomyAdmin(ctx))) {

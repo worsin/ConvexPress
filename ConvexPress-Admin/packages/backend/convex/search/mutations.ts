@@ -30,6 +30,7 @@ import {
   MAX_SYNONYM_TERM_LENGTH,
 } from "./validators";
 
+import { v } from "convex/values";
 // ─── logSearch ──────────────────────────────────────────────────────────────
 
 /**
@@ -48,6 +49,7 @@ import {
  */
 export const logSearch = mutation({
   args: logSearchArgs,
+  returns: v.id("searchQueries"),
   handler: async (ctx, args) => {
     // Get the current user's identifier if authenticated
     const user = await getCurrentUser(ctx);
@@ -99,6 +101,7 @@ export const logSearch = mutation({
  */
 export const logClick = mutation({
   args: logClickArgs,
+  returns: v.null(),
   handler: async (ctx, args) => {
     const queryRecord = await ctx.db.get("searchQueries", args.searchQueryId);
     if (!queryRecord) {
@@ -152,6 +155,7 @@ export const logClick = mutation({
  */
 export const createSynonym = mutation({
   args: createSynonymArgs,
+  returns: v.id("searchSynonyms"),
   handler: async (ctx, args) => {
     const user = await requireCan(ctx, "search.reindex");
 
@@ -258,6 +262,7 @@ export const createSynonym = mutation({
  */
 export const updateSynonym = mutation({
   args: updateSynonymArgs,
+  returns: v.null(),
   handler: async (ctx, args) => {
     const user = await requireCan(ctx, "search.reindex");
 
@@ -375,6 +380,7 @@ export const updateSynonym = mutation({
  */
 export const deleteSynonym = mutation({
   args: deleteSynonymArgs,
+  returns: v.null(),
   handler: async (ctx, args) => {
     const user = await requireCan(ctx, "search.reindex");
 

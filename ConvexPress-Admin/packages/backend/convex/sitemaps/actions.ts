@@ -28,6 +28,7 @@ import { ConvexError } from "convex/values";
 import { generateArgs } from "./validators";
 import type { ContentSitemapType } from "./validators";
 
+import { v } from "convex/values";
 // ─── _generateInternal (INTERNAL) ───────────────────────────────────────────
 
 /**
@@ -39,10 +40,9 @@ import type { ContentSitemapType } from "./validators";
  * @param types - Optional array of content types to regenerate
  * @param triggeredByUserId - The user identifier of the triggering user
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const _generateInternal = internalAction({
   args: generateArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.null(),
   handler: async (ctx, args) => {
     await ctx.runAction(internal.sitemaps.internals.regenerateStale, {
       triggeredBy: "manual",
@@ -69,10 +69,9 @@ export const _generateInternal = internalAction({
  * @throws UNAUTHORIZED if not authenticated
  * @throws FORBIDDEN if user lacks seo.generate_sitemap capability
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const generate = action({
   args: generateArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.object({ success: v.boolean(), durationMs: v.number(), triggeredBy: v.literal("manual") }),
   handler: async (ctx, args) => {
     // 1. Authenticate user
     const identity = await ctx.auth.getUserIdentity();

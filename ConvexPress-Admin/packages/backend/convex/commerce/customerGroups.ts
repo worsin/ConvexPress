@@ -4,8 +4,10 @@ import { ConvexError, v } from "convex/values";
 import { mutation, query } from "../_generated/server";
 import { requireCan } from "../helpers/permissions";
 
+import { tableDocs } from "../schema/tableDocs.generated";
 export const list = query({
   args: {},
+  returns: v.array(tableDocs.commerce_customer_groups),
   handler: async (ctx) => {
     await requireCan(ctx, "manage_options");
     return await ctx.db.query("commerce_customer_groups").collect();
@@ -18,6 +20,7 @@ export const create = mutation({
     description: v.optional(v.string()),
     metadata: v.optional(v.any()),
   },
+  returns: v.id("commerce_customer_groups"),
   handler: async (ctx, args) => {
     await requireCan(ctx, "manage_options");
     const now = Date.now();
@@ -38,6 +41,7 @@ export const update = mutation({
       metadata: v.optional(v.any()),
     }),
   },
+  returns: v.id("commerce_customer_groups"),
   handler: async (ctx, args) => {
     await requireCan(ctx, "manage_options");
     const group = await ctx.db.get(args.groupId);
@@ -52,6 +56,7 @@ export const addMember = mutation({
     groupId: v.id("commerce_customer_groups"),
     customerId: v.id("commerce_customer_profiles"),
   },
+  returns: v.id("commerce_customer_group_members"),
   handler: async (ctx, args) => {
     const actor = await requireCan(ctx, "manage_options");
     const existing = await ctx.db
@@ -75,6 +80,7 @@ export const removeMember = mutation({
     groupId: v.id("commerce_customer_groups"),
     customerId: v.id("commerce_customer_profiles"),
   },
+  returns: v.union(v.null(), v.id("commerce_customer_group_members")),
   handler: async (ctx, args) => {
     await requireCan(ctx, "manage_options");
     const existing = await ctx.db

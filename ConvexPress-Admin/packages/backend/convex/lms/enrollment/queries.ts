@@ -8,6 +8,7 @@ import { isPluginEnabled } from "../../helpers/plugins";
 import { currentUserCan, getCurrentUser, requireCan } from "../../helpers/permissions";
 import { canUserAccessCourse, canUserAccessNode } from "../access";
 
+import { tableDocs } from "../../schema/tableDocs.generated";
 function isActiveEnrollment(enrollment: { status?: string; expiresAt?: number | null }) {
   return (
     enrollment.status === "active" &&
@@ -17,6 +18,14 @@ function isActiveEnrollment(enrollment: { status?: string; expiresAt?: number | 
 
 export const canAccessCourse = query({
   args: { courseId: v.id("lms_courses"), userId: v.optional(v.id("users")) },
+  returns: v.object({
+    allowed: v.boolean(),
+    reason: v.string(),
+    requiresLogin: v.boolean(),
+    unlockAt: v.optional(v.number()),
+    enrollmentId: v.optional(v.id("lms_enrollments")),
+    matchingPlanIds: v.optional(v.array(v.string())),
+  }),
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "lms"))) {
       return { allowed: false, reason: "disabled", requiresLogin: false };
@@ -28,6 +37,14 @@ export const canAccessCourse = query({
 
 export const canAccessNode = query({
   args: { nodeId: v.id("lms_nodes"), userId: v.optional(v.id("users")) },
+  returns: v.object({
+    allowed: v.boolean(),
+    reason: v.string(),
+    requiresLogin: v.boolean(),
+    unlockAt: v.optional(v.number()),
+    enrollmentId: v.optional(v.id("lms_enrollments")),
+    matchingPlanIds: v.optional(v.array(v.string())),
+  }),
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "lms"))) {
       return { allowed: false, reason: "disabled", requiresLogin: false };
@@ -39,6 +56,13 @@ export const canAccessNode = query({
 
 export const getCourseUnlockSchedule = query({
   args: { courseId: v.id("lms_courses"), userId: v.optional(v.id("users")) },
+  returns: v.array(v.object({
+    nodeId: v.id("lms_nodes"),
+    allowed: v.boolean(),
+    reason: v.string(),
+    requiresLogin: v.boolean(),
+    unlockAt: v.optional(v.number()),
+  })),
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "lms"))) return [];
     await assertCanReadUserAccess(ctx, args.userId);
@@ -82,6 +106,7 @@ export const getCourseUnlockSchedule = query({
 
 export const getEnrollment = query({
   args: { courseId: v.id("lms_courses"), userId: v.optional(v.id("users")) },
+  returns: v.union(v.null(), tableDocs.lms_enrollments),
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "lms"))) return null;
     const me = await getCurrentUser(ctx);
@@ -115,6 +140,15 @@ async function canPreviewCourseSchedule(ctx: any) {
 
 export const listEnrolleesForCourse = query({
   args: { courseId: v.id("lms_courses") },
+  returns: v.array(v.object({
+    enrollmentId: v.id("lms_enrollments"),
+    userId: v.id("users"),
+    name: v.string(),
+    email: v.string(),
+    source: v.union(v.literal("manual"), v.literal("purchase"), v.literal("membership_plan")),
+    enrolledAt: v.number(),
+    expiresAt: v.optional(v.number()),
+  })),
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "lms"))) return [];
     await requireCan(ctx, "lms.enroll.manage");
@@ -210,6 +244,14 @@ export const listEnrollments = query({
 
 export const listMyEnrollments = query({
   args: {},
+  returns: v.array(v.object({
+    enrollmentId: v.id("lms_enrollments"),
+    courseId: v.id("lms_courses"),
+    title: v.string(),
+    slug: v.string(),
+    lessonCount: v.number(),
+    enrolledAt: v.number(),
+  })),
   handler: async (ctx) => {
     if (!(await isPluginEnabled(ctx, "lms"))) return [];
     const me = await getCurrentUser(ctx);

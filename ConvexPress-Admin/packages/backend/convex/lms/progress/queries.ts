@@ -9,8 +9,37 @@ import { isPluginEnabled } from "../../helpers/plugins";
 import { getCurrentUser, requireCan } from "../../helpers/permissions";
 import { canUserAccessCourse, canUserAccessNode } from "../access";
 
+import { tableDocs } from "../../schema/tableDocs.generated";
 export const getCourseProgress = query({
   args: { courseId: v.id("lms_courses"), userId: v.optional(v.id("users")) },
+  returns: v.union(v.object({
+    percent: v.number(),
+    total: v.number(),
+    completedCount: v.number(),
+    completedNodeIds: v.array(v.string()),
+    nextNodeId: v.union(v.null(), v.string()),
+    topicProgress: v.array(v.object({
+      topicId: v.string(),
+      title: v.string(),
+      percent: v.number(),
+      completedCount: v.number(),
+      total: v.number(),
+    })),
+  }), v.object({
+    completionRedirectUrl: v.optional(v.string()),
+    percent: v.number(),
+    total: v.number(),
+    completedCount: v.number(),
+    completedNodeIds: v.array(v.string()),
+    nextNodeId: v.union(v.null(), v.string()),
+    topicProgress: v.array(v.object({
+      topicId: v.string(),
+      title: v.string(),
+      percent: v.number(),
+      completedCount: v.number(),
+      total: v.number(),
+    })),
+  })),
   handler: async (ctx, args) => {
     const empty = {
       percent: 0,
@@ -63,6 +92,7 @@ export const getCourseProgress = query({
 
 export const getNodeProgress = query({
   args: { nodeId: v.id("lms_nodes"), userId: v.optional(v.id("users")) },
+  returns: v.union(v.null(), tableDocs.lms_progress),
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "lms"))) return null;
     const me = await getCurrentUser(ctx);
@@ -84,6 +114,40 @@ export const getNodeProgress = query({
 
 export const canComplete = query({
   args: { nodeId: v.id("lms_nodes"), userId: v.optional(v.id("users")) },
+  returns: v.union(v.object({
+    allowed: v.boolean(),
+    reason: v.string(),
+    requiresLogin: v.boolean(),
+    unlockAt: v.optional(v.null()),
+    watchedFraction: v.optional(v.null()),
+    requiredWatchedFraction: v.optional(v.null()),
+    timeSpentSec: v.optional(v.null()),
+    minTimeSeconds: v.optional(v.null()),
+    videoRemainingFraction: v.optional(v.null()),
+    timeRemainingSec: v.optional(v.null()),
+  }), v.object({
+    allowed: v.boolean(),
+    reason: v.string(),
+    requiresLogin: v.boolean(),
+    unlockAt: v.optional(v.number()),
+    watchedFraction: v.optional(v.null()),
+    requiredWatchedFraction: v.optional(v.null()),
+    timeSpentSec: v.optional(v.null()),
+    minTimeSeconds: v.optional(v.null()),
+    videoRemainingFraction: v.optional(v.null()),
+    timeRemainingSec: v.optional(v.null()),
+  }), v.object({
+    allowed: v.boolean(),
+    reason: v.string(),
+    requiresLogin: v.boolean(),
+    watchedFraction: v.number(),
+    requiredWatchedFraction: v.optional(v.number()),
+    timeSpentSec: v.number(),
+    minTimeSeconds: v.number(),
+    videoRemainingFraction: v.number(),
+    timeRemainingSec: v.number(),
+    unlockAt: v.optional(v.null()),
+  })),
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "lms"))) {
       return { allowed: false, reason: "disabled", requiresLogin: false };

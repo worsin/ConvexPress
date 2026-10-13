@@ -6,6 +6,7 @@ import { requireCan } from "../helpers/permissions";
 import { patchDynamicWithMediaReferences } from "../media/attachmentGuard";
 
 
+import { tableDocs } from "../schema/tableDocs.generated";
 const regionArgs = {
   name: v.string(),
   currencyCode: v.string(),
@@ -29,6 +30,7 @@ async function clearDefault(ctx: any, table: string, currentId?: any) {
 
 export const list = query({
   args: {},
+  returns: v.array(tableDocs.commerce_regions),
   handler: async (ctx) => {
     await requireCan(ctx, "manage_options");
     return await ctx.db.query("commerce_regions").collect();
@@ -37,6 +39,7 @@ export const list = query({
 
 export const create = mutation({
   args: regionArgs,
+  returns: v.id("commerce_regions"),
   handler: async (ctx, args) => {
     await requireCan(ctx, "manage_options");
     if (args.isDefault) await clearDefault(ctx, "commerce_regions");
@@ -53,6 +56,7 @@ export const create = mutation({
 
 export const update = mutation({
   args: { regionId: v.id("commerce_regions"), patch: v.object(regionArgs) },
+  returns: v.id("commerce_regions"),
   handler: async (ctx, args) => {
     await requireCan(ctx, "manage_options");
     const region = await ctx.db.get(args.regionId);

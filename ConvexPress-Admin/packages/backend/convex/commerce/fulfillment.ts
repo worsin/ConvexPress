@@ -242,6 +242,7 @@ export const updateFulfillmentStatus = mutation({
     fulfillmentStatus: v.string(),
     note: v.optional(v.string()),
   },
+  returns: v.object({ success: v.boolean() }),
   handler: async (ctx: any, args: any) => {
     await requireCommerceEnabled(ctx);
     const user = await requireCan(ctx, "manage_options");
@@ -290,6 +291,7 @@ export const assignOrder = mutation({
     orderId: v.id("commerce_orders"),
     assigneeUserId: v.optional(v.id("users")),
   },
+  returns: v.object({ success: v.boolean() }),
   handler: async (ctx: any, args: any) => {
     await requireCommerceEnabled(ctx);
     const user = await requireCan(ctx, "manage_options");
@@ -330,6 +332,7 @@ export const addFulfillmentNote = mutation({
     orderId: v.id("commerce_orders"),
     note: v.string(),
   },
+  returns: v.object({ success: v.boolean() }),
   handler: async (ctx: any, args: any) => {
     await requireCommerceEnabled(ctx);
     const user = await requireCan(ctx, "manage_options");
@@ -369,6 +372,7 @@ export const recordShippingCost = internalMutation({
     service: v.string(),
     weightOz: v.number(),
   },
+  returns: v.object({ success: v.boolean() }),
   handler: async (ctx: any, args: any) => {
     const totalCost =
       args.carrierCost + (args.insuranceCost ?? 0) + (args.packageMaterialCost ?? 0);

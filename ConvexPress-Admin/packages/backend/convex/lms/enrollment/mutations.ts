@@ -25,6 +25,7 @@ export const enroll = mutation({
       v.union(v.literal("membership_plan"), v.literal("manual"), v.literal("purchase")),
     ),
   },
+  returns: v.id("lms_enrollments"),
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "lms");
     const me = await requireAuth(ctx);
@@ -141,6 +142,7 @@ export const enroll = mutation({
 
 export const unenroll = mutation({
   args: { courseId: v.id("lms_courses"), userId: v.optional(v.id("users")) },
+  returns: v.object({ ok: v.boolean() }),
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "lms");
     const me = await requireAuth(ctx);
@@ -169,6 +171,7 @@ export const unenroll = mutation({
 /** Admin: enroll a learner by email. */
 export const enrollByEmail = mutation({
   args: { courseId: v.id("lms_courses"), email: v.string() },
+  returns: v.id("lms_enrollments"),
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "lms");
     await requireCan(ctx, "lms.enroll.manage");

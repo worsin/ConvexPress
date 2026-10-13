@@ -175,18 +175,14 @@ async function validateFirstAdminSetupToken(setupToken: string | undefined) {
   };
 }
 
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const createFirstAdmin = action({
   args: {
     email: v.string(),
     username: v.string(),
     password: v.string(),
-    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     displayName: v.optional(v.string()),
-    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     setupToken: v.optional(v.string()),
   },
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     const credentials = validateFirstAdminCredentials(args);
     const existingAdmins = await ctx.runQuery(internal.auth.internals.checkExistingAdmins);
@@ -210,7 +206,6 @@ export const createFirstAdmin = action({
 
     const passwordHash = await hashPassword(args.password);
 
-    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     const userId = await ctx.runMutation(internal.auth.internals.createAdminUser, {
       email: credentials.email,
       username: credentials.username,
@@ -237,16 +232,14 @@ export const createFirstAdmin = action({
  *   - If smoketest user exists: updates passwordHash to match the supplied password
  *     (so credential rotation works) and ensures admin flags are set
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const provisionSmokeAdmin = action({
   args: {
     email: v.string(),
     username: v.string(),
     password: v.string(),
-    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     devToken: v.optional(v.string()),
   },
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.object({ created: v.boolean(), userId: v.string(), email: v.string() }),
   handler: async (ctx, args): Promise<{ created: boolean; userId: string; email: string }> => {
     assertDevInternalsAdminToken(args.devToken);
 
@@ -278,6 +271,7 @@ export const upsertSmokeAdmin: RegisteredMutation<"internal", {email:string;user
     username: v.string(),
     passwordHash: v.string(),
   },
+  returns: v.object({ created: v.boolean(), userId: v.id("users"), email: v.string() }),
   handler: async (ctx, args) => {
     const adminRole = await ctx.db
       .query("roles")

@@ -16,6 +16,7 @@ export const markLabelVoided = internalMutation({
     labelId: v.id("commerce_shipment_labels"),
     refundPending: v.boolean(),
   },
+  returns: v.union(v.null(), v.id("commerce_shipment_labels")),
   handler: async (ctx, args) => {
     const label = await ctx.db.get(args.labelId);
     if (!label || label.voidedAt) return label?._id ?? null;
@@ -63,6 +64,7 @@ export const recordPurchasedLabel = internalMutation({
     idempotencyKey: v.optional(v.string()),
     rawMetadata: v.optional(v.any()),
   },
+  returns: v.id("commerce_shipment_labels"),
   handler: async (ctx, args) => {
     if (args.externalLabelId) {
       const existing = await ctx.db
@@ -138,6 +140,11 @@ export const recordPurchasedLabel = internalMutation({
  */
 export const reprintLabel = mutation({
   args: { labelId: v.id("commerce_shipment_labels") },
+  returns: v.object({
+    labelUrl: v.optional(v.string()),
+    labelFileStorageId: v.optional(v.id("_storage")),
+    printCount: v.number(),
+  }),
   handler: async (ctx, args) => {
     const user = await requireCan(ctx, "shipping.labels.reprint");
     const label = await ctx.db.get(args.labelId);
@@ -173,6 +180,7 @@ export const reprintLabel = mutation({
 
 export const voidLabel = mutation({
   args: voidLabelArgs,
+  returns: v.id("commerce_shipment_labels"),
   handler: async (ctx, args) => {
     const user = await requireCan(ctx, "shipping.labels.void");
     const label = await ctx.db.get(args.labelId);

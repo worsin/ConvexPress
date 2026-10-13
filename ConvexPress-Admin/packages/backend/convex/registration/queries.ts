@@ -28,6 +28,7 @@ import {
   getByTokenArgs,
 } from "./validators";
 
+import { v } from "convex/values";
 // ─── List Invitations ────────────────────────────────────────────────────────
 
 /**
@@ -100,6 +101,32 @@ export const listInvitations = query({
  */
 export const getInvitation = query({
   args: getInvitationArgs,
+  returns: v.union(v.null(), v.object({
+    inviterName: v.string(),
+    inviterEmail: v.optional(v.string()),
+    acceptedUserName: v.optional(v.string()),
+    acceptedUserEmail: v.optional(v.string()),
+    revokedByName: v.optional(v.string()),
+    isEffectivelyExpired: v.boolean(),
+    _id: v.id("invitations"),
+    _creationTime: v.number(),
+    message: v.optional(v.string()),
+    previousToken: v.optional(v.string()),
+    previousTokenExpiresAt: v.optional(v.number()),
+    acceptedBy: v.optional(v.id("users")),
+    acceptedAt: v.optional(v.number()),
+    revokedAt: v.optional(v.number()),
+    revokedBy: v.optional(v.id("users")),
+    resentAt: v.optional(v.number()),
+    createdAt: v.number(),
+    status: v.union(v.literal("pending"), v.literal("revoked"), v.literal("accepted"), v.literal("expired")),
+    expiresAt: v.number(),
+    email: v.string(),
+    invitedBy: v.id("users"),
+    role: v.string(),
+    token: v.string(),
+    resentCount: v.number(),
+  })),
   handler: async (ctx, args) => {
     // Auth check
     const user = await requireCan(ctx, "registration.invite");
@@ -148,6 +175,12 @@ export const getInvitation = query({
  */
 export const getByToken = query({
   args: getByTokenArgs,
+  returns: v.union(v.null(), v.object({
+    email: v.string(),
+    role: v.string(),
+    message: v.union(v.null(), v.string()),
+    expiresAt: v.number(),
+  })),
   handler: async (ctx, args) => {
     const token = normalizeInvitationToken(args.token);
     if (!token) return null;
@@ -211,6 +244,13 @@ export const getByToken = query({
  */
 export const counts = query({
   args: {},
+  returns: v.object({
+    total: v.number(),
+    pending: v.number(),
+    accepted: v.number(),
+    expired: v.number(),
+    revoked: v.number(),
+  }),
   handler: async (ctx) => {
     // Auth check
     const user = await requireCan(ctx, "registration.invite");
@@ -273,6 +313,7 @@ export const counts = query({
  */
 export const isRegistrationOpen = query({
   args: {},
+  returns: v.boolean(),
   handler: async (ctx) => {
     const settings = await getRegistrationSettings(ctx);
     return settings.anyoneCanRegister;
@@ -287,6 +328,13 @@ export const isRegistrationOpen = query({
  */
 export const getRegistrationStatus = query({
   args: {},
+  returns: v.object({
+    status: v.union(v.literal("open"), v.literal("closed"), v.literal("invite_only")),
+    canRegister: v.boolean(),
+    inviteOnly: v.boolean(),
+    defaultRole: v.string(),
+    requireEmailVerification: v.boolean(),
+  }),
   handler: async (ctx) => {
     const settings = await getRegistrationSettings(ctx);
     return {
@@ -311,6 +359,13 @@ export const getRegistrationStatus = query({
  */
 export const getRegistrationStats = query({
   args: {},
+  returns: v.object({
+    total: v.number(),
+    last24h: v.number(),
+    last7d: v.number(),
+    last30d: v.number(),
+    pendingInvitations: v.number(),
+  }),
   handler: async (ctx) => {
     // Auth check
     const user = await requireCan(ctx, "registration.invite");

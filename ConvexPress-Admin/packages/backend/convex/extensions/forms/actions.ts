@@ -55,6 +55,7 @@ import "./actionTypes";
 import "./commerce";
 import { normalizeFormReturnUrl } from "./redirects";
 
+import { tableDocs } from "../../schema/tableDocs.generated";
 // ─── Local helpers ───────────────────────────────────────────────────────────
 
 /**
@@ -118,6 +119,7 @@ function validateConfigOrThrow(type: string, config: string): void {
 /** All action types available to the editor's type picker. */
 export const availableActionTypes = query({
   args: {},
+  returns: v.array(v.object({ type: v.string(), label: v.string() })),
   handler: async (ctx) => {
     await requireCan(ctx, formCap("form.manage_actions"));
     await requirePluginEnabled(ctx, "forms");
@@ -128,6 +130,7 @@ export const availableActionTypes = query({
 /** Ordered actions for a form (ascending `order`). */
 export const listActions = query({
   args: { formId: v.id("forms") },
+  returns: v.array(tableDocs.form_actions),
   handler: async (ctx, { formId }) => {
     await requireCan(ctx, formCap("form.manage_actions"));
     await requirePluginEnabled(ctx, "forms");
@@ -141,6 +144,7 @@ export const listActions = query({
 /** Run history for one submission. */
 export const listRunsForSubmission = query({
   args: { submissionId: v.id("form_submissions") },
+  returns: v.array(tableDocs.form_action_runs),
   handler: async (ctx, { submissionId }) => {
     await requireCan(ctx, formCap("form.manage_actions"));
     await requirePluginEnabled(ctx, "forms");
@@ -163,6 +167,19 @@ export const listRunsForSubmission = query({
  */
 export const getPendingPayment = query({
   args: { submissionId: v.id("form_submissions") },
+  returns: v.union(v.null(), v.object({
+    runId: v.id("form_action_runs"),
+    formActionId: v.id("form_actions"),
+    intentId: v.union(v.null(), v.object({})),
+    clientSecret: v.union(v.null(), v.object({})),
+    publishableKey: v.union(v.null(), v.object({})),
+    mode: v.string(),
+    amount: v.number(),
+    recurringAmount: v.number(),
+    currency: v.string(),
+    accountPolicy: v.string(),
+    returnUrl: v.optional(v.string()),
+  })),
   handler: async (ctx, { submissionId }) => {
     if (!(await isPluginEnabled(ctx, "forms"))) return null;
 
@@ -207,6 +224,7 @@ export const listRecentRuns = query({
     status: v.optional(runStatusValidator),
     limit: v.optional(v.number()),
   },
+  returns: v.array(tableDocs.form_action_runs),
   handler: async (ctx, { formId, status, limit }) => {
     await requireCan(ctx, formCap("form.manage_actions"));
     await requirePluginEnabled(ctx, "forms");
@@ -239,6 +257,7 @@ export const createAction = mutation({
     conditionalLogic: v.optional(v.string()),
     enabled: v.optional(v.boolean()),
   },
+  returns: v.union(v.null(), tableDocs.form_actions),
   handler: async (ctx, args) => {
     await requireCan(ctx, formCap("form.manage_actions"));
     await requirePluginEnabled(ctx, "forms");
@@ -290,6 +309,7 @@ export const updateAction = mutation({
     conditionalLogic: v.optional(v.string()),
     enabled: v.optional(v.boolean()),
   },
+  returns: v.union(v.null(), tableDocs.form_actions),
   handler: async (ctx, args) => {
     await requireCan(ctx, formCap("form.manage_actions"));
     await requirePluginEnabled(ctx, "forms");
@@ -340,6 +360,7 @@ export const reorderActions = mutation({
     formId: v.id("forms"),
     orderedIds: v.array(v.id("form_actions")),
   },
+  returns: v.object({ success: v.boolean() }),
   handler: async (ctx, { formId, orderedIds }) => {
     await requireCan(ctx, formCap("form.manage_actions"));
     await requirePluginEnabled(ctx, "forms");
@@ -356,6 +377,7 @@ export const reorderActions = mutation({
 
 export const deleteAction = mutation({
   args: { actionId: v.id("form_actions") },
+  returns: v.object({ success: v.boolean() }),
   handler: async (ctx, { actionId }) => {
     await requireCan(ctx, formCap("form.manage_actions"));
     await requirePluginEnabled(ctx, "forms");
@@ -375,6 +397,7 @@ export const deleteAction = mutation({
  */
 export const replayRun = mutation({
   args: { runId: v.id("form_action_runs") },
+  returns: v.object({ replayed: v.boolean() }),
   handler: async (ctx, { runId }) => {
     await requireCan(ctx, formCap("form.manage_actions"));
     await requirePluginEnabled(ctx, "forms");
@@ -428,6 +451,7 @@ async function readSubmissionValues(
 /** internalQuery wrapper so the Node action can read the value map. */
 export const getSubmissionValues = internalQuery({
   args: { submissionId: v.id("form_submissions") },
+  returns: v.record(v.string(), v.string()),
   handler: async (ctx, { submissionId }) => {
     return await readSubmissionValues(ctx, submissionId);
   },
@@ -436,6 +460,7 @@ export const getSubmissionValues = internalQuery({
 /** internalQuery: re-read an action mid-flight (enabled/config may have changed). */
 export const getActionInternal = internalQuery({
   args: { actionId: v.id("form_actions") },
+  returns: v.union(v.null(), tableDocs.form_actions),
   handler: async (ctx, { actionId }) => {
     return await ctx.db.get(actionId);
   },
@@ -444,6 +469,7 @@ export const getActionInternal = internalQuery({
 /** internalQuery: read a run row. */
 export const getRun = internalQuery({
   args: { runId: v.id("form_action_runs") },
+  returns: v.union(v.null(), tableDocs.form_action_runs),
   handler: async (ctx, { runId }) => {
     return await ctx.db.get(runId);
   },
@@ -452,6 +478,7 @@ export const getRun = internalQuery({
 /** internalMutation: bump the attempt counter for a run. */
 export const markAttempt = internalMutation({
   args: { runId: v.id("form_action_runs"), attempts: v.number() },
+  returns: v.null(),
   handler: async (ctx, { runId, attempts }) => {
     await ctx.db.patch("form_action_runs", runId, { attempts, updatedAt: Date.now() });
   },
@@ -464,6 +491,7 @@ export const scheduleRetry = internalMutation({
     error: v.optional(v.string()),
     nextAttemptAt: v.number(),
   },
+  returns: v.null(),
   handler: async (ctx, { runId, error, nextAttemptAt }) => {
     await ctx.db.patch("form_action_runs", runId, {
       status: "pending",
@@ -482,6 +510,7 @@ export const finalizeRun = internalMutation({
     result: v.optional(v.string()),
     error: v.optional(v.string()),
   },
+  returns: v.null(),
   handler: async (ctx, { runId, status, result, error }) => {
     await ctx.db.patch("form_action_runs", runId, {
       status,
@@ -508,6 +537,7 @@ export const emitActionEvent = internalMutation({
     error: v.optional(v.string()),
     result: v.optional(v.any()),
   },
+  returns: v.null(),
   handler: async (ctx, args) => {
     const { emitEvent } = await import("../../helpers/events");
     const { FORM_EVENTS, SYSTEM } = await import("../../events/constants");
@@ -541,6 +571,7 @@ export const emitActionEvent = internalMutation({
  */
 export const runActions = internalMutation({
   args: { eventId: v.id("events") },
+  returns: v.null(),
   handler: async (ctx, { eventId }) => {
     if (!(await isPluginEnabled(ctx, "forms"))) return;
 
@@ -656,6 +687,7 @@ export const runActions = internalMutation({
  */
 export const dispatchAction = internalAction({
   args: { runId: v.id("form_action_runs") },
+  returns: v.null(),
   handler: async (ctx, { runId }) => {
     if (!(await isPluginEnabled(ctx, "forms"))) return;
 

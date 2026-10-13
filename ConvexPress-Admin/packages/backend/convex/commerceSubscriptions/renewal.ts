@@ -89,13 +89,17 @@ async function isLiveChargingEnabled(ctx: any): Promise<boolean> {
  * Registered in `crons.ts` as:
  *   crons.hourly("subscription-renewals", {}, internal.commerceSubscriptions.renewal.runRenewalSweep)
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const runRenewalSweep = internalAction({
   args: {
-    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     limit: v.optional(v.number()),
   },
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.object({
+    generated: v.number(),
+    charged: v.number(),
+    succeeded: v.number(),
+    failed: v.number(),
+    invoiceIds: v.array(v.string()),
+  }),
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "commerceSubscriptions");
 

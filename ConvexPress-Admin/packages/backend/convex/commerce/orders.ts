@@ -33,6 +33,7 @@ import { syncPurchasedCourseEnrollmentsHandler } from "../lms/enrollment/interna
 import { patchDynamicWithMediaReferences } from "../media/attachmentGuard";
 
 
+import { v } from "convex/values";
 async function enrichOrder(ctx: any, order: any) {
   const items = await ctx.db
     .query("commerce_order_items")
@@ -318,10 +319,8 @@ async function enrichOrderForList(ctx: any, order: any) {
 const ORDERS_DEFAULT_PER_PAGE = 20;
 const ORDERS_MAX_PER_PAGE = 100;
 
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const list = query({
   args: listOrdersArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args): Promise<any> => {
     await requireCommerceEnabled(ctx);
     await requireCan(ctx, "manage_options");
@@ -454,10 +453,8 @@ function sortOrders(orders: any[], orderBy?: string, orderDir?: "asc" | "desc") 
   });
 }
 
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const counts = query({
   args: orderCountsArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args): Promise<any> => {
     await requireCommerceEnabled(ctx);
     await requireCan(ctx, "manage_options");
@@ -489,10 +486,9 @@ export const counts = query({
 
 // ─── Bulk mutations ─────────────────────────────────────────────────────────
 
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const bulkUpdateStatus = mutation({
   args: orderBulkUpdateStatusArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.object({ count: v.number() }),
   handler: async (ctx, args): Promise<{ count: number }> => {
     await requireCommerceEnabled(ctx);
     const actor = await requireCan(ctx, "manage_options");
@@ -507,10 +503,9 @@ export const bulkUpdateStatus = mutation({
   },
 });
 
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const bulkCancel = mutation({
   args: orderBulkArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.object({ count: v.number() }),
   handler: async (ctx, args): Promise<{ count: number }> => {
     await requireCommerceEnabled(ctx);
     const actor = await requireCan(ctx, "manage_options");
@@ -525,10 +520,8 @@ export const bulkCancel = mutation({
   },
 });
 
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const get = query({
   args: getOrderArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     await requireCommerceEnabled(ctx);
     await requireCan(ctx, "manage_options");
@@ -537,10 +530,8 @@ export const get = query({
   },
 });
 
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const listMine = query({
   args: {},
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx) => {
     await requireCommerceEnabled(ctx);
     const user = await getCurrentUser(ctx);
@@ -552,15 +543,12 @@ export const listMine = query({
       .collect();
 
     orders.sort((a: any, b: any) => b.createdAt - a.createdAt);
-    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     return Promise.all(orders.map((order: any) => enrichOrder(ctx, order)));
   },
 });
 
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const getMineById = query({
   args: getOrderArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     await requireCommerceEnabled(ctx);
     const user = await getCurrentUser(ctx);
@@ -580,10 +568,8 @@ export const getMineById = query({
   },
 });
 
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const getByCheckoutSession = query({
   args: getOrderByCheckoutSessionArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     await requireCommerceEnabled(ctx);
     const order = await ctx.db.get(args.orderId);
@@ -606,10 +592,8 @@ export const getByCheckoutSession = query({
   },
 });
 
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const getByTrackingToken = query({
   args: getOrderByTrackingTokenArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     await requireCommerceEnabled(ctx);
     const trackingToken = args.trackingToken.trim();
@@ -824,10 +808,8 @@ async function transitionOrderStatus(ctx: any, args: any, actor: any) {
     return order._id;
 }
 
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const updateStatus = mutation({
   args: updateOrderStatusArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     await requireCommerceEnabled(ctx);
     const actor = await requireCan(ctx, "manage_options");
@@ -835,10 +817,9 @@ export const updateStatus = mutation({
   },
 });
 
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const updateFulfillment = mutation({
   args: updateOrderFulfillmentArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.id("commerce_orders"),
   handler: async (ctx, args) => {
     await requireCommerceEnabled(ctx);
     const actor = await requireCan(ctx, "manage_options");
@@ -886,10 +867,9 @@ export const updateFulfillment = mutation({
   },
 });
 
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const capturePayment = mutation({
   args: captureOrderPaymentArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.id("commerce_orders"),
   handler: async (ctx, args) => {
     await requireCommerceEnabled(ctx);
     const actor = await requireCan(ctx, "manage_options");
@@ -1024,10 +1004,9 @@ export const capturePayment = mutation({
   },
 });
 
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const createRefund = mutation({
   args: createOrderRefundArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.id("commerce_orders"),
   handler: async (ctx, args) => {
     await requireCommerceEnabled(ctx);
     const actor = await requireCan(ctx, "manage_options");
@@ -1168,10 +1147,9 @@ export const createRefund = mutation({
  * is not currently supported. If operations need component-level tracking,
  * implement a bundle expansion step in shipment creation.
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const createShipment = mutation({
   args: createShipmentArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.id("commerce_shipments"),
   handler: async (ctx, args) => {
     await requireCommerceEnabled(ctx);
     const actor = await requireCan(ctx, "manage_options");
@@ -1315,10 +1293,9 @@ export const createShipment = mutation({
   },
 });
 
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const updateShipmentStatus = mutation({
   args: updateShipmentStatusArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.id("commerce_shipments"),
   handler: async (ctx, args) => {
     await requireCommerceEnabled(ctx);
     const actor = await requireCan(ctx, "manage_options");

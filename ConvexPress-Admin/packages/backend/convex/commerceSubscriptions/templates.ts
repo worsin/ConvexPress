@@ -47,13 +47,11 @@ import { requireCommerceSubscriptionsEnabled } from "./helpers";
  *     that's enforced at the UI layer in Wave 2 and can be tightened in
  *     Wave 7 if needed).
  */
-// @ts-expect-error TS2589: Convex union-schema types exceed TypeScript's type instantiation depth limit in strict mode.
 export const archiveTemplate = mutation({
   args: {
-    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     templateId: v.id("commerce_subscription_templates"),
   },
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.union(v.object({ success: v.boolean(), alreadyArchived: v.boolean() }), v.object({ success: v.boolean(), alreadyArchived: v.optional(v.null()) })),
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "commerceSubscriptions");
     await requireCommerceSubscriptionsEnabled(ctx);

@@ -453,6 +453,7 @@ export const recordFunnel = internalMutation({
     stage: v.union(v.literal("viewed"), v.literal("started")),
     sessionNonce: v.optional(v.string()),
   },
+  returns: v.null(),
   handler: async (ctx, { formId, stage }) => {
     if (!(await isPluginEnabled(ctx, "forms"))) return;
 
@@ -477,6 +478,10 @@ export const recordFunnelPublic = mutation({
     stage: v.union(v.literal("viewed"), v.literal("started")),
     sessionNonce: v.optional(v.string()),
   },
+  returns: v.union(v.object({ recorded: v.boolean(), reason: v.literal("disabled") }), v.object({ recorded: v.boolean(), reason: v.literal("unpublished") }), v.object({
+    recorded: v.boolean(),
+    reason: v.union(v.literal("recorded"), v.literal("duplicate_started"), v.literal("window_clamped")),
+  })),
   handler: async (ctx, { formId, stage, sessionNonce }) => {
     if (!(await isPluginEnabled(ctx, "forms"))) {
       return { recorded: false, reason: "disabled" as const };
@@ -549,6 +554,7 @@ export const recordFunnelPublic = mutation({
  */
 export const onFormSubmitted = internalMutation({
   args: { eventId: v.id("events") },
+  returns: v.null(),
   handler: async (ctx, { eventId }) => {
     if (!(await isPluginEnabled(ctx, "forms"))) return;
 
@@ -605,6 +611,25 @@ export const getFunnel = query({
  */
 export const getOperationalHealth = query({
   args: { formId: v.id("forms") },
+  returns: v.object({
+    checkedAt: v.number(),
+    windowMs: v.number(),
+    actionRuns: v.object({
+      failed: v.number(),
+      pending: v.number(),
+      awaitingPayment: v.number(),
+      latestFailureAt: v.optional(v.number()),
+    }),
+    submissionAttempts: v.object({
+      buckets: v.number(),
+      attempts: v.number(),
+      blocked: v.number(),
+      maxBucketCount: v.number(),
+    }),
+    publicFunnel: v.object({ acceptedEvents: v.number(), viewed: v.number(), started: v.number() }),
+    staleDrafts: v.object({ count: v.number() }),
+    needsAttention: v.boolean(),
+  }),
   handler: async (ctx, { formId }) => {
     await requireCan(ctx, formCap("form.view_analytics"));
     await requirePluginEnabled(ctx, "forms");
@@ -702,6 +727,7 @@ export const getOperationalHealth = query({
  */
 export const sweepAbandoned = internalMutation({
   args: {},
+  returns: v.object({ swept: v.number() }),
   handler: async (ctx) => {
     if (!(await isPluginEnabled(ctx, "forms"))) return { swept: 0 };
 
@@ -746,6 +772,7 @@ export const sweepAbandoned = internalMutation({
  */
 export const sweepPublicFunnelEvents = internalMutation({
   args: {},
+  returns: v.object({ deleted: v.number() }),
   handler: async (ctx) => {
     const now = Date.now();
     const cutoff = now - PUBLIC_FUNNEL_EVENT_RETENTION_MS;

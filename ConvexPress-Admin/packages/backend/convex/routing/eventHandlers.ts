@@ -26,6 +26,7 @@ import { internal } from "../_generated/api";
 import { v } from "convex/values";
 import { generatePostUrl } from "../helpers/routing";
 
+import { tableDocs } from "../schema/tableDocs.generated";
 // ─── Slug Changed Handler ────────────────────────────────────────────────────
 
 /**
@@ -39,11 +40,9 @@ import { generatePostUrl } from "../helpers/routing";
  * events. The Event Dispatcher registers this handler on `post.updated`
  * and `page.updated` events instead.
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const onSlugChanged = internalMutation({
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   args: { eventId: v.id("events") },
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.null(),
   handler: async (ctx, args) => {
     const event = await ctx.db.get("events", args.eventId);
     if (!event) return;
@@ -90,11 +89,9 @@ export const onSlugChanged = internalMutation({
  * When content is published at a URL, clear any 404 log entry for that URL.
  * This ensures the 404 log stays clean as content fills previously-empty URLs.
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const onContentPublished = internalMutation({
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   args: { eventId: v.id("events") },
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.null(),
   handler: async (ctx, args) => {
     const event = await ctx.db.get("events", args.eventId);
     if (!event) return;
@@ -125,11 +122,9 @@ export const onContentPublished = internalMutation({
  * to fetch all published posts (potentially many) and process them in
  * batches of 100 via batchCreateRedirects.
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const onPermalinksChanged = internalAction({
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   args: { eventId: v.id("events") },
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.null(),
   handler: async (ctx, args) => {
     const event = await ctx.runQuery(
       internal.routing.eventHandlers.getEvent,
@@ -222,11 +217,9 @@ export const onPermalinksChanged = internalAction({
  * InternalActions cannot use ctx.db directly, so we use an internalQuery
  * called via ctx.runQuery().
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const getEvent = internalQuery({
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   args: { eventId: v.id("events") },
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.union(v.null(), tableDocs.events),
   handler: async (ctx, args) => {
     return await ctx.db.get("events", args.eventId);
   },

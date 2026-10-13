@@ -63,6 +63,8 @@ import {
   encryptSecret,
 } from "./crypto_helpers";
 
+import { v } from "convex/values";
+import { tableDocs } from "../schema/tableDocs.generated";
 // ─── createKey ──────────────────────────────────────────────────────────────
 
 /**
@@ -82,6 +84,14 @@ import {
  */
 export const createKey = mutation({
   args: createKeyArgs,
+  returns: v.object({
+    keyId: v.id("apiKeys"),
+    key: v.string(),
+    keyPrefix: v.string(),
+    name: v.string(),
+    scopes: v.array(v.union(v.literal("read:posts"), v.literal("write:posts"), v.literal("read:comments"), v.literal("write:comments"), v.literal("read:media"), v.literal("write:media"), v.literal("read:users"), v.literal("write:users"), v.literal("read:taxonomies"), v.literal("write:taxonomies"), v.literal("read:settings"), v.literal("write:settings"), v.literal("read:menus"), v.literal("write:menus"))),
+    createdAt: v.number(),
+  }),
   handler: async (ctx, args) => {
     // 1. Check authorization
     const user = await requireCan(ctx, "api.create_key");
@@ -218,6 +228,7 @@ export const createKey = mutation({
  */
 export const revokeKey = mutation({
   args: revokeKeyArgs,
+  returns: v.object({ success: v.boolean() }),
   handler: async (ctx, args) => {
     // 1. Check authorization
     await requireCan(ctx, "api.revoke_key");
@@ -296,6 +307,14 @@ export const revokeKey = mutation({
  */
 export const createWebhook = mutation({
   args: createWebhookArgs,
+  returns: v.object({
+    webhookId: v.id("webhooks"),
+    secret: v.string(),
+    name: v.string(),
+    deliveryUrl: v.string(),
+    eventCode: v.string(),
+    status: v.literal("active"),
+  }),
   handler: async (ctx, args) => {
     // 1. Check authorization
     const user = await requireCan(ctx, "api.create_webhook");
@@ -449,6 +468,7 @@ export const createWebhook = mutation({
  */
 export const updateWebhook = mutation({
   args: updateWebhookArgs,
+  returns: tableDocs.webhooks,
   handler: async (ctx, args) => {
     // 1. Check authorization
     await requireCan(ctx, "api.update_webhook");
@@ -626,6 +646,7 @@ export const updateWebhook = mutation({
  */
 export const deleteWebhook = mutation({
   args: deleteWebhookArgs,
+  returns: v.object({ success: v.boolean() }),
   handler: async (ctx, args) => {
     // 1. Check authorization
     await requireCan(ctx, "api.delete_webhook");

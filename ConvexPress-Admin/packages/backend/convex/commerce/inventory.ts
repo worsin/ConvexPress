@@ -167,6 +167,17 @@ export const getAvailable = query({
     productId: v.id("commerce_products"),
     variantId: v.optional(v.id("commerce_product_variants")),
   },
+  returns: v.object({
+    productId: v.id("commerce_products"),
+    stockQuantity: v.number(),
+    reservedCount: v.number(),
+    available: v.number(),
+    lowThreshold: v.number(),
+    isLowStock: v.boolean(),
+    isOutOfStock: v.boolean(),
+    trackInventory: v.boolean(),
+    allowBackorders: v.boolean(),
+  }),
   handler: async (ctx, args) => {
     await requireCommerceEnabled(ctx);
     await requireCan(ctx, "manage_options");
@@ -907,6 +918,7 @@ export const acknowledgeAlert = mutation({
   args: {
     alertId: v.id("commerce_low_stock_alerts"),
   },
+  returns: v.object({ success: v.boolean() }),
   handler: async (ctx, args) => {
     await requireCommerceEnabled(ctx);
     const user = await requireCan(ctx, "manage_options");

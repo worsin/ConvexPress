@@ -14,26 +14,21 @@ import { v } from "convex/values";
 import { internalMutation, internalQuery } from "../_generated/server";
 import { shippingProviderValidator } from "../schema/shipping";
 
+import { tableDocs } from "../schema/tableDocs.generated";
 const DEDUP_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
 
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 const dedupProviderValidator = v.union(
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   v.literal("shipstation"),
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   v.literal("fedex"),
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   v.literal("ups"),
 );
 
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const checkAndRecord = internalMutation({
   args: {
-    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     provider: dedupProviderValidator,
     signatureHash: v.string(),
   },
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.union(v.object({ replay: v.boolean(), receivedAt: v.optional(v.null()) }), v.object({ replay: v.boolean(), receivedAt: v.number() })),
   handler: async (ctx, args) => {
     if (!args.signatureHash) {
       // No signature → no dedup possible. Accept, let upstream log.
@@ -64,6 +59,7 @@ export const checkAndRecord = internalMutation({
 
 export const purgeExpired: import("convex/server").RegisteredMutation<"internal", Record<string, never>, { deleted: number }> = internalMutation({
   args: {},
+  returns: v.object({ deleted: v.number() }),
   handler: async (ctx) => {
     const now = Date.now();
     const BATCH = 500;
@@ -78,6 +74,7 @@ export const purgeExpired: import("convex/server").RegisteredMutation<"internal"
 
 export const listRecent: import("convex/server").RegisteredQuery<"internal", { provider: import("convex/values").Infer<typeof shippingProviderValidator> }, import("../_generated/dataModel").Doc<"shipping_webhook_deliveries">[]> = internalQuery({
   args: { provider: shippingProviderValidator },
+  returns: v.array(tableDocs.shipping_webhook_deliveries),
   handler: async (ctx, args) => {
     return ctx.db
       .query("shipping_webhook_deliveries")

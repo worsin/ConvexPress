@@ -83,6 +83,7 @@ export const create = mutation({
     internalNote: v.optional(v.string()),
     metadata: v.optional(v.any()),
   },
+  returns: v.id("commerce_order_changes"),
   handler: async (ctx, args) => {
     const actor = await requireCan(ctx, "manage_options");
     const order = await ctx.db.get(args.orderId);
@@ -117,6 +118,7 @@ export const addAction = mutation({
     amount: v.optional(v.number()),
     ordering: v.optional(v.number()),
   },
+  returns: v.id("commerce_order_change_actions"),
   handler: async (ctx, args) => {
     await requireCan(ctx, "manage_options");
     const change = await ctx.db.get(args.orderChangeId);
@@ -149,6 +151,7 @@ export const transition = mutation({
     ),
     note: v.optional(v.string()),
   },
+  returns: v.id("commerce_order_changes"),
   handler: async (ctx, args) => {
     const actor = await requireCan(ctx, "manage_options");
     const change = await ctx.db.get(args.orderChangeId);

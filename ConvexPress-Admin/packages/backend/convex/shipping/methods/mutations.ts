@@ -109,7 +109,6 @@ async function validateMethodConfig(
           : "minCount";
     const keyMax = keyMin.replace("min", "max");
     const sorted = [...tiers].sort(
-      // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
       (a, b) => Number(a[keyMin] ?? 0) - Number(b[keyMin] ?? 0),
     );
     for (let i = 0; i < sorted.length; i++) {
@@ -153,6 +152,7 @@ export const createMethod = mutation({
     methodType: methodTypeValidator,
     config: v.any(),
   },
+  returns: v.string(),
   handler: async (ctx, args) => {
     const user = await requireCan(ctx, "shipping.methods.manage");
     const table = tableForType(args.methodType);
@@ -214,6 +214,7 @@ export const deleteMethod = mutation({
     methodType: methodTypeValidator,
     methodId: v.string(),
   },
+  returns: v.object({ deleted: v.boolean() }),
   handler: async (ctx, args) => {
     await requireCan(ctx, "shipping.methods.manage");
     const id = args.methodId as any;

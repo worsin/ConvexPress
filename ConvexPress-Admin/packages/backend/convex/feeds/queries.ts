@@ -42,6 +42,7 @@ import {
   MAX_FEED_ITEM_COUNT,
 } from "./validators";
 
+import { v } from "convex/values";
 // ─── Helper: Fetch feed settings from Settings System ───────────────────────
 
 /**
@@ -236,6 +237,25 @@ async function enrichPostsForFeed(ctx: QueryCtx, candidates: Doc<"posts">[]):Pro
  */
 export const getPublishedPosts: RegisteredQuery<"public",{limit:number},FeedPost[]> = query({
   args: getPublishedPostsArgs,
+  returns: v.array(v.object({
+    _id: v.id("posts"),
+    title: v.string(),
+    slug: v.string(),
+    content: v.string(),
+    excerpt: v.union(v.null(), v.string()),
+    status: v.union(v.literal("draft"), v.literal("pending"), v.literal("trash"), v.literal("auto-draft"), v.literal("publish"), v.literal("future"), v.literal("private")),
+    publishedAt: v.number(),
+    updatedAt: v.number(),
+    commentStatus: v.union(v.literal("open"), v.literal("closed")),
+    commentCount: v.number(),
+    authorName: v.string(),
+    authorSlug: v.string(),
+    categories: v.array(v.string()),
+    tags: v.array(v.string()),
+    featuredImageUrl: v.optional(v.string()),
+    featuredImageMimeType: v.optional(v.string()),
+    featuredImageSize: v.optional(v.number()),
+  })),
   handler: async (ctx, args) => {
     const limit = Math.min(Math.max(1, args.limit), MAX_FEED_ITEM_COUNT);
 
@@ -262,17 +282,37 @@ export const getPublishedPosts: RegisteredQuery<"public",{limit:number},FeedPost
  * Returns null if the category doesn't exist (caller returns 404).
  * Returns { category, posts } with posts enriched for feed building.
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const getPostsByCategory = query({
   args: getPostsByCategoryArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.union(v.null(), v.object({
+    category: v.object({ name: v.string(), slug: v.string(), description: v.string() }),
+    posts: v.array(v.object({
+      _id: v.id("posts"),
+      title: v.string(),
+      slug: v.string(),
+      content: v.string(),
+      excerpt: v.union(v.null(), v.string()),
+      status: v.union(v.literal("draft"), v.literal("pending"), v.literal("trash"), v.literal("auto-draft"), v.literal("publish"), v.literal("future"), v.literal("private")),
+      publishedAt: v.number(),
+      updatedAt: v.number(),
+      commentStatus: v.union(v.literal("open"), v.literal("closed")),
+      commentCount: v.number(),
+      authorName: v.string(),
+      authorSlug: v.string(),
+      categories: v.array(v.string()),
+      tags: v.array(v.string()),
+      featuredImageUrl: v.optional(v.string()),
+      featuredImageMimeType: v.optional(v.string()),
+      featuredImageSize: v.optional(v.number()),
+    })),
+  })),
   handler: async (ctx, args) => {
     const limit = Math.min(Math.max(1, args.limit), MAX_FEED_ITEM_COUNT);
 
     // Look up the category by slug
     const category = await ctx.db
       .query("terms")
-      .withIndex("by_slug_taxonomy", (q: ConvexQueryBuilder) =>
+      .withIndex("by_slug_taxonomy", (q) =>
         q.eq("slug", args.categorySlug).eq("taxonomy", "category"),
       )
       .unique();
@@ -282,26 +322,23 @@ export const getPostsByCategory = query({
     // Get all post IDs in this category
     const relationships = await ctx.db
       .query("termRelationships")
-      .withIndex("by_term", (q: ConvexQueryBuilder) =>
+      .withIndex("by_term", (q) =>
         q.eq("termId", category._id),
       )
       .collect();
 
     // Batch-fetch all posts in this category using Promise.all
     const allPosts = await Promise.all(
-      // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
       relationships.map((rel) => ctx.db.get("posts", rel.postId)),
     );
 
     // Filter to published posts of type "post"
     const publishedPosts = allPosts.filter(
-      // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
       (post): post is Doc<"posts"> =>
         post !== null && post.status === "publish" && post.type === "post",
     );
 
     // Sort by publishedAt descending
-    // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
     publishedPosts.sort((a, b) => {
       const aTime = a.publishedAt ?? a._creationTime;
       const bTime = b.publishedAt ?? b._creationTime;
@@ -331,17 +368,37 @@ export const getPostsByCategory = query({
  * Returns null if the tag doesn't exist (caller returns 404).
  * Returns { tag, posts } with posts enriched for feed building.
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const getPostsByTag = query({
   args: getPostsByTagArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.union(v.null(), v.object({
+    tag: v.object({ name: v.string(), slug: v.string(), description: v.string() }),
+    posts: v.array(v.object({
+      _id: v.id("posts"),
+      title: v.string(),
+      slug: v.string(),
+      content: v.string(),
+      excerpt: v.union(v.null(), v.string()),
+      status: v.union(v.literal("draft"), v.literal("pending"), v.literal("trash"), v.literal("auto-draft"), v.literal("publish"), v.literal("future"), v.literal("private")),
+      publishedAt: v.number(),
+      updatedAt: v.number(),
+      commentStatus: v.union(v.literal("open"), v.literal("closed")),
+      commentCount: v.number(),
+      authorName: v.string(),
+      authorSlug: v.string(),
+      categories: v.array(v.string()),
+      tags: v.array(v.string()),
+      featuredImageUrl: v.optional(v.string()),
+      featuredImageMimeType: v.optional(v.string()),
+      featuredImageSize: v.optional(v.number()),
+    })),
+  })),
   handler: async (ctx, args) => {
     const limit = Math.min(Math.max(1, args.limit), MAX_FEED_ITEM_COUNT);
 
     // Look up the tag by slug
     const tag = await ctx.db
       .query("terms")
-      .withIndex("by_slug_taxonomy", (q: ConvexQueryBuilder) =>
+      .withIndex("by_slug_taxonomy", (q) =>
         q.eq("slug", args.tagSlug).eq("taxonomy", "post_tag"),
       )
       .unique();
@@ -351,24 +408,21 @@ export const getPostsByTag = query({
     // Get all post IDs with this tag
     const relationships = await ctx.db
       .query("termRelationships")
-      .withIndex("by_term", (q: ConvexQueryBuilder) => q.eq("termId", tag._id))
+      .withIndex("by_term", (q) => q.eq("termId", tag._id))
       .collect();
 
     // Batch-fetch all posts with this tag using Promise.all
     const allPosts = await Promise.all(
-      // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
       relationships.map((rel) => ctx.db.get("posts", rel.postId)),
     );
 
     // Filter to published posts of type "post"
     const publishedPosts = allPosts.filter(
-      // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
       (post): post is Doc<"posts"> =>
         post !== null && post.status === "publish" && post.type === "post",
     );
 
     // Sort by publishedAt descending
-    // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
     publishedPosts.sort((a, b) => {
       const aTime = a.publishedAt ?? a._creationTime;
       const bTime = b.publishedAt ?? b._creationTime;
@@ -398,17 +452,37 @@ export const getPostsByTag = query({
  * Returns null if the author doesn't exist (caller returns 404).
  * Returns { author, posts } with posts enriched for feed building.
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const getPostsByAuthor = query({
   args: getPostsByAuthorArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.union(v.null(), v.object({
+    author: v.object({ name: v.string(), slug: v.string() }),
+    posts: v.array(v.object({
+      _id: v.id("posts"),
+      title: v.string(),
+      slug: v.string(),
+      content: v.string(),
+      excerpt: v.union(v.null(), v.string()),
+      status: v.union(v.literal("draft"), v.literal("pending"), v.literal("trash"), v.literal("auto-draft"), v.literal("publish"), v.literal("future"), v.literal("private")),
+      publishedAt: v.number(),
+      updatedAt: v.number(),
+      commentStatus: v.union(v.literal("open"), v.literal("closed")),
+      commentCount: v.number(),
+      authorName: v.string(),
+      authorSlug: v.string(),
+      categories: v.array(v.string()),
+      tags: v.array(v.string()),
+      featuredImageUrl: v.optional(v.string()),
+      featuredImageMimeType: v.optional(v.string()),
+      featuredImageSize: v.optional(v.number()),
+    })),
+  })),
   handler: async (ctx, args) => {
     const limit = Math.min(Math.max(1, args.limit), MAX_FEED_ITEM_COUNT);
 
     // Look up the author by slug
     const author = await ctx.db
       .query("users")
-      .withIndex("by_slug", (q: ConvexQueryBuilder) =>
+      .withIndex("by_slug", (q) =>
         q.eq("slug", args.authorSlug),
       )
       .unique();
@@ -422,7 +496,7 @@ export const getPostsByAuthor = query({
     // created later but published earlier.
     const posts = await ctx.db
       .query("posts")
-      .withIndex("by_author", (q: ConvexQueryBuilder) =>
+      .withIndex("by_author", (q) =>
         q.eq("authorId", author._id).eq("type", "post").eq("status", "publish"),
       )
       .order("desc")
@@ -430,7 +504,6 @@ export const getPostsByAuthor = query({
 
     // Sort by publishedAt descending, then limit to the requested count
     const sortedPosts = [...posts]
-      // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
       .sort((a, b) => {
         const aTime = a.publishedAt ?? a._creationTime;
         const bTime = b.publishedAt ?? b._creationTime;
@@ -463,17 +536,24 @@ export const getPostsByAuthor = query({
  * Returns approved comments sorted by createdAt descending,
  * enriched with parent post info. Skips orphaned comments.
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const getRecentComments = query({
   args: getRecentCommentsArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.array(v.object({
+    _id: v.string(),
+    content: v.string(),
+    authorName: v.string(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+    postTitle: v.string(),
+    postSlug: v.string(),
+  })),
   handler: async (ctx, args) => {
     const limit = Math.min(Math.max(1, args.limit), MAX_FEED_ITEM_COUNT);
 
     // Fetch recently approved comments
     const comments = await ctx.db
       .query("comments")
-      .withIndex("by_status", (q: ConvexQueryBuilder) =>
+      .withIndex("by_status", (q) =>
         q.eq("status", "approved"),
       )
       .order("desc")
@@ -522,29 +602,40 @@ export const getRecentComments = query({
  * Returns null if commentStatus is "closed" AND zero comments exist.
  * Returns { post, comments } otherwise.
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const getPostComments = query({
   args: getPostCommentsArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.union(v.null(), v.object({
+    post: v.object({
+      title: v.string(),
+      slug: v.string(),
+      commentStatus: v.union(v.literal("open"), v.literal("closed")),
+    }),
+    comments: v.array(v.object({
+      _id: v.id("comments"),
+      content: v.string(),
+      authorName: v.string(),
+      createdAt: v.number(),
+      updatedAt: v.number(),
+    })),
+  })),
   handler: async (ctx, args) => {
     const limit = Math.min(Math.max(1, args.limit), MAX_FEED_ITEM_COUNT);
 
     // Look up the post by slug - must be published
     const posts = await ctx.db
       .query("posts")
-      .withIndex("by_slug", (q: ConvexQueryBuilder) =>
+      .withIndex("by_slug", (q) =>
         q.eq("slug", args.postSlug).eq("type", "post"),
       )
       .collect();
 
-    // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
     const post = posts.find((p) => p.status === "publish");
     if (!post || !(await canDiscoverContent(ctx, post))) return null;
 
     // Fetch approved comments for this post
     const comments = await ctx.db
       .query("comments")
-      .withIndex("by_post", (q: ConvexQueryBuilder) =>
+      .withIndex("by_post", (q) =>
         q.eq("postId", post._id).eq("status", "approved"),
       )
       .order("desc")
@@ -561,7 +652,6 @@ export const getPostComments = query({
         slug: post.slug,
         commentStatus: post.commentStatus,
       },
-      // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
       comments: comments.map((comment) => ({
         _id: comment._id,
         content: comment.content,
@@ -582,10 +672,16 @@ export const getPostComments = query({
  * Returns merged defaults + stored values for siteTitle, siteDescription,
  * siteUrl, language, feedItemCount, and feedContentDisplay.
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const getFeedSettings = query({
   args: {},
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.object({
+    siteTitle: v.string(),
+    siteDescription: v.string(),
+    siteUrl: v.string(),
+    language: v.string(),
+    feedItemCount: v.number(),
+    feedContentDisplay: v.union(v.literal("full"), v.literal("summary")),
+  }),
   handler: async (ctx) => {
     return readFeedSettings(ctx);
   },

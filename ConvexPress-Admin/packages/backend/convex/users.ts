@@ -126,6 +126,7 @@ export const getCurrentRoleAccess = query({
 
 export const hasAnyAdmin = query({
   args: {},
+  returns: v.union(v.boolean(), v.null()),
   handler: async (ctx) => {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) return null;
@@ -150,6 +151,15 @@ export const hasAnyAdmin = query({
  */
 export const checkAdminAccess = query({
   args: {},
+  returns: v.union(v.null(), v.object({
+    id: v.id("users"),
+    email: v.string(),
+    firstName: v.optional(v.string()),
+    lastName: v.optional(v.string()),
+    profilePictureUrl: v.optional(v.string()),
+    internalRole: v.optional(v.string()),
+    isInternal: v.optional(v.boolean()),
+  })),
   handler: async (ctx) => {
     const user = await getUser(ctx);
     if (!user) return null;
@@ -299,6 +309,7 @@ export const updateUserRole = mutation({
 
 export const setAdminByEmail = internalMutation({
   args: { email: v.string() },
+  returns: v.object({ success: v.boolean(), userId: v.id("users"), email: v.string() }),
   handler: async (ctx, args) => {
     const user = await ctx.db
       .query("users")
@@ -325,6 +336,7 @@ export const setAdminByEmail = internalMutation({
 
 export const setCustomerByEmail = internalMutation({
   args: { email: v.string() },
+  returns: v.object({ success: v.boolean(), userId: v.id("users"), email: v.string() }),
   handler: async (ctx, args) => {
     const user = await ctx.db
       .query("users")
@@ -357,6 +369,7 @@ export const setCustomerByEmail = internalMutation({
 
 export const seedRoles = internalMutation({
   args: {},
+  returns: v.union(v.object({ message: v.string(), count: v.optional(v.null()) }), v.object({ message: v.string(), count: v.number() })),
   handler: async (ctx) => {
     const existingRoles = await ctx.db.query("roles").collect();
     if (existingRoles.length > 0) return { message: "Roles already seeded" };

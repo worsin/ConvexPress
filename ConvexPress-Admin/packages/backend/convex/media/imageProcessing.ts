@@ -189,6 +189,12 @@ export const regenerateBatch = internalAction({
     cursor: v.optional(v.string()),
     limit: v.optional(v.number()),
   },
+  returns: v.object({
+    processed: v.number(),
+    failed: v.number(),
+    done: v.boolean(),
+    continueCursor: v.optional(v.union(v.null(), v.string())),
+  }),
   handler: async (ctx, args): Promise<RegenerationBatchResult> => {
     const limit = Math.min(Math.max(args.limit ?? 10, 1), 25);
     const result = (await ctx.runQuery(
@@ -236,6 +242,7 @@ export const processImageWithSharp = internalAction({
   args: {
     mediaId: v.id("media"),
   },
+  returns: v.null(),
   handler: async (ctx, args) => {
     const media = await ctx.runQuery(
       internal.media.internals.getMediaInternal,

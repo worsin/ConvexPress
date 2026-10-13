@@ -49,6 +49,8 @@ import {
 } from "./validators";
 import { checkPostCapability } from "../helpers/postAuth";
 
+import { v } from "convex/values";
+import { tableDocs } from "../schema/tableDocs.generated";
 // ─── Validation Helpers (local) ─────────────────────────────────────────────
 
 function validateName(name: string): string {
@@ -106,6 +108,7 @@ function validateSlugFormat(slug: string): string {
  */
 export const createCategory = mutation({
   args: createCategoryArgs,
+  returns: v.id("terms"),
   handler: async (ctx, args) => {
     // 1. Auth + capability check
     const user = await requireCan(ctx, "taxonomy.create_category");
@@ -221,6 +224,7 @@ export const createCategory = mutation({
  */
 export const updateCategory = mutation({
   args: updateCategoryArgs,
+  returns: v.union(v.null(), tableDocs.terms),
   handler: async (ctx, args) => {
     // 1. Auth + capability check
     await requireCan(ctx, "taxonomy.update_category");
@@ -378,6 +382,7 @@ export const updateCategory = mutation({
  */
 export const deleteCategory = mutation({
   args: deleteCategoryArgs,
+  returns: v.object({ reassignedPosts: v.number(), reparentedChildren: v.number() }),
   handler: async (ctx, args) => {
     // 1. Auth + capability check
     await requireCan(ctx, "taxonomy.delete_category");
@@ -502,6 +507,7 @@ export const deleteCategory = mutation({
  */
 export const createTag = mutation({
   args: createTagArgs,
+  returns: v.id("terms"),
   handler: async (ctx, args) => {
     // 1. Auth + capability check
     const user = await requireCan(ctx, "taxonomy.create_tag");
@@ -581,6 +587,7 @@ export const createTag = mutation({
  */
 export const updateTag = mutation({
   args: updateTagArgs,
+  returns: v.union(v.null(), tableDocs.terms),
   handler: async (ctx, args) => {
     // 1. Auth + capability check
     await requireCan(ctx, "taxonomy.update_tag");
@@ -696,6 +703,7 @@ export const updateTag = mutation({
  */
 export const deleteTag = mutation({
   args: deleteTagArgs,
+  returns: v.object({ removedFromPosts: v.number() }),
   handler: async (ctx, args) => {
     // 1. Auth + capability check
     await requireCan(ctx, "taxonomy.delete_tag");
@@ -750,6 +758,7 @@ export const deleteTag = mutation({
  */
 export const assign = mutation({
   args: assignArgs,
+  returns: v.object({ success: v.boolean(), alreadyAssigned: v.boolean() }),
   handler: async (ctx, args) => {
     // 1. Auth + capability check
     const user = await requireCan(ctx, "taxonomy.assign");
@@ -819,6 +828,7 @@ export const assign = mutation({
  */
 export const unassign = mutation({
   args: unassignArgs,
+  returns: v.object({ success: v.boolean(), wasAssigned: v.boolean() }),
   handler: async (ctx, args) => {
     // 1. Auth + capability check
     const user = await requireCan(ctx, "taxonomy.unassign");
@@ -909,6 +919,7 @@ export const unassign = mutation({
  */
 export const merge = mutation({
   args: mergeArgs,
+  returns: v.object({ mergedPosts: v.number(), reparentedChildren: v.number() }),
   handler: async (ctx, args) => {
     // 1. Auth + capability check
     await requireCan(ctx, "taxonomy.merge");

@@ -51,6 +51,9 @@ import {
 } from "./validators";
 import { isPluginEnabled } from "../helpers/plugins";
 
+import { v } from "convex/values";
+import { paginationResultValidator } from "convex/server";
+import { tableDocs } from "../schema/tableDocs.generated";
 type TicketUserNameFields = {
   displayName?: string | null;
   firstName?: string | null;
@@ -71,10 +74,20 @@ function getTicketUserSnapshotName(user: TicketUserNameFields): string {
  * Get the current user's own tickets (paginated, filterable by status).
  * For the website "My Tickets" page.
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const getMyTickets = query({
   args: getMyTicketsArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: paginationResultValidator(v.object({
+    _id: v.id("ticket_tickets"),
+    ticketNumber: v.string(),
+    subject: v.string(),
+    category: v.union(v.literal("general"), v.literal("other"), v.literal("billing"), v.literal("technical"), v.literal("account"), v.literal("featureRequest")),
+    status: v.union(v.literal("open"), v.literal("closed"), v.literal("resolved"), v.literal("inProgress"), v.literal("awaitingResponse")),
+    priority: v.union(v.literal("high"), v.literal("medium"), v.literal("low"), v.literal("urgent")),
+    messageCount: v.number(),
+    lastMessageAt: v.optional(v.number()),
+    createdAt: v.number(),
+    rating: v.optional(v.number()),
+  })),
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "tickets"))) return { page: [], isDone: true, continueCursor: "" };
     const user = await getCurrentUser(ctx);
@@ -90,18 +103,16 @@ export const getMyTickets = query({
     // by_user_status index. The page boundary is applied by Convex automatically.
     const result = await ctx.db
       .query("ticket_tickets")
-      .withIndex("by_user", (q: ConvexQueryBuilder) => q.eq("userId", user._id))
+      .withIndex("by_user", (q) => q.eq("userId", user._id))
       .order("desc")
       .paginate(args.paginationOpts);
 
     const tickets = args.status
-      // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
       ? result.page.filter((t) => t.status === args.status)
       : result.page;
 
     return {
       ...result,
-      // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
       page: tickets.map((t) => ({
         _id: t._id,
         ticketNumber: t.ticketNumber,
@@ -124,10 +135,9 @@ export const getMyTickets = query({
  * Lookup a ticket by its human-readable ticket number (e.g., "TKT-202604-00001").
  * Users can see their own tickets; staff with ticket.viewAll see any ticket.
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const getByTicketNumber = query({
   args: getByTicketNumberArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.union(v.null(), tableDocs.ticket_tickets),
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "tickets"))) return null;
     const user = await getCurrentUser(ctx);
@@ -140,7 +150,7 @@ export const getByTicketNumber = query({
 
     const ticket = await ctx.db
       .query("ticket_tickets")
-      .withIndex("by_ticket_number", (q: ConvexQueryBuilder) =>
+      .withIndex("by_ticket_number", (q) =>
         q.eq("ticketNumber", args.ticketNumber),
       )
       .unique();
@@ -163,10 +173,9 @@ export const getByTicketNumber = query({
  * Lookup a ticket by Convex document ID.
  * Users can see their own tickets; staff with ticket.viewAll see any ticket.
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const getById = query({
   args: getByIdArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.union(v.null(), tableDocs.ticket_tickets),
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "tickets"))) return null;
     const user = await getCurrentUser(ctx);
@@ -197,10 +206,45 @@ export const getById = query({
  * Internal notes are included only if the user has ticket.viewInternalNotes.
  * Messages are ordered by sequence number.
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const getTicketWithReplies = query({
   args: getTicketWithRepliesArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.union(v.null(), v.object({
+    ticket: v.object({
+      assigneeName: v.optional(v.string()),
+      _id: v.id("ticket_tickets"),
+      _creationTime: v.number(),
+      resolvedAt: v.optional(v.number()),
+      rating: v.optional(v.number()),
+      assignedTo: v.optional(v.id("users")),
+      assignedAt: v.optional(v.number()),
+      aiQuery: v.optional(v.string()),
+      aiResponse: v.optional(v.string()),
+      kbArticlesShown: v.optional(v.array(v.string())),
+      ratingComment: v.optional(v.string()),
+      lastCustomerReadAt: v.optional(v.number()),
+      lastAgentMessageAt: v.optional(v.number()),
+      lastMessageSenderType: v.optional(v.union(v.literal("system"), v.literal("ai"), v.literal("user"), v.literal("admin"))),
+      lastMessageAt: v.optional(v.number()),
+      firstResponseAt: v.optional(v.number()),
+      closedAt: v.optional(v.number()),
+      userId: v.id("users"),
+      updatedAt: v.number(),
+      createdAt: v.number(),
+      status: v.union(v.literal("open"), v.literal("closed"), v.literal("resolved"), v.literal("inProgress"), v.literal("awaitingResponse")),
+      description: v.string(),
+      priority: v.union(v.literal("high"), v.literal("medium"), v.literal("low"), v.literal("urgent")),
+      category: v.union(v.literal("general"), v.literal("other"), v.literal("billing"), v.literal("technical"), v.literal("account"), v.literal("featureRequest")),
+      subject: v.string(),
+      source: v.union(v.literal("email"), v.literal("dashboard"), v.literal("api"), v.literal("widget")),
+      tags: v.array(v.string()),
+      ticketNumber: v.string(),
+      userEmailSnapshot: v.string(),
+      userNameSnapshot: v.string(),
+      aiAttempted: v.boolean(),
+      messageCount: v.number(),
+    }),
+    messages: v.array(tableDocs.ticket_messages),
+  })),
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "tickets"))) return null;
     const user = await getCurrentUser(ctx);
@@ -228,12 +272,11 @@ export const getTicketWithReplies = query({
     // Fetch messages ordered by sequence
     const allMessages = await ctx.db
       .query("ticket_messages")
-      .withIndex("by_ticket_sequence", (q: ConvexQueryBuilder) => q.eq("ticketId", args.ticketId))
+      .withIndex("by_ticket_sequence", (q) => q.eq("ticketId", args.ticketId))
       .take(1000);
 
     const messages = canViewInternal
       ? allMessages
-      // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
       : allMessages.filter((m) => !m.isInternal);
 
     // Resolve assignee name if assigned
@@ -266,10 +309,33 @@ export const getTicketWithReplies = query({
  *
  * Sorting by: createdAt, updatedAt, priority, lastMessageAt
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const getQueue = query({
   args: getQueueArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.union(v.null(), v.object({
+    total: v.number(),
+    page: v.number(),
+    perPage: v.number(),
+    totalPages: v.number(),
+    tickets: v.array(v.object({
+      _id: v.id("ticket_tickets"),
+      ticketNumber: v.string(),
+      subject: v.string(),
+      category: v.union(v.literal("general"), v.literal("other"), v.literal("billing"), v.literal("technical"), v.literal("account"), v.literal("featureRequest")),
+      status: v.union(v.literal("open"), v.literal("closed"), v.literal("resolved"), v.literal("inProgress"), v.literal("awaitingResponse")),
+      priority: v.union(v.literal("high"), v.literal("medium"), v.literal("low"), v.literal("urgent")),
+      assignedTo: v.optional(v.id("users")),
+      assigneeName: v.optional(v.string()),
+      userNameSnapshot: v.string(),
+      userEmailSnapshot: v.string(),
+      messageCount: v.number(),
+      lastMessageAt: v.optional(v.number()),
+      firstResponseAt: v.optional(v.number()),
+      createdAt: v.number(),
+      updatedAt: v.number(),
+      tags: v.array(v.string()),
+      rating: v.optional(v.number()),
+    })),
+  })),
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "tickets"))) return { total: 0, page: 1, perPage: 0, totalPages: 0, tickets: [] };
     const canViewAll = await currentUserCan(ctx, "ticket.viewAll");
@@ -288,7 +354,7 @@ export const getQueue = query({
     if (args.status && args.priority) {
       scanned = await ctx.db
         .query("ticket_tickets")
-        .withIndex("by_status_priority", (q: ConvexQueryBuilder) =>
+        .withIndex("by_status_priority", (q) =>
           q.eq("status", args.status!).eq("priority", args.priority!),
         )
         .order(orderDir === "desc" ? "desc" : "asc")
@@ -296,7 +362,7 @@ export const getQueue = query({
     } else if (args.assignedTo && args.status) {
       scanned = await ctx.db
         .query("ticket_tickets")
-        .withIndex("by_assigned_status", (q: ConvexQueryBuilder) =>
+        .withIndex("by_assigned_status", (q) =>
           q.eq("assignedTo", args.assignedTo!).eq("status", args.status!),
         )
         .order(orderDir === "desc" ? "desc" : "asc")
@@ -304,25 +370,25 @@ export const getQueue = query({
     } else if (args.status) {
       scanned = await ctx.db
         .query("ticket_tickets")
-        .withIndex("by_status", (q: ConvexQueryBuilder) => q.eq("status", args.status!))
+        .withIndex("by_status", (q) => q.eq("status", args.status!))
         .order(orderDir === "desc" ? "desc" : "asc")
         .take(MAX_SCAN);
     } else if (args.priority) {
       scanned = await ctx.db
         .query("ticket_tickets")
-        .withIndex("by_priority", (q: ConvexQueryBuilder) => q.eq("priority", args.priority!))
+        .withIndex("by_priority", (q) => q.eq("priority", args.priority!))
         .order(orderDir === "desc" ? "desc" : "asc")
         .take(MAX_SCAN);
     } else if (args.assignedTo) {
       scanned = await ctx.db
         .query("ticket_tickets")
-        .withIndex("by_assigned", (q: ConvexQueryBuilder) => q.eq("assignedTo", args.assignedTo!))
+        .withIndex("by_assigned", (q) => q.eq("assignedTo", args.assignedTo!))
         .order(orderDir === "desc" ? "desc" : "asc")
         .take(MAX_SCAN);
     } else if (args.category) {
       scanned = await ctx.db
         .query("ticket_tickets")
-        .withIndex("by_category", (q: ConvexQueryBuilder) => q.eq("category", args.category!))
+        .withIndex("by_category", (q) => q.eq("category", args.category!))
         .order(orderDir === "desc" ? "desc" : "asc")
         .take(MAX_SCAN);
     } else {
@@ -338,13 +404,11 @@ export const getQueue = query({
     let tickets = scanned;
 
     if (args.unassigned) {
-      // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
       tickets = tickets.filter((t) => !t.assignedTo);
     }
 
     // Filter by category when it wasn't used as the primary index
     if (args.category && (args.status || args.priority || args.assignedTo)) {
-      // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
       tickets = tickets.filter((t) => t.category === args.category);
     }
 
@@ -352,7 +416,6 @@ export const getQueue = query({
     if (args.search) {
       const searchLower = args.search.toLowerCase();
       tickets = tickets.filter(
-        // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
         (t) =>
           t.subject.toLowerCase().includes(searchLower) ||
           t.ticketNumber.toLowerCase().includes(searchLower) ||
@@ -370,7 +433,6 @@ export const getQueue = query({
         medium: 2,
         low: 3,
       };
-      // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
       tickets.sort((a, b) => {
         let cmp = 0;
         if (orderBy === "priority") {
@@ -396,9 +458,7 @@ export const getQueue = query({
     const assigneeIds = [
       ...new Set(
         pageTickets
-          // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
           .map((t) => t.assignedTo)
-          // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
           .filter((id): id is NonNullable<typeof id> => id != null),
       ),
     ];
@@ -415,7 +475,6 @@ export const getQueue = query({
       page,
       perPage,
       totalPages,
-      // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
       tickets: pageTickets.map((t) => ({
         _id: t._id,
         ticketNumber: t.ticketNumber,
@@ -447,10 +506,18 @@ export const getQueue = query({
  * Ticket statistics for the admin dashboard.
  * Returns counts by status, average response times, SLA compliance, and CSAT.
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const getStats = query({
   args: {},
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.union(v.null(), v.object({
+    counts: v.record(v.string(), v.number()),
+    priorityCounts: v.record(v.string(), v.number()),
+    avgFirstResponseMs: v.number(),
+    avgResolutionMs: v.number(),
+    avgRating: v.number(),
+    ratedCount: v.number(),
+    totalActive: v.number(),
+    awaitingFirstResponseCount: v.number(),
+  })),
   handler: async (ctx) => {
     if (!(await isPluginEnabled(ctx, "tickets"))) return null;
     const canViewAll = await currentUserCan(ctx, "ticket.viewAnalytics");
@@ -470,7 +537,7 @@ export const getStats = query({
       // Safety-bounded with .take(10000) to avoid unbounded memory usage
       const tickets = await ctx.db
         .query("ticket_tickets")
-        .withIndex("by_status", (q: ConvexQueryBuilder) => q.eq("status", status))
+        .withIndex("by_status", (q) => q.eq("status", status))
         .take(10000);
       counts[status] = tickets.length;
     }
@@ -481,11 +548,11 @@ export const getStats = query({
     const priorityCounts: Record<string, number> = {};
     const openTickets = await ctx.db
       .query("ticket_tickets")
-      .withIndex("by_status", (q: ConvexQueryBuilder) => q.eq("status", "open"))
+      .withIndex("by_status", (q) => q.eq("status", "open"))
       .take(5000);
     const inProgressTickets = await ctx.db
       .query("ticket_tickets")
-      .withIndex("by_status", (q: ConvexQueryBuilder) => q.eq("status", "inProgress"))
+      .withIndex("by_status", (q) => q.eq("status", "inProgress"))
       .take(5000);
     const activeTickets = [...openTickets, ...inProgressTickets];
 
@@ -502,11 +569,11 @@ export const getStats = query({
     const thirtyDaysAgo = Date.now() - 30 * 24 * 60 * 60 * 1000;
     const resolvedTickets = await ctx.db
       .query("ticket_tickets")
-      .withIndex("by_status", (q: ConvexQueryBuilder) => q.eq("status", "resolved"))
+      .withIndex("by_status", (q) => q.eq("status", "resolved"))
       .take(2000);
     const closedTickets = await ctx.db
       .query("ticket_tickets")
-      .withIndex("by_status", (q: ConvexQueryBuilder) => q.eq("status", "closed"))
+      .withIndex("by_status", (q) => q.eq("status", "closed"))
       .take(2000);
 
     const recentCompleted = [...resolvedTickets, ...closedTickets].filter(
@@ -562,10 +629,17 @@ export const getStats = query({
 /**
  * Recent tickets for the admin dashboard widget.
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const getRecent = query({
   args: getRecentArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.union(v.null(), v.array(v.object({
+    _id: v.id("ticket_tickets"),
+    ticketNumber: v.string(),
+    subject: v.string(),
+    status: v.union(v.literal("open"), v.literal("closed"), v.literal("resolved"), v.literal("inProgress"), v.literal("awaitingResponse")),
+    priority: v.union(v.literal("high"), v.literal("medium"), v.literal("low"), v.literal("urgent")),
+    userNameSnapshot: v.string(),
+    createdAt: v.number(),
+  }))),
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "tickets"))) return [];
     const canViewAll = await currentUserCan(ctx, "ticket.viewAll");
@@ -579,7 +653,6 @@ export const getRecent = query({
       .order("desc")
       .take(limit);
 
-    // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
     return tickets.map((t) => ({
       _id: t._id,
       ticketNumber: t.ticketNumber,
@@ -599,10 +672,19 @@ export const getRecent = query({
  * Used for SLA monitoring -- these are tickets breaching or approaching SLA.
  * Sorted by creation time ascending (oldest first = most urgent).
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const getAwaitingFirstResponse = query({
   args: getAwaitingFirstResponseArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.union(v.null(), v.array(v.object({
+    _id: v.id("ticket_tickets"),
+    ticketNumber: v.string(),
+    subject: v.string(),
+    status: v.union(v.literal("open"), v.literal("closed"), v.literal("resolved"), v.literal("inProgress"), v.literal("awaitingResponse")),
+    priority: v.union(v.literal("high"), v.literal("medium"), v.literal("low"), v.literal("urgent")),
+    userNameSnapshot: v.string(),
+    assignedTo: v.optional(v.id("users")),
+    createdAt: v.number(),
+    waitingMs: v.number(),
+  }))),
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "tickets"))) return [];
     const canViewAll = await currentUserCan(ctx, "ticket.viewAll");
@@ -615,16 +697,15 @@ export const getAwaitingFirstResponse = query({
     // interested in the oldest N tickets, not an exhaustive list.
     const openTickets = await ctx.db
       .query("ticket_tickets")
-      .withIndex("by_status", (q: ConvexQueryBuilder) => q.eq("status", "open"))
+      .withIndex("by_status", (q) => q.eq("status", "open"))
       .take(100);
     const inProgressTickets = await ctx.db
       .query("ticket_tickets")
-      .withIndex("by_status", (q: ConvexQueryBuilder) => q.eq("status", "inProgress"))
+      .withIndex("by_status", (q) => q.eq("status", "inProgress"))
       .take(100);
 
     const awaitingResponse = [...openTickets, ...inProgressTickets]
       .filter((t) => !t.firstResponseAt)
-      // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
       .sort((a, b) => a.createdAt - b.createdAt) // Oldest first
       .slice(0, limit);
 
@@ -648,7 +729,7 @@ async function readTicketSection(ctx: any, section: "ticket.general" | "ticket.s
   const defaults = getDefaults(section) as Record<string, unknown>;
   const doc = await ctx.db
     .query("settings")
-    .withIndex("by_section", (q: ConvexQueryBuilder) => q.eq("section", section))
+    .withIndex("by_section", (q) => q.eq("section", section))
     .unique();
   return { ...defaults, ...((doc?.values as Record<string, unknown>) ?? {}) };
 }
@@ -704,10 +785,13 @@ export interface CustomerCategoriesResult {
   resolutionTargetMinutes: number | null;
 }
 
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const getCustomerCategories = query({
   args: {},
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.union(v.null(), v.object({
+    categories: v.array(v.object({ value: v.string(), label: v.string(), responseWindow: v.string() })),
+    firstResponseTargetMinutes: v.union(v.null(), v.number()),
+    resolutionTargetMinutes: v.union(v.null(), v.number()),
+  })),
   handler: async (ctx): Promise<CustomerCategoriesResult | null> => {
     if (!(await isPluginEnabled(ctx, "tickets"))) return null;
     const { categories, firstResponseTarget, resolutionTarget } = await loadCustomerSla(ctx);
@@ -742,10 +826,8 @@ export interface TicketsOverviewResult {
  * the latest public message, the agent's name, and counts for the
  * Yours / Active / Done tabs. Sorted with tickets needing the member first.
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const getMyTicketsOverview = query({
   args: getMyTicketsOverviewArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args): Promise<TicketsOverviewResult> => {
     const empty: TicketsOverviewResult = {
       tickets: [],
@@ -759,7 +841,7 @@ export const getMyTicketsOverview = query({
     const limit = Math.max(1, Math.min(args.limit ?? OVERVIEW_SCAN_LIMIT, OVERVIEW_SCAN_LIMIT));
     const rows: any[] = await ctx.db
       .query("ticket_tickets")
-      .withIndex("by_user", (q: ConvexQueryBuilder) => q.eq("userId", user._id))
+      .withIndex("by_user", (q) => q.eq("userId", user._id))
       .order("desc")
       .take(limit);
 
@@ -773,10 +855,9 @@ export const getMyTicketsOverview = query({
       // Latest public message for the preview (internal notes never leak).
       const recent = await ctx.db
         .query("ticket_messages")
-        .withIndex("by_ticket_sequence", (q: ConvexQueryBuilder) => q.eq("ticketId", t._id))
+        .withIndex("by_ticket_sequence", (q) => q.eq("ticketId", t._id))
         .order("desc")
         .take(5);
-      // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
       const last = recent.find((m) => !m.isInternal);
 
       let agentName: string | null = null;
@@ -837,10 +918,8 @@ export const getMyTicketsOverview = query({
  * Reads nothing back: the website calls tickets.mutations.markReadByCustomer
  * when the member opens the thread.
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const getMyTicketThread = query({
   args: getMyTicketThreadArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args): Promise<Record<string, unknown> | null> => {
     if (!(await isPluginEnabled(ctx, "tickets"))) return null;
     const user = await getCurrentUser(ctx);
@@ -848,7 +927,7 @@ export const getMyTicketThread = query({
 
     const ticket: any = await ctx.db
       .query("ticket_tickets")
-      .withIndex("by_ticket_number", (q: ConvexQueryBuilder) =>
+      .withIndex("by_ticket_number", (q) =>
         q.eq("ticketNumber", args.ticketNumber.trim().toUpperCase()),
       )
       .unique();
@@ -862,7 +941,7 @@ export const getMyTicketThread = query({
 
     const allMessages: any[] = await ctx.db
       .query("ticket_messages")
-      .withIndex("by_ticket_sequence", (q: ConvexQueryBuilder) => q.eq("ticketId", ticket._id))
+      .withIndex("by_ticket_sequence", (q) => q.eq("ticketId", ticket._id))
       .take(1000);
 
     const messages: Array<Record<string, unknown>> = [];

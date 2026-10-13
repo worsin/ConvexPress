@@ -86,6 +86,12 @@ export const runDunningSweep: RegisteredAction<
   args: {
     limit: v.optional(v.number()),
   },
+  returns: v.object({
+    processed: v.number(),
+    succeeded: v.number(),
+    failed: v.number(),
+    cancelled: v.number(),
+  }),
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "commerceSubscriptions");
 

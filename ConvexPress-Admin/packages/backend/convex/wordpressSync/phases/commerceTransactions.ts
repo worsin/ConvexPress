@@ -64,6 +64,20 @@ export const importBatch = internalAction({
     siteId: v.id("wordpressSites"),
     credentials: siteCredentialsValidator,
   },
+  returns: v.object({
+    progress: v.object({
+      total: v.number(),
+      imported: v.number(),
+      failed: v.number(),
+      cursor: v.optional(v.number()),
+      created: v.optional(v.number()),
+      updated: v.optional(v.number()),
+      skipped: v.optional(v.number()),
+      conflicted: v.optional(v.number()),
+    }),
+    errors: v.array(v.object({ phase: v.string(), wpId: v.number(), message: v.string(), timestamp: v.number() })),
+    hasMore: v.boolean(),
+  }),
   handler: async (ctx, { jobId, siteId, credentials }): Promise<PhaseResult> => {
     const job = await ctx.runQuery(internal.wordpressSync.internals.getJobInternal, { jobId });
     const site = await ctx.runQuery(internal.wordpressSync.internals.getSiteWithCredentials, { siteId });
@@ -1533,6 +1547,7 @@ export const upsertCustomerProfile = internalMutation({
       currencyCode: v.string(),
     }),
   },
+  returns: v.id("commerce_customer_profiles"),
   handler: async (ctx, { existingId, customer }) => {
     const now = Date.now();
     let targetId = existingId as Id<"commerce_customer_profiles"> | undefined;
@@ -1600,6 +1615,7 @@ export const upsertCustomerDefaultAddress = internalMutation({
     }),
     phone: v.optional(v.string()),
   },
+  returns: v.id("commerce_customer_addresses"),
   handler: async (ctx, { customerId, addressType, address, phone }) => {
     const now = Date.now();
     const existing = await ctx.db
@@ -1711,6 +1727,7 @@ export const upsertOrder = internalMutation({
       createdAtSource: v.optional(v.number()),
     }),
   },
+  returns: v.id("commerce_orders"),
   handler: async (ctx, { existingId, order }) => {
     const now = Date.now();
     let targetId = existingId as Id<"commerce_orders"> | undefined;
@@ -1793,6 +1810,7 @@ export const upsertOrderItem = internalMutation({
       metadata: v.optional(v.any()),
     }),
   },
+  returns: v.string(),
   handler: async (ctx, { existingId, orderId, item }) => {
     const targetOrderId = orderId as Id<"commerce_orders">;
     const patch = {
@@ -1837,6 +1855,7 @@ export const upsertPaymentTransaction = internalMutation({
       createdAtSource: v.optional(v.number()),
     }),
   },
+  returns: v.id("commerce_payment_transactions"),
   handler: async (ctx, { existingId, transaction }) => {
     const now = Date.now();
     let targetId = existingId as Id<"commerce_payment_transactions"> | undefined;
@@ -1882,6 +1901,7 @@ export const upsertImportedReviewUser = internalMutation({
     email: v.string(),
     reviewerName: v.optional(v.string()),
   },
+  returns: v.id("users"),
   handler: async (ctx, { siteId, email, reviewerName }) => {
     const normalizedEmail = email.trim().toLowerCase();
     const existing = await ctx.db
@@ -1963,6 +1983,7 @@ export const upsertDiscountCode = internalMutation({
       rawSourceMeta: v.optional(v.string()),
     }),
   },
+  returns: v.id("commerce_discount_codes"),
   handler: async (ctx, { existingId, discount }) => {
     const now = Date.now();
     let targetId = existingId as Id<"commerce_discount_codes"> | undefined;
@@ -2085,6 +2106,7 @@ export const upsertPaymentRefund = internalMutation({
       createdAtSource: v.optional(v.number()),
     }),
   },
+  returns: v.string(),
   handler: async (ctx, { existingId, refund }) => {
     const now = Date.now();
     const patch = {
@@ -2133,6 +2155,7 @@ export const upsertCommerceReview = internalMutation({
       createdAtSource: v.optional(v.number()),
     }),
   },
+  returns: v.id("commerce_review_items"),
   handler: async (ctx, { existingId, review }) => {
     const now = Date.now();
     const patch = {
@@ -2175,6 +2198,7 @@ export const reconcileOrderRefundStatus = internalMutation({
   args: {
     orderId: v.id("commerce_orders"),
   },
+  returns: v.union(v.null(), v.id("commerce_orders")),
   handler: async (ctx, { orderId }) => {
     const order = await ctx.db.get(orderId);
     if (!order) return null;
@@ -2224,6 +2248,7 @@ export const recomputeCustomerTotals = internalMutation({
   args: {
     customerId: v.string(),
   },
+  returns: v.union(v.null(), v.id("commerce_customer_profiles")),
   handler: async (ctx, { customerId }) => {
     const targetId = customerId as Id<"commerce_customer_profiles">;
     const customer = await ctx.db.get(targetId);

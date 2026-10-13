@@ -69,6 +69,11 @@ async function activatePalette(ctx: any, shop: DemoShop, userId: any) {
 
 export const listShops = internalQuery({
   args: {},
+  returns: v.array(v.object({
+    key: v.string(),
+    siteTitle: v.string(),
+    products: v.array(v.object({ slug: v.string(), title: v.string(), imagePrompt: v.string() })),
+  })),
   handler: async () =>
     Object.values(SHOPS).map((shop) => ({
       key: shop.key,
@@ -92,6 +97,14 @@ export const seedShop = internalMutation({
     /** Public site address for General settings, e.g. http://127.0.0.1:4201 */
     siteUrl: v.optional(v.string()),
   },
+  returns: v.object({
+    shop: v.string(),
+    siteTitle: v.string(),
+    categories: v.number(),
+    products: v.number(),
+    relations: v.number(),
+    imagesAttached: v.number(),
+  }),
   handler: async (ctx: any, args: any) => {
     const shop = getDemoShop(args.shop);
     const author = await pickAuthor(ctx);
@@ -259,6 +272,7 @@ export const seedShop = internalMutation({
 /** Remove every product, category and relation the demo shop created. */
 export const clearShop = internalMutation({
   args: { shop: v.string() },
+  returns: v.object({ removed: v.number() }),
   handler: async (ctx: any, args: any) => {
     const shop = getDemoShop(args.shop);
     let removed = 0;

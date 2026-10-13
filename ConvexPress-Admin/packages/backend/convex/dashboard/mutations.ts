@@ -93,6 +93,7 @@ export const saveWidgetPreferences = mutation({
     collapsedWidgets: v.optional(v.array(v.string())),
     welcomeDismissed: v.optional(v.boolean()),
   },
+  returns: v.id("dashboardPreferences"),
   handler: async (ctx, args) => {
     const user = await requireCan(ctx, "dashboard.view");
 
@@ -144,6 +145,7 @@ export const dismissWidget = mutation({
     surface: v.union(v.literal("admin"), v.literal("website")),
     widgetId: v.string(),
   },
+  returns: v.null(),
   handler: async (ctx, args) => {
     const user = await requireCan(ctx, "dashboard.dismiss_widget");
 
@@ -193,6 +195,7 @@ export const restoreWidget = mutation({
     surface: v.union(v.literal("admin"), v.literal("website")),
     widgetId: v.string(),
   },
+  returns: v.null(),
   handler: async (ctx, args) => {
     const user = await requireCan(ctx, "dashboard.dismiss_widget");
 
@@ -233,6 +236,7 @@ export const toggleWidgetCollapse = mutation({
     surface: v.union(v.literal("admin"), v.literal("website")),
     widgetId: v.string(),
   },
+  returns: v.null(),
   handler: async (ctx, args) => {
     const user = await requireCan(ctx, "dashboard.view");
 
@@ -282,6 +286,7 @@ export const reorderWidgets = mutation({
       secondary: v.array(v.string()),
     }),
   },
+  returns: v.null(),
   handler: async (ctx, args) => {
     const user = await requireCan(ctx, "dashboard.reorder_widgets");
 
@@ -327,6 +332,7 @@ export const dismissWelcome = mutation({
   args: {
     surface: v.union(v.literal("admin"), v.literal("website")),
   },
+  returns: v.null(),
   handler: async (ctx, args) => {
     const user = await requireCan(ctx, "dashboard.view");
 

@@ -29,6 +29,7 @@ import {
 } from "../helpers/airtable";
 import { LEGACY_ROLE_MAP } from "../seed/roles";
 
+import { v } from "convex/values";
 // Airtable table IDs
 const ROLES_TABLE = "tblquj6encuzq7p1f";
 const CAPABILITIES_TABLE = "tblQTSboBXFiXSP3O";
@@ -45,17 +46,22 @@ function toCanonicalRoleSlug(rawSlug: string): string {
   return ROLE_SLUG_ALIASES[normalized] ?? normalized;
 }
 
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const syncRoles = internalAction({
   args: {},
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.object({
+    success: v.boolean(),
+    total: v.number(),
+    created: v.number(),
+    updated: v.number(),
+    unchanged: v.number(),
+    errors: v.optional(v.array(v.string())),
+  }),
   handler: async (ctx) => {
     // Keep dependent tables current so role links always align in the DB.
     await ctx.runAction(internal.airtableSync.syncCapabilities.syncCapabilities, {});
     await ctx.runAction(internal.airtableSync.syncRoutes.syncRoutes, {});
 
     // Build lookup maps for linked records
-    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     const [capabilityMap, routeMap, records] = await Promise.all([
       buildLookupMap(CAPABILITIES_TABLE, "Action Code"),
       buildLookupMap(ROUTES_TABLE, "Path"),

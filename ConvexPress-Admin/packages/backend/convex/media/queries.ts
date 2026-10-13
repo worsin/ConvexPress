@@ -26,6 +26,7 @@ import {
   getSrcSetArgs,
 } from "./validators";
 
+import { tableDocs } from "../schema/tableDocs.generated";
 // ─── List ───────────────────────────────────────────────────────────────────
 
 /**
@@ -62,6 +63,41 @@ export const list = query({
  */
 export const get = query({
   args: getMediaArgs,
+  returns: v.union(v.null(), v.object({
+    url: v.string(),
+    sizes: v.array(tableDocs.mediaSizes),
+    sizesMap: v.record(v.string(), v.object({ url: v.string(), width: v.number(), height: v.number(), fileSize: v.number() })),
+    meta: v.array(tableDocs.mediaMeta),
+    metaMap: v.record(v.string(), v.string()),
+    uploaderName: v.string(),
+    _id: v.id("media"),
+    _creationTime: v.number(),
+    width: v.optional(v.number()),
+    storageId: v.optional(v.id("_storage")),
+    wpSourceSiteId: v.optional(v.id("wordpressSites")),
+    description: v.optional(v.string()),
+    caption: v.optional(v.string()),
+    altText: v.optional(v.string()),
+    height: v.optional(v.number()),
+    processingError: v.optional(v.string()),
+    attachedTo: v.optional(v.id("posts")),
+    uploadPath: v.optional(v.string()),
+    trashedAt: v.optional(v.number()),
+    previousStatus: v.optional(v.string()),
+    trashedBy: v.optional(v.id("users")),
+    wpAttachmentId: v.optional(v.number()),
+    wpSourceUrl: v.optional(v.string()),
+    title: v.string(),
+    updatedAt: v.number(),
+    createdAt: v.number(),
+    fileSize: v.number(),
+    mimeType: v.string(),
+    status: v.union(v.literal("failed"), v.literal("active"), v.literal("processing"), v.literal("trashed")),
+    slug: v.string(),
+    mediaType: v.union(v.literal("image"), v.literal("video"), v.literal("audio"), v.literal("document"), v.literal("archive"), v.literal("other")),
+    fileName: v.string(),
+    uploadedBy: v.id("users"),
+  })),
   handler: async (ctx, args) => {
     await requireCan(ctx, "media.read");
 
@@ -136,6 +172,17 @@ export const get = query({
  */
 export const getPublic = query({
   args: { mediaId: v.id("media") },
+  returns: v.union(v.null(), v.object({
+    _id: v.id("media"),
+    sizesMap: v.record(v.string(), v.object({ url: v.string(), width: v.number(), height: v.number() })),
+    title: v.string(),
+    altText: v.optional(v.string()),
+    mediaType: v.union(v.literal("image"), v.literal("video"), v.literal("audio"), v.literal("document"), v.literal("archive"), v.literal("other")),
+    mimeType: v.string(),
+    width: v.optional(v.number()),
+    height: v.optional(v.number()),
+    url: v.string(),
+  })),
   handler: async (ctx, args) => {
     const media = await ctx.db.get(args.mediaId);
     if (!media || media.status === "trashed") return null;
@@ -172,6 +219,7 @@ export const getPublic = query({
  */
 export const getByIds = query({
   args: getByIdsArgs,
+  returns: v.array(v.union(v.null(), tableDocs.media)),
   handler: async (ctx, args) => {
     await requireCan(ctx, "media.read");
 
@@ -233,6 +281,7 @@ export const counts = query({
  */
 export const getUrl = query({
   args: getUrlArgs,
+  returns: v.union(v.null(), v.string()),
   handler: async (ctx, args) => {
     await requireCan(ctx, "media.read");
 
@@ -273,6 +322,7 @@ export const getUrl = query({
  */
 export const getSrcSet = query({
   args: getSrcSetArgs,
+  returns: v.string(),
   handler: async (ctx, args) => {
     const media = await ctx.db.get("media", args.mediaId);
     if (!media) return "";

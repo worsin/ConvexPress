@@ -39,6 +39,12 @@ export const getWidgetPreferences = query({
   args: {
     surface: v.union(v.literal("admin"), v.literal("website")),
   },
+  returns: v.union(v.null(), v.object({
+    widgetOrder: v.object({ primary: v.array(v.string()), secondary: v.array(v.string()) }),
+    hiddenWidgets: v.array(v.string()),
+    collapsedWidgets: v.array(v.string()),
+    welcomeDismissed: v.boolean(),
+  })),
   handler: async (ctx, args) => {
     const user = await getCurrentUser(ctx);
     if (!user) return null;
@@ -82,6 +88,33 @@ export const getWidgetPreferences = query({
  */
 export const getAtAGlance = query({
   args: {},
+  returns: v.union(v.null(), v.object({
+    posts: v.union(v.null(), v.object({
+      publish: v.number(),
+      draft: v.number(),
+      pending: v.number(),
+      future: v.number(),
+      private: v.number(),
+      trash: v.number(),
+      total: v.number(),
+    })),
+    pages: v.union(v.null(), v.object({
+      publish: v.number(),
+      draft: v.number(),
+      pending: v.number(),
+      private: v.number(),
+      trash: v.number(),
+      total: v.number(),
+    })),
+    comments: v.union(v.null(), v.object({
+      approved: v.number(),
+      pending: v.number(),
+      spam: v.number(),
+      trash: v.number(),
+      total: v.number(),
+    })),
+    users: v.union(v.null(), v.number()),
+  })),
   handler: async (ctx) => {
     const user = await getCurrentUser(ctx);
     if (!user) return null;
@@ -129,6 +162,23 @@ export const getAtAGlance = query({
  */
 export const getActivityFeed = query({
   args: {},
+  returns: v.union(v.null(), v.object({
+    recentPosts: v.array(v.object({
+      _id: v.string(),
+      title: v.string(),
+      publishedAt: v.optional(v.number()),
+      authorName: v.string(),
+    })),
+    recentComments: v.array(v.object({
+      _id: v.string(),
+      content: v.string(),
+      authorName: v.string(),
+      postTitle: v.string(),
+      postId: v.string(),
+      status: v.string(),
+      createdAt: v.number(),
+    })),
+  })),
   handler: async (ctx) => {
     const user = await getCurrentUser(ctx);
     if (!user) return null;
@@ -299,6 +349,7 @@ export const getActivityFeed = query({
  */
 export const getQuickDrafts = query({
   args: {},
+  returns: v.union(v.null(), v.array(v.object({ _id: v.id("posts"), title: v.string(), excerpt: v.string(), createdAt: v.number() }))),
   handler: async (ctx) => {
     const user = await getCurrentUser(ctx);
     if (!user) return null;
@@ -343,6 +394,35 @@ export const getQuickDrafts = query({
  */
 export const getWebsiteDashboard = query({
   args: {},
+  returns: v.union(v.null(), v.object({
+    myPosts: v.object({
+      counts: v.object({ published: v.number(), draft: v.number(), pending: v.number() }),
+      recent: v.array(v.object({
+        _id: v.id("posts"),
+        title: v.string(),
+        status: v.union(v.literal("draft"), v.literal("pending"), v.literal("trash"), v.literal("auto-draft"), v.literal("publish"), v.literal("future"), v.literal("private")),
+        date: v.number(),
+      })),
+    }),
+    myComments: v.array(v.object({
+      _id: v.id("comments"),
+      excerpt: v.string(),
+      postTitle: v.string(),
+      status: v.union(v.literal("pending"), v.literal("trash"), v.literal("approved"), v.literal("spam")),
+      date: v.number(),
+    })),
+    unreadNotifications: v.object({
+      count: v.number(),
+      recent: v.array(v.object({
+        _id: v.id("siteNotifications"),
+        message: v.string(),
+        type: v.union(v.literal("error"), v.literal("info"), v.literal("success"), v.literal("warning")),
+        date: v.number(),
+        link: v.union(v.null(), v.string()),
+      })),
+    }),
+    contentPerformance: v.union(v.null(), v.array(v.object({ _id: v.string(), title: v.string(), views: v.number() }))),
+  })),
   handler: async (ctx) => {
     const user = await getCurrentUser(ctx);
     if (!user) return null;

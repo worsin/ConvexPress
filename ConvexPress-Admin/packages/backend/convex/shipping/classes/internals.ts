@@ -12,6 +12,7 @@ export const resolveForCartLine = internalQuery({
     productId: v.id("commerce_products"),
     variantId: v.optional(v.id("commerce_product_variants")),
   },
+  returns: v.union(v.null(), v.string()),
   handler: async (ctx, args) => {
     const product = await ctx.db.get(args.productId);
     const variant = args.variantId ? await ctx.db.get(args.variantId) : null;
@@ -32,6 +33,7 @@ export const resolveBatch = internalQuery({
       }),
     ),
   },
+  returns: v.record(v.string(), v.union(v.null(), v.string())),
   handler: async (ctx, args) => {
     const result: Record<string, string | null> = {};
     for (const line of args.lines) {

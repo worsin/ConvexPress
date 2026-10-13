@@ -379,6 +379,17 @@ export const connectWithSecretKey = action({
     publishableKey: v.optional(v.string()),
     extraOrigins: v.optional(v.array(v.string())),
   },
+  returns: v.object({
+    publishableKey: v.string(),
+    frontendApi: v.string(),
+    environmentType: v.union(v.literal("production"), v.literal("development")),
+    instanceId: v.string(),
+    jwtTemplate: v.object({ id: v.string(), created: v.boolean(), updated: v.boolean() }),
+    siteOrigins: v.array(v.string()),
+    svixConfigured: v.boolean(),
+    capabilitiesSynced: v.boolean(),
+    warnings: v.array(v.string()),
+  }),
   handler: async (ctx, args): Promise<ConfigureResult> => {
     await requireManageOptions(ctx);
     if (!isSecretKey(args.secretKey)) {
@@ -432,6 +443,91 @@ export const startKeyless = action({
 
 export const syncCapabilities = action({
   args: {},
+  returns: v.object({
+    synced: v.boolean(),
+    capabilities: v.union(v.null(), v.object({
+      version: v.literal(1),
+      applicationName: v.union(v.null(), v.string()),
+      environmentType: v.union(v.null(), v.literal("production"), v.literal("development")),
+      attributes: v.object({
+        emailAddress: v.object({
+          enabled: v.boolean(),
+          required: v.boolean(),
+          verifications: v.array(v.union(v.literal("email_code"), v.literal("email_link"), v.literal("phone_code"))),
+          usedForFirstFactor: v.boolean(),
+          usedForSecondFactor: v.boolean(),
+        }),
+        phoneNumber: v.object({
+          enabled: v.boolean(),
+          required: v.boolean(),
+          verifications: v.array(v.union(v.literal("email_code"), v.literal("email_link"), v.literal("phone_code"))),
+          usedForFirstFactor: v.boolean(),
+          usedForSecondFactor: v.boolean(),
+        }),
+        username: v.object({
+          enabled: v.boolean(),
+          required: v.boolean(),
+          verifications: v.array(v.union(v.literal("email_code"), v.literal("email_link"), v.literal("phone_code"))),
+          usedForFirstFactor: v.boolean(),
+          usedForSecondFactor: v.boolean(),
+        }),
+        firstName: v.object({
+          enabled: v.boolean(),
+          required: v.boolean(),
+          verifications: v.array(v.union(v.literal("email_code"), v.literal("email_link"), v.literal("phone_code"))),
+          usedForFirstFactor: v.boolean(),
+          usedForSecondFactor: v.boolean(),
+        }),
+        lastName: v.object({
+          enabled: v.boolean(),
+          required: v.boolean(),
+          verifications: v.array(v.union(v.literal("email_code"), v.literal("email_link"), v.literal("phone_code"))),
+          usedForFirstFactor: v.boolean(),
+          usedForSecondFactor: v.boolean(),
+        }),
+        password: v.object({
+          enabled: v.boolean(),
+          required: v.boolean(),
+          verifications: v.array(v.union(v.literal("email_code"), v.literal("email_link"), v.literal("phone_code"))),
+          usedForFirstFactor: v.boolean(),
+          usedForSecondFactor: v.boolean(),
+        }),
+      }),
+      social: v.array(v.string()),
+      signUp: v.object({
+        mode: v.union(v.literal("public"), v.literal("restricted"), v.literal("waitlist")),
+        captchaEnabled: v.boolean(),
+        captchaWidgetType: v.union(v.null(), v.literal("smart"), v.literal("invisible")),
+        legalConsentEnabled: v.boolean(),
+        progressive: v.boolean(),
+      }),
+      signIn: v.object({
+        preferredStrategy: v.union(v.literal("password"), v.literal("otp")),
+        secondFactorRequired: v.boolean(),
+        firstFactors: v.array(v.string()),
+        secondFactors: v.array(v.string()),
+      }),
+      password: v.object({
+        enabled: v.boolean(),
+        required: v.boolean(),
+        minLength: v.number(),
+        maxLength: v.number(),
+        requireSpecialChar: v.boolean(),
+        requireNumbers: v.boolean(),
+        requireUppercase: v.boolean(),
+        requireLowercase: v.boolean(),
+        allowedSpecialCharacters: v.string(),
+        showZxcvbn: v.boolean(),
+        minZxcvbnStrength: v.number(),
+      }),
+      passkeys: v.object({ enabled: v.boolean() }),
+      links: v.object({
+        termsUrl: v.union(v.null(), v.string()),
+        privacyPolicyUrl: v.union(v.null(), v.string()),
+        supportEmail: v.union(v.null(), v.string()),
+      }),
+    })),
+  }),
   handler: async (ctx): Promise<{ synced: boolean; capabilities: AuthCapabilities | null }> => {
     await requireManageOptions(ctx);
     const snap = await snapshot(ctx);
@@ -448,6 +544,19 @@ export const syncCapabilities = action({
 
 export const verify = action({
   args: {},
+  returns: v.object({
+    readiness: v.object({
+      items: v.array(v.object({
+        id: v.union(v.literal("capabilities"), v.literal("issuer"), v.literal("claim"), v.literal("webhook"), v.literal("secret_key"), v.literal("publishable_key"), v.literal("jwt_template"), v.literal("deployment_env")),
+        label: v.string(),
+        state: v.union(v.literal("pending"), v.literal("ok"), v.literal("warn"), v.literal("fail")),
+        note: v.string(),
+      })),
+      loginReady: v.boolean(),
+      complete: v.boolean(),
+    }),
+    checkedAt: v.number(),
+  }),
   handler: async (ctx): Promise<{ readiness: Readiness; checkedAt: number }> => {
     await requireManageOptions(ctx);
     const snap = await snapshot(ctx);
@@ -495,6 +604,7 @@ export const verify = action({
 
 export const webhookPortalUrl = action({
   args: {},
+  returns: v.object({ url: v.string() }),
   handler: async (ctx): Promise<{ url: string }> => {
     await requireManageOptions(ctx);
     const snap = await snapshot(ctx);
@@ -522,6 +632,12 @@ export const webhookPortalUrl = action({
  */
 export const runTokenProbe = action({
   args: {},
+  returns: v.object({
+    ok: v.boolean(),
+    detail: v.string(),
+    issuer: v.optional(v.string()),
+    audience: v.optional(v.string()),
+  }),
   handler: async (
     ctx,
   ): Promise<{ ok: boolean; detail: string; issuer?: string; audience?: string }> => {
@@ -755,6 +871,7 @@ export const getStatus = query({
  */
 export const deploymentEnvChanges = query({
   args: {},
+  returns: v.array(v.object({ name: v.string(), value: v.union(v.null(), v.string()) })),
   handler: async (ctx): Promise<Array<{ name: string; value: string | null }>> => {
     await requireCan(ctx, "manage_options");
     const doc = await ctx.db
@@ -784,6 +901,7 @@ export const deploymentEnvChanges = query({
 
 export const saveWebhookSecret = mutation({
   args: { webhookSecret: v.string() },
+  returns: v.null(),
   handler: async (ctx, args) => {
     await requireCan(ctx, "manage_options");
     const secret = args.webhookSecret.trim();
@@ -798,6 +916,7 @@ export const saveWebhookSecret = mutation({
 
 export const markClaimed = mutation({
   args: {},
+  returns: v.null(),
   handler: async (ctx) => {
     await requireCan(ctx, "manage_options");
     await ctx.runMutation(internal.auth.clerkConnectionInternals.saveConnection, {
@@ -808,6 +927,7 @@ export const markClaimed = mutation({
 
 export const disconnect = mutation({
   args: {},
+  returns: v.null(),
   handler: async (ctx) => {
     await requireCan(ctx, "manage_options");
     await ctx.runMutation(internal.auth.clerkConnectionInternals.saveConnection, {

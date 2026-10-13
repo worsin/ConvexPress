@@ -83,6 +83,20 @@ export const importBatch = internalAction({
     siteId: v.id("wordpressSites"),
     credentials: siteCredentialsValidator,
   },
+  returns: v.object({
+    progress: v.object({
+      total: v.number(),
+      imported: v.number(),
+      failed: v.number(),
+      cursor: v.optional(v.number()),
+      created: v.optional(v.number()),
+      updated: v.optional(v.number()),
+      skipped: v.optional(v.number()),
+      conflicted: v.optional(v.number()),
+    }),
+    errors: v.array(v.object({ phase: v.string(), wpId: v.number(), message: v.string(), timestamp: v.number() })),
+    hasMore: v.boolean(),
+  }),
   handler: async (ctx, { jobId, siteId, credentials }): Promise<PhaseResult> => {
     const errors: SyncError[] = [];
     let created = 0;
@@ -336,6 +350,7 @@ export const usersCreate = internalMutation({
     }),
     siteId: v.id("wordpressSites"),
   },
+  returns: v.id("users"),
   handler: async (ctx, { wpUser, siteId }) => {
     const now = Date.now();
     const normalizedEmail = normalizeEmail(wpUser.email);
@@ -439,6 +454,7 @@ export const markImportedUserCredentialMigration = internalMutation({
     clerkUserId: v.optional(v.string()),
     error: v.optional(v.string()),
   },
+  returns: v.null(),
   handler: async (ctx, args) => {
     const patch: Record<string, unknown> = {
       wpCredentialMigrationStatus: args.status,
@@ -645,6 +661,19 @@ export const getCredentialBackfillBatch = internalQuery({
     afterWpId: v.optional(v.number()),
     limit: v.number(),
   },
+  returns: v.object({
+    users: v.array(v.object({
+      userId: v.id("users"),
+      wpUserId: v.number(),
+      email: v.string(),
+      username: v.optional(v.string()),
+      firstName: v.optional(v.string()),
+      lastName: v.optional(v.string()),
+      displayName: v.optional(v.string()),
+    })),
+    nextAfterWpId: v.number(),
+    hasMore: v.boolean(),
+  }),
   handler: async (ctx, args) => {
     const afterWpId = args.afterWpId ?? -1;
     const mappings = await ctx.db

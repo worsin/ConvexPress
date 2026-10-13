@@ -16,6 +16,7 @@ import { internalMutation } from "../_generated/server";
 import { BUILT_IN_ROLES, LEGACY_ROLE_MAP } from "../seed/roles";
 import { patchWithMediaReferences } from "../media/attachmentGuard";
 
+import { v } from "convex/values";
 const REQUIRED_ADMIN_PAGE_ACCESS = ["/admin/setup", "/admin/*"];
 
 // ─── Seed Roles ─────────────────────────────────────────────────────────────
@@ -33,6 +34,7 @@ const REQUIRED_ADMIN_PAGE_ACCESS = ["/admin/setup", "/admin/*"];
  */
 export const seedRoles = internalMutation({
   args: {},
+  returns: v.object({ message: v.string(), created: v.array(v.string()), skipped: v.array(v.string()) }),
   handler: async (ctx) => {
     const created: string[] = [];
     const skipped: string[] = [];
@@ -90,6 +92,7 @@ export const seedRoles = internalMutation({
  */
 export const reseedRoles = internalMutation({
   args: {},
+  returns: v.object({ message: v.string(), updated: v.array(v.string()), created: v.array(v.string()) }),
   handler: async (ctx) => {
     const updated: string[] = [];
     const created: string[] = [];
@@ -152,6 +155,7 @@ export const reseedRoles = internalMutation({
  */
 export const ensureAdminSetupPageAccess = internalMutation({
   args: {},
+  returns: v.union(v.object({ updated: v.boolean(), reason: v.string(), added: v.optional(v.null()) }), v.object({ updated: v.boolean(), added: v.array(v.string()), reason: v.optional(v.null()) })),
   handler: async (ctx) => {
     const administrator = await ctx.db
       .query("roles")
@@ -205,6 +209,12 @@ export const ensureAdminSetupPageAccess = internalMutation({
  */
 export const migrateLegacyRoles = internalMutation({
   args: {},
+  returns: v.object({
+    message: v.string(),
+    migrated: v.number(),
+    failed: v.number(),
+    errors: v.optional(v.array(v.string())),
+  }),
   handler: async (ctx) => {
     // Get all users who have internalRole but no roleId
     const allUsers = await ctx.db.query("users").collect();

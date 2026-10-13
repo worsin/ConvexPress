@@ -121,39 +121,41 @@ async function isStripeTaxMode(ctx: any): Promise<boolean> {
   return values?.taxProviderMode === "stripe";
 }
 
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const calculateViaStripe = internalAction({
   args: {
     currency: v.string(),
-    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     address: v.object({
       country: v.string(),
-      // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
       state: v.optional(v.string()),
-      // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
       postalCode: v.optional(v.string()),
-      // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
       city: v.optional(v.string()),
-      // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
       line1: v.optional(v.string()),
     }),
-    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     lines: v.array(
-      // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
       v.object({
         amount: v.number(),
         reference: v.string(),
-        // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
         taxCode: v.optional(v.string()),
-        // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
         taxBehavior: v.optional(
-          // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
           v.union(v.literal("exclusive"), v.literal("inclusive")),
         ),
       }),
     ),
   },
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.object({
+    taxAmount: v.number(),
+    taxableAmount: v.number(),
+    breakdown: v.array(v.object({
+      taxClass: v.string(),
+      taxableAmount: v.number(),
+      taxAmount: v.number(),
+      taxRate: v.number(),
+      jurisdiction: v.optional(v.string()),
+    })),
+    provider: v.union(v.literal("stripe"), v.literal("rules")),
+    fallback: v.optional(v.boolean()),
+    reason: v.optional(v.string()),
+  }),
   handler: async (ctx, args): Promise<StripeTaxResult> => {
     const inMode = await isStripeTaxMode(ctx);
     if (!inMode) {

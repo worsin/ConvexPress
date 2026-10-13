@@ -397,6 +397,7 @@ export const createPayPalOrderAction = internalAction({
     amount: v.number(),
     currency: v.string(),
   },
+  returns: v.union(v.object({ orderId: v.string(), approvalUrl: v.optional(v.string()) }), v.null()),
   handler: async (ctx, args) => {
     let credentials: { clientId: string; clientSecret: string; mode: string };
     try {
@@ -510,6 +511,7 @@ export const capturePayPalOrderAction = internalAction({
     transactionId: v.id("commerce_payment_transactions"),
     paypalOrderId: v.string(),
   },
+  returns: v.union(v.object({ status: v.optional(v.string()) }), v.null()),
   handler: async (ctx, args) => {
     let credentials: { clientId: string; clientSecret: string; mode: string };
     try {
@@ -754,6 +756,7 @@ export const detachStripeMethodAction = internalAction({
   args: {
     providerMethodId: v.string(),
   },
+  returns: v.null(),
   handler: async (ctx, args) => {
     try {
       const stripeKey = await getStripeSecretKey(ctx);

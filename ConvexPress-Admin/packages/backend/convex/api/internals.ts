@@ -62,6 +62,7 @@ import {
 } from "./crypto_helpers";
 import { lookupUserByIdentifier, currentUserCan, getCurrentUser } from "../helpers/permissions";
 
+import { tableDocs } from "../schema/tableDocs.generated";
 // ─── authenticateRequest ────────────────────────────────────────────────────
 
 /**
@@ -82,6 +83,43 @@ import { lookupUserByIdentifier, currentUserCan, getCurrentUser } from "../helpe
  */
 export const authenticateRequest = internalMutation({
   args: authenticateRequestArgs,
+  returns: v.union(v.object({
+    authenticated: v.boolean(),
+    error: v.string(),
+    errorCode: v.literal("UNAUTHORIZED"),
+    retryAfter: v.optional(v.null()),
+    keyId: v.optional(v.null()),
+    userId: v.optional(v.null()),
+    scopes: v.optional(v.null()),
+    keyPrefix: v.optional(v.null()),
+  }), v.object({
+    authenticated: v.boolean(),
+    error: v.string(),
+    errorCode: v.literal("FORBIDDEN"),
+    retryAfter: v.optional(v.null()),
+    keyId: v.optional(v.null()),
+    userId: v.optional(v.null()),
+    scopes: v.optional(v.null()),
+    keyPrefix: v.optional(v.null()),
+  }), v.object({
+    authenticated: v.boolean(),
+    error: v.string(),
+    errorCode: v.literal("RATE_LIMITED"),
+    retryAfter: v.number(),
+    keyId: v.optional(v.null()),
+    userId: v.optional(v.null()),
+    scopes: v.optional(v.null()),
+    keyPrefix: v.optional(v.null()),
+  }), v.object({
+    authenticated: v.boolean(),
+    keyId: v.id("apiKeys"),
+    userId: v.string(),
+    scopes: v.array(v.union(v.literal("read:posts"), v.literal("write:posts"), v.literal("read:comments"), v.literal("write:comments"), v.literal("read:media"), v.literal("write:media"), v.literal("read:users"), v.literal("write:users"), v.literal("read:taxonomies"), v.literal("write:taxonomies"), v.literal("read:settings"), v.literal("write:settings"), v.literal("read:menus"), v.literal("write:menus"))),
+    keyPrefix: v.string(),
+    error: v.optional(v.null()),
+    errorCode: v.optional(v.null()),
+    retryAfter: v.optional(v.null()),
+  })),
   handler: async (ctx, args) => {
     const { authorizationHeader, requiredScope, clientIp } = args;
 
@@ -283,6 +321,7 @@ export const authenticateRequest = internalMutation({
  */
 export const deliverWebhook = internalAction({
   args: deliverWebhookArgs,
+  returns: v.null(),
   handler: async (ctx, args) => {
     const { webhookId, eventId, eventCode, payload, attempt, isTest } = args;
     const deliveryAttempt = attempt ?? 1;
@@ -454,6 +493,7 @@ export const deliverWebhook = internalAction({
  */
 export const getWebhookInternal = internalQuery({
   args: { webhookId: v.id("webhooks") },
+  returns: v.union(v.null(), tableDocs.webhooks),
   handler: async (ctx, args) => {
     return await ctx.db.get("webhooks", args.webhookId);
   },
@@ -482,6 +522,7 @@ export const recordDeliveryResult = internalMutation({
     isTest: v.boolean(),
     attempt: v.number(),
   },
+  returns: v.null(),
   handler: async (ctx, args) => {
     // Insert delivery log
     await ctx.db.insert("webhookDeliveries", {
@@ -574,6 +615,7 @@ export const recordDeliveryFailure = internalMutation({
     isTest: v.boolean(),
     attempt: v.number(),
   },
+  returns: v.null(),
   handler: async (ctx, args) => {
     // Insert delivery log with failure
     await ctx.db.insert("webhookDeliveries", {
@@ -645,6 +687,7 @@ export const recordDeliveryFailure = internalMutation({
  */
 export const cleanupExpiredKeys = internalMutation({
   args: cleanupExpiredKeysArgs,
+  returns: v.object({ expiredCount: v.number(), cleanedWindows: v.number() }),
   handler: async (ctx) => {
     const now = Date.now();
 
@@ -689,6 +732,7 @@ export const cleanupExpiredKeys = internalMutation({
  */
 export const cleanupDeliveryLogs = internalMutation({
   args: cleanupDeliveryLogsArgs,
+  returns: v.object({ deletedCount: v.number() }),
   handler: async (ctx) => {
     const cutoff = Date.now() - DELIVERY_LOG_RETENTION_MS;
 
@@ -725,6 +769,32 @@ export const cleanupDeliveryLogs = internalMutation({
  */
 export const verifyWebhookTestPermission = internalMutation({
   args: { webhookId: v.id("webhooks") },
+  returns: v.union(v.object({
+    authorized: v.boolean(),
+    error: v.string(),
+    errorCode: v.literal("UNAUTHORIZED"),
+    webhookName: v.optional(v.null()),
+  }), v.object({
+    authorized: v.boolean(),
+    error: v.string(),
+    errorCode: v.literal("FORBIDDEN"),
+    webhookName: v.optional(v.null()),
+  }), v.object({
+    authorized: v.boolean(),
+    error: v.string(),
+    errorCode: v.literal("NOT_FOUND"),
+    webhookName: v.optional(v.null()),
+  }), v.object({
+    authorized: v.boolean(),
+    error: v.string(),
+    errorCode: v.literal("INVALID_STATE"),
+    webhookName: v.optional(v.null()),
+  }), v.object({
+    authorized: v.boolean(),
+    webhookName: v.string(),
+    error: v.optional(v.null()),
+    errorCode: v.optional(v.null()),
+  })),
   handler: async (ctx, args) => {
     // 1. Check authentication and capability
     const identity = await ctx.auth.getUserIdentity();

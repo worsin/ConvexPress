@@ -1,16 +1,16 @@
 import { internalMutation } from "../_generated/server";
 import { patchWithMediaReferences } from "../media/attachmentGuard";
 
+import { v } from "convex/values";
 /**
  * Backfill: Set authSource="local" on all existing users that have no authSource.
  * Run once after deploying the schema change.
  *
  * Call from Convex Dashboard: internal.auth.migrations.backfillAuthSource
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const backfillAuthSource = internalMutation({
   args: {},
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.object({ updated: v.number(), total: v.number() }),
   handler: async (ctx) => {
     const users = await ctx.db.query("users").collect();
     let updated = 0;

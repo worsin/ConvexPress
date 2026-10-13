@@ -35,6 +35,8 @@ import {
   listDeliveriesArgs,
 } from "./validators";
 
+import { v } from "convex/values";
+import { tableDocs } from "../schema/tableDocs.generated";
 // ─── listKeys ─────────────────────────────────────────────────────────────
 
 /**
@@ -46,6 +48,27 @@ import {
  */
 export const listKeys = query({
   args: listKeysArgs,
+  returns: v.array(v.object({
+    _id: v.id("apiKeys"),
+    _creationTime: v.number(),
+    expiresAt: v.optional(v.number()),
+    revokedAt: v.optional(v.number()),
+    revokedBy: v.optional(v.string()),
+    environmentBinding: v.optional(v.string()),
+    lastUsedAt: v.optional(v.number()),
+    lastUsedIp: v.optional(v.string()),
+    revokeReason: v.optional(v.string()),
+    userId: v.string(),
+    name: v.string(),
+    updatedAt: v.number(),
+    createdAt: v.number(),
+    status: v.union(v.literal("active"), v.literal("revoked"), v.literal("expired")),
+    keyPrefix: v.string(),
+    scopes: v.array(v.union(v.literal("read:posts"), v.literal("write:posts"), v.literal("read:comments"), v.literal("write:comments"), v.literal("read:media"), v.literal("write:media"), v.literal("read:users"), v.literal("write:users"), v.literal("read:taxonomies"), v.literal("write:taxonomies"), v.literal("read:settings"), v.literal("write:settings"), v.literal("read:menus"), v.literal("write:menus"))),
+    rateLimitPerMinute: v.number(),
+    rateLimitPerHour: v.number(),
+    requestCount: v.number(),
+  })),
   handler: async (ctx, args) => {
     // Require Administrator-level access
     await requireCan(ctx, "api.create_key");
@@ -81,6 +104,27 @@ export const listKeys = query({
  */
 export const getKey = query({
   args: getKeyArgs,
+  returns: v.union(v.null(), v.object({
+    _id: v.id("apiKeys"),
+    _creationTime: v.number(),
+    expiresAt: v.optional(v.number()),
+    revokedAt: v.optional(v.number()),
+    revokedBy: v.optional(v.string()),
+    environmentBinding: v.optional(v.string()),
+    lastUsedAt: v.optional(v.number()),
+    lastUsedIp: v.optional(v.string()),
+    revokeReason: v.optional(v.string()),
+    userId: v.string(),
+    name: v.string(),
+    updatedAt: v.number(),
+    createdAt: v.number(),
+    status: v.union(v.literal("active"), v.literal("revoked"), v.literal("expired")),
+    keyPrefix: v.string(),
+    scopes: v.array(v.union(v.literal("read:posts"), v.literal("write:posts"), v.literal("read:comments"), v.literal("write:comments"), v.literal("read:media"), v.literal("write:media"), v.literal("read:users"), v.literal("write:users"), v.literal("read:taxonomies"), v.literal("write:taxonomies"), v.literal("read:settings"), v.literal("write:settings"), v.literal("read:menus"), v.literal("write:menus"))),
+    rateLimitPerMinute: v.number(),
+    rateLimitPerHour: v.number(),
+    requestCount: v.number(),
+  })),
   handler: async (ctx, args) => {
     await requireCan(ctx, "api.create_key");
 
@@ -104,6 +148,24 @@ export const getKey = query({
  */
 export const listWebhooks = query({
   args: listWebhooksArgs,
+  returns: v.array(v.object({
+    _id: v.id("webhooks"),
+    _creationTime: v.number(),
+    eventListenerId: v.optional(v.id("eventListeners")),
+    lastDeliveryAt: v.optional(v.number()),
+    disabledAt: v.optional(v.number()),
+    userId: v.string(),
+    name: v.string(),
+    updatedAt: v.number(),
+    createdAt: v.number(),
+    status: v.union(v.literal("active"), v.literal("paused"), v.literal("disabled")),
+    eventCode: v.string(),
+    contentType: v.union(v.literal("application/json"), v.literal("application/x-www-form-urlencoded")),
+    deliveryUrl: v.string(),
+    consecutiveFailures: v.number(),
+    maxConsecutiveFailures: v.number(),
+    deliveryTimeout: v.number(),
+  })),
   handler: async (ctx, args) => {
     await requireCan(ctx, "api.create_webhook");
 
@@ -136,6 +198,24 @@ export const listWebhooks = query({
  */
 export const getWebhook = query({
   args: getWebhookArgs,
+  returns: v.union(v.null(), v.object({
+    _id: v.id("webhooks"),
+    _creationTime: v.number(),
+    eventListenerId: v.optional(v.id("eventListeners")),
+    lastDeliveryAt: v.optional(v.number()),
+    disabledAt: v.optional(v.number()),
+    userId: v.string(),
+    name: v.string(),
+    updatedAt: v.number(),
+    createdAt: v.number(),
+    status: v.union(v.literal("active"), v.literal("paused"), v.literal("disabled")),
+    eventCode: v.string(),
+    contentType: v.union(v.literal("application/json"), v.literal("application/x-www-form-urlencoded")),
+    deliveryUrl: v.string(),
+    consecutiveFailures: v.number(),
+    maxConsecutiveFailures: v.number(),
+    deliveryTimeout: v.number(),
+  })),
   handler: async (ctx, args) => {
     await requireCan(ctx, "api.create_webhook");
 
@@ -159,6 +239,7 @@ export const getWebhook = query({
  */
 export const listDeliveries = query({
   args: listDeliveriesArgs,
+  returns: v.array(tableDocs.webhookDeliveries),
   handler: async (ctx, args) => {
     await requireCan(ctx, "api.create_webhook");
 

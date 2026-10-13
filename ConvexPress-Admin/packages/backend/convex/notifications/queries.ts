@@ -62,6 +62,7 @@ import {
   isValidNotificationKey,
 } from "./validators";
 
+import { v } from "convex/values";
 // ─── list ────────────────────────────────────────────────────────────────────
 
 /**
@@ -77,10 +78,35 @@ import {
  * This is a reactive subscription — the dropdown and notification center
  * auto-update when new notifications arrive.
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const list = query({
   args: listArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.object({
+    notifications: v.array(v.object({
+      _id: v.id("siteNotifications"),
+      userId: v.string(),
+      notificationKey: v.string(),
+      eventCode: v.string(),
+      type: v.union(v.literal("error"), v.literal("info"), v.literal("success"), v.literal("warning")),
+      title: v.string(),
+      message: v.string(),
+      icon: v.optional(v.string()),
+      actionUrl: v.optional(v.string()),
+      actionLabel: v.optional(v.string()),
+      readAt: v.optional(v.number()),
+      snoozedUntil: v.optional(v.number()),
+      actionedAt: v.optional(v.number()),
+      needsAction: v.optional(v.boolean()),
+      groupKey: v.optional(v.string()),
+      groupCount: v.optional(v.number()),
+      actorId: v.optional(v.string()),
+      actorName: v.optional(v.string()),
+      actorAvatarUrl: v.optional(v.string()),
+      persistent: v.boolean(),
+      createdAt: v.number(),
+    })),
+    nextCursor: v.optional(v.number()),
+    hasMore: v.boolean(),
+  }),
   handler: async (ctx, args) => {
     // 1. Authenticate
     const user = await getCurrentUser(ctx);
@@ -100,7 +126,7 @@ export const list = query({
       // This avoids the 3x over-fetch since we filter at the index level
       notifications = await ctx.db
         .query("siteNotifications")
-        .withIndex("by_user_unread", (q: ConvexQueryBuilder) =>
+        .withIndex("by_user_unread", (q) =>
           q.eq("userId", userIdentifier).eq("readAt", undefined),
         )
         .order("desc")
@@ -109,7 +135,7 @@ export const list = query({
       // Filter by notification visual type
       notifications = await ctx.db
         .query("siteNotifications")
-        .withIndex("by_user_type", (q: ConvexQueryBuilder) =>
+        .withIndex("by_user_type", (q) =>
           q.eq("userId", userIdentifier).eq("type", args.type!),
         )
         .order("desc")
@@ -118,14 +144,13 @@ export const list = query({
       // Default: chronological by createdAt
       notifications = await ctx.db
         .query("siteNotifications")
-        .withIndex("by_user", (q: ConvexQueryBuilder) => q.eq("userId", userIdentifier))
+        .withIndex("by_user", (q) => q.eq("userId", userIdentifier))
         .order("desc")
         .take(fetchLimit * 3);
     }
 
     // 3. Apply post-filters
     const now = Date.now();
-    // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
     let filtered = notifications.filter((n) => {
       // Exclude dismissed (archived)
       if (n.dismissedAt !== undefined) return false;
@@ -155,7 +180,6 @@ export const list = query({
         : undefined;
 
     return {
-      // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
       notifications: resultNotifications.map((n) => ({
         _id: n._id,
         userId: n.userId,
@@ -211,10 +235,42 @@ export interface ListForCenterResult {
   now: number;
 }
 
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const listForCenter = query({
   args: listForCenterArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.object({
+    items: v.array(v.object({
+      id: v.string(),
+      title: v.string(),
+      message: v.string(),
+      type: v.union(v.literal("error"), v.literal("info"), v.literal("success"), v.literal("warning")),
+      kind: v.union(v.literal("system"), v.literal("content"), v.literal("account"), v.literal("commerce"), v.literal("learning"), v.literal("support")),
+      notificationKey: v.string(),
+      eventCode: v.string(),
+      icon: v.optional(v.string()),
+      actionUrl: v.optional(v.string()),
+      actionLabel: v.optional(v.string()),
+      createdAt: v.number(),
+      readAt: v.optional(v.number()),
+      dismissedAt: v.optional(v.number()),
+      snoozedUntil: v.optional(v.number()),
+      actionedAt: v.optional(v.number()),
+      needsAction: v.boolean(),
+      actorName: v.optional(v.string()),
+      actorAvatarUrl: v.optional(v.string()),
+      groupCount: v.optional(v.number()),
+      ticketNumber: v.optional(v.string()),
+      ticketId: v.optional(v.string()),
+    })),
+    counts: v.object({
+      inbox: v.number(),
+      unread: v.number(),
+      needs: v.number(),
+      snoozed: v.number(),
+      archived: v.number(),
+    }),
+    kinds: v.array(v.union(v.literal("system"), v.literal("content"), v.literal("account"), v.literal("commerce"), v.literal("learning"), v.literal("support"))),
+    now: v.number(),
+  }),
   handler: async (ctx, args): Promise<ListForCenterResult> => {
     const now = Date.now();
     const empty: ListForCenterResult = {
@@ -236,7 +292,7 @@ export const listForCenter = query({
 
     const rows: CenterSourceRow[] = await ctx.db
       .query("siteNotifications")
-      .withIndex("by_user", (q: ConvexQueryBuilder) => q.eq("userId", getUserIdentifier(user)))
+      .withIndex("by_user", (q) => q.eq("userId", getUserIdentifier(user)))
       .order("desc")
       .take(CENTER_SCAN_LIMIT);
 
@@ -265,10 +321,9 @@ export const listForCenter = query({
  * Uses the by_user_unread index for efficient lookup.
  * Convex caches identical subscriptions: multiple tabs = single query evaluation.
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const unreadCount = query({
   args: unreadCountArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.object({ count: v.number() }),
   handler: async (ctx) => {
     // 1. Authenticate
     const user = await getCurrentUser(ctx);
@@ -279,7 +334,7 @@ export const unreadCount = query({
     // 2. Query unread notifications (readAt === undefined)
     const unread = await ctx.db
       .query("siteNotifications")
-      .withIndex("by_user_unread", (q: ConvexQueryBuilder) =>
+      .withIndex("by_user_unread", (q) =>
         q.eq("userId", getUserIdentifier(user)).eq("readAt", undefined),
       )
       .take(101); // Cap at 101 to detect > 100
@@ -287,7 +342,6 @@ export const unreadCount = query({
     // 3. Filter out dismissed (archived) and snoozed, then count
     const now = Date.now();
     const count = unread.filter(
-      // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
       (n) => n.dismissedAt === undefined && !isSnoozed(n, now),
     ).length;
 
@@ -304,10 +358,8 @@ export const unreadCount = query({
  * Verifies ownership: only the notification recipient can view it.
  * Returns full notification detail including parsed metadata.
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const get = query({
   args: getArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     // 1. Authenticate
     const user = await getCurrentUser(ctx);
@@ -386,10 +438,17 @@ export const get = query({
  *
  * Returns array of preferences sorted by category display order.
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const getPreferences = query({
   args: getPreferencesArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.array(v.object({
+    notificationKey: v.string(),
+    notificationName: v.string(),
+    category: v.union(v.literal("System"), v.literal("Content"), v.literal("Comments"), v.literal("Media"), v.literal("Users"), v.literal("Security"), v.literal("Account"), v.literal("Support"), v.literal("Knowledge Base"), v.literal("Commerce"), v.literal("LMS"), v.literal("Discovery"), v.literal("Developer")),
+    type: v.string(),
+    icon: v.string(),
+    siteEnabled: v.boolean(),
+    toastEnabled: v.boolean(),
+  })),
   handler: async (ctx) => {
     // 1. Authenticate
     const user = await getCurrentUser(ctx);
@@ -400,7 +459,7 @@ export const getPreferences = query({
     // 2. Fetch all saved preferences for this user
     const savedPreferences = await ctx.db
       .query("notificationPreferences")
-      .withIndex("by_user", (q: ConvexQueryBuilder) => q.eq("userId", getUserIdentifier(user)))
+      .withIndex("by_user", (q) => q.eq("userId", getUserIdentifier(user)))
       .collect();
 
     // 3. Build a map of saved preferences by key
@@ -466,6 +525,13 @@ export const getPreferences = query({
  */
 export const getPreference: import("convex/server").RegisteredQuery<"public", { notificationKey: string }, { notificationKey: string; notificationName: string; category: string; siteEnabled: boolean; toastEnabled: boolean } | null> = query({
   args: getPreferenceArgs,
+  returns: v.union(v.null(), v.object({
+    notificationKey: v.string(),
+    notificationName: v.string(),
+    category: v.union(v.literal("System"), v.literal("Content"), v.literal("Comments"), v.literal("Media"), v.literal("Users"), v.literal("Security"), v.literal("Account"), v.literal("Support"), v.literal("Knowledge Base"), v.literal("Commerce"), v.literal("LMS"), v.literal("Discovery"), v.literal("Developer")),
+    siteEnabled: v.boolean(),
+    toastEnabled: v.boolean(),
+  })),
   handler: async (ctx, args) => {
     // 1. Authenticate
     const user = await getCurrentUser(ctx);
@@ -513,10 +579,27 @@ export const getPreference: import("convex/server").RegisteredQuery<"public", { 
  *
  * Used for the /admin/settings/notifications monitoring view.
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const listAll = query({
   args: listAllArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.object({
+    notifications: v.array(v.object({
+      _id: v.id("siteNotifications"),
+      userId: v.string(),
+      notificationKey: v.string(),
+      eventCode: v.string(),
+      type: v.union(v.literal("error"), v.literal("info"), v.literal("success"), v.literal("warning")),
+      title: v.string(),
+      message: v.string(),
+      readAt: v.optional(v.number()),
+      dismissedAt: v.optional(v.number()),
+      groupCount: v.optional(v.number()),
+      actorName: v.optional(v.string()),
+      persistent: v.boolean(),
+      createdAt: v.number(),
+    })),
+    nextCursor: v.optional(v.number()),
+    hasMore: v.boolean(),
+  }),
   handler: async (ctx, args) => {
     // 1. Require administrator access (role level 100)
     await requireMinimumRoleLevel(ctx, 100);
@@ -530,7 +613,7 @@ export const listAll = query({
     if (args.userId && args.notificationKey) {
       notifications = await ctx.db
         .query("siteNotifications")
-        .withIndex("by_user_key", (q: ConvexQueryBuilder) =>
+        .withIndex("by_user_key", (q) =>
           q
             .eq("userId", args.userId!)
             .eq("notificationKey", args.notificationKey!),
@@ -540,7 +623,7 @@ export const listAll = query({
     } else if (args.userId && args.type) {
       notifications = await ctx.db
         .query("siteNotifications")
-        .withIndex("by_user_type", (q: ConvexQueryBuilder) =>
+        .withIndex("by_user_type", (q) =>
           q.eq("userId", args.userId!).eq("type", args.type!),
         )
         .order("desc")
@@ -548,7 +631,7 @@ export const listAll = query({
     } else if (args.userId) {
       notifications = await ctx.db
         .query("siteNotifications")
-        .withIndex("by_user", (q: ConvexQueryBuilder) => q.eq("userId", args.userId!))
+        .withIndex("by_user", (q) => q.eq("userId", args.userId!))
         .order("desc")
         .take(fetchLimit * 2);
     } else {
@@ -564,18 +647,15 @@ export const listAll = query({
     let filtered = notifications;
 
     if (args.cursor !== undefined) {
-      // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
       filtered = filtered.filter((n) => n.createdAt < args.cursor!);
     }
 
     if (args.type && !args.userId) {
-      // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
       filtered = filtered.filter((n) => n.type === args.type);
     }
 
     if (args.notificationKey && !args.userId) {
       filtered = filtered.filter(
-        // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
         (n) => n.notificationKey === args.notificationKey,
       );
     }
@@ -592,7 +672,6 @@ export const listAll = query({
         : undefined;
 
     return {
-      // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
       notifications: resultNotifications.map((n) => ({
         _id: n._id,
         userId: n.userId,

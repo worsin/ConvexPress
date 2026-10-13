@@ -29,6 +29,11 @@ export const getBySectionInternal = internalQuery({
   args: {
     section: v.string(),
   },
+  returns: v.object({
+    _id: v.union(v.null(), v.id("settings")),
+    updatedAt: v.union(v.null(), v.number()),
+    updatedBy: v.union(v.null(), v.id("users")),
+  }),
   handler: async (ctx, args) => {
     const section = args.section as SettingsSection;
 

@@ -3,6 +3,7 @@ import { v } from "convex/values";
 import { internalQuery } from "../../_generated/server";
 import { zoneMatchesAddress } from "../helpers/zoneMatching";
 
+import { tableDocs } from "../../schema/tableDocs.generated";
 /**
  * Internal, unauth'd zone matcher used by the rate calculation pipeline (PRD A7)
  * and by internal tax / rules code paths. Mirrors the public `matchZoneForAddress`
@@ -14,6 +15,7 @@ export const matchZoneForAddressInternal = internalQuery({
     state: v.optional(v.string()),
     postalCode: v.optional(v.string()),
   },
+  returns: v.union(v.null(), v.object({ zone: tableDocs.commerce_shipping_zones, matchedFallback: v.boolean() })),
   handler: async (ctx, args) => {
     const zones = await ctx.db
       .query("commerce_shipping_zones")

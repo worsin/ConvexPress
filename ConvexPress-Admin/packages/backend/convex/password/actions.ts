@@ -68,6 +68,7 @@ async function hashToken(token: string): Promise<string> {
  */
 export const requestPasswordReset = action({
   args: { email: v.string() },
+  returns: v.null(),
   handler: async (ctx, args): Promise<void> => {
     const email = args.email.trim().toLowerCase();
 
@@ -121,6 +122,7 @@ export const requestPasswordReset = action({
  */
 export const adminResetUserPassword = action({
   args: adminResetUserPasswordArgs,
+  returns: v.null(),
   handler: async (ctx, args) => {
     // 1. Verify caller can trigger password resets.
     const caller = await ctx.runQuery(
@@ -187,6 +189,7 @@ export const adminResetUserPassword = action({
  */
 export const completePasswordReset = action({
   args: completePasswordResetArgs,
+  returns: v.object({ success: v.boolean() }),
   handler: async (ctx, args) => {
     const email = args.email.trim().toLowerCase();
     const token = args.token.trim();

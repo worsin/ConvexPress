@@ -29,7 +29,6 @@ export const listRecipesArgs = {
 };
 
 export const getRecipeArgs = {
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   recipeId: v.id("recipes"),
 };
 
@@ -48,11 +47,9 @@ export const createRecipeArgs = {
   slug: v.optional(v.string()),
   excerpt: v.optional(v.string()),
   description: v.optional(v.string()),
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   status: v.optional(recipeStatusValidator),
   featuredImageId: v.optional(v.id("media")),
   scanMediaId: v.optional(v.id("media")),
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   categoryIds: v.optional(v.array(v.id("recipe_categories"))),
   prepMinutes: v.optional(v.number()),
   cookMinutes: v.optional(v.number()),
@@ -60,9 +57,7 @@ export const createRecipeArgs = {
   servings: v.optional(v.string()),
   yieldText: v.optional(v.string()),
   difficulty: v.optional(recipeDifficultyValidator),
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   ingredients: v.optional(v.array(v.string())),
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   instructions: v.optional(v.array(v.string())),
   notes: v.optional(v.string()),
   nutrition: v.optional(recipeNutritionValidator),
@@ -80,7 +75,6 @@ export const updateRecipeArgs = {
   status: v.optional(recipeStatusValidator),
   featuredImageId: v.optional(v.id("media")),
   scanMediaId: v.optional(v.id("media")),
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   categoryIds: v.optional(v.array(v.id("recipe_categories"))),
   prepMinutes: v.optional(v.number()),
   cookMinutes: v.optional(v.number()),
@@ -88,9 +82,7 @@ export const updateRecipeArgs = {
   servings: v.optional(v.string()),
   yieldText: v.optional(v.string()),
   difficulty: v.optional(recipeDifficultyValidator),
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   ingredients: v.optional(v.array(v.string())),
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   instructions: v.optional(v.array(v.string())),
   notes: v.optional(v.string()),
   nutrition: v.optional(recipeNutritionValidator),

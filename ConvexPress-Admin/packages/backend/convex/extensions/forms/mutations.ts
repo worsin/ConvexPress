@@ -83,6 +83,7 @@ import {
   remapFieldReferences,
 } from "./builderCore";
 
+import { tableDocs } from "../../schema/tableDocs.generated";
 // ─── Local validators / helpers ─────────────────────────────────────────────
 
 const formStatus = v.union(
@@ -639,6 +640,7 @@ export const create = mutation({
     description: v.optional(v.string()),
     settings: v.optional(v.string()),
   },
+  returns: v.union(v.null(), tableDocs.forms),
   handler: async (ctx, args) => {
     const user = await requireCan(ctx, formCap("form.create"));
     await requirePluginEnabled(ctx, "forms");
@@ -727,6 +729,7 @@ export const update = mutation({
     settings: v.optional(v.string()),
     status: v.optional(formStatus),
   },
+  returns: v.union(v.null(), tableDocs.forms),
   handler: async (ctx, args) => {
     const user = await requireCan(ctx, formCap("form.update"));
     await requirePluginEnabled(ctx, "forms");
@@ -818,6 +821,7 @@ export const update = mutation({
  */
 export const publish = mutation({
   args: { id: v.id("forms") },
+  returns: v.union(v.null(), tableDocs.forms),
   handler: async (ctx, { id }) => {
     const user = await requireCan(ctx, formCap("form.update"));
     await requirePluginEnabled(ctx, "forms");
@@ -855,6 +859,7 @@ export const publish = mutation({
  */
 export const unpublish = mutation({
   args: { id: v.id("forms") },
+  returns: v.union(v.null(), tableDocs.forms),
   handler: async (ctx, { id }) => {
     const user = await requireCan(ctx, formCap("form.update"));
     await requirePluginEnabled(ctx, "forms");
@@ -888,6 +893,7 @@ export const unpublish = mutation({
  */
 export const remove = mutation({
   args: { id: v.id("forms") },
+  returns: v.object({ success: v.boolean() }),
   handler: async (ctx, { id }) => {
     const user = await requireCan(ctx, formCap("form.delete"));
     await requirePluginEnabled(ctx, "forms");
@@ -919,6 +925,7 @@ export const remove = mutation({
  */
 export const duplicate = mutation({
   args: { id: v.id("forms") },
+  returns: v.union(v.null(), tableDocs.forms),
   handler: async (ctx, { id }) => {
     const user = await requireCan(ctx, formCap("form.duplicate"));
     await requirePluginEnabled(ctx, "forms");
@@ -1480,11 +1487,23 @@ async function submitForm(
 
 export const submit = mutation({
   args: submitArgsValidator,
+  returns: v.object({
+    submissionId: v.id("form_submissions"),
+    isComplete: v.boolean(),
+    resumeToken: v.optional(v.string()),
+    confirmationToken: v.optional(v.string()),
+  }),
   handler: async (ctx, args) => submitForm(ctx, args),
 });
 
 export const submitInternal = internalMutation({
   args: submitArgsValidator,
+  returns: v.object({
+    submissionId: v.id("form_submissions"),
+    isComplete: v.boolean(),
+    resumeToken: v.optional(v.string()),
+    confirmationToken: v.optional(v.string()),
+  }),
   handler: async (ctx, args) =>
     submitForm(ctx, args, { captchaVerified: true }),
 });
@@ -1551,6 +1570,7 @@ export const updateEntry = mutation({
       v.array(v.object({ fieldKey: v.string(), value: v.string() })),
     ),
   },
+  returns: v.union(v.null(), tableDocs.form_submissions),
   handler: async (ctx, args) => {
     const user = await requireCan(ctx, formCap("form.edit_entry"));
     await requirePluginEnabled(ctx, "forms");
@@ -1618,6 +1638,7 @@ export const updateEntry = mutation({
  */
 export const deleteEntry = mutation({
   args: { id: v.id("form_submissions"), formId: v.optional(v.id("forms")) },
+  returns: v.object({ success: v.boolean() }),
   handler: async (ctx, { id, formId }) => {
     const user = await requireCan(ctx, formCap("form.delete_entry"));
     await requirePluginEnabled(ctx, "forms");
@@ -1655,6 +1676,7 @@ export const addNote = mutation({
     formId: v.optional(v.id("forms")),
     body: v.string(),
   },
+  returns: v.union(v.null(), tableDocs.form_submission_notes),
   handler: async (ctx, args) => {
     const user = await requireCan(ctx, formCap("form.edit_entry"));
     await requirePluginEnabled(ctx, "forms");
@@ -1706,6 +1728,7 @@ export const updateEntryBulk = mutation({
     starred: v.optional(v.boolean()),
     status: v.optional(submissionStatus),
   },
+  returns: v.object({ ok: v.array(v.id("form_submissions")), failed: v.array(v.id("form_submissions")) }),
   handler: async (ctx, args) => {
     const user = await requireCan(ctx, formCap("form.edit_entry"));
     await requirePluginEnabled(ctx, "forms");
@@ -1776,6 +1799,7 @@ export const deleteEntryBulk = mutation({
     formId: v.id("forms"),
     ids: v.array(v.id("form_submissions")),
   },
+  returns: v.object({ ok: v.array(v.id("form_submissions")), failed: v.array(v.id("form_submissions")) }),
   handler: async (ctx, args) => {
     const user = await requireCan(ctx, formCap("form.delete_entry"));
     await requirePluginEnabled(ctx, "forms");

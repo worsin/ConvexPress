@@ -493,6 +493,7 @@ export const list = query({
 
 export const counts = query({
   args: productCountsArgs,
+  returns: v.record(v.string(), v.number()),
   handler: async (ctx: any, args: any) => {
     await requireCommerceEnabled(ctx);
     await requireCan(ctx, "manage_options");
@@ -534,6 +535,7 @@ export const counts = query({
 
 export const bulkTrash = mutation({
   args: productBulkArgs,
+  returns: v.object({ count: v.number() }),
   handler: async (ctx: any, args: any): Promise<{ count: number }> => {
     await requireCommerceEnabled(ctx);
     await requireCan(ctx, "manage_options");
@@ -557,6 +559,7 @@ export const bulkTrash = mutation({
 
 export const bulkRestore = mutation({
   args: productBulkArgs,
+  returns: v.object({ count: v.number() }),
   handler: async (ctx: any, args: any): Promise<{ count: number }> => {
     await requireCommerceEnabled(ctx);
     await requireCan(ctx, "manage_options");
@@ -726,6 +729,7 @@ export const listPublished = query({
 
 export const create = mutation({
   args: createCommerceProductArgs,
+  returns: v.id("commerce_products"),
   handler: async (ctx: any, args: any) => {
     await requireCommerceEnabled(ctx);
     const actor = await requireCan(ctx, "manage_options");
@@ -1084,6 +1088,7 @@ export const deleteOptionType = mutation({
     productId: v.id("commerce_products"),
     optionTypeId: v.string(),
   },
+  returns: v.object({ success: v.boolean() }),
   handler: async (ctx: any, args: any) => {
     await requireCommerceEnabled(ctx);
     await requireCan(ctx, "manage_options");
@@ -1235,6 +1240,7 @@ export const deleteOptionValue = mutation({
     optionTypeId: v.string(),
     valueId: v.string(),
   },
+  returns: v.object({ success: v.boolean() }),
   handler: async (ctx: any, args: any) => {
     await requireCommerceEnabled(ctx);
     await requireCan(ctx, "manage_options");
@@ -1364,6 +1370,7 @@ export const createVariant = mutation({
     ),
     menuOrder: v.optional(v.number()),
   },
+  returns: v.id("commerce_product_variants"),
   handler: async (ctx: any, args: any) => {
     await requireCommerceEnabled(ctx);
     await requireCan(ctx, "manage_options");
@@ -1654,6 +1661,7 @@ export const updateVariant = mutation({
  */
 export const deleteVariant = mutation({
   args: { variantId: v.id("commerce_product_variants") },
+  returns: v.object({ success: v.boolean() }),
   handler: async (ctx: any, args: any) => {
     await requireCommerceEnabled(ctx);
     await requireCan(ctx, "manage_options");
@@ -1702,6 +1710,7 @@ export const generateVariants = mutation({
     productId: v.id("commerce_products"),
     basePriceAmount: v.optional(v.number()),
   },
+  returns: v.object({ created: v.number(), total: v.number() }),
   handler: async (ctx: any, args: any) => {
     await requireCommerceEnabled(ctx);
     await requireCan(ctx, "manage_options");
@@ -1828,6 +1837,7 @@ export const bulkUpdateStatus = mutation({
       v.literal("trash"),
     ),
   },
+  returns: v.object({ updated: v.number() }),
   handler: async (ctx: any, args: any) => {
     await requireCommerceEnabled(ctx);
     await requireCan(ctx, "manage_options");
@@ -1868,6 +1878,7 @@ export const bulkDelete = mutation({
   args: {
     productIds: v.array(v.id("commerce_products")),
   },
+  returns: v.object({ deleted: v.number(), errors: v.array(v.string()) }),
   handler: async (ctx: any, args: any) => {
     await requireCommerceEnabled(ctx);
     await requireCan(ctx, "manage_options");
@@ -1911,6 +1922,7 @@ export const bulkDelete = mutation({
  */
 export const archiveProduct = mutation({
   args: { productId: v.id("commerce_products") },
+  returns: v.object({ success: v.boolean() }),
   handler: async (ctx: any, args: any) => {
     await requireCommerceEnabled(ctx);
     await requireCan(ctx, "manage_options");
@@ -1938,6 +1950,7 @@ export const archiveProduct = mutation({
  */
 export const restoreProduct = mutation({
   args: { productId: v.id("commerce_products") },
+  returns: v.object({ success: v.boolean() }),
   handler: async (ctx: any, args: any) => {
     await requireCommerceEnabled(ctx);
     await requireCan(ctx, "manage_options");

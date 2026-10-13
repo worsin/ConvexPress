@@ -59,6 +59,8 @@ import {
   expandWithSynonyms,
 } from "./helpers";
 
+import { v } from "convex/values";
+import { tableDocs } from "../schema/tableDocs.generated";
 // ─── search (Public / Website) ──────────────────────────────────────────────
 
 /**
@@ -622,6 +624,19 @@ export const suggest = query({
  */
 export const getAnalytics = query({
   args: analyticsArgs,
+  returns: v.object({
+    summary: v.object({
+      totalSearches: v.number(),
+      uniqueQueries: v.number(),
+      averageResultCount: v.number(),
+      clickThroughRate: v.number(),
+      zeroResultRate: v.number(),
+    }),
+    topQueries: v.array(v.object({ query: v.string(), count: v.number(), avgResults: v.number(), clickRate: v.number() })),
+    zeroResultQueries: v.array(v.object({ query: v.string(), count: v.number() })),
+    volumeByDay: v.array(v.object({ date: v.string(), count: v.number() })),
+    sourceBreakdown: v.object({ website: v.number(), admin: v.number(), api: v.number() }),
+  }),
   handler: async (ctx, args) => {
     const user = await requireCan(ctx, "search.reindex");
 
@@ -764,6 +779,7 @@ export const getAnalytics = query({
  */
 export const listSynonyms = query({
   args: {},
+  returns: v.array(tableDocs.searchSynonyms),
   handler: async (ctx) => {
     const user = await requireCan(ctx, "search.reindex");
 

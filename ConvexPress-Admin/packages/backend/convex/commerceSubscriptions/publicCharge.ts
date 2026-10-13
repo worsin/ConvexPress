@@ -18,13 +18,10 @@ import { v } from "convex/values";
 import { action } from "../_generated/server";
 import { internal } from "../_generated/api";
 
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const beginFirstCharge = action({
   args: {
-    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     checkoutIntentId: v.id("commerce_subscription_checkout_intents"),
   },
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     return await ctx.runAction(
       internal.commerceSubscriptions.stripeCharge.beginSubscriptionFirstCharge,

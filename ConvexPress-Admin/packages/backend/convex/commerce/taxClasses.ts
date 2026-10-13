@@ -14,19 +14,18 @@ import { ConvexError, v } from "convex/values";
 import { mutation, query } from "../_generated/server";
 import { requireCan } from "../helpers/permissions";
 
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+import { tableDocs } from "../schema/tableDocs.generated";
 export const list = query({
   args: {},
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.array(tableDocs.commerce_tax_classes),
   handler: async (ctx) => {
     return await ctx.db.query("commerce_tax_classes").collect();
   },
 });
 
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const getByCode = query({
   args: { code: v.string() },
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.union(v.null(), tableDocs.commerce_tax_classes),
   handler: async (ctx, args) => {
     return await ctx.db
       .query("commerce_tax_classes")
@@ -35,17 +34,14 @@ export const getByCode = query({
   },
 });
 
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const create = mutation({
   args: {
     code: v.string(),
     label: v.string(),
-    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     description: v.optional(v.string()),
-    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     isDefault: v.optional(v.boolean()),
   },
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.id("commerce_tax_classes"),
   handler: async (ctx, args) => {
     await requireCan(ctx, "commerce.tax.manage");
     const existing = await ctx.db
@@ -82,19 +78,14 @@ export const create = mutation({
   },
 });
 
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const update = mutation({
   args: {
-    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     id: v.id("commerce_tax_classes"),
-    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     label: v.optional(v.string()),
-    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     description: v.optional(v.string()),
-    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     isDefault: v.optional(v.boolean()),
   },
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.object({ success: v.boolean() }),
   handler: async (ctx, args) => {
     await requireCan(ctx, "commerce.tax.manage");
     const row = await ctx.db.get(args.id);
@@ -125,11 +116,9 @@ export const update = mutation({
   },
 });
 
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const remove = mutation({
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   args: { id: v.id("commerce_tax_classes") },
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.object({ success: v.boolean() }),
   handler: async (ctx, args) => {
     await requireCan(ctx, "commerce.tax.manage");
     const row = await ctx.db.get(args.id);
@@ -145,10 +134,13 @@ export const remove = mutation({
   },
 });
 
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const seedDefaults = mutation({
   args: {},
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.union(v.object({
+    seeded: v.literal(false),
+    reason: v.literal("already_seeded"),
+    count: v.optional(v.null()),
+  }), v.object({ seeded: v.literal(true), count: v.number(), reason: v.optional(v.null()) })),
   handler: async (ctx) => {
     await requireCan(ctx, "commerce.tax.manage");
     const existing = await ctx.db.query("commerce_tax_classes").collect();

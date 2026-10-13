@@ -16,6 +16,7 @@ import {
 import { deleteDynamicWithMediaReferences } from "../../media/attachmentGuard";
 
 
+import { v } from "convex/values";
 const FALLBACK_SORT_ORDER = Number.MAX_SAFE_INTEGER;
 const DEFAULT_SORT_STEP = 10;
 
@@ -111,6 +112,7 @@ async function getNextSortOrder(ctx: any): Promise<number> {
 
 export const createZone = mutation({
   args: createZoneArgs,
+  returns: v.id("commerce_shipping_zones"),
   handler: async (ctx, args) => {
     const user = await requireCan(ctx, "shipping.zones.manage");
 
@@ -172,6 +174,7 @@ export const createZone = mutation({
 
 export const updateZone = mutation({
   args: updateZoneArgs,
+  returns: v.id("commerce_shipping_zones"),
   handler: async (ctx, args) => {
     const user = await requireCan(ctx, "shipping.zones.manage");
     const zone = await ctx.db.get(args.zoneId);
@@ -216,6 +219,7 @@ export const updateZone = mutation({
 
 export const deleteZone = mutation({
   args: deleteZoneArgs,
+  returns: v.object({ deleted: v.boolean(), cascadedMethodCount: v.number() }),
   handler: async (ctx, args) => {
     await requireCan(ctx, "shipping.zones.manage");
     const zone = await ctx.db.get(args.zoneId);
@@ -283,6 +287,7 @@ export const deleteZone = mutation({
 
 export const reorderZones = mutation({
   args: reorderZonesArgs,
+  returns: v.object({ updated: v.number() }),
   handler: async (ctx, args) => {
     const user = await requireCan(ctx, "shipping.zones.manage");
     const now = Date.now();
@@ -310,6 +315,10 @@ export const reorderZones = mutation({
 
 export const setFallbackZone = mutation({
   args: setFallbackZoneArgs,
+  returns: v.object({
+    previousFallbackId: v.union(v.null(), v.id("commerce_shipping_zones")),
+    currentFallbackId: v.union(v.null(), v.id("commerce_shipping_zones")),
+  }),
   handler: async (ctx, args) => {
     const user = await requireCan(ctx, "shipping.zones.manage");
     const existing = await ctx.db
@@ -358,6 +367,7 @@ export const setFallbackZone = mutation({
 
 export const toggleZoneEnabled = mutation({
   args: toggleZoneEnabledArgs,
+  returns: v.id("commerce_shipping_zones"),
   handler: async (ctx, args) => {
     const user = await requireCan(ctx, "shipping.zones.manage");
     const zone = await ctx.db.get(args.zoneId);

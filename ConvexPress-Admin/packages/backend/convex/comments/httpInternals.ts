@@ -50,6 +50,39 @@ export const listInternal = internalQuery({
     orderBy: v.optional(v.string()),
     orderDir: v.optional(v.union(v.literal("asc"), v.literal("desc"))),
   },
+  returns: v.object({
+    comments: v.array(v.object({
+      postTitle: v.string(),
+      postSlug: v.optional(v.string()),
+      _id: v.id("comments"),
+      _creationTime: v.number(),
+      wpSourceSiteId: v.optional(v.id("wordpressSites")),
+      trashedAt: v.optional(v.number()),
+      previousStatus: v.optional(v.string()),
+      parentId: v.optional(v.id("comments")),
+      authorAvatarUrl: v.optional(v.string()),
+      moderatedBy: v.optional(v.string()),
+      moderatedAt: v.optional(v.number()),
+      flaggedReasons: v.optional(v.array(v.string())),
+      editedAt: v.optional(v.number()),
+      wpCommentId: v.optional(v.number()),
+      postId: v.id("posts"),
+      updatedAt: v.number(),
+      createdAt: v.number(),
+      status: v.union(v.literal("pending"), v.literal("trash"), v.literal("approved"), v.literal("spam")),
+      authorId: v.string(),
+      content: v.string(),
+      depth: v.number(),
+      authorName: v.string(),
+      likeCount: v.number(),
+      flagCount: v.number(),
+      isEdited: v.boolean(),
+    })),
+    total: v.number(),
+    page: v.number(),
+    perPage: v.number(),
+    totalPages: v.number(),
+  }),
   handler: async (ctx, args) => {
     const page = Math.max(1, args.page ?? 1);
     const perPage = Math.min(100, Math.max(1, args.perPage ?? 20));
@@ -134,6 +167,34 @@ export const getInternal = internalQuery({
   args: {
     commentId: v.id("comments"),
   },
+  returns: v.union(v.null(), v.object({
+    postTitle: v.string(),
+    postSlug: v.optional(v.string()),
+    parentPreview: v.union(v.null(), v.object({ _id: v.id("comments"), authorName: v.string(), content: v.string() })),
+    _id: v.id("comments"),
+    _creationTime: v.number(),
+    wpSourceSiteId: v.optional(v.id("wordpressSites")),
+    trashedAt: v.optional(v.number()),
+    previousStatus: v.optional(v.string()),
+    parentId: v.optional(v.id("comments")),
+    authorAvatarUrl: v.optional(v.string()),
+    moderatedBy: v.optional(v.string()),
+    moderatedAt: v.optional(v.number()),
+    flaggedReasons: v.optional(v.array(v.string())),
+    editedAt: v.optional(v.number()),
+    wpCommentId: v.optional(v.number()),
+    postId: v.id("posts"),
+    updatedAt: v.number(),
+    createdAt: v.number(),
+    status: v.union(v.literal("pending"), v.literal("trash"), v.literal("approved"), v.literal("spam")),
+    authorId: v.string(),
+    content: v.string(),
+    depth: v.number(),
+    authorName: v.string(),
+    likeCount: v.number(),
+    flagCount: v.number(),
+    isEdited: v.boolean(),
+  })),
   handler: async (ctx, args) => {
     const comment = await ctx.db.get("comments", args.commentId);
     if (!comment) return null;
@@ -180,6 +241,7 @@ export const createInternal = internalMutation({
     userAgent: v.optional(v.string()),
     ipAddress: v.optional(v.string()),
   },
+  returns: v.object({ commentId: v.id("comments"), status: v.string() }),
   handler: async (ctx, args) => {
     // Validate post
     const post = await ctx.db.get("posts", args.postId);
@@ -267,6 +329,7 @@ export const updateInternal = internalMutation({
     commentId: v.id("comments"),
     content: v.string(),
   },
+  returns: v.id("comments"),
   handler: async (ctx, args) => {
     const comment = await ctx.db.get("comments", args.commentId);
     if (!comment) {
@@ -307,6 +370,7 @@ export const trashInternal = internalMutation({
   args: {
     commentId: v.id("comments"),
   },
+  returns: v.object({ success: v.boolean() }),
   handler: async (ctx, args) => {
     const comment = await ctx.db.get("comments", args.commentId);
     if (!comment) {
@@ -354,6 +418,7 @@ export const permanentDeleteInternal = internalMutation({
   args: {
     commentId: v.id("comments"),
   },
+  returns: v.object({ success: v.boolean() }),
   handler: async (ctx, args) => {
     const comment = await ctx.db.get("comments", args.commentId);
     if (!comment) {

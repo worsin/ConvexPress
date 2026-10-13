@@ -37,6 +37,7 @@ export const testProviderConnection = action({
 
 export const testTavilyConnection = action({
   args: {},
+  returns: v.object({ ok: v.boolean(), message: v.string() }),
   handler: async (ctx): Promise<{ ok: boolean; message: string }> => {
     await ctx.runQuery(internal.settings.internals.requireManageOptionsInternal);
 

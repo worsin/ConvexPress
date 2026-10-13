@@ -25,6 +25,7 @@ import {
   removeListenerArgs,
 } from "./validators";
 
+import { v } from "convex/values";
 // ─── Emit ──────────────────────────────────────────────────────────────────
 
 /**
@@ -38,6 +39,7 @@ import {
  */
 export const emit = mutation({
   args: emitEventArgs,
+  returns: v.id("events"),
   handler: async (ctx, args) => {
     await requireCan(ctx, "event.emit");
 
@@ -80,6 +82,7 @@ export const emit = mutation({
  */
 export const registerListener = mutation({
   args: registerListenerArgs,
+  returns: v.id("eventListeners"),
   handler: async (ctx, args) => {
     await requireCan(ctx, "event.register_listener");
 
@@ -159,6 +162,21 @@ export const registerListener = mutation({
  */
 export const removeListener = mutation({
   args: removeListenerArgs,
+  returns: v.union(v.object({
+    success: v.boolean(),
+    mode: v.literal("delete"),
+    listenerId: v.id("eventListeners"),
+    name: v.string(),
+    eventCode: v.string(),
+    executionsDeleted: v.number(),
+  }), v.object({
+    success: v.boolean(),
+    mode: v.literal("deactivate"),
+    listenerId: v.id("eventListeners"),
+    name: v.string(),
+    eventCode: v.string(),
+    executionsDeleted: v.optional(v.null()),
+  })),
   handler: async (ctx, args) => {
     await requireCan(ctx, "event.remove_listener");
 

@@ -63,13 +63,16 @@ async function getStripeSecretKey(ctx: any): Promise<string | undefined> {
   return await resolveServiceKeyAsync(values, "stripeSecretKey", "STRIPE_SECRET_KEY");
 }
 
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const mirrorDiscountToStripe = internalAction({
   args: {
-    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     discountId: v.id("commerce_discount_codes"),
   },
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.object({
+    success: v.boolean(),
+    stripeCouponId: v.optional(v.string()),
+    stripePromotionCodeId: v.optional(v.string()),
+    reason: v.optional(v.string()),
+  }),
   handler: async (ctx, args): Promise<{
     success: boolean;
     stripeCouponId?: string;

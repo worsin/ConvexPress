@@ -9,6 +9,7 @@ import { v } from "convex/values";
 import { query } from "../_generated/server";
 import { requireCan } from "../helpers/permissions";
 
+import { tableDocs } from "../schema/tableDocs.generated";
 /**
  * List all capabilities with optional filtering.
  */
@@ -18,6 +19,7 @@ export const list = query({
     category: v.optional(v.string()),
     search: v.optional(v.string()),
   },
+  returns: v.array(tableDocs.capabilities),
   handler: async (ctx, args) => {
     await requireCan(ctx, "role.update");
 
@@ -60,6 +62,7 @@ export const list = query({
  */
 export const get = query({
   args: { id: v.id("capabilities") },
+  returns: v.union(v.null(), tableDocs.capabilities),
   handler: async (ctx, args) => {
     await requireCan(ctx, "role.update");
 
@@ -72,6 +75,7 @@ export const get = query({
  */
 export const counts = query({
   args: {},
+  returns: v.record(v.string(), v.number()),
   handler: async (ctx) => {
     await requireCan(ctx, "role.update");
 

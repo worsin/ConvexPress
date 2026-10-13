@@ -133,6 +133,7 @@ async function scheduleCertificatePdfRender(ctx: any, issueId: string) {
 
 export const markComplete = mutation({
   args: { nodeId: v.id("lms_nodes") },
+  returns: v.object({ percent: v.number(), completed: v.number(), total: v.number() }),
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "lms");
     const user = await requireAuth(ctx);
@@ -204,6 +205,7 @@ export const recordHeartbeat = mutation({
     watchedFraction: v.optional(v.number()),
     timeSpentSec: v.optional(v.number()),
   },
+  returns: v.object({ percent: v.number(), completed: v.number(), total: v.number() }),
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "lms");
     const user = await requireAuth(ctx);
@@ -276,6 +278,7 @@ export const recordHeartbeat = mutation({
 
 export const markIncomplete = mutation({
   args: { nodeId: v.id("lms_nodes") },
+  returns: v.object({ percent: v.number(), completed: v.number(), total: v.number() }),
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "lms");
     const user = await requireAuth(ctx);

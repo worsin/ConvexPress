@@ -1,6 +1,7 @@
 /** Retained cron cleanup for expired editor locks. */
 import { internalMutation } from "../_generated/server";
 
+import { v } from "convex/values";
 // ─── Cleanup Expired Locks ──────────────────────────────────────────────────
 
 /**
@@ -20,10 +21,9 @@ import { internalMutation } from "../_generated/server";
  * This ensures that expired locks don't accumulate in the database even if
  * no one queries for them.
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const cleanupExpiredLocks = internalMutation({
   args: {},
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.object({ cleaned: v.number() }),
   handler: async (ctx) => {
     const now = Date.now();
 
@@ -31,7 +31,7 @@ export const cleanupExpiredLocks = internalMutation({
     // (those with expiresAt less than the current time).
     const expiredLocks = await ctx.db
       .query("editorLocks")
-      .withIndex("by_expiresAt", (q: ConvexQueryBuilder) => q.lt("expiresAt", now))
+      .withIndex("by_expiresAt", (q) => q.lt("expiresAt", now))
       .collect();
 
     let cleaned = 0;

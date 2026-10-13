@@ -2,6 +2,7 @@ import { v } from "convex/values";
 
 import { internalMutation, internalQuery } from "../../../_generated/server";
 
+import { tableDocs } from "../../../schema/tableDocs.generated";
 /**
  * Tier 1.1 — cross-invocation OAuth token cache.
  * Stores tokens in the database keyed by (connectionId, provider) so that
@@ -20,6 +21,7 @@ export const getCachedToken = internalQuery({
   args: {
     connectionId: v.id("shipping_provider_connections"),
   },
+  returns: v.union(v.null(), tableDocs.shipping_provider_oauth_tokens),
   handler: async (ctx, args) => {
     const row = await ctx.db
       .query("shipping_provider_oauth_tokens")
@@ -38,6 +40,7 @@ export const setCachedToken = internalMutation({
     accessToken: v.string(),
     expiresAt: v.number(),
   },
+  returns: v.id("shipping_provider_oauth_tokens"),
   handler: async (ctx, args) => {
     const now = Date.now();
     const existing = await ctx.db
@@ -64,6 +67,7 @@ export const setCachedToken = internalMutation({
 
 export const purgeExpiredTokens = internalMutation({
   args: {},
+  returns: v.object({ purged: v.number() }),
   handler: async (ctx) => {
     const now = Date.now();
     const expired = await ctx.db
@@ -77,6 +81,7 @@ export const purgeExpiredTokens = internalMutation({
 
 export const findConnectionByProvider = internalQuery({
   args: { provider: PROVIDER_VALIDATOR },
+  returns: v.union(v.null(), tableDocs.shipping_provider_connections),
   handler: async (ctx, args) => {
     return ctx.db
       .query("shipping_provider_connections")
@@ -91,6 +96,7 @@ export const findConnectionByProvider = internalQuery({
  */
 export const invalidateForProvider = internalMutation({
   args: { provider: PROVIDER_VALIDATOR },
+  returns: v.object({ invalidated: v.number() }),
   handler: async (ctx, args) => {
     const connection = await ctx.db
       .query("shipping_provider_connections")

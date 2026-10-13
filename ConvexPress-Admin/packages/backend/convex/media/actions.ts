@@ -254,6 +254,7 @@ export const crop = action({
       v.union(v.literal("all"), v.literal("thumbnail_only")),
     ),
   },
+  returns: v.object({ success: v.boolean(), message: v.string(), newWidth: v.number(), newHeight: v.number() }),
   handler: async (ctx, args) => {
     const media = await validateEditableImage(ctx, args.mediaId);
 
@@ -337,6 +338,13 @@ export const rotate = action({
     mediaId: v.id("media"),
     degrees: v.union(v.literal(90), v.literal(180), v.literal(270)),
   },
+  returns: v.object({
+    success: v.boolean(),
+    message: v.string(),
+    newWidth: v.number(),
+    newHeight: v.number(),
+    totalRotation: v.number(),
+  }),
   handler: async (ctx, args) => {
     const media = await validateEditableImage(ctx, args.mediaId);
 
@@ -420,6 +428,7 @@ export const flip = action({
     mediaId: v.id("media"),
     direction: v.union(v.literal("horizontal"), v.literal("vertical")),
   },
+  returns: v.object({ success: v.boolean(), message: v.string(), flipped: v.boolean() }),
   handler: async (ctx, args) => {
     const media = await validateEditableImage(ctx, args.mediaId);
 
@@ -480,6 +489,7 @@ export const scale = action({
     width: v.number(),
     height: v.optional(v.number()),
   },
+  returns: v.object({ success: v.boolean(), message: v.string(), newWidth: v.number(), newHeight: v.number() }),
   handler: async (ctx, args) => {
     const media = await validateEditableImage(ctx, args.mediaId);
 
@@ -583,6 +593,7 @@ export const revert = action({
   args: {
     mediaId: v.id("media"),
   },
+  returns: v.object({ success: v.boolean(), message: v.string(), width: v.number(), height: v.number() }),
   handler: async (ctx, args) => {
     const media = await validateEditableImage(ctx, args.mediaId);
 
@@ -673,6 +684,12 @@ export const regenerateThumbnails = action({
     cursor: v.optional(v.string()),
     limit: v.optional(v.number()),
   },
+  returns: v.object({
+    processed: v.number(),
+    failed: v.number(),
+    done: v.boolean(),
+    continueCursor: v.union(v.null(), v.string()),
+  }),
   handler: async (
     ctx,
     args,

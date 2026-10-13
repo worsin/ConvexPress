@@ -46,13 +46,13 @@ async function hasActiveAdminExcept(
 ): Promise<boolean> {
   const adminRole = await ctx.db
     .query("roles")
-    .withIndex("by_slug", (q: ConvexQueryBuilder) => q.eq("slug", "administrator"))
+    .withIndex("by_slug", (q) => q.eq("slug", "administrator"))
     .unique();
 
   if (adminRole) {
     const roleAdmins = await ctx.db
       .query("users")
-      .withIndex("by_roleId", (q: ConvexQueryBuilder) => q.eq("roleId", adminRole._id))
+      .withIndex("by_roleId", (q) => q.eq("roleId", adminRole._id))
       .collect();
 
     if (
@@ -67,7 +67,7 @@ async function hasActiveAdminExcept(
 
   const legacyAdmins = await ctx.db
     .query("users")
-    .withIndex("by_internal_role", (q: ConvexQueryBuilder) => q.eq("internalRole", "admin"))
+    .withIndex("by_internal_role", (q) => q.eq("internalRole", "admin"))
     .collect();
 
   return legacyAdmins.some(

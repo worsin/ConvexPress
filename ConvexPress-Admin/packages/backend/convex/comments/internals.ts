@@ -31,6 +31,7 @@ import { patchWithMediaReferences } from "../media/attachmentGuard";
  */
 export const purgeOldTrash = internalMutation({
   args: { commentId: v.id("comments") },
+  returns: v.null(),
   handler: async (ctx, { commentId }) => {
     const comment = await ctx.db.get("comments", commentId);
 
@@ -86,6 +87,7 @@ export const purgeOldTrash = internalMutation({
  */
 export const updatePostCommentCount = internalMutation({
   args: { postId: v.id("posts") },
+  returns: v.null(),
   handler: async (ctx, { postId }) => {
     const post = await ctx.db.get("posts", postId);
     if (!post) return;
@@ -115,6 +117,7 @@ export const updatePostCommentCount = internalMutation({
  */
 export const updateUserCommentCount = internalMutation({
   args: { authorId: v.string() },
+  returns: v.null(),
   handler: async (ctx, { authorId }) => {
     // Find the user by multiple strategies: clerkUserId or direct ID
     let user = await ctx.db

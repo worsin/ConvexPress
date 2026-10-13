@@ -16,6 +16,7 @@ import { textToDoc } from "../lessons/helpers";
 
 export const approveOutline = mutation({
   args: { generationId: v.id("lms_ai_generations") },
+  returns: v.object({ topicCount: v.number(), lessonCount: v.number() }),
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "lms");
     const generation = await ctx.db.get(args.generationId);
@@ -119,6 +120,7 @@ export const applyLessonGeneration = mutation({
     nodeId: v.optional(v.id("lms_nodes")),
     expectedUpdatedAt: v.optional(v.number()),
   },
+  returns: v.object({ ok: v.boolean(), updatedAt: v.number(), changedFields: v.array(v.string()) }),
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "lms");
     const generation = await ctx.db.get(args.generationId);

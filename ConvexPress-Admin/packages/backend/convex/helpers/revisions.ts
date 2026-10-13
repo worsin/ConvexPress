@@ -43,7 +43,7 @@ export async function getRevisionSettings(
   try {
     const writingSettings = await ctx.db
       .query("settings")
-      .withIndex("by_section", (q: ConvexQueryBuilder) => q.eq("section", "writing"))
+      .withIndex("by_section", (q) => q.eq("section", "writing"))
       .unique();
 
     if (writingSettings?.values) {
@@ -142,7 +142,7 @@ export async function getRevisionCount(
   if (type) {
     const revisions = await ctx.db
       .query("revisions")
-      .withIndex("by_parent_type", (q: ConvexQueryBuilder) =>
+      .withIndex("by_parent_type", (q) =>
         q.eq("parentId", parentId).eq("type", type),
       )
       .collect();
@@ -151,7 +151,7 @@ export async function getRevisionCount(
 
   const revisions = await ctx.db
     .query("revisions")
-    .withIndex("by_parent", (q: ConvexQueryBuilder) => q.eq("parentId", parentId))
+    .withIndex("by_parent", (q) => q.eq("parentId", parentId))
     .collect();
   return revisions.length;
 }
@@ -176,14 +176,14 @@ export async function getLatestRevision(
   if (type) {
     revisions = await ctx.db
       .query("revisions")
-      .withIndex("by_parent_type", (q: ConvexQueryBuilder) =>
+      .withIndex("by_parent_type", (q) =>
         q.eq("parentId", parentId).eq("type", type),
       )
       .collect();
   } else {
     revisions = await ctx.db
       .query("revisions")
-      .withIndex("by_parent", (q: ConvexQueryBuilder) => q.eq("parentId", parentId))
+      .withIndex("by_parent", (q) => q.eq("parentId", parentId))
       .collect();
   }
 

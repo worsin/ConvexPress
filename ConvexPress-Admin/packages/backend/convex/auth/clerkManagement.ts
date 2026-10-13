@@ -14,6 +14,7 @@ import {
 } from "./clerkManagementHelpers";
 import { patchWithMediaReferences } from "../media/attachmentGuard";
 
+import { tableDocs } from "../schema/tableDocs.generated";
 const clerkSourceValidator = v.union(
   v.literal("wordpress_import"),
   v.literal("wordpress_credential_backfill"),
@@ -43,6 +44,7 @@ export const getUserForClerkProvisioning = internalQuery({
   args: {
     userId: v.id("users"),
   },
+  returns: v.union(v.null(), tableDocs.users),
   handler: async (ctx, args) => {
     return await ctx.db.get(args.userId);
   },
@@ -58,6 +60,7 @@ export const markClerkProvisioning = internalMutation({
     clerkUserId: v.optional(v.string()),
     setAuthSourceToClerk: v.optional(v.boolean()),
   },
+  returns: v.null(),
   handler: async (ctx, args) => {
     const now = Date.now();
     const patch: Record<string, unknown> = {
@@ -121,6 +124,13 @@ export const ensureUserInClerk = internalAction({
     setAuthSourceToClerk: v.optional(v.boolean()),
     skipPasswordRequirement: v.optional(v.boolean()),
   },
+  returns: v.object({
+    status: v.union(v.literal("pending"), v.literal("provisioned"), v.literal("linked_existing"), v.literal("reset_required"), v.literal("skipped"), v.literal("failed")),
+    reason: v.optional(v.string()),
+    clerkUserId: v.optional(v.string()),
+    passwordHasher: v.optional(v.union(v.literal("phpass"), v.literal("bcrypt"))),
+    error: v.optional(v.string()),
+  }),
   handler: async (ctx, args): Promise<ClerkProvisioningResult> => {
     const user = await ctx.runQuery(internal.auth.clerkManagement.getUserForClerkProvisioning, {
       userId: args.userId,

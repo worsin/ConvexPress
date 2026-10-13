@@ -11,6 +11,7 @@ import { requireCan } from "../helpers/permissions";
 import type { RegisteredQuery } from "convex/server";
 import type { Doc, Id } from "../_generated/dataModel";
 
+import { tableDocs } from "../schema/tableDocs.generated";
 // ─── Site Queries ──────────────────────────────────────────────────────────
 
 /**
@@ -18,13 +19,41 @@ import type { Doc, Id } from "../_generated/dataModel";
  * Returns sites without the encrypted application password.
  * Includes activeJob flag for each site.
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const listSites = query({
   args: {
-    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     limit: v.optional(v.number()),
   },
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.array(v.object({
+    _id: v.id("wordpressSites"),
+    name: v.string(),
+    siteUrl: v.string(),
+    username: v.string(),
+    status: v.union(v.literal("active"), v.literal("inactive"), v.literal("error")),
+    lastConnectionTest: v.optional(v.number()),
+    lastSyncAt: v.optional(v.number()),
+    connectionError: v.optional(v.string()),
+    wpVersion: v.optional(v.string()),
+    siteName: v.optional(v.string()),
+    siteDescription: v.optional(v.string()),
+    capabilities: v.optional(v.object({
+      userPasswordExportEndpointConfigured: v.optional(v.boolean()),
+      userPasswordExportEndpointDetected: v.optional(v.boolean()),
+      wpRest: v.boolean(),
+      wpAuthValid: v.boolean(),
+      wooAuthValid: v.boolean(),
+      menusApi: v.boolean(),
+      woocommerceApi: v.boolean(),
+      customMetaEndpointConfigured: v.boolean(),
+      customMetaEndpointDetected: v.boolean(),
+      elementorDetected: v.boolean(),
+      mediaAccessible: v.boolean(),
+    })),
+    hasWooCredentials: v.boolean(),
+    wooAuthMode: v.optional(v.union(v.literal("shared"), v.literal("separate"))),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+    activeJob: v.boolean(),
+  })),
   handler: async (ctx, { limit = 50 }) => {
     await requireCan(ctx, "manage_options");
 
@@ -37,30 +66,26 @@ export const listSites = query({
     // Get active jobs for all sites (bounded)
     const activeJobs = await ctx.db
       .query("wordpressSyncJobs")
-      .withIndex("by_status", (q: ConvexQueryBuilder) => q.eq("status", "running"))
+      .withIndex("by_status", (q) => q.eq("status", "running"))
       .take(100);
 
     const pausedJobs = await ctx.db
       .query("wordpressSyncJobs")
-      .withIndex("by_status", (q: ConvexQueryBuilder) => q.eq("status", "paused"))
+      .withIndex("by_status", (q) => q.eq("status", "paused"))
       .take(100);
 
     const pendingJobs = await ctx.db
       .query("wordpressSyncJobs")
-      .withIndex("by_status", (q: ConvexQueryBuilder) => q.eq("status", "pending"))
+      .withIndex("by_status", (q) => q.eq("status", "pending"))
       .take(100);
 
     const activeJobSiteIds = new Set([
-      // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
       ...activeJobs.map((j) => j.siteId),
-      // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
       ...pausedJobs.map((j) => j.siteId),
-      // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
       ...pendingJobs.map((j) => j.siteId),
     ]);
 
     // Strip sensitive fields and add activeJob flag
-    // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
     return sites.map((site) => ({
       _id: site._id,
       name: site.name,
@@ -91,6 +116,37 @@ export const getSite: import("convex/server").RegisteredQuery<"public", { siteId
   args: {
     siteId: v.id("wordpressSites"),
   },
+  returns: v.union(v.null(), v.object({
+    _id: v.id("wordpressSites"),
+    name: v.string(),
+    siteUrl: v.string(),
+    username: v.string(),
+    status: v.union(v.literal("active"), v.literal("inactive"), v.literal("error")),
+    lastConnectionTest: v.optional(v.number()),
+    lastSyncAt: v.optional(v.number()),
+    connectionError: v.optional(v.string()),
+    wpVersion: v.optional(v.string()),
+    siteName: v.optional(v.string()),
+    siteDescription: v.optional(v.string()),
+    capabilities: v.optional(v.object({
+      userPasswordExportEndpointConfigured: v.optional(v.boolean()),
+      userPasswordExportEndpointDetected: v.optional(v.boolean()),
+      wpRest: v.boolean(),
+      wpAuthValid: v.boolean(),
+      wooAuthValid: v.boolean(),
+      menusApi: v.boolean(),
+      woocommerceApi: v.boolean(),
+      customMetaEndpointConfigured: v.boolean(),
+      customMetaEndpointDetected: v.boolean(),
+      elementorDetected: v.boolean(),
+      mediaAccessible: v.boolean(),
+    })),
+    hasWooCredentials: v.boolean(),
+    wooAuthMode: v.optional(v.union(v.literal("shared"), v.literal("separate"))),
+    createdBy: v.id("users"),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })),
   handler: async (ctx, { siteId }) => {
     await requireCan(ctx, "manage_options");
 
@@ -125,21 +181,18 @@ export const getSite: import("convex/server").RegisteredQuery<"public", { siteId
 /**
  * List sync jobs for a site.
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const listJobs = query({
   args: {
-    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     siteId: v.id("wordpressSites"),
-    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     limit: v.optional(v.number()),
   },
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.array(tableDocs.wordpressSyncJobs),
   handler: async (ctx, { siteId, limit = 10 }) => {
     await requireCan(ctx, "manage_options");
 
     const jobs = await ctx.db
       .query("wordpressSyncJobs")
-      .withIndex("by_site_created", (q: ConvexQueryBuilder) => q.eq("siteId", siteId))
+      .withIndex("by_site_created", (q) => q.eq("siteId", siteId))
       .order("desc")
       .take(limit);
 
@@ -154,6 +207,7 @@ export const getJob: RegisteredQuery<"public", { jobId: Id<"wordpressSyncJobs"> 
   args: {
     jobId: v.id("wordpressSyncJobs"),
   },
+  returns: v.union(v.null(), tableDocs.wordpressSyncJobs),
   handler: async (ctx, { jobId }) => {
     await requireCan(ctx, "manage_options");
 
@@ -168,6 +222,7 @@ export const getActiveJob: RegisteredQuery<"public", { siteId: Id<"wordpressSite
   args: {
     siteId: v.id("wordpressSites"),
   },
+  returns: v.union(v.null(), tableDocs.wordpressSyncJobs),
   handler: async (ctx, { siteId }) => {
     await requireCan(ctx, "manage_options");
 
@@ -202,6 +257,7 @@ export const getLatestJob: RegisteredQuery<"public", { siteId: Id<"wordpressSite
   args: {
     siteId: v.id("wordpressSites"),
   },
+  returns: v.union(v.null(), tableDocs.wordpressSyncJobs),
   handler: async (ctx, { siteId }) => {
     await requireCan(ctx, "manage_options");
 
@@ -222,6 +278,33 @@ export const getImportStats: RegisteredQuery<"public", { siteId: Id<"wordpressSi
   args: {
     siteId: v.id("wordpressSites"),
   },
+  returns: v.union(v.object({
+    total: v.number(),
+    posts: v.number(),
+    pages: v.number(),
+    media: v.number(),
+    users: v.number(),
+    categories: v.number(),
+    tags: v.number(),
+    comments: v.number(),
+    menus: v.number(),
+    fromJob: v.boolean(),
+    jobId: v.id("wordpressSyncJobs"),
+    isApproximate: v.optional(v.null()),
+  }), v.object({
+    total: v.number(),
+    posts: v.number(),
+    pages: v.number(),
+    media: v.number(),
+    users: v.number(),
+    categories: v.number(),
+    tags: v.number(),
+    comments: v.number(),
+    menus: v.number(),
+    isApproximate: v.boolean(),
+    fromJob: v.boolean(),
+    jobId: v.optional(v.null()),
+  })),
   handler: async (ctx, { siteId }) => {
     await requireCan(ctx, "manage_options");
 
@@ -294,10 +377,17 @@ export const getImportStats: RegisteredQuery<"public", { siteId: Id<"wordpressSi
 /**
  * Get an overview of all WordPress sync activity.
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const getOverview = query({
   args: {},
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.object({
+    totalSites: v.number(),
+    activeSites: v.number(),
+    activeJobs: v.number(),
+    totalImported: v.number(),
+    totalImportedIsApproximate: v.boolean(),
+    lastSyncAt: v.optional(v.number()),
+    lastSyncSite: v.optional(v.string()),
+  }),
   handler: async (ctx) => {
     await requireCan(ctx, "manage_options");
 
@@ -320,17 +410,17 @@ export const getOverview = query({
     // Get active jobs (running, paused, or pending) - bounded queries
     const runningJobs = await ctx.db
       .query("wordpressSyncJobs")
-      .withIndex("by_status", (q: ConvexQueryBuilder) => q.eq("status", "running"))
+      .withIndex("by_status", (q) => q.eq("status", "running"))
       .take(100);
 
     const pausedJobs = await ctx.db
       .query("wordpressSyncJobs")
-      .withIndex("by_status", (q: ConvexQueryBuilder) => q.eq("status", "paused"))
+      .withIndex("by_status", (q) => q.eq("status", "paused"))
       .take(100);
 
     const pendingJobs = await ctx.db
       .query("wordpressSyncJobs")
-      .withIndex("by_status", (q: ConvexQueryBuilder) => q.eq("status", "pending"))
+      .withIndex("by_status", (q) => q.eq("status", "pending"))
       .take(100);
 
     const activeJobs = runningJobs.length + pausedJobs.length + pendingJobs.length;
@@ -369,6 +459,10 @@ export const getJobErrors: RegisteredQuery<"public", { jobId: Id<"wordpressSyncJ
     limit: v.optional(v.number()),
     offset: v.optional(v.number()),
   },
+  returns: v.object({
+    errors: v.array(v.object({ phase: v.string(), timestamp: v.number(), message: v.string(), wpId: v.number() })),
+    total: v.number(),
+  }),
   handler: async (ctx, { jobId, limit = 50, offset = 0 }) => {
     await requireCan(ctx, "manage_options");
 
@@ -392,6 +486,7 @@ export const getJobErrors: RegisteredQuery<"public", { jobId: Id<"wordpressSyncJ
  */
 export const getLatestReport: RegisteredQuery<"public", { siteId: Id<"wordpressSites"> }, Doc<"wordpressSyncReports"> | null> = query({
   args: { siteId: v.id("wordpressSites") },
+  returns: v.union(v.null(), tableDocs.wordpressSyncReports),
   handler: async (ctx, { siteId }) => {
     await requireCan(ctx, "manage_options");
     return await ctx.db
@@ -407,6 +502,7 @@ export const getLatestReport: RegisteredQuery<"public", { siteId: Id<"wordpressS
  */
 export const getJobReport: RegisteredQuery<"public", { jobId: Id<"wordpressSyncJobs"> }, Doc<"wordpressSyncReports"> | null> = query({
   args: { jobId: v.id("wordpressSyncJobs") },
+  returns: v.union(v.null(), tableDocs.wordpressSyncReports),
   handler: async (ctx, { jobId }) => {
     await requireCan(ctx, "manage_options");
     return await ctx.db
@@ -424,6 +520,7 @@ export const listReports: RegisteredQuery<"public", { siteId: Id<"wordpressSites
     siteId: v.id("wordpressSites"),
     limit: v.optional(v.number()),
   },
+  returns: v.array(tableDocs.wordpressSyncReports),
   handler: async (ctx, { siteId, limit = 20 }) => {
     await requireCan(ctx, "manage_options");
     return await ctx.db
@@ -447,6 +544,7 @@ export const listFindings: RegisteredQuery<"public", { jobId: Id<"wordpressSyncJ
     code: v.optional(v.string()),
     limit: v.optional(v.number()),
   },
+  returns: v.array(tableDocs.wordpressSyncReconciliationFindings),
   handler: async (ctx, { jobId, severity, code, limit = 50 }) => {
     await requireCan(ctx, "manage_options");
 

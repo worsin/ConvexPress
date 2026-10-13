@@ -4,6 +4,7 @@ import { ConvexError, v } from "convex/values";
 import { internalMutation, mutation, query } from "../_generated/server";
 import { requireCan } from "../helpers/permissions";
 
+import { tableDocs } from "../schema/tableDocs.generated";
 const workflowStatus = v.union(
   v.literal("running"),
   v.literal("completed"),
@@ -53,6 +54,7 @@ export const list = query({
     entityId: v.optional(v.string()),
     limit: v.optional(v.number()),
   },
+  returns: v.array(tableDocs.commerce_workflow_runs),
   handler: async (ctx, args) => {
     await requireCan(ctx, "manage_options");
     const limit = Math.min(Math.max(args.limit ?? 50, 1), 200);
@@ -96,6 +98,7 @@ export const complete = mutation({
     runId: v.id("commerce_workflow_runs"),
     result: v.optional(v.any()),
   },
+  returns: v.id("commerce_workflow_runs"),
   handler: async (ctx, args) => {
     await requireCan(ctx, "manage_options");
     const run = await ctx.db.get(args.runId);
@@ -116,6 +119,7 @@ export const fail = mutation({
     runId: v.id("commerce_workflow_runs"),
     error: v.string(),
   },
+  returns: v.id("commerce_workflow_runs"),
   handler: async (ctx, args) => {
     await requireCan(ctx, "manage_options");
     const run = await ctx.db.get(args.runId);
@@ -148,6 +152,7 @@ export const completeInternal = internalMutation({
     runId: v.id("commerce_workflow_runs"),
     result: v.optional(v.any()),
   },
+  returns: v.id("commerce_workflow_runs"),
   handler: async (ctx, args) => {
     const now = Date.now();
     await ctx.db.patch("commerce_workflow_runs", args.runId, {
@@ -165,6 +170,7 @@ export const failInternal = internalMutation({
     runId: v.id("commerce_workflow_runs"),
     error: v.string(),
   },
+  returns: v.id("commerce_workflow_runs"),
   handler: async (ctx, args) => {
     const now = Date.now();
     await ctx.db.patch("commerce_workflow_runs", args.runId, {

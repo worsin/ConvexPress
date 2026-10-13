@@ -27,6 +27,7 @@ import { v } from "convex/values";
  */
 export const resolvePostFromPath = internalQuery({
   args: { path: v.string() },
+  returns: v.union(v.id("posts"), v.null()),
   handler: async (ctx, args) => {
     // Extract slug from path
     let slug: string;
@@ -72,6 +73,7 @@ export const ingestEvents = internalMutation({
   args: {
     events: v.array(v.any()),
   },
+  returns: v.null(),
   handler: async (ctx, args) => {
     for (const event of args.events) {
       await ctx.db.insert("pageEvents", {
@@ -113,6 +115,7 @@ export const rollupDailyAnalytics = internalMutation({
   args: {
     date: v.optional(v.string()), // Override date for backfills, defaults to yesterday
   },
+  returns: v.null(),
   handler: async (ctx, args) => {
     // Determine target date
     const targetDate =
@@ -366,6 +369,7 @@ export const purgeExpiredEvents = internalMutation({
   args: {
     batchSize: v.optional(v.number()),
   },
+  returns: v.null(),
   handler: async (ctx, args) => {
     const batchSize = args.batchSize ?? 1000;
 

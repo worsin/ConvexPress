@@ -18,6 +18,7 @@ function assertDevInternalsEnabled() {
 
 export const enableCommercePlugins = internalMutation({
   args: { confirm: v.literal("YES_ENABLE") },
+  returns: v.union(v.object({ updated: v.boolean(), created: v.optional(v.null()) }), v.object({ created: v.boolean(), updated: v.optional(v.null()) })),
   handler: async (ctx) => {
     assertDevInternalsEnabled();
     const existing = await ctx.db

@@ -3,6 +3,7 @@ import { v } from "convex/values";
 import { query } from "../../_generated/server";
 import { requireCan } from "../../helpers/permissions";
 
+import { tableDocs } from "../../schema/tableDocs.generated";
 /**
  * Tier 4.1 — Tracking health dashboard stats.
  * Aggregates the most recent 500 tracking events to surface webhook/poll
@@ -11,6 +12,21 @@ import { requireCan } from "../../helpers/permissions";
  */
 export const getTrackingHealth = query({
   args: {},
+  returns: v.object({
+    windowSize: v.number(),
+    webhookCount: v.number(),
+    pollCount: v.number(),
+    webhookShare: v.number(),
+    last24h: v.number(),
+    last7d: v.number(),
+    lastReceivedAt: v.union(v.null(), v.number()),
+    lastWebhookAt: v.union(v.null(), v.number()),
+    lastPollAt: v.union(v.null(), v.number()),
+    statusCounts: v.record(v.string(), v.number()),
+    perProviderWebhook: v.record(v.string(), v.number()),
+    activeShipmentStatusCounts: v.record(v.string(), v.number()),
+    uniqueShipmentsInWindow: v.number(),
+  }),
   handler: async (ctx) => {
     await requireCan(ctx, "shipping.tracking.view");
 
@@ -97,6 +113,7 @@ export const getTrackingHealth = query({
 
 export const listForShipment = query({
   args: { shipmentId: v.id("commerce_shipments") },
+  returns: v.array(tableDocs.commerce_shipment_tracking_events),
   handler: async (ctx, args) => {
     await requireCan(ctx, "shipping.tracking.view");
     const events = await ctx.db

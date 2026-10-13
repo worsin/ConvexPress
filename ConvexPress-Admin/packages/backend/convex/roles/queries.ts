@@ -21,6 +21,7 @@ import {
   resolveUserRole,
 } from "../helpers/permissions";
 
+import { tableDocs } from "../schema/tableDocs.generated";
 type RolePolicyRecord = {
   _id: unknown;
   capabilities: string[];
@@ -69,6 +70,39 @@ async function roleForCaller<T extends RolePolicyRecord>(
  */
 export const listRoles = query({
   args: {},
+  returns: v.array(v.union(v.object({
+    _id: v.id("roles"),
+    _creationTime: v.number(),
+    name: v.string(),
+    slug: v.string(),
+    description: v.string(),
+    level: v.number(),
+    type: v.union(v.literal("internal"), v.literal("customer"), v.literal("system")),
+    isDefault: v.boolean(),
+    isProtected: v.boolean(),
+    status: v.union(v.literal("active"), v.literal("inactive")),
+    capabilities: v.array(v.string()),
+    pageAccess: v.array(v.string()),
+    userCount: v.number(),
+  }), v.object({
+    userCount: v.number(),
+    _id: v.id("roles"),
+    _creationTime: v.number(),
+    createdBy: v.optional(v.id("users")),
+    airtableRecordId: v.optional(v.string()),
+    type: v.union(v.literal("internal"), v.literal("customer"), v.literal("system")),
+    name: v.string(),
+    updatedAt: v.number(),
+    createdAt: v.number(),
+    status: v.union(v.literal("active"), v.literal("inactive")),
+    slug: v.string(),
+    description: v.string(),
+    level: v.number(),
+    isDefault: v.boolean(),
+    isProtected: v.boolean(),
+    capabilities: v.array(v.string()),
+    pageAccess: v.array(v.string()),
+  }))),
   handler: async (ctx) => {
     const user = await getCurrentUser(ctx);
     if (!user) return [];
@@ -165,6 +199,7 @@ export const listRoles = query({
  */
 export const getRole = query({
   args: { roleId: v.id("roles") },
+  returns: v.union(v.null(), tableDocs.roles),
   handler: async (ctx, args) => {
     const user = await getCurrentUser(ctx);
     if (!user) return null;
@@ -185,6 +220,7 @@ export const getRole = query({
  */
 export const getRoleBySlug = query({
   args: { slug: v.string() },
+  returns: v.union(v.null(), tableDocs.roles),
   handler: async (ctx, args) => {
     const user = await getCurrentUser(ctx);
     if (!user) return null;
@@ -208,6 +244,7 @@ export const getRoleBySlug = query({
  */
 export const getDefaultRole = query({
   args: {},
+  returns: v.union(v.null(), tableDocs.roles),
   handler: async (ctx) => {
     const user = await getCurrentUser(ctx);
     if (!user) return null;
@@ -238,6 +275,20 @@ export const getRoleChanges = query({
     userId: v.optional(v.id("users")),
     limit: v.optional(v.number()),
   },
+  returns: v.array(v.object({
+    targetUserName: v.string(),
+    changedByName: v.string(),
+    oldRoleName: v.string(),
+    newRoleName: v.string(),
+    _id: v.id("roleChanges"),
+    _creationTime: v.number(),
+    reason: v.optional(v.string()),
+    oldRoleId: v.optional(v.id("roles")),
+    userId: v.id("users"),
+    newRoleId: v.id("roles"),
+    changedBy: v.id("users"),
+    timestamp: v.number(),
+  })),
   handler: async (ctx, args) => {
     const user = await getCurrentUser(ctx);
     if (!user) return [];

@@ -24,6 +24,7 @@ import {
   MAX_EXTERNAL_MAX_ITEMS,
 } from "./validators";
 
+import { v } from "convex/values";
 // ─── Types ──────────────────────────────────────────────────────────────────
 
 interface ParsedFeed {
@@ -244,10 +245,27 @@ function parseAtom(xml: string, maxItems: number): ParsedFeed {
  * @throws ConvexError "FETCH_ERROR" if network request fails
  * @throws ConvexError "PARSE_ERROR" if response is not valid feed XML
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const fetchExternal = action({
   args: fetchExternalArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.object({
+    feed: v.object({
+      title: v.string(),
+      description: v.string(),
+      link: v.string(),
+      lastUpdated: v.number(),
+      format: v.union(v.literal("rss2"), v.literal("atom")),
+    }),
+    items: v.array(v.object({
+      title: v.string(),
+      link: v.string(),
+      description: v.string(),
+      content: v.string(),
+      publishedAt: v.number(),
+      author: v.string(),
+      categories: v.array(v.string()),
+      guid: v.string(),
+    })),
+  }),
   handler: async (ctx, args) => {
     // ── 1. Authentication ─────────────────────────────────────────────────
     const identity = await ctx.auth.getUserIdentity();

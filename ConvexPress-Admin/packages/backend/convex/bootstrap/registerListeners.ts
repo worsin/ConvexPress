@@ -1516,7 +1516,7 @@ export async function registerListenerDefinitions(
   for (const def of EFFECTIVE_LISTENER_DEFINITIONS) {
     const existingListeners = await ctx.db
       .query("eventListeners")
-      .withIndex("by_event_code", (q: ConvexQueryBuilder) =>
+      .withIndex("by_event_code", (q) =>
         q.eq("eventCode", def.eventCode),
       )
       .take(1001);
@@ -1595,7 +1595,7 @@ export async function registerListenerDefinitions(
   for (const legacy of OBSOLETE_EMAIL_LISTENERS) {
     const existing = await ctx.db
       .query("eventListeners")
-      .withIndex("by_event_code", (q: ConvexQueryBuilder) =>
+      .withIndex("by_event_code", (q) =>
         q.eq("eventCode", legacy.eventCode),
       )
       .collect();
@@ -1612,7 +1612,7 @@ export async function registerListenerDefinitions(
 
   const activeListeners = await ctx.db
     .query("eventListeners")
-    .withIndex("by_active", (q: ConvexQueryBuilder) => q.eq("isActive", true))
+    .withIndex("by_active", (q) => q.eq("isActive", true))
     .collect();
 
   for (const listener of activeListeners) {
@@ -1641,7 +1641,6 @@ const runConfig: any = {
   },
 };
 
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const run = internalMutation(runConfig);
 
 /** Safe installation repair: insert missing defaults without changing existing listeners. */
@@ -1657,5 +1656,4 @@ const ensureRequiredConfig: any = {
   handler: async (ctx: any) => registerListenerDefinitions(ctx, Date.now(), { preserveExisting: true }),
 };
 
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const ensureRequired = internalMutation(ensureRequiredConfig);

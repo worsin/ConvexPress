@@ -35,10 +35,9 @@ import { isPluginEnabled, requirePluginEnabled } from "../helpers/plugins";
  * Create a new session. The sessionId is generated client-side
  * (crypto.randomUUID()) and passed in.
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const create = mutation({
   args: createSessionArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.object({ sessionId: v.string(), isNew: v.boolean() }),
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "tickets");
     // Validate sessionId format
@@ -49,7 +48,7 @@ export const create = mutation({
     // Check if session already exists
     const existing = await ctx.db
       .query("ticket_sessions")
-      .withIndex("by_session_id", (q: ConvexQueryBuilder) => q.eq("sessionId", args.sessionId))
+      .withIndex("by_session_id", (q) => q.eq("sessionId", args.sessionId))
       .unique();
 
     if (existing) {
@@ -79,15 +78,26 @@ export const create = mutation({
 /**
  * Check if a session is valid (exists and not expired).
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const validate = query({
   args: validateSessionArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.union(v.null(), v.object({
+    valid: v.boolean(),
+    reason: v.string(),
+    userId: v.optional(v.null()),
+    createdAt: v.optional(v.null()),
+    lastActivityAt: v.optional(v.null()),
+  }), v.object({
+    valid: v.boolean(),
+    userId: v.optional(v.id("users")),
+    createdAt: v.number(),
+    lastActivityAt: v.number(),
+    reason: v.optional(v.null()),
+  })),
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "tickets"))) return null;
     const session = await ctx.db
       .query("ticket_sessions")
-      .withIndex("by_session_id", (q: ConvexQueryBuilder) => q.eq("sessionId", args.sessionId))
+      .withIndex("by_session_id", (q) => q.eq("sessionId", args.sessionId))
       .unique();
 
     if (!session) {
@@ -113,15 +123,14 @@ export const validate = query({
  * Update lastActivityAt to keep the session alive.
  * Extends the expiry by SESSION_TTL_MS from now.
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const touch = mutation({
   args: touchSessionArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.null(),
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "tickets");
     const session = await ctx.db
       .query("ticket_sessions")
-      .withIndex("by_session_id", (q: ConvexQueryBuilder) => q.eq("sessionId", args.sessionId))
+      .withIndex("by_session_id", (q) => q.eq("sessionId", args.sessionId))
       .unique();
 
     if (!session) return;
@@ -140,10 +149,9 @@ export const touch = mutation({
  * Link a session to an authenticated user.
  * Called when a widget user logs in after starting a session anonymously.
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const associateUser = mutation({
   args: associateUserArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.null(),
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "tickets");
     // Verify the caller IS the user being associated
@@ -157,7 +165,7 @@ export const associateUser = mutation({
 
     const session = await ctx.db
       .query("ticket_sessions")
-      .withIndex("by_session_id", (q: ConvexQueryBuilder) => q.eq("sessionId", args.sessionId))
+      .withIndex("by_session_id", (q) => q.eq("sessionId", args.sessionId))
       .unique();
 
     if (!session) {
@@ -179,15 +187,14 @@ export const associateUser = mutation({
 /**
  * Explicitly invalidate a session (e.g., on logout).
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const invalidate = mutation({
   args: invalidateSessionArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.null(),
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "tickets");
     const session = await ctx.db
       .query("ticket_sessions")
-      .withIndex("by_session_id", (q: ConvexQueryBuilder) => q.eq("sessionId", args.sessionId))
+      .withIndex("by_session_id", (q) => q.eq("sessionId", args.sessionId))
       .unique();
 
     if (!session) return;
@@ -203,11 +210,9 @@ export const invalidate = mutation({
  * Processes in batches to stay within mutation time limits.
  * Reschedules itself if more expired sessions remain.
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const cleanupExpired = internalMutation({
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   args: { batchSize: v.optional(v.number()) },
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.object({ deleted: v.number() }),
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "tickets");
     const batchSize = args.batchSize ?? 500;
@@ -215,7 +220,7 @@ export const cleanupExpired = internalMutation({
 
     const expired = await ctx.db
       .query("ticket_sessions")
-      .withIndex("by_expires", (q: ConvexQueryBuilder) => q.lt("expiresAt", now))
+      .withIndex("by_expires", (q) => q.lt("expiresAt", now))
       .take(batchSize);
 
     for (const session of expired) {

@@ -27,6 +27,12 @@ export const generateCourse = action({
     topicsCount: v.optional(v.number()),
     tone: v.optional(v.string()),
   },
+  returns: v.object({
+    generationId: v.string(),
+    jobId: v.string(),
+    topicCount: v.number(),
+    lessonCount: v.number(),
+  }),
   handler: async (
     ctx,
     args,
@@ -189,6 +195,7 @@ export const generateCourse = action({
 
 export const regenerateLesson = action({
   args: { nodeId: v.id("lms_nodes"), instructions: v.optional(v.string()) },
+  returns: v.object({ ok: v.boolean(), generationId: v.string() }),
   handler: async (ctx, args): Promise<{ ok: boolean; generationId: string }> => {
     const lesson = await ctx.runQuery(
       (internal as any).lms.ai.internals.assertNodeGenerationAccess,

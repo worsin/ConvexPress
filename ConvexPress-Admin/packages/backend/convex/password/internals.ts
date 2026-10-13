@@ -45,6 +45,7 @@ export const verifyResetToken = internalMutation({
     email: v.string(),
     tokenHash: v.string(),
   },
+  returns: v.union(v.null(), v.object({ userId: v.id("users") })),
   handler: async (ctx, args) => {
     const user = await ctx.db
       .query("users")
@@ -97,6 +98,7 @@ export const detectAndHandlePasswordChange = internalMutation({
   args: {
     userId: v.id("users"),
   },
+  returns: v.null(),
   handler: async (ctx, args) => {
     const user = await ctx.db.get(args.userId);
     if (!user) return;

@@ -72,7 +72,6 @@ export const listArgs: { severity: import("convex/values").VOptional<typeof seve
  * Args for the get query (single entry by ID).
  */
 export const getArgs = {
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   entryId: v.id("auditEntries"),
 };
 
@@ -97,13 +96,9 @@ export const getObjectHistoryArgs = {
  */
 export const getStatsArgs = {
   period: v.optional(
-    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     v.union(
-      // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
       v.literal("today"),
-      // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
       v.literal("week"),
-      // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
       v.literal("month"),
     ),
   ),

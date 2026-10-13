@@ -202,6 +202,7 @@ export async function expireExpiredEnrollmentsHandler(
 
 export const expireExpiredEnrollments = internalMutation({
   args: { limit: v.optional(v.number()) },
+  returns: v.object({ expired: v.number(), skipped: v.optional(v.string()) }),
   handler: expireExpiredEnrollmentsHandler,
 });
 

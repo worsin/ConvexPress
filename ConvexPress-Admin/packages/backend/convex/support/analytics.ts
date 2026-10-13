@@ -116,10 +116,16 @@ export const getDeflectionStats: RegisteredQuery<"public", {startDate?:number;en
  *
  * @auth ticket.viewAll capability
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const getTopDeflectingArticles = query({
   args: getTopDeflectingArticlesArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.union(v.null(), v.array(v.object({
+    articleId: v.string(),
+    title: v.string(),
+    helpfulCount: v.number(),
+    helpfulAppearances: v.number(),
+    totalCitedCount: v.number(),
+    deflectionRate: v.number(),
+  }))),
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "tickets"))) return [];
     const canView = await currentUserCan(ctx, "ticket.viewAll");
@@ -134,7 +140,7 @@ export const getTopDeflectingArticles = query({
     // Safety-bounded with .take(50000)
     const logs = await ctx.db
       .query("support_deflectionLogs")
-      .withIndex("by_date", (q: ConvexQueryBuilder) => q.gte("createdAt", startDate).lte("createdAt", endDate))
+      .withIndex("by_date", (q) => q.gte("createdAt", startDate).lte("createdAt", endDate))
       .take(50000);
 
     // Count per-article helpful and total citations
@@ -213,10 +219,9 @@ export const getTopDeflectingArticles = query({
  *
  * @auth ticket.viewAll capability
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const getCommonUnanswered = query({
   args: getCommonUnansweredArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.union(v.null(), v.array(v.object({ query: v.string(), count: v.number(), lastAskedAt: v.number() }))),
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "tickets"))) return null;
     const canView = await currentUserCan(ctx, "ticket.viewAll");
@@ -231,11 +236,10 @@ export const getCommonUnanswered = query({
     // Safety-bounded with .take(50000)
     const logs = await ctx.db
       .query("support_deflectionLogs")
-      .withIndex("by_date", (q: ConvexQueryBuilder) => q.gte("createdAt", startDate).lte("createdAt", endDate))
+      .withIndex("by_date", (q) => q.gte("createdAt", startDate).lte("createdAt", endDate))
       .take(50000);
 
     // Filter to unanswered (no articles found)
-    // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
     const unanswered = logs.filter((l) => l.kbArticleIds.length === 0);
 
     // Group by normalized query text

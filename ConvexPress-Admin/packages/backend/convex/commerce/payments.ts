@@ -48,6 +48,7 @@ import {
 import { fulfillOrderDigitalEntitlementsHandler } from "../commerceDigital/fulfillment";
 import { syncPurchasedCourseEnrollmentsHandler } from "../lms/enrollment/internals";
 
+import { tableDocs } from "../schema/tableDocs.generated";
 async function getOrCreatePaymentCollectionForOrder(ctx: any, order: any) {
 	const existing = await ctx.db
 		.query("commerce_payment_collections")
@@ -158,6 +159,11 @@ async function commitReservedInventoryForPaidOrder(ctx: any, order: any) {
  */
 export const getSettings = query({
 	args: {},
+	returns: v.object({
+   stripePublishableKey: v.union(v.null(), v.string()),
+   enabledPaymentMethods: v.array(v.object({ code: v.string(), label: v.string(), enabled: v.boolean() })),
+   currencyCode: v.string(),
+ }),
 	handler: async (ctx) => {
 		const settings = await getCommerceSettings(ctx);
 
@@ -284,6 +290,7 @@ export const listCaptures = query({
 		orderId: v.optional(v.id("commerce_orders")),
 		limit: v.optional(v.number()),
 	},
+	returns: v.array(tableDocs.commerce_payment_captures),
 	handler: async (ctx, args) => {
 		await requireCan(ctx, "manage_options");
 		const limit = Math.min(Math.max(args.limit ?? 100, 1), 500);
@@ -345,6 +352,13 @@ export const getTransactionStatus = query({
 	args: {
 		transactionId: v.id("commerce_payment_transactions"),
 	},
+	returns: v.union(v.null(), v.object({
+   _id: v.id("commerce_payment_transactions"),
+   status: v.string(),
+   clientSecret: v.union(v.null(), v.string()),
+   providerTransactionId: v.union(v.null(), v.string()),
+   failureMessage: v.union(v.null(), v.string()),
+ })),
 	handler: async (ctx, args) => {
 		const transaction = await ctx.db.get(args.transactionId);
 		if (!transaction) return null;
@@ -468,6 +482,7 @@ export const processRefund = mutation({
 		amount: v.number(),
 		reason: v.optional(v.string()),
 	},
+	returns: v.object({ refundId: v.id("commerce_payment_refunds") }),
 	handler: async (ctx, args) => {
 		const user = await requireCan(ctx, "manage_options");
 
@@ -585,6 +600,7 @@ export const updateTransactionProvider = internalMutation({
 		providerTransactionId: v.string(),
 		clientSecret: v.optional(v.string()),
 	},
+	returns: v.null(),
 	handler: async (ctx, args) => {
 		const transaction = await ctx.db.get(args.transactionId);
 		await ctx.db.patch("commerce_payment_transactions", args.transactionId, {
@@ -612,6 +628,7 @@ export const confirmPaymentSuccess = internalMutation({
 		providerTransactionId: v.string(),
 		provider: v.string(),
 	},
+	returns: v.null(),
 	handler: async (ctx, args) => {
 		const transaction = await ctx.db
 			.query("commerce_payment_transactions")
@@ -997,6 +1014,7 @@ export const confirmPaymentFailure = internalMutation({
 		provider: v.string(),
 		error: v.optional(v.string()),
 	},
+	returns: v.null(),
 	handler: async (ctx, args) => {
 		const transaction = await ctx.db
 			.query("commerce_payment_transactions")
@@ -1238,6 +1256,16 @@ export const completeRefund = internalMutation({
  */
 export const getAvailableMethods = query({
 	args: {},
+	returns: v.object({
+   methods: v.array(v.object({
+     id: v.string(),
+     name: v.string(),
+     provider: v.union(v.literal("stripe"), v.literal("paypal")),
+     icon: v.string(),
+   })),
+   stripePublishableKey: v.union(v.null(), v.string()),
+   paypalClientId: v.union(v.null(), v.string()),
+ }),
 	handler: async (ctx) => {
 		const settings = await getCommerceSettings(ctx);
 
@@ -1328,6 +1356,15 @@ export const getAvailableMethods = query({
  */
 export const getSavedMethods = query({
 	args: {},
+	returns: v.array(v.object({
+   _id: v.id("commerce_saved_payment_methods"),
+   type: v.string(),
+   brand: v.optional(v.string()),
+   last4: v.string(),
+   expiryMonth: v.optional(v.number()),
+   expiryYear: v.optional(v.number()),
+   isDefault: v.boolean(),
+ })),
 	handler: async (ctx) => {
 		const user = await getCurrentUser(ctx);
 		if (!user) return [];
@@ -1357,6 +1394,16 @@ export const getTransactionStats = query({
 	args: {
 		days: v.optional(v.number()),
 	},
+	returns: v.object({
+   totalTransactions: v.number(),
+   succeededCount: v.number(),
+   failedCount: v.number(),
+   refundedCount: v.number(),
+   totalRevenue: v.number(),
+   totalRefunded: v.number(),
+   netRevenue: v.number(),
+   successRate: v.number(),
+ }),
 	handler: async (ctx, args) => {
 		await requireCan(ctx, "manage_options");
 
@@ -1411,6 +1458,7 @@ export const savePaymentMethod = mutation({
 		expiryYear: v.optional(v.number()),
 		setAsDefault: v.optional(v.boolean()),
 	},
+	returns: v.id("commerce_saved_payment_methods"),
 	handler: async (ctx, args) => {
 		const user = await getCurrentUser(ctx);
 		if (!user) {
@@ -1473,6 +1521,7 @@ export const deletePaymentMethod = mutation({
 	args: {
 		id: v.id("commerce_saved_payment_methods"),
 	},
+	returns: v.object({ success: v.boolean() }),
 	handler: async (ctx, args) => {
 		const user = await getCurrentUser(ctx);
 		if (!user) {
@@ -1522,6 +1571,7 @@ export const setDefaultPaymentMethod = mutation({
 	args: {
 		id: v.id("commerce_saved_payment_methods"),
 	},
+	returns: v.object({ success: v.boolean() }),
 	handler: async (ctx, args) => {
 		const user = await getCurrentUser(ctx);
 		if (!user) {
@@ -1586,6 +1636,7 @@ export const updateSettings = mutation({
 		allowGuestCheckout: v.optional(v.boolean()),
 		methodOrder: v.optional(v.array(v.string())),
 	},
+	returns: v.id("settings"),
 	handler: async (ctx, args) => {
 		await requireCan(ctx, "manage_options");
 
@@ -1737,6 +1788,7 @@ export const capturePayPalOrder = mutation({
 		transactionId: v.id("commerce_payment_transactions"),
 		paypalOrderId: v.string(),
 	},
+	returns: v.object({ status: v.string() }),
 	handler: async (ctx, args) => {
 		await requireCommerceEnabled(ctx);
 
@@ -1782,6 +1834,7 @@ export const getTransactionInternal = internalQuery({
 	args: {
 		transactionId: v.id("commerce_payment_transactions"),
 	},
+	returns: v.union(v.null(), tableDocs.commerce_payment_transactions),
 	handler: async (ctx, args) => {
 		return await ctx.db.get(args.transactionId);
 	},
@@ -1802,6 +1855,11 @@ export const logWebhookEvent = internalMutation({
 		eventId: v.string(),
 		payload: v.optional(v.string()),
 	},
+	returns: v.object({
+   eventId: v.id("commerce_webhook_events"),
+   alreadyExists: v.boolean(),
+   status: v.union(v.literal("failed"), v.literal("processing"), v.literal("processed"), v.literal("received")),
+ }),
 	handler: async (ctx, args) => {
 		const now = Date.now();
 
@@ -1842,6 +1900,7 @@ export const getWebhookEvent = internalQuery({
 		provider: v.string(),
 		eventId: v.string(),
 	},
+	returns: v.union(v.null(), tableDocs.commerce_webhook_events),
 	handler: async (ctx, args) => {
 		return await ctx.db
 			.query("commerce_webhook_events")
@@ -1859,6 +1918,7 @@ export const markWebhookProcessing = internalMutation({
 	args: {
 		eventId: v.id("commerce_webhook_events"),
 	},
+	returns: v.null(),
 	handler: async (ctx, args) => {
 		await ctx.db.patch("commerce_webhook_events", args.eventId, {
 			status: "processing",
@@ -1873,6 +1933,7 @@ export const markWebhookProcessed = internalMutation({
 	args: {
 		eventId: v.id("commerce_webhook_events"),
 	},
+	returns: v.null(),
 	handler: async (ctx, args) => {
 		await ctx.db.patch("commerce_webhook_events", args.eventId, {
 			status: "processed",
@@ -1889,6 +1950,7 @@ export const markWebhookFailed = internalMutation({
 		eventId: v.id("commerce_webhook_events"),
 		errorMessage: v.string(),
 	},
+	returns: v.null(),
 	handler: async (ctx, args) => {
 		await ctx.db.patch("commerce_webhook_events", args.eventId, {
 			status: "failed",

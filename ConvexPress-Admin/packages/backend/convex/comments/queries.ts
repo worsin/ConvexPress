@@ -31,6 +31,7 @@ import {
   MAX_PER_PAGE,
 } from "./validators";
 
+import { v } from "convex/values";
 // ─── List (Admin) ────────────────────────────────────────────────────────────
 
 /**
@@ -43,6 +44,39 @@ import {
  */
 export const list = query({
   args: listCommentsArgs,
+  returns: v.object({
+    comments: v.array(v.object({
+      postTitle: v.string(),
+      postSlug: v.optional(v.string()),
+      _id: v.id("comments"),
+      _creationTime: v.number(),
+      wpSourceSiteId: v.optional(v.id("wordpressSites")),
+      trashedAt: v.optional(v.number()),
+      previousStatus: v.optional(v.string()),
+      parentId: v.optional(v.id("comments")),
+      authorAvatarUrl: v.optional(v.string()),
+      moderatedBy: v.optional(v.string()),
+      moderatedAt: v.optional(v.number()),
+      flaggedReasons: v.optional(v.array(v.string())),
+      editedAt: v.optional(v.number()),
+      wpCommentId: v.optional(v.number()),
+      postId: v.id("posts"),
+      updatedAt: v.number(),
+      createdAt: v.number(),
+      status: v.union(v.literal("pending"), v.literal("trash"), v.literal("approved"), v.literal("spam")),
+      authorId: v.string(),
+      content: v.string(),
+      depth: v.number(),
+      authorName: v.string(),
+      likeCount: v.number(),
+      flagCount: v.number(),
+      isEdited: v.boolean(),
+    })),
+    total: v.number(),
+    page: v.number(),
+    perPage: v.number(),
+    totalPages: v.number(),
+  }),
   handler: async (ctx, args) => {
     const user = await getCurrentUser(ctx);
     if (!user) {
@@ -287,6 +321,35 @@ export const forPost = query({
  */
 export const get = query({
   args: getCommentArgs,
+  returns: v.union(v.null(), v.object({
+    postTitle: v.string(),
+    postSlug: v.optional(v.string()),
+    isLikedByMe: v.boolean(),
+    parentPreview: v.union(v.null(), v.object({ _id: v.id("comments"), authorName: v.string(), content: v.string() })),
+    _id: v.id("comments"),
+    _creationTime: v.number(),
+    wpSourceSiteId: v.optional(v.id("wordpressSites")),
+    trashedAt: v.optional(v.number()),
+    previousStatus: v.optional(v.string()),
+    parentId: v.optional(v.id("comments")),
+    authorAvatarUrl: v.optional(v.string()),
+    moderatedBy: v.optional(v.string()),
+    moderatedAt: v.optional(v.number()),
+    flaggedReasons: v.optional(v.array(v.string())),
+    editedAt: v.optional(v.number()),
+    wpCommentId: v.optional(v.number()),
+    postId: v.id("posts"),
+    updatedAt: v.number(),
+    createdAt: v.number(),
+    status: v.union(v.literal("pending"), v.literal("trash"), v.literal("approved"), v.literal("spam")),
+    authorId: v.string(),
+    content: v.string(),
+    depth: v.number(),
+    authorName: v.string(),
+    likeCount: v.number(),
+    flagCount: v.number(),
+    isEdited: v.boolean(),
+  })),
   handler: async (ctx, args) => {
     const user = await getCurrentUser(ctx);
     if (!user) {
@@ -361,6 +424,14 @@ export const get = query({
  */
 export const counts = query({
   args: {},
+  returns: v.object({
+    all: v.number(),
+    approved: v.number(),
+    pending: v.number(),
+    spam: v.number(),
+    trash: v.number(),
+    mine: v.number(),
+  }),
   handler: async (ctx) => {
     const user = await getCurrentUser(ctx);
     if (!user) {
@@ -425,6 +496,7 @@ export const counts = query({
  */
 export const pendingCount = query({
   args: {},
+  returns: v.number(),
   handler: async (ctx) => {
     const user = await getCurrentUser(ctx);
     if (!user) return 0;
@@ -447,6 +519,18 @@ export const pendingCount = query({
  */
 export const recent = query({
   args: recentCommentsArgs,
+  returns: v.array(v.object({
+    _id: v.id("comments"),
+    content: v.string(),
+    status: v.union(v.literal("pending"), v.literal("trash"), v.literal("approved"), v.literal("spam")),
+    authorId: v.string(),
+    authorName: v.string(),
+    authorAvatarUrl: v.optional(v.string()),
+    postId: v.id("posts"),
+    postTitle: v.string(),
+    postSlug: v.optional(v.string()),
+    createdAt: v.number(),
+  })),
   handler: async (ctx, args) => {
     const user = await getCurrentUser(ctx);
     if (!user) return [];

@@ -29,6 +29,7 @@ import {
 } from "./validators";
 import { patchWithMediaReferences } from "../media/attachmentGuard";
 
+import { tableDocs } from "../schema/tableDocs.generated";
 // ─── Denormalized Count Updates ─────────────────────────────────────────────
 
 /**
@@ -57,13 +58,11 @@ export const updatePostCount: RegisteredMutation<"internal", { userId: Id<"users
  * Called by the Comment System when comments are created, deleted,
  * approved, or rejected.
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const updateCommentCount = internalMutation({
   args: {
-    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     userId: v.id("users"),
   },
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.null(),
   handler: async (ctx, args) => {
     const user = await ctx.db.get("users", args.userId);
     if (!user) return;
@@ -76,11 +75,10 @@ export const updateCommentCount = internalMutation({
       if (userId) {
         const comments = await ctx.db
           .query("comments")
-          .withIndex("by_author", (q: ConvexQueryBuilder) => q.eq("authorId", userId))
+          .withIndex("by_author", (q) => q.eq("authorId", userId))
           .collect();
 
         commentCount = comments.filter(
-          // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
           (c) => c.status === "approved",
         ).length;
       }
@@ -103,13 +101,11 @@ export const updateCommentCount = internalMutation({
  * Called internally when a user is first created or when their slug
  * needs to be regenerated. Uses the display name as the base.
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const generateSlugForUser = internalMutation({
   args: {
-    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     userId: v.id("users"),
   },
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.union(v.null(), v.string()),
   handler: async (ctx, args) => {
     const user = await ctx.db.get("users", args.userId);
     if (!user) return null;
@@ -139,10 +135,9 @@ export const generateSlugForUser = internalMutation({
  * Iterates over all users and generates slugs for those who don't have one.
  * Safe to run multiple times (idempotent).
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const ensureSlug = internalMutation({
   args: {},
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.object({ updated: v.number() }),
   handler: async (ctx) => {
     const allUsers = await ctx.db.query("users").collect();
 
@@ -181,13 +176,11 @@ export const ensureSlug = internalMutation({
  *
  * Called by the Auth System on successful login.
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const updateLastLogin = internalMutation({
   args: {
-    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     userId: v.id("users"),
   },
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.null(),
   handler: async (ctx, args) => {
     const user = await ctx.db.get("users", args.userId);
     if (!user) return;
@@ -206,16 +199,15 @@ export const updateLastLogin = internalMutation({
  * Used internally for lookups where only email is known
  * (e.g., comment author matching for logged-out users).
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const getByEmail = internalQuery({
   args: {
     email: v.string(),
   },
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.union(v.null(), tableDocs.users),
   handler: async (ctx, args) => {
     return await ctx.db
       .query("users")
-      .withIndex("by_email", (q: ConvexQueryBuilder) => q.eq("email", args.email))
+      .withIndex("by_email", (q) => q.eq("email", args.email))
       .unique();
   },
 });
@@ -226,10 +218,9 @@ export const getByEmail = internalQuery({
  * Migration/maintenance helper. Iterates all users and recalculates
  * their denormalized counts. Use sparingly (expensive for large user bases).
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const recalculateAllCounts = internalMutation({
   args: {},
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.object({ updated: v.number() }),
   handler: async (ctx) => {
     const allUsers = await ctx.db.query("users").collect();
 
@@ -242,9 +233,8 @@ export const recalculateAllCounts = internalMutation({
       try {
         const posts = await ctx.db
           .query("posts")
-          .withIndex("by_author", (q: ConvexQueryBuilder) => q.eq("authorId", user._id))
+          .withIndex("by_author", (q) => q.eq("authorId", user._id))
           .collect();
-        // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
         postCount = posts.filter((p) => p.status === "publish").length;
       } catch {
         // Posts table doesn't exist yet
@@ -257,10 +247,9 @@ export const recalculateAllCounts = internalMutation({
         if (userIdStr) {
           const comments = await ctx.db
             .query("comments")
-            .withIndex("by_author", (q: ConvexQueryBuilder) => q.eq("authorId", userIdStr))
+            .withIndex("by_author", (q) => q.eq("authorId", userIdStr))
             .collect();
           commentCount = comments.filter(
-            // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
             (c) => c.status === "approved",
           ).length;
         }
@@ -294,10 +283,97 @@ export const recalculateAllCounts = internalMutation({
  * skips the auth check entirely -- permission verification is the
  * responsibility of the calling httpAction via authenticateApiRequest().
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const listUsersInternal = internalQuery({
   args: listUsersArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.object({
+    users: v.array(v.object({
+      resolvedAvatarUrl: v.union(v.null(), v.string()),
+      roleName: v.optional(v.string()),
+      roleLevel: v.optional(v.number()),
+      _id: v.id("users"),
+      _creationTime: v.number(),
+      authSource: v.optional(v.union(v.literal("local"), v.literal("clerk"), v.literal("management"))),
+      passwordHash: v.optional(v.string()),
+      clerkUserId: v.optional(v.string()),
+      clerkProvisioningStatus: v.optional(v.union(v.literal("pending"), v.literal("provisioned"), v.literal("linked_existing"), v.literal("reset_required"), v.literal("skipped"), v.literal("failed"))),
+      clerkProvisioningSource: v.optional(v.string()),
+      clerkProvisioningReason: v.optional(v.string()),
+      clerkProvisioningError: v.optional(v.string()),
+      clerkProvisionedAt: v.optional(v.number()),
+      clerkProvisioningAttemptedAt: v.optional(v.number()),
+      firstName: v.optional(v.string()),
+      lastName: v.optional(v.string()),
+      phone: v.optional(v.string()),
+      profilePictureUrl: v.optional(v.string()),
+      isTaxExempt: v.optional(v.boolean()),
+      taxExemptId: v.optional(v.string()),
+      taxExemptReason: v.optional(v.string()),
+      taxExemptVerifiedAt: v.optional(v.number()),
+      username: v.optional(v.string()),
+      nickname: v.optional(v.string()),
+      displayName: v.optional(v.string()),
+      slug: v.optional(v.string()),
+      bio: v.optional(v.string()),
+      url: v.optional(v.string()),
+      avatarUrl: v.optional(v.string()),
+      avatarMediaId: v.optional(v.id("media")),
+      avatarStorageId: v.optional(v.string()),
+      socialLinks: v.optional(v.object({
+        twitter: v.optional(v.string()),
+        facebook: v.optional(v.string()),
+        instagram: v.optional(v.string()),
+        linkedin: v.optional(v.string()),
+        youtube: v.optional(v.string()),
+        github: v.optional(v.string()),
+        website: v.optional(v.string()),
+      })),
+      roleId: v.optional(v.id("roles")),
+      deactivatedAt: v.optional(v.number()),
+      deactivatedBy: v.optional(v.id("users")),
+      preferences: v.optional(v.object({
+        adminColorScheme: v.optional(v.string()),
+        showAdminBar: v.optional(v.boolean()),
+        editorMode: v.optional(v.union(v.literal("code"), v.literal("visual"))),
+        emailDigest: v.optional(v.union(v.literal("none"), v.literal("immediate"), v.literal("daily"), v.literal("weekly"))),
+        notifyOnComment: v.optional(v.boolean()),
+        notifyOnReply: v.optional(v.boolean()),
+        notifyOnMention: v.optional(v.boolean()),
+      })),
+      locale: v.optional(v.string()),
+      timezone: v.optional(v.string()),
+      postCount: v.optional(v.number()),
+      postCountReady: v.optional(v.boolean()),
+      commentCount: v.optional(v.number()),
+      registrationMethod: v.optional(v.string()),
+      invitedBy: v.optional(v.id("users")),
+      emailVerifiedAt: v.optional(v.number()),
+      registeredAt: v.optional(v.number()),
+      lastLoginAt: v.optional(v.number()),
+      lastPasswordChangedAt: v.optional(v.number()),
+      passwordResetRequestedAt: v.optional(v.number()),
+      passwordResetCount: v.optional(v.number()),
+      passwordResetToken: v.optional(v.string()),
+      passwordResetTokenExpiresAt: v.optional(v.number()),
+      internalRole: v.optional(v.string()),
+      isInternal: v.optional(v.boolean()),
+      wpUserId: v.optional(v.number()),
+      wpSourceSiteId: v.optional(v.id("wordpressSites")),
+      wpCredentialMigrationStatus: v.optional(v.union(v.literal("provisioned"), v.literal("linked_existing"), v.literal("reset_required"), v.literal("skipped"), v.literal("failed"), v.literal("unsupported_hash"))),
+      wpCredentialMigrationReason: v.optional(v.string()),
+      wpCredentialPasswordHasher: v.optional(v.string()),
+      wpCredentialMigratedAt: v.optional(v.number()),
+      wpCredentialMigrationError: v.optional(v.string()),
+      updatedAt: v.number(),
+      createdAt: v.number(),
+      status: v.union(v.literal("active"), v.literal("inactive"), v.literal("banned")),
+      email: v.string(),
+      emailVerified: v.boolean(),
+    })),
+    total: v.number(),
+    page: v.number(),
+    perPage: v.number(),
+    totalPages: v.number(),
+  }),
   handler: async (ctx, args) => {
     const page = args.page ?? 1;
     const perPage = args.perPage ?? DEFAULT_PER_PAGE;
@@ -310,19 +386,18 @@ export const listUsersInternal = internalQuery({
     if (args.status && args.roleId) {
       allUsers = await ctx.db
         .query("users")
-        .withIndex("by_status", (q: ConvexQueryBuilder) => q.eq("status", args.status!))
+        .withIndex("by_status", (q) => q.eq("status", args.status!))
         .collect();
-      // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
       allUsers = allUsers.filter((u) => u.roleId === args.roleId);
     } else if (args.status) {
       allUsers = await ctx.db
         .query("users")
-        .withIndex("by_status", (q: ConvexQueryBuilder) => q.eq("status", args.status!))
+        .withIndex("by_status", (q) => q.eq("status", args.status!))
         .collect();
     } else if (args.roleId) {
       allUsers = await ctx.db
         .query("users")
-        .withIndex("by_roleId", (q: ConvexQueryBuilder) => q.eq("roleId", args.roleId!))
+        .withIndex("by_roleId", (q) => q.eq("roleId", args.roleId!))
         .collect();
     } else {
       if (orderBy === "createdAt") {
@@ -346,7 +421,6 @@ export const listUsersInternal = internalQuery({
     if (args.search) {
       const searchLower = args.search.toLowerCase();
       allUsers = allUsers.filter(
-        // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
         (u) =>
           (u.displayName && u.displayName.toLowerCase().includes(searchLower)) ||
           u.email.toLowerCase().includes(searchLower) ||
@@ -364,7 +438,6 @@ export const listUsersInternal = internalQuery({
       (orderBy === "createdAt" || orderBy === "displayName");
 
     if (!alreadySorted) {
-      // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
       allUsers.sort((a, b) => {
         let cmp = 0;
         switch (orderBy) {
@@ -394,7 +467,6 @@ export const listUsersInternal = internalQuery({
     const roleCache = new Map<string, { name: string; level: number }>();
 
     const enrichedUsers = await Promise.all(
-      // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
       paginatedUsers.map(async (user) => {
         let roleName: string | undefined;
         let roleLevel: number | undefined;
@@ -442,13 +514,93 @@ export const listUsersInternal = internalQuery({
  * Always returns the full user document (since the API caller is
  * already authorized). Returns null if the user doesn't exist.
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const getUserInternal = internalQuery({
   args: {
-    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     userId: v.id("users"),
   },
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.union(v.null(), v.object({
+    resolvedAvatarUrl: v.union(v.null(), v.string()),
+    roleName: v.optional(v.string()),
+    roleLevel: v.optional(v.number()),
+    _id: v.id("users"),
+    _creationTime: v.number(),
+    authSource: v.optional(v.union(v.literal("local"), v.literal("clerk"), v.literal("management"))),
+    passwordHash: v.optional(v.string()),
+    clerkUserId: v.optional(v.string()),
+    clerkProvisioningStatus: v.optional(v.union(v.literal("pending"), v.literal("provisioned"), v.literal("linked_existing"), v.literal("reset_required"), v.literal("skipped"), v.literal("failed"))),
+    clerkProvisioningSource: v.optional(v.string()),
+    clerkProvisioningReason: v.optional(v.string()),
+    clerkProvisioningError: v.optional(v.string()),
+    clerkProvisionedAt: v.optional(v.number()),
+    clerkProvisioningAttemptedAt: v.optional(v.number()),
+    firstName: v.optional(v.string()),
+    lastName: v.optional(v.string()),
+    phone: v.optional(v.string()),
+    profilePictureUrl: v.optional(v.string()),
+    isTaxExempt: v.optional(v.boolean()),
+    taxExemptId: v.optional(v.string()),
+    taxExemptReason: v.optional(v.string()),
+    taxExemptVerifiedAt: v.optional(v.number()),
+    username: v.optional(v.string()),
+    nickname: v.optional(v.string()),
+    displayName: v.optional(v.string()),
+    slug: v.optional(v.string()),
+    bio: v.optional(v.string()),
+    url: v.optional(v.string()),
+    avatarUrl: v.optional(v.string()),
+    avatarMediaId: v.optional(v.id("media")),
+    avatarStorageId: v.optional(v.string()),
+    socialLinks: v.optional(v.object({
+      twitter: v.optional(v.string()),
+      facebook: v.optional(v.string()),
+      instagram: v.optional(v.string()),
+      linkedin: v.optional(v.string()),
+      youtube: v.optional(v.string()),
+      github: v.optional(v.string()),
+      website: v.optional(v.string()),
+    })),
+    roleId: v.optional(v.id("roles")),
+    deactivatedAt: v.optional(v.number()),
+    deactivatedBy: v.optional(v.id("users")),
+    preferences: v.optional(v.object({
+      adminColorScheme: v.optional(v.string()),
+      showAdminBar: v.optional(v.boolean()),
+      editorMode: v.optional(v.union(v.literal("code"), v.literal("visual"))),
+      emailDigest: v.optional(v.union(v.literal("none"), v.literal("immediate"), v.literal("daily"), v.literal("weekly"))),
+      notifyOnComment: v.optional(v.boolean()),
+      notifyOnReply: v.optional(v.boolean()),
+      notifyOnMention: v.optional(v.boolean()),
+    })),
+    locale: v.optional(v.string()),
+    timezone: v.optional(v.string()),
+    postCount: v.optional(v.number()),
+    postCountReady: v.optional(v.boolean()),
+    commentCount: v.optional(v.number()),
+    registrationMethod: v.optional(v.string()),
+    invitedBy: v.optional(v.id("users")),
+    emailVerifiedAt: v.optional(v.number()),
+    registeredAt: v.optional(v.number()),
+    lastLoginAt: v.optional(v.number()),
+    lastPasswordChangedAt: v.optional(v.number()),
+    passwordResetRequestedAt: v.optional(v.number()),
+    passwordResetCount: v.optional(v.number()),
+    passwordResetToken: v.optional(v.string()),
+    passwordResetTokenExpiresAt: v.optional(v.number()),
+    internalRole: v.optional(v.string()),
+    isInternal: v.optional(v.boolean()),
+    wpUserId: v.optional(v.number()),
+    wpSourceSiteId: v.optional(v.id("wordpressSites")),
+    wpCredentialMigrationStatus: v.optional(v.union(v.literal("provisioned"), v.literal("linked_existing"), v.literal("reset_required"), v.literal("skipped"), v.literal("failed"), v.literal("unsupported_hash"))),
+    wpCredentialMigrationReason: v.optional(v.string()),
+    wpCredentialPasswordHasher: v.optional(v.string()),
+    wpCredentialMigratedAt: v.optional(v.number()),
+    wpCredentialMigrationError: v.optional(v.string()),
+    updatedAt: v.number(),
+    createdAt: v.number(),
+    status: v.union(v.literal("active"), v.literal("inactive"), v.literal("banned")),
+    email: v.string(),
+    emailVerified: v.boolean(),
+  })),
   handler: async (ctx, args) => {
     const user = await ctx.db.get("users", args.userId);
     if (!user) return null;

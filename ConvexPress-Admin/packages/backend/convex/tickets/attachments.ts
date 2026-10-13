@@ -24,12 +24,17 @@ import {
   validateAttachmentMeta,
 } from "./customer";
 
+import { v } from "convex/values";
 /**
  * Attachment limits for the website's file picker (mirrors customer.ts).
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const getAttachmentLimits = query({
   args: {},
+  returns: v.object({
+    maxBytes: v.number(),
+    maxCount: v.number(),
+    mimeTypes: v.array(v.union(v.literal("image/png"), v.literal("image/jpeg"), v.literal("image/webp"), v.literal("image/gif"), v.literal("application/pdf"), v.literal("text/plain"))),
+  }),
   handler: async () => ({
     maxBytes: CUSTOMER_ATTACHMENT_MAX_BYTES,
     maxCount: CUSTOMER_ATTACHMENT_MAX_COUNT,
@@ -42,10 +47,9 @@ export const getAttachmentLimits = query({
  * upload (the ticket system is customer-facing); the metadata is validated
  * here so oversize or disallowed files are rejected before any bytes move.
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const generateUploadUrl = mutation({
   args: generateAttachmentUploadUrlArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.object({ uploadUrl: v.string() }),
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "tickets");
     await requireAuth(ctx);

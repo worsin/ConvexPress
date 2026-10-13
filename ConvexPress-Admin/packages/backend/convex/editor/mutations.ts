@@ -6,6 +6,7 @@ import { mutation } from "../_generated/server";
 import { getCurrentUser } from "../helpers/permissions";
 import { acquireLockArgs, releaseLockArgs, renewLockArgs, LOCK_DURATION_MS } from "./validators";
 
+import { v } from "convex/values";
 // ─── Acquire Lock ───────────────────────────────────────────────────────────
 
 /**
@@ -22,6 +23,10 @@ import { acquireLockArgs, releaseLockArgs, renewLockArgs, LOCK_DURATION_MS } fro
  */
 export const acquireLock: RegisteredMutation<"public", { postId: Id<"posts"> }, { acquired: boolean; lockedBy?: { userId: Id<"users">; displayName: string; lockedAt: number } }> = mutation({
   args: acquireLockArgs,
+  returns: v.union(v.object({ acquired: v.boolean(), lockedBy: v.optional(v.null()) }), v.object({
+    acquired: v.boolean(),
+    lockedBy: v.object({ userId: v.id("users"), displayName: v.string(), lockedAt: v.number() }),
+  })),
   handler: async (ctx, args) => {
     const user = await getCurrentUser(ctx);
     if (!user) {
@@ -96,10 +101,9 @@ export const acquireLock: RegisteredMutation<"public", { postId: Id<"posts"> }, 
  * Called when a user navigates away from the editor.
  * Only the lock holder can release their own lock.
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const releaseLock = mutation({
   args: releaseLockArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.union(v.object({ released: v.boolean(), reason: v.optional(v.null()) }), v.object({ released: v.boolean(), reason: v.string() })),
   handler: async (ctx, args) => {
     const user = await getCurrentUser(ctx);
     if (!user) {
@@ -111,7 +115,7 @@ export const releaseLock = mutation({
 
     const existingLock = await ctx.db
       .query("editorLocks")
-      .withIndex("by_postId", (q: ConvexQueryBuilder) => q.eq("postId", args.postId))
+      .withIndex("by_postId", (q) => q.eq("postId", args.postId))
       .first();
 
     if (!existingLock) {
@@ -144,6 +148,11 @@ export const releaseLock = mutation({
  */
 export const renewLock: RegisteredMutation<"public", { postId: Id<"posts"> }, { renewed: boolean; reason?: string; lockedBy?: { userId: Id<"users">; displayName: string } }> = mutation({
   args: renewLockArgs,
+  returns: v.union(v.object({ renewed: v.boolean(), reason: v.string(), lockedBy: v.optional(v.null()) }), v.object({
+    renewed: v.boolean(),
+    reason: v.string(),
+    lockedBy: v.object({ userId: v.id("users"), displayName: v.string() }),
+  }), v.object({ renewed: v.boolean(), reason: v.optional(v.null()), lockedBy: v.optional(v.null()) })),
   handler: async (ctx, args) => {
     const user = await getCurrentUser(ctx);
     if (!user) {

@@ -69,13 +69,16 @@ async function getStripeSecretKey(ctx: any): Promise<string | undefined> {
 // chargeSubscriptionInvoice — real off-session charge
 // ═══════════════════════════════════════════════════════════════════════════
 
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const chargeSubscriptionInvoice = internalAction({
   args: {
-    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     invoiceId: v.id("commerce_subscription_invoices"),
   },
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.object({
+    success: v.boolean(),
+    transactionId: v.optional(v.string()),
+    failureReason: v.optional(v.string()),
+    requiresAction: v.optional(v.boolean()),
+  }),
   handler: async (ctx, args): Promise<SubscriptionChargeResult> => {
     const live = await isLiveChargingEnabled(ctx);
     if (!live) {
@@ -244,13 +247,18 @@ async function writeResult(
  * confirm client-side. On `payment_intent.succeeded`, the webhook activates
  * the checkout intent into a real subscription.
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const beginSubscriptionFirstCharge = internalAction({
   args: {
-    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     checkoutIntentId: v.id("commerce_subscription_checkout_intents"),
   },
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+	returns: v.object({
+   clientSecret: v.union(v.null(), v.string()),
+   paymentIntentId: v.string(),
+   amount: v.number(),
+   currency: v.string(),
+   stripeCustomerId: v.string(),
+   mode: v.union(v.literal("payment"), v.literal("setup")),
+ }),
 	handler: async (
 		ctx,
 		args,
@@ -371,19 +379,15 @@ export const beginSubscriptionFirstCharge = internalAction({
   },
 });
 
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const saveSetupIntentResult = internalAction({
   args: {
-    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     checkoutIntentId: v.id("commerce_subscription_checkout_intents"),
     stripeCustomerId: v.string(),
     paymentMethodId: v.string(),
-    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     setupIntentId: v.optional(v.string()),
-    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     activateCheckout: v.optional(v.boolean()),
   },
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.null(),
   handler: async (ctx, args): Promise<void> => {
     await ctx.runMutation(
       (internal.commerceSubscriptions.internals as any)

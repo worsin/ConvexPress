@@ -15,12 +15,27 @@ import { getCurrentUser } from "../helpers/permissions";
 import { toggleBookmarkArgs, isBookmarkedArgs } from "./validators";
 import { isPluginEnabled, requirePluginEnabled } from "../helpers/plugins";
 
+import { v } from "convex/values";
 // ─── List ───────────────────────────────────────────────────────────────────
 
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const list = query({
   args: {},
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.array(v.object({
+    article: v.union(v.null(), v.object({
+      _id: v.id("kb_articles"),
+      title: v.string(),
+      slug: v.string(),
+      excerpt: v.string(),
+      status: v.union(v.literal("draft"), v.literal("archived"), v.literal("review"), v.literal("published")),
+      categoryId: v.optional(v.id("kb_categories")),
+    })),
+    _id: v.id("kb_bookmarks"),
+    _creationTime: v.number(),
+    notes: v.optional(v.string()),
+    userId: v.id("users"),
+    createdAt: v.number(),
+    articleId: v.id("kb_articles"),
+  })),
   handler: async (ctx) => {
     if (!(await isPluginEnabled(ctx, "knowledgeBase"))) return [];
     const user = await getCurrentUser(ctx);
@@ -30,14 +45,12 @@ export const list = query({
 
     const bookmarks = await ctx.db
       .query("kb_bookmarks")
-      .withIndex("by_user", (q: ConvexQueryBuilder) => q.eq("userId", user._id))
+      .withIndex("by_user", (q) => q.eq("userId", user._id))
       .order("desc")
       .take(500);
 
     // Enrich with article details
-    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     return Promise.all(
-      // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
       bookmarks.map(async (bookmark) => {
         const article = await ctx.db.get("kb_articles", bookmark.articleId);
         return {
@@ -62,6 +75,7 @@ export const list = query({
 
 export const isBookmarked: RegisteredQuery<"public", { articleId: Id<"kb_articles"> }, boolean | null> = query({
   args: isBookmarkedArgs,
+  returns: v.union(v.boolean(), v.null()),
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "knowledgeBase"))) return null;
     const user = await getCurrentUser(ctx);
@@ -82,6 +96,7 @@ export const isBookmarked: RegisteredQuery<"public", { articleId: Id<"kb_article
 
 export const toggle: RegisteredMutation<"public", { articleId: Id<"kb_articles">; notes?: string }, { bookmarked: boolean }> = mutation({
   args: toggleBookmarkArgs,
+  returns: v.object({ bookmarked: v.boolean() }),
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "knowledgeBase");
     const user = await getCurrentUser(ctx);

@@ -158,6 +158,42 @@ export const respond = action({
     route: v.optional(v.string()),
     query: v.optional(v.string()),
   },
+  returns: v.object({
+    messageId: v.union(v.null(), v.string()),
+    blocks: v.array(v.union(v.object({
+      type: v.literal("cart_proposal"),
+      id: v.string(),
+      productId: v.string(),
+      variantId: v.optional(v.string()),
+      quantity: v.number(),
+      title: v.string(),
+      added: v.boolean(),
+    }), v.object({ type: v.literal("text"), markdown: v.string() }), v.object({
+      type: v.literal("product_group"),
+      title: v.string(),
+      reason: v.optional(v.string()),
+      items: v.array(v.object({ productId: v.string(), rationale: v.optional(v.string()) })),
+      seeMoreQuery: v.optional(v.string()),
+    }), v.object({
+      type: v.literal("compare_table"),
+      columns: v.array(v.string()),
+      rows: v.array(v.object({ productId: v.string(), values: v.array(v.string()) })),
+    }), v.object({
+      type: v.literal("callout"),
+      tone: v.union(v.literal("note"), v.literal("warning"), v.literal("tip")),
+      markdown: v.string(),
+    }), v.object({
+      type: v.literal("action_result"),
+      action: v.union(v.literal("cart_add"), v.literal("remember"), v.literal("forget")),
+      ok: v.boolean(),
+      summary: v.string(),
+      productId: v.optional(v.string()),
+    }), v.object({ type: v.literal("chips"), items: v.array(v.string()) }), v.object({
+      type: v.literal("facets"),
+      items: v.array(v.object({ label: v.string(), query: v.optional(v.string()), categorySlug: v.optional(v.string()) })),
+    }))),
+    productIds: v.array(v.string()),
+  }),
   handler: async (ctx: any, args: any): Promise<{ messageId: string | null; blocks: AssistantBlock[]; productIds: string[] }> => {
     const startedAt = Date.now();
     const message = args.message.trim().slice(0, 2000);
@@ -446,6 +482,43 @@ export const brief = action({
     productId: v.optional(v.string()),
     force: v.optional(v.boolean()),
   },
+  returns: v.object({
+    cacheKey: v.string(),
+    blocks: v.array(v.union(v.object({
+      type: v.literal("cart_proposal"),
+      id: v.string(),
+      productId: v.string(),
+      variantId: v.optional(v.string()),
+      quantity: v.number(),
+      title: v.string(),
+      added: v.boolean(),
+    }), v.object({ type: v.literal("text"), markdown: v.string() }), v.object({
+      type: v.literal("product_group"),
+      title: v.string(),
+      reason: v.optional(v.string()),
+      items: v.array(v.object({ productId: v.string(), rationale: v.optional(v.string()) })),
+      seeMoreQuery: v.optional(v.string()),
+    }), v.object({
+      type: v.literal("compare_table"),
+      columns: v.array(v.string()),
+      rows: v.array(v.object({ productId: v.string(), values: v.array(v.string()) })),
+    }), v.object({
+      type: v.literal("callout"),
+      tone: v.union(v.literal("note"), v.literal("warning"), v.literal("tip")),
+      markdown: v.string(),
+    }), v.object({
+      type: v.literal("action_result"),
+      action: v.union(v.literal("cart_add"), v.literal("remember"), v.literal("forget")),
+      ok: v.boolean(),
+      summary: v.string(),
+      productId: v.optional(v.string()),
+    }), v.object({ type: v.literal("chips"), items: v.array(v.string()) }), v.object({
+      type: v.literal("facets"),
+      items: v.array(v.object({ label: v.string(), query: v.optional(v.string()), categorySlug: v.optional(v.string()) })),
+    }))),
+    cached: v.boolean(),
+    productIds: v.array(v.string()),
+  }),
   handler: async (ctx: any, args: any): Promise<{ cacheKey: string; blocks: AssistantBlock[]; cached: boolean; productIds: string[] }> => {
     const bundle = await ctx.runQuery(anyInternal.commerce.assistant.queries.contextBundle, {
       sessionToken: args.sessionToken,

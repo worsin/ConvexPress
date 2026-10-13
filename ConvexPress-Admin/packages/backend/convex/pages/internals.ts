@@ -348,6 +348,7 @@ export const recomputePaths = internalMutation({
   args: {
     pageId: v.id("posts"),
   },
+  returns: v.null(),
   handler: async (ctx, args) => {
     const page = await ctx.db.get("posts", args.pageId);
     if (!page || page.type !== "page") return;
@@ -382,6 +383,7 @@ export const getAncestorChain = internalQuery({
   args: {
     pageId: v.id("posts"),
   },
+  returns: v.array(v.object({ _id: v.id("posts"), title: v.string(), slug: v.string(), path: v.optional(v.string()) })),
   handler: async (ctx, args) => {
     const ancestors: Array<{
       _id: Id<"posts">;

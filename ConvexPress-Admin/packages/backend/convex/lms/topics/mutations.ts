@@ -19,6 +19,7 @@ export const updateTopic = mutation({
     dripOffsetDays: v.optional(v.number()),
     dripDate: v.optional(v.number()),
   },
+  returns: v.id("lms_nodes"),
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "lms");
     const { node } = await requireNodeCourseAuthorOrEditor(ctx, args.nodeId, "lms.builder.manage");

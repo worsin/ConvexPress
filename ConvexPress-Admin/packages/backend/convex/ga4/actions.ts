@@ -66,10 +66,9 @@ function getAnalyticsClient(serviceAccountJson: string) {
  *
  * @auth analytics.manage (validated client-side before calling)
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const testConnection = action({
   args: testConnectionArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.union(v.object({ success: v.boolean(), error: v.string(), clientEmail: v.optional(v.null()) }), v.object({ success: v.boolean(), clientEmail: v.string(), error: v.optional(v.null()) })),
   handler: async (ctx, args) => {
     // Only operators who manage settings may probe GA4 with arbitrary
     // service-account material.
@@ -155,13 +154,22 @@ export const testConnection = action({
  *
  * Returns the normalized traffic data object.
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const fetchTrafficData = action({
   args: {
     ...ga4DateRangeArgs,
     ...ga4PathArgs,
   },
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.object({
+    totalPageviews: v.number(),
+    totalSessions: v.number(),
+    totalUsers: v.number(),
+    newUsers: v.number(),
+    sources: v.array(v.object({ channel: v.string(), sessions: v.number() })),
+    referrers: v.array(v.object({ domain: v.string(), sessions: v.number() })),
+    countries: v.array(v.object({ country: v.string(), users: v.number() })),
+    devices: v.array(v.object({ category: v.string(), sessions: v.number() })),
+    daily: v.array(v.object({ date: v.string(), pageviews: v.number(), sessions: v.number(), users: v.number() })),
+  }),
   handler: async (ctx, args) => {
     // Read credentials from env var
     const { getServiceKeyFromAction } = await import("../helpers/serviceKeys"); const serviceAccountJson = await getServiceKeyFromAction(ctx, "analytics.ga4", "ga4ServiceAccountJson", "GA4_SERVICE_ACCOUNT_JSON");
@@ -318,13 +326,26 @@ export const fetchTrafficData = action({
 /**
  * Fetch engagement metrics from GA4 Data API and cache the result.
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const fetchEngagementData = action({
   args: {
     ...ga4DateRangeArgs,
     ...ga4PathArgs,
   },
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.object({
+    bounceRate: v.number(),
+    avgSessionDuration: v.number(),
+    pagesPerSession: v.number(),
+    engagementRate: v.number(),
+    totalEvents: v.number(),
+    daily: v.array(v.object({
+      date: v.string(),
+      bounceRate: v.number(),
+      avgSessionDuration: v.number(),
+      pagesPerSession: v.number(),
+      engagementRate: v.number(),
+      eventCount: v.number(),
+    })),
+  }),
   handler: async (ctx, args) => {
     // Read credentials from env var
     const { getServiceKeyFromAction } = await import("../helpers/serviceKeys"); const serviceAccountJson = await getServiceKeyFromAction(ctx, "analytics.ga4", "ga4ServiceAccountJson", "GA4_SERVICE_ACCOUNT_JSON");

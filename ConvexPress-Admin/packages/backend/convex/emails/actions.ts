@@ -59,7 +59,6 @@ const sendTestEmailConfig: any = {
   },
 };
 
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const sendTestEmail = action(sendTestEmailConfig);
 
 const sendTemplateTestEmailConfig: any = {
@@ -119,5 +118,4 @@ const sendTemplateTestEmailConfig: any = {
   },
 };
 
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const sendTemplateTestEmail = action(sendTemplateTestEmailConfig);

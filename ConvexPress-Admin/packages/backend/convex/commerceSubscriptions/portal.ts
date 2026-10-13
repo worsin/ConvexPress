@@ -355,13 +355,31 @@ async function requireOwnedContract(
  * Only offer fields safe to expose publicly are returned — no `metadata`,
  * no product cost breakdown, no audit fields beyond the basics.
  */
-// @ts-expect-error TS2589: Convex union-schema types exceed TypeScript's type instantiation depth limit in strict mode.
 export const getPublicOffer = query({
 	args: {
-		// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 		offerId: v.id("commerce_subscription_offers"),
 	},
-	// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+	returns: v.union(v.null(), v.object({
+   _id: v.id("commerce_subscription_offers"),
+   title: v.string(),
+   slug: v.string(),
+   description: v.optional(v.string()),
+   publicSummary: v.optional(v.string()),
+   status: v.union(v.literal("draft"), v.literal("active")),
+   currencyCode: v.string(),
+   recurringAmount: v.number(),
+   setupFeeAmount: v.optional(v.number()),
+   trialDaysOverride: v.optional(v.number()),
+   entitlementCodes: v.optional(v.array(v.string())),
+   features: v.optional(v.array(v.object({ icon: v.optional(v.string()), highlighted: v.optional(v.boolean()), text: v.string() }))),
+   template: v.union(v.null(), v.object({
+     _id: v.id("commerce_subscription_templates"),
+     billingInterval: v.union(v.literal("year"), v.literal("month"), v.literal("day"), v.literal("week")),
+     billingIntervalCount: v.number(),
+     trialDays: v.optional(v.number()),
+     gracePeriodDays: v.optional(v.number()),
+   })),
+ })),
 	handler: async (ctx, args) => {
 		if (!(await isPluginEnabled(ctx, "commerceSubscriptions"))) return null;
 		// Do NOT call requireCommerceSubscriptionsEnabled — that throws ConvexError.
@@ -424,10 +442,8 @@ export const getPublicOffer = query({
  * Returns `[]` for unauthenticated users rather than throwing — the typical
  * caller is an SSR loader that should degrade gracefully.
  */
-// @ts-expect-error TS2589: Convex union-schema types exceed TypeScript's type instantiation depth limit in strict mode.
 export const getMyActiveContracts = query({
 	args: {},
-	// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 	handler: async (ctx) => {
 		if (!(await isPluginEnabled(ctx, "commerceSubscriptions"))) return [];
 		await requireCommerceSubscriptionsEnabled(ctx);
@@ -445,7 +461,6 @@ export const getMyActiveContracts = query({
 		);
 
 		// Pre-resolve enrichment data for each contract in parallel.
-		// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 		return Promise.all(
 			activeIsh.map(async (contract: any) => {
 				// Active item → current offer
@@ -528,7 +543,6 @@ export const getMyActiveContracts = query({
 				);
 				const planMap = new Map(
 					plans
-						// @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
 						.filter((p): p is any => p != null)
 						.map((p: any) => [p._id, p]),
 				);
@@ -588,15 +602,24 @@ export const getMyActiveContracts = query({
  * owned, missing offer). The portal UI should treat `null` as "cannot preview"
  * rather than showing an error — the plan-change button is then disabled.
  */
-// @ts-expect-error TS2589: Convex union-schema types exceed TypeScript's type instantiation depth limit in strict mode.
 export const previewPlanChange = query({
 	args: {
-		// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 		contractId: v.id("commerce_subscriptions"),
-		// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 		toOfferId: v.id("commerce_subscription_offers"),
 	},
-	// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+	returns: v.union(v.null(), v.object({
+   daysRemaining: v.number(),
+   daysInCycle: v.number(),
+   unusedOldAmount: v.number(),
+   proratedNewAmount: v.number(),
+   netCharge: v.number(),
+   isUpgrade: v.boolean(),
+   effectiveAt: v.number(),
+   currencyCode: v.string(),
+   fromOfferTitle: v.string(),
+   toOfferTitle: v.string(),
+   isNoOp: v.boolean(),
+ })),
 	handler: async (ctx, args) => {
 		if (!(await isPluginEnabled(ctx, "commerceSubscriptions"))) return null;
 		await requireCommerceSubscriptionsEnabled(ctx);
@@ -676,13 +699,10 @@ export const previewPlanChange = query({
  *
  * Returns `[]` for unauthenticated users.
  */
-// @ts-expect-error TS2589: Convex union-schema types exceed TypeScript's type instantiation depth limit in strict mode.
 export const listMyInvoices = query({
 	args: {
-		// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 		limit: v.optional(v.number()),
 	},
-	// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 	handler: async (ctx, args) => {
 		if (!(await isPluginEnabled(ctx, "commerceSubscriptions"))) return [];
 		await requireCommerceSubscriptionsEnabled(ctx);
@@ -752,15 +772,12 @@ export const listMyInvoices = query({
  * before delegating to the admin-side pause logic via the underlying status
  * transition.
  */
-// @ts-expect-error TS2589: Convex union-schema types exceed TypeScript's type instantiation depth limit in strict mode.
 export const requestPauseContract = mutation({
 	args: {
-		// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 		contractId: v.id("commerce_subscriptions"),
-		// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 		reason: v.optional(v.string()),
 	},
-	// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+	returns: v.union(v.object({ ok: v.boolean(), alreadyPaused: v.boolean(), status: v.optional(v.null()) }), v.object({ ok: v.boolean(), status: v.literal("paused"), alreadyPaused: v.optional(v.null()) })),
 	handler: async (ctx, args) => {
 		await requirePluginEnabled(ctx, "commerceSubscriptions");
 		await requireCommerceSubscriptionsEnabled(ctx);
@@ -804,13 +821,10 @@ export const requestPauseContract = mutation({
  * Customer-initiated resume from pause. Recomputes nextBillingAt if the
  * existing cycle end is already in the past.
  */
-// @ts-expect-error TS2589: Convex union-schema types exceed TypeScript's type instantiation depth limit in strict mode.
 export const requestResumeContract = mutation({
 	args: {
-		// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 		contractId: v.id("commerce_subscriptions"),
 	},
-	// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 	handler: async (ctx, args) => {
 		await requirePluginEnabled(ctx, "commerceSubscriptions");
 		await requireCommerceSubscriptionsEnabled(ctx);
@@ -866,17 +880,12 @@ export const requestResumeContract = mutation({
  * end) unless `immediate: true`. Immediate cancel is a deliberate
  * escape-hatch — most UIs should only expose schedule-at-end.
  */
-// @ts-expect-error TS2589: Convex union-schema types exceed TypeScript's type instantiation depth limit in strict mode.
 export const requestCancelContract = mutation({
 	args: {
-		// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 		contractId: v.id("commerce_subscriptions"),
-		// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 		immediate: v.optional(v.boolean()),
-		// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 		reason: v.optional(v.string()),
 	},
-	// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 	handler: async (ctx, args) => {
 		await requirePluginEnabled(ctx, "commerceSubscriptions");
 		await requireCommerceSubscriptionsEnabled(ctx);
@@ -956,15 +965,11 @@ export const requestCancelContract = mutation({
  * Ownership enforced. No-op if toOfferId matches the current offer — throws
  * `VALIDATION_ERROR` to make misclicks visible in the UI.
  */
-// @ts-expect-error TS2589: Convex union-schema types exceed TypeScript's type instantiation depth limit in strict mode.
 export const requestPlanChange = mutation({
 	args: {
-		// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 		contractId: v.id("commerce_subscriptions"),
-		// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 		toOfferId: v.id("commerce_subscription_offers"),
 	},
-	// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 	handler: async (ctx, args) => {
 		await requirePluginEnabled(ctx, "commerceSubscriptions");
 		await requireCommerceSubscriptionsEnabled(ctx);
@@ -1118,14 +1123,23 @@ export const requestPlanChange = mutation({
  *   - COUPON_INVALID — validation failed; `reason` surfaces from validator
  *   - INVALID_STATE — contract is cancelled/expired (no future invoices)
  */
-// @ts-expect-error TS2589: Convex union-schema types exceed TypeScript's type instantiation depth limit in strict mode.
 export const applyCouponToMyContract = mutation({
 	args: {
-		// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 		contractId: v.id("commerce_subscriptions"),
 		couponCode: v.string(),
 	},
-	// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+	returns: v.object({
+   ok: v.boolean(),
+   redemptionId: v.id("commerce_subscription_coupon_redemptions"),
+   coupon: v.object({
+     _id: v.id("commerce_subscription_coupons"),
+     code: v.string(),
+     discountType: v.union(v.literal("percent"), v.literal("fixed")),
+     amount: v.number(),
+     duration: v.union(v.literal("once"), v.literal("forever"), v.literal("n_months")),
+     durationMonths: v.optional(v.number()),
+   }),
+ }),
 	handler: async (ctx, args) => {
 		await requirePluginEnabled(ctx, "commerceSubscriptions");
 		await requireCommerceSubscriptionsEnabled(ctx);
@@ -1230,13 +1244,17 @@ export const applyCouponToMyContract = mutation({
  *
  * Ownership verified via a query call — actions cannot read the DB directly.
  */
-// @ts-expect-error TS2589: Convex union-schema types exceed TypeScript's type instantiation depth limit in strict mode.
 export const getInvoicePdf = action({
 	args: {
-		// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 		invoiceId: v.id("commerce_subscription_invoices"),
 	},
-	// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+	returns: v.object({
+   ok: v.literal(true),
+   format: v.literal("pdf"),
+   filename: v.string(),
+   content: v.string(),
+   contentType: v.string(),
+ }),
 	handler: async (
 		ctx,
 		args,

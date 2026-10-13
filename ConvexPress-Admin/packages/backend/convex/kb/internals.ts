@@ -23,13 +23,12 @@ import { emitEvent } from "../helpers/events";
 import { KB_EVENTS, SYSTEM } from "../events/constants";
 import { isPluginEnabled, requirePluginEnabled } from "../helpers/plugins";
 
+import { tableDocs } from "../schema/tableDocs.generated";
 // ─── Publish Scheduled ──────────────────────────────────────────────────────
 
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const publishScheduled = internalMutation({
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   args: { articleId: v.id("kb_articles") },
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.null(),
   handler: async (ctx, { articleId }) => {
     await requirePluginEnabled(ctx, "knowledgeBase");
     const article = await ctx.db.get("kb_articles", articleId);
@@ -130,17 +129,16 @@ export const publishScheduledBatch: RegisteredMutation<"internal", Record<string
 
 // ─── Cleanup Page Views ─────────────────────────────────────────────────────
 
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const cleanupPageViews = internalMutation({
   args: {},
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.object({ deleted: v.number() }),
   handler: async (ctx) => {
     await requirePluginEnabled(ctx, "knowledgeBase");
     const ninetyDaysAgo = Date.now() - 90 * 24 * 60 * 60 * 1000;
 
     const oldViews = await ctx.db
       .query("kb_pageViews")
-      .withIndex("by_date", (q: ConvexQueryBuilder) => q.lt("createdAt", ninetyDaysAgo))
+      .withIndex("by_date", (q) => q.lt("createdAt", ninetyDaysAgo))
       .take(500);
 
     let deleted = 0;
@@ -160,28 +158,26 @@ export const cleanupPageViews = internalMutation({
 
 // ─── Get Unsynced Articles ──────────────────────────────────────────────────
 
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const getUnsyncedForMeilisearch = internalQuery({
   args: {},
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.union(v.null(), v.array(tableDocs.kb_articles)),
   handler: async (ctx) => {
     if (!(await isPluginEnabled(ctx, "knowledgeBase"))) return null;
     return ctx.db
       .query("kb_articles")
-      .withIndex("by_meilisearch_sync", (q: ConvexQueryBuilder) => q.eq("meilisearchSynced", false))
+      .withIndex("by_meilisearch_sync", (q) => q.eq("meilisearchSynced", false))
       .take(50);
   },
 });
 
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const getUnsyncedForRag = internalQuery({
   args: {},
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.union(v.null(), v.array(tableDocs.kb_articles)),
   handler: async (ctx) => {
     if (!(await isPluginEnabled(ctx, "knowledgeBase"))) return null;
     return ctx.db
       .query("kb_articles")
-      .withIndex("by_rag_sync", (q: ConvexQueryBuilder) => q.eq("ragSynced", false))
+      .withIndex("by_rag_sync", (q) => q.eq("ragSynced", false))
       .take(50);
   },
 });
@@ -217,11 +213,9 @@ export const getArticleForSync: RegisteredQuery<"internal", { articleId: Id<"kb_
 
 // ─── Mark RAG Synced ────────────────────────────────────────────────────────
 
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const markRagSynced = internalMutation({
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   args: { articleId: v.id("kb_articles") },
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.null(),
   handler: async (ctx, { articleId }) => {
     await requirePluginEnabled(ctx, "knowledgeBase");
     await requireCan(ctx, "manage_options");
@@ -234,27 +228,21 @@ export const markRagSynced = internalMutation({
 
 // ─── Insert RAG Chunk ────────────────────────────────────────────────────────
 
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const insertRagChunk = internalMutation({
   args: {
-    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     articleId: v.id("kb_articles"),
     articleSlug: v.string(),
     content: v.string(),
     chunkIndex: v.number(),
-    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     embedding: v.array(v.number()),
-    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     metadata: v.object({
       title: v.string(),
-      // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
       categorySlug: v.optional(v.string()),
-      // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
       excerpt: v.optional(v.string()),
     }),
     now: v.number(),
   },
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.id("kb_ragChunks"),
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "knowledgeBase");
     await requireCan(ctx, "manage_options");
@@ -283,17 +271,15 @@ export const insertRagChunk = internalMutation({
  * Lives in internals.ts (Convex runtime) rather than rag.ts (Node.js runtime)
  * because mutations cannot run in Node.js -- only actions can.
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const removeArticleChunks = internalMutation({
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   args: { articleId: v.id("kb_articles") },
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.object({ deleted: v.number() }),
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "knowledgeBase");
     await requireCan(ctx, "manage_options");
     const chunks = await ctx.db
       .query("kb_ragChunks")
-      .withIndex("by_article", (q: ConvexQueryBuilder) => q.eq("articleId", args.articleId))
+      .withIndex("by_article", (q) => q.eq("articleId", args.articleId))
       .take(100);
 
     for (const chunk of chunks) {
@@ -313,10 +299,9 @@ export const removeArticleChunks = internalMutation({
  * in-memory cosine similarity scoring. For large KBs (500+ articles, 10k+
  * chunks), migrate to a Convex vector index on kb_ragChunks instead.
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const getAllRagChunks = internalQuery({
   args: {},
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.union(v.null(), v.array(tableDocs.kb_ragChunks)),
   handler: async (ctx) => {
     if (!(await isPluginEnabled(ctx, "knowledgeBase"))) return null;
     return ctx.db.query("kb_ragChunks").take(5000);

@@ -33,6 +33,8 @@ import { getCustomerOrderReturnEligibility } from "./eligibility";
 import { normalizeStoredReturnItems } from "./itemState";
 import { isPluginEnabled } from "../helpers/plugins";
 
+import { paginationResultValidator } from "convex/server";
+import { tableDocs } from "../schema/tableDocs.generated";
 type ReturnRequestDoc = Doc<"commerce_return_requests">;
 type ReturnItemDoc = Doc<"commerce_return_items">;
 type ReturnHistoryDoc = Doc<"commerce_return_history">;
@@ -147,6 +149,7 @@ export const getById = query({
   args: {
     returnId: v.id("commerce_return_requests"),
   },
+  returns: v.union(v.null(), tableDocs.commerce_return_requests),
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "commerceReturns"))) return null;
     await requireCan(ctx, "commerce.returns.view");
@@ -163,6 +166,7 @@ export const getByReturnNumber = query({
   args: {
     returnNumber: v.string(),
   },
+  returns: v.union(v.null(), tableDocs.commerce_return_requests),
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "commerceReturns"))) return null;
     await requireCan(ctx, "commerce.returns.view");
@@ -184,6 +188,63 @@ export const getWithDetails = query({
   args: {
     returnId: v.id("commerce_return_requests"),
   },
+  returns: v.union(v.null(), v.object({
+    order: v.union(v.null(), tableDocs.commerce_orders),
+    orderNumber: v.optional(v.string()),
+    customerEmail: v.optional(v.string()),
+    returnItems: v.array(v.object({
+      orderItemId: v.optional(v.string()),
+      quantity: v.number(),
+      quantityRequested: v.number(),
+      quantityApproved: v.number(),
+      quantityReceived: v.number(),
+      quantityRestocked: v.number(),
+      reason: v.optional(v.string()),
+      conditionCode: v.optional(v.string()),
+      resolutionType: v.optional(v.string()),
+    })),
+    orderItems: v.array(v.object({
+      orderItem: v.union(v.null(), tableDocs.commerce_order_items),
+      orderItemId: v.optional(v.string()),
+      quantity: v.number(),
+      quantityRequested: v.number(),
+      quantityApproved: v.number(),
+      quantityReceived: v.number(),
+      quantityRestocked: v.number(),
+      reason: v.optional(v.string()),
+      conditionCode: v.optional(v.string()),
+      resolutionType: v.optional(v.string()),
+    })),
+    itemCount: v.number(),
+    history: v.array(tableDocs.commerce_return_history),
+    user: v.union(v.null(), v.object({ _id: v.id("users"), email: v.string(), name: v.optional(v.string()) })),
+    processedByUser: v.union(v.null(), v.object({ _id: v.id("users"), email: v.string(), name: v.optional(v.string()) })),
+    _id: v.id("commerce_return_requests"),
+    _creationTime: v.number(),
+    userId: v.optional(v.id("users")),
+    completedAt: v.optional(v.number()),
+    notes: v.optional(v.string()),
+    refundedAt: v.optional(v.number()),
+    trackingNumber: v.optional(v.string()),
+    reasonDetails: v.optional(v.string()),
+    refundAmount: v.optional(v.number()),
+    refundMethod: v.optional(v.string()),
+    returnShippingLabel: v.optional(v.string()),
+    processedBy: v.optional(v.id("users")),
+    refundPendingAt: v.optional(v.number()),
+    refundFailureReason: v.optional(v.string()),
+    updatedAt: v.number(),
+    reason: v.string(),
+    createdAt: v.number(),
+    status: v.union(v.literal("completed"), v.literal("approved"), v.literal("rejected"), v.literal("received"), v.literal("refunded"), v.literal("requested"), v.literal("refund_pending")),
+    items: v.array(v.object({
+      reason: v.optional(v.string()),
+      quantity: v.number(),
+      orderItemId: v.id("commerce_order_items"),
+    })),
+    orderId: v.id("commerce_orders"),
+    returnNumber: v.string(),
+  })),
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "commerceReturns"))) return null;
     await requireCan(ctx, "commerce.returns.view");
@@ -203,6 +264,7 @@ export const getByOrder = query({
   args: {
     orderId: v.id("commerce_orders"),
   },
+  returns: v.union(v.null(), v.array(tableDocs.commerce_return_requests)),
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "commerceReturns"))) return null;
     await requireCan(ctx, "commerce.returns.view");
@@ -223,6 +285,7 @@ export const getUserReturns = query({
     userId: v.id("users"),
     limit: v.optional(v.number()),
   },
+  returns: v.union(v.null(), v.array(tableDocs.commerce_return_requests)),
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "commerceReturns"))) return null;
     await requireCan(ctx, "commerce.returns.view");
@@ -245,6 +308,63 @@ export const getMineById = query({
   args: {
     returnId: v.id("commerce_return_requests"),
   },
+  returns: v.union(v.null(), v.object({
+    order: v.union(v.null(), tableDocs.commerce_orders),
+    orderNumber: v.optional(v.string()),
+    customerEmail: v.optional(v.string()),
+    returnItems: v.array(v.object({
+      orderItemId: v.optional(v.string()),
+      quantity: v.number(),
+      quantityRequested: v.number(),
+      quantityApproved: v.number(),
+      quantityReceived: v.number(),
+      quantityRestocked: v.number(),
+      reason: v.optional(v.string()),
+      conditionCode: v.optional(v.string()),
+      resolutionType: v.optional(v.string()),
+    })),
+    orderItems: v.array(v.object({
+      orderItem: v.union(v.null(), tableDocs.commerce_order_items),
+      orderItemId: v.optional(v.string()),
+      quantity: v.number(),
+      quantityRequested: v.number(),
+      quantityApproved: v.number(),
+      quantityReceived: v.number(),
+      quantityRestocked: v.number(),
+      reason: v.optional(v.string()),
+      conditionCode: v.optional(v.string()),
+      resolutionType: v.optional(v.string()),
+    })),
+    itemCount: v.number(),
+    history: v.array(tableDocs.commerce_return_history),
+    user: v.union(v.null(), v.object({ _id: v.id("users"), email: v.string(), name: v.optional(v.string()) })),
+    processedByUser: v.union(v.null(), v.object({ _id: v.id("users"), email: v.string(), name: v.optional(v.string()) })),
+    _id: v.id("commerce_return_requests"),
+    _creationTime: v.number(),
+    userId: v.optional(v.id("users")),
+    completedAt: v.optional(v.number()),
+    notes: v.optional(v.string()),
+    refundedAt: v.optional(v.number()),
+    trackingNumber: v.optional(v.string()),
+    reasonDetails: v.optional(v.string()),
+    refundAmount: v.optional(v.number()),
+    refundMethod: v.optional(v.string()),
+    returnShippingLabel: v.optional(v.string()),
+    processedBy: v.optional(v.id("users")),
+    refundPendingAt: v.optional(v.number()),
+    refundFailureReason: v.optional(v.string()),
+    updatedAt: v.number(),
+    reason: v.string(),
+    createdAt: v.number(),
+    status: v.union(v.literal("completed"), v.literal("approved"), v.literal("rejected"), v.literal("received"), v.literal("refunded"), v.literal("requested"), v.literal("refund_pending")),
+    items: v.array(v.object({
+      reason: v.optional(v.string()),
+      quantity: v.number(),
+      orderItemId: v.id("commerce_order_items"),
+    })),
+    orderId: v.id("commerce_orders"),
+    returnNumber: v.string(),
+  })),
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "commerceReturns"))) return null;
     await requireCommerceReturnsEnabled(ctx);
@@ -265,6 +385,63 @@ export const getMineByOrder = query({
   args: {
     orderId: v.id("commerce_orders"),
   },
+  returns: v.array(v.object({
+    order: v.union(v.null(), tableDocs.commerce_orders),
+    orderNumber: v.optional(v.string()),
+    customerEmail: v.optional(v.string()),
+    returnItems: v.array(v.object({
+      orderItemId: v.optional(v.string()),
+      quantity: v.number(),
+      quantityRequested: v.number(),
+      quantityApproved: v.number(),
+      quantityReceived: v.number(),
+      quantityRestocked: v.number(),
+      reason: v.optional(v.string()),
+      conditionCode: v.optional(v.string()),
+      resolutionType: v.optional(v.string()),
+    })),
+    orderItems: v.array(v.object({
+      orderItem: v.union(v.null(), tableDocs.commerce_order_items),
+      orderItemId: v.optional(v.string()),
+      quantity: v.number(),
+      quantityRequested: v.number(),
+      quantityApproved: v.number(),
+      quantityReceived: v.number(),
+      quantityRestocked: v.number(),
+      reason: v.optional(v.string()),
+      conditionCode: v.optional(v.string()),
+      resolutionType: v.optional(v.string()),
+    })),
+    itemCount: v.number(),
+    history: v.array(tableDocs.commerce_return_history),
+    user: v.union(v.null(), v.object({ _id: v.id("users"), email: v.string(), name: v.optional(v.string()) })),
+    processedByUser: v.union(v.null(), v.object({ _id: v.id("users"), email: v.string(), name: v.optional(v.string()) })),
+    _id: v.id("commerce_return_requests"),
+    _creationTime: v.number(),
+    userId: v.optional(v.id("users")),
+    completedAt: v.optional(v.number()),
+    notes: v.optional(v.string()),
+    refundedAt: v.optional(v.number()),
+    trackingNumber: v.optional(v.string()),
+    reasonDetails: v.optional(v.string()),
+    refundAmount: v.optional(v.number()),
+    refundMethod: v.optional(v.string()),
+    returnShippingLabel: v.optional(v.string()),
+    processedBy: v.optional(v.id("users")),
+    refundPendingAt: v.optional(v.number()),
+    refundFailureReason: v.optional(v.string()),
+    updatedAt: v.number(),
+    reason: v.string(),
+    createdAt: v.number(),
+    status: v.union(v.literal("completed"), v.literal("approved"), v.literal("rejected"), v.literal("received"), v.literal("refunded"), v.literal("requested"), v.literal("refund_pending")),
+    items: v.array(v.object({
+      reason: v.optional(v.string()),
+      quantity: v.number(),
+      orderItemId: v.id("commerce_order_items"),
+    })),
+    orderId: v.id("commerce_orders"),
+    returnNumber: v.string(),
+  })),
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "commerceReturns"))) return [];
     await requireCommerceReturnsEnabled(ctx);
@@ -317,6 +494,63 @@ export const getMyReturns = query({
   args: {
     paginationOpts: paginationOptsValidator,
   },
+  returns: paginationResultValidator(v.object({
+    order: v.union(v.null(), tableDocs.commerce_orders),
+    orderNumber: v.optional(v.string()),
+    customerEmail: v.optional(v.string()),
+    returnItems: v.array(v.object({
+      orderItemId: v.optional(v.string()),
+      quantity: v.number(),
+      quantityRequested: v.number(),
+      quantityApproved: v.number(),
+      quantityReceived: v.number(),
+      quantityRestocked: v.number(),
+      reason: v.optional(v.string()),
+      conditionCode: v.optional(v.string()),
+      resolutionType: v.optional(v.string()),
+    })),
+    orderItems: v.array(v.object({
+      orderItem: v.union(v.null(), tableDocs.commerce_order_items),
+      orderItemId: v.optional(v.string()),
+      quantity: v.number(),
+      quantityRequested: v.number(),
+      quantityApproved: v.number(),
+      quantityReceived: v.number(),
+      quantityRestocked: v.number(),
+      reason: v.optional(v.string()),
+      conditionCode: v.optional(v.string()),
+      resolutionType: v.optional(v.string()),
+    })),
+    itemCount: v.number(),
+    history: v.array(tableDocs.commerce_return_history),
+    user: v.union(v.null(), v.object({ _id: v.id("users"), email: v.string(), name: v.optional(v.string()) })),
+    processedByUser: v.union(v.null(), v.object({ _id: v.id("users"), email: v.string(), name: v.optional(v.string()) })),
+    _id: v.id("commerce_return_requests"),
+    _creationTime: v.number(),
+    userId: v.optional(v.id("users")),
+    completedAt: v.optional(v.number()),
+    notes: v.optional(v.string()),
+    refundedAt: v.optional(v.number()),
+    trackingNumber: v.optional(v.string()),
+    reasonDetails: v.optional(v.string()),
+    refundAmount: v.optional(v.number()),
+    refundMethod: v.optional(v.string()),
+    returnShippingLabel: v.optional(v.string()),
+    processedBy: v.optional(v.id("users")),
+    refundPendingAt: v.optional(v.number()),
+    refundFailureReason: v.optional(v.string()),
+    updatedAt: v.number(),
+    reason: v.string(),
+    createdAt: v.number(),
+    status: v.union(v.literal("completed"), v.literal("approved"), v.literal("rejected"), v.literal("received"), v.literal("refunded"), v.literal("requested"), v.literal("refund_pending")),
+    items: v.array(v.object({
+      reason: v.optional(v.string()),
+      quantity: v.number(),
+      orderItemId: v.id("commerce_order_items"),
+    })),
+    orderId: v.id("commerce_orders"),
+    returnNumber: v.string(),
+  })),
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "commerceReturns"))) return { page: [], isDone: true, continueCursor: "" };
     await requireCommerceReturnsEnabled(ctx);
@@ -351,6 +585,63 @@ export const list = query({
     status: v.optional(commerceReturnStatusValidator),
     paginationOpts: paginationOptsValidator,
   },
+  returns: paginationResultValidator(v.object({
+    order: v.union(v.null(), tableDocs.commerce_orders),
+    orderNumber: v.optional(v.string()),
+    customerEmail: v.optional(v.string()),
+    returnItems: v.array(v.object({
+      orderItemId: v.optional(v.string()),
+      quantity: v.number(),
+      quantityRequested: v.number(),
+      quantityApproved: v.number(),
+      quantityReceived: v.number(),
+      quantityRestocked: v.number(),
+      reason: v.optional(v.string()),
+      conditionCode: v.optional(v.string()),
+      resolutionType: v.optional(v.string()),
+    })),
+    orderItems: v.array(v.object({
+      orderItem: v.union(v.null(), tableDocs.commerce_order_items),
+      orderItemId: v.optional(v.string()),
+      quantity: v.number(),
+      quantityRequested: v.number(),
+      quantityApproved: v.number(),
+      quantityReceived: v.number(),
+      quantityRestocked: v.number(),
+      reason: v.optional(v.string()),
+      conditionCode: v.optional(v.string()),
+      resolutionType: v.optional(v.string()),
+    })),
+    itemCount: v.number(),
+    history: v.array(tableDocs.commerce_return_history),
+    user: v.union(v.null(), v.object({ _id: v.id("users"), email: v.string(), name: v.optional(v.string()) })),
+    processedByUser: v.union(v.null(), v.object({ _id: v.id("users"), email: v.string(), name: v.optional(v.string()) })),
+    _id: v.id("commerce_return_requests"),
+    _creationTime: v.number(),
+    userId: v.optional(v.id("users")),
+    completedAt: v.optional(v.number()),
+    notes: v.optional(v.string()),
+    refundedAt: v.optional(v.number()),
+    trackingNumber: v.optional(v.string()),
+    reasonDetails: v.optional(v.string()),
+    refundAmount: v.optional(v.number()),
+    refundMethod: v.optional(v.string()),
+    returnShippingLabel: v.optional(v.string()),
+    processedBy: v.optional(v.id("users")),
+    refundPendingAt: v.optional(v.number()),
+    refundFailureReason: v.optional(v.string()),
+    updatedAt: v.number(),
+    reason: v.string(),
+    createdAt: v.number(),
+    status: v.union(v.literal("completed"), v.literal("approved"), v.literal("rejected"), v.literal("received"), v.literal("refunded"), v.literal("requested"), v.literal("refund_pending")),
+    items: v.array(v.object({
+      reason: v.optional(v.string()),
+      quantity: v.number(),
+      orderItemId: v.id("commerce_order_items"),
+    })),
+    orderId: v.id("commerce_orders"),
+    returnNumber: v.string(),
+  })),
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "commerceReturns"))) return { page: [], isDone: true, continueCursor: "" };
     await requireCan(ctx, "commerce.returns.view");
@@ -378,6 +669,22 @@ export const list = query({
  */
 export const getStats = query({
   args: {},
+  returns: v.union(v.null(), v.object({
+    total: v.number(),
+    byStatus: v.object({
+      requested: v.number(),
+      approved: v.number(),
+      rejected: v.number(),
+      received: v.number(),
+      refundPending: v.number(),
+      refunded: v.number(),
+      completed: v.number(),
+    }),
+    pendingAction: v.number(),
+    totalRefunded: v.number(),
+    recentCount: v.number(),
+    stuckRefunds: v.number(),
+  })),
   handler: async (ctx) => {
     if (!(await isPluginEnabled(ctx, "commerceReturns"))) return null;
     await requireCan(ctx, "commerce.returns.view");
@@ -436,6 +743,12 @@ export const getStats = query({
  */
 export const getRefundHealth = query({
   args: {},
+  returns: v.union(v.null(), v.object({
+    total: v.number(),
+    refundPending: v.number(),
+    stuckRefunds: v.number(),
+    completedToday: v.number(),
+  })),
   handler: async (ctx) => {
     if (!(await isPluginEnabled(ctx, "commerceReturns"))) return null;
     await requireCan(ctx, "commerce.returns.view");
@@ -471,6 +784,7 @@ export const getStuckRefunds = query({
   args: {
     staleMinutes: v.optional(v.number()),
   },
+  returns: v.union(v.null(), v.array(tableDocs.commerce_return_requests)),
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "commerceReturns"))) return null;
     await requireCan(ctx, "commerce.returns.view");

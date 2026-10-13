@@ -125,6 +125,7 @@ export async function syncProductSearch(ctx: any, productId: any): Promise<void>
 
 export const syncProduct = internalMutation({
   args: { productId: v.id("commerce_products") },
+  returns: v.null(),
   handler: async (ctx: any, args: any) => {
     await syncProductSearch(ctx, args.productId);
   },

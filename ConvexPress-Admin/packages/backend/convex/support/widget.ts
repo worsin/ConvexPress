@@ -38,10 +38,20 @@ import { isPluginEnabled } from "../helpers/plugins";
  *   - aiEnabled: boolean (deflection on/off)
  *   - escalationButtonLabel: string
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const getConfig = query({
   args: getConfigArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.union(v.null(), v.object({
+    showKbSearch: v.boolean(),
+    position: v.string(),
+    greeting: v.string(),
+    enabled: v.literal(true),
+    widgetTitle: v.literal("Support"),
+    widgetSubtitle: v.literal("How can we help you today?"),
+    widgetColor: v.literal("#3b82f6"),
+    showTicketHistory: v.literal(true),
+    aiEnabled: v.literal(false),
+    escalationButtonLabel: v.literal("Contact Support"),
+  })),
   handler: async (ctx) => {
     if (!(await isPluginEnabled(ctx, "tickets"))) return null;
     const knowledgeBaseEnabled = await isPluginEnabled(ctx, "knowledgeBase");
@@ -53,7 +63,7 @@ export const getConfig = query({
 
     const doc = await ctx.db
       .query("settings")
-      .withIndex("by_section", (q: ConvexQueryBuilder) => q.eq("section", "support.widget"))
+      .withIndex("by_section", (q) => q.eq("section", "support.widget"))
       .unique();
 
     const stored = doc ? (doc.values as Record<string, unknown>) : {};

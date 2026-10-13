@@ -59,14 +59,12 @@ function normalizeEmail(email: string): string {
  * Public newsletter signup used by the website footer. This intentionally
  * records an anonymous subscriber row instead of creating a login-capable user.
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const subscribeNewsletter = mutation({
   args: {
     email: v.string(),
-    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     source: v.optional(v.string()),
   },
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.object({ ok: v.boolean(), status: v.literal("subscribed") }),
   handler: async (ctx, args) => {
     const email = normalizeEmail(args.email);
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
@@ -79,7 +77,7 @@ export const subscribeNewsletter = mutation({
     const now = Date.now();
     const existing = await ctx.db
       .query("newsletterSubscribers")
-      .withIndex("by_email", (q: ConvexQueryBuilder) => q.eq("email", email))
+      .withIndex("by_email", (q) => q.eq("email", email))
       .unique();
 
     if (existing) {
@@ -122,10 +120,9 @@ export const subscribeNewsletter = mutation({
  *
  * Emits settings.updated event for audit trail.
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const updateTemplate = mutation({
   args: updateTemplateArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.object({ success: v.boolean(), templateId: v.id("emailTemplates") }),
   handler: async (ctx, args) => {
     const user = await requireCan(ctx, "settings.update_email");
 
@@ -221,10 +218,9 @@ export const updateTemplate = mutation({
  * Copies defaultSubjectTemplate -> subjectTemplate and
  * defaultBodyHtml -> bodyHtml, sets isCustomized = false.
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const resetTemplate = mutation({
   args: resetTemplateArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.object({ success: v.boolean(), templateId: v.id("emailTemplates") }),
   handler: async (ctx, args) => {
     const user = await requireCan(ctx, "settings.update_email");
 
@@ -264,10 +260,9 @@ export const resetTemplate = mutation({
  *
  * Only failed emails can be retried.
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const retryEmail = mutation({
   args: retryEmailArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.object({ success: v.boolean() }),
   handler: async (ctx, args) => {
     await requireCan(ctx, "email.retry");
 
@@ -309,10 +304,9 @@ export const retryEmail = mutation({
  * Cancel a queued email before it is sent.
  * Only queued emails can be cancelled.
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const cancelEmail = mutation({
   args: cancelEmailArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.object({ success: v.boolean() }),
   handler: async (ctx, args) => {
     await requireCan(ctx, "settings.update_email");
 
@@ -349,10 +343,8 @@ export const cancelEmail = mutation({
  * ensures shipping templates are present, and backfills returns metadata when
  * the returns extension is enabled.
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const repairSystem = mutation({
   args: repairSystemArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx) => {
     await requireCan(ctx, "settings.update_email");
 
@@ -390,10 +382,9 @@ export const repairSystem = mutation({
  *
  * Security-critical categories ("security") cannot be unsubscribed.
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const updateUnsubscribe = mutation({
   args: updateUnsubscribeArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.object({ success: v.boolean() }),
   handler: async (ctx, args) => {
     const user = await getCurrentUser(ctx);
     if (!user) {
@@ -427,7 +418,7 @@ export const updateUnsubscribe = mutation({
       // Resubscribe: delete the unsubscribe record if it exists
       const existing = await ctx.db
         .query("emailUnsubscribes")
-        .withIndex("by_user_category", (q: ConvexQueryBuilder) =>
+        .withIndex("by_user_category", (q) =>
           q.eq("userId", userId).eq("category", category),
         )
         .unique();
@@ -439,7 +430,7 @@ export const updateUnsubscribe = mutation({
       // Unsubscribe: check if record already exists
       const existing = await ctx.db
         .query("emailUnsubscribes")
-        .withIndex("by_user_category", (q: ConvexQueryBuilder) =>
+        .withIndex("by_user_category", (q) =>
           q.eq("userId", userId).eq("category", category),
         )
         .unique();

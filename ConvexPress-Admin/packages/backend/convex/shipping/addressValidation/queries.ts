@@ -2,12 +2,15 @@ import { internalQuery, query } from "../../_generated/server";
 import { requireCan } from "../../helpers/permissions";
 import { getValidationArgs } from "./validators";
 
+import { v } from "convex/values";
+import { tableDocs } from "../../schema/tableDocs.generated";
 /**
  * Internal — look up a cached validation by fingerprint. Returns null if absent
  * or expired. Callers should short-circuit on hit.
  */
 export const getValidationByFingerprintInternal = internalQuery({
   args: getValidationArgs,
+  returns: v.union(v.null(), tableDocs.commerce_address_validations),
   handler: async (ctx, args) => {
     const row = await ctx.db
       .query("commerce_address_validations")
@@ -24,6 +27,13 @@ export const getValidationByFingerprintInternal = internalQuery({
  */
 export const stats = query({
   args: {},
+  returns: v.object({
+    totalCached: v.number(),
+    totalActive: v.number(),
+    totalExpired: v.number(),
+    byStatus: v.record(v.string(), v.number()),
+    byProvider: v.record(v.string(), v.number()),
+  }),
   handler: async (ctx) => {
     await requireCan(ctx, "shipping.address_validation.read");
     const all = await ctx.db.query("commerce_address_validations").collect();

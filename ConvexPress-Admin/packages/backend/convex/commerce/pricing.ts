@@ -4,10 +4,12 @@ import { ConvexError, v } from "convex/values";
 import { mutation, query } from "../_generated/server";
 import { requireCan } from "../helpers/permissions";
 
+import { tableDocs } from "../schema/tableDocs.generated";
 const priceStatus = v.union(v.literal("draft"), v.literal("active"), v.literal("inactive"));
 
 export const listPriceLists = query({
   args: { status: v.optional(priceStatus) },
+  returns: v.array(tableDocs.commerce_price_lists),
   handler: async (ctx, args) => {
     await requireCan(ctx, "manage_options");
     if (args.status) {
@@ -30,6 +32,7 @@ export const createPriceList = mutation({
     endsAt: v.optional(v.number()),
     metadata: v.optional(v.any()),
   },
+  returns: v.id("commerce_price_lists"),
   handler: async (ctx, args) => {
     await requireCan(ctx, "manage_options");
     const now = Date.now();
@@ -49,6 +52,7 @@ export const upsertPriceSet = mutation({
     variantId: v.optional(v.id("commerce_product_variants")),
     metadata: v.optional(v.any()),
   },
+  returns: v.id("commerce_price_sets"),
   handler: async (ctx, args) => {
     await requireCan(ctx, "manage_options");
     const now = Date.now();
@@ -118,6 +122,7 @@ export const upsertPrice = mutation({
     status: priceStatus,
     metadata: v.optional(v.any()),
   },
+  returns: v.id("commerce_prices"),
   handler: async (ctx, args) => {
     await requireCan(ctx, "manage_options");
     const now = Date.now();

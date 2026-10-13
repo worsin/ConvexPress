@@ -188,6 +188,7 @@ export const upsert = mutation({
 
 export const setStatus = mutation({
   args: setStatusArgs,
+  returns: v.null(),
   handler: async (ctx: any, args: any) => {
     await requireCommerceEnabled(ctx);
     await requireCan(ctx, "manage_options");
@@ -197,6 +198,7 @@ export const setStatus = mutation({
 
 export const remove = mutation({
   args: relationIdArgs,
+  returns: v.null(),
   handler: async (ctx: any, args: any) => {
     await requireCommerceEnabled(ctx);
     await requireCan(ctx, "manage_options");
@@ -217,6 +219,7 @@ export const upsertInternal = internalMutation({
  */
 export const seedFromWoo = internalMutation({
   args: {},
+  returns: v.object({ created: v.number() }),
   handler: async (ctx: any) => {
     const products = await ctx.db.query("commerce_products").take(5000);
     let created = 0;

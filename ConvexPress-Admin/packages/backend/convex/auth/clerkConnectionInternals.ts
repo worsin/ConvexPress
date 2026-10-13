@@ -109,6 +109,7 @@ export const saveConnection = internalMutation({
     values: v.any(),
     system: v.optional(v.boolean()),
   },
+  returns: v.null(),
   handler: async (ctx, args) => {
     const incoming = (args.values ?? {}) as Record<string, unknown>;
     const doc = await readSection(ctx, SECTION);
@@ -149,6 +150,7 @@ export const saveConnection = internalMutation({
 /** Stamp the last verified webhook delivery. Called from the webhook handler. */
 export const markWebhookReceived = internalMutation({
   args: { at: v.number() },
+  returns: v.null(),
   handler: async (ctx, args) => {
     const doc = await readSection(ctx, SECTION);
     if (!doc) return;

@@ -28,11 +28,9 @@ import { requirePluginEnabled } from "../helpers/plugins";
  *
  * Processes in batches to stay within mutation time limits.
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const autoCloseResolved = internalMutation({
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   args: { batchSize: v.optional(v.number()) },
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.union(v.object({ closed: v.number(), message: v.string() }), v.object({ closed: v.number(), message: v.optional(v.null()) })),
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "tickets");
     const batchSize = args.batchSize ?? 100;
@@ -40,7 +38,7 @@ export const autoCloseResolved = internalMutation({
     // Read auto-close setting
     const setting = await ctx.db
       .query("settings")
-      .withIndex("by_section", (q: ConvexQueryBuilder) => q.eq("section", "ticket.general"))
+      .withIndex("by_section", (q) => q.eq("section", "ticket.general"))
       .unique();
 
     const autoCloseAfterDays = setting?.values?.autoCloseAfterDays ?? 14;
@@ -55,11 +53,10 @@ export const autoCloseResolved = internalMutation({
     // Safety-bounded with .take() to avoid unbounded memory usage in crons.
     const resolvedTickets = await ctx.db
       .query("ticket_tickets")
-      .withIndex("by_status", (q: ConvexQueryBuilder) => q.eq("status", "resolved"))
+      .withIndex("by_status", (q) => q.eq("status", "resolved"))
       .take(batchSize * 3);
 
     const toClose = resolvedTickets
-      // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
       .filter((t) => t.resolvedAt && t.resolvedAt < cutoffMs)
       .slice(0, batchSize);
 
@@ -74,7 +71,7 @@ export const autoCloseResolved = internalMutation({
       // Add system message
       const lastMessage = await ctx.db
         .query("ticket_messages")
-        .withIndex("by_ticket_sequence", (q: ConvexQueryBuilder) =>
+        .withIndex("by_ticket_sequence", (q) =>
           q.eq("ticketId", ticket._id),
         )
         .order("desc")
@@ -125,10 +122,9 @@ export const autoCloseResolved = internalMutation({
  * Orchestrator that triggers cleanup of sessions and rate limit records.
  * Called by daily cron.
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const cleanupAll = internalMutation({
   args: {},
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.null(),
   handler: async (ctx) => {
     await requirePluginEnabled(ctx, "tickets");
     // Schedule session cleanup

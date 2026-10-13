@@ -12,8 +12,10 @@ import {
   renderCertificateText,
 } from "./rendering";
 
+import { tableDocs } from "../../schema/tableDocs.generated";
 export const listTemplates = query({
   args: {},
+  returns: v.array(tableDocs.lms_certificates),
   handler: async (ctx) => {
     if (!(await isPluginEnabled(ctx, "lms"))) return [];
     await requireCan(ctx, "lms.certificate.manage");
@@ -23,6 +25,7 @@ export const listTemplates = query({
 
 export const getTemplate = query({
   args: { certificateId: v.id("lms_certificates") },
+  returns: v.union(v.null(), tableDocs.lms_certificates),
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "lms"))) return null;
     await requireCan(ctx, "lms.certificate.manage");

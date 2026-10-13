@@ -17,18 +17,24 @@ type RedirectResult = {
   _resolvedTargetUrl?: string;
 } | null;
 
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const resolveRedirect = query({
   args: {
     url: v.string(),
   },
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.union(v.null(), v.object({
+    _id: v.string(),
+    sourceUrl: v.string(),
+    targetUrl: v.string(),
+    statusCode: v.number(),
+    matchType: v.union(v.literal("exact"), v.literal("prefix"), v.literal("regex")),
+    _resolvedTargetUrl: v.optional(v.string()),
+  })),
   handler: async (ctx, args): Promise<RedirectResult> => {
     const url = args.url;
 
     const exactMatches = await ctx.db
       .query("redirects")
-      .withIndex("by_source_url", (q: ConvexQueryBuilder) =>
+      .withIndex("by_source_url", (q) =>
         q.eq("sourceUrl", url),
       )
       .collect();
@@ -40,7 +46,7 @@ export const resolveRedirect = query({
 
     const enabledRedirects = await ctx.db
       .query("redirects")
-      .withIndex("by_enabled", (q: ConvexQueryBuilder) =>
+      .withIndex("by_enabled", (q) =>
         q.eq("enabled", true),
       )
       .collect();
@@ -79,13 +85,11 @@ export const resolveRedirect = query({
   },
 });
 
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const recordRedirectHit = mutation({
   args: {
-    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     redirectId: v.id("redirects"),
   },
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.null(),
   handler: async (ctx, args) => {
     const redirect = await ctx.db.get(args.redirectId);
     if (!redirect) return;

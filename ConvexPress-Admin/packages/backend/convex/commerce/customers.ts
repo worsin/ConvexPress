@@ -10,6 +10,7 @@ import {
 import { getCurrentUser, requireCan } from "../helpers/permissions";
 import { requireCommerceEnabled } from "./helpers";
 
+import { tableDocs } from "../schema/tableDocs.generated";
 // ============================================
 // QUERIES — Customer Profile (self-service)
 // ============================================
@@ -140,6 +141,13 @@ export const counts = query({
   args: {
     search: v.optional(v.string()),
   },
+  returns: v.object({
+    all: v.number(),
+    with_orders: v.number(),
+    no_orders: v.number(),
+    guests: v.number(),
+    registered: v.number(),
+  }),
   handler: async (ctx, args) => {
     await requireCommerceEnabled(ctx);
     await requireCan(ctx, "manage_options");
@@ -185,6 +193,25 @@ export const counts = query({
  */
 export const getMine = query({
   args: {},
+  returns: v.union(v.null(), v.object({
+    defaultBillingAddress: v.union(v.null(), tableDocs.commerce_customer_addresses),
+    defaultShippingAddress: v.union(v.null(), tableDocs.commerce_customer_addresses),
+    _id: v.id("commerce_customer_profiles"),
+    _creationTime: v.number(),
+    userId: v.optional(v.id("users")),
+    firstName: v.optional(v.string()),
+    lastName: v.optional(v.string()),
+    phone: v.optional(v.string()),
+    isGuest: v.optional(v.boolean()),
+    defaultBillingAddressId: v.optional(v.id("commerce_customer_addresses")),
+    defaultShippingAddressId: v.optional(v.id("commerce_customer_addresses")),
+    updatedAt: v.number(),
+    createdAt: v.number(),
+    email: v.string(),
+    currencyCode: v.string(),
+    totalOrders: v.number(),
+    totalSpentAmount: v.number(),
+  })),
   handler: async (ctx) => {
     await requireCommerceEnabled(ctx);
     const user = await getCurrentUser(ctx);
@@ -222,6 +249,7 @@ export const getMyAddresses = query({
       v.union(v.literal("billing"), v.literal("shipping")),
     ),
   },
+  returns: v.array(tableDocs.commerce_customer_addresses),
   handler: async (ctx, args) => {
     await requireCommerceEnabled(ctx);
     const user = await getCurrentUser(ctx);
@@ -251,6 +279,7 @@ export const getMyAddresses = query({
  */
 export const getAddress = query({
   args: { addressId: v.id("commerce_customer_addresses") },
+  returns: v.union(v.null(), tableDocs.commerce_customer_addresses),
   handler: async (ctx, args) => {
     await requireCommerceEnabled(ctx);
     const user = await getCurrentUser(ctx);
@@ -289,6 +318,7 @@ export const listCustomers = query({
     sortOrder: v.optional(v.union(v.literal("asc"), v.literal("desc"))),
     limit: v.optional(v.number()),
   },
+  returns: v.array(tableDocs.commerce_customer_profiles),
   handler: async (ctx, args) => {
     await requireCommerceEnabled(ctx);
     await requireCan(ctx, "manage_options");
@@ -381,6 +411,13 @@ export const getCustomer = query({
  */
 export const getCustomerStats = query({
   args: { days: v.optional(v.number()) },
+  returns: v.object({
+    totalCustomers: v.number(),
+    newCustomers: v.number(),
+    totalSpent: v.number(),
+    totalOrders: v.number(),
+    averageSpent: v.number(),
+  }),
   handler: async (ctx, args) => {
     await requireCommerceEnabled(ctx);
     await requireCan(ctx, "manage_options");
@@ -429,6 +466,7 @@ export const ensureMine = mutation({
     email: v.string(),
     phone: v.optional(v.string()),
   },
+  returns: v.id("commerce_customer_profiles"),
   handler: async (ctx, args) => {
     await requireCommerceEnabled(ctx);
     const user = await getCurrentUser(ctx);
@@ -486,6 +524,7 @@ export const createCustomer = mutation({
     userId: v.optional(v.id("users")),
     currencyCode: v.optional(v.string()),
   },
+  returns: v.id("commerce_customer_profiles"),
   handler: async (ctx, args) => {
     await requireCommerceEnabled(ctx);
     await requireCan(ctx, "manage_options");
@@ -532,6 +571,7 @@ export const updateCustomer = mutation({
       v.id("commerce_customer_addresses"),
     ),
   },
+  returns: v.id("commerce_customer_profiles"),
   handler: async (ctx, args) => {
     await requireCommerceEnabled(ctx);
     await requireCan(ctx, "manage_options");
@@ -576,6 +616,7 @@ export const updateMyProfile = mutation({
   args: {
     phone: v.optional(v.string()),
   },
+  returns: v.id("commerce_customer_profiles"),
   handler: async (ctx, args) => {
     await requireCommerceEnabled(ctx);
     const user = await getCurrentUser(ctx);
@@ -610,6 +651,7 @@ export const updateMyProfile = mutation({
  */
 export const deleteCustomer = mutation({
   args: { customerId: v.id("commerce_customer_profiles") },
+  returns: v.id("commerce_customer_profiles"),
   handler: async (ctx, args) => {
     await requireCommerceEnabled(ctx);
     await requireCan(ctx, "manage_options");
@@ -662,6 +704,7 @@ export const addAddress = mutation({
     phone: v.optional(v.string()),
     setAsDefault: v.optional(v.boolean()),
   },
+  returns: v.id("commerce_customer_addresses"),
   handler: async (ctx, args) => {
     await requireCommerceEnabled(ctx);
     const user = await getCurrentUser(ctx);
@@ -769,6 +812,7 @@ export const updateAddress = mutation({
     countryCode: v.optional(v.string()),
     phone: v.optional(v.string()),
   },
+  returns: v.id("commerce_customer_addresses"),
   handler: async (ctx, args) => {
     await requireCommerceEnabled(ctx);
     const user = await getCurrentUser(ctx);
@@ -824,6 +868,7 @@ export const updateAddress = mutation({
  */
 export const deleteAddress = mutation({
   args: { addressId: v.id("commerce_customer_addresses") },
+  returns: v.id("commerce_customer_addresses"),
   handler: async (ctx, args) => {
     await requireCommerceEnabled(ctx);
     const user = await getCurrentUser(ctx);
@@ -877,6 +922,7 @@ export const setDefaultAddress = mutation({
     addressId: v.id("commerce_customer_addresses"),
     addressType: v.union(v.literal("billing"), v.literal("shipping")),
   },
+  returns: v.id("commerce_customer_addresses"),
   handler: async (ctx, args) => {
     await requireCommerceEnabled(ctx);
     const user = await getCurrentUser(ctx);
@@ -961,6 +1007,7 @@ export const adminAddAddress = mutation({
     phone: v.optional(v.string()),
     setAsDefault: v.optional(v.boolean()),
   },
+  returns: v.id("commerce_customer_addresses"),
   handler: async (ctx, args) => {
     await requireCommerceEnabled(ctx);
     await requireCan(ctx, "manage_options");
@@ -1039,6 +1086,7 @@ export const adminAddAddress = mutation({
  */
 export const adminDeleteAddress = mutation({
   args: { addressId: v.id("commerce_customer_addresses") },
+  returns: v.id("commerce_customer_addresses"),
   handler: async (ctx, args) => {
     await requireCommerceEnabled(ctx);
     await requireCan(ctx, "manage_options");
@@ -1085,6 +1133,7 @@ export const incrementOrderStats = internalMutation({
     customerId: v.id("commerce_customer_profiles"),
     orderAmount: v.number(),
   },
+  returns: v.null(),
   handler: async (ctx, args) => {
     const customer = await ctx.db.get(args.customerId);
     if (!customer) return;
@@ -1105,6 +1154,7 @@ export const decrementOrderStats = internalMutation({
     customerId: v.id("commerce_customer_profiles"),
     orderAmount: v.number(),
   },
+  returns: v.null(),
   handler: async (ctx, args) => {
     const customer = await ctx.db.get(args.customerId);
     if (!customer) return;
@@ -1125,6 +1175,7 @@ export const decrementOrderStats = internalMutation({
  */
 export const getByEmail = internalQuery({
   args: { email: v.string() },
+  returns: v.union(v.null(), tableDocs.commerce_customer_profiles),
   handler: async (ctx, args) => {
     return ctx.db
       .query("commerce_customer_profiles")
@@ -1138,6 +1189,7 @@ export const getByEmail = internalQuery({
  */
 export const getByUserId = internalQuery({
   args: { userId: v.id("users") },
+  returns: v.union(v.null(), tableDocs.commerce_customer_profiles),
   handler: async (ctx, args) => {
     return ctx.db
       .query("commerce_customer_profiles")
@@ -1154,6 +1206,7 @@ export const ensureForCheckout = internalMutation({
     email: v.string(),
     userId: v.optional(v.id("users")),
   },
+  returns: v.id("commerce_customer_profiles"),
   handler: async (ctx, args) => {
     // Try by user first
     if (args.userId) {

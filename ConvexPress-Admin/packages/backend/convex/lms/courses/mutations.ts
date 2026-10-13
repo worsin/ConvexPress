@@ -32,6 +32,7 @@ import {
   updateAccessRuleArgs,
 } from "./validators";
 
+import { v } from "convex/values";
 const COURSE_URL_FIELDS = new Set([
   "promoVideoUrl",
   "externalButtonUrl",
@@ -49,6 +50,7 @@ const NON_NEGATIVE_INT_FIELDS = new Set([
 
 export const create = mutation({
   args: createCourseArgs,
+  returns: v.id("lms_courses"),
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "lms");
     const user = await requireCan(ctx, "lms.course.create");
@@ -87,6 +89,7 @@ export const create = mutation({
 
 export const update = mutation({
   args: updateCourseArgs,
+  returns: v.id("lms_courses"),
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "lms");
 
@@ -150,6 +153,7 @@ export const update = mutation({
 
 export const publish = mutation({
   args: courseIdArg,
+  returns: v.id("lms_courses"),
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "lms");
     await requireCan(ctx, "lms.course.publish");
@@ -168,6 +172,7 @@ export const publish = mutation({
 
 export const unpublish = mutation({
   args: courseIdArg,
+  returns: v.id("lms_courses"),
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "lms");
     await requireCan(ctx, "lms.course.publish");
@@ -182,6 +187,7 @@ export const unpublish = mutation({
 
 export const archive = mutation({
   args: courseIdArg,
+  returns: v.id("lms_courses"),
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "lms");
     await requireCourseAuthorOrEditor(ctx, args.courseId, "lms.course.edit");
@@ -194,6 +200,7 @@ export const archive = mutation({
 
 export const restore = mutation({
   args: courseIdArg,
+  returns: v.id("lms_courses"),
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "lms");
     await requireCourseAuthorOrEditor(ctx, args.courseId, "lms.course.edit");
@@ -206,6 +213,7 @@ export const restore = mutation({
 
 export const remove = mutation({
   args: courseIdArg,
+  returns: v.object({ deleted: v.boolean() }),
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "lms");
     await requireCan(ctx, "lms.course.delete");
@@ -289,6 +297,7 @@ function normalizePositiveInt(value: unknown): number {
 
 export const duplicate = mutation({
   args: courseIdArg,
+  returns: v.id("lms_courses"),
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "lms");
     const { user } = await requireCourseAuthorOrEditor(ctx, args.courseId, "lms.course.create");
@@ -429,6 +438,7 @@ export const duplicate = mutation({
 
 export const updatePrerequisites = mutation({
   args: updatePrerequisitesArgs,
+  returns: v.object({ ok: v.boolean() }),
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "lms");
     const { course } = await requireCourseAuthorOrEditor(ctx, args.courseId, "lms.course.edit");
@@ -475,6 +485,7 @@ export const updatePrerequisites = mutation({
 
 export const updateAccessRule = mutation({
   args: updateAccessRuleArgs,
+  returns: v.union(v.object({ ruleId: v.null(), deleted: v.boolean() }), v.object({ ruleId: v.id("membership_restriction_rules"), deleted: v.optional(v.null()) })),
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "lms");
     await requireCourseAuthorOrEditor(ctx, args.courseId, "lms.course.edit");

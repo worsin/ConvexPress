@@ -15,10 +15,13 @@ import { getCurrentUser } from "../helpers/permissions";
 import { getProgressArgs, trackProgressArgs } from "./validators";
 import { isPluginEnabled, requirePluginEnabled } from "../helpers/plugins";
 
+import { v } from "convex/values";
+import { tableDocs } from "../schema/tableDocs.generated";
 // ─── Get Progress ───────────────────────────────────────────────────────────
 
 export const getProgress: RegisteredQuery<"public", { articleId: Id<"kb_articles"> }, Doc<"kb_userProgress"> | null> = query({
   args: getProgressArgs,
+  returns: v.union(v.null(), tableDocs.kb_userProgress),
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "knowledgeBase"))) return null;
     const user = await getCurrentUser(ctx);
@@ -37,6 +40,7 @@ export const getProgress: RegisteredQuery<"public", { articleId: Id<"kb_articles
 
 export const trackProgress: RegisteredMutation<"public", { articleId: Id<"kb_articles">; progressPercent: number; scrollPosition: number; readTime: number; completedRead?: boolean }, Id<"kb_userProgress">> = mutation({
   args: trackProgressArgs,
+  returns: v.id("kb_userProgress"),
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "knowledgeBase");
     const user = await getCurrentUser(ctx);
@@ -96,10 +100,25 @@ export const trackProgress: RegisteredMutation<"public", { articleId: Id<"kb_art
 
 // ─── Get User History ───────────────────────────────────────────────────────
 
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const getUserHistory = query({
   args: {},
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.array(v.object({
+    article: v.union(v.null(), v.object({
+      _id: v.id("kb_articles"),
+      title: v.string(),
+      slug: v.string(),
+      categoryId: v.optional(v.id("kb_categories")),
+    })),
+    _id: v.id("kb_userProgress"),
+    _creationTime: v.number(),
+    userId: v.id("users"),
+    articleId: v.id("kb_articles"),
+    progressPercent: v.number(),
+    scrollPosition: v.number(),
+    lastReadAt: v.number(),
+    readTime: v.number(),
+    completedRead: v.boolean(),
+  })),
   handler: async (ctx) => {
     if (!(await isPluginEnabled(ctx, "knowledgeBase"))) return [];
     const user = await getCurrentUser(ctx);
@@ -109,13 +128,11 @@ export const getUserHistory = query({
 
     const progress = await ctx.db
       .query("kb_userProgress")
-      .withIndex("by_user_recent", (q: ConvexQueryBuilder) => q.eq("userId", user._id))
+      .withIndex("by_user_recent", (q) => q.eq("userId", user._id))
       .order("desc")
       .take(20);
 
-    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     return Promise.all(
-      // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
       progress.map(async (p) => {
         const article = await ctx.db.get("kb_articles", p.articleId);
         return {

@@ -33,12 +33,13 @@ import {
 import { isPluginEnabled, requirePluginEnabled } from "../helpers/plugins";
 import { deleteWithMediaReferences, insertWithMediaReferences, patchWithMediaReferences } from "../media/attachmentGuard";
 
+import { v } from "convex/values";
+import { tableDocs } from "../schema/tableDocs.generated";
 // ─── List (Admin) ───────────────────────────────────────────────────────────
 
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const list = query({
   args: {},
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.union(v.null(), v.array(tableDocs.kb_collections)),
   handler: async (ctx) => {
     if (!(await isPluginEnabled(ctx, "knowledgeBase"))) return null;
     const user = await getCurrentUser(ctx);
@@ -52,25 +53,51 @@ export const list = query({
 
 // ─── List Public ────────────────────────────────────────────────────────────
 
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const listPublic = query({
   args: {},
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.union(v.null(), v.array(tableDocs.kb_collections)),
   handler: async (ctx) => {
     if (!(await isPluginEnabled(ctx, "knowledgeBase"))) return null;
     return ctx.db
       .query("kb_collections")
-      .withIndex("by_public", (q: ConvexQueryBuilder) => q.eq("isPublic", true))
+      .withIndex("by_public", (q) => q.eq("isPublic", true))
       .take(500);
   },
 });
 
 // ─── Get By ID (Admin) ─────────────────────────────────────────────────────
 
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const getById = query({
   args: getCollectionByIdArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.union(v.null(), v.object({
+    articles: v.array(v.union(v.null(), v.object({
+      article: v.object({
+        _id: v.id("kb_articles"),
+        title: v.string(),
+        slug: v.string(),
+        status: v.union(v.literal("draft"), v.literal("archived"), v.literal("review"), v.literal("published")),
+      }),
+      _id: v.id("kb_collectionArticles"),
+      _creationTime: v.number(),
+      order: v.number(),
+      articleId: v.id("kb_articles"),
+      collectionId: v.id("kb_collections"),
+      addedBy: v.id("users"),
+      addedAt: v.number(),
+    }))),
+    _id: v.id("kb_collections"),
+    _creationTime: v.number(),
+    description: v.optional(v.string()),
+    coverImageId: v.optional(v.id("media")),
+    type: v.union(v.literal("manual"), v.literal("series"), v.literal("learningPath")),
+    name: v.string(),
+    updatedAt: v.number(),
+    createdAt: v.number(),
+    slug: v.string(),
+    createdBy: v.id("users"),
+    articleCount: v.number(),
+    isPublic: v.boolean(),
+  })),
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "knowledgeBase"))) return null;
     const user = await getCurrentUser(ctx);
@@ -84,11 +111,10 @@ export const getById = query({
     // Get articles in order
     const collectionArticles = await ctx.db
       .query("kb_collectionArticles")
-      .withIndex("by_collection_order", (q: ConvexQueryBuilder) => q.eq("collectionId", args.collectionId))
+      .withIndex("by_collection_order", (q) => q.eq("collectionId", args.collectionId))
       .take(500);
 
     const articles = await Promise.all(
-      // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
       collectionArticles.map(async (ca) => {
         const article = await ctx.db.get("kb_articles", ca.articleId);
         return article
@@ -106,6 +132,29 @@ export const getById = query({
 type PublicCollection = Doc<"kb_collections"> & { articles: Array<Pick<Doc<"kb_articles">, "_id" | "title" | "slug" | "excerpt" | "readingTimeMinutes" | "categoryId"> & { order: number }> };
 export const getBySlug: RegisteredQuery<"public", { slug: string }, PublicCollection | null> = query({
   args: getCollectionBySlugArgs,
+  returns: v.union(v.null(), v.object({
+    articles: v.array(v.object({
+      _id: v.id("kb_articles"),
+      title: v.string(),
+      slug: v.string(),
+      excerpt: v.string(),
+      readingTimeMinutes: v.number(),
+      order: v.number(),
+      categoryId: v.optional(v.id("kb_categories")),
+    })),
+    _id: v.id("kb_collections"),
+    _creationTime: v.number(),
+    description: v.optional(v.string()),
+    coverImageId: v.optional(v.id("media")),
+    type: v.union(v.literal("manual"), v.literal("series"), v.literal("learningPath")),
+    name: v.string(),
+    updatedAt: v.number(),
+    createdAt: v.number(),
+    slug: v.string(),
+    createdBy: v.id("users"),
+    articleCount: v.number(),
+    isPublic: v.boolean(),
+  })),
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "knowledgeBase"))) return null;
     const collection = await ctx.db
@@ -142,10 +191,9 @@ export const getBySlug: RegisteredQuery<"public", { slug: string }, PublicCollec
 
 // ─── Create ─────────────────────────────────────────────────────────────────
 
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const create = mutation({
   args: createCollectionArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.id("kb_collections"),
   handler: async (ctx, args): Promise<import("../_generated/dataModel").Id<"kb_collections">> => {
     await requirePluginEnabled(ctx, "knowledgeBase");
     const user = await requireCan(ctx, "kb.manageCollections");
@@ -177,10 +225,9 @@ export const create = mutation({
 
 // ─── Update ─────────────────────────────────────────────────────────────────
 
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const update = mutation({
   args: updateCollectionArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.id("kb_collections"),
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "knowledgeBase");
     const user = await requireCan(ctx, "kb.manageCollections");
@@ -213,10 +260,9 @@ export const update = mutation({
 
 // ─── Remove ─────────────────────────────────────────────────────────────────
 
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const remove = mutation({
   args: removeCollectionArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.id("kb_collections"),
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "knowledgeBase");
     const user = await requireCan(ctx, "kb.manageCollections");
@@ -229,7 +275,7 @@ export const remove = mutation({
     // Delete all collection-article associations
     const collectionArticles = await ctx.db
       .query("kb_collectionArticles")
-      .withIndex("by_collection", (q: ConvexQueryBuilder) => q.eq("collectionId", args.collectionId))
+      .withIndex("by_collection", (q) => q.eq("collectionId", args.collectionId))
       .take(500);
     for (const ca of collectionArticles) {
       await ctx.db.delete("kb_collectionArticles", ca._id);
@@ -242,10 +288,9 @@ export const remove = mutation({
 
 // ─── Add Article ────────────────────────────────────────────────────────────
 
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const addArticle = mutation({
   args: addArticleToCollectionArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.id("kb_collectionArticles"),
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "knowledgeBase");
     const user = await requireCan(ctx, "kb.manageCollections");
@@ -253,15 +298,13 @@ export const addArticle = mutation({
     // Check for existing association
     const existing = await ctx.db
       .query("kb_collectionArticles")
-      .withIndex("by_collection", (q: ConvexQueryBuilder) => q.eq("collectionId", args.collectionId))
+      .withIndex("by_collection", (q) => q.eq("collectionId", args.collectionId))
       .take(500);
 
-    // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
     const alreadyAdded = existing.find((ca) => ca.articleId === args.articleId);
     if (alreadyAdded) return alreadyAdded._id;
 
     const maxOrder = existing.length > 0
-      // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
       ? Math.max(...existing.map((ca) => ca.order))
       : 0;
 
@@ -288,20 +331,18 @@ export const addArticle = mutation({
 
 // ─── Remove Article ─────────────────────────────────────────────────────────
 
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const removeArticle = mutation({
   args: removeArticleFromCollectionArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.union(v.null(), v.id("kb_collectionArticles")),
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "knowledgeBase");
     const user = await requireCan(ctx, "kb.manageCollections");
 
     const collectionArticles = await ctx.db
       .query("kb_collectionArticles")
-      .withIndex("by_collection", (q: ConvexQueryBuilder) => q.eq("collectionId", args.collectionId))
+      .withIndex("by_collection", (q) => q.eq("collectionId", args.collectionId))
       .take(500);
 
-    // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
     const toRemove = collectionArticles.find((ca) => ca.articleId === args.articleId);
     if (!toRemove) return null;
 
@@ -322,20 +363,18 @@ export const removeArticle = mutation({
 
 // ─── Reorder Articles ───────────────────────────────────────────────────────
 
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const reorderArticles = mutation({
   args: reorderCollectionArticlesArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.id("kb_collectionArticles"),
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "knowledgeBase");
     const user = await requireCan(ctx, "kb.manageCollections");
 
     const collectionArticles = await ctx.db
       .query("kb_collectionArticles")
-      .withIndex("by_collection", (q: ConvexQueryBuilder) => q.eq("collectionId", args.collectionId))
+      .withIndex("by_collection", (q) => q.eq("collectionId", args.collectionId))
       .take(500);
 
-    // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
     const toReorder = collectionArticles.find((ca) => ca.articleId === args.articleId);
     if (!toReorder) {
       throw new ConvexError({ code: "NOT_FOUND", message: "Article not found in collection" });

@@ -41,6 +41,20 @@ export const importBatch = internalAction({
     siteId: v.id("wordpressSites"),
     credentials: siteCredentialsValidator,
   },
+  returns: v.object({
+    progress: v.object({
+      total: v.number(),
+      imported: v.number(),
+      failed: v.number(),
+      cursor: v.optional(v.number()),
+      created: v.optional(v.number()),
+      updated: v.optional(v.number()),
+      skipped: v.optional(v.number()),
+      conflicted: v.optional(v.number()),
+    }),
+    errors: v.array(v.object({ phase: v.string(), wpId: v.number(), message: v.string(), timestamp: v.number() })),
+    hasMore: v.boolean(),
+  }),
   handler: async (ctx, { jobId, siteId, credentials }): Promise<PhaseResult> => {
     const job = await ctx.runQuery(internal.wordpressSync.internals.getJobInternal, { jobId });
     const site = await ctx.runQuery(internal.wordpressSync.internals.getSiteWithCredentials, { siteId });
@@ -1061,6 +1075,7 @@ export const upsertCategory = internalMutation({
       thumbnailMediaId: v.optional(v.string()),
     }),
   },
+  returns: v.id("commerce_product_categories"),
   handler: async (ctx, { existingId, parentId, wpCategory }) => {
     const now = Date.now();
     const parentState = await getCommerceCategoryParentState(ctx, parentId);
@@ -1112,6 +1127,7 @@ export const setCategoryParent = internalMutation({
     categoryId: v.string(),
     parentId: v.optional(v.string()),
   },
+  returns: v.null(),
   handler: async (ctx, { categoryId, parentId }) => {
     const typedCategoryId = categoryId as Id<"commerce_product_categories">;
     const parentState = await getCommerceCategoryParentState(ctx, parentId);
@@ -1173,6 +1189,7 @@ export const upsertProduct = internalMutation({
       rawSourceMeta: v.optional(v.string()),
     }),
   },
+  returns: v.id("commerce_products"),
   handler: async (ctx, { existingId, authorId, product }) => {
     const now = Date.now();
     const patch = {
@@ -1271,6 +1288,7 @@ export const upsertVariant = internalMutation({
       menuOrder: v.optional(v.number()),
     }),
   },
+  returns: v.id("commerce_product_variants"),
   handler: async (ctx, { existingId, productId, variant }) => {
     const now = Date.now();
     const targetProductId = productId as Id<"commerce_products">;

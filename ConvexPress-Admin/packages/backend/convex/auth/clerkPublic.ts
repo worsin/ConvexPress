@@ -23,6 +23,7 @@ import {
   type AuthCapabilities,
 } from "./clerkConnectionHelpers";
 
+import { v } from "convex/values";
 async function plainOrEnv(value: unknown, env: string | undefined): Promise<string> {
   if (typeof value === "string" && value.trim()) {
     const raw = value.trim();
@@ -46,6 +47,97 @@ export interface WebsiteAuthConfig {
 
 export const getWebsiteAuthConfig = query({
   args: {},
+  returns: v.object({
+    provider: v.union(v.literal("none"), v.literal("clerk")),
+    publishableKey: v.union(v.null(), v.string()),
+    frontendApi: v.union(v.null(), v.string()),
+    environmentType: v.union(v.null(), v.literal("production"), v.literal("development")),
+    deploymentTrustsIssuer: v.boolean(),
+    capabilities: v.object({
+      version: v.literal(1),
+      applicationName: v.union(v.null(), v.string()),
+      environmentType: v.union(v.null(), v.literal("production"), v.literal("development")),
+      attributes: v.object({
+        emailAddress: v.object({
+          enabled: v.boolean(),
+          required: v.boolean(),
+          verifications: v.array(v.union(v.literal("email_code"), v.literal("email_link"), v.literal("phone_code"))),
+          usedForFirstFactor: v.boolean(),
+          usedForSecondFactor: v.boolean(),
+        }),
+        phoneNumber: v.object({
+          enabled: v.boolean(),
+          required: v.boolean(),
+          verifications: v.array(v.union(v.literal("email_code"), v.literal("email_link"), v.literal("phone_code"))),
+          usedForFirstFactor: v.boolean(),
+          usedForSecondFactor: v.boolean(),
+        }),
+        username: v.object({
+          enabled: v.boolean(),
+          required: v.boolean(),
+          verifications: v.array(v.union(v.literal("email_code"), v.literal("email_link"), v.literal("phone_code"))),
+          usedForFirstFactor: v.boolean(),
+          usedForSecondFactor: v.boolean(),
+        }),
+        firstName: v.object({
+          enabled: v.boolean(),
+          required: v.boolean(),
+          verifications: v.array(v.union(v.literal("email_code"), v.literal("email_link"), v.literal("phone_code"))),
+          usedForFirstFactor: v.boolean(),
+          usedForSecondFactor: v.boolean(),
+        }),
+        lastName: v.object({
+          enabled: v.boolean(),
+          required: v.boolean(),
+          verifications: v.array(v.union(v.literal("email_code"), v.literal("email_link"), v.literal("phone_code"))),
+          usedForFirstFactor: v.boolean(),
+          usedForSecondFactor: v.boolean(),
+        }),
+        password: v.object({
+          enabled: v.boolean(),
+          required: v.boolean(),
+          verifications: v.array(v.union(v.literal("email_code"), v.literal("email_link"), v.literal("phone_code"))),
+          usedForFirstFactor: v.boolean(),
+          usedForSecondFactor: v.boolean(),
+        }),
+      }),
+      social: v.array(v.string()),
+      signUp: v.object({
+        mode: v.union(v.literal("public"), v.literal("restricted"), v.literal("waitlist")),
+        captchaEnabled: v.boolean(),
+        captchaWidgetType: v.union(v.null(), v.literal("smart"), v.literal("invisible")),
+        legalConsentEnabled: v.boolean(),
+        progressive: v.boolean(),
+      }),
+      signIn: v.object({
+        preferredStrategy: v.union(v.literal("password"), v.literal("otp")),
+        secondFactorRequired: v.boolean(),
+        firstFactors: v.array(v.string()),
+        secondFactors: v.array(v.string()),
+      }),
+      password: v.object({
+        enabled: v.boolean(),
+        required: v.boolean(),
+        minLength: v.number(),
+        maxLength: v.number(),
+        requireSpecialChar: v.boolean(),
+        requireNumbers: v.boolean(),
+        requireUppercase: v.boolean(),
+        requireLowercase: v.boolean(),
+        allowedSpecialCharacters: v.string(),
+        showZxcvbn: v.boolean(),
+        minZxcvbnStrength: v.number(),
+      }),
+      passkeys: v.object({ enabled: v.boolean() }),
+      links: v.object({
+        termsUrl: v.union(v.null(), v.string()),
+        privacyPolicyUrl: v.union(v.null(), v.string()),
+        supportEmail: v.union(v.null(), v.string()),
+      }),
+    }),
+    capabilitiesSyncedAt: v.union(v.null(), v.number()),
+    connectionMode: v.union(v.literal(""), v.literal("manual"), v.literal("secret_key"), v.literal("keyless")),
+  }),
   handler: async (ctx): Promise<WebsiteAuthConfig> => {
     const doc = await ctx.db
       .query("settings")

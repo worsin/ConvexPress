@@ -6,6 +6,7 @@ import type { Doc, Id } from "../_generated/dataModel";
 import { getCurrentUser } from "../helpers/permissions";
 import { getLockArgs } from "./validators";
 
+import { v } from "convex/values";
 // ─── Get Lock ───────────────────────────────────────────────────────────────
 
 /**
@@ -19,6 +20,14 @@ import { getLockArgs } from "./validators";
  */
 export const getLock: RegisteredQuery<"public", { postId: Id<"posts"> }, (Pick<Doc<"editorLocks">, "postId" | "userId" | "userDisplayName" | "lockedAt" | "expiresAt"> & { isCurrentUser: boolean }) | null> = query({
   args: getLockArgs,
+  returns: v.union(v.null(), v.object({
+    postId: v.id("posts"),
+    userId: v.id("users"),
+    userDisplayName: v.string(),
+    lockedAt: v.number(),
+    expiresAt: v.number(),
+    isCurrentUser: v.boolean(),
+  })),
   handler: async (ctx, args) => {
     const user = await getCurrentUser(ctx);
     if (!user) {
@@ -63,26 +72,23 @@ export const getLock: RegisteredQuery<"public", { postId: Id<"posts"> }, (Pick<D
  *
  * Returns only non-expired locks.
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const getMyLocks = query({
   args: {},
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.array(v.object({ postId: v.id("posts"), lockedAt: v.number(), expiresAt: v.number() })),
   handler: async (ctx) => {
     const user = await getCurrentUser(ctx);
     if (!user) return [];
 
     const locks = await ctx.db
       .query("editorLocks")
-      .withIndex("by_userId", (q: ConvexQueryBuilder) => q.eq("userId", user._id))
+      .withIndex("by_userId", (q) => q.eq("userId", user._id))
       .collect();
 
     const now = Date.now();
 
     // Filter out expired locks
     return locks
-      // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
       .filter((lock) => lock.expiresAt > now)
-      // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
       .map((lock) => ({
         postId: lock.postId,
         lockedAt: lock.lockedAt,

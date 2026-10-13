@@ -61,6 +61,7 @@ import {
 
 import { deleteWithMediaReferences, patchWithMediaReferences } from "../media/attachmentGuard";
 
+import { v } from "convex/values";
 // New documents are created through canonicalDocuments.create or the canonical HTTP API.
 
 // Metadata and authoring use revision-checked canonicalDocuments mutations.
@@ -77,6 +78,7 @@ import { deleteWithMediaReferences, patchWithMediaReferences } from "../media/at
  */
 export const publish = mutation({
   args: publishPageArgs,
+  returns: v.id("posts"),
   handler: async (ctx, args) => {
     const user = await requireCan(ctx, "page.publish");
 
@@ -138,6 +140,7 @@ export const publish = mutation({
  */
 export const trash = mutation({
   args: trashPageArgs,
+  returns: v.id("posts"),
   handler: async (ctx, args) => {
     const user = await requireCan(ctx, "page.delete");
 
@@ -201,6 +204,7 @@ export const trash = mutation({
  */
 export const restore = mutation({
   args: restorePageArgs,
+  returns: v.id("posts"),
   handler: async (ctx, args) => {
     const user = await requireCan(ctx, "page.update");
 
@@ -300,6 +304,7 @@ export const restore = mutation({
  */
 export const permanentDelete = mutation({
   args: deletePageArgs,
+  returns: v.object({ success: v.boolean() }),
   handler: async (ctx, args) => {
     const user = await requireCan(ctx, "page.delete");
 
@@ -404,6 +409,7 @@ export const permanentDelete = mutation({
  */
 export const reorder = mutation({
   args: reorderPagesArgs,
+  returns: v.boolean(),
   handler: async (ctx, args) => {
     const user = await requireCan(ctx, "page.reorder");
 
@@ -493,6 +499,7 @@ export const reorder = mutation({
  */
 export const setParent = mutation({
   args: setPageParentArgs,
+  returns: v.id("posts"),
   handler: async (ctx, args) => {
     const user = await requireCan(ctx, "page.set_parent");
 

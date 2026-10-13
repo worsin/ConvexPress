@@ -75,6 +75,51 @@ export const testSiteConnection: RegisteredAction<"public", ConnectionTestArgs, 
     userPasswordExportPath: v.optional(v.string()),
     userPasswordExportSecret: v.optional(v.string()),
   },
+  returns: v.union(v.object({
+    success: v.literal(true),
+    siteInfo: v.object({
+      name: v.string(),
+      description: v.string(),
+      url: v.string(),
+      home: v.string(),
+      gmt_offset: v.number(),
+      timezone_string: v.string(),
+      site_icon: v.number(),
+      site_icon_url: v.string(),
+      namespaces: v.array(v.string()),
+    }),
+    capabilities: v.optional(v.object({
+      wpRest: v.boolean(),
+      wpAuthValid: v.boolean(),
+      wooAuthValid: v.boolean(),
+      menusApi: v.boolean(),
+      woocommerceApi: v.boolean(),
+      customMetaEndpointConfigured: v.boolean(),
+      customMetaEndpointDetected: v.boolean(),
+      userPasswordExportEndpointConfigured: v.boolean(),
+      userPasswordExportEndpointDetected: v.boolean(),
+      elementorDetected: v.boolean(),
+      mediaAccessible: v.boolean(),
+    })),
+    error: v.optional(v.null()),
+  }), v.object({
+    success: v.literal(false),
+    error: v.string(),
+    capabilities: v.optional(v.object({
+      wpRest: v.boolean(),
+      wpAuthValid: v.boolean(),
+      wooAuthValid: v.boolean(),
+      menusApi: v.boolean(),
+      woocommerceApi: v.boolean(),
+      customMetaEndpointConfigured: v.boolean(),
+      customMetaEndpointDetected: v.boolean(),
+      userPasswordExportEndpointConfigured: v.boolean(),
+      userPasswordExportEndpointDetected: v.boolean(),
+      elementorDetected: v.boolean(),
+      mediaAccessible: v.boolean(),
+    })),
+    siteInfo: v.optional(v.null()),
+  })),
   handler: async (ctx, args) => {
     let credentials: { siteUrl: string; username: string; applicationPassword: string };
 
@@ -255,13 +300,19 @@ export const testSiteConnection: RegisteredAction<"public", ConnectionTestArgs, 
  * Get content counts from a WordPress site.
  * Useful for showing what will be imported before starting.
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const getWPContentCounts = action({
   args: {
-    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     siteId: v.id("wordpressSites"),
   },
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.object({
+    users: v.number(),
+    posts: v.number(),
+    pages: v.number(),
+    categories: v.number(),
+    tags: v.number(),
+    media: v.number(),
+    comments: v.number(),
+  }),
   handler: async (ctx, { siteId }) => {
     // Get site credentials
     const site = await ctx.runQuery(internal.wordpressSync.internals.getSiteWithCredentials, {
@@ -290,15 +341,12 @@ export const getWPContentCounts = action({
  * Start a sync job and begin processing.
  * Creates a job if none exists, then starts phase execution.
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const startSync = action({
   args: {
-    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     siteId: v.id("wordpressSites"),
-    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     importConfig: v.optional(v.any()),
   },
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.id("wordpressSyncJobs"),
   handler: async (ctx, { siteId, importConfig }) => {
     // Check if there's already an active job
     const activeJob = await ctx.runQuery(api.wordpressSync.queries.getActiveJob, {
@@ -360,7 +408,6 @@ export const startSync = action({
       jobId,
     });
 
-    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     return jobId;
   },
 });
@@ -368,13 +415,11 @@ export const startSync = action({
 /**
  * Resume a paused sync job.
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const resumeSync = action({
   args: {
-    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     jobId: v.id("wordpressSyncJobs"),
   },
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.id("wordpressSyncJobs"),
   handler: async (ctx, { jobId }) => {
     // Get job to verify it's paused
     const job = await ctx.runQuery(api.wordpressSync.queries.getJob, { jobId });

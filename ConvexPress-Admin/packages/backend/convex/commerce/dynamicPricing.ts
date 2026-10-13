@@ -5,6 +5,7 @@ import { mutation, query } from "../_generated/server";
 import { requireCan } from "../helpers/permissions";
 import { requireCommerceEnabled } from "./helpers";
 
+import { tableDocs } from "../schema/tableDocs.generated";
 const ruleStatus = v.union(v.literal("draft"), v.literal("active"), v.literal("inactive"));
 const processingMode = v.union(
   v.literal("all_applicable"),
@@ -121,6 +122,7 @@ function assertRule(args: any) {
 
 export const list = query({
   args: { status: v.optional(ruleStatus) },
+  returns: v.array(tableDocs.commerce_dynamic_pricing_rules),
   handler: async (ctx, args) => {
     await requireCommerceEnabled(ctx);
     await requireCan(ctx, "manage_options");
@@ -140,6 +142,7 @@ export const list = query({
 
 export const get = query({
   args: { ruleId: v.id("commerce_dynamic_pricing_rules") },
+  returns: v.union(v.null(), tableDocs.commerce_dynamic_pricing_rules),
   handler: async (ctx, args) => {
     await requireCommerceEnabled(ctx);
     await requireCan(ctx, "manage_options");
@@ -149,6 +152,7 @@ export const get = query({
 
 export const create = mutation({
   args: ruleInput,
+  returns: v.id("commerce_dynamic_pricing_rules"),
   handler: async (ctx, args) => {
     await requireCommerceEnabled(ctx);
     await requireCan(ctx, "manage_options");
@@ -171,6 +175,7 @@ export const create = mutation({
 
 export const update = mutation({
   args: { ruleId: v.id("commerce_dynamic_pricing_rules"), patch: v.object({ ...ruleInput }) },
+  returns: v.id("commerce_dynamic_pricing_rules"),
   handler: async (ctx, args) => {
     await requireCommerceEnabled(ctx);
     await requireCan(ctx, "manage_options");
@@ -198,6 +203,7 @@ export const setStatus = mutation({
     ruleId: v.id("commerce_dynamic_pricing_rules"),
     status: ruleStatus,
   },
+  returns: v.id("commerce_dynamic_pricing_rules"),
   handler: async (ctx, args) => {
     await requireCommerceEnabled(ctx);
     await requireCan(ctx, "manage_options");
@@ -208,6 +214,7 @@ export const setStatus = mutation({
 
 export const remove = mutation({
   args: { ruleId: v.id("commerce_dynamic_pricing_rules") },
+  returns: v.id("commerce_dynamic_pricing_rules"),
   handler: async (ctx, args) => {
     await requireCommerceEnabled(ctx);
     await requireCan(ctx, "manage_options");
@@ -231,6 +238,18 @@ export const preview = query({
     couponPresent: v.optional(v.boolean()),
     shippingCountry: v.optional(v.string()),
   },
+  returns: v.object({
+    currencyCode: v.string(),
+    originalSubtotalAmount: v.number(),
+    adjustedSubtotalAmount: v.number(),
+    itemDiscountAmount: v.number(),
+    cartDiscountAmount: v.number(),
+    totalDiscountAmount: v.number(),
+    finalSubtotalAmount: v.number(),
+    freeShipping: v.boolean(),
+    ruleIds: v.array(v.string()),
+    description: v.optional(v.string()),
+  }),
   handler: async (ctx, args) => {
     await requireCommerceEnabled(ctx);
     await requireCan(ctx, "manage_options");

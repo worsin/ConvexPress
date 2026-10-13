@@ -33,6 +33,7 @@ import {
   MAX_REVISION_LIMIT,
 } from "./validators";
 
+import { v } from "convex/values";
 // ─── Shared Helper: Resolve Author Data ─────────────────────────────────────
 
 /**
@@ -159,10 +160,8 @@ export const listByPost: import("convex/server").RegisteredQuery<"public", { par
  *
  * Used by: Client-side rendering of a specific revision snapshot.
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const get = query({
   args: getRevisionArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     const user = await getCurrentUser(ctx);
     if (!user) {
@@ -317,10 +316,9 @@ export const compare: RegisteredQuery<"public", ComparisonArgs, Promise<Comparis
  * Used by: Revisions metabox on the edit post page
  * ("Revisions: 12" with "Browse Revisions" link)
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const count = query({
   args: countRevisionsArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.number(),
   handler: async (ctx, args) => {
     const user = await getCurrentUser(ctx);
     if (!user) {
@@ -346,7 +344,7 @@ export const count = query({
     // ── Count ───────────────────────────────────────────────────────────
     const revisions = await ctx.db
       .query("revisions")
-      .withIndex("by_parent", (q: ConvexQueryBuilder) => q.eq("parentId", args.parentId))
+      .withIndex("by_parent", (q) => q.eq("parentId", args.parentId))
       .collect();
 
     return revisions.length;
@@ -362,10 +360,8 @@ export const count = query({
  *
  * Used by: Editor to detect if autosave exists, revision metabox
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const getLatest = query({
   args: getLatestRevisionArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     const user = await getCurrentUser(ctx);
     if (!user) {
@@ -394,14 +390,14 @@ export const getLatest = query({
     if (args.type) {
       revisions = await ctx.db
         .query("revisions")
-        .withIndex("by_parent_type", (q: ConvexQueryBuilder) =>
+        .withIndex("by_parent_type", (q) =>
           q.eq("parentId", args.parentId).eq("type", args.type!),
         )
         .collect();
     } else {
       revisions = await ctx.db
         .query("revisions")
-        .withIndex("by_parent", (q: ConvexQueryBuilder) => q.eq("parentId", args.parentId))
+        .withIndex("by_parent", (q) => q.eq("parentId", args.parentId))
         .collect();
     }
 

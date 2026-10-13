@@ -32,6 +32,7 @@ export const createImportedMediaRecord = internalMutation({
     width: v.optional(v.number()),
     height: v.optional(v.number()),
   },
+  returns: v.object({ mediaId: v.id("media"), url: v.string(), title: v.string() }),
   handler: async (ctx, args) => {
     const uploadedBy = await getSeedUserId(ctx);
     const slugBase = args.title

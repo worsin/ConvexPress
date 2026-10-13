@@ -40,6 +40,7 @@ import { emitEvent } from "../helpers/events";
 import { SYSTEM } from "../events/constants";
 import { clearArgs } from "./validators";
 
+import { v } from "convex/values";
 // ─── Constants ──────────────────────────────────────────────────────────────
 
 /** Minimum age for before_date mode: 30 days */
@@ -75,6 +76,11 @@ const CLEARABLE_SEVERITIES = new Set(["informational", "low"]);
  */
 export const clear: RegisteredMutation<"public", {mode:"before_date"|"by_severity"|"expired";beforeDate?:number;severity?:Doc<"auditEntries">["severity"];dryRun?:boolean;confirmPhrase?:string}, {deletedCount:number;oldestRemaining?:number;isDryRun:boolean}> = mutation({
   args: clearArgs,
+  returns: v.object({
+    deletedCount: v.number(),
+    oldestRemaining: v.optional(v.number()),
+    isDryRun: v.boolean(),
+  }),
   handler: async (ctx, args) => {
     // ─── 1. Authorization ─────────────────────────────────────────────
     const user = await requireCan(ctx, "audit.clear");

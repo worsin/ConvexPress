@@ -31,6 +31,7 @@ import { getInternalArgs } from "./validators";
 import { getDefaults, isValidSection, type SettingsSection } from "./defaults";
 import { requireCan } from "../helpers/permissions";
 
+import { v } from "convex/values";
 // ─── getInternal ─────────────────────────────────────────────────────────────
 
 /**
@@ -46,6 +47,11 @@ import { requireCan } from "../helpers/permissions";
  */
 export const getInternal = internalQuery({
   args: getInternalArgs,
+  returns: v.union(v.null(), v.object({
+    _id: v.union(v.null(), v.id("settings")),
+    updatedAt: v.union(v.null(), v.number()),
+    updatedBy: v.union(v.null(), v.id("users")),
+  })),
   handler: async (ctx, args) => {
     const { section } = args;
 
@@ -81,6 +87,7 @@ export const getInternal = internalQuery({
 
 export const requireManageOptionsInternal = internalQuery({
   args: {},
+  returns: v.boolean(),
   handler: async (ctx) => {
     await requireCan(ctx, "manage_options");
     return true;
@@ -126,5 +133,6 @@ export async function upgradeLegacySettingSecrets(ctx: {
 /** Operator-run (admin key) variant for fleets: `convex run settings/internals:encryptStoredSecrets`. */
 export const encryptStoredSecrets = internalMutation({
   args: {},
+  returns: v.object({ upgraded: v.number(), sections: v.array(v.string()) }),
   handler: async (ctx) => upgradeLegacySettingSecrets(ctx),
 });

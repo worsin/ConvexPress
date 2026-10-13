@@ -161,17 +161,19 @@ async function isLiveChargingEnabled(ctx: any): Promise<boolean> {
  *   6. Charge the live processor when enabled; otherwise fail closed.
  *   7. On success: swap subscription item, update contract.
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const applyUpgradeProration = internalMutation({
   args: {
-    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     contractId: v.id("commerce_subscriptions"),
-    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     toOfferId: v.id("commerce_subscription_offers"),
-    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     triggeredByUserId: v.id("users"),
   },
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.object({
+    invoiceId: v.union(v.null(), v.id("commerce_subscription_invoices")),
+    success: v.boolean(),
+    error: v.optional(v.string()),
+    pending: v.optional(v.boolean()),
+    message: v.optional(v.string()),
+  }),
   handler: async (ctx, args): Promise<{
     invoiceId: Id<"commerce_subscription_invoices"> | null;
     success: boolean;
@@ -212,13 +214,10 @@ export const applyUpgradeProration = internalMutation({
     // Resolve current (from) offer via the active item.
     const items = await ctx.db
       .query("commerce_subscription_items")
-      // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
       .withIndex("by_subscription", (q) => q.eq("subscriptionId", args.contractId))
       .collect();
     const activeItem =
-      // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
       items.find((it) => it.status === "active") ??
-      // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
       items.find((it) => it.status === "pending_cancel") ??
       items[0];
 
@@ -331,7 +330,6 @@ export const applyUpgradeProration = internalMutation({
     // Apply active coupon discounts on this contract.
     const activeRedemptions = await ctx.db
       .query("commerce_subscription_coupon_redemptions")
-      // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
       .withIndex("by_contract", (q) => q.eq("contractId", args.contractId))
       .collect();
 
@@ -525,17 +523,13 @@ export const applyUpgradeProration = internalMutation({
  * No invoice is created — the renewal sweep applies the change at period end
  * (renewal.ts step 1.e via internals.applyDueScheduledOfferChanges).
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const applyDowngradeProration = internalMutation({
   args: {
-    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     contractId: v.id("commerce_subscriptions"),
-    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     toOfferId: v.id("commerce_subscription_offers"),
-    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     triggeredByUserId: v.id("users"),
   },
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.object({ ok: v.boolean(), mode: v.literal("scheduled"), effectiveAt: v.number() }),
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "commerceSubscriptions");
     const now = Date.now();

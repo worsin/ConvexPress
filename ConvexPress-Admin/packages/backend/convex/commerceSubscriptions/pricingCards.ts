@@ -87,10 +87,8 @@ async function getSingletonRow(ctx: any) {
  * customer portal. Admin-only fields (there aren't any today) can be
  * added by splitting public/admin queries in Wave 4.
  */
-// @ts-expect-error TS2589: Convex union-schema types exceed TypeScript's type instantiation depth limit in strict mode.
 export const getPricingCardConfig = query({
   args: {},
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx) => {
     if (!(await isPluginEnabled(ctx, "commerceSubscriptions"))) {
       return defaultConfig();
@@ -117,21 +115,15 @@ export const getPricingCardConfig = query({
  *     (UI can tolerate missing, but we keep the config invariant clean.)
  *   - `templateKey`: Wave 2 accepts only "default". Wave 4 relaxes this.
  */
-// @ts-expect-error TS2589: Convex union-schema types exceed TypeScript's type instantiation depth limit in strict mode.
 export const updatePricingCardConfig = mutation({
   args: {
-    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     orderedOfferIds: v.array(v.id("commerce_subscription_offers")),
-    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     featuredOfferId: v.optional(v.id("commerce_subscription_offers")),
-    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     headline: v.optional(v.string()),
-    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     subheadline: v.optional(v.string()),
-    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     templateKey: v.optional(v.string()),
   },
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.object({ success: v.boolean() }),
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "commerceSubscriptions");
     await requireCommerceSubscriptionsEnabled(ctx);

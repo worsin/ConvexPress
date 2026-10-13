@@ -55,6 +55,7 @@ export const createWishlist = mutation({
     description: v.optional(v.string()),
     isPublic: v.optional(v.boolean()),
   },
+  returns: v.id("commerce_wishlists"),
   handler: async (ctx: any, args: any) => {
     await requirePluginEnabled(ctx, "commerceWishlists");
     await requireCommerceWishlistsEnabled(ctx);
@@ -285,6 +286,7 @@ export const moveToCart = mutation({
     sessionToken: v.string(),
     quantity: v.optional(v.number()),
   },
+  returns: v.object({ success: v.boolean() }),
   handler: async (ctx: any, args: any) => {
     await requirePluginEnabled(ctx, "commerceWishlists");
     await requireCommerceWishlistsEnabled(ctx);

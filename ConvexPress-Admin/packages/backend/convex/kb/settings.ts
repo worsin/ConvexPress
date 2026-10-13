@@ -43,10 +43,32 @@ import { SECRET_SENTINEL, encryptSettingSecret } from "../helpers/settingsSecret
  *
  * @auth manage_options (Administrator only)
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const getKbSettings = query({
   args: {},
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.union(v.null(), v.object({
+    general: v.object({
+      siteName: v.string(),
+      siteDescription: v.string(),
+      homepageLayout: v.union(v.literal("search"), v.literal("categories"), v.literal("featured")),
+      articlesPerPage: v.number(),
+    }),
+    features: v.object({
+      commentsEnabled: v.boolean(),
+      bookmarksEnabled: v.boolean(),
+      progressTrackingEnabled: v.boolean(),
+      ratingsEnabled: v.boolean(),
+      relatedArticlesEnabled: v.boolean(),
+    }),
+    search: v.object({
+      meilisearchEnabled: v.boolean(),
+      meilisearchUrl: v.string(),
+      meilisearchApiKey: v.string(),
+      ragEnabled: v.boolean(),
+      ragProvider: v.union(v.literal("anthropic"), v.literal("openai")),
+      ragApiKey: v.string(),
+      ragModel: v.string(),
+    }),
+  })),
   handler: async (ctx) => {
     if (!(await isPluginEnabled(ctx, "knowledgeBase"))) return null;
     const user = await currentUserCan(ctx, "manage_options");
@@ -60,7 +82,7 @@ export const getKbSettings = query({
       const defaults = getDefaults(section);
       const doc = await ctx.db
         .query("settings")
-        .withIndex("by_section", (q: ConvexQueryBuilder) => q.eq("section", section))
+        .withIndex("by_section", (q) => q.eq("section", section))
         .unique();
 
       result[section] = doc
@@ -97,74 +119,46 @@ export const getKbSettings = query({
  *
  * @auth manage_options (Administrator only)
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const updateKbSettings = mutation({
   args: {
-    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     general: v.optional(
-      // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
       v.object({
-        // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
         siteName: v.optional(v.string()),
-        // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
         siteDescription: v.optional(v.string()),
-        // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
         homepageLayout: v.optional(
-          // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
           v.union(
-            // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
             v.literal("categories"),
-            // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
             v.literal("search"),
-            // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
             v.literal("featured"),
           ),
         ),
-        // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
         articlesPerPage: v.optional(v.number()),
       }),
     ),
-    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     features: v.optional(
-      // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
       v.object({
-        // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
         commentsEnabled: v.optional(v.boolean()),
-        // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
         bookmarksEnabled: v.optional(v.boolean()),
-        // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
         progressTrackingEnabled: v.optional(v.boolean()),
-        // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
         ratingsEnabled: v.optional(v.boolean()),
-        // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
         relatedArticlesEnabled: v.optional(v.boolean()),
       }),
     ),
-    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     search: v.optional(
-      // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
       v.object({
-        // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
         meilisearchEnabled: v.optional(v.boolean()),
-        // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
         meilisearchUrl: v.optional(v.string()),
-        // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
         meilisearchApiKey: v.optional(v.string()),
-        // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
         ragEnabled: v.optional(v.boolean()),
-        // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
         ragProvider: v.optional(
-          // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
           v.union(v.literal("openai"), v.literal("anthropic")),
         ),
-        // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
         ragApiKey: v.optional(v.string()),
-        // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
         ragModel: v.optional(v.string()),
       }),
     ),
   },
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.object({ updatedSections: v.array(v.string()) }),
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "knowledgeBase");
     const user = await requireCan(ctx, "manage_options");
@@ -177,7 +171,7 @@ export const updateKbSettings = mutation({
 
       const existingDoc = await ctx.db
         .query("settings")
-        .withIndex("by_section", (q: ConvexQueryBuilder) => q.eq("section", "kb.general"))
+        .withIndex("by_section", (q) => q.eq("section", "kb.general"))
         .unique();
 
       const oldValues: Record<string, unknown> = existingDoc
@@ -218,7 +212,7 @@ export const updateKbSettings = mutation({
 
       const existingDoc = await ctx.db
         .query("settings")
-        .withIndex("by_section", (q: ConvexQueryBuilder) => q.eq("section", "kb.features"))
+        .withIndex("by_section", (q) => q.eq("section", "kb.features"))
         .unique();
 
       const oldValues: Record<string, unknown> = existingDoc
@@ -259,7 +253,7 @@ export const updateKbSettings = mutation({
 
       const existingDoc = await ctx.db
         .query("settings")
-        .withIndex("by_section", (q: ConvexQueryBuilder) => q.eq("section", "kb.search"))
+        .withIndex("by_section", (q) => q.eq("section", "kb.search"))
         .unique();
 
       const oldValues: Record<string, unknown> = existingDoc

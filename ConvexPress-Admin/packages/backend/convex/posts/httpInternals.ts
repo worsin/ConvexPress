@@ -120,6 +120,7 @@ export const trashInternal = internalMutation({
   args: {
     postId: v.id("posts"),
   },
+  returns: v.object({ success: v.boolean() }),
   handler: async (ctx, args) => {
     const post = await ctx.db.get("posts", args.postId);
     if (!post) {

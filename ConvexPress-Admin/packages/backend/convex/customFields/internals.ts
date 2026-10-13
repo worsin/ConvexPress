@@ -18,6 +18,7 @@ import { v } from "convex/values";
 import { isPluginEnabled, requirePluginEnabled } from "../helpers/plugins";
 import { deleteWithMediaReferences } from "../media/attachmentGuard";
 
+import { tableDocs } from "../schema/tableDocs.generated";
 // ─── Cleanup Functions ──────────────────────────────────────────────────────
 
 /**
@@ -27,19 +28,18 @@ import { deleteWithMediaReferences } from "../media/attachmentGuard";
  * or by the User Profile System when a user is deleted.
  * Also cleans up corresponding postMeta entries for posts/pages.
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const deleteFieldValuesForEntity = internalMutation({
   args: {
     entityType: v.string(),
     entityId: v.string(),
   },
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.object({ fieldValuesDeleted: v.number(), postMetaDeleted: v.number() }),
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "customFields");
     // Get all field values for this entity
     const values = await ctx.db
       .query("fieldValues")
-      .withIndex("by_entity", (q: ConvexQueryBuilder) =>
+      .withIndex("by_entity", (q) =>
         q.eq("entityType", args.entityType).eq("entityId", args.entityId),
       )
       .collect();
@@ -59,11 +59,10 @@ export const deleteFieldValuesForEntity = internalMutation({
         // Get all postMeta entries for this post
         const metaEntries = await ctx.db
           .query("postMeta")
-          .withIndex("by_post", (q: ConvexQueryBuilder) => q.eq("postId", args.entityId as Id<"posts">))
+          .withIndex("by_post", (q) => q.eq("postId", args.entityId as Id<"posts">))
           .collect();
 
         // Build a set of field names that we just deleted from fieldValues
-        // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
         const fieldNames = new Set(values.map((v) => v.fieldName));
 
         // Delete postMeta entries that match our field names
@@ -92,18 +91,17 @@ export const deleteFieldValuesForEntity = internalMutation({
  * Used when a field definition is deleted and we need to clean up
  * the denormalized postMeta entries.
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const deletePostMetaForField = internalMutation({
   args: {
     fieldName: v.string(),
   },
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.object({ deleted: v.number() }),
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "customFields");
     try {
       const metaEntries = await ctx.db
         .query("postMeta")
-        .withIndex("by_key", (q: ConvexQueryBuilder) => q.eq("key", args.fieldName))
+        .withIndex("by_key", (q) => q.eq("key", args.fieldName))
         .collect();
 
       let deleted = 0;
@@ -132,27 +130,23 @@ export const deletePostMetaForField = internalMutation({
  * This is a simpler version of the public getGroupsForContext query,
  * intended for internal system-to-system checks.
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const getGroupsForEntityType = internalQuery({
   args: {
     entityType: v.string(),
   },
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.union(v.null(), v.array(tableDocs.fieldGroups)),
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "customFields"))) return null;
     // Fetch all active groups
     const activeGroups = await ctx.db
       .query("fieldGroups")
-      .withIndex("by_active", (q: ConvexQueryBuilder) => q.eq("isActive", true))
+      .withIndex("by_active", (q) => q.eq("isActive", true))
       .collect();
 
     // Filter to groups that have a location rule matching the entity type
-    // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
     const matchingGroups = activeGroups.filter((group) => {
-      // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
       return group.locationRules.some((ruleGroup) => {
         return ruleGroup.some(
-          // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
           (condition) =>
             condition.param === "post_type" &&
             condition.operator === "==" &&
@@ -162,7 +156,6 @@ export const getGroupsForEntityType = internalQuery({
     });
 
     // Sort by menuOrder
-    // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
     matchingGroups.sort((a, b) => a.menuOrder - b.menuOrder);
 
     return matchingGroups;
@@ -175,17 +168,16 @@ export const getGroupsForEntityType = internalQuery({
  * Used by other systems that store field keys and need to resolve
  * them to full definitions (e.g., for type-aware value rendering).
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const getFieldDefinitionByKey = internalQuery({
   args: {
     fieldKey: v.string(),
   },
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.union(v.null(), tableDocs.fieldDefinitions),
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "customFields"))) return null;
     const field = await ctx.db
       .query("fieldDefinitions")
-      .withIndex("by_key", (q: ConvexQueryBuilder) => q.eq("key", args.fieldKey))
+      .withIndex("by_key", (q) => q.eq("key", args.fieldKey))
       .unique();
 
     return field;
@@ -198,21 +190,18 @@ export const getFieldDefinitionByKey = internalQuery({
  * Used by other systems that need to inspect field definitions
  * without going through the public query auth layer.
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const getFieldDefinitionsForGroup = internalQuery({
   args: {
-    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     groupId: v.id("fieldGroups"),
   },
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.union(v.null(), v.array(tableDocs.fieldDefinitions)),
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "customFields"))) return null;
     const fields = await ctx.db
       .query("fieldDefinitions")
-      .withIndex("by_group", (q: ConvexQueryBuilder) => q.eq("groupId", args.groupId))
+      .withIndex("by_group", (q) => q.eq("groupId", args.groupId))
       .collect();
 
-    // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
     fields.sort((a, b) => a.menuOrder - b.menuOrder);
 
     return fields;

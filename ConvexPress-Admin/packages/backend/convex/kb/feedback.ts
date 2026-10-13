@@ -24,10 +24,13 @@ import {
 import { isPluginEnabled, requirePluginEnabled } from "../helpers/plugins";
 import { patchWithMediaReferences } from "../media/attachmentGuard";
 
+import { v } from "convex/values";
+import { tableDocs } from "../schema/tableDocs.generated";
 // ─── Submit Helpful ─────────────────────────────────────────────────────────
 
 export const submitHelpful: RegisteredMutation<"public", { articleId: Id<"kb_articles">; sessionId: string; isHelpful: boolean; comment?: string }, Id<"kb_articleFeedback">> = mutation({
   args: submitHelpfulArgs,
+  returns: v.id("kb_articleFeedback"),
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "knowledgeBase");
     const user = await getCurrentUser(ctx);
@@ -115,6 +118,7 @@ export const submitHelpful: RegisteredMutation<"public", { articleId: Id<"kb_art
 
 export const submitRating: RegisteredMutation<"public", { articleId: Id<"kb_articles">; sessionId: string; rating: number; comment?: string }, Id<"kb_articleFeedback">> = mutation({
   args: submitRatingArgs,
+  returns: v.id("kb_articleFeedback"),
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "knowledgeBase");
     const user = await getCurrentUser(ctx);
@@ -200,26 +204,28 @@ export const submitRating: RegisteredMutation<"public", { articleId: Id<"kb_arti
 
 // ─── Get Article Stats (Public) ─────────────────────────────────────────────
 
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const getArticleStats = query({
   args: getArticleFeedbackStatsArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.union(v.null(), v.object({
+    totalFeedback: v.number(),
+    helpful: v.number(),
+    notHelpful: v.number(),
+    helpfulPercent: v.number(),
+    avgRating: v.union(v.null(), v.number()),
+    ratingCount: v.number(),
+  })),
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "knowledgeBase"))) return null;
     // Safety-bounded with .take(5000) — use denormalized article counts for basic stats
     const feedback = await ctx.db
       .query("kb_articleFeedback")
-      .withIndex("by_article", (q: ConvexQueryBuilder) => q.eq("articleId", args.articleId))
+      .withIndex("by_article", (q) => q.eq("articleId", args.articleId))
       .take(5000);
 
-    // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
     const helpful = feedback.filter((f) => f.isHelpful).length;
-    // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
     const notHelpful = feedback.filter((f) => !f.isHelpful).length;
-    // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
     const ratings = feedback.filter((f) => f.rating !== undefined);
     const avgRating = ratings.length > 0
-      // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
       ? ratings.reduce((sum, f) => sum + (f.rating ?? 0), 0) / ratings.length
       : null;
 
@@ -238,6 +244,7 @@ export const getArticleStats = query({
 
 export const getUserFeedback: RegisteredQuery<"public", { articleId: Id<"kb_articles">; sessionId: string }, Doc<"kb_articleFeedback"> | null> = query({
   args: getUserFeedbackArgs,
+  returns: v.union(v.null(), tableDocs.kb_articleFeedback),
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "knowledgeBase"))) return null;
     return ctx.db

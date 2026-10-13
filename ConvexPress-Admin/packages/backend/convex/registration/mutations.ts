@@ -250,6 +250,7 @@ export const resendInvitation = mutation({
  */
 export const revokeInvitation = mutation({
   args: revokeInvitationArgs,
+  returns: v.null(),
   handler: async (ctx, args) => {
     // 1. Auth check
     const admin = await requireCan(ctx, "registration.invite");

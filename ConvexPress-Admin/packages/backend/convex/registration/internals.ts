@@ -52,6 +52,7 @@ import {
 } from "./validators";
 import { insertWithMediaReferences } from "../media/attachmentGuard";
 
+import { tableDocs } from "../schema/tableDocs.generated";
 // ─── Handle External Auth User Created ───────────────────────────────────────
 
 /**
@@ -76,6 +77,7 @@ import { insertWithMediaReferences } from "../media/attachmentGuard";
 type ExternalAuthUserArgs = { externalAuthId: string; email: string; username?: string; firstName?: string; lastName?: string; avatarUrl?: string; emailVerified: boolean; oauthProvider?: string };
 export const handleExternalAuthUserCreated: RegisteredMutation<"internal", ExternalAuthUserArgs, Id<"users">> = internalMutation({
   args: createUserFromExternalAuthArgs,
+  returns: v.id("users"),
   handler: async (ctx, args) => {
     const now = Date.now();
     const externalAuthId = normalizeClerkUserId(args.externalAuthId);
@@ -243,6 +245,7 @@ export const handleExternalAuthUserCreated: RegisteredMutation<"internal", Exter
  */
 export const expireOldInvitations = internalMutation({
   args: expireOldInvitationsArgs,
+  returns: v.object({ expired: v.number() }),
   handler: async (ctx) => {
     const now = Date.now();
 
@@ -282,6 +285,7 @@ export const expireOldInvitations = internalMutation({
  */
 export const cleanupExpiredInvitations = internalMutation({
   args: cleanupExpiredInvitationsArgs,
+  returns: v.object({ deleted: v.number() }),
   handler: async (ctx) => {
     const ninetyDaysAgo = Date.now() - 90 * 24 * 60 * 60 * 1000;
 
@@ -331,6 +335,7 @@ export const getPendingByEmail = internalQuery({
   args: {
     email: v.string(),
   },
+  returns: v.union(v.null(), tableDocs.invitations),
   handler: async (ctx, args) => {
     const email = args.email.toLowerCase().trim();
 

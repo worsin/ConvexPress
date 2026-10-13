@@ -14,6 +14,7 @@ import { getDefaults } from "../settings/defaults";
 import { computeChanges } from "../settings/helpers";
 import { insertWithMediaReferences, patchWithMediaReferences } from "../media/attachmentGuard";
 
+import { v } from "convex/values";
 // ─── purgeAnalytics ─────────────────────────────────────────────────────────
 
 /**
@@ -26,6 +27,7 @@ import { insertWithMediaReferences, patchWithMediaReferences } from "../media/at
  */
 export const purgeAnalytics = mutation({
   args: purgeArgs,
+  returns: v.object({ deletedEvents: v.number(), deletedRollups: v.number() }),
   handler: async (ctx, args) => {
     const user = await requireCan(ctx, "analytics.manage");
 
@@ -94,6 +96,7 @@ export const purgeAnalytics = mutation({
  */
 export const updateSettings = mutation({
   args: settingsArgs,
+  returns: v.null(),
   handler: async (ctx, args) => {
     const user = await requireCan(ctx, "analytics.manage");
 

@@ -152,6 +152,82 @@ export const getComponents: RegisteredQuery<"public", { bundleId: Id<"commerce_b
  */
 export const listActive: RegisteredQuery<"public", { limit?: number; categoryId?: Id<"commerce_product_categories"> }, PublicBundle[]> = query({
   args: { limit: v.optional(v.number()), categoryId: v.optional(v.id("commerce_product_categories")) },
+  returns: v.array(v.object({
+    _id: v.id("commerce_bundles"),
+    productId: v.id("commerce_products"),
+    name: v.string(),
+    slug: v.string(),
+    description: v.optional(v.string()),
+    shortDescription: v.optional(v.string()),
+    images: v.array(v.string()),
+    bundleType: v.union(v.literal("fixed"), v.literal("mix_and_match"), v.literal("bogo")),
+    pricingType: v.union(v.literal("fixed"), v.literal("percent_off"), v.literal("amount_off"), v.literal("component_sum")),
+    fixedPrice: v.optional(v.number()),
+    discountPercent: v.optional(v.number()),
+    discountAmount: v.optional(v.number()),
+    regularPrice: v.optional(v.number()),
+    bundlePrice: v.optional(v.number()),
+    minItems: v.optional(v.number()),
+    maxItems: v.optional(v.number()),
+    status: v.literal("active"),
+    currencyCode: v.string(),
+    components: v.array(v.object({
+      _id: v.id("commerce_bundle_components"),
+      productId: v.id("commerce_products"),
+      variantId: v.optional(v.id("commerce_product_variants")),
+      quantity: v.number(),
+      minQuantity: v.optional(v.number()),
+      maxQuantity: v.optional(v.number()),
+      isRequired: v.boolean(),
+      isDefault: v.boolean(),
+      allowVariantChange: v.boolean(),
+      label: v.optional(v.string()),
+      sortOrder: v.number(),
+      priceOverride: v.optional(v.number()),
+      discountPercent: v.optional(v.number()),
+      product: v.object({
+        _id: v.id("commerce_products"),
+        title: v.string(),
+        slug: v.string(),
+        basePrice: v.object({ amount: v.number(), currencyCode: v.string() }),
+      }),
+      variant: v.optional(v.object({
+        _id: v.id("commerce_product_variants"),
+        title: v.string(),
+        name: v.string(),
+        price: v.object({ amount: v.number(), currencyCode: v.string() }),
+        unitPriceAmount: v.number(),
+        available: v.boolean(),
+      })),
+      variants: v.array(v.object({
+        _id: v.id("commerce_product_variants"),
+        title: v.string(),
+        name: v.string(),
+        price: v.object({ amount: v.number(), currencyCode: v.string() }),
+        unitPriceAmount: v.number(),
+        available: v.boolean(),
+      })),
+      unitPriceAmount: v.number(),
+    })),
+    quote: v.union(v.null(), v.object({
+      regularPrice: v.number(),
+      bundlePrice: v.number(),
+      savings: v.number(),
+      savingsPercent: v.number(),
+      currencyCode: v.string(),
+      available: v.boolean(),
+      selections: v.array(v.object({
+        componentId: v.id("commerce_bundle_components"),
+        productId: v.optional(v.id("commerce_products")),
+        variantId: v.optional(v.id("commerce_product_variants")),
+        quantity: v.number(),
+      })),
+      pricedAt: v.number(),
+      recheckAt: v.union(v.null(), v.number()),
+    })),
+    pricedAt: v.number(),
+    recheckAt: v.union(v.null(), v.number()),
+  })),
   handler: async (ctx, args): Promise<PublicBundle[]> => {
     const limit = args.limit ?? 24;
     if (!Number.isSafeInteger(limit) || limit < 1 || limit > 100) throw new ConvexError({ code: "VALIDATION_ERROR", message: "Choose between 1 and 100 bundles." });
@@ -182,6 +258,82 @@ export const listActive: RegisteredQuery<"public", { limit?: number; categoryId?
 
 export const getBySlug: RegisteredQuery<"public", { slug: string }, PublicBundle | null> = query({
   args: { slug: v.string() },
+  returns: v.union(v.null(), v.object({
+    _id: v.id("commerce_bundles"),
+    productId: v.id("commerce_products"),
+    name: v.string(),
+    slug: v.string(),
+    description: v.optional(v.string()),
+    shortDescription: v.optional(v.string()),
+    images: v.array(v.string()),
+    bundleType: v.union(v.literal("fixed"), v.literal("mix_and_match"), v.literal("bogo")),
+    pricingType: v.union(v.literal("fixed"), v.literal("percent_off"), v.literal("amount_off"), v.literal("component_sum")),
+    fixedPrice: v.optional(v.number()),
+    discountPercent: v.optional(v.number()),
+    discountAmount: v.optional(v.number()),
+    regularPrice: v.optional(v.number()),
+    bundlePrice: v.optional(v.number()),
+    minItems: v.optional(v.number()),
+    maxItems: v.optional(v.number()),
+    status: v.literal("active"),
+    currencyCode: v.string(),
+    components: v.array(v.object({
+      _id: v.id("commerce_bundle_components"),
+      productId: v.id("commerce_products"),
+      variantId: v.optional(v.id("commerce_product_variants")),
+      quantity: v.number(),
+      minQuantity: v.optional(v.number()),
+      maxQuantity: v.optional(v.number()),
+      isRequired: v.boolean(),
+      isDefault: v.boolean(),
+      allowVariantChange: v.boolean(),
+      label: v.optional(v.string()),
+      sortOrder: v.number(),
+      priceOverride: v.optional(v.number()),
+      discountPercent: v.optional(v.number()),
+      product: v.object({
+        _id: v.id("commerce_products"),
+        title: v.string(),
+        slug: v.string(),
+        basePrice: v.object({ amount: v.number(), currencyCode: v.string() }),
+      }),
+      variant: v.optional(v.object({
+        _id: v.id("commerce_product_variants"),
+        title: v.string(),
+        name: v.string(),
+        price: v.object({ amount: v.number(), currencyCode: v.string() }),
+        unitPriceAmount: v.number(),
+        available: v.boolean(),
+      })),
+      variants: v.array(v.object({
+        _id: v.id("commerce_product_variants"),
+        title: v.string(),
+        name: v.string(),
+        price: v.object({ amount: v.number(), currencyCode: v.string() }),
+        unitPriceAmount: v.number(),
+        available: v.boolean(),
+      })),
+      unitPriceAmount: v.number(),
+    })),
+    quote: v.union(v.null(), v.object({
+      regularPrice: v.number(),
+      bundlePrice: v.number(),
+      savings: v.number(),
+      savingsPercent: v.number(),
+      currencyCode: v.string(),
+      available: v.boolean(),
+      selections: v.array(v.object({
+        componentId: v.id("commerce_bundle_components"),
+        productId: v.optional(v.id("commerce_products")),
+        variantId: v.optional(v.id("commerce_product_variants")),
+        quantity: v.number(),
+      })),
+      pricedAt: v.number(),
+      recheckAt: v.union(v.null(), v.number()),
+    })),
+    pricedAt: v.number(),
+    recheckAt: v.union(v.null(), v.number()),
+  })),
   handler: async (ctx, args): Promise<PublicBundle | null> => {
     if (args.slug.length > 256) return null;
     const budget = new RequestReadLedger(); budget.beforeRead();
@@ -197,6 +349,22 @@ export const calculatePrice: RegisteredQuery<"public", PriceArgs, PublicBundlePr
   // refreshAt changes the subscription cache key at a scheduled price boundary;
   // it never supplies the authority's pricing time.
   args: { bundleId: v.id("commerce_bundles"), selections: selectionsValidator, refreshAt: v.optional(v.number()) },
+  returns: v.union(v.null(), v.object({
+    regularPrice: v.number(),
+    bundlePrice: v.number(),
+    savings: v.number(),
+    savingsPercent: v.number(),
+    currencyCode: v.string(),
+    available: v.boolean(),
+    selections: v.array(v.object({
+      componentId: v.id("commerce_bundle_components"),
+      productId: v.optional(v.id("commerce_products")),
+      variantId: v.optional(v.id("commerce_product_variants")),
+      quantity: v.number(),
+    })),
+    pricedAt: v.number(),
+    recheckAt: v.union(v.null(), v.number()),
+  })),
   handler: async (ctx, args): Promise<PublicBundlePrice | null> => {
     const budget = new RequestReadLedger(); budget.beforeRead();
     const bundle = budget.record(await ctx.db.get(args.bundleId));
@@ -207,6 +375,7 @@ export const calculatePrice: RegisteredQuery<"public", PriceArgs, PublicBundlePr
 
 export const checkAvailability: RegisteredQuery<"public", PriceArgs & { quantity?: number }, { available: boolean; reason?: string }> = query({
   args: { bundleId: v.id("commerce_bundles"), quantity: v.optional(v.number()), selections: selectionsValidator, refreshAt: v.optional(v.number()) },
+  returns: v.object({ available: v.boolean(), reason: v.optional(v.string()) }),
   handler: async (ctx, args): Promise<{ available: boolean; reason?: string }> => {
     const budget = new RequestReadLedger(); budget.beforeRead();
     const bundle = budget.record(await ctx.db.get(args.bundleId));

@@ -6,6 +6,7 @@ import { requireCan } from "../helpers/permissions";
 import { requireCommerceEnabled } from "./helpers";
 import { createDiscountCodeArgs, updateDiscountCodeArgs } from "./validators";
 
+import { tableDocs } from "../schema/tableDocs.generated";
 function normalizeCode(value: string) {
 	return value.trim().toUpperCase();
 }
@@ -290,6 +291,13 @@ export const counts = query({
 		search: v.optional(v.string()),
 		discountType: v.optional(v.string()),
 	},
+	returns: v.object({
+   all: v.number(),
+   active: v.number(),
+   inactive: v.number(),
+   scheduled: v.number(),
+   expired: v.number(),
+ }),
 	handler: async (ctx, args) => {
 		await requireCommerceEnabled(ctx);
 		await requireCan(ctx, "commerce.discount.update");
@@ -332,6 +340,7 @@ export const bulkSetStatus = mutation({
 		discountIds: v.array(v.id("commerce_discount_codes")),
 		status: v.union(v.literal("active"), v.literal("inactive")),
 	},
+	returns: v.object({ count: v.number() }),
 	handler: async (ctx, args) => {
 		await requireCommerceEnabled(ctx);
 		await requireCan(ctx, "commerce.discount.update");
@@ -351,6 +360,7 @@ export const bulkDelete = mutation({
 	args: {
 		discountIds: v.array(v.id("commerce_discount_codes")),
 	},
+	returns: v.object({ count: v.number() }),
 	handler: async (ctx, args) => {
 		await requireCommerceEnabled(ctx);
 		await requireCan(ctx, "commerce.discount.update");
@@ -367,6 +377,7 @@ export const bulkDelete = mutation({
 
 export const create = mutation({
 	args: createDiscountCodeArgs,
+	returns: v.id("commerce_discount_codes"),
 	handler: async (ctx, args) => {
 		await requireCommerceEnabled(ctx);
 		await requireCan(ctx, "commerce.discount.update");
@@ -400,6 +411,7 @@ export const create = mutation({
 
 export const update = mutation({
 	args: updateDiscountCodeArgs,
+	returns: v.id("commerce_discount_codes"),
 	handler: async (ctx, args) => {
 		await requireCommerceEnabled(ctx);
 		await requireCan(ctx, "commerce.discount.update");
@@ -448,6 +460,7 @@ export const remove = mutation({
 	args: {
 		discountId: v.id("commerce_discount_codes"),
 	},
+	returns: v.union(v.null(), v.id("commerce_discount_codes")),
 	handler: async (ctx, args) => {
 		await requireCommerceEnabled(ctx);
 		await requireCan(ctx, "commerce.discount.update");
@@ -473,6 +486,7 @@ export const remove = mutation({
  */
 export const listAutomatic = query({
 	args: {},
+	returns: v.array(tableDocs.commerce_discount_codes),
 	handler: async (ctx) => {
 		await requireCommerceEnabled(ctx);
 		const rows = await ctx.db

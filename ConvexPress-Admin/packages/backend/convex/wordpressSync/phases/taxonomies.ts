@@ -33,6 +33,20 @@ export const importBatch = internalAction({
     siteId: v.id("wordpressSites"),
     credentials: siteCredentialsValidator,
   },
+  returns: v.object({
+    progress: v.object({
+      total: v.number(),
+      imported: v.number(),
+      failed: v.number(),
+      cursor: v.optional(v.number()),
+      created: v.optional(v.number()),
+      updated: v.optional(v.number()),
+      skipped: v.optional(v.number()),
+      conflicted: v.optional(v.number()),
+    }),
+    errors: v.array(v.object({ phase: v.string(), wpId: v.number(), message: v.string(), timestamp: v.number() })),
+    hasMore: v.boolean(),
+  }),
   handler: async (ctx, { jobId, siteId, credentials }): Promise<PhaseResult> => {
     const errors: SyncError[] = [];
 
@@ -535,6 +549,7 @@ export const taxonomiesCreateTerm = internalMutation({
     parentId: v.optional(v.string()),
     siteId: v.id("wordpressSites"),
   },
+  returns: v.string(),
   handler: async (ctx, { existingId, wpTerm, taxonomy, parentId, siteId }) => {
     const now = Date.now();
 
@@ -584,6 +599,7 @@ export const taxonomiesSetParent = internalMutation({
     termId: v.string(),
     parentId: v.optional(v.string()),
   },
+  returns: v.null(),
   handler: async (ctx, { termId, parentId }) => {
     await ctx.db.patch("terms", termId as Id<"terms">, {
       parentId: parentId ? (parentId as Id<"terms">) : undefined,

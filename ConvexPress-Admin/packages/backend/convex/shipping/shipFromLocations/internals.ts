@@ -2,9 +2,11 @@ import { v } from "convex/values";
 
 import { internalQuery } from "../../_generated/server";
 
+import { tableDocs } from "../../schema/tableDocs.generated";
 /** Fetch a ship-from location by id — used by the rate pipeline. */
 export const getById = internalQuery({
   args: { locationId: v.id("commerce_ship_from_locations") },
+  returns: v.union(v.null(), tableDocs.commerce_ship_from_locations),
   handler: async (ctx, args) => {
     return ctx.db.get(args.locationId);
   },
@@ -13,6 +15,7 @@ export const getById = internalQuery({
 /** List active pickup-enabled ship-from locations for the rate pipeline. */
 export const listActivePickupLocations = internalQuery({
   args: {},
+  returns: v.array(tableDocs.commerce_ship_from_locations),
   handler: async (ctx) => {
     const all = await ctx.db.query("commerce_ship_from_locations").collect();
     return all.filter(
@@ -89,6 +92,7 @@ async function resolveLocations(ctx: any, mappings: any[]) {
 
 export const getDefault = internalQuery({
   args: {},
+  returns: v.union(v.null(), tableDocs.commerce_ship_from_locations),
   handler: async (ctx) => {
     return ctx.db
       .query("commerce_ship_from_locations")

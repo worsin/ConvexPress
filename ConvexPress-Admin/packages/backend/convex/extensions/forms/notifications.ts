@@ -37,6 +37,7 @@ import type { Capability } from "../../types/capabilities";
 import { evaluateConditionalLogic } from "./conditionalLogic";
 import { resolveMergeTags, isValidEmail, type MergeContext } from "./mergeTags";
 
+import { tableDocs } from "../../schema/tableDocs.generated";
 // ─── Local validators / helpers ─────────────────────────────────────────────
 
 /**
@@ -239,6 +240,7 @@ export function markProgressNotificationSentMeta(
 
 export const listForForm = query({
   args: { formId: v.id("forms") },
+  returns: v.array(tableDocs.form_notifications),
   handler: async (ctx, { formId }) => {
     await requireCan(ctx, formCap("form.manage_notifications"));
     await requirePluginEnabled(ctx, "forms");
@@ -265,6 +267,7 @@ export const create = mutation({
     conditionalLogic: v.optional(v.string()),
     enabled: v.optional(v.boolean()),
   },
+  returns: v.union(v.null(), tableDocs.form_notifications),
   handler: async (ctx, args) => {
     await requireCan(ctx, formCap("form.manage_notifications"));
     await requirePluginEnabled(ctx, "forms");
@@ -317,6 +320,7 @@ export const update = mutation({
       enabled: v.optional(v.boolean()),
     }),
   },
+  returns: v.union(v.null(), tableDocs.form_notifications),
   handler: async (ctx, { notificationId, patch }) => {
     await requireCan(ctx, formCap("form.manage_notifications"));
     await requirePluginEnabled(ctx, "forms");
@@ -374,6 +378,7 @@ export const reorder = mutation({
     formId: v.id("forms"),
     orderedIds: v.array(v.id("form_notifications")),
   },
+  returns: v.object({ success: v.boolean() }),
   handler: async (ctx, { formId, orderedIds }) => {
     await requireCan(ctx, formCap("form.manage_notifications"));
     await requirePluginEnabled(ctx, "forms");
@@ -393,6 +398,7 @@ export const reorder = mutation({
 
 export const remove = mutation({
   args: { notificationId: v.id("form_notifications") },
+  returns: v.object({ success: v.boolean() }),
   handler: async (ctx, { notificationId }) => {
     await requireCan(ctx, formCap("form.manage_notifications"));
     await requirePluginEnabled(ctx, "forms");
@@ -406,6 +412,7 @@ export const remove = mutation({
 /** Read an event row by id (an action cannot touch ctx.db directly). */
 export const _getEvent = internalQuery({
   args: { eventId: v.id("events") },
+  returns: v.union(v.null(), v.object({ code: v.string(), payload: v.string(), actorId: v.optional(v.string()) })),
   handler: async (ctx, { eventId }) => {
     const event = await ctx.db.get(eventId);
     if (!event) return null;
@@ -420,6 +427,7 @@ export const _getEvent = internalQuery({
 /** Read a form by id (returns null for the deleted-form edge case). */
 export const _getForm = internalQuery({
   args: { formId: v.id("forms") },
+  returns: v.union(v.null(), tableDocs.forms),
   handler: async (ctx, { formId }) => {
     return await ctx.db.get(formId);
   },
@@ -432,6 +440,7 @@ export const _getForm = internalQuery({
  */
 export const _getSubmissionValues = internalQuery({
   args: { submissionId: v.id("form_submissions") },
+  returns: v.array(v.object({ fieldName: v.string(), fieldKey: v.string(), value: v.string() })),
   handler: async (ctx, { submissionId }) => {
     const rows = await ctx.db
       .query("fieldValues")
@@ -455,6 +464,7 @@ export const _enabledRowsForEvent = internalQuery({
     formId: v.id("forms"),
     triggerEventCode: v.string(),
   },
+  returns: v.array(tableDocs.form_notifications),
   handler: async (ctx, { formId, triggerEventCode }) => {
     const rows = await ctx.db
       .query("form_notifications")
@@ -492,6 +502,7 @@ export const _createSiteNotificationForAdmins = internalMutation({
     body: v.string(),
     eventId: v.optional(v.id("events")),
   },
+  returns: v.object({ created: v.number() }),
   handler: async (ctx, args) => {
     const adminIds = await resolveNotificationRecipients(ctx, "admin", {});
     if (adminIds.length === 0) return { created: 0 };
@@ -532,6 +543,7 @@ export const _createSiteNotificationForAdmins = internalMutation({
 
 export const _claimProgressNotification = internalMutation({
   args: { submissionId: v.id("form_submissions") },
+  returns: v.object({ claimed: v.boolean() }),
   handler: async (ctx, { submissionId }) => {
     const submission = await ctx.db.get(submissionId);
     if (!submission) return { claimed: false };
@@ -561,6 +573,7 @@ export const _claimProgressNotification = internalMutation({
  */
 export const dispatch = internalAction({
   args: { eventId: v.id("events") },
+  returns: v.null(),
   handler: async (ctx, { eventId }) => {
     if (!(await isPluginEnabled(ctx, "forms"))) return;
 

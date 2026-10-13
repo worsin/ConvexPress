@@ -7,6 +7,7 @@ import { resolveServiceKeyAsync } from "../helpers/serviceKeys";
 import { extractRecipeFromImageArgs } from "./validators";
 import { requirePluginEnabled } from "../helpers/plugins";
 
+import { v } from "convex/values";
 type AiProvider = "openrouter" | "anthropic" | "openai";
 
 function envVarForProvider(provider: AiProvider): string {
@@ -229,10 +230,26 @@ async function extractWithOpenRouter(
   return data.choices?.[0]?.message?.content ?? "";
 }
 
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const extractRecipeFromImage = action({
   args: extractRecipeFromImageArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.object({
+    prepMinutes: v.optional(v.number()),
+    cookMinutes: v.optional(v.number()),
+    totalMinutes: v.optional(v.number()),
+    scanMediaId: v.id("media"),
+    aiExtractedFromScan: v.boolean(),
+    title: v.optional(v.string()),
+    excerpt: v.optional(v.string()),
+    description: v.optional(v.string()),
+    servings: v.optional(v.string()),
+    yieldText: v.optional(v.string()),
+    difficulty: v.optional(v.union(v.literal("medium"), v.literal("easy"), v.literal("hard"))),
+    ingredients: v.optional(v.array(v.string())),
+    instructions: v.optional(v.array(v.string())),
+    notes: v.optional(v.string()),
+    categorySuggestions: v.optional(v.array(v.string())),
+    scannedText: v.optional(v.string()),
+  }),
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "recipes");
     const identity = await ctx.auth.getUserIdentity();

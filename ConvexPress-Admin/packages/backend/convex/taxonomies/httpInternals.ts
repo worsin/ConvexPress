@@ -24,6 +24,7 @@ import {
   getTermDepth,
 } from "../helpers/taxonomy";
 
+import { tableDocs } from "../schema/tableDocs.generated";
 const MAX_NAME_LENGTH = 200;
 const MAX_SLUG_LENGTH = 200;
 const MAX_DESCRIPTION_LENGTH = 2000;
@@ -43,6 +44,13 @@ export const listInternal = internalQuery({
     orderBy: v.optional(v.string()),
     orderDir: v.optional(v.union(v.literal("asc"), v.literal("desc"))),
   },
+  returns: v.object({
+    terms: v.array(tableDocs.terms),
+    total: v.number(),
+    page: v.number(),
+    perPage: v.number(),
+    totalPages: v.number(),
+  }),
   handler: async (ctx, args) => {
     const page = args.page ?? 1;
     const perPage = args.perPage ?? 20;
@@ -146,6 +154,7 @@ export const createCategoryInternal = internalMutation({
     parentId: v.optional(v.id("terms")),
     createdByUserId: v.string(),
   },
+  returns: v.id("terms"),
   handler: async (ctx, args) => {
     // Validate name
     const name = validateName(args.name);
@@ -247,6 +256,7 @@ export const createTagInternal = internalMutation({
     description: v.optional(v.string()),
     createdByUserId: v.string(),
   },
+  returns: v.id("terms"),
   handler: async (ctx, args) => {
     // Validate name
     const name = validateName(args.name);

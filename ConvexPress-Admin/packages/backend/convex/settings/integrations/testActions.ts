@@ -14,6 +14,7 @@ import type { ActionCtx } from "../../_generated/server";
 import { internal } from "../../_generated/api";
 import { getServiceKeyFromAction } from "../../helpers/serviceKeys";
 
+import { v } from "convex/values";
 type TestResult = { success: boolean; detail?: string };
 
 function requireManageOptions(ctx: ActionCtx) {
@@ -28,6 +29,7 @@ async function maskError(err: unknown): Promise<string> {
 /** Stripe — GET /v1/account. Lists the connected account. */
 export const testStripe = action({
   args: {},
+  returns: v.object({ success: v.boolean(), detail: v.optional(v.string()) }),
   handler: async (ctx): Promise<TestResult> => {
     await requireManageOptions(ctx);
     const key = await getServiceKeyFromAction(
@@ -59,6 +61,7 @@ export const testStripe = action({
 /** PayPal — OAuth token request. Verifies client id + secret. */
 export const testPayPal = action({
   args: {},
+  returns: v.object({ success: v.boolean(), detail: v.optional(v.string()) }),
   handler: async (ctx): Promise<TestResult> => {
     await requireManageOptions(ctx);
     const clientId = await getServiceKeyFromAction(
@@ -113,6 +116,7 @@ export const testPayPal = action({
 /** Clerk — GET /v1/users?limit=1. Validates secret key. */
 export const testClerk = action({
   args: {},
+  returns: v.object({ success: v.boolean(), detail: v.optional(v.string()) }),
   handler: async (ctx): Promise<TestResult> => {
     await requireManageOptions(ctx);
     const key = await getServiceKeyFromAction(
@@ -140,6 +144,7 @@ export const testClerk = action({
 /** GA4 — calls runReport with a trivial 1-row request. Validates service account. */
 export const testGa4 = action({
   args: {},
+  returns: v.object({ success: v.boolean(), detail: v.optional(v.string()) }),
   handler: async (ctx): Promise<TestResult> => {
     await requireManageOptions(ctx);
     const json = await getServiceKeyFromAction(
@@ -180,6 +185,7 @@ export const testGa4 = action({
 /** USPS Address API — validates a known-good address. */
 export const testUspsAddress = action({
   args: {},
+  returns: v.object({ success: v.boolean(), detail: v.optional(v.string()) }),
   handler: async (ctx): Promise<TestResult> => {
     await requireManageOptions(ctx);
     try {
@@ -212,6 +218,7 @@ export const testUspsAddress = action({
 /** Google Places — validates the key via a tiny Autocomplete call. */
 export const testGooglePlaces = action({
   args: {},
+  returns: v.object({ success: v.boolean(), detail: v.optional(v.string()) }),
   handler: async (ctx): Promise<TestResult> => {
     await requireManageOptions(ctx);
     const key = await getServiceKeyFromAction(

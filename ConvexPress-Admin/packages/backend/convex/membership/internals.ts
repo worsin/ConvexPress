@@ -249,6 +249,13 @@ export const grantFromSubscription = internalMutation({
     subscriptionId: v.string(),
     endsAt: v.optional(v.number()),
   },
+  returns: v.object({
+    grantedPlanIds: v.array(v.string()),
+    refreshedPlanIds: v.optional(v.array(v.string())),
+    skippedArchivedPlanIds: v.optional(v.array(v.string())),
+    skipped: v.optional(v.string()),
+    reason: v.optional(v.string()),
+  }),
   handler: async (ctx: any, args: any) =>
     _grantFromSubscriptionHandler(ctx, args),
 });
@@ -359,6 +366,12 @@ export const revokeFromSubscription = internalMutation({
     subscriptionId: v.string(),
     gracePeriodDays: v.optional(v.number()),
   },
+  returns: v.object({
+    revokedCount: v.number(),
+    movedToGraceCount: v.optional(v.number()),
+    skipped: v.optional(v.string()),
+    processedAt: v.optional(v.number()),
+  }),
   handler: async (ctx: any, args: any) =>
     _revokeFromSubscriptionHandler(ctx, args),
 });
@@ -452,6 +465,11 @@ export const moveGrantToGrace = internalMutation({
     subscriptionId: v.string(),
     gracePeriodDays: v.optional(v.number()),
   },
+  returns: v.object({
+    movedCount: v.number(),
+    skipped: v.optional(v.string()),
+    processedAt: v.optional(v.number()),
+  }),
   handler: async (ctx: any, args: any) =>
     _moveGrantToGraceHandler(ctx, args),
 });
@@ -480,6 +498,7 @@ export const recordAccessCheck = internalMutation({
     reason: v.optional(v.string()),
     matchingPlanIds: v.optional(v.array(v.id("membership_plans"))),
   },
+  returns: v.union(v.object({ logged: v.boolean(), at: v.optional(v.null()) }), v.object({ logged: v.boolean(), at: v.number() })),
   handler: async (ctx: any, args: any) => {
     // Soft no-op when plugin is off.
     if (!(await isPluginEnabled(ctx, "membership"))) return { logged: false };
@@ -521,6 +540,7 @@ export const recordAccessCheck = internalMutation({
  */
 export const trimAccessLog = internalMutation({
   args: {},
+  returns: v.union(v.object({ deleted: v.number(), skipped: v.string(), cutoff: v.optional(v.null()) }), v.object({ deleted: v.number(), cutoff: v.number(), skipped: v.optional(v.null()) })),
   handler: async (ctx: any) => {
     // Soft no-op when plugin is off.
     if (!(await isPluginEnabled(ctx, "membership"))) {
@@ -575,6 +595,7 @@ export const getCapabilitiesForUser = internalQuery({
   args: {
     userId: v.id("users"),
   },
+  returns: v.array(v.string()),
   handler: async (ctx: any, args: any) => {
     if (!(await isPluginEnabled(ctx, "membership"))) return [];
 

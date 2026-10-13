@@ -30,13 +30,10 @@ import { requirePluginEnabled } from "../helpers/plugins";
  *
  * This should be scheduled to run periodically (e.g. every hour via cron).
  */
-// @ts-expect-error TS2589: Convex union-schema types exceed TypeScript's type instantiation depth limit in strict mode.
 export const processRenewals = internalAction({
   args: {
-    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     limit: v.optional(v.number()),
   },
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, _args) => {
     await requirePluginEnabled(ctx, "commerceSubscriptions");
     return {
@@ -64,13 +61,19 @@ export const processRenewals = internalAction({
  *
  * This should be scheduled to run periodically (e.g. every 6 hours via cron).
  */
-// @ts-expect-error TS2589: Convex union-schema types exceed TypeScript's type instantiation depth limit in strict mode.
 export const processDunningRetries = internalAction({
   args: {
-    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     limit: v.optional(v.number()),
   },
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.object({
+    scheduled: v.number(),
+    retried: v.number(),
+    succeeded: v.number(),
+    failed: v.number(),
+    skipped: v.boolean(),
+    reason: v.string(),
+    message: v.string(),
+  }),
   handler: async (ctx, _args) => {
     await requirePluginEnabled(ctx, "commerceSubscriptions");
     return {
@@ -96,13 +99,10 @@ export const processDunningRetries = internalAction({
  *
  * This should be scheduled to run periodically (e.g. every hour via cron).
  */
-// @ts-expect-error TS2589: Convex union-schema types exceed TypeScript's type instantiation depth limit in strict mode.
 export const processExpiredSubscriptions = internalAction({
   args: {
-    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     limit: v.optional(v.number()),
   },
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "commerceSubscriptions");
     const result: any = await ctx.runMutation(
@@ -125,13 +125,18 @@ export const processExpiredSubscriptions = internalAction({
  * Disabled-safe until off-session provider charging is implemented.
  * This intentionally does not report payment failure or success.
  */
-// @ts-expect-error TS2589: Convex union-schema types exceed TypeScript's type instantiation depth limit in strict mode.
 export const chargeSubscriptionInvoice = internalAction({
   args: {
-    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     invoiceId: v.id("commerce_subscription_invoices"),
   },
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.object({
+    success: v.boolean(),
+    error: v.string(),
+    skipped: v.boolean(),
+    reason: v.string(),
+    invoiceId: v.id("commerce_subscription_invoices"),
+    correlationId: v.string(),
+  }),
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "commerceSubscriptions");
     const correlationId = `charge_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;

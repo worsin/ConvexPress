@@ -40,6 +40,8 @@ import {
 } from "./validators";
 import { isPluginEnabled } from "../helpers/plugins";
 
+import { v } from "convex/values";
+import { tableDocs } from "../schema/tableDocs.generated";
 // ─── Queries ────────────────────────────────────────────────────────────────
 
 /**
@@ -48,10 +50,30 @@ import { isPluginEnabled } from "../helpers/plugins";
  * Auth: Required (admin usage).
  * Returns groups sorted by menuOrder with field count per group.
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const listGroups = query({
   args: listGroupsArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.union(v.null(), v.array(v.object({
+    fieldCount: v.number(),
+    _id: v.id("fieldGroups"),
+    _creationTime: v.number(),
+    description: v.optional(v.string()),
+    title: v.string(),
+    style: v.union(v.literal("default"), v.literal("seamless")),
+    updatedAt: v.number(),
+    createdAt: v.number(),
+    key: v.string(),
+    createdBy: v.string(),
+    isActive: v.boolean(),
+    locationRules: v.array(v.array(v.object({
+      value: v.string(),
+      param: v.string(),
+      operator: v.union(v.literal("=="), v.literal("!=")),
+    }))),
+    position: v.union(v.literal("normal"), v.literal("side"), v.literal("after_title")),
+    labelPlacement: v.union(v.literal("top"), v.literal("left")),
+    instructionPlacement: v.union(v.literal("label"), v.literal("field")),
+    menuOrder: v.number(),
+  }))),
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "customFields"))) return null;
     // Auth check
@@ -65,12 +87,12 @@ export const listGroups = query({
     if (args.status === "active") {
       groups = await ctx.db
         .query("fieldGroups")
-        .withIndex("by_active", (q: ConvexQueryBuilder) => q.eq("isActive", true))
+        .withIndex("by_active", (q) => q.eq("isActive", true))
         .collect();
     } else if (args.status === "inactive") {
       groups = await ctx.db
         .query("fieldGroups")
-        .withIndex("by_active", (q: ConvexQueryBuilder) => q.eq("isActive", false))
+        .withIndex("by_active", (q) => q.eq("isActive", false))
         .collect();
     } else {
       // "all" or undefined: fetch all groups sorted by order
@@ -84,7 +106,6 @@ export const listGroups = query({
     if (args.search) {
       const searchLower = args.search.toLowerCase();
       groups = groups.filter(
-        // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
         (g) =>
           g.title.toLowerCase().includes(searchLower) ||
           g.key.toLowerCase().includes(searchLower),
@@ -92,16 +113,14 @@ export const listGroups = query({
     }
 
     // Sort by menuOrder (may already be sorted by index, but ensure consistency)
-    // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
     groups.sort((a, b) => a.menuOrder - b.menuOrder);
 
     // Join with field count
     const groupsWithCounts = await Promise.all(
-      // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
       groups.map(async (group) => {
         const fields = await ctx.db
           .query("fieldDefinitions")
-          .withIndex("by_group", (q: ConvexQueryBuilder) => q.eq("groupId", group._id))
+          .withIndex("by_group", (q) => q.eq("groupId", group._id))
           .collect();
 
         return {
@@ -120,10 +139,9 @@ export const listGroups = query({
  *
  * Auth: Required (admin usage).
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const getGroup = query({
   args: getGroupArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.union(v.null(), tableDocs.fieldGroups),
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "customFields"))) return null;
     const user = await getCurrentUser(ctx);
@@ -135,7 +153,7 @@ export const getGroup = query({
     } else if (args.key) {
       group = await ctx.db
         .query("fieldGroups")
-        .withIndex("by_key", (q: ConvexQueryBuilder) => q.eq("key", args.key!))
+        .withIndex("by_key", (q) => q.eq("key", args.key!))
         .unique();
     } else {
       return null;
@@ -152,10 +170,9 @@ export const getGroup = query({
  * Returns flat list sorted by menuOrder. Sub-fields are included
  * with parentFieldId references for client-side nesting.
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const getFieldsByGroup = query({
   args: getFieldsByGroupArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.union(v.null(), v.array(tableDocs.fieldDefinitions)),
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "customFields"))) return null;
     const user = await getCurrentUser(ctx);
@@ -163,11 +180,10 @@ export const getFieldsByGroup = query({
 
     const fields = await ctx.db
       .query("fieldDefinitions")
-      .withIndex("by_group", (q: ConvexQueryBuilder) => q.eq("groupId", args.groupId))
+      .withIndex("by_group", (q) => q.eq("groupId", args.groupId))
       .collect();
 
     // Sort by menuOrder (index already sorts, but ensure)
-    // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
     fields.sort((a, b) => a.menuOrder - b.menuOrder);
 
     return fields;
@@ -181,10 +197,30 @@ export const getFieldsByGroup = query({
  * Evaluates each active group's location rules against the provided context.
  * Returns matching groups with their field definitions, sorted by menuOrder.
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const getGroupsForContext = query({
   args: getGroupsForContextArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.union(v.null(), v.array(v.object({
+    fields: v.array(tableDocs.fieldDefinitions),
+    _id: v.id("fieldGroups"),
+    _creationTime: v.number(),
+    description: v.optional(v.string()),
+    title: v.string(),
+    style: v.union(v.literal("default"), v.literal("seamless")),
+    updatedAt: v.number(),
+    createdAt: v.number(),
+    key: v.string(),
+    createdBy: v.string(),
+    isActive: v.boolean(),
+    locationRules: v.array(v.array(v.object({
+      value: v.string(),
+      param: v.string(),
+      operator: v.union(v.literal("=="), v.literal("!=")),
+    }))),
+    position: v.union(v.literal("normal"), v.literal("side"), v.literal("after_title")),
+    labelPlacement: v.union(v.literal("top"), v.literal("left")),
+    instructionPlacement: v.union(v.literal("label"), v.literal("field")),
+    menuOrder: v.number(),
+  }))),
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "customFields"))) return null;
     const user = await getCurrentUser(ctx);
@@ -193,7 +229,7 @@ export const getGroupsForContext = query({
     // 1. Fetch all active field groups
     const activeGroups = await ctx.db
       .query("fieldGroups")
-      .withIndex("by_active", (q: ConvexQueryBuilder) => q.eq("isActive", true))
+      .withIndex("by_active", (q) => q.eq("isActive", true))
       .collect();
 
     // 2. Build location context from args
@@ -210,25 +246,21 @@ export const getGroupsForContext = query({
     };
 
     // 3. Evaluate each group's location rules
-    // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
     const matchingGroups = activeGroups.filter((group) =>
       evaluateLocationRules(group.locationRules, context),
     );
 
     // 4. Sort by menuOrder
-    // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
     matchingGroups.sort((a, b) => a.menuOrder - b.menuOrder);
 
     // 5. Fetch field definitions for each matching group
     const groupsWithFields = await Promise.all(
-      // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
       matchingGroups.map(async (group) => {
         const fields = await ctx.db
           .query("fieldDefinitions")
-          .withIndex("by_group", (q: ConvexQueryBuilder) => q.eq("groupId", group._id))
+          .withIndex("by_group", (q) => q.eq("groupId", group._id))
           .collect();
 
-        // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
         fields.sort((a, b) => a.menuOrder - b.menuOrder);
 
         return {
@@ -252,6 +284,7 @@ export const getGroupsForContext = query({
 type FieldValueResult = { fieldKey: string; fieldName: string; type: Doc<"fieldDefinitions">["type"]; value: string } | null;
 export const getValue: RegisteredQuery<"public", { entityType: string; entityId: string; fieldKey?: string; fieldName?: string }, FieldValueResult> = query({
   args: getValueArgs,
+  returns: v.union(v.null(), v.object({ fieldKey: v.string(), fieldName: v.string(), type: v.string(), value: v.string() })),
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "customFields"))) return null;
     // No auth required - allows anonymous access for public content
@@ -316,10 +349,9 @@ export const getValue: RegisteredQuery<"public", { entityType: string; entityId:
  * Auth: Public for published content (website SSR).
  * Returns an array of field values with type info from definitions.
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const getAllValues = query({
   args: getAllValuesArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.union(v.null(), v.array(v.object({ fieldKey: v.string(), fieldName: v.string(), type: v.string(), value: v.string() }))),
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "customFields"))) return null;
     // No auth required - allows anonymous access for public content
@@ -327,18 +359,17 @@ export const getAllValues = query({
     // Get all values for this entity
     const values = await ctx.db
       .query("fieldValues")
-      .withIndex("by_entity", (q: ConvexQueryBuilder) =>
+      .withIndex("by_entity", (q) =>
         q.eq("entityType", args.entityType).eq("entityId", args.entityId),
       )
       .collect();
 
     // Join with field definitions for type info
     const valuesWithType = await Promise.all(
-      // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
       values.map(async (val) => {
         const fieldDef = await ctx.db
           .query("fieldDefinitions")
-          .withIndex("by_key", (q: ConvexQueryBuilder) => q.eq("key", val.fieldKey))
+          .withIndex("by_key", (q) => q.eq("key", val.fieldKey))
           .unique();
 
         return {
@@ -363,6 +394,7 @@ export const getAllValues = query({
  */
 export const getFieldWithValue: RegisteredQuery<"public", { entityType: string; entityId: string; fieldName: string }, { definition: Doc<"fieldDefinitions">; value: string | null } | null> = query({
   args: getFieldWithValueArgs,
+  returns: v.union(v.null(), v.object({ definition: tableDocs.fieldDefinitions, value: v.union(v.null(), v.string()) })),
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "customFields"))) return null;
     // No auth required - allows anonymous access for public content
@@ -399,10 +431,9 @@ export const getFieldWithValue: RegisteredQuery<"public", { entityType: string; 
  * Auth: Required (admin usage).
  * Simple case-insensitive substring search.
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const searchGroups = query({
   args: searchGroupsArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.union(v.null(), v.array(tableDocs.fieldGroups)),
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "customFields"))) return null;
     const user = await getCurrentUser(ctx);
@@ -416,7 +447,6 @@ export const searchGroups = query({
       .collect();
 
     return allGroups.filter(
-      // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
       (g) =>
         g.title.toLowerCase().includes(searchLower) ||
         g.key.toLowerCase().includes(searchLower),
@@ -430,10 +460,9 @@ export const searchGroups = query({
  * Auth: Required (admin dashboard).
  * Returns { groups, activeGroups, fields } for "At a Glance" widgets.
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const counts = query({
   args: {},
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.union(v.null(), v.object({ groups: v.number(), activeGroups: v.number(), fields: v.number() })),
   handler: async (ctx) => {
     if (!(await isPluginEnabled(ctx, "customFields"))) return null;
     const user = await getCurrentUser(ctx);

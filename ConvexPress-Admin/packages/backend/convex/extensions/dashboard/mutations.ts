@@ -78,6 +78,7 @@ export const saveDefaultLayout = mutation({
     items: v.array(dashboardLayoutItemValidator),
     membersCanEdit: v.optional(v.boolean()),
   },
+  returns: v.id("dashboard_layouts"),
   handler: async (ctx, args) => {
     const user = await requireCan(ctx, "manage_options");
     validateScope(args.scope);
@@ -115,6 +116,7 @@ export const saveDefaultLayout = mutation({
 
 export const deleteDefaultLayout = mutation({
   args: { scope: v.string() },
+  returns: v.boolean(),
   handler: async (ctx, args) => {
     await requireCan(ctx, "manage_options");
     const existing = await ctx.db
@@ -131,6 +133,7 @@ export const saveMyLayout = mutation({
     baseScope: v.string(),
     items: v.array(dashboardLayoutItemValidator),
   },
+  returns: v.id("dashboard_user_layouts"),
   handler: async (ctx, args) => {
     const user = await getCurrentUser(ctx);
     if (!user || user.status !== "active") {
@@ -165,6 +168,7 @@ export const saveMyLayout = mutation({
 
 export const resetMyLayout = mutation({
   args: {},
+  returns: v.boolean(),
   handler: async (ctx) => {
     const user = await getCurrentUser(ctx);
     if (!user) throw new ConvexError({ code: "UNAUTHORIZED", message: "Sign in first" });

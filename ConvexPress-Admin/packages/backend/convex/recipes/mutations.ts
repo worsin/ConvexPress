@@ -13,6 +13,7 @@ import {
 import { requirePluginEnabled } from "../helpers/plugins";
 import { insertWithMediaReferences, patchWithMediaReferences } from "../media/attachmentGuard";
 
+import { v } from "convex/values";
 function slugify(value: string) {
   return value
     .toLowerCase()
@@ -90,10 +91,9 @@ async function recomputeCategoryCounts(ctx: any, categoryIds: readonly string[])
   }
 }
 
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const createCategory = mutation({
   args: createCategoryArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.id("recipe_categories"),
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "recipes");
     await requireCan(ctx, "manage_options");
@@ -121,10 +121,9 @@ export const createCategory = mutation({
   },
 });
 
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const updateCategory = mutation({
   args: updateCategoryArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.id("recipe_categories"),
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "recipes");
     await requireCan(ctx, "manage_options");
@@ -169,10 +168,9 @@ export const updateCategory = mutation({
   },
 });
 
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const deleteCategory = mutation({
   args: deleteCategoryArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.union(v.null(), v.id("recipe_categories")),
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "recipes");
     await requireCan(ctx, "manage_options");
@@ -202,10 +200,9 @@ export const deleteCategory = mutation({
   },
 });
 
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const createRecipe = mutation({
   args: createRecipeArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.id("recipes"),
   handler: async (ctx, args): Promise<import("../_generated/dataModel").Id<"recipes">> => {
     await requirePluginEnabled(ctx, "recipes");
     const user = await requireCan(ctx, "post.create");
@@ -259,10 +256,9 @@ export const createRecipe = mutation({
   },
 });
 
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const updateRecipe = mutation({
   args: updateRecipeArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.id("recipes"),
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "recipes");
     const user = await requireCan(ctx, "post.update");
@@ -364,10 +360,9 @@ export const updateRecipe = mutation({
   },
 });
 
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const trashRecipe = mutation({
   args: trashRecipeArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.union(v.null(), v.id("recipes")),
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "recipes");
     const user = await requireCan(ctx, "post.trash");

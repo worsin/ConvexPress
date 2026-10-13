@@ -119,6 +119,13 @@ export const list: import("convex/server").RegisteredQuery<"public", { search?: 
 
 export const counts: import("convex/server").RegisteredQuery<"public", Record<string, never>, { enabled: boolean; all: number; draft: number; published: number; trash: number } | null> = query({
   args: {},
+  returns: v.union(v.null(), v.object({
+    enabled: v.boolean(),
+    all: v.number(),
+    draft: v.number(),
+    published: v.number(),
+    trash: v.number(),
+  })),
   handler: async (ctx) => {
     if (!(await isPluginEnabled(ctx, "recipes"))) return null;
     const enabled = await isRecipesEnabled(ctx);
@@ -149,10 +156,45 @@ export const counts: import("convex/server").RegisteredQuery<"public", Record<st
   },
 });
 
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const get = query({
   args: getRecipeArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.union(v.null(), v.object({
+    categories: v.array(v.union(v.null(), v.object({ _id: v.string(), name: v.string(), slug: v.string(), color: v.optional(v.string()) }))),
+    _id: v.id("recipes"),
+    _creationTime: v.number(),
+    description: v.optional(v.string()),
+    excerpt: v.optional(v.string()),
+    featuredImageId: v.optional(v.id("media")),
+    publishedAt: v.optional(v.number()),
+    notes: v.optional(v.string()),
+    scanMediaId: v.optional(v.id("media")),
+    prepMinutes: v.optional(v.number()),
+    cookMinutes: v.optional(v.number()),
+    totalMinutes: v.optional(v.number()),
+    servings: v.optional(v.string()),
+    yieldText: v.optional(v.string()),
+    difficulty: v.optional(v.union(v.literal("medium"), v.literal("easy"), v.literal("hard"))),
+    nutrition: v.optional(v.object({
+      calories: v.optional(v.string()),
+      protein: v.optional(v.string()),
+      carbs: v.optional(v.string()),
+      fat: v.optional(v.string()),
+      fiber: v.optional(v.string()),
+      sugar: v.optional(v.string()),
+    })),
+    scannedText: v.optional(v.string()),
+    title: v.string(),
+    updatedAt: v.number(),
+    createdAt: v.number(),
+    status: v.union(v.literal("draft"), v.literal("trash"), v.literal("publish")),
+    slug: v.string(),
+    authorId: v.id("users"),
+    instructions: v.array(v.string()),
+    isFeatured: v.boolean(),
+    categoryIds: v.array(v.id("recipe_categories")),
+    ingredients: v.array(v.string()),
+    aiExtractedFromScan: v.boolean(),
+  })),
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "recipes"))) return null;
     const user = await getCurrentUser(ctx);
@@ -163,7 +205,6 @@ export const get = query({
       });
     }
 
-    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     const recipe = await ctx.db.get("recipes", args.recipeId);
     if (!recipe) return null;
 

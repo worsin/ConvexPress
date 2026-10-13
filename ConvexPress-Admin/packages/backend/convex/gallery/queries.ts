@@ -20,6 +20,8 @@ import { isPluginEnabled } from "../helpers/plugins";
 import type { Doc, Id } from "../_generated/dataModel";
 import { createMembershipAccessEvaluator } from "../membership/access";
 
+import { v } from "convex/values";
+import { tableDocs } from "../schema/tableDocs.generated";
 // Share one request-scoped evaluator across archive rows. The actual destination
 // remains authoritative for detail, embed, and archive entry points alike.
 async function isPublicAlbum(
@@ -34,23 +36,19 @@ async function isPublicAlbum(
 }
 
 
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const listCategories = query({
   args: {},
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.union(v.null(), v.array(tableDocs.gallery_categories)),
   handler: async (ctx) => {
     if (!(await isPluginEnabled(ctx, "gallery"))) return null;
     const categories = await ctx.db.query("gallery_categories").take(200);
-    // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
     categories.sort((a, b) => a.name.localeCompare(b.name));
     return categories;
   },
 });
 
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const list = query({
   args: listAlbumsArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "gallery"))) return [];
     const user = await getCurrentUser(ctx);
@@ -65,40 +63,40 @@ export const list = query({
     const allAlbums = await ctx.db.query("gallery_albums").take(1000);
     const searchLower = args.search?.trim().toLowerCase();
 
-    // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
     let filtered = allAlbums.filter((album) =>
       roleLevel >= 80 ? true : album.authorId.toString() === user._id.toString(),
     );
 
     if (args.status) {
-      // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
       filtered = filtered.filter((album) => album.status === args.status);
     } else {
-      // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
       filtered = filtered.filter((album) => album.status !== "trash");
     }
 
     if (searchLower) {
       filtered = filtered.filter(
-        // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
         (album) =>
           album.title.toLowerCase().includes(searchLower) ||
           album.slug.toLowerCase().includes(searchLower),
       );
     }
 
-    // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
     filtered.sort((a, b) => (b.updatedAt ?? 0) - (a.updatedAt ?? 0));
 
-    // @ts-expect-error TS2589 TS7006: Convex generated API types (see feedback_typecheck_deploy.md).
     return Promise.all(filtered.map((album) => enrichAlbum(ctx, album)));
   },
 });
 
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const counts = query({
   args: {},
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.union(v.null(), v.object({
+    enabled: v.boolean(),
+    all: v.number(),
+    draft: v.number(),
+    published: v.number(),
+    private: v.number(),
+    trash: v.number(),
+  })),
   handler: async (ctx) => {
     if (!(await isPluginEnabled(ctx, "gallery"))) return null;
     const enabled = await isGalleryEnabled(ctx);
@@ -112,23 +110,17 @@ export const counts = query({
 
     const roleLevel = await getRoleLevel(ctx, user.roleId?.toString());
     const visibleAlbums = (await ctx.db.query("gallery_albums").take(1000)).filter(
-      // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
       (album) =>
         roleLevel >= 80 || album.authorId.toString() === user._id.toString(),
     );
 
     return {
       enabled,
-      // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
       all: visibleAlbums.filter((album) => album.status !== "trash").length,
-      // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
       draft: visibleAlbums.filter((album) => album.status === "draft").length,
-      // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
       published: visibleAlbums.filter((album) => album.status === "publish")
         .length,
-      // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
       private: visibleAlbums.filter((album) => album.status === "private").length,
-      // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
       trash: visibleAlbums.filter((album) => album.status === "trash").length,
     };
   },
@@ -161,10 +153,8 @@ export const get: import("convex/server").RegisteredQuery<"public", { albumId: i
   },
 });
 
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const listPublished = query({
   args: listPublishedAlbumsArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "gallery"))) return null;
     if (!(await isGalleryEnabled(ctx))) {
@@ -184,7 +174,6 @@ export const listPublished = query({
     const categories = await ctx.db.query("gallery_categories").take(500);
     const category =
       args.categorySlug && args.categorySlug.length > 0
-        // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
         ? categories.find((entry) => entry.slug === args.categorySlug) ?? null
         : null;
 
@@ -215,7 +204,6 @@ export const listPublished = query({
     const items = filtered.slice(start, start + perPage);
 
     return {
-      // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
       albums: await Promise.all(items.map((album) => enrichAlbum(ctx, album))),
       page,
       perPage,
@@ -290,10 +278,15 @@ export const getEmbed: import("convex/server").RegisteredQuery<"public", { album
   },
 });
 
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const listPublicCategories = query({
   args: {},
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.union(v.null(), v.array(v.union(v.null(), v.object({
+    _id: v.string(),
+    name: v.string(),
+    slug: v.string(),
+    description: v.optional(v.string()),
+    albumCount: v.number(),
+  })))),
   handler: async (ctx) => {
     if (!(await isPluginEnabled(ctx, "gallery"))) return null;
     if (!(await isGalleryEnabled(ctx))) {
@@ -301,11 +294,9 @@ export const listPublicCategories = query({
     }
 
     const categories = await ctx.db.query("gallery_categories").take(200);
-    // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
     categories.sort((a, b) => a.name.localeCompare(b.name));
     return enrichCategories(
       ctx,
-      // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
       categories.map((category) => category._id.toString()),
     );
   },

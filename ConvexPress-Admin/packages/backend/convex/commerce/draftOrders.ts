@@ -6,6 +6,7 @@ import { requireCan } from "../helpers/permissions";
 import { patchDynamicWithMediaReferences } from "../media/attachmentGuard";
 
 
+import { tableDocs } from "../schema/tableDocs.generated";
 function totalItems(items: any[]) {
   return items.reduce((sum, item) => sum + Number(item.lineTotalAmount ?? 0), 0);
 }
@@ -32,6 +33,7 @@ async function recalculate(ctx: any, draftOrderId: any) {
 
 export const list = query({
   args: { status: v.optional(v.union(v.literal("open"), v.literal("completed"), v.literal("canceled"))) },
+  returns: v.array(tableDocs.commerce_draft_orders),
   handler: async (ctx, args) => {
     await requireCan(ctx, "manage_options");
     if (args.status) {
@@ -76,6 +78,7 @@ export const create = mutation({
     notes: v.optional(v.string()),
     metadata: v.optional(v.any()),
   },
+  returns: v.id("commerce_draft_orders"),
   handler: async (ctx, args) => {
     const actor = await requireCan(ctx, "manage_options");
     const now = Date.now();
@@ -115,6 +118,7 @@ export const upsertItem = mutation({
     unitPriceAmount: v.number(),
     metadata: v.optional(v.any()),
   },
+  returns: v.id("commerce_draft_order_items"),
   handler: async (ctx, args) => {
     await requireCan(ctx, "manage_options");
     const draft = await ctx.db.get(args.draftOrderId);
@@ -160,6 +164,7 @@ export const complete = mutation({
     draftOrderId: v.id("commerce_draft_orders"),
     orderId: v.optional(v.id("commerce_orders")),
   },
+  returns: v.id("commerce_draft_orders"),
   handler: async (ctx, args) => {
     await requireCan(ctx, "manage_options");
     const draft = await ctx.db.get(args.draftOrderId);

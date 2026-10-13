@@ -35,6 +35,7 @@ import { POST_EVENTS, PAGE_EVENTS, SYSTEM } from "../events/constants";
  */
 export const publishScheduled = internalMutation({
   args: { postId: v.id("posts"), expectedScheduledAt: v.optional(v.number()) },
+  returns: v.null(),
   handler: async (ctx, { postId, expectedScheduledAt }) => {
     const post = await ctx.db.get("posts", postId);
 
@@ -85,6 +86,7 @@ export const publishScheduled = internalMutation({
  */
 export const purgeOldTrash = internalMutation({
   args: { postId: v.id("posts") },
+  returns: v.null(),
   handler: async (ctx, { postId }) => {
     const post = await ctx.db.get("posts", postId);
 
@@ -181,6 +183,7 @@ export const updatePostCount = internalMutation({
  */
 export const getAllPublished = internalQuery({
   args: {},
+  returns: v.array(v.object({ _id: v.id("posts"), slug: v.string(), publishedAt: v.optional(v.number()) })),
   handler: async (ctx) => {
     const posts = await ctx.db
       .query("posts")

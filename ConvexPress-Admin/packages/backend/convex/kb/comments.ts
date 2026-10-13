@@ -30,26 +30,55 @@ import {
 import { enrichUser } from "./helpers/enrichUser";
 import { isPluginEnabled, requirePluginEnabled } from "../helpers/plugins";
 
+import { v } from "convex/values";
 // ─── List By Article (Public, threaded) ─────────────────────────────────────
 
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const listByArticle = query({
   args: listCommentsByArticleArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.array(v.object({
+    replies: v.array(v.object({
+      author: v.union(v.null(), v.object({ _id: v.id("users"), displayName: v.string(), avatarUrl: v.optional(v.string()) })),
+      _id: v.id("kb_comments"),
+      _creationTime: v.number(),
+      parentId: v.optional(v.id("kb_comments")),
+      userId: v.id("users"),
+      updatedAt: v.number(),
+      createdAt: v.number(),
+      content: v.string(),
+      isEdited: v.boolean(),
+      articleId: v.id("kb_articles"),
+      isApproved: v.boolean(),
+      isDeleted: v.boolean(),
+      upvotes: v.number(),
+      downvotes: v.number(),
+    })),
+    author: v.union(v.null(), v.object({ _id: v.id("users"), displayName: v.string(), avatarUrl: v.optional(v.string()) })),
+    _id: v.id("kb_comments"),
+    _creationTime: v.number(),
+    parentId: v.optional(v.id("kb_comments")),
+    userId: v.id("users"),
+    updatedAt: v.number(),
+    createdAt: v.number(),
+    content: v.string(),
+    isEdited: v.boolean(),
+    articleId: v.id("kb_articles"),
+    isApproved: v.boolean(),
+    isDeleted: v.boolean(),
+    upvotes: v.number(),
+    downvotes: v.number(),
+  })),
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "knowledgeBase"))) return [];
     const comments = await ctx.db
       .query("kb_comments")
-      .withIndex("by_article", (q: ConvexQueryBuilder) => q.eq("articleId", args.articleId))
+      .withIndex("by_article", (q) => q.eq("articleId", args.articleId))
       .take(500);
 
     // Only show approved, non-deleted comments
-    // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
     const visible = comments.filter((c) => c.isApproved && !c.isDeleted);
 
     // Enrich with author info
     const enriched = await Promise.all(
-      // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
       visible.map(async (comment) => {
         const author = await ctx.db.get("users", comment.userId);
         return {
@@ -60,18 +89,13 @@ export const listByArticle = query({
     );
 
     // Build threaded structure: top-level comments with nested replies
-    // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
     const topLevel = enriched.filter((c) => !c.parentId);
-    // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
     const replies = enriched.filter((c) => c.parentId);
 
-    // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
     return topLevel.map((parent) => ({
       ...parent,
       replies: replies
-        // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
         .filter((r) => r.parentId === parent._id)
-        // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
         .sort((a, b) => a.createdAt - b.createdAt),
     }));
   },
@@ -79,10 +103,9 @@ export const listByArticle = query({
 
 // ─── Create ─────────────────────────────────────────────────────────────────
 
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const create = mutation({
   args: createCommentArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.id("kb_comments"),
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "knowledgeBase");
     const user = await getCurrentUser(ctx);
@@ -141,10 +164,9 @@ export const create = mutation({
 
 // ─── Update ─────────────────────────────────────────────────────────────────
 
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const update = mutation({
   args: updateCommentArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.id("kb_comments"),
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "knowledgeBase");
     const user = await getCurrentUser(ctx);
@@ -179,10 +201,9 @@ export const update = mutation({
 
 // ─── Delete (Soft) ──────────────────────────────────────────────────────────
 
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const deleteComment = mutation({
   args: deleteCommentArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.id("kb_comments"),
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "knowledgeBase");
     const user = await getCurrentUser(ctx);
@@ -214,6 +235,7 @@ export const deleteComment = mutation({
 
 export const vote: RegisteredMutation<"public", { commentId: Id<"kb_comments">; voteType: "up" | "down" }, Id<"kb_commentVotes">> = mutation({
   args: voteCommentArgs,
+  returns: v.id("kb_commentVotes"),
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "knowledgeBase");
     const user = await getCurrentUser(ctx);
@@ -291,6 +313,7 @@ export const vote: RegisteredMutation<"public", { commentId: Id<"kb_comments">; 
 
 export const removeVote: RegisteredMutation<"public", { commentId: Id<"kb_comments"> }, Id<"kb_commentVotes"> | null> = mutation({
   args: removeVoteArgs,
+  returns: v.union(v.null(), v.id("kb_commentVotes")),
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "knowledgeBase");
     const user = await getCurrentUser(ctx);
@@ -327,18 +350,16 @@ export const removeVote: RegisteredMutation<"public", { commentId: Id<"kb_commen
 
 // ─── Get Count (Public) ─────────────────────────────────────────────────────
 
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const getCount = query({
   args: getCommentCountArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.union(v.null(), v.number()),
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "knowledgeBase"))) return null;
     const comments = await ctx.db
       .query("kb_comments")
-      .withIndex("by_article", (q: ConvexQueryBuilder) => q.eq("articleId", args.articleId))
+      .withIndex("by_article", (q) => q.eq("articleId", args.articleId))
       .take(1000);
 
-    // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
     return comments.filter((c) => c.isApproved && !c.isDeleted).length;
   },
 });

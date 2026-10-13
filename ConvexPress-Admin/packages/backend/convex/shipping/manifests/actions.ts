@@ -32,6 +32,11 @@ import { getFedexAccessTokenV2 } from "../providers/fedex/auth";
  */
 export const submitOneManifest = internalAction({
   args: { manifestId: v.id("commerce_shipment_manifests") },
+  returns: v.object({
+    success: v.boolean(),
+    externalManifestId: v.optional(v.string()),
+    errorMessage: v.optional(v.string()),
+  }),
   handler: async (ctx, args) => {
     const manifest = await ctx.runQuery(
       internal.shipping.manifests.internals.getManifestById,

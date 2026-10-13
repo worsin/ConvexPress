@@ -16,6 +16,7 @@ import { internal } from "../../_generated/api";
 import { v } from "convex/values";
 import type { Id } from "../../_generated/dataModel";
 
+import { tableDocs } from "../../schema/tableDocs.generated";
 // ─── Object Type Validator ─────────────────────────────────────────────────
 
 const objectTypeValidator = v.union(
@@ -73,6 +74,7 @@ export const getByWpId = internalQuery({
     objectType: objectTypeValidator,
     wpId: v.number(),
   },
+  returns: v.union(v.null(), v.string()),
   handler: async (ctx, { siteId, objectType, wpId }) => {
     const mapping = await ctx.db
       .query("wpIdMappings")
@@ -95,6 +97,7 @@ export const getByConvexId = internalQuery({
     objectType: objectTypeValidator,
     convexId: v.string(),
   },
+  returns: v.union(v.null(), v.number()),
   handler: async (ctx, { siteId, objectType, convexId }) => {
     const mapping = await ctx.db
       .query("wpIdMappings")
@@ -117,6 +120,7 @@ export const getBatchByWpIds = internalQuery({
     objectType: objectTypeValidator,
     wpIds: v.array(v.number()),
   },
+  returns: v.array(v.array(v.union(v.number(), v.string()))),
   handler: async (ctx, { siteId, objectType, wpIds }) => {
     const result = new Map<number, string>();
 
@@ -153,6 +157,7 @@ export const exists = internalQuery({
     objectType: objectTypeValidator,
     wpId: v.number(),
   },
+  returns: v.boolean(),
   handler: async (ctx, { siteId, objectType, wpId }) => {
     const mapping = await ctx.db
       .query("wpIdMappings")
@@ -174,6 +179,7 @@ export const getAllForSite = internalQuery({
     siteId: v.id("wordpressSites"),
     objectType: v.optional(objectTypeValidator),
   },
+  returns: v.array(tableDocs.wpIdMappings),
   handler: async (ctx, { siteId, objectType }) => {
     if (objectType) {
       return await ctx.db
@@ -198,6 +204,7 @@ export const getCounts = internalQuery({
   args: {
     siteId: v.id("wordpressSites"),
   },
+  returns: v.record(v.string(), v.number()),
   handler: async (ctx, { siteId }) => {
     const mappings = await ctx.db
       .query("wpIdMappings")
@@ -229,6 +236,7 @@ export const create = internalMutation({
     sourceHash: v.optional(v.string()),
     jobId: v.optional(v.id("wordpressSyncJobs")),
   },
+  returns: v.id("wpIdMappings"),
   handler: async (ctx, { siteId, objectType, wpId, convexId, sourceUrl, sourceUrls, sourceHash, jobId }) => {
     const now = Date.now();
 
@@ -298,6 +306,7 @@ export const createBatch = internalMutation({
     ),
     jobId: v.optional(v.id("wordpressSyncJobs")),
   },
+  returns: v.array(v.id("wpIdMappings")),
   handler: async (ctx, { siteId, mappings, jobId }) => {
     const createdIds: Id<"wpIdMappings">[] = [];
     const now = Date.now();
@@ -361,6 +370,7 @@ export const deleteAllForSite = internalMutation({
   args: {
     siteId: v.id("wordpressSites"),
   },
+  returns: v.number(),
   handler: async (ctx, { siteId }) => {
     const mappings = await ctx.db
       .query("wpIdMappings")
@@ -385,6 +395,7 @@ export const deleteByType = internalMutation({
     siteId: v.id("wordpressSites"),
     objectType: objectTypeValidator,
   },
+  returns: v.number(),
   handler: async (ctx, { siteId, objectType }) => {
     const mappings = await ctx.db
       .query("wpIdMappings")
@@ -414,6 +425,7 @@ export const touch = internalMutation({
     wpId: v.number(),
     jobId: v.id("wordpressSyncJobs"),
   },
+  returns: v.union(v.null(), v.id("wpIdMappings")),
   handler: async (ctx, { siteId, objectType, wpId, jobId }) => {
     const mapping = await ctx.db
       .query("wpIdMappings")
@@ -445,6 +457,7 @@ export const getFullMappingByWpId = internalQuery({
     objectType: objectTypeValidator,
     wpId: v.number(),
   },
+  returns: v.union(v.null(), tableDocs.wpIdMappings),
   handler: async (ctx, { siteId, objectType, wpId }) => {
     return await ctx.db
       .query("wpIdMappings")
@@ -467,6 +480,7 @@ export const updateSourceHash = internalMutation({
     wpId: v.number(),
     sourceHash: v.string(),
   },
+  returns: v.null(),
   handler: async (ctx, { siteId, objectType, wpId, sourceHash }) => {
     const mapping = await ctx.db
       .query("wpIdMappings")

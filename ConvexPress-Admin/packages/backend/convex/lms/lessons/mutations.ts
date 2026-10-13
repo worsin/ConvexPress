@@ -40,6 +40,7 @@ export const updateLessonContent = mutation({
     dripOffsetDays: v.optional(v.number()),
     dripDate: v.optional(v.number()),
   },
+  returns: v.object({ nodeId: v.id("lms_nodes"), updatedAt: v.number(), changedFields: v.array(v.string()) }),
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "lms");
     const { user, node } = await requireNodeCourseAuthorOrEditor(ctx, args.nodeId, "lms.lesson.edit");
@@ -136,6 +137,7 @@ export const restoreLessonVersion = mutation({
     nodeId: v.id("lms_nodes"),
     versionId: v.id("lms_lessonVersions"),
   },
+  returns: v.object({ nodeId: v.id("lms_nodes"), updatedAt: v.number(), restoredFields: v.array(v.string()) }),
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "lms");
     const { user, node } = await requireNodeCourseAuthorOrEditor(ctx, args.nodeId, "lms.lesson.edit");

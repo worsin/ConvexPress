@@ -46,6 +46,7 @@ import { emitEvent } from "../../helpers/events";
 import { FORM_EVENTS, SYSTEM } from "../../events/constants";
 import type { Capability } from "../../types/capabilities";
 
+import { tableDocs } from "../../schema/tableDocs.generated";
 // ─── Verdict types (PRD §10.1) ──────────────────────────────────────────────
 
 /** Why the guard blocked an attempt. Kept internal — never surfaced to the bot. */
@@ -330,6 +331,11 @@ export const verifyCaptcha = internalAction({
     ip: v.optional(v.string()),
     minScore: v.optional(v.number()),
   },
+  returns: v.object({
+    success: v.boolean(),
+    status: v.union(v.literal("ok"), v.literal("unreachable")),
+    score: v.optional(v.number()),
+  }),
   handler: async (
     _ctx,
     args,
@@ -396,6 +402,12 @@ export const guardSubmission = internalMutation({
     enforceTimeTrap: v.optional(v.boolean()),
     enforceRateLimit: v.optional(v.boolean()),
   },
+  returns: v.object({
+    ok: v.boolean(),
+    block: v.boolean(),
+    reason: v.optional(v.union(v.literal("honeypot"), v.literal("too_fast"), v.literal("too_slow"), v.literal("rate_ip"), v.literal("rate_form"), v.literal("captcha_missing"), v.literal("captcha_failed"), v.literal("captcha_unavailable"))),
+    score: v.number(),
+  }),
   handler: async (ctx, args): Promise<SubmissionSecurityVerdict> => {
     const settings = await loadSecuritySettings(ctx);
     const ip = deriveClientIp(args.ip);
@@ -582,6 +594,12 @@ export const runCaptchaVerification = internalAction({
     recaptchaMinScore: v.optional(v.number()),
     failClosed: v.optional(v.boolean()),
   },
+  returns: v.object({
+    ok: v.boolean(),
+    block: v.boolean(),
+    reason: v.optional(v.union(v.literal("honeypot"), v.literal("too_fast"), v.literal("too_slow"), v.literal("rate_ip"), v.literal("rate_form"), v.literal("captcha_missing"), v.literal("captcha_failed"), v.literal("captcha_unavailable"))),
+    score: v.number(),
+  }),
   handler: async (ctx, args): Promise<SubmissionSecurityVerdict> => {
     const minScore = args.recaptchaMinScore ?? 0.5;
     const failClosed = args.failClosed ?? true;
@@ -628,6 +646,12 @@ export const runCaptchaVerification = internalAction({
 
 export const getCaptchaPolicy = internalQuery({
   args: {},
+  returns: v.object({
+    captchaEnabled: v.boolean(),
+    captchaProvider: v.union(v.literal("none"), v.literal("turnstile"), v.literal("hcaptcha"), v.literal("recaptcha")),
+    recaptchaMinScore: v.number(),
+    failClosed: v.boolean(),
+  }),
   handler: async (ctx) => {
     if (!(await isPluginEnabled(ctx, "forms"))) {
       return {
@@ -657,6 +681,7 @@ export const getCaptchaPolicy = internalQuery({
  */
 export const sweepAttempts = internalMutation({
   args: {},
+  returns: v.object({ deleted: v.number() }),
   handler: async (ctx) => {
     if (!(await isPluginEnabled(ctx, "forms"))) return { deleted: 0 };
 
@@ -738,6 +763,24 @@ function secretPresence(): {
  */
 export const getSecuritySettings = query({
   args: {},
+  returns: v.object({
+    secretPresence: v.object({ turnstile: v.boolean(), hcaptcha: v.boolean(), recaptcha: v.boolean() }),
+    captchaProvider: v.union(v.literal("none"), v.literal("turnstile"), v.literal("hcaptcha"), v.literal("recaptcha")),
+    captchaSiteKey: v.optional(v.string()),
+    captchaEnabled: v.boolean(),
+    recaptchaMinScore: v.number(),
+    honeypotEnabled: v.boolean(),
+    honeypotFieldName: v.string(),
+    minFillMs: v.number(),
+    maxFormAgeMs: v.number(),
+    rateLimitEnabled: v.boolean(),
+    windowMs: v.number(),
+    perIpPerFormLimit: v.number(),
+    perFormLimit: v.optional(v.number()),
+    attemptRetentionMs: v.number(),
+    failClosed: v.boolean(),
+    skipForLoggedIn: v.boolean(),
+  }),
   handler: async (ctx) => {
     await requireCan(ctx, formCap("form.manage_security"));
     await requirePluginEnabled(ctx, "forms");
@@ -780,6 +823,7 @@ export const updateSecuritySettings = mutation({
     failClosed: v.optional(v.boolean()),
     skipForLoggedIn: v.optional(v.boolean()),
   },
+  returns: v.union(v.null(), tableDocs.form_security_settings),
   handler: async (ctx, args) => {
     const user = await requireCan(ctx, formCap("form.manage_security"));
     await requirePluginEnabled(ctx, "forms");

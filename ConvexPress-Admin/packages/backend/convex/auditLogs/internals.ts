@@ -108,15 +108,14 @@ function getAuditRetentionMs(eventCode: string): number {
  *   7. Generate human-readable description
  *   8. Insert the audit entry
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const createEntry = internalMutation({
   args: createEntryArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.null(),
   handler: async (ctx, args) => {
     // ─── 1. Dedup check ──────────────────────────────────────────────────
     const existing = await ctx.db
       .query("auditEntries")
-      .withIndex("by_event", (q: ConvexQueryBuilder) => q.eq("eventId", args.eventId))
+      .withIndex("by_event", (q) => q.eq("eventId", args.eventId))
       .unique();
 
     if (existing) {
@@ -233,10 +232,9 @@ export const createEntry = internalMutation({
  * continuation to handle remaining entries. This prevents long-running
  * mutations that could time out.
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const clearBatch = internalMutation({
   args: clearBatchArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.null(),
   handler: async (ctx, args) => {
     const BATCH_SIZE = 100;
     const now = Date.now();
@@ -246,21 +244,21 @@ export const clearBatch = internalMutation({
     if (args.mode === "before_date" && args.beforeDate) {
       entries = await ctx.db
         .query("auditEntries")
-        .withIndex("by_occurred", (q: ConvexQueryBuilder) =>
+        .withIndex("by_occurred", (q) =>
           q.lt("occurredAt", args.beforeDate!),
         )
         .take(BATCH_SIZE);
     } else if (args.mode === "by_severity" && args.severity) {
       entries = await ctx.db
         .query("auditEntries")
-        .withIndex("by_severity", (q: ConvexQueryBuilder) =>
+        .withIndex("by_severity", (q) =>
           q.eq("severity", args.severity!),
         )
         .take(BATCH_SIZE);
     } else if (args.mode === "expired") {
       entries = await ctx.db
         .query("auditEntries")
-        .withIndex("by_expires", (q: ConvexQueryBuilder) => q.lt("expiresAt", now))
+        .withIndex("by_expires", (q) => q.lt("expiresAt", now))
         .take(BATCH_SIZE);
     } else {
       return;
@@ -303,17 +301,16 @@ export const clearBatch = internalMutation({
  * since the audit listener would process the event and potentially
  * create a new audit entry, which would need cleanup, etc.).
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const retentionCleanup = internalMutation({
   args: {},
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.null(),
   handler: async (ctx) => {
     const BATCH_SIZE = 100;
     const now = Date.now();
 
     const expiredEntries = await ctx.db
       .query("auditEntries")
-      .withIndex("by_expires", (q: ConvexQueryBuilder) => q.lt("expiresAt", now))
+      .withIndex("by_expires", (q) => q.lt("expiresAt", now))
       .take(BATCH_SIZE);
 
     if (expiredEntries.length === 0) return;
@@ -344,14 +341,13 @@ export const retentionCleanup = internalMutation({
  * Separated because actions cannot call emitEvent directly
  * (emitEvent requires a MutationCtx).
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const emitExportEvent = internalMutation({
   args: {
     format: v.string(),
     recordCount: v.number(),
     filters: v.string(),
   },
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.null(),
   handler: async (ctx, args) => {
     await emitEvent(ctx, "audit.exported", SYSTEM.AUDIT, {
       format: args.format,
@@ -367,12 +363,11 @@ export const emitExportEvent = internalMutation({
  * Internal query to check if a user has the export_audit_log capability.
  * Called from the export action since actions cannot use requireCan() directly.
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const checkExportPermission = internalQuery({
   args: {
     userId: v.string(),
   },
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.boolean(),
   handler: async (ctx, args): Promise<boolean> => {
     // Look up user by identifier
     const user = await lookupUserByIdentifier(ctx, args.userId);
@@ -417,6 +412,30 @@ export const listInternal: import("convex/server").RegisteredQuery<"internal", {
       v.union(v.literal("newer"), v.literal("older")),
     ),
   },
+  returns: v.object({
+    entries: v.array(v.object({
+      _id: v.id("auditEntries"),
+      eventId: v.id("events"),
+      eventCode: v.string(),
+      action: v.string(),
+      description: v.string(),
+      severity: v.union(v.literal("critical"), v.literal("high"), v.literal("medium"), v.literal("low"), v.literal("informational")),
+      system: v.string(),
+      actorId: v.optional(v.string()),
+      actorName: v.optional(v.string()),
+      actorEmail: v.optional(v.string()),
+      actorRole: v.optional(v.string()),
+      actorIp: v.optional(v.string()),
+      objectType: v.union(v.literal("media"), v.literal("system"), v.literal("taxonomy"), v.literal("settings"), v.literal("post"), v.literal("page"), v.literal("comment"), v.literal("user"), v.literal("role"), v.literal("menu"), v.literal("seo"), v.literal("api"), v.literal("notification")),
+      objectId: v.optional(v.string()),
+      objectLabel: v.optional(v.string()),
+      changes: v.optional(v.string()),
+      rawPayload: v.string(),
+      correlationId: v.optional(v.string()),
+      occurredAt: v.number(),
+    })),
+    nextCursor: v.optional(v.string()),
+  }),
   handler: async (ctx, args) => {
     const limit = Math.min(args.limit ?? 500, 500);
     const direction = args.direction ?? "older";

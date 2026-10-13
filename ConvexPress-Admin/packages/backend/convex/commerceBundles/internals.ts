@@ -24,6 +24,7 @@ import { insertWithMediaReferences, patchDynamicWithMediaReferences } from "../m
  */
 export const cleanupStaleBundleSelections = internalMutation({
   args: {},
+  returns: v.object({ deleted: v.number(), scanned: v.number() }),
   handler: async (ctx) => {
     await requirePluginEnabled(ctx, "commerceBundles");
     const cutoff = Date.now() - 30 * 24 * 60 * 60 * 1000;
@@ -98,6 +99,7 @@ export const commitBundleInventory = internalMutation({
  */
 export const backfillOwningProducts = internalMutation({
   args: {},
+  returns: v.object({ linked: v.number(), total: v.number() }),
   handler: async (ctx) => {
     await requirePluginEnabled(ctx, "commerceBundles");
     const bundles = await ctx.db.query("commerce_bundles").collect();

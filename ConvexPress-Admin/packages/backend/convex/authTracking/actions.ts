@@ -21,13 +21,11 @@ import { action } from "../_generated/server";
  * @param userId - The Convex user ID to impersonate
  * @returns An error message indicating the feature is unavailable
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const getImpersonationUrl = action({
   args: {
-    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     userId: v.id("users"),
   },
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.union(v.object({ url: v.string() }), v.object({ error: v.string() })),
   handler: async (_ctx, _args): Promise<{ url: string } | { error: string }> => {
     return { error: "Impersonation is not currently available." };
   },

@@ -30,6 +30,7 @@ import {
 } from "./validators";
 import { matchesEventCode } from "./constants";
 
+import { tableDocs } from "../schema/tableDocs.generated";
 // ─── List Events ───────────────────────────────────────────────────────────
 
 /**
@@ -55,6 +56,13 @@ import { matchesEventCode } from "./constants";
  */
 export const list = query({
   args: listEventsArgs,
+  returns: v.object({
+    events: v.array(tableDocs.events),
+    total: v.number(),
+    page: v.number(),
+    perPage: v.number(),
+    totalPages: v.number(),
+  }),
   handler: async (ctx, args) => {
     try {
       await requireCan(ctx, "audit.view");
@@ -188,6 +196,43 @@ export const list = query({
  */
 export const get = query({
   args: getEventArgs,
+  returns: v.union(v.null(), v.object({
+    executions: v.array(v.object({
+      listenerName: v.string(),
+      listenerEventCode: v.string(),
+      listenerSystem: v.string(),
+      _id: v.id("eventListenerExecutions"),
+      _creationTime: v.number(),
+      result: v.optional(v.string()),
+      error: v.optional(v.string()),
+      startedAt: v.optional(v.number()),
+      completedAt: v.optional(v.number()),
+      duration: v.optional(v.number()),
+      nextRetryAt: v.optional(v.number()),
+      scheduledFunctionId: v.optional(v.string()),
+      status: v.union(v.literal("pending"), v.literal("skipped"), v.literal("failed"), v.literal("completed"), v.literal("running"), v.literal("retrying")),
+      eventId: v.id("events"),
+      listenerId: v.id("eventListeners"),
+      attempt: v.number(),
+    })),
+    _id: v.id("events"),
+    _creationTime: v.number(),
+    actorId: v.optional(v.string()),
+    expiresAt: v.optional(v.number()),
+    actorIp: v.optional(v.string()),
+    listenersSkipped: v.optional(v.number()),
+    correlationId: v.optional(v.string()),
+    parentEventId: v.optional(v.id("events")),
+    processedAt: v.optional(v.number()),
+    status: v.union(v.literal("partial"), v.literal("pending"), v.literal("failed"), v.literal("processing"), v.literal("completed")),
+    code: v.string(),
+    system: v.string(),
+    payload: v.string(),
+    listenersTotal: v.number(),
+    listenersCompleted: v.number(),
+    listenersFailed: v.number(),
+    emittedAt: v.number(),
+  })),
   handler: async (ctx, args) => {
     try {
       await requireCan(ctx, "audit.view");
@@ -255,6 +300,7 @@ export const get = query({
  */
 export const countByCode = query({
   args: countByCodeArgs,
+  returns: v.object({ count: v.number() }),
   handler: async (ctx, args) => {
     try {
       await requireCan(ctx, "audit.view");
@@ -303,6 +349,7 @@ export const countByCode = query({
  */
 export const listListeners = query({
   args: listListenersArgs,
+  returns: v.array(tableDocs.eventListeners),
   handler: async (ctx, args) => {
     try {
       await requireCan(ctx, "audit.view");
@@ -365,6 +412,7 @@ export const listListeners = query({
  */
 export const hasListener = query({
   args: hasListenerArgs,
+  returns: v.boolean(),
   handler: async (ctx, args) => {
     const user = await getCurrentUser(ctx);
     if (!user) return false;

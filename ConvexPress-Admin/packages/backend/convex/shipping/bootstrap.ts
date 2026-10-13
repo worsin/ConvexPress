@@ -10,6 +10,7 @@ import { internalMutation } from "../_generated/server";
 import { DEFAULT_TEMPLATES } from "../emails/templateDefaults";
 import type { MutationCtx } from "../_generated/server";
 
+import { v } from "convex/values";
 const SHIPPING_TEMPLATE_SLUGS = new Set([
   "shipping_picked_up",
   "shipping_out_for_delivery",
@@ -67,9 +68,8 @@ export async function runBootstrapShippingTemplates(
   return { created, existing };
 }
 
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const bootstrapShippingTemplates = internalMutation({
   args: {},
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.object({ created: v.number(), existing: v.number() }),
   handler: async (ctx) => runBootstrapShippingTemplates(ctx),
 });

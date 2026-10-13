@@ -57,6 +57,7 @@ import { v } from "convex/values";
  */
 export const onPostOrPageChanged = internalMutation({
   args: { eventId: v.id("events") },
+  returns: v.null(),
   handler: async (ctx, args) => {
     const event = await ctx.db.get("events", args.eventId);
     if (!event) return;
@@ -92,6 +93,7 @@ export const onPostOrPageChanged = internalMutation({
  */
 export const onPostOrPageDeleted = internalMutation({
   args: { eventId: v.id("events") },
+  returns: v.null(),
   handler: async (ctx, args) => {
     const event = await ctx.db.get("events", args.eventId);
     if (!event) return;
@@ -123,6 +125,7 @@ export const onPostOrPageDeleted = internalMutation({
  */
 export const onMediaChanged = internalMutation({
   args: { eventId: v.id("events") },
+  returns: v.null(),
   handler: async (ctx, args) => {
     const event = await ctx.db.get("events", args.eventId);
     if (!event) return;
@@ -150,6 +153,7 @@ export const onMediaChanged = internalMutation({
  */
 export const onMediaDeleted = internalMutation({
   args: { eventId: v.id("events") },
+  returns: v.null(),
   handler: async (ctx, args) => {
     const event = await ctx.db.get("events", args.eventId);
     if (!event) return;
@@ -181,6 +185,7 @@ export const onMediaDeleted = internalMutation({
  */
 export const onCommentChanged = internalMutation({
   args: { eventId: v.id("events") },
+  returns: v.null(),
   handler: async (ctx, args) => {
     const event = await ctx.db.get("events", args.eventId);
     if (!event) return;
@@ -209,6 +214,7 @@ export const onCommentChanged = internalMutation({
  */
 export const onCommentRemoved = internalMutation({
   args: { eventId: v.id("events") },
+  returns: v.null(),
   handler: async (ctx, args) => {
     const event = await ctx.db.get("events", args.eventId);
     if (!event) return;
@@ -239,6 +245,7 @@ export const onCommentRemoved = internalMutation({
  */
 export const onTaxonomyTermPostChanged = internalMutation({
   args: { eventId: v.id("events") },
+  returns: v.null(),
   handler: async (ctx, args) => {
     const event = await ctx.db.get("events", args.eventId);
     if (!event) return;
@@ -270,6 +277,7 @@ export const onTaxonomyTermPostChanged = internalMutation({
  */
 export const onTaxonomyTermUpdated = internalMutation({
   args: { eventId: v.id("events") },
+  returns: v.null(),
   handler: async (ctx, args) => {
     const event = await ctx.db.get("events", args.eventId);
     if (!event) return;

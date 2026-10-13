@@ -162,6 +162,7 @@ export const canReview = query({
  */
 export const hasVoted = query({
   args: { reviewId: v.id("commerce_review_items") },
+  returns: v.union(v.boolean(), v.null()),
   handler: async (ctx: any, args: any) => {
     if (!(await isPluginEnabled(ctx, "commerceReviews"))) return null;
     await requireCommerceReviewsEnabled(ctx);

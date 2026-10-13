@@ -51,6 +51,7 @@ import {
   SEO_META_PREFIX,
 } from "./validators";
 
+import { v } from "convex/values";
 // ─── Defaults Map ───────────────────────────────────────────────────────────
 
 const DEFAULTS_BY_KEY: Record<string, object> = {
@@ -126,6 +127,26 @@ export const getSettings = query({
  */
 export const getPostSeo = query({
   args: getPostSeoArgs,
+  returns: v.object({
+    seoTitle: v.union(v.null(), v.string()),
+    seoDescription: v.union(v.null(), v.string()),
+    focusKeyphrase: v.union(v.null(), v.string()),
+    additionalKeyphrases: v.array(v.string()),
+    canonical: v.union(v.null(), v.string()),
+    noindex: v.union(v.boolean(), v.null()),
+    nofollow: v.union(v.boolean(), v.null()),
+    ogTitle: v.union(v.null(), v.string()),
+    ogDescription: v.union(v.null(), v.string()),
+    ogImage: v.union(v.null(), v.string()),
+    twitterTitle: v.union(v.null(), v.string()),
+    twitterDescription: v.union(v.null(), v.string()),
+    twitterImage: v.union(v.null(), v.string()),
+    schemaType: v.union(v.null(), v.string()),
+    schemaArticleType: v.union(v.null(), v.string()),
+    seoScore: v.union(v.null(), v.number()),
+    readabilityScore: v.union(v.null(), v.number()),
+    cornerstone: v.boolean(),
+  }),
   handler: async (ctx, args) => {
     const { postId } = args;
 
@@ -169,6 +190,7 @@ export const getPostSeo = query({
  */
 export const getRobotsTxt = query({
   args: getRobotsTxtArgs,
+  returns: v.string(),
   handler: async (ctx) => {
     // Fetch robots settings
     const robotsRow = await ctx.db
@@ -253,6 +275,26 @@ export const getRobotsTxt = query({
  */
 export const getSeoOverview = query({
   args: getSeoOverviewArgs,
+  returns: v.object({
+    totalPublished: v.number(),
+    totalIndexed: v.number(),
+    scoreDistribution: v.object({ good: v.number(), ok: v.number(), poor: v.number(), noData: v.number() }),
+    issues: v.object({ missingDescription: v.number(), missingKeyphrase: v.number(), noindexCount: v.number() }),
+    cornerstoneCount: v.number(),
+    recentPosts: v.array(v.object({
+      postId: v.string(),
+      title: v.string(),
+      type: v.string(),
+      slug: v.string(),
+      seoScore: v.union(v.null(), v.number()),
+      readabilityScore: v.union(v.null(), v.number()),
+      hasKeyphrase: v.boolean(),
+      hasDescription: v.boolean(),
+      noindex: v.boolean(),
+      cornerstone: v.boolean(),
+      updatedAt: v.number(),
+    })),
+  }),
   handler: async (ctx) => {
     // Require Administrator access (seo.update_global = Administrator only)
     const user = await requireCan(ctx, "seo.update_global");

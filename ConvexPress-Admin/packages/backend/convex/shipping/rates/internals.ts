@@ -3,6 +3,7 @@ import { v } from "convex/values";
 import { internalMutation, internalQuery } from "../../_generated/server";
 import { emitEvent } from "../../helpers/events";
 
+import { tableDocs } from "../../schema/tableDocs.generated";
 /**
  * Load the enabled live-rate zone methods for a zone. Returns the list of
  * providers (and optional account/service filters) that should fan out for
@@ -11,6 +12,7 @@ import { emitEvent } from "../../helpers/events";
  */
 export const listLiveRateZoneMethods = internalQuery({
   args: { zoneId: v.id("commerce_shipping_zones") },
+  returns: v.array(tableDocs.commerce_shipping_zone_methods),
   handler: async (ctx, args) => {
     const rows = await ctx.db
       .query("commerce_shipping_zone_methods")
@@ -27,6 +29,7 @@ export const listLiveRateZoneMethods = internalQuery({
  */
 export const getUserTags = internalQuery({
   args: { userId: v.string() },
+  returns: v.array(v.string()),
   handler: async (ctx, args) => {
     try {
       const user: any = await ctx.db.get(args.userId as any);
@@ -128,6 +131,7 @@ export const recordPipelineRun = internalMutation({
     addressKey: v.optional(v.string()),
     cartKey: v.optional(v.string()),
   },
+  returns: v.id("commerce_rate_pipeline_runs"),
   handler: async (ctx, args) => {
     return ctx.db.insert("commerce_rate_pipeline_runs", args);
   },
@@ -144,6 +148,7 @@ export const getCachedQuotesForSession = internalQuery({
     addressKey: v.string(),
     cartKey: v.string(),
   },
+  returns: v.union(v.null(), v.array(tableDocs.commerce_shipping_rate_quotes)),
   handler: async (ctx, args) => {
     const rows = await ctx.db
       .query("commerce_shipping_rate_quotes")
@@ -174,6 +179,7 @@ export const emitRateEvent = internalMutation({
     eventCode: v.string(),
     payload: v.any(),
   },
+  returns: v.null(),
   handler: async (ctx, args) => {
     await emitEvent(ctx, args.eventCode, "shipping", args.payload);
   },

@@ -30,7 +30,7 @@ export async function readSitemapSettings(
 ): Promise<SitemapSettings> {
   const row = await ctx.db
     .query("seoSettings")
-    .withIndex("by_key", (q: ConvexQueryBuilder) => q.eq("key", SITEMAP_SETTINGS_KEY))
+    .withIndex("by_key", (q) => q.eq("key", SITEMAP_SETTINGS_KEY))
     .unique();
 
   if (!row) return { ...DEFAULT_SITEMAP_SETTINGS };
@@ -67,7 +67,7 @@ export async function readSiteUrl(
 ): Promise<string> {
   const generalSettings = await ctx.db
     .query("settings")
-    .withIndex("by_section", (q: ConvexQueryBuilder) => q.eq("section", "general"))
+    .withIndex("by_section", (q) => q.eq("section", "general"))
     .unique();
 
   if (generalSettings && generalSettings.values) {
@@ -89,14 +89,12 @@ export async function getNoindexPostIds(
 ): Promise<Set<string>> {
   const noindexRows = await ctx.db
     .query("postMeta")
-    .withIndex("by_key", (q: ConvexQueryBuilder) => q.eq("key", "_seo_noindex"))
+    .withIndex("by_key", (q) => q.eq("key", "_seo_noindex"))
     .collect();
 
   return new Set(
     noindexRows
-      // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
       .filter((row) => row.value === "true")
-      // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
       .map((row) => row.postId as string),
   );
 }

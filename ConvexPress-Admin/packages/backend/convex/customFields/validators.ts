@@ -122,40 +122,27 @@ export const COMPUTED_FIELD_TYPES: Set<string> = new Set([
 // ─── Shared Value Validators ────────────────────────────────────────────────
 
 /** Field group position validator. */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const groupPositionValidator = v.union(
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   v.literal("normal"),
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   v.literal("side"),
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   v.literal("after_title"),
 );
 
 /** Field group style validator. */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const groupStyleValidator = v.union(
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   v.literal("default"),
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   v.literal("seamless"),
 );
 
 /** Label placement validator. */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const labelPlacementValidator = v.union(
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   v.literal("top"),
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   v.literal("left"),
 );
 
 /** Instruction placement validator. */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const instructionPlacementValidator = v.union(
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   v.literal("label"),
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   v.literal("field"),
 );
 
@@ -163,24 +150,19 @@ export const instructionPlacementValidator = v.union(
 export const entityTypeValidator = v.string();
 
 /** Location rule condition object validator. */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const locationRuleConditionValidator = v.object({
   param: v.string(),
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   operator: v.union(v.literal("=="), v.literal("!=")),
   value: v.string(),
 });
 
 /** Full location rules validator (OR groups of AND conditions). */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const locationRulesValidator = v.array(
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   v.array(locationRuleConditionValidator),
 );
 
 /** Group status filter for queries. */
 export const groupStatusFilterValidator = v.optional(
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   v.union(v.literal("active"), v.literal("inactive"), v.literal("all")),
 );
 
@@ -192,42 +174,26 @@ export const createGroupArgs = {
   key: v.optional(v.string()),
   description: v.optional(v.string()),
   locationRules: locationRulesValidator,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   position: v.optional(groupPositionValidator),
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   style: v.optional(groupStyleValidator),
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   labelPlacement: v.optional(labelPlacementValidator),
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   instructionPlacement: v.optional(instructionPlacementValidator),
   isActive: v.optional(v.boolean()),
   menuOrder: v.optional(v.number()),
   fields: v.optional(
-    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     v.array(
-      // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
       v.object({
         label: v.string(),
-        // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
         name: v.optional(v.string()),
         type: v.string(),
-        // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
         instructions: v.optional(v.string()),
-        // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
         required: v.optional(v.boolean()),
-        // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
         defaultValue: v.optional(v.string()),
-        // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
         settings: v.optional(v.string()),
-        // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
         conditionalLogic: v.optional(v.string()),
-        // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
         wrapperWidth: v.optional(v.string()),
-        // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
         wrapperClass: v.optional(v.string()),
-        // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
         wrapperId: v.optional(v.string()),
-        // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
         menuOrder: v.optional(v.number()),
       }),
     ),
@@ -298,11 +264,8 @@ export const deleteFieldArgs = {
 /** Args for reordering fields within a group. */
 export const reorderFieldsArgs = {
   groupId: v.id("fieldGroups"),
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   fieldOrder: v.array(
-    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     v.object({
-      // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
       fieldId: v.id("fieldDefinitions"),
       menuOrder: v.number(),
     }),
@@ -328,9 +291,7 @@ export const deleteValueArgs = {
 export const setValuesArgs = {
   entityType: v.string(),
   entityId: v.string(),
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   values: v.array(
-    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     v.object({
       fieldKey: v.string(),
       value: v.string(),
@@ -378,7 +339,6 @@ export const getGroupsForContextArgs = {
   postType: v.optional(v.string()),
   postTemplate: v.optional(v.string()),
   postStatus: v.optional(v.string()),
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   postCategories: v.optional(v.array(v.string())),
   pageTemplate: v.optional(v.string()),
   pageType: v.optional(v.string()),

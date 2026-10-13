@@ -39,6 +39,8 @@ import {
 import { readAppearance, legacyShopProjection } from "./appearanceMigration";
 import type { Capability } from "../types/capabilities";
 
+import { v } from "convex/values";
+import { tableDocs } from "../schema/tableDocs.generated";
 const SECTION_READ_CAPABILITY_MAP: Partial<Record<SettingsSection, Capability>> = {
   email: "settings.update_email",
   media: "manage_options",
@@ -101,6 +103,7 @@ async function requireSettingsReadAccess(ctx: QueryCtx, section: SettingsSection
  */
 export const get = query({
   args: getSectionArgs,
+  returns: v.union(v.null(), tableDocs.settings),
   handler: async (ctx, args) => {
     const section = args.section as SettingsSection;
     const user = await requireSettingsReadAccess(ctx, section);

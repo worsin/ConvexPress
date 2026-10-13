@@ -64,6 +64,7 @@ import {
  */
 export const createMenu = mutation({
   args: createMenuArgs,
+  returns: v.id("menus"),
   handler: async (ctx, args) => {
     const user = await requireCan(ctx, "menu.create");
 
@@ -155,6 +156,7 @@ export const createMenu = mutation({
  */
 export const updateMenu = mutation({
   args: updateMenuArgs,
+  returns: v.id("menus"),
   handler: async (ctx, args) => {
     await requireCan(ctx, "menu.update");
 
@@ -285,6 +287,7 @@ export const updateMenu = mutation({
  */
 export const deleteMenu = mutation({
   args: deleteMenuArgs,
+  returns: v.id("menus"),
   handler: async (ctx, args) => {
     await requireCan(ctx, "menu.delete");
 
@@ -404,6 +407,7 @@ function presentationPatch(args: {
 
 export const addMenuItem = mutation({
   args: addMenuItemArgs,
+  returns: v.id("menuItems"),
   handler: async (ctx, args) => {
     await requireCan(ctx, "menu.add_item");
 
@@ -574,6 +578,7 @@ export const addMenuItem = mutation({
  */
 export const updateMenuItem = mutation({
   args: updateMenuItemArgs,
+  returns: v.id("menuItems"),
   handler: async (ctx, args) => {
     await requireCan(ctx, "menu.update_item");
 
@@ -667,6 +672,7 @@ export const updateMenuItem = mutation({
  */
 export const deleteMenuItem = mutation({
   args: deleteMenuItemArgs,
+  returns: v.id("menuItems"),
   handler: async (ctx, args) => {
     await requireCan(ctx, "menu.delete_item");
 
@@ -750,6 +756,7 @@ export const deleteMenuItem = mutation({
  */
 export const reorderMenuItems = mutation({
   args: reorderMenuItemsArgs,
+  returns: v.boolean(),
   handler: async (ctx, args) => {
     await requireCan(ctx, "menu.reorder");
 
@@ -815,6 +822,7 @@ export const reorderMenuItems = mutation({
  */
 export const assignMenuToLocation = mutation({
   args: assignMenuToLocationArgs,
+  returns: v.id("menuLocations"),
   handler: async (ctx, args) => {
     await requireCan(ctx, "menu.assign_location");
 
@@ -886,6 +894,7 @@ export const duplicateMenu = mutation({
   args: {
     menuId: v.id("menus"),
   },
+  returns: v.id("menus"),
   handler: async (ctx, args) => {
     const user = await requireCan(ctx, "menu.create");
 

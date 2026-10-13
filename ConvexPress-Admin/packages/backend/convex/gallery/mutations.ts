@@ -22,10 +22,10 @@ import {
 import { requirePluginEnabled } from "../helpers/plugins";
 import { insertWithMediaReferences, patchWithMediaReferences } from "../media/attachmentGuard";
 
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+import { v } from "convex/values";
 export const createCategory = mutation({
   args: createCategoryArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.id("gallery_categories"),
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "gallery");
     await requireCan(ctx, "manage_options");
@@ -52,10 +52,9 @@ export const createCategory = mutation({
   },
 });
 
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const updateCategory = mutation({
   args: updateCategoryArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.id("gallery_categories"),
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "gallery");
     await requireCan(ctx, "manage_options");
@@ -97,10 +96,9 @@ export const updateCategory = mutation({
   },
 });
 
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const deleteCategory = mutation({
   args: deleteCategoryArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.union(v.null(), v.id("gallery_categories")),
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "gallery");
     await requireCan(ctx, "manage_options");
@@ -112,13 +110,11 @@ export const deleteCategory = mutation({
     for (const album of albums) {
       if (
         album.categoryIds.some(
-          // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
           (categoryId) => categoryId.toString() === args.categoryId.toString(),
         )
       ) {
         await patchWithMediaReferences<"gallery_albums">(ctx, "gallery_albums", album._id, {
           categoryIds: album.categoryIds.filter(
-            // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
             (categoryId) =>
               categoryId.toString() !== args.categoryId.toString(),
           ),
@@ -132,10 +128,9 @@ export const deleteCategory = mutation({
   },
 });
 
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const createAlbum = mutation({
   args: createAlbumArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.id("gallery_albums"),
   handler: async (ctx, args): Promise<import("../_generated/dataModel").Id<"gallery_albums">> => {
     await requirePluginEnabled(ctx, "gallery");
     const user = await requireCan(ctx, "post.create");
@@ -184,7 +179,6 @@ export const createAlbum = mutation({
       await replaceAlbumItems(
         ctx,
         albumId.toString(),
-        // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
         args.items.map((item) => ({
           mediaId: item.mediaId.toString(),
           caption: item.caption,
@@ -196,7 +190,6 @@ export const createAlbum = mutation({
 
     await recomputeCategoryCounts(
       ctx,
-      // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
       categoryIds.map((id) => id.toString()),
     );
 
@@ -204,10 +197,9 @@ export const createAlbum = mutation({
   },
 });
 
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const updateAlbum = mutation({
   args: updateAlbumArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.id("gallery_albums"),
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "gallery");
     const user = await requireCan(ctx, "post.update");
@@ -281,9 +273,7 @@ export const updateAlbum = mutation({
     await patchWithMediaReferences<"gallery_albums">(ctx, "gallery_albums", args.albumId, patch);
 
     const touchedCategoryIds = new Set([
-      // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
       ...album.categoryIds.map((id) => id.toString()),
-      // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
       ...((args.categoryIds ?? []).map((id) => id.toString())),
     ]);
     await recomputeCategoryCounts(ctx, [...touchedCategoryIds]);
@@ -292,10 +282,9 @@ export const updateAlbum = mutation({
   },
 });
 
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const setAlbumItems = mutation({
   args: setAlbumItemsArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.id("gallery_albums"),
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "gallery");
     const user = await requireCan(ctx, "post.update");
@@ -318,7 +307,6 @@ export const setAlbumItems = mutation({
     await replaceAlbumItems(
       ctx,
       args.albumId.toString(),
-      // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
       args.items.map((item) => ({
         mediaId: item.mediaId.toString(),
         caption: item.caption,
@@ -331,10 +319,9 @@ export const setAlbumItems = mutation({
   },
 });
 
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const trashAlbum = mutation({
   args: trashAlbumArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.union(v.null(), v.id("gallery_albums")),
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "gallery");
     const user = await requireCan(ctx, "post.update");
@@ -356,7 +343,6 @@ export const trashAlbum = mutation({
 
     await recomputeCategoryCounts(
       ctx,
-      // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
       album.categoryIds.map((id) => id.toString()),
     );
 

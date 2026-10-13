@@ -13,6 +13,7 @@ import {
 import { patchDynamicWithMediaReferences } from "../../media/attachmentGuard";
 
 
+import { v } from "convex/values";
 async function ensureUniqueCode(ctx: any, code: string, ignoreId?: any) {
   const existing = await ctx.db
     .query("commerce_shipping_packages")
@@ -45,6 +46,7 @@ async function clearDefaultInScope(
 
 export const create = mutation({
   args: createShippingPackageArgs,
+  returns: v.id("commerce_shipping_packages"),
   handler: async (ctx, args) => {
     await requireCan(ctx, "shipping.packages.manage");
     await ensureUniqueCode(ctx, args.code);
@@ -86,6 +88,7 @@ export const create = mutation({
 
 export const update = mutation({
   args: updateShippingPackageArgs,
+  returns: v.id("commerce_shipping_packages"),
   handler: async (ctx, args) => {
     await requireCan(ctx, "shipping.packages.manage");
     const existing = await ctx.db.get(args.packageId);
@@ -119,6 +122,7 @@ export const update = mutation({
 
 export const remove = mutation({
   args: deleteShippingPackageArgs,
+  returns: v.object({ deleted: v.boolean() }),
   handler: async (ctx, args) => {
     await requireCan(ctx, "shipping.packages.manage");
     const existing = await ctx.db.get(args.packageId);
@@ -139,6 +143,7 @@ export const remove = mutation({
 
 export const setDefault = mutation({
   args: setDefaultPackageArgs,
+  returns: v.id("commerce_shipping_packages"),
   handler: async (ctx, args) => {
     await requireCan(ctx, "shipping.packages.manage");
     const pkg = await ctx.db.get(args.packageId);

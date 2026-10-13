@@ -399,6 +399,7 @@ export const getNavCategories = query({
 
 export const create = mutation({
   args: createCommerceCategoryArgs,
+  returns: v.id("commerce_product_categories"),
   handler: async (ctx, args) => {
     await requireCommerceEnabled(ctx);
     await requireCan(ctx, "manage_options");
@@ -447,6 +448,7 @@ export const create = mutation({
 
 export const update = mutation({
   args: updateCommerceCategoryArgs,
+  returns: v.id("commerce_product_categories"),
   handler: async (ctx, args) => {
     await requireCommerceEnabled(ctx);
     await requireCan(ctx, "manage_options");
@@ -576,6 +578,7 @@ export const update = mutation({
 
 export const move = mutation({
   args: moveCommerceCategoryArgs,
+  returns: v.id("commerce_product_categories"),
   handler: async (ctx, args) => {
     await requireCommerceEnabled(ctx);
     await requireCan(ctx, "manage_options");
@@ -616,6 +619,7 @@ export const move = mutation({
 
 export const reorder = mutation({
   args: reorderCommerceCategoriesArgs,
+  returns: v.array(v.id("commerce_product_categories")),
   handler: async (ctx, args) => {
     await requireCommerceEnabled(ctx);
     await requireCan(ctx, "manage_options");
@@ -650,6 +654,7 @@ export const reorder = mutation({
 
 export const rebuildMetadata = mutation({
   args: {},
+  returns: v.object({ repaired: v.number() }),
   handler: async (ctx) => {
     await requireCommerceEnabled(ctx);
     await requireCan(ctx, "manage_options");
@@ -719,6 +724,7 @@ export const rebuildMetadata = mutation({
 
 export const remove = mutation({
   args: removeCommerceCategoryArgs,
+  returns: v.union(v.null(), v.id("commerce_product_categories")),
   handler: async (ctx, args) => {
     await requireCommerceEnabled(ctx);
     await requireCan(ctx, "manage_options");

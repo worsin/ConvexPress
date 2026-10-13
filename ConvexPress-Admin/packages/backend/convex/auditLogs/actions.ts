@@ -65,6 +65,7 @@ function formatTimestamp(ts: number): string {
 
 export const exportAuditLog: import("convex/server").RegisteredAction<"public", { actorId?: string; severity?: import("../_generated/dataModel").Doc<"auditEntries">["severity"]; objectType?: import("../_generated/dataModel").Doc<"auditEntries">["objectType"]; eventCode?: string; dateFrom?: number; dateTo?: number; format: "csv" | "json"; maxRecords?: number; includePayload?: boolean }, { url: string | null; fileName: string; recordCount: number; fileSize: number }> = action({
   args: exportArgs,
+  returns: v.object({ url: v.string(), fileName: v.string(), recordCount: v.number(), fileSize: v.number() }),
   handler: async (ctx, args) => {
     // ─── 0. Authentication & Authorization ─────────────────────────────
     // Actions cannot use requireCan() directly (it needs MutationCtx/QueryCtx).

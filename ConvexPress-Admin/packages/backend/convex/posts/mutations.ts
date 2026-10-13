@@ -91,6 +91,7 @@ type PostStatus = Doc<"posts">["status"];
  */
 export const publish = mutation({
   args: publishPostArgs,
+  returns: v.id("posts"),
   handler: async (ctx, args) => {
     const user = await requireCan(ctx, "post.publish");
 
@@ -203,6 +204,7 @@ export const publish = mutation({
  */
 export const unpublish = mutation({
   args: unpublishPostArgs,
+  returns: v.id("posts"),
   handler: async (ctx, args) => {
     const user = await requireCan(ctx, "post.unpublish");
 
@@ -260,6 +262,7 @@ export const unpublish = mutation({
  */
 export const schedule = mutation({
   args: schedulePostArgs,
+  returns: v.id("posts"),
   handler: async (ctx, args) => {
     const user = await requireCan(ctx, "post.publish");
 
@@ -322,6 +325,7 @@ export const schedule = mutation({
  */
 export const trash = mutation({
   args: trashPostArgs,
+  returns: v.object({ success: v.boolean() }),
   handler: async (ctx, args) => {
     const user = await requireCan(ctx, "post.trash");
 
@@ -387,6 +391,7 @@ export const trash = mutation({
  */
 export const restore = mutation({
   args: restorePostArgs,
+  returns: v.id("posts"),
   handler: async (ctx, args) => {
     const user = await requireCan(ctx, "post.restore");
 
@@ -460,6 +465,7 @@ export const restore = mutation({
  */
 export const permanentDelete = mutation({
   args: deletePostArgs,
+  returns: v.object({ success: v.boolean() }),
   handler: async (ctx, args) => {
     const user = await requireCan(ctx, "post.delete");
 
@@ -687,6 +693,10 @@ export const duplicate = mutation({
  */
 export const bulkTrash = mutation({
   args: bulkTrashArgs,
+  returns: v.object({
+    trashed: v.number(),
+    errors: v.array(v.object({ postId: v.string(), error: v.string() })),
+  }),
   handler: async (ctx, args) => {
     const user = await requireCan(ctx, "post.bulk_delete");
 
@@ -768,6 +778,10 @@ export const bulkTrash = mutation({
  */
 export const bulkRestore = mutation({
   args: bulkRestoreArgs,
+  returns: v.object({
+    restored: v.number(),
+    errors: v.array(v.object({ postId: v.string(), error: v.string() })),
+  }),
   handler: async (ctx, args) => {
     const user = await requireCan(ctx, "post.restore");
 
@@ -853,6 +867,10 @@ export const bulkRestore = mutation({
  */
 export const bulkDelete = mutation({
   args: bulkDeleteArgs,
+  returns: v.object({
+    deleted: v.number(),
+    errors: v.array(v.object({ postId: v.string(), error: v.string() })),
+  }),
   handler: async (ctx, args) => {
     const user = await requireCan(ctx, "post.bulk_delete");
 
@@ -945,6 +963,10 @@ export const bulkDelete = mutation({
  */
 export const bulkPublish = mutation({
   args: bulkPublishArgs,
+  returns: v.object({
+    published: v.number(),
+    errors: v.array(v.object({ postId: v.string(), error: v.string() })),
+  }),
   handler: async (ctx, args) => {
     const user = await requireCan(ctx, "post.bulk_publish");
 
@@ -1031,6 +1053,7 @@ export const bulkPublish = mutation({
  */
 export const setMeta = mutation({
   args: setMetaArgs,
+  returns: v.id("postMeta"),
   handler: async (ctx, args) => {
     const user = await requireCan(ctx, "post.update");
 
@@ -1074,6 +1097,7 @@ export const setMeta = mutation({
  */
 export const deleteMeta = mutation({
   args: deleteMetaArgs,
+  returns: v.object({ success: v.boolean() }),
   handler: async (ctx, args) => {
     const user = await requireCan(ctx, "post.update");
 
@@ -1111,6 +1135,7 @@ export const deleteMeta = mutation({
  */
 export const bulkSetMeta = mutation({
   args: bulkSetMetaArgs,
+  returns: v.object({ success: v.boolean() }),
   handler: async (ctx, args) => {
     const user = await requireCan(ctx, "post.update");
 

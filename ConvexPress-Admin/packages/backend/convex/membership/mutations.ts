@@ -102,6 +102,7 @@ export const createPlan = mutation({
       ),
     ),
   },
+  returns: v.id("membership_plans"),
   handler: async (ctx: any, args: any) => {
     await requirePluginEnabled(ctx, "membership");
     await requireMembershipEnabled(ctx);
@@ -284,6 +285,7 @@ export const deletePlan = mutation({
   args: {
     planId: v.id("membership_plans"),
   },
+  returns: v.object({ deleted: v.boolean() }),
   handler: async (ctx: any, args: any) => {
     await requirePluginEnabled(ctx, "membership");
     await requireMembershipEnabled(ctx);
@@ -382,6 +384,7 @@ export const grantMembership = mutation({
     endsAt: v.optional(v.number()),
     metadata: v.optional(v.any()),
   },
+  returns: v.id("membership_grants"),
   handler: async (ctx: any, args: any) => {
     await requirePluginEnabled(ctx, "membership");
     await requireMembershipEnabled(ctx);
@@ -466,6 +469,7 @@ export const revokeMembership = mutation({
     grantId: v.id("membership_grants"),
     reason: v.optional(v.string()),
   },
+  returns: v.object({ revoked: v.boolean() }),
   handler: async (ctx: any, args: any) => {
     await requirePluginEnabled(ctx, "membership");
     await requireMembershipEnabled(ctx);
@@ -619,6 +623,7 @@ export const createRestrictionRule = mutation({
     customMessage: v.optional(v.string()),
     loginRequired: v.boolean(),
   },
+  returns: v.id("membership_restriction_rules"),
   handler: async (ctx: any, args: any) => {
     await requirePluginEnabled(ctx, "membership");
     await requireMembershipEnabled(ctx);
@@ -730,6 +735,7 @@ export const deleteRestrictionRule = mutation({
   args: {
     ruleId: v.id("membership_restriction_rules"),
   },
+  returns: v.object({ deleted: v.boolean() }),
   handler: async (ctx: any, args: any) => {
     await requirePluginEnabled(ctx, "membership");
     await requireMembershipEnabled(ctx);

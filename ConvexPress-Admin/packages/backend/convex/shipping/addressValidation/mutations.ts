@@ -3,6 +3,7 @@ import { emitEvent } from "../../helpers/events";
 import { SHIPPING_EVENTS } from "../../events/constants";
 import { recordValidationArgs } from "./validators";
 
+import { v } from "convex/values";
 const VALID_TTL_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
 const INVALID_TTL_MS = 24 * 60 * 60 * 1000; // 24h
 
@@ -59,6 +60,7 @@ export const recordValidation = internalMutation({
 
 export const purgeExpired = internalMutation({
   args: {},
+  returns: v.object({ purged: v.number() }),
   handler: async (ctx) => {
     const now = Date.now();
     const expired = await ctx.db

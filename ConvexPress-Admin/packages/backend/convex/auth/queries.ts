@@ -12,6 +12,7 @@
 import { query } from "../_generated/server";
 import { hasActiveAdmin } from "./adminPresence";
 
+import { v } from "convex/values";
 // ---- Has Admin ---------------------------------------------------------------
 
 /**
@@ -23,10 +24,9 @@ import { hasActiveAdmin } from "./adminPresence";
  *
  * Returns `true` if an admin exists, `false` otherwise.
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const hasAdmin = query({
   args: {},
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.boolean(),
   handler: async (ctx) => {
     return await hasActiveAdmin(ctx);
   },

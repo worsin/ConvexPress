@@ -16,7 +16,6 @@ export const upsertConnectionMetadataArgs = {
   provider: shippingProviderArg,
   displayName: v.string(),
   enabled: v.boolean(),
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   mode: v.union(v.literal("sandbox"), v.literal("production")),
   isPrimary: v.boolean(),
   rateShoppingEnabled: v.boolean(),
@@ -49,15 +48,10 @@ export const syncShipmentTrackingArgs = {
 };
 
 export const verifyDirectCarrierFoundationArgs = {
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   provider: v.union(
-    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     v.literal("ups"),
-    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     v.literal("usps"),
-    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     v.literal("fedex"),
-    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     v.literal("dhl"),
   ),
 };

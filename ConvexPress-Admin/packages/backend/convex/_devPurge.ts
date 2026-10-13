@@ -60,6 +60,7 @@ async function wipeStorageRows(
 
 export const purgeAllContent = internalMutation({
   args: { confirm: v.literal("YES_PURGE_ALL_CONTENT") },
+  returns: v.record(v.string(), v.number()),
   handler: async (ctx) => {
     assertDevInternalsEnabled();
     await invalidateMediaReferenceIndex(ctx);
@@ -146,6 +147,7 @@ export const purgeAllContent = internalMutation({
 // nuking content. Useful between test runs.
 export const purgeWordPressSyncState = internalMutation({
   args: { confirm: v.literal("YES_PURGE_SYNC") },
+  returns: v.record(v.string(), v.number()),
   handler: async (ctx) => {
     assertDevInternalsEnabled();
     const out: Record<string, number> = {};

@@ -65,6 +65,7 @@ import {
 } from "./validators";
 import { patchWithMediaReferences } from "../media/attachmentGuard";
 
+import { v } from "convex/values";
 // ─── Create ──────────────────────────────────────────────────────────────────
 
 /**
@@ -86,6 +87,10 @@ import { patchWithMediaReferences } from "../media/attachmentGuard";
  */
 export const create = mutation({
   args: createCommentArgs,
+  returns: v.object({
+    commentId: v.id("comments"),
+    status: v.union(v.literal("pending"), v.literal("approved"), v.literal("spam")),
+  }),
   handler: async (ctx, args) => {
     const user = await requireCan(ctx, "comment.create");
 
@@ -166,6 +171,7 @@ export const create = mutation({
  */
 export const update = mutation({
   args: updateCommentArgs,
+  returns: v.id("comments"),
   handler: async (ctx, args) => {
     const user = await getCurrentUser(ctx);
     if (!user) {
@@ -256,6 +262,7 @@ export const update = mutation({
  */
 export const approve = mutation({
   args: approveCommentArgs,
+  returns: v.id("comments"),
   handler: async (ctx, args) => {
     const user = await requireCan(ctx, "comment.approve");
 
@@ -315,6 +322,7 @@ export const approve = mutation({
  */
 export const reject = mutation({
   args: rejectCommentArgs,
+  returns: v.id("comments"),
   handler: async (ctx, args) => {
     const user = await requireCan(ctx, "comment.reject");
 
@@ -378,6 +386,7 @@ export const reject = mutation({
  */
 export const spam = mutation({
   args: spamCommentArgs,
+  returns: v.object({ success: v.boolean() }),
   handler: async (ctx, args) => {
     const user = await requireCan(ctx, "comment.spam");
 
@@ -436,6 +445,7 @@ export const spam = mutation({
  */
 export const trash = mutation({
   args: trashCommentArgs,
+  returns: v.object({ success: v.boolean() }),
   handler: async (ctx, args) => {
     const user = await requireCan(ctx, "comment.delete");
 
@@ -523,6 +533,7 @@ export const trash = mutation({
  */
 export const restore = mutation({
   args: restoreCommentArgs,
+  returns: v.id("comments"),
   handler: async (ctx, args) => {
     const user = await requireCan(ctx, "comment.approve");
 
@@ -592,6 +603,7 @@ export const restore = mutation({
  */
 export const permanentDelete = mutation({
   args: permanentDeleteCommentArgs,
+  returns: v.object({ success: v.boolean() }),
   handler: async (ctx, args) => {
     const user = await requireCan(ctx, "comment.delete");
 
@@ -656,6 +668,10 @@ export const permanentDelete = mutation({
  */
 export const reply = mutation({
   args: replyCommentArgs,
+  returns: v.object({
+    commentId: v.id("comments"),
+    status: v.union(v.literal("pending"), v.literal("approved"), v.literal("spam")),
+  }),
   handler: async (ctx, args) => {
     const user = await requireCan(ctx, "comment.reply");
 
@@ -726,6 +742,7 @@ export const reply = mutation({
  */
 export const flag = mutation({
   args: flagCommentArgs,
+  returns: v.object({ success: v.boolean() }),
   handler: async (ctx, args) => {
     const user = await requireCan(ctx, "comment.flag");
 
@@ -841,6 +858,7 @@ export const flag = mutation({
  */
 export const like = mutation({
   args: likeCommentArgs,
+  returns: v.object({ liked: v.boolean(), likeCount: v.number() }),
   handler: async (ctx, args) => {
     const user = await requireCan(ctx, "comment.like");
 
@@ -900,6 +918,7 @@ export const like = mutation({
  */
 export const bulkApprove = mutation({
   args: bulkApproveArgs,
+  returns: v.object({ approved: v.number(), skipped: v.number(), errors: v.number() }),
   handler: async (ctx, args) => {
     const user = await requireCan(ctx, "comment.bulk_approve");
 
@@ -973,6 +992,7 @@ export const bulkApprove = mutation({
  */
 export const bulkSpam = mutation({
   args: bulkSpamArgs,
+  returns: v.object({ spammed: v.number(), skipped: v.number(), errors: v.number() }),
   handler: async (ctx, args) => {
     const user = await requireCan(ctx, "comment.bulk_spam");
 
@@ -1045,6 +1065,7 @@ export const bulkSpam = mutation({
  */
 export const bulkTrash = mutation({
   args: bulkTrashArgs,
+  returns: v.object({ trashed: v.number(), skipped: v.number(), errors: v.number() }),
   handler: async (ctx, args) => {
     const user = await requireCan(ctx, "comment.bulk_delete");
 
@@ -1132,6 +1153,7 @@ export const bulkTrash = mutation({
  */
 export const bulkDelete = mutation({
   args: bulkDeleteArgs,
+  returns: v.object({ deleted: v.number(), skipped: v.number(), errors: v.number() }),
   handler: async (ctx, args) => {
     const user = await requireCan(ctx, "comment.bulk_delete");
 

@@ -162,10 +162,9 @@ function validateRegexPattern(pattern: string): void {
  *   8. Insert redirect record
  *   9. Return redirect ID
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const createRedirect = mutation({
   args: createRedirectArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.id("redirects"),
   handler: async (ctx, args) => {
     const user = await requireCan(ctx, "routing.create_redirect");
 
@@ -190,11 +189,10 @@ export const createRedirect = mutation({
       // Check regex redirect limit
       const existingRegex = await ctx.db
         .query("redirects")
-        .withIndex("by_enabled", (q: ConvexQueryBuilder) => q.eq("enabled", true))
+        .withIndex("by_enabled", (q) => q.eq("enabled", true))
         .collect();
 
       const regexCount = existingRegex.filter(
-        // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
         (r) => r.matchType === "regex",
       ).length;
 
@@ -210,11 +208,10 @@ export const createRedirect = mutation({
     if (args.matchType === "exact") {
       const existingRedirects = await ctx.db
         .query("redirects")
-        .withIndex("by_source_url", (q: ConvexQueryBuilder) => q.eq("sourceUrl", args.sourceUrl))
+        .withIndex("by_source_url", (q) => q.eq("sourceUrl", args.sourceUrl))
         .collect();
 
       const activeDuplicate = existingRedirects.find(
-        // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
         (r) => r.enabled && r.matchType === "exact",
       );
 
@@ -230,11 +227,10 @@ export const createRedirect = mutation({
     // Check if targetUrl has an existing redirect back to sourceUrl (indirect loop)
     const targetRedirects = await ctx.db
       .query("redirects")
-      .withIndex("by_source_url", (q: ConvexQueryBuilder) => q.eq("sourceUrl", args.targetUrl))
+      .withIndex("by_source_url", (q) => q.eq("sourceUrl", args.targetUrl))
       .collect();
 
     const indirectLoop = targetRedirects.find(
-      // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
       (r) => r.enabled && r.targetUrl === args.sourceUrl,
     );
 
@@ -250,7 +246,7 @@ export const createRedirect = mutation({
     // Uses the by_target_url index for efficient lookup instead of full table scan
     const chainingRedirects = await ctx.db
       .query("redirects")
-      .withIndex("by_target_url", (q: ConvexQueryBuilder) => q.eq("targetUrl", args.sourceUrl))
+      .withIndex("by_target_url", (q) => q.eq("targetUrl", args.sourceUrl))
       .collect();
 
     const now = Date.now();
@@ -298,10 +294,9 @@ export const createRedirect = mutation({
  *   5. Patch the redirect record
  *   6. Return updated record ID
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const updateRedirect = mutation({
   args: updateRedirectArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.id("redirects"),
   handler: async (ctx, args) => {
     const user = await requireCan(ctx, "routing.update_redirect");
 
@@ -344,11 +339,10 @@ export const updateRedirect = mutation({
       if (args.matchType === "regex" && existing.matchType !== "regex") {
         const existingRegex = await ctx.db
           .query("redirects")
-          .withIndex("by_enabled", (q: ConvexQueryBuilder) => q.eq("enabled", true))
+          .withIndex("by_enabled", (q) => q.eq("enabled", true))
           .collect();
 
         const regexCount = existingRegex.filter(
-          // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
           (r) => r.matchType === "regex" && r._id !== args.redirectId,
         ).length;
 
@@ -367,13 +361,12 @@ export const updateRedirect = mutation({
       if (resolvedMatchType === "exact" && args.sourceUrl !== undefined) {
         const existingRedirects = await ctx.db
           .query("redirects")
-          .withIndex("by_source_url", (q: ConvexQueryBuilder) =>
+          .withIndex("by_source_url", (q) =>
             q.eq("sourceUrl", resolvedSourceUrl),
           )
           .collect();
 
         const activeDuplicate = existingRedirects.find(
-          // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
           (r) =>
             r.enabled &&
             r.matchType === "exact" &&
@@ -391,13 +384,12 @@ export const updateRedirect = mutation({
       // Detect indirect loops
       const targetRedirects = await ctx.db
         .query("redirects")
-        .withIndex("by_source_url", (q: ConvexQueryBuilder) =>
+        .withIndex("by_source_url", (q) =>
           q.eq("sourceUrl", resolvedTargetUrl),
         )
         .collect();
 
       const indirectLoop = targetRedirects.find(
-        // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
         (r) => r.enabled && r.targetUrl === resolvedSourceUrl,
       );
 
@@ -440,10 +432,9 @@ export const updateRedirect = mutation({
  *   3. Delete the redirect record
  *   4. Chains are already flat, so no cascading updates needed
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const deleteRedirect = mutation({
   args: deleteRedirectArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.object({ success: v.boolean() }),
   handler: async (ctx, args) => {
     await requireCan(ctx, "routing.delete_redirect");
 
@@ -466,10 +457,9 @@ export const deleteRedirect = mutation({
 /**
  * Mark a 404 entry as resolved, optionally linking the redirect that fixes it.
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const resolve404 = mutation({
   args: resolve404Args,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.id("notFound"),
   handler: async (ctx, args) => {
     const user = await requireCan(ctx, "routing.create_redirect");
 
@@ -505,10 +495,9 @@ export const resolve404 = mutation({
 /**
  * Dismiss a 404 entry without creating a redirect.
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const dismiss404 = mutation({
   args: dismiss404Args,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.id("notFound"),
   handler: async (ctx, args) => {
     const user = await requireCan(ctx, "routing.create_redirect");
 
@@ -536,10 +525,9 @@ export const dismiss404 = mutation({
 /**
  * Bulk dismiss multiple 404 entries.
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const bulkDismiss404 = mutation({
   args: bulkDismiss404Args,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.object({ dismissed: v.number(), skipped: v.number(), errors: v.number() }),
   handler: async (ctx, args) => {
     const user = await requireCan(ctx, "routing.create_redirect");
 
@@ -596,16 +584,13 @@ export const bulkDismiss404 = mutation({
  *
  * Note: For production, consider rate-limiting at the reverse proxy level.
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const logNotFound = mutation({
   args: {
     url: v.string(),
-    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     referrer: v.optional(v.string()),
-    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     userAgent: v.optional(v.string()),
   },
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.null(),
   handler: async (ctx, args) => {
     // Basic validation
     if (!args.url || args.url.length === 0) return;
@@ -620,7 +605,7 @@ export const logNotFound = mutation({
     // Check for existing entry (aggregate per URL)
     const existing = await ctx.db
       .query("notFound")
-      .withIndex("by_url", (q: ConvexQueryBuilder) => q.eq("url", args.url))
+      .withIndex("by_url", (q) => q.eq("url", args.url))
       .unique();
 
     if (existing) {

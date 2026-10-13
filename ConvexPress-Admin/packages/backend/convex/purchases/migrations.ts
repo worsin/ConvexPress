@@ -30,6 +30,14 @@ export const repairLedger = mutation({
     limit: v.optional(v.number()),
     includeEmailTemplates: v.optional(v.boolean()),
   },
+  returns: v.object({
+    commerceOrders: v.number(),
+    formOrders: v.number(),
+    subscriptionSignups: v.number(),
+    subscriptionInvoices: v.number(),
+    emailTemplatesCreated: v.number(),
+    emailTemplatesUpdated: v.number(),
+  }),
   handler: async (ctx, args) => {
     await requireCan(ctx, "manage_options");
     const limit = Math.min(Math.max(args.limit ?? 500, 1), 5000);

@@ -41,6 +41,8 @@ import { menuItemVisibleFor, type MenuViewer } from "../extensions/dashboard/vis
 import { getDefaults, type SettingsSection } from "../settings/defaults";
 import { resolveUserRole } from "../helpers/permissions";
 
+import { v } from "convex/values";
+import { tableDocs } from "../schema/tableDocs.generated";
 const DASHBOARD_DEFAULT_BASE = "/dashboard";
 
 /** Merged settings section (defaults + stored) without auth; public-safe fields only. */
@@ -90,6 +92,21 @@ export async function resolveMenuViewer(
  */
 export const listMenus = query({
   args: {},
+  returns: v.array(v.object({
+    assignedLocations: v.array(v.string()),
+    _id: v.id("menus"),
+    _creationTime: v.number(),
+    wpSourceSiteId: v.optional(v.id("wordpressSites")),
+    description: v.optional(v.string()),
+    wpTermId: v.optional(v.number()),
+    autoAddPages: v.optional(v.boolean()),
+    itemCount: v.optional(v.number()),
+    name: v.string(),
+    updatedAt: v.number(),
+    createdAt: v.number(),
+    slug: v.string(),
+    createdBy: v.string(),
+  })),
   handler: async (ctx) => {
     const user = await getCurrentUser(ctx);
     if (!user) {
@@ -141,6 +158,22 @@ export const listMenus = query({
  */
 export const getMenu = query({
   args: getMenuArgs,
+  returns: v.union(v.null(), v.object({
+    items: v.array(tableDocs.menuItems),
+    assignedLocations: v.array(v.string()),
+    _id: v.id("menus"),
+    _creationTime: v.number(),
+    wpSourceSiteId: v.optional(v.id("wordpressSites")),
+    description: v.optional(v.string()),
+    wpTermId: v.optional(v.number()),
+    autoAddPages: v.optional(v.boolean()),
+    itemCount: v.optional(v.number()),
+    name: v.string(),
+    updatedAt: v.number(),
+    createdAt: v.number(),
+    slug: v.string(),
+    createdBy: v.string(),
+  })),
   handler: async (ctx, args) => {
     const user = await getCurrentUser(ctx);
     if (!user) {
@@ -454,6 +487,27 @@ export const getMenuForLocation = query({
  */
 export const getMenuLocations = query({
   args: {},
+  returns: v.array(v.union(v.object({
+    menuName: v.union(v.null(), v.string()),
+    _id: v.id("menuLocations"),
+    _creationTime: v.number(),
+    description: v.optional(v.string()),
+    menuId: v.optional(v.id("menus")),
+    name: v.string(),
+    updatedAt: v.number(),
+    createdAt: v.number(),
+    slug: v.string(),
+  }), v.object({
+    menuName: v.union(v.null(), v.string()),
+    _id: v.union(v.literal("header"), v.literal("footer"), v.literal("secondary"), v.literal("mobile"), v.id("menuLocations"), v.literal("footer-1"), v.literal("footer-2"), v.literal("footer-3"), v.literal("sidebar"), v.literal("social"), v.literal("dashboard-sidebar"), v.literal("dashboard-topbar"), v.literal("dashboard-profile")),
+    _creationTime: v.optional(v.number()),
+    description: v.string(),
+    menuId: v.union(v.null(), v.id("menus")),
+    name: v.string(),
+    updatedAt: v.number(),
+    createdAt: v.number(),
+    slug: v.string(),
+  }))),
   handler: async (ctx) => {
     const user = await getCurrentUser(ctx);
     if (!user) {

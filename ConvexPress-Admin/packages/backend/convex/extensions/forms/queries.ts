@@ -29,6 +29,7 @@ export { DEFAULT_RESUME_TTL_MS, computeResumeExpiry } from "./tokens";
 import { LAYOUT_FIELD_TYPES } from "../../customFields/validators";
 import { RequestReadLedger } from "../../helpers/requestReadLedger";
 
+import { tableDocs } from "../../schema/tableDocs.generated";
 function formCap(cap: string): Capability {
   return cap as Capability;
 }
@@ -252,6 +253,7 @@ export const list = query({
 // ─── Admin: single form by id ────────────────────────────────────────────────
 export const getForm = query({
   args: { id: v.id("forms") },
+  returns: v.union(v.null(), tableDocs.forms),
   handler: async (ctx, { id }) => {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) return null;
@@ -264,6 +266,42 @@ export const getForm = query({
 // ─── Public: a published form + its field definitions (for rendering) ────────
 export const getBySlug = query({
   args: { slug: v.string(), contactPassword: v.optional(v.string()) },
+  returns: v.union(v.null(), v.object({
+    _id: v.id("forms"),
+    title: v.string(),
+    slug: v.string(),
+    description: v.optional(v.string()),
+    settings: v.string(),
+    availability: v.object({
+      open: v.boolean(),
+      code: v.optional(v.string()),
+      message: v.optional(v.string()),
+      loginRequired: v.boolean(),
+      entryLimitReached: v.boolean(),
+    }),
+    security: v.object({
+      honeypotEnabled: v.boolean(),
+      honeypotFieldName: v.string(),
+      captchaEnabled: v.boolean(),
+      captchaProvider: v.union(v.literal("none"), v.literal("turnstile"), v.literal("hcaptcha"), v.literal("recaptcha")),
+      captchaSiteKey: v.union(v.null(), v.string()),
+      recaptchaMinScore: v.number(),
+    }),
+    fields: v.array(v.object({
+      _id: v.id("fieldDefinitions"),
+      label: v.string(),
+      name: v.string(),
+      key: v.string(),
+      type: v.string(),
+      instructions: v.optional(v.string()),
+      required: v.boolean(),
+      defaultValue: v.optional(v.string()),
+      settings: v.string(),
+      conditionalLogic: v.optional(v.string()),
+      parentFieldId: v.optional(v.id("fieldDefinitions")),
+      menuOrder: v.number(),
+    })),
+  })),
   handler: async (ctx, { slug, contactPassword }) => {
     if (!(await isPluginEnabled(ctx, "forms"))) return null;
 
@@ -375,6 +413,21 @@ export function projectResumeValues(
  */
 export const resume = query({
   args: { token: v.string(), contactPassword: v.optional(v.string()) },
+  returns: v.union(v.null(), v.object({
+    status: v.literal("expired"),
+    submissionId: v.optional(v.null()),
+    formSlug: v.optional(v.null()),
+    currentStep: v.optional(v.null()),
+    expiresAt: v.optional(v.null()),
+    values: v.optional(v.null()),
+  }), v.object({
+    submissionId: v.id("form_submissions"),
+    formSlug: v.string(),
+    status: v.literal("partial"),
+    currentStep: v.number(),
+    expiresAt: v.number(),
+    values: v.record(v.string(), v.string()),
+  })),
   handler: async (ctx, { token, contactPassword }) => {
     if (!(await isPluginEnabled(ctx, "forms"))) return null;
     if (!isGeneratedResumeToken(token)) return null;
@@ -495,6 +548,16 @@ export const listNotes = query({
     submissionId: v.id("form_submissions"),
     formId: v.optional(v.id("forms")),
   },
+  returns: v.array(v.object({
+    authorName: v.string(),
+    authorEmail: v.optional(v.string()),
+    _id: v.id("form_submission_notes"),
+    _creationTime: v.number(),
+    createdAt: v.number(),
+    authorId: v.id("users"),
+    submissionId: v.id("form_submissions"),
+    body: v.string(),
+  })),
   handler: async (ctx, { submissionId, formId }) => {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) return [];

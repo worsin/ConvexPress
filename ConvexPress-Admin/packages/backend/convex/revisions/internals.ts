@@ -181,21 +181,19 @@ export const createOnSave: RegisteredMutation<"internal", CreateOnSaveArgs, Prom
  *
  * @returns The autosave revision ID
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const createAutosave = internalMutation({
   args: createAutosaveArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.id("revisions"),
   handler: async (ctx, args): Promise<Id<"revisions">> => {
     // ── Check for existing autosave for this user + parent ──────────────
     const existingAutosaves = await ctx.db
       .query("revisions")
-      .withIndex("by_parent_type", (q: ConvexQueryBuilder) =>
+      .withIndex("by_parent_type", (q) =>
         q.eq("parentId", args.parentId).eq("type", "autosave"),
       )
       .collect();
 
     const existingForUser = existingAutosaves.find(
-      // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
       (r) => r.authorId === args.authorId,
     );
 
@@ -249,15 +247,14 @@ export const createAutosave = internalMutation({
  *
  * @returns The number of revisions deleted
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const deleteByParent = internalMutation({
   args: deleteByParentArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.object({ deleted: v.number() }),
   handler: async (ctx, args) => {
     await removeDraftsForPost(ctx, args.parentId);
     const revisions = await ctx.db
       .query("revisions")
-      .withIndex("by_parent", (q: ConvexQueryBuilder) => q.eq("parentId", args.parentId))
+      .withIndex("by_parent", (q) => q.eq("parentId", args.parentId))
       .collect();
 
     for (const revision of revisions) {
@@ -283,10 +280,9 @@ export const deleteByParent = internalMutation({
  *
  * @returns Count of pruned revisions and posts affected
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const prune = internalMutation({
   args: pruneArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.object({ prunedCount: v.number(), postsAffected: v.number() }),
   handler: async (ctx, args) => {
     // ── Determine max revisions ─────────────────────────────────────────
     let maxRevisions = args.maxRevisions ?? DEFAULT_MAX_REVISIONS;
@@ -312,13 +308,12 @@ export const prune = internalMutation({
       // ── Prune a single post ───────────────────────────────────────────
       const manualRevisions = (await ctx.db
         .query("revisions")
-        .withIndex("by_parent_type", (q: ConvexQueryBuilder) =>
+        .withIndex("by_parent_type", (q) =>
           q.eq("parentId", args.parentId!).eq("type", "manual"),
         )
         .collect()).filter(prunableRevision);
 
       if (manualRevisions.length > maxRevisions) {
-        // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
         manualRevisions.sort((a, b) => a.revisionNumber - b.revisionNumber);
         const toDelete = manualRevisions.length - maxRevisions;
 
@@ -353,14 +348,13 @@ export const prune = internalMutation({
 
         const manualRevisions = (await ctx.db
           .query("revisions")
-          .withIndex("by_parent_type", (q: ConvexQueryBuilder) =>
+          .withIndex("by_parent_type", (q) =>
             q.eq("parentId", asId<"posts">(parentIdStr)).eq("type", "manual"),
           )
           .collect()).filter(prunableRevision);
 
         if (manualRevisions.length > maxRevisions) {
           manualRevisions.sort(
-            // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
             (a, b) => a.revisionNumber - b.revisionNumber,
           );
           const toDelete = manualRevisions.length - maxRevisions;

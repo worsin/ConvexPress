@@ -41,6 +41,7 @@ import {
   redactSettingSecrets,
 } from "../helpers/settingsSecret";
 
+import { v } from "convex/values";
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 const SETTINGS_DOCUMENT_METADATA_KEYS = new Set([
@@ -153,6 +154,7 @@ const SECTION_CAPABILITY_MAP: Record<
  */
 export const updateSection = mutation({
   args: updateSectionArgs,
+  returns: v.null(),
   handler: async (ctx, args) => {
     const { section, values } = args;
     const incomingValues = stripSettingsDocumentMetadata(
@@ -323,6 +325,7 @@ export const updateSection = mutation({
  */
 export const importAll = mutation({
   args: importAllArgs,
+  returns: v.object({ imported: v.array(v.string()), skipped: v.array(v.string()) }),
   handler: async (ctx, args) => {
     // 1. Check auth
     const user = await requireCan(ctx, "settings.import");
@@ -450,6 +453,7 @@ export const importAll = mutation({
  */
 export const encryptStoredSecrets = mutation({
   args: {},
+  returns: v.object({ upgraded: v.number(), sections: v.array(v.string()) }),
   handler: async (ctx) => {
     await requireCan(ctx, "manage_options");
     const { upgradeLegacySettingSecrets } = await import("./internals");

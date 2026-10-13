@@ -29,10 +29,8 @@ export function envPresence(name: string | undefined): boolean {
  * ciphertext), the env fallbacks that exist, and the fingerprint the check
  * will be stamped with.
  */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const loadProviderConfiguration = internalQuery({
   args: { providerId: v.string() },
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
   handler: async (ctx, args) => {
     const definition = getIntegration(args.providerId);
     if (!definition) throw new Error(`Unknown integration: ${args.providerId}`);
@@ -75,13 +73,10 @@ export const loadProviderConfiguration = internalQuery({
       values,
       envValues,
       fingerprint: fingerprintConfiguration({
-        // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
         ...Object.fromEntries(
-          // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
           definition.fields.map((field) => [field.key, values[field.key]]),
         ),
         ...Object.fromEntries(
-          // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
           Object.keys(envValues).map((key) => [`env:${key}`, true]),
         ),
       }),
@@ -89,21 +84,17 @@ export const loadProviderConfiguration = internalQuery({
   },
 });
 
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const recordCheck = internalMutation({
   args: {
     providerId: v.string(),
     status: integrationCheckStatusValidator,
-    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     checkedBy: v.optional(v.id("users")),
-    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     latencyMs: v.optional(v.number()),
     summary: v.string(),
-    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     details: v.array(integrationCheckDetailValidator),
     configFingerprint: v.string(),
   },
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.id("integration_checks"),
   handler: async (ctx, args) => {
     const existing = await ctx.db
       .query("integration_checks")
@@ -132,9 +123,8 @@ export const recordCheck = internalMutation({
 });
 
 /** Identity of the calling operator for `checkedBy` stamps. */
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const currentOperatorId = internalQuery({
   args: {},
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.union(v.null(), v.id("users")),
   handler: async (ctx) => getCurrentUserId(ctx),
 });

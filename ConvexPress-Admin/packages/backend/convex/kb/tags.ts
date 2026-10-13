@@ -27,6 +27,8 @@ import {
 } from "./validators";
 import { isPluginEnabled, requirePluginEnabled } from "../helpers/plugins";
 
+import { v } from "convex/values";
+import { tableDocs } from "../schema/tableDocs.generated";
 async function requireArticleTagEdit(ctx: MutationCtx, articleId: Id<"kb_articles">, userId: Id<"users">): Promise<void> {
   const article = await ctx.db.get("kb_articles", articleId);
   if (!article) throw new ConvexError({ code: "NOT_FOUND", message: "Article not found" });
@@ -35,10 +37,9 @@ async function requireArticleTagEdit(ctx: MutationCtx, articleId: Id<"kb_article
 
 // ─── List (Public) ──────────────────────────────────────────────────────────
 
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const list = query({
   args: {},
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.union(v.null(), v.array(tableDocs.kb_tags)),
   handler: async (ctx) => {
     if (!(await isPluginEnabled(ctx, "knowledgeBase"))) return null;
     return ctx.db.query("kb_tags").take(500);
@@ -49,6 +50,7 @@ export const list = query({
 
 export const getBySlug: RegisteredQuery<"public", { slug: string }, Doc<"kb_tags"> | null> = query({
   args: getTagBySlugArgs,
+  returns: v.union(v.null(), tableDocs.kb_tags),
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "knowledgeBase"))) return null;
     return ctx.db
@@ -60,10 +62,9 @@ export const getBySlug: RegisteredQuery<"public", { slug: string }, Doc<"kb_tags
 
 // ─── Create ─────────────────────────────────────────────────────────────────
 
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const create = mutation({
   args: createTagArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.id("kb_tags"),
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "knowledgeBase");
     const user = await requireCan(ctx, "kb.manageTags");
@@ -92,10 +93,9 @@ export const create = mutation({
 
 // ─── Update ─────────────────────────────────────────────────────────────────
 
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const update = mutation({
   args: updateTagArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.id("kb_tags"),
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "knowledgeBase");
     const user = await requireCan(ctx, "kb.manageTags");
@@ -126,10 +126,9 @@ export const update = mutation({
 
 // ─── Remove ─────────────────────────────────────────────────────────────────
 
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const remove = mutation({
   args: removeTagArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.id("kb_tags"),
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "knowledgeBase");
     const user = await requireCan(ctx, "kb.manageTags");
@@ -142,7 +141,7 @@ export const remove = mutation({
     // Delete all article-tag associations
     const articleTags = await ctx.db
       .query("kb_articleTags")
-      .withIndex("by_tag", (q: ConvexQueryBuilder) => q.eq("tagId", args.tagId))
+      .withIndex("by_tag", (q) => q.eq("tagId", args.tagId))
       .take(1000);
     for (const at of articleTags) {
       await ctx.db.delete("kb_articleTags", at._id);
@@ -157,6 +156,7 @@ export const remove = mutation({
 
 export const addToArticle: RegisteredMutation<"public", { articleId: Id<"kb_articles">; tagId: Id<"kb_tags"> }, Id<"kb_articleTags">> = mutation({
   args: addTagToArticleArgs,
+  returns: v.id("kb_articleTags"),
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "knowledgeBase");
     const user = await getCurrentUser(ctx);
@@ -199,6 +199,7 @@ export const addToArticle: RegisteredMutation<"public", { articleId: Id<"kb_arti
 
 export const removeFromArticle: RegisteredMutation<"public", { articleId: Id<"kb_articles">; tagId: Id<"kb_tags"> }, Id<"kb_articleTags"> | null> = mutation({
   args: removeTagFromArticleArgs,
+  returns: v.union(v.null(), v.id("kb_articleTags")),
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "knowledgeBase");
     const user = await getCurrentUser(ctx);

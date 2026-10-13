@@ -27,10 +27,12 @@ import {
 } from "./validators";
 import { isPluginEnabled, requirePluginEnabled } from "../helpers/plugins";
 
+import { v } from "convex/values";
 // ─── Track Page View ────────────────────────────────────────────────────────
 
 export const trackPageView: RegisteredMutation<"public", { articleId: Id<"kb_articles">; sessionId: string; referrer?: string; userAgent?: string }, Id<"kb_pageViews">> = mutation({
   args: trackPageViewArgs,
+  returns: v.id("kb_pageViews"),
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "knowledgeBase");
     // Validate sessionId
@@ -87,10 +89,9 @@ export const trackPageView: RegisteredMutation<"public", { articleId: Id<"kb_art
 
 // ─── Update Duration ────────────────────────────────────────────────────────
 
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const updateDuration = mutation({
   args: updateDurationArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.null(),
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "knowledgeBase");
     // Validate duration range
@@ -109,10 +110,9 @@ export const updateDuration = mutation({
 
 // ─── Track Search ───────────────────────────────────────────────────────────
 
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const trackSearch = mutation({
   args: trackSearchArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.id("kb_searchQueries"),
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "knowledgeBase");
     // Validate query
@@ -141,10 +141,15 @@ export const trackSearch = mutation({
 
 // ─── Get Dashboard Stats (Admin) ────────────────────────────────────────────
 
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const getDashboardStats = query({
   args: getDashboardStatsArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.union(v.null(), v.object({
+    articles: v.object({ draft: v.number(), review: v.number(), published: v.number(), archived: v.number() }),
+    totalArticles: v.number(),
+    views: v.object({ total: v.number(), uniqueSessions: v.number() }),
+    searches: v.object({ total: v.number(), avgResultCount: v.number() }),
+    feedback: v.object({ total: v.number(), helpfulPercent: v.number() }),
+  })),
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "knowledgeBase"))) return null;
     const user = await requireCan(ctx, "kb.viewAnalytics");
@@ -154,12 +159,11 @@ export const getDashboardStats = query({
     const endDate = args.endDate ?? now;
 
     // Article counts by status — safety-bounded with .take(10000) per status
-    // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
     const [draftArticles, reviewArticles, publishedArticles, archivedArticles] = await Promise.all([
-      ctx.db.query("kb_articles").withIndex("by_status", (q: ConvexQueryBuilder) => q.eq("status", "draft")).take(10000),
-      ctx.db.query("kb_articles").withIndex("by_status", (q: ConvexQueryBuilder) => q.eq("status", "review")).take(10000),
-      ctx.db.query("kb_articles").withIndex("by_status", (q: ConvexQueryBuilder) => q.eq("status", "published")).take(10000),
-      ctx.db.query("kb_articles").withIndex("by_status", (q: ConvexQueryBuilder) => q.eq("status", "archived")).take(10000),
+      ctx.db.query("kb_articles").withIndex("by_status", (q) => q.eq("status", "draft")).take(10000),
+      ctx.db.query("kb_articles").withIndex("by_status", (q) => q.eq("status", "review")).take(10000),
+      ctx.db.query("kb_articles").withIndex("by_status", (q) => q.eq("status", "published")).take(10000),
+      ctx.db.query("kb_articles").withIndex("by_status", (q) => q.eq("status", "archived")).take(10000),
     ]);
     const statusCounts = {
       draft: draftArticles.length,
@@ -172,21 +176,19 @@ export const getDashboardStats = query({
     // Page views in range — safety-bounded with .take(50000)
     const viewsInRange = await ctx.db
       .query("kb_pageViews")
-      .withIndex("by_date", (q: ConvexQueryBuilder) => q.gte("createdAt", startDate).lte("createdAt", endDate))
+      .withIndex("by_date", (q) => q.gte("createdAt", startDate).lte("createdAt", endDate))
       .take(50000);
     const totalViews = viewsInRange.length;
-    // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
     const uniqueSessions = new Set(viewsInRange.map((v) => v.sessionId)).size;
 
     // Search queries in range — safety-bounded with .take(10000)
     const searchesInRange = await ctx.db
       .query("kb_searchQueries")
-      .withIndex("by_date", (q: ConvexQueryBuilder) => q.gte("createdAt", startDate).lte("createdAt", endDate))
+      .withIndex("by_date", (q) => q.gte("createdAt", startDate).lte("createdAt", endDate))
       .take(10000);
 
     // Feedback stats — no date-range index on feedback; use a safety-bounded take
     const feedback = await ctx.db.query("kb_articleFeedback").take(5000);
-    // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
     const helpful = feedback.filter((f) => f.isHelpful).length;
     const total = feedback.length;
 
@@ -200,7 +202,6 @@ export const getDashboardStats = query({
       searches: {
         total: searchesInRange.length,
         avgResultCount: searchesInRange.length > 0
-          // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
           ? Math.round(searchesInRange.reduce((s, q) => s + q.resultCount, 0) / searchesInRange.length)
           : 0,
       },
@@ -214,33 +215,33 @@ export const getDashboardStats = query({
 
 // ─── Get Article Stats (Admin) ──────────────────────────────────────────────
 
-// @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
 export const getArticleStats = query({
   args: getArticleAnalyticsArgs,
-  // @ts-expect-error TS2589: Convex generated API union types exceed TypeScript instantiation depth.
+  returns: v.union(v.null(), v.object({
+    totalViews: v.number(),
+    uniqueSessions: v.number(),
+    avgDuration: v.number(),
+    viewsByDay: v.record(v.string(), v.number()),
+  })),
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "knowledgeBase"))) return null;
     const user = await requireCan(ctx, "kb.viewAnalytics");
 
     const views = await ctx.db
       .query("kb_pageViews")
-      .withIndex("by_article", (q: ConvexQueryBuilder) => q.eq("articleId", args.articleId))
+      .withIndex("by_article", (q) => q.eq("articleId", args.articleId))
       .take(10000);
 
-    // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
     const durations = views.filter((v) => v.duration).map((v) => v.duration!);
     const avgDuration = durations.length > 0
-      // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
       ? Math.round(durations.reduce((s, d) => s + d, 0) / durations.length)
       : 0;
 
-    // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
     const uniqueSessions = new Set(views.map((v) => v.sessionId)).size;
 
     // Views over time (last 30 days, grouped by day)
     const now = Date.now();
     const thirtyDaysAgo = now - 30 * 24 * 60 * 60 * 1000;
-    // @ts-expect-error TS7006: Callback param loses contextual typing downstream of TS2589.
     const recentViews = views.filter((v) => v.createdAt >= thirtyDaysAgo);
 
     const viewsByDay: Record<string, number> = {};
@@ -263,6 +264,12 @@ export const getArticleStats = query({
 type SearchAnalytics = { totalSearches: number; topQueries: { query: string; count: number; avgResults: number; clickRate: number }[]; zeroResultQueries: string[]; bySource: { convex: number; meilisearch: number; rag: number } };
 export const getSearchAnalytics: RegisteredQuery<"public", { startDate?: number; endDate?: number; limit?: number }, SearchAnalytics | null> = query({
   args: getSearchAnalyticsArgs,
+  returns: v.union(v.null(), v.object({
+    totalSearches: v.number(),
+    topQueries: v.array(v.object({ query: v.string(), count: v.number(), avgResults: v.number(), clickRate: v.number() })),
+    zeroResultQueries: v.array(v.string()),
+    bySource: v.object({ convex: v.number(), meilisearch: v.number(), rag: v.number() }),
+  })),
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "knowledgeBase"))) return null;
     const user = await requireCan(ctx, "kb.viewAnalytics");

@@ -25,6 +25,7 @@ import { testWebhookArgs } from "./validators";
 import { decryptSecret, computeHmacSignature } from "./crypto_helpers";
 import { MAX_RESPONSE_BODY_SIZE } from "./validators";
 
+import { v } from "convex/values";
 // ─── testWebhook ───────────────────────────────────────────────────────────
 
 interface WebhookTestPermissionResult {
@@ -79,6 +80,14 @@ interface WebhookTestPayload {
  */
 export const testWebhook = action({
   args: testWebhookArgs,
+  returns: v.object({
+    success: v.boolean(),
+    statusCode: v.union(v.null(), v.number()),
+    duration: v.number(),
+    error: v.optional(v.string()),
+    deliveryId: v.string(),
+    responseBody: v.optional(v.string()),
+  }),
   handler: async (ctx, args): Promise<WebhookDeliveryResult> => {
     // 1. Verify authentication and permissions via internal mutation
     const authResult: WebhookTestPermissionResult = await ctx.runMutation(
