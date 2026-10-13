@@ -1,8 +1,10 @@
 import { KBInheritedCategoryAccess } from "@/components/kb/KBInheritedCategoryAccess";
+import { KBAudienceInput } from "@/components/kb/KBAudienceInput";
 /**
  * KB Article Editor - /admin/kb/$articleId/edit
  *
- * Full article editor: title, content, excerpt, slug, category, SEO fields.
+ * Full article editor: title, content, excerpt, slug, category, visibility,
+ * audiences, SEO fields.
  * Publish / Unpublish actions.
  * Wired to api.kb.queries.getById, api.kb.mutations.update, api.kb.mutations.publish
  */
@@ -41,6 +43,8 @@ type KBArticle = {
   status: "draft" | "review" | "published" | "archived";
   categoryId?: Id<"kb_categories">;
   hasInheritedCategoryAccess?: boolean;
+  visibility?: "public" | "internal";
+  audiences?: string[];
   metaTitle?: string;
   metaDescription?: string;
   keywords?: string[];
@@ -70,6 +74,8 @@ function ArticleEditor({ articleId }: { articleId: string }) {
   const [metaTitle, setMetaTitle] = useState("");
   const [metaDescription, setMetaDescription] = useState("");
   const [keywords, setKeywords] = useState("");
+  const [visibility, setVisibility] = useState<"public" | "internal">("public");
+  const [audiences, setAudiences] = useState<string[]>([]);
 
   const [isSaving, setIsSaving] = useState(false);
   const [isPublishing, setIsPublishing] = useState(false);
@@ -88,6 +94,8 @@ function ArticleEditor({ articleId }: { articleId: string }) {
     setMetaTitle(art.metaTitle ?? "");
     setMetaDescription(art.metaDescription ?? "");
     setKeywords((art.keywords ?? []).join(", "));
+    setVisibility(art.visibility ?? "public");
+    setAudiences(art.audiences ?? []);
     setIsDirty(false);
   }, [art]);
 
@@ -111,6 +119,8 @@ function ArticleEditor({ articleId }: { articleId: string }) {
         metaTitle: metaTitle || undefined,
         metaDescription: metaDescription || undefined,
         keywords: kwArray.length > 0 ? kwArray : undefined,
+        visibility,
+        audiences,
       });
       toast.success("Article saved");
       setIsDirty(false);
@@ -135,6 +145,8 @@ function ArticleEditor({ articleId }: { articleId: string }) {
         metaTitle: metaTitle || undefined,
         metaDescription: metaDescription || undefined,
         keywords: kwArray.length > 0 ? kwArray : undefined,
+        visibility,
+        audiences,
       });
       await publishArticle({ articleId: articleId as Id<"kb_articles"> });
       toast.success("Article published");
@@ -206,6 +218,11 @@ function ArticleEditor({ articleId }: { articleId: string }) {
           >
             {art?.status ?? "draft"}
           </span>
+          {art?.visibility === "internal" && (
+            <span className="text-xs px-2 py-0.5 rounded-full border border-primary/30 bg-primary/10 text-primary">
+              Internal
+            </span>
+          )}
           {isDirty && (
             <span className="text-xs text-foreground/40">Unsaved changes</span>
           )}
@@ -321,6 +338,43 @@ function ArticleEditor({ articleId }: { articleId: string }) {
                 Reading time: ~{art.readingTimeMinutes} min
               </div>
             )}
+          </div>
+
+          {/* Visibility */}
+          <div className="rounded-lg border border-border bg-card p-4 space-y-3">
+            <h3 className="text-xs font-semibold text-foreground/60 uppercase tracking-wider">
+              Visibility
+            </h3>
+
+            <div>
+              <label htmlFor="kb-visibility" className="block text-xs font-medium text-foreground/70 mb-1">Visibility</label>
+              <select
+                id="kb-visibility"
+                value={visibility}
+                onChange={(e) => { setVisibility(e.target.value === "internal" ? "internal" : "public"); markDirty(); }}
+                className="w-full px-2 py-1.5 text-sm border border-border rounded-md bg-background"
+              >
+                <option value="public">Public</option>
+                <option value="internal">Internal</option>
+              </select>
+              <p className="text-xs text-foreground/40 mt-0.5">
+                {visibility === "internal"
+                  ? "Internal articles never appear on the website; only trusted integrations can read them."
+                  : "Public articles appear on the website once published."}
+              </p>
+            </div>
+
+            <div>
+              <label className="block text-xs font-medium text-foreground/70 mb-1">
+                Audiences
+                <span className="ml-1 text-foreground/40 font-normal">(optional)</span>
+              </label>
+              <KBAudienceInput
+                audiences={audiences}
+                onChange={(next) => { setAudiences(next); markDirty(); }}
+              />
+              <p className="text-xs text-foreground/40 mt-1">Labels for integrations, such as staff or doctor.</p>
+            </div>
           </div>
 
           {/* SEO */}

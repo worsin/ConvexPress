@@ -3,6 +3,7 @@
  *
  * WordPress-style list table for KB articles with:
  *   - Status tabs (All, Draft, Review, Published, Archived)
+ *   - Visibility filter (Public / Internal) and an "Internal" badge
  *   - Search bar
  *   - Sortable columns
  *   - Bulk actions
@@ -29,6 +30,7 @@ export function KBArticleListTable() {
       search: search.search,
       categoryId: search.categoryId as Id<"kb_categories"> | undefined,
       authorId: search.authorId as Id<"users"> | undefined,
+      visibility: search.visibility,
     },
     { initialNumItems: 20 },
   );
@@ -45,8 +47,8 @@ export function KBArticleListTable() {
         </button>
       </div>
 
-      {/* Status tabs */}
-      <div className="flex gap-2 border-b border-border">
+      {/* Status tabs and visibility filter */}
+      <div className="flex items-center gap-2 border-b border-border">
         {(["all", "draft", "review", "published", "archived"] as const).map((tab) => (
           <button
             key={tab}
@@ -68,6 +70,24 @@ export function KBArticleListTable() {
             {tab.charAt(0).toUpperCase() + tab.slice(1)}
           </button>
         ))}
+        <select
+          aria-label="Filter by visibility"
+          value={search.visibility ?? ""}
+          onChange={(e) =>
+            navigate({
+              search: {
+                ...search,
+                visibility: e.target.value === "public" || e.target.value === "internal" ? e.target.value : undefined,
+                page: 1,
+              },
+            })
+          }
+          className="ml-auto mb-1 px-2 py-1 text-sm border border-border rounded-md bg-background"
+        >
+          <option value="">All visibility</option>
+          <option value="public">Public</option>
+          <option value="internal">Internal</option>
+        </select>
       </div>
 
       {/* Article list -- placeholder for full list table implementation */}
@@ -100,7 +120,14 @@ export function KBArticleListTable() {
                   className="border-b border-border hover:bg-muted/50 cursor-pointer"
                   onClick={() => navigate({ to: "/kb/$articleId/edit", params: { articleId: article._id } })}
                 >
-                  <td className="px-4 py-3 font-medium">{article.title}</td>
+                  <td className="px-4 py-3 font-medium">
+                    {article.title}
+                    {article.visibility === "internal" && (
+                      <span className="ml-2 inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium bg-primary/10 text-primary">
+                        Internal
+                      </span>
+                    )}
+                  </td>
                   <td className="px-4 py-3 text-muted-foreground">
                     {article.author?.displayName ?? "Unknown"}
                   </td>
