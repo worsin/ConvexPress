@@ -14,11 +14,14 @@ import type { Doc } from "../_generated/dataModel";
  *   addArticle        - Add an article to a collection
  *   removeArticle     - Remove an article from a collection
  *   reorderArticles   - Change article order within a collection
+ *
+ * Public reads list only articles that pass the public gate and report
+ * `articleCount` as the collection's published, non-internal article count.
  */
 
 import { ConvexError } from "convex/values";
 import { mutation, query } from "../_generated/server";
-import { requireCan, getCurrentUser } from "../helpers/permissions";
+import { requireCan } from "../helpers/permissions";
 import { generateCollectionSlug } from "./helpers/utils";
 import {
   createCollectionArgs,
@@ -32,6 +35,16 @@ import {
 } from "./validators";
 import { isPluginEnabled, requirePluginEnabled } from "../helpers/plugins";
 import { deleteWithMediaReferences, insertWithMediaReferences, patchWithMediaReferences } from "../media/attachmentGuard";
+import { createPublicKbAccess, PUBLIC_KB_LIST_READS } from "./publicAccess";
+import { RequestReadLedger } from "../helpers/requestReadLedger";
+import { adjustKbCollectionPublicCount } from "./helpers/publicCounts";
+import { countsAsPublicKbArticle, kbArticleVisibility, kbArticleVisibilityValidator } from "./helpers/visibility";
+
+/** The public shape of a collection: its count covers public articles only. */
+function publicCollection(collection: Doc<"kb_collections">): Doc<"kb_collections"> {
+  const { publicArticleCount, ...rest } = collection;
+  return { ...rest, articleCount: publicArticleCount ?? 0 };
+}
 
 import { v } from "convex/values";
 import { kbDocs } from "../schema/kb.docs.generated";
@@ -42,10 +55,8 @@ export const list = query({
   returns: v.union(v.null(), v.array(kbDocs.kb_collections)),
   handler: async (ctx) => {
     if (!(await isPluginEnabled(ctx, "knowledgeBase"))) return null;
-    const user = await getCurrentUser(ctx);
-    if (!user) {
-      throw new ConvexError({ code: "UNAUTHORIZED", message: "Authentication required" });
-    }
+    // Includes private collections; a signed-in website account is not enough.
+    await requireCan(ctx, "kb.view");
 
     return ctx.db.query("kb_collections").order("desc").take(500);
   },
@@ -57,11 +68,12 @@ export const listPublic = query({
   args: {},
   returns: v.union(v.null(), v.array(kbDocs.kb_collections)),
   handler: async (ctx) => {
-    if (!(await isPluginEnabled(ctx, "knowledgeBase"))) return null;
-    return ctx.db
+    if (!await createPublicKbAccess(ctx).available()) return null;
+    const collections = await ctx.db
       .query("kb_collections")
       .withIndex("by_public", (q) => q.eq("isPublic", true))
       .take(500);
+    return collections.map(publicCollection);
   },
 });
 
@@ -76,6 +88,7 @@ export const getById = query({
         title: v.string(),
         slug: v.string(),
         status: v.union(v.literal("draft"), v.literal("archived"), v.literal("review"), v.literal("published")),
+        visibility: kbArticleVisibilityValidator,
       }),
       _id: v.id("kb_collectionArticles"),
       _creationTime: v.number(),
@@ -96,14 +109,13 @@ export const getById = query({
     slug: v.string(),
     createdBy: v.id("users"),
     articleCount: v.number(),
+    publicArticleCount: v.optional(v.number()),
     isPublic: v.boolean(),
   })),
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "knowledgeBase"))) return null;
-    const user = await getCurrentUser(ctx);
-    if (!user) {
-      throw new ConvexError({ code: "UNAUTHORIZED", message: "Authentication required" });
-    }
+    // Lists every member article, internal and unpublished ones included.
+    await requireCan(ctx, "kb.view");
 
     const collection = await ctx.db.get("kb_collections", args.collectionId);
     if (!collection) return null;
@@ -118,7 +130,7 @@ export const getById = query({
       collectionArticles.map(async (ca) => {
         const article = await ctx.db.get("kb_articles", ca.articleId);
         return article
-          ? { ...ca, article: { _id: article._id, title: article.title, slug: article.slug, status: article.status } }
+          ? { ...ca, article: { _id: article._id, title: article.title, slug: article.slug, status: article.status, visibility: kbArticleVisibility(article) } }
           : null;
       }),
     );
@@ -156,7 +168,8 @@ export const getBySlug: RegisteredQuery<"public", { slug: string }, PublicCollec
     isPublic: v.boolean(),
   })),
   handler: async (ctx, args) => {
-    if (!(await isPluginEnabled(ctx, "knowledgeBase"))) return null;
+    const access = createPublicKbAccess(ctx, new RequestReadLedger(PUBLIC_KB_LIST_READS));
+    if (!await access.available()) return null;
     const collection = await ctx.db
       .query("kb_collections")
       .withIndex("by_slug", (q) => q.eq("slug", args.slug))
@@ -172,7 +185,7 @@ export const getBySlug: RegisteredQuery<"public", { slug: string }, PublicCollec
     const articles = await Promise.all(
       collectionArticles.map(async (ca) => {
         const article = await ctx.db.get("kb_articles", ca.articleId);
-        if (!article || article.status !== "published") return null;
+        if (!article || !await access.article(article)) return null;
         return {
           _id: article._id,
           title: article.title,
@@ -185,7 +198,8 @@ export const getBySlug: RegisteredQuery<"public", { slug: string }, PublicCollec
       }),
     );
 
-    return { ...collection, articles: articles.filter((article): article is NonNullable<typeof article> => article !== null) };
+    const visible = articles.filter((article): article is NonNullable<typeof article> => article !== null);
+    return { ...publicCollection(collection), articleCount: visible.length, articles: visible };
   },
 });
 
@@ -214,6 +228,7 @@ export const create = mutation({
       type: args.type,
       isPublic: args.isPublic ?? false,
       articleCount: 0,
+      publicArticleCount: 0,
       createdBy: user._id,
       createdAt: now,
       updatedAt: now,
@@ -294,6 +309,8 @@ export const addArticle = mutation({
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "knowledgeBase");
     const user = await requireCan(ctx, "kb.manageCollections");
+    const article = await ctx.db.get("kb_articles", args.articleId);
+    if (!article) throw new ConvexError({ code: "NOT_FOUND", message: "Article not found" });
 
     // Check for existing association
     const existing = await ctx.db
@@ -324,6 +341,7 @@ export const addArticle = mutation({
         updatedAt: Date.now(),
       });
     }
+    if (countsAsPublicKbArticle(article)) await adjustKbCollectionPublicCount(ctx, args.collectionId, 1);
 
     return linkId;
   },
@@ -356,6 +374,8 @@ export const removeArticle = mutation({
         updatedAt: Date.now(),
       });
     }
+    const article = await ctx.db.get("kb_articles", args.articleId);
+    if (article && countsAsPublicKbArticle(article)) await adjustKbCollectionPublicCount(ctx, args.collectionId, -1);
 
     return toRemove._id;
   },

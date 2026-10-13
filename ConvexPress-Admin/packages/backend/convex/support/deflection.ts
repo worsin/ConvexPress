@@ -7,6 +7,8 @@
  *   2. If Meilisearch enabled: also search Meilisearch (via settings)
  *   3. If RAG enabled: also search RAG vector index (via settings)
  *   4. Merge and deduplicate, take top MAX_DEFLECTION_ARTICLES articles
+ *      (every source passes the public KB gate first; internal, unpublished
+ *      and restricted articles never reach the visitor or the AI prompt)
  *   5. If AI provider configured: call OpenAI/Anthropic to generate answer
  *   6. If no AI provider: return article list directly (graceful degradation)
  *   7. Return { answer, sourceArticles, confidence }
@@ -104,10 +106,16 @@ export const generateAnswer = action({
     // ── Step 3: Meilisearch (if enabled) ────────────────────────────────────
     if (supportAiSettings?.meilisearchEnabled && supportAiSettings.meilisearchUrl) {
       try {
-        const meilisearchResults = await searchMeilisearch(
+        const meilisearchHits = await searchMeilisearch(
           query,
           supportAiSettings.meilisearchUrl,
           supportAiSettings.meilisearchApiKey ?? "",
+        );
+        // Provider hits only rank candidates; visibility and metadata come
+        // from the current article through the public KB gate.
+        const meilisearchResults: SourceArticle[] = await ctx.runQuery(
+          internal.support.internals.readableKbArticles,
+          { candidates: meilisearchHits.flatMap((hit) => typeof hit.id === "string" ? [{ id: hit.id, score: hit.score }] : []) },
         );
         for (const article of meilisearchResults) {
           // Meilisearch results boost score if article already found by Convex

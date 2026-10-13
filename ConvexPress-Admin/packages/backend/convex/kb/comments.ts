@@ -1,5 +1,5 @@
 import type { RegisteredMutation } from "convex/server";
-import type { Id } from "../_generated/dataModel";
+import type { Doc, Id } from "../_generated/dataModel";
 /**
  * Knowledge Base System - Comment Functions
  *
@@ -11,11 +11,15 @@ import type { Id } from "../_generated/dataModel";
  *   vote          - Upvote or downvote a comment (auth required)
  *   removeVote    - Remove a vote (auth required)
  *   getCount      - Comment count for an article (public)
+ *
+ * Comments exist only on articles that pass the public gate. For any other
+ * caller than a comment moderator, a comment on a hidden (internal,
+ * unpublished or restricted) article behaves exactly like a missing one.
  */
 
 import { ConvexError } from "convex/values";
-import { mutation, query } from "../_generated/server";
-import { requireCan, getCurrentUser } from "../helpers/permissions";
+import { mutation, query, type MutationCtx } from "../_generated/server";
+import { requireCan, getCurrentUser, currentUserCan } from "../helpers/permissions";
 import { emitEvent } from "../helpers/events";
 import { KB_EVENTS, SYSTEM } from "../events/constants";
 import {
@@ -29,6 +33,25 @@ import {
 } from "./validators";
 import { enrichUser } from "./helpers/enrichUser";
 import { isPluginEnabled, requirePluginEnabled } from "../helpers/plugins";
+import { readPublicKbArticle, requirePublicKbArticle } from "./publicAccess";
+
+/** Read a comment for a non-moderator: hidden articles hide their comments. */
+async function visibleComment(ctx: MutationCtx, commentId: Id<"kb_comments">): Promise<Doc<"kb_comments"> | null> {
+  const comment = await ctx.db.get("kb_comments", commentId);
+  if (!comment || !await readPublicKbArticle(ctx, comment.articleId)) return null;
+  return comment;
+}
+
+/** Owners may change their own comments on public articles; moderators may
+ * change any comment, including on articles that are no longer public. */
+async function requireCommentChange(ctx: MutationCtx, commentId: Id<"kb_comments">, userId: Id<"users">): Promise<Doc<"kb_comments">> {
+  const comment = await ctx.db.get("kb_comments", commentId);
+  if (!comment) throw new ConvexError({ code: "NOT_FOUND", message: "Comment not found" });
+  if (await currentUserCan(ctx, "kb.moderateComments")) return comment;
+  if (comment.userId !== userId) await requireCan(ctx, "kb.moderateComments");
+  if (!await readPublicKbArticle(ctx, comment.articleId)) throw new ConvexError({ code: "NOT_FOUND", message: "Comment not found" });
+  return comment;
+}
 
 import { v } from "convex/values";
 // ─── List By Article (Public, threaded) ─────────────────────────────────────
@@ -69,6 +92,7 @@ export const listByArticle = query({
   })),
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "knowledgeBase"))) return [];
+    if (!await readPublicKbArticle(ctx, args.articleId)) return [];
     const comments = await ctx.db
       .query("kb_comments")
       .withIndex("by_article", (q) => q.eq("articleId", args.articleId))
@@ -113,10 +137,8 @@ export const create = mutation({
       throw new ConvexError({ code: "UNAUTHORIZED", message: "Authentication required" });
     }
 
-    const article = await ctx.db.get("kb_articles", args.articleId);
-    if (!article) {
-      throw new ConvexError({ code: "NOT_FOUND", message: "Article not found" });
-    }
+    // A hidden (internal, unpublished or restricted) article is "not found".
+    const article = await requirePublicKbArticle(ctx, args.articleId);
 
     const content = args.content.trim();
     if (!content) {
@@ -174,15 +196,8 @@ export const update = mutation({
       throw new ConvexError({ code: "UNAUTHORIZED", message: "Authentication required" });
     }
 
-    const comment = await ctx.db.get("kb_comments", args.commentId);
-    if (!comment) {
-      throw new ConvexError({ code: "NOT_FOUND", message: "Comment not found" });
-    }
-
     // Only owner or moderator can edit
-    if (comment.userId !== user._id) {
-      await requireCan(ctx, "kb.moderateComments");
-    }
+    await requireCommentChange(ctx, args.commentId, user._id);
 
     const content = args.content.trim();
     if (!content) {
@@ -211,15 +226,8 @@ export const deleteComment = mutation({
       throw new ConvexError({ code: "UNAUTHORIZED", message: "Authentication required" });
     }
 
-    const comment = await ctx.db.get("kb_comments", args.commentId);
-    if (!comment) {
-      throw new ConvexError({ code: "NOT_FOUND", message: "Comment not found" });
-    }
-
     // Only owner or moderator can delete
-    if (comment.userId !== user._id) {
-      await requireCan(ctx, "kb.moderateComments");
-    }
+    await requireCommentChange(ctx, args.commentId, user._id);
 
     await ctx.db.patch("kb_comments", args.commentId, {
       isDeleted: true,
@@ -243,7 +251,7 @@ export const vote: RegisteredMutation<"public", { commentId: Id<"kb_comments">; 
       throw new ConvexError({ code: "UNAUTHORIZED", message: "Authentication required" });
     }
 
-    const comment = await ctx.db.get("kb_comments", args.commentId);
+    const comment = await visibleComment(ctx, args.commentId);
     if (!comment) {
       throw new ConvexError({ code: "NOT_FOUND", message: "Comment not found" });
     }
@@ -331,6 +339,8 @@ export const removeVote: RegisteredMutation<"public", { commentId: Id<"kb_commen
     if (!existingVote) return null;
 
     const comment = await ctx.db.get("kb_comments", args.commentId);
+    // A vote on a hidden article's comment is reported as absent.
+    if (comment && !await readPublicKbArticle(ctx, comment.articleId)) return null;
     if (comment) {
       if (existingVote.voteType === "up") {
         await ctx.db.patch("kb_comments", args.commentId, {
@@ -355,6 +365,8 @@ export const getCount = query({
   returns: v.union(v.null(), v.number()),
   handler: async (ctx, args) => {
     if (!(await isPluginEnabled(ctx, "knowledgeBase"))) return null;
+    // A hidden article reports the same count as an article with no comments.
+    if (!await readPublicKbArticle(ctx, args.articleId)) return 0;
     const comments = await ctx.db
       .query("kb_comments")
       .withIndex("by_article", (q) => q.eq("articleId", args.articleId))

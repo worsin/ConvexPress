@@ -7,6 +7,9 @@ import type { Doc, Id } from "../_generated/dataModel";
  *   getProgress    - Get reading progress for an article (auth required)
  *   trackProgress  - Update reading progress (auth required)
  *   getUserHistory - Get recent reading history (auth required)
+ *
+ * Progress on articles that are now hidden (internal, unpublished or
+ * restricted) stays stored but is invisible until the article is public again.
  */
 
 import { ConvexError } from "convex/values";
@@ -14,6 +17,7 @@ import { mutation, query } from "../_generated/server";
 import { getCurrentUser } from "../helpers/permissions";
 import { getProgressArgs, trackProgressArgs } from "./validators";
 import { isPluginEnabled, requirePluginEnabled } from "../helpers/plugins";
+import { createPublicKbAccess, readPublicKbArticle, requirePublicKbArticle } from "./publicAccess";
 
 import { v } from "convex/values";
 import { kbDocs } from "../schema/kb.docs.generated";
@@ -26,6 +30,7 @@ export const getProgress: RegisteredQuery<"public", { articleId: Id<"kb_articles
     if (!(await isPluginEnabled(ctx, "knowledgeBase"))) return null;
     const user = await getCurrentUser(ctx);
     if (!user) return null;
+    if (!await readPublicKbArticle(ctx, args.articleId)) return null;
 
     return ctx.db
       .query("kb_userProgress")
@@ -57,6 +62,8 @@ export const trackProgress: RegisteredMutation<"public", { articleId: Id<"kb_art
     if (args.readTime < 0) {
       throw new ConvexError({ code: "VALIDATION_ERROR", message: "Read time must be non-negative" });
     }
+    // A hidden (internal, unpublished or restricted) article is "not found".
+    await requirePublicKbArticle(ctx, args.articleId);
 
     const existing = await ctx.db
       .query("kb_userProgress")
@@ -132,21 +139,23 @@ export const getUserHistory = query({
       .order("desc")
       .take(20);
 
-    return Promise.all(
-      progress.map(async (p) => {
-        const article = await ctx.db.get("kb_articles", p.articleId);
-        return {
-          ...p,
-          article: article
-            ? {
-                _id: article._id,
-                title: article.title,
-                slug: article.slug,
-                categoryId: article.categoryId,
-              }
-            : null,
-        };
-      }),
-    );
+    const access = createPublicKbAccess(ctx);
+    const visible: Array<Doc<"kb_userProgress"> & { article: Pick<Doc<"kb_articles">, "_id" | "title" | "slug" | "categoryId"> | null }> = [];
+    for (const p of progress) {
+      const article = await ctx.db.get("kb_articles", p.articleId);
+      if (article && !await access.article(article)) continue;
+      visible.push({
+        ...p,
+        article: article
+          ? {
+              _id: article._id,
+              title: article.title,
+              slug: article.slug,
+              categoryId: article.categoryId,
+            }
+          : null,
+      });
+    }
+    return visible;
   },
 });

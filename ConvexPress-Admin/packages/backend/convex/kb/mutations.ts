@@ -49,6 +49,9 @@ import {
   MAX_KEYWORDS,
 } from "./validators";
 import { requirePluginEnabled } from "../helpers/plugins";
+import { isInternalKbArticle, kbArticleVisibility, storedKbAudiences, storedKbVisibility } from "./helpers/visibility";
+import { applyKbPublicCounts } from "./helpers/publicCounts";
+import { withdrawInternalKbArticle } from "./visibilityTransitions";
 
 import { v } from "convex/values";
 // ─── Create ─────────────────────────────────────────────────────────────────
@@ -89,6 +92,7 @@ export const create = mutation({
     if (args.content && args.content.length > MAX_KB_CONTENT_LENGTH) {
       throw new ConvexError({ code: "VALIDATION_ERROR", message: "Content exceeds maximum length" });
     }
+    const audiences = args.audiences === undefined ? undefined : storedKbAudiences(args.audiences);
 
     const slug = await generateArticleSlug(ctx, title || "untitled");
     let content = args.content ?? "";
@@ -146,6 +150,8 @@ export const create = mutation({
       lastMajorUpdate: undefined,
       isFeatured: false,
       sortOrder: 0,
+      visibility: storedKbVisibility(args.visibility ?? "public"),
+      audiences,
       meilisearchSynced: false,
       meilisearchSyncedAt: undefined,
       ragSynced: false,
@@ -227,30 +233,20 @@ export const update = mutation({
     if (args.categoryId !== undefined) {
       await requireAssignableCategory(ctx, args.categoryId);
       updates.categoryId = args.categoryId;
-      // Update category article counts if category changed and article is published
-      if (article.status === "published" && args.categoryId !== article.categoryId) {
-        const now = Date.now();
-        // Decrement old category count
-        if (article.categoryId) {
-          const oldCategory = await ctx.db.get("kb_categories", article.categoryId);
-          if (oldCategory && oldCategory.articleCount > 0) {
-            await ctx.db.patch("kb_categories", article.categoryId, {
-              articleCount: oldCategory.articleCount - 1,
-              updatedAt: now,
-            });
-          }
-        }
-        // Increment new category count
-        if (args.categoryId) {
-          const newCategory = await ctx.db.get("kb_categories", args.categoryId);
-          if (newCategory) {
-            await ctx.db.patch("kb_categories", args.categoryId, {
-              articleCount: newCategory.articleCount + 1,
-              updatedAt: now,
-            });
-          }
-        }
-      }
+    }
+
+    const wasInternal = isInternalKbArticle(article);
+    const visibility = args.visibility ?? kbArticleVisibility(article);
+    if (args.visibility !== undefined) updates.visibility = storedKbVisibility(args.visibility);
+    if (args.audiences !== undefined) updates.audiences = storedKbAudiences(args.audiences);
+    // Making a published or scheduled internal article public publishes it to
+    // the website, which needs publishing authority, not just edit rights.
+    if (wasInternal && visibility === "public" && (article.status === "published" || article.scheduledAt !== undefined)) {
+      await requireCan(ctx, "kb.publish");
+    }
+    if (wasInternal !== (visibility === "internal")) {
+      updates.meilisearchSynced = false;
+      updates.ragSynced = false;
     }
     if (args.parentArticleId !== undefined) updates.parentArticleId = args.parentArticleId;
     if (args.metaTitle !== undefined) updates.metaTitle = args.metaTitle;
@@ -274,6 +270,14 @@ export const update = mutation({
     }
 
     await patchWithMediaReferences<"kb_articles">(ctx, "kb_articles", args.articleId, updates);
+    await applyKbPublicCounts(ctx, args.articleId, article, {
+      status: article.status, visibility: storedKbVisibility(visibility), categoryId: args.categoryId ?? article.categoryId,
+    });
+    if (!wasInternal && visibility === "internal") {
+      const identity = await ctx.auth.getUserIdentity();
+      if (!identity) throw new ConvexError({ code: "UNAUTHORIZED", message: "Authentication required" });
+      await withdrawInternalKbArticle(ctx, article, { subject: identity.subject, issuer: identity.issuer, tokenIdentifier: identity.tokenIdentifier });
+    }
 
     await emitEvent(ctx, KB_EVENTS.ARTICLE_UPDATED, SYSTEM.KB, {
       articleId: args.articleId,
@@ -333,17 +337,9 @@ export const publish = mutation({
 
     await patchWithMediaReferences<"kb_articles">(ctx, "kb_articles", args.articleId, updates);
 
-    // Update category article count only when publishing immediately (not scheduling for future)
+    // Public counts change only when publishing immediately (not scheduling for future)
     if (!args.scheduledAt || args.scheduledAt <= now) {
-      if (article.categoryId) {
-        const category = await ctx.db.get("kb_categories", article.categoryId);
-        if (category) {
-          await ctx.db.patch("kb_categories", article.categoryId, {
-            articleCount: category.articleCount + 1,
-            updatedAt: now,
-          });
-        }
-      }
+      await applyKbPublicCounts(ctx, args.articleId, article, { ...article, status: "published" });
     }
 
     if (updates.status === "draft") {
@@ -387,16 +383,7 @@ export const unpublish = mutation({
       ragSynced: false,
     });
 
-    // Decrement category article count
-    if (article.categoryId) {
-      const category = await ctx.db.get("kb_categories", article.categoryId);
-      if (category && category.articleCount > 0) {
-        await ctx.db.patch("kb_categories", article.categoryId, {
-          articleCount: category.articleCount - 1,
-          updatedAt: now,
-        });
-      }
-    }
+    await applyKbPublicCounts(ctx, args.articleId, article, { ...article, status: "draft" });
 
     await emitEvent(ctx, KB_EVENTS.ARTICLE_UNPUBLISHED, SYSTEM.KB, {
       articleId: args.articleId,
@@ -421,7 +408,6 @@ export const archive = mutation({
       throw new ConvexError({ code: "NOT_FOUND", message: "Article not found" });
     }
 
-    const wasPublished = article.status === "published";
     const now = Date.now();
 
     await patchWithMediaReferences<"kb_articles">(ctx, "kb_articles", args.articleId, {
@@ -431,16 +417,7 @@ export const archive = mutation({
       ragSynced: false,
     });
 
-    // Decrement category count if was published
-    if (wasPublished && article.categoryId) {
-      const category = await ctx.db.get("kb_categories", article.categoryId);
-      if (category && category.articleCount > 0) {
-        await ctx.db.patch("kb_categories", article.categoryId, {
-          articleCount: category.articleCount - 1,
-          updatedAt: now,
-        });
-      }
-    }
+    await applyKbPublicCounts(ctx, args.articleId, article, { ...article, status: "archived" });
 
     await emitEvent(ctx, KB_EVENTS.ARTICLE_ARCHIVED, SYSTEM.KB, {
       articleId: args.articleId,
@@ -465,6 +442,9 @@ export const remove = mutation({
     if (!article) {
       throw new ConvexError({ code: "NOT_FOUND", message: "Article not found" });
     }
+
+    // Public counts read the tag and collection links, so settle them first.
+    await applyKbPublicCounts(ctx, args.articleId, article, null);
 
     // Delete all related data
     const articleTags = await ctx.db
@@ -563,17 +543,6 @@ export const remove = mutation({
       .take(1000);
     for (const aw of articleWorkflows) {
       await ctx.db.delete("kb_articleWorkflows", aw._id);
-    }
-
-    // Decrement category article count if was published
-    if (article.status === "published" && article.categoryId) {
-      const category = await ctx.db.get("kb_categories", article.categoryId);
-      if (category && category.articleCount > 0) {
-        await ctx.db.patch("kb_categories", article.categoryId, {
-          articleCount: category.articleCount - 1,
-          updatedAt: Date.now(),
-        });
-      }
     }
 
     await deleteWithMediaReferences<"kb_articles">(ctx, "kb_articles", args.articleId);

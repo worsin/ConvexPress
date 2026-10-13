@@ -1,8 +1,14 @@
+import { ConvexError } from "convex/values";
 import type { Doc, Id } from "../_generated/dataModel";
 import type { QueryCtx } from "../_generated/server";
 import { isPluginEnabled } from "../helpers/plugins";
-import { RequestReadLedger } from "../helpers/requestReadLedger";
+import { CANONICAL_READ_LIMITS, RequestReadLedger, type RequestReadLimits } from "../helpers/requestReadLedger";
 import { createMembershipAccessEvaluator } from "../membership/access";
+import { isInternalKbArticle } from "./helpers/visibility";
+
+/** Read limits for public endpoints that gate up to 500 articles in one query
+ * (one category-guard read per article; route policy is read once). */
+export const PUBLIC_KB_LIST_READS: Readonly<RequestReadLimits> = Object.freeze({ ...CANONICAL_READ_LIMITS, queries: 1200, documents: 4096 });
 
 /** Query-local policy and category cache. Never reuse across viewers or writes. */
 export function createPublicKbAccess(ctx: QueryCtx, budget = new RequestReadLedger()) {
@@ -28,7 +34,10 @@ export function createPublicKbAccess(ctx: QueryCtx, budget = new RequestReadLedg
     available,
     allowedRoute,
     category,
+    /** The single public gate for one article. Internal articles never pass,
+     * whatever their status, category or membership policy. */
     async article(article: Doc<"kb_articles">) {
+      if (isInternalKbArticle(article)) return null;
       if (article.status !== "published" || !await available()) return null;
       let guards = retainedGuards.get(article._id);
       if (!guards) {
@@ -54,4 +63,22 @@ export function createPublicKbAccess(ctx: QueryCtx, budget = new RequestReadLedg
       return { category: group, href };
     },
   };
+}
+
+/**
+ * Public interaction endpoints (comments, feedback, page views, bookmarks,
+ * reading progress) accept an article ID. A hidden article (internal,
+ * unpublished, in an unpublished category, or restricted by policy) must be
+ * indistinguishable from a missing one.
+ */
+export async function readPublicKbArticle(ctx: QueryCtx, articleId: Id<"kb_articles">): Promise<Doc<"kb_articles"> | null> {
+  const article = await ctx.db.get("kb_articles", articleId);
+  if (!article || !await createPublicKbAccess(ctx).article(article)) return null;
+  return article;
+}
+
+export async function requirePublicKbArticle(ctx: QueryCtx, articleId: Id<"kb_articles">): Promise<Doc<"kb_articles">> {
+  const article = await readPublicKbArticle(ctx, articleId);
+  if (!article) throw new ConvexError({ code: "NOT_FOUND", message: "Article not found" });
+  return article;
 }

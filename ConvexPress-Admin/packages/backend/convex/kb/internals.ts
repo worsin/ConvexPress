@@ -22,6 +22,8 @@ import { v, ConvexError } from "convex/values";
 import { emitEvent } from "../helpers/events";
 import { KB_EVENTS, SYSTEM } from "../events/constants";
 import { isPluginEnabled, requirePluginEnabled } from "../helpers/plugins";
+import { applyKbPublicCounts } from "./helpers/publicCounts";
+import { isInternalKbArticle } from "./helpers/visibility";
 
 import { kbDocs } from "../schema/kb.docs.generated";
 // ─── Publish Scheduled ──────────────────────────────────────────────────────
@@ -46,16 +48,7 @@ export const publishScheduled = internalMutation({
       ragSynced: false,
     });
 
-    // Update category article count
-    if (article.categoryId) {
-      const category = await ctx.db.get("kb_categories", article.categoryId);
-      if (category) {
-        await ctx.db.patch("kb_categories", article.categoryId, {
-          articleCount: category.articleCount + 1,
-          updatedAt: now,
-        });
-      }
-    }
+    await applyKbPublicCounts(ctx, articleId, article, { ...article, status: "published" });
 
     await emitEvent(ctx, KB_EVENTS.ARTICLE_PUBLISHED, SYSTEM.KB, {
       articleId,
@@ -99,15 +92,7 @@ export const publishScheduledBatch: RegisteredMutation<"internal", Record<string
         ragSynced: false,
       });
 
-      if (article.categoryId) {
-        const category = await ctx.db.get("kb_categories", article.categoryId);
-        if (category) {
-          await ctx.db.patch("kb_categories", article.categoryId, {
-            articleCount: category.articleCount + 1,
-            updatedAt: now,
-          });
-        }
-      }
+      await applyKbPublicCounts(ctx, article._id, article, { ...article, status: "published" });
 
       await emitEvent(ctx, KB_EVENTS.ARTICLE_PUBLISHED, SYSTEM.KB, {
         articleId: article._id,
@@ -246,6 +231,11 @@ export const insertRagChunk = internalMutation({
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "knowledgeBase");
     await requireCan(ctx, "manage_options");
+    // Checked in the inserting transaction: an article that became internal
+    // during ingestion can never gain a chunk after its purge.
+    const article = await ctx.db.get("kb_articles", args.articleId);
+    if (!article) throw new ConvexError({ code: "NOT_FOUND", message: "Article not found" });
+    if (isInternalKbArticle(article)) throw new ConvexError({ code: "KB_ARTICLE_INTERNAL", message: "Internal articles are never added to RAG search." });
     return ctx.db.insert("kb_ragChunks", {
       articleId: args.articleId,
       articleSlug: args.articleSlug,

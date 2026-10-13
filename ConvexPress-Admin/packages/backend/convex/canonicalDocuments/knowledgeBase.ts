@@ -1,6 +1,7 @@
 import type { QueryCtx } from "../_generated/server";
 import { RequestReadLedger } from "../helpers/requestReadLedger";
 import { createPublicKbAccess } from "../kb/publicAccess";
+import { PUBLIC_VISIBILITY_KEY } from "../kb/helpers/visibility";
 import { knowledgeSearchArgsSchema, knowledgeSearchResultSchema, type KnowledgeSearchResult } from "./foundation/knowledgeBaseContracts";
 
 /** A small public reading list, ordered by views. Article bodies never enter the DTO. */
@@ -14,8 +15,8 @@ export async function readKnowledgeSearch(ctx:QueryCtx, rawArgs:unknown, budget=
   if(categoryId&&(!category?.isPublished||!await access.allowedRoute(`/help/${encodeURIComponent(category.slug)}`)))return unavailable;
   budget.beforeRead();
   const candidates=await (categoryId
-    ? ctx.db.query("kb_articles").withIndex("by_category_status_views",q=>q.eq("categoryId",categoryId).eq("status","published"))
-    : ctx.db.query("kb_articles").withIndex("by_status_views",q=>q.eq("status","published")))
+    ? ctx.db.query("kb_articles").withIndex("by_visibility_category_status_views",q=>q.eq("visibility",PUBLIC_VISIBILITY_KEY).eq("categoryId",categoryId).eq("status","published"))
+    : ctx.db.query("kb_articles").withIndex("by_visibility_status_views",q=>q.eq("visibility",PUBLIC_VISIBILITY_KEY).eq("status","published")))
     .order("desc").take(24);
   candidates.forEach(article=>budget.record(article));
   const articles=[];

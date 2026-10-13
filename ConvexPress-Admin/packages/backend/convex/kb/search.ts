@@ -12,6 +12,7 @@ import { searchArticlesArgs } from "./validators";
 import { v, ConvexError } from "convex/values";
 import { createPublicKbAccess } from "./publicAccess";
 import { RequestReadLedger } from "../helpers/requestReadLedger";
+import { PUBLIC_VISIBILITY_KEY } from "./helpers/visibility";
 
 const searchResult = v.object({
   _id: v.id("kb_articles"), title: v.string(), slug: v.string(), excerpt: v.string(),
@@ -41,7 +42,8 @@ export const search: import("convex/server").RegisteredQuery<"public", { query: 
       .query("kb_articles")
       .withSearchIndex("search_articles", (q) => {
         let sq = q.search("contentPlainText", args.query.trim());
-        sq = sq.eq("status", "published");
+        // Internal articles are excluded by the search index, not the result page.
+        sq = sq.eq("status", "published").eq("visibility", PUBLIC_VISIBILITY_KEY);
         if (args.categoryId) {
           sq = sq.eq("categoryId", args.categoryId);
         }
@@ -102,7 +104,7 @@ export const searchPage:RegisteredQuery<"public",{query:string;categorySlug?:str
    if(!category?.isPublished||!await access.allowedRoute(`/help/${encodeURIComponent(categorySlug)}`))return empty;
    categoryId=category._id;
   }
-  budget.beforeRead();const result=await ctx.db.query("kb_articles").withSearchIndex("search_articles",q=>{const search=q.search("contentPlainText",query).eq("status","published");return categoryId?search.eq("categoryId",categoryId):search;}).paginate({numItems:Math.min(20,args.paginationOpts.numItems),cursor,maximumRowsRead:20,maximumBytesRead:512*1024});
+  budget.beforeRead();const result=await ctx.db.query("kb_articles").withSearchIndex("search_articles",q=>{const search=q.search("contentPlainText",query).eq("status","published").eq("visibility",PUBLIC_VISIBILITY_KEY);return categoryId?search.eq("categoryId",categoryId):search;}).paginate({numItems:Math.min(20,args.paginationOpts.numItems),cursor,maximumRowsRead:20,maximumBytesRead:512*1024});
   const page:SearchItem[]=[];
   for(const article of result.page){budget.record(article);const visible=await access.article(article);if(!visible)continue;
    page.push({_id:article._id,title:article.title,slug:article.slug,excerpt:article.excerpt,categoryId:article.categoryId,categoryName:visible.category?.name??null,categorySlug:visible.category?.slug??null,viewCount:article.viewCount,readingTimeMinutes:article.readingTimeMinutes,publishedAt:article.publishedAt});

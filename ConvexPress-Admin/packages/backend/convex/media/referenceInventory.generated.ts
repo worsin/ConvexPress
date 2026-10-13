@@ -296,6 +296,7 @@ export const opaqueMediaReferences = {
     "title"
   ],
   "kb_articles": [
+    "audiences",
     "content",
     "contentPlainText",
     "excerpt",

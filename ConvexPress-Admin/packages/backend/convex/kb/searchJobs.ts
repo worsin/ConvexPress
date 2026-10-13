@@ -9,6 +9,7 @@ import { patchWithMediaReferences } from "../media/attachmentGuard";
 import { getMeilisearchIndex } from "./searchSecurity";
 import { loadSearchArticle } from "./internals";
 import { meilisearchConfigFingerprint, meilisearchDocument, searchDocumentFingerprint } from "./searchDocument";
+import { isInternalKbArticle } from "./helpers/visibility";
 
 type Job = Doc<"kb_search_jobs">;
 export type JobArgs = { jobId: Id<"kb_search_jobs">; generation: number };
@@ -29,7 +30,10 @@ async function schedule(ctx: MutationCtx, job: Pick<Job, "_id" | "generation">, 
 }
 async function authorize(ctx: MutationCtx, job: Job) {
   await requirePluginEnabled(ctx, "knowledgeBase");
-  await requireCan({ ...ctx, auth: { getUserIdentity: async () => job.actor } }, "manage_options");
+  // A visibility removal only deletes the document of an article that is no
+  // longer public. The article edit that made it internal authorized it, so it
+  // must not wait for provider authority while internal content stays indexed.
+  if (!isVisibilityRemoval(job)) await requireCan({ ...ctx, auth: { getUserIdentity: async () => job.actor } }, "manage_options");
   const settings = await ctx.db.query("settings").withIndex("by_section", q => q.eq("section", "kb.search")).unique();
   if (getUrl(settings?.values) !== job.providerUrl || meilisearchConfigFingerprint(settings?.values ?? null) !== job.configFingerprint || await getMeilisearchIndex(ctx) !== job.indexName) throw new ConvexError({ code: "SEARCH_CONFIGURATION_CHANGED", message: "The search provider configuration changed." });
   return settings!;
@@ -41,6 +45,49 @@ function getUrl(settings: Record<string, unknown> | undefined): string {
   if (!["https:", "http:"].includes(url.protocol) || url.username || url.password || url.search || url.hash) throw new ConvexError({ code: "CONFIGURATION_ERROR", message: "Invalid Meilisearch URL." });
   return url.toString();
 }
+function isVisibilityRemoval(job: Job): boolean {
+  return job.reason === "visibility" && job.operation === "remove";
+}
+async function insertJob(ctx: MutationCtx, articleId: Id<"kb_articles">, operation: Job["operation"], actor: Job["actor"], settings: Doc<"settings">, providerUrl: string, indexName: string, reason?: "visibility") {
+  const now = Date.now();
+  const values = { articleId, operation, actor, generation: 1, lease: 0, leaseUntil: 0, nextRunAt: now, status: "running" as const, phase: "settings" as const, receiptVersion: 1 as const, indexName, configFingerprint: meilisearchConfigFingerprint(settings.values), providerUrl, createdAt: now, updatedAt: now, ...(reason ? { reason } : {}) };
+  const jobId = await ctx.db.insert("kb_search_jobs", values);
+  await schedule(ctx, { _id: jobId, generation: values.generation });
+  return jobId;
+}
+
+/**
+ * Remove an article that became internal from the external index. Callers:
+ * the article update that makes it internal, and a sync job that finds its
+ * article internal. It is a no-op when the article was never sent, a removal
+ * is already running or done, a sync is still running or held as uncertain
+ * (that job refuses or reconciles the internal article and calls back here),
+ * or no provider is configured to reach.
+ */
+export async function enqueueVisibilityRemoval(ctx: MutationCtx, article: Pick<Doc<"kb_articles">, "_id" | "meilisearchSyncedAt">, actor: Job["actor"]): Promise<void> {
+  const latest = await ctx.db.query("kb_search_jobs").withIndex("by_article", q => q.eq("articleId", article._id)).order("desc").first();
+  if (!latest && article.meilisearchSyncedAt === undefined) return;
+  if (latest && ["running", "uncertain"].includes(latest.status)) return;
+  if (latest?.operation === "remove" && latest.status === "complete") return;
+  if (latest?.operation === "remove" && latest.status === "paused") {
+    // Resume a held removal under the same visibility authority.
+    await ctx.db.patch("kb_search_jobs", latest._id, { reason: "visibility", status: "running", message: undefined, leaseUntil: 0, updatedAt: Date.now() });
+    await schedule(ctx, latest); return;
+  }
+  if (latest?.operation === "sync" && latest.status === "paused") {
+    // Retire it so it can never send the article. Any document it already
+    // wrote precedes the removal below in the provider's task queue.
+    await ctx.db.patch("kb_search_jobs", latest._id, { status: "stale", message: "Superseded: the article became internal and is being removed instead.", updatedAt: Date.now() });
+  }
+  const settings = await ctx.db.query("settings").withIndex("by_section", q => q.eq("section", "kb.search")).unique();
+  if (!settings) return;
+  let providerUrl: string, indexName: string;
+  try { providerUrl = getUrl(settings.values); indexName = await getMeilisearchIndex(ctx); }
+  catch { return; }
+  await patchWithMediaReferences<"kb_articles">(ctx, "kb_articles", article._id, { meilisearchSynced: false, meilisearchSyncedAt: undefined });
+  await insertJob(ctx, article._id, "remove", actor, settings, providerUrl, indexName, "visibility");
+}
+
 async function currentLease(ctx: MutationCtx, args: LeaseArgs) {
   const job = await ctx.db.get("kb_search_jobs", args.jobId);
   return job?.generation === args.generation && job.lease === args.lease && job.status === "running" ? job : null;
@@ -50,21 +97,21 @@ export const begin: RegisteredMutation<"internal", { articleId: Id<"kb_articles"
   args: { articleId: v.id("kb_articles"), operation: kbTables.kb_search_jobs.validator.fields.operation }, returns: searchJobStatusValidator,
   handler: async (ctx, args) => {
     await requirePluginEnabled(ctx, "knowledgeBase"); await requireCan(ctx, "manage_options");
+    const article = await ctx.db.get("kb_articles", args.articleId);
+    if (!article && args.operation === "sync") throw new ConvexError({ code: "NOT_FOUND", message: "Article not found." });
+    // An internal article is never sent: syncing it means making the index
+    // match it, which is removing any earlier copy.
+    const operation = article && isInternalKbArticle(article) ? "remove" : args.operation;
     const existing = await ctx.db.query("kb_search_jobs").withIndex("by_article", q => q.eq("articleId", args.articleId)).order("desc").first();
     if (existing && ["running", "paused", "uncertain"].includes(existing.status)) {
-      if (existing.operation !== args.operation) throw new ConvexError({ code: "SEARCH_JOB_BUSY", message: "Resolve the existing indexing job before starting a different operation." });
+      if (existing.operation !== operation) throw new ConvexError({ code: "SEARCH_JOB_BUSY", message: "Resolve the existing indexing job before starting a different operation." });
       return publicStatus(existing);
     }
     const identity = await ctx.auth.getUserIdentity(); if (!identity) throw new ConvexError({ code: "UNAUTHORIZED", message: "Authentication required." });
     const settings = await ctx.db.query("settings").withIndex("by_section", q => q.eq("section", "kb.search")).unique();
     const providerUrl = getUrl(settings?.values), indexName = await getMeilisearchIndex(ctx);
-    const article = await ctx.db.get("kb_articles", args.articleId);
-    if (!article && args.operation === "sync") throw new ConvexError({ code: "NOT_FOUND", message: "Article not found." });
     if (article) await patchWithMediaReferences<"kb_articles">(ctx, "kb_articles", article._id, { meilisearchSynced: false, meilisearchSyncedAt: undefined });
-    const now = Date.now();
-    const values = { articleId: args.articleId, operation: args.operation, actor: { subject: identity.subject, issuer: identity.issuer, tokenIdentifier: identity.tokenIdentifier }, generation: 1, lease: 0, leaseUntil: 0, nextRunAt: now, status: "running" as const, phase: "settings" as const, receiptVersion: 1 as const, indexName, configFingerprint: meilisearchConfigFingerprint(settings!.values), providerUrl, createdAt: now, updatedAt: now };
-    const jobId = await ctx.db.insert("kb_search_jobs", values);
-    await schedule(ctx, { _id: jobId, generation: values.generation });
+    const jobId = await insertJob(ctx, args.articleId, operation, { subject: identity.subject, issuer: identity.issuer, tokenIdentifier: identity.tokenIdentifier }, settings!, providerUrl, indexName);
     return publicStatus((await ctx.db.get("kb_search_jobs", jobId))!);
   },
 });
@@ -137,6 +184,12 @@ export const claim: RegisteredMutation<"internal", JobArgs, (Job & { encryptedKe
     catch { await ctx.db.patch("kb_search_jobs", job._id, { status: "paused", message: "Indexing paused. Restore the provider configuration and continue with an active authorized session.", leaseUntil: 0, updatedAt: now }); return null; }
     let document = job.document, fingerprint = job.fingerprint;
     if (job.phase === "document" && job.operation === "sync") {
+      const current = await ctx.db.get("kb_articles", job.articleId);
+      if (current && isInternalKbArticle(current)) {
+        await ctx.db.patch("kb_search_jobs", job._id, { status: "failed", leaseUntil: 0, message: "This article is internal, so it was not sent to external search. Any earlier copy is being removed.", updatedAt: now });
+        await enqueueVisibilityRemoval(ctx, current, job.actor);
+        return null;
+      }
       try {
         const article = await loadSearchArticle(ctx, job.articleId);
         if (!article) throw new Error("Article removed");
@@ -171,6 +224,14 @@ export const acknowledge: RegisteredMutation<"internal", LeaseArgs & { taskUid: 
   },
 });
 
+/** The provider accepted a document for an article that has since become
+ * internal. Never mark it synced; remove the accepted copy. */
+async function internalAfterSync(ctx: MutationCtx, job: Job, article: Doc<"kb_articles">, extra: Partial<Pick<Job, "reconciledBy" | "reconciliationEvidence" | "reconciliationCursor">> = {}): Promise<null> {
+  await ctx.db.patch("kb_search_jobs", job._id, { ...extra, status: "stale", leaseUntil: 0, message: "The article became internal while it was being indexed. Its document is being removed.", updatedAt: Date.now() });
+  await enqueueVisibilityRemoval(ctx, article, job.actor);
+  return null;
+}
+
 type Result = "ready" | "pending" | "succeeded" | "failed" | "uncertain";
 export const record: RegisteredMutation<"internal", LeaseArgs & { result: Result }, null> = internalMutation({
   args: { ...leaseArgs, result: v.union(v.literal("ready"), v.literal("pending"), v.literal("succeeded"), v.literal("failed"), v.literal("uncertain")) }, returns: v.null(),
@@ -188,7 +249,10 @@ export const record: RegisteredMutation<"internal", LeaseArgs & { result: Result
     if (args.result === "succeeded" && (job.phase === "documentPoll" || (job.operation === "remove" && job.phase === "documentSubmitting"))) {
       let matches = true;
       if (job.operation === "sync") {
-        const article = await loadSearchArticle(ctx, job.articleId); matches = !!article && searchDocumentFingerprint(article) === job.fingerprint;
+        const current = await ctx.db.get("kb_articles", job.articleId);
+        if (current && isInternalKbArticle(current)) return internalAfterSync(ctx, job, current);
+        const article = await loadSearchArticle(ctx, job.articleId);
+        matches = !!article && searchDocumentFingerprint(article) === job.fingerprint;
         if (matches) await patchWithMediaReferences<"kb_articles">(ctx, "kb_articles", job.articleId, { meilisearchSynced: true, meilisearchSyncedAt: Date.now() });
       }
       await ctx.db.patch("kb_search_jobs", job._id, { status: matches ? "complete" : "stale", leaseUntil: 0, message: matches ? undefined : "The article changed while indexing. Start a new sync for its current version.", updatedAt: Date.now() });
@@ -240,6 +304,8 @@ export const finishReconciliation: RegisteredMutation<"internal", Reconciliation
     }
     if (args.documentObserved === true) {
       if (job.operation !== "sync" || job.phase !== "documentSubmitting") throw new Error("Invalid document receipt");
+      const current = await ctx.db.get("kb_articles", job.articleId);
+      if (current && isInternalKbArticle(current)) return internalAfterSync(ctx, job, current, { reconciledBy: "document", reconciliationEvidence: [...evidence, { phase: "document", kind: "document", verifiedAt: Date.now() }], reconciliationCursor: undefined });
       const article = await loadSearchArticle(ctx, job.articleId);
       const matches = !!article && searchDocumentFingerprint(article) === job.fingerprint;
       if (matches) await patchWithMediaReferences<"kb_articles">(ctx, "kb_articles", job.articleId, { meilisearchSynced: true, meilisearchSyncedAt: Date.now() });

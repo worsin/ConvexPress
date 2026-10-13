@@ -4,13 +4,18 @@ import type { Doc, Id } from "../_generated/dataModel";
  * Knowledge Base System - Tag Functions
  *
  * CRUD and article tagging operations:
- *   list             - All tags (public)
- *   getBySlug        - Single tag by slug (public)
+ *   list             - Tags with public articles (public)
+ *   getBySlug        - Single tag with public articles by slug (public)
+ *   listAdmin        - All tags with usage counts (admin)
  *   create           - Create a new tag
  *   update           - Update an existing tag
  *   remove           - Delete a tag and all article associations
  *   addToArticle     - Tag an article
  *   removeFromArticle - Untag an article
+ *
+ * Public reads only return tags used by at least one published, non-internal
+ * article, and report that count as `articleCount`. A tag used only by
+ * internal or unpublished articles is invisible publicly, name included.
  */
 
 import { ConvexError } from "convex/values";
@@ -26,13 +31,24 @@ import {
   getTagBySlugArgs,
 } from "./validators";
 import { isPluginEnabled, requirePluginEnabled } from "../helpers/plugins";
+import { createPublicKbAccess } from "./publicAccess";
+import { adjustKbTagPublicCount } from "./helpers/publicCounts";
+import { countsAsPublicKbArticle } from "./helpers/visibility";
 
 import { v } from "convex/values";
 import { kbDocs } from "../schema/kb.docs.generated";
-async function requireArticleTagEdit(ctx: MutationCtx, articleId: Id<"kb_articles">, userId: Id<"users">): Promise<void> {
+async function requireArticleTagEdit(ctx: MutationCtx, articleId: Id<"kb_articles">, userId: Id<"users">): Promise<Doc<"kb_articles">> {
   const article = await ctx.db.get("kb_articles", articleId);
   if (!article) throw new ConvexError({ code: "NOT_FOUND", message: "Article not found" });
   await requireCan(ctx, article.authorId === userId ? "kb.editOwn" : "kb.edit");
+  return article;
+}
+
+/** The public shape of a tag, or null when no public article uses it. An
+ * uninitialized public count (before kb/publicCounts:recount) is unknown. */
+function publicTag(tag: Doc<"kb_tags">): Doc<"kb_tags"> | null {
+  const { publicArticleCount, ...rest } = tag;
+  return publicArticleCount ? { ...rest, articleCount: publicArticleCount } : null;
 }
 
 // ─── List (Public) ──────────────────────────────────────────────────────────
@@ -41,7 +57,20 @@ export const list = query({
   args: {},
   returns: v.union(v.null(), v.array(kbDocs.kb_tags)),
   handler: async (ctx) => {
+    if (!await createPublicKbAccess(ctx).available()) return null;
+    const tags = await ctx.db.query("kb_tags").take(500);
+    return tags.flatMap(tag => publicTag(tag) ?? []);
+  },
+});
+
+// ─── List (Admin) ───────────────────────────────────────────────────────────
+
+export const listAdmin: RegisteredQuery<"public", Record<string, never>, Doc<"kb_tags">[] | null> = query({
+  args: {},
+  returns: v.union(v.null(), v.array(kbDocs.kb_tags)),
+  handler: async (ctx) => {
     if (!(await isPluginEnabled(ctx, "knowledgeBase"))) return null;
+    await requireCan(ctx, "kb.view");
     return ctx.db.query("kb_tags").take(500);
   },
 });
@@ -52,11 +81,12 @@ export const getBySlug: RegisteredQuery<"public", { slug: string }, Doc<"kb_tags
   args: getTagBySlugArgs,
   returns: v.union(v.null(), kbDocs.kb_tags),
   handler: async (ctx, args) => {
-    if (!(await isPluginEnabled(ctx, "knowledgeBase"))) return null;
-    return ctx.db
+    if (!await createPublicKbAccess(ctx).available()) return null;
+    const tag = await ctx.db
       .query("kb_tags")
       .withIndex("by_slug", (q) => q.eq("slug", args.slug))
       .first();
+    return tag ? publicTag(tag) : null;
   },
 });
 
@@ -83,6 +113,7 @@ export const create = mutation({
       description: args.description,
       color: args.color,
       articleCount: 0,
+      publicArticleCount: 0,
       createdAt: now,
       updatedAt: now,
     });
@@ -165,7 +196,7 @@ export const addToArticle: RegisteredMutation<"public", { articleId: Id<"kb_arti
     }
 
     // Check for existing association
-    await requireArticleTagEdit(ctx, args.articleId, user._id);
+    const article = await requireArticleTagEdit(ctx, args.articleId, user._id);
 
     const existing = await ctx.db
       .query("kb_articleTags")
@@ -190,6 +221,7 @@ export const addToArticle: RegisteredMutation<"public", { articleId: Id<"kb_arti
         updatedAt: Date.now(),
       });
     }
+    if (countsAsPublicKbArticle(article)) await adjustKbTagPublicCount(ctx, args.tagId, 1);
 
     return linkId;
   },
@@ -207,7 +239,7 @@ export const removeFromArticle: RegisteredMutation<"public", { articleId: Id<"kb
       throw new ConvexError({ code: "UNAUTHORIZED", message: "Authentication required" });
     }
 
-    await requireArticleTagEdit(ctx, args.articleId, user._id);
+    const article = await requireArticleTagEdit(ctx, args.articleId, user._id);
 
     const existing = await ctx.db
       .query("kb_articleTags")
@@ -228,6 +260,7 @@ export const removeFromArticle: RegisteredMutation<"public", { articleId: Id<"kb
         updatedAt: Date.now(),
       });
     }
+    if (countsAsPublicKbArticle(article)) await adjustKbTagPublicCount(ctx, args.tagId, -1);
 
     return existing._id;
   },

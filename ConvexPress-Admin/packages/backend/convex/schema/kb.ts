@@ -25,6 +25,7 @@
 
 import { defineTable } from "convex/server";
 import { v } from "convex/values";
+import { kbArticleVisibilityValidator } from "../kb/helpers/visibility";
 
 // ─── Shared Validators ───────────────────────────────────────────────
 
@@ -81,6 +82,8 @@ export const kbSearchSourceValidator = v.union(
   v.literal("rag"),
 );
 
+export { kbArticleVisibilityValidator };
+
 // ─── Workflow Step Object Validator ─────────────────────────────────
 
 export const kbWorkflowStepValidator = v.object({
@@ -106,6 +109,9 @@ export const kbTables = {
     reconciledBy: v.optional(v.union(v.literal("document"), v.literal("task"))),
     reconciliationEvidence: v.optional(v.array(v.object({ phase: v.union(v.literal("settings"), v.literal("document")), kind: v.union(v.literal("document"), v.literal("task")), taskUid: v.optional(v.number()), verifiedAt: v.number() }))),
     message: v.optional(v.string()), createdAt: v.number(), updatedAt: v.number(),
+    // A removal enqueued because the article became internal. It is authorized
+    // by that article edit, not by provider authority (see kb/searchJobs.ts).
+    reason: v.optional(v.literal("visibility")),
   }).index("by_article", ["articleId"]).index("by_status_due", ["status", "nextRunAt"]),
 
   // ── Core Content ──────────────────────────────────────────────────
@@ -136,6 +142,13 @@ export const kbTables = {
     lastMajorUpdate: v.optional(v.number()),
     isFeatured: v.boolean(),
     sortOrder: v.number(),
+    // Absent means public; internal articles never reach the website. Writers
+    // store "internal" or nothing (kb/helpers/visibility.ts), so public indexes
+    // below lead with visibility and select `undefined`.
+    visibility: v.optional(kbArticleVisibilityValidator),
+    // Site-defined audience labels for integrators; never interpreted or
+    // returned publicly by ConvexPress.
+    audiences: v.optional(v.array(v.string())),
     meilisearchSynced: v.boolean(),
     meilisearchSyncedAt: v.optional(v.number()),
     ragSynced: v.boolean(),
@@ -154,16 +167,19 @@ export const kbTables = {
     .index("by_featured", ["isFeatured"])
     .index("by_views", ["viewCount"])
     .index("by_status_updated", ["status", "updatedAt"])
-    .index("by_status_views", ["status", "viewCount"])
-    .index("by_status_published", ["status", "publishedAt"])
-    .index("by_featured_status_order", ["isFeatured", "status", "sortOrder"])
-    .index("by_category_status_views", ["categoryId", "status", "viewCount"])
+    // Public listings lead with visibility so internal articles are excluded
+    // by the index range itself, never by filtering a page after the read.
+    .index("by_visibility_status_views", ["visibility", "status", "viewCount"])
+    .index("by_visibility_status_published", ["visibility", "status", "publishedAt"])
+    .index("by_visibility_featured_status_order", ["visibility", "isFeatured", "status", "sortOrder"])
+    .index("by_visibility_category_status_views", ["visibility", "categoryId", "status", "viewCount"])
+    .index("by_visibility", ["visibility"])
     .index("by_meilisearch_sync", ["meilisearchSynced"])
     .index("by_rag_sync", ["ragSynced"])
     .searchIndex("search_article_titles", { searchField: "title", filterFields: ["status"] })
     .searchIndex("search_articles", {
       searchField: "contentPlainText",
-      filterFields: ["status", "categoryId", "authorId"],
+      filterFields: ["status", "categoryId", "authorId", "visibility"],
     }),
 
   kb_articleVersions: defineTable({
@@ -188,6 +204,7 @@ export const kbTables = {
     order: v.number(),
     isActive: v.boolean(),
     isPublished: v.boolean(),
+    // Published, non-internal articles in this category (shown publicly).
     articleCount: v.number(),
     createdAt: v.number(),
     updatedAt: v.number(),
@@ -224,7 +241,12 @@ export const kbTables = {
     slug: v.string(),
     description: v.optional(v.string()),
     color: v.optional(v.string()),
+    // Every tagged article, in any status or visibility (admin usage count).
     articleCount: v.number(),
+    // Published, non-internal tagged articles: the only count shown publicly.
+    // Absent on tags created before visibility existed until kb/publicCounts:recount
+    // runs; public reads treat absent as unknown and hide the tag.
+    publicArticleCount: v.optional(v.number()),
     createdAt: v.number(),
     updatedAt: v.number(),
   })
@@ -261,7 +283,12 @@ export const kbTables = {
     coverImageId: v.optional(v.id("media")),
     type: kbCollectionTypeValidator,
     isPublic: v.boolean(),
+    // Every linked article, in any status or visibility (admin count).
     articleCount: v.number(),
+    // Published, non-internal linked articles: the only count shown publicly.
+    // Absent until kb/publicCounts:recount runs on collections created before
+    // visibility existed; public reads report 0 until then.
+    publicArticleCount: v.optional(v.number()),
     createdBy: v.id("users"),
     createdAt: v.number(),
     updatedAt: v.number(),
