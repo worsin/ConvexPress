@@ -5,7 +5,8 @@ import { runReview } from "../review";
 import { runApply, execute, type ApplyTransport } from "../apply";
 import * as applyRecords from "../applyRecords";
 import { hash } from "../policy";
-import { fixture, addReusableTransfer } from "./harness";
+import type { ContentPromotionManifest } from "@convexpress/site-contract/content-promotion";
+import { fixture, addReusableTransfer, canonicalTargetModules, publishMaintenance } from "./harness";
 
 async function applyFixture(configure?: (value: Awaited<ReturnType<typeof fixture>>) => Promise<Partial<ApplyTransport>>) {
   const f = await fixture();
@@ -180,9 +181,9 @@ test("site apply that commits before operator revocation remains recoverable rat
   expect((await runApply(f.context, f.confirmation, f.remote)).status).toBe("applied"); expect(f.writes()).toBe(1);
 });
 
-async function canonicalTargetFixture(withMedia = false) {
+async function canonicalTargetFixture({ withMedia = false, legacySource = false }: { withMedia?: boolean; legacySource?: boolean } = {}) {
   const siteSchema = (await import("../../../../backend/convex/schema")).default;
-  const site = convexTest({ schema: siteSchema, modules: { "./convex/_generated/server.js": () => import("../../../../backend/convex/_generated/server.js"), "./convex/contentPromotion/operations.ts": () => import("../../../../backend/convex/contentPromotion/operations") } });
+  const site = convexTest({ schema: siteSchema, modules: canonicalTargetModules });
   const userId = await site.run(async ctx => {
     const roleId = await ctx.db.insert("roles", { name: "Administrator", slug: "administrator", description: "Fixture", level: 100, type: "internal", status: "active", isDefault: false, isProtected: true, capabilities: ["manage_options", "page.create", "page.update", "page.publish", "page.set_parent", "page.read", "media.read", "media.upload", "media.update"], pageAccess: [], createdAt: 1, updatedAt: 1 });
     const user = await ctx.db.insert("users", { email: "site-operator@example.test", emailVerified: true, status: "active", authSource: "local", roleId, createdAt: 1, updatedAt: 1 });
@@ -192,6 +193,17 @@ async function canonicalTargetFixture(withMedia = false) {
   const authed = site.withIdentity({ subject: userId, issuer: "https://convexpress-admin.local" });
   let uploadedStorageId: string | null = null;
   const f = await applyFixture(async current => {
+    if (legacySource) {
+      // The pre-canonical page shape: a legacy block body and no canonical transport.
+      const sourceExport = current.remote.export;
+      current.remote.export = async (...args) => {
+        const result = await sourceExport(...args) as { manifest: ContentPromotionManifest };
+        const legacy = { ...result.manifest.records[0].data, contentMode: "blocks", blocks: [{ id: "block-one", name: "core/paragraph", version: 1, attrs: { text: "Aster" } }] };
+        delete legacy.blocksVersion; delete legacy.canonical;
+        result.manifest.records[0].data = legacy;
+        return result;
+      };
+    }
     if (withMedia) {
       const bytes = Uint8Array.from(Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aXioAAAAASUVORK5CYII=", "base64"));
       const sha256 = Buffer.from(await crypto.subtle.digest("SHA-256", bytes)).toString("base64");
@@ -216,6 +228,14 @@ async function canonicalTargetFixture(withMedia = false) {
   });
   return { ...f, site, authed, userId, uploadedStorageId };
 }
+
+test("a legacy source document is refused by the real target review and can never be applied", async () => {
+ const f = await canonicalTargetFixture({ legacySource: true });
+ expect(f.review.issues.map(issue => issue.code)).toContain("CANONICAL_SOURCE_MIGRATION_REQUIRED");
+ expect(f.review.reviewReady).toBe(false); expect(f.review.canApply).toBe(false);
+ await expect(runApply(f.context, f.confirmation, f.remote)).rejects.toThrow();
+ expect(await f.site.run(ctx => ctx.db.query("posts").collect())).toHaveLength(0);
+});
 
 test("expired uncertain promotion is atomically retired without another content dispatch", async () => {
  const f = await canonicalTargetFixture();
@@ -293,7 +313,7 @@ test("broker executes canonical target handlers atomically and recovery never du
   expect((await runApply(f.context, f.confirmation, f.remote)).status).toBe("uncertain");
   const recovered = await runApply(f.context, f.confirmation, f.remote); expect(recovered.status).toBe("applied"); expect(recovered.mappings).toBeNull();
   const snapshot = await f.site.run(async ctx => ({ posts: await ctx.db.query("posts").collect(), users: await ctx.db.query("users").collect(), orders: await ctx.db.query("commerce_orders").collect(), jobs: await ctx.db.system.query("_scheduled_functions").collect(), receipts: await ctx.db.query("contentPromotion_receipts").collect() }));
-  expect(snapshot.posts).toHaveLength(1); expect(snapshot.posts[0].title).toBe("Aster"); expect(snapshot.users).toHaveLength(1); expect(snapshot.orders).toHaveLength(0); expect(snapshot.jobs).toHaveLength(0); expect(snapshot.receipts).toHaveLength(1); expect(snapshot.receipts[0].status).toBe("applied");
+  expect(snapshot.posts).toHaveLength(1); expect(snapshot.posts[0].title).toBe("Aster"); expect(snapshot.users).toHaveLength(1); expect(snapshot.orders).toHaveLength(0); expect(publishMaintenance(snapshot.jobs)).toEqual({ postCountRequests: 1, otherWork: [] }); expect(snapshot.receipts).toHaveLength(1); expect(snapshot.receipts[0].status).toBe("applied");
 });
 
 test("canonical target optimistic checks preserve an editorial change made after review", async () => {
@@ -335,16 +355,16 @@ test("a CP finalization refusal is not misclassified as an atomic target refusal
 });
 
 test("already verified target media is reused through canonical apply without any upload or file transfer", async () => {
-  const f = await canonicalTargetFixture(true);
+  const f = await canonicalTargetFixture({ withMedia: true });
   expect(f.review.issues).toEqual([]); expect(f.review.failureCode).toBeNull(); expect(f.review.mediaReady).toBe(true); expect(f.review.mediaRequired).toBe(1); expect(f.review.mediaProvided).toBe(1);
   const result = await runApply(f.context, f.confirmation, f.remote); expect(result.status).toBe("applied"); expect(result.mappings).toHaveLength(2);
   const snapshot = await f.site.run(async ctx => ({ media: await ctx.db.query("media").collect(), posts: await ctx.db.query("posts").collect(), storage: await ctx.db.system.query("_storage").collect(), jobs: await ctx.db.system.query("_scheduled_functions").collect() }));
-  expect(snapshot.media).toHaveLength(1); expect(snapshot.storage).toHaveLength(1); expect(snapshot.posts).toHaveLength(1); expect(snapshot.jobs).toHaveLength(0);
+  expect(snapshot.media).toHaveLength(1); expect(snapshot.storage).toHaveLength(1); expect(snapshot.posts).toHaveLength(1); expect(publishMaintenance(snapshot.jobs)).toEqual({ postCountRequests: 1, otherWork: [] });
   expect(String(snapshot.media[0].storageId)).toBe(f.uploadedStorageId); expect(snapshot.posts[0].featuredImageId).toBe(snapshot.media[0]._id);
 });
 
 test("deleting a reviewed target blob before apply fails canonical optimistic checks without recreating it", async () => {
-  const f = await canonicalTargetFixture(true);
+  const f = await canonicalTargetFixture({ withMedia: true });
   await f.site.run(async ctx => { const id = ctx.db.system.normalizeId("_storage", f.uploadedStorageId!); if (id) await ctx.storage.delete(id); });
   const result = await runApply(f.context, f.confirmation, f.remote); expect(result.status).toBe("rejected"); expect(result.failureCode).toBe("PROMOTION_CONFLICT");
   const snapshot = await f.site.run(async ctx => ({ media: await ctx.db.query("media").collect(), posts: await ctx.db.query("posts").collect(), storage: await ctx.db.system.query("_storage").collect() }));
