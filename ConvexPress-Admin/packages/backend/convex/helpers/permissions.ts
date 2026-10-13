@@ -10,9 +10,12 @@
  *   3. Role document has capabilities[] array
  *   4. Permission checks verify the user's role includes the required capability
  *
- * Dual-auth support:
+ * Identity sources (see auth/issuers.ts; each issuer resolves only through
+ * the user records it owns):
  *   - Admin users authenticate locally (JWT issued by ConvexPress, subject = Convex _id)
- *   - Website users authenticate via Clerk (subject = Clerk user ID)
+ *   - Management sessions come from the control plane (subject = session id)
+ *   - Website users authenticate via Clerk (subject = Clerk user ID), accepted
+ *     only from the configured Clerk issuer
  *
  * Migration support:
  *   - Users may still have legacy `internalRole` string field instead of `roleId`
@@ -46,9 +49,7 @@ import type { AnyCapability, Capability } from "../types/capabilities";
 import { BUILT_IN_ROLES, LEGACY_ROLE_MAP } from "../seed/roles";
 import { isPluginEnabled } from "./plugins";
 import { readMembershipAuthorityGrants, membershipAuthorityReader } from "./membershipAuthority";
-
-const ADMIN_ISSUER = "https://convexpress-admin.local";
-const MANAGEMENT_ISSUER = "https://convexpress-management.local";
+import { classifyIdentity } from "../auth/issuers";
 const CUSTOMER_ROLE_AUTH_CAPABILITIES = new Set<string>(
   BUILT_IN_ROLES.filter(
     (role) => role.type === "customer" && role.status === "active",
@@ -97,10 +98,7 @@ export async function getActiveManagementSession(
   budget?: RequestReadLedger,
 ): Promise<ActiveManagementSession | null> {
   const identity = await ctx.auth.getUserIdentity();
-  if (
-    !identity ||
-    !identity.tokenIdentifier.startsWith(MANAGEMENT_ISSUER + "|")
-  ) {
+  if (!identity || classifyIdentity(identity) !== "management") {
     return null;
   }
 
@@ -196,7 +194,7 @@ async function managementSessionAllows(
  * session, binding, authority or role earlier in this same transaction. */
 async function capabilityPrincipal(ctx: AuthReadCtx, budget?: RequestReadLedger) {
   const identity = await ctx.auth.getUserIdentity();
-  if (identity?.tokenIdentifier.startsWith(MANAGEMENT_ISSUER + "|")) {
+  if (identity && classifyIdentity(identity) === "management") {
     const session = await readActiveManagementSession(ctx, identity.subject as Id<"convexpress_managementSessions">, budget);
     return { user: session?.user ?? null, session };
   }
@@ -216,7 +214,14 @@ function principalAllowsManagementCapability(
 
 /**
  * Get the current authenticated user from the database.
- * Supports local admin, site customer, and short-lived management sessions.
+ *
+ * Resolution order, by the verified token's issuer (auth/issuers.ts):
+ *   1. ConvexPress admin JWT: subject is the users `_id`; requires authSource "local".
+ *   2. Management session: the session, authority, binding and user must all be active.
+ *   3. Clerk, only when the issuer equals the configured Clerk issuer: subject
+ *      is clerkUserId; requires authSource "clerk".
+ * Any other issuer resolves to null. No path matches a subject against
+ * another issuer's user records.
  *
  * @returns User document or null if not authenticated / not found.
  */
@@ -227,43 +232,41 @@ export async function getCurrentUser(
   const identity = await ctx.auth.getUserIdentity();
   if (!identity) return null;
 
-  // tokenIdentifier format: "issuer|subject"
-  const isAdminAuth = identity.tokenIdentifier.startsWith(ADMIN_ISSUER + "|");
-  const isManagementAuth = identity.tokenIdentifier.startsWith(
-    MANAGEMENT_ISSUER + "|",
-  );
-
-  if (isManagementAuth) {
-    const session = await getActiveManagementSession(ctx, budget);
-    return session?.user ?? null;
+  switch (classifyIdentity(identity)) {
+    case "admin": {
+      // Admin local auth — subject is Convex user _id (direct fetch, O(1)).
+      // A stale local JWT must not continue to authorize an account that has
+      // since been linked to Clerk or otherwise moved out of local admin auth.
+      const userId = ctx.db.normalizeId("users", identity.subject);
+      if (!userId) return null;
+      budget?.beforeRead();
+      const user = await ctx.db.get("users", userId);
+      budget?.record(user);
+      if (!user || user.authSource !== "local") return null;
+      return user;
+    }
+    case "management": {
+      const session = await getActiveManagementSession(ctx, budget);
+      return session?.user ?? null;
+    }
+    case "clerk": {
+      // Clerk auth — subject is Clerk user ID, from the configured issuer only.
+      budget?.beforeRead();
+      const user = await ctx.db
+        .query("users")
+        .withIndex("by_clerkUserId", (q) =>
+          q.eq("clerkUserId", identity.subject),
+        )
+        .unique();
+      budget?.record(user);
+      if (!user || user.authSource !== "clerk") return null;
+      return user;
+    }
+    case "external":
+      // Another issuer trusted in auth.config.ts. Its subject is only unique
+      // within that issuer, so it never matches a ConvexPress or Clerk user.
+      return null;
   }
-
-  if (isAdminAuth) {
-    // Admin local auth — subject is Convex user _id (direct fetch, O(1)).
-    // A stale local JWT must not continue to authorize an account that has
-    // since been linked to Clerk or otherwise moved out of local admin auth.
-    budget?.beforeRead();
-    const user = await ctx.db.get(
-      "users",
-      identity.subject as Id<"users">,
-    );
-    budget?.record(user);
-    if (!user || user.authSource !== "local") return null;
-    return user;
-  }
-
-  // Clerk auth — subject is Clerk user ID
-  budget?.beforeRead();
-  const user = await ctx.db
-    .query("users")
-    .withIndex("by_clerkUserId", (q) =>
-      q.eq("clerkUserId", identity.subject),
-    )
-    .unique();
-
-  budget?.record(user);
-  if (!user || user.authSource !== "clerk") return null;
-  return user;
 }
 
 /**

@@ -276,23 +276,18 @@ export const fetchExternal = action({
       });
     }
 
-    // Look up the caller
-    const caller = await ctx.runQuery(
-      internal.feeds.internals.getUserByIdentifier,
-      { userId: identity.subject },
+    // Resolve the caller from the verified identity (never from its subject
+    // alone) and verify Administrator role level.
+    const roleLevel = await ctx.runQuery(
+      internal.feeds.internals.getCallerRoleLevel,
+      {},
     );
-    if (!caller) {
+    if (roleLevel === null) {
       throw new ConvexError({
         code: "UNAUTHORIZED",
         message: "User not found",
       });
     }
-
-    // Verify Administrator role level
-    const roleLevel = await ctx.runQuery(
-      internal.feeds.internals.getUserRoleLevel,
-      { userId: caller._id },
-    );
     if (roleLevel < 100) {
       throw new ConvexError({
         code: "FORBIDDEN",

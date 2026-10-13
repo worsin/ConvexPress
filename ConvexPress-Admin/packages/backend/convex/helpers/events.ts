@@ -33,6 +33,7 @@
  */
 
 import type { RequestReadLedger } from "./requestReadLedger";
+import { classifyIdentity } from "../auth/issuers";
 import { ConvexError } from "convex/values";
 import type { Id } from "../_generated/dataModel";
 import { internal } from "../_generated/api";
@@ -64,6 +65,17 @@ const MAX_EVENT_CHAIN_DEPTH = 5;
 const MAX_PAYLOAD_SIZE = 102400;
 
 // ─── Core Function ──────────────────────────────────────────────────────────
+
+/**
+ * The audit actor identifier for a verified identity. ConvexPress's own and
+ * Clerk identities keep their subject (a users `_id`, a management session id
+ * or a clerkUserId, all resolvable by lookupUserByIdentifier). Any other
+ * issuer's subject is only unique within that issuer, so it is recorded as
+ * its full tokenIdentifier, never as a bare subject another account could match.
+ */
+function eventActorIdentifier(identity: { subject: string; tokenIdentifier: string; issuer?: string }): string {
+  return classifyIdentity(identity) === "external" ? identity.tokenIdentifier : identity.subject;
+}
 
 /**
  * Emit an event into the Event Dispatcher System.
@@ -163,7 +175,7 @@ export async function emitEvent(
     try {
       const identity = await ctx.auth.getUserIdentity();
       if (identity) {
-        actorId = identity.subject;
+        actorId = eventActorIdentifier(identity);
       }
     } catch {
       // No auth context available (system-initiated event). This is fine.

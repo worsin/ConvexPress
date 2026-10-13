@@ -19,6 +19,7 @@ import { v } from "convex/values";
 import { api, internal } from "../_generated/api";
 import { internalMutation, internalQuery, type MutationCtx, type QueryCtx } from "../_generated/server";
 import { emitEvent } from "../helpers/events";
+import { getCurrentUser } from "../helpers/auth";
 import { isPluginEnabled, requirePluginEnabled } from "../helpers/plugins";
 import { decideBridgeCall } from "./bridgeDecisions";
 import { patchWithMediaReferences , patchDynamicWithMediaReferences} from "../media/attachmentGuard";
@@ -1782,25 +1783,11 @@ export const getMyInvoiceForPdf = internalQuery({
 	handler: async (ctx, args) => {
 		if (!(await isPluginEnabled(ctx, "commerceSubscriptions"))) return null;
 
-		const identity = await ctx.auth.getUserIdentity();
-		if (!identity) return null;
-		// Admin-side Convex Auth uses `identity.subject` as the user id ref;
-		// website-side Clerk auth produces a subject == clerkUserId. We try
-		// clerkUserId first (the website path) then fall back to email.
-		let user: Doc<"users"> | null = await ctx.db
-			.query("users")
-			.withIndex("by_clerkUserId", (q) =>
-				q.eq("clerkUserId", identity.subject),
-			)
-			.unique();
-		if (!user && typeof identity.email === "string") {
-			const email = identity.email; // narrowed to string
-			user = await ctx.db
-				.query("users")
-				.withIndex("by_email", (q) => q.eq("email", email.toLowerCase()))
-				.first();
-		}
-		if (!user) return null;
+		// Resolve the caller exactly like the portal (issuer rules included).
+		// Never match a token subject or email claim against users directly:
+		// another trusted issuer could present the same subject or email.
+		const user = await getCurrentUser(ctx);
+		if (!user || user.status !== "active") return null;
 
 		const invoice = await ctx.db.get(args.invoiceId);
 		if (!invoice) return null;

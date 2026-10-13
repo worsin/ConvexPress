@@ -17,6 +17,7 @@ import {
   getRegistrationSettings,
 } from "../helpers/registration";
 import { insertWithMediaReferences, patchWithMediaReferences } from "../media/attachmentGuard";
+import { classifyIdentity } from "./issuers";
 
 import { v } from "convex/values";
 /**
@@ -80,6 +81,12 @@ async function provisionClerkIdentity(
   {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) return null;
+    // Only the configured Clerk issuer provisions website accounts. Any other
+    // trusted issuer's subject is not a Clerk user ID and must never become one.
+    if (classifyIdentity(identity) !== "clerk") {
+      decline.reason = "unknown";
+      return null;
+    }
 
     const clerkUserId = normalizeClerkUserId(identity.subject);
     if (!clerkUserId) return null;

@@ -31,7 +31,7 @@ const SHIPPING_ENCRYPTION_KEY = process.env.SHIPPING_PROVIDER_ENCRYPTION_KEY;
 async function requireShippingAdminAction(ctx: ActionCtx) {
   const identity = await ctx.auth.getUserIdentity();
 
-  if (!identity?.subject) {
+  if (!identity) {
     throw new ConvexError({
       code: "UNAUTHORIZED",
       message: "Authentication is required.",
@@ -39,7 +39,6 @@ async function requireShippingAdminAction(ctx: ActionCtx) {
   }
 
   const result = await ctx.runQuery(internal.shipping.internals.checkShippingAdminAction, {
-    userId: identity.subject,
     capability: "manage_options",
   });
 

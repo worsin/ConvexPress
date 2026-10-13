@@ -5,10 +5,14 @@
  * Actions cannot directly use requireCan() since they lack ctx.db.
  * This internal query bridges that gap.
  *
+ * Convex passes the action's verified identity to this query, so the caller
+ * is resolved by requireCan (issuer rules, auth source, active status, role
+ * compatibility and management-session ceilings), never from an identifier
+ * argument.
+ *
  * Usage:
  *   // In an action:
- *   await ctx.runQuery(internal.sitemaps.helpers.auth.checkCapability, {
- *     userId: identity.subject,
+ *   const { userId } = await ctx.runQuery(internal.sitemaps.helpers.auth.checkCapability, {
  *     capability: "seo.generate_sitemap",
  *   });
  */
@@ -16,67 +20,29 @@
 import { internalQuery } from "../../_generated/server";
 import { v } from "convex/values";
 import { ConvexError } from "convex/values";
-import { lookupUserByIdentifier } from "../../helpers/permissions";
+import { requireCan } from "../../helpers/permissions";
+import { isConcreteCapability } from "../../types/capabilities";
 
 /**
- * Internal query to check if a user has a specific capability.
+ * Internal query to check that the calling user has a specific capability.
  * Designed for use from actions that need to verify permissions.
  *
  * @throws FORBIDDEN if the user lacks the required capability
- * @throws UNAUTHORIZED if the user is not found
+ * @throws UNAUTHORIZED if there is no authenticated ConvexPress user
  */
 export const checkCapability = internalQuery({
   args: {
-    userId: v.string(),
     capability: v.string(),
   },
   returns: v.object({ authorized: v.boolean(), userId: v.id("users") }),
   handler: async (ctx, args) => {
-    // Find user by identifier (clerkUserId or Convex _id)
-    const user = await lookupUserByIdentifier(ctx, args.userId);
-
-    if (!user) {
-      throw new ConvexError({
-        code: "UNAUTHORIZED",
-        message: "User not found",
-      });
-    }
-
-    if (user.status !== "active") {
-      throw new ConvexError({
-        code: "FORBIDDEN",
-        message: "Account is not active",
-      });
-    }
-
-    // Resolve user's role
-    let capabilities: string[] = [];
-
-    if (user.roleId) {
-      const role = await ctx.db.get("roles", user.roleId);
-      if (role && role.status === "active") {
-        capabilities = (role as { capabilities: string[] }).capabilities || [];
-      }
-    } else if (user.internalRole) {
-      const role = await ctx.db
-        .query("roles")
-        .withIndex("by_slug", (q) => q.eq("slug", user.internalRole as string))
-        .unique();
-      if (role && role.status === "active") {
-        capabilities = role.capabilities || [];
-      }
-    }
-
-    if (!capabilities.includes(args.capability)) {
-      console.warn(
-        `Sitemap access denied: user=${user._id} capability=${args.capability}`,
-      );
+    if (!isConcreteCapability(args.capability)) {
       throw new ConvexError({
         code: "FORBIDDEN",
         message: "Insufficient permissions",
       });
     }
-
+    const user = await requireCan(ctx, args.capability);
     return { authorized: true, userId: user._id };
   },
 });

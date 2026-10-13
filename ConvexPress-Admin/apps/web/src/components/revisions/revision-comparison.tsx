@@ -330,7 +330,12 @@ export function RevisionComparison({
       {!compareMode && rightRevision ? (
         <DiffViewer
           left={{
-            title: post.title, content: post.content ?? "", excerpt: post.excerpt,
+            // posts.get does not declare a legacy HTML `content` field; read it
+            // only when a record carries one. Authored fields are compared
+            // through `details`.
+            title: post.title,
+            content: "content" in post && typeof post.content === "string" ? post.content : "",
+            excerpt: post.excerpt,
             details: JSON.stringify(Object.fromEntries(AUTHORING_FIELDS
               .filter(field => !["title", "content", "excerpt", "blocksRevision"].includes(field))
               .filter(field => rightRevision.snapshotVersion === 2 || !["layoutId", "pagePrompt"].includes(field))

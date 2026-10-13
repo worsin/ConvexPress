@@ -5,6 +5,7 @@ import { convexTest } from "convex-test";
 import { api } from "../../_generated/api";
 import schema from "../../schema";
 import { verifyPassword } from "../helpers";
+import { useClerkIssuer } from "../../__tests__/clerkIssuer.test-support";
 
 const PASSWORD = "CorrectHorseBatteryStaple42!";
 const SETUP_TOKEN = "setup-token-with-32-safe-characters";
@@ -12,6 +13,7 @@ const ROTATED_SETUP_TOKEN = "rotated-setup-token-with-32-chars";
 const TEST_ORIGIN = "http://127.0.0.1:4105";
 const ADMIN_ISSUER = "https://convexpress-admin.local";
 const ORIGINAL_ENV = { ...process.env };
+useClerkIssuer("https://clerk.example");
 
 const modules = {
   "./convex/membership/policyReads.ts": () => import("../../membership/policyReads"),

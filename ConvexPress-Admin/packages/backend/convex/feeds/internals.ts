@@ -7,19 +7,17 @@
  *
  * Functions:
  *   - getSettingsForFeed      - Get feed settings (for use in actions)
- *   - getUserByIdentifier     - Look up a user by identifier string (for auth in actions)
- *   - getUserRoleLevel        - Get a user's role level (for capability checks in actions)
+ *   - getCallerRoleLevel      - The calling action's verified user and role level
  *
  * WordPress equivalent: Internal helper functions called by feed template files
  */
 
-import { lookupUserByIdentifier } from "../helpers/permissions";
+import { getCurrentRoleLevel, getCurrentUser } from "../helpers/permissions";
 import { internalQuery } from "../_generated/server";
 import { v } from "convex/values";
 import { numberSetting, settingsRecord, textSetting } from "../helpers/settingsReader";
 import { FEED_SETTINGS_DEFAULTS, MAX_FEED_ITEM_COUNT } from "./validators";
 
-import { usersDocs } from "../schema/users.docs.generated";
 // ─── getSettingsForFeed ─────────────────────────────────────────────────────
 
 /**
@@ -67,67 +65,21 @@ export const getSettingsForFeed = internalQuery({
   },
 });
 
-// ─── getUserByIdentifier ────────────────────────────────────────────────────
+// ─── getCallerRoleLevel ─────────────────────────────────────────────────────
 
 /**
- * Look up a user by their identifier (clerkUserId or Convex _id).
- * Used by the fetchExternal action for authentication.
- */
-export const getUserByIdentifier = internalQuery({
-  args: { userId: v.string() },
-  returns: v.union(v.null(), usersDocs.users),
-  handler: async (ctx, args) => {
-    const byClerk = await ctx.db
-      .query("users")
-      .withIndex("by_clerkUserId", (q) => q.eq("clerkUserId", args.userId))
-      .unique();
-    if (byClerk) return byClerk;
-
-    const userId = ctx.db.normalizeId("users", args.userId);
-    return userId ? await ctx.db.get("users", userId) : null;
-  },
-});
-
-// ─── getUserRoleLevel ───────────────────────────────────────────────────────
-
-/**
- * Get a user's role level (0-100) for capability checks in actions.
+ * The calling action's role level (0-100), or null when it has no active
+ * ConvexPress user. Convex passes the action's verified identity to this
+ * query, so the caller is resolved by getCurrentUser (issuer rules, auth
+ * source and management-session ceilings included), never from an argument.
  * Used by the fetchExternal action to verify Administrator access.
- *
- * Resolution order:
- *   1. Direct roleId reference (new system)
- *   2. Legacy internalRole string (migration path)
- *   3. Returns 0 if no role found
  */
-export const getUserRoleLevel = internalQuery({
-  args: { userId: v.id("users") },
-  returns: v.number(),
-  handler: async (ctx, args) => {
-    const user = await ctx.db.get("users", args.userId);
-    if (!user || user.status !== "active") return 0;
-
-    // Try direct roleId
-    if (user.roleId) {
-      const role = await ctx.db.get("roles", user.roleId);
-      if (role && role.status === "active") {
-        return role.level;
-      }
-    }
-
-    // Try legacy internalRole
-    if (user.internalRole) {
-      // Map legacy roles to approximate levels
-      const legacyMap: Record<string, number> = {
-        administrator: 100,
-        admin: 100,
-        editor: 80,
-        author: 60,
-        contributor: 40,
-        subscriber: 20,
-      };
-      return legacyMap[user.internalRole.toLowerCase()] ?? 0;
-    }
-
-    return 0;
+export const getCallerRoleLevel = internalQuery({
+  args: {},
+  returns: v.union(v.null(), v.number()),
+  handler: async (ctx) => {
+    const user = await getCurrentUser(ctx);
+    if (!user || user.status !== "active") return null;
+    return await getCurrentRoleLevel(ctx);
   },
 });

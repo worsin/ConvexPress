@@ -31,6 +31,6 @@ export async function digitalFixture() {
   return {
     t, ids,
     operator: t.withIdentity({ subject: ids.operator, tokenIdentifier: `https://convexpress-admin.local|${ids.operator}` }),
-    customer: t.withIdentity({ subject: "digital-customer", tokenIdentifier: "https://clerk.example|digital-customer" }),
+    customer: t.withIdentity({ subject: "digital-customer", issuer: "https://clerk.example", tokenIdentifier: "https://clerk.example|digital-customer" }),
   };
 }

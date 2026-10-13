@@ -3,8 +3,10 @@ import { convexTest } from "convex-test";
 
 import { api, internal } from "../../_generated/api";
 import schema from "../../schema";
+import { useClerkIssuer } from "../../__tests__/clerkIssuer.test-support";
 
 const CLERK_ISSUER = "https://clerk.example";
+useClerkIssuer(CLERK_ISSUER);
 const ADMIN_ISSUER = "https://convexpress-admin.local";
 
 const modules = {

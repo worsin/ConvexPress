@@ -4,6 +4,8 @@ import {makeFunctionReference} from 'convex/server';
 import schema from '../../schema';
 import {readMembershipAccess} from '../membership';
 import {RequestReadLedger} from '../../helpers/requestReadLedger';
+import { useClerkIssuer } from "../../__tests__/clerkIssuer.test-support";
+useClerkIssuer("https://clerk.example.invalid");
 const modules={
  './convex/_generated/api.js':()=>import('../../_generated/api.js'),
  './convex/_generated/server.js':()=>import('../../_generated/server.js'),
@@ -38,7 +40,7 @@ test('membership teaser recognizes only this site user and exact active plan wit
  for(const status of ['inactive','banned'] as const){await t.run(ctx=>ctx.db.patch(ids.user,{status}));expect((await client.run(ctx=>readMembershipAccess(ctx,{plan:ids.plan}))).state).toBe('signed-out');}
  await t.run(ctx=>ctx.db.patch(ids.user,{status:'active',authSource:'clerk',clerkUserId:'studio-customer'}));
  expect((await client.run(ctx=>readMembershipAccess(ctx,{plan:ids.plan}))).state).toBe('signed-out');
- const customer=t.withIdentity({subject:'studio-customer',tokenIdentifier:'https://clerk.example.invalid|studio-customer'});
+ const customer=t.withIdentity({subject:'studio-customer',issuer:'https://clerk.example.invalid',tokenIdentifier:'https://clerk.example.invalid|studio-customer'});
  expect((await customer.run(ctx=>readMembershipAccess(ctx,{plan:ids.plan}))).state).toBe('granted');
 });
 test('membership teaser handles absent, disabled, removed and unpublished plans without exposing their titles',async()=>{

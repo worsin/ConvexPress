@@ -8,7 +8,8 @@ import { persistedShippingQuoteValidator } from "./quoteProvenance";
 
 import { internalMutation, internalQuery, type MutationCtx } from "../_generated/server";
 import { requireCommerceEnabled } from "../commerce/helpers";
-import { lookupUserByIdentifier } from "../helpers/permissions";
+import { requireCan } from "../helpers/permissions";
+import { isConcreteCapability } from "../types/capabilities";
 import { zoneMatchesAddress } from "./helpers";
 import { shippingProviderArg } from "./validators";
 import { patchDynamicWithMediaReferences } from "../media/attachmentGuard";
@@ -388,47 +389,20 @@ export const replaceCheckoutQuotes: RegisteredMutation<"internal",ReplaceCheckou
   },
 });
 
+/** The calling action's capability check. Convex passes the action's
+ * verified identity to this query, so the caller is resolved by requireCan
+ * (issuer rules, auth source, role compatibility and management-session
+ * ceilings), never from an identifier argument. */
 export const checkShippingAdminAction = internalQuery({
   args: {
-    userId: v.string(),
     capability: v.string(),
   },
   returns: v.object({ authorized: v.boolean(), userId: v.id("users") }),
   handler: async (ctx, args) => {
-    const user = await lookupUserByIdentifier(ctx, args.userId);
-
-    if (!user) {
-      throw new Error("User not found.");
-    }
-
-    if (user.status !== "active") {
-      throw new Error("Account is not active.");
-    }
-
-    let capabilities: string[] = [];
-
-    if (user.roleId) {
-      const role = await ctx.db.get(user.roleId);
-      if (role && role.status === "active") {
-        capabilities = role.capabilities ?? [];
-      }
-    } else if (user.internalRole) {
-      const role = await ctx.db
-        .query("roles")
-        .withIndex("by_slug", (q) => q.eq("slug", user.internalRole as string))
-        .unique();
-      if (role && role.status === "active") {
-        capabilities = role.capabilities ?? [];
-      }
-    }
-
-    if (!capabilities.includes(args.capability)) {
-      console.warn(
-        `Shipping admin action denied: user=${user._id} capability=${args.capability}`,
-      );
+    if (!isConcreteCapability(args.capability)) {
       throw new Error("Insufficient permissions");
     }
-
+    const user = await requireCan(ctx, args.capability);
     return { authorized: true, userId: user._id };
   },
 });

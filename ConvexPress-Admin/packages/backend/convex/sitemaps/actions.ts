@@ -82,12 +82,11 @@ export const generate = action({
       });
     }
 
-    // 2. Verify capability via internal query (actions can't access ctx.db directly)
-    const userId = identity.subject;
-    await ctx.runQuery(
+    // 2. Verify capability via internal query (actions can't access ctx.db
+    // directly). The query resolves the caller from the verified identity.
+    const { userId } = await ctx.runQuery(
       internal.sitemaps.helpers.auth.checkCapability,
       {
-        userId,
         capability: "seo.generate_sitemap",
       },
     );

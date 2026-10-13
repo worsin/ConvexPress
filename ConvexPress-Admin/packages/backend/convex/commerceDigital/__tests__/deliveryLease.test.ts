@@ -2,6 +2,8 @@ import { expect, test } from "bun:test";
 import { makeFunctionReference } from "convex/server";
 import { digitalFixture } from "./fixtures.test";
 import { recordDownload, recordDownloadInternal } from "../mutations";
+import { useClerkIssuer } from "../../__tests__/clerkIssuer.test-support";
+useClerkIssuer("https://clerk.example");
 const begin = makeFunctionReference<"mutation">("commerceDigital/delivery:beginLease");
 const start = makeFunctionReference<"mutation">("commerceDigital/delivery:startLease");
 const read = makeFunctionReference<"query">("commerceDigital/delivery:readLease");

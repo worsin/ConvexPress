@@ -8,7 +8,7 @@ import * as catalogRevisionWrites from "../media/attachmentGuard";
  * Grouped here to keep the sync actions clean and focused on transform logic.
  */
 
-import { lookupUserByIdentifier } from "../helpers/permissions";
+import { requireCan } from "../helpers/permissions";
 import { v } from "convex/values";
 import { internalMutation, internalQuery } from "../_generated/server";
 import { patchWithMediaReferences } from "../media/attachmentGuard";
@@ -22,47 +22,20 @@ import { siteNotificationDefinitionsDocs } from "../schema/siteNotificationDefin
 // ─── Auth Helper ─────────────────────────────────────────────────────────────
 
 /**
- * Check if a user has the manage_options capability (Administrator only).
- * Used by public action wrappers to authenticate Airtable sync requests.
+ * Check that the calling user has the manage_options capability (Administrator
+ * only). Used by public action wrappers to authenticate Airtable sync requests.
+ * Convex passes the action's verified identity to this query, so the caller is
+ * resolved by requireCan (issuer rules, auth source, active status, role
+ * compatibility and management-session ceilings), never from an argument.
  *
- * @throws UNAUTHORIZED if user not found
- * @throws FORBIDDEN if user lacks manage_options capability
+ * @throws UNAUTHORIZED if there is no authenticated ConvexPress user
+ * @throws FORBIDDEN if the user lacks manage_options
  */
 export const checkAdminPermission = internalQuery({
-  args: { userId: v.string() },
+  args: {},
   returns: v.object({ authorized: v.boolean(), userId: v.id("users") }),
-  handler: async (ctx, args) => {
-    const user = await lookupUserByIdentifier(ctx, args.userId);
-
-    if (!user) {
-      throw new Error("User not found");
-    }
-
-    if (user.status !== "active") {
-      throw new Error("Account is not active");
-    }
-
-    // Resolve role capabilities
-    let capabilities: string[] = [];
-    if (user.roleId) {
-      const role = await ctx.db.get("roles", user.roleId);
-      if (role && role.status === "active") {
-        capabilities = (role as { capabilities: string[] }).capabilities || [];
-      }
-    } else if (user.internalRole) {
-      const role = await ctx.db
-        .query("roles")
-        .withIndex("by_slug", (q) => q.eq("slug", user.internalRole as string))
-        .unique();
-      if (role && role.status === "active") {
-        capabilities = role.capabilities || [];
-      }
-    }
-
-    if (!capabilities.includes("manage_options")) {
-      throw new Error("Administrator access required for Airtable sync");
-    }
-
+  handler: async (ctx) => {
+    const user = await requireCan(ctx, "manage_options");
     return { authorized: true, userId: user._id };
   },
 });

@@ -10,10 +10,9 @@
 
 import { importPKCS8, exportJWK, SignJWT } from "jose";
 import bcrypt from "bcryptjs";
+import { ADMIN_ISSUER, MANAGEMENT_ISSUER } from "./issuers";
 
 const ALG = "ES256";
-const ISSUER = "https://convexpress-admin.local";
-const MANAGEMENT_ISSUER = "https://convexpress-management.local";
 const AUDIENCE = "convexpress-admin";
 const ACCESS_TOKEN_EXPIRY = "15m";
 const REFRESH_TOKEN_BYTES = 32;
@@ -36,7 +35,7 @@ export async function signAccessToken(payload: {
   })
     .setProtectedHeader({ alg: ALG, kid: "convexpress-admin-1" })
     .setSubject(payload.userId)
-    .setIssuer(ISSUER)
+    .setIssuer(ADMIN_ISSUER)
     .setAudience(AUDIENCE)
     .setIssuedAt()
     .setExpirationTime(payload.expiresAt === undefined ? ACCESS_TOKEN_EXPIRY : Math.floor(payload.expiresAt / 1_000))

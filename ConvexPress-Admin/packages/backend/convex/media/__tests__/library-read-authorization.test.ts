@@ -2,6 +2,8 @@ import { expect, test } from "bun:test";
 import { commerceHarness } from "../../commerce/__tests__/handlerHarness.test-support";
 import { BUILT_IN_ROLES } from "../../seed/roles";
 import { countDocuments, counts, get, getByIds, getPublic, getSrcSet, getUrl, list } from "../queries";
+import { useClerkIssuer } from "../../__tests__/clerkIssuer.test-support";
+useClerkIssuer("https://clerk.example");
 
 const libraryCalls = [
   ["get", get, { mediaId: "media1" }],
@@ -27,6 +29,7 @@ function fixture(options: { role?: string; status?: string; revoked?: boolean; a
   }, "reader");
   ctx.auth.getUserIdentity = async () => options.anonymous ? null : {
     subject: isLocal ? "reader" : "clerk-reader",
+    issuer: isLocal ? "https://convexpress-admin.local" : "https://clerk.example",
     tokenIdentifier: isLocal ? "https://convexpress-admin.local|reader" : "https://clerk.example|clerk-reader",
   };
   ctx.storage = { getUrl: async (id: string) => `https://example.invalid/${id}` };
